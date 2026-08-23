@@ -18,6 +18,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Laravel\Scout\Attributes\SearchUsingFullText;
+use Laravel\Scout\Searchable;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 use Spatie\MediaLibrary\HasMedia;
@@ -33,6 +35,7 @@ class Event extends Model implements HasMedia
     use HasSlug;
     use InteractsWithMedia;
     use LogsActivity;
+    use Searchable;
     use SoftDeletes;
 
     /** @var list<string> */
@@ -77,6 +80,30 @@ class Event extends Model implements HasMedia
         'views_count',
         'saves_count',
     ];
+
+    /**
+     * Le colonne su cui `/cerca` interroga (§11.1).
+     *
+     * Il driver `database` di Scout non costruisce alcun indice esterno: legge
+     * queste chiavi come nomi di colonna e le confronta direttamente. Titolo,
+     * sottotitolo, riassunto e organizzatore vanno per `LIKE`, così che
+     * "concer" trovi "concerto"; la descrizione, che è un testo lungo, passa
+     * per l'indice full-text dichiarato dall'attributo — su un `LONGTEXT` un
+     * `LIKE '%…%'` leggerebbe l'intera tabella a ogni ricerca.
+     *
+     * @return array<string, string|null>
+     */
+    #[SearchUsingFullText(['description'])]
+    public function toSearchableArray(): array
+    {
+        return [
+            'title' => $this->title,
+            'subtitle' => $this->subtitle,
+            'short_description' => $this->short_description,
+            'organizer_name' => $this->organizer_name,
+            'description' => $this->description,
+        ];
+    }
 
     /**
      * Lo slug è unico per città, non globalmente: la stessa serata può esistere

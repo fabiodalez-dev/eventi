@@ -75,6 +75,44 @@ return [
         'unknown' => 'Prezzo non indicato',
     ],
 
+    /* Preset del filtro data (§11.3). `phrase` è la forma da infilare in un
+       titolo: "Concerti gratis stasera a Padova". */
+    'date_preset' => [
+        'today' => 'Oggi',
+        'tonight' => 'Stasera',
+        'tomorrow' => 'Domani',
+        'weekend' => 'Weekend',
+        'week' => 'Questa settimana',
+    ],
+
+    'date_preset_phrase' => [
+        'today' => 'oggi',
+        'tonight' => 'stasera',
+        'tomorrow' => 'domani',
+        'weekend' => 'questo weekend',
+        'week' => 'questa settimana',
+    ],
+
+    'price_filter' => [
+        'free' => 'Gratis',
+        'donation' => 'Offerta libera',
+        'max10' => 'Fino a 10 €',
+        'max20' => 'Fino a 20 €',
+    ],
+
+    'price_filter_phrase' => [
+        'free' => 'gratis',
+        'donation' => 'a offerta libera',
+        'max10' => 'fino a 10 €',
+        'max20' => 'fino a 20 €',
+    ],
+
+    'event_sort' => [
+        'time' => 'Orario',
+        'relevance' => 'Rilevanza',
+        'distance' => 'Distanza',
+    ],
+
     'time_of_day' => [
         'day' => 'Di giorno',
         'evening' => 'Di sera',
@@ -190,6 +228,24 @@ return [
         'cities.manage' => 'Gestire le città',
 
         'import_sources.manage' => 'Gestire le sorgenti di import',
+
+        'users.manage' => 'Gestire gli account e i ruoli',
+        'users.impersonate' => 'Navigare il sito come un altro utente',
+    ],
+
+    /* Ogni quanto si ripete una serata, detto come lo direbbe chi la organizza
+       (§10.4): il gestore non vede mai la sintassi RRULE che sta sotto. */
+    'recurrence_frequency' => [
+        'daily' => 'Ogni giorno',
+        'weekly' => 'Ogni settimana',
+        'biweekly' => 'Una settimana sì e una no',
+        'monthly' => 'Ogni mese',
+    ],
+
+    /* Le tre finestre delle statistiche del locale (§10.5). Una chiave sola:
+       i giorni sono un parametro, non tre traduzioni diverse. */
+    'stats_period' => [
+        'days' => ':days giorni',
     ],
 
 ];

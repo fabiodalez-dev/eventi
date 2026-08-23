@@ -39,6 +39,9 @@ enum Permission: string
 
     case ManageImportSources = 'import_sources.manage';
 
+    case ManageUsers = 'users.manage';
+    case ImpersonateUsers = 'users.impersonate';
+
     public function label(): string
     {
         return __('enums.permission.'.$this->value);

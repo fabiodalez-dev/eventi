@@ -6,6 +6,7 @@ namespace App\Observers;
 
 use App\Models\Event;
 use App\Models\EventOccurrence;
+use App\Services\Calendar\MonthCalendar;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
@@ -22,6 +23,22 @@ final class EventObserver
      * pluriennale ne ha centinaia.
      */
     private const CHUNK = 200;
+
+    /**
+     * I conteggi del calendario mensile stanno in cache per mezz'ora (§12.3),
+     * ma un evento pubblicato, ritirato o spostato deve comparire subito: la
+     * cache della città si invalida qui, che è il punto attraversato da ogni
+     * salvataggio comunque sia avvenuto — pannello, import o comando.
+     */
+    public function saved(Event $event): void
+    {
+        MonthCalendar::bump((int) $event->city_id);
+    }
+
+    public function deleted(Event $event): void
+    {
+        MonthCalendar::bump((int) $event->city_id);
+    }
 
     public function updated(Event $event): void
     {

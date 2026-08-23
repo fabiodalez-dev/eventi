@@ -4,10 +4,16 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\UserRole;
 use App\Enums\VenueRole;
 use Database\Factories\UserFactory;
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Models\Contracts\HasTenants;
+use Filament\Panel;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -15,7 +21,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
 
-class User extends Authenticatable implements MustVerifyEmail
+class User extends Authenticatable implements FilamentUser, HasTenants, MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory;
@@ -136,6 +142,64 @@ class User extends Authenticatable implements MustVerifyEmail
     public function reviewedSubmissions(): HasMany
     {
         return $this->hasMany(EventSubmission::class, 'reviewed_by');
+    }
+
+    /**
+     * Chi entra in un pannello Filament (§9 e §10 del piano).
+     *
+     * `/admin` è la redazione: amministratori, amministratori di sistema e
+     * moderatori. `/gestione` è il pannello dei locali e guarda invece
+     * l'appartenenza alla pivot `venue_user`, perché lì contare i ruoli
+     * globali non basterebbe a dire *quale* locale si gestisce.
+     *
+     * Il permesso di fare qualcosa una volta dentro non si decide qui: quello
+     * resta alle Policy di `app/Policies`, che Filament interroga da sé.
+     */
+    public function canAccessPanel(Panel $panel): bool
+    {
+        return match ($panel->getId()) {
+            'admin' => $this->isEditorialStaff(),
+            'venue' => $this->venues()->exists(),
+            default => false,
+        };
+    }
+
+    /**
+     * I locali fra cui si può passare con lo switcher di `/gestione` (§10).
+     *
+     * Sono esattamente quelli in cui la persona ha una riga in `venue_user`:
+     * lo stesso insieme che interrogano le Policy. Se un giorno divergessero,
+     * lo switcher offrirebbe un locale che poi nessuna azione lascia toccare.
+     *
+     * @return Collection<int, Venue>
+     */
+    public function getTenants(Panel $panel): Collection
+    {
+        /** @var Collection<int, Venue> $venues */
+        $venues = $this->venues()->orderBy('name')->get();
+
+        return $venues;
+    }
+
+    /**
+     * La barriera contro l'ID scritto a mano nell'indirizzo (§18 scenario F):
+     * `IdentifyTenant` chiama questo metodo prima di qualunque altra cosa e
+     * risponde 404 se dice di no. Le Policy restano comunque il secondo
+     * controllo su ogni riga — questo è il primo, non l'unico.
+     */
+    public function canAccessTenant(Model $tenant): bool
+    {
+        return $tenant instanceof Venue
+            && $this->venues()->whereKey($tenant->getKey())->exists();
+    }
+
+    public function isEditorialStaff(): bool
+    {
+        return $this->hasAnyRole([
+            UserRole::Admin->value,
+            UserRole::SuperAdmin->value,
+            UserRole::Moderator->value,
+        ]);
     }
 
     /**

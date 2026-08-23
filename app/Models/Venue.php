@@ -17,6 +17,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Laravel\Scout\Attributes\SearchUsingFullText;
+use Laravel\Scout\Searchable;
 use MatanYadaev\EloquentSpatial\Objects\Point;
 use MatanYadaev\EloquentSpatial\Traits\HasSpatial;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
@@ -40,6 +42,7 @@ class Venue extends Model implements HasMedia
     use HasSpatial;
     use InteractsWithMedia;
     use LogsActivity;
+    use Searchable;
     use SoftDeletes;
 
     /** @var list<string> */
@@ -79,6 +82,25 @@ class Venue extends Model implements HasMedia
         'default_event_settings',
         'stats_cache',
     ];
+
+    /**
+     * Le colonne su cui `/cerca` interroga. Il comune entra fra le colonne
+     * cercabili perché è così che si cerca un locale quando non se ne ricorda
+     * il nome: "circolo Este".
+     *
+     * @return array<string, string|null>
+     */
+    #[SearchUsingFullText(['description'])]
+    public function toSearchableArray(): array
+    {
+        return [
+            'name' => $this->name,
+            'short_description' => $this->short_description,
+            'municipality' => $this->municipality,
+            'address' => $this->address,
+            'description' => $this->description,
+        ];
+    }
 
     public function getSlugOptions(): SlugOptions
     {

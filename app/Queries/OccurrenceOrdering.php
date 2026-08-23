@@ -18,4 +18,10 @@ enum OccurrenceOrdering
 
     /** In evidenza e punteggio redazionale prima della cronologia. */
     case Relevance;
+
+    /** Distanza crescente: ha senso solo dopo `near()` (§13.2, `sort=distance`). */
+    case Distance;
+
+    /** Dalla data più recente alla più vecchia: è l'ordine di un archivio (§11.9). */
+    case ReverseChronological;
 }

@@ -1,9 +1,355 @@
 @import 'tailwindcss';
 
+/* Font self-hosted (@fontsource): nessuna richiesta a Google Fonts o ad altri
+   CDN, che sarebbe un trasferimento di dati verso terzi senza consenso.
+   I file sono variabili e suddivisi per unicode-range: il browser scarica il
+   solo sottoinsieme che gli serve. */
+@import '@fontsource-variable/bricolage-grotesque/wght.css';
+@import '@fontsource-variable/inter/wght.css';
+
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 
+/* ---------------------------------------------------------------------------
+   Palette
+
+   I colori vivono come variabili CSS in `:root`, non dentro `@theme`: il tema
+   chiaro e quello scuro devono poter cambiare valore alla stessa variabile,
+   mentre le utility di Tailwind restano le stesse. `@theme inline` (più sotto)
+   fa sì che `bg-surface` emetta `var(--surface)` invece di copiarne il valore,
+   che è ciò che rende possibile lo scambio.
+
+   Lo scuro è la modalità del prodotto — si cercano eventi la sera — ma il
+   chiaro non è un ripiego: entrambi partono dagli stessi ruoli.
+--------------------------------------------------------------------------- */
+
+:root {
+    color-scheme: light dark;
+
+    /* Superfici */
+    --canvas: oklch(0.985 0.006 95);
+    --canvas-deep: oklch(0.955 0.01 95);
+    --surface: oklch(1 0 0);
+    --surface-raised: oklch(1 0 0);
+    --surface-sunken: oklch(0.965 0.008 95);
+    --overlay: oklch(0.22 0.03 290 / 0.55);
+
+    /* Testo */
+    --ink: oklch(0.24 0.03 290);
+    --ink-muted: oklch(0.48 0.02 290);
+    --ink-subtle: oklch(0.62 0.02 290);
+    --ink-inverted: oklch(0.99 0.005 95);
+
+    /* Bordi */
+    --line: oklch(0.9 0.01 290);
+    --line-strong: oklch(0.82 0.015 290);
+
+    /* Marchio: viola elettrico, il colore delle insegne al neon */
+    --brand: oklch(0.53 0.23 300);
+    --brand-strong: oklch(0.45 0.23 300);
+    --brand-soft: oklch(0.95 0.04 300);
+    --on-brand: oklch(0.99 0.01 300);
+    --on-brand-soft: oklch(0.38 0.2 300);
+
+    /* Accento caldo: usato per l'evidenza redazionale */
+    --accent: oklch(0.72 0.17 55);
+    --accent-soft: oklch(0.96 0.05 75);
+    --on-accent: oklch(0.24 0.05 55);
+
+    /* Stati di un'occorrenza */
+    --live: oklch(0.56 0.21 22);
+    --live-soft: oklch(0.95 0.04 30);
+    --on-live: oklch(0.99 0.01 30);
+    --on-live-soft: oklch(0.44 0.19 25);
+
+    --soon: oklch(0.63 0.16 70);
+    --soon-soft: oklch(0.95 0.05 80);
+    --on-soon-soft: oklch(0.42 0.12 60);
+
+    --free: oklch(0.55 0.14 165);
+    --free-soft: oklch(0.94 0.05 165);
+    --on-free-soft: oklch(0.38 0.11 165);
+
+    --muted-badge: oklch(0.93 0.01 290);
+    --on-muted-badge: oklch(0.42 0.02 290);
+
+    --focus: oklch(0.6 0.2 300);
+
+    /* Placeholder della locandina: nessun salto di layout mentre l'immagine
+       arriva, e nessun rettangolo grigio morto se non arriva mai. */
+    --poster-from: oklch(0.9 0.05 300);
+    --poster-to: oklch(0.86 0.06 250);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --canvas: oklch(0.17 0.02 288);
+        --canvas-deep: oklch(0.13 0.02 288);
+        --surface: oklch(0.21 0.025 288);
+        --surface-raised: oklch(0.24 0.028 288);
+        --surface-sunken: oklch(0.19 0.022 288);
+        --overlay: oklch(0.1 0.02 288 / 0.7);
+
+        --ink: oklch(0.96 0.01 288);
+        --ink-muted: oklch(0.76 0.02 288);
+        --ink-subtle: oklch(0.63 0.02 288);
+        --ink-inverted: oklch(0.16 0.02 288);
+
+        --line: oklch(0.31 0.025 288);
+        --line-strong: oklch(0.42 0.03 288);
+
+        --brand: oklch(0.72 0.2 300);
+        --brand-strong: oklch(0.79 0.18 300);
+        --brand-soft: oklch(0.32 0.09 300);
+        --on-brand: oklch(0.16 0.04 300);
+        --on-brand-soft: oklch(0.9 0.09 300);
+
+        --accent: oklch(0.79 0.16 60);
+        --accent-soft: oklch(0.34 0.08 60);
+        --on-accent: oklch(0.18 0.04 60);
+
+        --live: oklch(0.68 0.2 25);
+        --live-soft: oklch(0.33 0.1 25);
+        --on-live: oklch(0.15 0.03 25);
+        --on-live-soft: oklch(0.88 0.09 30);
+
+        --soon: oklch(0.79 0.15 72);
+        --soon-soft: oklch(0.33 0.07 70);
+        --on-soon-soft: oklch(0.9 0.09 80);
+
+        --free: oklch(0.72 0.14 165);
+        --free-soft: oklch(0.29 0.07 165);
+        --on-free-soft: oklch(0.88 0.1 165);
+
+        --muted-badge: oklch(0.28 0.02 288);
+        --on-muted-badge: oklch(0.8 0.02 288);
+
+        --focus: oklch(0.78 0.17 300);
+
+        --poster-from: oklch(0.32 0.08 300);
+        --poster-to: oklch(0.27 0.07 250);
+    }
+}
+
+/* ---------------------------------------------------------------------------
+   Token del tema
+--------------------------------------------------------------------------- */
+
+@theme inline {
+    --color-canvas: var(--canvas);
+    --color-canvas-deep: var(--canvas-deep);
+    --color-surface: var(--surface);
+    --color-surface-raised: var(--surface-raised);
+    --color-surface-sunken: var(--surface-sunken);
+    --color-overlay: var(--overlay);
+
+    --color-ink: var(--ink);
+    --color-ink-muted: var(--ink-muted);
+    --color-ink-subtle: var(--ink-subtle);
+    --color-ink-inverted: var(--ink-inverted);
+
+    --color-line: var(--line);
+    --color-line-strong: var(--line-strong);
+
+    --color-brand: var(--brand);
+    --color-brand-strong: var(--brand-strong);
+    --color-brand-soft: var(--brand-soft);
+    --color-on-brand: var(--on-brand);
+    --color-on-brand-soft: var(--on-brand-soft);
+
+    --color-accent: var(--accent);
+    --color-accent-soft: var(--accent-soft);
+    --color-on-accent: var(--on-accent);
+
+    --color-live: var(--live);
+    --color-live-soft: var(--live-soft);
+    --color-on-live: var(--on-live);
+    --color-on-live-soft: var(--on-live-soft);
+
+    --color-soon: var(--soon);
+    --color-soon-soft: var(--soon-soft);
+    --color-on-soon-soft: var(--on-soon-soft);
+
+    --color-free: var(--free);
+    --color-free-soft: var(--free-soft);
+    --color-on-free-soft: var(--on-free-soft);
+
+    --color-muted-badge: var(--muted-badge);
+    --color-on-muted-badge: var(--on-muted-badge);
+
+    --color-focus: var(--focus);
+}
+
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-sans: 'Inter Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif,
+        'Apple Color Emoji', 'Segoe UI Emoji';
+    --font-display: 'Bricolage Grotesque Variable', 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+
+    /* Scala tipografica: i titoli sono stretti di crenatura, il corpo respira. */
+    /* Il titolo di pagina scala con la finestra: a 390px 2rem, oltre i 900px 3rem. */
+    --text-hero: clamp(2rem, 5.5vw, 3rem);
+    --text-hero--line-height: 1.04;
+    --text-hero--letter-spacing: -0.035em;
+    --text-hero--font-weight: 700;
+
+    --text-section: 1.375rem;
+    --text-section--line-height: 1.15;
+    --text-section--letter-spacing: -0.02em;
+    --text-section--font-weight: 600;
+
+    --text-card: 1.0625rem;
+    --text-card--line-height: 1.25;
+    --text-card--letter-spacing: -0.015em;
+    --text-card--font-weight: 600;
+
+    --text-eyebrow: 0.6875rem;
+    --text-eyebrow--line-height: 1;
+    --text-eyebrow--letter-spacing: 0.08em;
+    --text-eyebrow--font-weight: 600;
+
+    /* Spaziature ricorrenti: il margine laterale del contenuto e il respiro
+       fra due sezioni della pagina. Averle come token evita che ogni pagina
+       scelga il proprio. */
+    --spacing-gutter: 1.25rem;
+    --spacing-section: 3rem;
+    --spacing-card: 0.875rem;
+
+    --container-content: 76rem;
+
+    --radius-card: 1.125rem;
+    --radius-pill: 999px;
+
+    --shadow-card: 0 1px 2px oklch(0.2 0.03 290 / 0.06), 0 8px 24px -12px oklch(0.2 0.03 290 / 0.18);
+    --shadow-lift: 0 2px 4px oklch(0.2 0.03 290 / 0.08), 0 18px 36px -16px oklch(0.2 0.03 290 / 0.28);
+
+    --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ---------------------------------------------------------------------------
+   Base
+--------------------------------------------------------------------------- */
+
+@layer base {
+    html {
+        scroll-behavior: smooth;
+        -webkit-text-size-adjust: 100%;
+    }
+
+    body {
+        background-color: var(--canvas);
+        color: var(--ink);
+        font-family: var(--font-sans);
+        font-feature-settings: 'cv05', 'ss01';
+        -webkit-font-smoothing: antialiased;
+    }
+
+    h1,
+    h2,
+    h3 {
+        font-family: var(--font-display);
+    }
+
+    /* Il focus deve vedersi sempre, non solo dove qualcuno si è ricordato di
+       aggiungere una classe: è il modo in cui si naviga da tastiera. */
+    :focus-visible {
+        outline: 2px solid var(--focus);
+        outline-offset: 2px;
+        border-radius: 0.25rem;
+    }
+
+    ::selection {
+        background-color: var(--brand);
+        color: var(--on-brand);
+    }
+
+    [hidden] {
+        display: none !important;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* ---------------------------------------------------------------------------
+   Utility proprie
+--------------------------------------------------------------------------- */
+
+/* Alpine rimuove `x-cloak` appena si avvia: ciò che lo porta resta invisibile
+   finché il JavaScript non è vivo. È così che un interruttore che senza
+   JavaScript non accenderebbe niente semplicemente non compare. */
+@layer base {
+    [x-cloak] {
+        display: none !important;
+    }
+}
+
+/* Riga orizzontale scorrevole con aggancio: gli scroller di giorni e di card
+   sul telefono si fermano su un elemento, non a metà. */
+@utility scroll-row {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    overscroll-behavior-x: contain;
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
+
+    & > * {
+        scroll-snap-align: start;
+        flex: none;
+    }
+}
+
+/* Fondo della locandina mentre l'immagine carica (o se manca del tutto). */
+@utility poster-placeholder {
+    background-image: linear-gradient(140deg, var(--poster-from), var(--poster-to));
+}
+
+/* Taglio del testo a un numero fisso di righe: i titoli delle card devono
+   occupare sempre la stessa altezza, altrimenti la griglia balla. */
+@utility line-clamp-title {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+}
+
+/* Puntino pulsante del badge "in corso". */
+@utility pulse-dot {
+    position: relative;
+
+    &::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: 999px;
+        background-color: currentcolor;
+        animation: pulse-ring 2s var(--ease-out-soft) infinite;
+    }
+}
+
+@keyframes pulse-ring {
+    0% {
+        opacity: 0.6;
+        transform: scale(1);
+    }
+
+    70%,
+    100% {
+        opacity: 0;
+        transform: scale(2.6);
+    }
 }

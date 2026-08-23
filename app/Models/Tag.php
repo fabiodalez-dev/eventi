@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Laravel\Scout\Searchable;
 use Spatie\Sluggable\HasSlug;
 use Spatie\Sluggable\SlugOptions;
 
@@ -20,6 +21,7 @@ class Tag extends Model
     use HasFactory;
 
     use HasSlug;
+    use Searchable;
 
     /** @var list<string> */
     protected $fillable = [
@@ -30,6 +32,18 @@ class Tag extends Model
         'usage_count',
         'synonyms',
     ];
+
+    /**
+     * Un tag ha un nome e nient'altro da cercare.
+     *
+     * @return array<string, string|null>
+     */
+    public function toSearchableArray(): array
+    {
+        return [
+            'name' => $this->name,
+        ];
+    }
 
     public function getSlugOptions(): SlugOptions
     {

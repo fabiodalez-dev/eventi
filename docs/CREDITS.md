@@ -26,8 +26,16 @@ d'uso (§16 del piano).
 
 ## Font
 
-Self-hosted via `@fontsource`. Nessuna richiesta a Google Fonts: sarebbe un
-trasferimento di dati verso terzi senza consenso.
+Self-hosted via `@fontsource`. Nessuna richiesta a Google Fonts né ad altri CDN
+(il plugin `bunny()` di `laravel-vite-plugin` è stato rimosso da
+`vite.config.js`): sarebbe un trasferimento di dati verso terzi senza consenso.
+
+- **Bricolage Grotesque** (titoli) — `@fontsource-variable/bricolage-grotesque`,
+  SIL Open Font License 1.1.
+- **Inter** (testo) — `@fontsource-variable/inter`, SIL Open Font License 1.1.
+
+Entrambi sono variabili e suddivisi per `unicode-range`: il browser scarica solo
+il sottoinsieme che gli serve.
 
 ## Pacchetti
 

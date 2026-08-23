@@ -38,9 +38,19 @@ class EventOccurrencePolicy
      * Riceve l'evento padre per lo stesso motivo di `EventPolicy::create()`:
      * senza, non c'è un `venue_id` da verificare prima che l'occorrenza
      * esista. Si invoca con `Gate::authorize('create', [EventOccurrence::class, $event])`.
+     *
+     * L'evento è facoltativo perché il pannello di redazione chiede il
+     * permesso prima di conoscere la riga a cui si applica; senza evento la
+     * domanda è "questa persona può aggiungere date in assoluto?", e la
+     * risposta resta allo staff globale — chi gestisce un locale aggiunge
+     * date sempre a un evento preciso, mai in astratto.
      */
-    public function create(User $user, Event $event): bool
+    public function create(User $user, ?Event $event = null): bool
     {
+        if ($event === null) {
+            return $this->isGlobalStaff($user) && $user->can(Permission::CreateEvents->value);
+        }
+
         return $this->canActOnEventVenue($user, $event, Permission::CreateEvents);
     }
 

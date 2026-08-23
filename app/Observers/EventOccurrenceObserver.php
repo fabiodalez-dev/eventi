@@ -9,6 +9,7 @@ use App\Models\City;
 use App\Models\Event;
 use App\Models\EventOccurrence;
 use App\Models\Venue;
+use App\Services\Calendar\MonthCalendar;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 use DateTimeInterface;
@@ -49,6 +50,20 @@ final class EventOccurrenceObserver
      * viene modificato a mano, quella data non segue più la regola.
      */
     private const SERIES_ATTRIBUTES = ['starts_at', 'ends_at', 'doors_at', 'is_all_day', 'status'];
+
+    /**
+     * Una data aggiunta, spostata o annullata cambia i conteggi del calendario
+     * mensile, che §12.3 tiene in cache per mezz'ora: la si invalida qui.
+     */
+    public function saved(EventOccurrence $occurrence): void
+    {
+        $this->forgetCalendar($occurrence);
+    }
+
+    public function deleted(EventOccurrence $occurrence): void
+    {
+        $this->forgetCalendar($occurrence);
+    }
 
     public function saving(EventOccurrence $occurrence): void
     {
@@ -211,5 +226,19 @@ final class EventOccurrenceObserver
         return Event::withTrashed()
             ->with(['city', 'category', 'venue'])
             ->find($occurrence->getAttribute('event_id'));
+    }
+
+    /**
+     * L'evento si prende da `resolveEvent()`, che preferisce la relazione già
+     * caricata: una serie generata a blocchi non deve pagare una query in più
+     * per ogni data solo per sapere di quale città sia il calendario.
+     */
+    private function forgetCalendar(EventOccurrence $occurrence): void
+    {
+        $event = $this->resolveEvent($occurrence);
+
+        if ($event instanceof Event) {
+            MonthCalendar::bump((int) $event->city_id);
+        }
     }
 }

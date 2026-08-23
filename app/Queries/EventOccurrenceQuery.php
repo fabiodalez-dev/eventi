@@ -10,6 +10,7 @@ use App\Enums\PriceType;
 use App\Enums\TimeOfDay;
 use App\Models\Category;
 use App\Models\City;
+use App\Models\Event;
 use App\Models\EventOccurrence;
 use App\Models\Tag;
 use App\Models\Venue;
@@ -23,6 +24,8 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Database\Query\JoinClause;
+use Illuminate\Support\Collection as BaseCollection;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Il motore temporale della piattaforma (§8). Sito, API, calendario, feed,
@@ -82,6 +85,27 @@ final class EventOccurrenceQuery
     public static function for(City $city): self
     {
         return new self($city);
+    }
+
+    /**
+     * "Adesso" nella città, che è l'unico adesso che questo prodotto conosce
+     * (§8.1). Esposto perché i pannelli di gestione lavorano anche su ciò che
+     * non è pubblicato — e quindi non passa dalle finestre qui sotto — ma non
+     * devono per questo derivare una seconda idea di che giorno sia.
+     */
+    public function now(): CarbonImmutable
+    {
+        return $this->now;
+    }
+
+    /**
+     * La giornata evento corrente, nel formato in cui è scritta la colonna
+     * `business_date`. È la sola forma in cui "oggi" può uscire da questa
+     * classe verso una query scritta altrove.
+     */
+    public function currentBusinessDate(): string
+    {
+        return $this->now->format('Y-m-d');
     }
 
     // ---------------------------------------------------------------- finestre
@@ -198,6 +222,39 @@ final class EventOccurrenceQuery
         return $this;
     }
 
+    /**
+     * Dalla giornata evento corrente in avanti.
+     *
+     * È la finestra predefinita di ogni lista pubblica: senza, `/eventi`
+     * mostrerebbe anche l'archivio. Sta qui e non nei controller perché "da
+     * oggi in poi" è pur sempre una definizione di oggi (§8.1).
+     */
+    public function upcoming(): self
+    {
+        $this->query->where('event_occurrences.business_date', '>=', $this->now->format('Y-m-d'));
+
+        return $this;
+    }
+
+    /**
+     * Giornate evento già trascorse: l'archivio della scheda locale (§11.9).
+     */
+    public function past(): self
+    {
+        $this->query->where('event_occurrences.business_date', '<', $this->now->format('Y-m-d'));
+
+        return $this;
+    }
+
+    /**
+     * I prossimi `$days` giorni evento, oggi compreso: lo scroller della
+     * homepage (§11.2) e il preset "questa settimana" di §13.2.
+     */
+    public function nextDays(int $days): self
+    {
+        return $this->between($this->now, $this->now->addDays(max($days, 1) - 1));
+    }
+
     // ----------------------------------------------------------------- filtri
 
     /**
@@ -215,6 +272,26 @@ final class EventOccurrenceQuery
         $geo->distanceSelect($this->query, $lat, $lng, 'venues.location', self::DISTANCE_ALIAS);
 
         $this->origin = ['lat' => $lat, 'lng' => $lng];
+
+        return $this;
+    }
+
+    /**
+     * Dentro il rettangolo dato: è la query della mappa (§11.6), che chiede
+     * ciò che sta nell'inquadratura e non ciò che sta entro un raggio.
+     *
+     * L'ordine dei parametri è quello di `bbox=minLng,minLat,maxLng,maxLat`,
+     * lo stesso di §13.3, così che la stringa arrivata dal client si giri
+     * nell'argomento senza rimescolarla per strada.
+     *
+     * Riguarda i soli eventi ospitati da un locale: le coordinate stanno su
+     * `venues.location`, e un evento senza locale non ha un punto da disegnare.
+     */
+    public function withinBounds(float $minLng, float $minLat, float $maxLng, float $maxLat): self
+    {
+        $this->query->whereNotNull('venues.id');
+
+        app(GeoQueryInterface::class)->withinBounds($this->query, $minLng, $minLat, $maxLng, $maxLat, 'venues.location');
 
         return $this;
     }
@@ -264,6 +341,16 @@ final class EventOccurrenceQuery
     }
 
     /**
+     * A offerta libera: si entra senza biglietto ma si lascia qualcosa.
+     */
+    public function priceDonation(): self
+    {
+        $this->query->where('events.price_type', PriceType::Donation->value);
+
+        return $this;
+    }
+
+    /**
      * Gratuiti, a offerta libera e a pagamento fino all'importo indicato.
      */
     public function priceMax(float|int $amount): self
@@ -306,6 +393,125 @@ final class EventOccurrenceQuery
     }
 
     /**
+     * Come `atVenue()`, ma partendo dallo slug che sta nell'URL: risparmia una
+     * interrogazione per risolvere il locale che è già in join.
+     */
+    public function atVenueSlug(string $slug): self
+    {
+        $this->query->where('venues.slug', $slug);
+
+        return $this;
+    }
+
+    /**
+     * Comune del locale che ospita l'evento: è il filtro "zona" di §11.3.
+     */
+    public function inMunicipality(string $municipality): self
+    {
+        $this->query->where('venues.municipality', $municipality);
+
+        return $this;
+    }
+
+    /**
+     * All'aperto (§11.3). È un attributo dell'evento, non del locale: lo stesso
+     * circolo fa concerti in sala d'inverno e in cortile d'estate.
+     */
+    public function outdoor(): self
+    {
+        $this->query->where('events.is_outdoor', true);
+
+        return $this;
+    }
+
+    /**
+     * Ospitato da un locale accessibile in sedia a rotelle (§11.3).
+     * L'informazione sta in `venues.accessibility`, la cui forma è
+     * `{"wheelchair": true}` (D19 per gli orari, stessa impostazione qui).
+     */
+    public function accessible(): self
+    {
+        $this->query->where('venues.accessibility->wheelchair', true);
+
+        return $this;
+    }
+
+    /**
+     * Solo gli eventi messi in evidenza dalla redazione e non ancora scaduti
+     * (§11.2, sezione "In evidenza").
+     *
+     * `featured_until` nullo significa "senza scadenza": è una scelta della
+     * redazione, non un dato mancante.
+     */
+    public function featured(): self
+    {
+        $this->query
+            ->where('events.is_featured', true)
+            ->where(function (Builder $window): void {
+                $window->whereNull('events.featured_until')
+                    ->orWhere('events.featured_until', '>=', $this->nowUtc());
+            });
+
+        return $this;
+    }
+
+    /**
+     * Le sole date di un evento. È così che la scheda evento elenca **tutte**
+     * le date future (§11.5) senza rifare per conto proprio il conto di quali
+     * siano future e di quali eventi siano pubblicati.
+     */
+    public function forEvent(Event|int $event): self
+    {
+        $this->query->where('events.id', $event instanceof Event ? $event->getKey() : $event);
+
+        return $this;
+    }
+
+    /**
+     * Le date di un insieme di eventi. È il ponte fra la ricerca testuale —
+     * che sa quali **eventi** somigliano a ciò che è stato scritto — e il
+     * motore temporale, che è l'unico a sapere quali date siano ancora future
+     * (§8.1). Un insieme vuoto non restituisce nulla, che è la risposta giusta
+     * a una ricerca senza corrispondenze.
+     *
+     * @param  array<int, int>  $ids
+     */
+    public function forEvents(array $ids): self
+    {
+        $this->query->whereIn('events.id', $ids);
+
+        return $this;
+    }
+
+    /**
+     * Una singola occorrenza, presa **passando dal motore**: la base della
+     * query è già ristretta agli eventi pubblicati e non cestinati della città,
+     * quindi chiedere qui è anche il modo di verificare che quella data sia
+     * davvero visibile al pubblico.
+     */
+    public function forOccurrence(EventOccurrence|int $occurrence): self
+    {
+        $this->query->where(
+            'event_occurrences.id',
+            $occurrence instanceof EventOccurrence ? $occurrence->getKey() : $occurrence,
+        );
+
+        return $this;
+    }
+
+    /**
+     * Esclude un evento dai risultati: serve alle sezioni "eventi simili" e
+     * "altri eventi in questo locale", che non devono riproporre la scheda su
+     * cui si trova già chi legge.
+     */
+    public function excludingEvent(Event|int $event): self
+    {
+        $this->query->where('events.id', '!=', $event instanceof Event ? $event->getKey() : $event);
+
+        return $this;
+    }
+
+    /**
      * Ricerca testuale su titolo, sottotitolo, descrizione breve, organizzatore
      * e nome del locale.
      */
@@ -342,6 +548,30 @@ final class EventOccurrenceQuery
         return $this;
     }
 
+    /**
+     * Distanza crescente (§13.2, `sort=distance`). Senza una `near()` che
+     * abbia fissato l'origine non c'è distanza da ordinare e la lista resta
+     * cronologica: chiedere l'ordine per distanza senza dare la posizione non
+     * è un errore, è una richiesta che non si può esaudire.
+     */
+    public function orderByDistance(): self
+    {
+        $this->ordering = OccurrenceOrdering::Distance;
+
+        return $this;
+    }
+
+    /**
+     * Dalla data più recente alla più vecchia: è l'ordine con cui si legge un
+     * archivio (§11.9), dove l'ultima serata viene prima di quella di un anno fa.
+     */
+    public function orderByNewestFirst(): self
+    {
+        $this->ordering = OccurrenceOrdering::ReverseChronological;
+
+        return $this;
+    }
+
     // ------------------------------------------------------------- esecuzione
 
     /**
@@ -353,11 +583,15 @@ final class EventOccurrenceQuery
     }
 
     /**
+     * `$pageName` esiste perché una pagina può ospitare due elenchi paginati:
+     * la scheda di un locale ha i prossimi eventi e l'archivio, e devono poter
+     * essere sfogliati uno senza trascinarsi l'altro (§11.9).
+     *
      * @return LengthAwarePaginator<int, EventOccurrence>
      */
-    public function paginate(int $perPage = 24, ?int $page = null): LengthAwarePaginator
+    public function paginate(int $perPage = 24, ?int $page = null, string $pageName = 'page'): LengthAwarePaginator
     {
-        return $this->build()->paginate(perPage: $perPage, page: $page);
+        return $this->build()->paginate(perPage: $perPage, pageName: $pageName, page: $page);
     }
 
     /**
@@ -366,6 +600,159 @@ final class EventOccurrenceQuery
     public function cursorPaginate(int $perPage = 24, ?string $cursor = null): CursorPaginator
     {
         return $this->build()->cursorPaginate(perPage: $perPage, cursor: $cursor);
+    }
+
+    public function count(): int
+    {
+        return $this->query->count('event_occurrences.id');
+    }
+
+    /**
+     * Quante occorrenze cadono in ciascuna giornata evento, nella forma
+     * `['2026-09-05' => 7]`. È una sola query aggregata: lo scroller dei
+     * prossimi giorni (§11.2) e i conteggi del calendario (§11.8) non devono
+     * caricare centinaia di modelli per contarli.
+     *
+     * @return array<string, int>
+     */
+    public function countsByBusinessDate(): array
+    {
+        /** @var array<string, int> $counts */
+        $counts = $this->groupedCounts('event_occurrences.business_date')
+            ->mapWithKeys(static fn (int|string $count, int|string $date): array => [
+                CarbonImmutable::parse((string) $date)->format('Y-m-d') => (int) $count,
+            ])
+            ->all();
+
+        return $counts;
+    }
+
+    /**
+     * Quante occorrenze ha ciascun locale, nella forma `[12 => 4]`. Serve alla
+     * lista dei locali, che mostra il numero di date in programma.
+     *
+     * @return array<int, int>
+     */
+    public function countsByVenue(): array
+    {
+        return $this->keyedCounts('events.venue_id');
+    }
+
+    /**
+     * Quante occorrenze ha ciascuna categoria. È ciò che permette alla griglia
+     * per categoria della homepage di non disegnare le caselle che porterebbero
+     * a una lista vuota (§8.6).
+     *
+     * @return array<int, int>
+     */
+    public function countsByCategory(): array
+    {
+        return $this->keyedCounts('events.category_id');
+    }
+
+    /**
+     * I punti che la mappa disegna: **un marcatore per locale**, non uno per
+     * data (§11.6).
+     *
+     * Due eventi nello stesso locale hanno le stesse identiche coordinate:
+     * disegnati come due marcatori resterebbero sovrapposti per sempre, perché
+     * nessuno zoom li separa e il raggruppamento non li scioglie. Un marcatore
+     * per locale, con il numero di date che vi cadono dentro, è la sola forma
+     * che si possa davvero toccare.
+     *
+     * Una sola interrogazione, con due funzioni di finestra: il conteggio per
+     * locale e la posizione della data più vicina, che è quella da cui si
+     * prende la categoria — e quindi il colore. La sottoquery è necessaria
+     * perché una funzione di finestra non si può filtrare nel `WHERE` che la
+     * calcola.
+     *
+     * @return list<array{venue_id: int, lat: float, lng: float, category_id: int, occurrence_id: int, count: int}>
+     */
+    public function venueMarkers(int $limit): array
+    {
+        $inner = (clone $this->query)
+            ->reorder()
+            ->whereNotNull('venues.id')
+            ->select([
+                'venues.id as marker_venue_id',
+                'venues.lat as marker_lat',
+                'venues.lng as marker_lng',
+                'events.category_id as marker_category_id',
+                'event_occurrences.id as marker_occurrence_id',
+            ])
+            ->selectRaw('COUNT(*) OVER (PARTITION BY venues.id) as marker_count')
+            ->selectRaw('ROW_NUMBER() OVER (PARTITION BY venues.id ORDER BY event_occurrences.starts_at, event_occurrences.id) as marker_rank')
+            ->toBase();
+
+        $rows = DB::query()
+            ->fromSub($inner, 'markers')
+            ->where('marker_rank', 1)
+            ->orderByDesc('marker_count')
+            ->orderBy('marker_venue_id')
+            ->limit(max($limit, 1))
+            ->get();
+
+        $markers = [];
+
+        foreach ($rows as $row) {
+            $values = (array) $row;
+
+            $markers[] = [
+                'venue_id' => (int) ($values['marker_venue_id'] ?? 0),
+                'lat' => (float) ($values['marker_lat'] ?? 0),
+                'lng' => (float) ($values['marker_lng'] ?? 0),
+                'category_id' => (int) ($values['marker_category_id'] ?? 0),
+                'occurrence_id' => (int) ($values['marker_occurrence_id'] ?? 0),
+                'count' => (int) ($values['marker_count'] ?? 0),
+            ];
+        }
+
+        return $markers;
+    }
+
+    /**
+     * Conteggio per giornata evento **e** i primi titoli di ciascuna, in una
+     * sola interrogazione: è ciò che disegna il calendario mensile (§11.8), che
+     * mostra quanti eventi cadono in un giorno e due o tre titoli d'assaggio.
+     *
+     * Il vincolo di §11.8 — una sola query aggregata per mese — si rispetta
+     * leggendo le righe grezze una volta e raggruppandole qui: due query
+     * separate, una per contare e una per i titoli, sarebbero due letture della
+     * stessa tabella per rispondere alla stessa domanda.
+     *
+     * Le righe non diventano modelli: al calendario servono una data e una
+     * stringa, e idratare trecento occorrenze per stamparne i titoli sarebbe
+     * lavoro buttato.
+     *
+     * @return array<string, array{count: int, titles: list<string>}>
+     */
+    public function dailyDigest(int $titlesPerDay = 3): array
+    {
+        $rows = (clone $this->query)
+            ->reorder()
+            ->select(['event_occurrences.business_date as digest_date', 'events.title as digest_title'])
+            ->orderBy('event_occurrences.business_date')
+            ->orderBy('event_occurrences.starts_at')
+            ->orderBy('event_occurrences.id')
+            ->toBase()
+            ->get();
+
+        /** @var array<string, array{count: int, titles: list<string>}> $digest */
+        $digest = [];
+
+        foreach ($rows as $row) {
+            $values = (array) $row;
+            $date = CarbonImmutable::parse((string) ($values['digest_date'] ?? ''))->format('Y-m-d');
+
+            $digest[$date] ??= ['count' => 0, 'titles' => []];
+            $digest[$date]['count']++;
+
+            if (count($digest[$date]['titles']) < max($titlesPerDay, 0)) {
+                $digest[$date]['titles'][] = (string) ($values['digest_title'] ?? '');
+            }
+        }
+
+        return $digest;
     }
 
     // ----------------------------------------------------------------- interno
@@ -400,6 +787,8 @@ final class EventOccurrenceQuery
         match ($this->ordering) {
             OccurrenceOrdering::Live => $this->applyLiveOrdering($query),
             OccurrenceOrdering::Relevance => $this->applyRelevanceOrdering($query),
+            OccurrenceOrdering::Distance => $this->applyDistanceFirstOrdering($query),
+            OccurrenceOrdering::ReverseChronological => $this->applyReverseChronologicalOrdering($query),
             OccurrenceOrdering::Chronological => $this->applyChronologicalOrdering($query),
         };
 
@@ -474,6 +863,27 @@ final class EventOccurrenceQuery
     }
 
     /**
+     * @param  Builder<EventOccurrence>  $query
+     */
+    private function applyReverseChronologicalOrdering(Builder $query): void
+    {
+        $query->orderByDesc('event_occurrences.starts_at')
+            ->orderByDesc('event_occurrences.id');
+    }
+
+    /**
+     * Distanza prima di tutto, poi cronologia: senza posizione non c'è alcun
+     * alias da ordinare e resta la sola cronologia.
+     *
+     * @param  Builder<EventOccurrence>  $query
+     */
+    private function applyDistanceFirstOrdering(Builder $query): void
+    {
+        $this->applyDistanceOrdering($query);
+        $this->applyChronologicalOrdering($query);
+    }
+
+    /**
      * La distanza ordina le sole sezioni dal vivo, ed è il terzo criterio di
      * §8.5: nelle liste cronologiche resta un dato esposto (`distance_m`), non
      * un ordinamento — chi cerca "oggi" vuole l'ordine del tempo.
@@ -485,6 +895,36 @@ final class EventOccurrenceQuery
         if ($this->origin !== null) {
             $query->orderBy(self::DISTANCE_ALIAS);
         }
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    private function keyedCounts(string $column): array
+    {
+        /** @var array<int, int> $counts */
+        $counts = $this->groupedCounts($column)
+            ->mapWithKeys(static fn (int|string $count, int|string $key): array => [(int) $key => (int) $count])
+            ->all();
+
+        return $counts;
+    }
+
+    /**
+     * Un solo `GROUP BY` sulla query già filtrata. Le colonne raggruppate sono
+     * costanti scritte nel codice, mai valori in arrivo dalla richiesta.
+     *
+     * @return BaseCollection<array-key, int|string>
+     */
+    private function groupedCounts(string $column): BaseCollection
+    {
+        return (clone $this->query)
+            ->reorder()
+            ->whereNotNull($column)
+            ->select($column)
+            ->selectRaw('COUNT(*) as occurrences_count')
+            ->groupBy($column)
+            ->pluck('occurrences_count', $column);
     }
 
     /**

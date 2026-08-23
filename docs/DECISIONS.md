@@ -247,3 +247,359 @@ settimana a ogni esecuzione: ogni rilancio del comando mensile aggiungeva una da
 per sempre.
 **Verificato:** `FREQ=WEEKLY;BYDAY=TH;COUNT=10` → 10 occorrenze; seconda e terza esecuzione
 0 create, stessi `starts_at`.
+
+## 2026-08-23 — D23. Fondamenta visive: token CSS, font self-hosted, contesto della card
+
+**Decisione:** quattro scelte prese scrivendo il livello di presentazione (§11).
+
+1. **Palette in `:root`, non in `@theme`.** I colori sono variabili CSS con un
+   secondo blocco sotto `@media (prefers-color-scheme: dark)`; `@theme inline`
+   mappa i token di Tailwind su quelle variabili, così `bg-surface` emette
+   `var(--surface)` invece di copiarne il valore. È ciò che permette al tema
+   scuro di cambiare valore senza generare una seconda serie di utility.
+   Definire i colori dentro `@theme` avrebbe congelato il valore chiaro nel CSS.
+2. **Font self-hosted con `@fontsource-variable`** (Bricolage Grotesque per i
+   titoli, Inter per il testo), importati dal CSS e serviti dal nostro dominio.
+   Rimosso il plugin `bunny()` da `vite.config.js`: era un CDN esterno, quindi
+   un trasferimento di dati verso terzi a ogni visita. I file sono divisi per
+   `unicode-range`, il browser scarica il solo sottoinsieme che gli serve.
+3. **La card non deduce la finestra temporale: la riceve.** `<x-event-card>`
+   prende un attributo `context` (`ongoing`, `starting_soon`, `tonight`, …) che
+   dichiara da quale metodo di `EventOccurrenceQuery` arriva l'occorrenza. La
+   vista non ricalcola "in corso" né "stasera" (§3 delle convenzioni): sarebbe
+   la seconda definizione, e divergerebbe.
+4. **`App\Support\DateFormatter` formatta soltanto.** Non conosce finestre. Fa
+   un solo confronto di calendario — oggi, domani, ieri — per scegliere la
+   parola. Tratta le **giornate** (`business_date`, cast `date`, mezzanotte UTC)
+   senza conversione di fuso e gli **istanti** (`starts_at`) convertendoli
+   nell'ora della città: convertire una giornata la farebbe scivolare al giorno
+   prima alle 22:00, ed è un errore che si vede solo in produzione.
+
+**Conseguenze:** `App\Support\CurrentCity` è registrato come `scoped` e
+restituisce la prima città attiva; `DateFormatter` è risolto dal container con
+il fuso di quella città. Quando `/{city}/eventi` diventerà una rotta, sarà un
+middleware a chiamare `CurrentCity::set()` e nient'altro cambierà.
+
+**Verificato:** `npm run build` senza errori, `/` risponde 200 sul database
+seedato, nessuna sezione disegnata quando la finestra è vuota (§8.6, test
+dedicato), nessun trabocco orizzontale a 390px, tema scuro con
+`prefers-color-scheme` (`body` a `oklch(0.17 0.02 288)`).
+
+
+## 2026-08-23 — D24. Pannello di redazione: sette scelte prese scrivendo `/admin`
+
+**Decisione.** Sette punti che §9 non fissa.
+
+1. **Chi entra lo dice il model, cosa può fare lo dicono le Policy.**
+   `User::canAccessPanel()` apre `/admin` ai soli ruoli `admin`, `super_admin`
+   e `moderator`, e `/gestione` a chi ha una riga in `venue_user`. Dentro al
+   pannello nessun permesso è ricodificato: Filament interroga da sé le Policy
+   di `app/Policies`, e ogni azione personalizzata dichiara `->authorize()`
+   sulla stessa abilità (`moderate`, `publish`, `manageCollaborators`,
+   `impersonate`).
+2. **`EventPolicy::create()` e `EventOccurrencePolicy::create()` accettano un
+   secondo argomento nullo.** Filament chiede il permesso di creare prima di
+   sapere per quale locale, e Laravel invoca la Policy con la sola classe: con
+   la firma obbligatoria il pannello moriva di `ArgumentCountError`. Senza
+   locale la domanda diventa "può creare in assoluto?" e la risposta resta
+   allo staff globale — chi gestisce un locale crea sempre *per* quel locale.
+   Il comportamento delle chiamate esistenti non cambia.
+3. **`venues.location` diventa una colonna calcolata.** `VenueObserver` la
+   deriva da `lat`/`lng` a ogni salvataggio. Prima la scrivevano solo factory e
+   seeder: un locale creato dal pannello sarebbe stato impossibile
+   (`POINT NOT NULL`), e uno corretto a mano sarebbe rimasto geograficamente
+   fermo dov'era, con la mappa e il "vicino a me" a rispondere sul vecchio
+   punto senza alcun segnale.
+4. **La mappa del locale è coppia di coordinate più anteprima, non un marcatore
+   trascinabile.** §9.2 lo suggeriva; una mappa vera richiede una libreria
+   servita da un CDN e un server di tessere esterno, cioè un trasferimento di
+   dati verso terzi a ogni apertura della scheda — l'opposto di ciò che D23 ha
+   deciso per i font. Il modulo offre latitudine e longitudine con limiti di
+   validità, un'anteprima testuale, un collegamento a OpenStreetMap che parte
+   solo se lo si clicca e un pulsante che centra sul capoluogo. §9.2 ammette
+   esplicitamente questa alternativa. **Da ricontrollare** quando si sceglierà
+   il fornitore di tessere per la mappa pubblica (§11.6): allora la stessa
+   libreria varrà anche qui.
+5. **Le date stanno nel ripetitore alla creazione e nella sezione dedicata alla
+   modifica.** Il ripetitore serve al gesto per cui esiste — inserire l'evento
+   con le sue tre serate in un salvataggio solo — ma non può porre la domanda
+   di §9.2, *questa data o tutta la serie?*. Tenerli entrambi attivi
+   significherebbe due moduli che scrivono le stesse righe nella stessa
+   pagina: chi salva quello principale sovrascriverebbe con lo stato caricato
+   in apertura le decisioni appena prese nell'altro.
+6. **`OccurrenceScope` è un enum, non una stringa.** Serve al pannello di
+   redazione, servirà a quello dei locali e all'API: tre stringhe magiche
+   divergono sempre. `UpdateOccurrencesAction` lo applica salvando riga per
+   riga e non con un `UPDATE` di massa, perché `business_date` ed
+   `effective_ends_at` le ricalcola l'observer e una query di massa lo
+   salterebbe, lasciando mentire due colonne persistite.
+7. **Due formati JSON che il piano non definiva.** `cities.settings` è una
+   mappa di interruttori `{"nome": true}`; `venues.opening_hours` resta quello
+   di D19. La conversione fra formato salvato e righe del modulo vive in
+   `StructuredFields` ed è chiamata dai `mutateFormData…` delle pagine, **mai**
+   da `afterStateHydrated()` di un ripetitore: lì lo stato è già la mappa
+   interna `{identificatore: riga}` del componente, e la prima versione la
+   scambiava per i dati salvati producendo righe fantasma con
+   l'identificatore al posto del giorno.
+
+**Conseguenze.** Nuovi permessi `users.manage` e `users.impersonate` (assegnati
+ad amministratore e amministratore di sistema, mai al moderatore) e nuova
+`UserPolicy` che vieta di cancellare se stessi e di agire su chi sta più in
+alto. L'impersonificazione è una rotta propria e non un'azione Livewire, perché
+cambiare l'utente autenticato a metà di una richiesta Livewire lascerebbe la
+pagina aperta con i dati di prima; chi non è autenticato viene mandato
+all'accesso del pannello e non a una rotta `login` del sito pubblico, che
+nascerà con §15.2.
+
+**Verificato.** 55 test dedicati verdi, fra cui il criterio di accettazione
+(città, locale, evento con tre date, pubblicazione) percorso due volte: una con
+i componenti Livewire reali e una **via HTTP su `php artisan serve`**, con
+sessione autenticata, token CSRF e chiamate al canale Livewire. Nel database
+risultante l'evento è `published`, ha tre occorrenze e `business_date` ed
+`effective_ends_at` scritte dall'observer. Tutte le pagine del pannello
+rispondono 200 e nessuna stampa una chiave di traduzione grezza (verifica
+automatica su elenchi, moduli di creazione e schede di modifica). `pint`
+passato, `phpstan` livello 6 senza errori sui file di questa fase.
+
+## 2026-08-23 — D25. Sito pubblico: cosa entra nel motore temporale e cosa resta fuori
+
+**Decisione:** scrivendo §11 sono state prese sei scelte che il piano non fissa.
+
+1. **Nove metodi nuovi in `EventOccurrenceQuery`, non nei controller.**
+   `upcoming()`, `past()`, `nextDays()`, `featured()`, `forEvent()`,
+   `excludingEvent()`, `inMunicipality()`, `outdoor()`, `accessible()`,
+   `atVenueSlug()`, più gli ordinamenti `orderByDistance()` (che D18 lasciava
+   aperto) e `orderByNewestFirst()` per l'archivio di §11.9. Il criterio è
+   sempre lo stesso: se una pagina ha bisogno di sapere che cosa è "futuro" o
+   "passato", quella definizione appartiene al motore (§8.1). Un controller che
+   scrivesse `where('business_date', '>=', today())` sarebbe la seconda verità.
+2. **Tre conteggi aggregati** — `countsByBusinessDate()`, `countsByCategory()`,
+   `countsByVenue()` — perché lo scroller dei prossimi giorni, la griglia per
+   categoria e l'elenco dei locali devono sapere **quanto** c'è senza caricare
+   i modelli, e perché §8.6 impone di non disegnare la casella di una categoria
+   che porterebbe a una lista vuota.
+3. **La query string è l'unico stato della lista.** `App\DTOs\EventFilters` è
+   immutabile e sa rigenerare il proprio indirizzo; ogni pillola di filtro è un
+   link a un altro `EventFilters`, quindi funziona senza JavaScript ed è
+   copiabile. `EventFinder` è il solo punto che traduce quei filtri in chiamate
+   al motore.
+4. **Un solo canonico per insieme di filtri.** Le rotte parlanti
+   (`/eventi/oggi`, `/eventi/gratis`, `/eventi/categoria/{slug}`) vincono solo
+   quando esprimono da sole tutta la richiesta; appena si aggiunge un secondo
+   filtro il canonico torna alla forma `/eventi?…`. Le combinazioni con più di
+   due filtri, la ricerca libera e la posizione escono dall'indice
+   (`noindex, follow`): sono infinite, e nessuna merita una riga in un indice.
+5. **"Adatto alle famiglie" è tassonomia, non uno schema nuovo.** Il filtro
+   seleziona le categorie elencate in `config/eventi.php`. Una seconda chiamata
+   a `inCategories()` aggiunge una condizione in AND, quindi "musica" più
+   "famiglie" dà l'intersezione — che è ciò che si aspetta chi accende due
+   filtri.
+6. **`/{city}/eventi` esiste come secondo gruppo di rotte**, non come rotta
+   diversa: `routes/public.php` è incluso due volte da `routes/web.php`, la
+   seconda con prefisso `{city}`, nomi preceduti da `city.` e il middleware
+   `ResolveCity`, che risolve la città e poi **dimentica** il segmento, così
+   nessun controller ha un parametro in più. Una città sconosciuta o non ancora
+   accesa è un 404: `/verona/eventi` non deve mostrare gli eventi di Padova.
+
+**Conseguenza sulla homepage.** "In corso adesso" e "Inizia tra poco" sono un
+componente Livewire `#[Lazy]` (`App\Livewire\LiveNow`) caricato dopo il primo
+disegno. È la premessa di §12.3: lo scheletro della pagina potrà andare in
+cache cinque minuti solo se le due finestre che cambiano ogni minuto stanno
+fuori. Il segnaposto è una riga sola, non uno scheletro di card che potrebbero
+non esserci, e porta un `<noscript>` verso `/eventi/oggi`. La conseguenza
+accettata è che senza JavaScript quelle due sezioni non compaiono: tutto il
+resto del sito, liste e paginazione comprese, funziona senza.
+
+**Verificato.** 296 test verdi (47 nuovi), `pint` passato, `phpstan` livello 6
+a zero errori, `npm run build` verde. Sul database seedato, con `php artisan
+serve` e `curl`: il criterio di accettazione — dalla homepage a "Musica +
+Stasera + Gratis" in tre link — percorso davvero, con l'indirizzo finale
+`/eventi?date=tonight&category=musica-dal-vivo&price=free` che rende la stessa
+pagina; `/eventi/oggi?category=X` e `/eventi?date=today&category=X` restituiscono
+lo stesso insieme di eventi. Con Playwright a 390 px: nessun trabocco
+orizzontale (la pagina non scorre lateralmente), il frammento dal vivo si
+risolve e inserisce le due sezioni in cima nell'ordine di §11.2, lo scorrimento
+infinito porta le card da 24 a 48 a 72 aggiornando l'indirizzo, e la stessa
+lista resta sfogliabile con `?page=` senza JavaScript.
+
+## 2026-08-23 — D26. Mappa, calendario, ricerca e feed: nove scelte
+
+**Decisione:** scrivendo §11.6, §11.7, §11.8 e §11.10 sono state prese nove
+scelte che il piano non fissa.
+
+1. **Un marcatore per locale, non per data.** Due concerti nello stesso circolo
+   hanno le stesse identiche coordinate: disegnati come due punti restano
+   sovrapposti a qualunque ingrandimento e il raggruppamento non li scioglie
+   mai. `EventOccurrenceQuery::venueMarkers()` restituisce quindi un punto per
+   locale con il numero di date che vi cadono dentro, in **una sola** query con
+   due funzioni di finestra (`COUNT() OVER`, `ROW_NUMBER() OVER`): il conteggio
+   e la categoria della data più vicina, che è quella da cui viene il colore.
+2. **Il carico della mappa è posizionale, la card arriva dal server.** I
+   marcatori viaggiano come liste `[locale, lng, lat, categoria, quante]` e le
+   categorie stanno in una tabella citata per indice: ripetere i nomi dei campi
+   cinquecento volte costa più dei dati. Quando si tocca un marcatore il foglio
+   inferiore chiede a `/mappa/locale/{id}` la `<x-event-card>` **già disegnata**:
+   una seconda card scritta in JavaScript divergerebbe dalla prima al primo
+   cambio di badge.
+3. **MapLibre e Alpine hanno un pacchetto ciascuno.** `resources/js/map.js` e
+   `resources/js/calendar.js` sono due ingressi Vite in più, caricati dalle sole
+   pagine che li usano: MapLibre pesa quasi un megabyte e non deve gravare sulla
+   pagina iniziale. Alpine arriva dal proprio pacchetto e non da Livewire perché
+   Livewire porta con sé la propria copia, e due copie sulla stessa pagina si
+   contendono lo stesso oggetto globale; il controllo `window.Alpine === undefined`
+   lo evita comunque.
+4. **Il worker di MapLibre va dichiarato a Vite.** MapLibre cerca il proprio web
+   worker accanto al proprio file, deducendone l'indirizzo da `import.meta.url`:
+   dopo il raggruppamento quell'indirizzo è quello del nostro pacchetto e il
+   worker dà 404. Il sintomo è una mappa **grigia senza alcun errore** —
+   controlli, attribuzione e tela ci sono tutti. Si importa quindi
+   `maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url` e lo si passa a
+   `setWorkerUrl()`. Per la stessa ragione `map.on('error')` ora scrive in
+   console: un guasto silenzioso è il più difficile da riconoscere.
+5. **`cities.bounds` ha finalmente un formato:**
+   `{"min_lng":…, "min_lat":…, "max_lng":…, "max_lat":…}`, gli stessi nomi del
+   parametro `bbox=minLng,minLat,maxLng,maxLat` di §13.3. Se manca, la mappa
+   parte da centro e zoom della città.
+6. **Il calendario ha una sola query e una versione di cache.** §11.8 impone una
+   query aggregata per mese: `dailyDigest()` restituisce conteggio **e** primi
+   titoli in una lettura sola, leggendo righe grezze invece di idratare
+   trecento modelli. La cache di §12.3 (mezz'ora) si invalida con un numero di
+   versione per città che gli observer di `Event` ed `EventOccurrence`
+   incrementano a ogni salvataggio: inseguire quali mesi tocchi un evento con
+   una ricorrenza annuale significherebbe inseguirli tutti.
+7. **Scout dice quali eventi, il motore temporale quali date.** La ricerca prende
+   da Scout gli identificativi degli eventi che somigliano al testo e li passa a
+   `EventOccurrenceQuery::forEvents()->upcoming()`: chiedere le occorrenze
+   direttamente al motore di ricerca significherebbe riscrivere lì la definizione
+   di "futuro" (§8.1). I candidati chiesti sono più dei risultati mostrati,
+   perché fra le corrispondenze testuali ce ne sono di concluse.
+   Le colonne brevi vanno per `LIKE` — così "concer" trova "concerto" — e le
+   **descrizioni** per `MATCH … AGAINST`, con due indici full-text aggiunti da
+   una migration: su un `LONGTEXT` un `LIKE '%…%'` leggerebbe l'intera tabella a
+   ogni ricerca, e senza indice MariaDB rifiuta la query invece di restituire
+   zero righe. **Nota per i test:** InnoDB aggiorna l'indice full-text alla
+   commit, quindi dentro la transazione di un test una riga appena inserita non
+   è trovabile; si verifica che il `MATCH` venga emesso e trovi il proprio
+   indice, e la ricerca vera si prova sul database seedato.
+8. **Il widget è un `iframe`, e senza sessione.** Uno `<script>` incorporato
+   girerebbe nel dominio di chi lo ospita e vedrebbe la sua pagina; un `iframe`
+   è murato nel proprio contesto. La rotta sta fuori dai gruppi del sito
+   pubblico (lo slug del locale è unico ovunque, D12) e toglie di mezzo
+   `EncryptCookies`, `AddQueuedCookiesToResponse`, `StartSession`,
+   `ShareErrorsFromSession` e `PreventRequestForgery`: chi incorpora il riquadro
+   non deve ritrovarsi cookie di terze parti sulla propria pagina. Dichiara
+   `frame-ancestors *`, perché esiste per essere incorniciato.
+   Il codice da copiare lo produce `App\Support\WidgetEmbed` ed è mostrato come
+   campo di sola lettura nella scheda del locale in `/admin`; la stessa riga
+   vale per il pannello del locale.
+9. **"Vicino a me" ha un posto solo.** Il pulsante nudo dentro il pannello dei
+   filtri è stato sostituito dal componente `<x-near-me>`, che dice **prima**
+   perché la posizione viene chiesta, offre i quattro raggi di §11.7 e dichiara
+   che non viene salvata. Il pulsante nasce nascosto e lo mostra il JavaScript
+   solo dove la geolocalizzazione esiste; il raggio si legge al momento del clic,
+   così chi lo cambia e poi concede la posizione ottiene il raggio nuovo. La
+   posizione vive nella query string della ricerca in corso e da nessun'altra
+   parte.
+
+**Conseguenze.** Nuovi file di traduzione `lang/it/map.php`, `calendar.php`,
+`search.php`, `feeds.php`; nuove configurazioni `config/map.php`,
+`config/scout.php`, `config/feeds.php`; `EventOccurrenceQuery` guadagna
+`withinBounds()`, `forEvents()`, `forOccurrence()`, `venueMarkers()` e
+`dailyDigest()`. Le chiavi `filters.distance.permission_*` e
+`filters.distance.near_me` spariscono: quelle frasi vivono ora in `map.near.*`.
+
+**Verificato.** 52 test nuovi (mappa, calendario, ricerca, feed, widget e i
+metodi nuovi del motore), suite intera verde, `pint` passato, `phpstan` livello
+6 a zero errori, `npm run build` verde. Il file `.ics` letto da
+`sabre/vobject`: zero problemi sul profilo generico, e quello della singola data
+zero anche sul profilo CalDAV. L'RSS riletto da `simplexml`. Con Playwright a
+390 px: nessun trabocco orizzontale su mappa e calendario, MapLibre disegna
+tessere e marcatori colorati per categoria con il raggruppamento che somma le
+date, lo spostamento della mappa fa comparire "Cerca in quest'area" e il clic
+rilegge i marcatori del nuovo rettangolo (`?bbox=…`) aggiornando la legenda, il
+tocco su un marcatore apre il foglio inferiore con sei card vere, e
+l'interruttore dei titoli del calendario accende e spegne le anteprime.
+
+## 2026-08-23 — D27. Pannello dei locali: otto scelte prese scrivendo `/gestione`
+
+**Decisione.** Otto punti che §10 non fissa.
+
+1. **Tre serrature per lo stesso ingresso, non una.** La tenancy di Filament
+   restringe le query al locale dell'indirizzo, ma non è la difesa:
+   `User::canAccessTenant()` risponde 404 prima ancora che la pagina si apra,
+   e le Policy di `app/Policies` verificano il `venue_id` riga per riga. §18
+   scenario F chiede che regga «anche manipolando URL o ID direttamente», e
+   una difesa sola non lo garantisce — se domani un rilascio di Filament
+   cambiasse il modo in cui applica gli ambiti, le altre due reggerebbero.
+   Verificato per ogni pagina del pannello e per la scheda di un evento
+   altrui aperta dal proprio locale.
+2. **`getCreateAuthorizationResponse()` riscritto, non `canCreate()`.**
+   `EventPolicy::create()` accetta il locale come secondo argomento e senza di
+   esso risponde "solo staff globale" (D24, punto 2), mentre Filament chiede
+   l'abilità con la sola classe: il pulsante "Nuovo evento" spariva a chiunque
+   gestisse un locale. La prima correzione — riscrivere `canCreate()` — non
+   bastava: `CreateAction` interroga la *risposta di autorizzazione*, non quel
+   metodo, e il risultato era il difetto peggiore dei due, pulsante invisibile
+   e pagina raggiungibile. **Il bug non è emerso dai test** (il componente
+   Livewire della creazione rispondeva) ma dal browser: è la ragione per cui
+   il criterio va percorso davvero.
+3. **La bozza si salva a ogni passo, e ha bisogno di una categoria in
+   prestito.** `events.category_id` è obbligatoria nello schema, ma la
+   categoria si chiede al terzo passo: senza un ripiego il lavoro dei primi
+   due passi — locandina e titolo, cioè il più faticoso da rifare — non
+   sarebbe salvabile. La bozza nasce con la categoria abituale del locale (o
+   la prima del catalogo) e il terzo passo, dove il campo è obbligatorio, la
+   sovrascrive. L'identificatore della bozza è `#[Locked]`: senza, viaggerebbe
+   nello stato del componente e chiunque potrebbe farsi riscrivere l'evento di
+   un altro locale dal proprio wizard.
+4. **Le abitudini del locale si imparano, non si compilano.**
+   `venues.default_event_settings` non aveva forma definita: gliela dà
+   `App\Support\VenueEventDefaults` (categoria, tipo di prezzo, importo, ora
+   abituale, all'aperto). Nessun modulo la chiede — sarebbe una schermata in
+   più per un dato deducibile: viene riscritta a ogni evento creato, così il
+   secondo evento costa meno del primo. È la metà dei 90 secondi di §2.4 che
+   non si vede.
+5. **Le scorciatoie propongono un valore, non definiscono una finestra.**
+   `ScheduleShortcut` produce l'istante da mettere nel campo data — *stasera*
+   all'ora abituale, *venerdì* (oggi stesso se oggi è venerdì), *ogni giovedì*
+   che accende anche la ripetizione. Non risponde alla domanda «che cosa c'è
+   stasera», che resta di `EventOccurrenceQuery` e di nessun altro.
+6. **`EventOccurrenceQuery` espone `now()` e `currentBusinessDate()`.** I
+   pannelli di gestione lavorano anche sulle bozze, che il motore non mostra
+   perché la sua base è ristretta al pubblicato; senza un modo di *chiedere*
+   che giorno è, ogni elenco di gestione si sarebbe riscritto la propria idea
+   di "oggi". Ora la definizione si prende in prestito e la query resta in
+   `app/Queries` (`VenueDashboardQuery::applyNextOccurrence()`).
+7. **Si invitano collaboratori, non referenti.** `InviteVenueMemberAction`
+   crea l'account se manca, assegna il ruolo globale (senza mai declassare chi
+   era già altro), scrive la riga in `venue_user` e manda il messaggio con il
+   collegamento per scegliere la password. È lo stesso gesto con cui la
+   redazione accredita il referente di un locale approvato, ed è la stessa
+   azione: due strade separate, prima o poi, dimenticano un passaggio. Dal
+   pannello del locale si aggiunge però solo chi *pubblica*, non chi *risponde*
+   del locale — un referente in più è una decisione della redazione.
+8. **`APP_FALLBACK_LOCALE` passa da `it` a `en`.** Con entrambi a `it`, ogni
+   chiave che i pacchetti Filament non traducono ancora finiva **stampata
+   grezza in pagina** (`filament-panels::layout.skip_to_content.label` era una
+   di queste, sull'etichetta del salto al contenuto). Le 44 chiavi mancanti
+   sono state tradotte in `lang/vendor/*/it/`, in file **parziali**: Laravel li
+   fonde con quelli del pacchetto, e ricopiarli per intero congelerebbe a oggi
+   anche le traduzioni già presenti.
+
+**Conseguenze.** Nuovi enum `RecurrenceFrequency`, `Weekday`, `StatsPeriod`,
+`ScheduleShortcut`; `App\Support\RecurrenceRule` è l'unico punto che scrive e
+rilegge la sintassi RFC 5545 (§10.4: il gestore non la vede mai);
+`EventStatusPresentation` si sposta in `App\Filament\Support` perché ora la
+usano due pannelli; `DuplicateEventAction` copia anche la locandina (§10.3),
+mentre la lineup resta fuori — appartiene alle singole date, e la copia non ne
+ha ancora nessuna.
+
+**Verificato.** 75 test dedicati verdi. Il criterio di accettazione percorso
+davvero in un browser a 390 px, su `php artisan serve` e database seedato:
+accesso → wizard in cinque passi con locandina caricata → **pubblicato**, con
+l'evento in elenco e nel database `status = published`, `source = venue`,
+`starts_at` alle 19:00 UTC per le 21:00 di Padova, `business_date` ed
+`effective_ends_at` scritte dall'observer, la locandina in `media`. Nessun
+trabocco orizzontale su nessuno dei cinque passi né sulle altre pagine, nessun
+errore in console. Un collaboratore non vede la voce "Collaboratori" (403 se
+ne scrive l'indirizzo) e riceve 404 sugli eventi di un altro locale.

@@ -1,0 +1,24 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Filament\Admin\Resources\Tags\Pages;
+
+use App\Filament\Admin\Resources\Tags\TagResource;
+use Filament\Actions\DeleteAction;
+use Filament\Resources\Pages\EditRecord;
+
+class EditTag extends EditRecord
+{
+    protected static string $resource = TagResource::class;
+
+    /**
+     * @return array<mixed>
+     */
+    protected function getHeaderActions(): array
+    {
+        return [
+            DeleteAction::make(),
+        ];
+    }
+}

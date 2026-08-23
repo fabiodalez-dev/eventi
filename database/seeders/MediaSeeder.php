@@ -37,7 +37,7 @@ class MediaSeeder extends Seeder
         $directory = database_path('seeders/media');
 
         if (! is_dir($directory)) {
-            $this->command?->warn("Cartella immagini assente: {$directory}. Nessuna locandina associata.");
+            $this->command->warn("Cartella immagini assente: {$directory}. Nessuna locandina associata.");
 
             return;
         }
@@ -71,7 +71,7 @@ class MediaSeeder extends Seeder
             $attached++;
         }
 
-        $this->command?->info("Locandine associate a {$attached} eventi.");
+        $this->command->info("Locandine associate a {$attached} eventi.");
     }
 
     private function seedVenueCovers(string $directory): void
@@ -99,7 +99,7 @@ class MediaSeeder extends Seeder
             $attached++;
         }
 
-        $this->command?->info("Copertine associate a {$attached} locali.");
+        $this->command->info("Copertine associate a {$attached} locali.");
     }
 
     /**

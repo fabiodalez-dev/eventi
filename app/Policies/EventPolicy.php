@@ -38,9 +38,20 @@ class EventPolicy
      * vuole creare l'evento: senza, non c'è alcun `venue_id` da verificare
      * prima che l'evento esista. Si invoca con
      * `Gate::authorize('create', [Event::class, $venue])`.
+     *
+     * Il locale è **facoltativo** perché il pannello di redazione chiede il
+     * permesso prima di sapere dove si terrà l'evento — e perché un evento
+     * può non avere alcun locale (`venue_id` nullo, luogo libero). Senza
+     * locale la domanda diventa "questa persona può creare eventi in
+     * assoluto?", e la risposta è riservata allo staff globale: un referente
+     * o un collaboratore crea sempre *per* un locale preciso, mai in astratto.
      */
-    public function create(User $user, Venue $venue): bool
+    public function create(User $user, ?Venue $venue = null): bool
     {
+        if ($venue === null) {
+            return $this->isGlobalStaff($user) && $user->can(Permission::CreateEvents->value);
+        }
+
         return $this->canActOnVenue($user, $venue->id, Permission::CreateEvents->value);
     }
 
