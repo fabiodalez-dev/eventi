@@ -6,26 +6,30 @@ on:
   pull_request:
   workflow_dispatch:
 
+# Nessun permesso di scrittura: il workflow non tocca il repository.
+permissions:
+  contents: read
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# Le action di terze parti sono pinnate al commit SHA, non al tag: un tag e
+# mutabile e chi lo controlla puo spostarlo su codice diverso da quello verificato.
 jobs:
   quality:
     name: Lint e analisi statica
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - name: PHP 8.4
-        uses: shivammathur/setup-php@v2
+      - uses: shivammathur/setup-php@b604ade2a87db23f8871b7182e69ec5e75effb45 # v2
         with:
           php-version: '8.4'
           extensions: mbstring, intl, gd, imagick, zip, bcmath, pdo_mysql, exif
           coverage: none
 
-      - name: Cache Composer
-        uses: actions/cache@v4
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ~/.composer/cache
           key: composer-${{ hashFiles('composer.lock') }}
@@ -43,7 +47,8 @@ jobs:
     runs-on: ubuntu-latest
     services:
       mariadb:
-        # stessa major della produzione: le funzioni spaziali divergono fra MySQL e MariaDB
+        # stessa major della produzione: MySQL e MariaDB divergono sulle funzioni
+        # spaziali e sull'ordine degli assi con SRID 4326
         image: mariadb:10.11
         env:
           MARIADB_ROOT_PASSWORD: root
@@ -54,25 +59,22 @@ jobs:
           --health-interval=10s --health-timeout=5s --health-retries=10
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - name: PHP 8.4
-        uses: shivammathur/setup-php@v2
+      - uses: shivammathur/setup-php@b604ade2a87db23f8871b7182e69ec5e75effb45 # v2
         with:
           php-version: '8.4'
           extensions: mbstring, intl, gd, imagick, zip, bcmath, pdo_mysql, exif
           coverage: none
 
-      - name: Cache Composer
-        uses: actions/cache@v4
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ~/.composer/cache
           key: composer-${{ hashFiles('composer.lock') }}
 
       - run: composer install --no-interaction --prefer-dist --no-progress
 
-      - name: Node
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22'
           cache: npm
@@ -84,8 +86,6 @@ jobs:
         run: |
           cp .env.example .env
           php artisan key:generate
-        env:
-          DB_CONNECTION: mariadb
 
       - name: Pest
         run: ./vendor/bin/pest --ci
@@ -102,11 +102,11 @@ jobs:
     needs: [quality, tests]
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
+    environment: production
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - name: PHP 8.4
-        uses: shivammathur/setup-php@v2
+      - uses: shivammathur/setup-php@b604ade2a87db23f8871b7182e69ec5e75effb45 # v2
         with:
           php-version: '8.4'
           extensions: mbstring, intl, gd, imagick, zip, bcmath, pdo_mysql, exif
@@ -115,8 +115,7 @@ jobs:
       - name: Dipendenze di produzione
         run: composer install --no-interaction --prefer-dist --no-dev --optimize-autoloader --no-progress
 
-      - name: Node
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22'
           cache: npm
@@ -126,29 +125,45 @@ jobs:
           npm ci
           npm run build
 
-      - name: Chiave SSH
+      # I segreti passano da variabili d'ambiente, mai interpolati nel corpo dello
+      # script: l'interpolazione ${{ }} avviene PRIMA dell'esecuzione della shell,
+      # quindi un valore contenente metacaratteri verrebbe eseguito come codice.
+      - name: Chiave SSH e host key
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_HOST_KEY: ${{ secrets.DEPLOY_HOST_KEY }}
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy
           chmod 600 ~/.ssh/deploy
-          ssh-keyscan -H "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts
+          # host key fissata in anticipo: nessun trust-on-first-use, che accetterebbe
+          # ciecamente qualunque server rispondesse a quell'indirizzo
+          printf '%s\n' "$DEPLOY_HOST_KEY" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
 
       - name: Sincronizza i file
+        env:
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
         run: |
           rsync -az --delete \
-            -e "ssh -i ~/.ssh/deploy -o IdentitiesOnly=yes" \
+            -e "ssh -i ~/.ssh/deploy -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes" \
             --exclude '.git' --exclude '.github' --exclude 'node_modules' \
             --exclude 'tests' --exclude '.env' --exclude 'storage/logs/*' \
             --exclude 'storage/framework/cache/*' \
             --exclude 'storage/framework/sessions/*' \
             --exclude 'storage/framework/views/*' \
             --exclude 'storage/app/public/*' \
-            ./ "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:${{ secrets.DEPLOY_PATH }}/"
+            ./ "${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_PATH}/"
 
       - name: Migrazioni e cache
+        env:
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
         run: |
-          ssh -i ~/.ssh/deploy -o IdentitiesOnly=yes \
-            "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
+          ssh -i ~/.ssh/deploy -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+            "${DEPLOY_USER}@${DEPLOY_HOST}" \
             'set -e
              cd ~/eventi
              PHP=/opt/cpanel/ea-php84/root/usr/bin/php
