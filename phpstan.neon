@@ -1,0 +1,16 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    level: 6
+
+    # I model dichiarano i cast nel metodo `casts()`, non nella proprietà
+    # `$casts`. Senza questa opzione Larastan legge solo il tipo dichiarato dal
+    # docblock (`array<string, string>`), non riconosce alcun cast e tipa le
+    # colonne DATETIME come stringhe: ogni `instanceof DateTimeInterface` su
+    # `starts_at` risulterebbe "sempre falso" pur essendo vero a runtime.
+    parseModelCastsMethod: true
+
+    paths:
+        - app
+        - database
