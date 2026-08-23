@@ -32,3 +32,10 @@ Thumbs.db
 /.code-review-graph
 CLAUDE.md
 .claude/
+
+# Asset dei pannelli Filament: generati da `php artisan filament:assets`,
+# rigenerati a ogni deploy. Non vanno versionati.
+/public/css/filament
+/public/js/filament
+/public/fonts/filament
+/public/storage

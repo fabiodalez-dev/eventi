@@ -169,6 +169,9 @@ jobs:
              PHP=/opt/cpanel/ea-php84/root/usr/bin/php
              $PHP artisan migrate --force
              $PHP artisan storage:link || true
+             # pubblica CSS e JS dei pannelli Filament in public/: senza questo
+             # /admin e /gestione vengono serviti senza alcun foglio di stile
+             $PHP artisan filament:assets
              $PHP artisan config:cache
              $PHP artisan route:cache
              $PHP artisan view:cache
