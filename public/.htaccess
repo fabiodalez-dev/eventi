@@ -1,3 +1,23 @@
+# ---------------------------------------------------------------------------
+# Versione PHP (hosting cPanel)
+#
+# L'applicazione richiede PHP >= 8.4.1. Sul target di deploy attuale
+# (cPanel/CloudLinux) l'interruttore MultiPHP del pannello risulta impostato su
+# ea-php84 ma il web continua a essere servito da 8.3, e Composer rifiuta di
+# avviarsi. Questa direttiva forza l'handler corretto per directory.
+#
+# Deve stare QUI, nel file versionato: il deploy sincronizza public/ con
+# --delete, quindi una direttiva aggiunta a mano sul server viene cancellata
+# al primo rilascio successivo. E' gia successo una volta.
+#
+# Su un host non cPanel questo handler non esiste: rimuovere il blocco al
+# momento della migrazione, altrimenti Apache servirebbe i .php come file da
+# scaricare.
+# ---------------------------------------------------------------------------
+<IfModule mime_module>
+    AddType application/x-httpd-ea-php84 .php .php8 .phtml
+</IfModule>
+
 <IfModule mod_rewrite.c>
     <IfModule mod_negotiation.c>
         Options -MultiViews -Indexes
