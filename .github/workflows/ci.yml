@@ -1,0 +1,167 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Lint e analisi statica
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: PHP 8.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, intl, gd, imagick, zip, bcmath, pdo_mysql, exif
+          coverage: none
+
+      - name: Cache Composer
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache
+          key: composer-${{ hashFiles('composer.lock') }}
+
+      - run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Pint
+        run: ./vendor/bin/pint --test
+
+      - name: PHPStan
+        run: ./vendor/bin/phpstan analyse --memory-limit=1G --no-progress
+
+  tests:
+    name: Test
+    runs-on: ubuntu-latest
+    services:
+      mariadb:
+        # stessa major della produzione: le funzioni spaziali divergono fra MySQL e MariaDB
+        image: mariadb:10.11
+        env:
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: eventi_test
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=10s --health-timeout=5s --health-retries=10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: PHP 8.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, intl, gd, imagick, zip, bcmath, pdo_mysql, exif
+          coverage: none
+
+      - name: Cache Composer
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache
+          key: composer-${{ hashFiles('composer.lock') }}
+
+      - run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build
+
+      - name: Prepara ambiente
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+        env:
+          DB_CONNECTION: mariadb
+
+      - name: Pest
+        run: ./vendor/bin/pest --ci
+        env:
+          DB_CONNECTION: mariadb
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: eventi_test
+          DB_USERNAME: root
+          DB_PASSWORD: root
+
+  deploy:
+    name: Deploy su eventi.fabiodalez.it
+    needs: [quality, tests]
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: PHP 8.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, intl, gd, imagick, zip, bcmath, pdo_mysql, exif
+          coverage: none
+
+      - name: Dipendenze di produzione
+        run: composer install --no-interaction --prefer-dist --no-dev --optimize-autoloader --no-progress
+
+      - name: Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Compila gli asset
+        run: |
+          npm ci
+          npm run build
+
+      - name: Chiave SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy
+          chmod 600 ~/.ssh/deploy
+          ssh-keyscan -H "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Sincronizza i file
+        run: |
+          rsync -az --delete \
+            -e "ssh -i ~/.ssh/deploy -o IdentitiesOnly=yes" \
+            --exclude '.git' --exclude '.github' --exclude 'node_modules' \
+            --exclude 'tests' --exclude '.env' --exclude 'storage/logs/*' \
+            --exclude 'storage/framework/cache/*' \
+            --exclude 'storage/framework/sessions/*' \
+            --exclude 'storage/framework/views/*' \
+            --exclude 'storage/app/public/*' \
+            ./ "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:${{ secrets.DEPLOY_PATH }}/"
+
+      - name: Migrazioni e cache
+        run: |
+          ssh -i ~/.ssh/deploy -o IdentitiesOnly=yes \
+            "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
+            'set -e
+             cd ~/eventi
+             PHP=/opt/cpanel/ea-php84/root/usr/bin/php
+             $PHP artisan migrate --force
+             $PHP artisan storage:link || true
+             $PHP artisan config:cache
+             $PHP artisan route:cache
+             $PHP artisan view:cache
+             $PHP artisan queue:restart
+             chmod -R 775 storage bootstrap/cache'
+
+      - name: Verifica che il sito risponda
+        run: |
+          code=$(curl -sS -o /dev/null -w '%{http_code}' -m 30 https://eventi.fabiodalez.it/ || echo 000)
+          echo "HTTP $code"
+          [ "$code" = "200" ] || { echo "Il sito non risponde 200"; exit 1; }
