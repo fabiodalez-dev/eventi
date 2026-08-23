@@ -31,6 +31,7 @@ class DatabaseSeeder extends Seeder
             VenueSeeder::class,
             UserSeeder::class,
             EventSeeder::class,
+            MediaSeeder::class,
         ]);
     }
 }
