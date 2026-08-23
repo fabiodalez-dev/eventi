@@ -1,0 +1,352 @@
+# Stack tecnologico — elenco completo
+
+Documento di supporto a `piano-piattaforma-eventi-v2.md`. Contiene ogni tecnologia, libreria e servizio previsto, con il ruolo che ricopre, le alternative valutate e le trappole note.
+
+**Verificato al 23 agosto 2026.**
+
+---
+
+## 0. Come leggere questo file
+
+Le versioni sono espresse come **vincoli semantici** (`^13.0`), non come numeri esatti: i numeri invecchiano in settimane. Le major sono verificate alla data di stesura; le minor no.
+
+Primo task di F0, prima di scrivere qualunque riga di codice:
+
+```bash
+composer outdated --direct
+npm outdated
+composer why-not filament/filament 5.0    # per ogni pacchetto sospetto
+```
+
+Se un pacchetto non è compatibile con Filament 5 / Livewire 4, la scelta non è "aspettiamo": è **registrare la decisione in `docs/DECISIONS.md`** e ripiegare su Filament 4 + Livewire 3, che non porta perdita di funzionalità (§4 del piano).
+
+Legenda: ✅ major verificata · ⚠️ trappola nota · 🔁 sostituibile senza toccare il core.
+
+---
+
+## 1. Runtime e infrastruttura
+
+| Componente | Versione | Ruolo | Note |
+|---|---|---|---|
+| **PHP** | 8.3 minimo, 8.4 consigliato | Runtime | ✅ Laravel 13 richiede 8.3+ |
+| **PostgreSQL** | 16+ | Database | Scelto per PostGIS e per i tipi nativi (jsonb, timestamptz, generated columns) |
+| **PostGIS** | 3.4+ | Query geospaziali | `geography(Point,4326)`, indice GIST, `ST_DWithin` |
+| **Redis** | 7+ | Cache, sessioni, code, lock | I lock servono al worker delle notifiche (§15.5 del piano) |
+| **Meilisearch** | 1.x | Ricerca full-text | Self-hosted, MIT, ottimo su typo e lingua italiana |
+| **Node.js** | 22 LTS | Build asset | Solo build-time, non a runtime |
+| **Nginx** o **Caddy** | — | Web server | Caddy se si vuole HTTPS automatico senza pensieri |
+| **Docker + Compose** | — | Ambiente locale | php-fpm, nginx, postgres+postgis, redis, meilisearch, mailpit, minio |
+
+⚠️ **Imagick con libheif e libavif.** Le locandine arrivano da iPhone in HEIC e vanno servite in AVIF. Se l'immagine PHP dell'ambiente non ha queste librerie compilate, metà degli upload dei gestori fallirà silenziosamente. Verificare in F0 con `php -r 'print_r(Imagick::queryFormats());'` e includere le librerie nel Dockerfile.
+
+---
+
+## 2. Framework e pannelli
+
+| Pacchetto | Vincolo | Ruolo | Note |
+|---|---|---|---|
+| `laravel/framework` | `^13.0` | Framework | ✅ release del 17 marzo 2026, PHP 8.3+ |
+| `filament/filament` | `^5.0` | Pannelli `/admin` e `/gestione` | ✅ 16 gennaio 2026, richiede Livewire 4. Nessuna funzionalità nuova rispetto a v4 |
+| `livewire/livewire` | `^4.0` | Interattività server-driven | ⚠️ i tag componente vanno auto-chiusi (`<livewire:x />`); `wire:transition` usa le View Transitions API |
+| `laravel/horizon` | `^5.0` | Dashboard e supervisione code | Indispensabile: le notifiche programmate vivono in coda |
+| `laravel/pulse` | `^1.0` | Metriche applicative | 🔁 opzionale |
+| `laravel/pennant` | `^1.0` | Feature flag | Serve per accendere funzioni per singola città |
+| `laravel/sanctum` | `^4.0` | Token API per le app | |
+| `laravel/socialite` | `^5.0` | Login Google e Apple | Predisposto in F7b, attivabile dopo |
+
+---
+
+## 3. Dominio: date, ricorrenze, calendari
+
+Il cuore del prodotto. Questa sezione merita più attenzione di tutte le altre.
+
+| Pacchetto | Vincolo | Ruolo | Note |
+|---|---|---|---|
+| `nesbot/carbon` | incluso in Laravel | Manipolazione date | Già presente. **Non installare altre librerie di date** |
+| `rlanvin/php-rrule` | `^2.0` | Parsing e generazione RRULE (RFC 5545) | Preferito a `simshaun/recurr`: più manutenuto, API più pulita, gestisce EXDATE correttamente |
+| `sabre/vobject` | `^4.5` | **Lettura** file ICS in import | Standard de facto per iCalendar in PHP |
+| `spatie/icalendar-generator` | `^2.0` | **Scrittura** feed `.ics` pubblici | Due librerie diverse per le due direzioni: è normale, non è ridondanza |
+
+⚠️ **Attenzione ai fusi orari nell'import ICS.** Un file ICS può contenere date fluttuanti (senza fuso), date UTC (`Z`) o date con `TZID`. Il driver di import deve gestire tutti e tre i casi e normalizzare a UTC applicando il fuso della città come default per le fluttuanti. È la prima fonte di bug in ogni sistema di calendario.
+
+⚠️ **Ora legale.** `Europe/Rome` ha due giorni all'anno in cui un'ora non esiste e un'ora esiste due volte. Le occorrenze ricorrenti generate a cavallo di quelle date vanno testate (§18 del piano).
+
+### Calendario nell'interfaccia
+Per la griglia mensile pubblica **non serve una libreria**: è una tabella di 42 celle con conteggi aggregati, e va scritta a mano in Blade con Alpine. FullCalendar sarebbe 250 KB di JavaScript per un problema che non hai.
+
+| Libreria | Quando usarla | Note |
+|---|---|---|
+| **Nessuna** (Blade + Alpine) | Calendario mensile pubblico | Raccomandato |
+| `@fullcalendar/core` | Solo se serve una vista risorse/timeline nell'admin | ⚠️ le viste premium (resource timeline) sono a **licenza commerciale a pagamento**: verificare prima di adottarle |
+| `flatpickr` | Selettore data/ora nel wizard evento | Leggero, buona UX mobile, localizzabile in italiano |
+
+---
+
+## 4. Geospaziale e mappe
+
+| Pacchetto | Vincolo | Ruolo | Note |
+|---|---|---|---|
+| `clickbar/laravel-magellan` | `^1.0` | Integrazione PostGIS in Eloquent | Cast dei tipi geometrici, scope di distanza, `ST_DWithin` in query builder |
+| — alternativa — `matanyadaev/laravel-eloquent-spatial` | `^4.0` | Idem, orientato a MySQL | Usare solo se si ripiega su MySQL |
+| `maplibre-gl` (npm) | `^5.0` | Mappa vettoriale nel browser | ✅ BSD-3, nessun vendor lock-in, nessuna API key |
+| `@turf/turf` (npm) | `^7.0` | Calcoli geometrici lato client | 🔁 solo se serve clustering custom o buffer; MapLibre ha già il clustering nativo |
+| `pmtiles` (npm) | `^4.0` | Lettura tile da singolo file statico | Solo se si sceglie l'hosting tile self-serve |
+
+### Tile server — tre strade
+| Opzione | Costo | Note |
+|---|---|---|
+| **OpenFreeMap** | gratuito | Nessuna chiave, nessun limite dichiarato. Ottimo per partire |
+| **Protomaps + PMTiles su R2** | costo storage ≈ nullo | Un file `.pmtiles` dell'Italia servito da CDN. Controllo totale, zero dipendenze da terzi |
+| **MapTiler / Stadia** | a consumo | Se serve supporto commerciale e stili pronti |
+
+### Geocoding
+⚠️ **Trappola grossa.** L'API pubblica di Nominatim di OpenStreetMap **vieta esplicitamente l'uso massivo e automatizzato**. Geocodificare centinaia di locali contro l'endpoint pubblico porta al ban dell'IP. Le strade praticabili:
+
+| Opzione | Note |
+|---|---|
+| **Photon** (Komoot) self-hosted | Consigliata: veloce, autocomplete nativo, dataset OSM |
+| **Nominatim self-hosted** | Pesante da mantenere (import planet o estratto Italia) ma senza limiti |
+| **Geoapify / LocationIQ** | Piani gratuiti generosi, API key, buona qualità sugli indirizzi italiani |
+| Nominatim pubblico | **Solo per test manuali**, mai in produzione |
+
+Tutto dietro `GeocodingServiceInterface`: cambiare provider deve costare una riga nel service container.
+
+**Piano B sempre attivo:** se il geocoding fallisce, il form mostra un marker trascinabile sulla mappa e il gestore posiziona il locale a mano. Non bloccare mai un'iscrizione perché un servizio esterno non ha riconosciuto un indirizzo.
+
+---
+
+## 5. Media e immagini
+
+| Pacchetto | Vincolo | Ruolo | Note |
+|---|---|---|---|
+| `spatie/laravel-medialibrary` | `^11.0` | Gestione allegati e conversioni | Collezioni `poster`, `gallery`, `logo`, `cover` |
+| `spatie/image` | `^3.0` | Manipolazione immagini | Supporta **libvips**: molto più veloce e leggero di GD su immagini grandi |
+| `spatie/laravel-image-optimizer` | `^1.7` | Ottimizzazione post-conversione | Richiede i binari `jpegoptim`, `optipng`, `cwebp`, `avifenc` nel container |
+| `kornrunner/blurhash` | `^1.2` | Placeholder sfocati | 🔁 alternativa: ThumbHash, più compatto |
+| `league/flysystem-aws-s3-v3` | `^3.0` | Storage S3-compatible | Cloudflare R2 o Hetzner Object Storage |
+
+### Immagini Open Graph generate
+| Opzione | Note |
+|---|---|
+| **Composizione con `spatie/image`** | Raccomandata: locandina + titolo + data su canvas, in coda, nessun browser headless |
+| `spatie/browsershot` | Permette layout HTML complessi ma richiede Chrome nel container: +300 MB e una fonte di fragilità in più |
+
+---
+
+## 6. Ricerca, tassonomie, contenuti
+
+| Pacchetto | Vincolo | Ruolo |
+|---|---|---|
+| `laravel/scout` | `^10.0` | Astrazione ricerca |
+| `meilisearch/meilisearch-php` | `^1.0` | Driver Meilisearch |
+| `spatie/laravel-sluggable` | `^3.0` | Slug unici per città |
+| `spatie/laravel-tags` | `^4.0` | 🔁 opzionale: i tag sono già modellati a mano nello schema. Usare solo se si vuole il plugin Filament pronto |
+| `spatie/laravel-query-builder` | `^6.0` | Filtri e sort dai parametri URL/API in modo dichiarativo |
+| `spatie/laravel-activitylog` | `^4.0` | Audit trail su cambi di stato di eventi e locali |
+| `spatie/laravel-permission` | `^6.0` | Ruoli e permessi |
+| `spatie/laravel-sitemap` | `^7.0` | Sitemap dinamica |
+
+---
+
+## 7. Notifiche
+
+| Pacchetto | Vincolo | Ruolo | Note |
+|---|---|---|---|
+| `minishlink/web-push` | `^9.0` | Web Push protocol (VAPID) | Base per le push dal sito |
+| `laravel-notification-channels/webpush` | `^10.0` | Canale Laravel per Web Push | Gestisce subscription e invii |
+| `laravel-notification-channels/fcm` | `^5.0` | Canale FCM | Serve in F11 con le app native |
+| `spatie/laravel-schedule-monitor` | `^3.0` | Allarme se uno scheduled task smette di girare | Il worker delle notifiche è critico: se muore in silenzio nessuno riceve più promemoria |
+
+⚠️ **Web Push su iOS** funziona solo se l'utente ha installato il sito come PWA dalla schermata home. Su Android e desktop funziona dal browser. L'email resta il fallback obbligatorio (§15.6 del piano).
+
+⚠️ **Service worker scritto a mano.** Non serve un framework PWA: un `sw.js` di un centinaio di righe (cache dello shell + gestione `push` e `notificationclick`) è più leggibile e più facile da debuggare di `vite-plugin-pwa` con la sua configurazione generata.
+
+---
+
+## 8. Email
+
+| Componente | Ruolo | Note |
+|---|---|---|
+| **Postmark** o **Brevo** | Invio transazionale | Postmark ha la deliverability migliore; Brevo include la newsletter nello stesso piano |
+| `mailpit` | Cattura email in locale | Nel Compose, mai in produzione |
+| Template email | Componenti Blade | ⚠️ i client email non supportano CSS moderno: tabelle e stili inline. Testare su Gmail, Apple Mail, Outlook |
+
+Configurare **SPF, DKIM e DMARC** sul dominio prima del primo invio massivo: senza, la newsletter finisce in spam e la reputazione del dominio si brucia una volta sola.
+
+---
+
+## 9. API e documentazione
+
+| Pacchetto | Vincolo | Ruolo |
+|---|---|---|
+| `dedoc/scramble` | `^0.12` | OpenAPI 3.1 generato dal codice, esposto su `/docs/api` |
+| Laravel API Resources | nativo | Serializzazione. Laravel 13 include risorse JSON:API native: valutarle, ma **la forma delle risposte resta quella definita in §13.6 del piano** |
+
+---
+
+## 10. Qualità, test, CI
+
+| Pacchetto | Vincolo | Ruolo | Note |
+|---|---|---|---|
+| `pestphp/pest` | `^4.0` | Test | ✅ v4 include il **browser testing** |
+| `pestphp/pest-plugin-laravel` | `^4.0` | Helper Laravel | |
+| `pestphp/pest-plugin-browser` | `^4.0` | Test end-to-end su browser reale | Basato su Playwright: `npx playwright install` |
+| `larastan/larastan` | `^3.0` | Analisi statica, livello 6+ | |
+| `laravel/pint` | `^1.0` | Formattazione, preset `laravel` | |
+| `@lhci/cli` (npm) | `^0.14` | Lighthouse CI con soglie bloccanti | |
+
+⚠️ **Laravel Dusk non va usato.** Il browser testing di Pest 4 lo sostituisce integralmente. Attenzione se l'agente genera codice misto: `visit('/')` è Pest, `$this->browse()` è Dusk, e in Pest `wait()` prende **secondi**, non millisecondi. Metterlo esplicitamente nelle istruzioni dell'agente.
+
+---
+
+## 11. Frontend
+
+| Pacchetto | Vincolo | Ruolo | Note |
+|---|---|---|---|
+| `tailwindcss` | `^4.2` | CSS | ✅ configurazione **CSS-first**: niente `tailwind.config.js`, tutto in `@theme` |
+| `@tailwindcss/vite` | `^4.2` | Integrazione build | |
+| `alpinejs` | `^3.0` | Interattività locale | Già incluso da Livewire |
+| `vite` | `^7.0` | Build | |
+| `maplibre-gl` | `^5.0` | Mappe | vedi §4 |
+| `flatpickr` | `^4.6` | Date picker | |
+| `@fontsource/*` | — | Font self-hosted | Niente Google Fonts da CDN: è un problema GDPR risolvibile in dieci minuti |
+
+Nessun framework SPA. Nessun jQuery. Nessuna libreria di date lato client: le date arrivano dal server già formattate per l'utente.
+
+---
+
+## 12. Operatività e monitoraggio
+
+| Componente | Ruolo | Note |
+|---|---|---|
+| `spatie/laravel-backup` `^9.0` | Backup DB e storage | ⚠️ configurare anche la **notifica di backup fallito**: un backup che non gira e non avvisa è peggio di nessun backup |
+| `spatie/laravel-health` `^1.0` | Health check (DB, Redis, code, storage, spazio disco) | Esposto su endpoint protetto per l'uptime monitor |
+| **Sentry** | Error tracking | 🔁 alternativa self-hosted e completamente open source: **GlitchTip**, compatibile con gli SDK Sentry |
+| **Plausible** o **Umami** | Analytics privacy-first | Self-hosted: nessun trasferimento extra-UE, banner cookie molto più semplice |
+| **Uptime Kuma** | Monitor uptime self-hosted | 🔁 |
+| **Cloudflare Turnstile** | Captcha su form pubblici | Gratuito, meno invasivo di reCAPTCHA, nessun cookie di profilazione |
+
+---
+
+## 13. Deploy
+
+| Opzione | Costo indicativo | Note |
+|---|---|---|
+| **VPS Hetzner** (CX/CPX) + Docker | 5–20 €/mese | Massimo controllo, richiede gestione manuale |
+| **Laravel Forge** + VPS | 12 $/mese + VPS | Deploy, code, certificati e backup gestiti: la scelta pragmatica per un solo sviluppatore |
+| **Laravel Cloud** | a consumo | Zero gestione infrastruttura, costo meno prevedibile |
+| **Coolify** self-hosted | costo del VPS | Alternativa open source a Forge |
+
+Storage oggetti: **Cloudflare R2** (nessun costo di egress, punto decisivo per un sito pieno di immagini) oppure Hetzner Object Storage.
+
+CI: GitHub Actions — `pint --test` → `larastan` → `pest` → `lighthouse-ci`.
+
+---
+
+## 14. Fase mobile (F11)
+
+Da installare solo quando sito, API e contenuti sono stabili.
+
+| Pacchetto | Ruolo |
+|---|---|
+| `expo` (SDK corrente) + `react-native` | Base, codebase unico Android/iOS |
+| `expo-router` | Navigazione file-based |
+| `typescript` | Tipi condivisi con l'API generati da OpenAPI |
+| `@tanstack/react-query` | Fetch, cache, sincronizzazione con `updated_since` |
+| `react-native-mmkv` | Storage locale veloce per la cache offline 7 giorni |
+| `@maplibre/maplibre-react-native` | Mappa nativa coerente con quella web |
+| `expo-notifications` | Push |
+| `expo-location` | "Vicino a me" |
+| `expo-calendar` | "Aggiungi al calendario" di sistema |
+| `expo-sharing` | Condivisione nativa |
+| `expo-image` | Immagini con cache e blurhash |
+| **EAS Build / Submit / Update** | Build, pubblicazione e aggiornamenti OTA |
+
+⚠️ Se si attiva un login social su iOS, **Sign in with Apple diventa obbligatorio** per la pubblicazione su App Store. Ed è richiesta la **cancellazione account dentro l'app**, non solo sul sito.
+
+---
+
+## 15. Licenze e attribuzioni obbligatorie
+
+Da sistemare prima del lancio, non dopo.
+
+| Elemento | Obbligo |
+|---|---|
+| Dati OpenStreetMap | Attribuzione **ODbL** visibile sulla mappa: "© OpenStreetMap contributors" |
+| MapLibre GL JS | BSD-3, attribuzione nei crediti |
+| Font | Verificare la licenza di ogni famiglia self-hosted (OFL nella maggior parte dei casi) |
+| Locandine caricate dai locali | Dichiarazione di titolarità in fase di iscrizione + procedura di rimozione (§16 del piano) |
+| Pacchetti GPL/AGPL | Nessuno di quelli elencati qui lo è. **Verificare prima di aggiungerne di nuovi**: un pacchetto AGPL in un progetto che offrirà servizi a pagamento è un problema legale, non un dettaglio |
+
+---
+
+## 16. Cosa non usare, e perché
+
+| Da evitare | Motivo |
+|---|---|
+| Google Maps JS API come dipendenza obbligatoria | Costi imprevedibili a volume, API key, vendor lock-in. Un deep link a Google Maps per le indicazioni è un'altra cosa: quello va bene e non costa niente |
+| Laravel Dusk | Sostituito dal browser testing di Pest 4 |
+| FullCalendar per il calendario pubblico | 250 KB per una griglia di 42 celle; e le viste avanzate sono a pagamento |
+| Moment.js, Luxon lato client | Le date le formatta il server, che conosce il fuso della città |
+| localStorage per dati che devono sopravvivere | Solo per i salvataggi guest pre-registrazione, che sono per definizione temporanei |
+| Google Fonts da CDN | Trasferimento dati verso terzi senza consenso |
+| Google Analytics | Rende il cookie banner più invasivo e la conformità più fragile, per dati che qui non servono |
+| Un framework SPA per il sito pubblico | Distrugge il canale di acquisizione principale, che è la ricerca organica |
+| API pubblica di Nominatim in produzione | Uso vietato dalla policy, ban dell'IP |
+
+---
+
+## 17. Comandi di installazione
+
+```bash
+# core
+composer require filament/filament laravel/horizon laravel/pennant \
+  laravel/sanctum laravel/socialite laravel/scout meilisearch/meilisearch-php
+
+# dominio
+composer require rlanvin/php-rrule sabre/vobject spatie/icalendar-generator
+
+# geo
+composer require clickbar/laravel-magellan
+
+# media
+composer require spatie/laravel-medialibrary spatie/image \
+  spatie/laravel-image-optimizer kornrunner/blurhash league/flysystem-aws-s3-v3
+
+# contenuti e permessi
+composer require spatie/laravel-permission spatie/laravel-sluggable \
+  spatie/laravel-activitylog spatie/laravel-query-builder spatie/laravel-sitemap
+
+# notifiche
+composer require minishlink/web-push laravel-notification-channels/webpush \
+  spatie/laravel-schedule-monitor
+
+# operatività
+composer require spatie/laravel-backup spatie/laravel-health sentry/sentry-laravel
+
+# API docs
+composer require dedoc/scramble
+
+# dev
+composer require --dev pestphp/pest pestphp/pest-plugin-laravel \
+  pestphp/pest-plugin-browser larastan/larastan laravel/pint
+npx playwright install
+
+# frontend
+npm i -D tailwindcss @tailwindcss/vite vite
+npm i maplibre-gl flatpickr
+```
+
+---
+
+## 18. Riepilogo delle decisioni da confermare in F0
+
+1. Filament 5 + Livewire 4, oppure Filament 4 + Livewire 3 se un plugin indispensabile non è pronto.
+2. Tile server: OpenFreeMap (subito) o Protomaps su R2 (controllo totale).
+3. Geocoding: Photon self-hosted o Geoapify/LocationIQ.
+4. Error tracking: Sentry o GlitchTip.
+5. Hosting: Forge + Hetzner, oppure Laravel Cloud, oppure Coolify.
+6. Provider email: Postmark (deliverability) o Brevo (newsletter inclusa).
+7. Web Push al lancio o solo email — dipende dalla quota di traffico iOS (§20.6 del piano).
+
+Ogni voce va chiusa con una riga in `docs/DECISIONS.md`: cosa, perché, quando ricontrollare.
