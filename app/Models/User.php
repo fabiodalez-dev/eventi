@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\DTOs\NotificationPreferences;
+use App\Enums\FollowableType;
 use App\Enums\UserRole;
 use App\Enums\VenueRole;
+use App\Notifications\VerifyEmailLink;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Models\Contracts\HasTenants;
@@ -19,10 +22,17 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable implements FilamentUser, HasTenants, MustVerifyEmail
 {
+    /*
+     * I token dell'API v1 (§13.4). Sanctum ne emette uno per dispositivo, così
+     * chi perde il telefono revoca quello e non tutto il resto.
+     */
+    use HasApiTokens;
+
     /** @use HasFactory<UserFactory> */
     use HasFactory;
 
@@ -191,6 +201,69 @@ class User extends Authenticatable implements FilamentUser, HasTenants, MustVeri
     {
         return $tenant instanceof Venue
             && $this->venues()->whereKey($tenant->getKey())->exists();
+    }
+
+    /**
+     * Il nome mostrato dai pannelli Filament. Il nome è facoltativo (§15.2):
+     * senza questo metodo, l'account di chi non l'ha dato manderebbe `null`
+     * dove il pannello si aspetta una stringa.
+     */
+    public function getFilamentName(): string
+    {
+        return filled($this->name) ? (string) $this->name : (string) $this->email;
+    }
+
+    /**
+     * La verifica dell'email (§15.2) viaggia con un messaggio nostro: quello
+     * di Laravel prende i testi dalle traduzioni del framework, che sono in
+     * inglese, e le stringhe di questo progetto stanno tutte in `lang/it`.
+     */
+    public function sendEmailVerificationNotification(): void
+    {
+        $this->notify(new VerifyEmailLink);
+    }
+
+    /**
+     * Le preferenze di §15.4 lette con i loro valori predefiniti. Nessuno
+     * legge la colonna JSON direttamente: un utente registrato prima di un
+     * cambio ha chiavi mancanti, e una chiave mancante non significa «spento».
+     */
+    public function notificationPreferences(): NotificationPreferences
+    {
+        return NotificationPreferences::fromUser($this);
+    }
+
+    /**
+     * Gli identificativi di ciò che questa persona segue, per tipo. È la sola
+     * lettura di `follows` che serve al feed (§15.7) e ai digest.
+     *
+     * @return list<int>
+     */
+    public function followedIds(FollowableType $type): array
+    {
+        /** @var list<int> $ids */
+        $ids = $this->follows()
+            ->where('followable_type', $type->value)
+            ->pluck('followable_id')
+            ->map(static fn (mixed $id): int => (int) $id)
+            ->all();
+
+        return $ids;
+    }
+
+    /**
+     * §15.7: chi non segue ancora niente non vede una pagina vuota ma un
+     * avvio guidato. La domanda si fa una volta e riguarda le sole sorgenti
+     * del feed — un evento seguito produce salvataggi, non un feed.
+     */
+    public function followsAnything(): bool
+    {
+        return $this->follows()
+            ->whereIn('followable_type', array_map(
+                static fn (FollowableType $type): string => $type->value,
+                FollowableType::feedSources(),
+            ))
+            ->exists();
     }
 
     public function isEditorialStaff(): bool

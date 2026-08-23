@@ -10,8 +10,8 @@ use App\Models\Follow;
 use App\Models\SavedEvent;
 use App\Models\User;
 use App\Models\Venue;
+use App\Notifications\VerifyEmailLink;
 use Carbon\CarbonImmutable;
-use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Notification;
 
@@ -105,5 +105,7 @@ it('lascia comunque partire l email di verifica verso l account non verificato',
     $user = User::factory()->unverified()->create();
     $user->sendEmailVerificationNotification();
 
-    Notification::assertSentTo($user, VerifyEmail::class);
+    // La notifica è la nostra e non quella di Laravel: i testi del framework
+    // sono in inglese, e in questo progetto ogni stringa sta in lang/it.
+    Notification::assertSentTo($user, VerifyEmailLink::class);
 });

@@ -117,7 +117,20 @@ return [
     'url' => ':attribute deve essere un indirizzo valido.',
     'uuid' => ':attribute deve essere un UUID valido.',
 
-    'custom' => [],
+    /*
+     * Messaggi della pipeline media (§12.1). Stanno qui e non dentro la regola
+     * perché sono testo, e il testo vive in lang/it (§2 delle convenzioni).
+     */
+    'custom' => [
+        'image' => [
+            'invalid' => 'Il file caricato non è valido.',
+            'upload_failed' => 'Il caricamento non è andato a buon fine: riprova.',
+            'too_large' => 'L\'immagine supera :max MB.',
+            'unsupported' => 'Formato non riconosciuto. Sono ammessi: :formats.',
+            'extension_mismatch' => 'Il file si presenta come «:declared» ma è un «:real»: rinominalo con l\'estensione giusta.',
+            'too_small' => 'L\'immagine è troppo piccola: servono almeno :width×:height pixel.',
+        ],
+    ],
 
     'attributes' => [],
 

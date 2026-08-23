@@ -132,3 +132,13 @@ Pest 4. Ogni funzione ha test. Copertura obbligatoria:
 - deduplica notifiche sul vincolo `dedupe_key` (scenari I, J, K).
 
 Il tempo nei test si controlla con `Carbon::setTestNow()`, mai con `sleep()`.
+
+**Esecuzioni parallele.** `RefreshDatabase` esegue `migrate:fresh`: due suite che
+girano insieme sullo stesso database si azzerano a vicenda e producono errori
+`Table 'eventi_test.<x>' doesn't exist` che sembrano bug del codice e non lo sono.
+Chi esegue i test mentre un altro processo lavora deve usare un database proprio:
+
+```bash
+mysql -h 127.0.0.1 -P 3307 -u root --skip-password -e "CREATE DATABASE IF NOT EXISTS eventi_test_<nome>"
+DB_DATABASE=eventi_test_<nome> ./vendor/bin/pest
+```

@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace App\Livewire;
 
-use App\Models\EventOccurrence;
-use App\Queries\EventOccurrenceQuery;
+use App\Services\Cache\LiveWindows;
 use App\Support\CurrentCity;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
@@ -23,7 +22,8 @@ use Livewire\Component;
  * giuste e la pagina non si potrebbe mettere in cache.
  *
  * Le due finestre restano definite in `EventOccurrenceQuery` (§8): qui si
- * chiedono, non si ricalcolano.
+ * chiedono, non si ricalcolano. Fra le due c'è `App\Services\Cache\LiveWindows`,
+ * che le tiene per sessanta secondi con la chiave arrotondata al quarto d'ora.
  */
 #[Lazy]
 class LiveNow extends Component
@@ -34,16 +34,13 @@ class LiveNow extends Component
      */
     private const PER_SECTION = 6;
 
-    public function render(): View
+    public function render(LiveWindows $windows): View
     {
         $city = app(CurrentCity::class)->get();
 
-        $ongoing = $city === null ? new Collection : $this->hydrate(EventOccurrenceQuery::for($city)->ongoing()->get());
-        $startingSoon = $city === null ? new Collection : $this->hydrate(EventOccurrenceQuery::for($city)->startingSoon()->get());
-
         return view('livewire.live-now', [
-            'ongoing' => $ongoing,
-            'startingSoon' => $startingSoon,
+            'ongoing' => $city === null ? new Collection : $windows->ongoing($city, self::PER_SECTION),
+            'startingSoon' => $city === null ? new Collection : $windows->startingSoon($city, self::PER_SECTION),
         ]);
     }
 
@@ -54,17 +51,5 @@ class LiveNow extends Component
     public function placeholder(): View
     {
         return view('livewire.live-now-placeholder');
-    }
-
-    /**
-     * @param  Collection<int, EventOccurrence>  $occurrences
-     * @return Collection<int, EventOccurrence>
-     */
-    private function hydrate(Collection $occurrences): Collection
-    {
-        /** @var Collection<int, EventOccurrence> $section */
-        $section = $occurrences->take(self::PER_SECTION);
-
-        return $section->load(['event.venue', 'event.category', 'event.media']);
     }
 }

@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 namespace App\Support;
 
+use App\DTOs\SocialImage;
+use App\Jobs\Media\GenerateOpenGraphImage;
 use App\Models\Event;
+use App\Services\Media\OpenGraphImage;
+use App\Support\Media\ImageSet;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -22,10 +26,21 @@ final class Poster
 {
     public static function url(Event $event): ?string
     {
-        $fromLibrary = $event->getFirstMediaUrl('poster');
+        $media = $event->getFirstMedia('poster');
 
-        if ($fromLibrary !== '') {
-            return $fromLibrary;
+        if ($media !== null) {
+            /*
+             * La variante `full` e non l'originale. §12.1 accetta anche gli
+             * HEIC, che è il formato con cui un iPhone fotografa una
+             * locandina: nessun motore di ricerca e nessuna applicazione di
+             * messaggistica sa aprirli. La conversione WebP la aprono tutti, e
+             * pesa meno. Se la coda non l'ha ancora prodotta, resta
+             * l'originale — che è sempre meglio di un indirizzo che non
+             * esiste.
+             */
+            return $media->hasGeneratedConversion('full')
+                ? $media->getFullUrl('full')
+                : $media->getFullUrl();
         }
 
         if (blank($event->poster)) {
@@ -52,5 +67,69 @@ final class Poster
         }
 
         return Str::startsWith($poster, ['http://', 'https://']) ? $poster : url($poster);
+    }
+
+    /**
+     * La locandina con tutte le sue varianti (§12.1), pronta per un
+     * `<picture>`.
+     */
+    public static function imageSet(Event $event): ?ImageSet
+    {
+        $media = $event->getFirstMedia('poster');
+
+        if ($media !== null) {
+            return ImageSet::fromMedia($media);
+        }
+
+        $url = self::url($event);
+
+        return $url === null ? null : ImageSet::fromUrl($url);
+    }
+
+    /**
+     * L'immagine che finisce in `og:image` (§12.2): l'anteprima 1200×630
+     * composta dalla pipeline se esiste, altrimenti la locandina nuda.
+     *
+     * **Se non esiste, viene chiesta e basta.** Comporla adesso costerebbe a
+     * chi apre la pagina un secondo di attesa per un'immagine che non vedrà
+     * mai — la vedrà chi riceverà il collegamento. Il lavoro va in coda ed è
+     * unico per evento: la prossima visita, o il prossimo passaggio di un
+     * robot social, troverà il file pronto.
+     */
+    public static function social(Event $event): ?SocialImage
+    {
+        if (config()->boolean('media.open_graph.enabled')) {
+            $disk = Storage::disk(OpenGraphImage::disk());
+            $path = OpenGraphImage::path($event);
+
+            if ($disk->exists($path)) {
+                $url = $disk->url($path);
+                $url = Str::startsWith($url, ['http://', 'https://']) ? $url : url($url);
+
+                return new SocialImage(
+                    $url.'?v='.$disk->lastModified($path),
+                    config()->integer('media.open_graph.width'),
+                    config()->integer('media.open_graph.height'),
+                );
+            }
+
+            GenerateOpenGraphImage::dispatch($event);
+        }
+
+        $fallback = self::absoluteUrl($event);
+
+        if ($fallback === null) {
+            return null;
+        }
+
+        $media = $event->getFirstMedia('poster');
+        $width = $media?->getCustomProperty('width');
+        $height = $media?->getCustomProperty('height');
+
+        return new SocialImage(
+            $fallback,
+            is_numeric($width) ? (int) $width : null,
+            is_numeric($height) ? (int) $height : null,
+        );
     }
 }

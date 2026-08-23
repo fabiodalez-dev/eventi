@@ -24,4 +24,7 @@ enum OccurrenceOrdering
 
     /** Dalla data più recente alla più vecchia: è l'ordine di un archivio (§11.9). */
     case ReverseChronological;
+
+    /** Più salvati e più visti prima della cronologia (§13.2, `sort=popular`). */
+    case Popular;
 }

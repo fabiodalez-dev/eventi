@@ -18,6 +18,7 @@ use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Support\Facades\Route;
 
 /**
  * Le decisioni della redazione su un evento (§9.2): pubblica, rifiuta con
@@ -35,6 +36,7 @@ final class EventModeration
     public static function actions(): array
     {
         return [
+            self::viewOnSite(),
             self::publish(),
             ActionGroup::make([
                 self::unpublish(),
@@ -44,6 +46,28 @@ final class EventModeration
                 self::duplicate(),
             ])->dropdown(),
         ];
+    }
+
+    /**
+     * §9.2 — «preview della scheda pubblica».
+     *
+     * Prima di pubblicare, la redazione deve poter vedere la pagina come la
+     * vedra chi la trova su un motore di ricerca. Si apre in una scheda nuova
+     * per non perdere il lavoro in corso, e compare solo sugli eventi gia
+     * pubblicati, perche la scheda pubblica risponde 404 su tutto il resto.
+     */
+    private static function viewOnSite(): Action
+    {
+        return Action::make('view_on_site')
+            ->label(__('admin.actions.view_on_site'))
+            ->icon(Heroicon::OutlinedArrowTopRightOnSquare)
+            ->color('gray')
+            ->url(fn (Event $record): ?string => Route::has('events.show')
+                ? route('events.show', $record)
+                : null)
+            ->openUrlInNewTab()
+            ->visible(fn (Event $record): bool => $record->status === EventStatus::Published
+                && Route::has('events.show'));
     }
 
     private static function publish(): Action

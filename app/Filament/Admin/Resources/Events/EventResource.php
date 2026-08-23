@@ -15,6 +15,7 @@ use App\Filament\Admin\Resources\Events\RelationManagers\ActivityRelationManager
 use App\Filament\Admin\Resources\Events\RelationManagers\OccurrencesRelationManager;
 use App\Filament\Admin\Support\StructuredFields;
 use App\Filament\Support\EventStatusPresentation;
+use App\Filament\Support\ImageUpload;
 use App\Models\City;
 use App\Models\Event;
 use App\Queries\EditorialDashboardQuery;
@@ -27,7 +28,6 @@ use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\KeyValue;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -331,17 +331,15 @@ class EventResource extends Resource
                 Section::make(__('admin.sections.media'))
                     ->columns(2)
                     ->schema([
-                        SpatieMediaLibraryFileUpload::make('poster_media')
+                        ImageUpload::make('poster_media')
                             ->label(__('admin.fields.poster'))
                             ->helperText(__('admin.hints.poster'))
                             ->collection('poster')
-                            ->image()
                             ->imageEditor(),
 
-                        SpatieMediaLibraryFileUpload::make('gallery_media')
+                        ImageUpload::make('gallery_media')
                             ->label(__('admin.fields.gallery'))
                             ->collection('gallery')
-                            ->image()
                             ->multiple()
                             ->reorderable(),
                     ]),

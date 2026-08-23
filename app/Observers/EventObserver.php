@@ -4,9 +4,13 @@ declare(strict_types=1);
 
 namespace App\Observers;
 
+use App\Enums\EventStatus;
+use App\Jobs\Media\GenerateOpenGraphImage;
 use App\Models\Event;
 use App\Models\EventOccurrence;
-use App\Services\Calendar\MonthCalendar;
+use App\Services\Media\OpenGraphImage;
+use App\Services\Notifications\NotificationScheduler;
+use App\Support\ContentVersion;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
@@ -32,16 +36,44 @@ final class EventObserver
      */
     public function saved(Event $event): void
     {
-        MonthCalendar::bump((int) $event->city_id);
+        ContentVersion::bump((int) $event->city_id);
     }
 
     public function deleted(Event $event): void
     {
-        MonthCalendar::bump((int) $event->city_id);
+        ContentVersion::bump((int) $event->city_id);
+
+        OpenGraphImage::forget($event);
     }
 
     public function updated(Event $event): void
     {
+        /*
+         * L'anteprima social porta scritti dentro il titolo e la data (§12.1):
+         * se cambiano, il file sul disco racconta un evento che non esiste più.
+         * Rifarla è un lavoro di coda, non una cosa da fare mentre qualcuno
+         * aspetta il salvataggio.
+         */
+        if ($event->wasChanged(['title', 'subtitle', 'status', 'venue_id'])) {
+            GenerateOpenGraphImage::dispatch($event);
+        }
+
+        /*
+         * §15.4, ultima riga: «ai gestori — evento pubblicato / rifiutato».
+         * L'esito di una proposta è la sola notizia che chi l'ha scritta sta
+         * davvero aspettando, ed è quindi l'unica che parte dal cambio di
+         * stato dell'evento e non da una data.
+         */
+        if ($event->wasChanged('status')) {
+            $scheduler = app(NotificationScheduler::class);
+
+            match ($event->status) {
+                EventStatus::Published => $scheduler->announceEventPublished($event),
+                EventStatus::Rejected => $scheduler->announceEventRejected($event),
+                default => null,
+            };
+        }
+
         if (! $event->wasChanged(['category_id', 'city_id'])) {
             return;
         }

@@ -180,6 +180,7 @@ class EventResource extends Resource
             ])
             ->recordActions([
                 EditAction::make()->label(__('manage.actions.edit')),
+                EventActions::viewOnSite(),
                 EventActions::duplicate(),
             ]);
     }

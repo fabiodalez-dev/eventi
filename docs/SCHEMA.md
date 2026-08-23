@@ -57,7 +57,7 @@ verificata (vedi §6).
 | `NotificationChannel` | mail, push, database | `enums.notification_channel.*` |
 | `NotificationStatus` | pending, sent, skipped, failed, cancelled | `enums.notification_status.*` |
 | `SubmissionStatus` | pending, approved, rejected | `enums.submission_status.*` |
-| `FollowableType` | venue, tag, category | `enums.followable_type.*` |
+| `FollowableType` | venue, tag, category, **event** | `enums.followable_type.*` |
 | `DevicePlatform` | ios, android, web | `enums.device_platform.*` |
 
 Tutti gli 86 casi hanno un'etichetta italiana in `lang/it/enums.php`. `lang/en` e
@@ -254,9 +254,13 @@ Unique `(user_id, followable_type, followable_id)` (nome esplicito
 `follows_user_followable_unique`), indice `(followable_type, followable_id)`.
 
 `followable_type` è lungo 64 e contiene un alias breve (`venue`, `tag`,
-`category` — vedi `FollowableType`), non il nome completo della classe: la morph
-map va registrata con `Relation::enforceMorphMap()`. Un nome di classe nel
-database lega i dati al namespace PHP.
+`category`, `event` — vedi `FollowableType`), non il nome completo della classe:
+la morph map va registrata con `Relation::enforceMorphMap()`. Un nome di classe
+nel database lega i dati al namespace PHP.
+
+Il quarto alias, `event`, è «Segui questo evento» di §15.3 e **non** alimenta il
+feed: significa «salvami ogni data nuova» e produce righe in `saved_events`
+(D29). Chi legge il feed guarda i soli `FollowableType::feedSources()`.
 
 ### 3.14 `devices`
 ```
@@ -291,6 +295,14 @@ vincolo **è** la garanzia contro il doppio invio.
 
 `(status, send_at)` è l'indice su cui gira il worker ogni 5 minuti con
 `SELECT ... FOR UPDATE SKIP LOCKED`.
+
+`last_error` porta **due** cose, e lo stato della riga dice quale: su `failed`
+l'errore dell'ultimo tentativo, su `skipped` il motivo per cui l'invio non
+serviva più (`NotificationSkipReason`, reso in italiano dal pannello). §15.5
+pretende «skipped con motivo» e questa è l'unica colonna di testo libero della
+tabella: una seconda colonna avrebbe distinto due parole che gli stati già
+distinguono (D31, punto 1). Nessuna migration è stata aggiunta per il motore
+delle notifiche — lo schema di §7.10 bastava.
 
 ### 3.16 `notification_log`
 ```
@@ -382,7 +394,7 @@ La tabella nasce vuota: nessun pagamento è implementato in v1.
 Migration di Laravel modificata sul posto, non estesa con una `ALTER` separata:
 il progetto è nuovo e non esistono dati da migrare.
 ```
-id · name · email(unique) · email_verified_at? · password
+id · name? · email(unique) · email_verified_at? · password
 timezone(64, Europe/Rome) · locale(5, it) · notification_preferences(json?)
 daily_digest_time(TIME?) · quiet_hours(json?) · marketing_opt_in_at? · last_active_at?
 remember_token · created_at · updated_at · deleted_at
@@ -396,6 +408,25 @@ con tutto il resto dello schema; `password_reset_tokens.created_at` idem.
 marketing è giuridicamente distinto dalle notifiche transazionali (§15.9): deve
 avere una data propria, non una chiave dentro un JSON.
 
+`name` è **nullable**: §15.2 lo dichiara facoltativo, e una stringa vuota non è
+un nome mancante ma un nome vuoto (D29). La forma di `notification_preferences`
+la conosce un punto solo, `App\DTOs\NotificationPreferences`, che porta anche i
+valori predefiniti di §15.4 — una chiave assente non significa «spento».
+
+### 3.23-bis `notifications` (§15.6, D8 e D29)
+```
+id(uuid) · type · notifiable_type(64)/notifiable_id · data(json)
+read_at? · created_at · updated_at
+```
+Indice `(notifiable_type, notifiable_id)`.
+
+È la tabella del canale `database` di Laravel — l'**archivio in-app** che §15.6
+vuole «sempre», e che D8 ha promosso a canale di destinazione insieme all'email
+dopo l'esclusione del Web Push. Rispetto alla migration del framework cambiano
+solo le due cose che valgono per tutto questo schema: date `DATETIME` e colonna
+morph di lunghezza dichiarata, perché `notifiable_type` contiene l'alias `user`
+della morph map.
+
 ### 3.24 Tabelle dei pacchetti (D13)
 
 Pubblicate insieme ai model che le usano, **verbatim** come le genera il pacchetto:
@@ -405,10 +436,15 @@ Pubblicate insieme ai model che le usano, **verbatim** come le genera il pacchet
 | `2026_08_23_110000_create_media_table` | `media` | `Venue` ed `Event` (`spatie/laravel-medialibrary`) |
 | `2026_08_23_110100_create_permission_tables` | `roles`, `permissions`, `model_has_roles`, `model_has_permissions`, `role_has_permissions` | `User` (`spatie/laravel-permission`) |
 | `2026_08_23_110200_create_activity_log_table` | `activity_log` | `Venue` ed `Event` (`spatie/laravel-activitylog`) |
+| `2026_08_23_110300_create_personal_access_tokens_table` | `personal_access_tokens` | `User` (`laravel/sanctum`, token dell'API v1 — D28) |
 
 Sono le uniche tabelle con `TIMESTAMP` al posto di `DATETIME` insieme a
 `failed_jobs`: vale la stessa ragione, non appartengono al dominio e riscriverle
 renderebbe più costoso ogni aggiornamento del pacchetto.
+
+`personal_access_tokens.tokenable_type` contiene l'alias `user` e non il nome
+della classe: la morph map di `AppServiceProvider` vale anche per le tabelle dei
+pacchetti, ed è ciò che tiene i namespace PHP fuori dal database (deviazione 12).
 
 `activity_log` non è opzionale: `LogsActivity` scrive una riga a ogni cambio di
 stato di un locale o di un evento, quindi senza quella tabella il salvataggio
@@ -452,13 +488,17 @@ degli utenti, lineup, tag, statistiche giornaliere, promozioni collegate.
 | 15 | `cities.is_active` default `false` | una città si pubblica quando è pronta |
 | 16 | `events.slug` unico per `(city_id, slug)` e non globalmente | D12: `/{city}/eventi` è predisposto da §11.1 e la provincia da D11 |
 | 17 | Tabelle `media`, permessi e `activity_log` pubblicate dai pacchetti | D13: i trait dichiarati sui model le usano davvero |
+| 18 | Tabella `personal_access_tokens` pubblicata da Sanctum | D28: l'API v1 autentica con token per dispositivo (§13.4). Stessa regola di D13: migration di terze parti, lasciata verbatim |
+| 19 | `FollowableType` guadagna il caso `event` (quattro valori, non tre) | §15.3 chiede «Segui questo evento», che ha bisogno di un magazzino: la colonna è già una stringa e la morph map conteneva già l'alias, quindi una tabella nuova sarebbe stata un duplicato di `follows` con lo stesso vincolo unico (D29) |
+| 20 | `users.name` è nullable | §15.2 dichiara il nome facoltativo; una stringa vuota non è un nome mancante. Migration cambiata sul posto: il progetto è nuovo e non esistono dati da migrare |
+| 21 | Nuova tabella `notifications` (canale `database` di Laravel) | D8 ha promosso l'archivio in-app a canale di destinazione e §15.8 espone `GET /v1/me/notifications`: un archivio vuoto è una risposta legittima, un endpoint assente costringe l'app a due strade |
 
 Fuori portata, lasciato com'era: `failed_jobs.failed_at` resta `TIMESTAMP` —
 è la migration di Laravel, non tocca il dominio.
 
-Non ancora create, perché non richieste in questa fase: `activity_log` (arriva
-con `spatie/laravel-activitylog`) e `notifications` (archivio in-app, canale
-`database` — arriverà con `php artisan notifications:table`).
+Non ancora creata, perché non richiesta in questa fase: `notifications`
+(archivio in-app, canale `database` — arriverà con
+`php artisan notifications:table`).
 
 ---
 

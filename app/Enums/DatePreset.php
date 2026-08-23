@@ -22,6 +22,15 @@ enum DatePreset: string
     case Weekend = 'weekend';
     case Week = 'week';
 
+    /*
+     * §13.2 impone che "in corso" e "inizia tra poco" esistano anche in API:
+     * se la futura app le ricostruisse per conto proprio, in sei mesi
+     * esisterebbero due definizioni divergenti. Sono qui e non in un enum
+     * dell'API perché la finestra temporale è una sola per tutto il prodotto.
+     */
+    case StartingSoon = 'starting_soon';
+    case Ongoing = 'ongoing';
+
     /**
      * Applica la finestra al motore temporale.
      *
@@ -36,6 +45,8 @@ enum DatePreset: string
             self::Tomorrow => $query->tomorrow(),
             self::Weekend => $query->weekend(),
             self::Week => $query->nextDays(7),
+            self::StartingSoon => $query->startingSoon(),
+            self::Ongoing => $query->ongoing(),
         };
     }
 

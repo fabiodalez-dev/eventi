@@ -8,6 +8,7 @@ use App\Enums\VenuePlan;
 use App\Enums\VenueRole;
 use App\Enums\VenueStatus;
 use App\Enums\VenueType;
+use App\Models\Concerns\HasImageVariants;
 use Database\Factories\VenueFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -25,6 +26,7 @@ use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Spatie\Sluggable\HasSlug;
 use Spatie\Sluggable\SlugOptions;
 
@@ -38,6 +40,7 @@ class Venue extends Model implements HasMedia
     /** @use HasFactory<VenueFactory> */
     use HasFactory;
 
+    use HasImageVariants;
     use HasSlug;
     use HasSpatial;
     use InteractsWithMedia;
@@ -128,6 +131,16 @@ class Venue extends Model implements HasMedia
         $this->addMediaCollection('logo')->singleFile();
         $this->addMediaCollection('cover')->singleFile();
         $this->addMediaCollection('gallery');
+    }
+
+    /**
+     * Le sei conversioni di §12.1 — `thumb`, `card`, `full`, ognuna in WebP e
+     * in AVIF — valgono per tutte le raccolte di questo modello: sono
+     * immagini, e un'immagine si serve nello stesso modo ovunque compaia.
+     */
+    public function registerMediaConversions(?Media $media = null): void
+    {
+        $this->registerImageVariants();
     }
 
     /** @return BelongsTo<City, $this> */

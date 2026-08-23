@@ -22,21 +22,29 @@ final readonly class PageMeta
         public ?string $canonical = null,
         public ?string $image = null,
         public bool $indexable = true,
+        /*
+         * Le misure dell'immagine di anteprima, quando si conoscono: sono
+         * `og:image:width` e `og:image:height`, cioè ciò che permette a chi
+         * riceve il collegamento di riservare il rettangolo prima di averla
+         * scaricata.
+         */
+        public ?int $imageWidth = null,
+        public ?int $imageHeight = null,
     ) {}
 
     public function withCanonical(?string $canonical): self
     {
-        return new self($this->title, $this->heading, $this->description, $canonical, $this->image, $this->indexable);
+        return new self($this->title, $this->heading, $this->description, $canonical, $this->image, $this->indexable, $this->imageWidth, $this->imageHeight);
     }
 
-    public function withImage(?string $image): self
+    public function withImage(?string $image, ?int $width = null, ?int $height = null): self
     {
-        return new self($this->title, $this->heading, $this->description, $this->canonical, $image, $this->indexable);
+        return new self($this->title, $this->heading, $this->description, $this->canonical, $image, $this->indexable, $width, $height);
     }
 
     public function withIndexable(bool $indexable): self
     {
-        return new self($this->title, $this->heading, $this->description, $this->canonical, $this->image, $indexable);
+        return new self($this->title, $this->heading, $this->description, $this->canonical, $this->image, $indexable, $this->imageWidth, $this->imageHeight);
     }
 
     /**

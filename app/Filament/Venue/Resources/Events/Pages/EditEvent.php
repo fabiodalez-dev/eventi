@@ -27,6 +27,7 @@ class EditEvent extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            EventActions::viewOnSite(),
             EventActions::publish(),
             EventActions::repeat(),
             EventActions::duplicate(),

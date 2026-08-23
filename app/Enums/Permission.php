@@ -39,6 +39,9 @@ enum Permission: string
 
     case ManageImportSources = 'import_sources.manage';
 
+    case ViewScheduledNotifications = 'notifications.view';
+    case ManageScheduledNotifications = 'notifications.manage';
+
     case ManageUsers = 'users.manage';
     case ImpersonateUsers = 'users.impersonate';
 

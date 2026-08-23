@@ -153,7 +153,7 @@ final class EventListController extends Controller
                 DatePreset::Today => route('events.today'),
                 DatePreset::Tomorrow => route('events.tomorrow'),
                 DatePreset::Weekend => route('events.weekend'),
-                DatePreset::Tonight, DatePreset::Week => null,
+                DatePreset::Tonight, DatePreset::Week, DatePreset::StartingSoon, DatePreset::Ongoing => null,
             };
         }
 

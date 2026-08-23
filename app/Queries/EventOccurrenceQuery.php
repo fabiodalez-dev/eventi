@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Queries;
 
 use App\Enums\EventStatus;
+use App\Enums\FollowableType;
 use App\Enums\OccurrenceStatus;
 use App\Enums\PriceType;
 use App\Enums\TimeOfDay;
@@ -13,6 +14,7 @@ use App\Models\City;
 use App\Models\Event;
 use App\Models\EventOccurrence;
 use App\Models\Tag;
+use App\Models\User;
 use App\Models\Venue;
 use App\Services\Geo\GeoQueryInterface;
 use Carbon\CarbonImmutable;
@@ -366,6 +368,42 @@ final class EventOccurrenceQuery
     }
 
     /**
+     * A pagamento: biglietto o tessera (§13.2, `price=paid`). È l'insieme
+     * complementare di gratuito e offerta libera, `unknown` escluso — un
+     * prezzo che nessuno ha dichiarato non è un prezzo.
+     */
+    public function pricePaid(): self
+    {
+        $this->query->whereIn('events.price_type', [PriceType::Ticket->value, PriceType::Membership->value]);
+
+        return $this;
+    }
+
+    /**
+     * Modificate dopo un certo istante (§13.2, `updated_since`).
+     *
+     * Serve alla sincronizzazione offline dell'app: guarda `updated_at`
+     * dell'occorrenza **e** dell'evento, perché correggere il titolo o il
+     * prezzo cambia ciò che il client mostra su quella data senza toccare la
+     * riga della data.
+     */
+    public function updatedSince(CarbonImmutable|DateTimeInterface|string $since): self
+    {
+        $instant = ($since instanceof DateTimeInterface
+            ? CarbonImmutable::instance($since)
+            : CarbonImmutable::parse($since, $this->city->timezone))
+            ->utc()
+            ->format('Y-m-d H:i:s');
+
+        $this->query->where(function (Builder $changed) use ($instant): void {
+            $changed->where('event_occurrences.updated_at', '>=', $instant)
+                ->orWhere('events.updated_at', '>=', $instant);
+        });
+
+        return $this;
+    }
+
+    /**
      * Fascia oraria locale dell'inizio: giorno, sera o notte.
      */
     public function timeOfDay(TimeOfDay|string $band): self
@@ -500,6 +538,83 @@ final class EventOccurrenceQuery
     }
 
     /**
+     * Le sole date che questa persona ha salvato (§15.3).
+     *
+     * È un filtro, non una finestra: quali di quelle date siano ancora future
+     * lo decide `upcoming()`, come per tutto il resto. Sito e API chiedono
+     * quindi `savedBy($user)->upcoming()`, e "da oggi in poi" resta una
+     * definizione sola (§8.1).
+     */
+    public function savedBy(User $user): self
+    {
+        $this->query->whereExists(function (QueryBuilder $sub) use ($user): void {
+            $sub->from('saved_events')
+                ->whereColumn('saved_events.occurrence_id', 'event_occurrences.id')
+                ->where('saved_events.user_id', $user->getKey());
+        });
+
+        return $this;
+    }
+
+    /**
+     * Le date di ciò che questa persona segue: locali, tag e categorie
+     * (§15.7). È il feed personalizzato, e come ogni altra lista prende la
+     * finestra temporale da chi lo chiama.
+     *
+     * Chi non segue nulla non riceve tutto il catalogo ma niente: un feed di
+     * ciò che si segue, quando non si segue niente, è vuoto — e la pagina
+     * risponde con l'avvio guidato di §15.7, che è un'altra cosa e la decide
+     * il controller.
+     */
+    public function followedBy(User $user): self
+    {
+        $venues = $user->followedIds(FollowableType::Venue);
+        $categories = $user->followedIds(FollowableType::Category);
+        $tags = $user->followedIds(FollowableType::Tag);
+
+        if ($venues === [] && $categories === [] && $tags === []) {
+            $this->query->whereRaw('1 = 0');
+
+            return $this;
+        }
+
+        $this->query->where(function (Builder $match) use ($venues, $categories, $tags): void {
+            if ($venues !== []) {
+                $match->orWhereIn('events.venue_id', $venues);
+            }
+
+            if ($categories !== []) {
+                $match->orWhereIn('events.category_id', $categories);
+            }
+
+            if ($tags !== []) {
+                $match->orWhereExists(function (QueryBuilder $sub) use ($tags): void {
+                    $sub->from('event_tag')
+                        ->whereColumn('event_tag.event_id', 'events.id')
+                        ->whereIn('event_tag.tag_id', $tags);
+                });
+            }
+        });
+
+        return $this;
+    }
+
+    /**
+     * Un insieme di date, prese passando dal motore. È il modo in cui la
+     * migrazione dei salvataggi di un anonimo (§15.1) scarta in **una** query
+     * ciò che non esiste, ciò che non è pubblico e — con `upcoming()` — ciò
+     * che è già passato: tre regole che nessuno deve riscrivere altrove.
+     *
+     * @param  array<int, int>  $ids
+     */
+    public function forOccurrences(array $ids): self
+    {
+        $this->query->whereIn('event_occurrences.id', $ids);
+
+        return $this;
+    }
+
+    /**
      * Esclude un evento dai risultati: serve alle sezioni "eventi simili" e
      * "altri eventi in questo locale", che non devono riproporre la scheda su
      * cui si trova già chi legge.
@@ -557,6 +672,21 @@ final class EventOccurrenceQuery
     public function orderByDistance(): self
     {
         $this->ordering = OccurrenceOrdering::Distance;
+
+        return $this;
+    }
+
+    /**
+     * Più salvati e più visti prima (§13.2, `sort=popular`).
+     *
+     * La popolarità è dell'**evento**, non della singola data: `saves_count` e
+     * `views_count` stanno su `events`. A parità di numeri torna la
+     * cronologia, altrimenti due eventi mai salvati uscirebbero in ordine
+     * arbitrario.
+     */
+    public function orderByPopularity(): self
+    {
+        $this->ordering = OccurrenceOrdering::Popular;
 
         return $this;
     }
@@ -648,6 +778,63 @@ final class EventOccurrenceQuery
     public function countsByCategory(): array
     {
         return $this->keyedCounts('events.category_id');
+    }
+
+    /**
+     * I punti di `GET /v1/map/occurrences` (§13.3): **una data per marcatore**,
+     * con il carico minimo che quell'endpoint prescrive.
+     *
+     * La mappa del sito ragiona per locale (`venueMarkers()`, D26) perché due
+     * concerti nello stesso circolo hanno le stesse coordinate e resterebbero
+     * sovrapposti; l'API invece consegna le date, e come raggrupparle lo
+     * decide il client — che su un telefono ha regole proprie.
+     *
+     * Le righe non diventano modelli: sette campi per marcatore, moltiplicati
+     * per centinaia di marcatori, non valgono l'idratazione di altrettanti
+     * oggetti Eloquent con le loro relazioni. L'ordine è quello cronologico e
+     * non quello scelto da chi chiama: la lista qui è un insieme di punti da
+     * disegnare tutti insieme, e un ordinamento per rilevanza porterebbe nella
+     * `SELECT` alias che questa proiezione ridotta non contiene.
+     *
+     * @return list<array{id: int, event_id: int, lat: float, lng: float, category_id: int, title: string, starts_at: string}>
+     */
+    public function occurrencePoints(int $limit): array
+    {
+        $rows = (clone $this->query)
+            ->reorder()
+            ->whereNotNull('venues.id')
+            ->orderBy('event_occurrences.starts_at')
+            ->orderBy('event_occurrences.id')
+            ->select([
+                'event_occurrences.id as point_id',
+                'event_occurrences.event_id as point_event_id',
+                'event_occurrences.starts_at as point_starts_at',
+                'venues.lat as point_lat',
+                'venues.lng as point_lng',
+                'events.category_id as point_category_id',
+                'events.title as point_title',
+            ])
+            ->limit(max($limit, 1))
+            ->toBase()
+            ->get();
+
+        $points = [];
+
+        foreach ($rows as $row) {
+            $values = (array) $row;
+
+            $points[] = [
+                'id' => (int) ($values['point_id'] ?? 0),
+                'event_id' => (int) ($values['point_event_id'] ?? 0),
+                'lat' => (float) ($values['point_lat'] ?? 0),
+                'lng' => (float) ($values['point_lng'] ?? 0),
+                'category_id' => (int) ($values['point_category_id'] ?? 0),
+                'title' => (string) ($values['point_title'] ?? ''),
+                'starts_at' => (string) ($values['point_starts_at'] ?? ''),
+            ];
+        }
+
+        return $points;
     }
 
     /**
@@ -789,6 +976,7 @@ final class EventOccurrenceQuery
             OccurrenceOrdering::Relevance => $this->applyRelevanceOrdering($query),
             OccurrenceOrdering::Distance => $this->applyDistanceFirstOrdering($query),
             OccurrenceOrdering::ReverseChronological => $this->applyReverseChronologicalOrdering($query),
+            OccurrenceOrdering::Popular => $this->applyPopularityOrdering($query),
             OccurrenceOrdering::Chronological => $this->applyChronologicalOrdering($query),
         };
 
@@ -860,6 +1048,18 @@ final class EventOccurrenceQuery
     {
         $query->orderBy('event_occurrences.starts_at')
             ->orderBy('event_occurrences.id');
+    }
+
+    /**
+     * @param  Builder<EventOccurrence>  $query
+     */
+    private function applyPopularityOrdering(Builder $query): void
+    {
+        $query->addSelect(['events.saves_count', 'events.views_count'])
+            ->orderByDesc('events.saves_count')
+            ->orderByDesc('events.views_count');
+
+        $this->applyChronologicalOrdering($query);
     }
 
     /**

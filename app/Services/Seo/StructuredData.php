@@ -177,6 +177,33 @@ final class StructuredData
     }
 
     /**
+     * `Organization`: chi pubblica il sito (§12.2).
+     *
+     * È il nodo a cui i motori agganciano il pannello di conoscenza — nome,
+     * indirizzi social, contatto. Sta sulla pagina iniziale e in nessun'altra:
+     * ripeterlo su ogni scheda non aggiungerebbe niente e allungherebbe ogni
+     * risposta.
+     *
+     * @return array<string, mixed>
+     */
+    public function organization(): array
+    {
+        /** @var list<string> $sameAs */
+        $sameAs = config()->array('seo.organization.same_as');
+
+        return array_filter([
+            '@context' => 'https://schema.org',
+            '@type' => 'Organization',
+            '@id' => url('/').'#organizzazione',
+            'name' => config()->string('app.name'),
+            'legalName' => config()->string('seo.organization.legal_name'),
+            'url' => url('/'),
+            'email' => config()->string('seo.organization.email'),
+            'sameAs' => $sameAs,
+        ], static fn (mixed $value): bool => filled($value));
+    }
+
+    /**
      * Lo stato di una data nel vocabolario di schema.org.
      *
      * "Esaurito" non è uno stato dell'evento ma della disponibilità: resta

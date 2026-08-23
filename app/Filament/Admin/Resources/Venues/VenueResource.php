@@ -13,6 +13,7 @@ use App\Filament\Admin\Resources\Venues\Pages\ListVenues;
 use App\Filament\Admin\Resources\Venues\RelationManagers\EventsRelationManager;
 use App\Filament\Admin\Resources\Venues\RelationManagers\MembersRelationManager;
 use App\Filament\Admin\Support\VenueModeration;
+use App\Filament\Support\ImageUpload;
 use App\Models\City;
 use App\Models\Venue;
 use App\Queries\EditorialDashboardQuery;
@@ -26,7 +27,6 @@ use Filament\Actions\EditAction;
 use Filament\Forms\Components\KeyValue;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\TimePicker;
@@ -272,22 +272,19 @@ class VenueResource extends Resource
                 Section::make(__('admin.sections.media'))
                     ->columns(3)
                     ->schema([
-                        SpatieMediaLibraryFileUpload::make('logo')
+                        ImageUpload::make('logo')
                             ->label(__('admin.fields.logo'))
                             ->collection('logo')
-                            ->image()
                             ->imageEditor(),
 
-                        SpatieMediaLibraryFileUpload::make('cover')
+                        ImageUpload::make('cover')
                             ->label(__('admin.fields.cover'))
                             ->collection('cover')
-                            ->image()
                             ->imageEditor(),
 
-                        SpatieMediaLibraryFileUpload::make('gallery')
+                        ImageUpload::make('gallery')
                             ->label(__('admin.fields.gallery'))
                             ->collection('gallery')
-                            ->image()
                             ->multiple()
                             ->reorderable(),
                     ]),

@@ -116,13 +116,17 @@ final class EventController extends Controller
         $description = $event->short_description
             ?? Str::of((string) $event->description)->stripTags()->squish()->limit(180)->value();
 
+        $social = Poster::social($event);
+
         return new PageMeta(
             title: $event->title,
             heading: $event->title,
             description: $description === '' ? null : $description,
             canonical: route('events.show', $event),
-            image: Poster::absoluteUrl($event),
+            image: $social?->url,
             indexable: $event->status === EventStatus::Published && $occurrences->isNotEmpty(),
+            imageWidth: $social?->width,
+            imageHeight: $social?->height,
         );
     }
 

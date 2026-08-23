@@ -78,6 +78,7 @@ return [
         'import_source' => ['label' => 'Sorgente di import', 'plural' => 'Import'],
         'user' => ['label' => 'Utente', 'plural' => 'Utenti'],
         'member' => ['label' => 'Collaboratore', 'plural' => 'Collaboratori'],
+        'scheduled_notification' => ['label' => 'Notifica programmata', 'plural' => 'Notifiche programmate'],
     ],
 
     'sections' => [
@@ -269,6 +270,7 @@ return [
     ],
 
     'actions' => [
+        'view_on_site' => 'Vedi sul sito',
         'publish' => 'Pubblica',
         'unpublish' => 'Torna in bozza',
         'approve' => 'Approva',
@@ -297,6 +299,7 @@ return [
         'add_flag' => 'Aggiungi un interruttore',
         'add_opening_hours' => 'Aggiungi una fascia oraria',
         'add_lineup' => 'Aggiungi un artista',
+        'cancel_notification' => 'Annulla questo invio',
     ],
 
     'scopes' => [
@@ -328,6 +331,7 @@ return [
         'nothing_to_do' => 'Non c\'era niente da fare.',
         'collaborator_invited' => 'Invito registrato.',
         'impersonating' => 'Stai navigando come :name.',
+        'notification_cancelled' => 'Invio annullato.',
         'cannot_publish_without_date' => 'Un evento senza almeno una data non si può pubblicare.',
     ],
 
@@ -337,6 +341,7 @@ return [
         'suspend' => 'Il locale sparisce dal sito pubblico insieme alle sue schede.',
         'merge' => 'Gli eventi del tag scelto passano a questo, e il tag scelto viene cancellato.',
         'impersonate' => 'Uscirai dal pannello e navigherai il sito con la sua identità.',
+        'cancel_notification' => 'L\'invio non partirà. La riga resta come traccia, con lo stato "annullata".',
     ],
 
     'hints' => [
@@ -370,6 +375,22 @@ return [
         'south' => 'S',
         'east' => 'E',
         'west' => 'O',
+    ],
+
+    /* La pagina degli invii previsti (§15.5): la tabella esiste proprio per
+       rendere ogni notifica ispezionabile PRIMA che parta, cosa che un lavoro
+       in coda non è. */
+    'notifications' => [
+        'lead' => 'Ogni riga è un invio previsto, con la sua chiave di deduplica. Il worker gira ogni cinque minuti e prende le righe in attesa la cui ora è arrivata.',
+        'due' => 'Da mandare adesso',
+        'recipient' => 'Destinatario',
+        'subject' => 'Riguarda',
+        'send_at' => 'Invio previsto',
+        'sent_at' => 'Inviata il',
+        'channel' => 'Canale',
+        'attempts' => 'Tentativi',
+        'reason' => 'Motivo o errore',
+        'dedupe_key' => 'Chiave di deduplica',
     ],
 
     'placeholders' => [

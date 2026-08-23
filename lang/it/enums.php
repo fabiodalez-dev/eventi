@@ -83,6 +83,8 @@ return [
         'tomorrow' => 'Domani',
         'weekend' => 'Weekend',
         'week' => 'Questa settimana',
+        'starting_soon' => 'Inizia tra poco',
+        'ongoing' => 'In corso adesso',
     ],
 
     'date_preset_phrase' => [
@@ -91,6 +93,8 @@ return [
         'tomorrow' => 'domani',
         'weekend' => 'questo weekend',
         'week' => 'questa settimana',
+        'starting_soon' => 'che iniziano tra poco',
+        'ongoing' => 'in corso adesso',
     ],
 
     'price_filter' => [
@@ -165,6 +169,31 @@ return [
         'database' => 'Archivio in app',
     ],
 
+    'notification_type' => [
+        'event_reminder' => 'Promemoria evento salvato',
+        'event_cancelled' => 'Evento annullato',
+        'event_moved' => 'Evento spostato',
+        'event_sold_out' => 'Biglietti esauriti',
+        'venue_digest' => 'Riepilogo settimanale da chi segui',
+        'daily_digest' => 'Riepilogo giornaliero',
+        'weekend_newsletter' => 'Newsletter del weekend',
+        'event_published' => 'Evento pubblicato',
+        'event_rejected' => 'Evento rifiutato',
+        'venue_inactive' => 'Locale inattivo',
+    ],
+
+    'notification_skip_reason' => [
+        'account_deleted' => 'Account cancellato',
+        'unverified' => 'Indirizzo non verificato',
+        'preference_off' => 'Tipologia disattivata',
+        'frequency_cap' => 'Tetto giornaliero raggiunto',
+        'occurrence_past' => 'Data già passata',
+        'occurrence_cancelled' => 'Data annullata',
+        'not_saved' => 'Data non più salvata',
+        'nothing_to_send' => 'Niente da riepilogare',
+        'missing_subject' => 'Contenuto non più disponibile',
+    ],
+
     'notification_status' => [
         'pending' => 'In coda',
         'sent' => 'Inviata',
@@ -183,6 +212,7 @@ return [
         'venue' => 'Locale',
         'tag' => 'Tag',
         'category' => 'Categoria',
+        'event' => 'Evento',
     ],
 
     'device_platform' => [
@@ -228,6 +258,9 @@ return [
         'cities.manage' => 'Gestire le città',
 
         'import_sources.manage' => 'Gestire le sorgenti di import',
+
+        'notifications.view' => 'Vedere le notifiche programmate',
+        'notifications.manage' => 'Annullare le notifiche programmate',
 
         'users.manage' => 'Gestire gli account e i ruoli',
         'users.impersonate' => 'Navigare il sito come un altro utente',

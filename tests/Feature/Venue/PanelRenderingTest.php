@@ -22,9 +22,26 @@ beforeEach(function (): void {
  */
 function rawVenueTranslationKeys(string $html): array
 {
-    preg_match_all('/\b(?:manage|admin|enums|common|dates)\.[a-z_]+\.[a-z_.]+\b/', $html, $matches);
+    preg_match_all('/\b(?:manage|admin|enums|common|dates)\.[a-z_]+\.[a-z_.]+\b/', $html, $own);
 
-    return array_values(array_unique($matches[0]));
+    /*
+     * Anche le chiavi dei pacchetti, che hanno il namespace con i due punti.
+     * Filament introduce etichette nuove piu in fretta di quanto vengano
+     * tradotte a monte, e quasi tutte sono aria-label per gli screen reader:
+     * la pagina resta all'apparenza corretta mentre chi naviga con la tastiera
+     * o con un lettore di schermo sente "filament::components/breadcrumbs.label".
+     *
+     * I namespace sono elencati uno per uno perche Filament usa la stessa
+     * sintassi anche per identificatori interni (wire:partial =
+     * "schema-component::form.name"), che non sono traduzioni.
+     */
+    $namespaces = 'filament|filament-panels|filament-forms|filament-tables|filament-actions'
+        .'|filament-notifications|filament-infolists|filament-widgets|filament-schemas'
+        .'|filament-query-builder';
+
+    preg_match_all('/\b(?:'.$namespaces.')::[a-z0-9\/_-]+\.[a-z_.]+\b/', $html, $vendor);
+
+    return array_values(array_unique([...$own[0], ...$vendor[0]]));
 }
 
 it('apre ogni pagina senza mostrare chiavi di traduzione', function (string $path): void {

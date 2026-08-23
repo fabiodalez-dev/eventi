@@ -8,6 +8,7 @@ use App\Enums\EventSource;
 use App\Enums\EventStatus;
 use App\Enums\PriceType;
 use App\Enums\VerificationStatus;
+use App\Models\Concerns\HasImageVariants;
 use Database\Factories\EventFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -24,6 +25,7 @@ use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Spatie\Sluggable\HasSlug;
 use Spatie\Sluggable\SlugOptions;
 
@@ -32,6 +34,7 @@ class Event extends Model implements HasMedia
     /** @use HasFactory<EventFactory> */
     use HasFactory;
 
+    use HasImageVariants;
     use HasSlug;
     use InteractsWithMedia;
     use LogsActivity;
@@ -136,6 +139,16 @@ class Event extends Model implements HasMedia
     {
         $this->addMediaCollection('poster')->singleFile();
         $this->addMediaCollection('gallery');
+    }
+
+    /**
+     * Le sei conversioni di §12.1 — `thumb`, `card`, `full`, ognuna in WebP e
+     * in AVIF — valgono per tutte le raccolte di questo modello: sono
+     * immagini, e un'immagine si serve nello stesso modo ovunque compaia.
+     */
+    public function registerMediaConversions(?Media $media = null): void
+    {
+        $this->registerImageVariants();
     }
 
     /** @return BelongsTo<City, $this> */

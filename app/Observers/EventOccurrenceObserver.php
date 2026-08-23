@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace App\Observers;
 
+use App\Actions\Account\SaveOccurrenceForFollowers;
+use App\Enums\OccurrenceStatus;
 use App\Models\Category;
 use App\Models\City;
 use App\Models\Event;
 use App\Models\EventOccurrence;
 use App\Models\Venue;
-use App\Services\Calendar\MonthCalendar;
+use App\Services\Notifications\NotificationScheduler;
+use App\Support\ContentVersion;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 use DateTimeInterface;
@@ -58,6 +61,59 @@ final class EventOccurrenceObserver
     public function saved(EventOccurrence $occurrence): void
     {
         $this->forgetCalendar($occurrence);
+    }
+
+    /**
+     * «Segui questo evento» (§15.3): una data nuova di una serie seguita entra
+     * subito nell'agenda di chi la segue. Sta nell'observer e non
+     * nell'azione che genera le ricorrenze perché vale anche per la data
+     * aggiunta a mano dal gestore, che per chi segue è la stessa notizia.
+     */
+    public function created(EventOccurrence $occurrence): void
+    {
+        app(SaveOccurrenceForFollowers::class)($occurrence);
+    }
+
+    /**
+     * Il gancio di §15.5: **la modifica dell'occorrenza riprogramma o annulla
+     * gli invii collegati**. Sta nell'observer e non nei pannelli perché una
+     * data si sposta da tre posti diversi — redazione, gestore, import — e in
+     * tutti e tre chi l'ha in agenda deve essere avvisato allo stesso modo.
+     *
+     * ```
+     * orario spostato   → aggiorna send_at (e avvisa chi ha salvato)
+     * status cancelled  → annulla i promemoria E accoda l'annullamento
+     * occorrenza passata → skipped
+     * ```
+     */
+    public function updated(EventOccurrence $occurrence): void
+    {
+        $scheduler = app(NotificationScheduler::class);
+
+        if ($occurrence->wasChanged('status')) {
+            match ($occurrence->status) {
+                OccurrenceStatus::Cancelled => $scheduler->announceCancellation($occurrence),
+                OccurrenceStatus::SoldOut => $scheduler->announceSoldOut($occurrence),
+                OccurrenceStatus::Postponed, OccurrenceStatus::Moved => $scheduler->announceMove(
+                    $occurrence,
+                    $this->previousStart($occurrence),
+                ),
+                default => null,
+            };
+        }
+
+        if (! $occurrence->wasChanged('starts_at')) {
+            return;
+        }
+
+        /*
+         * Riprogrammare **non** è ricreare: le righe in attesa cambiano
+         * orario, non si moltiplicano. È la differenza che lo scenario I di
+         * §18 chiede di dimostrare, ed è anche la ragione per cui la
+         * `dedupe_key` non contiene l'orario del promemoria.
+         */
+        $scheduler->reschedule($occurrence);
+        $scheduler->announceMove($occurrence, $this->previousStart($occurrence));
     }
 
     public function deleted(EventOccurrence $occurrence): void
@@ -229,6 +285,22 @@ final class EventOccurrenceObserver
     }
 
     /**
+     * Dove si trovava la data prima di essere spostata: serve al messaggio,
+     * che dice «era giovedì alle 21, ora è venerdì alle 22» invece di
+     * limitarsi al nuovo orario. `null` quando l'orario non è cambiato.
+     */
+    private function previousStart(EventOccurrence $occurrence): ?DateTimeInterface
+    {
+        $previous = $occurrence->getOriginal('starts_at');
+
+        if ($previous instanceof DateTimeInterface) {
+            return $previous;
+        }
+
+        return is_string($previous) && $previous !== '' ? CarbonImmutable::parse($previous) : null;
+    }
+
+    /**
      * L'evento si prende da `resolveEvent()`, che preferisce la relazione già
      * caricata: una serie generata a blocchi non deve pagare una query in più
      * per ogni data solo per sapere di quale città sia il calendario.
@@ -238,7 +310,7 @@ final class EventOccurrenceObserver
         $event = $this->resolveEvent($occurrence);
 
         if ($event instanceof Event) {
-            MonthCalendar::bump((int) $event->city_id);
+            ContentVersion::bump((int) $event->city_id);
         }
     }
 }

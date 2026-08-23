@@ -82,6 +82,7 @@ return [
         'new_event' => 'Nuovo evento',
         'edit' => 'Modifica',
         'duplicate' => 'Duplica',
+        'view_on_site' => 'Vedi sul sito',
         'publish' => 'Pubblica',
         'publish_confirm' => 'Da questo momento l’evento è visibile a chi cerca cosa fare in città.',
         'repeat' => 'Ripeti',

@@ -259,3 +259,402 @@ Verifica indipendente, eseguita da zero sul database `eventi_local` riseedato.
    `last_status`; nessun driver di import esiste ancora (§14.2).
 5. `docs/SCHEMA.md` non documenta ancora `VenueObserver` che deriva
    `venues.location` da lat/lng.
+
+---
+
+## C6 / F7 — API v1 `/api/v1` — ✅ VERIFICATO 2026-08-23
+
+Venti endpoint di §13.1, documentazione OpenAPI su `/docs/api`, autenticazione
+Sanctum. Decisioni in `DECISIONS.md` D28.
+
+### Comandi eseguiti
+
+| Comando | Esito |
+|---|---|
+| `./vendor/bin/pest` | **501 test passati su 501**, 1.709 asserzioni (76 nuovi in `tests/Feature/Api/`) |
+| `./vendor/bin/pint` | passed |
+| `./vendor/bin/phpstan analyse --memory-limit=1G` | 0 errori (livello 6) |
+| `php artisan migrate` | 1 migration nuova (`personal_access_tokens`, Sanctum) |
+
+### Criteri di accettazione §13
+
+- [x] **Restituisce occorrenze, non eventi**, con tutti i campi di §13.2:
+      `occurrence_id`, `event_id`, `starts_at`, `effective_ends_at`,
+      `ends_at_estimated`, `business_date`, `status`, `title`,
+      `poster{thumb,card,full,blurhash,width,height}`, locale ridotto,
+      categoria, tag, prezzo, `distance_m` con `near`, `is_saved` se autenticato.
+- [x] **`is_saved` assente** — non `false` — per chi non è autenticato (§15.8).
+- [x] **`preset=ongoing` e `preset=starting_soon` passano da
+      `EventOccurrenceQuery`**, gli stessi metodi del sito: verificato che
+      restituiscano gli **stessi identificativi** del motore nello stesso
+      istante, sia in tre test dedicati (scenario G di §18) sia sul database
+      seedato (`ongoing` → `[29,1,2,3]` in API e nel motore; `starting_soon` →
+      `[28,4,5,32]`).
+- [x] **`editorial_score` mai esposto** (test che ispeziona il corpo grezzo).
+- [x] **Paginazione a cursore ovunque**, anche su rilevanza e popolarità; tre
+      pagine consecutive senza ripetizioni né salti; cursore alterato → 400.
+- [x] **Formato** `{"data": …, "meta": {"next_cursor", "has_more"}}` e
+      `{"error": {"code", "message", "fields"}}`.
+- [x] **HTTP corretti**: 400 (cursore), 401 (token assente o revocato), 403
+      (previsto dal renderer), 404 (slug, città spenta, bozza), 409
+      (segnalazione doppia), 422 (validazione), 429 (limiti), 500 (renderer).
+- [x] **ETag + `Cache-Control: public, max-age=60, stale-while-revalidate=300`**
+      con 304 a corpo vuoto; `private` quando la richiesta è autenticata.
+- [x] **60 req/min anonime, 120 autenticate**, con `X-RateLimit-*` e
+      `Retry-After` sul 429.
+- [x] **`/v1/map/occurrences` minimale**: esattamente `id`, `event_id`, `lat`,
+      `lng`, `category_id`, `title`, `starts_at`.
+- [x] **Sanctum**: `register|login|logout`, `password/forgot|reset`. Login
+      social escluso (D7).
+- [x] **OpenAPI** su `/docs/api` e `/docs/api.json`: 20 operazioni documentate.
+
+### Verifica con `curl` su `php artisan serve` (database seedato)
+
+Tutti gli indirizzi di §13.1 percorsi davvero: `/config`, `/cities`,
+`/cities/{slug}`, `/events`, `/events/{slug}`, `/events/{slug}/similar`,
+`/occurrences/{id}`, `/calendar`, `/venues`, `/venues/{slug}`,
+`/venues/{slug}/events`, `/map/occurrences`, `/search`, `/submissions`,
+`/reports`, `/auth/*` → 200/201 attesi; errori nella forma di §13.6.
+Percorso anche il giro completo dell'autenticazione: registrazione → token →
+lettura con `is_saved` → uscita → token revocato che risponde 401.
+
+### Questioni aperte
+
+1. **Le conversioni della locandina non esistono ancora** (§12.1, altra fase):
+   `thumb`, `card` e `full` puntano all'originale e `blurhash`, `width`,
+   `height` sono `null`. Le chiavi ci sono sempre, quindi il contratto non
+   cambierà quando la pipeline arriverà.
+2. **§13.5 (rotte utente: `/me`, salvataggi, follow, feed, device) non è
+   implementato**: appartiene a F7b. `GET /v1/config` lo dichiara spegnendo
+   `saved_events` e `follows`.
+3. `RestrictedDocsAccess` limita `/docs/api` all'ambiente locale: in produzione
+   servirà definire il gate `viewApiDocs` o accettare che la documentazione
+   resti privata.
+4. I testi legali di `/v1/config` sono `null` finché non esisteranno le pagine:
+   si accendono con `API_LEGAL_TERMS_URL`, `API_LEGAL_PRIVACY_URL` e
+   `API_LEGAL_UPDATED_AT`.
+5. `API_PASSWORD_RESET_URL` va impostata prima che l'app mobile esista: senza,
+   il collegamento del messaggio punta a `/reimposta-password` del sito, che
+   non è ancora una pagina.
+
+---
+
+## C7 / F7b — Account, salvataggi e follow (§15) — ✅ VERIFICATO 2026-08-23
+
+Registrazione, accesso con password e con collegamento, verifica dell'indirizzo,
+salvataggio da anonimo con migrazione sull'account, follow, feed personale,
+cancellazione con anonimizzazione, e i tredici indirizzi di §15.8.
+Decisioni in `DECISIONS.md` D29.
+
+### Comandi eseguiti
+
+| Comando | Esito |
+|---|---|
+| `php -d memory_limit=1G ./vendor/bin/pest` | **563 test passati su 563** (44 nuovi in `tests/Feature/Account/` e `tests/Feature/Api/MeEndpointsTest.php`) |
+| `./vendor/bin/pint` | passed |
+| `./vendor/bin/phpstan analyse app database --level=6 --memory-limit=1G` | 0 errori sul codice di questa fase |
+| `php artisan migrate:fresh` | 1 migration nuova (`notifications`), `users.name` ora nullable |
+
+### Criteri di accettazione §15
+
+- [x] **Il cuore funziona al primo click, senza registrazione** (§15.1): da
+      anonimi il salvataggio vive nel `localStorage` e **nessuna** richiesta
+      parte. Il cuore è comunque un modulo: senza JavaScript chi è collegato
+      salva con un invio e un ricaricamento.
+- [x] **Riquadro al terzo salvataggio**, discreto e chiudibile: lo rivela lo
+      script contando le voci nel browser. Offre il **promemoria**, non il
+      salvataggio — quello funziona già.
+- [x] **`POST /v1/me/saved/merge`** (e il gemello del sito
+      `POST /salvataggi/unisci`): ignora duplicati, date passate e
+      identificativi inesistenti, e risponde con quante ne sono entrate. Il
+      `localStorage` si svuota **solo** dopo quella conferma.
+- [x] **Si salva l'occorrenza, non l'evento** (§15.3): una sola data futura si
+      salva senza chiedere; più date aprono il selettore compatto con «salva
+      tutte le date»; una serie ricorrente offre «Segui questo evento», e ogni
+      data generata dopo entra da sola in agenda.
+- [x] **Follow di locali, tag e categorie**: alimentano feed e digest, non i
+      promemoria. Smettere di seguire **non** toglie dall'agenda ciò che era
+      già salvato.
+- [x] **`/il-mio-feed` e `GET /v1/me/feed`** (§15.7): date future di ciò che si
+      segue, in ordine di data, con il cuore acceso su ciò che è in agenda.
+      Senza follow, avvio guidato con i locali più attivi e le categorie
+      principali — **mai una pagina vuota**, e «più attivi» è un conteggio del
+      motore, non delle righe in tabella.
+- [x] **Registrazione con email e password oppure con collegamento senza
+      password** (§15.2), nome facoltativo, profilo minimo (nome, email, fuso,
+      lingua).
+- [x] **Verifica obbligatoria prima di qualunque invio**: un account non
+      verificato salva e segue, `canReceiveNotifications()` resta falso.
+- [x] **Cancellazione self-service con effetto immediato**: anonimizzazione
+      (indirizzo `.invalid`), soft delete, e nella stessa transazione via
+      salvataggi, follow, dispositivi, archivio e token, con gli invii in
+      attesa portati a `cancelled`.
+- [x] **Endpoint di §15.8**: `/v1/me` (GET/PATCH/DELETE),
+      `/v1/me/notification-preferences` (GET/PATCH), `/v1/me/saved`
+      (GET/POST/DELETE) e `/saved/merge`, `/v1/me/follows` (GET/POST/DELETE),
+      `/v1/me/feed`, `/v1/me/devices` (POST/DELETE), `/v1/me/notifications`,
+      `/v1/me/export`, più `/v1/auth/magic-link` e `/v1/auth/verify-email`.
+      OpenAPI: da 20 a **39 operazioni** documentate.
+- [x] **`is_saved` assente per chi non è autenticato** anche su queste rotte, e
+      nessuna risposta dell'area personale in cache condivisa.
+
+### Scenario H di §18 — percorso davvero
+
+Con `php artisan serve` e database seedato, con `curl` e un contenitore di
+cookie: tre date prese dai cuori di `/eventi` (le stesse che il browser
+avrebbe nel `localStorage`), registrazione dal modulo, `POST /salvataggi/unisci`
+→ `{"merged":3,"ignored":0,"occurrence_ids":[27,28,29]}`, pagina dei salvataggi
+con **tre** cuori accesi, una data tolta e **due** rimaste. Lo stesso scenario è
+in `tests/Feature/Account/GuestSaveMergeTest.php`, dove la lista di partenza
+contiene anche un duplicato, una data passata e un identificativo inesistente:
+ne entrano tre.
+
+### Altre verifiche eseguite davvero
+
+- Giro completo dell'API con token vero: `/me`, `POST /me/saved` (201) →
+  `GET /me/saved` con `is_saved: true`, `POST /me/follows` (201) → `/me/feed`
+  che passa da `onboarding` valorizzato a 18 date, `PATCH
+  /me/notification-preferences`, `POST /me/devices`, `/me/export` con le sette
+  sezioni, `DELETE /me` seguito da **401** sulla stessa richiesta di prima.
+- **Messaggi resi davvero** dal mailer (`MAIL_MAILER=log`), non solo finti:
+  collegamento senza password aperto dal browser → sessione creata e arrivo su
+  `/il-mio-feed`; collegamento di verifica aperto → `email_verified_at`
+  valorizzata e `canReceiveNotifications()` che passa a vero. Un collegamento
+  con la firma manomessa risponde 403; uno emesso prima di un cambio di
+  password non vale più.
+
+### Questioni aperte
+
+1. **Il motore di invio non è in questa fase.** `scheduled_notifications` viene
+   già ripulita quando serve — togliere un salvataggio annulla i promemoria
+   ancora in attesa, cancellare l'account annulla tutto — ma nessuno **crea**
+   ancora le righe: sono gli scenari I, J e K di §18, insieme a quiet hours e
+   tetto giornaliero. `GET /v1/me/notifications` esiste ed è vuoto finché quel
+   motore non scrive.
+2. **Il collegamento senza password apre una sessione del sito, non consegna un
+   token dell'API** (D29, punto 9). Quando esisterà l'app servirà un
+   collegamento profondo, come già previsto per la reimpostazione password con
+   `API_PASSWORD_RESET_URL`.
+3. **I salvataggi sono letti nella città corrente** perché passano dal motore,
+   che è scoped sulla città (D11: oggi ne esiste una). Con la seconda città
+   servirà decidere se l'agenda personale le attraversi tutte.
+
+---
+
+## C8 / F8 — Media, SEO, performance e cache (§12) — ✅ VERIFICATO 2026-08-23
+
+Pipeline media completa (MIME reale → strip EXIF → resize → WebP + AVIF →
+blurhash → CDN, più l'anteprima Open Graph 1200×630), `sitemap.xml` a indice e
+`robots.txt`, JSON-LD verificato con `json_decode`, e la tabella di cache di
+§12.3 applicata riga per riga. Decisioni in `DECISIONS.md` D30.
+
+### Comandi eseguiti
+
+| Comando | Esito |
+|---|---|
+| `./vendor/bin/pest` | **597 test passati su 597** (48 nuovi in `tests/Feature/Media/`, `tests/Feature/Seo/`, `tests/Feature/Cache/`) |
+| `./vendor/bin/pint` | passed |
+| `./vendor/bin/phpstan analyse --level=6 --memory-limit=1G` | 0 errori su tutto il progetto |
+| `php artisan media-library:regenerate --force` + `queue:work` | 162 media, sei varianti ciascuno, 0 lavori falliti |
+
+### Criteri di accettazione §12
+
+- [x] **Validazione MIME reale, non l'estensione** (§12.1): `App\Enums\ImageType`
+  legge i primi byte; un file con estensione `.jpg` e contenuto PHP viene
+  rifiutato dal modulo e, se arriva da un import, cancellato dalla coda.
+- [x] **Strip EXIF** (§12.1): provato su un JPEG con riquadro EXIF costruito
+  byte per byte — esce senza `Orientation` e con i lati scambiati, perché i
+  pixel vengono ruotati prima che il riquadro sparisca.
+- [x] **Varianti `thumb 400w` / `card 800w` / `full 1600w` in WebP e AVIF**
+  (§12.1), registrate su `Event` e `Venue` con `registerMediaConversions()`;
+  `file` conferma "ISO Media, AVIF Image" sui file generati.
+- [x] **Blurhash** (§12.1) e segnaposto `data:` nelle proprietà del media.
+- [x] **Open Graph 1200×630 generata automaticamente** con `spatie/image`
+  (locandina + titolo + data + marchio), **non** con un browser senza schermo:
+  136 anteprime composte dalla coda sul database seedato.
+- [x] **Tutto in coda, mai bloccante; max 12 MB; jpg/png/webp/heic** (§12.1).
+- [x] **CDN** (§12.1): `MEDIA_CDN_URL` riscrive ogni indirizzo di media e di
+  conversione senza che una sola vista cambi.
+- [x] **`sitemap.xml` a indice** (§12.2): cinque sezioni — pagine, eventi,
+  locali, tassonomie, giorni futuri — con spezzatura oltre la soglia e 404
+  oltre la fine.
+- [x] **`robots.txt`, canonical, Open Graph, X/Twitter, `hreflang`
+  predisposto** (§12.2).
+- [x] **JSON-LD `Event` per ogni occorrenza pubblicata**, più `Place`,
+  `Organization`, `BreadcrumbList`, `WebSite` con `SearchAction` (§12.2),
+  riletti con `json_decode` e controllati campo per campo.
+- [x] **Full-page cache 5 min invalidata alla pubblicazione** (§12.3).
+- [x] **"In corso" e "Inizia tra poco" in frammento separato, TTL 60 s, chiave
+  arrotondata al quarto d'ora** (§12.3), con il test che §12.3 chiede: stessa
+  chiave a tre secondi, chiave diversa a venti minuti.
+- [x] **Conteggi calendario 30 min, tassonomie 24 h, liste API `ETag` +
+  `Cache-Control`** (§12.3).
+- [x] **Zero layout shift, lazy loading, preload del LCP** (§11.11): ogni
+  `<img>` di ogni pagina dichiara `width` e `height`, le locandine sotto la
+  piega sono `lazy`, quella sopra è annunciata con un preload AVIF.
+
+### Verifica con `curl` su `php artisan serve` (database seedato)
+
+- `robots.txt`: `User-agent`, sette `Disallow`, riga `Sitemap:` assoluta.
+- `sitemap.xml`: indice con cinque righe, tutte 200 (11, 132, 23, 52, 31
+  indirizzi); riletti identici dalla cache su disco; `sitemap-eventi-99.xml`
+  risponde 404.
+- `X-Page-Cache`: `miss` poi `hit` su `/` e `/eventi`, assente su `/cerca` e
+  sugli indirizzi con `near=`.
+- Token CSRF: due sessioni ottengono due token diversi dalla stessa copia in
+  cache; un invio con quel token passa (302), uno con un token qualsiasi è 419.
+- Scheda evento: canonical, `og:image` con misure, `twitter:*`, `hreflang`,
+  `<picture>` con AVIF e WebP, segnaposto sfocato, preload del LCP, JSON-LD
+  completo. Nessuna chiave di traduzione grezza su nessuna pagina.
+
+### Questioni aperte
+
+1. **La memoria della suite passa a 512 MB** in `phpunit.xml`: con centinaia di
+   test in un processo solo e la pipeline media che apre file veri, i 128 MB
+   predefiniti della CLI non bastavano più (il guasto precedeva questa fase).
+2. **L'anteprima social si compone alla prima visita** e non alla
+   pubblicazione: chi condivide per primissimo un evento appena pubblicato
+   potrebbe far arrivare la locandina nuda invece della scheda composta. Con un
+   worker attivo la finestra è di secondi.
+3. **`media.cdn_url` è vuota**: la riga esiste e funziona, il fornitore non è
+   stato scelto.
+
+---
+
+## C9 / F7c — Motore di invio delle notifiche (§15.4, §15.5, §15.6, §15.9) — ✅ VERIFICATO 2026-08-24
+
+Le righe di `scheduled_notifications` ora nascono, si riprogrammano, si
+annullano e partono. Canali attivi: email e archivio in-app (D8).
+Decisioni in `DECISIONS.md` D31. **Nessuna migration**: lo schema di §7.10
+bastava già.
+
+### Comandi eseguiti
+
+| Comando | Esito |
+|---|---|
+| `./vendor/bin/pest` | **658 test passati su 658** (61 nuovi in `tests/Feature/Notifications/`) |
+| `./vendor/bin/pint` | passed |
+| `./vendor/bin/phpstan analyse app database --level=6 --memory-limit=1G` | 0 errori |
+| `php artisan migrate:fresh --seed` | 25 migration, nessuna nuova |
+| `php artisan schedule:list` | `*/5 * * * * notifications:send`, `0 * * * * notifications:plan` |
+
+### Architettura di §15.5, rispettata alla lettera
+
+- [x] **Il promemoria nasce dal salvataggio**, non da un cron che scandaglia
+      `saved_events`: `SaveOccurrences` e `SaveOccurrenceForFollowers` creano le
+      righe con `send_at = starts_at − 24h` e `− 3h` (offset configurabili per
+      persona) e la chiave di §7.10 (`reminder_3h:user_42:occ_918`).
+- [x] **La modifica dell'occorrenza riprogramma o annulla** dall'observer, che è
+      il punto attraversato da redazione, gestore e import insieme: orario
+      spostato → `send_at` aggiornato; `cancelled` → promemoria annullati e
+      annullamento accodato; data finita nel passato → `skipped`.
+- [x] **Il worker ogni cinque minuti** preleva con `SELECT ... FOR UPDATE SKIP
+      LOCKED` dentro una transazione (D5: senza Redis il blocco è quello del
+      database), applica preferenze, ore di silenzio e tetto giornaliero,
+      sceglie il canale, invia, scrive `notification_log` e segna la riga
+      `sent | skipped (con motivo) | failed` con tre tentativi a distanza
+      crescente (5, 15, 45 minuti).
+- [x] **`dedupe_key` unica a livello di database** è la garanzia contro il
+      doppio invio: il test lo dimostra con l'errore 1062 del motore, non con un
+      controllo applicativo.
+
+### Le sette tipologie di §15.4
+
+- [x] Promemoria di data salvata — 24h e 3h, offset configurabile, **attivo**.
+- [x] Annullata o spostata — immediato, **non disattivabile**: nessun
+      interruttore esiste, e il collegamento di disiscrizione non compare.
+- [x] Sold out — immediato, con interruttore, consuma il tetto.
+- [x] Nuovi eventi da chi segui — **riepilogo settimanale**, mai per singolo
+      evento: otto locali seguiti producono un messaggio con otto voci.
+- [x] Riepilogo giornaliero — orario scelto, 17:00 predefinito, disattivo di
+      suo; "stasera" lo definisce `EventOccurrenceQuery`, non il riepilogo.
+- [x] Newsletter del weekend — giovedì, e solo con la data del consenso in
+      `marketing_opt_in_at` (§15.9).
+- [x] Ai gestori — pubblicato, rifiutato (con il motivo), locale che non
+      pubblica da 21 giorni (al più una volta al mese).
+
+### Regole di volume — vincolanti
+
+- [x] **Mai una notifica per singolo evento nuovo** di un locale seguito.
+- [x] **Massimo 2 al giorno**, contate nella giornata locale di chi riceve e
+      solo sui tipi intrusivi: i promemoria di ciò che si è messo in agenda a
+      mano non contano, come prescrive §15.4.
+- [x] **Ore di silenzio su tutti i canali tranne gli annullamenti**: l'invio si
+      sposta all'uscita, e se nel frattempo è diventato inutile diventa
+      `skipped`.
+- [x] **Deep link alla scheda evento** su ogni notifica, mai la home.
+
+### §15.9 — privacy
+
+- [x] Email con **modello Blade a tabelle e stili in linea** (i client di posta
+      non hanno un motore moderno), disiscrizione a un click in ogni messaggio,
+      intestazioni `List-Unsubscribe` e `List-Unsubscribe-Post` (RFC 8058).
+- [x] **Pagina preferenze raggiungibile senza accesso**, con indirizzo firmato a
+      trenta giorni: cambia cosa si riceve, non chi si è.
+- [x] `notification_log` purgato oltre i dodici mesi da `notifications:plan`.
+- [x] Un account **non verificato non riceve nulla** (§15.2): la riga esiste e
+      viene saltata con motivo `unverified`.
+
+### Il pannello, che è metà della ragione per cui esiste la tabella
+
+`/admin/scheduled-notifications` elenca ogni invio previsto con destinatario,
+oggetto, stato, motivo e chiave di deduplica; filtra per stato, tipo e
+"da mandare adesso"; e porta un contatore di righe scadute e non partite — zero
+è la risposta normale, un numero che cresce è l'unico modo di accorgersi che il
+worker dei cinque minuti non sta girando. Si guarda con `notifications.view`
+(anche il moderatore), si ferma un invio con `notifications.manage` (solo chi
+amministra) e solo finché è in attesa: ciò che è partito è cronaca.
+
+### Scenari I, J, K di §18 — percorsi davvero
+
+- **I.** Promemoria a 3h, orario spostato di due ore → **la stessa riga**,
+  stesso identificativo e stessa chiave, `send_at` avanti di due ore; nessun
+  duplicato. Evento spostato a ieri → `skipped` con motivo `occurrence_past`,
+  e nessun avviso di spostamento per una data ormai passata.
+- **J.** Occorrenza salvata da **40 utenti** che avevano spento tutto il resto →
+  40 righe `event_cancelled` in attesa, zero promemoria residui, e 40 messaggi
+  consegnati facendo girare il worker cinque minuti dopo; 40 righe in
+  `notification_log`.
+- **K.** Otto locali seguiti → **un** riepilogo con otto voci, ciascuna con il
+  proprio collegamento alla scheda. Tre notifiche intrusive nello stesso giorno
+  → due inviate, la terza `skipped` con motivo `frequency_cap`. Promemoria che
+  cade a mezzanotte e mezza con silenzio 23:30–08:00 → spostato alle 08:00 e
+  ancora in attesa; se la serata nel frattempo è finita, `skipped`. Un
+  annullamento all'una di notte parte comunque.
+
+### Verifica sul database seedato (`php artisan serve`, mailer su file)
+
+- Tre date salvate → sei righe in attesa con le chiavi di §7.10 e gli orari
+  attesi (`reminder_24h:user_6:occ_42 | 2026-08-25 12:15 | pending`).
+- Annullata una delle tre → i due promemoria collegati passano a `cancelled` e
+  compare `cancelled:user_6:occ_40` con `send_at` immediato; il worker la manda
+  e scrive `notification_log`.
+- `notifications:plan` programma il riepilogo giornaliero per l'indomani alle
+  17:00 locali e non programma quello settimanale, che cade oltre l'orizzonte
+  di 36 ore: la pianificazione ripetuta non aggiunge nulla.
+- Messaggio reso davvero: oggetto «Domani: Sagra dei vini del territorio»,
+  collegamento `http://…/eventi/sagra-dei-vini-del-territorio`, «Comincia
+  mercoledì 26 agosto alle 14:15», «Da Circolo Arci La Fornace, Padova.»,
+  entrambe le intestazioni di disiscrizione, zero chiavi di traduzione grezze.
+- Con `curl`: pagina preferenze firmata **200** con le caselle e le ore di
+  silenzio, non firmata **403**, collegamento di disiscrizione **200** e la
+  preferenza risulta davvero spenta subito dopo.
+
+### Questioni aperte
+
+1. **Il tentativo che il motore riprova è quello di accodamento, non di
+   consegna.** `ScheduledMessage` è una notifica di coda: se il server di posta
+   rifiuta, a riprovare è il worker della coda (`--tries=3` nel cron del
+   RUNBOOK), non `scheduled_notifications`, che a quel punto risulta già
+   `sent`. È corretto — la riga dice «consegnata al canale» — ma un guasto SMTP
+   prolungato si legge in `failed_jobs`, non nel pannello degli invii.
+2. **Il riepilogo settimanale copre tutto ciò che si segue**, locali, generi ed
+   etichette (D31, punto 10). Se un giorno si vorranno tre riepiloghi distinti,
+   servirà un filtro per soli locali in `EventOccurrenceQuery`.
+3. **Le ore di silenzio non hanno un valore predefinito** (D31, punto 6): chi
+   non le dichiara riceve anche di notte. È una scelta, e va ricontrollata alla
+   prima segnalazione di un promemoria arrivato alle tre del mattino.
+4. **Il giorno del riepilogo settimanale (martedì 18:00) e quello della
+   newsletter (giovedì 16:00) sono in `config/notifications.php`**: §15.4 fissa
+   solo il giovedì della newsletter, il resto è una scelta editoriale da
+   confermare con il committente.

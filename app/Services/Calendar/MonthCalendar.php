@@ -6,6 +6,7 @@ namespace App\Services\Calendar;
 
 use App\Models\City;
 use App\Queries\EventOccurrenceQuery;
+use App\Support\ContentVersion;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Cache;
 
@@ -26,10 +27,10 @@ use Illuminate\Support\Facades\Cache;
  *
  * §12.3 vuole la cache dei conteggi «invalidata sulla pubblicazione». Invece di
  * inseguire quali mesi tocchi ogni evento salvato — un evento con una
- * ricorrenza annuale li tocca tutti — la chiave porta un numero di versione per
- * città: `bump()` lo cambia e ogni mese di quella città torna a essere
- * ricalcolato alla prima richiesta. Costa una scrittura in cache per
- * salvataggio, invece di una lista di chiavi da tenere allineata.
+ * ricorrenza annuale li tocca tutti — la chiave porta il numero di versione
+ * della città (`App\Support\ContentVersion`): cambiarlo rende irraggiungibile
+ * ogni mese di quella città in un colpo solo. È lo stesso segnale che invalida
+ * lo scheletro delle pagine e la mappa del sito.
  */
 final class MonthCalendar
 {
@@ -102,17 +103,6 @@ final class MonthCalendar
         return $cells;
     }
 
-    /**
-     * Butta via i conteggi di una città: la chiama chi pubblica, modifica o
-     * ritira un evento.
-     */
-    public static function bump(City|int $city): void
-    {
-        $id = $city instanceof City ? (int) $city->getKey() : $city;
-
-        Cache::forever(self::versionKey($id), self::version($id) + 1);
-    }
-
     private function firstDay(City $city, CarbonImmutable $month): CarbonImmutable
     {
         return $month->setTimezone($city->timezone)->startOfMonth()->startOfDay();
@@ -120,23 +110,11 @@ final class MonthCalendar
 
     private function key(City $city, CarbonImmutable $first): string
     {
-        $id = (int) $city->getKey();
-
-        return sprintf('calendario:%d:%d:%s', $id, self::version($id), $first->format('Y-m'));
-    }
-
-    /**
-     * Il numero di versione corrente dei conteggi di una città.
-     */
-    private static function version(int $cityId): int
-    {
-        $version = Cache::get(self::versionKey($cityId), 0);
-
-        return is_numeric($version) ? (int) $version : 0;
-    }
-
-    private static function versionKey(int $cityId): string
-    {
-        return 'calendario:versione:'.$cityId;
+        return sprintf(
+            'calendario:%d:%d:%s',
+            (int) $city->getKey(),
+            ContentVersion::for($city),
+            $first->format('Y-m'),
+        );
     }
 }

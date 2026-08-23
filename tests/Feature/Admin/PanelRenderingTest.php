@@ -75,9 +75,31 @@ beforeEach(function (): void {
  */
 function rawTranslationKeys(string $html): array
 {
-    preg_match_all('/\b(?:admin|enums|common)\.[a-z_]+\.[a-z_.]+\b/', $html, $matches);
+    // Chiavi del progetto: admin.sections.when, enums.venue_type.bar...
+    preg_match_all('/\b(?:admin|enums|common|manage|events|venues|filters|ui|dates|forms)\.[a-z_]+\.[a-z_.]+\b/', $html, $own);
 
-    return array_values(array_unique($matches[0]));
+    /*
+     * Chiavi dei pacchetti: filament::components/breadcrumbs.label,
+     * filament-panels::layout.topbar.label...
+     *
+     * Vanno cercate a parte perche hanno il namespace con i due punti e la
+     * barra nel nome del file. Il controllo limitato alle sole chiavi del
+     * progetto lasciava passare le etichette non tradotte a monte da Filament,
+     * quasi tutte aria-label per gli screen reader: il test restava verde
+     * mentre la pagina mostrava "filament::components/breadcrumbs.label".
+     *
+     * I namespace sono elencati uno per uno di proposito: Filament usa la
+     * stessa sintassi con i due punti anche per identificatori interni
+     * (wire:partial="schema-component::form.name"), che non sono traduzioni
+     * e produrrebbero falsi allarmi.
+     */
+    $namespaces = 'filament|filament-panels|filament-forms|filament-tables|filament-actions'
+        .'|filament-notifications|filament-infolists|filament-widgets|filament-schemas'
+        .'|filament-query-builder';
+
+    preg_match_all('/\b(?:'.$namespaces.')::[a-z0-9\/_-]+\.[a-z_.]+\b/', $html, $vendor);
+
+    return array_values(array_unique([...$own[0], ...$vendor[0]]));
 }
 
 it('apre ogni elenco senza mostrare chiavi di traduzione', function (string $url): void {

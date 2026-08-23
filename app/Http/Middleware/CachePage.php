@@ -1,0 +1,176 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Middleware;
+
+use App\Support\ContentVersion;
+use App\Support\CurrentCity;
+use Closure;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
+use Symfony\Component\HttpFoundation\Response;
+
+/**
+ * La full-page cache di §12.3: **scheletro** della pagina iniziale, di
+ * "stasera", del weekend, delle categorie e dei locali attivi, per cinque
+ * minuti, invalidata alla pubblicazione di un evento.
+ *
+ * ## Perché "scheletro" è la parola importante
+ *
+ * §12.3 avverte del conflitto: una finestra mobile di tre ore ("inizia tra
+ * poco") non può stare dentro una pagina in cache — o la pagina è in cache e
+ * la sezione mente, o la sezione è giusta e il TTFB crolla. La soluzione era
+ * già stata presa in §11.2: "In corso" e "Inizia tra poco" sono un componente
+ * Livewire caricato **dopo** il primo disegno (D25). Quello che finisce qui
+ * dentro è tutto il resto, che a cinque minuti di distanza è identico a sé
+ * stesso.
+ *
+ * ## Le due cose che una pagina in cache non può portarsi dietro
+ *
+ * 1. **Il token CSRF.** Sta nell'intestazione di ogni pagina e vale per una
+ *    sessione sola: servito a un altro visitatore, ogni suo invio sarebbe un
+ *    419. Nella copia in cache viene sostituito da un segnaposto e rimesso al
+ *    volo su ogni risposta. Il token è una stringa casuale di quaranta
+ *    caratteri: non si scambia per niente altro nel documento.
+ * 2. **Chi sta guardando.** Una pagina di chi ha una sessione autenticata
+ *    parla di lui — i suoi salvataggi, il suo nome. Non entra in cache e non
+ *    viene servita dalla cache. Stessa cosa per una pagina che porta un
+ *    messaggio di conferma appena lasciato in sessione.
+ *
+ * Le intestazioni non si conservano: si conserva il corpo. È ciò che evita di
+ * riemettere a un visitatore il cookie di sessione di un altro — l'errore che
+ * trasforma una cache in una falla.
+ */
+final class CachePage
+{
+    /**
+     * Il segnaposto che prende il posto del token CSRF nella copia salvata.
+     */
+    private const CSRF_PLACEHOLDER = '@@csrf-token@@';
+
+    public function handle(Request $request, Closure $next): Response
+    {
+        if (! $this->isCacheable($request)) {
+            return $next($request);
+        }
+
+        $key = $this->key($request);
+        $cached = Cache::get($key);
+
+        if (is_string($cached)) {
+            return response($this->restore($cached), 200)
+                ->header('Content-Type', 'text/html; charset=utf-8')
+                ->header('X-Page-Cache', 'hit');
+        }
+
+        $response = $next($request);
+
+        if ($this->isStorable($response)) {
+            $content = (string) $response->getContent();
+
+            Cache::put(
+                $key,
+                str_replace(csrf_token(), self::CSRF_PLACEHOLDER, $content),
+                now()->addMinutes(config()->integer('page_cache.ttl_minutes')),
+            );
+        }
+
+        $response->headers->set('X-Page-Cache', 'miss');
+
+        return $response;
+    }
+
+    /**
+     * La chiave. Porta dentro il numero di versione della città
+     * (`App\Support\ContentVersion`): alla pubblicazione di un evento tutte le
+     * chiavi vecchie diventano irraggiungibili in un colpo solo, senza dover
+     * sapere quali pagine quell'evento tocchi — che sono, in generale, tutte.
+     *
+     * Porta dentro anche la lingua: la stessa pagina in due lingue è due
+     * documenti diversi.
+     */
+    public function key(Request $request): string
+    {
+        $city = app(CurrentCity::class)->get();
+        $cityId = $city === null ? 0 : (int) $city->getKey();
+
+        return sprintf(
+            'pagina:%d:%d:%s:%s',
+            $cityId,
+            ContentVersion::for($cityId),
+            app()->getLocale(),
+            sha1($request->fullUrl()),
+        );
+    }
+
+    /**
+     * Si può leggere dalla cache?
+     */
+    private function isCacheable(Request $request): bool
+    {
+        if (! config()->boolean('page_cache.enabled')) {
+            return false;
+        }
+
+        if (! $request->isMethod('GET') || $request->ajax()) {
+            return false;
+        }
+
+        if (Auth::check()) {
+            return false;
+        }
+
+        /*
+         * "Vicino a me" (§11.7) mette latitudine e longitudine nella query
+         * string: sono indirizzi diversi a ogni metro percorso, quindi chiavi
+         * diverse a ogni richiesta. Salvarli riempirebbe la cache di voci che
+         * nessuno rileggerà mai — la stessa trappola dell'arrotondamento al
+         * quarto d'ora, vista da un'altra parte.
+         */
+        if ($request->has('near')) {
+            return false;
+        }
+
+        /*
+         * Un messaggio di conferma appena lasciato in sessione è per una
+         * persona sola: la pagina che lo porta non si salva e non si serve
+         * salvata.
+         */
+        if (! $request->hasSession()) {
+            return true;
+        }
+
+        /*
+         * Anche gli errori di validazione appartengono a chi ha appena
+         * compilato il modulo: una pagina che li porta non si conserva.
+         */
+        return ! $request->session()->has('status') && ! $request->session()->has('errors');
+    }
+
+    /**
+     * Si può scrivere in cache? Solo una pagina intera, riuscita e in HTML:
+     * un reindirizzamento, un 404 o un file scaricato non hanno niente da
+     * conservare.
+     */
+    private function isStorable(Response $response): bool
+    {
+        if ($response->getStatusCode() !== 200) {
+            return false;
+        }
+
+        if (! str_contains((string) $response->headers->get('Content-Type'), 'text/html')) {
+            return false;
+        }
+
+        $content = $response->getContent();
+
+        return is_string($content) && $content !== '';
+    }
+
+    private function restore(string $content): string
+    {
+        return str_replace(self::CSRF_PLACEHOLDER, csrf_token(), $content);
+    }
+}

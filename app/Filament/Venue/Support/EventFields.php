@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Filament\Venue\Support;
 
 use App\Enums\PriceType;
+use App\Filament\Support\ImageUpload;
 use App\Models\Category;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\ToggleButtons;
@@ -38,13 +38,11 @@ final class EventFields
 {
     public static function poster(): Component
     {
-        return SpatieMediaLibraryFileUpload::make('poster_media')
+        return ImageUpload::make('poster_media')
             ->label(__('manage.fields.poster'))
             ->helperText(__('manage.hints.poster'))
             ->collection('poster')
-            ->image()
-            ->imageEditor()
-            ->maxSize(8192);
+            ->imageEditor();
     }
 
     public static function title(): Component

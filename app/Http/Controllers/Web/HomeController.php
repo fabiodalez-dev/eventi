@@ -46,7 +46,10 @@ final class HomeController extends Controller
                 'days' => [],
                 'categories' => [],
                 'venues' => new Collection,
-                'structuredData' => [$this->structuredData->website(null)],
+                'structuredData' => [
+                    $this->structuredData->website(null),
+                    $this->structuredData->organization(),
+                ],
             ]);
         }
 
@@ -65,7 +68,10 @@ final class HomeController extends Controller
             'days' => $this->days($city),
             'categories' => $this->categories($city),
             'venues' => $this->venues($city),
-            'structuredData' => [$this->structuredData->website($city)],
+            'structuredData' => [
+                $this->structuredData->website($city),
+                $this->structuredData->organization(),
+            ],
         ]);
     }
 

@@ -14,6 +14,7 @@ use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Support\Facades\Route;
 use Livewire\Component;
 
 /**
@@ -28,6 +29,32 @@ use Livewire\Component;
  */
 final class EventActions
 {
+    /**
+     * §9.2, §10 — «preview della scheda pubblica».
+     *
+     * Chi inserisce un evento vuole sapere come apparirà a chi lo cerca, e
+     * l'unico modo onesto di dirglielo è portarcelo. Si apre in una scheda
+     * nuova: il lavoro nel pannello non va perso, e una bozza non salvata
+     * resta dov'è.
+     *
+     * Compare solo sugli eventi **pubblicati**: la scheda pubblica risponde
+     * 404 su tutto il resto, e un pulsante che porta a una pagina inesistente
+     * è peggio di un pulsante assente.
+     */
+    public static function viewOnSite(): Action
+    {
+        return Action::make('viewOnSite')
+            ->label(__('manage.actions.view_on_site'))
+            ->icon(Heroicon::OutlinedArrowTopRightOnSquare)
+            ->color('gray')
+            ->url(fn (Event $record): ?string => Route::has('events.show')
+                ? route('events.show', $record)
+                : null)
+            ->openUrlInNewTab()
+            ->visible(fn (Event $record): bool => $record->status === EventStatus::Published
+                && Route::has('events.show'));
+    }
+
     /**
      * §10.3 — «la funzione più usata: quasi tutti i locali fanno serate
      * ricorrenti». Un tocco, e la copia è già compilata: restano da mettere
