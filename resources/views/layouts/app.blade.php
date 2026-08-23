@@ -84,6 +84,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="light dark">
 
+    {{-- Il token con cui lo script conferma al server i salvataggi fatti dal
+         cuore: senza, ogni chiamata asincrona sarebbe un 419. --}}
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
     <title>{{ filled($title ?? null) ? $title.' — '.$app : $app }}</title>
 
     @if (filled($description ?? null))
@@ -98,6 +102,20 @@
         <meta name="robots" content="{{ $robots }}">
     @endif
 
+    {{-- `hreflang` predisposto (§12.2). Oggi il sito parla una lingua sola e
+         l'unica riga utile è `x-default`, che dice «questa è la versione da
+         servire a chi non rientra in nessuna delle altre». Il giorno in cui
+         `lang/en` smetterà di essere vuoto basterà aggiungere la lingua in
+         config/seo.php e ogni pagina dichiarerà la propria alternativa. --}}
+    <link rel="alternate" hreflang="x-default" href="{{ $canonical ?? url()->current() }}">
+    @foreach (config('seo.locales') as $locale => $prefix)
+        <link
+            rel="alternate"
+            hreflang="{{ $locale }}"
+            href="{{ $prefix === null ? ($canonical ?? url()->current()) : url($prefix.'/'.ltrim(request()->path(), '/')) }}"
+        >
+    @endforeach
+
     {{-- Anteprima nei social e nelle applicazioni di messaggistica: senza,
          un evento condiviso arriva come un link nudo (§12.2). --}}
     <meta property="og:site_name" content="{{ $app }}">
@@ -106,13 +124,51 @@
     <meta property="og:title" content="{{ filled($title ?? null) ? $title : $app }}">
     <meta property="og:url" content="{{ $canonical ?? url()->current() }}">
     <meta name="twitter:card" content="{{ filled($image ?? null) ? 'summary_large_image' : 'summary' }}">
+    <meta name="twitter:title" content="{{ filled($title ?? null) ? $title : $app }}">
+
+    @if (filled(config('seo.twitter_site')))
+        <meta name="twitter:site" content="{{ config('seo.twitter_site') }}">
+    @endif
 
     @if (filled($description ?? null))
         <meta property="og:description" content="{{ $description }}">
+        <meta name="twitter:description" content="{{ $description }}">
     @endif
 
     @if (filled($image ?? null))
         <meta property="og:image" content="{{ $image }}">
+        <meta name="twitter:image" content="{{ $image }}">
+
+        {{-- Le misure dell'anteprima permettono a chi riceve il collegamento di
+             riservare il rettangolo prima di averla scaricata: senza, la scheda
+             nella conversazione compare come testo e poi salta. --}}
+        @if (filled($imageWidth ?? null) && filled($imageHeight ?? null))
+            <meta property="og:image:width" content="{{ $imageWidth }}">
+            <meta property="og:image:height" content="{{ $imageHeight }}">
+        @endif
+    @endif
+
+    {{-- Preload dell'immagine più grande sopra la piega (§11.11).
+
+         Se ne dichiara **una sola**, in AVIF: `type` fa sì che chi non apre
+         l'AVIF ignori la riga invece di scaricare un file che non userà, e per
+         quei browser resta comunque `fetchpriority="high"` sull'immagine, che
+         è già nell'HTML iniziale e quindi scopribile subito. Dichiararne due,
+         una per formato, farebbe scaricare entrambi i file a chi li apre
+         tutti e due: il preload smetterebbe di far guadagnare tempo e
+         inizierebbe a farne perdere. --}}
+    @php $lcp = $preload ?? null; @endphp
+    @if ($lcp !== null && ($lcp->sources['image/avif'] ?? null) !== null)
+        <link
+            rel="preload"
+            as="image"
+            type="image/avif"
+            imagesrcset="{{ $lcp->sources['image/avif'] }}"
+            imagesizes="{{ $lcp->sizes ?? '100vw' }}"
+            fetchpriority="high"
+        >
+    @elseif ($lcp !== null)
+        <link rel="preload" as="image" href="{{ $lcp->src }}" fetchpriority="high">
     @endif
 
     {{-- I feed dichiarati qui sono ciò che fa comparire il pulsante "sottoscrivi"
@@ -139,6 +195,18 @@
     </a>
 
     <x-impersonation-banner />
+
+    {{-- Ciò che lo script deve sapere sull'area personale (§15.1): se c'è una
+         sessione, dopo quanti salvataggi offrire il promemoria e dove mandare
+         le date salvate da anonimo. Sta nel documento e non nello script
+         perché sono valori del server, non costanti del browser. --}}
+    <div
+        hidden
+        data-account
+        data-account-authenticated="{{ auth()->check() ? '1' : '0' }}"
+        data-account-prompt-after="{{ config('account.guest_save_prompt_after') }}"
+        @auth data-account-merge="{{ route('account.saved.merge') }}" @endauth
+    ></div>
 
     <header class="sticky top-0 z-30 border-b border-line bg-canvas/85 backdrop-blur-md">
         <div class="mx-auto w-full max-w-content px-gutter">
@@ -189,6 +257,25 @@
                 </form>
             </div>
 
+            {{-- L'area personale (§15). Da anonimi è un solo collegamento, e
+                 non un invito ripetuto: il sito funziona senza account, e il
+                 momento in cui l'account serve davvero lo sceglie il riquadro
+                 del terzo salvataggio, non l'intestazione. --}}
+            <nav aria-label="{{ __('account.title') }}" class="flex flex-wrap items-center gap-x-3 gap-y-1 pb-2 text-sm">
+                @auth
+                    <a class="font-semibold text-ink-muted hover:text-ink" href="{{ route('account.feed') }}">{{ __('account.nav.feed') }}</a>
+                    <a class="font-semibold text-ink-muted hover:text-ink" href="{{ route('account.saved') }}">{{ __('account.nav.saved') }}</a>
+                    <a class="font-semibold text-ink-muted hover:text-ink" href="{{ route('account.profile') }}">{{ __('account.nav.profile') }}</a>
+
+                    <form method="POST" action="{{ route('account.logout') }}" class="contents">
+                        @csrf
+                        <button type="submit" class="font-semibold text-ink-subtle hover:text-ink">{{ __('account.nav.logout') }}</button>
+                    </form>
+                @else
+                    <a class="font-semibold text-ink-muted hover:text-ink" href="{{ route('login') }}">{{ __('account.nav.login') }}</a>
+                @endauth
+            </nav>
+
             <nav aria-label="{{ __('ui.nav.label') }}" class="scroll-row gap-2 pb-3">
                 @foreach ($navigation as $item)
                     @php $isCurrent = request()->routeIs($item['name']); @endphp
@@ -221,6 +308,8 @@
 
         {{ $slot }}
     </main>
+
+    <x-save-prompt />
 
     <footer class="mt-section border-t border-line bg-canvas-deep" aria-label="{{ __('ui.footer.label') }}">
         <div class="mx-auto grid w-full max-w-content gap-8 px-gutter py-10 sm:grid-cols-2 lg:grid-cols-5">

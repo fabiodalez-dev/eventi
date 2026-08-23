@@ -17,6 +17,18 @@
         'tonight' => ['title' => __('events.sections.tonight'), 'tone' => 'brand', 'context' => 'tonight', 'route' => 'events.today'],
     ];
 
+    /*
+     * L'immagine più grande sopra la piega è la prima locandina della prima
+     * sezione disegnata: è quella da annunciare al browser prima che scopra
+     * l'HTML che la contiene (§11.11). Se non c'è nessuna sezione — e le
+     * sezioni vuote non si disegnano (§8.6) — non c'è niente da annunciare.
+     */
+    $firstSection = collect($sectionsBefore)->keys()->first(fn (string $key): bool => isset($sections[$key]));
+    $lcp = $firstSection === null
+        ? null
+        : \App\Support\Poster::imageSet($sections[$firstSection]->first()->event)
+            ?->withSizes('(min-width: 1024px) 280px, (min-width: 640px) 45vw, 90vw');
+
     $sectionsAfter = [
         'today' => ['title' => __('events.sections.today'), 'tone' => 'brand', 'context' => 'today', 'route' => 'events.today'],
         'featured' => ['title' => __('events.sections.featured'), 'tone' => 'accent', 'context' => 'upcoming', 'route' => 'events.index'],
@@ -24,7 +36,10 @@
     ];
 @endphp
 
-<x-layouts.app :description="$city?->name ? __('ui.header.tagline', ['city' => $city->name]) : null">
+<x-layouts.app
+    :description="$city?->name ? __('ui.header.tagline', ['city' => $city->name]) : null"
+    :preload="$lcp"
+>
     <x-slot:head>
         <x-json-ld :data="$structuredData" />
     </x-slot:head>

@@ -12,8 +12,8 @@
         ? route('venues.show', $venue)
         : null);
 
-    $cover = $venue->getFirstMediaUrl('cover');
-    $logo = $venue->getFirstMediaUrl('logo');
+    $cover = \App\Support\Media\ImageSet::forCollection($venue, 'cover');
+    $logo = \App\Support\Media\ImageSet::forCollection($venue, 'logo');
 
     $initials = \Illuminate\Support\Str::of($venue->name)
         ->squish()
@@ -36,16 +36,15 @@
     'hover:-translate-y-0.5 hover:shadow-lift hover:ring-line-strong' => $url !== null,
 ]) }}>
     <div class="relative aspect-[16/9] w-full overflow-hidden poster-placeholder">
-        @if ($cover !== '')
-            <img
-                src="{{ $cover }}"
-                alt="{{ __('venues.card.cover_alt', ['venue' => $venue->name]) }}"
+        @if ($cover !== null)
+            <x-media-image
+                :set="$cover"
+                :alt="__('venues.card.cover_alt', ['venue' => $venue->name])"
                 width="1200"
                 height="675"
-                loading="lazy"
-                decoding="async"
+                sizes="(min-width: 1024px) 380px, 90vw"
                 class="size-full object-cover transition duration-500 ease-out-soft group-hover:scale-[1.03]"
-            >
+            />
         @endif
 
         @if ($venue->is_verified)
@@ -58,16 +57,15 @@
     <div class="flex flex-1 flex-col gap-1.5 p-card">
         <div class="flex items-center gap-3">
             <span class="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-pill bg-brand-soft text-sm font-bold text-on-brand-soft ring-1 ring-line">
-                @if ($logo !== '')
-                    <img
-                        src="{{ $logo }}"
-                        alt="{{ __('venues.card.logo_alt', ['venue' => $venue->name]) }}"
+                @if ($logo !== null)
+                    <x-media-image
+                        :set="$logo"
+                        :alt="__('venues.card.logo_alt', ['venue' => $venue->name])"
                         width="80"
                         height="80"
-                        loading="lazy"
-                        decoding="async"
+                        sizes="40px"
                         class="size-full object-cover"
-                    >
+                    />
                 @else
                     <span aria-hidden="true">{{ $initials }}</span>
                 @endif

@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Web\ImpersonationController;
+use App\Http\Controllers\Web\SeoController;
 use App\Http\Controllers\Web\WidgetController;
 use App\Http\Middleware\ResolveCity;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
@@ -20,11 +21,38 @@ use Illuminate\View\Middleware\ShareErrorsFromSession;
  */
 Route::group([], base_path('routes/public.php'));
 
+/*
+ * Account, salvataggi e feed (§15). Stanno fuori dai gruppi del sito pubblico
+ * perché non appartengono a una città, e prima del gruppo con il prefisso
+ * `/{city}` perché `/accedi` è un indirizzo, non una città che si chiama
+ * "accedi".
+ */
+Route::group([], base_path('routes/account.php'));
+
 Route::prefix('{city}')
     ->where(['city' => '[a-z][a-z0-9-]*'])
     ->middleware(ResolveCity::class)
     ->name('city.')
     ->group(base_path('routes/public.php'));
+
+/*
+ * Mappa del sito e robots (§12.2). Stanno fuori dai gruppi del sito pubblico
+ * perché un motore di ricerca cerca `/sitemap.xml` e `/robots.txt` alla radice
+ * del dominio e in nessun altro posto: `/padova/robots.txt` non lo leggerebbe
+ * nessuno.
+ *
+ * `robots.txt` è una rotta e non il file statico che stava in `public/`:
+ * la riga `Sitemap:` vuole un indirizzo assoluto, e un file scritto a mano lo
+ * congelerebbe al dominio di quando è stato scritto.
+ */
+Route::get('/sitemap.xml', [SeoController::class, 'index'])->name('sitemap.index');
+
+Route::get('/sitemap-{section}-{page}.xml', [SeoController::class, 'section'])
+    ->where('section', '[a-z]+')
+    ->whereNumber('page')
+    ->name('sitemap.section');
+
+Route::get('/robots.txt', [SeoController::class, 'robots'])->name('robots');
 
 /*
  * Il widget incorporabile (§11.10) sta fuori dai gruppi del sito pubblico:

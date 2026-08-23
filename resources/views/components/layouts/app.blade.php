@@ -14,6 +14,12 @@
     'meta' => null,
     'title' => null,
     'description' => null,
+    /*
+     * L'immagine più grande sopra la piega (§11.11: «preload del LCP»). La
+     * dichiara la pagina, che è l'unica a sapere quale sia: sulla scheda è la
+     * locandina, in una lista è la prima card. Il layout non può indovinarla.
+     */
+    'preload' => null,
 ])
 
 @include('layouts.app', [
@@ -21,7 +27,10 @@
     'description' => $meta?->description ?? $description,
     'canonical' => $meta?->canonical,
     'image' => $meta?->image,
+    'imageWidth' => $meta?->imageWidth,
+    'imageHeight' => $meta?->imageHeight,
     'robots' => $meta?->robots(),
+    'preload' => $preload,
     'head' => $head ?? '',
     'slot' => $slot,
 ])

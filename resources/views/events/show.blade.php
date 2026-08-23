@@ -8,7 +8,7 @@
 @php
     $formatter = app(\App\Support\DateFormatter::class);
     $venue = $event->venue;
-    $poster = \App\Support\Poster::url($event);
+    $poster = \App\Support\Poster::imageSet($event)?->withSizes('(min-width: 1024px) 448px, 90vw');
     $custom = is_array($event->custom_location) ? $event->custom_location : [];
     $shareUrl = route('events.show', $event);
     $dates = $occurrences->isNotEmpty() ? $occurrences : $pastOccurrences;
@@ -16,7 +16,7 @@
     $lineups = $dates->flatMap(fn ($occurrence) => $occurrence->lineups)->unique('id');
 @endphp
 
-<x-layouts.app :meta="$meta">
+<x-layouts.app :meta="$meta" :preload="$poster">
     <x-slot:head>
         <x-json-ld :data="$structuredData" />
     </x-slot:head>
@@ -63,15 +63,15 @@
             </div>
 
             @if ($poster !== null)
-                <img
-                    src="{{ $poster }}"
-                    alt="{{ __('events.card.poster_alt', ['title' => $event->title]) }}"
+                <x-media-image
+                    :set="$poster"
+                    :alt="__('events.card.poster_alt', ['title' => $event->title])"
                     width="1200"
                     height="1600"
-                    fetchpriority="high"
-                    decoding="async"
+                    :sizes="$poster->sizes"
+                    :eager="true"
                     class="w-full max-w-md rounded-card object-cover shadow-card"
-                >
+                />
             @endif
 
             @if ($occurrences->isEmpty() && $pastOccurrences->isNotEmpty())
@@ -148,6 +148,16 @@
                     @endif
                 </section>
             @endif
+
+            {{-- Il cuore della scheda (§15.3): una data sola si salva senza
+                 chiedere, più date aprono il selettore, una serie ricorrente
+                 offre anche «segui questo evento». --}}
+            <x-save-event
+                :event="$event"
+                :occurrences="$occurrences"
+                :saved="app(\App\Support\CurrentSaves::class)->all()"
+                :following="app(\App\Support\CurrentFollows::class)->has(\App\Enums\FollowableType::Event, (int) $event->getKey())"
+            />
 
             @if (filled($event->description))
                 <section aria-labelledby="descrizione-evento" class="flex flex-col gap-3">

@@ -8,15 +8,15 @@
 --}}
 @php
     $formatter = app(\App\Support\DateFormatter::class);
-    $logo = $venue->getFirstMediaUrl('logo');
-    $cover = $venue->getFirstMediaUrl('cover');
+    $logo = \App\Support\Media\ImageSet::forCollection($venue, 'logo');
+    $cover = \App\Support\Media\ImageSet::forCollection($venue, 'cover')?->withSizes('(min-width: 1280px) 1200px, 100vw');
     $socials = is_array($venue->socials) ? $venue->socials : [];
     $accessibility = is_array($venue->accessibility) ? $venue->accessibility : [];
     $hours = is_array($venue->opening_hours) ? $venue->opening_hours : [];
     $days = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 @endphp
 
-<x-layouts.app :meta="$meta">
+<x-layouts.app :meta="$meta" :preload="$cover">
     <x-slot:head>
         <x-json-ld :data="$structuredData" />
     </x-slot:head>
@@ -25,29 +25,29 @@
         <a class="hover:text-ink" href="{{ route('venues.index') }}">{{ __('venues.title') }}</a>
     </nav>
 
-    @if ($cover !== '')
-        <img
-            src="{{ $cover }}"
-            alt="{{ __('venues.card.cover_alt', ['venue' => $venue->name]) }}"
+    @if ($cover !== null)
+        <x-media-image
+            :set="$cover"
+            :alt="__('venues.card.cover_alt', ['venue' => $venue->name])"
             width="1600"
             height="900"
-            fetchpriority="high"
-            decoding="async"
+            :sizes="$cover->sizes"
+            :eager="true"
             class="mt-4 aspect-[16/9] w-full rounded-card object-cover shadow-card"
-        >
+        />
     @endif
 
     <header class="mt-6 flex flex-wrap items-start gap-4">
         <span class="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-card bg-brand-soft text-lg font-bold text-on-brand-soft ring-1 ring-line">
-            @if ($logo !== '')
-                <img
-                    src="{{ $logo }}"
-                    alt="{{ __('venues.card.logo_alt', ['venue' => $venue->name]) }}"
+            @if ($logo !== null)
+                <x-media-image
+                    :set="$logo"
+                    :alt="__('venues.card.logo_alt', ['venue' => $venue->name])"
                     width="128"
                     height="128"
-                    decoding="async"
+                    sizes="64px"
                     class="size-full object-cover"
-                >
+                />
             @else
                 <span aria-hidden="true">{{ \Illuminate\Support\Str::of($venue->name)->squish()->explode(' ')->take(2)->map(fn (string $word): string => \Illuminate\Support\Str::upper(mb_substr($word, 0, 1)))->implode('') }}</span>
             @endif
@@ -61,6 +61,16 @@
                 <span aria-hidden="true">{{ __('common.separator') }}</span>
                 <span>{{ $venue->municipality }}</span>
             </p>
+
+            {{-- «Segui questo locale» (§15.7): alimenta il feed personale, non
+                 i promemoria — quelli arrivano per le date che si salvano. --}}
+            <x-follow-button
+                type="venue"
+                :id="$venue->getKey()"
+                :following="app(\App\Support\CurrentFollows::class)->has(\App\Enums\FollowableType::Venue, (int) $venue->getKey())"
+                :hint="true"
+                class="mt-1"
+            />
 
             <div class="flex flex-wrap gap-2">
                 @if ($venue->is_verified)

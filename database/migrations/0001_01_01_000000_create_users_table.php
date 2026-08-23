@@ -12,7 +12,9 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table): void {
             $table->id();
-            $table->string('name');
+            /* Il nome è facoltativo (§15.2): di una persona si raccolgono email
+               e password, il resto lo dà se vuole. */
+            $table->string('name')->nullable();
             $table->string('email')->unique();
             $table->dateTime('email_verified_at')->nullable();
             $table->string('password');

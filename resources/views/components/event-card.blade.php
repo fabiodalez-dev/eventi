@@ -36,7 +36,7 @@
 
     /* Un solo posto sa dove sta la locandina: card, scheda, dati strutturati e
        anteprime social devono mostrare la stessa immagine. */
-    $poster = \App\Support\Poster::url($event);
+    $poster = \App\Support\Poster::imageSet($event);
 
     $isScheduled = $status === \App\Enums\OccurrenceStatus::Scheduled;
 
@@ -91,16 +91,15 @@
          morto se la locandina non c'è (§11.11). --}}
     <div class="relative aspect-[3/4] w-full overflow-hidden poster-placeholder">
         @if ($poster !== null)
-            <img
-                src="{{ $poster }}"
-                alt="{{ __('events.card.poster_alt', ['title' => $event->title]) }}"
+            <x-media-image
+                :set="$poster"
+                :alt="__('events.card.poster_alt', ['title' => $event->title])"
                 width="800"
                 height="1067"
-                loading="{{ $eager ? 'eager' : 'lazy' }}"
-                fetchpriority="{{ $eager ? 'high' : 'auto' }}"
-                decoding="async"
+                sizes="(min-width: 1024px) 280px, (min-width: 640px) 45vw, 90vw"
+                :eager="$eager"
                 class="size-full object-cover transition duration-500 ease-out-soft group-hover:scale-[1.03]"
-            >
+            />
         @else
             <span class="absolute inset-0 flex items-center justify-center p-4 text-center text-eyebrow text-on-brand-soft/70">
                 {{ $event->title }}
@@ -157,6 +156,18 @@
 
             @if ($distanceLabel !== null)
                 <span class="text-xs text-ink-subtle">{{ __('events.card.distance', ['distance' => $distanceLabel]) }}</span>
+            @endif
+
+            {{-- Il cuore (§15.1). Sta **sopra** l'ancora che copre tutta la
+                 card (`z-10`), altrimenti il click aprirebbe l'evento invece
+                 di salvarlo. Una card è una data sola: qui non c'è niente da
+                 scegliere, e infatti non si chiede niente (§15.3). --}}
+            @if ($isScheduled)
+                <x-save-heart
+                    class="ml-auto"
+                    :occurrence="$occurrence"
+                    :saved="app(\App\Support\CurrentSaves::class)->has((int) $occurrence->getKey())"
+                />
             @endif
         </div>
     </div>

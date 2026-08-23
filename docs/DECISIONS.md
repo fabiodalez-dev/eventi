@@ -1036,7 +1036,7 @@ quattro rotte firmate sotto `/notifiche`. Agganci: `SaveOccurrences` e
 riprogramma e annulla, `EventObserver` avvisa chi gestisce il locale.
 **Nessuna migration**: lo schema di §7.10 bastava.
 
-**Verificato.** 658 test verdi (61 nuovi in `tests/Feature/Notifications/`),
+**Verificato.** 662 test verdi (61 nuovi in `tests/Feature/Notifications/`),
 `pint` passato, `phpstan` livello 6 a zero errori. Gli scenari I, J e K di §18
 sono test veri: il promemoria spostato di due ore resta **la stessa riga** con
 lo stesso identificativo e la stessa chiave; spostato a ieri diventa `skipped`

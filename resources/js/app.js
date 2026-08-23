@@ -189,10 +189,279 @@ function geolocation() {
     }
 }
 
+/*
+ * Salvataggi (§15.1). **Il cuore funziona al primo click, senza registrazione.**
+ *
+ * Da anonimi le date vivono nel `localStorage` e nessuna richiesta parte: è
+ * quello a rendere il gesto immediato e a non interrompere niente. Dopo il
+ * terzo salvataggio compare il riquadro che offre il promemoria — che è la
+ * vera leva per registrarsi, non il salvataggio, che funziona già.
+ *
+ * Da collegati il cuore parla con il server. In entrambi i casi sotto c'è un
+ * modulo vero: se questo file non venisse eseguito, il cuore resterebbe un
+ * pulsante di invio che funziona con un ricaricamento di pagina.
+ */
+const SAVED_KEY = 'salvataggi';
+const PROMPT_KEY = 'salvataggi.promemoria-nascosto';
+
+function accountSettings() {
+    const node = document.querySelector('[data-account]');
+
+    return {
+        authenticated: node?.dataset.accountAuthenticated === '1',
+        promptAfter: Number.parseInt(node?.dataset.accountPromptAfter ?? '3', 10),
+        mergeUrl: node?.dataset.accountMerge ?? null,
+        token: document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '',
+    };
+}
+
+/**
+ * Le date salvate nel browser. Una lettura che fallisce — spazio esaurito,
+ * modalità privata, contenuto manomesso — non deve rompere la pagina: vale
+ * come "nessun salvataggio", che è il caso di chi arriva per la prima volta.
+ */
+function localSaves() {
+    try {
+        const raw = window.localStorage.getItem(SAVED_KEY);
+        const ids = raw === null ? [] : JSON.parse(raw);
+
+        return Array.isArray(ids) ? ids.map(Number).filter((id) => Number.isInteger(id) && id > 0) : [];
+    } catch {
+        return [];
+    }
+}
+
+function writeLocalSaves(ids) {
+    try {
+        window.localStorage.setItem(SAVED_KEY, JSON.stringify([...new Set(ids)]));
+    } catch {
+        /* Senza spazio il salvataggio non si conserva, ma il gesto non deve
+           comunque produrre un errore visibile. */
+    }
+}
+
+/**
+ * Lo stato visibile del cuore. Il colore, l'icona piena, il testo e
+ * `aria-pressed`: chi naviga con la tastiera o con uno screen reader deve
+ * sapere che cosa è appena successo quanto chi vede il riempimento.
+ */
+function paintHeart(form, saved) {
+    const button = form.querySelector('[data-save-button]');
+    const icon = form.querySelector('[data-save-icon]');
+    const text = form.querySelector('[data-save-text]');
+
+    if (!button) {
+        return;
+    }
+
+    button.setAttribute('aria-pressed', saved ? 'true' : 'false');
+    button.classList.toggle('bg-brand', saved);
+    button.classList.toggle('text-on-brand', saved);
+    button.classList.toggle('ring-brand', saved);
+    button.classList.toggle('bg-surface', !saved);
+    button.classList.toggle('text-ink-muted', !saved);
+    button.classList.toggle('ring-line', !saved);
+
+    if (icon) {
+        icon.style.fill = saved ? 'currentColor' : 'none';
+        icon.style.stroke = saved ? 'none' : 'currentColor';
+        icon.style.strokeWidth = saved ? '0' : '2';
+    }
+
+    if (text) {
+        text.textContent = saved ? form.dataset.saveLabelSaved : form.dataset.saveLabel;
+    }
+}
+
+function showPromptIfDue() {
+    const prompt = document.querySelector('[data-save-prompt]');
+    const { promptAfter } = accountSettings();
+
+    if (!prompt || localSaves().length < promptAfter) {
+        return;
+    }
+
+    try {
+        if (window.localStorage.getItem(PROMPT_KEY) === '1') {
+            return;
+        }
+    } catch {
+        /* Se non si può leggere la preferenza, si mostra: è meno peggio che
+           nasconderla per sempre. */
+    }
+
+    prompt.hidden = false;
+}
+
+function dismissPrompt() {
+    const prompt = document.querySelector('[data-save-prompt]');
+
+    prompt?.querySelector('[data-save-prompt-dismiss]')?.addEventListener('click', () => {
+        prompt.hidden = true;
+
+        try {
+            window.localStorage.setItem(PROMPT_KEY, '1');
+        } catch {
+            /* Nessuna preferenza conservata: ricomparirà. */
+        }
+    });
+}
+
+/**
+ * Il verbo vero, non `_method` in un corpo JSON: quel campo Laravel lo legge
+ * dai moduli, e in una richiesta JSON non lo vedrebbe — la cancellazione
+ * arriverebbe come una scrittura.
+ */
+async function talkToServer(url, method, token, body) {
+    try {
+        const response = await fetch(url, {
+            method,
+            headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+                'X-CSRF-TOKEN': token,
+                'X-Requested-With': 'fetch',
+            },
+            body: method === 'DELETE' ? null : JSON.stringify(body),
+        });
+
+        return response.ok;
+    } catch {
+        return false;
+    }
+}
+
+function savedHearts() {
+    const { authenticated, token } = accountSettings();
+    const saves = localSaves();
+
+    for (const form of document.querySelectorAll('[data-save]')) {
+        const id = Number.parseInt(form.dataset.saveId ?? '0', 10);
+
+        if (!authenticated) {
+            paintHeart(form, saves.includes(id));
+        }
+
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const wasSaved = form.querySelector('[data-save-button]')?.getAttribute('aria-pressed') === 'true';
+
+            if (!authenticated) {
+                const current = localSaves();
+
+                writeLocalSaves(wasSaved ? current.filter((saved) => saved !== id) : [...current, id]);
+                paintHeart(form, !wasSaved);
+                showPromptIfDue();
+
+                return;
+            }
+
+            const ok = wasSaved
+                ? await talkToServer(form.dataset.saveDestroy, 'DELETE', token, {})
+                : await talkToServer(form.dataset.saveStore, 'POST', token, { occurrence_id: id });
+
+            if (ok) {
+                paintHeart(form, !wasSaved);
+
+                return;
+            }
+
+            /* Il server ha risposto male: si lascia partire il modulo, che
+               porta a una pagina con l'errore scritto invece che a un cuore
+               che cambia colore senza aver salvato niente. */
+            form.submit();
+        });
+    }
+}
+
+/**
+ * «Salva tutte le date» (§15.3). Per chi è collegato è il modulo così com'è;
+ * per chi non lo è diventano altrettante voci nel `localStorage`.
+ */
+function saveAllDates() {
+    const { authenticated } = accountSettings();
+
+    for (const form of document.querySelectorAll('[data-save-all]')) {
+        if (authenticated) {
+            continue;
+        }
+
+        form.addEventListener('submit', (event) => {
+            event.preventDefault();
+
+            const ids = (form.dataset.saveIds ?? '')
+                .split(',')
+                .map((value) => Number.parseInt(value, 10))
+                .filter((id) => Number.isInteger(id) && id > 0);
+
+            writeLocalSaves([...localSaves(), ...ids]);
+
+            for (const heart of document.querySelectorAll('[data-save]')) {
+                if (ids.includes(Number.parseInt(heart.dataset.saveId ?? '0', 10))) {
+                    paintHeart(heart, true);
+                }
+            }
+
+            showPromptIfDue();
+        });
+    }
+}
+
+/**
+ * La migrazione dei salvataggi fatti da anonimo (§15.1).
+ *
+ * Parte a ogni pagina di chi è collegato e trova qualcosa nel browser: vale
+ * quindi anche per chi l'account ce l'aveva già e ha salvato da sloggato, non
+ * solo per chi si è appena registrato.
+ *
+ * **Il `localStorage` si svuota solo dopo la conferma del server**: è la
+ * differenza fra una migrazione e una perdita di dati.
+ */
+async function mergeGuestSaves() {
+    const { mergeUrl, token } = accountSettings();
+    const ids = localSaves();
+
+    if (mergeUrl === null || ids.length === 0) {
+        return;
+    }
+
+    try {
+        const response = await fetch(mergeUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+                'X-CSRF-TOKEN': token,
+                'X-Requested-With': 'fetch',
+            },
+            body: JSON.stringify({ occurrence_ids: ids }),
+        });
+
+        if (!response.ok) {
+            return;
+        }
+
+        writeLocalSaves([]);
+
+        for (const heart of document.querySelectorAll('[data-save]')) {
+            paintHeart(heart, true);
+        }
+    } catch {
+        /* Nessuna rete: le date restano nel browser e la migrazione ritenta
+           alla pagina successiva. */
+    }
+}
+
 function start() {
     infiniteScroll();
     nativeShare();
     geolocation();
+    savedHearts();
+    saveAllDates();
+    dismissPrompt();
+    showPromptIfDue();
+    void mergeGuestSaves();
 }
 
 if (document.readyState === 'loading') {

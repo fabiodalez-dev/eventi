@@ -532,10 +532,10 @@ bastava già.
 
 | Comando | Esito |
 |---|---|
-| `./vendor/bin/pest` | **658 test passati su 658** (61 nuovi in `tests/Feature/Notifications/`) |
+| `./vendor/bin/pest` | **662 test passati su 662** (61 nuovi in `tests/Feature/Notifications/`) |
 | `./vendor/bin/pint` | passed |
 | `./vendor/bin/phpstan analyse app database --level=6 --memory-limit=1G` | 0 errori |
-| `php artisan migrate:fresh --seed` | 25 migration, nessuna nuova |
+| `php artisan migrate:fresh --seed` | 31 migration, **nessuna nuova** |
 | `php artisan schedule:list` | `*/5 * * * * notifications:send`, `0 * * * * notifications:plan` |
 
 ### Architettura di §15.5, rispettata alla lettera
@@ -658,3 +658,66 @@ amministra) e solo finché è in attesa: ciò che è partito è cronaca.
    newsletter (giovedì 16:00) sono in `config/notifications.php`**: §15.4 fissa
    solo il giovedì della newsletter, il resto è una scelta editoriale da
    confermare con il committente.
+
+---
+
+## Verifica finale complessiva — ✅ ESEGUITA 2026-08-24
+
+Verifica indipendente dell'intero progetto, tutta misurata su server attivo
+(`php artisan serve`, database `eventi_local` riseedato con
+`migrate:fresh --seed`).
+
+### Qualità statica
+
+| Comando | Esito |
+|---|---|
+| `npm run build` | verde (804 ms; warning noto sui chunk mappa > 500 kB) |
+| `php artisan migrate:fresh --seed` | senza errori (135 locandine, 25 copertine) |
+| `./vendor/bin/pest` | **662 test verdi, 2438 asserzioni** (~96 s) |
+| `./vendor/bin/pint --test` | pulito su tutto il repo |
+| `./vendor/bin/phpstan analyse` (livello 6) | **0 errori** |
+
+I tre attriti fra agenti paralleli segnalati nei riepiloghi (ImageSet.php su
+PHPStan, Pint sui test Seo e su ViewOnSiteActionTest) risultano già rientrati:
+la suite unificata passa per intero.
+
+### Verifiche HTTP (curl, misurate)
+
+- 200 su `/docs/api` (OpenAPI 3.1.0 valida via `json_decode`, 39 operazioni),
+  `/api/v1/config|events|venues|map/occurrences|calendar|search|cities`,
+  `/sitemap.xml` e le sue 5 sezioni (`sitemap-eventi-99.xml` → 404), `/robots.txt`.
+- `GET /api/v1/me` senza token → **401**; ETag + `If-None-Match` → **304**;
+  cursore: pagina 1 e 2 senza sovrapposizioni, cursore illeggibile → **400**;
+  70 richieste rapide → 60×200 + **10×429** con `X-RateLimit-*` e `Retry-After`.
+- `X-Page-Cache: miss` → `hit` alla seconda richiesta della stessa pagina.
+
+### Scenario G di §18 — la verifica che conta
+
+Sito e API interrogati **nello stesso istante** (richieste parallele):
+
+| Preset | Sito `/eventi?date=…` | API `?preset=…` | Esito |
+|---|---|---|---|
+| `starting_soon` | 3, 4, 5 | 3, 4, 5 | **identici, stesso ordine** |
+| `ongoing` | 1, 2 | 1, 2 | **identici, stesso ordine** |
+
+### Altre verifiche di merito
+
+- `is_saved` **assente** (non `false`) per l'anonimo; `editorial_score` a 0
+  occorrenze su tutti gli 8 endpoint di lettura (grep sul corpo grezzo).
+- JSON-LD della scheda evento: 2 blocchi validi (`Event` + `BreadcrumbList`),
+  l'`Event` con `name`, `startDate`, `location`, `offers`, `eventStatus`.
+- Chiave di "inizia tra poco" arrotondata al quarto d'ora: due chiamate a
+  4 secondi di distanza → stessa chiave `dal-vivo:1:inizia-tra-poco:…T00:15`.
+- Nessuna stringa UI hardcoded trovata nei Blade (grep su testo grezzo fra tag).
+- Coda smaltita con `queue:work --stop-when-empty`: 160/160 media con
+  conversioni generate, 0 `failed_jobs`; il payload `poster` dell'API passa da
+  originale+`blurhash: null` a WebP `thumb`/`card` + blurhash + misure.
+  **In produzione serve un worker attivo**, o le locandine restano originali.
+
+### Restano aperte (nessuna bloccante, tutte già documentate)
+
+`/docs/api` solo in locale (gate `viewApiDocs` da definire) · `API_PASSWORD_RESET_URL`
+e `API_LEGAL_*` vuote · `media.cdn_url` senza fornitore · quiet hours senza
+default · giorno/ora del riepilogo settimanale da confermare · retry SMTP
+leggibile in `failed_jobs` e non nel pannello · agenda personale multi-città da
+decidere alla seconda città · fuso non dichiarato sui DateTimePicker di `/admin`.

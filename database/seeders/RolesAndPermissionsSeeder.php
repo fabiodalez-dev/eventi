@@ -66,6 +66,10 @@ class RolesAndPermissionsSeeder extends Seeder
             PermissionEnum::ViewReports,
             PermissionEnum::ResolveReports,
             PermissionEnum::ApproveTags,
+
+            // Gli invii previsti si guardano, non si annullano: annullare una
+            // notifica è un'azione sui dati di qualcun altro (§15.5).
+            PermissionEnum::ViewScheduledNotifications,
         ]);
 
         // Admin: "tutto il prodotto" (§3). Super admin lo contiene e vi
