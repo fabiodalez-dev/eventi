@@ -22,7 +22,7 @@ return [
      * velocità — è il tempo entro cui, invalidazione a parte, nulla di ciò che
      * quelle pagine mostrano può essere cambiato.
      */
-    'ttl_minutes' => 5,
+    'ttl_minutes' => 1,
 
     /*
      * "In corso" e "Inizia tra poco": sessanta secondi (§12.3). Sono le due

@@ -56,7 +56,18 @@
          il primo disegno della pagina. Sono le sole sezioni che cambiano di
          minuto in minuto, ed è per questo che §12.3 le vuole fuori dalla
          pagina che andrà in cache. --}}
-    <livewire:live-now lazy />
+    {{-- Disegnata dal server, non dopo il primo disegno.
+
+         §12.3 la voleva differita per non mettere in cache una sezione che
+         cambia ogni minuto, temendo che generarla a ogni richiesta facesse
+         crollare il TTFB. La misura dice altro: generare questa pagina per
+         intero costa fra i 200 e i 260 ms, e la finestra di cache scesa a un
+         minuto rende la sezione sempre fresca senza pagare niente.
+
+         Differirla costava molto piu' di quanto facesse risparmiare: e' la
+         prima immagine grande della pagina, e aspettare il giro di Livewire
+         spostava il momento in cui compare di 2,7 secondi (D40). --}}
+    <livewire:live-now />
 
     @foreach ($sectionsBefore as $key => $meta)
         @if (isset($sections[$key]))

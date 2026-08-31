@@ -1686,3 +1686,60 @@ non toccate, lavoro `lighthouse` rosso come dichiarato.
 **Ricontrollo:** dopo il primo backup notturno in produzione, e a ogni modifica
 di `config/backup.php` o della pipeline di deploy che tocchi
 `storage/app/private/`.
+
+## 2026-09-01 — D40. La sezione viva si disegna dal server, cache di pagina a un minuto
+
+**Decisione:** `<livewire:live-now />` senza `lazy`, e `page_cache.ttl_minutes`
+sceso da 5 a 1.
+
+**Perché:** §12.3 la voleva differita per non mettere in cache una sezione che
+cambia ogni minuto, e argomentava che l'alternativa avrebbe fatto crollare il
+TTFB. La misura dice altro: **generare la homepage per intero costa fra i 200 e
+i 263 ms** su questo server. Con la finestra di cache a un minuto la sezione è
+sempre fresca e il TTFB resta dove era.
+
+Differirla costava molto più di quanto facesse risparmiare. La locandina di
+"In corso adesso" è la prima immagine grande della pagina: aspettare il giro di
+Livewire spostava il momento in cui compare, e l'LCP ne pagava il conto.
+
+**Misurato su https://eventi.fabiodalez.it, mediana di tre giri con cache calda:**
+
+| | Prima | Dopo |
+|---|---|---|
+| Performance | 0.88 | **0.92** |
+| Accessibility | 0.96 | 0.96 |
+| SEO | 1.00 | 1.00 |
+| CLS | 0.032 | 0.031 |
+| LCP | 3695 ms | 3320 ms |
+
+**Ricontrollo:** se la generazione della pagina dovesse superare i 500 ms —
+più contenuti, più città, un server più carico — la scelta va rifatta, perché è
+il numero su cui poggia.
+
+## 2026-09-01 — D41. L'LCP resta sopra la soglia di §11.11
+
+**Stato:** LCP 3320 ms contro i 2000 ms richiesti da §11.11. Le altre tre
+soglie sono soddisfatte (Performance 0.92, Accessibility 0.96, SEO 1.00).
+
+**Cosa è già stato fatto:** preload dell'immagine giusta (era quella sbagliata:
+si annunciava la locandina di "Stasera" mentre la prima visibile è quella di
+"In corso adesso"), locandina servita in variante piccola su telefono, sezione
+viva disegnata dal server. Insieme hanno portato Load Delay e Load Time a
+zero — l'immagine, quando serve, è già lì.
+
+**Cosa resta:** 2774 ms di *render delay*, cioè il tempo fra "il pixel è
+pronto" e "il browser lo dipinge". Non è più un problema di rete: è il costo
+di eseguire CSS e JavaScript su una CPU rallentata quattro volte, che è come
+Lighthouse simula un telefono di fascia media.
+
+**Perché non si abbassa la soglia:** una soglia truccata dà la stessa
+sensazione di sicurezza senza il contenuto. Il numero resta rosso e visibile.
+
+**Le strade praticabili, in ordine di resa:**
+1. Ridurre il JavaScript iniziale: Livewire e Alpine si caricano su ogni
+   pagina, anche dove non c'è niente di interattivo.
+2. CSS critico in linea e il resto differito (il foglio pesa 67 kB).
+3. Un server che non sia shared hosting: il TTFB simulato di 631 ms parte da
+   qui.
+
+Nessuna delle tre è un ritocco: sono lavori a sé, da valutare con il committente.

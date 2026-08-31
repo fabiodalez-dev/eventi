@@ -70,7 +70,7 @@
 @endphp
 
 <article {{ $attributes->class([
-    'group relative grid gap-5 overflow-hidden rounded-card bg-surface shadow-card ring-1 ring-line transition duration-300 ease-out-soft sm:grid-cols-[minmax(0,10rem)_minmax(0,1fr)] sm:gap-6 lg:grid-cols-[minmax(0,12rem)_minmax(0,1fr)]',
+    'group relative grid grid-cols-[minmax(0,6.5rem)_minmax(0,1fr)] gap-4 overflow-hidden rounded-card bg-surface shadow-card ring-1 ring-line transition duration-300 ease-out-soft sm:grid-cols-[minmax(0,10rem)_minmax(0,1fr)] sm:gap-6 lg:grid-cols-[minmax(0,12rem)_minmax(0,1fr)]',
     'hover:shadow-lift hover:ring-line-strong' => $url !== null,
     'opacity-75' => ! $isScheduled,
 ]) }}>
@@ -81,7 +81,7 @@
                 :alt="__('events.card.poster_alt', ['title' => $event->title])"
                 width="800"
                 height="1067"
-                sizes="(min-width: 1024px) 192px, (min-width: 640px) 160px, 100vw"
+                sizes="(min-width: 1024px) 192px, (min-width: 640px) 160px, 104px"
                 :eager="$eager"
                 class="size-full object-cover transition duration-500 ease-out-soft group-hover:scale-[1.03]"
             />
@@ -92,7 +92,7 @@
         @endif
     </div>
 
-    <div class="flex flex-col justify-center gap-2.5 p-card sm:py-5 sm:pl-0 sm:pr-6">
+    <div class="flex flex-col justify-center gap-2 py-3 pr-4 sm:gap-2.5 sm:py-5 sm:pl-0 sm:pr-6">
         {{-- I badge stanno accanto al testo, non sopra la locandina: qui c'è
              larghezza, e sovrapporli all'immagine coprirebbe proprio la parte
              che a questa scala si vede bene. --}}
@@ -110,7 +110,7 @@
             @endif
         </div>
 
-        <{{ $level }} class="text-feature text-ink">
+        <{{ $level }} class="text-card text-ink sm:text-feature">
             @if ($url !== null)
                 <a href="{{ $url }}" class="after:absolute after:inset-0 after:content-['']">{{ $event->title }}</a>
             @else
