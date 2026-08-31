@@ -130,6 +130,23 @@ return [
             'extension_mismatch' => 'Il file si presenta come «:declared» ma è un «:real»: rinominalo con l\'estensione giusta.',
             'too_small' => 'L\'immagine è troppo piccola: servono almeno :width×:height pixel.',
         ],
+
+        /*
+         * Link esterni di un evento (App\Rules\ExternalLinks). Ogni messaggio
+         * dice **quale** riga non va: un elenco ripetibile senza il numero
+         * della riga costringe a ricontrollarle tutte.
+         */
+        'external_links' => [
+            'invalid' => 'I link esterni non sono in un formato leggibile.',
+            'too_many' => 'Non puoi aggiungere più di :max link a un evento.',
+            'row_invalid' => 'Il link numero :position non è leggibile.',
+            'label_required' => 'Il link numero :position non ha un\'etichetta: scrivi come si chiama.',
+            'label_too_long' => 'L\'etichetta del link numero :position supera i :max caratteri.',
+            'url_required' => 'Il link numero :position non ha un indirizzo.',
+            'url_scheme' => 'Il link numero :position deve iniziare con :schemes.',
+            'url_host' => 'Il link numero :position non ha un indirizzo valido: controlla il dominio.',
+            'url_credentials' => 'Il link numero :position contiene credenziali prima del dominio: togli la parte prima della chiocciola.',
+        ],
     ],
 
     'attributes' => [],

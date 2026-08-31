@@ -90,6 +90,8 @@ class CreateEvent extends CreateRecord
         'price_min',
         'price_max',
         'ticket_url',
+        'booking_url',
+        'external_links',
     ];
 
     /**
@@ -173,6 +175,8 @@ class CreateEvent extends CreateRecord
                 ->schema([
                     EventFields::description(),
                     EventFields::ticketUrl(),
+                    EventFields::bookingUrl(),
+                    EventFields::externalLinks(),
                 ]),
         ];
     }

@@ -38,6 +38,7 @@ return [
         'what' => 'Che cosa è',
         'taxonomy' => 'Che genere di serata',
         'price' => 'Quanto costa',
+        'links' => 'Link',
     ],
 
     'fields' => [
@@ -53,6 +54,10 @@ return [
         'price_min' => 'Da (€)',
         'price_max' => 'A (€)',
         'ticket_url' => 'Link per i biglietti',
+        'booking_url' => 'Link per prenotare',
+        'external_links' => 'Altri link',
+        'external_link_label' => 'Che link è',
+        'external_link_url' => 'Indirizzo',
         'status' => 'Stato',
         'occurrence_status' => 'Stato della data',
         'artist' => 'Nome',
@@ -68,12 +73,16 @@ return [
         'ends_at' => 'Solo se la sai. Altrimenti la calcoliamo dalla categoria.',
         'tags' => 'Facoltativi: aiutano a farti trovare da chi cerca un genere preciso.',
         'price_max' => 'Solo se il prezzo cambia (per esempio in prevendita e alla porta).',
+        'ticket_url' => 'Dove si comprano i biglietti online, se ci sono.',
+        'booking_url' => 'Dove si prenota un posto o un tavolo, se serve.',
+        'external_links' => 'L\'evento su Facebook, il tuo sito, un articolo che ne parla. Fino a :max, tutti facoltativi.',
     ],
 
     'placeholders' => [
         'title' => 'Per esempio: Concerto dei Marlene Kuntz',
         'description' => 'Due righe bastano. Puoi anche lasciare vuoto.',
         'ticket_url' => 'https://…',
+        'url' => 'https://…',
         'no_date' => 'Nessuna data',
         'pending_invite' => 'Invito da accettare',
     ],
@@ -91,6 +100,7 @@ return [
         'mark_sold_out' => 'Segna tutto esaurito',
         'mark_available' => 'Ci sono ancora posti',
         'add_lineup' => 'Aggiungi chi suona',
+        'add_external_link' => 'Aggiungi un link',
     ],
 
     'wizard' => [
@@ -177,4 +187,61 @@ return [
         'nothing_to_do' => 'Non c’era nulla da cambiare',
     ],
 
+    /*
+     * §14.2 — collegare il calendario del locale.
+     */
+    'calendar' => [
+        'title' => 'Calendario collegato',
+        'subheading' => 'Collega il calendario che usi gia e le tue date arrivano da sole.',
+
+        'form' => [
+            'heading' => 'Indirizzo del calendario',
+            'help' => 'Serve il collegamento in formato iCal (finisce per .ics). In Google Calendar lo trovi in Impostazioni del calendario, sezione «Integra calendario»: usa l\'indirizzo pubblico se il calendario e pubblico, altrimenti l\'indirizzo segreto in formato iCal.',
+            'url' => 'Collegamento al calendario',
+            'url_help' => 'Incolla qui l\'indirizzo. Lo leggiamo ogni ora e teniamo aggiornate le tue date.',
+            'exclude' => 'Parole che tengono fuori una data',
+            'exclude_help' => 'Le date il cui titolo contiene una di queste parole non vengono pubblicate. Servono a lasciare fuori le voci interne del tuo calendario, come le riunioni o le chiusure.',
+            'exclude_placeholder' => 'Aggiungi una parola',
+        ],
+
+        'preview_required' => 'Guarda prima l\'anteprima: le date che vedi sono esattamente quelle che verranno pubblicate.',
+
+        'preview' => [
+            'heading' => 'Cosa verra pubblicato',
+            'description' => 'Le prime date del tuo calendario, con il filtro gia applicato.',
+        ],
+
+        'status' => [
+            'heading' => 'Stato del collegamento',
+            'state' => 'Stato',
+            'active' => 'Attivo',
+            'suspended' => 'Sospeso',
+            'last_run' => 'Ultima lettura',
+            'never' => 'Mai',
+            'outcome' => 'Esito',
+            'address' => 'Indirizzo',
+        ],
+
+        'actions' => [
+            'preview' => 'Anteprima',
+            'connect' => 'Collega il calendario',
+            'update' => 'Aggiorna il collegamento',
+            'run_now' => 'Leggi adesso',
+            'suspend' => 'Sospendi',
+            'resume' => 'Riattiva',
+            'disconnect' => 'Scollega',
+            'disconnect_confirm' => 'Le date gia pubblicate restano dove sono: si interrompe solo la lettura del calendario.',
+        ],
+
+        'notifications' => [
+            'preview_first' => 'Guarda l\'anteprima prima di collegare.',
+            'connected' => 'Calendario collegato.',
+            'connected_body' => 'La prima lettura e in corso: fra poco troverai le tue date fra gli eventi.',
+            'run_done' => 'Lettura completata.',
+            'run_failed' => 'La lettura non e riuscita.',
+            'suspended' => 'Collegamento sospeso.',
+            'resumed' => 'Collegamento riattivato.',
+            'disconnected' => 'Calendario scollegato.',
+        ],
+    ],
 ];

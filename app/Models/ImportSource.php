@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class ImportSource extends Model
 {
@@ -46,6 +48,22 @@ class ImportSource extends Model
     public function venue(): BelongsTo
     {
         return $this->belongsTo(Venue::class);
+    }
+
+    /**
+     * Lo storico delle esecuzioni, dalla più recente (§14.2).
+     *
+     * @return HasMany<ImportRun, $this>
+     */
+    public function runs(): HasMany
+    {
+        return $this->hasMany(ImportRun::class)->orderByDesc('id');
+    }
+
+    /** @return HasOne<ImportRun, $this> */
+    public function lastRun(): HasOne
+    {
+        return $this->hasOne(ImportRun::class)->latestOfMany();
     }
 
     /** @return BelongsTo<Category, $this> */

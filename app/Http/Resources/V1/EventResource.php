@@ -61,7 +61,10 @@ final class EventResource
             'age_restriction' => $event->age_restriction,
             'language' => $event->language,
             'is_outdoor' => (bool) $event->is_outdoor,
-            'external_links' => $event->external_links,
+            // Sempre una lista di `{label, url}`, vuota quando non ce ne
+            // sono: un client che deve distinguere `null` da `[]` da una
+            // mappa scriverebbe tre rami per dire «nessun link».
+            'external_links' => $event->external_links->toArray(),
             'verification_status' => $event->verification_status->value,
             'url' => Route::has('events.show') ? route('events.show', $event) : null,
             'occurrences' => $occurrences

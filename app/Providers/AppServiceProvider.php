@@ -35,6 +35,8 @@ use App\Policies\VenueApplicationPolicy;
 use App\Policies\VenuePolicy;
 use App\Services\Geo\GeoQueryInterface;
 use App\Services\Geo\MariaDbGeoQuery;
+use App\Services\Import\DnsHostResolver;
+use App\Services\Import\HostResolver;
 use App\Support\CurrentCity;
 use App\Support\CurrentFollows;
 use App\Support\CurrentSaves;
@@ -55,6 +57,11 @@ class AppServiceProvider extends ServiceProvider
         // Le query geospaziali passano tutte da qui: cambiare motore di
         // database costa questa riga più una implementazione dell'interfaccia.
         $this->app->bind(GeoQueryInterface::class, MariaDbGeoQuery::class);
+
+        // La risoluzione dei nomi che `ImportUrlGuard` interroga prima di
+        // scaricare un calendario: dietro un'interfaccia perché la difesa
+        // contro gli indirizzi interni si possa verificare senza DNS.
+        $this->app->bind(HostResolver::class, DnsHostResolver::class);
 
         // La città della richiesta si carica una volta sola, e con lei il fuso
         // in cui vanno lette tutte le date mostrate a chi legge.

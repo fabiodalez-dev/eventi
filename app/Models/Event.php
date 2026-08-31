@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Casts\AsExternalLinks;
 use App\Enums\EventSource;
 use App\Enums\EventStatus;
 use App\Enums\PriceType;
@@ -299,7 +300,7 @@ class Event extends Model implements HasMedia
             'status' => EventStatus::class,
             'gallery' => 'array',
             'custom_location' => 'array',
-            'external_links' => 'array',
+            'external_links' => AsExternalLinks::class,
             'seo' => 'array',
             'price_min' => 'decimal:2',
             'price_max' => 'decimal:2',

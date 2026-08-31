@@ -139,6 +139,12 @@ return [
         'speaker' => 'Relatore',
     ],
 
+    'import_run_status' => [
+        'success' => 'Riuscito',
+        'partial' => 'Riuscito in parte',
+        'failed' => 'Fallito',
+    ],
+
     'import_source_type' => [
         'ics' => 'Calendario ICS',
         'json' => 'JSON',

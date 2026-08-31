@@ -59,6 +59,23 @@ un deep link (`API_PASSWORD_RESET_URL`).
 - `editorial_score` non compare in nessuna risposta — misurato con `grep` sul
   corpo grezzo di events (lista e dettaglio), venues, map, calendar, search,
   config, cities: 0 occorrenze ovunque.
+- `external_links` (dettaglio evento) è **sempre** una lista di
+  `{"label": "…", "url": "…"}`, vuota quando non ci sono link: mai `null`, mai
+  una mappa. La colonna `events.external_links` passa dal cast
+  `App\Casts\AsExternalLinks`, che scarta le righe senza etichetta e quelle
+  con un indirizzo diverso da `http`/`https` — un client non deve difendersi da
+  uno schema `javascript:` arrivato dall'API. Il tetto è **8 link per evento**
+  (`App\DTOs\ExternalLinkList::MAX_LINKS`), l'etichetta al massimo 40
+  caratteri; la regola che lo impone in scrittura è `App\Rules\ExternalLinks`,
+  usata in entrambi i pannelli. Esempio:
+
+  ```json
+  "external_links": [
+    {"label": "Evento Facebook", "url": "https://facebook.com/events/123"},
+    {"label": "Rassegna stampa", "url": "https://giornale.example/pezzo"}
+  ]
+  ```
+
 - Il payload `poster` porta `thumb`/`card` WebP dalle conversioni, `blurhash`,
   `width`, `height`; `full` punta all'originale quando l'originale è già la
   misura piena. Le conversioni le genera la coda: **serve un worker attivo**

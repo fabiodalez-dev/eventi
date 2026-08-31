@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Enums\EventStatus;
+use App\Enums\ImportRunStatus;
 use App\Enums\PriceType;
 use App\Enums\ReportReason;
 use App\Enums\ReportStatus;
@@ -175,23 +176,50 @@ it('considera inattivo un locale senza date in cartellone da sessanta giorni', f
         ->and($inactive)->not->toContain($active->getKey());
 });
 
-it('conta gli import falliti guardando l\'errore, non la stringa di stato', function (): void {
+it('conta le sorgenti la cui ultima esecuzione e fallita', function (): void {
+    // Attiva e fallita: va contata.
     ImportSource::factory()->create([
         'city_id' => $this->city->getKey(),
         'is_active' => true,
+        'last_status' => ImportRunStatus::Failed->value,
         'last_error' => 'Connessione rifiutata',
     ]);
 
+    // Attiva e riuscita: non va contata.
     ImportSource::factory()->create([
         'city_id' => $this->city->getKey(),
         'is_active' => true,
+        'last_status' => ImportRunStatus::Success->value,
         'last_error' => null,
     ]);
 
+    // Spenta: non va contata, anche se l'ultima esecuzione era fallita.
+    // Nessuno deve inseguire una sorgente che e stata deliberatamente sospesa.
     ImportSource::factory()->create([
         'city_id' => $this->city->getKey(),
         'is_active' => false,
+        'last_status' => ImportRunStatus::Failed->value,
         'last_error' => 'Vecchio errore su una sorgente spenta',
+    ]);
+
+    expect(EditorialDashboardQuery::for($this->city)->failedImports()->count())->toBe(1);
+});
+
+/*
+ * Il conteggio legge `last_status`, non `last_error`.
+ *
+ * Sono due cose diverse: lo stato dice SE l'esecuzione e fallita, il messaggio
+ * dice PERCHE. Un driver che fallisce senza produrre un messaggio leggibile —
+ * un timeout, un processo ucciso — lascia `last_error` a null: contando i
+ * messaggi, quella sorgente resterebbe rotta e invisibile proprio nel riquadro
+ * che esiste per accorgersene.
+ */
+it('conta una sorgente fallita anche quando non ha lasciato un messaggio', function (): void {
+    ImportSource::factory()->create([
+        'city_id' => $this->city->getKey(),
+        'is_active' => true,
+        'last_status' => ImportRunStatus::Failed->value,
+        'last_error' => null,
     ]);
 
     expect(EditorialDashboardQuery::for($this->city)->failedImports()->count())->toBe(1);

@@ -15,6 +15,7 @@ use App\Filament\Admin\Resources\Events\RelationManagers\ActivityRelationManager
 use App\Filament\Admin\Resources\Events\RelationManagers\OccurrencesRelationManager;
 use App\Filament\Admin\Support\StructuredFields;
 use App\Filament\Support\EventStatusPresentation;
+use App\Filament\Support\ExternalLinksField;
 use App\Filament\Support\ImageUpload;
 use App\Models\City;
 use App\Models\Event;
@@ -356,6 +357,12 @@ class EventResource extends Resource
                             ->label(__('admin.fields.organizer_url'))
                             ->url()
                             ->maxLength(255),
+                    ]),
+
+                Section::make(__('admin.sections.external_links'))
+                    ->collapsed()
+                    ->schema([
+                        ExternalLinksField::make('admin'),
                     ]),
 
                 Section::make(__('admin.sections.publication'))

@@ -18,6 +18,20 @@ enum ImportSourceType: string
     }
 
     /**
+     * La provenienza che gli eventi di questa sorgente portano scritta in
+     * `events.source` (§14.1).
+     *
+     * `EventSource` ne distingue due sole — il calendario e tutto il resto —
+     * ed è la distinzione che conta per chi legge: un ICS è un file che
+     * qualcuno pubblica, un'API è un dialogo con un sistema. Farla qui evita
+     * che ogni driver decida per conto proprio.
+     */
+    public function eventSource(): EventSource
+    {
+        return $this === self::Ics ? EventSource::ImportIcs : EventSource::ImportApi;
+    }
+
+    /**
      * @return array<string, string>
      */
     public static function options(): array

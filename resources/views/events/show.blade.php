@@ -295,6 +295,8 @@
                 </section>
             @endif
 
+            <x-external-links :links="$event->external_links" />
+
             <section class="flex flex-col gap-3" aria-labelledby="condividi-evento">
                 <h2 id="condividi-evento" class="text-section text-ink">{{ __('common.actions.share') }}</h2>
 

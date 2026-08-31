@@ -1053,3 +1053,158 @@ territorio», il collegamento alla scheda, le intestazioni `List-Unsubscribe` e
 `List-Unsubscribe-Post`, e con `curl` la pagina delle preferenze firmata
 risponde 200, quella non firmata 403, e il collegamento di disiscrizione ha
 davvero spento la tipologia.
+
+## 2026-08-31 — D32. Import ICS: pubblicazione diretta e dodici scelte del motore
+
+**Decisione.** La più importante non è tecnica ed è del committente: **gli
+eventi importati nascono `published`**, non in coda di moderazione come
+prescriveva §14.2 (`fetch → parse → map → deduplicate → preview → moderazione →
+publish`). Il flusso effettivo è `fetch → parse → map → filtro → deduplica →
+scrittura`, con la moderazione tolta di mezzo.
+
+**Perché.** È una richiesta esplicita del committente: un calendario ICS lo
+dichiara il locale stesso, e far passare da un redattore ogni serata di ogni
+locale collegato annullerebbe il vantaggio dell'import — che è togliere lavoro
+alla redazione, non aggiungerne. Con dieci locali collegati, l'import
+diventerebbe una coda che nessuno svuota, e una coda che nessuno svuota è
+peggio di nessun import: gli eventi non escono e nessuno sa perché.
+
+**I due contrappesi**, che sono la ragione per cui la decisione regge:
+
+1. **L'anteprima è obbligatoria prima di accendere la sorgente.**
+   `ImportRunner::preview()` percorre `fetch` e `map` interi, applica il filtro
+   di esclusione e **non scrive niente**: restituisce le prime venti date che
+   entrerebbero, in ordine di inizio. È esposta come azione «Anteprima» nella
+   tabella di `/admin`, accanto a «Esegui ora». Chi accende una sorgente ha
+   guardato che cosa entra; l'ordine cronologico serve proprio a questo,
+   perché un fuso letto male si riconosce a colpo d'occhio solo lì.
+2. **Il filtro di esclusione.** `mapping.exclude_keywords`, con i valori
+   predefiniti *chiuso, ferie, riunione, privato, manutenzione, chiusura* in
+   `config/import.php`: un titolo che contiene una di quelle parole non entra,
+   e il fatto è contato nel resoconto. È ciò che tiene fuori dal sito
+   «riunione staff» e «chiuso per ferie», che è quello che un calendario
+   Google di un locale contiene per metà. Il confronto è su **parole intere**,
+   senza accenti e senza maiuscole: una sottostringa ucciderebbe un evento
+   vero al primo elenco un po' più lungo — «arte» ucciderebbe «Cartellone».
+
+§14.1 resta rispettato per intero e diventa la difesa che sostituisce la coda:
+`source = import_ics` e `verification_status = unverified`, così che il sito e
+l'API possano distinguere un evento confermato dal locale da uno importato e
+non verificato. Un import che pubblica **senza** dichiararsi non verificato
+sarebbe inaccettabile; questo no.
+
+**Le altre undici scelte, che §14.2 non fissa.**
+
+1. **`events.source_ref` porta davanti l'identificativo della sorgente**
+   (`{id}:{UID}`, più `#{RECURRENCE-ID}` per le eccezioni di una serie).
+   §14.2 dice «idempotente su `source_ref`» e il valore naturale sarebbe il
+   solo `UID`, ma senza il prefisso non esiste alcun modo di chiedere al
+   database *quali eventi vengono da questo calendario* — e senza quella
+   domanda non si riconosce ciò che dal feed è **sparito**. Serve anche a non
+   far collidere due calendari della stessa città: l'RFC vuole l'`UID` unico
+   al mondo, ma è una stringa scritta da chi esporta, e «1» si incontra
+   davvero. Un `UID` più lungo di quanto la colonna consenta viene sostituito
+   dalla propria impronta, che resta **stabile** fra un'esecuzione e l'altra —
+   ed è la stabilità, non la leggibilità, che l'idempotenza richiede.
+   Tutto questo vive in `App\Support\Import\SourceRef` e in nessun altro punto.
+2. **`UID` e `RECURRENCE-ID` sono due chiavi diverse.** In un ICS la data
+   spostata di una serie porta lo **stesso** `UID` della serie: trattarle come
+   una cosa sola farebbe sovrascrivere la serie con la propria eccezione a
+   ogni esecuzione, e la serie sparirebbe.
+3. **Le tre forme di data hanno tre test ciascuna, e convergono.** Fluttuante
+   (nel fuso della città, o in quello di `mapping.timezone`), UTC, e con
+   `TZID` — compreso un `TZID` risolto attraverso il `VTIMEZONE` incorporato,
+   che è come Outlook e i CalDAV aziendali dichiarano fusi con nomi che il
+   database dei fusi non conosce. `DTSTART:20260905T213000`,
+   `DTSTART:20260905T193000Z` e `DTSTART;TZID=Europe/Rome:20260905T213000`
+   producono lo stesso identico istante, e c'è un test che lo afferma. Il
+   cambio d'ora è dentro le prove: il 4 settembre e il 1 novembre non hanno lo
+   stesso scarto, e uno scarto fisso ne sbaglierebbe uno.
+4. **`DTEND` di un evento di intera giornata è esclusivo.** Un giorno solo si
+   scrive «dal 5 al 6»: preso alla lettera diventa un evento di due giorni.
+   Per la giornata singola si scrive `ends_at = null` e la fine la decide §8.3
+   (orario di apertura del locale); per più giorni si sottrae un secondo.
+   `DURATION` sostituisce `DTEND` quando manca; quando mancano entrambi la
+   durata resta alla categoria, che è ciò che §8.3 prescrive.
+5. **Le `EXDATE` si riscrivono in ora locale.**
+   `GenerateOccurrencesAction` le rilegge con il fuso della città: scriverle in
+   UTC le farebbe scivolare di due ore e la data esclusa non verrebbe esclusa.
+6. **Le `RRULE` non si espandono nel motore di import.** Si scrive la regola in
+   `event_recurrences` e si chiama `GenerateOccurrencesAction`, che è già
+   idempotente (D20, D22). Quando la regola cambia a monte, le date che non
+   produce più vengono annullate confrontandole con **`expectedStarts()`**,
+   metodo nuovo della stessa azione: due espansori RFC 5545 nello stesso
+   progetto divergerebbero, ed è il genere di divergenza che nessuno nota
+   finché non manca una serata. `__invoke()` è stato rifattorizzato per usare
+   lo stesso `plan()` privato, così l'elenco che l'import confronta è —
+   letteralmente — quello che l'azione materializza.
+7. **Le sparizioni marcano, non cancellano, e non partono su un dubbio.** Una
+   voce che il feed non porta più diventa `cancelled` sulle occorrenze
+   **future** (il passato non si tocca: una serata avvenuta non diventa
+   annullata perché il calendario non la elenca più). La spazzata **non parte
+   affatto** se anche una sola voce del feed non si è lasciata interpretare:
+   un'esecuzione che ha capito il feed a metà non sa che cosa sia davvero
+   sparito. Un feed irraggiungibile non arriva nemmeno a quel punto — è
+   un'eccezione, e le eccezioni si riprovano.
+8. **L'import riscrive ciò che il calendario dichiara e nient'altro.** Titolo,
+   descrizione, luogo, date. Non rimette `status` a `published` e non riabbassa
+   `verification_status`: se un redattore ha ritirato o verificato un evento
+   importato, l'esecuzione oraria non deve disfare quella decisione ogni
+   sessanta minuti. Per la stessa ragione un evento cestinato resta cestinato,
+   e una data con `is_exception = true` (D21) non viene annullata: la decisione
+   di una persona vale più della regola del feed.
+9. **Una sorgente, un lavoro di coda.** §14.2 chiede l'esecuzione oraria e che
+   un guasto non fermi il resto: se l'import fosse un ciclo dentro un comando,
+   tre calendari che impiegano trenta secondi a non rispondere manderebbero
+   l'esecuzione oltre l'ora successiva. `import:run` **accoda** un
+   `ImportSourceJob` per sorgente (tre tentativi, attesa 60 e 300 secondi,
+   tempo massimo 120), e `ShouldBeUnique` sull'identificativo impedisce che
+   l'esecuzione delle 15:00 ancora in corso si scontri con quella delle 16:00.
+   `--sync` esegue nel processo e stampa il resoconto: è il modo di provare una
+   sorgente appena configurata senza leggere i log di un worker.
+10. **Il guasto si scrive sulla sorgente *prima* di rilanciare.**
+    `ImportRunner` registra `last_run_at`, `last_status` e `last_error` e poi
+    rilancia, così la dashboard di §14.5 vede il problema anche quando il
+    lavoro finisce fra i falliti. Un'esecuzione riuscita **azzera**
+    `last_error`: quella query guarda la colonna e non lo stato (lo dice
+    `EditorialDashboardQuery`), e senza la ripulitura una sorgente resterebbe
+    segnalata in guasto per sempre.
+11. **`last_status` resta una stringa libera in colonna** ma ha ora un enum,
+    `ImportRunStatus` (`success|partial|failed`). Tre e non due perché il caso
+    più frequente è un calendario di duecento voci in cui tre non si lasciano
+    interpretare: non è un'esecuzione fallita, e non è nemmeno pulita. La
+    tabella di `/admin` mostra l'etichetta dell'enum quando la riconosce e il
+    valore grezzo quando no, perché il contratto della colonna non cambia.
+
+**Difetto preesistente corretto.** `lang/it/admin.php` dichiarava **due volte**
+la chiave `'notifications'`: PHP teneva la seconda e buttava via la prima, e
+tutti i messaggi di esito del pannello — «Evento pubblicato.», «Approvato.»,
+«Copia creata come bozza.», ventuno in tutto — uscivano come chiave grezza. I
+due blocchi sono stati fusi; un controllo sulle chiavi duplicate di primo
+livello di tutti i file di `lang/it` non trova più nulla.
+
+**Conseguenze.** Nuovi `config/import.php` e `lang/it/import.php`; enum
+`ImportRunStatus` e `ImportSourceType::eventSource()`; DTO `ImportedEventDto`,
+`ImportMapping`, `ImportReport`; `App\Exceptions\ImportException`;
+`App\Support\Import\SourceRef`; `App\Services\Import\{ImportSourceDriver,
+IcsImportDriver, ImportDriverFactory, ImportRunner}`;
+`App\Jobs\Import\ImportSourceJob`; comando `import:run {--source=} {--sync}`
+schedulato ogni ora in `routes/console.php`; due azioni («Anteprima», «Esegui
+ora») e la colonna dell'esito in `ImportSourceResource`.
+`GenerateOccurrencesAction` guadagna `expectedStarts()`. **Nessuna migration**:
+lo schema di §7.11 e §3.20 bastava.
+
+**Verificato.** 71 test nuovi in `tests/Feature/Import/`, suite intera verde,
+`pint` passato, `phpstan` livello 6 a zero errori. I calendari di prova sono
+**file veri** in `tests/Fixtures/ics/` — un ICS scritto dentro un'asserzione
+somiglia a ciò che il codice si aspetta, uno su disco somiglia a quello che
+manda Google Calendar: le tre forme di data, `VALUE=DATE` singolo e su più
+giorni, `DURATION`, nessuna fine, `RRULE` con `EXDATE`, un feed in stile Google
+Calendar con `VTIMEZONE` incorporato ed eccezione con `RECURRENCE-ID`, un feed
+di voci interne da escludere, un calendario vuoto, una pagina HTML servita al
+posto del calendario, e un file malformato — che fallisce con un messaggio in
+italiano e non con un'eccezione della libreria. Tre esecuzioni consecutive
+dello stesso feed: quattro eventi creati la prima volta, zero creati e zero
+aggiornati la seconda e la terza, stessi identificativi e stesse date. Un
+titolo, una descrizione, un luogo e una data cambiati a monte aggiornano
+**la stessa riga**, e la colonna calcolata `business_date` segue la data nuova.

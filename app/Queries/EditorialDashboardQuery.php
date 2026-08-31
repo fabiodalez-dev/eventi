@@ -6,6 +6,7 @@ namespace App\Queries;
 
 use App\Enums\ApplicationStatus;
 use App\Enums\EventStatus;
+use App\Enums\ImportRunStatus;
 use App\Enums\OccurrenceStatus;
 use App\Enums\PriceType;
 use App\Enums\ReportStatus;
@@ -241,11 +242,20 @@ final class EditorialDashboardQuery
     }
 
     /**
-     * Un import è "fallito" quando la sorgente è attiva ed è rimasto scritto
-     * l'errore dell'ultima esecuzione. Si guarda `last_error` e non
-     * `last_status` perché il secondo è una stringa libera: legare la
-     * dashboard a un suo valore particolare la romperebbe al primo driver che
-     * ne scrive uno diverso.
+     * Un import è "fallito" quando la sorgente è attiva e l'ultima esecuzione
+     * **è finita male**: `last_status = failed`.
+     *
+     * Prima si guardava `last_error`, ed era la domanda sbagliata. Quella
+     * colonna la riempie anche un'esecuzione **riuscita in parte** — duecento
+     * date entrate e tre voci illeggibili — che non è un import fallito e non
+     * va contata fra i guasti: chi apre la dashboard e trova «1» si aspetta un
+     * calendario che non porta più niente, non tre righe storte dentro un
+     * calendario che funziona. Nella direzione opposta l'errore era peggiore:
+     * un guasto senza testo (una condizione che nessuno scrive apposta, ma che
+     * un driver futuro può produrre) restava invisibile.
+     *
+     * `last_status` è una stringa libera per contratto, quindi il valore si
+     * legge dall'enum e non da una stringa scritta a mano qui.
      *
      * @param  Builder<ImportSource>  $query
      */
@@ -253,8 +263,7 @@ final class EditorialDashboardQuery
     {
         $query
             ->where('is_active', true)
-            ->whereNotNull('last_error')
-            ->where('last_error', '!=', '');
+            ->where('last_status', ImportRunStatus::Failed->value);
     }
 
     /**

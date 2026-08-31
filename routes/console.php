@@ -17,6 +17,19 @@ Schedule::command('occurrences:generate')
     ->withoutOverlapping();
 
 /*
+ * L'import dei calendari (§14.2), **ogni ora**. Il comando non esegue: accoda
+ * un lavoro per sorgente, così che un calendario irraggiungibile consumi i
+ * propri tentativi senza ritardare gli altri.
+ *
+ * `withoutOverlapping()` vale per l'accodamento; la sovrapposizione che conta
+ * davvero — due esecuzioni della stessa sorgente — la impedisce
+ * `ShouldBeUnique` sul lavoro.
+ */
+Schedule::command('import:run')
+    ->hourly()
+    ->withoutOverlapping();
+
+/*
  * Il motore delle notifiche (§15.5). Il worker gira **ogni cinque minuti**:
  * è la cadenza che lo scenario J di §18 rende verificabile — quaranta avvisi
  * di annullamento devono partire entro cinque minuti dal momento in cui la

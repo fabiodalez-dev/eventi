@@ -44,41 +44,19 @@ final class GenerateOccurrencesAction
      */
     public function __invoke(EventRecurrence $recurrence, ?CarbonImmutable $horizon = null): int
     {
-        $event = $recurrence->event()->withTrashed()->with(['city', 'category', 'venue'])->first();
+        $plan = $this->plan($recurrence, $horizon);
 
-        if (! $event instanceof Event || $event->city === null) {
+        if ($plan === null) {
             return 0;
         }
 
-        $timezone = $event->city->timezone;
-        $horizon ??= CarbonImmutable::now($timezone)->addMonths(self::HORIZON_MONTHS)->endOfDay();
-        $horizon = $horizon->setTimezone($timezone);
-
-        $until = $recurrence->until !== null
-            ? CarbonImmutable::instance($recurrence->until)->setTimezone($timezone)
-            : null;
-
-        $end = $until !== null && $until->lessThan($horizon) ? $until : $horizon;
-
-        $template = $this->template($recurrence, $event);
-        $dates = $this->dates($recurrence, $template, $timezone, $end);
-
-        if ($dates === null) {
-            return 0;
-        }
+        ['event' => $event, 'end' => $end, 'template' => $template, 'starts' => $starts] = $plan;
 
         $existing = $this->existingStarts($event);
-        $excluded = $this->exclusions($recurrence, $timezone);
         $created = 0;
 
-        DB::transaction(function () use ($dates, $timezone, $event, $recurrence, $template, $existing, $excluded, $end, &$created): void {
-            foreach ($dates as $date) {
-                $localStart = CarbonImmutable::instance($date)->setTimezone($timezone);
-
-                if (isset($excluded[$localStart->format('Y-m-d')]) || isset($excluded[$localStart->format('Y-m-d H:i:s')])) {
-                    continue;
-                }
-
+        DB::transaction(function () use ($starts, $event, $recurrence, $template, $existing, $end, &$created): void {
+            foreach ($starts as $localStart) {
                 $startsAt = $localStart->utc();
                 $key = $startsAt->format('Y-m-d H:i:s');
 
@@ -111,6 +89,91 @@ final class GenerateOccurrencesAction
         });
 
         return $created;
+    }
+
+    /**
+     * Gli istanti UTC che la regola produce fino all'orizzonte, `EXDATE`
+     * comprese: la stessa espansione che `__invoke()` materializza, esposta
+     * senza scrivere niente.
+     *
+     * Esiste per l'import (§14.2). Quando un calendario a monte riscrive la
+     * propria `RRULE`, le date che la nuova regola non produce più vanno
+     * marcate come annullate — e per saperlo serve l'elenco di ciò che la
+     * regola produce **adesso**. Chiederlo qui è l'unico modo di non avere due
+     * espansori di regole RFC 5545 in due punti diversi del progetto, che è la
+     * ricetta sicura per farli divergere.
+     *
+     * @return array<string, true> chiavi `Y-m-d H:i:s` in UTC
+     */
+    public function expectedStarts(EventRecurrence $recurrence, ?CarbonImmutable $horizon = null): array
+    {
+        $plan = $this->plan($recurrence, $horizon);
+
+        if ($plan === null) {
+            return [];
+        }
+
+        $expected = [];
+
+        foreach ($plan['starts'] as $localStart) {
+            $expected[$localStart->utc()->format('Y-m-d H:i:s')] = true;
+        }
+
+        return $expected;
+    }
+
+    /**
+     * Tutto ciò che serve per sapere quali date la serie produce: l'evento, il
+     * fuso, l'orizzonte effettivo, il modello da cui si eredita e le date
+     * locali già ripulite dalle esclusioni.
+     *
+     * @return array{event: Event, timezone: string, end: CarbonImmutable, template: ?EventOccurrence, starts: list<CarbonImmutable>}|null
+     */
+    private function plan(EventRecurrence $recurrence, ?CarbonImmutable $horizon): ?array
+    {
+        $event = $recurrence->event()->withTrashed()->with(['city', 'category', 'venue'])->first();
+
+        if (! $event instanceof Event || $event->city === null) {
+            return null;
+        }
+
+        $timezone = $event->city->timezone;
+        $horizon ??= CarbonImmutable::now($timezone)->addMonths(self::HORIZON_MONTHS)->endOfDay();
+        $horizon = $horizon->setTimezone($timezone);
+
+        $until = $recurrence->until !== null
+            ? CarbonImmutable::instance($recurrence->until)->setTimezone($timezone)
+            : null;
+
+        $end = $until !== null && $until->lessThan($horizon) ? $until : $horizon;
+
+        $template = $this->template($recurrence, $event);
+        $dates = $this->dates($recurrence, $template, $timezone, $end);
+
+        if ($dates === null) {
+            return null;
+        }
+
+        $excluded = $this->exclusions($recurrence, $timezone);
+        $starts = [];
+
+        foreach ($dates as $date) {
+            $localStart = CarbonImmutable::instance($date)->setTimezone($timezone);
+
+            if (isset($excluded[$localStart->format('Y-m-d')]) || isset($excluded[$localStart->format('Y-m-d H:i:s')])) {
+                continue;
+            }
+
+            $starts[] = $localStart;
+        }
+
+        return [
+            'event' => $event,
+            'timezone' => $timezone,
+            'end' => $end,
+            'template' => $template,
+            'starts' => $starts,
+        ];
     }
 
     /**

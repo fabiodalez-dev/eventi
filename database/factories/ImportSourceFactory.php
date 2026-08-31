@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
+use App\Enums\ImportRunStatus;
 use App\Enums\ImportSourceType;
 use App\Models\Category;
 use App\Models\City;
@@ -77,7 +78,7 @@ class ImportSourceFactory extends Factory
     {
         return $this->state(fn (array $attributes): array => [
             'last_run_at' => now()->subHours(2),
-            'last_status' => 'error',
+            'last_status' => ImportRunStatus::Failed->value,
             'last_error' => 'HTTP 404 sul calendario remoto',
         ]);
     }
@@ -86,7 +87,7 @@ class ImportSourceFactory extends Factory
     {
         return $this->state(fn (array $attributes): array => [
             'last_run_at' => now()->subHour(),
-            'last_status' => 'ok',
+            'last_status' => ImportRunStatus::Success->value,
             'last_error' => null,
         ]);
     }

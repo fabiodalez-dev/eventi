@@ -135,7 +135,16 @@ class EventResource extends Resource
                         EventFields::priceType()->columnSpanFull(),
                         EventFields::priceMin(),
                         EventFields::priceMax(),
-                        EventFields::ticketUrl()->columnSpanFull(),
+                    ]),
+
+                // Gli stessi campi dell'ultimo passo del wizard (§10.2), nello
+                // stesso ordine: chi ha appena creato l'evento ritrova qui
+                // quello che ha visto un minuto fa.
+                Section::make(__('manage.sections.links'))
+                    ->schema([
+                        EventFields::ticketUrl(),
+                        EventFields::bookingUrl(),
+                        EventFields::externalLinks(),
                     ]),
             ]);
     }

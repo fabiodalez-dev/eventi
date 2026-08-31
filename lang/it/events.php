@@ -97,6 +97,28 @@ return [
         'finished' => 'Questo evento è già stato: qui sotto trovi le date passate.',
         'age' => 'Età',
         'place_kind' => 'Tipo di spazio',
+        'external_links' => 'Link utili',
+    ],
+
+    /*
+     * I link esterni della scheda (§7.6, colonna `events.external_links`).
+     *
+     * `suggestions` non è un elenco chiuso: arriva a un `datalist`, che
+     * propone i nomi ricorrenti e lascia scrivere qualunque altro. Sta qui e
+     * non nei due dizionari dei pannelli perché è vocabolario dell'evento —
+     * la redazione e il gestore chiamano allo stesso modo la pagina Facebook
+     * di una serata.
+     */
+    'external_links' => [
+        'suggestions' => [
+            'Evento Facebook',
+            'Instagram',
+            'Sito ufficiale',
+            'Rassegna stampa',
+            'Altro',
+        ],
+        'new_tab' => 'si apre in una nuova scheda',
+        'source' => 'Pagina originale',
     ],
 
     /*

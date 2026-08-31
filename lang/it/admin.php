@@ -98,6 +98,7 @@ return [
         'features' => 'Funzioni attive',
         'moderation' => 'Moderazione',
         'organizer' => 'Organizzatore',
+        'external_links' => 'Link esterni',
         'recurrence' => 'Ricorrenza',
         'account' => 'Account',
         'roles' => 'Ruoli',
@@ -226,6 +227,8 @@ return [
         'organizer_url' => 'Sito dell\'organizzatore',
         'custom_location' => 'Luogo libero',
         'external_links' => 'Link esterni',
+        'external_link_label' => 'Etichetta',
+        'external_link_url' => 'Indirizzo',
         'reason' => 'Motivo',
         'note' => 'Testo della segnalazione',
         'reporter' => 'Chi ha segnalato',
@@ -239,6 +242,7 @@ return [
         'credentials' => 'Credenziali',
         'mapping' => 'Mappatura dei campi',
         'default_category' => 'Categoria predefinita',
+        'run_at' => 'Esecuzione',
         'last_run_at' => 'Ultima esecuzione',
         'last_status' => 'Esito',
         'last_error' => 'Ultimo errore',
@@ -288,6 +292,7 @@ return [
         'unfeature' => 'Togli dall\'evidenza',
         'generate_occurrences' => 'Genera le date',
         'merge' => 'Unisci al duplicato',
+        'add_external_link' => 'Aggiungi un link',
         'invite_by_email' => 'Invita per email',
         'invite_collaborator' => 'Invita un collaboratore',
         'impersonate' => 'Entra come questo utente',
@@ -300,6 +305,9 @@ return [
         'add_opening_hours' => 'Aggiungi una fascia oraria',
         'add_lineup' => 'Aggiungi un artista',
         'cancel_notification' => 'Annulla questo invio',
+        'preview_import' => 'Anteprima',
+        'run_import' => 'Esegui ora',
+        'close' => 'Chiudi',
     ],
 
     'scopes' => [
@@ -333,6 +341,42 @@ return [
         'impersonating' => 'Stai navigando come :name.',
         'notification_cancelled' => 'Invio annullato.',
         'cannot_publish_without_date' => 'Un evento senza almeno una data non si può pubblicare.',
+        'import_queued' => 'Import accodato: l\'esito comparirà nella colonna dell\'ultima esecuzione.',
+
+        /* La pagina degli invii previsti (§15.5): la tabella esiste proprio per
+           rendere ogni notifica ispezionabile PRIMA che parta, cosa che un
+           lavoro in coda non è. Queste chiavi stavano in un SECONDO blocco
+           'notifications' più in basso nel file: essendo lo stesso nome, PHP
+           teneva il secondo e buttava via il primo, e ogni messaggio di esito
+           del pannello ('Evento pubblicato.', 'Approvato.', …) usciva come
+           chiave grezza. Un file di traduzione non ha due volte la stessa
+           voce. */
+        'lead' => 'Ogni riga è un invio previsto, con la sua chiave di deduplica. Il worker gira ogni cinque minuti e prende le righe in attesa la cui ora è arrivata.',
+        'due' => 'Da mandare adesso',
+        'recipient' => 'Destinatario',
+        'subject' => 'Riguarda',
+        'send_at' => 'Invio previsto',
+        'sent_at' => 'Inviata il',
+        'channel' => 'Canale',
+        'attempts' => 'Tentativi',
+        'reason' => 'Motivo o errore',
+        'dedupe_key' => 'Chiave di deduplica',
+    ],
+
+    /* §14.2 — l'anteprima è il contrappeso della pubblicazione diretta: si
+       guarda prima di accendere la sorgente, e mostra ciò che entrerebbe
+       davvero, filtro di esclusione già applicato. */
+    /* Le intestazioni della finestra: le colonne della tabella stanno invece
+       in `lang/it/import.php`, perché la stessa tabella la disegna anche il
+       pannello dei locali. */
+    'import' => [
+        'preview_heading' => 'Che cosa entrerebbe',
+        'preview_description' => 'Le prime date del calendario remoto, con il filtro di esclusione già applicato. Guardare non esegue nulla.',
+        'run_confirm' => 'Le date entrano subito nel catalogo come eventi pubblicati e non verificati.',
+        'history_heading' => 'Storico delle esecuzioni',
+        'history_description' => 'Le ultime esecuzioni di questa sorgente: quando, com\'è finita, e che cosa ha portato.',
+        'history_empty' => 'Questa sorgente non è mai stata eseguita.',
+        'no_venue_hint' => 'Lascia vuoto per un calendario che non appartiene a un locale iscritto — il Comune, un teatro non ancora sul sito. In quel caso la categoria predefinita è obbligatoria: gli eventi nascono senza locale e senza di essa non avrebbero come essere classificati.',
     ],
 
     'confirmations' => [
@@ -350,6 +394,7 @@ return [
         'short_description' => 'Una o due righe: è ciò che si legge nella card e nei risultati di ricerca.',
         'rrule' => 'Sintassi iCalendar RRULE. Esempio: FREQ=WEEKLY;BYDAY=TH;COUNT=10 — ogni giovedì per dieci settimane.',
         'exdates' => 'Una data per riga, nel formato 2026-12-25. Le date elencate non vengono generate.',
+        'external_links' => 'Pagine dell\'evento fuori dal sito: social, sito ufficiale, rassegna stampa. Fino a :max, solo indirizzi http o https.',
         'editorial_score' => 'Da 0 a 100: alza il posizionamento nelle liste ordinate per rilevanza.',
         'night_cutoff_time' => 'Fino a quest\'ora una serata appartiene alla giornata precedente: un concerto che finisce alle 3:00 resta il venerdì. Vale solo per le categorie di vita notturna.',
         'starting_soon_minutes' => 'Quanti minuti prima dell\'inizio un evento entra nella sezione "inizia tra poco".',
@@ -375,22 +420,6 @@ return [
         'south' => 'S',
         'east' => 'E',
         'west' => 'O',
-    ],
-
-    /* La pagina degli invii previsti (§15.5): la tabella esiste proprio per
-       rendere ogni notifica ispezionabile PRIMA che parta, cosa che un lavoro
-       in coda non è. */
-    'notifications' => [
-        'lead' => 'Ogni riga è un invio previsto, con la sua chiave di deduplica. Il worker gira ogni cinque minuti e prende le righe in attesa la cui ora è arrivata.',
-        'due' => 'Da mandare adesso',
-        'recipient' => 'Destinatario',
-        'subject' => 'Riguarda',
-        'send_at' => 'Invio previsto',
-        'sent_at' => 'Inviata il',
-        'channel' => 'Canale',
-        'attempts' => 'Tentativi',
-        'reason' => 'Motivo o errore',
-        'dedupe_key' => 'Chiave di deduplica',
     ],
 
     'placeholders' => [

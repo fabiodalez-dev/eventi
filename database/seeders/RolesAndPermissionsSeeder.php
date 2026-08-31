@@ -42,6 +42,12 @@ class RolesAndPermissionsSeeder extends Seeder
             PermissionEnum::UpdateEvents,
             PermissionEnum::DeleteEvents,
             PermissionEnum::PublishEvents,
+
+            // «Collega il tuo calendario» (§14.2): il referente dichiara la
+            // sorgente del **proprio** locale. Il permesso da solo non apre
+            // niente — `ImportSourcePolicy` verifica comunque che la sorgente
+            // sia di un locale di cui questa persona è referente.
+            PermissionEnum::ManageImportSources,
         ]);
 
         // L'editor gestisce solo gli eventi del locale: nessun permesso su

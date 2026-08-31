@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Venue\Support;
 
 use App\Enums\PriceType;
+use App\Filament\Support\ExternalLinksField;
 use App\Filament\Support\ImageUpload;
 use App\Models\Category;
 use Filament\Forms\Components\DateTimePicker;
@@ -134,10 +135,35 @@ final class EventFields
     {
         return TextInput::make('ticket_url')
             ->label(__('manage.fields.ticket_url'))
+            ->helperText(__('manage.hints.ticket_url'))
             ->placeholder(__('manage.placeholders.ticket_url'))
             ->url()
             ->inputMode('url')
             ->maxLength(255);
+    }
+
+    public static function bookingUrl(): Component
+    {
+        return TextInput::make('booking_url')
+            ->label(__('manage.fields.booking_url'))
+            ->helperText(__('manage.hints.booking_url'))
+            ->placeholder(__('manage.placeholders.url'))
+            ->url()
+            ->inputMode('url')
+            ->maxLength(255);
+    }
+
+    /**
+     * I link esterni di §7.6: l'evento su Facebook, il sito della band,
+     * l'articolo del giornale locale.
+     *
+     * Nel wizard è l'ultima cosa dell'ultimo passo e **parte chiuso**
+     * (`defaultItems(0)`): chi vuole i 90 secondi di §10.2 preme "Pubblica" e
+     * non lo vede nemmeno, chi ha il link nella clipboard lo incolla.
+     */
+    public static function externalLinks(): Component
+    {
+        return ExternalLinksField::make('manage');
     }
 
     /**
