@@ -64,6 +64,42 @@ Due voci, aggiunte alle cinque preesistenti dell'account (che non sono state toc
 Il worker si spegne a coda vuota e viene rilanciato ogni minuto: è il sostituto di un
 demone supervisord, non disponibile sulla shared hosting.
 
+## Dopo una modifica ai ruoli o ai permessi
+
+`RolesAndPermissionsSeeder` **non gira con le migrazioni**. Aggiungere un
+permesso al seeder non lo assegna a nessuno finché il seeder non viene
+rieseguito, e il sintomo è un 403 su una pagina nuova per un utente che
+dovrebbe vederla — mentre in locale i test passano, perché ogni test semina i
+ruoli da capo.
+
+```bash
+# sviluppo
+php artisan db:seed --class=RolesAndPermissionsSeeder --force
+
+# produzione
+ssh fabiodalez.it 'cd ~/eventi && /opt/cpanel/ea-php84/root/usr/bin/php artisan db:seed --class=RolesAndPermissionsSeeder --force'
+```
+
+Il seeder è idempotente: rieseguirlo non duplica ruoli né permessi.
+
+## Import dei calendari (§14.2)
+
+Le sorgenti si leggono ogni ora, dallo scheduler già attivo. Verifiche utili:
+
+```bash
+# stato delle sorgenti
+ssh fabiodalez.it "mysql ... -e 'SELECT id, url, is_active, last_status, last_run_at FROM import_sources'"
+
+# storico delle esecuzioni
+ssh fabiodalez.it "mysql ... -e 'SELECT source_id, status, created, updated, excluded, errors, created_at FROM import_runs ORDER BY id DESC LIMIT 10'"
+
+# forzare una lettura
+ssh fabiodalez.it 'cd ~/eventi && /opt/cpanel/ea-php84/root/usr/bin/php artisan import:run --source=<id>'
+```
+
+Gli eventi importati nascono `published` ma `verification_status = unverified`
+(D32): si distinguono in pannello e in API da quelli confermati dal locale.
+
 ## Verifiche rapide
 
 ```bash
