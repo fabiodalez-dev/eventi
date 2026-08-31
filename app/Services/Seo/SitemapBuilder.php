@@ -210,7 +210,7 @@ final class SitemapBuilder
 
         Event::query()
             ->inCity($city)
-            ->published()
+            ->readable()
             ->orderBy('id')
             ->select(['id', 'slug', 'updated_at'])
             ->chunk(500, function ($events) use (&$urls): void {

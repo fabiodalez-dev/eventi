@@ -99,7 +99,9 @@ final class VenueController extends Controller
             ->get()
             ->load(['event.venue', 'event.category', 'event.media']);
 
-        $archive = EventOccurrenceQuery::for($city)
+        /* L'archivio comprende gli eventi archiviati (§14.5): è il posto in
+           cui devono finire, non sparire. */
+        $archive = EventOccurrenceQuery::archiveFor($city)
             ->past()
             ->atVenue($venue)
             ->orderByNewestFirst()

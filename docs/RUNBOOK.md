@@ -100,17 +100,95 @@ ssh fabiodalez.it 'cd ~/eventi && /opt/cpanel/ea-php84/root/usr/bin/php artisan 
 Gli eventi importati nascono `published` ma `verification_status = unverified`
 (D32): si distinguono in pannello e in API da quelli confermati dal locale.
 
+## Archiviazione degli eventi scaduti (§14.5)
+
+Gira da sola ogni notte alle 04:10. Archiviare **toglie dalle liste, non dal
+sito**: la scheda continua a rispondere 200, resta nell'archivio del locale e
+nella `sitemap.xml` (D38).
+
+```bash
+# quanti sparirebbero dalle liste, senza toccare nulla
+ssh fabiodalez.it 'cd ~/eventi && /opt/cpanel/ea-php84/root/usr/bin/php artisan events:archive --dry-run'
+
+# adesso
+ssh fabiodalez.it 'cd ~/eventi && /opt/cpanel/ea-php84/root/usr/bin/php artisan events:archive'
+
+# con una soglia diversa da quella di EVENTS_ARCHIVE_AFTER_DAYS (90 giorni)
+... artisan events:archive --days=180
+```
+
+Un evento archiviato per sbaglio si recupera dal pannello rimettendolo a
+`published`: nessun dato viene cancellato.
+
+## Turnstile sui moduli pubblici (§14.7)
+
+**Vuoto = spento.** Senza le due chiavi in `.env` il riquadro non viene
+disegnato e la validazione non lo chiede: e' cosi' che sviluppo, test e
+integrazione continua non dipendono da Cloudflare. Vanno riempite **entrambe**:
+con una sola, la protezione resta spenta e non lo dice nessuno.
+
+```bash
+ssh fabiodalez.it 'cd ~/eventi && grep TURNSTILE .env'
+# TURNSTILE_SITE_KEY=...   (pubblica, finisce nell'HTML)
+# TURNSTILE_SECRET_KEY=... (segreta, sta solo qui)
+ssh fabiodalez.it 'cd ~/eventi && /opt/cpanel/ea-php84/root/usr/bin/php artisan config:cache'
+```
+
+Le chiavi si generano su dash.cloudflare.com → Turnstile, con il dominio
+`eventi.fabiodalez.it`. Verifica che sia acceso: `curl -s https://eventi.fabiodalez.it/proponi-evento | grep cf-turnstile`.
+
+Se Cloudflare e' irraggiungibile o risponde con un errore proprio, **il modulo
+resta aperto** e l'episodio finisce in `storage/logs/laravel.log`: campo esca e
+limite di frequenza reggono da soli. E' voluto — un guasto di un terzo non deve
+diventare un guasto nostro.
+
+## Misurare Lighthouse a mano
+
+La pipeline lo fa da sola (lavoro `lighthouse`, D37). Per rifare la stessa
+misura in locale servono database popolato, coda smaltita e nginx davanti:
+
+```bash
+mysql -h 127.0.0.1 -P 3307 -u root --skip-password -e "CREATE DATABASE IF NOT EXISTS eventi_lh"
+DB_DATABASE=eventi_lh php artisan migrate:fresh --seed --force
+DB_DATABASE=eventi_lh php artisan queue:work --stop-when-empty   # senza, niente WebP/AVIF
+
+TMP=$(mktemp -d)
+sed -e "s|__ROOT__|$PWD/public|g" -e "s|__PORT__|8080|g" -e "s|__APP_PORT__|8000|g"     -e "s|__MIME__|/opt/homebrew/etc/nginx/mime.types|g" -e "s|__TMP__|$TMP|g"     .github/lighthouse/nginx.conf.template > "$TMP/nginx.conf"
+
+( cd public && DB_DATABASE=eventi_lh APP_URL=http://127.0.0.1:8080 APP_DEBUG=false   nohup php -S 127.0.0.1:8000 ../vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php > "$TMP/php.log" 2>&1 & )
+nginx -c "$TMP/nginx.conf" -p "$TMP" &
+
+export CHROME_PATH="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+export LHCI_BASE_URL=http://127.0.0.1:8080
+export LHCI_EVENT_URL=$(curl -s http://127.0.0.1:8080/feed.rss | grep -oE '<link>[^<]+/eventi/[^<]+</link>' | head -1 | sed -E 's|</?link>||g')
+npx lhci autorun --config=lighthouserc.cjs
+```
+
+Tre cose che sembrano dettagli e falsano tutto:
+
+- **`php -S` e non `php artisan serve`.** Il secondo legge lo standard output
+  del figlio da una pipe; appena la shell che l'ha lanciato esce, ogni risposta
+  esce con un `Notice: Broken pipe` prima del `<!doctype>`. Il sintomo e' un
+  SEO a 0.83 con `robots.txt` invalido e «pagina senza meta description», e non
+  c'entra niente col sito.
+- **la coda va smaltita**: senza le varianti WebP/AVIF la Performance perde
+  undici punti.
+- **il banco resta piu' lento della produzione** di circa un secondo e mezzo di
+  LCP, perche' parla HTTP/1.1. La misura che conta e' quella sul sito vero:
+  `npx lighthouse https://eventi.fabiodalez.it/ --only-categories=performance,accessibility,seo`.
+
 ## File che non vanno mai sincronizzati
 
-Tre file esistono su entrambe le macchine ma il loro contenuto corretto dipende
-da **dove** si trovano. Il deploy li esclude e li rigenera sul server; copiarli
-rompe la produzione in modi che non assomigliano alla causa.
+Alcuni percorsi esistono su entrambe le macchine ma il loro contenuto corretto
+dipende da **dove** si trovano. Il deploy li esclude e li rigenera sul server;
+copiarli rompe la produzione in modi che non assomigliano alla causa.
 
 | File | Cosa succede se lo si copia |
 |---|---|
 | `public/storage` | Symlink assoluto: punta a un percorso del Mac. Nessuna immagine si carica, restano i segnaposto sfocati |
 | `bootstrap/cache/packages.php` | Elenca i provider delle dipendenze di sviluppo, assenti in produzione: HTTP 500 su tutto, `Class "Laravel\Pail\PailServiceProvider" not found` |
 | `public/.htaccess` | Al contrario: questo **deve** essere versionato, perche contiene la direttiva che forza PHP 8.4 (vedi sopra) |
+| `storage/app/private/` | E dove vivono i backup (§16). Il deploy la esclude dal `rsync --delete`: senza l'esclusione, **ogni pubblicazione cancellerebbe ogni copia** — proprio il gesto dopo il quale un backup serve di piu |
 
 Se la produzione risponde 500 subito dopo un rilascio, il primo posto da
 guardare e questo elenco.
@@ -133,6 +211,107 @@ ssh fabiodalez.it 'tail -50 ~/eventi/storage/logs/laravel.log'
 ssh fabiodalez.it 'tail -20 ~/eventi/storage/logs/queue.log'
 ```
 
+## Backup (§16)
+
+Il backup gira **da solo**, dallo scheduler: `backup:run` alle 03:40,
+`backup:clean` alle 04:40 (applica la conservazione di 30 giorni),
+`backup:monitor` alle 09:00. Le copie stanno in
+`/home/fabiodal/eventi/storage/app/private/eventi/`.
+
+```bash
+# copia a mano, adesso
+ssh fabiodalez.it 'cd ~/eventi && /opt/cpanel/ea-php84/root/usr/bin/php artisan backup:run'
+
+# che cosa c'e, e da quanto
+ssh fabiodalez.it 'ls -lh ~/eventi/storage/app/private/eventi/'
+ssh fabiodalez.it 'cd ~/eventi && /opt/cpanel/ea-php84/root/usr/bin/php artisan backup:list'
+```
+
+**Quando qualcosa non va, l'email arriva a `OPS_ALERT_EMAIL`** — backup
+fallito, pulizia fallita, e soprattutto *backup piu vecchio di un giorno*, che
+e il caso in cui il comando non e partito affatto e quindi non ha fallito
+niente. Se quella variabile e vuota in `.env`, **nessun allarme parte**: e la
+prima cosa da controllare quando si sospetta che il sistema stia tacendo.
+
+Portare le copie fuori dal server (un backup che vive solo sulla macchina che
+protegge non protegge da un guasto di quella macchina): riempire le credenziali
+`AWS_*` in `.env` e mettere `BACKUP_DISKS=local,s3`.
+
+## Stato del sistema (§16)
+
+Endpoint **protetto**, per il monitor di uptime. La chiave e `OPS_HEALTH_TOKEN`
+in `.env`; **senza chiave l'endpoint risponde 404 a chiunque**, di proposito.
+
+```bash
+# vivo o degradato: 200 oppure 503
+curl -sS -o /dev/null -w '%{http_code}\n' \
+  -H "X-Secret-Token: <token>" https://eventi.fabiodalez.it/stato
+
+# quale controllo e rosso (stessa chiave, anche in query string)
+curl -sS "https://eventi.fabiodalez.it/stato/completo?token=<token>" | python3 -m json.tool
+
+# rieseguire i controlli adesso invece di leggere l'ultimo esito
+ssh fabiodalez.it 'cd ~/eventi && /opt/cpanel/ea-php84/root/usr/bin/php artisan health:check'
+```
+
+I sette controlli: database, cache, spazio su disco (giallo al 70%, rosso
+all'85%), coda dei lavori, ultima esecuzione dello scheduler, sorgenti di
+import (§14.2: rosso se sono **tutte** in errore, giallo se ne e caduta
+qualcuna), comandi schedulati. Lo stato si **rilegge**: lo salva `health:check`
+ogni cinque minuti, l'endpoint non lo ricalcola.
+
+## Comandi schedulati: accorgersi che uno ha smesso di girare
+
+`spatie/laravel-schedule-monitor` tiene il registro, il controllo di stato
+"Comandi schedulati" lo traduce in un allarme via email.
+
+```bash
+ssh fabiodalez.it 'cd ~/eventi && /opt/cpanel/ea-php84/root/usr/bin/php artisan schedule-monitor:list'
+```
+
+**Dopo ogni modifica a `routes/console.php`** il registro va riallineato, o il
+comando nuovo resta fuori dalla sorveglianza:
+
+```bash
+ssh fabiodalez.it 'cd ~/eventi && /opt/cpanel/ea-php84/root/usr/bin/php artisan schedule-monitor:sync'
+```
+
+Lo fa gia il deploy a ogni rilascio, e lo scheduler alle 03:05: questa riga
+serve per una modifica applicata a mano. Se il controllo di stato dice
+«fuori sorveglianza», e questo il comando da dare.
+
+## Interruttori di funzione (Pennant)
+
+```bash
+PHP=/opt/cpanel/ea-php84/root/usr/bin/php
+
+# spegnere l'import dei calendari di una citta (§14.2)
+ssh fabiodalez.it "cd ~/eventi && $PHP artisan feature:set city-import --city=padova --off"
+ssh fabiodalez.it "cd ~/eventi && $PHP artisan feature:set city-import --city=padova"
+
+# spegnere la newsletter del weekend per tutti (§15.9)
+ssh fabiodalez.it "cd ~/eventi && $PHP artisan feature:set newsletter --off"
+```
+
+La decisione e una riga nella tabella `features`, e **vince sui valori di
+`config/pennant.php`**: quelli valgono solo per un ambito su cui nessuno ha
+ancora deciso — una citta appena creata. Per rimettere tutto ai valori
+predefiniti: `php artisan pennant:purge`.
+
+Spegnere la newsletter toglie il consenso dai moduli e svuota la
+programmazione del giovedi, ma **non revoca i consensi gia dati**: sono un atto
+delle persone, non una funzione del sistema.
+
+## Tracciamento degli errori (Sentry)
+
+`SENTRY_LARAVEL_DSN` vuoto in `.env` significa **spento**: il pacchetto non si
+avvia, non apre connessioni e non rallenta niente. Per accenderlo basta il DSN
+(vale anche per GlitchTip, che parla lo stesso protocollo). Dopo averlo scritto:
+`php artisan config:cache`.
+
+Non escono dati personali: `send_default_pii` e `false` e i parametri delle
+interrogazioni SQL sono esclusi (§16).
+
 ## Restore del database
 
 Un backup non è valido finché non è stato testato un restore reale (§16 del piano).
@@ -146,6 +325,17 @@ ssh fabiodalez.it "uapi Mysql create_database name=fabiodal_evtest"
 ssh fabiodalez.it "zcat ~/backup-eventi-<data>.sql.gz | mysql -u fabiodal_eventi -p'<pass>' fabiodal_evtest"
 # verifica i conteggi, poi elimina il database di prova
 ```
+
+Il dump prodotto da `backup:run` si ripristina allo stesso modo: dentro lo zip
+di `storage/app/private/eventi/` c'è `db-dumps/mariadb-<db>.sql.gz`, che va
+passato a `gunzip -c | mysql` su un database di prova, confrontando poi i
+conteggi (tabelle, locali, eventi, occorrenze, utenti) con l'originale.
+
+**Restore provato davvero il 2026-09-01** (verifica finale F10, in locale):
+archivio di `backup:run --only-db` estratto e ripristinato su un database di
+prova → 47 tabelle su 47, conteggi identici all'originale (locali 25, eventi
+138, occorrenze 145, utenti 5, pagine 5), database di prova poi eliminato.
+Da ripetere sul server dopo il primo `backup:run` di produzione.
 
 ## Rotazione dei segreti
 
@@ -172,3 +362,74 @@ npm run dev
 
 Il database di sviluppo è **MariaDB sulla porta 3307**, non MySQL sulla 3306:
 vedi la decisione D4 in `docs/DECISIONS.md`.
+
+## Pagine legali, consenso e analitica (§16)
+
+### I testi si cambiano dal pannello, non con un rilascio
+
+Privacy, cookie policy, termini, chi siamo e contatti vivono nella tabella
+`pages` e si modificano da **`/admin` → Pagine informative**. Il corpo e
+Markdown: qualunque marcatura HTML scritta nel campo viene scartata alla
+lettura, quindi non c'e modo di rompere la pagina (ne di iniettarci qualcosa).
+
+`PageSeeder` scrive i testi iniziali ed e **idempotente in senso stretto**: usa
+`firstOrCreate` sullo slug, quindi rieseguirlo **non tocca** le correzioni fatte
+dalla redazione. Per far ripartire una pagina dai testi di serie va prima
+cancellata la riga.
+
+```bash
+# prima installazione (o pagina nuova aggiunta al seeder)
+ssh fabiodalez.it 'cd ~/eventi && /opt/cpanel/ea-php84/root/usr/bin/php artisan db:seed --class=PageSeeder --force'
+```
+
+**Il permesso `pages.manage` e nuovo**: al primo rilascio di questa funzione va
+rieseguito anche `RolesAndPermissionsSeeder` (vedi la sezione «Dopo una modifica
+ai ruoli o ai permessi»), altrimenti `/admin/pages` risponde **403** a un
+amministratore che dovrebbe vederla.
+
+### Consenso
+
+`CONSENT_VERSION` in `.env` e la versione dell'informativa a cui si riferisce
+ogni scelta registrata. **Cambiarla fa ricomparire il banner a tutti**: e il
+gesto da fare quando cambiano le finalita, e l'unico modo perche le scelte
+vecchie non valgano per un trattamento nuovo. Non va cambiata per una correzione
+di refuso.
+
+```bash
+# quante scelte, e quali
+ssh fabiodalez.it "mysql ... -e \"SELECT policy_version, action, COUNT(*) FROM consent_logs GROUP BY policy_version, action\""
+```
+
+Le righe non si aggiornano mai: chi cambia idea ne aggiunge una con lo stesso
+`consent_id`. Nessun indirizzo IP viene conservato.
+
+### Analitica
+
+Tre variabili, **tutte e tre obbligatorie** perche qualcosa parta:
+
+```
+ANALYTICS_PROVIDER=plausible   # oppure umami; qualunque altro valore = spento
+ANALYTICS_DOMAIN=eventi.fabiodalez.it
+ANALYTICS_SRC=https://statistiche.esempio.it/script.js
+```
+
+Vuote (**stato predefinito**) il sito non emette alcuno script e non contatta
+alcun dominio esterno. Riempite, lo script viene servito **solo** a chi ha
+acconsentito alle statistiche: chi non ha ancora scelto vale come chi ha
+rifiutato.
+
+Dopo aver riempito le variabili:
+
+```bash
+ssh fabiodalez.it 'cd ~/eventi && /opt/cpanel/ea-php84/root/usr/bin/php artisan config:cache'
+# verifica: da anonimo senza consenso lo script NON deve comparire
+curl -s https://eventi.fabiodalez.it/ | grep -c 'ANALYTICS_SRC-host'
+```
+
+`ANALYTICS_SRC` deve essere `https`: uno script in chiaro dentro una pagina
+cifrata verrebbe bloccato dal browser, e l'unico segnale sarebbe una riga in
+console che nessuno guarda. Per questo, se non lo e, la funzione resta spenta
+invece di emettere un tag che non funziona.
+
+**La Cookie Policy legge la configurazione, non un testo fisso**: accendendo o
+spegnendo l'analitica, la pagina dice comunque la verita su cosa e attivo.

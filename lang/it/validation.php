@@ -147,6 +147,16 @@ return [
             'url_host' => 'Il link numero :position non ha un indirizzo valido: controlla il dominio.',
             'url_credentials' => 'Il link numero :position contiene credenziali prima del dominio: togli la parte prima della chiocciola.',
         ],
+
+        /*
+         * Turnstile (§14.7). Chi legge questi messaggi è una persona vera a
+         * cui la verifica non è riuscita: dicono cosa fare, non cosa è andato
+         * storto dentro.
+         */
+        'turnstile' => [
+            'missing' => 'Completa la verifica antispam prima di inviare.',
+            'failed' => 'La verifica antispam non è riuscita: ricaricala e riprova.',
+        ],
     ],
 
     'attributes' => [],

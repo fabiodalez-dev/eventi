@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1\Me;
 
 use App\DTOs\NotificationPreferences;
+use App\DTOs\QuietHours;
 use App\Http\Controllers\Api\V1\Concerns\InteractsWithMe;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\Me\UpdateNotificationPreferencesRequest;
@@ -57,7 +58,20 @@ final class NotificationPreferenceController extends Controller
              */
             'cancellations' => true,
             'daily_digest_time' => $user->daily_digest_time,
+
+            /*
+             * Due campi e non uno (D36). `quiet_hours` è **la scelta**: gli
+             * orari se ne sono stati scritti, un oggetto vuoto se la persona
+             * ha rifiutato il silenzio, `null` se non ha ancora deciso.
+             * `quiet_hours_effective` è ciò che il motore applica davvero, e
+             * per chi non ha deciso è la finestra predefinita.
+             *
+             * Senza il secondo, un'applicazione che mostra il primo direbbe
+             * «nessuna ora di silenzio» a chi le ha eccome, e l'unico modo di
+             * accorgersene sarebbe un promemoria che non arriva.
+             */
             'quiet_hours' => $user->quiet_hours,
+            'quiet_hours_effective' => QuietHours::fromUser($user)?->toArray(),
             'marketing_opt_in' => $user->marketing_opt_in_at !== null,
         ];
     }

@@ -9,7 +9,10 @@
 --}}
 @php
     $preferences = $user->notificationPreferences();
-    $quiet = is_array($user->quiet_hours) ? $user->quiet_hours : [];
+    /* Le ore che valgono davvero: le proprie, oppure la finestra predefinita
+       di chi non ha ancora scelto (D36). Mostrare i campi vuoti a chi non ha
+       scelto racconterebbe un silenzio che non c'è. */
+    $quiet = \App\DTOs\QuietHours::formFor($user);
 @endphp
 
 <x-layouts.app :meta="$meta">
@@ -55,17 +58,27 @@
                     :value="$user->daily_digest_time"
                 />
 
-                <fieldset class="flex flex-wrap items-end gap-3">
+                <fieldset class="flex flex-col gap-2">
                     <legend class="text-sm font-semibold text-ink">{{ __('account.profile.quiet_hours') }}</legend>
+                    <p class="text-xs text-ink-subtle">{{ __('account.profile.quiet_hours_hint') }}</p>
 
-                    <x-field name="quiet_from" type="time" :label="__('account.profile.quiet_from')" :value="$quiet['from'] ?? null" />
-                    <x-field name="quiet_to" type="time" :label="__('account.profile.quiet_to')" :value="$quiet['to'] ?? null" />
+                    <div class="flex flex-wrap items-end gap-3">
+                        <x-field name="quiet_from" type="time" :label="__('account.profile.quiet_from')" :value="$quiet['from']" />
+                        <x-field name="quiet_to" type="time" :label="__('account.profile.quiet_to')" :value="$quiet['to']" />
+                    </div>
+
+                    <label class="flex items-center gap-2.5 text-sm text-ink">
+                        <input type="checkbox" name="quiet_off" value="1" class="size-4 rounded border-line" @checked(old('quiet_off', $quiet['off']))>
+                        {{ __('account.profile.quiet_off') }}
+                    </label>
                 </fieldset>
 
+                @newsletter
                 <label class="flex items-center gap-2.5 text-sm text-ink">
                     <input type="checkbox" name="marketing_opt_in" value="1" class="size-4 rounded border-line" @checked($user->marketing_opt_in_at !== null)>
                     {{ __('account.profile.marketing') }}
                 </label>
+                @endnewsletter
             </section>
 
             <p class="text-sm text-ink-muted">{{ __('notifications.preferences.mandatory') }}</p>

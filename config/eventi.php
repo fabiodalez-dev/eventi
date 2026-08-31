@@ -55,4 +55,15 @@ return [
      */
     'indexable_filters' => 2,
 
+    /*
+     * Da quanti giorni devono essere passate **tutte** le date di un evento
+     * perché `events:archive` lo tolga dalle liste (§14.5).
+     *
+     * Novanta giorni e non pochi: un evento appena concluso viene ancora
+     * cercato per nome — le foto, il programma, «chi suonava» — e la sua
+     * pagina resta comunque raggiungibile dopo l'archiviazione (§11.9). La
+     * soglia governa la sparizione dalle liste, non quella dal sito.
+     */
+    'archive_after_days' => (int) env('EVENTS_ARCHIVE_AFTER_DAYS', 90),
+
 ];

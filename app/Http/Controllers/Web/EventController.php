@@ -39,7 +39,7 @@ final class EventController extends Controller
     public function show(string $slug): View
     {
         $city = $this->city();
-        $event = $this->findPublished($city, $slug);
+        $event = $this->findReadable($city, $slug);
 
         $upcoming = $this->hydrate(EventOccurrenceQuery::for($city)->forEvent($event)->upcoming()->get());
 
@@ -49,7 +49,7 @@ final class EventController extends Controller
          * mostra il proprio archivio invece di una scheda vuota.
          */
         $past = $upcoming->isEmpty()
-            ? $this->hydrate(EventOccurrenceQuery::for($city)->forEvent($event)->past()->orderByNewestFirst()->get()->take(3))
+            ? $this->hydrate(EventOccurrenceQuery::archiveFor($city)->forEvent($event)->past()->orderByNewestFirst()->get()->take(3))
             : new Collection;
 
         $related = $this->related($city, $event);
@@ -82,7 +82,7 @@ final class EventController extends Controller
     public function calendar(string $slug, EventOccurrence $occurrence): Response
     {
         $city = $this->city();
-        $event = $this->findPublished($city, $slug);
+        $event = $this->findReadable($city, $slug);
 
         abort_unless((int) $occurrence->event_id === (int) $event->getKey(), 404);
 
@@ -94,12 +94,17 @@ final class EventController extends Controller
         ]);
     }
 
-    private function findPublished(City $city, string $slug): Event
+    /**
+     * Pubblicati **e archiviati** (§14.5): l'archiviazione toglie dalle liste,
+     * non dal sito. Un indirizzo che ha ricevuto visite per mesi non deve
+     * diventare un 404 il giorno in cui un comando notturno lo tocca.
+     */
+    private function findReadable(City $city, string $slug): Event
     {
         $event = Event::query()
             ->with(['venue', 'category', 'tags', 'city', 'media'])
             ->inCity($city)
-            ->published()
+            ->readable()
             ->where('slug', $slug)
             ->first();
 

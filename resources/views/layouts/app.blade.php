@@ -67,14 +67,23 @@
         'filament.venue.auth.login' => __('ui.footer.venue_login'),
     ]);
 
+    /*
+     * Le pagine informative del piè di pagina (§11.1, §16). L'elenco non è
+     * scritto qui: sono le pagine **pubblicate** che esistono davvero, nel loro
+     * ordine di redazione. Un collegamento a un'informativa privacy che nessuno
+     * ha ancora scritto sarebbe un 404 nel punto in cui un'autorità va a
+     * guardare per prima.
+     */
     $legalLinks = \Illuminate\Support\Facades\Route::has('pages.show')
-        ? [
-            ['url' => route('pages.show', ['slug' => 'privacy']), 'label' => __('ui.footer.privacy')],
-            ['url' => route('pages.show', ['slug' => 'cookie']), 'label' => __('ui.footer.cookies')],
-            ['url' => route('pages.show', ['slug' => 'termini']), 'label' => __('ui.footer.terms')],
-            ['url' => route('pages.show', ['slug' => 'accessibilita']), 'label' => __('ui.footer.accessibility')],
-            ['url' => route('pages.show', ['slug' => 'contatti']), 'label' => __('ui.footer.contacts')],
-        ]
+        ? \App\Models\Page::query()
+            ->published()
+            ->ordered()
+            ->get(['slug', 'title'])
+            ->map(fn (\App\Models\Page $page): array => [
+                'url' => route('pages.show', ['slug' => $page->slug]),
+                'label' => $page->title,
+            ])
+            ->all()
         : [];
 @endphp
 <!DOCTYPE html>
@@ -183,6 +192,10 @@
     @endif
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+
+    {{-- L'analitica senza cookie (§16). Con `ANALYTICS_*` vuote non emette
+         niente: nessuno script, nessuna richiesta verso terzi. --}}
+    <x-analytics />
 
     {{ $head ?? '' }}
 </head>
@@ -310,6 +323,10 @@
     </main>
 
     <x-save-prompt />
+
+    {{-- Il consenso (§16). Sta in fondo al documento e non copre la pagina:
+         chi vuole leggere prima di decidere, può. --}}
+    <x-cookie-banner />
 
     <footer class="mt-section border-t border-line bg-canvas-deep" aria-label="{{ __('ui.footer.label') }}">
         <div class="mx-auto grid w-full max-w-content gap-8 px-gutter py-10 sm:grid-cols-2 lg:grid-cols-5">

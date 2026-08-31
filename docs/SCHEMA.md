@@ -452,15 +452,57 @@ fallisce.
 
 ---
 
+### 3.25 `pages` (§11.1, §16 — D34)
+```
+id · slug(191, UNIQUE) · title · excerpt(500?) · body(longtext)
+is_published(bool, false) · seo_title? · seo_description(500?) · sort_order(smallint, 0)
+created_at · updated_at
+```
+Indice `(is_published, sort_order)`.
+
+Sono le pagine di `/pagine/{slug}`: informativa privacy, cookie policy, termini,
+chi siamo, contatti. Stanno nel database perche un errore in un'informativa
+privacy va corretto **oggi**, non al prossimo rilascio (D34, punto 1).
+
+`body` e **Markdown**, non HTML: la conversione lo rende scartando ogni
+marcatura grezza, quindi non esiste un percorso per cui uno `<script>` scritto
+nel campo finisca in pagina, e non c'e una whitelist da tenere allineata (§16).
+Lo slug **non si rigenera** al cambio del titolo: e un indirizzo che finisce nei
+registri dei trattamenti e nelle email gia spedite.
+
+### 3.26 `consent_logs` (§16 — D34)
+```
+id · consent_id(uuid) · user_id→users[SET NULL]? · action(enum ConsentAction)
+choices(json) · policy_version(32) · created_at · updated_at
+```
+Indici su `consent_id` e su `created_at`.
+
+Il «log del consenso» che §16 richiede. **Non contiene l'indirizzo IP**: per
+dimostrare un consenso basta poter riconoscere che quella scelta appartiene a
+quel browser, e a questo serve `consent_id` — un UUID casuale generato dal
+server e conservato solo nel cookie della scelta. Raccogliere l'IP per provare
+il rispetto della privacy sarebbe l'unico dato personale introdotto dalla
+funzione.
+
+`$table->uuid()` su MariaDB 10.7+ crea una colonna di tipo **nativo `uuid`**
+(16 byte), non un `char(36)` come su MySQL: e supportato anche dalla 10.11 di
+produzione, ed e il motivo per cui la colonna appare come `uuid` in
+`SHOW CREATE TABLE`.
+
+Le righe non si aggiornano mai: cambiare idea ne scrive una nuova con lo
+**stesso** `consent_id`. `policy_version` e il valore di `CONSENT_VERSION`
+vigente al momento della scelta; cambiandolo, ogni scelta precedente torna a
+valere come «non espressa» e il banner ricompare.
+
 ## 4. Foreign key — criterio applicato
 
 | Regola | Dove | Perché |
 |---|---|---|
 | `CASCADE` | `event_occurrences.event_id`, `event_recurrences.event_id`, `event_tag.*`, `lineups.occurrence_id`, `saved_events.*`, `follows.user_id`, `devices.user_id`, `scheduled_notifications.user_id`, `notification_log.user_id`, `event_views_daily.event_id`, `venue_user.*`, `promotions.*` | il figlio non ha significato senza il padre |
 | `RESTRICT` | `venues.city_id`, `events.city_id`, `events.category_id`, `import_sources.city_id` | cancellare un dato di base con contenuti collegati deve fallire in modo rumoroso |
-| `SET NULL` | `events.venue_id`, `events.created_by`, `event_occurrences.recurrence_id`, `tags.category_id`, `categories.parent_id`, tutti i `reviewed_by` / `approved_by`, `venue_applications.*`, `event_submissions.*`, `import_sources.venue_id`, `import_sources.default_category_id`, `reports.reporter_user_id` | il contenuto sopravvive alla sparizione del riferimento — vale in particolare per la cancellazione account GDPR |
+| `SET NULL` | `events.venue_id`, `events.created_by`, `event_occurrences.recurrence_id`, `tags.category_id`, `categories.parent_id`, tutti i `reviewed_by` / `approved_by`, `venue_applications.*`, `event_submissions.*`, `import_sources.venue_id`, `import_sources.default_category_id`, `reports.reporter_user_id`, `consent_logs.user_id` | il contenuto sopravvive alla sparizione del riferimento — vale in particolare per la cancellazione account GDPR |
 
-37 vincoli in totale.
+38 vincoli in totale.
 
 Cancellare un evento porta via, in cascata verificata: occorrenze → salvataggi
 degli utenti, lineup, tag, statistiche giornaliere, promozioni collegate.
@@ -492,6 +534,9 @@ degli utenti, lineup, tag, statistiche giornaliere, promozioni collegate.
 | 19 | `FollowableType` guadagna il caso `event` (quattro valori, non tre) | §15.3 chiede «Segui questo evento», che ha bisogno di un magazzino: la colonna è già una stringa e la morph map conteneva già l'alias, quindi una tabella nuova sarebbe stata un duplicato di `follows` con lo stesso vincolo unico (D29) |
 | 20 | `users.name` è nullable | §15.2 dichiara il nome facoltativo; una stringa vuota non è un nome mancante. Migration cambiata sul posto: il progetto è nuovo e non esistono dati da migrare |
 | 21 | Nuova tabella `notifications` (canale `database` di Laravel) | D8 ha promosso l'archivio in-app a canale di destinazione e §15.8 espone `GET /v1/me/notifications`: un archivio vuoto è una risposta legittima, un endpoint assente costringe l'app a due strade |
+
+| 22 | Nuove tabelle `pages` e `consent_logs` | §16 chiede Privacy Policy, Cookie Policy, Termini, Contatti, Chi siamo e il **log del consenso**, e §11.1 la rotta `/pagine/{slug}`, ma §7 non prevedeva alcuna tabella per l'una ne per l'altro (D34) |
+| 23 | `consent_logs` non ha una colonna per l'indirizzo IP | D34, punto 9: il registro deve provare una scelta, non tracciare chi l'ha fatta. Basta l'identificativo casuale conservato nel cookie |
 
 Fuori portata, lasciato com'era: `failed_jobs.failed_at` resta `TIMESTAMP` —
 è la migration di Laravel, non tocca il dominio.

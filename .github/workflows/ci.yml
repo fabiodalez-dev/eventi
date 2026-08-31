@@ -97,8 +97,159 @@ jobs:
           DB_USERNAME: root
           DB_PASSWORD: root
 
+  lighthouse:
+    name: Lighthouse
+    runs-on: ubuntu-latest
+    services:
+      mariadb:
+        image: mariadb:10.11
+        env:
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: eventi_lighthouse
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=10s --health-timeout=5s --health-retries=10
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: shivammathur/setup-php@b604ade2a87db23f8871b7182e69ec5e75effb45 # v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, intl, gd, imagick, zip, bcmath, pdo_mysql, exif
+          coverage: none
+
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ~/.composer/cache
+          key: composer-${{ hashFiles('composer.lock') }}
+
+      - run: composer install --no-interaction --prefer-dist --no-progress
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build
+
+      - name: Prepara ambiente
+        env:
+          DB_DATABASE: eventi_lighthouse
+          DB_PASSWORD: root
+        run: |
+          cp .env.example .env
+          sed -i "s|^DB_PORT=.*|DB_PORT=3306|" .env
+          sed -i "s|^DB_DATABASE=.*|DB_DATABASE=${DB_DATABASE}|" .env
+          sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=${DB_PASSWORD}|" .env
+          sed -i "s|^APP_DEBUG=.*|APP_DEBUG=false|" .env
+          sed -i "s|^APP_URL=.*|APP_URL=http://127.0.0.1:8080|" .env
+          php artisan key:generate
+          php artisan storage:link
+
+      # Il sito misurato deve avere dentro qualcosa: una pagina vuota prende
+      # novanta su novanta e non dice niente. Il seeder e' lo stesso della
+      # demo, con centocinquanta date sui prossimi trenta giorni.
+      - name: Popola il database
+        run: php artisan migrate:fresh --seed --force
+
+      # Le varianti WebP e AVIF nascono da lavori in coda (§12.1). Senza questo
+      # passaggio il sito servirebbe le locandine originali e la misura
+      # boccerebbe una pipeline che in produzione funziona: e' la differenza
+      # fra novanta e settantacinque, verificata.
+      - name: Genera le varianti delle immagini
+        run: php artisan queue:work --stop-when-empty --tries=1 --quiet
+
+      # Il server PHP di sviluppo non e' il prodotto: niente compressione,
+      # niente intestazioni di cache, ogni immagine attraverso PHP. Davanti gli
+      # si mette nginx, che e' cio' che fa il server vero. L'immagine del
+      # runner non lo porta, e con lui arriva `/etc/nginx/mime.types`, a cui il
+      # modello fa riferimento.
+      - name: Installa nginx
+        run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends nginx
+
+      # Si avvia `php -S` a mano invece di `php artisan serve`, e non per
+      # gusto: `artisan serve` e' un padre che legge lo standard output del
+      # figlio attraverso una pipe, e quando la shell di QUESTO passo termina
+      # la pipe si rompe. Da quel momento ogni risposta del sito esce con un
+      # `Notice: Broken pipe` incollato davanti al `<!doctype>` — e Lighthouse
+      # legge un `robots.txt` invalido e una pagina senza meta description.
+      # Costava diciassette punti di SEO, e sembrava un difetto del sito.
+      # Il router `server.php` legge `getcwd()`, quindi va lanciato da `public/`.
+      - name: Avvia applicazione e server
+        run: |
+          mkdir -p "${RUNNER_TEMP}/nginx"
+          sed -e "s|__ROOT__|${GITHUB_WORKSPACE}/public|g" \
+              -e "s|__PORT__|8080|g" \
+              -e "s|__APP_PORT__|8000|g" \
+              -e "s|__MIME__|/etc/nginx/mime.types|g" \
+              -e "s|__TMP__|${RUNNER_TEMP}/nginx|g" \
+              .github/lighthouse/nginx.conf.template > "${RUNNER_TEMP}/nginx/nginx.conf"
+
+          ROUTER=vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php
+          ( cd public && PHP_CLI_SERVER_WORKERS=8 \
+            nohup php -d variables_order=EGPCS -S 127.0.0.1:8000 "${GITHUB_WORKSPACE}/${ROUTER}" \
+            > "${RUNNER_TEMP}/php-server.log" 2>&1 < /dev/null & )
+
+          nohup nginx -c "${RUNNER_TEMP}/nginx/nginx.conf" -p "${RUNNER_TEMP}/nginx" \
+            > "${RUNNER_TEMP}/nginx.log" 2>&1 < /dev/null &
+
+          # `if` e non `[ ... ] && break`: sotto `set -e` una lista `&&` che
+          # torna falsa come ultimo comando di un giro interrompe il passo, e
+          # il fallimento sembrerebbe del server invece che dell'attesa.
+          code=000
+          for _ in $(seq 1 30); do
+            code=$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/ || echo 000)
+            if [ "$code" = "200" ]; then break; fi
+            sleep 1
+          done
+          [ "$code" = "200" ] || { echo "Il sito non risponde: $code"; cat "${RUNNER_TEMP}/nginx.log"; exit 1; }
+
+          # Una pagina servita bene non comincia con un avviso di PHP: se
+          # succede, il resto della misura non vale niente.
+          curl -sS http://127.0.0.1:8080/ | head -c 15 | grep -q '<!DOCTYPE html>' \
+            || { echo "La pagina non comincia con il doctype: qualcosa scrive prima dell'HTML"; exit 1; }
+
+      # Lo slug di un evento nasce dal seeder e cambia a ogni esecuzione:
+      # scriverlo nella configurazione significherebbe misurare un 404. Il feed
+      # RSS elenca le date future, e il suo primo collegamento e' una scheda
+      # evento viva.
+      - name: Scegli la scheda evento da misurare
+        run: |
+          url=$(curl -sS http://127.0.0.1:8080/feed.rss \
+            | grep -oE '<link>[^<]+/eventi/[^<]+</link>' | head -1 | sed -E 's|</?link>||g')
+          [ -n "$url" ] || { echo "Nessun evento nel feed: il seeder non ha popolato nulla"; exit 1; }
+          echo "Scheda misurata: $url"
+          echo "LHCI_EVENT_URL=$url" >> "$GITHUB_ENV"
+
+      - name: Lighthouse CI
+        env:
+          LHCI_BASE_URL: http://127.0.0.1:8080
+          LHCI_OUTPUT_DIR: ${{ runner.temp }}/lighthouse
+        run: npx lhci autorun --config=lighthouserc.cjs
+
+      # I referti restano allegati anche quando le soglie passano: e' la sola
+      # traccia di com'era il sito il giorno in cui e' stato misurato.
+      - name: Allega i referti
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: lighthouse
+          path: ${{ runner.temp }}/lighthouse
+          retention-days: 14
+          if-no-files-found: warn
+
   deploy:
     name: Deploy su eventi.fabiodalez.it
+    # `lighthouse` NON e' fra le dipendenze, ed e' una scelta scritta in D37:
+    # le soglie di §11.11 sono dichiarate come le vuole il piano, e LCP < 2s
+    # oggi non lo raggiunge nessun ambiente — il solo TTFB della shared hosting
+    # vale fra 0,6 e 3,0 secondi. Un criterio che nessuno soddisfa ancora non
+    # deve tenere in ostaggio ogni rilascio; il referto resta rosso e allegato,
+    # che e' il suo mestiere. Quando LCP scende sotto i due secondi, aggiungere
+    # `lighthouse` qui e' una riga.
     needs: [quality, tests]
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
@@ -155,6 +306,8 @@ jobs:
             --exclude 'storage/framework/sessions/*' \
             --exclude 'storage/framework/views/*' \
             --exclude 'storage/app/public/*' \
+            --exclude 'storage/app/private/*' \
+            --exclude 'storage/app/backup-temp' \
             --exclude 'public/storage' \
             --exclude 'bootstrap/cache/*' \
             ./ "${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_PATH}/"
@@ -188,6 +341,11 @@ jobs:
              $PHP artisan route:cache
              $PHP artisan view:cache
              $PHP artisan queue:restart
+             # Il registro dei comandi sorvegliati si allinea allo scheduler a
+             # ogni rilascio: un comando aggiunto in routes/console.php resterebbe
+             # altrimenti fuori dalla sorveglianza fino alla prossima notte,
+             # cioe proprio nei giorni in cui e piu probabile che non funzioni.
+             $PHP artisan schedule-monitor:sync --quiet
              chmod -R 775 storage bootstrap/cache'
 
       - name: Verifica che il sito risponda

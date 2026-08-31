@@ -80,7 +80,7 @@ final class ReportController extends Controller
         $slug = $request->subjectSlug();
 
         $subject = $request->subjectType() === ReportSubject::Event
-            ? Event::query()->inCity($city)->published()->where('slug', $slug)->first()
+            ? Event::query()->inCity($city)->readable()->where('slug', $slug)->first()
             : Venue::query()->inCity($city)
                 ->whereIn('status', [VenueStatus::Approved, VenueStatus::Suspended])
                 ->where('slug', $slug)

@@ -2,9 +2,12 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Web\ConsentController;
 use App\Http\Controllers\Web\ImpersonationController;
+use App\Http\Controllers\Web\PageController;
 use App\Http\Controllers\Web\SeoController;
 use App\Http\Controllers\Web\WidgetController;
+use App\Http\Middleware\RequiresOpsToken;
 use App\Http\Middleware\ResolveCity;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -12,6 +15,8 @@ use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Route;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use Spatie\Health\Http\Controllers\HealthCheckJsonResultsController;
+use Spatie\Health\Http\Controllers\SimpleHealthCheckController;
 
 /*
  * Le rotte del sito pubblico stanno in routes/public.php e sono registrate due
@@ -28,6 +33,34 @@ Route::group([], base_path('routes/public.php'));
  * "accedi".
  */
 Route::group([], base_path('routes/account.php'));
+
+/*
+ * Lo stato del sistema (§16: monitoring su endpoint **protetto** per l'uptime
+ * monitor). Fuori dai gruppi del sito pubblico: non appartiene a una città, e
+ * non deve passare da `ResolveCity` — un controllo di stato che dipende dallo
+ * stato del database sarebbe cieco proprio quando serve.
+ *
+ * `/stato` risponde JSON, con 503 quando un controllo è rosso: è ciò che un
+ * monitor di uptime capisce senza leggere il corpo. `/stato/completo` porta
+ * l'esito di ciascun controllo, per chi sta cercando quale.
+ *
+ * Sessione, cookie e protezione CSRF sono tolti di proposito: chi interroga
+ * questo indirizzo è un programma con una chiave, non un browser con una
+ * sessione, e ogni chiamata scriverebbe altrimenti un file di sessione.
+ */
+Route::middleware(RequiresOpsToken::class)
+    ->withoutMiddleware([
+        EncryptCookies::class,
+        AddQueuedCookiesToResponse::class,
+        StartSession::class,
+        ShareErrorsFromSession::class,
+        PreventRequestForgery::class,
+    ])
+    ->group(function (): void {
+        Route::get('/stato', SimpleHealthCheckController::class)->name('ops.health');
+
+        Route::get('/stato/completo', HealthCheckJsonResultsController::class)->name('ops.health.details');
+    });
 
 Route::prefix('{city}')
     ->where(['city' => '[a-z][a-z0-9-]*'])
@@ -90,3 +123,32 @@ Route::get('/impersona/interrompi', [ImpersonationController::class, 'stop'])
 Route::get('/impersona/{user}', [ImpersonationController::class, 'start'])
     ->whereNumber('user')
     ->name('impersonate.start');
+
+/*
+ * Le pagine redazionali di §11.1 e §16: informativa privacy, cookie policy,
+ * termini, chi siamo, contatti.
+ *
+ * Stanno fuori dai due gruppi del sito pubblico per la stessa ragione della
+ * mappa del sito: appartengono al dominio, non a una città. Un'informativa
+ * privacy per provincia non esiste, e `/padova/pagine/privacy` sarebbe lo
+ * stesso testo a un secondo indirizzo — cioè un doppione offerto all'indice.
+ */
+Route::get('/pagine/{slug}', [PageController::class, 'show'])
+    ->where('slug', '[a-z0-9][a-z0-9-]*')
+    ->name('pages.show');
+
+/*
+ * Il consenso (§16). Fuori dalle città come le pagine legali: la scelta vale
+ * per il sito intero.
+ *
+ * Il limite di frequenza c'è perché questa rotta scrive una riga di registro a
+ * ogni chiamata, e una rotta che scrive senza autenticazione è una rotta che
+ * qualcuno prima o poi prova a riempire.
+ */
+Route::post('/consenso', [ConsentController::class, 'store'])
+    ->middleware('throttle:consent')
+    ->name('consent.store');
+
+Route::delete('/consenso', [ConsentController::class, 'destroy'])
+    ->middleware('throttle:consent')
+    ->name('consent.destroy');

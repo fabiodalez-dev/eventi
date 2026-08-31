@@ -44,6 +44,7 @@ class UpdateProfileRequest extends FormRequest
             'daily_digest_time' => ['nullable', 'date_format:H:i'],
             'quiet_from' => ['nullable', 'date_format:H:i', 'required_with:quiet_to'],
             'quiet_to' => ['nullable', 'date_format:H:i', 'required_with:quiet_from'],
+            'quiet_off' => ['nullable', 'boolean'],
         ];
     }
 
@@ -58,10 +59,23 @@ class UpdateProfileRequest extends FormRequest
     }
 
     /**
+     * Il valore da scrivere in `users.quiet_hours`, nei tre stati che quella
+     * colonna distingue (D36):
+     *
+     * - un array con gli orari → sono le ore di silenzio scelte;
+     * - un array **vuoto** → «nessun silenzio», scelto di proposito. Senza
+     *   questo terzo stato la finestra predefinita sarebbe impossibile da
+     *   spegnere: svuotare i campi tornerebbe a `null`, cioè al predefinito;
+     * - `null` → non ho scelto, vale il predefinito.
+     *
      * @return array<string, string>|null
      */
     public function quietHours(): ?array
     {
+        if ($this->boolean('quiet_off')) {
+            return [];
+        }
+
         $from = $this->string('quiet_from')->value();
         $to = $this->string('quiet_to')->value();
 

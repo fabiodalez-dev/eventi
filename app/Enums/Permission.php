@@ -39,6 +39,8 @@ enum Permission: string
 
     case ManageImportSources = 'import_sources.manage';
 
+    case ManagePages = 'pages.manage';
+
     case ViewScheduledNotifications = 'notifications.view';
     case ManageScheduledNotifications = 'notifications.manage';
 

@@ -11,6 +11,7 @@ use App\Models\Follow;
 use App\Models\NotificationLog;
 use App\Models\User;
 use App\Models\Venue;
+use App\Support\Features;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -131,9 +132,11 @@ final class DigestPlanner
         /*
          * La newsletter del weekend è marketing (§15.9): non basta una
          * preferenza, serve il consenso esplicito e datato di
-         * `marketing_opt_in_at`.
+         * `marketing_opt_in_at`. E serve che la newsletter sia accesa: è
+         * l'interruttore che la spegne per tutti senza toccare un solo
+         * consenso, che è un atto delle persone e non una funzione nostra.
          */
-        if ($user->marketing_opt_in_at !== null) {
+        if ($user->marketing_opt_in_at !== null && Features::newsletterActive()) {
             $sendAt = $this->nextWeekday(
                 $now,
                 $timezone,

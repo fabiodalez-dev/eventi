@@ -44,6 +44,8 @@
             :hint="__('forms.application.hints.message')"
         />
 
+        <x-turnstile />
+
         <p class="text-xs text-ink-subtle">{{ __('forms.privacy_note') }}</p>
 
         <button

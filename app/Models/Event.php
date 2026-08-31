@@ -233,6 +233,24 @@ class Event extends Model implements HasMedia
     }
 
     /**
+     * Gli eventi che il pubblico può ancora **leggere**: pubblicati e
+     * archiviati (§14.5).
+     *
+     * La differenza con `published()` è tutta qui: quello decide chi entra
+     * nelle liste, questo chi ha ancora una pagina. Un evento archiviato è
+     * uscito dagli elenchi ma non dal sito — è arrivato in fondo alla propria
+     * vita utile, non è stato ritirato — e restituire 404 su un indirizzo che
+     * ha ricevuto visite per mesi butterebbe via ciò che §11.9 chiama il
+     * valore organico dell'archivio.
+     *
+     * @param  Builder<Event>  $query
+     */
+    public function scopeReadable(Builder $query): void
+    {
+        $query->whereIn('status', [EventStatus::Published, EventStatus::Archived]);
+    }
+
+    /**
      * @param  Builder<Event>  $query
      */
     public function scopeOfStatus(Builder $query, EventStatus $status): void

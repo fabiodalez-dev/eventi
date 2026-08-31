@@ -29,4 +29,15 @@ return new class extends Migration
             $table->nullableTimestamps();
         });
     }
+
+    /**
+     * Il verso di ritorno manca nel file pubblicato dal pacchetto: senza,
+     * `migrate:rollback` segna la migrazione come disfatta e lascia la
+     * tabella al suo posto, cosi la migrazione successiva non riparte
+     * (`RUNBOOK.md`, «Rollback»).
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('media');
+    }
 };

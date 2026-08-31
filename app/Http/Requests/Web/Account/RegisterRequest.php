@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests\Web\Account;
 
 use App\Support\Honeypot;
+use App\Support\Turnstile;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
@@ -32,6 +33,7 @@ class RegisterRequest extends FormRequest
             'password' => ['required', 'string', 'confirmed', Password::defaults()],
             'marketing_opt_in' => ['nullable', 'boolean'],
             ...Honeypot::rules(),
+            ...Turnstile::rules(),
         ];
     }
 

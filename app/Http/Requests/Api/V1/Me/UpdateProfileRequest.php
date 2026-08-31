@@ -33,6 +33,14 @@ class UpdateProfileRequest extends FormRequest
             'locale' => ['sometimes', 'string', Rule::in(config()->array('account.locales'))],
             'marketing_opt_in' => ['sometimes', 'boolean'],
             'daily_digest_time' => ['sometimes', 'nullable', 'date_format:H:i'],
+            /*
+             * Tre valori accettati, tre significati diversi (D36):
+             * `{"from":"23:00","to":"08:00"}` sono le proprie ore, `{}` è
+             * «nessun silenzio» scelto di proposito, `null` è «non decido» e
+             * riporta alla finestra predefinita. `required_with` non scatta su
+             * un oggetto vuoto — un valore vuoto non conta come presente — ed
+             * è ciò che rende dichiarabile il secondo caso.
+             */
             'quiet_hours' => ['sometimes', 'nullable', 'array:from,to'],
             'quiet_hours.from' => ['required_with:quiet_hours', 'date_format:H:i'],
             'quiet_hours.to' => ['required_with:quiet_hours', 'date_format:H:i'],

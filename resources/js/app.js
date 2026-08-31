@@ -453,6 +453,85 @@ async function mergeGuestSaves() {
     }
 }
 
+/**
+ * Il banner del consenso (§16), che senza JavaScript funziona già.
+ *
+ * Qui si toglie solo il ricaricamento di pagina: il modulo viene inviato in
+ * sottofondo e il banner scompare. Se la richiesta fallisce si **ripiega
+ * sull'invio normale**, portandosi dietro la scelta: chiudere il banner senza
+ * averla registrata sarebbe la cosa peggiore possibile — la scelta andrebbe
+ * persa e il sito si comporterebbe come se fosse stata rifiutata, senza dirlo
+ * a nessuno.
+ *
+ * ## Due trappole del DOM, entrambe incontrate davvero
+ *
+ * 1. **`form.action` non è l'indirizzo del modulo.** Un modulo che contiene un
+ *    controllo chiamato `action` — e questo lo contiene, sono i tre pulsanti —
+ *    espone quel controllo al posto della propria proprietà: `form.action`
+ *    restituisce una `RadioNodeList`, che concatenata in una stringa diventa
+ *    `[object RadioNodeList]`. La richiesta parte verso un indirizzo
+ *    inesistente e l'unico segnale è un 404 in console. Si legge quindi
+ *    l'attributo, che non si lascia oscurare.
+ * 2. **Un invio programmatico non porta con sé il pulsante premuto.** Il campo
+ *    `action` viaggia solo se qualcuno preme davvero il pulsante: nel ripiego
+ *    va aggiunto a mano, altrimenti il server riceve un modulo senza scelta e
+ *    lo rimanda indietro con un errore di validazione — banner ancora lì, e
+ *    nessuno capisce perché.
+ */
+function consentBanner() {
+    const banner = document.querySelector('[data-consent-banner]');
+    const form = banner?.querySelector('[data-consent-form]');
+
+    if (!banner || !(form instanceof HTMLFormElement)) {
+        return;
+    }
+
+    /* Invio normale, con la scelta allegata: è ciò che sarebbe successo senza
+       questo script. */
+    const fallback = (scelta) => {
+        const campo = document.createElement('input');
+        campo.type = 'hidden';
+        campo.name = 'action';
+        campo.value = scelta;
+        form.append(campo);
+        form.submit();
+    };
+
+    form.addEventListener('submit', async (event) => {
+        const submitter = event.submitter;
+
+        if (!(submitter instanceof HTMLButtonElement) || submitter.name !== 'action') {
+            return;
+        }
+
+        event.preventDefault();
+
+        const scelta = submitter.value;
+        const data = new FormData(form);
+        data.set('action', scelta);
+
+        try {
+            const response = await fetch(form.getAttribute('action'), {
+                method: 'POST',
+                headers: { Accept: 'application/json', 'X-Requested-With': 'fetch' },
+                body: data,
+            });
+
+            if (!response.ok) {
+                fallback(scelta);
+
+                return;
+            }
+
+            banner.remove();
+        } catch {
+            /* Nessuna rete: l'invio normale resta l'unica strada, e il banner
+               resta dov'è finché non riesce. */
+            fallback(scelta);
+        }
+    });
+}
+
 function start() {
     infiniteScroll();
     nativeShare();
@@ -461,6 +540,7 @@ function start() {
     saveAllDates();
     dismissPrompt();
     showPromptIfDue();
+    consentBanner();
     void mergeGuestSaves();
 }
 

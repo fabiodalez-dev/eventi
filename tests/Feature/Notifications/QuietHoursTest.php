@@ -35,8 +35,13 @@ it('riconosce una finestra che attraversa la mezzanotte', function (string $time
     'a metà mattina' => ['10:00', false],
 ]);
 
-it('non inventa un silenzio a chi non lo ha dichiarato', function (): void {
-    expect(QuietHours::fromUser(User::factory()->make(['quiet_hours' => null])))->toBeNull()
+it('dà a chi non ha scelto la finestra predefinita, e nessuna a chi l ha rifiutata', function (): void {
+    // D36: chi non ha scelto riceve 23:00-08:00, perché l'omissione non deve
+    // tradursi in un promemoria alle tre di notte. Chi non ne vuole affatto lo
+    // dichiara, e allora la colonna contiene un array vuoto — non `null`.
+    expect(QuietHours::fromUser(User::factory()->make(['quiet_hours' => null]))?->toArray())
+        ->toBe(['from' => '23:00', 'to' => '08:00'])
+        ->and(QuietHours::fromUser(User::factory()->make(['quiet_hours' => []])))->toBeNull()
         ->and(QuietHours::fromUser(User::factory()->make(['quiet_hours' => ['from' => '08:00', 'to' => '08:00']])))->toBeNull();
 });
 

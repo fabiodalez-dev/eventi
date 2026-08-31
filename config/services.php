@@ -35,4 +35,24 @@ return [
         ],
     ],
 
+    /*
+     * Cloudflare Turnstile sui moduli pubblici (§14.7).
+     *
+     * Le due chiavi vuote **spengono** la protezione: nessun riquadro nel
+     * modulo, nessuna regola in validazione. È voluto — sviluppo, test e CI
+     * non devono dipendere da un servizio esterno raggiungibile, e un
+     * ambiente configurato a metà respingerebbe ogni invio.
+     */
+    'turnstile' => [
+        'site_key' => env('TURNSTILE_SITE_KEY', ''),
+        'secret_key' => env('TURNSTILE_SECRET_KEY', ''),
+
+        /*
+         * Secondi di attesa per la risposta di Cloudflare. Breve di proposito:
+         * un modulo pubblico che resta fermo perché un terzo ci ripensa è un
+         * disservizio nostro.
+         */
+        'timeout' => env('TURNSTILE_TIMEOUT', 5),
+    ],
+
 ];

@@ -79,6 +79,7 @@ return [
         'user' => ['label' => 'Utente', 'plural' => 'Utenti'],
         'member' => ['label' => 'Collaboratore', 'plural' => 'Collaboratori'],
         'scheduled_notification' => ['label' => 'Notifica programmata', 'plural' => 'Notifiche programmate'],
+        'page' => ['label' => 'Pagina informativa', 'plural' => 'Pagine informative'],
     ],
 
     'sections' => [
@@ -104,6 +105,8 @@ return [
         'roles' => 'Ruoli',
         'review' => 'Esito della revisione',
         'connection' => 'Connessione',
+        'content' => 'Contenuto',
+        'seo' => 'Motori di ricerca',
     ],
 
     'tabs' => [
@@ -220,6 +223,11 @@ return [
         'icon' => 'Icona',
         'color' => 'Colore',
         'sort_order' => 'Ordinamento',
+        'excerpt' => 'Sommario',
+        'body' => 'Testo',
+        'is_published' => 'Pubblicata',
+        'seo_title' => 'Titolo per i motori di ricerca',
+        'seo_description' => 'Descrizione per i motori di ricerca',
         'default_duration_minutes' => 'Durata predefinita in minuti',
         'supports_ongoing' => 'Può risultare "in corso"',
         'is_nightlife' => 'Vita notturna',
@@ -412,6 +420,11 @@ return [
         'merge' => 'Scegli il tag doppione: i suoi eventi passano a questo e il doppione sparisce.',
         'impersonate' => 'Serve a vedere il sito con gli occhi di chi segnala un problema. Ogni azione compiuta risulta sua.',
         'lat_lng' => 'Coordinate del locale: :lat, :lng',
+        'page_slug' => 'È l\'indirizzo della pagina e non cambia più dopo la creazione: /pagine/<slug>. Finisce nei registri dei trattamenti e nelle email già spedite.',
+        'page_body' => 'Markdown. Ogni marcatura HTML scritta qui dentro viene scartata: i titoli si fanno con ## e i grassetti con **.',
+        'page_excerpt' => 'Una o due righe sotto il titolo. Diventa anche la descrizione nei risultati di ricerca, se il campo dedicato è vuoto.',
+        'page_is_published' => 'Una pagina non pubblicata risponde 404 al pubblico: non è visibile e non rivela di esistere.',
+        'page_sort_order' => 'Ordine nel piè di pagina. Numeri più bassi vengono prima.',
     ],
 
     /* Punti cardinali dei confini della mappa: l'iniziale cambia con la lingua. */
@@ -426,6 +439,7 @@ return [
         'never' => 'Mai',
         'none' => 'Nessuno',
         'system' => 'Sistema',
+        'auto' => 'Automatico',
     ],
 
     'activity' => [

@@ -78,15 +78,38 @@ final class EventOccurrenceQuery
     /** @var array{lat: float, lng: float}|null */
     private ?array $origin = null;
 
-    private function __construct(private readonly City $city)
+    /**
+     * @param  non-empty-list<EventStatus>  $statuses  stati dell'evento padre ammessi in tutte le finestre
+     */
+    private function __construct(private readonly City $city, private readonly array $statuses)
     {
         $this->now = CarbonImmutable::now($city->timezone);
         $this->query = $this->baseQuery();
     }
 
+    /**
+     * Il costruttore di tutte le finestre pubbliche: **solo eventi pubblicati**.
+     * Una bozza, un evento rifiutato o uno archiviato non compaiono in nessun
+     * elenco, in nessuna mappa e in nessun conteggio.
+     */
     public static function for(City $city): self
     {
-        return new self($city);
+        return new self($city, [EventStatus::Published]);
+    }
+
+    /**
+     * Come `for()`, ma comprende anche gli **archiviati** (§14.5).
+     *
+     * Archiviare toglie dalle liste, non dal sito: l'archivio della scheda
+     * locale e le date passate della scheda evento sono le due sole viste che
+     * guardano indietro, e §11.9 le vuole piene — sono quelle che i motori di
+     * ricerca continuano a mostrare per anni. Chiamarla su una finestra futura
+     * non è un errore ma non ha senso: un evento archiviato con date future
+     * non esiste, perché è la loro assenza a farlo archiviare.
+     */
+    public static function archiveFor(City $city): self
+    {
+        return new self($city, [EventStatus::Published, EventStatus::Archived]);
     }
 
     /**
@@ -957,7 +980,7 @@ final class EventOccurrenceQuery
                 $join->on('venues.id', '=', 'events.venue_id')->whereNull('venues.deleted_at');
             })
             ->where('events.city_id', $this->city->getKey())
-            ->where('events.status', EventStatus::Published->value)
+            ->whereIn('events.status', array_map(static fn (EventStatus $status): string => $status->value, $this->statuses))
             ->whereNull('events.deleted_at');
     }
 

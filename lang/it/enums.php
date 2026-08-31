@@ -270,6 +270,7 @@ return [
 
         'users.manage' => 'Gestire gli account e i ruoli',
         'users.impersonate' => 'Navigare il sito come un altro utente',
+        'pages.manage' => 'Scrivere le pagine informative e legali',
     ],
 
     /* Ogni quanto si ripete una serata, detto come lo direbbe chi la organizza
@@ -285,6 +286,32 @@ return [
        i giorni sono un parametro, non tre traduzioni diverse. */
     'stats_period' => [
         'days' => ':days giorni',
+    ],
+
+    /* Le finalità su cui il banner chiede una scelta (§16). Sono due perché
+       due sono le cose che il sito fa davvero. */
+    'consent_category' => [
+        'necessary' => 'Necessari',
+        'statistics' => 'Statistiche anonime',
+    ],
+
+    'consent_category_description' => [
+        'necessary' => 'Il cookie di sessione, la protezione dei moduli, il cookie che ricorda questa scelta e le date che metti in agenda senza account, conservate nel tuo browser. Senza, il sito non fa quello che gli chiedi: per questo non si possono disattivare.',
+        'statistics' => 'Il conteggio anonimo delle pagine viste, per capire cosa serve davvero. Nessun cookie, nessun identificativo, nessun profilo: solo quante volte una pagina è stata aperta.',
+    ],
+
+    /* Come è stata espressa la scelta, per il registro di §16: un registro che
+       dice cosa è stato scelto ma non come non distingue un pulsante da una
+       spunta messa a mano, e la seconda è la prova più solida. */
+    'consent_action' => [
+        'accept_all' => 'Accettate tutte',
+        'reject_all' => 'Rifiutate tutte',
+        'custom' => 'Preferenze scelte',
+    ],
+
+    'analytics_provider' => [
+        'plausible' => 'Plausible',
+        'umami' => 'Umami',
     ],
 
 ];

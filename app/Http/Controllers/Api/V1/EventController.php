@@ -48,7 +48,7 @@ final class EventController extends Controller
     public function show(EventQueryRequest $request, string $slug): JsonResponse
     {
         $city = $this->city();
-        $event = $this->findPublished($city, $slug);
+        $event = $this->findReadable($city, $slug);
 
         /*
          * Le date della scheda le sceglie il motore: sono le future, e sono
@@ -91,7 +91,7 @@ final class EventController extends Controller
     public function similar(EventQueryRequest $request, string $slug): JsonResponse
     {
         $city = $this->city();
-        $event = $this->findPublished($city, $slug);
+        $event = $this->findReadable($city, $slug);
 
         $query = EventOccurrenceQuery::for($city)
             ->upcoming()
@@ -110,12 +110,18 @@ final class EventController extends Controller
         );
     }
 
-    private function findPublished(City $city, string $slug): Event
+    /**
+     * Pubblicati **e archiviati** (§14.5), come il sito: §18 scenario G vuole
+     * che i due diano la stessa risposta nello stesso istante, e una scheda
+     * che il sito mostra e l'API dichiara inesistente sarebbe la divergenza
+     * più difficile da spiegare a chi scrive l'applicazione.
+     */
+    private function findReadable(City $city, string $slug): Event
     {
         $event = Event::query()
             ->with(['venue', 'category', 'tags', 'media'])
             ->inCity($city)
-            ->published()
+            ->readable()
             ->where('slug', $slug)
             ->first();
 

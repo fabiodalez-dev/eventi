@@ -7,6 +7,7 @@ use App\Filament\Admin\Resources\Categories\CategoryResource;
 use App\Filament\Admin\Resources\Cities\CityResource;
 use App\Filament\Admin\Resources\Events\EventResource;
 use App\Filament\Admin\Resources\ImportSources\ImportSourceResource;
+use App\Filament\Admin\Resources\Pages\PageResource;
 use App\Filament\Admin\Resources\Reports\ReportResource;
 use App\Filament\Admin\Resources\Tags\TagResource;
 use App\Filament\Admin\Resources\Users\UserResource;
@@ -18,6 +19,7 @@ use App\Models\Event;
 use App\Models\EventOccurrence;
 use App\Models\EventRecurrence;
 use App\Models\ImportSource;
+use App\Models\Page;
 use App\Models\Report;
 use App\Models\Tag;
 use App\Models\User;
@@ -68,6 +70,7 @@ beforeEach(function (): void {
     $this->application = VenueApplication::factory()->create();
     $this->importSource = ImportSource::factory()->create(['city_id' => $this->city->getKey()]);
     $this->user = User::factory()->create();
+    $this->page = Page::factory()->create();
 });
 
 /**
@@ -119,6 +122,7 @@ it('apre ogni elenco senza mostrare chiavi di traduzione', function (string $url
     'segnalazioni' => '/admin/reports',
     'import' => '/admin/import-sources',
     'richieste' => '/admin/venue-applications',
+    'pagine' => '/admin/pages',
 ]);
 
 it('apre ogni modulo di creazione', function (string $url): void {
@@ -131,6 +135,7 @@ it('apre ogni modulo di creazione', function (string $url): void {
     'tag' => '/admin/tags/create',
     'utente' => '/admin/users/create',
     'sorgente' => '/admin/import-sources/create',
+    'pagina' => '/admin/pages/create',
 ]);
 
 it('apre ogni scheda di modifica senza chiavi di traduzione', function (): void {
@@ -144,6 +149,7 @@ it('apre ogni scheda di modifica senza chiavi di traduzione', function (): void 
         ReportResource::getUrl('edit', ['record' => $this->report]),
         ImportSourceResource::getUrl('edit', ['record' => $this->importSource]),
         VenueApplicationResource::getUrl('edit', ['record' => $this->application]),
+        PageResource::getUrl('edit', ['record' => $this->page]),
     ];
 
     foreach ($urls as $url) {

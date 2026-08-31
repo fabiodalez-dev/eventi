@@ -1208,3 +1208,481 @@ dello stesso feed: quattro eventi creati la prima volta, zero creati e zero
 aggiornati la seconda e la terza, stessi identificativi e stesse date. Un
 titolo, una descrizione, un luogo e una data cambiati a monte aggiornano
 **la stessa riga**, e la colonna calcolata `business_date` segue la data nuova.
+
+## 2026-08-31 — D33. Operatività: dieci scelte prese configurando §16
+
+**Decisione.** I quattro pacchetti installati e non configurati —
+`spatie/laravel-backup`, `spatie/laravel-health`,
+`spatie/laravel-schedule-monitor`, `laravel/pennant` — più
+`sentry/sentry-laravel`, che mancava. Dieci punti che §16 e §12 dello stack
+non fissano.
+
+1. **La retention di 30 giorni è retention, non decadimento.** La strategia
+   predefinita del pacchetto conserverebbe una copia settimanale per due mesi,
+   una mensile per quattro e una annuale per due anni; §16 dice «30 giorni», e
+   i quattro periodi successivi sono a zero. Sulla shared hosting il disco è
+   condiviso, quindi c'è anche un tetto di spazio (2 GB) che vince sui giorni:
+   un disco pieno ferma anche il sito.
+2. **Nel backup entra `storage/app`, non l'intero progetto.** Il codice è in
+   git, ed è l'unica cosa già al sicuro altrove: includerlo raddoppierebbe
+   ogni copia notturna per conservare ciò che si recupera con un `git clone`.
+   Il disco `s3` resta predisposto e commentato in tre punti (`BACKUP_DISKS`,
+   `destination.disks`, `monitor_backups`), perché una copia che vive solo
+   sulla macchina che protegge non protegge da un guasto di quella macchina.
+3. **Conseguenza sul rilascio, e non è secondaria:** il `rsync --delete` del
+   deploy sincronizzava anche `storage/app/private`, dove finiscono i backup.
+   Senza `--exclude 'storage/app/private/*'` ogni pubblicazione avrebbe
+   cancellato ogni copia — un backup distrutto proprio dal gesto dopo il quale
+   serve di più. La riga è stata aggiunta insieme a questa fase.
+4. **Avvisa il fallimento, tace il successo.** Le tre notifiche di riuscita
+   restano dichiarate con un canale vuoto e non cancellate (il pacchetto
+   morirebbe di chiave mancante): un messaggio ogni notte per dire che è
+   andato tutto bene si smette di leggere in una settimana, e da quel momento
+   non si legge più nemmeno quello che dice il contrario. `backup:monitor`
+   copre il caso peggiore — un comando che **non parte** non fallisce, quindi
+   non avviserebbe nessuno: quello che si sorveglia è l'età dell'ultima copia.
+5. **Un indirizzo solo per tutti gli allarmi.** `OPS_ALERT_EMAIL` vale per il
+   backup e per i controlli di stato; `App\Support\OpsAlerts` lo interpreta in
+   un posto solo. È una **lista**, anche con un destinatario: `laravel-backup`
+   valida ogni voce come indirizzo e rifiuterebbe la stringa vuota con
+   un'eccezione all'avvio, mentre una lista vuota è una destinazione assente e
+   Laravel salta il canale. Così «nessun indirizzo configurato» significa
+   «nessun invio» e non «l'applicazione non parte» — che è ciò che tiene
+   silenziosi sviluppo, test e integrazione continua senza interruttori.
+6. **`/stato` è chiuso di default, non aperto di default.** Il middleware è
+   nostro e non il `RequiresSecretToken` del pacchetto, che senza chiave
+   configurata lascia passare **chiunque**: un endpoint che si apre da solo
+   quando qualcuno dimentica una riga di `.env` è un endpoint aperto, e questo
+   elenca uno per uno i pezzi del sistema che stanno cedendo. Senza chiave
+   risponde 404 — non 403, che confermerebbe l'esistenza dell'indirizzo — e il
+   confronto è a tempo costante. La chiave si porta in `X-Secret-Token` o in
+   query string, perché diversi servizi di uptime sanno interrogare solo un
+   indirizzo.
+7. **`/stato` va registrato prima del gruppo `/{city}`, e questa è la
+   trappola.** Il secondo gruppo di `routes/public.php` monta la pagina
+   iniziale su `/{city}`: una rotta di **un solo segmento**. Registrata dopo,
+   `/stato` viene letta come la città «stato», e `ResolveCity` risponde 404 —
+   un 404 che assomiglia in tutto a una rotta mancante, mentre `route:list` la
+   mostra al posto giusto. Vale per ogni indirizzo di primo livello che
+   nascerà da qui in avanti.
+8. **Lo stato si rilegge, non si ricalcola.** `health:check` gira ogni cinque
+   minuti dallo scheduler e salva; l'endpoint restituisce l'ultimo esito
+   (`always_send_fresh_results` a `false`, che nonostante il nome è la chiave
+   letta anche dai controller). Con un monitor che interroga ogni minuto la
+   differenza è sette controlli al minuto per sempre, e un endpoint di sola
+   lettura non deve poter diventare un carico. Il codice di risposta di un
+   guasto è **503** e non il 200 predefinito del pacchetto: un monitor deve
+   capirlo senza leggere il corpo.
+9. **`schedule-monitor` registra, `health` avvisa.** Il pacchetto, da solo,
+   scrive quando ogni comando è partito e finito e aspetta che qualcuno guardi;
+   la notifica la porterebbe Oh Dear, che è un servizio esterno a pagamento
+   fuori da questo stack. `App\Support\Health\ScheduledTasksCheck` è il ponte:
+   legge il registro e lo traduce in uno stato che `health:check` sa mandare
+   per email. «Smesso di girare» non è un tempo assoluto — per un comando
+   mensile sarebbero trenta giorni e per uno ogni cinque minuti cinque — ma la
+   prossima esecuzione prevista dalla propria espressione cron più la
+   tolleranza. Il controllo fallisce **anche** quando un comando dello
+   scheduler non è nel registro: è il caso peggiore, tutto verde perché nessuno
+   sta guardando, e succede quando `schedule-monitor:sync` non gira dopo un
+   rilascio che ha aggiunto comandi. Per questo il `sync` sta sia nel deploy
+   sia nello scheduler. I due battiti di `health` (`queue-check` e
+   `schedule-check`) sono gli unici comandi esclusi dalla sorveglianza:
+   girano ogni minuto, scriverebbero da soli due terzi dello storico e dicono
+   già, meglio, ciò che il registro direbbe di loro.
+   Il backup **non** gira `runInBackground()`: in background lo scheduler non
+   conosce il codice di uscita, e il monitor registrerebbe come riuscita ogni
+   esecuzione, fallimenti compresi.
+10. **Pennant ha due interruttori veri, e la verità sta nella riga.**
+    `city-import` (ambito: la città) spegne l'import di §14.2 per una città
+    sola — è il motivo per cui lo stack ha scelto il pacchetto, «accendere
+    funzioni per singola città»; `newsletter` (ambito costante, non l'utente
+    collegato, altrimenti ogni visitatore si porterebbe una riga in `features`
+    per una risposta uguale per tutti) toglie il consenso dai tre moduli che lo
+    chiedono e svuota la programmazione del giovedì.
+    Il valore risolto da Pennant **resta memorizzato**: per questo la città
+    accesa non si legge da `cities.settings`, che si potrebbe cambiare senza
+    che nessuno se ne accorga. La verità è la riga in `features`, i valori di
+    `config/pennant.php` sono solo ciò che vale per un ambito su cui nessuno ha
+    ancora deciso, ed entrambi nascono accesi perché un interruttore introdotto
+    spento cambia il prodotto di nascosto. `feature:set` esiste perché senza di
+    esso spegnere una città richiederebbe un'espressione PHP scritta a mano su
+    una macchina viva: rifiuta un nome inesistente, pretende la città dove
+    serve e **rifiuta** `--city` dove non serve, invece di ignorarlo — chi lo
+    scrive crede di spegnere una città sola e spegnerebbe il sistema intero.
+    Spegnere la newsletter **non revoca** i consensi già dati: la casella
+    sparisce dai moduli, e i controller smettono di leggerla invece di
+    interpretarne l'assenza come un «no». Un consenso è un atto della persona,
+    e cancellarlo al primo salvataggio di un altro campo sarebbe una revoca che
+    nessuno ha chiesto.
+
+**Conseguenze.** Nuovo `App\Providers\OperationsServiceProvider` (i controlli
+di stato e la definizione degli interruttori stanno fuori da
+`AppServiceProvider`: non dichiarano che cosa il prodotto fa, ma come ci si
+accorge che ha smesso di farlo); nuovi `App\Support\Features`,
+`App\Support\OpsAlerts`, `App\Support\Health\{ImportSourcesCheck,
+ScheduledTasksCheck}`, `App\Http\Middleware\RequiresOpsToken`,
+`App\Console\Commands\SetFeatureCommand`; nuove configurazioni `backup`,
+`health`, `schedule-monitor`, `pennant`, `sentry`; nuovi `lang/it/health.php` e
+`lang/it/operations.php`; tre migration di terze parti pubblicate verbatim
+(D13), con l'aggiunta del solo `down()` dove lo stub non ce l'aveva; otto voci
+nuove in `routes/console.php` e la direttiva Blade `@newsletter`.
+Sentry è **spento senza DSN** e non è un accorgimento nostro: il provider del
+pacchetto non registra nulla e il trasporto risponde «saltato» invece di aprire
+una connessione. `send_default_pii` resta `false` e i parametri delle
+interrogazioni SQL non escono (§16: «raccogliere il minimo»).
+
+**Verificato.** 56 test nuovi in `tests/Feature/Operations/`, suite intera
+verde (952), `pint` passato, `phpstan` livello 6 a zero errori. Il backup è
+stato **eseguito davvero**, non solo testato: `backup:run` ha prodotto un
+archivio da 126 MB con dump del database e `storage/app`, `backup:clean` lo ha
+mantenuto e `backup:monitor` lo ha dichiarato sano. `health:check` percorre i
+sette controlli e li salva; con `php artisan serve` e chiave in `.env`,
+`/stato` risponde **404** senza chiave, 404 con chiave sbagliata e 503 con
+chiave giusta e stato degradato, in JSON. `schedule-monitor:sync` registra
+undici comandi e `schedule-monitor:list` ne mostra la prossima esecuzione.
+
+## 2026-08-31 — D34. Pagine legali, consenso e analitica: undici scelte prese scrivendo §16
+
+**Decisione.** Undici punti che §16 impone ma non descrive.
+
+1. **Le pagine legali stanno nel database, non in Blade.** Tabella `pages`
+   (`slug` unico, `title`, `excerpt`, `body`, `is_published`, campi SEO,
+   `sort_order`) e una risorsa in `/admin`. La ragione non è la comodità: un
+   errore in un'informativa privacy va corretto **oggi**, non al prossimo
+   rilascio, e chi lo corregge non deve saper usare git. Sono anche gli unici
+   testi del sito che una persona non tecnica deve poter riscrivere per intero.
+2. **Il corpo è Markdown, e la conversione scarta la marcatura grezza.**
+   `Str::markdown(..., ['html_input' => 'strip', 'allow_unsafe_links' => false])`
+   sostituisce l'intero sanificatore che §16 chiede («whitelist, no `<script>`,
+   no iframe arbitrari»): non c'è una lista di tag ammessi da tenere allineata
+   nel tempo, perché **nessun** tag scritto nel campo sopravvive alla
+   conversione, e `javascript:` in un collegamento perde l'indirizzo invece di
+   restare cliccabile. Un editor ricco avrebbe salvato HTML, cioè avrebbe
+   spostato il problema a valle su ogni lettura.
+3. **Lo slug non insegue il titolo.** `doNotGenerateSlugsOnUpdate()`:
+   l'indirizzo di un'informativa privacy finisce nei registri dei trattamenti e
+   nelle email già spedite. Cambiare il titolo non deve trasformare quei
+   collegamenti in 404. Resta modificabile a mano, ma è un gesto dichiarato.
+4. **`/pagine/{slug}` sta fuori dai gruppi di città.** Stessa ragione della
+   mappa del sito (D25, punto 6): un'informativa privacy per provincia non
+   esiste, e `/padova/pagine/privacy` sarebbe lo stesso testo a un secondo
+   indirizzo, cioè un doppione offerto all'indice.
+5. **Una pagina non pubblicata è 404, non 403.** Una bozza di informativa non
+   deve essere leggibile da chi ne indovina l'indirizzo, e non deve nemmeno
+   rivelare di esistere.
+6. **Il banner è un modulo vero, non un pannello disegnato dallo script.** §16
+   chiede che «il rifiuto sia semplice quanto l'accettazione»: un banner che si
+   chiude solo via JavaScript lascia a chi non lo esegue una striscia in fondo
+   allo schermo per sempre, che è il modo più efficace di far premere «accetta».
+   Senza script il modulo invia e la pagina si ricarica; con lo script la
+   richiesta parte in sottofondo e il banner sparisce. **La parità è
+   verificabile**: i due pulsanti prendono la classe da una variabile sola, e un
+   test confronta le due stringhe invece di affidarsi alla rilettura di un diff.
+7. **Le finalità sono due, e sono quelle vere.** `ConsentCategory` ha
+   `necessary` e `statistics`. Non esiste una categoria «marketing» perché non
+   esistono pubblicità né pixel; le date messe in agenda da chi non ha un
+   account restano fra i **necessari** perché sono l'archetipo dell'eccezione
+   dell'articolo 5(3) ePrivacy — storage richiesto esplicitamente dall'utente,
+   come un carrello — e renderle rifiutabili avrebbe rotto §15.1 («il cuore deve
+   funzionare al primo click») fingendo una scelta che non esiste.
+8. **Conta il pulsante premuto, non lo stato del modulo.** Chi preme «Rifiuta»
+   con una casella rimasta spuntata ha rifiutato. Leggere le caselle invece
+   dell'azione è il modo esatto in cui un banner finisce per registrare il
+   contrario di ciò che gli è stato detto; c'è un test dedicato.
+9. **Il registro del consenso non contiene l'indirizzo IP.** `consent_logs`
+   porta un identificativo casuale generato qui e conservato nel cookie
+   (`consent_id`), la scelta per categoria, la versione dell'informativa e
+   l'istante. Raccogliere l'IP per dimostrare il rispetto della privacy sarebbe
+   l'unico dato personale introdotto da questa funzione. Le righe non si
+   aggiornano mai: cambiare idea ne scrive una nuova **con lo stesso
+   identificativo**, così il registro racconta una storia e non due scelte
+   scollegate. `CONSENT_VERSION` che cambia riporta ogni scelta a «non ancora
+   espressa» e fa ricomparire il banner: è il solo modo di far valere davvero un
+   cambiamento delle finalità.
+10. **La scelta entra nella chiave della full-page cache.** Il banner e lo
+    script delle statistiche stanno **dentro** il documento: senza questa parte
+    della chiave, il primo visitatore che accetta riempirebbe la cache di pagine
+    con il contatore acceso e il banner assente, e quelle pagine verrebbero
+    servite a chi non ha ancora scelto niente — un consenso preventivo che
+    diventa il consenso di qualcun altro. Le varianti restano tre («non ha
+    scelto», «ha accettato», «ha rifiutato») perché l'identificativo del browser
+    resta fuori: dentro la chiave darebbe a ogni visitatore una copia sua, cioè
+    nessuna cache. Per la stessa ragione `App\Support\Consent` lega la scelta
+    ricordata **all'oggetto richiesta** che l'ha prodotta e non alla vita
+    dell'istanza `scoped`: nei test HTTP e su un futuro server persistente il
+    processo non muore fra una richiesta e l'altra, e la scelta di chi accetta
+    resterebbe addosso al visitatore successivo.
+11. **`ANALYTICS_*` vuote non significano contatore spento: significano
+    nessuna riga.** Nessuno `<script>`, nessun `preconnect`, nessun commento —
+    un test verifica che nell'HTML non compaia **alcun** indirizzo esterno,
+    non solo che manchi il nome del fornitore. Configurata, parte comunque solo
+    con il consenso, e chi non ha ancora scelto vale come chi ha rifiutato
+    (preventivo). `AnalyticsProvider` sa che lo stesso valore si chiama
+    `data-domain` per Plausible e `data-website-id` per Umami, così le variabili
+    d'ambiente restano tre come chiesto.
+
+**Conseguenze.** Nuove tabelle `pages` e `consent_logs`; nuovi enum
+`ConsentCategory`, `ConsentAction`, `AnalyticsProvider`; permesso
+`pages.manage` (amministratore e amministratore di sistema, **non** il
+moderatore: §3 gli dà la moderazione dei contenuti altrui, non i testi con cui
+il sito risponde davanti a un'autorità) con la `PagePolicy` corrispondente;
+`config/consent.php`, `config/analytics.php`, `lang/it/consent.php`,
+`lang/it/pages.php`; `App\Support\Consent`, `App\DTOs\ConsentState`,
+`App\Actions\RecordConsent`, `App\Services\Analytics\AnalyticsScript`;
+componenti `<x-cookie-banner>`, `<x-consent-preferences>`, `<x-analytics>`;
+limitatore `consent` a 30 invii l'ora (i cinque dei moduli pubblici avrebbero
+reso difficile la revoca, che è un diritto); `DateFormatter::instantDate()`.
+Le cinque voci legali del piè di pagina non sono più stringhe in `lang/it/ui.php`
+ma **le pagine pubblicate**, nel loro ordine: un collegamento a un'informativa
+che nessuno ha ancora scritto sarebbe un 404 nel punto in cui un'autorità
+guarda per primo.
+
+**Due trappole trovate provando davvero.**
+
+- **`form.action` non è l'indirizzo del modulo.** Un modulo che contiene un
+  controllo chiamato `action` — e questo ne ha tre, i pulsanti di scelta —
+  espone quel controllo al posto della propria proprietà: `form.action`
+  restituisce una `RadioNodeList` che, concatenata, diventa
+  `[object RadioNodeList]`. La richiesta partiva verso un indirizzo inesistente
+  e l'unico segnale era un 404 in console; il ripiego sull'invio normale
+  scattava, ma **senza il pulsante premuto** il campo `action` non viaggiava e
+  il server rimandava indietro un errore di validazione. Il sintomo visibile era
+  «premo Rifiuta e il banner resta lì». Si legge l'attributo, e il ripiego
+  allega la scelta a mano.
+- **Un permesso nuovo non è assegnato finché il seeder non rigira.** Con
+  l'amministratore autenticato, `/admin/pages` rispondeva 403 in sviluppo mentre
+  i test erano verdi — perché ogni test semina i ruoli da capo. È il caso già
+  descritto in `RUNBOOK.md`, incontrato per la prima volta: **al rilascio va
+  eseguito `db:seed --class=RolesAndPermissionsSeeder`**.
+
+**Verificato.** 89 test nuovi (61 in `tests/Feature/Legal/`, più il pannello in
+`PanelRenderingTest` e i casi editoriali via Livewire), suite intera verde,
+`pint` passato, `phpstan` livello 6 a zero errori sui file di questa fase,
+`npm run build` verde. Con `php artisan serve` e database seedato: le cinque
+pagine rispondono 200 e uno slug inesistente 404; nell'HTML della pagina
+iniziale e di `/eventi` gli unici indirizzi esterni sono le due attribuzioni
+cartografiche, che sono collegamenti e non risorse caricate. In un browser a
+390 px: banner in fondo che non copre la pagina (326 px su 844, nessun velo,
+nessun blocco dello scorrimento, nessun trabocco orizzontale), i due pulsanti
+con **la stessa classe, lo stesso sfondo e la stessa misura** (171×40),
+«Rifiuta» raggiunto con **un solo tabulatore** da «Accetta» e attivato con
+Invio: banner rimosso, pagina **non ricaricata**, riga `reject_all` nel
+registro. Il dettaglio granulare (una casella sola) scrive `custom` con
+`statistics: true`. Alla visita successiva il banner non torna; «Cancella la mia
+scelta» dalla Cookie Policy lo fa tornare e il pannello dichiara di nuovo
+«non hai ancora espresso una scelta». Zero errori in console.
+
+---
+
+## 2026-08-31 — D35. `/docs/api` in produzione: staff editoriale autenticato
+
+**Decisione:** il cancello `viewApiDocs` (`AppServiceProvider`) apre `/docs/api` a
+chi ha uno dei ruoli di redazione — `admin`, `super_admin`, `moderator`, cioè
+esattamente chi entra in `/admin` — e nega a tutti gli altri, ospiti compresi.
+In ambiente `local` il pacchetto lascia passare chiunque e questo resta.
+
+**Perché così:** prima del cancello, Scramble negava a tutti fuori da `local`.
+La documentazione era quindi al sicuro e inutile: nessuno poteva consultarla
+sull'unico ambiente dove l'API vive davvero.
+
+**Perché non una chiave in `.env`:** una chiave condivisa è un segreto che non
+scade, che finisce in una chat e che non dice mai *chi* l'ha usata. Un ruolo si
+toglie a una persona sola e ha effetto al caricamento successivo. La
+documentazione descrive anche gli endpoint di scrittura e la forma degli errori:
+non è un segreto, ma non è nemmeno un invito a inventariare la superficie.
+
+**Conseguenza operativa:** dare a qualcuno la documentazione significa dargli un
+ruolo di redazione. Se un giorno servisse aprirla a un collaboratore esterno
+senza dargli `/admin`, la strada è un ruolo nuovo con i soli permessi di
+lettura, non una chiave.
+
+**Ricontrollo:** se nascerà un programma per sviluppatori terzi (§13 non lo
+prevede in fase 1), servirà una pagina pubblica di documentazione — diversa da
+questa, che è uno strumento interno.
+
+---
+
+## 2026-08-31 — D36. Ore di silenzio: 23:00-08:00 a chi non ha scelto
+
+**Decisione:** `notifications.quiet_hours.default` vale `23:00`-`08:00` e si
+applica a chi non ha mai espresso una preferenza. La colonna
+`users.quiet_hours` distingue ora **tre** stati e non due:
+
+| valore | significato | effetto |
+|---|---|---|
+| `null` | non ho ancora scelto | finestra predefinita |
+| `{from, to}` | le mie ore | quelle |
+| `[]` (array vuoto) | ho scelto di non averne | nessun silenzio |
+
+**Perché si cambia idea rispetto a D31:** lì si era scritto che «un silenzio
+imposto d'ufficio sposterebbe promemoria che nessuno ha chiesto di spostare».
+È vero e resta vero, ma nasconde l'altra metà: **l'assenza di un valore
+predefinito non è neutralità**. Chi non apre mai le preferenze — cioè quasi
+tutti — riceveva la scelta peggiore per omissione, e la scopriva con una email
+alle tre di notte. Fra le due asimmetrie, spostare un promemoria di qualche ora
+è recuperabile in un clic; svegliare qualcuno no.
+
+**Il terzo stato non è pedanteria:** senza di esso il valore predefinito
+sarebbe **impossibile da spegnere** — svuotare i due campi riporterebbe a
+`null`, cioè di nuovo al predefinito. Nel modulo lo esprime una casella
+(«Nessuna ora di silenzio»); nell'API, `quiet_hours: {}`.
+
+**API:** `GET /v1/me/notification-preferences` porta ora due campi.
+`quiet_hours` è la **scelta** (può essere `null`), `quiet_hours_effective` è
+ciò che il motore applica davvero. È un'aggiunta, non un cambio di contratto:
+senza il secondo, un'applicazione direbbe «nessuna ora di silenzio» a chi le ha
+eccome, e l'unico modo di accorgersene sarebbe un promemoria che non arriva.
+
+**Cosa non cambia:** gli annullamenti e gli spostamenti ignorano il silenzio
+(§15.4) — quella regola è del tipo di notifica, non della finestra. E mettere
+`default` a `null` in configurazione riporta esattamente il comportamento
+precedente.
+
+**Ricontrollo:** se i dati d'uso mostreranno che la finestra predefinita fa
+slittare troppi promemoria serali oltre la loro utilità, restringerla (per
+esempio 00:00-07:00) invece di toglierla.
+
+---
+
+## 2026-08-31 — D37. Lighthouse in CI: soglie di §11.11 dichiarate, non ammorbidite
+
+**Decisione:** il lavoro `lighthouse` di `.github/workflows/ci.yml` monta il
+sito completo (MariaDB, seeder, coda delle immagini, nginx davanti a `php -S`)
+e vi lancia `@lhci/cli` con le soglie di §11.11 così come sono scritte nel
+piano: Performance / Accessibility / SEO `>= 0.90` e LCP `< 2000 ms`, tutte a
+livello **`error`**, su tre indirizzi — pagina iniziale, una lista, una scheda
+evento.
+
+**Le soglie non sono state adattate a ciò che passa.** Ecco cosa misurano
+oggi, e le due colonne non coincidono:
+
+| pagina | banco di prova (nginx + `php -S`) | produzione (`eventi.fabiodalez.it`) |
+|---|---|---|
+| `/` | perf 0.86 · a11y 0.96 · SEO 1.00 · **LCP 4.1 s** | perf 0.95 · a11y 0.96 · SEO 1.00 · **LCP 2.8 s** |
+| `/eventi` | perf 0.87 · a11y 0.96 · SEO 1.00 · **LCP 3.9 s** | perf 0.99 · a11y 0.96 · SEO 1.00 · **LCP 2.0 s** |
+| scheda evento | perf 0.96 · a11y 0.97 · SEO 1.00 · **LCP 2.6 s** | perf 0.94 · a11y 0.97 · SEO 1.00 · **LCP 2.1 s** |
+
+Accessibilità e SEO passano ovunque. Le altre due no, per due motivi distinti:
+
+1. **Il banco di prova resta più lento della produzione** di circa un secondo e
+   mezzo di LCP, e la causa è una sola: parla **HTTP/1.1**. Senza certificati
+   Chrome non negozia HTTP/2 in chiaro, quindi le sei connessioni fanno la coda
+   che in produzione non esiste. È il motivo per cui la produzione prende 0.95
+   dove il banco prende 0.86. Non è aggirabile senza mettere TLS nel runner.
+2. **LCP < 2 s non è raggiungibile oggi in nessuno dei due**, e il referto di
+   produzione dice perché: il solo TTFB vale fra 0,6 e 3,0 secondi. Su hosting
+   condiviso cPanel, senza Redis (D5) e con il worker rilanciato al minuto dal
+   cron (RUNBOOK), buona parte del budget di due secondi se ne va prima che
+   arrivi un byte. La seconda voce è la locandina: sulla pagina iniziale il
+   referto mostra l'elemento LCP con `loading="lazy"` e 1,4 s di *load delay* —
+   la prima riga di card è marcata `eager` ma sul viewport mobile l'elemento
+   più grande è un'altra, in una sezione più in basso.
+
+**Perché non si abbassano comunque:** una soglia allineata a ciò che già passa
+non misura niente. §11.11 è un obiettivo di prodotto e resta scritto dov'è, con
+il referto allegato a ogni esecuzione a dire quanto manca.
+
+**Conseguenza, dichiarata:** il lavoro `lighthouse` è **rosso** finché LCP resta
+sopra i due secondi. Per questo `deploy` continua a dipendere da `quality` e
+`tests` e **non** da `lighthouse`: un criterio che nessun ambiente soddisfa
+ancora non deve tenere in ostaggio ogni rilascio. Il giorno in cui LCP scende
+sotto i 2 s, aggiungere `lighthouse` a `needs:` è una riga.
+
+**Le due cose da fare, in ordine di resa:** correggere quale locandina riceve
+`eager`/`fetchpriority=high` sul viewport mobile (vale circa 1,4 s sulla pagina
+iniziale) e ridurre il peso delle varianti AVIF, che escono da Imagick a 90-240
+KB per una locandina da 800 px — `uses-responsive-images` segnala 113-118 KiB
+sprecati su ogni pagina.
+
+**Dettagli del banco di prova che sembrano trascurabili e non lo sono:**
+
+- nginx davanti serve compressione e `Cache-Control` sui file statici: senza,
+  l'HTML viaggia a 159 KB invece di 35 e la misura boccia il server di
+  sviluppo, non il sito;
+- le varianti WebP e AVIF nascono da lavori in coda (§12.1): senza
+  `queue:work --stop-when-empty` dopo il seeder, il sito serve le locandine
+  originali e la Performance scende da 0.86 a 0.75;
+- l'applicazione si avvia con `php -S` e non con `php artisan serve`:
+  quest'ultimo legge lo standard output del figlio attraverso una pipe che si
+  rompe quando finisce il passo del workflow, e da lì in poi ogni risposta
+  esce con un `Notice: Broken pipe` prima del `<!doctype>`. Costava diciassette
+  punti di SEO e sembrava un difetto del sito;
+- lo slug dell'evento da misurare si pesca dal feed RSS a server acceso: nasce
+  dal seeder e cambia a ogni esecuzione.
+
+**Ricontrollo:** alla prima delle due correzioni di cui sopra, e comunque al
+passaggio a un VPS (D3), che sposta il TTFB.
+
+---
+
+## 2026-08-31 — D38. Archiviare significa uscire dalle liste, non dal sito
+
+**Decisione:** il comando `events:archive`, ogni notte alle 04:10, porta a
+`archived` gli eventi **pubblicati** che non hanno più nemmeno una data dal
+giorno di taglio in poi — novanta giorni fa, configurabili con
+`EVENTS_ARCHIVE_AFTER_DAYS` o con `--days`.
+
+**La regola è scritta al contrario di come suona.** Non «l'ultima occorrenza è
+vecchia» ma «non esiste alcuna occorrenza recente o futura»: formulata così, una
+rassegna cominciata due anni fa e ancora in cartellone non viene toccata, e
+nemmeno una ricorrenza settimanale con una sola data residua. La prima
+formulazione le avrebbe archiviate entrambe.
+
+Il taglio si conta **nel fuso della città** e sulla `business_date`, non
+sull'ora di inizio: un concerto che finisce alle 3:00 appartiene alla sera
+prima, e archiviarlo un giorno in anticipo si vedrebbe. Gli eventi **senza
+alcuna data** restano dove sono: non sono scaduti, sono incompleti, ed è
+un'altra riga della dashboard qualità (§14.5).
+
+**La metà che conta di più:** un evento archiviato **non diventa un 404**. §11.9
+fonda sull'archivio degli eventi passati una parte della ricerca organica, e una
+pagina che ha ricevuto visite per un anno non si butta via. Quindi:
+
+| dove | prima | dopo l'archiviazione |
+|---|---|---|
+| liste, mappa, calendario, feed, finestre di §8 | c'è | **non c'è** |
+| scheda `/eventi/{slug}` | 200 | **200** |
+| archivio della scheda locale (§11.9) | c'è | **c'è** |
+| `sitemap.xml` | c'è | **c'è** |
+| `GET /v1/events/{slug}` | 200 | **200** |
+| `GET /v1/events` (lista) | c'è | **non c'è** |
+| modulo di segnalazione della scheda | aperto | **aperto** |
+
+Tecnicamente sono due cose: lo scope `Event::readable()` (pubblicati **e**
+archiviati), che sostituisce `published()` dove si legge *una* scheda, e
+`EventOccurrenceQuery::archiveFor()`, gemello di `for()` che allarga la base
+agli archiviati. Le finestre pubbliche continuano a passare da `for()`, che
+resta ristretto ai soli pubblicati: è lì che l'archiviazione ha effetto.
+
+**Aggiornamento di massa e non un salvataggio per modello:** l'observer
+rimetterebbe in coda un'anteprima social per ciascuno — il file non cambia,
+cambia lo stato — e su un archivio arretrato sarebbero centinaia di lavori
+inutili. L'unica cosa dell'observer che qui serve è l'invalidazione della cache
+della città, ed è una riga.
+
+**Ricontrollo:** se novanta giorni si riveleranno pochi per il traffico
+organico, la leva è una variabile d'ambiente.
+
+## 2026-09-01 — D39. Il backup di §16 è dichiarato valido: restore reale eseguito
+
+**Decisione:** il backup di `spatie/laravel-backup` si considera valido, perché
+il criterio di §16 — «un backup non è valido finché non è stato testato un
+restore reale» — è stato soddisfatto con una prova completa, non con la sola
+riga «Backup verified» del comando (che verifica lo zip, non il ripristino).
+**Come:** `backup:run --only-db` su database seedato → dentro lo zip
+(`storage/app/private/eventi/…zip`, 57 kB) il dump
+`db-dumps/mariadb-<db>.sql.gz` → `gunzip -c | mysql` su un database di prova
+nuovo → confronto: 47 tabelle su 47 e conteggi identici (locali 25, eventi 138,
+occorrenze 145, utenti 5, pagine 5) → database di prova eliminato. Procedura
+scritta nel RUNBOOK («Restore del database»).
+**Limite dichiarato:** la prova è avvenuta in locale (MariaDB 12.3). In
+produzione (MariaDB 10.11, `mysqldump` di cPanel) va ripetuta dopo il primo
+`backup:run` notturno: stessa procedura, database `fabiodal_evtest`.
+**Numeri della stessa verifica (2026-09-01):** 1064 test / 3570 asserzioni
+verdi (781 → +283 con F10), Pint pulito, PHPStan livello 6 a 0 errori,
+Lighthouse sul banco locale `/` 0.91/0.96/1.00 LCP 3,4 s · `/eventi`
+0.80/0.96/1.00 LCP 5,2 s · scheda 0.96/0.97/1.00 LCP 2,7 s — soglie di D37
+non toccate, lavoro `lighthouse` rosso come dichiarato.
+**Ricontrollo:** dopo il primo backup notturno in produzione, e a ogni modifica
+di `config/backup.php` o della pipeline di deploy che tocchi
+`storage/app/private/`.

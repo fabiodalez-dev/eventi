@@ -11,6 +11,7 @@ use App\Http\Controllers\Web\Concerns\InteractsWithAccount;
 use App\Http\Requests\Web\Account\DeleteAccountRequest;
 use App\Http\Requests\Web\Account\UpdateProfileRequest;
 use App\Services\Account\AccountExport;
+use App\Support\Features;
 use Carbon\Carbon;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
@@ -61,10 +62,17 @@ final class ProfileController extends Controller
          * Il consenso marketing conserva la propria data (§15.9): riconfermarlo
          * non la riscrive, toglierlo la cancella. È quella data la prova, non
          * un booleano.
+         *
+         * Con la newsletter spenta la casella non è nel modulo, e la sua
+         * assenza **non significa revoca**: il consenso già dato resta com'è.
+         * Interpretarla come un «no» cancellerebbe di nascosto una scelta della
+         * persona al primo salvataggio di un campo qualsiasi.
          */
-        $user->marketing_opt_in_at = $request->boolean('marketing_opt_in')
-            ? ($user->marketing_opt_in_at ?? Carbon::now())
-            : null;
+        if (Features::newsletterActive()) {
+            $user->marketing_opt_in_at = $request->boolean('marketing_opt_in')
+                ? ($user->marketing_opt_in_at ?? Carbon::now())
+                : null;
+        }
 
         $user->save();
 

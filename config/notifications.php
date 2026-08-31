@@ -41,16 +41,33 @@ return [
     'daily_cap' => 2,
 
     /*
-     * Le ore di silenzio non hanno un valore predefinito: sono «le proprie»
-     * (§18, scenario K). Un silenzio imposto d'ufficio sposterebbe promemoria
-     * che nessuno ha chiesto di spostare, e lo farebbe senza che l'interessato
-     * possa capire perché. Chi non le dichiara non ne ha.
+     * Le ore di silenzio (§15.4). Un invio che cade nella finestra si sposta
+     * all'orario di uscita; se nel frattempo è diventato inutile diventa
+     * `skipped`.
      *
-     * Un invio che cade nella finestra si sposta all'orario di uscita; se nel
-     * frattempo è diventato inutile diventa `skipped` (§15.4).
+     * `default` è la finestra di **chi non ha scelto** (D36). Prima non
+     * esisteva, e chi non apriva le preferenze poteva ricevere un promemoria
+     * alle tre di notte: un valore predefinito assente non è neutralità, è la
+     * scelta peggiore presa per omissione. 23:00-08:00 è la notte come la
+     * intende chiunque, e non tocca nulla di ciò che il prodotto manda
+     * davvero — i promemoria escono a ore di veglia e i riepiloghi hanno un
+     * orario proprio.
+     *
+     * Chi le vuole diverse le scrive; chi non ne vuole affatto lo dichiara, e
+     * allora `users.quiet_hours` contiene un array vuoto invece di `null`. È
+     * la differenza fra «non ho ancora deciso» e «ho deciso di no», e senza
+     * quella differenza il valore predefinito sarebbe impossibile da spegnere.
+     *
+     * Mettere `default` a `null` riporta il comportamento di prima: nessun
+     * silenzio per chi non lo dichiara.
      */
     'quiet_hours' => [
         'enabled' => true,
+
+        'default' => [
+            'from' => env('QUIET_HOURS_DEFAULT_FROM', '23:00'),
+            'to' => env('QUIET_HOURS_DEFAULT_TO', '08:00'),
+        ],
     ],
 
     /*

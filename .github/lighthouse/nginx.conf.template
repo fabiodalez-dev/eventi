@@ -1,0 +1,79 @@
+# Il server messo davanti all'applicazione durante la misura Lighthouse.
+#
+# Serve perché `php artisan serve` non è il prodotto: non comprime nulla, non
+# mette intestazioni di cache e fa passare ogni immagine dal processo PHP.
+# Misurare lì significherebbe bocciare il sito per difetti del server di
+# sviluppo, e una soglia che fallisce per motivi inesistenti in produzione
+# viene disattivata dopo la seconda volta.
+#
+# Questo riproduce ciò che fa LiteSpeed sul server vero: file statici serviti
+# dal disco con `Cache-Control`, compressione sul testo, e solo le pagine
+# passate a PHP. Resta una differenza che non si può colmare senza certificati:
+# qui si parla **HTTP/1.1**, in produzione HTTP/2, e sotto la simulazione di
+# rete di Lighthouse la coda delle sei connessioni costa circa un secondo e
+# mezzo di LCP. È scritto qui perché chi legge un referto rosso lo sappia.
+#
+# I segnaposto __ROOT__, __PORT__, __APP_PORT__, __MIME__ e __TMP__ li
+# sostituisce il workflow.
+worker_processes auto;
+daemon off;
+error_log /dev/stderr warn;
+pid __TMP__/nginx.pid;
+
+events { worker_connections 256; }
+
+http {
+    include __MIME__;
+    default_type application/octet-stream;
+    access_log off;
+    sendfile on;
+
+    # Nessuna directory di lavoro dentro il repository: nginx ne pretende
+    # cinque e le creerebbe accanto al codice.
+    client_body_temp_path __TMP__/body;
+    proxy_temp_path __TMP__/proxy;
+    fastcgi_temp_path __TMP__/fastcgi;
+    uwsgi_temp_path __TMP__/uwsgi;
+    scgi_temp_path __TMP__/scgi;
+
+    gzip on;
+    gzip_comp_level 5;
+    gzip_min_length 256;
+    gzip_types text/plain text/css text/xml application/javascript application/json application/xml application/rss+xml image/svg+xml text/calendar;
+
+    server {
+        listen 127.0.0.1:__PORT__;
+        server_name localhost;
+        root __ROOT__;
+
+        # Gli asset compilati portano l'impronta del contenuto nel nome: si
+        # possono tenere per un anno, ed è quello che fa il server vero.
+        location /build/ {
+            add_header Cache-Control "public, max-age=31536000, immutable";
+            try_files $uri =404;
+        }
+
+        # Le immagini caricate cambiano percorso quando cambiano.
+        location /storage/ {
+            add_header Cache-Control "public, max-age=2592000";
+            try_files $uri @app;
+        }
+
+        location / {
+            try_files $uri @app;
+        }
+
+        location @app {
+            proxy_pass http://127.0.0.1:__APP_PORT__;
+
+            # `$http_host` e non `$host`: il secondo perde la porta, e Laravel
+            # costruisce gli indirizzi assoluti — canonical, sitemap, feed — da
+            # ciò che legge qui. Persa la porta, il feed RSS da cui la pipeline
+            # pesca l'indirizzo dell'evento porterebbe a una pagina morta.
+            proxy_set_header Host $http_host;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_http_version 1.1;
+        }
+    }
+}

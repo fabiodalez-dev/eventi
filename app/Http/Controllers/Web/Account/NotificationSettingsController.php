@@ -9,6 +9,7 @@ use App\Enums\NotificationType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Web\Account\UpdateNotificationSettingsRequest;
 use App\Models\User;
+use App\Support\Features;
 use App\Support\Notifications\PreferenceLinks;
 use Carbon\Carbon;
 use Illuminate\Contracts\View\View;
@@ -51,10 +52,15 @@ final class NotificationSettingsController extends Controller
          * Il consenso al marketing conserva la propria data (§15.9):
          * riconfermarlo non la riscrive, toglierlo la cancella. È la data la
          * prova, non il booleano.
+         *
+         * Con la newsletter spenta la casella non è nel modulo, e la sua
+         * assenza non è una revoca: il consenso già dato resta com'è.
          */
-        $user->marketing_opt_in_at = $request->boolean('marketing_opt_in')
-            ? ($user->marketing_opt_in_at ?? Carbon::now())
-            : null;
+        if (Features::newsletterActive()) {
+            $user->marketing_opt_in_at = $request->boolean('marketing_opt_in')
+                ? ($user->marketing_opt_in_at ?? Carbon::now())
+                : null;
+        }
 
         $user->save();
 

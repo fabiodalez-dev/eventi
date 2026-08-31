@@ -103,6 +103,26 @@ final readonly class DateFormatter
     }
 
     /**
+     * La giornata a cui appartiene un **istante**, con l'anno sempre scritto:
+     * "5 settembre 2026".
+     *
+     * È il rovescio di `shortDate()`, che tratta una giornata (§D23, punto 4).
+     * Serve alle date di aggiornamento dei documenti, dove l'anno è metà
+     * dell'informazione — "aggiornata il 5 settembre" non dice se il testo che
+     * si sta leggendo è quello che si era accettato.
+     */
+    public function instantDate(DateTimeInterface $instant): string
+    {
+        $date = $this->asInstant($instant);
+
+        return __('dates.day_month_year', [
+            'day' => $date->format(__('dates.formats.day_number')),
+            'month' => $date->isoFormat('MMMM'),
+            'year' => $date->format('Y'),
+        ]);
+    }
+
+    /**
      * "ven" — per gli scroller di giorni.
      */
     public function weekdayShort(DateTimeInterface $day): string

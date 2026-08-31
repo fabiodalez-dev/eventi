@@ -97,7 +97,7 @@ final class ReportController extends Controller
     {
         $event = Event::query()
             ->inCity($this->city())
-            ->published()
+            ->readable()
             ->where('slug', $slug)
             ->first();
 

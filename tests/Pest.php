@@ -11,6 +11,7 @@ use App\Models\Venue;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 uses(TestCase::class, RefreshDatabase::class)->in('Feature');
@@ -144,4 +145,59 @@ function idsOf(iterable $occurrences): array
     }
 
     return $ids;
+}
+
+/**
+ * Se un eseguibile esiste sul PATH. Serve ai test che dipendono da un
+ * programma esterno — `mysqldump` per il backup del database — per dichiarare
+ * di essere stati saltati invece di fallire su una macchina che non ce l'ha.
+ */
+function shellCommandExists(string $command): bool
+{
+    exec('command -v '.escapeshellarg($command).' 2>/dev/null', $output, $status);
+
+    return $status === 0;
+}
+
+/**
+ * I cookie appena impostati da una risposta, pronti a essere rimandati indietro
+ * nella richiesta successiva — che è ciò che farebbe un browser.
+ *
+ * Arrivano già cifrati da `EncryptCookies`, quindi vanno rispediti verbatim:
+ * `withCookies()` cifrerebbe una seconda volta un valore già cifrato, e il
+ * middleware lo scarterebbe come illeggibile. Un cookie con valore vuoto è un
+ * cookie che il server sta **cancellando**: non si rimanda indietro.
+ *
+ * @return array<string, string>
+ */
+function cookiesFrom(TestResponse $response): array
+{
+    $cookies = [];
+
+    foreach ($response->headers->getCookies() as $cookie) {
+        $value = (string) $cookie->getValue();
+
+        if ($value !== '') {
+            $cookies[$cookie->getName()] = $value;
+        }
+    }
+
+    return $cookies;
+}
+
+/**
+ * Una richiesta che porta con sé **esattamente** i cookie indicati, e nessun
+ * altro.
+ *
+ * `withCookies()` e `withUnencryptedCookies()` non vanno bene qui: accumulano
+ * sul caso di prova e restano attaccati alle richieste successive, quindi un
+ * test che verifica cosa succede *dopo* che un cookie è stato cancellato
+ * continuerebbe a mandarlo. I valori si passano già cifrati, così come escono
+ * da `cookiesFrom()`.
+ *
+ * @param  array<string, string>  $cookies
+ */
+function requestWithCookies(string $method, string $uri, array $cookies = []): TestResponse
+{
+    return test()->call($method, $uri, [], $cookies);
 }

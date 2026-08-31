@@ -10,6 +10,7 @@ use App\Models\Event;
 use App\Models\EventOccurrence;
 use App\Models\Follow;
 use App\Models\ImportSource;
+use App\Models\Page;
 use App\Models\Report;
 use App\Models\SavedEvent;
 use App\Models\ScheduledNotification;
@@ -26,6 +27,7 @@ use App\Policies\EventOccurrencePolicy;
 use App\Policies\EventPolicy;
 use App\Policies\FollowPolicy;
 use App\Policies\ImportSourcePolicy;
+use App\Policies\PagePolicy;
 use App\Policies\ReportPolicy;
 use App\Policies\SavedEventPolicy;
 use App\Policies\ScheduledNotificationPolicy;
@@ -37,6 +39,7 @@ use App\Services\Geo\GeoQueryInterface;
 use App\Services\Geo\MariaDbGeoQuery;
 use App\Services\Import\DnsHostResolver;
 use App\Services\Import\HostResolver;
+use App\Support\Consent;
 use App\Support\CurrentCity;
 use App\Support\CurrentFollows;
 use App\Support\CurrentSaves;
@@ -67,6 +70,11 @@ class AppServiceProvider extends ServiceProvider
         // in cui vanno lette tutte le date mostrate a chi legge.
         $this->app->scoped(CurrentCity::class);
 
+        // La scelta sul consenso (§16): il cookie si legge una volta per
+        // richiesta, e la scelta appena espressa vale già per la risposta che
+        // la registra.
+        $this->app->scoped(Consent::class);
+
         // Le date già in agenda della persona collegata: una lettura per
         // richiesta, condivisa da tutti i cuori disegnati nella pagina.
         $this->app->scoped(CurrentSaves::class);
@@ -86,6 +94,15 @@ class AppServiceProvider extends ServiceProvider
          * prima ferma i robot generici, questa ferma chi insiste.
          */
         RateLimiter::for('public-forms', static fn (Request $request): Limit => Limit::perHour(5)->by($request->ip() ?? 'sconosciuto'));
+
+        /*
+         * Il consenso (§16) ha un limite proprio, e più largo di quello dei
+         * moduli pubblici: cambiare idea sulle proprie preferenze non è un
+         * invio di contenuti, ed è un diritto — cinque volte l'ora sarebbe un
+         * modo elegante di rendere difficile la revoca. Trenta l'ora ferma chi
+         * riempie il registro senza mai ostacolare chi decide davvero.
+         */
+        RateLimiter::for('consent', static fn (Request $request): Limit => Limit::perHour(30)->by($request->ip() ?? 'sconosciuto'));
 
         /*
          * Limiti dell'API (§13.4): 60 richieste al minuto per chi non è
@@ -162,6 +179,29 @@ class AppServiceProvider extends ServiceProvider
             $document->info->description = __('api.docs.description');
         });
 
+        /*
+         * Chi vede `/docs/api` fuori dallo sviluppo (D35).
+         *
+         * Il pacchetto lascia passare chiunque in ambiente `local` e in ogni
+         * altro ambiente interroga questo cancello, che senza una definizione
+         * nega a tutti: oggi la documentazione è quindi invisibile in
+         * produzione, il che è sicuro ma inutile.
+         *
+         * Si apre allo **staff editoriale autenticato** — gli stessi ruoli che
+         * entrano in `/admin` — e non a una chiave condivisa: una chiave è un
+         * segreto che non scade, che finisce in una chat e che non dice mai
+         * *chi* l'ha usata, mentre un ruolo si toglie a una persona sola e ha
+         * effetto al primo caricamento successivo. La documentazione descrive
+         * anche gli endpoint di scrittura e la forma degli errori: non è un
+         * segreto, ma non è nemmeno un invito a inventariare la superficie.
+         *
+         * `?User` e non `User`: senza il punto interrogativo Laravel non
+         * chiamerebbe nemmeno la richiusa per chi non è collegato, e la
+         * risposta sarebbe la stessa — ma per un motivo che nessuno legge nel
+         * codice.
+         */
+        Gate::define('viewApiDocs', static fn (?User $user): bool => $user?->isEditorialStaff() === true);
+
         Gate::policy(Venue::class, VenuePolicy::class);
         Gate::policy(Event::class, EventPolicy::class);
         Gate::policy(EventOccurrence::class, EventOccurrencePolicy::class);
@@ -175,5 +215,6 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(ScheduledNotification::class, ScheduledNotificationPolicy::class);
         Gate::policy(Follow::class, FollowPolicy::class);
         Gate::policy(User::class, UserPolicy::class);
+        Gate::policy(Page::class, PagePolicy::class);
     }
 }

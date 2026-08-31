@@ -22,6 +22,7 @@
             <x-field name="password" type="password" :label="__('account.register.password')" :required="true" autocomplete="new-password" />
             <x-field name="password_confirmation" type="password" :label="__('account.register.password')" :required="true" autocomplete="new-password" />
 
+            @newsletter
             <label class="flex items-start gap-2.5 text-sm text-ink-muted">
                 <input type="checkbox" name="marketing_opt_in" value="1" class="mt-0.5 size-4 rounded border-line" @checked(old('marketing_opt_in'))>
                 <span>
@@ -29,6 +30,9 @@
                     <span class="block text-xs text-ink-subtle">{{ __('account.register.marketing_hint') }}</span>
                 </span>
             </label>
+            @endnewsletter
+
+            <x-turnstile />
 
             <button type="submit" class="rounded-pill bg-brand px-4 py-2.5 text-sm font-semibold text-on-brand transition hover:bg-brand-strong">
                 {{ __('account.register.submit') }}

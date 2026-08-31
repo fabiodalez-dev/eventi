@@ -57,7 +57,17 @@ final class NotificationDispatcher
 
         while ($summary['claimed'] < $max) {
             $size = min($batch, $max - $summary['claimed']);
-            $handled = DB::transaction(fn (): int => $this->handleBatch($size, $now, $summary));
+            /*
+             * `use (&$summary)` e non una funzione a freccia: quella lega le
+             * variabili **per valore**, quindi i contatori aggiornati dentro
+             * la transazione morivano con la chiusura. Il worker faceva il
+             * proprio lavoro e restituiva cinque zeri: il comando stampava
+             * «nessun invio in attesa» dopo averne spediti quaranta, e
+             * `--limit` non limitava niente perché `claimed` non cresceva mai.
+             */
+            $handled = DB::transaction(function () use ($size, $now, &$summary): int {
+                return $this->handleBatch($size, $now, $summary);
+            });
 
             if ($handled < $size) {
                 break;

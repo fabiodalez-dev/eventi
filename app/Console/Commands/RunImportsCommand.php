@@ -9,6 +9,7 @@ use App\Jobs\Import\ImportSourceJob;
 use App\Models\ImportSource;
 use App\Services\Import\ImportDriverFactory;
 use App\Services\Import\ImportRunner;
+use App\Support\Features;
 use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -45,6 +46,7 @@ final class RunImportsCommand extends Command
         $query = ImportSource::query()
             ->active()
             ->whereIn('type', ImportDriverFactory::supportedTypes())
+            ->with('city')
             ->orderBy('id');
 
         $source = $this->option('source');
@@ -55,11 +57,25 @@ final class RunImportsCommand extends Command
 
         $sync = (bool) $this->option('sync');
         $sources = 0;
+        $skipped = 0;
         $totals = ['created' => 0, 'updated' => 0, 'unchanged' => 0, 'excluded' => 0, 'cancelled' => 0, 'errors' => 0];
 
-        $query->chunkById(self::CHUNK, function (Collection $chunk) use ($runner, $sync, &$sources, &$totals): void {
+        $query->chunkById(self::CHUNK, function (Collection $chunk) use ($runner, $sync, &$sources, &$skipped, &$totals): void {
             /** @var ImportSource $item */
             foreach ($chunk as $item) {
+                /*
+                 * L'interruttore per città (§12 dello stack: Pennant «serve
+                 * per accendere funzioni per singola città»). Una città con
+                 * l'import spento non viene nemmeno contata: contarla e non
+                 * eseguirla farebbe dire al resoconto che sono state lette
+                 * sorgenti che nessuno ha aperto.
+                 */
+                if ($item->city !== null && ! Features::importActiveFor($item->city)) {
+                    $skipped++;
+
+                    continue;
+                }
+
                 $sources++;
 
                 if (! $sync) {
@@ -88,6 +104,10 @@ final class RunImportsCommand extends Command
                 }
             }
         });
+
+        if ($skipped > 0) {
+            $this->line(__('console.import_run.skipped', ['sources' => $skipped]));
+        }
 
         if ($sources === 0) {
             $this->info(__('console.import_run.empty'));

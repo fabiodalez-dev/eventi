@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests\Web;
 
 use App\Support\Honeypot;
+use App\Support\Turnstile;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -36,6 +37,7 @@ class StoreEventSubmissionRequest extends FormRequest
             'contact_name' => ['nullable', 'string', 'max:120'],
             'contact_email' => ['required', 'email:filter', 'max:255'],
             ...Honeypot::rules(),
+            ...Turnstile::rules(),
         ];
     }
 

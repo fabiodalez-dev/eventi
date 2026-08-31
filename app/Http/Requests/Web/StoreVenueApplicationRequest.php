@@ -6,6 +6,7 @@ namespace App\Http\Requests\Web;
 
 use App\Enums\VenueType;
 use App\Support\Honeypot;
+use App\Support\Turnstile;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -39,6 +40,7 @@ class StoreVenueApplicationRequest extends FormRequest
             'contact_email' => ['required', 'email:filter', 'max:255'],
             'message' => ['nullable', 'string', 'max:5000'],
             ...Honeypot::rules(),
+            ...Turnstile::rules(),
         ];
     }
 

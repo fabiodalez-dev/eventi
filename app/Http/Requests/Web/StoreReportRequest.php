@@ -6,6 +6,7 @@ namespace App\Http\Requests\Web;
 
 use App\Enums\ReportReason;
 use App\Support\Honeypot;
+use App\Support\Turnstile;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -32,6 +33,7 @@ class StoreReportRequest extends FormRequest
             'note' => ['nullable', 'string', 'max:2000'],
             'reporter_email' => ['nullable', 'email:filter', 'max:255'],
             ...Honeypot::rules(),
+            ...Turnstile::rules(),
         ];
     }
 

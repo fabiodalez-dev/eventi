@@ -38,6 +38,8 @@
             autocomplete="email"
         />
 
+        <x-turnstile />
+
         <p class="text-xs text-ink-subtle">{{ __('forms.privacy_note') }}</p>
 
         <div class="flex flex-wrap items-center gap-3">

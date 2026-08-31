@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Support\Consent;
 use App\Support\ContentVersion;
 use App\Support\CurrentCity;
 use Closure;
@@ -90,6 +91,16 @@ final class CachePage
      *
      * Porta dentro anche la lingua: la stessa pagina in due lingue è due
      * documenti diversi.
+     *
+     * E porta dentro la scelta sul consenso (§16). Il banner e lo script delle
+     * statistiche stanno **dentro** il documento, quindi due persone con scelte
+     * diverse non possono ricevere la stessa copia: senza questa parte della
+     * chiave, il primo visitatore che accetta riempirebbe la cache di pagine
+     * con il contatore acceso e il banner assente, e le servirebbe a chi non ha
+     * ancora scelto niente. È un consenso preventivo che diventa un consenso
+     * di qualcun altro. Le varianti sono poche — «non ha scelto», «ha
+     * accettato», «ha rifiutato» — perché l'identificativo del browser resta
+     * fuori di proposito (`Consent::fingerprint()`).
      */
     public function key(Request $request): string
     {
@@ -97,10 +108,11 @@ final class CachePage
         $cityId = $city === null ? 0 : (int) $city->getKey();
 
         return sprintf(
-            'pagina:%d:%d:%s:%s',
+            'pagina:%d:%d:%s:%s:%s',
             $cityId,
             ContentVersion::for($cityId),
             app()->getLocale(),
+            app(Consent::class)->fingerprint(),
             sha1($request->fullUrl()),
         );
     }

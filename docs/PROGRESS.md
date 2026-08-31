@@ -721,3 +721,161 @@ e `API_LEGAL_*` vuote · `media.cdn_url` senza fornitore · quiet hours senza
 default · giorno/ora del riepilogo settimanale da confermare · retry SMTP
 leggibile in `failed_jobs` e non nel pannello · agenda personale multi-città da
 decidere alla seconda città · fuso non dichiarato sui DateTimePicker di `/admin`.
+
+---
+
+## C10 / §16 — Pagine legali, consenso e analitica — ✅ VERIFICATO 2026-08-31
+
+Decisioni in `DECISIONS.md` **D34**. Schema in `SCHEMA.md` §3.25, §3.26 e
+deviazioni 22-23. Operatività in `RUNBOOK.md`, sezione «Pagine legali, consenso
+e analitica».
+
+### Che cosa esiste adesso
+
+| Cosa | Dove |
+|---|---|
+| `/pagine/{slug}` con contenuto in database | `PageController`, tabella `pages`, `resources/views/pages/show.blade.php` |
+| Cinque testi italiani veri | `PageSeeder`: privacy, cookie, termini, chi-siamo, contatti |
+| Redazione senza rilascio | `/admin` → Pagine informative (`PageResource`, editor Markdown) |
+| Banner del consenso | `<x-cookie-banner>` nel layout, `POST /consenso` |
+| Pannello per cambiare idea | `<x-consent-preferences>` in fondo alla Cookie Policy, `DELETE /consenso` |
+| Registro del consenso | tabella `consent_logs`, `App\Actions\RecordConsent` |
+| Analitica senza cookie | `<x-analytics>`, `AnalyticsScript`, `ANALYTICS_*` in `.env` |
+
+### Test (89 nuovi, tutti verdi)
+
+- `tests/Feature/Legal/PagesTest.php` — 28: rotta, 404 sulla bozza e sullo slug
+  inesistente, canonico, markdown senza marcatura grezza, piè di pagina dai
+  contenuti pubblicati, **i testi seminati** (coordinate mai salvate, dati
+  raccolti uno per uno, cancellazione account, diritti e Garante, conservazione,
+  locandine e rimozione nei Termini, D9 sul futuro a pagamento), idempotenza del
+  seeder, permessi, e i tre casi editoriali via Livewire (crea → pubblicata sul
+  sito; corregge il titolo → **lo slug non cambia**; spegne → 404).
+- `tests/Feature/Legal/ConsentTest.php` — 21: compare al primo accesso e non al
+  secondo (accettando **e rifiutando**), ricompare al cambio di
+  `CONSENT_VERSION`, non impedisce la lettura, **due pulsanti con la stessa
+  identica classe**, entrambi `<button type="submit">` senza `tabindex`
+  negativo, rifiuto in un solo invio, granularità, «rifiuta» vince su una
+  casella rimasta spuntata, registro (versione, finalità, stesso `consent_id`
+  alla seconda scelta, utente collegato, **nessuna colonna IP**), revoca, e la
+  cache di pagina che **non serve a chi non ha scelto la copia di chi ha
+  accettato**.
+- `tests/Feature/Legal/AnalyticsTest.php` — 12: con `ANALYTICS_*` vuote
+  **nessun indirizzo esterno** nell'HTML (ricerca su tutti gli `src`/`href`, non
+  sul nome del fornitore), niente a chi non ha scelto e a chi ha rifiutato,
+  attributo giusto per Plausible e per Umami, spenta se manca una variabile, se
+  il fornitore è sconosciuto o se lo script è in chiaro.
+- `PanelRenderingTest`: elenco, modulo di creazione e scheda di modifica delle
+  pagine, senza chiavi di traduzione grezze.
+
+### Verifiche eseguite davvero (server + browser)
+
+- `php artisan serve` su database seedato: 200 su `/pagine/privacy|cookie|
+  termini|chi-siamo|contatti`, **404** su `/pagine/inesistente`.
+- Unici indirizzi esterni nell'HTML della pagina iniziale: le due attribuzioni
+  cartografiche (collegamenti, non risorse). Nessuno script di terze parti.
+- Browser a **390 px**: banner in fondo, 326 px su 844, nessun velo, scorrimento
+  della pagina libero, **nessun trabocco orizzontale**; «Accetta» e «Rifiuta»
+  con la stessa classe, lo stesso sfondo e la stessa misura (171×40); «Rifiuta»
+  raggiunto con **un tabulatore** e attivato con Invio → banner rimosso,
+  **pagina non ricaricata**, riga `reject_all` nel registro; preferenza
+  granulare → `custom` con `statistics: true`; alla visita successiva il banner
+  non torna; «Cancella la mia scelta» lo fa tornare. Zero errori in console.
+- `/admin/pages/{slug}/edit` si apre con l'editor Markdown, i suggerimenti in
+  italiano e l'interruttore di pubblicazione.
+
+### Due difetti trovati provando, non deducendo
+
+1. **`form.action` restituiva `[object RadioNodeList]`** — il modulo contiene
+   tre controlli chiamati `action` (i pulsanti), che oscurano la proprietà del
+   modulo. La richiesta partiva verso un indirizzo inesistente, il ripiego
+   scattava ma senza il pulsante premuto, e il sintomo era «premo Rifiuta e il
+   banner resta lì». Corretto leggendo l'attributo e allegando la scelta al
+   ripiego.
+2. **403 su `/admin/pages` con un amministratore vero** — il permesso
+   `pages.manage` non era assegnato finché `RolesAndPermissionsSeeder` non
+   rigirava, mentre i test restavano verdi perché ognuno semina i ruoli da capo.
+   È il caso già previsto dal RUNBOOK, incontrato per la prima volta.
+
+### Resta aperto
+
+`SEO_ORGANIZATION` e `SEO_ORGANIZATION_EMAIL` vuote → il titolare del
+trattamento nei testi è il nome del prodotto e il recapito è `MAIL_FROM_ADDRESS`:
+**vanno riempite prima della pubblicazione**, o corretti i testi dal pannello.
+Nessuna dichiarazione di accessibilità (non richiesta da §16, e scriverne una
+non verificata sarebbe peggio che non averla). Nessuna CSP: §16 la chiede, ma
+appartiene alle intestazioni di sicurezza e non a questa fase.
+
+---
+
+## Verifica finale F10 — ✅ ESEGUITA 2026-09-01
+
+Verifica indipendente dell'intera fase F10, tutta misurata su database proprio
+`eventi_test_verifica` (MariaDB 127.0.0.1:3307), con server attivo e curl.
+
+### Qualità statica
+
+| Comando | Esito |
+|---|---|
+| `npm run build` | verde (1.07 s; warning noto sul chunk mappa > 500 kB) |
+| `php artisan migrate:fresh --seed` | senza errori (140 locandine, 25 copertine, 5 pagine) |
+| `./vendor/bin/pest` | **1064 test verdi, 3570 asserzioni** (~163 s) — erano 781 prima di F10: **+283** |
+| `./vendor/bin/pint --test` | pulito su tutto il repo |
+| `phpstan` livello 6 | **0 errori** |
+
+### Pagine legali e consenso (curl su `php artisan serve`)
+
+- 200 con contenuto reale su `/pagine/privacy` (28,5 kB), `/pagine/cookie`
+  (24,7 kB), `/pagine/termini` (24,7 kB), `/pagine/chi-siamo` (22,5 kB),
+  `/pagine/contatti` (22,4 kB); i testi citano coordinate mai salvate,
+  localStorage, titolare, locandine e titolarità, gratuito/a pagamento (D9).
+  `/pagine/inesistente` → **404**.
+- La homepage al primo accesso contiene `consent-banner`.
+- Con `ANALYTICS_*` vuote: **zero `src` esterni** nell'HTML di homepage e
+  pagine legali; gli unici `href` esterni sono le due attribuzioni
+  cartografiche obbligatorie (ODbL/OpenStreetMap), collegamenti e non risorse.
+
+### Backup e restore — la prova che il backup esiste (§16)
+
+1. `backup:run --only-db` → archivio
+   `storage/app/private/eventi/2026-08-31-22-59-56.zip`, **57.486 byte**,
+   contenente `db-dumps/mariadb-eventi_test_verifica.sql.gz` (84.558 byte),
+   «Backup verified».
+2. Restore del dump in un database di prova `eventi_test_verifica_restore`.
+3. Confronto originale → ripristinato: **47 tabelle = 47 tabelle**;
+   locali 25 = 25, eventi 138 = 138, occorrenze 145 = 145, utenti 5 = 5,
+   pagine 5 = 5.
+4. Database di prova eliminato.
+
+### Endpoint di stato
+
+`/stato` senza chiave → **404**; chiave sbagliata → **404**; chiave giusta →
+**503** (degradato: su questo Mac `UsedDiskSpace` legge 100% per APFS, e coda
+e scheduler non girano in sviluppo — Database, Cache, ImportSources e
+ScheduledTasks sono `ok`). Il comportamento in produzione dipende da
+`OPS_HEALTH_TOKEN` in `.env` (vuoto = 404 per tutti, voluto).
+
+### Lighthouse (banco locale del RUNBOOK: nginx + php -S, coda smaltita, mediana di 3 giri)
+
+| URL | Perf | A11y | SEO | LCP |
+|---|---|---|---|---|
+| `/` | 0.91 | 0.96 | 1.00 | 3378 ms |
+| `/eventi` | **0.80** | 0.96 | 1.00 | **5179 ms** |
+| scheda evento | 0.96 | 0.97 | 1.00 | 2702 ms |
+
+Soglie di §11.11 **non ammorbidite**: il lavoro `lighthouse` resta rosso su
+`categories:performance` di `/eventi` e su LCP < 2000 ms ovunque, come
+dichiarato in D37 (il banco parla HTTP/1.1 e resta ~1,5 s sopra la produzione;
+`deploy` non dipende da `lighthouse`).
+
+### Resta aperto (invariato rispetto ai riepiloghi degli agenti)
+
+- `SEO_ORGANIZATION`, `SEO_ORGANIZATION_EMAIL`, `OPS_ALERT_EMAIL`,
+  `OPS_HEALTH_TOKEN`, chiavi Turnstile: da riempire nel `.env` di produzione.
+- Al rilascio: `php artisan migrate`, `db:seed --class=RolesAndPermissionsSeeder`
+  (permesso `pages.manage`), `db:seed --class=PageSeeder`,
+  `schedule-monitor:sync` (già nel deploy).
+- LCP < 2 s non raggiunto in nessun ambiente; su `/eventi` la Performance del
+  banco è scesa a 0.80 (5,2 s di LCP): le due cause note di D37 (locandina LCP
+  con `loading=lazy` sul mobile, varianti AVIF pesanti) restano da correggere.
+- Nessuna CSP (§16 la cita): rimandata alle intestazioni di sicurezza.

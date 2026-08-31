@@ -50,15 +50,13 @@ return [
         'about_body' => ':app raccoglie gli eventi di :city e provincia in un posto solo, aggiornati dai locali che li organizzano.',
         'discover_title' => 'Scopri',
         'venues_title' => 'Per i locali',
+        /* Le voci di questo gruppo sono i titoli delle pagine pubblicate
+           (tabella `pages`), non stringhe: la redazione le rinomina senza
+           passare da qui. */
         'legal_title' => 'Informazioni',
         'submit_event' => 'Proponi un evento',
         'register_venue' => 'Registra il tuo locale',
         'venue_login' => 'Accedi al pannello del locale',
-        'privacy' => 'Informativa privacy',
-        'cookies' => 'Cookie',
-        'terms' => 'Termini di servizio',
-        'contacts' => 'Contatti',
-        'accessibility' => 'Dichiarazione di accessibilità',
         'feeds_title' => 'Restare aggiornati',
         'calendar_feed' => 'Calendario iCal',
         'rss_feed' => 'Feed RSS',

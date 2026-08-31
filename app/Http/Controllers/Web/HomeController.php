@@ -65,6 +65,7 @@ final class HomeController extends Controller
         return view('home', [
             'city' => $city,
             'sections' => array_filter($sections, static fn (Collection $section): bool => $section->isNotEmpty()),
+            'lcpOccurrence' => $this->firstVisible($city, $sections),
             'days' => $this->days($city),
             'categories' => $this->categories($city),
             'venues' => $this->venues($city),
@@ -73,6 +74,41 @@ final class HomeController extends Controller
                 $this->structuredData->organization(),
             ],
         ]);
+    }
+
+    /**
+     * L'occorrenza la cui locandina sara la prima immagine grande della pagina.
+     *
+     * Serve al preload di §11.11, e va calcolata nell'ordine in cui le sezioni
+     * COMPAIONO, non in quello in cui il controller le interroga. La differenza
+     * conta: "In corso adesso" e "Inizia tra poco" stanno in un componente
+     * caricato dopo il primo disegno, ma sono le prime due sezioni della pagina
+     * (§11.2) — quindi la loro locandina e l'immagine piu grande sopra la
+     * piega, e annunciare quella di "Stasera" faceva scaricare in anticipo
+     * un'immagine che l'utente vede solo scorrendo.
+     *
+     * Le due query aggiuntive costano poco: quello che non si puo mettere nella
+     * pagina in cache e il RISULTATO, che cambia ogni minuto (§12.3), non la
+     * domanda.
+     *
+     * @param  array<string, Collection<int, EventOccurrence>>  $sections
+     */
+    private function firstVisible(City $city, array $sections): ?EventOccurrence
+    {
+        $live = EventOccurrenceQuery::for($city)->ongoing()->get()->first()
+            ?? EventOccurrenceQuery::for($city)->startingSoon()->get()->first();
+
+        if ($live !== null) {
+            return $this->hydrate(new Collection([$live]), 1)->first();
+        }
+
+        foreach (['tonight', 'today', 'featured', 'weekend'] as $key) {
+            if (($sections[$key] ?? null)?->isNotEmpty() === true) {
+                return $sections[$key]->first();
+            }
+        }
+
+        return null;
     }
 
     /**

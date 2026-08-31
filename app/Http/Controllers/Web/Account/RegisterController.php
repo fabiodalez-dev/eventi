@@ -8,6 +8,7 @@ use App\Actions\Account\RegisterUser;
 use App\DTOs\PageMeta;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Web\Account\RegisterRequest;
+use App\Support\Features;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
@@ -44,7 +45,12 @@ final class RegisterController extends Controller
             'name' => $request->string('name')->value(),
             'email' => (string) $request->validated('email'),
             'password' => (string) $request->validated('password'),
-            'marketing_opt_in' => $request->boolean('marketing_opt_in'),
+            /*
+             * Con la newsletter spenta la casella non compare nel modulo: un
+             * `marketing_opt_in=1` inviato lo stesso è un campo scritto a mano
+             * in una richiesta, non un consenso raccolto.
+             */
+            'marketing_opt_in' => Features::newsletterActive() && $request->boolean('marketing_opt_in'),
         ]);
 
         Auth::login($user, remember: true);

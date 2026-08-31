@@ -23,11 +23,15 @@
      * l'HTML che la contiene (§11.11). Se non c'è nessuna sezione — e le
      * sezioni vuote non si disegnano (§8.6) — non c'è niente da annunciare.
      */
-    $firstSection = collect($sectionsBefore)->keys()->first(fn (string $key): bool => isset($sections[$key]));
-    $lcp = $firstSection === null
+    /* L'occorrenza la calcola il controller nell'ordine in cui le sezioni
+       compaiono: la prima e "In corso adesso", che sta in un componente
+       caricato dopo il primo disegno ma resta cio che l'utente vede per primo.
+       Le misure dichiarate sono quelle del formato orizzontale, che e come
+       quella locandina viene mostrata quando le voci sono poche. */
+    $lcp = ($lcpOccurrence ?? null) === null
         ? null
-        : \App\Support\Poster::imageSet($sections[$firstSection]->first()->event)
-            ?->withSizes('(min-width: 1024px) 280px, (min-width: 640px) 45vw, 90vw');
+        : \App\Support\Poster::imageSet($lcpOccurrence->event)
+            ?->withSizes('(min-width: 1024px) 192px, (min-width: 640px) 160px, 100vw');
 
     $sectionsAfter = [
         'today' => ['title' => __('events.sections.today'), 'tone' => 'brand', 'context' => 'today', 'route' => 'events.today'],
