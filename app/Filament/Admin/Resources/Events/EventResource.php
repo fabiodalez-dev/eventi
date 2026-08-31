@@ -37,6 +37,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
+use Filament\Support\Enums\IconPosition;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -421,7 +422,30 @@ class EventResource extends Resource
                     ->label(__('admin.fields.title'))
                     ->searchable()
                     ->sortable()
-                    ->limit(60),
+                    ->limit(60)
+                    /*
+                     * Da dove arriva questo evento.
+                     *
+                     * Nel sito pubblico un evento importato ha la stessa
+                     * dignita di uno inserito a mano: chi cerca cosa fare
+                     * stasera non deve chiedersi da quale tubo sia passato.
+                     * Qui dentro no: chi modera deve riconoscere a colpo
+                     * d'occhio cio che nessuno ha letto prima di pubblicarlo,
+                     * ed e la meta operativa di §14.1.
+                     *
+                     * Sta sotto al titolo e non in una colonna propria perche
+                     * la stragrande maggioranza degli eventi e inserita a mano:
+                     * una colonna quasi sempre vuota ruba spazio a quelle che
+                     * si leggono davvero.
+                     */
+                    ->description(fn (Event $record): ?string => $record->source->isImported()
+                        ? $record->source->label()
+                        : null)
+                    ->icon(fn (Event $record): ?Heroicon => $record->source->isImported()
+                        ? Heroicon::OutlinedArrowDownTray
+                        : null)
+                    ->iconPosition(IconPosition::After)
+                    ->iconColor('gray'),
 
                 TextColumn::make('venue.name')
                     ->label(__('admin.fields.venue'))

@@ -197,6 +197,14 @@
     --text-section--letter-spacing: -0.02em;
     --text-section--font-weight: 600;
 
+    /* Il titolo di un'occorrenza che occupa la riga intera: sta fra il titolo
+       di sezione e quello di una card, perche a quella scala una card e' un
+       annuncio e non una miniatura. */
+    --text-feature: 1.5rem;
+    --text-feature--line-height: 1.15;
+    --text-feature--letter-spacing: -0.02em;
+    --text-feature--font-weight: 650;
+
     --text-card: 1.0625rem;
     --text-card--line-height: 1.25;
     --text-card--letter-spacing: -0.015em;

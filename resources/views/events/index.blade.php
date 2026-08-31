@@ -40,7 +40,7 @@
         {{-- Il contenitore dei risultati è ciò che l'infinite scroll estende:
              l'attributo lo dichiara, e senza JavaScript non fa niente. --}}
         <div class="mt-8" data-results>
-            <x-event-grid :occurrences="$occurrences->getCollection()" :eager="true" />
+            <x-event-grid :occurrences="$occurrences->getCollection()" :adaptive="false" :eager="true" />
         </div>
 
         <div data-pagination>

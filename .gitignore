@@ -39,3 +39,6 @@ CLAUDE.md
 /public/js/filament
 /public/fonts/filament
 /public/storage
+
+# Artefatti degli strumenti di sviluppo (Playwright MCP)
+.playwright-mcp

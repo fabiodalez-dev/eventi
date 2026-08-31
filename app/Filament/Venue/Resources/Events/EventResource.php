@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Venue\Resources\Events;
 
+use App\Enums\EventSource;
 use App\Enums\EventStatus;
 use App\Filament\Support\EventStatusPresentation;
 use App\Filament\Venue\Resources\Events\Pages\CreateEvent;
@@ -171,6 +172,25 @@ class EventResource extends Resource
                             ->dateTime('d/m/Y H:i', CurrentVenue::timezone())
                             ->icon(Heroicon::OutlinedClock)
                             ->placeholder(__('manage.placeholders.no_date')),
+
+                        /*
+                         * Le date arrivate dal calendario collegato.
+                         *
+                         * Chi gestisce il locale deve sapere quali eventi ha
+                         * scritto e quali sono entrati da soli: sono quelli che
+                         * spariranno o cambieranno alla prossima lettura, e
+                         * modificarli qui a mano serve a poco.
+                         *
+                         * Nel sito pubblico la riga non esiste: li fuori un
+                         * evento vale l'altro.
+                         */
+                        TextColumn::make('source')
+                            ->label(__('manage.fields.source'))
+                            ->badge()
+                            ->color('gray')
+                            ->icon(Heroicon::OutlinedArrowDownTray)
+                            ->formatStateUsing(fn (EventSource $state): string => $state->label())
+                            ->visible(fn (?Event $record): bool => $record?->source->isImported() ?? false),
                     ]),
 
                     TextColumn::make('status')

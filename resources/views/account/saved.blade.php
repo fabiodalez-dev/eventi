@@ -20,7 +20,7 @@
 
     @if ($occurrences->total() > 0)
         <div class="mt-6" data-results>
-            <x-event-grid :occurrences="$occurrences->getCollection()" />
+            <x-event-grid :occurrences="$occurrences->getCollection()" :adaptive="false" />
         </div>
 
         <div class="mt-8" data-pagination>

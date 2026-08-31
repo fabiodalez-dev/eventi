@@ -42,6 +42,7 @@ return [
     ],
 
     'fields' => [
+        'source' => 'Provenienza',
         'poster' => 'Locandina',
         'title' => 'Titolo',
         'description' => 'Descrizione',
