@@ -100,6 +100,21 @@ ssh fabiodalez.it 'cd ~/eventi && /opt/cpanel/ea-php84/root/usr/bin/php artisan 
 Gli eventi importati nascono `published` ma `verification_status = unverified`
 (D32): si distinguono in pannello e in API da quelli confermati dal locale.
 
+## File che non vanno mai sincronizzati
+
+Tre file esistono su entrambe le macchine ma il loro contenuto corretto dipende
+da **dove** si trovano. Il deploy li esclude e li rigenera sul server; copiarli
+rompe la produzione in modi che non assomigliano alla causa.
+
+| File | Cosa succede se lo si copia |
+|---|---|
+| `public/storage` | Symlink assoluto: punta a un percorso del Mac. Nessuna immagine si carica, restano i segnaposto sfocati |
+| `bootstrap/cache/packages.php` | Elenca i provider delle dipendenze di sviluppo, assenti in produzione: HTTP 500 su tutto, `Class "Laravel\Pail\PailServiceProvider" not found` |
+| `public/.htaccess` | Al contrario: questo **deve** essere versionato, perche contiene la direttiva che forza PHP 8.4 (vedi sopra) |
+
+Se la produzione risponde 500 subito dopo un rilascio, il primo posto da
+guardare e questo elenco.
+
 ## Verifiche rapide
 
 ```bash

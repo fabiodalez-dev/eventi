@@ -156,6 +156,7 @@ jobs:
             --exclude 'storage/framework/views/*' \
             --exclude 'storage/app/public/*' \
             --exclude 'public/storage' \
+            --exclude 'bootstrap/cache/*' \
             ./ "${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_PATH}/"
 
       - name: Migrazioni e cache
@@ -169,10 +170,17 @@ jobs:
              cd ~/eventi
              PHP=/opt/cpanel/ea-php84/root/usr/bin/php
              $PHP artisan migrate --force
-             # `public/storage` e escluso dalla sincronizzazione: e un symlink
-             # assoluto, e quello creato sulla macchina di sviluppo punterebbe a
-             # un percorso che sul server non esiste. Va rigenerato qui.
-             [ -L public/storage ] || $PHP artisan storage:link
+             # Tre cose non si sincronizzano mai, perche il loro contenuto
+             # corretto dipende da DOVE si trovano, e vanno rigenerate qui:
+             #
+             #  - `public/storage`: symlink assoluto; quello creato sulla
+             #    macchina di sviluppo punta a un percorso inesistente sul server
+             #  - `bootstrap/cache/packages.php`: elenca anche i service provider
+             #    delle dipendenze di sviluppo, che in produzione non esistono
+             #    (`composer install --no-dev`) e fanno fallire l'avvio
+             #  - le cache di config, rotte e viste, che contengono percorsi assoluti
+             if [ ! -L public/storage ]; then $PHP artisan storage:link; fi
+             $PHP artisan package:discover --quiet
              # pubblica CSS e JS dei pannelli Filament in public/: senza questo
              # /admin e /gestione vengono serviti senza alcun foglio di stile
              $PHP artisan filament:assets
