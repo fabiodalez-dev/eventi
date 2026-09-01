@@ -18,7 +18,54 @@
  *   `<x-event-card>` già pronta: una seconda card scritta in JavaScript
  *   divergerebbe dalla prima al primo cambio di badge.
  */
-import L from 'leaflet';
+/*
+ * **Leaflet non si importa qui in cima, e non e' una finezza.**
+ *
+ * Importato staticamente finiva nel primo blocco di JavaScript di OGNI pagina
+ * che include questo file — home compresa, dove il riquadro sta in fondo e su
+ * un telefono e' a diverse schermate di distanza. Il referto lo diceva senza
+ * mezzi termini: 45 KB scaricati e valutati subito, 27 dei quali mai usati in
+ * quel primo caricamento, mentre il thread principale era gia' il collo di
+ * bottiglia della pagina.
+ *
+ * Ora si carica quando un riquadro sta per entrare nello schermo. Il margine
+ * di mezzo schermo fa partire il caricamento prima che si veda, cosi' chi
+ * scorre trova la mappa gia' pronta invece di guardarla comparire.
+ *
+ * I fogli di stile restano dove sono, in `app.css`: se arrivassero insieme al
+ * codice, la mappa comparirebbe prima senza stile e poi con — e per giunta
+ * vincerebbero sulle nostre regole, che e' il motivo per cui stanno li'.
+ */
+let L = null;
+
+/** Il caricamento parte una volta sola anche con piu' riquadri in pagina. */
+let librerie = null;
+
+function caricaLibrerie() {
+    librerie ??= (async () => {
+        const modulo = await import("leaflet");
+
+        L = modulo.default;
+        /* Prima dell'innesto: vedi la nota qui sotto sul perche'. */
+        window.L = L;
+
+        /*
+         * Le icone predefinite arrivano da file PNG che la libreria cerca
+         * accanto al proprio foglio di stile: dopo il raggruppamento di Vite
+         * quel percorso non esiste piu', e i marcatori sparirebbero senza un
+         * errore. Qui non servono comunque — ogni marcatore e' un `divIcon`.
+         *
+         * Sta dentro questa funzione e non a livello di modulo perche' ora
+         * `L` arriva solo quando la mappa serve davvero: eseguita all'import
+         * trovava `null` e spegneva lo script prima ancora di cominciare.
+         */
+        delete L.Icon.Default.prototype._getIconUrl;
+
+        await import("leaflet.markercluster");
+    })();
+
+    return librerie;
+}
 
 /*
  * I due fogli di stile di Leaflet NON si importano qui: stanno in
@@ -39,15 +86,6 @@ import L from 'leaflet';
  * dopo, con un import a richiesta.
  */
 window.L = L;
-
-/*
- * Le icone predefinite di Leaflet arrivano da file PNG che la libreria cerca
- * accanto al proprio foglio di stile: dopo il raggruppamento di Vite quel
- * percorso non esiste più, e i marcatori sparirebbero senza un errore. Qui non
- * servono comunque — ogni marcatore è un `divIcon`, cioè un elemento del
- * documento che prende il colore dalla categoria.
- */
-delete L.Icon.Default.prototype._getIconUrl;
 
 /**
  * Da carico compatto a marcatori. I dati arrivano come liste posizionali
@@ -70,13 +108,13 @@ function toMarkers(payload, color) {
         .map((marker) => {
             const [venue, lng, lat, , count, name] = marker;
 
-            if (typeof lat !== 'number' || typeof lng !== 'number') {
+            if (typeof lat !== "number" || typeof lng !== "number") {
                 return null;
             }
 
             return {
                 venue: String(venue),
-                name: String(name ?? ''),
+                name: String(name ?? ""),
                 lat,
                 lng,
                 color,
@@ -95,13 +133,13 @@ function boundingBox(map) {
         bounds.getSouth().toFixed(5),
         bounds.getEast().toFixed(5),
         bounds.getNorth().toFixed(5),
-    ].join(',');
+    ].join(",");
 }
 
 /** Un marcatore singolo: un punto pieno che pulsa, del colore della categoria. */
 function pin(marker) {
     return L.divIcon({
-        className: 'rm-pin',
+        className: "rm-pin",
         html:
             `<i class="rm-pin__halo" style="border-color:${marker.color}"></i>` +
             `<i class="rm-pin__dot" style="background:${marker.color}"></i>`,
@@ -121,7 +159,7 @@ function clusterIcon(cluster, fallbackColor) {
     const size = total >= 20 ? 44 : total >= 5 ? 36 : 30;
 
     return L.divIcon({
-        className: 'rm-cluster',
+        className: "rm-cluster",
         html: `<span style="background:${fallbackColor}">${total}</span>`,
         iconSize: [size, size],
         iconAnchor: [size / 2, size / 2],
@@ -142,16 +180,16 @@ function clusterIcon(cluster, fallbackColor) {
  * svuota il nodo di cui prende possesso.
  */
 function avviaRiquadro(shell) {
-    const container = shell.querySelector('[data-map]');
+    const container = shell.querySelector("[data-map]");
 
     if (!container) {
         return;
     }
 
-    const configNode = shell.querySelector('[data-map-config]');
+    const configNode = shell.querySelector("[data-map-config]");
 
     if (!configNode) {
-        console.error('[mappa] manca il nodo [data-map-config]', shell);
+        console.error("[mappa] manca il nodo [data-map-config]", shell);
 
         return;
     }
@@ -159,19 +197,19 @@ function avviaRiquadro(shell) {
     let config;
 
     try {
-        config = JSON.parse(configNode.textContent ?? '{}');
+        config = JSON.parse(configNode.textContent ?? "{}");
     } catch (errore) {
-        console.error('[mappa] configurazione illeggibile', errore);
+        console.error("[mappa] configurazione illeggibile", errore);
 
         return;
     }
 
-    const placeholder = container.querySelector('[data-map-placeholder]');
-    const searchButton = shell.querySelector('[data-map-search]');
-    const sheet = shell.querySelector('[data-map-sheet]');
-    const sheetBody = shell.querySelector('[data-map-sheet-body]');
-    const sheetClose = shell.querySelector('[data-map-sheet-close]');
-    const truncated = shell.querySelector('[data-map-truncated]');
+    const placeholder = container.querySelector("[data-map-placeholder]");
+    const searchButton = shell.querySelector("[data-map-search]");
+    const sheet = shell.querySelector("[data-map-sheet]");
+    const sheetBody = shell.querySelector("[data-map-sheet-body]");
+    const sheetClose = shell.querySelector("[data-map-sheet-close]");
+    const truncated = shell.querySelector("[data-map-truncated]");
 
     placeholder?.remove();
 
@@ -188,7 +226,7 @@ function avviaRiquadro(shell) {
      * (D46). Il foglio di stile la rimpicciolisce e la incornicia.
      */
     L.control
-        .attribution({ position: 'bottomright', prefix: false })
+        .attribution({ position: "bottomright", prefix: false })
         .addAttribution(config.attribution)
         .addTo(map);
 
@@ -197,33 +235,33 @@ function avviaRiquadro(shell) {
        alla nota di attribuzione, che deve dire il vero. */
     L.tileLayer(config.tiles, {
         maxZoom: config.maxZoom ?? 19,
-        subdomains: config.subdomains || 'abc',
+        subdomains: config.subdomains || "abc",
         /* Sugli schermi fitti Leaflet sostituisce `{r}` con `@2x` e chiede la
            versione a doppia risoluzione, se il fornitore la serve. */
         detectRetina: true,
         /* L'attribuzione la governa il controllo qui sopra: se la dichiarasse
            anche il livello, comparirebbe due volte. */
-        attribution: '',
+        attribution: "",
     }).addTo(map);
 
     if (!config.static) {
-        L.control.zoom({ position: 'topright' }).addTo(map);
+        L.control.zoom({ position: "topright" }).addTo(map);
     }
 
     /* La geolocalizzazione parte al tocco: nessuna richiesta all'apertura
        (§11.7), e la posizione non viene mai salvata — serve solo a spostare
        la vista. */
-    const locate = L.control({ position: 'topright' });
+    const locate = L.control({ position: "topright" });
 
     locate.onAdd = () => {
-        const wrapper = L.DomUtil.create('div', 'leaflet-bar rm-locate');
-        const button = L.DomUtil.create('a', '', wrapper);
-        button.href = '#';
-        button.title = config.labels.locate ?? '';
-        button.setAttribute('role', 'button');
-        button.textContent = '◎';
+        const wrapper = L.DomUtil.create("div", "leaflet-bar rm-locate");
+        const button = L.DomUtil.create("a", "", wrapper);
+        button.href = "#";
+        button.title = config.labels.locate ?? "";
+        button.setAttribute("role", "button");
+        button.textContent = "◎";
 
-        L.DomEvent.on(button, 'click', (event) => {
+        L.DomEvent.on(button, "click", (event) => {
             L.DomEvent.stop(event);
             map.locate({ setView: true, maxZoom: 15 });
         });
@@ -245,10 +283,19 @@ function avviaRiquadro(shell) {
 
     map.addLayer(cluster);
 
-    if (config.bounds && typeof config.bounds === 'object') {
-        const { min_lng: minLng, min_lat: minLat, max_lng: maxLng, max_lat: maxLat } = config.bounds;
+    if (config.bounds && typeof config.bounds === "object") {
+        const {
+            min_lng: minLng,
+            min_lat: minLat,
+            max_lng: maxLng,
+            max_lat: maxLat,
+        } = config.bounds;
 
-        if ([minLng, minLat, maxLng, maxLat].every((value) => typeof value === 'number')) {
+        if (
+            [minLng, minLat, maxLng, maxLat].every(
+                (value) => typeof value === "number",
+            )
+        ) {
             map.fitBounds(
                 [
                     [minLat, minLng],
@@ -276,7 +323,7 @@ function avviaRiquadro(shell) {
                        «pulsante 24». */
                     title: marker.name || undefined,
                     alt: marker.name || undefined,
-                }).on('click', () => openSheet(marker.venue)),
+                }).on("click", () => openSheet(marker.venue)),
             ),
         );
 
@@ -298,10 +345,15 @@ function avviaRiquadro(shell) {
         }
 
         try {
-            const url = new URL(config.endpoints.markers, window.location.origin);
-            url.searchParams.set('bbox', boundingBox(map));
+            const url = new URL(
+                config.endpoints.markers,
+                window.location.origin,
+            );
+            url.searchParams.set("bbox", boundingBox(map));
 
-            const response = await fetch(url, { headers: { Accept: 'application/json' } });
+            const response = await fetch(url, {
+                headers: { Accept: "application/json" },
+            });
 
             if (response.ok) {
                 apply(await response.json());
@@ -329,10 +381,10 @@ function avviaRiquadro(shell) {
         try {
             const response = await fetch(
                 `${config.endpoints.venue.base}${venue}${config.endpoints.venue.query}`,
-                { headers: { 'X-Requested-With': 'fetch' } },
+                { headers: { "X-Requested-With": "fetch" } },
             );
 
-            sheetBody.innerHTML = response.ok ? await response.text() : '';
+            sheetBody.innerHTML = response.ok ? await response.text() : "";
 
             if (!response.ok) {
                 sheetBody.textContent = config.labels.error;
@@ -354,10 +406,10 @@ function avviaRiquadro(shell) {
         }
     };
 
-    sheetClose?.addEventListener('click', closeSheet);
+    sheetClose?.addEventListener("click", closeSheet);
 
-    document.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape') {
+    document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
             closeSheet();
         }
     });
@@ -366,13 +418,13 @@ function avviaRiquadro(shell) {
 
     /* Spostata la vista, il pulsante "cerca in quest'area" compare: la mappa
        non ricarica da sé, perché chi trascina sta guardando, non chiedendo. */
-    map.on('moveend', () => {
+    map.on("moveend", () => {
         if (searchButton) {
             searchButton.hidden = false;
         }
     });
 
-    searchButton?.addEventListener('click', () => {
+    searchButton?.addEventListener("click", () => {
         void load();
     });
 
@@ -392,17 +444,46 @@ function avviaRiquadro(shell) {
 }
 
 async function start() {
-    const riquadri = document.querySelectorAll('[data-map-shell]');
+    const riquadri = document.querySelectorAll("[data-map-shell]");
 
     if (riquadri.length === 0) {
         return;
     }
 
-    /* L'innesto dei gruppi si carica una volta sola, prima di tutti. */
-    await import('leaflet.markercluster');
+    /* Senza osservatore si carica tutto subito: meglio lento che assente. */
+    if (!("IntersectionObserver" in window)) {
+        await caricaLibrerie();
+
+        for (const shell of riquadri) {
+            avviaRiquadro(shell);
+        }
+
+        return;
+    }
+
+    const osservatore = new IntersectionObserver(
+        (voci, self) => {
+            for (const voce of voci) {
+                if (!voce.isIntersecting) {
+                    continue;
+                }
+
+                /* Una volta accesa, questa non si guarda piu'. */
+                self.unobserve(voce.target);
+
+                caricaLibrerie()
+                    .then(() => avviaRiquadro(voce.target))
+                    .catch((errore) =>
+                        console.error("[mappa] avvio fallito", errore),
+                    );
+            }
+        },
+        /* Mezzo schermo di anticipo: la mappa e' pronta prima di vedersi. */
+        { rootMargin: "500px 0px" },
+    );
 
     for (const shell of riquadri) {
-        avviaRiquadro(shell);
+        osservatore.observe(shell);
     }
 }
 
@@ -413,12 +494,12 @@ async function start() {
  */
 const avvia = () => {
     start().catch((errore) => {
-        console.error('[mappa] avvio fallito', errore);
+        console.error("[mappa] avvio fallito", errore);
     });
 };
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', avvia);
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", avvia);
 } else {
     avvia();
 }
