@@ -59,6 +59,14 @@ return [
 
     'max_zoom' => 19,
 
+    /*
+     * Lo zoom del riquadro che mostra UN locale, sulla sua scheda e su quella
+     * dei suoi eventi. Quindici e' il livello a cui si leggono i nomi delle
+     * vie attorno: piu' largo e non si capisce dove sia, piu' stretto e si
+     * perde il rione.
+     */
+    'venue_zoom' => 15,
+
     'attribution' => env('MAP_ATTRIBUTION', '© OpenStreetMap contributors'),
 
     'attribution_url' => 'https://www.openstreetmap.org/copyright',

@@ -33,6 +33,16 @@
        scorrimento della pagina a chi ci passa sopra col dito è solo un
        fastidio. */
     'static' => false,
+    /*
+     * Dove guardare. Senza, si guarda il centro della città con lo zoom della
+     * città — giusto per una mappa di tutti gli eventi, sbagliato per il
+     * riquadro di un locale: se quel locale sta in provincia, resta fuori
+     * inquadratura e il riquadro sembra vuoto.
+     *
+     * `[lng, lat]`, come ovunque nel sistema.
+     */
+    'center' => null,
+    'zoom' => null,
 ])
 
 @php
@@ -51,9 +61,12 @@
         /* Ordine `[lng, lat]`, come nel resto del sistema: MariaDB conserva i
            punti così e cambiarlo qui creerebbe due convenzioni. Leaflet vuole
            l'ordine inverso, e lo ribalta lo script in un punto solo. */
-        'center' => [(float) $city->center_lng, (float) $city->center_lat],
-        'zoom' => (int) $city->default_zoom,
-        'bounds' => is_array($city->bounds) ? $city->bounds : null,
+        'center' => $center ?? [(float) $city->center_lng, (float) $city->center_lat],
+        'zoom' => $zoom ?? (int) $city->default_zoom,
+        /* I confini della città inquadrano tutta la città: su un riquadro
+           centrato su un singolo locale rifarebbero lo zoom indietro,
+           annullando il centro appena scelto. */
+        'bounds' => $center === null && is_array($city->bounds) ? $city->bounds : null,
         'fallbackColor' => config('map.fallback_color'),
         'endpoints' => [
             'markers' => route('map.markers', $filters->toQueryString()),

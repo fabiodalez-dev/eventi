@@ -3,56 +3,80 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
+use Symfony\Component\Process\Process;
 
 /**
  * «File che non vanno mai sincronizzati» (`RUNBOOK.md`).
  *
  * Tre percorsi esistono su entrambe le macchine, ma il loro contenuto corretto
- * dipende da **dove** si trovano. Il `rsync --delete` del rilascio li esclude;
- * togliere una di quelle righe non fa fallire niente in CI e rompe la
- * produzione in modi che non assomigliano alla causa:
+ * dipende da **dove** si trovano:
  *
- * - `public/storage` è un symlink assoluto a un percorso del Mac → nessuna
- *   immagine si carica;
- * - `bootstrap/cache/*` elenca i provider delle dipendenze di sviluppo,
+ * - `public/storage` è un symlink assoluto: quello creato sul Mac punta a una
+ *   cartella che sul server non esiste → nessuna immagine si carica;
+ * - `bootstrap/cache/*` elenca anche i provider delle dipendenze di sviluppo,
  *   assenti in produzione → HTTP 500 su tutto;
- * - `storage/app/private/` è dove vivono i backup di §16 → **ogni
- *   pubblicazione li cancellerebbe**, cioè proprio il gesto dopo il quale un
- *   backup serve di più.
+ * - `storage/app/private/` è dove vivono i backup di §16 → una pubblicazione
+ *   che li sovrascrivesse cancellerebbe proprio ciò che serve di più subito
+ *   dopo una pubblicazione.
  *
- * Sono tre righe di YAML che nessun test tocca: questo è il loro presidio.
+ * **Il presidio è cambiato insieme al meccanismo.** Prima il rilascio spingeva
+ * i file con `rsync --delete` e la garanzia stava in tre righe di `--exclude`;
+ * ora è il server a tirare con `git reset --hard`, e la garanzia è che quei
+ * percorsi **non stiano nel repository**. Se ci finissero, il reset li
+ * riscriverebbe con la versione di un'altra macchina — lo stesso guasto, per
+ * una strada diversa.
  */
-function passoDiSincronizzazione(): string
-{
-    $ci = (string) file_get_contents(base_path('.github/workflows/ci.yml'));
+it('tiene fuori dal repository i percorsi il cui contenuto dipende dalla macchina', function (string $percorso): void {
+    $processo = Process::fromShellCommandline(
+        'git check-ignore -q '.escapeshellarg($percorso).' && echo ignorato || echo tracciato',
+        base_path(),
+    );
 
-    $inizio = strpos($ci, 'rsync -az --delete');
+    $processo->run();
 
-    expect($inizio)->not->toBeFalse();
-
-    $fine = strpos($ci, '- name:', (int) $inizio);
-
-    return substr($ci, (int) $inizio, ($fine === false ? strlen($ci) : $fine) - (int) $inizio);
-}
-
-it('esclude dal rilascio i percorsi il cui contenuto dipende dalla macchina', function (string $percorso): void {
-    expect(passoDiSincronizzazione())->toContain("--exclude '".$percorso."'");
+    expect(trim($processo->getOutput()))->toBe(
+        'ignorato',
+        "«{$percorso}» deve restare fuori dal repository: il rilascio fa `git reset --hard` e lo sovrascriverebbe"
+    );
 })->with([
     'il symlink delle immagini' => 'public/storage',
-    'la cache dei provider' => 'bootstrap/cache/*',
-    'i backup di §16' => 'storage/app/private/*',
+    'la cache dei provider' => 'bootstrap/cache/packages.php',
+    /* Il PERCORSO di un backup, non la cartella: Laravel versiona lo
+       scheletro di `storage` — un `.gitignore` che esclude il contenuto — e
+       chiedere che la cartella intera sia ignorata verificherebbe la cosa
+       sbagliata. Cio' che non deve viaggiare e' quello che ci sta dentro. */
+    'i backup di §16' => 'storage/app/private/eventi/2026-01-01-00-00-00.zip',
+    'i segreti di questa installazione' => '.env',
+    'le dipendenze' => 'vendor',
+    'i media caricati' => 'storage/media-library',
 ]);
 
-it('sincronizza invece il file che forza la versione di PHP sul server', function (): void {
-    expect(passoDiSincronizzazione())->not->toContain('public/.htaccess')
+it('versiona invece il file che forza la versione di PHP sul server', function (): void {
+    /* Questo INVECE deve viaggiare: senza, il server serve il sito con il PHP
+       predefinito della shared hosting, che non è quello che l'applicazione
+       pretende. */
+    $processo = Process::fromShellCommandline(
+        'git check-ignore -q public/.htaccess && echo ignorato || echo tracciato',
+        base_path(),
+    );
+
+    $processo->run();
+
+    expect(trim($processo->getOutput()))->toBe('tracciato')
         ->and(file_exists(base_path('public/.htaccess')))->toBeTrue();
 });
 
-it('non sincronizza i test né i segreti', function (): void {
-    expect(passoDiSincronizzazione())
-        ->toContain("--exclude 'tests'")
-        ->toContain("--exclude '.env'")
-        ->toContain("--exclude '.git'");
+/**
+ * Il rilascio non passa più da SSH, e non è una preferenza: la porta 22 di
+ * quell'host non accetta connessioni da fuori, e ogni `rsync` moriva in
+ * `Connection timed out`. Il workflow manda un segnale HTTPS e il server tira.
+ */
+it('non prova più a spingere i file via SSH', function (): void {
+    $ci = (string) file_get_contents(base_path('.github/workflows/ci.yml'));
+
+    expect($ci)
+        ->not->toContain('rsync -az --delete')
+        ->toContain('Chiedi al server di aggiornarsi');
 });
 
 /**

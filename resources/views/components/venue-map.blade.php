@@ -45,6 +45,8 @@
             :payload="$payload"
             :static="true"
             :show-legend="false"
+            :center="[(float) $venue->lng, (float) $venue->lat]"
+            :zoom="config('map.venue_zoom')"
             map-class="aspect-[16/10] w-full"
         />
     @endif

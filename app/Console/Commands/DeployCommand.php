@@ -59,6 +59,35 @@ class DeployCommand extends Command
      *
      * @param  list<string>  $candidati
      */
+    /**
+     * L'ambiente da dare ai processi: il PATH corrente più le cartelle degli
+     * eseguibili che abbiamo trovato.
+     *
+     * Serve perché un processo avviato da PHP non legge il profilo della shell
+     * e il PATH che eredita può non contenere le cartelle giuste — su questa
+     * shared hosting il PHP dell'applicazione sta fuori dai percorsi standard.
+     *
+     * @return array<string, string>
+     */
+    private function ambiente(): array
+    {
+        $cartella = dirname($this->php());
+
+        $percorsi = array_filter([
+            $cartella !== '.' && is_dir($cartella) ? $cartella : null,
+            (string) (getenv('PATH') ?: '/usr/local/bin:/usr/bin:/bin'),
+        ]);
+
+        return ['PATH' => implode(PATH_SEPARATOR, $percorsi)];
+    }
+
+    /**
+     * Il primo eseguibile che esiste davvero, con la configurazione che vince
+     * su tutto: un'installazione fuori dall'ordinario si dichiara una volta in
+     * `.env` invece di far indovinare il codice.
+     *
+     * @param  list<string>  $candidati
+     */
     private function eseguibile(string $chiave, array $candidati, string $ripiego): string
     {
         $configurato = config($chiave);

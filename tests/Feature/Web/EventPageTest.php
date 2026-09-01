@@ -8,6 +8,7 @@ use App\Enums\OccurrenceStatus;
 use App\Enums\PriceType;
 use App\Models\EventOccurrence;
 use App\Models\Lineup;
+use App\Models\Venue;
 use Carbon\Carbon;
 
 afterEach(function (): void {
@@ -213,4 +214,85 @@ it('mostra l\'archivio quando tutte le date sono passate, e non finisce negli in
         ->assertOk()
         ->assertSee(__('events.detail.finished'))
         ->assertSee('<meta name="robots" content="noindex, follow">', escape: false);
+});
+
+/*
+ * Il locale, sulla scheda della sua serata.
+ *
+ * Chi legge sta decidendo se andarci, e a quel punto vuole sapere dov'è, com'è
+ * fatto il posto e come si contatta. Sono dati che stanno sul locale — valgono
+ * per tutte le sue serate — e per questo si scrivono una volta sola in
+ * `/gestione` invece che a ogni evento.
+ */
+it('mostra la presentazione del locale scritta da chi lo gestisce', function (): void {
+    $city = testCity();
+    $category = testCategory();
+
+    $venue = Venue::factory()->approved()->create([
+        'city_id' => $city->getKey(),
+        'name' => 'Circolo di prova',
+        'short_description' => 'Sala da cento posti sopra una vecchia officina.',
+        'phone' => '+39 049 000111',
+        'email' => 'ciao@circolo.test',
+    ]);
+
+    freezeLocal($city, '2026-09-05 12:00:00');
+    $occorrenza = occurrenceAtLocal($city, $category, '2026-09-20 21:00:00', venue: $venue);
+
+    $this->get(route('events.show', $occorrenza->event))
+        ->assertOk()
+        ->assertSee('Circolo di prova')
+        ->assertSee('Sala da cento posti sopra una vecchia officina.')
+        ->assertSee('+39 049 000111')
+        ->assertSee('ciao@circolo.test');
+});
+
+it('accende la mappa del locale sulla scheda dell evento', function (): void {
+    $city = testCity();
+    $category = testCategory();
+
+    $venue = Venue::factory()->approved()->create(['city_id' => $city->getKey()]);
+
+    freezeLocal($city, '2026-09-05 12:00:00');
+    $occorrenza = occurrenceAtLocal($city, $category, '2026-09-20 21:00:00', venue: $venue);
+
+    $html = $this->get(route('events.show', $occorrenza->event))->assertOk()->getContent();
+
+    /*
+     * Due cose, e servono entrambe: il riquadro con la sua configurazione, e
+     * lo SCRIPT che lo accende. Senza il secondo il riquadro resta la propria
+     * frase di ripiego — è com'era, e sembrava una mappa rotta.
+     */
+    expect($html)
+        ->toContain('data-map-shell')
+        ->toContain('data-map-config')
+        ->toMatch('/<script[^>]+src="[^"]*\/map-[^"]+\.js"/');
+});
+
+it('centra la mappa sul locale, non sul centro città', function (): void {
+    $city = testCity();
+    $category = testCategory();
+
+    /* Un locale in provincia: col centro città e lo zoom della città
+       resterebbe fuori inquadratura, e il riquadro sembrerebbe vuoto. */
+    $venue = Venue::factory()->approved()->create([
+        'city_id' => $city->getKey(),
+        'lat' => 45.2320,
+        'lng' => 11.6600,
+    ]);
+
+    freezeLocal($city, '2026-09-05 12:00:00');
+    $occorrenza = occurrenceAtLocal($city, $category, '2026-09-20 21:00:00', venue: $venue);
+
+    $html = $this->get(route('events.show', $occorrenza->event))->assertOk()->getContent();
+
+    preg_match('/<script type="application\/json" data-map-config>(.*?)<\/script>/s', $html, $trovato);
+
+    $config = json_decode(html_entity_decode($trovato[1] ?? '{}'), associative: true);
+
+    expect($config['center'])->toBe([11.66, 45.232])
+        ->and($config['zoom'])->toBe(config()->integer('map.venue_zoom'))
+        /* Senza questo, `fitBounds` rifarebbe lo zoom sui confini della città
+           annullando il centro appena scelto. */
+        ->and($config['bounds'])->toBeNull();
 });

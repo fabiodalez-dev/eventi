@@ -34,6 +34,11 @@
 <x-layouts.app :meta="$meta" :preload="$poster">
     <x-slot:head>
         <x-json-ld :data="$structuredData" />
+
+        {{-- La mappa del locale, più in basso, è lo stesso riquadro Leaflet di
+             tutto il sito e senza questo script non si accende: restava un
+             rettangolo con la propria frase, e sembrava rotta. --}}
+        @vite('resources/js/map.js')
     </x-slot:head>
 
     {{-- La riga di ritorno: dove sono e da dove vengo. Nel riferimento è una
@@ -421,14 +426,55 @@
             </section>
 
             @if ($venue !== null)
-                <section class="flex flex-col gap-3 bg-canvas p-5 border-2 border-line" aria-labelledby="luogo-evento">
-                    <h2 id="luogo-evento" class="font-display text-[clamp(1.25rem,1.8vw,1.75rem)] leading-none font-extrabold tracking-[-0.03em] uppercase">{{ __('events.detail.where') }}</h2>
+                <section class="flex flex-col gap-4 border-2 border-line bg-canvas p-5" aria-labelledby="luogo-evento">
+                    <h2 id="luogo-evento" class="font-display text-[clamp(1.25rem,1.8vw,1.75rem)] leading-none font-extrabold tracking-[-0.03em] uppercase">
+                        {{ __('events.detail.where') }}
+                    </h2>
 
-                    <p class="text-sm text-ink-muted">
-                        <a class="font-semibold text-ink hover:underline" href="{{ route('venues.show', $venue) }}">{{ $venue->name }}</a><br>
-                        {{ $venue->address }}<br>
+                    <div class="flex flex-col gap-1.5">
+                        <a
+                            class="font-display text-[1.125rem] leading-tight font-extrabold tracking-[-0.02em] uppercase hover:text-accent"
+                            href="{{ route('venues.show', $venue) }}"
+                        >{{ $venue->name }}</a>
+
+                        <p class="m-0 font-display text-[0.594rem] leading-none font-extrabold tracking-[0.14em] text-ink-subtle uppercase">
+                            {{ collect([$venue->type?->label(), $venue->zone ?: $venue->municipality])->filter()->implode(' '.__('common.separator').' ') }}
+                        </p>
+                    </div>
+
+                    {{-- **La presentazione del locale, scritta dal locale.**
+                         Chi legge la scheda di una serata sta anche decidendo
+                         se gli piace il posto: due righe di chi lo gestisce
+                         dicono più di un indirizzo. La scrive il referente in
+                         `/gestione` e vale per tutti i suoi eventi — non si
+                         ripete a ogni serata. --}}
+                    @if (filled($venue->short_description))
+                        <p class="m-0 text-[0.875rem] leading-[1.55] text-ink-muted">{{ $venue->short_description }}</p>
+                    @endif
+
+                    <p class="m-0 text-sm leading-[1.5] text-ink-muted">
+                        {{ $venue->address }}@if (filled($venue->address_extra))<br>{{ $venue->address_extra }}@endif<br>
                         {{ $venue->postal_code }} {{ $venue->municipality }}
                     </p>
+
+                    {{-- I contatti del locale: chi vuole chiedere un posto o
+                         sapere se c'è ancora spazio scrive o telefona, e
+                         cercarli altrove significa perderli. --}}
+                    @if (filled($venue->phone) || filled($venue->email) || filled($venue->website))
+                        <div class="flex flex-wrap gap-x-4 gap-y-1 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.12em] uppercase">
+                            @if (filled($venue->phone))
+                                <a class="hover:text-accent" href="tel:{{ preg_replace('/\s+/', '', $venue->phone) }}">{{ $venue->phone }}</a>
+                            @endif
+
+                            @if (filled($venue->email))
+                                <a class="hover:text-accent" href="mailto:{{ $venue->email }}">{{ $venue->email }}</a>
+                            @endif
+
+                            @if (filled($venue->website))
+                                <a class="hover:text-accent" href="{{ $venue->website }}" rel="noopener noreferrer" target="_blank">{{ __('venues.detail.website') }}</a>
+                            @endif
+                        </div>
+                    @endif
 
                     <x-venue-map :venue="$venue" />
                 </section>

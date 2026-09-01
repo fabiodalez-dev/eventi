@@ -40,6 +40,10 @@ return [
         'follow_soon' => 'Il pulsante funzionerà quando arriveranno gli account.',
         'transit' => 'Come arrivare',
         'info' => 'Buono a sapersi',
+        /* Il collegamento al sito del locale: la parola e' generica perche' il
+           campo puo' contenere un sito vero come una pagina social, e
+           chiamarlo «sito» quando e' Instagram sarebbe scorretto. */
+        'website' => 'Vai al sito',
         'zone' => 'Zona',
     ],
 
