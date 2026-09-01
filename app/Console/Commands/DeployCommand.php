@@ -35,7 +35,7 @@ class DeployCommand extends Command
     protected $signature = 'deploy:pull
         {--branch=main : Il ramo da rilasciare}
         {--skip-composer : Salta le dipendenze PHP, se si sa che il lock non è cambiato}
-        {--skip-assets : Salta la compilazione di CSS e JavaScript}';
+        {--skip-assets : Salta il recupero di CSS e JavaScript compilati}';
 
     protected $description = 'Porta il server all\'ultimo commit del ramo e riallinea database, permessi e cache.';
 
@@ -50,75 +50,6 @@ class DeployCommand extends Command
             '/opt/cpanel/ea-php84/root/usr/bin/php',
             PHP_BINARY,
         ], 'php');
-    }
-
-    /**
-     * `npm`, che spesso **non è nel PATH** di questo processo.
-     *
-     * Sulla shared hosting node è installato nella home dell'utente e la
-     * cartella viene aggiunta al PATH dal profilo della shell — cioè solo per
-     * le sessioni interattive. Un processo avviato da PHP, che sia da web o da
-     * cron, quel profilo non lo legge: `npm` esiste, si vede scrivendolo a
-     * mano, e il rilascio non lo trova.
-     */
-    private function npm(): string
-    {
-        return $this->eseguibile('deploy.npm_binary', $this->candidatiNpm(), 'npm');
-    }
-
-    /**
-     * Dove cercare `npm`, in ordine di probabilità.
-     *
-     * Include le installazioni di **nvm**, che è il caso più insidioso: nvm
-     * non mette niente nel PATH: definisce `npm` come una FUNZIONE di shell
-     * che si carica al primo uso. Da terminale funziona, e un processo avviato
-     * da PHP non vede né la funzione né i binari — `npm` esiste, si vede
-     * scrivendolo a mano, e il rilascio riceve un errore vuoto.
-     *
-     * @return list<string>
-     */
-    private function candidatiNpm(): array
-    {
-        $home = (string) (getenv('HOME') ?: '');
-        $candidati = [];
-
-        if ($home !== '') {
-            /* Le versioni di nvm, dalla più recente: `sort` alfabetico basta
-               perché i nomi sono `vNN.NN.NN` con le cifre allineate. */
-            $versioni = glob($home.'/.nvm/versions/node/*/bin/npm') ?: [];
-            rsort($versioni);
-
-            $candidati = [...$versioni, $home.'/node/bin/npm'];
-        }
-
-        return [...$candidati, '/usr/local/bin/npm', '/usr/bin/npm'];
-    }
-
-    /**
-     * L'ambiente da dare ai processi: il PATH corrente più le cartelle degli
-     * eseguibili che abbiamo trovato.
-     *
-     * Serve a `npm`, il cui shebang cerca `node` nel PATH: trovato il binario
-     * ma non la sua cartella, parte e muore con
-     * `/usr/bin/env: 'node': No such file or directory`.
-     *
-     * @return array<string, string>
-     */
-    private function ambiente(): array
-    {
-        $cartelle = [];
-
-        foreach ([$this->npm(), $this->php()] as $eseguibile) {
-            $cartella = dirname($eseguibile);
-
-            if ($cartella !== '.' && is_dir($cartella)) {
-                $cartelle[] = $cartella;
-            }
-        }
-
-        $path = implode(PATH_SEPARATOR, [...array_unique($cartelle), (string) (getenv('PATH') ?: '/usr/local/bin:/usr/bin:/bin')]);
-
-        return ['PATH' => $path];
     }
 
     /**
@@ -143,30 +74,6 @@ class DeployCommand extends Command
         }
 
         return $ripiego;
-    }
-
-    /**
-     * Se `package-lock.json` sia cambiato dall'ultima installazione.
-     *
-     * Si confronta l'impronta del lock con quella salvata a fine rilascio.
-     * Senza `node_modules` la risposta è comunque sì — non c'è niente da
-     * riusare.
-     */
-    private function lockNodeCambiato(): bool
-    {
-        if (! is_dir(base_path('node_modules'))) {
-            return true;
-        }
-
-        $lock = base_path('package-lock.json');
-
-        if (! is_file($lock)) {
-            return false;
-        }
-
-        $impronta = base_path('node_modules/.eventi-lock-hash');
-
-        return ! is_file($impronta) || trim((string) file_get_contents($impronta)) !== md5_file($lock);
     }
 
     public function handle(): int
@@ -211,22 +118,43 @@ class DeployCommand extends Command
         }
 
         /*
-         * **Gli asset si compilano qui.** `public/build` non sta nel
-         * repository — è generato, e versionarlo significherebbe un conflitto
-         * a ogni ramo — quindi il codice appena arrivato porta le classi nuove
-         * nei template ma non il CSS che le definisce. Senza questo passo il
-         * markup cambia e la pagina resta identica: è successo, e sembrava che
-         * il rilascio non fosse arrivato.
+         * **Gli asset si SCARICANO, non si compilano.**
          *
-         * `npm ci` solo quando il lock è cambiato: reinstallare duecento
-         * megabyte di dipendenze a ogni rilascio costa minuti per niente.
+         * `public/build` non sta nel ramo principale — è generato, e
+         * versionarlo significherebbe un conflitto a ogni ramo — quindi il
+         * codice appena arrivato porta le classi nuove nei template ma non il
+         * CSS che le definisce. Senza questo passo il markup cambia e la
+         * pagina resta identica: sembra che il rilascio non sia arrivato,
+         * mentre è arrivato a metà.
+         *
+         * Compilarli qui non si può: su questa macchina Node cade all'avvio di
+         * Vite — `Aborted (core dumped)` dentro `V8Platform::Initialize`, un
+         * limite della shared hosting — e quando non cade impiega più di dieci
+         * minuti. Li compila l'integrazione continua, che ha una macchina
+         * vera, e li pubblica sul ramo `assets`: qui si scaricano e basta,
+         * qualche centinaio di chilobyte.
          */
         if (! $this->option('skip-assets')) {
-            if ($this->lockNodeCambiato()) {
-                $passi['dipendenze JavaScript'] = [$this->npm(), 'ci', '--no-audit', '--no-fund'];
-            }
+            $ramoAsset = config()->string('deploy.assets_branch');
+            $archivio = storage_path('app/asset-rilascio.tar');
 
-            $passi['compila gli asset'] = [$this->npm(), 'run', 'build'];
+            $passi['scarica gli asset'] = ['git', 'fetch', '--depth', '1', 'origin', $ramoAsset];
+
+            /*
+             * `git archive` e non `git checkout`: il ramo degli asset ha i
+             * file alla propria radice — è nato da un `git init` dentro
+             * `public/build` — e un checkout li scriverebbe nella radice del
+             * progetto, sparpagliando CSS e JavaScript accanto ad `artisan`.
+             * L'archivio si estrae dove si vuole.
+             */
+            $passi['prepara gli asset'] = ['git', 'archive', '--format=tar', '--output='.$archivio, 'FETCH_HEAD'];
+            $passi['installa gli asset'] = ['tar', '-xf', $archivio, '-C', public_path('build')];
+        }
+
+        /* La cartella deve esistere prima che `tar` ci estragga dentro: al
+           primo rilascio su una macchina nuova non c'è. */
+        if (! $this->option('skip-assets') && ! is_dir(public_path('build'))) {
+            mkdir(public_path('build'), 0o755, recursive: true);
         }
 
         foreach ($passi as $nome => $comando) {
@@ -271,17 +199,15 @@ class DeployCommand extends Command
             }
         }
 
+        /* L'archivio degli asset ha fatto il suo lavoro. */
+        if (is_file(storage_path('app/asset-rilascio.tar'))) {
+            @unlink(storage_path('app/asset-rilascio.tar'));
+        }
+
         /* Il collegamento a `storage` è assoluto: quello creato altrove punta
            a un percorso che qui non esiste. Si ricrea solo se manca. */
         if (! is_link(public_path('storage'))) {
             Artisan::call('storage:link');
-        }
-
-        /* L'impronta del lock si scrive solo a rilascio riuscito: se qualcosa
-           è fallito a metà, il prossimo giro reinstalla invece di dare per
-           buono uno stato che non si conosce. */
-        if (! $this->option('skip-assets') && is_dir(base_path('node_modules')) && is_file(base_path('package-lock.json'))) {
-            file_put_contents(base_path('node_modules/.eventi-lock-hash'), md5_file(base_path('package-lock.json')));
         }
 
         $this->info('Rilasciato '.trim((new Process(['git', 'log', '-1', '--format=%h %s'], base_path()))->mustRun()->getOutput()));

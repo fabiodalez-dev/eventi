@@ -24,4 +24,15 @@ return [
 
     'composer_binary' => env('DEPLOY_COMPOSER_BINARY'),
 
+    /*
+     * Il ramo su cui l'integrazione continua pubblica CSS e JavaScript gia'
+     * compilati.
+     *
+     * E' un artefatto, non una storia: ogni pubblicazione lo sostituisce con
+     * un commit orfano. Non va unito da nessuna parte. Esiste perche' su
+     * questa shared hosting Node cade all'avvio di Vite, e la compilazione
+     * deve stare dove c'e' una macchina vera.
+     */
+    'assets_branch' => env('DEPLOY_ASSETS_BRANCH', 'assets'),
+
 ];

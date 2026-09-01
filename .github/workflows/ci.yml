@@ -265,137 +265,55 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - uses: shivammathur/setup-php@b604ade2a87db23f8871b7182e69ec5e75effb45 # v2
-        with:
-          php-version: '8.4'
-          extensions: mbstring, intl, gd, imagick, zip, bcmath, pdo_mysql, exif
-          coverage: none
-
-      - name: Dipendenze di produzione
-        run: composer install --no-interaction --prefer-dist --no-dev --optimize-autoloader --no-progress
-
+      # PHP e composer qui non servono piu': le dipendenze di produzione le
+      # installa il server, che e' l'unico posto dove la loro versione conta.
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22'
           cache: npm
 
-      - name: Compila gli asset
-        run: |
-          npm ci
-          npm run build
+      - run: npm ci
+      - run: npm run build
 
-      # I segreti passano da variabili d'ambiente, mai interpolati nel corpo dello
-      # script: l'interpolazione ${{ }} avviene PRIMA dell'esecuzione della shell,
-      # quindi un valore contenente metacaratteri verrebbe eseguito come codice.
-      - name: Chiave SSH e host key
+      # ------------------------------------------------------------------
+      # Gli asset compilati vanno su un ramo dedicato, e il server li scarica.
+      #
+      # Compilarli sul server non si puo': Node cade all'avvio di Vite per i
+      # limiti della shared hosting — `Aborted (core dumped)` dentro
+      # `V8Platform::Initialize` — e quando non cade impiega piu' di dieci
+      # minuti. Qui invece c'e' una macchina vera, e il risultato pesa poche
+      # centinaia di chilobyte.
+      #
+      # Il ramo e' un artefatto, non una storia: ogni pubblicazione e' un
+      # commit orfano che sostituisce il precedente. Non va unito da nessuna
+      # parte e non va letto da nessuno.
+      - name: Pubblica gli asset compilati
+        run: |
+          cd public/build
+          git init -q
+          git checkout -q -b assets
+          git add -A
+          git -c user.name="deploy" -c user.email="deploy@eventi.fabiodalez.it" \
+            commit -q -m "asset compilati per ${GITHUB_SHA}"
+          git push -q -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git" assets
+
+      # ------------------------------------------------------------------
+      # Il segnale al server.
+      #
+      # Qui NON si spinge niente: la porta 22 di quell'host non accetta
+      # connessioni da fuori — ogni rsync moriva in `Connection timed out` — e
+      # il deploy non ha mai funzionato per questo. Le connessioni in uscita
+      # dal server invece passano, quindi e' lui a tirare: questa chiamata dice
+      # solo «aggiornati», e a farlo e' `deploy:pull` dall'altra parte.
+      #
+      # `--fail-with-body` perche' un rilascio fallito deve rendere rosso
+      # questo passo E mostrare cosa e' andato storto, non solo il codice HTTP.
+      - name: Chiedi al server di aggiornarsi
         env:
-          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
-          DEPLOY_HOST_KEY: ${{ secrets.DEPLOY_HOST_KEY }}
+          DEPLOY_URL: ${{ secrets.DEPLOY_HOOK_URL }}
+          DEPLOY_SECRET: ${{ secrets.DEPLOY_HOOK_SECRET }}
         run: |
-          mkdir -p ~/.ssh
-          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy
-          chmod 600 ~/.ssh/deploy
-          # host key fissata in anticipo: nessun trust-on-first-use, che accetterebbe
-          # ciecamente qualunque server rispondesse a quell'indirizzo
-          printf '%s\n' "$DEPLOY_HOST_KEY" > ~/.ssh/known_hosts
-          chmod 600 ~/.ssh/known_hosts
-
-      - name: Sincronizza i file
-        env:
-          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
-          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
-          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
-        run: |
-          rsync -az --delete \
-            -e "ssh -i ~/.ssh/deploy -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes" \
-            --exclude '.git' --exclude '.github' --exclude 'node_modules' \
-            --exclude 'tests' --exclude '.env' --exclude 'storage/logs/*' \
-            --exclude 'storage/framework/cache/*' \
-            --exclude 'storage/framework/sessions/*' \
-            --exclude 'storage/framework/views/*' \
-            --exclude 'storage/app/public/*' \
-            --exclude 'storage/app/private/*' \
-            --exclude 'storage/app/backup-temp' \
-            --exclude 'public/storage' \
-            --exclude 'bootstrap/cache/*' \
-            ./ "${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_PATH}/"
-
-      - name: Migrazioni e cache
-        env:
-          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
-          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
-        run: |
-          ssh -i ~/.ssh/deploy -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
-            "${DEPLOY_USER}@${DEPLOY_HOST}" \
-            'set -e
-             cd ~/eventi
-             PHP=/opt/cpanel/ea-php84/root/usr/bin/php
-             # -----------------------------------------------------------------
-             # Le variabili nuove non arrivano da sole.
-             #
-             # `.env` non si sincronizza — contiene i segreti di questa
-             # installazione — quindi una chiave aggiunta a `.env.example` qui
-             # semplicemente non c'e', e il valore predefinito del file di
-             # configurazione puo' essere quello sbagliato. E' successo con
-             # `MAP_TILES_URL`, rimasto per giorni puntato a un indirizzo che
-             # non serviva piu' tessere: la mappa era vuota e nessuno lo
-             # sapeva.
-             #
-             # Il rilascio non le puo' scrivere da solo — il valore giusto lo
-             # sa una persona — ma puo' dire quali mancano, e lo dice a voce
-             # alta.
-             # Niente process substitution e niente comandi che possano far
-             # cadere `set -e`: un controllo informativo non deve poter
-             # interrompere un rilascio.
-             grep -oE "^[A-Z0-9_]+" .env.example | sort -u > /tmp/env-attese.txt || true
-             grep -oE "^[A-Z0-9_]+" .env | sort -u > /tmp/env-presenti.txt || true
-             MANCANTI=$(grep -vxF -f /tmp/env-presenti.txt /tmp/env-attese.txt || true)
-             rm -f /tmp/env-attese.txt /tmp/env-presenti.txt
-             if [ -n "$MANCANTI" ]; then
-               echo "::warning::Variabili presenti in .env.example e assenti dal .env di produzione: $(echo $MANCANTI | tr "\n" " ")"
-             fi
-
-             $PHP artisan migrate --force
-             # I ruoli e i permessi si riallineano a ogni rilascio.
-             #
-             # Non e' zelo: un permesso nuovo nell'enum non esiste nel database
-             # finche' qualcuno non lo semina, e finche' non esiste la sezione
-             # che protegge risponde 403 anche all'amministratore. E' gia'
-             # successo, ed e' il tipo di guasto che sembra un bug di
-             # autorizzazione mentre e' un dato mancante.
-             #
-             # Rieseguirlo e' sicuro: crea i mancanti con `firstOrCreate` e
-             # riporta ogni ruolo esattamente ai permessi dichiarati in codice.
-             # Non esiste un'interfaccia per personalizzarli, quindi non c'e'
-             # niente da sovrascrivere.
-             $PHP artisan db:seed --class=RolesAndPermissionsSeeder --force
-             # Tre cose non si sincronizzano mai, perche il loro contenuto
-             # corretto dipende da DOVE si trovano, e vanno rigenerate qui:
-             #
-             #  - `public/storage`: symlink assoluto; quello creato sulla
-             #    macchina di sviluppo punta a un percorso inesistente sul server
-             #  - `bootstrap/cache/packages.php`: elenca anche i service provider
-             #    delle dipendenze di sviluppo, che in produzione non esistono
-             #    (`composer install --no-dev`) e fanno fallire l'avvio
-             #  - le cache di config, rotte e viste, che contengono percorsi assoluti
-             if [ ! -L public/storage ]; then $PHP artisan storage:link; fi
-             $PHP artisan package:discover --quiet
-             # pubblica CSS e JS dei pannelli Filament in public/: senza questo
-             # /admin e /gestione vengono serviti senza alcun foglio di stile
-             $PHP artisan filament:assets
-             $PHP artisan config:cache
-             $PHP artisan route:cache
-             $PHP artisan view:cache
-             $PHP artisan queue:restart
-             # Il registro dei comandi sorvegliati si allinea allo scheduler a
-             # ogni rilascio: un comando aggiunto in routes/console.php resterebbe
-             # altrimenti fuori dalla sorveglianza fino alla prossima notte,
-             # cioe proprio nei giorni in cui e piu probabile che non funzioni.
-             $PHP artisan schedule-monitor:sync --quiet
-             chmod -R 775 storage bootstrap/cache'
-
-      - name: Verifica che il sito risponda
-        run: |
-          code=$(curl -sS -o /dev/null -w '%{http_code}' -m 30 https://eventi.fabiodalez.it/ || echo 000)
-          echo "HTTP $code"
-          [ "$code" = "200" ] || { echo "Il sito non risponde 200"; exit 1; }
+          curl --fail-with-body --silent --show-error --max-time 900 \
+            -X POST "${DEPLOY_URL}" \
+            -H "X-Secret-Token: ${DEPLOY_SECRET}" \
+            -H "Accept: application/json"
