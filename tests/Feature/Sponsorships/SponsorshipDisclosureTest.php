@@ -111,3 +111,39 @@ it('non dichiara sponsorizzato nell API un evento con campagna scaduta', functio
         ->assertOk()
         ->assertJsonPath('data.sponsored', null);
 });
+
+/*
+ * L'apertura della pagina iniziale: lo spazio piu' visibile del sito.
+ */
+it('mette la campagna in apertura al posto dell evidenza, dichiarandola', function (): void {
+    freezeLocal($this->city, '2026-09-05 12:00:00');
+
+    /* Un evento in evidenza redazionale, che occuperebbe l'apertura. */
+    $redazionale = occurrenceAtLocal($this->city, $this->category, '2026-09-18 21:00:00', event: [
+        'title' => 'Scelta della redazione',
+        'is_featured' => true,
+    ]);
+
+    campagnaSu('2026-09-20 21:00:00', SponsorshipPlacement::HomeHero, 'Cantina Sociale');
+
+    $html = $this->get('/')->assertOk()->getContent();
+
+    /* La campagna SOSTITUISCE l'evidenza: affiancarle vorrebbe dire
+       raddoppiare l'apertura per far posto alla pubblicita'. */
+    expect($html)
+        ->toContain(__('sponsorships.label'))
+        ->toContain('Cantina Sociale')
+        ->toContain('Concerto pagato');
+});
+
+it('torna all evidenza se l evento sponsorizzato non ha piu date', function (): void {
+    freezeLocal($this->city, '2026-09-05 12:00:00');
+
+    $campagna = campagnaSu('2026-09-20 21:00:00', SponsorshipPlacement::HomeHero);
+
+    /* Le date spariscono ma la campagna resta viva: uno spazio vuoto sarebbe
+       il peggiore dei due esiti, e una serata gia' passata il secondo. */
+    $campagna->event->occurrences()->delete();
+
+    $this->get('/')->assertOk()->assertDontSee(__('sponsorships.label'));
+});

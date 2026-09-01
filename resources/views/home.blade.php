@@ -15,12 +15,39 @@
      */
     $formatter = app(\App\Support\DateFormatter::class);
 
-    /* La locandina dell'evento in evidenza è l'immagine più grande sopra la
+    /*
+     * Il riquadro grande dell'apertura: la data in evidenza, oppure una
+     * campagna sponsorizzata quando ce n'è una.
+     *
+     * **La campagna sostituisce l'evidenza, non le si aggiunge.** È lo spazio
+     * più visibile del sito, e affiancarne due significherebbe raddoppiare
+     * l'apertura per far posto alla pubblicità — cioè cambiare la pagina in
+     * funzione di cosa si è venduto. Sostituendola, lo spazio resta uno e chi
+     * guarda vede una cosa sola: dichiarata, se è pagata.
+     */
+    $heroSponsorizzato = ($heroSponsorship ?? null) !== null;
+
+    $heroOccorrenza = $heroSponsorizzato
+        ? $heroSponsorship->event?->occurrences
+            ->filter(fn ($o) => $o->starts_at?->isFuture() ?? false)
+            ->sortBy('starts_at')
+            ->first()
+        : ($hero ?? null);
+
+    /* Se la campagna esiste ma il suo evento non ha più date future, si torna
+       all'evidenza redazionale: uno spazio vuoto sarebbe il peggiore dei due
+       esiti, e mostrare una serata già passata il secondo peggiore. */
+    if ($heroOccorrenza === null) {
+        $heroOccorrenza = $hero ?? null;
+        $heroSponsorizzato = false;
+    }
+
+    /* La locandina dell'evento in apertura è l'immagine più grande sopra la
        piega, ed è quella da annunciare al browser prima che scopra l'HTML che
        la contiene (§11.11). */
-    $heroPoster = ($hero ?? null) === null
+    $heroPoster = $heroOccorrenza === null
         ? null
-        : \App\Support\Poster::imageSet($hero->event)
+        : \App\Support\Poster::imageSet($heroOccorrenza->event)
             ?->withSizes('(min-width: 1024px) 50vw, 100vw');
 
     /* Le sezioni a griglia, nell'ordine in cui compaiono. La numerazione
@@ -120,14 +147,23 @@
              fotografia sta sotto un velo che scurisce verso il basso, perché
              il testo ci sta sopra e deve restare leggibile su qualunque
              immagine il locale abbia caricato. --}}
-        @if (($hero ?? null) !== null)
+        @if ($heroOccorrenza !== null)
             @php
-                $heroEvento = $hero->event;
+                $heroEvento = $heroOccorrenza->event;
                 $heroLuogo = $heroEvento->venue;
-                $heroCapienza = \App\Support\Capacity::for($hero);
+                $heroCapienza = \App\Support\Capacity::for($heroOccorrenza);
             @endphp
 
-            <a href="{{ route('events.show', $heroEvento) }}" class="group relative flex min-h-[clamp(26.25rem,46vw,38.75rem)] flex-col overflow-hidden">
+            <a
+                href="{{ route('events.show', $heroEvento) }}"
+                @if ($heroSponsorizzato) rel="sponsored" @endif
+                class="group relative flex min-h-[clamp(26.25rem,46vw,38.75rem)] flex-col overflow-hidden"
+                @if ($heroSponsorizzato)
+                    data-sponsorship="{{ $heroSponsorship->getKey() }}"
+                    data-sponsorship-impression="{{ route('sponsorships.metric', ['sponsorship' => $heroSponsorship, 'metric' => 'impressions']) }}"
+                    data-sponsorship-click="{{ route('sponsorships.metric', ['sponsorship' => $heroSponsorship, 'metric' => 'clicks']) }}"
+                @endif
+            >
                 @if ($heroPoster !== null)
                     <x-media-image
                         :set="$heroPoster"
@@ -142,8 +178,19 @@
                 <span aria-hidden="true" class="absolute inset-0 bg-[linear-gradient(180deg,rgba(11,11,11,.25)_0%,rgba(11,11,11,.55)_46%,rgba(11,11,11,.94)_100%)]"></span>
 
                 <div class="relative flex items-start justify-between gap-3 p-[clamp(1.25rem,2.2vw,2.125rem)]">
-                    <span class="bg-accent px-2.5 py-[7px] font-display text-[0.594rem] leading-none font-extrabold tracking-[0.16em] text-on-accent uppercase">
-                        {{ __('events.sections.featured') }}
+                    {{-- L'etichetta occupa lo stesso posto in entrambi i casi:
+                         è la parola a cambiare, non il rilievo. Una pubblicità
+                         che si annuncia in un angolo più discreto
+                         dell'evidenza redazionale non si annuncia. --}}
+                    <span class="flex flex-wrap items-baseline gap-x-2 bg-accent px-2.5 py-[7px] font-display text-[0.594rem] leading-none font-extrabold tracking-[0.16em] text-on-accent uppercase">
+                        @if ($heroSponsorizzato)
+                            {{ __('sponsorships.label') }}
+                            <span class="font-normal tracking-[0.1em] normal-case opacity-80">
+                                {{ __('sponsorships.by', ['advertiser' => $heroSponsorship->advertiser_name]) }}
+                            </span>
+                        @else
+                            {{ __('events.sections.featured') }}
+                        @endif
                     </span>
 
                     @if ($heroCapienza !== null && $heroCapienza->percentSold() !== null)

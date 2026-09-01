@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Enums\UserRole;
 use App\Models\Category;
 use App\Models\Page;
 use App\Models\Tag;
@@ -31,8 +32,8 @@ it('popola ruoli, permessi, categorie, etichette e pagine legali', function (): 
      * TUTTI. Un numero fisso trasforma ogni aggiunta in una correzione di
      * test, e dopo la terza si smette di leggerli.
      */
-    expect(Role::query()->count())->toBe(count(\App\Enums\UserRole::cases()))
-        ->and(Permission::query()->count())->toBe(count(\App\Enums\Permission::cases()))
+    expect(Role::query()->count())->toBe(count(UserRole::cases()))
+        ->and(Permission::query()->count())->toBe(count(App\Enums\Permission::cases()))
         ->and(Category::query()->count())->toBe(14)
         ->and(Tag::query()->count())->toBe(38)
         ->and(Page::query()->count())->toBe(5);
