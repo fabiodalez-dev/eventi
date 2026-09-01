@@ -46,18 +46,54 @@ class DeployCommand extends Command
      */
     private function php(): string
     {
-        $candidati = [
+        return $this->eseguibile('deploy.php_binary', [
             '/opt/cpanel/ea-php84/root/usr/bin/php',
             PHP_BINARY,
-        ];
+        ], 'php');
+    }
 
-        foreach ($candidati as $php) {
-            if (is_executable($php)) {
-                return $php;
+    /**
+     * `npm`, che spesso **non è nel PATH** di questo processo.
+     *
+     * Sulla shared hosting node è installato nella home dell'utente e la
+     * cartella viene aggiunta al PATH dal profilo della shell — cioè solo per
+     * le sessioni interattive. Un processo avviato da PHP, che sia da web o da
+     * cron, quel profilo non lo legge: `npm` esiste, si vede scrivendolo a
+     * mano, e il rilascio non lo trova.
+     */
+    private function npm(): string
+    {
+        $home = (string) (getenv('HOME') ?: '');
+
+        return $this->eseguibile('deploy.npm_binary', array_filter([
+            $home !== '' ? $home.'/node/bin/npm' : null,
+            '/usr/local/bin/npm',
+            '/usr/bin/npm',
+        ]), 'npm');
+    }
+
+    /**
+     * Il primo eseguibile che esiste davvero, con la configurazione che vince
+     * su tutto: un'installazione fuori dall'ordinario si dichiara una volta in
+     * `.env` invece di far indovinare il codice.
+     *
+     * @param  list<string>  $candidati
+     */
+    private function eseguibile(string $chiave, array $candidati, string $ripiego): string
+    {
+        $configurato = config($chiave);
+
+        if (is_string($configurato) && $configurato !== '') {
+            return $configurato;
+        }
+
+        foreach ($candidati as $percorso) {
+            if (is_executable($percorso)) {
+                return $percorso;
             }
         }
 
-        return 'php';
+        return $ripiego;
     }
 
     /**
@@ -88,10 +124,26 @@ class DeployCommand extends Command
     {
         $branch = (string) $this->option('branch');
 
-        /* Solo lettere, numeri e i separatori consueti: questo comando lo
-           innesca una rotta HTTP, e un nome di ramo che arriva da fuori non
-           deve poter diventare un argomento della shell. */
-        if (preg_match('/^[A-Za-z0-9._\/-]+$/', $branch) !== 1) {
+        /*
+         * **Il nome del ramo arriva da una rotta HTTP**, quindi va trattato
+         * come ostile.
+         *
+         * La whitelist di caratteri non basta da sola: `--upload-pack` è fatto
+         * di sole lettere e trattini e la passerebbe, ma `git` lo leggerebbe
+         * come OPZIONE invece che come ramo — ed è l'opzione con cui si fa
+         * eseguire un comando arbitrario dall'altra parte. Lo stesso vale per
+         * qualunque `-x`: un argomento che comincia con un trattino non è un
+         * argomento, è una direttiva.
+         *
+         * Quindi tre condizioni, non una: caratteri consentiti, **niente
+         * trattino iniziale**, e niente `..` — che nei riferimenti git è un
+         * intervallo e nei percorsi una risalita.
+         */
+        $valido = preg_match('/^[A-Za-z0-9._\/-]+$/', $branch) === 1
+            && ! str_starts_with($branch, '-')
+            && ! str_contains($branch, '..');
+
+        if (! $valido) {
             $this->error('Nome di ramo non valido.');
 
             return self::FAILURE;
@@ -104,7 +156,7 @@ class DeployCommand extends Command
 
         if (! $this->option('skip-composer')) {
             $passi['dipendenze PHP'] = [
-                $this->php(), '/usr/local/bin/composer', 'install',
+                $this->php(), $this->eseguibile('deploy.composer_binary', ['/usr/local/bin/composer', '/usr/bin/composer'], 'composer'), 'install',
                 '--no-dev', '--no-interaction', '--prefer-dist', '--optimize-autoloader',
             ];
         }
@@ -122,10 +174,10 @@ class DeployCommand extends Command
          */
         if (! $this->option('skip-assets')) {
             if ($this->lockNodeCambiato()) {
-                $passi['dipendenze JavaScript'] = ['npm', 'ci', '--no-audit', '--no-fund'];
+                $passi['dipendenze JavaScript'] = [$this->npm(), 'ci', '--no-audit', '--no-fund'];
             }
 
-            $passi['compila gli asset'] = ['npm', 'run', 'build'];
+            $passi['compila gli asset'] = [$this->npm(), 'run', 'build'];
         }
 
         foreach ($passi as $nome => $comando) {
