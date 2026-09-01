@@ -63,13 +63,62 @@ class DeployCommand extends Command
      */
     private function npm(): string
     {
-        $home = (string) (getenv('HOME') ?: '');
+        return $this->eseguibile('deploy.npm_binary', $this->candidatiNpm(), 'npm');
+    }
 
-        return $this->eseguibile('deploy.npm_binary', array_filter([
-            $home !== '' ? $home.'/node/bin/npm' : null,
-            '/usr/local/bin/npm',
-            '/usr/bin/npm',
-        ]), 'npm');
+    /**
+     * Dove cercare `npm`, in ordine di probabilità.
+     *
+     * Include le installazioni di **nvm**, che è il caso più insidioso: nvm
+     * non mette niente nel PATH: definisce `npm` come una FUNZIONE di shell
+     * che si carica al primo uso. Da terminale funziona, e un processo avviato
+     * da PHP non vede né la funzione né i binari — `npm` esiste, si vede
+     * scrivendolo a mano, e il rilascio riceve un errore vuoto.
+     *
+     * @return list<string>
+     */
+    private function candidatiNpm(): array
+    {
+        $home = (string) (getenv('HOME') ?: '');
+        $candidati = [];
+
+        if ($home !== '') {
+            /* Le versioni di nvm, dalla più recente: `sort` alfabetico basta
+               perché i nomi sono `vNN.NN.NN` con le cifre allineate. */
+            $versioni = glob($home.'/.nvm/versions/node/*/bin/npm') ?: [];
+            rsort($versioni);
+
+            $candidati = [...$versioni, $home.'/node/bin/npm'];
+        }
+
+        return [...$candidati, '/usr/local/bin/npm', '/usr/bin/npm'];
+    }
+
+    /**
+     * L'ambiente da dare ai processi: il PATH corrente più le cartelle degli
+     * eseguibili che abbiamo trovato.
+     *
+     * Serve a `npm`, il cui shebang cerca `node` nel PATH: trovato il binario
+     * ma non la sua cartella, parte e muore con
+     * `/usr/bin/env: 'node': No such file or directory`.
+     *
+     * @return array<string, string>
+     */
+    private function ambiente(): array
+    {
+        $cartelle = [];
+
+        foreach ([$this->npm(), $this->php()] as $eseguibile) {
+            $cartella = dirname($eseguibile);
+
+            if ($cartella !== '.' && is_dir($cartella)) {
+                $cartelle[] = $cartella;
+            }
+        }
+
+        $path = implode(PATH_SEPARATOR, [...array_unique($cartelle), (string) (getenv('PATH') ?: '/usr/local/bin:/usr/bin:/bin')]);
+
+        return ['PATH' => $path];
     }
 
     /**
@@ -183,12 +232,16 @@ class DeployCommand extends Command
         foreach ($passi as $nome => $comando) {
             $this->line("→ {$nome}");
 
-            $processo = new Process($comando, base_path(), timeout: 600);
+            $processo = new Process($comando, base_path(), $this->ambiente(), timeout: 600);
             $processo->run();
 
             if (! $processo->isSuccessful()) {
                 $this->error("«{$nome}» è fallito:");
-                $this->line(trim($processo->getErrorOutput() ?: $processo->getOutput()));
+                /* Il comando per esteso: senza, un fallimento con output vuoto
+                   — un eseguibile non trovato — non dice niente su cosa si sia
+                   provato a eseguire. */
+                $this->line('  comando: '.implode(' ', $comando));
+                $this->line(trim($processo->getErrorOutput() ?: $processo->getOutput()) ?: '  (nessun output)');
 
                 return self::FAILURE;
             }
