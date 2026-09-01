@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Web\ConsentController;
+use App\Http\Controllers\Web\DeployController;
 use App\Http\Controllers\Web\ImpersonationController;
 use App\Http\Controllers\Web\PageController;
 use App\Http\Controllers\Web\SeoController;
@@ -68,6 +69,20 @@ Route::middleware(RequiresOpsToken::class)
         Route::get('/stato', SimpleHealthCheckController::class)->name('ops.health');
 
         Route::get('/stato/completo', HealthCheckJsonResultsController::class)->name('ops.health.details');
+
+        /*
+         * Il segnale di rilascio (vedi `DeployController`).
+         *
+         * Sta con le rotte operative perche' condivide il segreto di `/stato`
+         * e la stessa regola: senza segreto configurato non esiste. Il limite
+         * di frequenza e' stretto — un rilascio al minuto e' gia' piu' di
+         * quanto abbia senso — e serve a contenere il costo di chi provasse a
+         * indovinare il segreto: ogni tentativo sbagliato riceve comunque 404,
+         * ma senza tetto potrebbe provarne molti.
+         */
+        Route::post('/rilascio', DeployController::class)
+            ->middleware('throttle:6,1')
+            ->name('ops.deploy');
     });
 
 Route::prefix('{city}')

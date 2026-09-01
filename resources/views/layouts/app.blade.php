@@ -368,10 +368,15 @@
                  e un campo largo 1200 px non si compila. Sotto i 48rem il
                  contenuto resta centrato davvero, invece di stare a sinistra
                  dentro un contenitore molto più largo di lui. --}}
+            {{-- Le pagine strette respirano di più sopra il titolo: sono
+                 moduli e testi, dove il titolo è la prima cosa che si legge e
+                 attaccarlo al nastro della testata lo fa sembrare parte di
+                 quello. Le pagine larghe hanno le proprie sezioni con i propri
+                 margini e non ne hanno bisogno. --}}
             <div @class([
-                'mx-auto w-full px-gutter py-8',
-                'max-w-3xl' => $narrow ?? false,
-                'max-w-content' => ! ($narrow ?? false),
+                'mx-auto w-full px-gutter',
+                'max-w-3xl pt-[clamp(2.5rem,6vw,5rem)] pb-16' => $narrow ?? false,
+                'max-w-content py-8' => ! ($narrow ?? false),
             ])>
         @endif
         {{-- Conferma dell'ultima azione (una proposta inviata, una segnalazione
