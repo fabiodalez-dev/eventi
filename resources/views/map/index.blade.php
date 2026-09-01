@@ -10,7 +10,7 @@
     hanno le stesse coordinate, e disegnati come due punti resterebbero
     sovrapposti a qualunque ingrandimento.
 --}}
-<x-layouts.app :meta="$meta">
+<x-layouts.app :meta="$meta" :wide="true">
     <x-slot:head>
         @vite('resources/js/map.js')
     </x-slot:head>

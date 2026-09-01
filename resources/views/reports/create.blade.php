@@ -1,5 +1,5 @@
 {{-- "Segnala un errore" (§11.5, §14.6). Nessun account richiesto. --}}
-<x-layouts.app :meta="$meta">
+<x-layouts.app :narrow="true" :meta="$meta">
     <header class="flex max-w-prose flex-col gap-2">
         <h1 class="text-balance text-hero text-ink">{{ $meta->heading }}</h1>
         <p class="text-sm text-ink-muted">{{ $meta->description }}</p>

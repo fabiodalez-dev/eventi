@@ -5,7 +5,7 @@
     ma finché l'indirizzo non è confermato nessun promemoria può partire. È la
     regola di `User::canReceiveNotifications()`, scritta in italiano.
 --}}
-<x-layouts.app :meta="$meta">
+<x-layouts.app :narrow="true" :meta="$meta">
     <div class="mx-auto flex w-full max-w-md flex-col gap-6">
         <header class="flex flex-col gap-2">
             <h1 class="text-hero text-ink">{{ $meta->heading }}</h1>

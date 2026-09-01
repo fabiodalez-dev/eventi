@@ -64,6 +64,7 @@
 @endphp
 
 <x-layouts.app
+    :wide="true"
     :description="$city?->name ? __('ui.header.tagline', ['city' => $city->name]) : null"
     :preload="$heroPoster"
 >

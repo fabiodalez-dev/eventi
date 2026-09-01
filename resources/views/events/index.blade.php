@@ -13,7 +13,7 @@
     che si toccano una volta sola. I filtri restano in cima, la mappa scende in
     fondo, e i risultati stanno in mezzo dove servono.
 --}}
-<x-layouts.app :meta="$meta">
+<x-layouts.app :meta="$meta" :wide="true">
     <x-slot:head>
         <x-json-ld :data="$structuredData" />
         @vite('resources/js/map.js')

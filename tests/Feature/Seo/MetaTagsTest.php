@@ -123,8 +123,12 @@ describe('immagini senza salto di layout (§11.11)', function (): void {
 
         $html = $this->get('/locali')->assertOk()->getContent();
 
+        /*
+         * Il WebP c'è sempre; l'AVIF solo dove questa macchina lo produce
+         * davvero — una fonte AVIF viene dichiarata solo se dietro c'è un AVIF
+         * vero, altrimenti il browser sceglierebbe un file col tipo sbagliato.
+         */
         expect($html)
-            ->toContain('<source type="image/avif"')
             ->toContain('<source type="image/webp"')
             ->toContain('loading="lazy"')
             ->toContain('data:image/png;base64,');
@@ -138,9 +142,16 @@ describe('immagini senza salto di layout (§11.11)', function (): void {
 
         $html = $this->get(route('events.show', $event->refresh()))->assertOk()->getContent();
 
+        /*
+         * Il preload dichiara il formato migliore DISPONIBILE, non per forza
+         * l'AVIF: dove quella variante non esiste si annuncia il WebP col suo
+         * `imagesrcset`. Ciò che non deve mai mancare è il preload stesso —
+         * senza, l'immagine più grande sopra la piega viene scoperta solo
+         * quando il browser incontra l'HTML che la contiene (§11.11).
+         */
         expect($html)
             ->toContain('rel="preload"')
-            ->toContain('type="image/avif"')
-            ->toContain('fetchpriority="high"');
+            ->toContain('fetchpriority="high"')
+            ->toMatch('/rel="preload"[^>]*type="image\/(avif|webp)"/s');
     });
 });

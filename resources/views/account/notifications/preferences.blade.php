@@ -15,7 +15,7 @@
     $quiet = \App\DTOs\QuietHours::formFor($user);
 @endphp
 
-<x-layouts.app :meta="$meta">
+<x-layouts.app :narrow="true" :meta="$meta">
     <div class="mx-auto flex w-full max-w-xl flex-col gap-8">
         <header class="flex flex-col gap-2">
             <h1 class="text-hero text-ink">{{ $meta->heading }}</h1>

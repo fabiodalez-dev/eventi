@@ -20,6 +20,20 @@
      * locandina, in una lista è la prima card. Il layout non può indovinarla.
      */
     'preload' => null,
+    /*
+     * Una pagina «larga» rinuncia al contenitore centrato e arriva ai bordi
+     * della finestra: la prima schermata, la lista con la sua mappa e la mappa
+     * a schermo intero. Tutte le altre — moduli, testi, area personale — il
+     * contenitore lo vogliono, ed è per questo che è il comportamento
+     * predefinito.
+     */
+    'wide' => false,
+    /*
+     * Una pagina «stretta» è un modulo o un testo: si legge e si compila in
+     * una colonna sola, centrata. Larga e stretta si escludono — `wide` vince,
+     * ma non ha senso chiederle insieme.
+     */
+    'narrow' => false,
 ])
 
 @include('layouts.app', [
@@ -31,6 +45,8 @@
     'imageHeight' => $meta?->imageHeight,
     'robots' => $meta?->robots(),
     'preload' => $preload,
+    'wide' => $wide,
+    'narrow' => $narrow,
     'head' => $head ?? '',
     'slot' => $slot,
 ])

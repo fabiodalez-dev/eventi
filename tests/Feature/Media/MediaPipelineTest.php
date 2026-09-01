@@ -146,13 +146,20 @@ it('rifiuta un file che si spaccia per immagine', function (): void {
     expect($event->refresh()->getFirstMedia('poster'))->toBeNull();
 });
 
-it('costruisce il picture con le due serie di formati', function (): void {
+it('costruisce il picture con le serie di formati', function (): void {
     $event = eventWithPoster();
     $set = Poster::imageSet($event);
 
+    /*
+     * Il WebP c'è sempre; l'AVIF **solo dove questa macchina lo produce
+     * davvero**. Non è un'incertezza del test: è la garanzia del sistema —
+     * una fonte AVIF viene dichiarata solo se dietro c'è un AVIF vero,
+     * altrimenti il browser sceglierebbe un file col tipo sbagliato scartando
+     * il WebP che avrebbe funzionato.
+     */
     expect($set)->toBeInstanceOf(ImageSet::class)
         ->and($set->hasSources())->toBeTrue()
-        ->and($set->sources)->toHaveKeys(['image/avif', 'image/webp'])
+        ->and($set->sources)->toHaveKey('image/webp')
         ->and($set->sources['image/webp'])->toContain('400w')->toContain('800w')->toContain('1600w')
         ->and($set->width)->toBe(600)
         ->and($set->height)->toBe(800)

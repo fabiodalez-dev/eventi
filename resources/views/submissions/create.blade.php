@@ -5,7 +5,7 @@
     capire di cosa si tratta e per richiamare chi ha scritto. Un modulo lungo è
     un modulo che nessuno compila.
 --}}
-<x-layouts.app :meta="$meta">
+<x-layouts.app :narrow="true" :meta="$meta">
     <header class="flex max-w-prose flex-col gap-2">
         <h1 class="text-balance text-hero text-ink">{{ $meta->heading }}</h1>
         <p class="text-sm text-ink-muted">{{ $meta->description }}</p>

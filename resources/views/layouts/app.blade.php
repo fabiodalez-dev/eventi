@@ -184,20 +184,33 @@
 
     {{-- Preload dell'immagine più grande sopra la piega (§11.11).
 
-         Se ne dichiara **una sola**, in AVIF: `type` fa sì che chi non apre
-         l'AVIF ignori la riga invece di scaricare un file che non userà, e per
-         quei browser resta comunque `fetchpriority="high"` sull'immagine, che
-         è già nell'HTML iniziale e quindi scopribile subito. Dichiararne due,
-         una per formato, farebbe scaricare entrambi i file a chi li apre
-         tutti e due: il preload smetterebbe di far guadagnare tempo e
-         inizierebbe a farne perdere. --}}
-    @php $lcp = $preload ?? null; @endphp
-    @if ($lcp !== null && ($lcp->sources['image/avif'] ?? null) !== null)
+         Se ne dichiara **una sola**, nel formato migliore disponibile: `type`
+         fa sì che chi non apre quel formato ignori la riga invece di scaricare
+         un file che non userà, e per quei browser resta comunque
+         `fetchpriority="high"` sull'immagine, che è già nell'HTML iniziale e
+         quindi scopribile subito. Dichiararne due, una per formato, farebbe
+         scaricare entrambi i file a chi li apre tutti e due: il preload
+         smetterebbe di far guadagnare tempo e inizierebbe a farne perdere. --}}
+    @php
+        $lcp = $preload ?? null;
+
+        /*
+         * Il formato migliore fra quelli DAVVERO disponibili. L'AVIF quando
+         * c'è, il WebP altrimenti: prima si annunciava solo l'AVIF, e dove
+         * quella variante non esiste — una macchina senza il delegato libheif
+         * — si ricadeva sul preload dell'originale, senza `imagesrcset`. Il
+         * risultato era scaricare in anticipo l'immagine grande anche su un
+         * telefono: un preload che fa perdere tempo invece di guadagnarlo.
+         */
+        $lcpFormato = collect(['image/avif', 'image/webp'])
+            ->first(fn (string $mime): bool => ($lcp->sources[$mime] ?? null) !== null);
+    @endphp
+    @if ($lcp !== null && $lcpFormato !== null)
         <link
             rel="preload"
             as="image"
-            type="image/avif"
-            imagesrcset="{{ $lcp->sources['image/avif'] }}"
+            type="{{ $lcpFormato }}"
+            imagesrcset="{{ $lcp->sources[$lcpFormato] }}"
             imagesizes="{{ $lcp->sizes ?? '100vw' }}"
             fetchpriority="high"
         >
@@ -337,10 +350,30 @@
         <x-ticker />
     </header>
 
-    {{-- Il contenuto parte sotto la testata fissa (70px + 32px di nastro) e
-         non ha un contenitore centrato: nel riferimento ogni pagina arriva ai
-         bordi e decide da se' come dividersi. --}}
+    {{--
+        Il contenuto parte sotto la testata fissa (70px + 32px di nastro).
+
+        **Il contenitore centrato c'è per difetto e si toglie a richiesta.**
+        Le pagine che arrivano ai bordi — la prima schermata, la lista con la
+        sua mappa, la mappa a schermo intero — sono tre; tutte le altre sono
+        moduli, testi e pagine dell'area personale, che senza un contenitore
+        finiscono appiccicate al bordo sinistro dello schermo. Il difetto
+        inverso l'ho già fatto: togliendo il contenitore dal layout per le tre
+        pagine larghe, i moduli di «registra il tuo locale» e «proponi un
+        evento» sono rimasti fuori squadra.
+    --}}
     <main id="contenuto" class="pt-header">
+        @if (! ($wide ?? false))
+            {{-- `narrow` per moduli e testi: una riga da 1200 px non si legge
+                 e un campo largo 1200 px non si compila. Sotto i 48rem il
+                 contenuto resta centrato davvero, invece di stare a sinistra
+                 dentro un contenitore molto più largo di lui. --}}
+            <div @class([
+                'mx-auto w-full px-gutter py-8',
+                'max-w-3xl' => $narrow ?? false,
+                'max-w-content' => ! ($narrow ?? false),
+            ])>
+        @endif
         {{-- Conferma dell'ultima azione (una proposta inviata, una segnalazione
              ricevuta): sta nel layout perché è l'unico punto che ogni pagina
              attraversa dopo un reindirizzamento. --}}
@@ -352,6 +385,10 @@
         @endif
 
         {{ $slot }}
+
+        @if (! ($wide ?? false))
+            </div>
+        @endif
     </main>
 
     <x-save-prompt />

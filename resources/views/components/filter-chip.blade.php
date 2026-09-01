@@ -21,7 +21,18 @@
     href="{{ $href }}"
     @if ($active) aria-current="true" @endif
     {{ $attributes->class([
-        'inline-flex items-center gap-1.5 border-2 px-2.5 py-1.5 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.12em] whitespace-nowrap uppercase transition-colors',
+        /*
+         * `whitespace-nowrap` è sbagliato qui, e si vedeva: «Questa settimana»
+         * dentro una cella della colonna dei filtri — larga circa 120px — non
+         * ci sta su una riga sola, e usciva dal bordo del pulsante. Il testo va
+         * a capo, il pulsante cresce in altezza, e `text-balance` spezza le due
+         * parole in modo equilibrato invece di lasciare una riga piena e una
+         * con una parola sola.
+         *
+         * `leading-[1.25]` e non `leading-none`: con due righe, l'interlinea a
+         * zero le fa toccare.
+         */
+        'inline-flex items-center gap-1.5 border-2 px-2.5 py-1.5 font-display text-[0.625rem] leading-[1.25] font-extrabold tracking-[0.12em] text-balance uppercase transition-colors',
         'border-accent bg-accent text-on-accent' => $active,
         /* Il fondo lo dichiara il componente e non chi lo usa: quando lo
            dichiarava la pagina, `bg-canvas` finiva per vincere anche sullo

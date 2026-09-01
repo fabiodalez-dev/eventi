@@ -330,6 +330,31 @@ jobs:
             'set -e
              cd ~/eventi
              PHP=/opt/cpanel/ea-php84/root/usr/bin/php
+             # -----------------------------------------------------------------
+             # Le variabili nuove non arrivano da sole.
+             #
+             # `.env` non si sincronizza — contiene i segreti di questa
+             # installazione — quindi una chiave aggiunta a `.env.example` qui
+             # semplicemente non c'e', e il valore predefinito del file di
+             # configurazione puo' essere quello sbagliato. E' successo con
+             # `MAP_TILES_URL`, rimasto per giorni puntato a un indirizzo che
+             # non serviva piu' tessere: la mappa era vuota e nessuno lo
+             # sapeva.
+             #
+             # Il rilascio non le puo' scrivere da solo — il valore giusto lo
+             # sa una persona — ma puo' dire quali mancano, e lo dice a voce
+             # alta.
+             # Niente process substitution e niente comandi che possano far
+             # cadere `set -e`: un controllo informativo non deve poter
+             # interrompere un rilascio.
+             grep -oE "^[A-Z0-9_]+" .env.example | sort -u > /tmp/env-attese.txt || true
+             grep -oE "^[A-Z0-9_]+" .env | sort -u > /tmp/env-presenti.txt || true
+             MANCANTI=$(grep -vxF -f /tmp/env-presenti.txt /tmp/env-attese.txt || true)
+             rm -f /tmp/env-attese.txt /tmp/env-presenti.txt
+             if [ -n "$MANCANTI" ]; then
+               echo "::warning::Variabili presenti in .env.example e assenti dal .env di produzione: $(echo $MANCANTI | tr "\n" " ")"
+             fi
+
              $PHP artisan migrate --force
              # I ruoli e i permessi si riallineano a ogni rilascio.
              #

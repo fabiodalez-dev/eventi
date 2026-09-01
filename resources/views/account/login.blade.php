@@ -1,6 +1,6 @@
 {{-- Accesso con password (§15.2). Il collegamento senza password sta accanto,
      non al posto: è la via raccomandata, non l'unica. --}}
-<x-layouts.app :meta="$meta">
+<x-layouts.app :narrow="true" :meta="$meta">
     <div class="mx-auto flex w-full max-w-md flex-col gap-6">
         <header class="flex flex-col gap-2">
             <h1 class="text-hero text-ink">{{ $meta->heading }}</h1>

@@ -54,6 +54,15 @@ it('non dichiara nessuna variante AVIF dove il supporto è spento', function ():
  * si controlla. È qui che si intercetta la macchina che mente.
  */
 it('scarta la variante AVIF quando il file prodotto è un JPEG travestito', function (): void {
+    /*
+     * Il supporto si accende a mano: serve che la conversione sia REGISTRATA,
+     * altrimenti non esiste un percorso in cui mettere il file falso e il test
+     * non verifica niente. È il caso della macchina che dichiara di saper
+     * scrivere AVIF e poi consegna un JPEG — quello che questo listener esiste
+     * per intercettare.
+     */
+    AvifSupport::fake(true);
+
     $city = testCity();
     $category = testCategory();
     $event = occurrenceAtLocal($city, $category, '2026-09-20 21:00:00')->event;
@@ -75,10 +84,6 @@ it('scarta la variante AVIF quando il file prodotto è un JPEG travestito', func
 });
 
 it('lascia stare una variante AVIF vera', function (): void {
-    if (! AvifSupport::available()) {
-        $this->markTestSkipped('Questa macchina non scrive AVIF: non c\'è niente da lasciar stare.');
-    }
-
     $city = testCity();
     $category = testCategory();
     $event = occurrenceAtLocal($city, $category, '2026-09-20 21:00:00')->event;
@@ -86,6 +91,15 @@ it('lascia stare una variante AVIF vera', function (): void {
 
     $media = $event->refresh()->getFirstMedia('poster');
     $nome = Variants::avif('card');
+
+    /*
+     * Si salta guardando COSA C'E' sul disco, non cosa `available()` prometteva:
+     * su una macchina senza delegato la variante e' gia' stata scartata, e non
+     * c'e' niente da lasciar stare.
+     */
+    if (! $media->hasGeneratedConversion($nome)) {
+        $this->markTestSkipped('Questa macchina non ha prodotto un AVIF: non c\'è niente da lasciar stare.');
+    }
 
     (new RejectFakeAvifConversion)->handle(
         new ConversionHasBeenCompletedEvent($media, Conversion::create($nome))
