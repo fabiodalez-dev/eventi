@@ -82,6 +82,14 @@ jobs:
       - run: npm ci
       - run: npm run build
 
+      # `mariadb-client` e non il `mysqldump` gia' presente sull'immagine:
+      # quello e' il client di MySQL 8, che contro un server MariaDB fallisce
+      # su `--column-statistics` — un'opzione che MySQL manda di suo e MariaDB
+      # non conosce. Il dump esce con stato 1 e il backup non viene creato.
+      # Spatie cerca `mariadb-dump` per primo su una connessione `mariadb`.
+      - name: Client MariaDB per il dump del database
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq mariadb-client
+
       - name: Prepara ambiente
         run: |
           cp .env.example .env

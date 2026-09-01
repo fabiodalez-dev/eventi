@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models\Concerns;
 
+use App\Support\Media\AvifSupport;
 use App\Support\Media\Variants;
 use Spatie\Image\Enums\Constraint;
 use Spatie\MediaLibrary\Conversions\Conversion;
@@ -35,9 +36,26 @@ trait HasImageVariants
      */
     protected function registerImageVariants(): void
     {
+        /*
+         * La variante AVIF si dichiara solo dove qualcuno sa scriverla.
+         *
+         * ImageMagick senza il delegato libheif non protesta: scrive un JPEG e
+         * gli da' il nome chiesto. Il `<picture>` lo annuncerebbe come
+         * `type="image/avif"`, e un browser che accetta AVIF sceglierebbe
+         * proprio quella fonte ricevendo un file che AVIF non e' — mentre il
+         * WebP, che avrebbe funzionato, non verrebbe nemmeno considerato.
+         *
+         * Non generarla e' meglio che generarla falsa: senza variante, quella
+         * fonte non compare e ogni browser prende il WebP.
+         */
+        $avif = AvifSupport::available();
+
         foreach (Variants::widths() as $name => $width) {
             $this->variant($this->addMediaConversion($name), $width, 'webp');
-            $this->variant($this->addMediaConversion(Variants::avif($name)), $width, 'avif');
+
+            if ($avif) {
+                $this->variant($this->addMediaConversion(Variants::avif($name)), $width, 'avif');
+            }
         }
     }
 

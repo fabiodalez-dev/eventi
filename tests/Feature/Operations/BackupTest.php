@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
@@ -58,7 +59,20 @@ it('mette il database nell\'archivio', function (): void {
         $this->markTestSkipped('Senza mysqldump il dump del database non è producibile su questa macchina.');
     }
 
-    $this->artisan('backup:run')->assertSuccessful();
+    /*
+     * L'esito del comando si legge, non si constata soltanto.
+     *
+     * `assertSuccessful()` da solo dice «atteso 0, ricevuto 1» e nient'altro:
+     * su una macchina remota, dove il comando non si puo' rilanciare a mano,
+     * quella riga non basta a capire se manchi il client, se il dump sia
+     * incompatibile o se il disco sia pieno. L'output del comando lo dice.
+     */
+    $codice = $this->artisan('backup:run')->run();
+
+    expect($codice)->toBe(
+        0,
+        'backup:run è fallito. Output del comando: '.Artisan::output()
+    );
 
     $files = Storage::disk('local')->allFiles('eventi');
 
