@@ -19,13 +19,26 @@
     /* Misure dichiarate: sono il rapporto, non la dimensione a schermo */
     'width',
     'height',
-    /* Lo spazio che l'immagine occuperà, per far scegliere al browser */
-    'sizes' => '100vw',
+    /* Lo spazio che l'immagine occuperà, per far scegliere al browser.
+
+       **Il valore del set vince sul default.** Chi prepara l'immagine può
+       averlo già dichiarato con `->withSizes(...)`, ed è la stessa stringa che
+       il layout mette nell'`imagesizes` del preload. Se qui restasse `100vw`
+       fisso, il preload annuncerebbe una variante e l'`<img>` ne chiederebbe
+       un'altra: due file scaricati al posto di uno, e il preload che fa
+       perdere tempo invece di guadagnarlo.
+
+       Era esattamente il caso dell'apertura della home, l'immagine più grande
+       sopra la piega: dichiarata `(min-width: 1024px) 50vw, 100vw` nel set,
+       servita a schermo pieno nel markup. */
+    'sizes' => null,
     /* La prima riga di card è sopra la piega: quelle locandine non si rinviano */
     'eager' => false,
 ])
 
 @php
+    $misure = $sizes ?? $set->sizes ?? '100vw';
+
     $placeholder = $set->placeholder;
     $style = $placeholder === null
         ? null
@@ -34,7 +47,7 @@
 
 <picture>
     @foreach ($set->sources as $type => $srcset)
-        <source type="{{ $type }}" srcset="{{ $srcset }}" sizes="{{ $sizes }}">
+        <source type="{{ $type }}" srcset="{{ $srcset }}" sizes="{{ $misure }}">
     @endforeach
 
     <img

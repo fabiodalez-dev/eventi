@@ -316,12 +316,28 @@ jobs:
       #
       # `--fail-with-body` perche' un rilascio fallito deve rendere rosso
       # questo passo E mostrare cosa e' andato storto, non solo il codice HTTP.
-      - name: Chiedi al server di aggiornarsi
+      # Una scorciatoia, non il meccanismo: se la chiamata passa il sito e'
+      # aggiornato in pochi secondi, se non passa ci pensa il server entro
+      # cinque minuti (`deploy:pull --if-behind`, ogni cinque minuti da cron).
+      #
+      # Non e' bloccante perche' da questo runner NON e' affidabile, e non
+      # dipende da noi: prima timeout sulla 22, poi sulla 443, poi un
+      # certificato che da qui e' valido e copre il dominio ma che il runner
+      # riceve diverso. E' un hosting condiviso e il firewall e' loro. Un passo
+      # rosso a ogni rilascio, per una scorciatoia che ha gia' un'alternativa
+      # che funziona, insegna solo a non guardare piu' il colore della
+      # pipeline — ed e' cosi' che passano inosservati i guasti veri.
+      - name: Chiedi al server di aggiornarsi (facoltativo)
+        continue-on-error: true
         env:
           DEPLOY_URL: ${{ secrets.DEPLOY_HOOK_URL }}
           DEPLOY_SECRET: ${{ secrets.DEPLOY_HOOK_SECRET }}
         run: |
-          curl --fail-with-body --silent --show-error --max-time 900 \
-            -X POST "${DEPLOY_URL}" \
-            -H "X-Secret-Token: ${DEPLOY_SECRET}" \
-            -H "Accept: application/json"
+          if curl --fail-with-body --silent --show-error --max-time 900 \
+              -X POST "${DEPLOY_URL}" \
+              -H "X-Secret-Token: ${DEPLOY_SECRET}" \
+              -H "Accept: application/json"; then
+            echo "Rilascio innescato subito."
+          else
+            echo "::warning::Il server non risponde alla chiamata: si aggiornera' da solo entro cinque minuti."
+          fi
