@@ -7,7 +7,7 @@
      * **Niente contenitore centrato.** Il contenuto arriva ai bordi della
      * finestra e si organizza con i divisori: è la ragione per cui qui non
      * compare `max-w-content` e ogni sezione porta il proprio margine
-     * `px-[clamp(1rem,2.2vw,1.875rem)]`, che è lo stesso del riferimento.
+     * `px-gutter`, che è lo stesso del riferimento.
      *
      * Il contesto passato alla card è la finestra di EventOccurrenceQuery da
      * cui le occorrenze arrivano, così che il badge dica la verità senza
@@ -279,7 +279,7 @@
         @php $numero++; @endphp
 
         <section class="border-b-2 border-line" aria-labelledby="sezione-{{ $sezione['key'] }}">
-            <div class="flex flex-wrap items-end justify-between gap-5 px-[clamp(1rem,2.2vw,1.875rem)] pt-[clamp(1.5rem,2.8vw,2.75rem)] pb-[clamp(1.125rem,2vw,1.625rem)]">
+            <div class="flex flex-wrap items-end justify-between gap-5 px-gutter pt-[clamp(1.5rem,2.8vw,2.75rem)] pb-[clamp(1.125rem,2vw,1.625rem)]">
                 <div class="flex flex-col gap-2">
                     <span class="font-display text-[0.625rem] leading-none font-extrabold tracking-[0.18em] text-accent uppercase">
                         {{ str_pad((string) $numero, 2, '0', STR_PAD_LEFT) }} {{ __('common.dash') }} {{ $sezione['eyebrow'] }}
@@ -310,7 +310,7 @@
         @php $numero++; @endphp
 
         <section class="border-b-2 border-line" aria-labelledby="sezione-categorie">
-            <div class="flex flex-col gap-2 px-[clamp(1rem,2.2vw,1.875rem)] pt-[clamp(1.5rem,2.8vw,2.75rem)] pb-[clamp(1.125rem,2vw,1.625rem)]">
+            <div class="flex flex-col gap-2 px-gutter pt-[clamp(1.5rem,2.8vw,2.75rem)] pb-[clamp(1.125rem,2vw,1.625rem)]">
                 <span class="font-display text-[0.625rem] leading-none font-extrabold tracking-[0.18em] text-accent uppercase">
                     {{ str_pad((string) $numero, 2, '0', STR_PAD_LEFT) }} {{ __('common.dash') }} {{ __('events.sections.by_category_eyebrow') }}
                 </span>
@@ -333,7 +333,7 @@
         @php $numero++; @endphp
 
         <section class="border-b-2 border-line" aria-labelledby="sezione-vicino">
-            <div class="flex flex-wrap items-end justify-between gap-4 px-[clamp(1rem,2.2vw,1.875rem)] pt-[clamp(1.5rem,2.8vw,2.75rem)] pb-[clamp(1.125rem,2vw,1.625rem)]">
+            <div class="flex flex-wrap items-end justify-between gap-4 px-gutter pt-[clamp(1.5rem,2.8vw,2.75rem)] pb-[clamp(1.125rem,2vw,1.625rem)]">
                 <div class="flex flex-col gap-2">
                     <span class="font-display text-[0.625rem] leading-none font-extrabold tracking-[0.18em] text-accent uppercase">
                         {{ str_pad((string) $numero, 2, '0', STR_PAD_LEFT) }} {{ __('common.dash') }} {{ __('events.sections.nearby_eyebrow') }}
@@ -397,7 +397,7 @@
          La chiusura, in negativo: fondo lime, testo nero. È l'unico blocco
          pieno di colore della pagina, e serve a questo — chiudere.
     ------------------------------------------------------------------- --}}
-    <section class="grid items-end gap-[clamp(1.5rem,3vw,3.25rem)] bg-accent px-[clamp(1rem,2.2vw,1.875rem)] py-[clamp(2.125rem,5vw,5.375rem)] text-on-accent [grid-template-columns:repeat(auto-fit,minmax(min(360px,100%),1fr))]" aria-label="{{ __('ui.cta.label') }}">
+    <section class="grid items-end gap-[clamp(1.5rem,3vw,3.25rem)] bg-accent px-gutter py-[clamp(2.125rem,5vw,5.375rem)] text-on-accent [grid-template-columns:repeat(auto-fit,minmax(min(360px,100%),1fr))]" aria-label="{{ __('ui.cta.label') }}">
         <h2 class="m-0 font-display text-[clamp(2.125rem,5.2vw,5.25rem)] leading-[0.9] font-extrabold tracking-[-0.045em] text-on-accent uppercase">
             {!! nl2br(e(__('ui.cta.title'))) !!}
         </h2>

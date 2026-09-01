@@ -264,8 +264,19 @@
 
     /* Spaziature ricorrenti: il margine laterale del contenuto e il respiro
        fra due sezioni della pagina. Averle come token evita che ogni pagina
-       scelga il proprio. */
-    --spacing-gutter: 1.25rem;
+       scelga il proprio.
+
+       **Il margine laterale è fluido, e per un motivo.** Era `1.25rem` fisso,
+       ma le sezioni a tutta larghezza ne volevano uno che crescesse con lo
+       schermo e se lo scrivevano a mano: `clamp(1rem,2.2vw,1.875rem)`, copiato
+       identico in nove punti fra home, mappa e scheda evento. Chi poi scriveva
+       un componente nuovo non aveva modo di sapere che quel valore esistesse —
+       ed è appunto quello che è successo alle sezioni «in corso adesso» e
+       «inizia tra poco», rimaste a filo mentre le sorelle rientravano.
+
+       Un valore copiato a mano non è un token: è una convenzione che regge
+       finché qualcuno se la ricorda. */
+    --spacing-gutter: clamp(1rem, 2.2vw, 1.875rem);
     --spacing-section: 3rem;
     --spacing-card: 0.875rem;
 

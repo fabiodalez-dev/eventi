@@ -182,6 +182,32 @@
         @endif
     @endif
 
+    {{-- Il carattere, chiesto prima che il foglio di stile lo nomini.
+
+         Archivo arriva da `@fontsource-variable`, importato dentro `app.css`:
+         il browser scarica l'HTML, poi il CSS, e solo dopo averlo letto scopre
+         che gli serve un `.woff2`. Tre viaggi in fila, e nel frattempo i
+         titoli — enormi e in grassetto 800 — restano nel carattere di
+         ripiego. Sono l'elemento più grande sopra la piega, quindi finché non
+         arriva il font il tempo di disegno non si ferma.
+
+         **Il `crossorigin` non è facoltativo**, nemmeno per un file del nostro
+         stesso dominio: i font si scaricano sempre in modalità anonima, e un
+         preload senza quell'attributo finisce in una cache diversa da quella
+         dove il CSS andrà a cercarlo — il file si scarica due volte e il
+         preload fa perdere tempo invece di guadagnarlo. --}}
+    @php
+        /* Forma estesa, non `@php(...)`: quella compatta qui si compilava in un
+           `<?php` senza chiusura, e da lì in giù il resto dell'intestazione
+           finiva dentro PHP grezzo — il blocco che definisce `$lcp`, tre righe
+           più sotto, non veniva mai eseguito e la pagina si spegneva
+           lamentandosi di una variabile che nel sorgente c'era. */
+        $fontLatino = \App\Support\Fonts::latin();
+    @endphp
+    @if ($fontLatino !== null)
+        <link rel="preload" as="font" type="font/woff2" href="{{ $fontLatino }}" crossorigin>
+    @endif
+
     {{-- Preload dell'immagine più grande sopra la piega (§11.11).
 
          Se ne dichiara **una sola**, nel formato migliore disponibile: `type`
@@ -383,7 +409,7 @@
              ricevuta): sta nel layout perché è l'unico punto che ogni pagina
              attraversa dopo un reindirizzamento. --}}
         @if (session()->has('status'))
-            <p role="status" class="flex items-center gap-2.5 border-b-2 border-line bg-accent px-[clamp(1rem,2.2vw,1.875rem)] py-3.5 font-display text-[0.688rem] font-extrabold tracking-[0.14em] text-on-accent uppercase">
+            <p role="status" class="flex items-center gap-2.5 border-b-2 border-line bg-accent px-gutter py-3.5 font-display text-[0.688rem] font-extrabold tracking-[0.14em] text-on-accent uppercase">
                 <span aria-hidden="true" class="size-[7px] bg-on-accent"></span>
                 {{ session('status') }}
             </p>

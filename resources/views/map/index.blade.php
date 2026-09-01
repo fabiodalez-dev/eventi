@@ -55,7 +55,7 @@
          senza JavaScript e ciò che un motore di ricerca trova qui dentro. --}}
     @if ($occurrences->isNotEmpty())
         <section aria-labelledby="mappa-elenco">
-            <div class="flex flex-wrap items-end justify-between gap-5 px-[clamp(1rem,2.2vw,1.875rem)] pt-[clamp(1.5rem,2.8vw,2.75rem)] pb-[clamp(1.125rem,2vw,1.625rem)]">
+            <div class="flex flex-wrap items-end justify-between gap-5 px-gutter pt-[clamp(1.5rem,2.8vw,2.75rem)] pb-[clamp(1.125rem,2vw,1.625rem)]">
                 <h2 id="mappa-elenco" class="m-0 font-display text-[clamp(1.5rem,3.2vw,3.125rem)] leading-[0.96] font-extrabold tracking-[-0.04em] uppercase">
                     {{ __('map.fallback_title') }}
                 </h2>

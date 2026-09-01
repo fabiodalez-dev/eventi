@@ -75,6 +75,8 @@ return [
         /* Gli occhielli numerati «01 — apre tra poche ore». Dicono a chi
            scorre perche' quella sezione esiste, che il titolo da solo non fa:
            «Stasera» e' un'etichetta, «apre tra poche ore» e' un motivo. */
+        'ongoing_eyebrow' => 'mentre leggi',
+        'starting_soon_eyebrow' => 'fai ancora in tempo',
         'tonight_eyebrow' => 'apre tra poche ore',
         'today_eyebrow' => 'per il resto della giornata',
         'featured_eyebrow' => 'scelti dalla redazione',

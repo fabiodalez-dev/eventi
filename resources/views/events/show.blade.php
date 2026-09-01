@@ -35,7 +35,7 @@
     $ticketUrl = \App\Support\SafeUrl::href($event->ticket_url);
 @endphp
 
-<x-layouts.app :meta="$meta" :preload="$poster">
+<x-layouts.app :meta="$meta" :preload="$poster" wide>
     <x-slot:head>
         <x-json-ld :data="$structuredData" />
 
@@ -48,7 +48,7 @@
     {{-- La riga di ritorno: dove sono e da dove vengo. Nel riferimento è una
          fascia sottile fra la testata e l'apertura, e serve a non lasciare la
          scheda senza contesto quando ci si arriva da una ricerca. --}}
-    <nav aria-label="{{ __('ui.breadcrumb') }}" class="flex flex-wrap items-center gap-4 border-b-2 border-line px-[clamp(1rem,2.2vw,1.875rem)] py-3.5">
+    <nav aria-label="{{ __('ui.breadcrumb') }}" class="flex flex-wrap items-center gap-4 border-b-2 border-line px-gutter py-3.5">
         <a
             href="{{ route('events.index') }}"
             class="inline-flex items-center gap-2 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.16em] uppercase transition-colors hover:text-accent"
@@ -176,7 +176,12 @@
         </div>
     </section>
 
-    <div class="grid gap-8 px-[clamp(1rem,2.2vw,1.875rem)] py-[clamp(1.5rem,2.8vw,2.75rem)] lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+    {{-- **A tutta larghezza sono le fasce, non il corpo.** La riga di ritorno,
+         il poster e le griglie in fondo guadagnano ad arrivare al vetro; questa
+         colonna no. Senza il limite, su uno schermo da 1440 il testo arriva a
+         900px — centoventi caratteri per riga, dove l'occhio tornando a capo
+         perde la riga giusta — e su un monitor grande peggiora ancora. --}}
+    <div class="mx-auto grid w-full max-w-content gap-8 px-gutter py-[clamp(1.5rem,2.8vw,2.75rem)] lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <article class="flex flex-col gap-6">
             @if ($occurrences->isEmpty() && $pastOccurrences->isNotEmpty())
                 <p class="bg-surface px-4 py-3 text-sm font-semibold text-ink-muted">
@@ -293,7 +298,10 @@
                 <section aria-labelledby="descrizione-evento" class="flex flex-col gap-3">
                     <h2 id="descrizione-evento" class="font-display text-[clamp(1.25rem,1.8vw,1.75rem)] leading-none font-extrabold tracking-[-0.03em] uppercase">{{ __('events.detail.description') }}</h2>
 
-                    <div class="flex flex-col gap-3 text-ink-muted">
+                    {{-- `max-w-prose` è 65 caratteri: il punto oltre il quale
+                         rileggere due volte la stessa riga smette di essere un
+                         caso e diventa la norma. --}}
+                    <div class="flex max-w-prose flex-col gap-3 text-ink-muted">
                         @foreach (preg_split('/\R{2,}/', (string) $event->description) ?: [] as $paragraph)
                             @if (trim($paragraph) !== '')
                                 <p>{{ $paragraph }}</p>
@@ -527,8 +535,18 @@
         </aside>
     </div>
 
+    {{-- Le due sezioni in fondo si incolonnano con il corpo, non con il bordo
+         dello schermo. La scheda di un evento è un documento e ha un asse
+         verticale solo: il titolo, la descrizione e «altri eventi» devono
+         partire tutti dalla stessa riga verticale. La home fa il contrario, e
+         ha ragione — lì le sezioni sono un tabellone e vanno a filo — ma è
+         un'altra pagina, con un'altra natura.
+
+         Il caso è nato rendendo questa scheda a tutta larghezza: prima
+         ereditava il rientro dal contenitore del layout e la questione non si
+         poneva. --}}
     @if ($atVenue->isNotEmpty() && $venue !== null)
-        <section class="mt-section" aria-labelledby="sezione-stesso-locale">
+        <section class="mx-auto mt-section w-full max-w-content px-gutter" aria-labelledby="sezione-stesso-locale">
             <x-section-heading
                 id="sezione-stesso-locale"
                 :title="__('events.sections.same_venue')"
@@ -541,7 +559,7 @@
     @endif
 
     @if ($related->isNotEmpty())
-        <section class="mt-section" aria-labelledby="sezione-simili">
+        <section class="mx-auto mt-section w-full max-w-content px-gutter" aria-labelledby="sezione-simili">
             <x-section-heading
                 id="sezione-simili"
                 :title="__('events.sections.similar')"
