@@ -1991,3 +1991,198 @@ quando il costo del rehash progressivo si paga una volta sola e su pochi utenti.
 Serve: `config/hashing.php` su argon2id, e un rehash al login dentro
 `Illuminate\Auth\Events\Login` che riconosce gli hash vecchi con
 `Hash::needsRehash()`.
+
+## 2026-09-01 — D44. Installer web: attuazione di D42, e le cinque cose che si sono scoperte scrivendolo
+
+**L'installer di D42 esiste ed è stato provato installando davvero.** Il
+disegno è rimasto quello; qui stanno le sole cose che il disegno non poteva
+sapere, ciascuna scoperta eseguendo e non leggendo.
+
+1. **Il nome del cookie di sessione dipende da `APP_NAME`, e il wizard scrive
+   `APP_NAME` a metà installazione.** `config/session.php` lo calcola come
+   `Str::slug(APP_NAME).'-session'`. Alla prima richiesta dopo la scrittura del
+   `.env` il cookie cambia nome, il browser continua a mandare quello vecchio,
+   Laravel apre una sessione nuova e vuota: **419 CSRF token mismatch**, tutte
+   le risposte perdute, installazione da rifare. Non è un'ipotesi: è successo
+   al primo giro sul banco di prova, esattamente sulla prima operazione della
+   checklist. `InstallerSession` fissa ora anche `session.cookie` a
+   `installazione-session`, che non dipende dal nome che si sta scegliendo.
+   Il test di regressione è in `InstallerWizardTest`.
+2. **L'anti-salto deve stare in un middleware, non nel controller.** Una Form
+   Request valida *prima* che il metodo del controller cominci: un controllo
+   scritto lì arriva dopo, e un POST al passo della città senza database
+   risponde con sette errori di validazione invece del rimando al passo che
+   manca davvero. Nasce `app/Http/Middleware/InstallerStepOrder.php`, che legge
+   il passo dal secondo segmento dell'indirizzo — dal nome della rotta non si
+   può, i POST non ne hanno uno.
+3. **`CategorySeeder` e `TagSeeder` non erano idempotenti.** Usavano `create()`:
+   una seconda esecuzione produceva 28 categorie e 76 tag. D42 pretende che
+   *ogni* operazione della checklist sia ripetibile senza danno — un secondo
+   clic, un ricaricamento, un ritentativo dopo un timeout — e la stessa cosa
+   vale per il `db:seed --class=ProductionSeeder --force` documentato per la
+   mano. Entrambi passano ora da `firstOrCreate` sul nome, come già facevano
+   `RolesAndPermissionsSeeder` e `PageSeeder`.
+4. **Lo slug della città scelto a mano veniva sovrascritto.** Il trait `HasSlug`
+   lo rigenera dal nome sia in creazione sia in aggiornamento, quindi passarlo
+   fra gli attributi non serve e ripassarlo con `save()` viene sovrascritto una
+   seconda volta: si scrive con `City::query()->whereKey(...)->update()`, che
+   non passa dagli eventi del model. Il campo è anche diventato **facoltativo**
+   e si ricava dal nome lato server: derivarlo con un po' di JavaScript avrebbe
+   significato scoprire, durante un'installazione, che un campo obbligatorio si
+   riempiva da solo e non l'ha fatto.
+5. **`config:cache` in-process scrive la configurazione giusta.** Il dubbio era
+   fondato — `Env::getRepository()` è *immutable* — ma la protezione di
+   phpdotenv vale solo per le variabili definite dall'ambiente esterno: quelle
+   caricate da dotenv stesso vengono sovrascritte da un secondo caricamento.
+   Verificato due volte: con una prova isolata sul repository di `Env`, e sul
+   banco, dove `bootstrap/cache/config.php` è uscito con `app.env=production`,
+   `app.debug=false` e il database appena dichiarato. Nessuna deviazione da D42.
+   L'unica conseguenza è sui **test**: l'operazione `cache` non viene eseguita
+   dalla suite, perché compilerebbe la configurazione *della suite* — ambiente
+   `testing`, database dei test — dentro il `bootstrap/cache/config.php` della
+   macchina che sta eseguendo i test. Nel caso di prova che arriva in fondo è
+   dichiarata già fatta, ed è verificata a mano sul banco.
+
+**Il banco di prova.** Copia dell'applicazione in una directory temporanea
+(`rsync` senza `.git`, `node_modules`, `vendor`, `.env` e i contenuti di
+`storage/`), `vendor` collegato con un symlink, `php -S` sulla 8099, wizard
+percorso con `curl` estraendo il token CSRF da ogni pagina. È l'unico modo di
+provare un installer: la suite non può cancellare il `.env` della macchina su
+cui gira.
+
+**MISURATO sul banco, a installazione conclusa** (database `eventi_sandbox`,
+poi eliminato): 47 tabelle create; 14 categorie, 38 tag, 5 pagine, 27 permessi,
+6 ruoli; una città `padova` attiva con fuso `Europe/Rome`, raggio 30 km e
+coordinate 45.4064/11.8768; un utente con `super_admin` ed email già
+verificata; `.env` a `-rw-------` con `APP_ENV=production`, `APP_DEBUG=false`,
+`IMAGE_DRIVER=imagick`, `CITY_DEFAULT_SLUG=padova`, `OPS_ALERT_EMAIL`
+precompilata e `OPS_HEALTH_TOKEN` generata, mentre `TURNSTILE_SITE_KEY` è
+rimasta vuota; marcatore scritto con la migrazione più recente;
+`public/storage` collegato. Poi: `/` 200, `/pagine/privacy` 200,
+`/admin/login` 200, `/robots.txt` 200, e `/installazione/*` **404** da una
+sessione nuova.
+
+**MISURATE anche le tre strade storte**, sempre sul banco: (a) prima
+esecuzione con il `.env.example` che punta a un database esistente e popolato →
+il cancello si è **auto-marcato** e ha risposto 404, che è il caso di
+eventi.fabiodalez.it; (b) database eliminato con il marcatore presente →
+**503** con la diagnosi «la connessione non si apre» e i comandi da dare, non
+«già installato»; database ricreato vuoto → **503** con «il database è vuoto,
+non c'è nemmeno la tabella delle migrazioni»; (c) `vendor/` rinominata →
+**503** con `composer install --no-dev --optimize-autoloader` copiabile, dal
+guard in PHP puro di `public/index.php`, che nella stessa occasione ha creato
+il `.env` da `.env.example` con `APP_KEY` generata e permessi 600.
+
+**Verificato in suite:** 1116 test verdi (52 nuovi in
+`tests/Feature/Installer/`), Pint pulito, PHPStan livello 6 a zero errori. Fra
+i nuovi: il `.env` che rilegge identica una password contenente cancelletto,
+spazio, apici, dollaro e barra rovescia, e una che contiene `$1$2\0`; i due
+messaggi distinti per credenziali sbagliate e server che non risponde; la
+creazione del database mancante; il limite di dieci tentativi al minuto; il
+ritorno al primo passo incompleto in GET e in POST; il marcatore nelle due
+direzioni; la diagnosi; l'assenza di `SQLSTATE` in pagina; l'operazione che
+fallisce mostrando quali tabelle mancano e con quale comando riprovare, e la
+ripresa da lì senza rifare ciò che era già riuscito.
+
+## 2026-09-01 — D45. L'installer è dichiarato funzionante: installazione da zero eseguita da un verificatore indipendente
+
+**Decisione:** l'installer di D42/D44 è verificato buono da una sessione
+indipendente da chi l'ha scritto, installando davvero l'applicazione da zero
+con un browser — non rileggendo i riepiloghi. Come per il backup (D39), la
+dichiarazione vale perché la prova è stata eseguita, non raccontata.
+
+**Il banco.** Database vuoto `eventi_scratch` e utente MariaDB dedicato
+`scratch_user` con password `Sc# ra$tch'x\9!q` — cancelletto, spazio, dollaro,
+apice, barra rovescia e punto esclamativo, scelta apposta per la prova del
+quoting. `.env` di sviluppo messo da parte, `.env` ricreato da `.env.example`
+puntato a un database inesistente (senza questo, su una macchina dove
+`eventi_local` esiste popolato il cancello si auto-marca e il wizard non si
+apre — è il comportamento voluto di D42 punto 2, ora annotato nel RUNBOOK).
+Server `php -S` su porta 8099 con document root `public/`, wizard percorso
+con Playwright come farebbe una persona.
+
+**Misurato, passo per passo:**
+- *Requisiti:* 15 voci indispensabili tutte «a posto» (PHP 8.4.21), 6 avvisi
+  tutti «a posto».
+- *Database:* accettate le credenziali con la password difficile al primo
+  tentativo (connessione provata dal vivo dal wizard).
+- *Applicazione / Città / Amministratore:* compilati e accettati; slug
+  `verona` derivato dal nome lato server senza chiederlo.
+- *Esecuzione:* 7 operazioni, 7 POST, tutte «fatta» senza errori.
+- *Risultato:* `.env` `-rw-------` con `APP_ENV=production`,
+  `APP_DEBUG=false`, `DB_PASSWORD="Sc# ra\$tch'x\\9!q"`,
+  `CITY_DEFAULT_SLUG=verona`, `OPS_ALERT_EMAIL` precompilata con l'email
+  dell'amministratore, `OPS_HEALTH_TOKEN` generata, Turnstile vuoto;
+  47 tabelle; 14 categorie, 38 tag, 5 pagine, 6 ruoli, 27 permessi; città
+  `verona` attiva (45.4384, 10.9916, raggio 30, `Europe/Rome`); un utente
+  `super_admin` con email già verificata; marcatore scritto con
+  `schema_version` uguale alla migrazione più recente;
+  `bootstrap/cache/config.php` con l'ambiente e il database giusti.
+- *Il sito dopo:* `/` 200 con «Cosa fare stasera a Verona», `/pagine/privacy`
+  200, `/robots.txt` 200, asset compilati 200; **login reale in `/admin`**
+  con l'account creato dal wizard → pannello «Riepilogo».
+- *Il wizard dopo:* `/installazione` e `/installazione/database` → **404**,
+  sia da una sessione nuova sia dalla stessa che aveva percorso il wizard.
+
+**La prova del quoting, chiusa in tre modi indipendenti:** (1) il
+`bootstrap/cache/config.php` compilato dall'installer contiene la password
+byte per byte identica all'originale; (2) Dotenv, rileggendo il `.env`
+scritto, restituisce la stringa identica; (3) una connessione PDO aperta con
+il valore riletto dal `.env` funziona (37 migrazioni contate). Anche
+`php artisan migrate:status` dalla CLI si connette con quel `.env`.
+
+**Un'osservazione nuova, ora nel RUNBOOK:** prima dell'installazione `GET /`
+risponde **500**, non un rimando al wizard — la homepage apre la sessione su
+database (`SESSION_DRIVER=database`) che ancora non esiste. Non è un difetto
+bloccante (il flusso documentato è aprire `/installazione` direttamente), ma
+la frase «si apre da solo» del RUNBOOK mentiva ed è stata corretta. Se un
+giorno si vorrà il rimando automatico, servirà un middleware globale che
+controlla il marcatore prima di `StartSession`.
+
+**Verificato in suite, dopo il ripristino del banco:** prima esecuzione 1293
+test verdi (4398 asserzioni); a fine sessione, con i 14 test aggiunti nel
+frattempo da un lavoro parallelo, **1307 verdi (4456 asserzioni)**. Pint
+pulito su tutto il repo, PHPStan livello 6 a zero errori, `npm run build`
+verde. In una delle tre esecuzioni complete un solo test
+(`AuthFlowTest`, consenso newsletter) è fallito e poi è passato sia isolato
+sia nella ripetizione completa identica: intermittenza da tenere d'occhio,
+non riprodotta. Banco smontato: `.env` di sviluppo ripristinato e
+funzionante, marcatore e `config.php` cancellati, `eventi_scratch` e
+`scratch_user` eliminati.
+
+## 2026-09-01 — D46. Il disegno del riferimento è la direzione, e non si torna indietro
+
+**Decisione del committente, dichiarata definitiva.** Il frontend adotta il
+disegno «Modernist» del riferimento in `docs/design-riferimento/`, e la mappa
+passa a Leaflet.
+
+**La gerarchia si inverte.** Fino a qui le prescrizioni di §11 hanno governato
+la forma delle pagine. D'ora in avanti, dove il riferimento e il piano non vanno
+d'accordo, **vale il riferimento**: sezioni, loro ordine, forma delle schede,
+densità, stati vuoti. Le sezioni §11.2-§11.6 si leggono come intento — cosa la
+pagina deve permettere di fare — non come descrizione della forma.
+
+Gli scostamenti dal piano si annotano, ma non si discutono: sono il risultato
+atteso di questa decisione, non difetti da correggere.
+
+**Le tre cose che restano vere comunque**, perché nessuna dipende dal gusto:
+
+1. **L'attribuzione OpenStreetMap** sulla mappa è un obbligo della licenza ODbL.
+   Può cambiare posto, corpo e colore per stare nel disegno — il riferimento la
+   tiene e la stilizza, quindi non c'è nemmeno un compromesso da fare — ma deve
+   restare leggibile.
+2. **Il font è self-hostato.** Il riferimento importa Archivo da Google Fonts;
+   qui no. Non è pignoleria: il banner dei cookie pubblicato in F10 dichiara che
+   il sito non contatta terzi, e caricare un font da un dominio esterno
+   renderebbe **falsa la nostra stessa informativa**.
+3. **Il JSON-LD resta.** È invisibile: non c'è alcun disegno da sacrificare, e
+   senza di lui le schede sparirebbero dai risultati di ricerca, che §12.2
+   considera metà del valore del prodotto.
+
+**Perché è scritto qui.** Una direzione data a voce si perde: fra un mese,
+davanti a una pagina che si allontana da §11.2, qualcuno — un agente, o io —
+proporrebbe di «riallinearla al piano». Questa voce esiste per rispondere che no,
+il piano è stato superato di proposito.
+
+**Non si torna indietro** su Leaflet né sul disegno. Se emergesse un problema
+tecnico serio su Leaflet, la risposta è risolverlo, non rimettere MapLibre.
