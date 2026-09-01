@@ -22,7 +22,7 @@ d'uso (§16 del piano).
   [ODbL](https://www.openstreetmap.org/copyright). L'attribuzione deve restare
   visibile sulla mappa.
 - **Tile server:** [OpenFreeMap](https://openfreemap.org), gratuito e senza API key.
-- **Libreria mappa:** [MapLibre GL JS](https://maplibre.org), licenza BSD-3-Clause.
+- **Libreria mappa:** [Leaflet](https://leafletjs.com), licenza BSD-2-Clause.
 
 ## Font
 

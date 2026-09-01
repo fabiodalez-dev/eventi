@@ -9,6 +9,38 @@
 
 ---
 
+
+> ## Stato del documento
+>
+> **Questo piano è del 23 agosto 2026 ed è il documento di partenza.** La Fase 1
+> è stata costruita e messa in produzione su `eventi.fabiodalez.it`; lungo la
+> strada alcune prescrizioni si sono rivelate impraticabili o sono state
+> superate da decisioni del committente.
+>
+> I passaggi che **non valgono più** sono barrati sul posto, con la ragione e il
+> numero della decisione che li ha sostituiti. Il registro completo, con le
+> motivazioni per esteso e le condizioni per tornare indietro, è in
+> [`DECISIONS.md`](DECISIONS.md) — quarantacinque voci alla data di quest'ultima
+> revisione.
+>
+> Le tre deviazioni che cambiano di più la fisionomia del sistema:
+>
+> | Il piano prescriveva | Si è fatto | Perché |
+> |---|---|---|
+> | PostgreSQL + PostGIS | **MariaDB** con tipi spaziali | shared hosting senza root (D3) |
+> | Redis, Horizon, Meilisearch | **file, database, Scout su database** | nessun demone installabile (D5) |
+> | Web Push | **posta elettronica** | non installabile su Laravel 13 (D8) |
+>
+> **Il disegno del frontend è cambiato** per decisione del committente: si segue
+> un riferimento visivo esterno («Modernist»), e dove quel riferimento e le
+> prescrizioni di §11 non vanno d'accordo, vale il riferimento. Le sezioni
+> §11.2-§11.6 vanno quindi lette come intento — cosa la pagina deve permettere
+> di fare — più che come descrizione della forma.
+>
+> *Ultima revisione: 1 settembre 2026.*
+
+---
+
 ## 0. Come usare questo documento
 
 L'agente esegue fino alla fine nell'ordine di §17. Ogni fase termina con i propri criteri di accettazione verdi. Non si apre la fase successiva prima.
@@ -99,13 +131,13 @@ Valutare in F0 **Laravel Boost** e **Filament Blueprint**: entrambi servono a da
 Motivi: SEO (metà del valore del prodotto arriva da chi cerca su Google), TTFB, URL condivisibili e indicizzabili, rendering server-side, semplicità di manutenzione per un team piccolo.
 
 ### Database
-**PostgreSQL 16+ con PostGIS.** Coordinate come `geography(Point, 4326)`, indice GIST, query geospaziali native. Nessuna dipendenza obbligatoria da Google Maps.
+**MariaDB 10.11+** (D3). ~~PostgreSQL 16 + PostGIS~~: il server di destinazione è shared hosting cPanel, dove nessun demone PostgreSQL è installabile. Coordinate come `POINT` con `SPATIAL INDEX` e SRID 0 — sempre `POINT(lng, lat)`, il solo formato che si comporta allo stesso modo su MySQL e MariaDB (D4). Le query geospaziali passano da `GeoQueryInterface`: `MBRContains` per usare l'indice, `ST_Distance_Sphere` per raffinare. Nessuna dipendenza obbligatoria da Google Maps.
 
 ### Altri componenti
-- Cache/queue: **Redis + Laravel Horizon**
-- Ricerca: **Laravel Scout + Meilisearch** (self-hosted)
+- Cache/queue: **file e database** (D5). ~~Redis + Horizon~~: nessun demone Redis sulla shared hosting. Il worker gira da cron con `queue:work --stop-when-empty`, e senza lock distribuito la garanzia contro il doppio invio è il vincolo `dedupe_key UNIQUE`, che §7.10 già prescriveva
+- Ricerca: **Laravel Scout con driver `database`** e indici FULLTEXT (D5). ~~Meilisearch~~: nessun demone installabile
 - Media: **Spatie Media Library** + Intervention Image, storage S3-compatible (Cloudflare R2 / Hetzner Object Storage) dietro CDN
-- Mappe: **MapLibre GL JS**, tiles OpenFreeMap/Protomaps
+- Mappe: **Leaflet** con tile OpenStreetMap. ~~MapLibre GL~~: il disegno adottato inverte le tile in scala di grigi con un filtro CSS, e MapLibre le disegna in WebGL, dove i filtri CSS non arrivano. Leaflet pesa anche molto meno
 - Geocoding: dietro `GeocodingServiceInterface`, implementazione iniziale Nominatim/Photon. **Il codice non deve mai dipendere direttamente dal provider.**
 - API auth: **Laravel Sanctum**
 - OpenAPI generato automaticamente, esposto su `/docs/api`
@@ -321,7 +353,7 @@ follows
 devices
   user_id  platform(ios|android|web)
   push_token(nullable)             -- FCM, per le app
-  endpoint  keys(json)             -- Web Push (VAPID), per il sito
+  endpoint  keys(json)             -- previsti per Web Push, oggi inutilizzati (D8)
   app_version  locale  last_seen_at  revoked_at
 
 scheduled_notifications           -- vedi §15.5, è il motore delle notifiche
@@ -526,7 +558,7 @@ Il pulsante **Salva** funziona anche da anonimo e, se l'evento ha più date futu
 JSON-LD `Event` **per ogni occorrenza pubblicata**, con dati coerenti con la singola data: `location: Place` con indirizzo e coordinate, `offers`, `eventStatus`, `eventAttendanceMode`, `organizer`, `image`, `performer`.
 
 ### 11.6 Mappa
-MapLibre: clustering, marker colorati per categoria, filtri condivisi con la lista, bottom sheet con la card, geolocalizzazione opzionale, pulsante **"Cerca in quest'area"** al pan. Query per bounding box + `business_date`.
+Leaflet: clustering, marker colorati per categoria, filtri condivisi con la lista, bottom sheet con la card, geolocalizzazione opzionale, pulsante **"Cerca in quest'area"** al pan. Query per bounding box + `business_date`.
 
 ### 11.7 Vicino a me
 **Non chiedere il GPS all'apertura del sito.** Chiedere solo quando serve davvero, con una frase chiara. Raggi: 1 / 5 / 10 / 25 km. La posizione non viene mai salvata: serve solo alla query.
@@ -615,7 +647,7 @@ Payload minimale: la mappa carica centinaia di marker.
 
 ### 13.4 Autenticazione
 Sanctum. `POST /auth/register|login|logout|password/forgot|password/reset`.
-Backend predisposto per Google e Apple (Sign in with Apple è obbligatorio se ci sarà social login su iOS), non necessariamente attivi al primo rilascio.
+~~Backend predisposto per Google e Apple~~ (D7): `laravel/socialite` non è compatibile con Guzzle 8, che Laravel 13 porta con sé. Registrazione con email e password oppure con collegamento via posta. Lo schema `users` non contiene nulla che impedisca di aggiungerlo dopo; Sign in with Apple resterà obbligatorio se un giorno ci sarà login social su iOS.
 Client API key (`X-Client-Key`) per rate limiting e telemetria. Limiti: 60 req/min anonime per IP, 120 autenticate, header `X-RateLimit-*`.
 
 ### 13.5 Endpoint utente
@@ -754,7 +786,7 @@ push su device attivo negli ultimi 30 giorni
   → altrimenti email
   → sempre in-app (tabella notifications) come archivio consultabile
 ```
-- **Web Push** (VAPID + service worker) sul sito: è l'unico modo di avere push prima delle app. Su iOS richiede che il sito sia installato come PWA dalla schermata home — quindi va offerto, non dato per scontato, e l'email resta il fallback.
+- ~~**Web Push** (VAPID + service worker)~~ **non è installabile su Laravel 13** (D8): la catena `minishlink/web-push` → `web-token` → `brick/math` è ferma a versioni precedenti. I canali attivi sono **email** e archivio in-app. La decisione che §20.6 lasciava aperta è quindi presa, per una ragione tecnica e non di prodotto. Aggiungere push in seguito sarà un canale in più, non una riscrittura del motore.
 - **FCM** con le app native (fase F11).
 - Token invalidi o rifiutati → `revoked_at`, device escluso, fallback su email al prossimo invio.
 
@@ -795,7 +827,7 @@ Se una tipologia di notifica ha un tasso di disiscrizione alto, va disattivata, 
 
 ## 16. Sicurezza, privacy, GDPR
 
-**Sicurezza:** HTTPS, HSTS, CSP restrittiva (attenzione a MapLibre e CDN immagini), `X-Content-Type-Options`, `Referrer-Policy`, Argon2id, 2FA per admin e moderatori, CSRF, rate limiting su login/registrazione/reset, sanitizzazione HTML con whitelist (no `<script>`, no iframe arbitrari), validazione MIME reale, storage fuori dal webroot, secret management fuori da git.
+**Sicurezza:** HTTPS, HSTS, CSP restrittiva (attenzione a Leaflet e CDN immagini), `X-Content-Type-Options`, `Referrer-Policy`, ~~Argon2id~~ **bcrypt** (D43: gli hash esistenti non sono convertibili senza la password in chiaro, servirebbe il rehash al primo accesso), 2FA per admin e moderatori, CSRF, rate limiting su login/registrazione/reset, sanitizzazione HTML con whitelist (no `<script>`, no iframe arbitrari), validazione MIME reale, storage fuori dal webroot, secret management fuori da git.
 
 **Privacy:** raccogliere il minimo — email, nome, password. **Nessuna coordinata GPS dell'utente viene salvata**: la posizione serve solo alla query. Log accessi admin 90 giorni.
 
@@ -805,14 +837,14 @@ Se una tipologia di notifica ha un tasso di disiscrizione alto, va disattivata, 
 
 **Backup:** database giornaliero, storage, retention 30 giorni. **Un backup non è valido finché non è stato testato un restore reale**, documentato in `docs/RUNBOOK.md`.
 
-**Monitoring:** Sentry, uptime, Horizon, storage, database. Alert su: queue bloccata, import fallito, database irraggiungibile, storage quasi pieno.
+**Monitoring:** Sentry, uptime, code e scheduler via `spatie/laravel-health` e `schedule-monitor` (~~Horizon~~, che richiede Redis), storage, database. Alert su: queue bloccata, import fallito, database irraggiungibile, storage quasi pieno.
 
 ---
 
 ## 17. Fasi
 
 ### F0 — Fondamenta
-Verifica compatibilità Filament 5 / Livewire 4 con tutti i pacchetti (§4, task bloccante) → repo → Docker Compose (php-fpm, nginx, postgres+postgis, redis, meilisearch, mailpit, minio) → Laravel 13 + PHP 8.3+ → Pest, Pint, Larastan → GitHub Actions (lint → analisi statica → test) → `.env.example` documentato → valutazione Laravel Boost / Filament Blueprint → documenti in `docs/`.
+Verifica compatibilità Filament 5 / Livewire 4 con tutti i pacchetti (§4, task bloccante: **chiuso con esito positivo**, D2) → repo → ~~Docker Compose~~ ambiente nativo, perché il bersaglio è shared hosting senza root → Laravel 13 + **PHP 8.4** (D1: tre pacchetti lo richiedono) → Pest, Pint, Larastan → GitHub Actions (lint → analisi statica → test) → `.env.example` documentato → valutazione Laravel Boost / Filament Blueprint → documenti in `docs/`.
 **Accettazione:** `docker compose up` produce un'app funzionante; CI verde; `php artisan test` passa; `docs/DECISIONS.md` contiene la decisione sullo stack Filament con la lista dei pacchetti verificati.
 
 ### F1 — Database e dominio
@@ -844,7 +876,7 @@ API completa (§13), OpenAPI, collection versionata.
 **Accettazione:** ogni endpoint testato su happy path + 401/403/404/422/429; cursori, ETag e 304 funzionanti; **la schermata "cosa succede stasera" si costruisce con una sola chiamata**; `preset=starting_soon` e `preset=ongoing` restituiscono esattamente gli stessi risultati del sito nello stesso istante.
 
 ### F7b — Account, salvataggi e notifiche
-Registrazione, magic link, verifica email, profilo, cancellazione account. Salvataggio anonimo in `localStorage` e migrazione all'account. Selettore date sul cuore. Follow di locali/tag/categorie. Feed personalizzato. Preferenze notifiche. Motore `scheduled_notifications` con observer di riprogrammazione. Web Push (VAPID + service worker) + PWA installabile. Newsletter con opt-in separato. Endpoint di §15.8.
+Registrazione, magic link, verifica email, profilo, cancellazione account. Salvataggio anonimo in `localStorage` e migrazione all'account. Selettore date sul cuore. Follow di locali/tag/categorie. Feed personalizzato. Preferenze notifiche. Motore `scheduled_notifications` con observer di riprogrammazione. ~~Web Push + PWA~~ (D8, non installabile): notifiche via email e archivio in-app. Newsletter con opt-in separato. Endpoint di §15.8.
 **Accettazione:** un guest salva 3 eventi, si registra e li ritrova tutti sull'account; un promemoria programmato a 3h si sposta correttamente se il locale cambia l'orario dell'occorrenza; l'annullamento di un'occorrenza annulla i promemoria e invia la notifica di annullamento entro 5 minuti; nessun utente riceve la stessa notifica due volte (test sul vincolo `dedupe_key`); il cap di 2 push al giorno e le quiet hours sono rispettati; disattivando tutte le notifiche non parte più nulla tranne gli annullamenti.
 
 ### F8 — Popolamento (**inizia già durante F2, non alla fine**)
@@ -915,7 +947,7 @@ Una funzione è finita quando: codice scritto · test scritto · policy verifica
 3. Eventi senza locale registrato ammessi in v1? *(Raccomandazione: sì, via `custom_location`, gestiti dalla redazione.)*
 4. **Modello economico.** Non va implementato ora, ma va deciso ora perché tocca schema e Termini: featured gratuiti o a pagamento, ruolo della pubblicità, eventuale gratuità per associazioni e no-profit. Lo schema deve già permettere in futuro featured, sponsorship, premium venue, promoted event, newsletter sponsorship. Nella v1 l'obiettivo è **avere eventi**, non monetizzare: la monetizzazione viene dopo che esiste un pubblico.
 5. Chi modera nella pratica e con quali tempi dichiarati ai locali.
-6. ~~Account utente nel primo rilascio?~~ **Deciso: sì.** Account, salvataggi e notifiche sono in fase 1 (F7b, §15). Resta da scegliere se attivare Web Push al lancio o partire con le sole email: dipende da quanta parte del traffico arriverà da iOS, dove la push web richiede l'installazione come PWA. Decidere dopo il primo mese di analytics.
+6. ~~Account utente nel primo rilascio?~~ **Deciso: sì.** Account, salvataggi e notifiche sono in fase 1 (F7b, §15). ~~Resta da scegliere se attivare Web Push al lancio~~ — **deciso dai fatti** (D8): non è installabile su Laravel 13, si parte con le sole email.
 7. Lingue al lancio: solo italiano, o anche inglese per studenti e turismo.
 8. Cutoff notturno e categorie iniziali (§7.4) — validare la tabella con qualche gestore reale prima di scolpirla.
 9. Provider: storage, email, geocoding.

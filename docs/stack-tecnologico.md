@@ -6,6 +6,29 @@ Documento di supporto a `piano-piattaforma-eventi-v2.md`. Contiene ogni tecnolog
 
 ---
 
+
+> ## Stato del documento
+>
+> **Verificato al 23 agosto 2026, rivisto il 1 settembre.** Le versioni qui
+> sotto erano previsioni: costruendo il sistema alcune si sono rivelate
+> impraticabili sul bersaglio reale — shared hosting cPanel, senza root e senza
+> demoni propri.
+>
+> Le voci **barrate** non sono più in uso, e accanto c'è cosa le ha sostituite e
+> perché. Il registro completo è in [`DECISIONS.md`](DECISIONS.md).
+>
+> Il §0 di questo documento chiedeva di verificare la compatibilità prima di
+> scrivere codice. È stato fatto, e ha pagato: il rischio temuto — «i plugin
+> Filament non sono pronti per la v5» — **non si è presentato** (Filament 5.7 e
+> Livewire 4.4 sono maturi, D2). Le rotture vere erano altrove, tutte causate
+> da `guzzlehttp/guzzle` 8 che Laravel 13 porta con sé: Pulse, Socialite e
+> Web Push non sono installabili.
+>
+> È la ragione per cui quella verifica va rifatta a ogni ripresa del progetto:
+> non conferma ciò che ci si aspetta, trova ciò che non ci si aspettava.
+
+---
+
 ## 0. Come leggere questo file
 
 Le versioni sono espresse come **vincoli semantici** (`^13.0`), non come numeri esatti: i numeri invecchiano in settimane. Le major sono verificate alla data di stesura; le minor no.
@@ -28,14 +51,14 @@ Legenda: ✅ major verificata · ⚠️ trappola nota · 🔁 sostituibile senza
 
 | Componente | Versione | Ruolo | Note |
 |---|---|---|---|
-| **PHP** | 8.3 minimo, 8.4 consigliato | Runtime | ✅ Laravel 13 richiede 8.3+ |
-| **PostgreSQL** | 16+ | Database | Scelto per PostGIS e per i tipi nativi (jsonb, timestamptz, generated columns) |
-| **PostGIS** | 3.4+ | Query geospaziali | `geography(Point,4326)`, indice GIST, `ST_DWithin` |
-| **Redis** | 7+ | Cache, sessioni, code, lock | I lock servono al worker delle notifiche (§15.5 del piano) |
-| **Meilisearch** | 1.x | Ricerca full-text | Self-hosted, MIT, ottimo su typo e lingua italiana |
+| **PHP** | **8.4 obbligatorio** | Runtime | Non 8.3: `spatie/laravel-activitylog` 5.1, `spatie/laravel-sitemap` 8.2 e `symfony/*` 8.1 richiedono `^8.4` (D1). Dichiarato in `composer.json` insieme a dodici estensioni |
+| ~~PostgreSQL~~ **MariaDB** | 10.11+ | Database | D3: nessun demone PostgreSQL sulla shared hosting. Tipi spaziali `POINT` + `SPATIAL INDEX`, sempre `POINT(lng, lat)` con SRID 0 (D4) |
+| ~~PostGIS~~ | — | Query geospaziali | Sostituito da `MBRContains` (usa l'indice) più `ST_Distance_Sphere` (raffina il quadrato in cerchio), dietro `GeoQueryInterface` |
+| ~~Redis~~ | — | Cache, sessioni, code, lock | D5: non installabile. Cache su file, code e sessioni su database. Il worker delle notifiche preleva con `SELECT … FOR UPDATE SKIP LOCKED`, e la garanzia contro il doppio invio resta `dedupe_key UNIQUE` |
+| ~~Meilisearch~~ | — | Ricerca full-text | D5: non installabile. Scout con driver `database` e indici FULLTEXT MariaDB |
 | **Node.js** | 22 LTS | Build asset | Solo build-time, non a runtime |
 | **Nginx** o **Caddy** | — | Web server | Caddy se si vuole HTTPS automatico senza pensieri |
-| **Docker + Compose** | — | Ambiente locale | php-fpm, nginx, postgres+postgis, redis, meilisearch, mailpit, minio |
+| ~~Docker + Compose~~ | — | Ambiente locale | Ambiente nativo: PHP 8.4 e MariaDB già sulla macchina. Il bersaglio è shared hosting senza root, dove Docker non esiste |
 
 ⚠️ **Imagick con libheif e libavif.** Le locandine arrivano da iPhone in HEIC e vanno servite in AVIF. Se l'immagine PHP dell'ambiente non ha queste librerie compilate, metà degli upload dei gestori fallirà silenziosamente. Verificare in F0 con `php -r 'print_r(Imagick::queryFormats());'` e includere le librerie nel Dockerfile.
 
@@ -48,11 +71,11 @@ Legenda: ✅ major verificata · ⚠️ trappola nota · 🔁 sostituibile senza
 | `laravel/framework` | `^13.0` | Framework | ✅ release del 17 marzo 2026, PHP 8.3+ |
 | `filament/filament` | `^5.0` | Pannelli `/admin` e `/gestione` | ✅ 16 gennaio 2026, richiede Livewire 4. Nessuna funzionalità nuova rispetto a v4 |
 | `livewire/livewire` | `^4.0` | Interattività server-driven | ⚠️ i tag componente vanno auto-chiusi (`<livewire:x />`); `wire:transition` usa le View Transitions API |
-| `laravel/horizon` | `^5.0` | Dashboard e supervisione code | Indispensabile: le notifiche programmate vivono in coda |
+| ~~`laravel/horizon`~~ | — | Supervisione code | Richiede Redis (D5). Al suo posto `spatie/laravel-health` e `spatie/laravel-schedule-monitor`, che avvisano se il worker smette di girare — il guasto silenzioso da cui Horizon doveva proteggere |
 | `laravel/pulse` | `^1.0` | Metriche applicative | 🔁 opzionale |
 | `laravel/pennant` | `^1.0` | Feature flag | Serve per accendere funzioni per singola città |
 | `laravel/sanctum` | `^4.0` | Token API per le app | |
-| `laravel/socialite` | `^5.0` | Login Google e Apple | Predisposto in F7b, attivabile dopo |
+| ~~`laravel/socialite`~~ | — | Login Google e Apple | D7: incompatibile con Guzzle 8, che Laravel 13 porta con sé. Rimandato |
 
 ---
 
@@ -86,10 +109,10 @@ Per la griglia mensile pubblica **non serve una libreria**: è una tabella di 42
 
 | Pacchetto | Vincolo | Ruolo | Note |
 |---|---|---|---|
-| `clickbar/laravel-magellan` | `^1.0` | Integrazione PostGIS in Eloquent | Cast dei tipi geometrici, scope di distanza, `ST_DWithin` in query builder |
+| ~~`clickbar/laravel-magellan`~~ **`matanyadaev/laravel-eloquent-spatial`** | `^4.8` | Tipi spaziali in Eloquent | Magellan è solo per PostGIS |
 | — alternativa — `matanyadaev/laravel-eloquent-spatial` | `^4.0` | Idem, orientato a MySQL | Usare solo se si ripiega su MySQL |
-| `maplibre-gl` (npm) | `^5.0` | Mappa vettoriale nel browser | ✅ BSD-3, nessun vendor lock-in, nessuna API key |
-| `@turf/turf` (npm) | `^7.0` | Calcoli geometrici lato client | 🔁 solo se serve clustering custom o buffer; MapLibre ha già il clustering nativo |
+| ~~`maplibre-gl`~~ **`leaflet`** | `^1.9` | Mappa nel browser | Il disegno adottato inverte le tile in scala di grigi con un filtro CSS: MapLibre le disegna in WebGL, dove i filtri CSS non arrivano. Leaflet le dispone come normali elementi del documento — e pesa molto meno |
+| `@turf/turf` (npm) | `^7.0` | Calcoli geometrici lato client | 🔁 solo se serve clustering custom o buffer; con Leaflet il clustering si aggiunge con `leaflet.markercluster` |
 | `pmtiles` (npm) | `^4.0` | Lettura tile da singolo file statico | Solo se si sceglie l'hosting tile self-serve |
 
 ### Tile server — tre strade
@@ -152,7 +175,7 @@ Tutto dietro `GeocodingServiceInterface`: cambiare provider deve costare una rig
 
 | Pacchetto | Vincolo | Ruolo | Note |
 |---|---|---|---|
-| `minishlink/web-push` | `^9.0` | Web Push protocol (VAPID) | Base per le push dal sito |
+| ~~`minishlink/web-push`~~ | — | Web Push (VAPID) | D8: la catena `web-token` → `brick/math` non è installabile su Laravel 13. Notifiche via posta elettronica |
 | `laravel-notification-channels/webpush` | `^10.0` | Canale Laravel per Web Push | Gestisce subscription e invii |
 | `laravel-notification-channels/fcm` | `^5.0` | Canale FCM | Serve in F11 con le app native |
 | `spatie/laravel-schedule-monitor` | `^3.0` | Allarme se uno scheduled task smette di girare | Il worker delle notifiche è critico: se muore in silenzio nessuno riceve più promemoria |
@@ -207,7 +230,7 @@ Configurare **SPF, DKIM e DMARC** sul dominio prima del primo invio massivo: sen
 | `@tailwindcss/vite` | `^4.2` | Integrazione build | |
 | `alpinejs` | `^3.0` | Interattività locale | Già incluso da Livewire |
 | `vite` | `^7.0` | Build | |
-| `maplibre-gl` | `^5.0` | Mappe | vedi §4 |
+| `leaflet` | `^1.9` | Mappe | vedi §4 |
 | `flatpickr` | `^4.6` | Date picker | |
 | `@fontsource/*` | — | Font self-hosted | Niente Google Fonts da CDN: è un problema GDPR risolvibile in dieci minuti |
 
@@ -254,7 +277,7 @@ Da installare solo quando sito, API e contenuti sono stabili.
 | `typescript` | Tipi condivisi con l'API generati da OpenAPI |
 | `@tanstack/react-query` | Fetch, cache, sincronizzazione con `updated_since` |
 | `react-native-mmkv` | Storage locale veloce per la cache offline 7 giorni |
-| `@maplibre/maplibre-react-native` | Mappa nativa coerente con quella web |
+| `react-native-maps` oppure `@maplibre/maplibre-react-native` | Mappa nativa. Nota: sul sito si è passati a Leaflet, che non ha un corrispettivo nativo — la mappa dell'app userà una libreria diversa da quella del web, e i due disegni andranno tenuti allineati a mano |
 | `expo-notifications` | Push |
 | `expo-location` | "Vicino a me" |
 | `expo-calendar` | "Aggiungi al calendario" di sistema |
@@ -273,7 +296,7 @@ Da sistemare prima del lancio, non dopo.
 | Elemento | Obbligo |
 |---|---|
 | Dati OpenStreetMap | Attribuzione **ODbL** visibile sulla mappa: "© OpenStreetMap contributors" |
-| MapLibre GL JS | BSD-3, attribuzione nei crediti |
+| Leaflet | BSD-2, attribuzione nei crediti |
 | Font | Verificare la licenza di ogni famiglia self-hosted (OFL nella maggior parte dei casi) |
 | Locandine caricate dai locali | Dichiarazione di titolarità in fase di iscrizione + procedura di rimozione (§16 del piano) |
 | Pacchetti GPL/AGPL | Nessuno di quelli elencati qui lo è. **Verificare prima di aggiungerne di nuovi**: un pacchetto AGPL in un progetto che offrirà servizi a pagamento è un problema legale, non un dettaglio |
@@ -318,7 +341,8 @@ composer require spatie/laravel-permission spatie/laravel-sluggable \
   spatie/laravel-activitylog spatie/laravel-query-builder spatie/laravel-sitemap
 
 # notifiche
-composer require minishlink/web-push laravel-notification-channels/webpush \
+# Web Push non e installabile su Laravel 13 (D8): resta fuori.
+composer require \
   spatie/laravel-schedule-monitor
 
 # operatività
@@ -334,7 +358,7 @@ npx playwright install
 
 # frontend
 npm i -D tailwindcss @tailwindcss/vite vite
-npm i maplibre-gl flatpickr
+npm i leaflet flatpickr
 ```
 
 ---
