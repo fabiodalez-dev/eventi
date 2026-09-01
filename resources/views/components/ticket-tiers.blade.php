@@ -70,9 +70,10 @@
                                         {{ $tier->status->label() }}
                                     </x-badge>
 
-                                    @if ($tier->isOnSale() && filled($tier->url))
+                                    @php $prevendita = \App\Support\SafeUrl::href($tier->url); @endphp
+                                    @if ($tier->isOnSale() && $prevendita !== null)
                                         <a
-                                            href="{{ $tier->url }}"
+                                            href="{{ $prevendita }}"
                                             rel="noopener noreferrer"
                                             target="_blank"
                                             class="text-xs font-semibold text-brand underline hover:no-underline"

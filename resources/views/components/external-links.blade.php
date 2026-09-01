@@ -24,9 +24,12 @@
 
         <ul class="flex flex-col gap-2">
             @foreach ($items as $link)
+                @php $indirizzo = \App\Support\SafeUrl::href($link->url); @endphp
+                @continue($indirizzo === null)
+
                 <li>
                     <a
-                        href="{{ $link->url }}"
+                        href="{{ $indirizzo }}"
                         rel="nofollow noopener noreferrer"
                         target="_blank"
                         class="text-sm font-semibold text-brand hover:underline"

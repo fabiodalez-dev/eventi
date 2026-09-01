@@ -12,6 +12,7 @@ use App\Models\EventOccurrence;
 use App\Models\Venue;
 use App\Support\DateFormatter;
 use App\Support\Poster;
+use App\Support\SafeUrl;
 use Illuminate\Support\Collection;
 
 /**
@@ -297,7 +298,11 @@ final class StructuredData
             return array_filter([
                 '@type' => 'Organization',
                 'name' => $venue->name,
-                'url' => $venue->website ?? route('venues.show', $venue),
+                /* Il sito del locale lo scrive chi lo gestisce: passa da
+                   `SafeUrl` come ovunque, e se lo schema non e' http(s) si
+                   ricade sulla scheda qui sul sito — che e' comunque
+                   l'indirizzo giusto per quel locale. */
+                'url' => SafeUrl::href($venue->website) ?? route('venues.show', $venue),
             ], static fn (mixed $value): bool => filled($value));
         }
 
@@ -381,8 +386,14 @@ final class StructuredData
             }
         }
 
-        if (filled($venue->website)) {
-            $socials[] = (string) $venue->website;
+        /* `sameAs` dichiara «questo locale e' anche quello»: un indirizzo con
+           uno schema che non sia http(s) non identifica niente, e pubblicarlo
+           significa mettere in un dato strutturato un valore che nessuno ha
+           controllato. */
+        $sito = SafeUrl::href($venue->website);
+
+        if ($sito !== null) {
+            $socials[] = $sito;
         }
 
         return $socials;

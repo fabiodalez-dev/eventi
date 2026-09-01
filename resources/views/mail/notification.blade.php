@@ -70,14 +70,14 @@
                             <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:20px 0 0 0;">
                                 <tr>
                                     <td style="background-color:{{ $brand }}; border-radius:999px;">
-                                        <a href="{{ $notification->url }}" style="display:inline-block; padding:12px 22px; font-size:15px; font-weight:700; color:#ffffff; text-decoration:none;">{{ $notification->actionLabel }}</a>
+                                        <a href="{{ \App\Support\SafeUrl::href($notification->url) ?? url('/') }}" style="display:inline-block; padding:12px 22px; font-size:15px; font-weight:700; color:#ffffff; text-decoration:none;">{{ $notification->actionLabel }}</a>
                                     </td>
                                 </tr>
                             </table>
 
                             <p style="margin:16px 0 0 0; font-size:12px; line-height:1.5; color:{{ $muted }};">
                                 {{ __('notifications.mail.link_fallback') }}<br>
-                                <a href="{{ $notification->url }}" style="color:{{ $brand }}; word-break:break-all;">{{ $notification->url }}</a>
+                                <a href="{{ \App\Support\SafeUrl::href($notification->url) ?? url('/') }}" style="color:{{ $brand }}; word-break:break-all;">{{ \App\Support\SafeUrl::href($notification->url) ?? url('/') }}</a>
                             </p>
                         </td>
                     </tr>

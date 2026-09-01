@@ -233,8 +233,9 @@
                         <a class="text-sm text-brand hover:underline" href="mailto:{{ $venue->email }}">{{ $venue->email }}</a>
                     @endif
 
-                    @if (filled($venue->website))
-                        <a class="text-sm text-brand hover:underline" href="{{ $venue->website }}" rel="noopener noreferrer" target="_blank">
+                    @php $sitoLocale = \App\Support\SafeUrl::href($venue->website); @endphp
+                    @if ($sitoLocale !== null)
+                        <a class="text-sm text-brand hover:underline" href="{{ $sitoLocale }}" rel="noopener noreferrer" target="_blank">
                             {{ __('common.actions.website') }}
                         </a>
                     @endif

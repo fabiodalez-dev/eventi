@@ -28,7 +28,11 @@
         ? \App\Support\Capacity::for($occurrences->first())
         : null;
 
-    $ticketUrl = filled($event->ticket_url) ? $event->ticket_url : null;
+    /* Gli indirizzi che finiscono in un `href` passano da `SafeUrl`: Blade
+       sfugge il contenuto dell'attributo ma non impedisce che l'indirizzo
+       stesso sia `javascript:`, che al clic esegue codice. Li scrive chi
+       gestisce il locale o propone l'evento. */
+    $ticketUrl = \App\Support\SafeUrl::href($event->ticket_url);
 @endphp
 
 <x-layouts.app :meta="$meta" :preload="$poster">
@@ -325,8 +329,9 @@
                         @foreach ($lineups->sortBy('sort_order') as $act)
                             <li class="flex flex-wrap items-center gap-2 text-sm">
                                 <span class="font-semibold text-ink">
-                                    @if (filled($act->url))
-                                        <a class="hover:underline" href="{{ $act->url }}" rel="noopener noreferrer" target="_blank">{{ $act->name }}</a>
+                                    @php $sitoArtista = \App\Support\SafeUrl::href($act->url); @endphp
+                                    @if ($sitoArtista !== null)
+                                        <a class="hover:underline" href="{{ $sitoArtista }}" rel="noopener noreferrer" target="_blank">{{ $act->name }}</a>
                                     @else
                                         {{ $act->name }}
                                     @endif
@@ -376,9 +381,9 @@
                 @endif
 
                 <div class="flex flex-col gap-2">
-                    @if (filled($event->ticket_url))
+                    @if ($ticketUrl !== null)
                         <a
-                            href="{{ $event->ticket_url }}"
+                            href="{{ $ticketUrl }}"
                             rel="noopener noreferrer"
                             target="_blank"
                             class="bg-brand px-4 py-2 text-center text-sm font-semibold text-on-brand transition hover:bg-brand-strong"
@@ -387,9 +392,10 @@
                         </a>
                     @endif
 
-                    @if (filled($event->booking_url))
+                    @php $prenotazione = \App\Support\SafeUrl::href($event->booking_url); @endphp
+                    @if ($prenotazione !== null)
                         <a
-                            href="{{ $event->booking_url }}"
+                            href="{{ $prenotazione }}"
                             rel="noopener noreferrer"
                             target="_blank"
                             class="bg-surface-sunken px-4 py-2 text-center text-sm font-semibold text-ink border-2 border-line transition hover:border-accent"
@@ -470,8 +476,9 @@
                                 <a class="hover:text-accent" href="mailto:{{ $venue->email }}">{{ $venue->email }}</a>
                             @endif
 
-                            @if (filled($venue->website))
-                                <a class="hover:text-accent" href="{{ $venue->website }}" rel="noopener noreferrer" target="_blank">{{ __('venues.detail.website') }}</a>
+                            @php $sitoLocale = \App\Support\SafeUrl::href($venue->website); @endphp
+                            @if ($sitoLocale !== null)
+                                <a class="hover:text-accent" href="{{ $sitoLocale }}" rel="noopener noreferrer" target="_blank">{{ __('venues.detail.website') }}</a>
                             @endif
                         </div>
                     @endif

@@ -6,7 +6,9 @@ on:
   pull_request:
   workflow_dispatch:
 
-# Nessun permesso di scrittura: il workflow non tocca il repository.
+# Sola lettura per difetto. Il job di rilascio se lo alza da se', perche' e'
+# l'unico che scrive — e scrive una cosa sola: gli asset compilati sul ramo
+# `assets`, che il server poi scarica.
 permissions:
   contents: read
 
@@ -262,6 +264,12 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     environment: production
+    # Il permesso di scrittura serve **solo qui** e solo per una cosa:
+    # pubblicare `public/build` sul ramo degli asset. Gli altri job restano in
+    # sola lettura, che e' il valore predefinito: un token che puo' scrivere
+    # dove non serve e' un token in piu' da cui difendersi.
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
