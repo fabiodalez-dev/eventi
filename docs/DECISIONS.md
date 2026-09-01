@@ -1743,3 +1743,251 @@ sensazione di sicurezza senza il contenuto. Il numero resta rosso e visibile.
    qui.
 
 Nessuna delle tre è un ritocco: sono lavori a sé, da valutare con il committente.
+
+## 2026-09-01 — D42. Installer web: architettura decisa, implementazione a seguire
+
+**Decisione.** Un wizard di installazione web a passi, modellato su un installer
+esistente giudicato ottimo dal committente, adattato a Laravel. Sei domande
+chiuse qui; chi implementa segue queste scelte e l'elenco dei file in coda.
+
+1. **Dentro il framework, senza eccezioni — e un cartello per chi arriva senza
+   `vendor`.** L'installer è rotte e controller Laravel normali: CSRF,
+   validazione via Form Request, traduzioni in `lang/it/installer.php`,
+   sessioni e PRG arrivano gratis, e ogni riga di logica sta in
+   `app/Services/Installer` come impongono le convenzioni. L'alternativa — un
+   installer autonomo che gira senza `vendor` — duplicherebbe scrittura del
+   `.env`, validazione e messaggi in un file fuori da ogni regola del repo, per
+   coprire un caso che qui non esiste: `public/index.php` richiede
+   `vendor/autoload.php` alla riga 14, quindi senza `vendor` non parte
+   *niente*, installer autonomo o no, e il deploy ufficiale (CI) porta sempre
+   `vendor` già costruito con `--no-dev`. Chi installa a mano riceve però una
+   risposta e non un fatal error bianco: in testa a `public/index.php` va un
+   guard di poche righe in PHP puro — se `vendor/autoload.php` manca, pagina
+   statica con il comando `composer install --no-dev --optimize-autoloader`
+   copiabile, e basta. Non è un installer parallelo: è un cartello.
+   Due conseguenze tecniche da non dimenticare:
+   - **Le rotte dell'installer forzano `session.driver = file`** sul proprio
+     gruppo: `SESSION_DRIVER=database` è il default del progetto, ma durante
+     l'installazione il database non esiste ancora. Cache è già `file` (D5).
+   - **`APP_KEY` si genera prima che il wizard parta**, non alla fine: senza
+     chiave niente sessioni cifrate né CSRF. Il punto d'ingresso, se `.env`
+     manca lo copia da `.env.example`, e se `APP_KEY` è vuota la genera e la
+     scrive (atomicamente, vedi punto 3) prima del primo redirect.
+
+2. **Il lock è `storage/app/private/install.lock` più il database, e chi era
+   già installato si auto-marca.** Il file marker (JSON: data, versione app,
+   versione schema) vive in `storage/app/private/` per tre ragioni verificate:
+   è fuori dalla document root (`public/`), è già nel `.gitignore` di
+   `storage/`, e il deploy lo esclude esplicitamente dal `rsync --delete`
+   (riga `--exclude 'storage/app/private/*'` di `ci.yml`, la stessa che
+   protegge i backup) — un rilascio non lo cancella né lo sovrascrive mai.
+   Ma il file da solo non basta, in nessuna direzione:
+   - **Marker presente, database rotto:** l'installer non risponde "già
+     installato" e basta — ricarica la configurazione, riprova la connessione
+     e mostra una **diagnosi**: quale pezzo manca (connessione rifiutata,
+     database sparito, tabelle attese assenti) con la soluzione accanto. Il
+     dettaglio PDO va nel log, mai in pagina (vedi punto sui messaggi).
+   - **Marker assente, database vivo:** è il caso di eventi.fabiodalez.it, che
+     è in produzione da *prima* che l'installer esistesse. Il middleware che
+     protegge le rotte, se trova la connessione configurata e la tabella
+     `migrations` popolata, **scrive il marker da sé** e risponde 404: il
+     primo deploy che porta l'installer non deve mostrare un wizard di
+     installazione a un sito installato. Nessun percorso di reinstallazione:
+     reinstallare un sistema vivo è un gesto da RUNBOOK e da SSH, non da
+     endpoint web non autenticato.
+   - Le rotte (`/installazione/...`) vanno registrate **prima** del gruppo
+     `/{city}` in `routes/web.php`, o `ResolveCity` le mangia come città
+     inesistente — è la trappola documentata in D33, punto 7.
+
+3. **Sette passi, tredici domande: si chiede solo ciò che nessun default può
+   sapere.** Delle 91 variabili di `.env.example` se ne chiedono ~13, se ne
+   generano 2, e le altre ~76 si scrivono da sole con il valore di
+   `.env.example` — che in questo progetto è già la configurazione di
+   produzione corretta, perché ogni integrazione esterna nasce spenta con
+   "vuoto = spento" (Turnstile, Sentry, analitica, S3, CDN: D33, D34, RUNBOOK).
+   I passi, in sessione con `completed_steps` e anti-salto (chi chiede il passo
+   N senza aver completato N-1 torna al primo incompleto), POST-redirect-GET
+   ovunque:
+   1. *Benvenuto e requisiti* — la tabella bloccanti/avvisi del punto 4.
+   2. *Database* — host, porta, nome, utente, password. La connessione si
+      prova **senza** il nome del database prima, e col nome poi: "credenziali
+      sbagliate" e "database inesistente" sono due errori diversi con due
+      messaggi diversi, e per il secondo si tenta `CREATE DATABASE` con le
+      stesse credenziali prima di chiedere di crearlo dal pannello hosting.
+      Endpoint con throttle (`throttle:10,1`): è un tester di connessioni
+      verso host arbitrari, non autenticato — il difetto peggiore del modello
+      analizzato era lasciarlo libero.
+   3. *Applicazione* — `APP_NAME`, `APP_URL` (precompilato dall'host della
+      richiesta), email: `MAIL_MAILER` con `log` come ripiego dichiarato,
+      host/porta/credenziali/`MAIL_FROM_*` se SMTP. `APP_ENV=production` e
+      `APP_DEBUG=false` si scrivono da soli, non si chiedono.
+   4. *Città* — punto 6.
+   5. *Amministratore* — nome, email, password. `OPS_ALERT_EMAIL` viene
+      precompilata con questa email: vuota nessun allarme parte (RUNBOOK), e
+      un sistema appena installato che tace i propri guasti è il default
+      sbagliato. Resta modificabile.
+   6. *Esecuzione* — non un passo monolitico che va in timeout sui database
+      lenti: una checklist dove **ogni operazione è un POST proprio**,
+      idempotente, che avanza da solo (e senza JavaScript col pulsante
+      "continua"): scrittura `.env` → `migrate --force` → verifica tabelle →
+      seed (punto 5) → città e amministratore → `storage:link` →
+      `config:cache`. Le migrazioni e i comandi girano **in-process con
+      `Artisan::call()`**, mai con un processo shell: la password del database
+      non deve comparire in `ps`, e sulla shared hosting `proc_open` può
+      essere spento — due ragioni indipendenti, stessa scelta.
+   7. *Fine* — riepilogo e, in evidenza, **le due righe di cron da installare
+      a mano** (`schedule:run` e `queue:work`, quelle del RUNBOOK): un
+      installer web su shared hosting non può scriverle, e senza di esse
+      scheduler, code, notifiche, import e backup non girano. Mostrate
+      copiabili, con l'avviso esplicito. Più l'elenco delle integrazioni
+      rimaste spente (Turnstile, Sentry, analitica, S3) con il rimando al
+      RUNBOOK.
+   Il `.env` si scrive **una volta, atomicamente**: contenuto completo
+   costruito in memoria dal template `.env.example`, `file_put_contents` su
+   file temporaneo nella stessa directory, `rename()`, `chmod 600`. I valori
+   passano dalla funzione di quoting del modello analizzato (spazi, `#`, `=`,
+   apici, backslash, `$`, backtick — una password con un cancelletto scritta
+   nuda tronca il valore e il sintomo arriva giorni dopo); le sostituzioni
+   successive di singole chiavi usano `preg_replace_callback`, mai
+   `preg_replace` (una password contenente `$1` corromperebbe la
+   sostituzione). Generate, mai chieste: `APP_KEY` e `OPS_HEALTH_TOKEN`
+   (base64 di 32 byte casuali, come `key:generate --show`).
+   Dopo `migrate`, le tabelle attese si **verificano davvero**: l'elenco si
+   deriva dai file di `database/migrations` (i nomi passati a
+   `Schema::create`) e si confronta con `Schema::getTableListing()` — oggi
+   sono 37 migration; un elenco scritto a mano mentirebbe alla prima
+   migration nuova.
+
+4. **Blocca solo ciò che impedisce di funzionare; tutto il resto è un avviso
+   con la soluzione accanto.**
+   *Bloccanti:* PHP < 8.4; le estensioni senza le quali il core non parte o
+   il database non risponde — `pdo` + `pdo_mysql`, `mbstring`, `openssl`,
+   `curl`, `dom`, `fileinfo`, `intl`, `bcmath`, `json` — **né `gd` né
+   `imagick`** disponibili (senza alcun motore immagini l'intera pipeline
+   media di §12.1 muore, e le locandine sono il prodotto); `storage/` o
+   `bootstrap/cache/` non scrivibili dopo il tentativo di riparazione; `.env`
+   non scrivibile (l'installer esiste per scriverlo). La riparazione dei
+   permessi si tenta da sola con `chmod` **0775/0664, mai 0777**; se fallisce,
+   i comandi da dare a mano compaiono copiabili.
+   *Avvisi (l'installazione procede, la funzione interessata è nominata):*
+   `imagick` assente con `gd` presente → si scrive `IMAGE_DRIVER=gd` da soli
+   e si dichiara cosa si perde (HEIC e AVIF, come documenta `.env.example`);
+   `exif` assente → orientamento delle foto; `zip` assente → i backup di §16
+   non si creeranno (`ZipArchive`), con l'istruzione per abilitarla;
+   `symlink()` non disponibile o fallito → le immagini non si servono finché
+   non si crea `public/storage` a mano, comando mostrato;
+   `upload_max_filesize`/`post_max_size` sotto i 12 MB delle locandine
+   (§12.1) → il caricamento dei manifesti grandi fallirà, con il valore
+   attuale, quello richiesto e dove cambiarlo (MultiPHP INI su cPanel).
+   Un installer che blocca su un avviso non fa installare nessuno; uno che
+   avvisa su un errore fatale fa installare tutti male. La riga di confine è:
+   *il sito, dopo, risponde?*
+   *Messaggi:* al client sempre il messaggio utile con la soluzione e il
+   pulsante per riprovare; il dettaglio tecnico (l'eccezione PDO, il codice
+   errore) va in `storage/logs/laravel.log`. Un errore PDO in pagina dice a
+   un estraneo quali host e porte rispondono: l'endpoint è pubblico per
+   costruzione, non deve raccontare la topologia.
+
+5. **Il seed di installazione è un seeder nuovo, fatto dei soli quattro che
+   vivono senza faker.** `fakerphp/faker` è in `require-dev` e in produzione
+   non esiste (`composer install --no-dev`): è già costato un guasto.
+   Verificato seeder per seeder su un database pulito:
+   - **senza faker:** `RolesAndPermissionsSeeder` (6 ruoli, 27 permessi),
+     `CategorySeeder` (14), `TagSeeder` (38), `PageSeeder` (5 pagine legali)
+     — nessuno usa `fake()` né factory, tutti eseguiti con successo;
+   - **richiedono faker:** `EventSeeder` (chiama `fake()` direttamente) e
+     `CitySeeder`, `UserSeeder`, `VenueSeeder`+`MediaSeeder` nel loro insieme
+     demo — i primi due passano da factory le cui `definition()` chiamano
+     `fake()` anche quando ogni attributo è esplicito.
+   Nasce `Database\Seeders\ProductionSeeder` che chiama i quattro sicuri,
+   nell'ordine di `DatabaseSeeder`; l'installer invoca quello, e resta
+   utilizzabile a mano (`db:seed --class=ProductionSeeder --force`).
+   **Nessun dato dimostrativo dall'installer**, nemmeno come opzione: la demo
+   è `migrate:fresh --seed` in sviluppo, dove faker c'è. Un'opzione "dati di
+   esempio" che funziona in locale e crasha in produzione è esattamente il
+   guasto già pagato. Città e amministratore non sono seed: sono i dati del
+   wizard (punto 6), scritti con `City::create()` e `User::create()` +
+   `assignRole()` diretti, senza factory — verificato che funzionano così.
+
+6. **La città si chiede al wizard, le coordinate si incollano: nessun servizio
+   di geocodifica.** L'applicazione non esiste senza una città attiva (§7.1).
+   Il passo 4 chiede: nome, provincia (sigla e nome), regione, fuso orario
+   (select da `DateTimeZone::listIdentifiers`, preselezionato `Europe/Rome`),
+   coordinate del centro (due campi decimali con limiti di validità lat/lng),
+   raggio in km (default 30, il default dello schema). Slug derivato dal nome
+   e modificabile. Tutto il resto prende i default di schema: zoom 12,
+   `night_cutoff_time` 06:00, `starting_soon_minutes` 180, `locale` it,
+   `is_active` true, `launched_at = now()`. Per trovare le coordinate, lo
+   stesso pattern già deciso in D24 punto 4 per il pannello: un collegamento a
+   OpenStreetMap che **parte solo se cliccato** (nessun trasferimento di dati
+   verso terzi a ogni apertura), con l'istruzione "cerca il tuo comune,
+   copia latitudine e longitudine dall'indirizzo". Un campo di ricerca che
+   interroga Nominatim sarebbe più comodo e introdurrebbe una dipendenza
+   esterna nel momento in cui il sistema è più fragile — durante
+   l'installazione — oltre che un trasferimento non necessario. `bounds`
+   resta nullo (la mappa parte da centro e zoom, D26 punto 5) e
+   `CITY_DEFAULT_SLUG` nel `.env` prende lo slug della città creata.
+
+**Conseguenze — i file che chi implementa creerà.**
+- `routes/installer.php`, incluso da `routes/web.php` **prima** del gruppo `/{city}`;
+- `app/Http/Middleware/InstallerGate.php` — marker, auto-marcatura del già
+  installato, diagnosi col database rotto;
+- `app/Http/Controllers/Installer/InstallerController.php` — orchestrazione
+  sottile dei passi, PRG;
+- `app/Http/Requests/Installer/{DatabaseStepRequest,ApplicationStepRequest,CityStepRequest,AdminStepRequest}.php`;
+- `app/Enums/{InstallerStep,InstallerTask}.php` — i passi e le operazioni
+  della checklist di esecuzione, mai stringhe magiche;
+- `app/Services/Installer/InstallerState.php` — stato in sessione,
+  `completed_steps`, anti-salto;
+- `app/Services/Installer/RequirementsChecker.php` — la tabella
+  bloccanti/avvisi del punto 4, con i tentativi di riparazione;
+- `app/Services/Installer/DatabaseInspector.php` — doppio test di
+  connessione, `CREATE DATABASE`, verifica tabelle derivata dalle migration;
+- `app/Services/Installer/EnvWriter.php` — quoting, scrittura atomica,
+  `chmod 600`, `preg_replace_callback`;
+- `app/Services/Installer/InstallLock.php` — lettura/scrittura del marker;
+- `app/Actions/Installer/RunInstallationTask.php` — esegue una singola
+  operazione della checklist via `Artisan::call()`, idempotente;
+- `database/seeders/ProductionSeeder.php` — i quattro seeder senza faker;
+- `resources/views/installer/` — layout e viste dei passi, senza dipendenze
+  dagli asset compilati del sito (l'installer deve disegnarsi anche se
+  `npm run build` non è mai girato su quella macchina: CSS minimo inline);
+- `lang/it/installer.php` — ogni testo del wizard;
+- il guard in testa a `public/index.php` (modifica, non file nuovo);
+- `tests/Feature/Installer/` — anti-salto, PRG, lock nelle due direzioni,
+  auto-marcatura, quoting del `.env` (password con `#`, `$1`, apici),
+  distinzione dei due errori di connessione, bloccanti contro avvisi,
+  seed senza faker.
+
+**Verificato (per questa decisione, il codice non esiste ancora).** Su un
+database pulito (`eventi_test_d42`, poi eliminato): le 37 migration passano;
+`RolesAndPermissionsSeeder`, `CategorySeeder`, `TagSeeder`, `PageSeeder`
+eseguiti con successo e righe contate (6/27/14/38/5); `City::create()` e
+`User::create()` + `assignRole()` funzionano senza factory. Contate 91
+variabili in `.env.example`. Verificate le esclusioni del `rsync --delete` in
+`ci.yml`: `storage/app/private/*` non viene mai toccata dal deploy, quindi il
+marker sopravvive ai rilasci. Verificato in `routes/web.php` che il gruppo
+`/{city}` è registrato dopo le rotte di primo livello (`/stato`): l'installer
+seguirà lo stesso ordine.
+
+## 2026-09-01 — D43. Le password restano su bcrypt
+
+**Decisione:** l'hashing resta quello predefinito di Laravel (bcrypt). Argon2id,
+nominato da §16, non viene adottato ora.
+
+**Perché:** decisione esplicita del committente. Non è una svista: cambiare
+algoritmo su un'applicazione che ha già utenti non è una riga di configurazione.
+Gli hash esistenti restano bcrypt e non sono convertibili senza la password in
+chiaro, che nessuno ha; l'unica migrazione possibile è il **rehash al primo
+accesso riuscito**, che va scritto, testato e presidiato — e lascia comunque
+gli account dormienti sul vecchio algoritmo finché non tornano.
+
+**Cosa NON cambia:** bcrypt con il costo di default resta un algoritmo adeguato
+per le password. Non è una scorciatoia insicura: è una scelta diversa da quella
+che il piano suggeriva, presa sapendo cosa comporta.
+
+**Quando riprenderla:** prima di aprire le registrazioni al pubblico su scala,
+quando il costo del rehash progressivo si paga una volta sola e su pochi utenti.
+Serve: `config/hashing.php` su argon2id, e un rehash al login dentro
+`Illuminate\Auth\Events\Login` che riconosce gli hash vecchi con
+`Hash::needsRehash()`.
