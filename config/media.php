@@ -62,6 +62,19 @@ return [
      * Qualità per formato. AVIF regge una qualità più bassa a parità di resa:
      * è la ragione per cui vale la pena generarlo accanto al WebP.
      */
+    /*
+     * Se questa installazione sappia scrivere AVIF.
+     *
+     * `null` — il valore normale — significa «chiedilo a ImageMagick». Serve
+     * metterlo a `false` solo su una macchina che dichiara di conoscere il
+     * formato e poi consegna un JPEG: succede quando manca il delegato
+     * libheif, e la libreria non lo dice. In quel caso le varianti AVIF
+     * vengono comunque scartate dopo la conversione
+     * (`RejectFakeAvifConversion`), ma spegnerle qui evita di generarle per
+     * buttarle via.
+     */
+    'avif' => env('MEDIA_AVIF') === null ? null : (bool) env('MEDIA_AVIF'),
+
     'quality' => [
         'webp' => 82,
         'avif' => 55,

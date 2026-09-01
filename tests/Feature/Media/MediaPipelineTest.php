@@ -79,7 +79,7 @@ it('genera le tre varianti in WebP', function (): void {
  * Quindi: dove il delegato c'e', la variante c'e' ed e' davvero AVIF; dove non
  * c'e', la variante non esiste affatto e il `<picture>` non la offre.
  */
-it('genera l\'AVIF solo dove sa davvero scriverlo, e mai falso', function (): void {
+it('genera l\'AVIF solo dove il supporto e dichiarato, e mai falso', function (): void {
     $event = eventWithPoster();
     $media = $event->getFirstMedia('poster');
 

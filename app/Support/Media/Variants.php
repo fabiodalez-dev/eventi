@@ -44,4 +44,16 @@ final class Variants
     {
         return $variant.'-avif';
     }
+
+    /**
+     * Se un nome di conversione sia quello di una variante AVIF.
+     *
+     * Il suffisso lo decide `avif()` qui sopra: chi deve riconoscerlo chiede a
+     * questa classe invece di confrontare stringhe per conto proprio, cosi'
+     * cambiarlo resta una modifica di una riga.
+     */
+    public static function isAvif(string $conversion): bool
+    {
+        return str_ends_with($conversion, '-avif');
+    }
 }

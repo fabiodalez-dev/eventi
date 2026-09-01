@@ -2,25 +2,32 @@
 
 declare(strict_types=1);
 
-use App\Enums\ImageType;
+use App\Listeners\RejectFakeAvifConversion;
 use App\Support\Media\AvifSupport;
 use App\Support\Media\ImageSet;
 use App\Support\Media\Variants;
+use Spatie\MediaLibrary\Conversions\Conversion;
+use Spatie\MediaLibrary\Conversions\Events\ConversionHasBeenCompletedEvent;
 use Tests\Support\ImageFixtures;
 
 /**
- * Il ramo «questa macchina non sa scrivere AVIF», forzato.
+ * Il caso «questa macchina promette AVIF e consegna JPEG».
  *
- * Sulla macchina di sviluppo il delegato c'e', e senza forzarlo questo ramo non
- * verrebbe mai attraversato — che e' esattamente come il difetto e' rimasto
- * nascosto fino a quando l'integrazione continua, che il delegato non ce l'ha,
- * ha cominciato a produrre JPEG chiamati AVIF.
+ * ImageMagick senza il delegato libheif non protesta: scrive un JPEG e gli dà
+ * il nome chiesto. Il file `.avif` esiste, il `<picture>` lo annuncia come
+ * `type="image/avif"`, e un browser che accetta AVIF sceglie proprio quella
+ * fonte ricevendo un file che non lo è.
+ *
+ * Sulla macchina di sviluppo il delegato c'è, quindi questo ramo non verrebbe
+ * mai attraversato da solo — ed è esattamente come il difetto è rimasto
+ * nascosto fino a quando l'integrazione continua ha cominciato a produrre
+ * varianti travestite.
  */
 afterEach(function (): void {
     AvifSupport::forget();
 });
 
-it('non genera nessuna variante AVIF dove il delegato manca', function (): void {
+it('non dichiara nessuna variante AVIF dove il supporto è spento', function (): void {
     AvifSupport::fake(false);
 
     $city = testCity();
@@ -30,9 +37,9 @@ it('non genera nessuna variante AVIF dove il delegato manca', function (): void 
 
     $media = $event->refresh()->getFirstMedia('poster');
 
-    foreach (array_keys(Variants::widths()) as $variante) {
+    foreach (Variants::names() as $variante) {
         expect($media->hasGeneratedConversion(Variants::avif($variante)))->toBeFalse();
-        /* Il WebP invece c'e': si perde il risparmio dell'AVIF, non l'immagine. */
+        /* Il WebP c'è: si perde il risparmio dell'AVIF, non l'immagine. */
         expect($media->hasGeneratedConversion($variante))->toBeTrue();
     }
 
@@ -42,32 +49,63 @@ it('non genera nessuna variante AVIF dove il delegato manca', function (): void 
         ->and($set->sources)->toHaveKey('image/webp');
 });
 
-it('dice di saper scrivere AVIF solo se lo scrive davvero', function (): void {
-    AvifSupport::forget();
+/*
+ * La rete di sicurezza: anche quando il supporto è dichiarato, il file prodotto
+ * si controlla. È qui che si intercetta la macchina che mente.
+ */
+it('scarta la variante AVIF quando il file prodotto è un JPEG travestito', function (): void {
+    $city = testCity();
+    $category = testCategory();
+    $event = occurrenceAtLocal($city, $category, '2026-09-20 21:00:00')->event;
+    $event->addMedia(ImageFixtures::upload('locandina.jpg', ImageFixtures::jpeg()))->toMediaCollection('poster');
 
-    /*
-     * Non si verifica QUALE sia la risposta — dipende dalla macchina — ma che
-     * corrisponda a cio' che ImageMagick produce davvero.
-     *
-     * La prima versione di questo controllo chiedeva `queryFormats('AVIF')`,
-     * che elenca i formati NOTI e non quelli scrivibili: rispondeva di si' su
-     * una macchina che poi scriveva JPEG. La domanda giusta e' scrivere un
-     * pixel e guardare i primi byte del risultato — che e' quello che fa
-     * questo test, in modo indipendente.
-     */
-    $davvero = false;
+    $media = $event->refresh()->getFirstMedia('poster');
+    $nome = Variants::avif('card');
 
-    if (class_exists(Imagick::class)) {
-        try {
-            $imagick = new Imagick;
-            $imagick->newImage(1, 1, 'white');
-            $imagick->setImageFormat('avif');
-            $davvero = ImageType::fromHeader($imagick->getImageBlob()) === ImageType::Avif;
-            $imagick->clear();
-        } catch (Throwable) {
-            $davvero = false;
-        }
+    /* Si mette un JPEG dove dovrebbe esserci un AVIF: è ciò che fa ImageMagick
+       senza il delegato, senza dire niente. */
+    file_put_contents($media->getPath($nome), ImageFixtures::jpeg());
+
+    (new RejectFakeAvifConversion)->handle(
+        new ConversionHasBeenCompletedEvent($media, Conversion::create($nome))
+    );
+
+    expect($media->fresh()->hasGeneratedConversion($nome))->toBeFalse()
+        ->and(is_file($media->getPath($nome)))->toBeFalse();
+});
+
+it('lascia stare una variante AVIF vera', function (): void {
+    if (! AvifSupport::available()) {
+        $this->markTestSkipped('Questa macchina non scrive AVIF: non c\'è niente da lasciar stare.');
     }
 
-    expect(AvifSupport::available())->toBe($davvero);
+    $city = testCity();
+    $category = testCategory();
+    $event = occurrenceAtLocal($city, $category, '2026-09-20 21:00:00')->event;
+    $event->addMedia(ImageFixtures::upload('locandina.jpg', ImageFixtures::jpeg()))->toMediaCollection('poster');
+
+    $media = $event->refresh()->getFirstMedia('poster');
+    $nome = Variants::avif('card');
+
+    (new RejectFakeAvifConversion)->handle(
+        new ConversionHasBeenCompletedEvent($media, Conversion::create($nome))
+    );
+
+    expect($media->fresh()->hasGeneratedConversion($nome))->toBeTrue()
+        ->and(is_file($media->getPath($nome)))->toBeTrue();
+});
+
+it('non tocca le varianti che non sono AVIF', function (): void {
+    $city = testCity();
+    $category = testCategory();
+    $event = occurrenceAtLocal($city, $category, '2026-09-20 21:00:00')->event;
+    $event->addMedia(ImageFixtures::upload('locandina.jpg', ImageFixtures::jpeg()))->toMediaCollection('poster');
+
+    $media = $event->refresh()->getFirstMedia('poster');
+
+    (new RejectFakeAvifConversion)->handle(
+        new ConversionHasBeenCompletedEvent($media, Conversion::create('card'))
+    );
+
+    expect($media->fresh()->hasGeneratedConversion('card'))->toBeTrue();
 });
