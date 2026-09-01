@@ -66,15 +66,27 @@ final class OperationsServiceProvider extends ServiceProvider
             CacheCheck::new()->label(__('health.labels.cache')),
 
             /*
-             * «Storage quasi pieno» (§16). L'avviso al 70% e l'allarme all'85%
-             * lasciano il tempo di intervenire: su una shared hosting il disco
-             * è condiviso, e quando finisce si fermano insieme i backup, i log,
-             * le locandine caricate e le sessioni.
+             * «Storage quasi pieno» (§16). Quando il disco finisce si fermano
+             * insieme i backup, i log, le locandine caricate e le sessioni.
+             *
+             * **Le soglie sono alte di proposito.** Su questa shared hosting il
+             * disco è condiviso fra tutti gli account: 1,3 TB di cui 52 GB
+             * liberi, mentre questa installazione ne occupa dieci in tutto.
+             * Quel 96% racconta i vicini, non noi, e non c'è niente da fare
+             * per abbassarlo — con l'allarme all'85% `/stato` risponde 503
+             * ogni giorno per una cosa su cui nessuno può agire, e un monitor
+             * che grida sempre viene messo a tacere. Che è il modo in cui si
+             * perde anche l'allarme vero.
+             *
+             * A queste soglie il segnale torna a significare qualcosa: sotto i
+             * pochi punti percentuali rimasti, la scrittura fallisce davvero e
+             * la risposta è aprire un ticket all'hosting, non cancellare
+             * qualcosa.
              */
             UsedDiskSpaceCheck::new()
                 ->label(__('health.labels.disk'))
-                ->warnWhenUsedSpaceIsAbovePercentage(70)
-                ->failWhenUsedSpaceIsAbovePercentage(85),
+                ->warnWhenUsedSpaceIsAbovePercentage(95)
+                ->failWhenUsedSpaceIsAbovePercentage(98),
 
             /*
              * «Queue bloccata» (§16). Il controllo non conta le righe in

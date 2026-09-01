@@ -60,12 +60,18 @@ class DeployCommand extends Command
      * @param  list<string>  $candidati
      */
     /**
-     * L'ambiente da dare ai processi: il PATH corrente più le cartelle degli
-     * eseguibili che abbiamo trovato.
+     * L'ambiente da dare ai processi.
      *
-     * Serve perché un processo avviato da PHP non legge il profilo della shell
-     * e il PATH che eredita può non contenere le cartelle giuste — su questa
-     * shared hosting il PHP dell'applicazione sta fuori dai percorsi standard.
+     * **Il rilascio parte da una richiesta HTTPS**, quindi da un processo del
+     * server web — e quel processo non ha `HOME`. Composer lo pretende per
+     * sapere dove tenere la cache e si RIFIUTA di partire senza:
+     * «The HOME or COMPOSER_HOME environment variable must be set». Da
+     * terminale non si vede, perché lì `HOME` c'è sempre; ed è proprio il
+     * verso da cui il rilascio deve funzionare che ne è privo.
+     *
+     * Il `PATH` serve per la ragione gemella: un processo avviato da PHP non
+     * legge il profilo della shell, e su questa shared hosting il PHP
+     * dell'applicazione sta fuori dai percorsi standard.
      *
      * @return array<string, string>
      */
@@ -78,7 +84,41 @@ class DeployCommand extends Command
             (string) (getenv('PATH') ?: '/usr/local/bin:/usr/bin:/bin'),
         ]);
 
-        return ['PATH' => implode(PATH_SEPARATOR, $percorsi)];
+        $home = $this->home();
+
+        return array_filter([
+            'PATH' => implode(PATH_SEPARATOR, $percorsi),
+            'HOME' => $home,
+            /* Esplicito oltre a `HOME`: se un giorno la home fosse in sola
+               lettura, composer avrebbe comunque dove scrivere. */
+            'COMPOSER_HOME' => $home === null ? null : $home.'/.composer',
+        ]);
+    }
+
+    /**
+     * La home dell'utente che sta eseguendo, anche quando l'ambiente non la
+     * dichiara.
+     *
+     * Si chiede al sistema chi siamo invece di dedurlo dai percorsi: un
+     * progetto può stare ovunque, e risalire da `base_path()` indovinerebbe.
+     */
+    private function home(): ?string
+    {
+        $ambiente = getenv('HOME');
+
+        if (is_string($ambiente) && $ambiente !== '' && is_dir($ambiente)) {
+            return $ambiente;
+        }
+
+        if (function_exists('posix_getpwuid') && function_exists('posix_geteuid')) {
+            $utente = posix_getpwuid(posix_geteuid());
+
+            if (is_array($utente) && isset($utente['dir']) && is_dir((string) $utente['dir'])) {
+                return (string) $utente['dir'];
+            }
+        }
+
+        return null;
     }
 
     /**
