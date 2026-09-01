@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Enums\ImageType;
 use App\Support\Media\AvifSupport;
 use App\Support\Media\ImageSet;
 use App\Support\Media\Variants;
@@ -41,12 +42,32 @@ it('non genera nessuna variante AVIF dove il delegato manca', function (): void 
         ->and($set->sources)->toHaveKey('image/webp');
 });
 
-it('riconosce il supporto reale di questa installazione', function (): void {
+it('dice di saper scrivere AVIF solo se lo scrive davvero', function (): void {
     AvifSupport::forget();
 
-    /* Non si verifica QUALE sia la risposta — dipende dalla macchina — ma che
-       la domanda venga fatta a ImageMagick e non data per scontata. */
-    $atteso = class_exists(Imagick::class) && Imagick::queryFormats('AVIF') !== [];
+    /*
+     * Non si verifica QUALE sia la risposta — dipende dalla macchina — ma che
+     * corrisponda a cio' che ImageMagick produce davvero.
+     *
+     * La prima versione di questo controllo chiedeva `queryFormats('AVIF')`,
+     * che elenca i formati NOTI e non quelli scrivibili: rispondeva di si' su
+     * una macchina che poi scriveva JPEG. La domanda giusta e' scrivere un
+     * pixel e guardare i primi byte del risultato — che e' quello che fa
+     * questo test, in modo indipendente.
+     */
+    $davvero = false;
 
-    expect(AvifSupport::available())->toBe($atteso);
+    if (class_exists(Imagick::class)) {
+        try {
+            $imagick = new Imagick;
+            $imagick->newImage(1, 1, 'white');
+            $imagick->setImageFormat('avif');
+            $davvero = ImageType::fromHeader($imagick->getImageBlob()) === ImageType::Avif;
+            $imagick->clear();
+        } catch (Throwable) {
+            $davvero = false;
+        }
+    }
+
+    expect(AvifSupport::available())->toBe($davvero);
 });

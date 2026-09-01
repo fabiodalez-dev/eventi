@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support\Media;
 
+use App\Enums\ImageType;
 use Imagick;
 
 /**
@@ -23,9 +24,14 @@ use Imagick;
  * quella fonte e ogni browser prende il WebP. Si perde il 20-40% di risparmio
  * dell'AVIF su quella installazione, e non si perde l'immagine.
  *
- * Il controllo è memorizzato per la durata della richiesta: interroga i formati
- * di ImageMagick, e ripeterlo per ogni variante di ogni immagine costerebbe
- * senza cambiare risposta.
+ * **Il controllo prova a scrivere davvero un AVIF**, e non si limita a chiedere
+ * a ImageMagick se conosce il formato. `Imagick::queryFormats('AVIF')` elenca i
+ * formati NOTI, che non è la stessa cosa dei formati scrivibili: su una
+ * macchina senza libheif quella chiamata risponde di sì e la scrittura produce
+ * comunque un JPEG. È esattamente il caso in cui siamo caduti — la domanda
+ * sbagliata dava la risposta rassicurante.
+ *
+ * Costa la codifica di un'immagine di un pixel, una volta per processo.
  */
 final class AvifSupport
 {
@@ -41,10 +47,34 @@ final class AvifSupport
             return self::$supported = false;
         }
 
-        /* `queryFormats` elenca i formati che QUESTA build sa trattare: è la
-           sola risposta attendibile, perché il supporto dipende dai delegati
-           compilati, non dalla versione. */
-        return self::$supported = Imagick::queryFormats('AVIF') !== [];
+        return self::$supported = self::canReallyEncode();
+    }
+
+    /**
+     * Scrive un pixel in AVIF e guarda cosa ne è uscito.
+     *
+     * ImageMagick, richiesto un formato che non sa codificare, non solleva:
+     * ricade su un altro formato e restituisce quello. Quindi non basta che la
+     * chiamata vada a buon fine — bisogna leggere i primi byte del risultato e
+     * verificare che siano davvero quelli di un AVIF.
+     */
+    private static function canReallyEncode(): bool
+    {
+        try {
+            $imagick = new Imagick;
+            $imagick->newImage(1, 1, 'white');
+            $imagick->setImageFormat('avif');
+
+            $blob = $imagick->getImageBlob();
+
+            $imagick->clear();
+        } catch (\Throwable) {
+            /* Un'eccezione qui è già una risposta: questa installazione non
+               scrive AVIF. */
+            return false;
+        }
+
+        return ImageType::fromHeader($blob) === ImageType::Avif;
     }
 
     /**
