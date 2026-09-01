@@ -6,7 +6,7 @@
     </header>
 
     @if ($errors->any())
-        <p role="alert" class="mt-6 rounded-card bg-live-soft px-4 py-3 text-sm font-semibold text-on-live-soft">
+        <p role="alert" class="mt-6 bg-live-soft px-4 py-3 text-sm font-semibold text-on-live-soft">
             {{ __('forms.has_errors') }}
         </p>
     @endif
@@ -45,7 +45,7 @@
         <div class="flex flex-wrap items-center gap-3">
             <button
                 type="submit"
-                class="rounded-pill bg-brand px-5 py-2.5 text-sm font-semibold text-on-brand transition hover:bg-brand-strong"
+                class="bg-brand px-5 py-2.5 text-sm font-semibold text-on-brand transition hover:bg-brand-strong"
             >
                 {{ __('forms.report.submit') }}
             </button>

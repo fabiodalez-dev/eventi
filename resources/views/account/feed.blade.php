@@ -23,7 +23,7 @@
     @else
         <section aria-labelledby="avvio" class="mt-8 flex flex-col gap-6">
             <div class="flex flex-col gap-1">
-                <h2 id="avvio" class="text-section text-ink">{{ __('account.feed.onboarding_title') }}</h2>
+                <h2 id="avvio" class="font-display text-[clamp(1.25rem,1.8vw,1.75rem)] leading-none font-extrabold tracking-[-0.03em] uppercase">{{ __('account.feed.onboarding_title') }}</h2>
                 <p class="text-sm text-ink-muted">{{ __('account.feed.onboarding_lead') }}</p>
             </div>
 
@@ -33,7 +33,7 @@
 
                     <ul class="flex flex-col gap-2">
                         @foreach ($venues as $venue)
-                            <li class="flex flex-wrap items-center justify-between gap-3 rounded-card bg-surface px-4 py-3 ring-1 ring-line">
+                            <li class="flex flex-wrap items-center justify-between gap-3 bg-canvas px-4 py-3 border-2 border-line">
                                 <a class="font-semibold text-ink hover:text-brand" href="{{ route('venues.show', $venue) }}">{{ $venue->name }}</a>
 
                                 <x-follow-button
@@ -53,7 +53,7 @@
 
                     <ul class="flex flex-col gap-2">
                         @foreach ($categories as $category)
-                            <li class="flex flex-wrap items-center justify-between gap-3 rounded-card bg-surface px-4 py-3 ring-1 ring-line">
+                            <li class="flex flex-wrap items-center justify-between gap-3 bg-canvas px-4 py-3 border-2 border-line">
                                 <a class="font-semibold text-ink hover:text-brand" href="{{ route('events.category', $category) }}">{{ $category->name }}</a>
 
                                 <x-follow-button

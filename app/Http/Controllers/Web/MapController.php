@@ -66,6 +66,7 @@ final class MapController extends Controller
             'categories' => $this->facets->categories(),
             'tags' => $this->facets->tags(),
             'municipalities' => $this->facets->municipalities($city),
+            'zones' => $this->facets->zones($city),
             'venues' => $this->facets->venues($city),
             'meta' => new PageMeta(
                 title: __('map.meta.title', ['city' => $city->name]),

@@ -42,11 +42,13 @@ class EventFilterRequest extends FormRequest
             'price' => ['nullable', Rule::in(PriceFilter::values())],
             'time' => ['nullable', Rule::in(TimeOfDay::values())],
             'municipality' => ['nullable', 'string', 'max:120'],
+            'zone' => ['nullable', 'string', 'max:120'],
             'venue' => ['nullable', 'string', 'max:255'],
             'lat' => ['nullable', 'numeric', 'between:-90,90'],
             'lng' => ['nullable', 'numeric', 'between:-180,180'],
             'radius' => ['nullable', 'numeric', 'between:0.1,200'],
             'accessible' => ['nullable', 'boolean'],
+            'access' => ['nullable', 'string', 'max:255'],
             'outdoor' => ['nullable', 'boolean'],
             'family' => ['nullable', 'boolean'],
             'sort' => ['nullable', Rule::in(EventSort::values())],
@@ -86,6 +88,21 @@ class EventFilterRequest extends FormRequest
             if (! is_numeric($this->query($key)) && $this->query->has($key)) {
                 $this->query->remove($key);
             }
+        }
+
+        /*
+         * Il modulo manda `access[]=…` una casella per volta; l'indirizzo
+         * canonico che `EventFilters::toQueryString()` produce è invece
+         * `access=a,b`. Le due forme si incontrano qui, così che il resto
+         * della catena ne conosca una sola.
+         */
+        $access = $this->query('access');
+
+        if (is_array($access)) {
+            $this->query->set('access', implode(',', array_map(
+                static fn (mixed $value): string => is_scalar($value) ? (string) $value : '',
+                $access,
+            )));
         }
 
         foreach (['accessible', 'outdoor', 'family'] as $key) {

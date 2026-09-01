@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\DTOs;
 
+use App\Enums\AccessibilityFeature;
 use App\Enums\DatePreset;
 use App\Enums\EventSort;
 use App\Enums\PriceFilter;
@@ -27,6 +28,7 @@ final readonly class EventFilters
     /**
      * @param  list<string>  $categories  slug di categoria
      * @param  list<string>  $tags  slug di tag
+     * @param  list<string>  $access  voci di `AccessibilityFeature` richieste tutte insieme
      */
     public function __construct(
         public ?DatePreset $preset = null,
@@ -38,11 +40,13 @@ final readonly class EventFilters
         public ?PriceFilter $price = null,
         public ?TimeOfDay $time = null,
         public ?string $municipality = null,
+        public ?string $zone = null,
         public ?string $venue = null,
         public ?float $lat = null,
         public ?float $lng = null,
         public ?float $radius = null,
         public bool $accessible = false,
+        public array $access = [],
         public bool $outdoor = false,
         public bool $family = false,
         public ?EventSort $sort = null,
@@ -67,11 +71,13 @@ final readonly class EventFilters
             price: self::enum(PriceFilter::class, $input['price'] ?? null),
             time: self::enum(TimeOfDay::class, $input['time'] ?? null),
             municipality: self::text($input['municipality'] ?? null),
+            zone: self::text($input['zone'] ?? null),
             venue: self::text($input['venue'] ?? null),
             lat: self::number($input['lat'] ?? null),
             lng: self::number($input['lng'] ?? null),
             radius: self::number($input['radius'] ?? null),
             accessible: self::flag($input['accessible'] ?? null),
+            access: self::features($input['access'] ?? null),
             outdoor: self::flag($input['outdoor'] ?? null),
             family: self::flag($input['family'] ?? null),
             sort: self::enum(EventSort::class, $input['sort'] ?? null),
@@ -96,11 +102,13 @@ final readonly class EventFilters
             'price' => $this->price?->value,
             'time' => $this->time?->value,
             'municipality' => $this->municipality,
+            'zone' => $this->zone,
             'venue' => $this->venue,
             'lat' => $this->lat === null ? null : (string) $this->lat,
             'lng' => $this->lng === null ? null : (string) $this->lng,
             'radius' => $this->radius === null ? null : (string) $this->radius,
             'accessible' => $this->accessible ? '1' : null,
+            'access' => implode(',', $this->access),
             'outdoor' => $this->outdoor ? '1' : null,
             'family' => $this->family ? '1' : null,
             'sort' => $this->sort?->value,
@@ -167,6 +175,38 @@ final readonly class EventFilters
     public function withMunicipality(?string $municipality): self
     {
         return $this->copy(['municipality' => $municipality]);
+    }
+
+    public function withZone(?string $zone): self
+    {
+        return $this->copy(['zone' => $zone]);
+    }
+
+    /**
+     * Le voci di accessibilità richieste. Sono in **AND**: chi chiede ingresso
+     * senza scalini e servizi accessibili sta dicendo che gli servono
+     * entrambi, non che gli basta uno dei due.
+     *
+     * @param  list<string>  $features
+     */
+    public function withAccess(array $features): self
+    {
+        $valid = array_values(array_filter(
+            array_unique($features),
+            static fn (string $feature): bool => AccessibilityFeature::tryFrom($feature) !== null,
+        ));
+
+        return $this->copy(['access' => $valid]);
+    }
+
+    public function toggleAccess(string $feature): self
+    {
+        return $this->withAccess($this->toggle($this->access, $feature));
+    }
+
+    public function hasAccess(string $feature): bool
+    {
+        return in_array($feature, $this->access, true);
     }
 
     public function withVenue(?string $venue): self
@@ -250,7 +290,7 @@ final readonly class EventFilters
      * L'unico punto in cui si costruisce una variante: le proprietà sono
      * `readonly` e PHP non sa ancora clonarne una cambiando un campo.
      *
-     * @param  array{preset?: DatePreset|null, date?: CarbonImmutable|null, from?: CarbonImmutable|null, to?: CarbonImmutable|null, categories?: list<string>, tags?: list<string>, price?: PriceFilter|null, time?: TimeOfDay|null, municipality?: string|null, venue?: string|null, lat?: float|null, lng?: float|null, radius?: float|null, accessible?: bool, outdoor?: bool, family?: bool, sort?: EventSort|null, q?: string}  $overrides
+     * @param  array{preset?: DatePreset|null, date?: CarbonImmutable|null, from?: CarbonImmutable|null, to?: CarbonImmutable|null, categories?: list<string>, tags?: list<string>, price?: PriceFilter|null, time?: TimeOfDay|null, municipality?: string|null, zone?: string|null, venue?: string|null, lat?: float|null, lng?: float|null, radius?: float|null, accessible?: bool, access?: list<string>, outdoor?: bool, family?: bool, sort?: EventSort|null, q?: string}  $overrides
      */
     private function copy(array $overrides): self
     {
@@ -264,11 +304,13 @@ final readonly class EventFilters
             'price' => $this->price,
             'time' => $this->time,
             'municipality' => $this->municipality,
+            'zone' => $this->zone,
             'venue' => $this->venue,
             'lat' => $this->lat,
             'lng' => $this->lng,
             'radius' => $this->radius,
             'accessible' => $this->accessible,
+            'access' => $this->access,
             'outdoor' => $this->outdoor,
             'family' => $this->family,
             'sort' => $this->sort,
@@ -352,6 +394,22 @@ final readonly class EventFilters
         }
 
         return $slugs;
+    }
+
+    /**
+     * Le voci di accessibilità arrivano come `access=step_free_entrance,accessible_toilets`.
+     * Quelle che non esistono nell'enum spariscono invece di far fallire la
+     * pagina: un indirizzo condiviso mesi fa non deve rompersi perché una voce
+     * è stata rinominata.
+     *
+     * @return list<string>
+     */
+    private static function features(mixed $value): array
+    {
+        return array_values(array_filter(
+            self::slugs($value),
+            static fn (string $slug): bool => AccessibilityFeature::tryFrom($slug) !== null,
+        ));
     }
 
     private static function text(mixed $value): ?string

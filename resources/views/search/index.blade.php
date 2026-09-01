@@ -26,12 +26,12 @@
             value="{{ $term }}"
             autofocus
             placeholder="{{ __('search.placeholder') }}"
-            class="min-w-0 flex-1 rounded-pill border border-line bg-surface px-4 py-2.5 text-ink placeholder:text-ink-subtle focus:border-brand focus:outline-none"
+            class="min-w-0 flex-1 border border-line bg-surface px-4 py-2.5 text-ink placeholder:text-ink-subtle focus:border-brand focus:outline-none"
         >
 
         <button
             type="submit"
-            class="rounded-pill bg-brand px-5 py-2.5 text-sm font-semibold text-on-brand transition hover:bg-brand-strong"
+            class="bg-brand px-5 py-2.5 text-sm font-semibold text-on-brand transition hover:bg-brand-strong"
         >
             {{ __('search.submit') }}
         </button>
@@ -47,7 +47,7 @@
                 :link-label="__('search.all_events', ['query' => $term])"
             />
 
-            <x-event-grid :occurrences="$events" :eager="true" />
+            <x-event-grid :occurrences="$events" />
         </section>
     @endif
 
@@ -84,8 +84,8 @@
     @endif
 
     @if ($found === 0)
-        <section class="mt-8 rounded-card bg-surface p-6 ring-1 ring-line" aria-labelledby="suggerimenti">
-            <h2 id="suggerimenti" class="text-section text-ink">
+        <section class="mt-8 bg-canvas p-6 border-2 border-line" aria-labelledby="suggerimenti">
+            <h2 id="suggerimenti" class="font-display text-[clamp(1.25rem,1.8vw,1.75rem)] leading-none font-extrabold tracking-[-0.03em] uppercase">
                 {{ $term === '' ? __('search.empty.prompt_title') : __('search.empty.title', ['query' => $term]) }}
             </h2>
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Casts\AsExternalLinks;
+use App\Casts\AsFacts;
 use App\Enums\EventSource;
 use App\Enums\EventStatus;
 use App\Enums\PriceType;
@@ -71,6 +72,7 @@ class Event extends Model implements HasMedia
         'is_outdoor',
         'custom_location',
         'external_links',
+        'facts',
         'source',
         'source_ref',
         'verification_status',
@@ -186,6 +188,20 @@ class Event extends Model implements HasMedia
     public function occurrences(): HasMany
     {
         return $this->hasMany(EventOccurrence::class);
+    }
+
+    /**
+     * Le fasce di prezzo (§ «Biglietti e fasce di prezzo» del disegno).
+     *
+     * Comprende sia il listino dell'evento sia quelli delle singole date: a
+     * distinguerli è `App\Support\TicketTiers`, che è l'unico posto in cui la
+     * regola di risoluzione è scritta.
+     *
+     * @return HasMany<TicketTier, $this>
+     */
+    public function ticketTiers(): HasMany
+    {
+        return $this->hasMany(TicketTier::class)->orderBy('sort_order')->orderBy('id');
     }
 
     /** @return HasMany<EventRecurrence, $this> */
@@ -319,6 +335,7 @@ class Event extends Model implements HasMedia
             'gallery' => 'array',
             'custom_location' => 'array',
             'external_links' => AsExternalLinks::class,
+            'facts' => AsFacts::class,
             'seo' => 'array',
             'price_min' => 'decimal:2',
             'price_max' => 'decimal:2',

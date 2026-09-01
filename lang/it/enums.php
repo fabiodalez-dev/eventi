@@ -275,6 +275,41 @@ return [
 
     /* Ogni quanto si ripete una serata, detto come lo direbbe chi la organizza
        (§10.4): il gestore non vede mai la sintassi RRULE che sta sotto. */
+    /* Lo stato di una fascia di biglietto: è per fascia, non per data. */
+    'ticket_tier_status' => [
+        'available' => 'Disponibile',
+        'sold_out' => 'Esaurito',
+        'not_yet_on_sale' => 'Non ancora in vendita',
+        'closed' => 'Vendite chiuse',
+    ],
+
+    /* Il mezzo con cui si arriva a un locale (`venues.transit`). */
+    'transit_mode' => [
+        'metro' => 'Metro',
+        'tram' => 'Tram',
+        'bus' => 'Bus',
+        'train' => 'Treno',
+        'shuttle' => 'Navetta',
+        'car' => 'Auto',
+        'parking' => 'Parcheggio',
+        'bike' => 'Bici',
+        'walk' => 'A piedi',
+    ],
+
+    /*
+     * Le voci di accessibilità di un locale. Sono affermazioni verificabili e
+     * non promesse: «ingresso senza scalini» si può controllare, «locale
+     * accessibile» no.
+     */
+    'accessibility_feature' => [
+        'step_free_entrance' => 'Ingresso senza scalini',
+        'accessible_toilets' => 'Servizi igienici accessibili',
+        'reserved_seating' => 'Posti riservati',
+        'tactile_path' => 'Percorso tattile',
+        'assistance_on_request' => 'Assistenza su richiesta',
+        'guide_dog_allowed' => 'Cane guida ammesso',
+    ],
+
     'recurrence_frequency' => [
         'daily' => 'Ogni giorno',
         'weekly' => 'Ogni settimana',

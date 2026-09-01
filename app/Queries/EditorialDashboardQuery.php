@@ -54,6 +54,12 @@ final class EditorialDashboardQuery
      */
     public const DUPLICATE_SIMILARITY = 0.85;
 
+    /**
+     * Sotto questa distanza due locali diversi contano come lo stesso luogo
+     * (§14.4: «stesso locale o distanza < 300m»).
+     */
+    public const DUPLICATE_DISTANCE_METERS = 300.0;
+
     private readonly CarbonImmutable $now;
 
     private function __construct(private readonly City $city)
@@ -268,13 +274,19 @@ final class EditorialDashboardQuery
 
     /**
      * I duplicati sospetti di §14.4: **stessa giornata evento**, **stesso
-     * locale**, titoli quasi identici.
+     * locale oppure due locali a meno di trecento metri**, titoli quasi
+     * identici.
+     *
+     * La prossimità serve al caso che il solo confronto per locale non vede:
+     * la stessa sagra inserita due volte, una volta sul circolo e una volta
+     * sulla piazza davanti. Sono due righe di `venues` diverse e per §14.4
+     * sono lo stesso appuntamento.
      *
      * La somiglianza si calcola in PHP e non in SQL perché nessuno dei due
      * motori la offre; il costo resta basso perché il confronto avviene solo
-     * dentro coppie che condividono già locale e giornata, e solo sulle date
-     * non passate. Nessuna cancellazione automatica: questo metodo produce
-     * candidati, la decisione resta al moderatore.
+     * dentro la stessa giornata, e solo sulle date non passate. Nessuna
+     * cancellazione automatica: questo metodo produce candidati, la decisione
+     * resta al moderatore.
      *
      * @return list<int>
      */
@@ -282,9 +294,10 @@ final class EditorialDashboardQuery
     {
         $rows = EventOccurrence::query()
             ->join('events', 'events.id', '=', 'event_occurrences.event_id')
+            ->join('venues', 'venues.id', '=', 'events.venue_id')
             ->where('events.city_id', $this->city->getKey())
             ->whereNull('events.deleted_at')
-            ->whereNotNull('events.venue_id')
+            ->whereNull('venues.deleted_at')
             ->whereIn('events.status', [EventStatus::Draft, EventStatus::Pending, EventStatus::Published])
             ->where('event_occurrences.status', OccurrenceStatus::Scheduled)
             ->where('event_occurrences.business_date', '>=', $this->now->toDateString())
@@ -292,38 +305,87 @@ final class EditorialDashboardQuery
                 'events.id as event_id',
                 'events.title as title',
                 'events.venue_id as venue_id',
+                'venues.lat as lat',
+                'venues.lng as lng',
                 'event_occurrences.business_date as business_date',
             ])
             ->get();
 
-        /** @var array<string, array<int, array{id: int, title: string}>> $buckets */
-        $buckets = [];
+        /** @var array<string, array<int, array{id: int, title: string, venue_id: int, lat: float, lng: float}>> $days */
+        $days = [];
 
         foreach ($rows as $row) {
-            /** @var object{event_id: int, title: string, venue_id: int, business_date: string} $row */
-            $key = $row->venue_id.'|'.$row->business_date;
-            $buckets[$key][$row->event_id] = ['id' => (int) $row->event_id, 'title' => (string) $row->title];
+            /** @var object{event_id: int, title: string, venue_id: int, lat: mixed, lng: mixed, business_date: string} $row */
+            $days[(string) $row->business_date][(int) $row->event_id] = [
+                'id' => (int) $row->event_id,
+                'title' => (string) $row->title,
+                'venue_id' => (int) $row->venue_id,
+                'lat' => (float) $row->lat,
+                'lng' => (float) $row->lng,
+            ];
         }
 
         $duplicates = [];
 
-        foreach ($buckets as $bucket) {
-            $bucket = array_values($bucket);
-            $size = count($bucket);
+        foreach ($days as $day) {
+            $day = array_values($day);
+            $size = count($day);
 
             for ($i = 0; $i < $size; $i++) {
                 for ($j = $i + 1; $j < $size; $j++) {
-                    if (! self::titlesLookAlike($bucket[$i]['title'], $bucket[$j]['title'])) {
+                    if (! self::sameSpot($day[$i], $day[$j])) {
                         continue;
                     }
 
-                    $duplicates[$bucket[$i]['id']] = true;
-                    $duplicates[$bucket[$j]['id']] = true;
+                    if (! self::titlesLookAlike($day[$i]['title'], $day[$j]['title'])) {
+                        continue;
+                    }
+
+                    $duplicates[$day[$i]['id']] = true;
+                    $duplicates[$day[$j]['id']] = true;
                 }
             }
         }
 
         return array_map(intval(...), array_keys($duplicates));
+    }
+
+    /**
+     * Stesso luogo ai fini di §14.4: lo stesso locale, oppure due locali
+     * abbastanza vicini da essere la stessa piazza.
+     *
+     * @param  array{id: int, title: string, venue_id: int, lat: float, lng: float}  $first
+     * @param  array{id: int, title: string, venue_id: int, lat: float, lng: float}  $second
+     */
+    private static function sameSpot(array $first, array $second): bool
+    {
+        if ($first['venue_id'] === $second['venue_id']) {
+            return true;
+        }
+
+        return self::metersBetween($first['lat'], $first['lng'], $second['lat'], $second['lng'])
+            < self::DUPLICATE_DISTANCE_METERS;
+    }
+
+    /**
+     * La distanza in metri fra due coordinate (formula dell'emisenoverso).
+     *
+     * Si calcola qui e non con `ST_Distance_Sphere` perché la domanda è fra
+     * **due righe già lette**, non fra una riga e un punto: portarla in SQL
+     * significherebbe un prodotto cartesiano della tabella con se stessa per
+     * ottenere numeri che a questa scala si contano sulle dita.
+     */
+    private static function metersBetween(float $lat1, float $lng1, float $lat2, float $lng2): float
+    {
+        $earthRadius = 6371000.0;
+
+        $deltaLat = deg2rad($lat2 - $lat1);
+        $deltaLng = deg2rad($lng2 - $lng1);
+
+        $a = sin($deltaLat / 2) ** 2
+            + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($deltaLng / 2) ** 2;
+
+        return $earthRadius * 2 * atan2(sqrt($a), sqrt(1 - $a));
     }
 
     public static function titlesLookAlike(string $first, string $second): bool

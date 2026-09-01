@@ -25,14 +25,14 @@
 @endphp
 
 @if ($occurrences->isNotEmpty())
-    <section aria-labelledby="salva-evento" class="flex flex-col gap-3 rounded-card bg-surface-sunken p-card">
+    <section aria-labelledby="salva-evento" class="flex flex-col gap-3 bg-surface p-card">
         <h2 id="salva-evento" class="sr-only">{{ __('account.save.action') }}</h2>
 
         @if ($single !== null)
             <x-save-heart :occurrence="$single" :saved="isset($saved[$single->getKey()])" variant="label" />
         @else
             <details class="group">
-                <summary class="inline-flex cursor-pointer items-center gap-1.5 rounded-pill bg-surface px-3.5 py-2 text-sm font-semibold text-ink ring-1 ring-line transition hover:ring-line-strong">
+                <summary class="inline-flex cursor-pointer items-center gap-1.5 bg-surface px-3.5 py-2 text-sm font-semibold text-ink border-2 border-line transition hover:border-accent">
                     {{ __('account.save.choose_dates') }}
                 </summary>
 
@@ -71,7 +71,7 @@
                         <input type="hidden" name="occurrence_ids[]" value="{{ $occurrence->getKey() }}">
                     @endforeach
 
-                    <button type="submit" class="rounded-pill bg-brand px-3.5 py-2 text-sm font-semibold text-on-brand transition hover:bg-brand-strong">
+                    <button type="submit" class="bg-brand px-3.5 py-2 text-sm font-semibold text-on-brand transition hover:bg-brand-strong">
                         {{ __('account.save.all_dates') }}
                     </button>
                 </form>

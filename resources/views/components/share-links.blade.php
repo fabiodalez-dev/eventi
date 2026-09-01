@@ -19,7 +19,7 @@
 <div {{ $attributes->class(['flex flex-wrap items-center gap-2']) }}>
     <button
         type="button"
-        class="hidden rounded-pill bg-surface px-3.5 py-1.5 text-sm font-semibold text-ink ring-1 ring-line transition hover:ring-line-strong"
+        class="hidden bg-surface px-3.5 py-2 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.14em] text-ink uppercase border-2 border-line transition hover:border-accent"
         data-share
         data-share-url="{{ $url }}"
         data-share-title="{{ $title }}"
@@ -33,7 +33,7 @@
         href="https://wa.me/?{{ http_build_query(['text' => $message.' '.$url]) }}"
         rel="noopener noreferrer"
         target="_blank"
-        class="rounded-pill bg-surface px-3.5 py-1.5 text-sm font-semibold text-ink ring-1 ring-line transition hover:ring-line-strong"
+        class="bg-surface px-3.5 py-2 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.14em] text-ink uppercase border-2 border-line transition hover:border-accent"
     >
         {{ __('common.share.whatsapp') }}
     </a>
@@ -42,14 +42,14 @@
         href="https://t.me/share/url?{{ http_build_query(['url' => $url, 'text' => $message]) }}"
         rel="noopener noreferrer"
         target="_blank"
-        class="rounded-pill bg-surface px-3.5 py-1.5 text-sm font-semibold text-ink ring-1 ring-line transition hover:ring-line-strong"
+        class="bg-surface px-3.5 py-2 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.14em] text-ink uppercase border-2 border-line transition hover:border-accent"
     >
         {{ __('common.share.telegram') }}
     </a>
 
     <a
         href="mailto:?{{ http_build_query(['subject' => $title, 'body' => $message."\n\n".$url]) }}"
-        class="rounded-pill bg-surface px-3.5 py-1.5 text-sm font-semibold text-ink ring-1 ring-line transition hover:ring-line-strong"
+        class="bg-surface px-3.5 py-2 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.14em] text-ink uppercase border-2 border-line transition hover:border-accent"
     >
         {{ __('common.share.email') }}
     </a>

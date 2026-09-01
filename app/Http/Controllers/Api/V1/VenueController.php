@@ -50,6 +50,7 @@ final class VenueController extends Controller
         $term = $request->term();
         $type = $request->type();
         $municipality = $request->municipality();
+        $zone = $request->zone();
         $since = $request->updatedSince();
 
         $paginator = Venue::query()
@@ -58,13 +59,15 @@ final class VenueController extends Controller
             ->approved()
             ->when($type !== null, fn (Builder $query): Builder => $query->where('type', $type))
             ->when($municipality !== null, fn (Builder $query): Builder => $query->where('municipality', $municipality))
+            ->when($zone !== null, fn (Builder $query): Builder => $query->where('zone', $zone))
             ->when($since !== null, fn (Builder $query): Builder => $query->where('updated_at', '>=', $since))
             ->when($term !== '', fn (Builder $query): Builder => $query->where(function (Builder $match) use ($term): void {
                 $pattern = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\%', '\_'], $term).'%';
 
                 $match->where('name', 'like', $pattern)
                     ->orWhere('short_description', 'like', $pattern)
-                    ->orWhere('municipality', 'like', $pattern);
+                    ->orWhere('municipality', 'like', $pattern)
+                    ->orWhere('zone', 'like', $pattern);
             }))
             ->orderBy('name')
             ->orderBy('id')

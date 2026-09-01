@@ -6,7 +6,9 @@ namespace App\Filament\Venue\Support;
 
 use App\Enums\PriceType;
 use App\Filament\Support\ExternalLinksField;
+use App\Filament\Support\FactsField;
 use App\Filament\Support\ImageUpload;
+use App\Filament\Support\TicketTiersField;
 use App\Models\Category;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
@@ -164,6 +166,31 @@ final class EventFields
     public static function externalLinks(): Component
     {
         return ExternalLinksField::make('manage');
+    }
+
+    /**
+     * Le fasce di prezzo dell'evento, valide per tutte le sue date.
+     *
+     * È la risposta che un gestore vuole poter dare senza telefonare a
+     * nessuno: *il posto in piedi è finito, quello a sedere no*. Fino a oggi
+     * poteva solo segnare esaurita l'intera serata, cioè dire una cosa più
+     * grave del vero e perdere chi avrebbe comprato il posto rimasto.
+     *
+     * Parte chiusa, come i link esterni: chi vuole i 90 secondi di §10.2 non
+     * la apre nemmeno.
+     */
+    public static function ticketTiers(): Component
+    {
+        return TicketTiersField::make('manage');
+    }
+
+    /**
+     * La scheda tecnica: le cose che al bancone gli chiedono ogni sera — a che
+     * ora si apre, quanto dura, da che età si entra.
+     */
+    public static function facts(): Component
+    {
+        return FactsField::make('manage', 'facts');
     }
 
     /**

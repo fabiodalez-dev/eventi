@@ -161,6 +161,30 @@ final class VenueDashboardQuery
         );
     }
 
+    /**
+     * La prossima data di un evento — oggi compreso — o `null` se non ne ha.
+     *
+     * Serve all'azione rapida «tutto esaurito» dell'elenco eventi: là il gesto
+     * è su un evento, ma lo stato appartiene a una data, e la data va scelta.
+     * La scelta è la stessa che l'elenco già mostra nella colonna «prossima
+     * data» (`applyNextOccurrence`), così il pulsante agisce esattamente su
+     * ciò che si sta leggendo.
+     *
+     * **Qui non si ricalcola "oggi".** La giornata evento corrente arriva da
+     * `EventOccurrenceQuery::currentBusinessDate()` (§3 delle convenzioni); il
+     * resto è una query su una relazione, che non è una finestra temporale.
+     * La restrizione agli eventi pubblicati **non** si applica: il pannello di
+     * un locale lavora anche sulle bozze, e sono sue.
+     */
+    public static function nextOccurrence(Event $event, City $city): ?EventOccurrence
+    {
+        return EventOccurrence::query()
+            ->where('event_id', $event->getKey())
+            ->where('business_date', '>=', EventOccurrenceQuery::for($city)->currentBusinessDate())
+            ->orderBy('starts_at')
+            ->first();
+    }
+
     // ----------------------------------------------------------------- interno
 
     /**

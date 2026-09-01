@@ -42,7 +42,9 @@ class EventOccurrenceFactory extends Factory
             'status' => OccurrenceStatus::Scheduled,
             'status_note' => null,
             'price_override' => null,
+            'capacity' => null,
             'capacity_left' => null,
+            'highlight' => null,
             'is_exception' => false,
         ];
     }
@@ -91,6 +93,26 @@ class EventOccurrenceFactory extends Factory
         return $this->state(fn (array $attributes): array => [
             'status' => OccurrenceStatus::SoldOut,
             'capacity_left' => 0,
+        ]);
+    }
+
+    /**
+     * Posti dichiarati: quanti ne restano e su quanti. È la coppia che rende
+     * mostrabile la barra — con il solo `capacity_left` resta un numero senza
+     * scala.
+     */
+    public function withSeats(int $capacity, int $left): static
+    {
+        return $this->state(fn (array $attributes): array => [
+            'capacity' => $capacity,
+            'capacity_left' => $left,
+        ]);
+    }
+
+    public function highlighted(string $label = 'Ultimi posti'): static
+    {
+        return $this->state(fn (array $attributes): array => [
+            'highlight' => $label,
         ]);
     }
 

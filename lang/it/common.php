@@ -46,6 +46,10 @@ return [
     'to' => 'a',
     'of' => 'di',
     'separator' => '·',
+    /* Il trattino lungo che separa il numero della sezione dal suo occhiello:
+       «01 — apre tra poche ore». E' un segno, non una parola, ma sta qui
+       perche' chi traduce deve poterlo cambiare insieme al resto. */
+    'dash' => '—',
     'ellipsis' => '…',
 
     'share' => [

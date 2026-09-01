@@ -2186,3 +2186,207 @@ il piano è stato superato di proposito.
 
 **Non si torna indietro** su Leaflet né sul disegno. Se emergesse un problema
 tecnico serio su Leaflet, la risposta è risolverlo, non rimettere MapLibre.
+
+## 2026-09-01 — D47. Design system "Modernist": token, Archivo, componenti base
+
+**Decisione.** Il sistema del riferimento (`docs/design-riferimento/_ds`) entra
+nel progetto come fondamenta: palette, scala, font e componenti base. Otto
+scelte prese portandolo dentro.
+
+1. **I nomi dei token non cambiano, cambiano i valori.** `--canvas`, `--ink`,
+   `--brand`, `--live` e gli altri restano: 1307 test e ogni vista esistente
+   usano le utility che ne derivano (`bg-canvas`, `text-ink`, …). Rimpiazzare
+   i nomi avrebbe significato riscrivere le viste — che è il lavoro delle fasi
+   successive, non di questa. Il meccanismo di D23 (`:root` + `@theme inline`)
+   resta intatto; le rampe tonali del sistema (accent-100…900,
+   neutral-100…900) entrano come valori assoluti in `@theme`, uguali in chiaro
+   e in scuro, a disposizione di chi costruirà le viste.
+2. **Il rosso interattivo è un mezzo passo più scuro dell'accento.**
+   `#ec3013` non regge il contrasto AA né come testo sul fondo (3.8:1) né col
+   bianco sopra (4.2:1): un pulsante pieno o un link a corpo piccolo in quel
+   rosso farebbe scendere l'Accessibility di Lighthouse, che non deve
+   peggiorare. `--brand` vale quindi `#c11e0d` — fra accent-600 e accent-700
+   della rampa, 5.5:1 sul fondo e 6.1:1 col bianco — e `--accent` conserva
+   l'`#ec3013` identitario per ciò che il readme del sistema gli assegna:
+   cromo, barre, icone, focus e tipografia da manifesto, mai testo a corpo
+   piccolo (per quello prescrive il passo scuro della rampa, ed è ciò che
+   `--brand` è).
+3. **Il tema scuro è la trasposizione dei rapporti, non una seconda palette.**
+   Il modello è l'override scuro che la demo stessa usa (`Radar Milano.dc.html`
+   ridefinisce i token): fondo quasi nero `#0b0b0b`, stesso inchiostro chiaro
+   `#f5f5f0`, divisori al 22% del testo — che su fondo scuro pesano quanto il
+   40% pesa sul chiaro — e il rosso su di un passo di rampa (accent-500
+   `#ff563c`, come il readme prescrive per i fondi scuri), col testo sopra che
+   diventa il fondo. L'elevazione passa da ombra a bordo-lama, sempre dalla
+   demo. L'accento lime della demo non entra: il committente ha fissato il
+   rosso.
+4. **Raggio zero attraverso i token, non cancellando le classi.**
+   `--radius-card` e `--radius-pill` valgono `0px`: ogni `rounded-card` e
+   `rounded-pill` già scritto diventa spigolo vivo senza toccare una vista.
+   I nomi mentono un po' ("pill" quadrata) e spariranno con le riscritture;
+   il valore intanto è quello giusto ovunque.
+5. **Archivo self-hosted, e anche le immagini Open Graph lo usano.**
+   `@fontsource-variable/archivo` sostituisce Bricolage Grotesque e Inter,
+   rimossi da `package.json`; titoli a peso 800, tutto un solo carattere come
+   il sistema impone. I TTF di `resources/fonts` (che ImageMagick usa per le
+   anteprime OG, D30) sono stati rigenerati come istanze statiche di Archivo
+   — 800 per il titolo, 400 per il testo — con fontTools dal woff2 del
+   pacchetto, licenze OFL aggiornate a fianco. Nessun residuo del vecchio
+   disegno.
+6. **Componenti base riscritti o nuovi, API invariate dove esistevano.**
+   `<x-badge>` (rettangolare, Archivo 800, maiuscolo spaziato, tinte dalle
+   rampe; il rosso pieno è solo "in corso", "gratis" è il solo contorno) e
+   `<x-section-heading>` (regola piena di 2px sopra la riga, titolo maiuscolo
+   a filo sinistro, marca quadrata) conservano le loro prop. Nuovi:
+   `<x-button>` (primary/secondary/ghost, **etichetta a filo a sinistra** —
+   regola esplicita del sistema — stati hover/attivo dalla rampa, `href` lo fa
+   diventare un collegamento), `<x-divider>` e l'utility `divider` (2px pieni),
+   l'utility `grayscale-photo` applicata dentro `<x-media-image>`: ogni
+   fotografia di contenuto stampa in bianco e nero, segnaposto compreso.
+   Il focus da tastiera è globale in `app.css`: 2px pieni d'accento,
+   scostati di 2px, mai il contorno del browser.
+7. **Le icone sono Lucide, inline, nel componente `<x-lucide>`.** Il sito
+   pubblico ne usava una sola (il cuore di `<x-save-heart>`, ora il cuore di
+   Lucide) più frecce tipografiche in `<x-pagination>` e
+   `<x-section-heading>`, tutte sostituite. Il componente incorpora i tracciati
+   (nessuna richiesta esterna, nessun pacchetto JS), terminazioni squadrate
+   come nella demo — in un sistema a raggio zero anche le icone finiscono ad
+   angolo — un nome sconosciuto lancia un'eccezione, e `label` (già tradotto)
+   rende parlante un'icona che altrimenti è `aria-hidden`. Il nome `<x-icon>`
+   era occupato: `blade-ui-kit/blade-icons` (dipendenza di Filament) registra
+   un proprio componente con quel nome, e il nostro non verrebbe mai risolto.
+   **I pannelli Filament restano su Heroicons**: è il set nativo del loro
+   telaio, e sostituirne le due occorrenze esplicite lasciando tutto il cromo
+   interno com'era sarebbe il "a metà" da evitare.
+8. **`--shadow-card` e `--shadow-lift` diventano sensibili al tema.** Erano
+   valori statici in `@theme`; ora leggono `--elev-*` da `:root`, perché
+   l'elevazione chiara (ombra d'inchiostro) e quella scura (bordo-lama) non
+   sono lo stesso valore.
+
+**Verificato.** `npm run build` verde con Archivo impacchettato e suddiviso
+per unicode-range; suite intera 1311 test verdi su database dedicato (le tre
+prove di `DocsAccessTest` fallite nella prima esecuzione erano Scramble che
+rileggeva da disco file PHP modificati in quel momento da un'altra sessione:
+rieseguite da sole, verdi); 4 test nuovi sui componenti (pulsante a filo
+sinistro e varianti, icona decorativa/parlante, icona sconosciuta che fallisce
+subito, divisore); `OpenGraphImageTest` verde con i TTF Archivo; `pint`
+passato; `phpstan` livello 6 a zero errori. Nel CSS compilato: `#c11e0d`,
+`#ec3013`, `--radius-pill:0px`, `grayscale-photo`, `divider` e i soli woff2 di
+Archivo (Bricolage e Inter spariti da `public/build`).
+
+---
+
+## D48 — La palette viene dall'override della pagina, non dal design system
+
+**Data:** 2026-09-01 · **Stato:** applicata · **Sostituisce:** parte di D47
+
+Il sito era chiaro con un accento rosso; il riferimento adottato (D46) è **nero
+con un accento giallo-verde**. Non era una divergenza di gusto: era una lettura
+sbagliata della fonte.
+
+Il pacchetto del riferimento contiene due cose. Un design system —
+`_ds/modernist-*/styles.css` — che è chiaro (`#f3f2f2`) con accento `#ec3013`.
+E il documento della pagina, che **ridefinisce quei token in testa a sé
+stesso**: `--color-bg:#0b0b0b`, `--color-text:#f5f5f0`, `--color-accent:#ccff00`.
+Chi ha applicato il design ha letto il sistema e ignorato l'override, ottenendo
+i token giusti presi dal posto sbagliato.
+
+**Cosa cambia.** `:root` porta i valori dell'override; `color-scheme: dark` e il
+meta corrispondente dichiarano un tema solo, così anche ciò che disegna il
+browser — barre di scorrimento, controlli dei moduli, la scelta di una data —
+nasce scuro. Il blocco `@media (prefers-color-scheme: dark)` sparisce: non c'è
+un secondo tema da servire.
+
+**Il compromesso di D47 decade.** Quella decisione aveva scurito l'accento da
+`#ec3013` a `#c11e0d` perché il rosso puro non reggeva il contrasto AA né come
+testo né sotto il bianco. Il giallo-verde su nero sta a circa **16:1** e regge
+il nero sopra di sé con lo stesso rapporto — che è il motivo per cui il
+riferimento lo usa in entrambi i versi. Un accento solo, senza varianti
+d'appoggio.
+
+**Regola generale.** Quando un riferimento arriva come pacchetto, la fonte
+autorevole è **il documento**, non la libreria che importa. Se i due
+divergono, ha ragione il documento: è quello che si è visto e approvato.
+
+---
+
+## D49 — Tessere scure native, non tessere chiare rovesciate
+
+**Data:** 2026-09-01 · **Stato:** applicata
+
+La mappa deve essere scura. Il primo tentativo prendeva le tessere standard di
+OpenStreetMap e applicava `filter: invert(1) grayscale(1)`.
+
+**Non funziona, e il motivo è strutturale: l'inversione ribalta la gerarchia
+invece di scurirla.** Sulle tessere OSM il fondo è beige chiaro (`#f2efe9`) e le
+strade sono bianche (`#ffffff`); invertiti, il fondo diventa quasi nero e le
+strade diventano **nero pieno**, cioè più scure del fondo su cui dovrebbero
+risaltare. Le etichette, che erano nere, diventano bianche e restano leggibili:
+da qui l'effetto di una mappa in cui si leggono i nomi dei paesi ma la rete
+stradale è sparita. Nessun filtro CSS rimette a posto quella gerarchia, perché
+l'inversione la ribalta per costruzione.
+
+Servivano tessere disegnate scure, raster (la mappa sta su Leaflet, D46) e senza
+chiave d'accesso — un sito di città non deve dipendere da un contratto per
+mostrare dove sono i locali. Il campo è stretto: le «dark matter» di CARTO
+stampano `API KEY REQUIRED` in filigrana a chi non si registra (caricano, e sono
+inservibili); Stamen è passato sotto Stadia, che una chiave la chiede; Wikimedia
+serve solo i propri progetti; OpenFreeMap ha solo vettoriali.
+
+**Scelte le «World Dark Gray Canvas» di Esri**: grigio scuro, strade chiare,
+niente chiave, niente filigrane, costruite anche su dati OpenStreetMap. Resta
+un ritocco leggero in CSS (`brightness(.86) contrast(1.12)`) perché sono tarate
+su un grigio più chiaro del `#0b0b0b` della pagina.
+
+**Due trappole trovate per strada, entrambe ora sotto test.**
+`MAP_TILES_URL` conteneva l'indirizzo di uno **stile MapLibre**
+(`.../styles/liberty`): Leaflet lo chiedeva come immagine, riceveva un JSON, e
+la mappa restava vuota senza un errore in console. E la nota di attribuzione ha
+continuato a citare OpenFreeMap dopo il passaggio a un altro fornitore —
+l'attribuzione è una condizione di licenza, e lasciarla indietro è il modo più
+silenzioso di violarla.
+
+---
+
+## D50 — Un colore solo per i marcatori, niente legenda
+
+**Data:** 2026-09-01 · **Stato:** applicata
+
+Ogni categoria dichiara un colore, e i marcatori lo usavano: dieci tinte accese
+su una mappa in scala di grigi, con una legenda sotto per decifrarle. In una
+tavolozza con un accento solo (D48) era l'unica cosa che la rompeva.
+
+I marcatori sono tutti dell'accento e la legenda non c'è più. Da una mappa si
+legge **dove** succedono le cose e **quante** ce ne sono; di che genere siano lo
+dice il foglio che si apre toccando un punto. Chi vuole vedere una sola
+categoria la filtra — ed è una risposta migliore, perché toglie di mezzo tutto
+il resto invece di chiedere di distinguere un rosa da un fucsia.
+
+Il campo della categoria resta nel carico: serve a chi filtra.
+
+---
+
+## D51 — Le card di un elenco non hanno locandina
+
+**Data:** 2026-09-01 · **Stato:** applicata
+
+Nel riferimento la card di un elenco è tipografica: numero d'ordine, categoria,
+titolo grande, luogo, ora, prezzo. Nessuna fotografia. È ciò che permette di
+affiancarle a due pixel di distanza e farle leggere come un tabellone continuo
+invece che come una fila di riquadri.
+
+Le fotografie restano dove pesano: il riquadro in evidenza della pagina
+iniziale, la scheda dell'evento, le schede dei locali.
+
+**Conseguenza sui test.** Due prove di §11.11 cercavano `aspect-[3/4]` e le
+locandine su `/eventi`. Ciò che proteggevano non era quella classe, ma che la
+pagina non si sposti sotto il dito mentre le immagini arrivano: ora verificano
+che **ogni** immagine dichiari `width` e `height`, su tutte le pagine che ne
+hanno. La garanzia è la stessa, e vale in più posti di prima.
+
+**Il titolo fantasma del riferimento non è stato ripreso.** Al passaggio del
+puntatore una copia del titolo in giallo-verde, ritagliata al 54% dell'altezza,
+scivolava in diagonale sotto l'originale. Funziona con titoli di una riga —
+quelli della demo; con un titolo vero su due o tre righe quel 54% taglia in
+mezzo al blocco e la copia si accavalla al testo. Restano lo scorrimento del
+titolo e la lastra laterale, che di quel movimento sono la parte leggibile.

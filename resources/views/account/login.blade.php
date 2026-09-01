@@ -18,7 +18,7 @@
                 {{ __('account.login.remember') }}
             </label>
 
-            <button type="submit" class="rounded-pill bg-brand px-4 py-2.5 text-sm font-semibold text-on-brand transition hover:bg-brand-strong">
+            <button type="submit" class="bg-brand px-4 py-2.5 text-sm font-semibold text-on-brand transition hover:bg-brand-strong">
                 {{ __('account.login.submit') }}
             </button>
         </form>

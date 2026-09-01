@@ -879,3 +879,52 @@ dichiarato in D37 (il banco parla HTTP/1.1 e resta ~1,5 s sopra la produzione;
   banco è scesa a 0.80 (5,2 s di LCP): le due cause note di D37 (locandina LCP
   con `loading=lazy` sul mobile, varianti AVIF pesanti) restano da correggere.
 - Nessuna CSP (§16 la cita): rimandata alle intestazioni di sicurezza.
+
+## Verifica finale installer (D42/D44/D45) — ✅ ESEGUITA 2026-09-01
+
+Verificatore indipendente: nessun riepilogo creduto sulla parola, tutto
+rieseguito e misurato.
+
+| Comando | Esito |
+|---|---|
+| `./vendor/bin/pest` (db `eventi_test_verifica2`) | **1293 test verdi, 4398 asserzioni** (~274 s) alla prima esecuzione; **1307 verdi, 4456 asserzioni** a fine sessione (14 test aggiunti nel frattempo da un lavoro parallelo) — erano 1064 prima dell'installer e dei test nuovi: **+243** |
+| `./vendor/bin/pint --test` | pulito (un solo allineamento phpdoc corretto in `EnvWriter.php`) |
+| `phpstan` livello 6 | **0 errori** |
+| `npm run build` | verde (1,74 s) |
+
+### Installazione da zero, con un browser (Playwright)
+
+Banco: database vuoto `eventi_scratch`, utente MariaDB dedicato con password
+`Sc# ra$tch'x\9!q` (cancelletto, spazio, dollaro, apice, barra rovescia),
+`.env` di sviluppo messo da parte, `php -S` su 8099 con docroot `public/`.
+
+- Requisiti: 15 indispensabili + 6 avvisi, tutti «a posto» (PHP 8.4.21).
+- I 7 passi percorsi come un utente; la password difficile accettata al primo
+  tentativo; le 7 operazioni della checklist tutte «fatta».
+- Risultato: `.env` `-rw-------` (`APP_ENV=production`, `APP_DEBUG=false`,
+  `CITY_DEFAULT_SLUG=verona`, `OPS_HEALTH_TOKEN` generata); 47 tabelle;
+  14 categorie, 38 tag, 5 pagine, 6 ruoli, 27 permessi; città `verona`
+  attiva (45.4384/10.9916, 30 km, `Europe/Rome`); utente `super_admin`
+  verificato; marcatore con la migrazione più recente.
+- Dopo: `/` **200** con «Cosa fare stasera a Verona», `/pagine/privacy` 200,
+  `/robots.txt` 200; **login reale in `/admin`** → pannello «Riepilogo»;
+  `/installazione` → **404** da sessione nuova e dalla stessa del wizard.
+- Quoting chiuso in tre modi: config cache identica byte per byte, Dotenv
+  rilegge identico, PDO si connette col valore riletto (37 migrazioni).
+- Banco smontato: `.env` di sviluppo ripristinato (verificato con una query
+  su `eventi_local`), `eventi_scratch` e l'utente eliminati, marcatore e
+  `bootstrap/cache/config.php` rimossi.
+
+### Osservazioni (annotate in RUNBOOK e D45)
+
+- Prima dell'installazione `GET /` risponde **500** (sessione su database
+  inesistente): si apre `/installazione` direttamente. Frase del RUNBOOK
+  corretta.
+- Su una macchina dove `eventi_local` esiste popolato, il cancello si
+  auto-marca alla prima richiesta e il wizard non si apre: per provarlo in
+  locale si punta prima `DB_DATABASE` a un database vuoto o inesistente.
+- In una delle tre esecuzioni complete della suite un solo test è fallito
+  (`AuthFlowTest`, «registra il consenso alla newsletter»: `marketing_opt_in_at`
+  nullo) e poi è passato sia isolato sia nella ripetizione completa identica.
+  Non riprodotto; da tenere d'occhio se ricompare in CI — il sospetto è uno
+  stato condiviso attorno a `Features::newsletterActive()` (Pennant).

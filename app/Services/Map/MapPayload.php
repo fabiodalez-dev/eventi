@@ -29,7 +29,7 @@ final class MapPayload
 
     /**
      * @param  array{min_lng: float, min_lat: float, max_lng: float, max_lat: float}|null  $bounds
-     * @return array{categories: list<array{slug: string, name: string, color: string}>, markers: list<array{0: int, 1: float, 2: float, 3: int, 4: int}>, truncated: bool}
+     * @return array{categories: list<array{slug: string, name: string, color: string}>, markers: list<array{0: int, 1: float, 2: float, 3: int, 4: int, 5: string}>, truncated: bool}
      */
     public function build(City $city, EventFilters $filters, ?array $bounds): array
     {
@@ -54,12 +54,16 @@ final class MapPayload
         $markers = [];
 
         foreach ($rows as $row) {
+            /* Liste posizionali e non oggetti: ripetere sei nomi di campo per
+               cinquecento marcatori costa piu' dei dati stessi. L'ordine e'
+               documentato qui e letto in un punto solo, in `map.js`. */
             $markers[] = [
                 $row['venue_id'],
                 round($row['lng'], 6),
                 round($row['lat'], 6),
                 $index[$row['category_id']] ?? 0,
                 $row['count'],
+                $row['venue_name'],
             ];
         }
 

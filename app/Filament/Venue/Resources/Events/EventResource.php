@@ -15,6 +15,7 @@ use App\Filament\Venue\Support\CurrentVenue;
 use App\Filament\Venue\Support\EventActions;
 use App\Filament\Venue\Support\EventFields;
 use App\Models\Event;
+use App\Queries\EventOccurrenceQuery;
 use App\Queries\VenueDashboardQuery;
 use BackedEnum;
 use Filament\Actions\EditAction;
@@ -30,6 +31,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Auth\Access\Response;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\Relation;
 
 /**
  * Gli eventi del locale (§10).
@@ -138,6 +140,24 @@ class EventResource extends Resource
                         EventFields::priceMax(),
                     ]),
 
+                /*
+                 * Le fasce di prezzo (§ «Biglietti e fasce di prezzo»): lo
+                 * stato è per fascia, non per serata. Il prezzo minimo che
+                 * appare sulla card viene ricalcolato da queste righe, quindi
+                 * qui non c'è niente da tenere allineato a mano.
+                 */
+                Section::make(__('manage.sections.ticket_tiers'))
+                    ->collapsed()
+                    ->schema([
+                        EventFields::ticketTiers(),
+                    ]),
+
+                Section::make(__('manage.sections.facts'))
+                    ->collapsed()
+                    ->schema([
+                        EventFields::facts(),
+                    ]),
+
                 // Gli stessi campi dell'ultimo passo del wizard (§10.2), nello
                 // stesso ordine: chi ha appena creato l'evento ritrova qui
                 // quello che ha visto un minuto fa.
@@ -209,6 +229,9 @@ class EventResource extends Resource
             ])
             ->recordActions([
                 EditAction::make()->label(__('manage.actions.edit')),
+                // Il gesto della sera stessa, a portata di pollice: segnare
+                // esaurita la prossima data senza aprire il modulo.
+                EventActions::soldOutNextDate(),
                 EventActions::viewOnSite(),
                 EventActions::duplicate(),
             ]);
@@ -216,9 +239,30 @@ class EventResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
+        $city = CurrentVenue::city();
         $query = parent::getEloquentQuery();
 
-        VenueDashboardQuery::applyNextOccurrence($query, CurrentVenue::city());
+        VenueDashboardQuery::applyNextOccurrence($query, $city);
+
+        /*
+         * La prossima data di ogni riga, precaricata in una interrogazione
+         * sola: è ciò su cui agisce l'azione rapida «tutto esaurito», e
+         * senza il precaricamento ogni riga dell'elenco ne farebbe quattro
+         * per conto proprio — etichetta, colore, permesso, conferma.
+         *
+         * La giornata evento corrente la dà il motore temporale, come per la
+         * colonna «prossima data» che si legge accanto (§3 delle convenzioni).
+         */
+        $today = EventOccurrenceQuery::for($city)->currentBusinessDate();
+
+        $query->with([
+            'occurrences' => function (Relation $occurrences) use ($today): void {
+                $occurrences
+                    ->where('business_date', '>=', $today)
+                    ->orderBy('starts_at')
+                    ->limit(1);
+            },
+        ]);
 
         return $query;
     }

@@ -32,8 +32,8 @@
 @endphp
 
 <article {{ $attributes->class([
-    'group relative flex h-full flex-col overflow-hidden rounded-card bg-surface shadow-card ring-1 ring-line transition duration-300 ease-out-soft',
-    'hover:-translate-y-0.5 hover:shadow-lift hover:ring-line-strong' => $url !== null,
+    'group relative flex h-full flex-col overflow-hidden bg-canvas border-2 border-line transition duration-300 ease-out-soft',
+    'hover:-translate-y-0.5 hover:border-accent' => $url !== null,
 ]) }}>
     <div class="relative aspect-[16/9] w-full overflow-hidden poster-placeholder">
         @if ($cover !== null)
@@ -48,7 +48,7 @@
         @endif
 
         @if ($venue->is_verified)
-            <x-badge tone="brand" size="sm" class="absolute top-2 right-2 shadow-card">
+            <x-badge tone="brand" size="sm" class="absolute top-2 right-2">
                 {{ __('venues.badge.verified') }}
             </x-badge>
         @endif
@@ -56,7 +56,7 @@
 
     <div class="flex flex-1 flex-col gap-1.5 p-card">
         <div class="flex items-center gap-3">
-            <span class="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-pill bg-brand-soft text-sm font-bold text-on-brand-soft ring-1 ring-line">
+            <span class="flex size-10 shrink-0 items-center justify-center overflow-hidden bg-brand-soft text-sm font-bold text-on-brand-soft border-2 border-line">
                 @if ($logo !== null)
                     <x-media-image
                         :set="$logo"

@@ -145,7 +145,7 @@ final class EventController extends Controller
     private function findReadable(City $city, string $slug): Event
     {
         $event = Event::query()
-            ->with(['venue', 'category', 'tags', 'media'])
+            ->with(['venue', 'category', 'tags', 'media', 'ticketTiers'])
             ->inCity($city)
             ->readable()
             ->where('slug', $slug)

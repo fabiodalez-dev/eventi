@@ -19,8 +19,8 @@
 @endphp
 
 @if ($items->isNotEmpty())
-    <section class="flex flex-col gap-3 rounded-card bg-surface p-5 ring-1 ring-line" aria-labelledby="link-evento">
-        <h2 id="link-evento" class="text-section text-ink">{{ __('events.detail.external_links') }}</h2>
+    <section class="flex flex-col gap-3 bg-canvas p-5 border-2 border-line" aria-labelledby="link-evento">
+        <h2 id="link-evento" class="font-display text-[clamp(1.25rem,1.8vw,1.75rem)] leading-none font-extrabold tracking-[-0.03em] uppercase">{{ __('events.detail.external_links') }}</h2>
 
         <ul class="flex flex-col gap-2">
             @foreach ($items as $link)

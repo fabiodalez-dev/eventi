@@ -17,6 +17,7 @@ enum ApiInclude: string
     case Venue = 'venue';
     case Tags = 'tags';
     case Lineup = 'lineup';
+    case Tiers = 'tiers';
 
     /**
      * Le relazioni Eloquent da precaricare per questa inclusione: senza,
@@ -30,6 +31,12 @@ enum ApiInclude: string
             self::Venue => ['event.venue'],
             self::Tags => ['event.tags'],
             self::Lineup => ['lineups'],
+            /*
+             * Il listino di una data può sostituire quello dell'evento
+             * (`App\Support\TicketTiers`): servono entrambi, altrimenti la
+             * risoluzione interrogherebbe il database riga per riga.
+             */
+            self::Tiers => ['ticketTiers', 'event.ticketTiers'],
         };
     }
 

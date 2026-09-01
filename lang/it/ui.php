@@ -15,9 +15,42 @@ return [
 
     'cta' => [
         'label' => 'Partecipa al progetto',
+        /* Va a capo dove sta il ritorno a capo: e' un titolo da manifesto, e
+           la spezzatura fa parte del disegno. */
+        'title' => "Non perderti\nniente.",
+        'lead' => 'Organizzi qualcosa in città? Proponi la data e finisce in questo elenco. Gestisci un locale? Prenditi la tua pagina e pubblica da solo, senza passare da nessuno.',
+    ],
+
+    /*
+     * L'apertura. Il titolo ha una parola in evidenza — quella che nel
+     * riferimento e' in giallo-verde — e per questo e' spezzato in due chiavi
+     * invece di essere una frase sola.
+     */
+    'hero' => [
+        'title' => "A :city succede\n:accent.\nTu scegli cosa.",
+        'title_accent' => 'tutto',
+        'lead' => 'Concerti, serate, mostre, teatro, mercati, sport. Tutto quello che apre le porte in città, in un posto solo. Filtra per stasera, per zona, per quanto vuoi spendere — e vai.',
+        'explore' => 'Esplora l\'unico evento|Esplora :count eventi',
+        'open_map' => 'Apri la mappa',
+        'open_map_full' => 'Apri la mappa a schermo intero',
+    ],
+
+    /*
+     * La fascia dei numeri sotto l'apertura: sono le misure di §1 del piano,
+     * quelle con cui si risponde a «apro il sito e trovo qualcosa da fare?».
+     */
+    'stats' => [
+        'label' => 'Il catalogo in numeri',
+        'week' => 'Eventi nei prossimi 7 giorni',
+        'venues' => 'Locali sulla mappa',
+        'categories' => 'Categorie con date in programma',
+        'updated' => 'Dall\'ultimo aggiornamento',
+        'updated_ago' => 'aggiornato :ago',
+        'in_town' => 'un evento in programma|:count eventi in programma',
     ],
 
     'header' => [
+        'submit_event' => 'Aggiungi evento',
         'home' => 'Torna alla pagina iniziale di :app',
         'city_label' => 'Città',
         'change_city' => 'Cambia città',
@@ -42,6 +75,18 @@ return [
         'search' => 'Cerca',
         'saved' => 'Salvati',
         'account' => 'Il mio profilo',
+    ],
+
+    /*
+     * Il nastro scorrevole della testata: dice quante date ci sono stasera e
+     * quali stanno per cominciare. Sono frasi al plurale variabile perche' con
+     * una sola data «1 eventi» sarebbe sciatto proprio nel punto piu' visibile
+     * del sito.
+     */
+    'ticker' => [
+        'tonight' => '{1} Un evento stasera in città|[2,*] :count eventi stasera in città',
+        'free_today' => '{1} Un evento gratuito oggi|[2,*] :count eventi gratuiti oggi',
+        'added_today' => '{1} Un evento aggiunto oggi|[2,*] :count eventi aggiunti oggi',
     ],
 
     'footer' => [

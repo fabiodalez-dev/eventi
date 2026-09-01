@@ -44,9 +44,59 @@ it('risponde e dichiara l\'attribuzione a OpenStreetMap, che è un obbligo di li
 });
 
 it('non chiede alcuna chiave di accesso per le tessere', function (): void {
-    expect(config('map.style'))->toContain('openfreemap.org')
-        ->and(config('map.style'))->not->toContain('key=')
-        ->and(config('map.style'))->not->toContain('token');
+    $tessere = config()->string('map.tiles_url');
+
+    expect($tessere)
+        ->not->toContain('key=')
+        ->not->toContain('apikey')
+        ->not->toContain('access_token')
+        ->not->toContain('token=');
+});
+
+/*
+ * Le due trappole in cui questa configurazione e' gia' caduta, una per test.
+ */
+it('punta a un modello di tessere e non a uno stile vettoriale', function (): void {
+    /*
+     * `MAP_TILES_URL` ha contenuto per un periodo l'indirizzo di uno stile
+     * MapLibre (`.../styles/liberty`). Leaflet lo chiedeva come immagine,
+     * riceveva un JSON, e la mappa restava vuota: nessuna tessera, nessun
+     * errore in console, nessun indizio. I tre segnaposto sono cio' che
+     * distingue un modello di tessere da qualunque altro indirizzo.
+     */
+    $tessere = config()->string('map.tiles_url');
+
+    expect($tessere)->toContain('{z}')->toContain('{x}')->toContain('{y}');
+});
+
+it('attribuisce le tessere a chi le serve davvero', function (): void {
+    /*
+     * L'attribuzione e' una condizione di licenza, non un ringraziamento: deve
+     * nominare il fornitore vero. Dopo un cambio di fornitore ha continuato a
+     * citare quello vecchio, che e' il modo piu' silenzioso di violarla.
+     *
+     * La corrispondenza e' una TABELLA e non un'euristica sul dominio: la
+     * prima versione ritagliava la radice dell'indirizzo e la confrontava col
+     * nome mostrato, e su `services.arcgisonline.com` pretendeva di leggere
+     * «services». Una tabella e' piu' rigida di proposito — cambiando
+     * fornitore questo test diventa rosso e chiede di dichiarare come si
+     * chiama, che e' esattamente il momento in cui bisogna fermarsi a
+     * pensare all'attribuzione invece di scoprirlo sei mesi dopo.
+     */
+    $fornitori = [
+        'arcgisonline.com' => 'Esri',
+        'openstreetmap.org' => 'OpenStreetMap',
+        'basemaps.cartocdn.com' => 'CARTO',
+        'openfreemap.org' => 'OpenFreeMap',
+    ];
+
+    $dominio = parse_url(config()->string('map.tiles_url'), PHP_URL_HOST) ?? '';
+
+    $atteso = collect($fornitori)
+        ->first(fn (string $nome, string $host): bool => str_ends_with($dominio, $host));
+
+    expect($atteso)->not->toBeNull("fornitore di tessere sconosciuto ({$dominio}): aggiungilo alla tabella e controlla che __('map.tiles') lo nomini")
+        ->and(__('map.tiles'))->toBe($atteso);
 });
 
 it('resta leggibile senza JavaScript: sotto al riquadro c\'è l\'elenco', function (): void {
@@ -203,8 +253,12 @@ describe('vicino a me (§11.7)', function (): void {
         expect($html)->toBeString()
             ->and($html)->toContain('data-geolocate')
             /* Il pulsante nasce nascosto: senza geolocalizzazione non compare
-               mai, e nessuno chiede la posizione al caricamento della pagina. */
-            ->and($html)->toContain('hidden rounded-pill bg-brand');
+               mai, e nessuno chiede la posizione al caricamento della pagina.
+               Si verifica l'attributo `hidden` sull'elemento con
+               `data-geolocate`, non le classi che porta: un'asserzione sul
+               foglio di stile va rossa a ogni ritocco senza che si sia rotto
+               niente. */
+            ->and($html)->toMatch('/<button[^>]*data-geolocate[^>]*class="[^"]*\bhidden\b/');
     });
 
     it('la posizione vive nell\'indirizzo e da nessun\'altra parte', function (): void {

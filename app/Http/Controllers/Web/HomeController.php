@@ -4,18 +4,24 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Web;
 
+use App\DTOs\EventFilters;
+use App\Enums\EventStatus;
 use App\Enums\TimeOfDay;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\City;
+use App\Models\Event;
 use App\Models\EventOccurrence;
 use App\Models\Venue;
 use App\Queries\EventOccurrenceQuery;
+use App\Services\Map\MapPayload;
 use App\Services\Seo\StructuredData;
 use App\Support\CurrentCity;
+use App\Support\DateFormatter;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Route;
 
 /**
  * Pagina iniziale (§11.2). Ogni sezione temporale viene da
@@ -33,7 +39,10 @@ use Illuminate\Database\Eloquent\Collection;
  */
 final class HomeController extends Controller
 {
-    public function __construct(private readonly StructuredData $structuredData) {}
+    public function __construct(
+        private readonly StructuredData $structuredData,
+        private readonly MapPayload $mapPayload,
+    ) {}
 
     public function __invoke(CurrentCity $currentCity): View
     {
@@ -46,6 +55,14 @@ final class HomeController extends Controller
                 'days' => [],
                 'categories' => [],
                 'venues' => new Collection,
+                'hero' => null,
+                'nearby' => new Collection,
+                'stats' => ['upcoming' => 0],
+                'statCells' => [],
+                'quickFilters' => [],
+                'todayLine' => '',
+                'mapFilters' => new EventFilters,
+                'mapPayload' => ['markers' => [], 'categories' => [], 'truncated' => false],
                 'structuredData' => [
                     $this->structuredData->website(null),
                     $this->structuredData->organization(),
@@ -62,10 +79,27 @@ final class HomeController extends Controller
             'weekend' => $this->hydrate(EventOccurrenceQuery::for($city)->weekend()->get(), $perSection),
         ];
 
+        $visibili = array_filter($sections, static fn (Collection $section): bool => $section->isNotEmpty());
+
         return view('home', [
             'city' => $city,
-            'sections' => array_filter($sections, static fn (Collection $section): bool => $section->isNotEmpty()),
+            'sections' => $visibili,
             'lcpOccurrence' => $this->firstVisible($city, $sections),
+            /* La data in evidenza dell'apertura: la prima della sezione «in
+               evidenza» se la redazione ne ha scelta una, altrimenti la prima
+               che comincia. L'apertura non deve mai essere vuota — e non deve
+               nemmeno inventarsi un'evidenza che nessuno ha dichiarato. */
+            'hero' => $sections['featured']->first() ?? $sections['tonight']->first() ?? $sections['weekend']->first(),
+            'nearby' => $this->nearby($city),
+            /* La mappa della sezione «vicino a te» mostra tutto ciò che è in
+               programma, senza filtri: è una vista d'insieme della città, e
+               chi vuole stringere ha la pagina della mappa a un tocco. */
+            'mapFilters' => $mapFilters = new EventFilters,
+            'mapPayload' => $this->mapPayload->build($city, $mapFilters, null),
+            'stats' => $stats = $this->stats($city),
+            'statCells' => $this->statCells($stats),
+            'quickFilters' => $this->quickFilters($city),
+            'todayLine' => $this->todayLine($city, $stats),
             'days' => $this->days($city),
             'categories' => $this->categories($city),
             'venues' => $this->venues($city),
@@ -109,6 +143,156 @@ final class HomeController extends Controller
         }
 
         return null;
+    }
+
+    /**
+     * Le date piu' vicine al centro citta', per la sezione «vicino a te».
+     *
+     * **La posizione non si chiede all'apertura** (§11.7): finche' nessuno
+     * tocca il pulsante di localizzazione dentro la mappa, «vicino» vuol dire
+     * vicino al centro. E' una scelta onesta e non un ripiego — chi apre il
+     * sito da casa vuole vedere cosa succede in citta', non cosa succede sotto
+     * al proprio balcone.
+     *
+     * @return Collection<int, EventOccurrence>
+     */
+    private function nearby(City $city): Collection
+    {
+        /*
+         * Le colonne si chiamano `center_lat` e `center_lng`, e sono
+         * obbligatorie: una citta' senza centro non esiste, quindi qui non c'e'
+         * niente da controllare.
+         *
+         * La prima versione leggeva `latitude` e `longitude`, che su questo
+         * modello non esistono. Su un modello Eloquent una proprieta'
+         * inesistente vale `null` e non solleva niente: la guardia scattava
+         * sempre, il metodo restituiva sempre una collezione vuota, e la
+         * sezione «vicino a te» non compariva mai. Nessun errore, nessun log,
+         * nessun indizio — l'ha trovata l'analisi statica, non la pagina.
+         */
+        return $this->hydrate(
+            EventOccurrenceQuery::for($city)
+                ->upcoming()
+                ->near((float) $city->center_lat, (float) $city->center_lng, config()->float('eventi.nearby_radius_km', 12.0))
+                ->orderByDistance()
+                ->get()
+                ->unique('event_id')
+                ->values(),
+            5,
+        );
+    }
+
+    /**
+     * Le misure di §1: non «quanti utenti abbiamo», ma «c'e' qualcosa da
+     * fare?». Sono i numeri della fascia sotto l'apertura.
+     *
+     * @return array{upcoming: int, week: int, venues: int, categories: int, updated: ?CarbonImmutable}
+     */
+    private function stats(City $city): array
+    {
+        $ultimo = Event::query()
+            ->where('city_id', $city->getKey())
+            ->where('status', EventStatus::Published)
+            ->max('updated_at');
+
+        return [
+            'upcoming' => EventOccurrenceQuery::for($city)->upcoming()->count(),
+            'week' => EventOccurrenceQuery::for($city)->nextDays(7)->count(),
+            'venues' => Venue::query()->inCity($city)->approved()->count(),
+            'categories' => count(EventOccurrenceQuery::for($city)->upcoming()->countsByCategory()),
+            /* «Aggiornato N minuti fa» e' una promessa verificabile: viene
+               dall'ultima modifica vera in catalogo, non da `now()`. Se il
+               catalogo e' fermo da due giorni, lo dice. */
+            'updated' => is_string($ultimo)
+                ? CarbonImmutable::parse($ultimo, 'UTC')->setTimezone($city->timezone)
+                : null,
+        ];
+    }
+
+    /**
+     * @param  array{upcoming: int, week: int, venues: int, categories: int, updated: ?CarbonImmutable}  $stats
+     * @return list<array{value: string, label: string, accent?: bool}>
+     */
+    private function statCells(array $stats): array
+    {
+        $celle = [
+            ['value' => (string) $stats['week'], 'label' => __('ui.stats.week')],
+            ['value' => (string) $stats['venues'], 'label' => __('ui.stats.venues')],
+            ['value' => (string) $stats['categories'], 'label' => __('ui.stats.categories')],
+        ];
+
+        if ($stats['updated'] instanceof CarbonImmutable) {
+            $celle[] = [
+                'value' => $stats['updated']->diffForHumans(syntax: CarbonImmutable::DIFF_ABSOLUTE, short: true),
+                'label' => __('ui.stats.updated'),
+                'accent' => true,
+            ];
+        }
+
+        return $celle;
+    }
+
+    /**
+     * I quattro ritagli rapidi sotto il titolo di apertura, col conteggio.
+     *
+     * Uno con zero date non compare: un pulsante «Stasera 0» invita a un
+     * elenco vuoto, ed e' il modo piu' rapido per far credere che il sito non
+     * abbia niente (§8.6).
+     *
+     * @return list<array{label: string, url: string, count: int}>
+     */
+    private function quickFilters(City $city): array
+    {
+        $ritagli = [
+            ['label' => __('ui.nav.today'), 'route' => 'events.today', 'query' => EventOccurrenceQuery::for($city)->today()],
+            ['label' => __('ui.nav.tomorrow'), 'route' => 'events.tomorrow', 'query' => EventOccurrenceQuery::for($city)->tomorrow()],
+            ['label' => __('ui.nav.weekend'), 'route' => 'events.weekend', 'query' => EventOccurrenceQuery::for($city)->weekend()],
+            ['label' => __('ui.nav.free'), 'route' => 'events.free', 'query' => EventOccurrenceQuery::for($city)->upcoming()->priceFree()],
+        ];
+
+        $disponibili = [];
+
+        foreach ($ritagli as $ritaglio) {
+            if (! Route::has($ritaglio['route'])) {
+                continue;
+            }
+
+            $quante = $ritaglio['query']->count();
+
+            if ($quante === 0) {
+                continue;
+            }
+
+            $disponibili[] = [
+                'label' => $ritaglio['label'],
+                'url' => route($ritaglio['route']),
+                'count' => $quante,
+            ];
+        }
+
+        return $disponibili;
+    }
+
+    /**
+     * La riga sopra il titolo: data di oggi, quante date ci sono, da quanto e'
+     * aggiornato il catalogo.
+     *
+     * @param  array{upcoming: int, week: int, venues: int, categories: int, updated: ?CarbonImmutable}  $stats
+     */
+    private function todayLine(City $city, array $stats): string
+    {
+        $formatter = app(DateFormatter::class);
+
+        $pezzi = [
+            $formatter->weekdayDate(CarbonImmutable::now($city->timezone)),
+            trans_choice('ui.stats.in_town', $stats['upcoming'], ['count' => $stats['upcoming']]),
+        ];
+
+        if ($stats['updated'] instanceof CarbonImmutable) {
+            $pezzi[] = __('ui.stats.updated_ago', ['ago' => $stats['updated']->diffForHumans()]);
+        }
+
+        return implode(' '.__('common.separator').' ', $pezzi);
     }
 
     /**

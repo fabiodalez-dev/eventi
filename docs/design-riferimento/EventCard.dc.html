@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/modernist-153a583f-0c22-459e-8efe-c6c2c4563312/styles.css">
+  <script src="_ds/modernist-153a583f-0c22-459e-8efe-c6c2c4563312/_ds_bundle.js"></script>
+</helmet>
+<article data-magnet="apri" onClick="{{ open }}" onMouseEnter="{{ enter }}" onMouseLeave="{{ leave }}" style="{{ root }}">
+  <div style="{{ slab }}"></div>
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+    <span style="{{ idxS }}">{{ it.idxLabel }}</span>
+    <span style="{{ tagS }}">{{ it.cat }}</span>
+  </div>
+  <div style="position:relative;padding-top:2px">
+    <h3 aria-hidden="true" style="{{ ghost }}">{{ it.title }}</h3>
+    <h3 style="{{ titleS }}">{{ it.title }}</h3>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:2px;margin-bottom:auto">
+    <span style="font:400 12.5px/1.35 var(--font-body);color:rgba(245,245,240,.6)">{{ it.venueLine }}</span>
+    <span style="{{ whenS }}">{{ it.whenLabel }}</span>
+  </div>
+  <sc-if value="{{ it.hot }}">
+    <div style="display:flex;flex-direction:column;gap:6px;padding-top:4px">
+      <div style="height:3px;background:rgba(245,245,240,.16);overflow:hidden">
+        <div style="{{ bar }}"></div>
+      </div>
+      <span style="font:800 9.5px/1 var(--font-heading);letter-spacing:.14em;text-transform:uppercase;color:var(--color-accent)">{{ it.hotLabel }}</span>
+    </div>
+  </sc-if>
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;border-top:2px solid var(--color-divider);padding-top:12px">
+    <span style="font:800 16px/1 var(--font-heading);letter-spacing:-.01em">{{ it.priceLabel }}</span>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button onClick="{{ save }}" aria-label="Salva evento" style="{{ saveS }}">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="{{ saveFill }}" stroke="currentColor" stroke-width="2.4" stroke-linecap="square"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+      </button>
+      <span style="{{ arrow }}">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="square"><path d="M5 12h14M13 5l7 7-7 7"></path></svg>
+      </span>
+    </div>
+  </div>
+</article>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:360,&quot;height&quot;:280},&quot;it&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;EventVM&quot;},&quot;saved&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;variant&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;grid&quot;,&quot;mini&quot;],&quot;default&quot;:&quot;grid&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;onOpen&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(id: string) =&gt; void&quot;},&quot;onSave&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(id: string) =&gt; void&quot;}}">
+class Component extends DCLogic {
+  state = { h: false };
+
+  renderVals() {
+    const it = this.props.it || {};
+    const h = this.state.h;
+    const saved = !!this.props.saved;
+    const dense = this.props.variant === 'mini';
+    return {
+      it,
+      enter: () => this.setState({ h: true }),
+      leave: () => this.setState({ h: false }),
+      open: () => this.props.onOpen && this.props.onOpen(it.id),
+      save: (e) => { e.stopPropagation(); this.props.onSave && this.props.onSave(it.id); },
+      root: {
+        position: 'relative', display: 'flex', flexDirection: 'column',
+        gap: dense ? '10px' : '13px', minHeight: dense ? '0' : '252px',
+        padding: dense ? '16px 18px' : '20px 22px 20px 26px',
+        background: h ? 'rgba(204,255,0,.055)' : 'var(--color-bg)',
+        cursor: 'pointer', overflow: 'hidden', height: '100%',
+        transform: h ? 'translateY(-3px)' : 'none',
+        transition: 'transform .32s cubic-bezier(.2,.8,.2,1), background .28s'
+      },
+      slab: {
+        position: 'absolute', left: 0, top: 0, bottom: 0,
+        width: h ? '7px' : '0px', background: 'var(--color-accent)',
+        transition: 'width .3s cubic-bezier(.76,0,.24,1)'
+      },
+      idxS: {
+        font: '800 10px/1 var(--font-heading)', letterSpacing: '.1em',
+        color: h ? 'var(--color-accent)' : 'rgba(245,245,240,.34)', transition: 'color .25s'
+      },
+      tagS: {
+        font: '800 9.5px/1 var(--font-heading)', letterSpacing: '.14em', textTransform: 'uppercase',
+        padding: '5px 8px', whiteSpace: 'nowrap',
+        border: '2px solid ' + (h ? 'var(--color-accent)' : 'var(--color-divider)'),
+        background: h ? 'var(--color-accent)' : 'transparent',
+        color: h ? 'var(--color-bg)' : 'rgba(245,245,240,.72)',
+        transition: 'background .25s, color .25s, border-color .25s'
+      },
+      titleS: {
+        position: 'relative', margin: 0,
+        font: '800 ' + (dense ? '17px' : 'clamp(19px,1.55vw,25px)') + '/1.03 var(--font-heading)',
+        letterSpacing: '-.025em', textTransform: 'uppercase', textWrap: 'balance',
+        color: 'var(--color-text)',
+        transform: h ? 'translateX(9px)' : 'none',
+        transition: 'transform .34s cubic-bezier(.76,0,.24,1)'
+      },
+      ghost: {
+        position: 'absolute', left: 0, top: 2, right: 0, margin: 0, pointerEvents: 'none',
+        font: '800 ' + (dense ? '17px' : 'clamp(19px,1.55vw,25px)') + '/1.03 var(--font-heading)',
+        letterSpacing: '-.025em', textTransform: 'uppercase',
+        color: 'var(--color-accent)', clipPath: 'inset(0 0 54% 0)',
+        opacity: h ? 1 : 0, transform: h ? 'translate(-6px,-4px)' : 'none',
+        transition: 'opacity .26s, transform .34s cubic-bezier(.76,0,.24,1)'
+      },
+      whenS: {
+        font: '800 11px/1.3 var(--font-heading)', textTransform: 'uppercase',
+        letterSpacing: h ? '.14em' : '.1em', color: 'rgba(245,245,240,.9)',
+        transition: 'letter-spacing .3s'
+      },
+      bar: {
+        height: '100%', width: (it.pct || 0) + '%', background: 'var(--color-accent)',
+        transformOrigin: 'left', animation: 'lineGrow .8s cubic-bezier(.2,.8,.2,1) both'
+      },
+      saveS: {
+        display: 'grid', placeItems: 'center', width: '30px', height: '30px', padding: 0,
+        cursor: 'pointer', border: '2px solid ' + (saved ? 'var(--color-accent)' : 'var(--color-divider)'),
+        background: saved ? 'var(--color-accent)' : 'transparent',
+        color: saved ? 'var(--color-bg)' : 'rgba(245,245,240,.8)', transition: 'all .2s'
+      },
+      saveFill: saved ? 'currentColor' : 'none',
+      arrow: {
+        display: 'grid', placeItems: 'center', width: '30px', height: '30px',
+        color: h ? 'var(--color-accent)' : 'rgba(245,245,240,.45)',
+        transform: h ? 'translateX(6px)' : 'none',
+        transition: 'transform .3s cubic-bezier(.76,0,.24,1), color .25s'
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -10,6 +10,9 @@ use Illuminate\Database\Seeder;
 /**
  * I tag di §7.5 del piano più altri plausibili, per dimostrare che la
  * tassonomia è estendibile senza deploy.
+ *
+ * **Idempotente** per la stessa ragione di `CategorySeeder`: l'installer lo
+ * esegue in un'operazione che dev'essere ripetibile senza danno (D42, punto 5).
  */
 class TagSeeder extends Seeder
 {
@@ -31,8 +34,7 @@ class TagSeeder extends Seeder
     public function run(): void
     {
         foreach ([...self::TAGS_FROM_PLAN, ...self::EXTRA_TAGS] as $name) {
-            Tag::create([
-                'name' => $name,
+            Tag::query()->firstOrCreate(['name' => $name], [
                 'category_id' => null,
                 'is_approved' => true,
                 'usage_count' => 0,

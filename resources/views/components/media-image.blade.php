@@ -46,6 +46,8 @@
         fetchpriority="{{ $eager ? 'high' : 'auto' }}"
         decoding="async"
         @if ($style !== null) style="{{ $style }}" @endif
-        {{ $attributes }}
+        {{-- Le fotografie stampano in bianco e nero (D47): la regola vale per
+             ogni immagine di contenuto, segnaposto sfocato compreso. --}}
+        {{ $attributes->class(['grayscale-photo']) }}
     >
 </picture>

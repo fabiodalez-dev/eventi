@@ -17,11 +17,13 @@
     'categories',
     'tags',
     'municipalities',
+    'zones' => [],
     'venues',
     'total' => null,
 ])
 
 @php
+    use App\Enums\AccessibilityFeature;
     use App\Enums\DatePreset;
     use App\Enums\EventSort;
     use App\Enums\PriceFilter;
@@ -66,6 +68,14 @@
         $municipalityOptions[$municipality] = $municipality;
     }
 
+    /* Finché nessun locale ha un quartiere, il menu non si disegna: una
+       tendina con la sola voce «tutti» è un contenitore vuoto (§8.6). */
+    $zoneOptions = [];
+
+    foreach ($zones as $zone) {
+        $zoneOptions[$zone] = $zone;
+    }
+
     $tagOptions = [];
 
     foreach ($tags as $tag) {
@@ -73,66 +83,126 @@
     }
 @endphp
 
-<section {{ $attributes->class(['flex flex-col gap-3']) }} aria-label="{{ __('filters.title') }}">
-    <div class="scroll-row gap-2">
-        <x-filter-chip :href="$url($filters->withPreset(null))" :active="! $filters->hasDateWindow()">
-            {{ __('filters.date.any') }}
-        </x-filter-chip>
+<section {{ $attributes->class(['flex flex-col gap-6']) }} aria-label="{{ __('filters.title') }}">
+    {{--
+        La colonna dei filtri del riferimento (D46): gruppi impilati, ognuno
+        con la propria etichetta in maiuscoletto, e in fondo il conteggio dei
+        risultati in giallo-verde.
 
-        @foreach ($presets as $preset)
-            <x-filter-chip
-                :href="$url($filters->preset === $preset ? $filters->withPreset(null) : $filters->withPreset($preset))"
-                :active="$filters->preset === $preset"
+        Restano tutti link e un modulo GET: accendere un filtro cambia
+        l'indirizzo, che è l'unico stato della pagina. Cambia la disposizione,
+        non il funzionamento — chi ha JavaScript spento filtra come prima.
+    --}}
+    <div class="flex items-baseline justify-between gap-2.5">
+        <h2 class="m-0 font-display text-xl leading-none font-extrabold tracking-[-0.03em] uppercase">{{ __('filters.title') }}</h2>
+
+        @if ($active > 0)
+            <a
+                href="{{ route('events.index') }}"
+                class="border-b-2 border-line font-display text-[0.594rem] leading-none font-extrabold tracking-[0.14em] text-ink-subtle uppercase transition-colors hover:border-accent hover:text-accent"
             >
-                {{ $preset->label() }}
-            </x-filter-chip>
-        @endforeach
+                {{ __('filters.reset') }}
+            </a>
+        @endif
     </div>
 
-    <div class="scroll-row gap-2">
-        @foreach ($categories as $category)
+    <div class="flex flex-col gap-[9px]">
+        <span class="font-display text-[0.594rem] leading-none font-extrabold tracking-[0.16em] text-ink-subtle uppercase">{{ __('filters.date.label') }}</span>
+
+        <div class="grid grid-cols-2 gap-0.5 bg-line p-0.5">
             <x-filter-chip
-                :href="$url($filters->toggleCategory($category->slug))"
-                :active="$filters->hasCategory($category->slug)"
+                :href="$url($filters->withPreset(null))"
+                :active="! $filters->hasDateWindow()"
+                class="justify-center border-0 py-2.5"
             >
-                {{ $category->name }}
+                {{ __('filters.date.any') }}
             </x-filter-chip>
-        @endforeach
+
+            @foreach ($presets as $preset)
+                <x-filter-chip
+                    :href="$url($filters->preset === $preset ? $filters->withPreset(null) : $filters->withPreset($preset))"
+                    :active="$filters->preset === $preset"
+                    class="justify-center border-0 py-2.5"
+                >
+                    {{ $preset->label() }}
+                </x-filter-chip>
+            @endforeach
+        </div>
     </div>
 
-    <div class="scroll-row gap-2">
-        @foreach ($prices as $price)
-            <x-filter-chip
-                :href="$url($filters->price === $price ? $filters->withPrice(null) : $filters->withPrice($price))"
-                :active="$filters->price === $price"
-            >
-                {{ $price->label() }}
-            </x-filter-chip>
-        @endforeach
+    @if (count($categories) > 0)
+        <div class="flex flex-col gap-[9px]">
+            <span class="font-display text-[0.594rem] leading-none font-extrabold tracking-[0.16em] text-ink-subtle uppercase">{{ __('filters.category.label') }}</span>
 
-        @foreach (TimeOfDay::cases() as $band)
-            <x-filter-chip
-                :href="$url($filters->time === $band ? $filters->withTime(null) : $filters->withTime($band))"
-                :active="$filters->time === $band"
-            >
-                {{ $band->label() }}
-            </x-filter-chip>
-        @endforeach
+            <div class="flex flex-wrap gap-1.5">
+                @foreach ($categories as $category)
+                    <x-filter-chip
+                        :href="$url($filters->toggleCategory($category->slug))"
+                        :active="$filters->hasCategory($category->slug)"
+                    >
+                        {{ $category->name }}
+                    </x-filter-chip>
+                @endforeach
+            </div>
+        </div>
+    @endif
 
-        <x-filter-chip :href="$url($filters->withOutdoor(! $filters->outdoor))" :active="$filters->outdoor">
-            {{ __('filters.features.outdoor') }}
-        </x-filter-chip>
+    <div class="flex flex-col gap-[9px]">
+        <span class="font-display text-[0.594rem] leading-none font-extrabold tracking-[0.16em] text-ink-subtle uppercase">{{ __('filters.price.label') }}</span>
 
-        <x-filter-chip :href="$url($filters->withAccessible(! $filters->accessible))" :active="$filters->accessible">
-            {{ __('filters.features.accessible') }}
-        </x-filter-chip>
-
-        <x-filter-chip :href="$url($filters->withFamily(! $filters->family))" :active="$filters->family">
-            {{ __('filters.features.family') }}
-        </x-filter-chip>
+        <div class="flex flex-wrap gap-1.5">
+            @foreach ($prices as $price)
+                <x-filter-chip
+                    :href="$url($filters->price === $price ? $filters->withPrice(null) : $filters->withPrice($price))"
+                    :active="$filters->price === $price"
+                >
+                    {{ $price->label() }}
+                </x-filter-chip>
+            @endforeach
+        </div>
     </div>
 
-    <details class="rounded-card bg-surface ring-1 ring-line" @if ($active > 0) open @endif>
+    <div class="flex flex-col gap-[9px]">
+        <span class="font-display text-[0.594rem] leading-none font-extrabold tracking-[0.16em] text-ink-subtle uppercase">{{ __('filters.time.label') }}</span>
+
+        <div class="flex flex-wrap gap-1.5">
+            @foreach (TimeOfDay::cases() as $band)
+                <x-filter-chip
+                    :href="$url($filters->time === $band ? $filters->withTime(null) : $filters->withTime($band))"
+                    :active="$filters->time === $band"
+                >
+                    {{ $band->label() }}
+                </x-filter-chip>
+            @endforeach
+        </div>
+    </div>
+
+    <div class="flex flex-col gap-[9px]">
+        <span class="font-display text-[0.594rem] leading-none font-extrabold tracking-[0.16em] text-ink-subtle uppercase">{{ __('filters.features.label') }}</span>
+
+        <div class="flex flex-wrap gap-1.5">
+            <x-filter-chip :href="$url($filters->withOutdoor(! $filters->outdoor))" :active="$filters->outdoor">
+                {{ __('filters.features.outdoor') }}
+            </x-filter-chip>
+
+            <x-filter-chip :href="$url($filters->withAccessible(! $filters->accessible))" :active="$filters->accessible">
+                {{ __('filters.features.accessible') }}
+            </x-filter-chip>
+
+            <x-filter-chip :href="$url($filters->withFamily(! $filters->family))" :active="$filters->family">
+                {{ __('filters.features.family') }}
+            </x-filter-chip>
+        </div>
+    </div>
+
+    @if ($total !== null)
+        <div class="mt-auto flex flex-col gap-1 border-t-2 border-line pt-3.5">
+            <span class="font-display text-[clamp(1.5rem,2vw,2.125rem)] leading-none font-extrabold tracking-[-0.03em] text-accent">{{ $total }}</span>
+            <span class="font-display text-[0.594rem] leading-[1.3] font-extrabold tracking-[0.14em] text-ink-subtle uppercase">{{ trans_choice('filters.results', $total, ['count' => $total]) }}</span>
+        </div>
+    @endif
+
+    <details class="bg-canvas border-2 border-line" @if ($active > 0) open @endif>
         <summary class="cursor-pointer list-none px-4 py-3 text-sm font-semibold text-ink">
             {{ __('filters.open') }}
             @if ($active > 0)
@@ -191,6 +261,16 @@
                     :value="$filters->municipality"
                 />
 
+                @if ($zoneOptions !== [])
+                    <x-field
+                        name="zone"
+                        :label="__('filters.place.zone')"
+                        :options="$zoneOptions"
+                        :placeholder-option="__('filters.place.any_zone')"
+                        :value="$filters->zone"
+                    />
+                @endif
+
                 <x-field
                     name="venue"
                     :label="__('filters.place.venue')"
@@ -233,10 +313,31 @@
                 @endforeach
             </fieldset>
 
+            {{-- Le voci di accessibilità: esistono come filtro soltanto
+                 perché `venues.accessibility` è strutturato. Sono in AND, e
+                 il modulo lo dice mostrandole come caselle e non come
+                 alternative. --}}
+            <fieldset class="flex flex-wrap gap-4">
+                <legend class="mb-2 text-sm font-semibold text-ink">{{ __('filters.accessibility.label') }}</legend>
+
+                @foreach (AccessibilityFeature::cases() as $feature)
+                    <label class="flex items-center gap-2 text-sm text-ink-muted">
+                        <input
+                            type="checkbox"
+                            name="access[]"
+                            value="{{ $feature->value }}"
+                            @checked($filters->hasAccess($feature->value))
+                            class="size-4 rounded border-line text-brand focus:ring-focus"
+                        >
+                        {{ $feature->label() }}
+                    </label>
+                @endforeach
+            </fieldset>
+
             <div class="flex flex-wrap items-center gap-3">
                 <button
                     type="submit"
-                    class="rounded-pill bg-brand px-4 py-2 text-sm font-semibold text-on-brand transition hover:bg-brand-strong"
+                    class="bg-brand px-4 py-2.5 font-display text-[0.688rem] leading-none font-extrabold tracking-[0.14em] text-on-brand uppercase transition hover:bg-brand-strong"
                 >
                     {{ __('filters.apply') }}
                 </button>

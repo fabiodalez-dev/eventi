@@ -30,7 +30,7 @@
     );
 @endphp
 
-<section {{ $attributes->class(['rounded-card bg-surface p-4 ring-1 ring-line']) }} aria-labelledby="vicino-a-me">
+<section {{ $attributes->class(['bg-canvas p-4 border-2 border-line']) }} aria-labelledby="vicino-a-me">
     <h2 id="vicino-a-me" class="text-card text-ink">{{ __('map.near.title') }}</h2>
 
     @if ($filters->hasPosition())
@@ -65,7 +65,7 @@
                 data-geolocate-url="{{ $target }}?{{ http_build_query($filters->toQueryString()) }}"
                 data-geolocate-radius="{{ $current ?? $default }}"
                 data-geolocate-denied="{{ __('map.near.denied') }}"
-                class="hidden rounded-pill bg-brand px-4 py-2 text-sm font-semibold text-on-brand transition hover:bg-brand-strong"
+                class="hidden bg-brand px-4 py-2.5 font-display text-[0.688rem] leading-none font-extrabold tracking-[0.14em] text-on-brand uppercase transition hover:bg-brand-strong"
             >
                 {{ __('map.near.allow') }}
             </button>
@@ -77,7 +77,7 @@
                      il pulsante lo legge da qui. --}}
                 <select
                     data-geolocate-radius-input
-                    class="rounded-pill border border-line bg-surface px-3 py-1.5 text-sm text-ink focus:border-brand focus:outline-none"
+                    class="border border-line bg-surface px-3 py-1.5 text-sm text-ink focus:border-brand focus:outline-none"
                 >
                     @foreach ($radii as $km)
                         <option value="{{ $km }}" @selected((int) $km === ($current ?? $default))>

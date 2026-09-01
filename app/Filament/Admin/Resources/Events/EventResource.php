@@ -16,7 +16,9 @@ use App\Filament\Admin\Resources\Events\RelationManagers\OccurrencesRelationMana
 use App\Filament\Admin\Support\StructuredFields;
 use App\Filament\Support\EventStatusPresentation;
 use App\Filament\Support\ExternalLinksField;
+use App\Filament\Support\FactsField;
 use App\Filament\Support\ImageUpload;
+use App\Filament\Support\TicketTiersField;
 use App\Models\City;
 use App\Models\Event;
 use App\Queries\EditorialDashboardQuery;
@@ -358,6 +360,24 @@ class EventResource extends Resource
                             ->label(__('admin.fields.organizer_url'))
                             ->url()
                             ->maxLength(255),
+                    ]),
+
+                /*
+                 * Il listino dell'evento. Lo stato è **per fascia**: è la sola
+                 * forma in cui «parterre esaurito, secondo anello disponibile»
+                 * si può dire — `OccurrenceStatus::SoldOut` marca l'intera
+                 * serata e non lo sa fare.
+                 */
+                Section::make(__('admin.sections.ticket_tiers'))
+                    ->collapsed()
+                    ->schema([
+                        TicketTiersField::make('admin'),
+                    ]),
+
+                Section::make(__('admin.sections.facts'))
+                    ->collapsed()
+                    ->schema([
+                        FactsField::make('admin', 'facts'),
                     ]),
 
                 Section::make(__('admin.sections.external_links'))

@@ -38,7 +38,9 @@ class EventOccurrence extends Model
         'status',
         'status_note',
         'price_override',
+        'capacity',
         'capacity_left',
+        'highlight',
         'is_exception',
     ];
 
@@ -52,6 +54,17 @@ class EventOccurrence extends Model
     public function recurrence(): BelongsTo
     {
         return $this->belongsTo(EventRecurrence::class, 'recurrence_id');
+    }
+
+    /**
+     * Il listino di **questa data soltanto**, quando esiste: sostituisce
+     * quello dell'evento invece di integrarlo (vedi `App\Support\TicketTiers`).
+     *
+     * @return HasMany<TicketTier, $this>
+     */
+    public function ticketTiers(): HasMany
+    {
+        return $this->hasMany(TicketTier::class, 'occurrence_id')->orderBy('sort_order')->orderBy('id');
     }
 
     /** @return HasMany<Lineup, $this> */
@@ -124,6 +137,7 @@ class EventOccurrence extends Model
             'is_all_day' => 'boolean',
             'status' => OccurrenceStatus::class,
             'price_override' => 'array',
+            'capacity' => 'integer',
             'capacity_left' => 'integer',
             'is_exception' => 'boolean',
         ];

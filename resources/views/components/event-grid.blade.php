@@ -5,65 +5,52 @@
     disegna la sezione, che sa da quale finestra di `EventOccurrenceQuery`
     arrivano le occorrenze (§8, D23).
 
-    **Le colonne dipendono da quante occorrenze ci sono.** Una griglia fissa a
-    quattro colonne è giusta per un catalogo e sbagliata per una sezione con
-    due voci: lascia due colonne di niente accanto a ciò che il lettore stava
-    guardando. E le sezioni con poche voci non sono un caso raro — "In corso
-    adesso" e "Inizia tra poco" ne hanno quasi sempre una o due, e sono proprio
-    quelle che rispondono alla domanda per cui il sito esiste.
+    **Perché il divisore sta sui bordi delle card e non sotto la griglia**
+    (D46). Il riferimento ottiene le righe da due pixel dando alla griglia il
+    colore del divisore e alle card quello della pagina: lo spazio fra l'una e
+    l'altra è il fondo che traspare. Funziona finché l'ultima riga è piena —
+    ma `auto-fill` tiene in piedi le colonne anche quando le card finiscono, e
+    lì quel fondo non è più una riga sottile: è un rettangolo grigio grande
+    quanto tre card mancanti. Con una sezione di una sola data, che è il caso
+    normale in un giorno feriale, mezza pagina diventa grigia.
 
-    Fino a tre voci il formato cambia del tutto: `event-feature` le dispone in
-    orizzontale, una per riga. Non e' solo per riempire lo spazio — una
-    locandina 3:4 allargata a mezzo schermo diventa un manifesto che schiaccia
-    tutto il resto della pagina, e la card verticale funziona solo quando ce ne
-    stanno quattro in fila.
+    Quindi il divisore lo disegnano le card, sul bordo destro e su quello
+    inferiore. Nessun raddoppio, perché ogni card ne disegna due soli; le celle
+    vuote restano fondo pagina; e l'elenco resta il tabellone continuo che
+    deve essere, senza angoli arrotondati e senza ombre.
+
+    **Perché il numero di voci non cambia più il formato.** Prima, fino a tre
+    occorrenze, la sezione passava a un formato orizzontale. Nel riferimento
+    una griglia con due card è una griglia con due card: le colonne si
+    riempiono da sinistra e il resto della riga resta fondo. Un elenco che
+    cambia forma a seconda di quanto è lungo costringe chi guarda a rileggerlo
+    ogni volta.
 --}}
 @props([
     'occurrences',
     'context' => 'upcoming',
-    /* La prima riga sta sopra la piega: le sue locandine non si rinviano */
-    'eager' => false,
     'showVenue' => true,
     'level' => 'h3',
-    /* Le liste paginate restano a quattro colonne anche quando l'ultima pagina
-       ne contiene tre: lì il numero è un residuo della paginazione, non una
-       misura di quanto conta la sezione. */
-    'adaptive' => true,
+    /* La numerazione progressiva delle card. Si spegne dove le card non sono
+       un elenco ordinato — i risultati di una ricerca, per esempio, dove il
+       numero suggerirebbe una classifica che non c'è. */
+    'numbered' => true,
+    /* Da quale numero parte questa griglia: le liste paginate continuano il
+       conteggio invece di ricominciare da «01» a ogni pagina. */
+    'offset' => 0,
 ])
 
-@php
-    $count = $occurrences instanceof \Countable || is_array($occurrences)
-        ? count($occurrences)
-        : $occurrences->count();
-
-    /* Fino a tre voci il formato e' orizzontale, da quattro in su e' un
-       catalogo. La soglia non e' arbitraria: quattro e' il numero di colonne
-       della griglia, cioe' il punto in cui una riga si riempie da sola. */
-    $asFeature = $adaptive && $count > 0 && $count <= 3;
-@endphp
-
-@if ($asFeature)
-    <div {{ $attributes->class(['flex flex-col gap-4']) }}>
-        @foreach ($occurrences as $occurrence)
-            <x-event-feature
-                :occurrence="$occurrence"
-                :context="$context"
-                :show-venue="$showVenue"
-                :level="$level"
-                :eager="$eager && $loop->index === 0"
-            />
-        @endforeach
-    </div>
-@else
-    <div {{ $attributes->class(['grid gap-4 sm:grid-cols-2 lg:grid-cols-4']) }}>
-        @foreach ($occurrences as $occurrence)
-            <x-event-card
-                :occurrence="$occurrence"
-                :context="$context"
-                :show-venue="$showVenue"
-                :level="$level"
-                :eager="$eager && $loop->index < 4"
-            />
-        @endforeach
-    </div>
-@endif
+<div {{ $attributes->class([
+    'grid [grid-template-columns:repeat(auto-fill,minmax(min(298px,100%),1fr))]',
+]) }}>
+    @foreach ($occurrences as $occurrence)
+        <x-event-card
+            :occurrence="$occurrence"
+            :context="$context"
+            :show-venue="$showVenue"
+            :level="$level"
+            :index="$numbered ? $offset + $loop->iteration : null"
+            class="border-r-2 border-b-2 border-line"
+        />
+    @endforeach
+</div>

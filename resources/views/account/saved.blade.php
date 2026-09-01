@@ -34,7 +34,7 @@
         >
             <a
                 href="{{ route('events.index') }}"
-                class="rounded-pill bg-brand px-4 py-2.5 text-sm font-semibold text-on-brand transition hover:bg-brand-strong"
+                class="bg-brand px-4 py-2.5 text-sm font-semibold text-on-brand transition hover:bg-brand-strong"
             >
                 {{ __('events.title') }}
             </a>

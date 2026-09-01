@@ -38,6 +38,19 @@ return [
         'past_events' => 'Eventi passati',
         'map_title' => 'Posizione di :venue',
         'follow_soon' => 'Il pulsante funzionerà quando arriveranno gli account.',
+        'transit' => 'Come arrivare',
+        'info' => 'Buono a sapersi',
+        'zone' => 'Zona',
+    ],
+
+    /*
+     * L'accessibilità dichiarata dal locale. Si elencano soltanto le voci
+     * **presenti**: una voce dichiarata assente non si stampa come divieto, e
+     * una non dichiarata non si stampa affatto — «non lo sappiamo» non è «no».
+     */
+    'accessibility' => [
+        'undeclared' => 'Il locale non ha ancora dichiarato le voci di accessibilità.',
+        'item_alt' => 'Presente',
     ],
 
     'filters' => [

@@ -36,7 +36,7 @@
      * pesi visivi diversi sono una preferenza espressa dal sito al posto di
      * chi legge.
      */
-    $choiceClasses = 'flex-1 rounded-pill bg-brand px-4 py-2.5 text-center text-sm font-semibold text-on-brand transition hover:bg-brand-strong sm:flex-none sm:px-6';
+    $choiceClasses = 'flex-1 bg-brand px-4 py-2.5 text-center text-sm font-semibold text-on-brand transition hover:bg-brand-strong sm:flex-none sm:px-6';
 
     $policyUrl = \Illuminate\Support\Facades\Route::has('pages.show')
         ? route('pages.show', ['slug' => config('consent.policy_page')])
@@ -52,7 +52,7 @@
         data-consent-banner
         role="region"
         aria-labelledby="consenso-titolo"
-        class="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface shadow-lift"
+        class="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface"
     >
         <form
             method="POST"
@@ -86,7 +86,7 @@
                  JavaScript, è annunciato dai lettori di schermo come un
                  elemento che si apre, e non è una finestra che copre la
                  pagina. --}}
-            <details class="rounded-card bg-surface-sunken px-4 py-3">
+            <details class="bg-surface px-4 py-3">
                 <summary class="cursor-pointer text-sm font-semibold text-ink">{{ __('consent.preferences') }}</summary>
 
                 <p class="mt-1 text-xs text-ink-subtle">{{ __('consent.preferences_hint') }}</p>
@@ -98,7 +98,7 @@
                     <li class="flex flex-col gap-0.5">
                         <span class="flex items-center gap-2 text-sm font-semibold text-ink">
                             {{ \App\Enums\ConsentCategory::Necessary->label() }}
-                            <span class="rounded-pill bg-muted-badge px-2 py-0.5 text-eyebrow text-on-muted-badge uppercase">
+                            <span class="bg-muted-badge px-2 py-0.5 text-eyebrow text-on-muted-badge uppercase">
                                 {{ __('consent.always_active') }}
                             </span>
                         </span>
@@ -113,7 +113,7 @@
                                     type="checkbox"
                                     name="categories[]"
                                     value="{{ $category->value }}"
-                                    class="mt-1 size-4 shrink-0 rounded border-line-strong text-brand focus:ring-brand"
+                                    class="mt-1 size-4 shrink-0 rounded border-line-strong text-brand focus:border-accent"
                                 >
                                 <span class="flex flex-col gap-0.5">
                                     <span class="text-sm font-semibold text-ink">{{ $category->label() }}</span>
@@ -128,7 +128,7 @@
                     type="submit"
                     name="action"
                     value="{{ \App\Enums\ConsentAction::Custom->value }}"
-                    class="mt-3 rounded-pill px-4 py-2 text-sm font-semibold text-ink ring-1 ring-line-strong transition hover:ring-brand"
+                    class="mt-3 px-4 py-2.5 font-display text-[0.688rem] leading-none font-extrabold tracking-[0.14em] text-ink uppercase border-2 border-accent transition hover:border-accent"
                 >
                     {{ __('consent.save_preferences') }}
                 </button>

@@ -29,6 +29,13 @@ return [
         'any' => 'Tutte le categorie',
     ],
 
+    /* La fascia oraria: mattina, pomeriggio, sera, notte. Il gruppo esisteva
+       solo come voce di un ordinamento — qui e' un filtro con la sua
+       etichetta, perche' nella colonna ogni gruppo deve dire cosa filtra. */
+    'time' => [
+        'label' => 'Fascia oraria',
+    ],
+
     'tag' => [
         'label' => 'Tag',
         'any' => 'Tutti i tag',
@@ -51,6 +58,10 @@ return [
     'place' => [
         'label' => 'Zona',
         'municipality' => 'Comune',
+        /* Il quartiere, che dentro un capoluogo è la scala a cui si cerca
+           davvero: il comune è lo stesso per tutti e non separa niente. */
+        'zone' => 'Quartiere',
+        'any_zone' => 'Tutti i quartieri',
         'venue' => 'Locale',
         'any' => 'Tutta la provincia',
     ],
@@ -70,6 +81,16 @@ return [
         'outdoor' => "All'aperto",
         'accessible' => 'Accessibile',
         'family' => 'Adatto alle famiglie',
+    ],
+
+    /*
+     * Il filtro per voce di accessibilità (§11.3). Esiste perché
+     * `venues.accessibility` è strutturato: su testo libero non sarebbe
+     * possibile, ed è la ragione per cui è stato strutturato.
+     */
+    'accessibility' => [
+        'label' => 'Accessibilità',
+        'any' => 'Qualsiasi',
     ],
 
     'sort' => [

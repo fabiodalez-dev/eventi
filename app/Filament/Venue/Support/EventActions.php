@@ -5,10 +5,16 @@ declare(strict_types=1);
 namespace App\Filament\Venue\Support;
 
 use App\Actions\DuplicateEventAction;
+use App\Actions\UpdateOccurrencesAction;
 use App\Enums\EventStatus;
+use App\Enums\OccurrenceScope;
+use App\Enums\OccurrenceStatus;
 use App\Filament\Venue\Resources\Events\EventResource;
 use App\Models\Event;
+use App\Models\EventOccurrence;
 use App\Models\User;
+use App\Queries\VenueDashboardQuery;
+use App\Support\DateFormatter;
 use App\Support\RecurrenceRule;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
@@ -109,6 +115,69 @@ final class EventActions
     }
 
     /**
+     * «Tutto esaurito», dall'elenco, senza aprire niente.
+     *
+     * È il gesto più frequente e più urgente che un locale compie: succede la
+     * sera stessa, con il telefono in mano e la gente alla porta. Fino a oggi
+     * costava quattro tocchi — apri l'evento, scendi alle date, trova la
+     * riga, conferma — e la scorciatoia non esisteva.
+     *
+     * **Agisce su una data, non sull'evento**: lo stato appartiene alla data,
+     * e quella scelta è la stessa che l'elenco mostra nella colonna «prossima
+     * data», così il pulsante fa ciò che si sta leggendo. La conferma dice
+     * quale data sta per toccare, perché su una serie ricorrente «tutto
+     * esaurito» senza un giorno scritto è ambiguo.
+     *
+     * Un evento senza date future non lo mostra affatto: non c'è niente da
+     * esaurire.
+     */
+    public static function soldOutNextDate(): Action
+    {
+        return Action::make('soldOutNextDate')
+            ->label(fn (Event $record): string => self::nextIsSoldOut($record)
+                ? __('manage.actions.available_next')
+                : __('manage.actions.sold_out_next'))
+            ->icon(Heroicon::OutlinedTicket)
+            ->color(fn (Event $record): string => self::nextIsSoldOut($record) ? 'success' : 'warning')
+            ->requiresConfirmation()
+            ->modalDescription(fn (Event $record): string => self::soldOutConfirmation($record))
+            ->visible(fn (Event $record): bool => self::nextDate($record) instanceof EventOccurrence)
+            ->authorize(function (Event $record): bool {
+                $next = self::nextDate($record);
+
+                return $next !== null && (self::user()?->can('update', $next) ?? false);
+            })
+            ->action(function (Event $record): void {
+                $next = self::nextDate($record);
+
+                if (! $next instanceof EventOccurrence) {
+                    return;
+                }
+
+                $changed = app(UpdateOccurrencesAction::class)->changeStatus(
+                    $next,
+                    $next->status === OccurrenceStatus::SoldOut
+                        ? OccurrenceStatus::Scheduled
+                        : OccurrenceStatus::SoldOut,
+                    null,
+                    // Mai la serie: «stasera è esaurito» non dice niente sul
+                    // giovedì successivo, e trascinarcelo sarebbe una bugia
+                    // che nessuno ha scritto.
+                    OccurrenceScope::Single,
+                );
+
+                self::forgetNextDate($record);
+
+                Notification::make()
+                    ->title($changed === 0
+                        ? __('manage.notifications.nothing_to_do')
+                        : __('manage.notifications.dates_updated', ['count' => $changed]))
+                    ->success()
+                    ->send();
+            });
+    }
+
+    /**
      * §10.4 — la ripetizione detta a parole. La stringa RFC 5545 la scrive
      * `RecurrenceForm`, e il gestore non la vede mai.
      */
@@ -150,6 +219,55 @@ final class EventActions
         return $recurrence === null
             ? __('manage.recurrence.description')
             : __('manage.recurrence.current', ['rule' => RecurrenceRule::describe($recurrence->rrule)]);
+    }
+
+    /**
+     * La data su cui agisce l'azione rapida.
+     *
+     * L'elenco la precarica per ogni riga
+     * (`EventResource::getEloquentQuery()`), in una interrogazione sola: qui
+     * si legge quella, e le quattro chiusure di questa azione — etichetta,
+     * colore, permesso, conferma — non costano nulla. La lettura dal database
+     * resta per chi arriva con un modello isolato.
+     */
+    private static function nextDate(Event $event): ?EventOccurrence
+    {
+        if ($event->relationLoaded('occurrences')) {
+            return $event->occurrences->first();
+        }
+
+        return VenueDashboardQuery::nextOccurrence($event, CurrentVenue::city());
+    }
+
+    /**
+     * Dopo aver cambiato lo stato, la data precaricata racconta il mondo di un
+     * istante fa: la riga si ridisegna nella stessa richiesta, e senza questo
+     * l'etichetta direbbe ancora «tutto esaurito» su una data appena rimessa
+     * in vendita.
+     */
+    private static function forgetNextDate(Event $event): void
+    {
+        $event->unsetRelation('occurrences');
+    }
+
+    private static function nextIsSoldOut(Event $event): bool
+    {
+        return self::nextDate($event)?->status === OccurrenceStatus::SoldOut;
+    }
+
+    private static function soldOutConfirmation(Event $event): string
+    {
+        $next = self::nextDate($event);
+
+        if (! $next instanceof EventOccurrence) {
+            return '';
+        }
+
+        $date = app(DateFormatter::class)->weekdayDate($next->business_date);
+
+        return $next->status === OccurrenceStatus::SoldOut
+            ? __('manage.actions.available_next_confirm', ['date' => $date])
+            : __('manage.actions.sold_out_next_confirm', ['date' => $date]);
     }
 
     private static function user(): ?User

@@ -14,7 +14,7 @@
 
             <x-field name="email" type="email" :label="__('account.login.email')" :required="true" autocomplete="email" />
 
-            <button type="submit" class="rounded-pill bg-brand px-4 py-2.5 text-sm font-semibold text-on-brand transition hover:bg-brand-strong">
+            <button type="submit" class="bg-brand px-4 py-2.5 text-sm font-semibold text-on-brand transition hover:bg-brand-strong">
                 {{ __('account.magic.submit') }}
             </button>
         </form>

@@ -2,132 +2,132 @@
 
 /* Font self-hosted (@fontsource): nessuna richiesta a Google Fonts o ad altri
    CDN, che sarebbe un trasferimento di dati verso terzi senza consenso.
-   I file sono variabili e suddivisi per unicode-range: il browser scarica il
-   solo sottoinsieme che gli serve. */
-@import '@fontsource-variable/bricolage-grotesque/wght.css';
-@import '@fontsource-variable/inter/wght.css';
+   Il file è variabile (peso 100-900) e suddiviso per unicode-range: il browser
+   scarica il solo sottoinsieme che gli serve. Tutto il sistema — titoli e
+   corpo — è in Archivo, come prescrive il design system Modernist. */
+@import '@fontsource-variable/archivo/wght.css';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 
 /* ---------------------------------------------------------------------------
-   Palette
+   Palette — dal riferimento adottato (D46, D47)
 
-   I colori vivono come variabili CSS in `:root`, non dentro `@theme`: il tema
-   chiaro e quello scuro devono poter cambiare valore alla stessa variabile,
-   mentre le utility di Tailwind restano le stesse. `@theme inline` (più sotto)
-   fa sì che `bg-surface` emetta `var(--surface)` invece di copiarne il valore,
-   che è ciò che rende possibile lo scambio.
+   Nero #0b0b0b, inchiostro #f5f5f0, un solo accento giallo-verde #ccff00,
+   divisori da 2px al 22% del testo, raggio zero ovunque. Niente galleggia e
+   niente e' decorato: allineamento e forza dei divisori organizzano la pagina
+   al posto di ombre e angoli arrotondati.
 
-   Lo scuro è la modalità del prodotto — si cercano eventi la sera — ma il
-   chiaro non è un ripiego: entrambi partono dagli stessi ruoli.
+   **Da dove vengono questi valori.** Il design system Modernist di partenza e'
+   chiaro (#f3f2f2) con un accento rosso (#ec3013); il documento di riferimento
+   lo ridefinisce in testa alla pagina, e quella ridefinizione e' il disegno
+   vero. Leggere il sistema e ignorare l'override produce un sito rosso su
+   fondo chiaro: i token giusti presi dal posto sbagliato.
+
+   I colori vivono come variabili CSS in `:root`, non dentro `@theme`, cosi'
+   una variabile puo' cambiare valore restando la stessa utility di Tailwind.
+   `@theme inline` (piu' sotto) fa si' che `bg-surface` emetta
+   `var(--surface)` invece di copiarne il valore.
 --------------------------------------------------------------------------- */
 
 :root {
-    color-scheme: light dark;
+    /*
+     * Il riferimento adottato (D46) non ha un tema chiaro: e' nero, sempre.
+     * `color-scheme: dark` lo dichiara al browser, cosi' anche cio' che
+     * disegna lui — barre di scorrimento, controlli dei moduli, la finestra
+     * di scelta di una data — nasce scuro invece di comparire bianco in mezzo
+     * alla pagina.
+     *
+     * I valori vengono dall'intestazione del documento di riferimento, che
+     * ridefinisce i token del design system Modernist: il sistema di base e'
+     * chiaro con un rosso, la pagina lo ribalta in nero con un giallo-verde.
+     * Chi legge solo il sistema e non l'override ottiene i colori giusti
+     * presi dal posto sbagliato — ed e' esattamente cio' che era successo.
+     */
+    color-scheme: dark;
 
     /* Superfici */
-    --canvas: oklch(0.985 0.006 95);
-    --canvas-deep: oklch(0.955 0.01 95);
-    --surface: oklch(1 0 0);
-    --surface-raised: oklch(1 0 0);
-    --surface-sunken: oklch(0.965 0.008 95);
-    --overlay: oklch(0.22 0.03 290 / 0.55);
+    --canvas: #0b0b0b;
+    --canvas-deep: #060606;
+    --surface: #141413;
+    --surface-raised: #1a1a19;
+    --surface-sunken: #100f0f;
+    --overlay: color-mix(in srgb, #000000 70%, transparent);
 
     /* Testo */
-    --ink: oklch(0.24 0.03 290);
-    --ink-muted: oklch(0.48 0.02 290);
-    --ink-subtle: oklch(0.62 0.02 290);
-    --ink-inverted: oklch(0.99 0.005 95);
+    --ink: #f5f5f0;
+    --ink-muted: color-mix(in srgb, #f5f5f0 72%, transparent);
+    --ink-subtle: color-mix(in srgb, #f5f5f0 55%, transparent);
+    --ink-inverted: #0b0b0b;
 
-    /* Bordi */
-    --line: oklch(0.9 0.01 290);
-    --line-strong: oklch(0.82 0.015 290);
+    /* Divisori: il tratto forte del sistema, al 22% del testo. Su fondo nero
+       questo peso corrisponde al 40% del riferimento su fondo chiaro. Nessuna
+       gradazione sottile: i bordi da 2px organizzano la pagina al posto delle
+       ombre, che qui non esistono. */
+    --line: rgba(245, 245, 240, 0.22);
+    --line-strong: rgba(245, 245, 240, 0.38);
 
-    /* Marchio: viola elettrico, il colore delle insegne al neon */
-    --brand: oklch(0.53 0.23 300);
-    --brand-strong: oklch(0.45 0.23 300);
-    --brand-soft: oklch(0.95 0.04 300);
-    --on-brand: oklch(0.99 0.01 300);
-    --on-brand-soft: oklch(0.38 0.2 300);
+    /*
+     * L'accento: giallo-verde, non rosso.
+     *
+     * Su #0b0b0b sta a circa 16:1 — supera AAA come testo e regge il nero
+     * sopra di se' con lo stesso rapporto, che e' il motivo per cui il
+     * riferimento lo usa in entrambi i versi (testo lime su nero, testo nero
+     * su lime). Il rosso del sistema di base non lo permetteva, e da li'
+     * veniva la D47; con questa palette quel compromesso non serve piu'.
+     */
+    --brand: #ccff00;
+    --brand-strong: #b4e000;
+    --brand-soft: #4a5c00;
+    --on-brand: #0b0b0b;
+    --on-brand-soft: #e0ff66;
 
-    /* Accento caldo: usato per l'evidenza redazionale */
-    --accent: oklch(0.72 0.17 55);
-    --accent-soft: oklch(0.96 0.05 75);
-    --on-accent: oklch(0.24 0.05 55);
+    --accent: #ccff00;
+    --accent-soft: #4a5c00;
+    --on-accent: #0b0b0b;
 
-    /* Stati di un'occorrenza */
-    --live: oklch(0.56 0.21 22);
-    --live-soft: oklch(0.95 0.04 30);
-    --on-live: oklch(0.99 0.01 30);
-    --on-live-soft: oklch(0.44 0.19 25);
+    /* Stati di un'occorrenza. Uno solo e' acceso — "in corso" — e tutti gli
+       altri sono inchiostro: se ogni stato avesse il suo colore, nessuno
+       salterebbe all'occhio. */
+    --live: #ccff00;
+    --live-soft: #4a5c00;
+    --on-live: #0b0b0b;
+    --on-live-soft: #e0ff66;
 
-    --soon: oklch(0.63 0.16 70);
-    --soon-soft: oklch(0.95 0.05 80);
-    --on-soon-soft: oklch(0.42 0.12 60);
+    --soon: #f5f5f0;
+    --soon-soft: #26261f;
+    --on-soon-soft: #dcdcd6;
 
-    --free: oklch(0.55 0.14 165);
-    --free-soft: oklch(0.94 0.05 165);
-    --on-free-soft: oklch(0.38 0.11 165);
+    --free: #d6ff33;
+    --free-soft: #26261f;
+    --on-free-soft: #e0ff66;
 
-    --muted-badge: oklch(0.93 0.01 290);
-    --on-muted-badge: oklch(0.42 0.02 290);
+    --muted-badge: #26261f;
+    --on-muted-badge: #b0b0a9;
 
-    --focus: oklch(0.6 0.2 300);
+    --focus: #ccff00;
 
-    /* Placeholder della locandina: nessun salto di layout mentre l'immagine
-       arriva, e nessun rettangolo grigio morto se non arriva mai. */
-    --poster-from: oklch(0.9 0.05 300);
-    --poster-to: oklch(0.86 0.06 250);
+    /* Elevazione: sul nero non si alza niente con un'ombra sfocata — si alza
+       con un filo di luce sul bordo. */
+    --elev-card: 0 0 0 1px rgba(245, 245, 240, 0.1);
+    --elev-lift: 0 0 0 1px rgba(245, 245, 240, 0.1), 0 12px 34px rgba(0, 0, 0, 0.55);
+
+    /* Placeholder della locandina: le fotografie del riferimento sono tutte
+       in bianco e nero, e anche l'attesa lo e'. */
+    --poster-from: #26261f;
+    --poster-to: #3a3a33;
+
+    /* Velocita' del nastro scorrevole in testata e stato delle animazioni:
+       una preferenza di sistema per il movimento ridotto le ferma tutte
+       agendo su questa sola variabile. */
+    --tk-dur: 26s;
+    --anim-play: running;
+    --rev-range: entry 6% entry 58%;
 }
 
-@media (prefers-color-scheme: dark) {
+@media (prefers-reduced-motion: reduce) {
     :root {
-        --canvas: oklch(0.17 0.02 288);
-        --canvas-deep: oklch(0.13 0.02 288);
-        --surface: oklch(0.21 0.025 288);
-        --surface-raised: oklch(0.24 0.028 288);
-        --surface-sunken: oklch(0.19 0.022 288);
-        --overlay: oklch(0.1 0.02 288 / 0.7);
-
-        --ink: oklch(0.96 0.01 288);
-        --ink-muted: oklch(0.76 0.02 288);
-        --ink-subtle: oklch(0.63 0.02 288);
-        --ink-inverted: oklch(0.16 0.02 288);
-
-        --line: oklch(0.31 0.025 288);
-        --line-strong: oklch(0.42 0.03 288);
-
-        --brand: oklch(0.72 0.2 300);
-        --brand-strong: oklch(0.79 0.18 300);
-        --brand-soft: oklch(0.32 0.09 300);
-        --on-brand: oklch(0.16 0.04 300);
-        --on-brand-soft: oklch(0.9 0.09 300);
-
-        --accent: oklch(0.79 0.16 60);
-        --accent-soft: oklch(0.34 0.08 60);
-        --on-accent: oklch(0.18 0.04 60);
-
-        --live: oklch(0.68 0.2 25);
-        --live-soft: oklch(0.33 0.1 25);
-        --on-live: oklch(0.15 0.03 25);
-        --on-live-soft: oklch(0.88 0.09 30);
-
-        --soon: oklch(0.79 0.15 72);
-        --soon-soft: oklch(0.33 0.07 70);
-        --on-soon-soft: oklch(0.9 0.09 80);
-
-        --free: oklch(0.72 0.14 165);
-        --free-soft: oklch(0.29 0.07 165);
-        --on-free-soft: oklch(0.88 0.1 165);
-
-        --muted-badge: oklch(0.28 0.02 288);
-        --on-muted-badge: oklch(0.8 0.02 288);
-
-        --focus: oklch(0.78 0.17 300);
-
-        --poster-from: oklch(0.32 0.08 300);
-        --poster-to: oklch(0.27 0.07 250);
+        --anim-play: paused;
     }
 }
 
@@ -178,42 +178,71 @@
     --color-on-muted-badge: var(--on-muted-badge);
 
     --color-focus: var(--focus);
+
+    --shadow-card: var(--elev-card);
+    --shadow-lift: var(--elev-lift);
 }
 
 @theme {
-    --font-sans: 'Inter Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif,
-        'Apple Color Emoji', 'Segoe UI Emoji';
-    --font-display: 'Bricolage Grotesque Variable', 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+    /* Rampe tonali del sistema (OKLCH su scala percettiva condivisa, dal
+       design system Modernist): passi 100-300 per tinte e hover, 500 come
+       base del ruolo, 700-900 per testo su tinta e stati premuti. Sono
+       valori assoluti: valgono uguali in chiaro e in scuro. */
+    --color-accent-100: #f7ffd9;
+    --color-accent-200: #eeff9e;
+    --color-accent-300: #e0ff66;
+    --color-accent-400: #d6ff33;
+    --color-accent-500: #ccff00;
+    --color-accent-600: #b4e000;
+    --color-accent-700: #95b900;
+    --color-accent-800: #6f8a00;
+    --color-accent-900: #4a5c00;
 
-    /* Scala tipografica: i titoli sono stretti di crenatura, il corpo respira. */
-    /* Il titolo di pagina scala con la finestra: a 390px 2rem, oltre i 900px 3rem. */
+    --color-neutral-100: #f5f5f0;
+    --color-neutral-200: #dcdcd6;
+    --color-neutral-300: #b0b0a9;
+    --color-neutral-400: #84847c;
+    --color-neutral-500: #58584f;
+    --color-neutral-600: #3a3a33;
+    --color-neutral-700: #26261f;
+    --color-neutral-800: #16160f;
+    --color-neutral-900: #0b0b0b;
+
+    /* Tutto in Archivo: titoli e corpo sono lo stesso carattere, a pesi
+       diversi. I titoli pesano 800. */
+    --font-sans: 'Archivo Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif,
+        'Apple Color Emoji', 'Segoe UI Emoji';
+    --font-display: 'Archivo Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+    /* Scala tipografica: crenatura stretta sui titoli, peso 800 ovunque un
+       titolo compaia. Il titolo di pagina scala con la finestra. */
     --text-hero: clamp(2rem, 5.5vw, 3rem);
     --text-hero--line-height: 1.04;
-    --text-hero--letter-spacing: -0.035em;
-    --text-hero--font-weight: 700;
+    --text-hero--letter-spacing: -0.025em;
+    --text-hero--font-weight: 800;
 
     --text-section: 1.375rem;
-    --text-section--line-height: 1.15;
+    --text-section--line-height: 1.12;
     --text-section--letter-spacing: -0.02em;
-    --text-section--font-weight: 600;
+    --text-section--font-weight: 800;
 
     /* Il titolo di un'occorrenza che occupa la riga intera: sta fra il titolo
        di sezione e quello di una card, perche a quella scala una card e' un
        annuncio e non una miniatura. */
     --text-feature: 1.5rem;
-    --text-feature--line-height: 1.15;
+    --text-feature--line-height: 1.12;
     --text-feature--letter-spacing: -0.02em;
-    --text-feature--font-weight: 650;
+    --text-feature--font-weight: 800;
 
     --text-card: 1.0625rem;
-    --text-card--line-height: 1.25;
+    --text-card--line-height: 1.2;
     --text-card--letter-spacing: -0.015em;
-    --text-card--font-weight: 600;
+    --text-card--font-weight: 800;
 
     --text-eyebrow: 0.6875rem;
     --text-eyebrow--line-height: 1;
-    --text-eyebrow--letter-spacing: 0.08em;
-    --text-eyebrow--font-weight: 600;
+    --text-eyebrow--letter-spacing: 0.12em;
+    --text-eyebrow--font-weight: 800;
 
     /* Spaziature ricorrenti: il margine laterale del contenuto e il respiro
        fra due sezioni della pagina. Averle come token evita che ogni pagina
@@ -224,11 +253,10 @@
 
     --container-content: 76rem;
 
-    --radius-card: 1.125rem;
-    --radius-pill: 999px;
-
-    --shadow-card: 0 1px 2px oklch(0.2 0.03 290 / 0.06), 0 8px 24px -12px oklch(0.2 0.03 290 / 0.18);
-    --shadow-lift: 0 2px 4px oklch(0.2 0.03 290 / 0.08), 0 18px 36px -16px oklch(0.2 0.03 290 / 0.28);
+    /* Raggio zero ovunque: nessun angolo si arrotonda, di proposito. I token
+       restano perché le classi `rounded-card` e `rounded-pill` li usano. */
+    --radius-card: 0px;
+    --radius-pill: 0px;
 
     --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -247,7 +275,6 @@
         background-color: var(--canvas);
         color: var(--ink);
         font-family: var(--font-sans);
-        font-feature-settings: 'cv05', 'ss01';
         -webkit-font-smoothing: antialiased;
     }
 
@@ -255,19 +282,19 @@
     h2,
     h3 {
         font-family: var(--font-display);
+        font-weight: 800;
     }
 
     /* Il focus deve vedersi sempre, non solo dove qualcuno si è ricordato di
-       aggiungere una classe: è il modo in cui si naviga da tastiera. */
+       aggiungere una classe: è il modo in cui si naviga da tastiera. Mai il
+       contorno blu del browser: 2px pieni d'accento, staccati di 2px. */
     :focus-visible {
         outline: 2px solid var(--focus);
         outline-offset: 2px;
-        border-radius: 0.25rem;
     }
 
     ::selection {
-        background-color: var(--brand);
-        color: var(--on-brand);
+        background-color: color-mix(in srgb, var(--accent) 30%, transparent);
     }
 
     [hidden] {
@@ -300,6 +327,126 @@
     [x-cloak] {
         display: none !important;
     }
+}
+
+/* Divisore orizzontale del sistema: 2px pieni, mai un hairline. È la regola
+   che separa le sezioni maggiori della pagina. */
+/* ---------------------------------------------------------------------------
+   Movimento
+
+   Le animazioni del riferimento, una per una. Tutte governate da
+   `--anim-play`, che una preferenza di sistema per il movimento ridotto porta
+   a `paused`: si fermano tutte insieme, senza che ogni singolo elemento debba
+   ricordarsi di chiederlo.
+
+   Le tre `reveal*` non hanno una durata reale — durano 1ms e sono ancorate a
+   `animation-timeline: view()`, cioe' avanzano con lo scorrimento invece che
+   col tempo. Dove il browser non conosce le timeline di scorrimento
+   l'animazione finisce subito e l'elemento resta al suo posto, visibile: il
+   comportamento di ripiego e' la pagina normale, non una pagina vuota.
+--------------------------------------------------------------------------- */
+
+@keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+}
+
+@keyframes blink {
+    0%, 44% { opacity: 1; }
+    50%, 94% { opacity: 0.18; }
+    100% { opacity: 1; }
+}
+
+@keyframes revealUp {
+    from { opacity: 0; transform: translateY(26px); }
+    to { opacity: 1; transform: none; }
+}
+
+@keyframes revealLeft {
+    from { opacity: 0; transform: translateX(-28px); }
+    to { opacity: 1; transform: none; }
+}
+
+@keyframes revealClip {
+    from { opacity: 0; clip-path: inset(0 0 108% 0); }
+    to { opacity: 1; clip-path: inset(0 0 -8% 0); }
+}
+
+@keyframes lineGrow {
+    from { transform: scaleX(0); }
+    to { transform: scaleX(1); }
+}
+
+@keyframes floatY {
+    0% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+    100% { transform: translateY(0); }
+}
+
+/* Comparsa legata allo scorrimento: si applica alle sezioni che entrano da
+   sotto e ai titoli che entrano da sinistra. */
+@utility reveal-up {
+    animation: revealUp 1ms linear both;
+    animation-timeline: view();
+    animation-range: var(--rev-range);
+    animation-play-state: var(--anim-play);
+}
+
+@utility reveal-left {
+    animation: revealLeft 1ms linear both;
+    animation-timeline: view();
+    animation-range: var(--rev-range);
+    animation-play-state: var(--anim-play);
+}
+
+/* Il titolo di apertura: si scopre dall'alto come una saracinesca. Questa ha
+   una durata vera perche' e' sopra la piega e non c'e' scorrimento da
+   seguire. */
+@utility reveal-clip {
+    animation: revealClip 0.9s cubic-bezier(0.76, 0, 0.24, 1) both;
+    animation-play-state: var(--anim-play);
+}
+
+/* Il quadratino che lampeggia accanto a «in corso adesso». */
+@utility blink-dot {
+    animation: blink 1.6s steps(1, end) infinite;
+    animation-play-state: var(--anim-play);
+}
+
+/* L'altezza della testata fissa: 70px di barra piu' 32px di nastro. Vive qui
+   e non scritto a mano nelle pagine perche' se la testata cambia altezza deve
+   cambiare in un posto solo — altrimenti il contenuto finisce sotto la barra
+   in una pagina su cinque, e ci si accorge solo aprendo proprio quella. */
+@utility pt-header {
+    padding-top: 102px;
+}
+
+@utility top-header {
+    top: 102px;
+}
+
+@utility h-below-header {
+    height: calc(100vh - 102px);
+}
+
+@utility min-h-below-header {
+    min-height: calc(100vh - 102px);
+}
+
+@utility max-h-below-header {
+    max-height: calc(100vh - 102px);
+}
+
+@utility divider {
+    height: 2px;
+    border: 0;
+    background-color: var(--line);
+}
+
+/* Le fotografie stampano in bianco e nero: ogni immagine di contenuto passa
+   da qui. Non si tinge e non si colora l'immagine, mai. */
+@utility grayscale-photo {
+    filter: grayscale(1) contrast(1.08);
 }
 
 /* Riga orizzontale scorrevole con aggancio: gli scroller di giorni e di card
@@ -335,7 +482,8 @@
     overflow: hidden;
 }
 
-/* Puntino pulsante del badge "in corso". */
+/* Quadratino pulsante del badge "in corso": eco che si espande e svanisce.
+   Quadrato, non tondo — il raggio è zero anche qui. */
 @utility pulse-dot {
     position: relative;
 
@@ -343,7 +491,6 @@
         content: '';
         position: absolute;
         inset: 0;
-        border-radius: 999px;
         background-color: currentcolor;
         animation: pulse-ring 2s var(--ease-out-soft) infinite;
     }
@@ -381,7 +528,7 @@
     & h2 {
         font-family: var(--font-display);
         font-size: 1.25rem;
-        font-weight: 700;
+        font-weight: 800;
         line-height: 1.3;
         color: var(--ink);
         margin-top: 2.25rem;
@@ -389,7 +536,7 @@
 
     & h3 {
         font-size: 1.05rem;
-        font-weight: 700;
+        font-weight: 800;
         color: var(--ink);
         margin-top: 1.75rem;
     }
@@ -422,14 +569,13 @@
     }
 
     & blockquote {
-        border-left: 3px solid var(--line-strong);
+        border-left: 2px solid var(--line);
         padding-left: 1rem;
         color: var(--ink-subtle);
     }
 
     & code {
         background-color: var(--surface-sunken);
-        border-radius: 0.25rem;
         padding: 0.1rem 0.3rem;
         font-size: 0.9em;
     }
@@ -454,4 +600,210 @@
         color: var(--ink);
         font-weight: 600;
     }
+}
+
+/* ---------------------------------------------------------------------------
+   La mappa (§11.6), su Leaflet.
+
+   Le tessere di OpenStreetMap arrivano a colori: qui vengono invertite e
+   portate in scala di grigi con un filtro, così la cartografia scende sul
+   fondo e i segnaposti restano l'unica cosa colorata della pagina. È il motivo
+   per cui la mappa è su Leaflet e non su MapLibre (D46): MapLibre disegna le
+   tessere in WebGL, dove un filtro CSS non arriva.
+
+   Tutto il resto segue il sistema: raggio zero, bordi spessi, nessuna ombra.
+   --------------------------------------------------------------------------- */
+
+.leaflet-container {
+    background: var(--surface-sunken);
+    font-family: inherit;
+    outline: none;
+}
+
+/*
+ * Le tessere arrivano gia' scure e in scala di grigi (vedi `config/map.php`),
+ * quindi **qui non si inverte piu' niente**: invertire una mappa ne ribalta la
+ * gerarchia — le strade, che sono la parte chiara, diventano piu' scure del
+ * fondo — e nessun filtro successivo la rimette a posto.
+ *
+ * Resta un ritocco leggero. Le tessere scure sono tarate su un grigio molto
+ * scuro, non sul #0b0b0b quasi nero della pagina: senza questo, il riquadro
+ * della mappa si stacca come una macchia piu' chiara. Un filo di luminosita'
+ * in meno lo riporta dentro, e mezzo punto di contrasto in piu' tiene le
+ * strade staccate dal fondo dopo quell'abbassamento.
+ */
+.leaflet-tile-pane {
+    filter: brightness(0.86) contrast(1.12);
+}
+
+/* I controlli: squadrati, con lo stesso bordo dei divisori. */
+.leaflet-bar,
+.leaflet-control-attribution {
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.leaflet-bar {
+    border: 2px solid var(--ink);
+}
+
+.leaflet-bar a,
+.leaflet-bar a:hover {
+    width: 34px;
+    height: 34px;
+    line-height: 34px;
+    border-radius: 0;
+    background: var(--bg);
+    color: var(--ink);
+    border-bottom: 2px solid var(--ink);
+    font-weight: 800;
+}
+
+.leaflet-bar a:last-child {
+    border-bottom: 0;
+}
+
+.leaflet-bar a:hover {
+    background: var(--accent);
+    color: var(--on-accent, #fff);
+}
+
+.leaflet-bar a:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+/* L'attribuzione resta leggibile: è un obbligo della licenza ODbL (D46).
+   Minuta e incorniciata, come nel riferimento. */
+.leaflet-control-attribution {
+    background: var(--bg);
+    color: var(--ink-subtle);
+    font-size: 0.5625rem;
+    letter-spacing: 0.04em;
+    padding: 2px 6px;
+    border-top: 1px solid var(--line);
+    border-left: 1px solid var(--line);
+}
+
+.leaflet-control-attribution a {
+    color: var(--ink-muted);
+    text-decoration: underline;
+}
+
+/* Un segnaposto: un punto pieno con un alone che pulsa piano. L'alone si
+   ferma per chi ha chiesto meno animazioni. */
+/*
+ * I marcatori, con i valori del riferimento (D46).
+ *
+ * Un punto pieno da 14px, staccato dalla mappa da un bordo del colore della
+ * pagina: senza quello un pallino giallo-verde su una mappa grigia sembra una
+ * macchia, e le tre cose che lo rendono leggibile sono proprio il bordo scuro,
+ * la dimensione fissa e l'anello che lo circonda.
+ *
+ * L'anello e' un ANELLO — `border`, non fondo pieno. Un disco semitrasparente
+ * che si allarga sporca la mappa sotto invece di indicare un punto; un cerchio
+ * vuoto che si allarga e svanisce e' un'onda, e si legge come tale.
+ *
+ * Il colore lo scrive lo script sull'elemento, perche' viene dalla
+ * configurazione: qui restano forma, misura e movimento.
+ */
+.rm-pin {
+    background: none;
+    border: 0;
+}
+
+.rm-pin i {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    display: block;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.rm-pin__dot {
+    width: 14px;
+    height: 14px;
+    /* Il bordo scuro e' cio' che stacca il punto dalla mappa. Prima citava una
+       variabile che non esiste in questi token (`--bg` invece di `--canvas`):
+       la regola era inerte e il punto restava appiccicato al fondo. */
+    box-shadow: 0 0 0 2px var(--canvas);
+    transition: width 0.18s, height 0.18s;
+}
+
+.rm-pin__halo {
+    width: 14px;
+    height: 14px;
+    border-width: 2px;
+    border-style: solid;
+    /* Il colore lo mette lo script; qui si dichiara solo che il fondo non c'e',
+       altrimenti l'anello sarebbe un disco. */
+    background: none !important;
+    opacity: 0;
+    animation: rm-pulse 2.2s cubic-bezier(0.2, 0.7, 0.3, 1) infinite;
+    animation-play-state: var(--anim-play);
+}
+
+@keyframes rm-pulse {
+    0% { opacity: 0.9; width: 14px; height: 14px; }
+    70% { opacity: 0; width: 56px; height: 56px; }
+    100% { opacity: 0; width: 56px; height: 56px; }
+}
+
+/*
+ * Un gruppo: lo stesso cerchio, piu' grande, col numero delle SERATE dentro.
+ *
+ * Il numero e' scuro, non bianco: su giallo-verde il bianco non si legge —
+ * stanno a un rapporto di 1,3 a 1, sotto qualunque soglia. Il nero della
+ * pagina ci sta sopra a 16 a 1.
+ */
+.rm-cluster {
+    background: none;
+    border: 0;
+}
+
+.rm-cluster span {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    color: var(--canvas);
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 0.8125rem;
+    letter-spacing: -0.01em;
+    box-shadow: 0 0 0 2px var(--canvas);
+}
+
+.rm-pin__halo {
+    width: 22px;
+    height: 22px;
+    opacity: 0.28;
+    animation: rm-pulse 2.4s ease-out infinite;
+}
+
+@keyframes rm-pulse {
+    0% { transform: translate(-50%, -50%) scale(0.6); opacity: 0.35; }
+    70% { transform: translate(-50%, -50%) scale(1.35); opacity: 0; }
+    100% { opacity: 0; }
+}
+
+/* Un gruppo: il numero dice quante SERATE, non quanti locali. */
+.rm-cluster {
+    background: none;
+    border: 0;
+}
+
+.rm-cluster span {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-weight: 800;
+    font-size: 0.8125rem;
+    box-shadow: 0 0 0 2px var(--bg);
 }

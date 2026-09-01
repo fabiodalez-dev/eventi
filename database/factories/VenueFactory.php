@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
+use App\DTOs\AccessibilityProfile;
+use App\DTOs\TransitGuide;
+use App\Enums\AccessibilityFeature;
+use App\Enums\TransitMode;
 use App\Enums\VenuePlan;
 use App\Enums\VenueStatus;
 use App\Enums\VenueType;
@@ -34,6 +38,17 @@ class VenueFactory extends Factory
         'Mandria', 'Ponte Molino', 'Selva', 'Volta Barozzo',
     ];
 
+    /**
+     * I quartieri di Padova, che sono la scala a cui si cerca dentro una
+     * città: il comune, in un capoluogo, è lo stesso per tutti.
+     *
+     * @var list<string>
+     */
+    private const ZONES = [
+        'Centro storico', 'Portello', 'Arcella', 'Santa Rita', 'Forcellini',
+        'Bassanello', 'Sacra Famiglia', 'Stanga', 'Brusegana', 'Mandria',
+    ];
+
     /** @var list<string> */
     private const MUNICIPALITIES = [
         'Padova', 'Abano Terme', 'Albignasego', 'Cadoneghe', 'Cittadella',
@@ -59,6 +74,7 @@ class VenueFactory extends Factory
             'address_extra' => null,
             'postal_code' => fake()->numerify('35###'),
             'municipality' => fake()->randomElement(self::MUNICIPALITIES),
+            'zone' => fake()->randomElement(self::ZONES),
             'province_code' => 'PD',
             'lat' => $lat,
             'lng' => $lng,
@@ -70,8 +86,12 @@ class VenueFactory extends Factory
             'website' => fake()->url(),
             'socials' => ['instagram' => 'https://instagram.com/'.fake()->userName()],
             'opening_hours' => null,
+            'transit' => TransitGuide::empty(),
             'capacity' => fake()->numberBetween(40, 800),
-            'accessibility' => ['wheelchair' => fake()->boolean()],
+            // Nessuna voce dichiarata: è lo stato onesto di un locale appena
+            // creato, e i test che vogliono l'accessibilità la chiedono.
+            'accessibility' => AccessibilityProfile::empty(),
+            'info' => null,
             'requires_membership' => false,
             'membership_notes' => null,
             'status' => VenueStatus::Draft,
@@ -167,6 +187,39 @@ class VenueFactory extends Factory
     {
         return $this->state(fn (array $attributes): array => [
             'type' => $type,
+        ]);
+    }
+
+    public function inZone(string $zone): static
+    {
+        return $this->state(fn (array $attributes): array => [
+            'zone' => $zone,
+        ]);
+    }
+
+    /**
+     * Locale che dichiara **presenti** le voci indicate. Tutto ciò che non è
+     * nell'elenco resta non dichiarato, che non è «no».
+     *
+     * @param  list<AccessibilityFeature>  $features
+     */
+    public function accessible(array $features = [AccessibilityFeature::StepFreeEntrance]): static
+    {
+        return $this->state(fn (array $attributes): array => [
+            'accessibility' => AccessibilityProfile::of($features),
+        ]);
+    }
+
+    /**
+     * «Come arrivare» compilato, per i test della scheda pubblica.
+     */
+    public function withTransit(): static
+    {
+        return $this->state(fn (array $attributes): array => [
+            'transit' => [
+                ['mode' => TransitMode::Tram->value, 'text' => 'Tram, fermata a duecento metri.'],
+                ['mode' => TransitMode::Parking->value, 'text' => 'Parcheggio gratuito nel cortile interno.'],
+            ],
         ]);
     }
 

@@ -29,7 +29,7 @@
 
     $describedBy = trim(($hint ? $hintId.' ' : '').($hasError ? $errorId : ''));
 
-    $control = 'w-full rounded-card border bg-surface px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-subtle focus:border-brand focus:outline-none '
+    $control = 'w-full border bg-surface px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-subtle focus:border-brand focus:outline-none '
         .($hasError ? 'border-live' : 'border-line');
 @endphp
 

@@ -42,6 +42,27 @@
         'venues.index' => __('ui.nav.venues'),
     ]);
 
+    /*
+     * La navigazione della testata e' corta di proposito: Eventi, Mappa,
+     * Locali, Calendario. «Oggi», «domani», «weekend» e «gratis» non sono
+     * luoghi del sito, sono ritagli dello stesso elenco — nel riferimento
+     * stanno fra i pulsanti rapidi della prima schermata e fra i filtri della
+     * lista, dove chi guarda i risultati puo' cambiarli senza tornare su.
+     */
+    $primaryNav = $links([
+        'events.index' => __('ui.nav.events'),
+        'map.index' => __('ui.nav.map'),
+        'venues.index' => __('ui.nav.venues'),
+        'calendar.index' => __('ui.nav.calendar'),
+    ]);
+
+    /*
+     * Quante date ha salvato chi guarda. Da autenticati e' un conteggio vero;
+     * da anonimi i salvataggi vivono nel browser (§15.1) e il numero lo
+     * riempie lo script — il server non li conosce e non deve conoscerli.
+     */
+    $savedCount = auth()->check() ? auth()->user()->savedOccurrences()->count() : 0;
+
     $discoverLinks = $links([
         'events.today' => __('ui.nav.today'),
         'events.weekend' => __('ui.nav.weekend'),
@@ -91,7 +112,11 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="color-scheme" content="light dark">
+    {{-- Un tema solo, scuro (D46). Dichiararlo qui fa nascere scure anche le
+         parti che disegna il browser — barre di scorrimento, controlli dei
+         moduli, la finestra di scelta di una data — invece di vederle
+         comparire bianche in mezzo alla pagina. --}}
+    <meta name="color-scheme" content="dark">
 
     {{-- Il token con cui lo script conferma al server i salvataggi fatti dal
          cuore: senza, ogni chiamata asincrona sarebbe un 419. --}}
@@ -202,7 +227,7 @@
 <body class="min-h-dvh bg-canvas text-ink antialiased">
     <a
         href="#contenuto"
-        class="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-50 focus:rounded-pill focus:bg-brand focus:px-4 focus:py-2 focus:font-semibold focus:text-on-brand"
+        class="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-50 focus:focus:bg-brand focus:px-4 focus:py-2 focus:font-semibold focus:text-on-brand"
     >
         {{ __('ui.skip_to_content') }}
     </a>
@@ -221,100 +246,107 @@
         @auth data-account-merge="{{ route('account.saved.merge') }}" @endauth
     ></div>
 
-    <header class="sticky top-0 z-30 border-b border-line bg-canvas/85 backdrop-blur-md">
-        <div class="mx-auto w-full max-w-content px-gutter">
-            {{-- Sul telefono la ricerca scende su una riga propria: città e data
-                 restano visibili, non si nascondono per far posto. --}}
-            <div class="flex flex-wrap items-center gap-x-3 gap-y-2 py-3">
-                <a
-                    href="{{ url('/') }}"
-                    aria-label="{{ __('ui.header.home', ['app' => $app]) }}"
-                    class="flex items-center gap-2 font-display text-lg font-bold tracking-tight text-ink"
-                >
-                    <span aria-hidden="true" class="size-2.5 rounded-pill bg-brand"></span>
-                    {{ $app }}
-                </a>
+    {{--
+        Testata fissa (D46). Due fasce: la barra di navigazione alta 70px e il
+        nastro scorrevole alto 32px, per 102px complessivi — da cui il
+        `pt-header` che ogni pagina applica al proprio contenuto.
 
+        Non c'e' contenitore centrato: il riferimento porta il contenuto fino
+        ai bordi della finestra e organizza la pagina con divisori da 2px, che
+        e' il motivo per cui questi bordi non sono decorazione e non vanno
+        assottigliati.
+    --}}
+    <header class="fixed inset-x-0 top-0 z-[9000] border-b-2 border-line bg-[rgba(11,11,11,.94)] backdrop-blur-2xl">
+        <div class="flex h-[70px] items-center gap-[clamp(0.75rem,2vw,1.875rem)] px-[clamp(0.875rem,2.2vw,1.875rem)]">
+            <a href="{{ url('/') }}" class="flex shrink-0 items-baseline gap-1.5" aria-label="{{ __('ui.header.home', ['app' => $app]) }}">
+                <span class="font-display text-[1.625rem] leading-none font-extrabold tracking-[-0.05em] text-ink">{{ $app }}</span>
                 @if ($city !== null)
-                    <p class="flex min-w-0 flex-1 flex-col leading-tight">
-                        <span class="truncate text-eyebrow text-ink-subtle uppercase">{{ $city->name }}</span>
-                        <span class="truncate text-xs text-ink-muted sm:text-sm">{{ $today }}</span>
-                    </p>
+                    <span class="font-display text-[0.594rem] leading-none font-extrabold tracking-[0.2em] text-accent uppercase">{{ $city->name }}</span>
                 @endif
+            </a>
 
-                <form
-                    action="{{ route('search') }}"
-                    method="GET"
-                    role="search"
-                    class="order-last flex w-full min-w-0 items-center gap-2 sm:order-none sm:ml-auto sm:w-auto sm:max-w-sm sm:flex-1"
-                >
-                    <label for="site-search" class="sr-only">
-                        {{ __('ui.header.search_label', ['city' => $city?->name ?? $app]) }}
-                    </label>
-
-                    <input
-                        id="site-search"
-                        type="search"
-                        name="q"
-                        value="{{ request()->string('q') }}"
-                        placeholder="{{ __('ui.header.search_placeholder') }}"
-                        class="w-full rounded-pill border border-line bg-surface px-4 py-2 text-sm text-ink placeholder:text-ink-subtle focus:border-brand focus:outline-none"
-                    >
-
-                    <button
-                        type="submit"
-                        class="shrink-0 rounded-pill bg-brand px-4 py-2 text-sm font-semibold text-on-brand transition hover:bg-brand-strong"
-                    >
-                        {{ __('common.actions.search') }}
-                    </button>
-                </form>
-            </div>
-
-            {{-- L'area personale (§15). Da anonimi è un solo collegamento, e
-                 non un invito ripetuto: il sito funziona senza account, e il
-                 momento in cui l'account serve davvero lo sceglie il riquadro
-                 del terzo salvataggio, non l'intestazione. --}}
-            <nav aria-label="{{ __('account.title') }}" class="flex flex-wrap items-center gap-x-3 gap-y-1 pb-2 text-sm">
-                @auth
-                    <a class="font-semibold text-ink-muted hover:text-ink" href="{{ route('account.feed') }}">{{ __('account.nav.feed') }}</a>
-                    <a class="font-semibold text-ink-muted hover:text-ink" href="{{ route('account.saved') }}">{{ __('account.nav.saved') }}</a>
-                    <a class="font-semibold text-ink-muted hover:text-ink" href="{{ route('account.profile') }}">{{ __('account.nav.profile') }}</a>
-
-                    <form method="POST" action="{{ route('account.logout') }}" class="contents">
-                        @csrf
-                        <button type="submit" class="font-semibold text-ink-subtle hover:text-ink">{{ __('account.nav.logout') }}</button>
-                    </form>
-                @else
-                    <a class="font-semibold text-ink-muted hover:text-ink" href="{{ route('login') }}">{{ __('account.nav.login') }}</a>
-                @endauth
-            </nav>
-
-            <nav aria-label="{{ __('ui.nav.label') }}" class="scroll-row gap-2 pb-3">
-                @foreach ($navigation as $item)
+            <nav aria-label="{{ __('ui.nav.label') }}" class="hidden items-stretch lg:flex">
+                @foreach ($primaryNav as $item)
                     @php $isCurrent = request()->routeIs($item['name']); @endphp
-
                     <a
                         href="{{ $item['url'] }}"
                         @if ($isCurrent) aria-current="page" @endif
-                        @class([
-                            'rounded-pill px-3.5 py-1.5 text-sm font-semibold whitespace-nowrap transition',
-                            'bg-brand text-on-brand' => $isCurrent,
-                            'bg-surface text-ink-muted ring-1 ring-line hover:text-ink hover:ring-line-strong' => ! $isCurrent,
-                        ])
+                        class="relative mr-4 px-0.5 py-2 font-display text-[0.688rem] leading-none font-extrabold tracking-[0.14em] whitespace-nowrap uppercase transition-colors hover:text-accent {{ $isCurrent ? 'text-ink' : 'text-ink-muted' }}"
                     >
                         {{ $item['label'] }}
+                        @if ($isCurrent)
+                            <span aria-hidden="true" class="absolute inset-x-0 bottom-0 h-0.5 bg-accent"></span>
+                        @endif
                     </a>
                 @endforeach
             </nav>
+
+            <form
+                action="{{ route('search') }}"
+                method="GET"
+                role="search"
+                class="flex h-[38px] max-w-[420px] flex-auto items-center border-2 border-line pl-2.5 focus-within:border-accent"
+            >
+                <label for="site-search" class="sr-only">
+                    {{ __('ui.header.search_label', ['city' => $city?->name ?? $app]) }}
+                </label>
+                <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square" class="shrink-0 text-ink-subtle">
+                    <circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path>
+                </svg>
+                <input
+                    id="site-search"
+                    type="search"
+                    name="q"
+                    value="{{ request()->string('q') }}"
+                    placeholder="{{ __('ui.header.search_placeholder') }}"
+                    class="h-full min-w-0 flex-auto border-0 bg-transparent px-2.5 text-[0.813rem] text-ink placeholder:text-ink-subtle focus:outline-none"
+                >
+                <button type="submit" class="h-full shrink-0 bg-accent px-3.5 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.14em] text-on-accent uppercase">
+                    {{ __('common.actions.search') }}
+                </button>
+            </form>
+
+            <a
+                href="{{ auth()->check() ? route('account.saved') : route('login') }}"
+                class="ml-auto hidden h-[38px] shrink-0 items-center gap-2 border-2 border-line px-3 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.14em] uppercase transition-colors hover:border-accent hover:text-accent sm:flex"
+            >
+                <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square">
+                    <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+                </svg>
+                {{ __('account.nav.saved') }}
+                <span class="text-accent" data-saved-count>{{ $savedCount }}</span>
+            </a>
+
+            @if (\Illuminate\Support\Facades\Route::has('submissions.create'))
+                <a
+                    href="{{ route('submissions.create') }}"
+                    class="hidden h-[38px] shrink-0 items-center bg-accent px-3.5 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.14em] whitespace-nowrap text-on-accent uppercase transition-colors hover:bg-brand-strong md:inline-flex"
+                >
+                    {{ __('ui.header.submit_event') }}
+                </a>
+            @endif
         </div>
+
+        {{-- Il nastro: le stesse notizie che stanno nella pagina, in movimento.
+             Non e' un ornamento — dice quante date ci sono stasera e quali
+             stanno per finire, che e' l'informazione per cui si apre il sito.
+             Il duplicato serve allo scorrimento continuo: la striscia trasla
+             del 50% e il secondo blocco prende il posto del primo senza
+             stacchi. `aria-hidden` sul duplicato evita che uno screen reader
+             legga tutto due volte. --}}
+        <x-ticker />
     </header>
 
-    <main id="contenuto" class="mx-auto w-full max-w-content px-gutter py-8">
+    {{-- Il contenuto parte sotto la testata fissa (70px + 32px di nastro) e
+         non ha un contenitore centrato: nel riferimento ogni pagina arriva ai
+         bordi e decide da se' come dividersi. --}}
+    <main id="contenuto" class="pt-header">
         {{-- Conferma dell'ultima azione (una proposta inviata, una segnalazione
              ricevuta): sta nel layout perché è l'unico punto che ogni pagina
              attraversa dopo un reindirizzamento. --}}
         @if (session()->has('status'))
-            <p role="status" class="mb-6 rounded-card bg-free-soft px-4 py-3 text-sm font-semibold text-on-free-soft">
+            <p role="status" class="flex items-center gap-2.5 border-b-2 border-line bg-accent px-[clamp(1rem,2.2vw,1.875rem)] py-3.5 font-display text-[0.688rem] font-extrabold tracking-[0.14em] text-on-accent uppercase">
+                <span aria-hidden="true" class="size-[7px] bg-on-accent"></span>
                 {{ session('status') }}
             </p>
         @endif

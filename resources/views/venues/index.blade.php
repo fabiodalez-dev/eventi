@@ -39,7 +39,7 @@
         <div class="flex items-end gap-3">
             <button
                 type="submit"
-                class="rounded-pill bg-brand px-4 py-2 text-sm font-semibold text-on-brand transition hover:bg-brand-strong"
+                class="bg-brand px-4 py-2.5 font-display text-[0.688rem] leading-none font-extrabold tracking-[0.14em] text-on-brand uppercase transition hover:bg-brand-strong"
             >
                 {{ __('filters.apply') }}
             </button>
@@ -65,7 +65,7 @@
             <x-empty-state :title="__('venues.empty.list_title')" :description="__('venues.empty.list_body')">
                 <a
                     href="{{ route('venues.index') }}"
-                    class="rounded-pill bg-brand px-4 py-2 text-sm font-semibold text-on-brand transition hover:bg-brand-strong"
+                    class="bg-brand px-4 py-2.5 font-display text-[0.688rem] leading-none font-extrabold tracking-[0.14em] text-on-brand uppercase transition hover:bg-brand-strong"
                 >
                     {{ __('filters.reset') }}
                 </a>

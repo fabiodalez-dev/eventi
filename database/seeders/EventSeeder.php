@@ -10,6 +10,7 @@ use App\Enums\EventStatus;
 use App\Enums\LineupRole;
 use App\Enums\OccurrenceStatus;
 use App\Enums\PriceType;
+use App\Enums\TicketTierStatus;
 use App\Enums\VenueType;
 use App\Enums\VerificationStatus;
 use App\Models\Category;
@@ -19,6 +20,7 @@ use App\Models\EventOccurrence;
 use App\Models\EventRecurrence;
 use App\Models\Lineup;
 use App\Models\Tag;
+use App\Models\TicketTier;
 use App\Models\User;
 use App\Models\Venue;
 use Carbon\CarbonImmutable;
@@ -294,10 +296,53 @@ class EventSeeder extends Seeder
             'price_type' => PriceType::Ticket,
             'price_min' => 18,
             'price_max' => 22,
+            'facts' => [
+                ['label' => 'Apertura porte', 'value' => '20:30'],
+                ['label' => 'Durata', 'value' => 'Circa 2 ore'],
+                ['label' => 'Età minima', 'value' => '16 anni'],
+            ],
         ]);
         $this->makeOccurrence($event, $this->now->addDays(11)->setTime(21, 30), [
             'status' => OccurrenceStatus::SoldOut,
+            'capacity' => 300,
             'capacity_left' => 0,
+            'highlight' => 'Lista d\'attesa',
+        ]);
+        $this->attachTiers($event, [
+            ['name' => 'Posto unico in piedi', 'price' => 18, 'status' => TicketTierStatus::SoldOut],
+            ['name' => 'Posto a sedere in galleria', 'price' => 22, 'status' => TicketTierStatus::SoldOut],
+        ]);
+
+        /*
+         * Il caso che `OccurrenceStatus::SoldOut` non sa raccontare: il
+         * settore in piedi è finito, quello a sedere no. La serata resta in
+         * vendita, ed è la ragione per cui le fasce esistono.
+         */
+        $event = $this->makeEvent([
+            'title' => 'Concerto: Cantautori Uniti',
+            'subtitle' => 'Parterre esaurito, resta la galleria',
+            'description' => 'Il posto in piedi sotto il palco è finito in prevendita. Restano i posti a sedere in galleria e qualche poltrona di prima fila.',
+            'short_description' => 'Parterre esaurito, galleria disponibile.',
+            'category' => $category,
+            'venue' => $this->venueOfType([VenueType::Teatro]) ?? $this->venueForCategory($category),
+            'price_type' => PriceType::Ticket,
+            'facts' => [
+                ['label' => 'Apertura porte', 'value' => '19:45'],
+                ['label' => 'Durata', 'value' => '1 ora e 40 minuti'],
+                ['label' => 'Età minima', 'value' => 'Nessuna'],
+                ['label' => 'Guardaroba', 'value' => 'Compreso nel biglietto'],
+            ],
+        ]);
+        $this->makeOccurrence($event, $this->now->addDays(13)->setTime(21, 0), [
+            'capacity' => 800,
+            'capacity_left' => 96,
+            'highlight' => 'Ultimi posti',
+        ]);
+        $this->attachTiers($event, [
+            ['name' => 'Parterre in piedi', 'price' => 25, 'status' => TicketTierStatus::SoldOut],
+            ['name' => 'Galleria numerata', 'price' => 32, 'status' => TicketTierStatus::Available, 'note' => 'Visuale completa sul palco'],
+            ['name' => 'Poltronissima', 'price' => 48, 'status' => TicketTierStatus::Available],
+            ['name' => 'Ridotto under 26', 'price' => 18, 'status' => TicketTierStatus::NotYetOnSale, 'note' => 'In vendita da una settimana prima'],
         ]);
     }
 
@@ -488,6 +533,19 @@ class EventSeeder extends Seeder
                     : $this->makeOccurrence($event, $day->setTime(...$this->randomTimeFor($categoryName)));
 
                 $this->attachRandomTags($event);
+                $this->attachSampleFacts($event, $categoryName);
+
+                /*
+                 * Un evento a biglietto su tre porta il proprio listino: sono
+                 * i dati su cui si vede che lo stato è **per fascia**, e senza
+                 * qualcuno la sezione della scheda resterebbe sempre vuota e
+                 * non si capirebbe se manca il disegno o mancano i dati.
+                 */
+                if ($priceType === PriceType::Ticket && random_int(1, 100) <= 35) {
+                    $this->attachSampleTiers($event);
+                }
+
+                $this->attachSampleSeats($occurrence, $venue);
 
                 if (in_array($categoryName, ['Musica dal vivo', 'DJ set / Nightlife'], true) && random_int(1, 100) <= 35) {
                     $this->attachLineup($occurrence, $this->randomLineupFor($categoryName));
@@ -531,6 +589,7 @@ class EventSeeder extends Seeder
             'is_outdoor' => false,
             'custom_location' => null,
             'external_links' => null,
+            'facts' => null,
             'source' => $venue instanceof Venue ? EventSource::Venue : EventSource::Manual,
             'source_ref' => null,
             'verification_status' => $venue instanceof Venue ? VerificationStatus::VenueConfirmed : VerificationStatus::Unverified,
@@ -568,7 +627,9 @@ class EventSeeder extends Seeder
             'status' => OccurrenceStatus::Scheduled,
             'status_note' => null,
             'price_override' => null,
+            'capacity' => null,
             'capacity_left' => null,
+            'highlight' => null,
             'is_exception' => false,
         ], $overrides));
 
@@ -593,6 +654,91 @@ class EventSeeder extends Seeder
                 'sort_order' => $index,
             ]);
         }
+    }
+
+    /**
+     * Il listino di un evento. `sort_order` segue l'ordine dell'elenco: è
+     * l'ordine in cui il locale vuole che i settori si leggano, non quello
+     * del prezzo.
+     *
+     * @param  list<array{name: string, price: float|int|null, status: TicketTierStatus, note?: string}>  $tiers
+     */
+    private function attachTiers(Event $event, array $tiers): void
+    {
+        foreach ($tiers as $index => $tier) {
+            TicketTier::create([
+                'event_id' => $event->getKey(),
+                'occurrence_id' => null,
+                'name' => $tier['name'],
+                'price' => $tier['price'],
+                'currency' => 'EUR',
+                'status' => $tier['status'],
+                'url' => null,
+                'note' => $tier['note'] ?? null,
+                'sort_order' => $index,
+            ]);
+        }
+    }
+
+    /**
+     * Un listino plausibile costruito sul prezzo già scritto sull'evento:
+     * intero, ridotto, ultimo minuto. Il minimo e il massimo dell'evento
+     * vengono poi ricalcolati da `TicketTierObserver`, che è il punto in cui
+     * la card e il filtro leggono.
+     */
+    private function attachSampleTiers(Event $event): void
+    {
+        $base = (int) ($event->price_min ?? 10);
+
+        $this->attachTiers($event, [
+            ['name' => 'Intero', 'price' => $base, 'status' => TicketTierStatus::Available],
+            ['name' => 'Ridotto under 26', 'price' => max(1, (int) round($base * 0.7)), 'status' => TicketTierStatus::Available],
+            ['name' => 'Alla porta', 'price' => (int) round($base * 1.2), 'status' => random_int(1, 100) <= 30
+                ? TicketTierStatus::SoldOut
+                : TicketTierStatus::Available, 'note' => 'Solo se restano posti'],
+        ]);
+    }
+
+    /**
+     * La scheda tecnica: le tre cose che al bancone chiedono ogni sera.
+     */
+    private function attachSampleFacts(Event $event, string $categoryName): void
+    {
+        if (random_int(1, 100) > 40) {
+            return;
+        }
+
+        $event->facts = [
+            ['label' => 'Apertura porte', 'value' => 'Mezz\'ora prima'],
+            ['label' => 'Durata', 'value' => $categoryName === 'Cinema' ? 'Circa 2 ore' : 'Circa 90 minuti'],
+            ['label' => 'Età minima', 'value' => $categoryName === 'DJ set / Nightlife' ? '18 anni' : 'Nessuna'],
+        ];
+
+        $event->save();
+    }
+
+    /**
+     * Posti rimasti su una capienza reale, più — ogni tanto — l'etichetta di
+     * richiamo. Il totale è quello del locale: la data lo sovrascrive solo
+     * quando è davvero diverso, e nei dati dimostrativi non lo è.
+     */
+    private function attachSampleSeats(EventOccurrence $occurrence, ?Venue $venue): void
+    {
+        $capacity = $venue?->capacity;
+
+        if ($capacity === null || random_int(1, 100) > 45) {
+            return;
+        }
+
+        $left = random_int((int) round($capacity * 0.03), (int) round($capacity * 0.6));
+
+        $occurrence->capacity_left = $left;
+
+        if ($left < $capacity * 0.12) {
+            $occurrence->highlight = 'Ultimi posti';
+        }
+
+        $occurrence->save();
     }
 
     private function attachRandomTags(Event $event): void

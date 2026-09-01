@@ -12,6 +12,7 @@ use App\Http\Controllers\Web\Concerns\InteractsWithCity;
 use App\Http\Requests\Web\EventFilterRequest;
 use App\Models\Category;
 use App\Models\Tag;
+use App\Services\Map\MapPayload;
 use App\Services\Search\EventFinder;
 use App\Services\Search\FilterFacets;
 use App\Services\Seo\EventListingMeta;
@@ -37,6 +38,7 @@ final class EventListController extends Controller
         private readonly EventListingMeta $meta,
         private readonly FilterFacets $facets,
         private readonly StructuredData $structuredData,
+        private readonly MapPayload $mapPayload,
     ) {}
 
     public function index(EventFilterRequest $request): View
@@ -107,10 +109,18 @@ final class EventListController extends Controller
             'city' => $city,
             'filters' => $filters,
             'occurrences' => $occurrences,
+            /* La mappa affiancata all'elenco mostra gli STESSI filtri: e' il
+               senso della terza colonna del riferimento (D46) — si stringe un
+               filtro a sinistra e i punti a destra si diradano. Il carico e'
+               quello della pagina della mappa, calcolato dallo stesso servizio
+               perche' due elenchi che dicono cose diverse sono peggio di uno
+               solo. */
+            'mapPayload' => $this->mapPayload->build($city, $filters, null),
             'meta' => $meta,
             'categories' => $this->facets->categories(),
             'tags' => $this->facets->tags(),
             'municipalities' => $this->facets->municipalities($city),
+            'zones' => $this->facets->zones($city),
             'venues' => $this->facets->venues($city),
             'structuredData' => [$this->structuredData->breadcrumbs([
                 ['name' => __('ui.nav.home'), 'url' => url('/')],

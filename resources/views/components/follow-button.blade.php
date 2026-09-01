@@ -42,9 +42,9 @@
                 type="submit"
                 aria-pressed="{{ $following ? 'true' : 'false' }}"
                 @class([
-                    'inline-flex items-center gap-1.5 rounded-pill px-3.5 py-2 text-sm font-semibold ring-1 transition',
+                    'inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold ring-1 transition',
                     'bg-brand text-on-brand ring-brand' => $following,
-                    'bg-surface text-ink ring-line hover:ring-line-strong' => ! $following,
+                    'bg-surface text-ink ring-line hover:border-accent' => ! $following,
                 ])
             >
                 {{ $following ? __('account.follow.following') : $label }}
@@ -53,7 +53,7 @@
     @else
         <a
             href="{{ route('account.register') }}"
-            class="inline-flex items-center gap-1.5 rounded-pill bg-surface px-3.5 py-2 text-sm font-semibold text-ink ring-1 ring-line transition hover:ring-line-strong"
+            class="inline-flex items-center gap-1.5 bg-surface px-3.5 py-2 text-sm font-semibold text-ink border-2 border-line transition hover:border-accent"
         >
             {{ $label }}
         </a>

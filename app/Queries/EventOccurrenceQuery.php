@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Queries;
 
+use App\Enums\AccessibilityFeature;
 use App\Enums\EventStatus;
 use App\Enums\FollowableType;
 use App\Enums\OccurrenceStatus;
@@ -486,13 +487,41 @@ final class EventOccurrenceQuery
     }
 
     /**
-     * Ospitato da un locale accessibile in sedia a rotelle (§11.3).
-     * L'informazione sta in `venues.accessibility`, la cui forma è
-     * `{"wheelchair": true}` (D19 per gli orari, stessa impostazione qui).
+     * Il quartiere del locale: è il filtro «zona» a cui §11.3 punta davvero
+     * dentro una città. `inMunicipality()` resta per la provincia — a Padova
+     * il comune è lo stesso per tutti i locali e non separa niente, mentre
+     * «Portello» e «Arcella» sì.
+     */
+    public function inZone(string $zone): self
+    {
+        $this->query->where('venues.zone', $zone);
+
+        return $this;
+    }
+
+    /**
+     * Ospitato da un locale in cui si entra senza scalini (§11.3).
+     *
+     * È la voce che il filtro «accessibile» ha sempre significato, e da
+     * quando `venues.accessibility` è strutturato (`AccessibilityFeature`) ha
+     * un nome invece di essere una chiave inventata dentro un JSON libero.
      */
     public function accessible(): self
     {
-        $this->query->where('venues.accessibility->wheelchair', true);
+        return $this->hasAccessibilityFeature(AccessibilityFeature::StepFreeEntrance);
+    }
+
+    /**
+     * Ospitato da un locale che dichiara **presente** una voce di
+     * accessibilità.
+     *
+     * `true` e nient'altro: una voce dichiarata assente non entra, e una non
+     * dichiarata nemmeno. Chi ha bisogno di un servizio igienico accessibile
+     * non può ricevere in risposta un locale su cui non si sa.
+     */
+    public function hasAccessibilityFeature(AccessibilityFeature $feature): self
+    {
+        $this->query->where('venues.accessibility->'.$feature->value, true);
 
         return $this;
     }
@@ -876,7 +905,7 @@ final class EventOccurrenceQuery
      * perché una funzione di finestra non si può filtrare nel `WHERE` che la
      * calcola.
      *
-     * @return list<array{venue_id: int, lat: float, lng: float, category_id: int, occurrence_id: int, count: int}>
+     * @return list<array{venue_id: int, venue_name: string, lat: float, lng: float, category_id: int, occurrence_id: int, count: int}>
      */
     public function venueMarkers(int $limit): array
     {
@@ -885,6 +914,10 @@ final class EventOccurrenceQuery
             ->whereNotNull('venues.id')
             ->select([
                 'venues.id as marker_venue_id',
+                /* Il nome serve a ETICHETTARE il marcatore: e' un elemento con
+                   `role="button"`, e senza nome si annuncia col proprio numero
+                   di riga a chi naviga con uno screen reader. */
+                'venues.name as marker_venue_name',
                 'venues.lat as marker_lat',
                 'venues.lng as marker_lng',
                 'events.category_id as marker_category_id',
@@ -909,6 +942,7 @@ final class EventOccurrenceQuery
 
             $markers[] = [
                 'venue_id' => (int) ($values['marker_venue_id'] ?? 0),
+                'venue_name' => (string) ($values['marker_venue_name'] ?? ''),
                 'lat' => (float) ($values['marker_lat'] ?? 0),
                 'lng' => (float) ($values['marker_lng'] ?? 0),
                 'category_id' => (int) ($values['marker_category_id'] ?? 0),

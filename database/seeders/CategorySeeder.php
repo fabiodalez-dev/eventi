@@ -11,6 +11,12 @@ use Illuminate\Database\Seeder;
  * Le 14 categorie di §7.4 del piano, con i tre flag che governano il motore
  * temporale copiati fedelmente dalla tabella: `default_duration_minutes`
  * (§8.3), `supports_ongoing` (§8.4) e `is_nightlife` (§8.2).
+ *
+ * **Idempotente**, come gli altri seeder che l'installer esegue (D42, punto 5):
+ * la corrispondenza è sul nome, quindi rieseguirlo non duplica niente e non
+ * riscrive le modifiche fatte dalla redazione. Serve perché ogni operazione
+ * dell'installazione dev'essere ripetibile senza danno — un secondo clic sul
+ * pulsante non deve produrre ventotto categorie.
  */
 class CategorySeeder extends Seeder
 {
@@ -37,8 +43,7 @@ class CategorySeeder extends Seeder
     public function run(): void
     {
         foreach (self::CATEGORIES as $index => $category) {
-            Category::create([
-                'name' => $category['name'],
+            Category::query()->firstOrCreate(['name' => $category['name']], [
                 'icon' => $category['icon'],
                 'color' => $category['color'],
                 'sort_order' => $index,

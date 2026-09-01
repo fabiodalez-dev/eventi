@@ -16,21 +16,21 @@
     $parameters = $filters->toQueryString();
 @endphp
 
-<section {{ $attributes->class(['rounded-card bg-surface-sunken p-4 ring-1 ring-line']) }} aria-labelledby="sottoscrivi">
+<section {{ $attributes->class(['bg-surface p-4 border-2 border-line']) }} aria-labelledby="sottoscrivi">
     <h2 id="sottoscrivi" class="text-card text-ink">{{ __('feeds.subscribe') }}</h2>
     <p class="mt-1 max-w-prose text-sm text-ink-muted">{{ __('feeds.subscribe_lead') }}</p>
 
     <div class="mt-3 flex flex-wrap gap-2">
         <a
             href="{{ route('feeds.calendar', $parameters) }}"
-            class="rounded-pill bg-surface px-4 py-2 text-sm font-semibold text-ink ring-1 ring-line transition hover:ring-line-strong"
+            class="bg-surface px-4 py-2.5 font-display text-[0.688rem] leading-none font-extrabold tracking-[0.14em] text-ink uppercase border-2 border-line transition hover:border-accent"
         >
             {{ __('feeds.calendar.title') }}
         </a>
 
         <a
             href="{{ route('feeds.rss', $parameters) }}"
-            class="rounded-pill bg-surface px-4 py-2 text-sm font-semibold text-ink ring-1 ring-line transition hover:ring-line-strong"
+            class="bg-surface px-4 py-2.5 font-display text-[0.688rem] leading-none font-extrabold tracking-[0.14em] text-ink uppercase border-2 border-line transition hover:border-accent"
         >
             {{ __('feeds.rss.title') }}
         </a>

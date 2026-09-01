@@ -148,6 +148,27 @@ return [
             'url_credentials' => 'Il link numero :position contiene credenziali prima del dominio: togli la parte prima della chiocciola.',
         ],
 
+        /* Le righe di una scheda tecnica: `events.facts` e `venues.info`. */
+        'facts' => [
+            'invalid' => 'La scheda tecnica non è in un formato leggibile.',
+            'too_many' => 'Non puoi aggiungere più di :max righe alla scheda tecnica.',
+            'row_invalid' => 'La riga numero :position non è leggibile.',
+            'label_required' => 'La riga numero :position non ha un\'etichetta: scrivi di cosa si tratta.',
+            'label_too_long' => 'L\'etichetta della riga numero :position supera i :max caratteri.',
+            'value_required' => 'La riga numero :position non ha un valore: un\'etichetta da sola resta senza risposta.',
+            'value_too_long' => 'Il valore della riga numero :position supera i :max caratteri.',
+        ],
+
+        /* Le righe di «Come arrivare»: `venues.transit`. */
+        'transit' => [
+            'invalid' => 'Le indicazioni per arrivare non sono in un formato leggibile.',
+            'too_many' => 'Non puoi aggiungere più di :max indicazioni.',
+            'row_invalid' => 'L\'indicazione numero :position non è leggibile.',
+            'mode_required' => 'L\'indicazione numero :position non dice con quale mezzo: scegline uno.',
+            'text_required' => 'L\'indicazione numero :position è vuota: scrivi quale linea e quale fermata.',
+            'text_too_long' => 'L\'indicazione numero :position supera i :max caratteri.',
+        ],
+
         /*
          * Turnstile (§14.7). Chi legge questi messaggi è una persona vera a
          * cui la verifica non è riuscita: dicono cosa fare, non cosa è andato

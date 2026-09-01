@@ -85,6 +85,32 @@ final class FilterFacets
     }
 
     /**
+     * I quartieri con almeno un locale approvato. Vuoto finché nessuno li ha
+     * compilati, e in quel caso il filtro non si disegna affatto (§8.6): un
+     * menu a tendina con la sola voce «tutti» è un contenitore vuoto.
+     *
+     * @return Collection<int, string>
+     */
+    public function zones(City $city): Collection
+    {
+        /** @var Collection<int, string> $zones */
+        $zones = new Collection($this->remember(
+            'quartieri:'.$city->getKey().':'.ContentVersion::for($city),
+            fn (): array => Venue::query()
+                ->approved()
+                ->inCity($city)
+                ->whereNotNull('zone')
+                ->where('zone', '!=', '')
+                ->distinct()
+                ->orderBy('zone')
+                ->pluck('zone')
+                ->all(),
+        ));
+
+        return $zones;
+    }
+
+    /**
      * @return Collection<int, Venue>
      */
     public function venues(City $city): Collection

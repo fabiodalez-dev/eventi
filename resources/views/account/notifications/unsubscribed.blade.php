@@ -15,7 +15,7 @@
             <p class="text-sm text-ink-muted">{{ __('notifications.unsubscribed.mandatory') }}</p>
         @endif
 
-        <a class="self-start rounded-pill bg-surface px-4 py-2.5 text-sm font-semibold text-ink ring-1 ring-line transition hover:ring-line-strong" href="{{ $preferencesUrl }}">
+        <a class="self-start bg-surface px-4 py-2.5 text-sm font-semibold text-ink border-2 border-line transition hover:border-accent" href="{{ $preferencesUrl }}">
             {{ __('notifications.unsubscribed.undo') }}
         </a>
     </div>

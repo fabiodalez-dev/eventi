@@ -15,7 +15,7 @@
 ])
 
 <div {{ $attributes->class([
-    'flex flex-col items-center rounded-card border border-dashed border-line bg-surface-sunken px-6 py-12 text-center',
+    'flex flex-col items-center border border-dashed border-line bg-surface-sunken px-6 py-12 text-center',
 ]) }}>
     <h2 class="text-card text-ink">{{ $title ?? __('ui.empty_state.default_title') }}</h2>
 

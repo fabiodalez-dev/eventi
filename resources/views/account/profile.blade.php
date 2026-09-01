@@ -23,7 +23,7 @@
             <p class="text-sm text-ink-muted">{{ __('account.profile.lead') }}</p>
 
             @unless ($user->hasVerifiedEmail())
-                <p class="rounded-card bg-surface-sunken px-4 py-3 text-sm text-ink-muted">
+                <p class="bg-surface px-4 py-3 text-sm text-ink-muted">
                     <span class="font-semibold text-ink">{{ __('account.verify.pending') }}</span>
                     <span aria-hidden="true">{{ __('common.separator') }}</span>
                     <a class="font-semibold text-brand hover:underline" href="{{ route('verification.notice') }}">{{ __('account.verify.resend') }}</a>
@@ -47,8 +47,8 @@
                 <x-field name="locale" :label="__('account.profile.locale')" :value="$user->locale" :options="$locales" :required="true" />
             </section>
 
-            <section aria-labelledby="preferenze" class="flex flex-col gap-4 rounded-card bg-surface-sunken p-card">
-                <h2 id="preferenze" class="text-section text-ink">{{ __('account.profile.notifications_title') }}</h2>
+            <section aria-labelledby="preferenze" class="flex flex-col gap-4 bg-surface p-card">
+                <h2 id="preferenze" class="font-display text-[clamp(1.25rem,1.8vw,1.75rem)] leading-none font-extrabold tracking-[-0.03em] uppercase">{{ __('account.profile.notifications_title') }}</h2>
                 <p class="text-sm text-ink-muted">{{ __('account.profile.notifications_lead') }}</p>
 
                 <label class="flex items-center gap-2.5 text-sm text-ink">
@@ -101,25 +101,25 @@
                 @endnewsletter
             </section>
 
-            <button type="submit" class="self-start rounded-pill bg-brand px-4 py-2.5 text-sm font-semibold text-on-brand transition hover:bg-brand-strong">
+            <button type="submit" class="self-start bg-brand px-4 py-2.5 text-sm font-semibold text-on-brand transition hover:bg-brand-strong">
                 {{ __('account.profile.submit') }}
             </button>
         </form>
 
         <section aria-labelledby="dati" class="flex flex-col gap-2">
-            <h2 id="dati" class="text-section text-ink">{{ __('account.profile.export') }}</h2>
+            <h2 id="dati" class="font-display text-[clamp(1.25rem,1.8vw,1.75rem)] leading-none font-extrabold tracking-[-0.03em] uppercase">{{ __('account.profile.export') }}</h2>
             <p class="text-sm text-ink-muted">{{ __('account.profile.export_hint') }}</p>
 
             <a
                 href="{{ route('account.profile.export') }}"
-                class="self-start rounded-pill bg-surface px-4 py-2.5 text-sm font-semibold text-ink ring-1 ring-line transition hover:ring-line-strong"
+                class="self-start bg-surface px-4 py-2.5 text-sm font-semibold text-ink border-2 border-line transition hover:border-accent"
             >
                 {{ __('account.profile.export') }}
             </a>
         </section>
 
-        <section aria-labelledby="cancella" class="flex flex-col gap-3 rounded-card border border-live/40 p-card">
-            <h2 id="cancella" class="text-section text-ink">{{ __('account.profile.delete_title') }}</h2>
+        <section aria-labelledby="cancella" class="flex flex-col gap-3 border border-live/40 p-card">
+            <h2 id="cancella" class="font-display text-[clamp(1.25rem,1.8vw,1.75rem)] leading-none font-extrabold tracking-[-0.03em] uppercase">{{ __('account.profile.delete_title') }}</h2>
             <p class="text-sm text-ink-muted">{{ __('account.profile.delete_body') }}</p>
 
             <form method="POST" action="{{ route('account.profile.destroy') }}" class="flex flex-wrap items-end gap-3">
@@ -128,7 +128,7 @@
 
                 <x-field name="conferma" :label="__('account.profile.delete_confirm')" :required="true" class="min-w-56" />
 
-                <button type="submit" class="rounded-pill bg-live px-4 py-2.5 text-sm font-semibold text-on-brand transition hover:opacity-90">
+                <button type="submit" class="bg-live px-4 py-2.5 text-sm font-semibold text-on-brand transition hover:opacity-90">
                     {{ __('account.profile.delete_submit') }}
                 </button>
             </form>

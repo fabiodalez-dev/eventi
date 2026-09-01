@@ -5,20 +5,59 @@ declare(strict_types=1);
 /*
  * La mappa pubblica (§11.6).
  *
- * Le tessere arrivano da OpenFreeMap, che serve stili vettoriali costruiti su
- * dati OpenStreetMap **senza chiave di accesso**: nessun contratto da firmare,
- * nessun identificativo da tenere in un segreto, nessun conteggio di richieste.
- * L'attribuzione a OpenStreetMap non è un ringraziamento ma una condizione
- * della licenza ODbL, e per questo compare sia sulla mappa sia nel piè di
- * pagina del sito.
+ * **Una mappa scura vera, non una mappa chiara rovesciata.**
+ *
+ * Il disegno adottato (D46) vuole una mappa scura, e per un po' l'ho ottenuta
+ * prendendo le tessere standard di OpenStreetMap e applicando
+ * `filter: invert(1)`. Non funziona, e il motivo vale la pena di scriverlo:
+ * **l'inversione ribalta la gerarchia invece di scurirla**. Sulle tessere OSM
+ * il fondo e' beige chiaro (#f2efe9) e le strade sono bianche (#ffffff);
+ * invertiti, il fondo diventa quasi nero e le strade diventano nero PIENO —
+ * cioe' piu' scure del fondo su cui dovrebbero risaltare. Le etichette, che
+ * erano nere, diventano bianche e restano leggibili: da qui l'effetto strano
+ * di una mappa in cui si leggono i nomi dei paesi ma la rete stradale e'
+ * sparita. Nessun filtro CSS puo' rimettere a posto quella gerarchia, perche'
+ * l'inversione la ribalta per costruzione.
+ *
+ * Servivano quindi tessere disegnate scure in partenza, raster (la mappa sta
+ * su Leaflet) e senza chiave di accesso — un sito di citta' non deve dipendere
+ * da un contratto per mostrare dove sono i locali. Il campo e' piu' stretto di
+ * quanto sembri: le «dark matter» di CARTO stampano «API KEY REQUIRED» in
+ * filigrana su ogni tessera a chi non si registra (caricano, e sono
+ * inservibili); Stamen e' passato sotto Stadia, che una chiave la chiede;
+ * Wikimedia serve solo i propri progetti; OpenFreeMap ha solo vettoriali.
+ *
+ * Restano le «World Dark Gray Canvas» di Esri: grigio scuro, strade chiare,
+ * niente chiave, niente filigrane. Sono costruite anche su dati OpenStreetMap,
+ * e l'attribuzione li nomina entrambi.
+ *
+ * L'attribuzione e' una condizione di licenza, non un ringraziamento, e **deve
+ * dire il vero**: quando le tessere cambiano fornitore cambia con loro. Ha
+ * gia' continuato a citare OpenFreeMap dopo un cambio, ed e' il modo piu'
+ * silenzioso di violare una licenza.
  */
 return [
 
     /*
-     * Stile vettoriale MapLibre. È un indirizzo di stile completo, non un
-     * modello di tessere: MapLibre ne ricava da sé i livelli e i caratteri.
+     * Il modello delle tessere raster. `{z}/{x}/{y}` li sostituisce Leaflet;
+     * `{s}` e' il sottodominio e `{r}` diventa `@2x` sugli schermi fitti.
+     *
+     * ATTENZIONE: qui va un modello di tessere, non un indirizzo di stile.
+     * Uno stile MapLibre (`.../styles/liberty`) restituisce un JSON: Leaflet
+     * lo chiede come immagine, riceve un documento, e la mappa resta vuota
+     * senza un solo errore in console. E' successo, e la diagnosi e' costata
+     * piu' della correzione.
      */
-    'style' => env('MAP_TILES_URL', 'https://tiles.openfreemap.org/styles/liberty'),
+    'tiles_url' => env('MAP_TILES_URL', 'https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}'),
+
+    /*
+     * I sottodomini di distribuzione, per i fornitori che li usano. Il modello
+     * qui sopra non contiene `{s}`, quindi questo valore resta inerte finche'
+     * non si passa a un fornitore che li richiede.
+     */
+    'tiles_subdomains' => env('MAP_TILES_SUBDOMAINS', 'abc'),
+
+    'max_zoom' => 19,
 
     'attribution' => env('MAP_ATTRIBUTION', '© OpenStreetMap contributors'),
 
@@ -32,9 +71,10 @@ return [
     'max_markers' => 500,
 
     /*
-     * Colore di ripiego per le categorie che non ne dichiarano uno.
+     * Colore di ripiego per le categorie che non ne dichiarano uno: l'accento
+     * del sito, non un viola che in questa tavolozza non esiste.
      */
-    'fallback_color' => '#7c3aed',
+    'fallback_color' => '#ccff00',
 
     /*
      * Scarto minimo, in gradi, perché lo spostamento della mappa venga

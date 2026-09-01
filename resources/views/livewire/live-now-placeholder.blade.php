@@ -7,7 +7,7 @@
 --}}
 <div class="mt-6">
     <p role="status" class="flex items-center gap-2 text-sm text-ink-subtle">
-        <span aria-hidden="true" class="size-1.5 rounded-pill bg-live pulse-dot"></span>
+        <span aria-hidden="true" class="size-1.5 bg-live pulse-dot"></span>
         {{ __('events.sections.live_loading') }}
     </p>
 

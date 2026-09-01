@@ -8,9 +8,11 @@ use App\Enums\ApiInclude;
 use App\Models\EventOccurrence;
 use App\Models\Lineup;
 use App\Models\Tag;
+use App\Models\TicketTier;
 use App\Queries\EventOccurrenceQuery;
 use App\Support\Api\ApiContext;
 use App\Support\Api\ApiDate;
+use App\Support\TicketTiers;
 use Illuminate\Support\Facades\Route;
 
 /**
@@ -56,6 +58,15 @@ final class OccurrenceResource
             'business_date' => ApiDate::day($occurrence->business_date),
             'status' => $occurrence->status->value,
             'status_note' => $occurrence->status_note,
+
+            /* L'etichetta di richiamo scritta dal locale («ULTIMI POSTI»):
+               testo già pronto da mostrare, non un codice da interpretare. */
+            'highlight' => $occurrence->highlight,
+
+            /* Capienza e posti rimasti. `capacity` nullo significa "quella del
+               locale": è là che il client la trova, non qui duplicata. */
+            'capacity' => $occurrence->capacity,
+            'capacity_left' => $occurrence->capacity_left,
             'title' => (string) $event->title,
             'subtitle' => $event->subtitle,
             'short_description' => $event->short_description,
@@ -78,6 +89,17 @@ final class OccurrenceResource
 
         if ($distance !== null) {
             $payload['distance_m'] = (int) round((float) $distance);
+        }
+
+        /*
+         * Il listino arriva **già risolto** per questa data: se la serata ne
+         * ha uno proprio è quello, altrimenti è quello dell'evento. La regola
+         * sta in un posto solo, e il client non deve conoscerla.
+         */
+        if ($context->wants(ApiInclude::Tiers)) {
+            $payload['tiers'] = TicketTiers::for($event, $occurrence)
+                ->map(static fn (TicketTier $tier): array => TicketTierResource::toArray($tier))
+                ->all();
         }
 
         if ($context->wants(ApiInclude::Lineup)) {

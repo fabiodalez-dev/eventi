@@ -11,7 +11,7 @@
     $logo = \App\Support\Media\ImageSet::forCollection($venue, 'logo');
     $cover = \App\Support\Media\ImageSet::forCollection($venue, 'cover')?->withSizes('(min-width: 1280px) 1200px, 100vw');
     $socials = is_array($venue->socials) ? $venue->socials : [];
-    $accessibility = is_array($venue->accessibility) ? $venue->accessibility : [];
+    $accessibility = $venue->accessibility;
     $hours = is_array($venue->opening_hours) ? $venue->opening_hours : [];
     $days = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 @endphp
@@ -33,12 +33,12 @@
             height="900"
             :sizes="$cover->sizes"
             :eager="true"
-            class="mt-4 aspect-[16/9] w-full rounded-card object-cover shadow-card"
+            class="mt-4 aspect-[16/9] w-full object-cover "
         />
     @endif
 
     <header class="mt-6 flex flex-wrap items-start gap-4">
-        <span class="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-card bg-brand-soft text-lg font-bold text-on-brand-soft ring-1 ring-line">
+        <span class="flex size-16 shrink-0 items-center justify-center overflow-hidden bg-brand-soft text-lg font-bold text-on-brand-soft border-2 border-line">
             @if ($logo !== null)
                 <x-media-image
                     :set="$logo"
@@ -60,6 +60,10 @@
                 <span>{{ $venue->type->label() }}</span>
                 <span aria-hidden="true">{{ __('common.separator') }}</span>
                 <span>{{ $venue->municipality }}</span>
+                @if (filled($venue->zone))
+                    <span aria-hidden="true">{{ __('common.separator') }}</span>
+                    <a class="hover:text-ink hover:underline" href="{{ route('events.index', ['zone' => $venue->zone]) }}">{{ $venue->zone }}</a>
+                @endif
             </p>
 
             {{-- «Segui questo locale» (§15.7): alimenta il feed personale, non
@@ -85,7 +89,7 @@
                     <x-badge tone="muted">{{ __('venues.badge.membership') }}</x-badge>
                 @endif
 
-                @if (($accessibility['wheelchair'] ?? false) === true)
+                @if ($accessibility->has(\App\Enums\AccessibilityFeature::StepFreeEntrance))
                     <x-badge tone="neutral">{{ __('venues.badge.accessible') }}</x-badge>
                 @endif
             </div>
@@ -98,7 +102,7 @@
                 type="button"
                 disabled
                 aria-describedby="segui-nota"
-                class="cursor-not-allowed rounded-pill bg-surface px-4 py-2 text-sm font-semibold text-ink-subtle ring-1 ring-line"
+                class="cursor-not-allowed bg-surface px-4 py-2.5 font-display text-[0.688rem] leading-none font-extrabold tracking-[0.14em] text-ink uppercase-subtle border-2 border-line"
             >
                 {{ __('common.actions.follow') }}
             </button>
@@ -111,7 +115,7 @@
         <div class="flex flex-col gap-8">
             @if (filled($venue->description))
                 <section aria-labelledby="descrizione-locale" class="flex flex-col gap-3">
-                    <h2 id="descrizione-locale" class="text-section text-ink">{{ __('venues.detail.about') }}</h2>
+                    <h2 id="descrizione-locale" class="font-display text-[clamp(1.25rem,1.8vw,1.75rem)] leading-none font-extrabold tracking-[-0.03em] uppercase">{{ __('venues.detail.about') }}</h2>
 
                     <div class="flex flex-col gap-3 text-ink-muted">
                         @foreach (preg_split('/\R{2,}/', (string) $venue->description) ?: [] as $paragraph)
@@ -138,7 +142,7 @@
                 <x-empty-state :title="__('events.empty.venue_title')" :description="__('events.empty.venue_body')">
                     <a
                         href="{{ route('events.index') }}"
-                        class="rounded-pill bg-brand px-4 py-2 text-sm font-semibold text-on-brand transition hover:bg-brand-strong"
+                        class="bg-brand px-4 py-2.5 font-display text-[0.688rem] leading-none font-extrabold tracking-[0.14em] text-on-brand uppercase transition hover:bg-brand-strong"
                     >
                         {{ __('events.redirects.to_all') }}
                     </a>
@@ -151,7 +155,7 @@
 
                     <ul class="flex flex-col gap-2">
                         @foreach ($archive as $occurrence)
-                            <li class="flex flex-wrap items-baseline justify-between gap-3 rounded-card bg-surface px-4 py-3 ring-1 ring-line">
+                            <li class="flex flex-wrap items-baseline justify-between gap-3 bg-canvas px-4 py-3 border-2 border-line">
                                 <a class="font-semibold text-ink hover:underline" href="{{ route('events.show', $occurrence->event) }}">
                                     {{ $occurrence->event->title }}
                                 </a>
@@ -169,8 +173,8 @@
         </div>
 
         <aside class="flex flex-col gap-6">
-            <section class="flex flex-col gap-3 rounded-card bg-surface p-5 ring-1 ring-line" aria-labelledby="dove-locale">
-                <h2 id="dove-locale" class="text-section text-ink">{{ __('venues.detail.address') }}</h2>
+            <section class="flex flex-col gap-3 bg-canvas p-5 border-2 border-line" aria-labelledby="dove-locale">
+                <h2 id="dove-locale" class="font-display text-[clamp(1.25rem,1.8vw,1.75rem)] leading-none font-extrabold tracking-[-0.03em] uppercase">{{ __('venues.detail.address') }}</h2>
 
                 <p class="text-sm text-ink-muted">
                     {{ $venue->address }}@if (filled($venue->address_extra)), {{ $venue->address_extra }}@endif<br>
@@ -181,8 +185,8 @@
             </section>
 
             @if ($hours !== [])
-                <section class="flex flex-col gap-3 rounded-card bg-surface p-5 ring-1 ring-line" aria-labelledby="orari-locale">
-                    <h2 id="orari-locale" class="text-section text-ink">{{ __('venues.detail.opening_hours') }}</h2>
+                <section class="flex flex-col gap-3 bg-canvas p-5 border-2 border-line" aria-labelledby="orari-locale">
+                    <h2 id="orari-locale" class="font-display text-[clamp(1.25rem,1.8vw,1.75rem)] leading-none font-extrabold tracking-[-0.03em] uppercase">{{ __('venues.detail.opening_hours') }}</h2>
 
                     <dl class="flex flex-col gap-1 text-sm">
                         @foreach ($days as $day)
@@ -203,9 +207,23 @@
                 </section>
             @endif
 
+            {{-- «Come arrivare»: sta sul locale perché cambia col luogo e non
+                 con la serata, ed è la domanda che si fa dopo aver deciso di
+                 andarci. --}}
+            <x-transit-guide :transit="$venue->transit" class="bg-canvas p-5 border-2 border-line" />
+
+            <x-accessibility-list :accessibility="$accessibility" class="bg-canvas p-5 border-2 border-line" />
+
+            <x-fact-table
+                :facts="$venue->info"
+                :heading="__('venues.detail.info')"
+                heading-id="info-locale"
+                class="bg-canvas p-5 border-2 border-line"
+            />
+
             @if (filled($venue->phone) || filled($venue->email) || filled($venue->website) || $socials !== [])
-                <section class="flex flex-col gap-2 rounded-card bg-surface p-5 ring-1 ring-line" aria-labelledby="contatti-locale">
-                    <h2 id="contatti-locale" class="text-section text-ink">{{ __('venues.detail.contacts') }}</h2>
+                <section class="flex flex-col gap-2 bg-canvas p-5 border-2 border-line" aria-labelledby="contatti-locale">
+                    <h2 id="contatti-locale" class="font-display text-[clamp(1.25rem,1.8vw,1.75rem)] leading-none font-extrabold tracking-[-0.03em] uppercase">{{ __('venues.detail.contacts') }}</h2>
 
                     @if (filled($venue->phone))
                         <a class="text-sm text-brand hover:underline" href="tel:{{ $venue->phone }}">{{ $venue->phone }}</a>
@@ -232,8 +250,8 @@
             @endif
 
             @if ($venue->requires_membership && filled($venue->membership_notes))
-                <section class="flex flex-col gap-2 rounded-card bg-surface p-5 ring-1 ring-line" aria-labelledby="tessera-locale">
-                    <h2 id="tessera-locale" class="text-section text-ink">{{ __('venues.detail.membership') }}</h2>
+                <section class="flex flex-col gap-2 bg-canvas p-5 border-2 border-line" aria-labelledby="tessera-locale">
+                    <h2 id="tessera-locale" class="font-display text-[clamp(1.25rem,1.8vw,1.75rem)] leading-none font-extrabold tracking-[-0.03em] uppercase">{{ __('venues.detail.membership') }}</h2>
                     <p class="text-sm text-ink-muted">{{ $venue->membership_notes }}</p>
                 </section>
             @endif
@@ -244,7 +262,7 @@
             <x-feed-links :filters="$feedFilters" />
 
             <section class="flex flex-col gap-3" aria-labelledby="condividi-locale">
-                <h2 id="condividi-locale" class="text-section text-ink">{{ __('common.actions.share') }}</h2>
+                <h2 id="condividi-locale" class="font-display text-[clamp(1.25rem,1.8vw,1.75rem)] leading-none font-extrabold tracking-[-0.03em] uppercase">{{ __('common.actions.share') }}</h2>
 
                 <x-share-links :url="route('venues.show', $venue)" :title="$venue->name" />
 

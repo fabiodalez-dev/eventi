@@ -7,8 +7,10 @@ namespace App\Http\Resources\V1;
 use App\Models\Event;
 use App\Models\EventOccurrence;
 use App\Models\Tag;
+use App\Models\TicketTier;
 use App\Support\Api\ApiContext;
 use App\Support\Api\ApiDate;
+use App\Support\TicketTiers;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Route;
 
@@ -53,6 +55,15 @@ final class EventResource
                 'url' => $event->organizer_url,
             ],
             'price' => PriceResource::toArray($event),
+
+            /*
+             * Il listino dell'evento, sola lettura. Lo stato è **per fascia**:
+             * è la risposta a «tutto esaurito o restano biglietti?» che
+             * `status` dell'occorrenza, da solo, non sa dare.
+             */
+            'tiers' => TicketTiers::for($event)
+                ->map(static fn (TicketTier $tier): array => TicketTierResource::toArray($tier))
+                ->all(),
             'booking' => [
                 'required' => (bool) $event->booking_required,
                 'url' => $event->booking_url,
@@ -65,6 +76,9 @@ final class EventResource
             // sono: un client che deve distinguere `null` da `[]` da una
             // mappa scriverebbe tre rami per dire «nessun link».
             'external_links' => $event->external_links->toArray(),
+            // Scheda tecnica: coppie `{label, value}`, lista vuota quando non
+            // ce ne sono — per la stessa ragione di `external_links`.
+            'facts' => $event->facts->toArray(),
             'verification_status' => $event->verification_status->value,
             'url' => Route::has('events.show') ? route('events.show', $event) : null,
             'occurrences' => $occurrences

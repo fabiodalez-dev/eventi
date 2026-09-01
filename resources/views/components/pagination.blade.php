@@ -26,9 +26,9 @@
         ]);
     }
 
-    $link = 'inline-flex min-w-10 items-center justify-center rounded-pill border border-line bg-surface px-3.5 py-2 text-sm font-semibold text-ink transition hover:border-line-strong hover:bg-surface-sunken';
-    $disabled = 'inline-flex min-w-10 items-center justify-center rounded-pill border border-line px-3.5 py-2 text-sm font-semibold text-ink-subtle';
-    $current = 'inline-flex min-w-10 items-center justify-center rounded-pill bg-brand px-3.5 py-2 text-sm font-semibold text-on-brand';
+    $link = 'inline-flex min-w-10 items-center justify-center border border-line bg-surface px-3.5 py-2 text-sm font-semibold text-ink transition hover:border-line-strong hover:bg-surface-sunken';
+    $disabled = 'inline-flex min-w-10 items-center justify-center border border-line px-3.5 py-2 text-sm font-semibold text-ink-subtle';
+    $current = 'inline-flex min-w-10 items-center justify-center bg-brand px-3.5 py-2 text-sm font-semibold text-on-brand';
 @endphp
 
 @if ($hasPages)
@@ -36,11 +36,11 @@
         <div class="flex flex-wrap items-center justify-center gap-2">
             @if ($paginator->previousPageUrl())
                 <a href="{{ $paginator->previousPageUrl() }}" rel="prev" class="{{ $link }}">
-                    <span aria-hidden="true">&larr;</span>&nbsp;{{ __('ui.pagination.previous') }}
+                    <x-lucide name="arrow-left" class="size-3.5" />&nbsp;{{ __('ui.pagination.previous') }}
                 </a>
             @else
                 <span class="{{ $disabled }}" aria-disabled="true">
-                    <span aria-hidden="true">&larr;</span>&nbsp;{{ __('ui.pagination.previous') }}
+                    <x-lucide name="arrow-left" class="size-3.5" />&nbsp;{{ __('ui.pagination.previous') }}
                 </span>
             @endif
 
@@ -66,11 +66,11 @@
 
             @if ($paginator->nextPageUrl())
                 <a href="{{ $paginator->nextPageUrl() }}" rel="next" class="{{ $link }}">
-                    {{ __('ui.pagination.next') }}&nbsp;<span aria-hidden="true">&rarr;</span>
+                    {{ __('ui.pagination.next') }}&nbsp;<x-lucide name="arrow-right" class="size-3.5" />
                 </a>
             @else
                 <span class="{{ $disabled }}" aria-disabled="true">
-                    {{ __('ui.pagination.next') }}&nbsp;<span aria-hidden="true">&rarr;</span>
+                    {{ __('ui.pagination.next') }}&nbsp;<x-lucide name="arrow-right" class="size-3.5" />
                 </span>
             @endif
         </div>

@@ -15,6 +15,83 @@
 Le credenziali del database vivono **solo** in `/home/fabiodal/eventi/.env` (chmod 600)
 e nei secret GitHub. Non sono nel repository.
 
+## Prima installazione su un server nuovo (D42, D44)
+
+Il wizard sta su `/installazione` e va aperto **a quell'indirizzo**: le altre
+pagine, prima dell'installazione, rispondono con un errore — la homepage prova
+ad aprire la sessione su un database che ancora non esiste (misurato: `GET /`
+→ 500 finché la checklist non è conclusa). Sul server servono soltanto i file
+e `vendor/`:
+
+```bash
+# sul server, nella cartella dell'applicazione
+composer install --no-dev --optimize-autoloader
+```
+
+Poi si apre `https://<dominio>/installazione` con un browser. Il `.env` e
+`APP_KEY` li crea il punto d'ingresso da sé; i sette passi chiedono database,
+nome e indirizzo del sito, posta, città, amministratore, ed eseguono la
+checklist. **Senza `vendor/` la pagina spiega quale comando dare** invece di
+restare bianca.
+
+Alla fine restano **due cose da fare a mano**, e sono nella schermata finale:
+
+1. le due righe di cron della sezione «Cron attivi» più sotto — senza, non
+   partono scheduler, code, notifiche, import e backup;
+2. le integrazioni che nascono spente (Turnstile, Sentry, analitica, S3), che
+   si accendono riempiendo il `.env` e rieseguendo `php artisan config:cache`.
+
+### Perché l'installer non risponde più
+
+Il marcatore è `storage/app/private/install.lock` (JSON: data, nome
+dell'applicazione, migrazione più recente). Finché c'è, `/installazione`
+risponde **404**. Il deploy non lo tocca mai: `ci.yml` esclude
+`storage/app/private/*` dal `rsync --delete`, la stessa riga che protegge i
+backup.
+
+Due comportamenti che valgono più del file:
+
+- **Marcatore assente, database vivo** → l'installer lo scrive da sé e risponde
+  404. È quello che è successo a `eventi.fabiodalez.it`, in produzione da prima
+  che l'installer esistesse: il rilascio che lo ha portato non ha mostrato alcun
+  wizard.
+- **Trappola sulla macchina di sviluppo:** il `.env` creato da `.env.example`
+  punta a `eventi_local`; se quel database esiste ed è popolato, il primo
+  accesso a `/installazione` lo scambia per un'installazione preesistente,
+  scrive il marcatore e risponde 404. Per provare il wizard in locale si punta
+  `DB_DATABASE` a un nome inesistente o a un database vuoto **prima** della
+  prima richiesta (è ciò che fa il banco di prova di D44 e della verifica
+  finale).
+- **Marcatore presente, database rotto** → non risponde «già installato»:
+  riprova la connessione e mostra una **diagnosi** con `503` — connessione che
+  non si apre, database vuoto, oppure tabelle mancanti elencate — e i comandi da
+  dare. Il dettaglio tecnico (PDO, codice errore) sta in
+  `storage/logs/laravel.log` e mai in pagina.
+
+### Reinstallare davvero
+
+Non c'è alcun percorso web: reinstallare sopra un sistema vivo cancella dati, ed
+è un gesto da SSH fatto da chi sa cosa sta cancellando.
+
+```bash
+ssh fabiodalez.it 'rm ~/eventi/storage/app/private/install.lock'
+# e, se si vuole davvero ripartire da zero, prima un backup e poi:
+# ... artisan db:wipe --force
+```
+
+### Dati di base senza faker
+
+`ProductionSeeder` chiama i soli quattro seeder che vivono senza `fakerphp/faker`
+— ruoli e permessi, categorie, tag, pagine legali — perché in produzione il
+pacchetto non esiste (`composer install --no-dev`). È idempotente:
+
+```bash
+ssh fabiodalez.it 'cd ~/eventi && /opt/cpanel/ea-php84/root/usr/bin/php artisan db:seed --class=ProductionSeeder --force'
+```
+
+I dati dimostrativi restano fuori: la demo è `migrate:fresh --seed`, in
+sviluppo, dove faker c'è.
+
 ## Deploy
 
 Automatico: ogni push su `main` fa partire `.github/workflows/ci.yml`.
@@ -188,7 +265,7 @@ copiarli rompe la produzione in modi che non assomigliano alla causa.
 | `public/storage` | Symlink assoluto: punta a un percorso del Mac. Nessuna immagine si carica, restano i segnaposto sfocati |
 | `bootstrap/cache/packages.php` | Elenca i provider delle dipendenze di sviluppo, assenti in produzione: HTTP 500 su tutto, `Class "Laravel\Pail\PailServiceProvider" not found` |
 | `public/.htaccess` | Al contrario: questo **deve** essere versionato, perche contiene la direttiva che forza PHP 8.4 (vedi sopra) |
-| `storage/app/private/` | E dove vivono i backup (§16). Il deploy la esclude dal `rsync --delete`: senza l'esclusione, **ogni pubblicazione cancellerebbe ogni copia** — proprio il gesto dopo il quale un backup serve di piu |
+| `storage/app/private/` | E dove vivono i backup (§16) **e il marcatore di installazione** (`install.lock`, D42). Il deploy la esclude dal `rsync --delete`: senza l'esclusione, **ogni pubblicazione cancellerebbe ogni copia** — proprio il gesto dopo il quale un backup serve di piu — e riaprirebbe il wizard di installazione su un sito vivo |
 
 Se la produzione risponde 500 subito dopo un rilascio, il primo posto da
 guardare e questo elenco.

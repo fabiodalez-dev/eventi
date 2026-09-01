@@ -26,6 +26,7 @@ final class VenueQueryRequest extends ApiRequest
             ...parent::rules(),
             'q' => ['nullable', 'string', 'max:120'],
             'municipality' => ['nullable', 'string', 'max:120'],
+            'zone' => ['nullable', 'string', 'max:120'],
             'type' => ['nullable', Rule::in(VenueType::values())],
             'updated_since' => ['nullable', 'date'],
         ];
@@ -41,6 +42,16 @@ final class VenueQueryRequest extends ApiRequest
     public function municipality(): ?string
     {
         $value = $this->validated('municipality');
+
+        return is_string($value) && trim($value) !== '' ? trim($value) : null;
+    }
+
+    /**
+     * Il quartiere, che dentro un capoluogo separa dove il comune non separa.
+     */
+    public function zone(): ?string
+    {
+        $value = $this->validated('zone');
 
         return is_string($value) && trim($value) !== '' ? trim($value) : null;
     }

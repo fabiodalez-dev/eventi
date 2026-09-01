@@ -43,20 +43,20 @@
                     <a
                         href="{{ $previous }}"
                         rel="prev"
-                        class="rounded-pill bg-surface px-3 py-1.5 text-sm font-semibold text-ink ring-1 ring-line transition hover:ring-line-strong"
+                        class="bg-surface px-3 py-1.5 text-sm font-semibold text-ink border-2 border-line transition hover:border-accent"
                     >
                         <span aria-hidden="true">&larr;</span>
                         <span class="sr-only">{{ __('calendar.previous') }}</span>
                     </a>
                 @endif
 
-                <h2 class="text-section text-ink first-letter:uppercase">{{ $label }}</h2>
+                <h2 class="font-display text-[clamp(1.25rem,1.8vw,1.75rem)] leading-none font-extrabold tracking-[-0.03em] uppercase first-letter:uppercase">{{ $label }}</h2>
 
                 @if ($next !== null)
                     <a
                         href="{{ $next }}"
                         rel="next"
-                        class="rounded-pill bg-surface px-3 py-1.5 text-sm font-semibold text-ink ring-1 ring-line transition hover:ring-line-strong"
+                        class="bg-surface px-3 py-1.5 text-sm font-semibold text-ink border-2 border-line transition hover:border-accent"
                     >
                         <span aria-hidden="true">&rarr;</span>
                         <span class="sr-only">{{ __('calendar.next') }}</span>
@@ -79,7 +79,7 @@
                     x-cloak
                     x-on:click="titoli = ! titoli"
                     x-bind:aria-expanded="titoli ? 'true' : 'false'"
-                    class="rounded-pill bg-surface px-3 py-1.5 text-sm font-semibold text-ink ring-1 ring-line transition hover:ring-line-strong sm:hidden"
+                    class="bg-surface px-3 py-1.5 text-sm font-semibold text-ink border-2 border-line transition hover:border-accent sm:hidden"
                 >
                     <span x-show="! titoli">{{ __('calendar.day.more') }}</span>
                     <span x-show="titoli" x-cloak>{{ __('calendar.day.less') }}</span>
@@ -104,7 +104,7 @@
                 <div
                     role="gridcell"
                     @class([
-                        'flex min-h-20 flex-col rounded-card p-1.5 ring-1 transition sm:min-h-28 sm:p-2',
+                        'flex min-h-20 flex-col p-1.5 ring-1 transition sm:min-h-28 sm:p-2',
                         'bg-surface ring-line' => $cell['in_month'],
                         'bg-surface-sunken/50 ring-transparent' => ! $cell['in_month'],
                         'opacity-55' => $cell['is_past'],
@@ -121,7 +121,7 @@
                                 {{ $formatter->dayNumber($cell['date']) }}
                             </span>
 
-                            <span class="rounded-pill bg-brand-soft px-1.5 py-0.5 text-eyebrow text-on-brand-soft" aria-hidden="true">
+                            <span class="bg-brand-soft px-1.5 py-0.5 text-eyebrow text-on-brand-soft" aria-hidden="true">
                                 {{ $cell['count'] }}
                             </span>
                         </a>
@@ -163,7 +163,7 @@
                 @if ($next !== null)
                     <a
                         href="{{ $next }}"
-                        class="rounded-pill bg-brand px-4 py-2 text-sm font-semibold text-on-brand transition hover:bg-brand-strong"
+                        class="bg-brand px-4 py-2.5 font-display text-[0.688rem] leading-none font-extrabold tracking-[0.14em] text-on-brand uppercase transition hover:bg-brand-strong"
                     >
                         {{ __('calendar.next') }}
                     </a>
@@ -171,7 +171,7 @@
 
                 <a
                     href="{{ route('events.index') }}"
-                    class="rounded-pill bg-surface px-4 py-2 text-sm font-semibold text-ink ring-1 ring-line transition hover:ring-line-strong"
+                    class="bg-surface px-4 py-2.5 font-display text-[0.688rem] leading-none font-extrabold tracking-[0.14em] text-ink uppercase border-2 border-line transition hover:border-accent"
                 >
                     {{ __('events.redirects.to_all') }}
                 </a>

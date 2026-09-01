@@ -23,8 +23,8 @@
             role="listitem"
             href="{{ route('events.date', ['date' => $formatter->isoDay($day['date'])]) }}"
             @class([
-                'flex w-[4.5rem] flex-col items-center gap-1.5 rounded-card px-2 py-2.5 text-center ring-1 transition',
-                'bg-surface ring-line hover:ring-line-strong' => $day['count'] > 0,
+                'flex w-[4.5rem] flex-col items-center gap-1.5 px-2 py-2.5 text-center ring-1 transition',
+                'bg-surface ring-line hover:border-accent' => $day['count'] > 0,
                 'bg-surface-sunken ring-line opacity-60' => $day['count'] === 0,
             ])
         >

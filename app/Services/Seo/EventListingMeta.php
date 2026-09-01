@@ -130,6 +130,14 @@ final class EventListingMeta
             }
         }
 
+        /*
+         * Il quartiere è più preciso del comune, quindi vince: «eventi al
+         * Portello» dice qualcosa che «eventi a Padova» non dice.
+         */
+        if ($filters->zone !== null) {
+            return __('events.meta.in_place', ['place' => $filters->zone]);
+        }
+
         if ($filters->municipality !== null) {
             return __('events.meta.in_place', ['place' => $filters->municipality]);
         }

@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Casts\AsAccessibilityProfile;
+use App\Casts\AsFacts;
+use App\Casts\AsTransitGuide;
 use App\Enums\VenuePlan;
 use App\Enums\VenueRole;
 use App\Enums\VenueStatus;
@@ -60,6 +63,7 @@ class Venue extends Model implements HasMedia
         'address_extra',
         'postal_code',
         'municipality',
+        'zone',
         'province_code',
         'lat',
         'lng',
@@ -69,8 +73,10 @@ class Venue extends Model implements HasMedia
         'website',
         'socials',
         'opening_hours',
+        'transit',
         'capacity',
         'accessibility',
+        'info',
         'requires_membership',
         'membership_notes',
         'status',
@@ -100,6 +106,7 @@ class Venue extends Model implements HasMedia
             'name' => $this->name,
             'short_description' => $this->short_description,
             'municipality' => $this->municipality,
+            'zone' => $this->zone,
             'address' => $this->address,
             'description' => $this->description,
         ];
@@ -266,6 +273,18 @@ class Venue extends Model implements HasMedia
     }
 
     /**
+     * Il quartiere del locale — «Portello», «Arcella» — che è la scala a cui
+     * si cerca dentro una città. Il comune, in un capoluogo, è lo stesso per
+     * tutti e non separa niente.
+     *
+     * @param  Builder<Venue>  $query
+     */
+    public function scopeInZone(Builder $query, string $zone): void
+    {
+        $query->where('zone', $zone);
+    }
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array
@@ -279,7 +298,9 @@ class Venue extends Model implements HasMedia
             'lng' => 'decimal:7',
             'socials' => 'array',
             'opening_hours' => 'array',
-            'accessibility' => 'array',
+            'transit' => AsTransitGuide::class,
+            'accessibility' => AsAccessibilityProfile::class,
+            'info' => AsFacts::class,
             'default_event_settings' => 'array',
             'stats_cache' => 'array',
             'capacity' => 'integer',

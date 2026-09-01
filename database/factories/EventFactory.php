@@ -74,6 +74,7 @@ class EventFactory extends Factory
             'is_outdoor' => false,
             'custom_location' => null,
             'external_links' => null,
+            'facts' => null,
             'source' => EventSource::Manual,
             'source_ref' => null,
             'verification_status' => VerificationStatus::Unverified,

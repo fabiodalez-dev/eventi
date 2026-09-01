@@ -5,33 +5,31 @@
     controller le conta con una sola interrogazione aggregata. Una casella che
     porta a una lista vuota è un contenitore vuoto con un passaggio in mezzo
     (§8.6).
+
+    Nel riferimento (D46) la casella si riempie di giallo-verde al passaggio e
+    il testo si inverte: è l'unico posto della pagina dove il colore copre una
+    superficie intera, ed è quello che rende la griglia il punto in cui si
+    sceglie invece che una legenda da leggere. Il pallino colorato della
+    categoria non c'è più — con un accento solo, dieci pallini di dieci colori
+    diversi erano l'unica cosa che rompeva la tavolozza.
 --}}
 @props(['categories'])
 
-<div {{ $attributes->class(['grid gap-3 sm:grid-cols-2 lg:grid-cols-3']) }}>
+<div {{ $attributes->class(['grid [grid-template-columns:repeat(auto-fill,minmax(min(178px,100%),1fr))]']) }}>
     @foreach ($categories as $entry)
-        @php
-            $category = $entry['category'];
-            $color = is_string($category->color) && preg_match('/^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/', $category->color) === 1
-                ? $category->color
-                : null;
-        @endphp
+        @php $category = $entry['category']; @endphp
 
         <a
             href="{{ route('events.category', $category) }}"
-            class="group flex items-center justify-between gap-3 rounded-card bg-surface px-4 py-3.5 ring-1 ring-line transition hover:ring-line-strong"
+            class="flex flex-col items-start gap-4 border-r-2 border-b-2 border-line px-[18px] py-5 transition-colors duration-200 hover:bg-accent hover:text-on-accent"
         >
-            <span class="flex min-w-0 items-center gap-2.5">
-                <span
-                    aria-hidden="true"
-                    class="size-2.5 shrink-0 rounded-pill bg-brand"
-                    @if ($color) style="background-color: {{ $color }}" @endif
-                ></span>
-
-                <span class="truncate font-semibold text-ink">{{ $category->name }}</span>
+            <span class="font-display text-[0.688rem] leading-none font-extrabold tracking-[0.14em] uppercase">
+                {{ trans_choice('events.sections.category_count', $entry['count'], ['count' => $entry['count']]) }}
             </span>
 
-            <span class="shrink-0 text-sm text-ink-subtle">{{ $entry['count'] }}</span>
+            <span class="font-display text-[clamp(1.063rem,1.5vw,1.375rem)] leading-none font-extrabold tracking-[-0.02em] uppercase">
+                {{ $category->name }}
+            </span>
         </a>
     @endforeach
 </div>

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\Venue;
 use App\Services\Media\OpenGraphImage;
 use Illuminate\Support\Facades\Storage;
 use Tests\Support\ImageFixtures;
@@ -84,7 +85,15 @@ describe('immagini senza salto di layout (§11.11)', function (): void {
         // locandina deve comparire.
         freezeLocal($this->city, '2026-09-12 18:00');
 
-        foreach (['/', '/eventi', route('events.show', $event->refresh())] as $url) {
+        /*
+         * `/eventi` non è più in questo elenco: dal disegno adottato (D46) le
+         * card di un elenco sono tipografiche e non portano locandina — è ciò
+         * che permette di affiancarle a due pixel di distanza. Le fotografie
+         * restano dove pesano davvero, ed è lì che questa regola va verificata:
+         * il riquadro in evidenza della pagina iniziale e la scheda
+         * dell'evento, che sono le due che questo test popola.
+         */
+        foreach (['/', route('events.show', $event->refresh())] as $url) {
             $html = $this->get($url)->assertOk()->getContent();
 
             preg_match_all('#<img\b[^>]*>#s', $html, $immagini);
@@ -98,16 +107,21 @@ describe('immagini senza salto di layout (§11.11)', function (): void {
     });
 
     it('offre AVIF e WebP e rinvia le locandine sotto la piega', function (): void {
-        // Cinque date: le prime quattro stanno sopra la piega e si caricano
-        // subito, la quinta deve aspettare di essere raggiunta.
-        foreach (range(12, 16) as $giorno) {
-            $event = occurrenceAtLocal($this->city, $this->category, "2026-09-{$giorno} 21:30")->event;
-            $event->addMedia(ImageFixtures::upload('locandina.jpg', ImageFixtures::jpeg()))->toMediaCollection('poster');
+        /*
+         * L'elenco dei locali: cinque schede con fotografia, di cui solo le
+         * prime stanno sopra la piega. Prima questo test guardava `/eventi`,
+         * ma da D46 le card di un elenco di eventi non hanno locandina — e un
+         * test sul rinvio delle immagini ha bisogno di una pagina che di
+         * immagini ne abbia parecchie, sopra e sotto la piega.
+         */
+        foreach (range(1, 5) as $indice) {
+            $venue = Venue::factory()->approved()->create(['city_id' => $this->city->getKey()]);
+            $venue->addMedia(ImageFixtures::upload('locale.jpg', ImageFixtures::jpeg()))->toMediaCollection('cover');
         }
 
         freezeLocal($this->city, '2026-09-01 12:00');
 
-        $html = $this->get('/eventi')->assertOk()->getContent();
+        $html = $this->get('/locali')->assertOk()->getContent();
 
         expect($html)
             ->toContain('<source type="image/avif"')

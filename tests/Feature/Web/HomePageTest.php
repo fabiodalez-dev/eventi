@@ -73,7 +73,11 @@ it('scrive "stasera" con l\'orario e il prezzo sulla card', function (): void {
     $this->get('/')
         ->assertOk()
         ->assertSee(__('events.sections.tonight'))
-        ->assertSee(__('events.badge.tonight', ['time' => '21:30']))
+        /* L'orario, non l'etichetta che lo incornicia: la card lo scrive nella
+           riga della data («oggi alle 21:30») invece che in un badge, e cio'
+           che conta e' che chi guarda sappia a che ora — non in quale forma
+           gliela si dice. */
+        ->assertSee('21:30')
         ->assertSee(__('events.price.free'));
 });
 
@@ -92,7 +96,7 @@ it('dichiara annullata una data annullata invece di nasconderla', function (): v
         ->assertSee(__('events.badge.cancelled'));
 });
 
-it('dichiara le misure della locandina per non far ballare la griglia', function (): void {
+it('dichiara le misure di ogni immagine per non far ballare la pagina', function (): void {
     $city = testCity();
     $category = testCategory();
 
@@ -100,9 +104,20 @@ it('dichiara le misure della locandina per non far ballare la griglia', function
 
     occurrenceAtLocal($city, $category, '2026-09-05 21:30:00');
 
-    $this->get('/')
-        ->assertOk()
-        ->assertSee('aspect-[3/4]', escape: false);
+    /*
+     * Prima questo test cercava `aspect-[3/4]`, il rapporto della locandina
+     * nelle card. Le card non hanno piu' locandina (D46) — ma cio' che il test
+     * proteggeva non era quella classe: era che la pagina non si sposti sotto
+     * il dito mentre le immagini arrivano. Quella garanzia vale per ogni
+     * immagine che resta, e si verifica su tutte invece che su una.
+     */
+    $html = $this->get('/')->assertOk()->getContent();
+
+    preg_match_all('#<img\b[^>]*>#s', $html, $immagini);
+
+    foreach ($immagini[0] as $tag) {
+        expect($tag)->toContain('width=')->toContain('height=');
+    }
 });
 
 it('mostra l\'attribuzione a OpenStreetMap, che la licenza dei dati impone', function (): void {

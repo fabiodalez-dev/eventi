@@ -8,7 +8,9 @@ use App\Actions\UpdateOccurrencesAction;
 use App\Enums\LineupRole;
 use App\Enums\OccurrenceScope;
 use App\Enums\OccurrenceStatus;
+use App\Enums\TicketTierStatus;
 use App\Filament\Support\EventStatusPresentation;
+use App\Filament\Support\TicketTiersField;
 use App\Models\EventOccurrence;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
@@ -79,15 +81,88 @@ class OccurrencesRelationManager extends RelationManager
                     ->required()
                     ->default(OccurrenceStatus::Scheduled->value),
 
+                /*
+                 * La capienza **di questa sera**, che non sempre è quella del
+                 * locale: una sala da 400 messa a platea seduta ne fa 180.
+                 * Vuota significa "quella del locale", e senza un totale i
+                 * posti rimasti restano un numero senza scala.
+                 */
+                TextInput::make('capacity')
+                    ->label(__('admin.fields.occurrence_capacity'))
+                    ->helperText(__('admin.hints.occurrence_capacity'))
+                    ->numeric()
+                    ->minValue(0),
+
                 TextInput::make('capacity_left')
                     ->label(__('admin.fields.capacity_left'))
                     ->numeric()
                     ->minValue(0),
 
+                TextInput::make('highlight')
+                    ->label(__('admin.fields.occurrence_highlight'))
+                    ->helperText(__('admin.hints.occurrence_highlight'))
+                    ->maxLength(40),
+
                 Textarea::make('status_note')
                     ->label(__('admin.fields.status_note'))
                     ->rows(2)
                     ->columnSpanFull(),
+
+                /*
+                 * Il listino di **questa data soltanto**: sostituisce quello
+                 * dell'evento invece di integrarlo (`App\Support\TicketTiers`).
+                 * Si compila qui e non nella scheda dell'evento perché è
+                 * un'eccezione a una serata, e va vista accanto a quella
+                 * serata.
+                 */
+                Repeater::make('ticketTiers')
+                    ->label(__('admin.sections.ticket_tiers'))
+                    ->relationship()
+                    ->helperText(__('admin.hints.occurrence_ticket_tiers'))
+                    ->addActionLabel(__('admin.actions.add_ticket_tier'))
+                    ->columns(3)
+                    ->defaultItems(0)
+                    ->maxItems(TicketTiersField::MAX_TIERS)
+                    ->orderColumn('sort_order')
+                    ->reorderableWithButtons()
+                    ->collapsible()
+                    ->columnSpanFull()
+                    ->mutateRelationshipDataBeforeCreateUsing(function (array $data): array {
+                        // La fascia appartiene sempre anche all'evento: la
+                        // relazione dell'occorrenza riempie solo
+                        // `occurrence_id`, e `event_id` è obbligatorio.
+                        $data['event_id'] = $this->getOwnerRecord()->getKey();
+
+                        return $data;
+                    })
+                    ->schema([
+                        TextInput::make('name')
+                            ->label(__('admin.fields.tier_name'))
+                            ->required()
+                            ->maxLength(255),
+
+                        TextInput::make('price')
+                            ->label(__('admin.fields.tier_price'))
+                            ->numeric()
+                            ->minValue(0)
+                            ->maxValue(999999),
+
+                        Select::make('status')
+                            ->label(__('admin.fields.tier_status'))
+                            ->options(TicketTierStatus::options())
+                            ->required()
+                            ->default(TicketTierStatus::Available->value),
+
+                        TextInput::make('url')
+                            ->label(__('admin.fields.tier_url'))
+                            ->url()
+                            ->maxLength(255)
+                            ->columnSpan(2),
+
+                        TextInput::make('note')
+                            ->label(__('admin.fields.tier_note'))
+                            ->maxLength(255),
+                    ]),
 
                 Repeater::make('lineups')
                     ->label(__('admin.resources.lineup.plural'))

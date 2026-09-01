@@ -49,6 +49,12 @@ return [
     ],
 
     /* Sezioni della home e delle liste (§11.2) */
+    /* Le azioni su un evento, quelle che compaiono come testo di un pulsante
+       o di un rimando. */
+    'actions' => [
+        'view' => 'Vedi evento',
+    ],
+
     'sections' => [
         'ongoing' => 'In corso adesso',
         'ongoing_lead' => 'Sta succedendo mentre leggi.',
@@ -65,6 +71,22 @@ return [
         'same_venue' => 'Altri eventi in questo locale',
         'similar' => 'Eventi simili',
         'live_loading' => 'Guardo cosa sta succedendo adesso…',
+
+        /* Gli occhielli numerati «01 — apre tra poche ore». Dicono a chi
+           scorre perche' quella sezione esiste, che il titolo da solo non fa:
+           «Stasera» e' un'etichetta, «apre tra poche ore» e' un motivo. */
+        'tonight_eyebrow' => 'apre tra poche ore',
+        'today_eyebrow' => 'per il resto della giornata',
+        'featured_eyebrow' => 'scelti dalla redazione',
+        'weekend_eyebrow' => 'da venerdì a domenica',
+        'by_category_eyebrow' => 'scegli il tuo genere',
+        'nearby_eyebrow' => 'a piedi da qui',
+
+        'nearby' => 'Vicino a te',
+        'nearby_lead' => 'Le date piu\' vicine al centro di :city. Tocca il mirino sulla mappa per ordinarle dalla tua posizione.',
+
+        'see_all' => 'Vedi l\'unico|Vedi tutti e :count',
+        'category_count' => 'un evento|:count eventi',
     ],
 
     /* Rimandi usati quando una finestra è vuota: la sezione non si disegna,
@@ -98,6 +120,38 @@ return [
         'age' => 'Età',
         'place_kind' => 'Tipo di spazio',
         'external_links' => 'Link utili',
+        'facts' => 'Scheda tecnica',
+        'tickets' => 'Biglietti e fasce di prezzo',
+        'tickets_note' => 'I prezzi sono quelli comunicati dal locale. L\'acquisto avviene sul sito del venditore.',
+        'seats' => 'Posti',
+    ],
+
+    /*
+     * Le fasce di prezzo (§ «Biglietti e fasce di prezzo»). Lo stato è per
+     * fascia, non per data: «esaurito» qui vuol dire che è finito quel
+     * settore, non la serata.
+     */
+    'tiers' => [
+        'name' => 'Settore',
+        'price' => 'Prezzo',
+        'status' => 'Stato',
+        'free' => 'Gratis',
+        'unknown_price' => 'Da definire',
+        'buy' => 'Acquista',
+        'for_this_date' => 'Prezzi di questa data',
+    ],
+
+    /*
+     * Capienza e posti rimasti (`event_occurrences.capacity`,
+     * `capacity_left`). Il numero si mostra solo se c'è: una barra al 100%
+     * disegnata su un totale inventato è peggio di nessuna barra.
+     */
+    'capacity' => [
+        'total' => 'Capienza :count',
+        'left' => ':count posto rimasto|:count posti rimasti',
+        'sold' => ':percent% venduto',
+        'sold_out' => 'Esaurito',
+        'progress_label' => 'Posti venduti',
     ],
 
     /*

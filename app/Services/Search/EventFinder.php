@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Search;
 
 use App\DTOs\EventFilters;
+use App\Enums\AccessibilityFeature;
 use App\Enums\EventSort;
 use App\Models\City;
 use App\Models\EventOccurrence;
@@ -137,6 +138,10 @@ final class EventFinder
             $query->inMunicipality($filters->municipality);
         }
 
+        if ($filters->zone !== null) {
+            $query->inZone($filters->zone);
+        }
+
         if ($filters->venue !== null) {
             $query->atVenueSlug($filters->venue);
         }
@@ -154,6 +159,20 @@ final class EventFinder
 
         if ($filters->accessible) {
             $query->accessible();
+        }
+
+        /*
+         * Le voci di accessibilità sono in AND: chi ne chiede due ne ha
+         * bisogno di due. Il filtro esiste soltanto perché
+         * `venues.accessibility` è strutturato — su testo libero non ci
+         * sarebbe niente da interrogare.
+         */
+        foreach ($filters->access as $feature) {
+            $case = AccessibilityFeature::tryFrom($feature);
+
+            if ($case !== null) {
+                $query->hasAccessibilityFeature($case);
+            }
         }
     }
 

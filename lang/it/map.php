@@ -16,6 +16,11 @@ return [
 
     'label' => 'Mappa degli eventi, con i locali che hanno date in programma',
 
+    /* Il pulsante col mirino: porta la vista sulla posizione di chi guarda.
+       La posizione si chiede al tocco e non all'apertura (§11.7), e non viene
+       mai salvata da nessuna parte. */
+    'pins' => 'Mappa · un locale|Mappa · :count locali',
+    'locate' => 'Vai alla mia posizione',
     'search_here' => 'Cerca in quest\'area',
     'searching' => 'Cerco…',
     'truncated' => 'Ci sono più locali di quelli disegnati: restringi la zona o accendi un filtro.',
@@ -29,8 +34,9 @@ return [
     'fallback_title' => 'Eventi in questa zona',
     'fallback_link' => 'Sfoglia la lista completa',
 
+    /* Deve corrispondere a chi serve davvero le tessere: vedi config/map.php. */
     'attribution' => 'Dati cartografici © :osm contributors, licenza :license · tessere :tiles',
-    'tiles' => 'OpenFreeMap',
+    'tiles' => 'Esri',
 
     /* §11.7: la posizione si chiede quando serve, dicendo perché. */
     'near' => [

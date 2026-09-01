@@ -13,7 +13,10 @@ use App\Filament\Admin\Resources\Venues\Pages\ListVenues;
 use App\Filament\Admin\Resources\Venues\RelationManagers\EventsRelationManager;
 use App\Filament\Admin\Resources\Venues\RelationManagers\MembersRelationManager;
 use App\Filament\Admin\Support\VenueModeration;
+use App\Filament\Support\AccessibilityField;
+use App\Filament\Support\FactsField;
 use App\Filament\Support\ImageUpload;
+use App\Filament\Support\TransitField;
 use App\Models\City;
 use App\Models\Venue;
 use App\Queries\EditorialDashboardQuery;
@@ -158,6 +161,17 @@ class VenueResource extends Resource
                             ->required()
                             ->maxLength(255),
 
+                        /*
+                         * Il quartiere. Non duplica il comune: in un
+                         * capoluogo il comune è lo stesso per tutti i locali
+                         * e come filtro non separa niente (§11.3).
+                         */
+                        TextInput::make('zone')
+                            ->label(__('admin.fields.zone'))
+                            ->helperText(__('admin.hints.zone'))
+                            ->maxLength(255)
+                            ->datalist(fn (): array => self::knownZones()),
+
                         TextInput::make('postal_code')
                             ->label(__('admin.fields.postal_code'))
                             ->maxLength(10),
@@ -241,10 +255,6 @@ class VenueResource extends Resource
                             ->label(__('admin.fields.membership_notes'))
                             ->rows(2),
 
-                        KeyValue::make('accessibility')
-                            ->label(__('admin.fields.accessibility'))
-                            ->columnSpanFull(),
-
                         Repeater::make('opening_hours')
                             ->label(__('admin.fields.opening_hours'))
                             ->columnSpanFull()
@@ -267,6 +277,29 @@ class VenueResource extends Resource
                                     ->seconds(false)
                                     ->required(),
                             ]),
+                    ]),
+
+                /*
+                 * Accessibilità: sei voci, tre stati ciascuna. Era un JSON
+                 * libero che nessun modulo compilava — e un JSON libero
+                 * sull'accessibilità è peggio di un campo assente, perché non
+                 * si può né leggere a colpo d'occhio né filtrare (§11.3).
+                 */
+                Section::make(__('admin.sections.accessibility'))
+                    ->columns(3)
+                    ->collapsed()
+                    ->schema(AccessibilityField::make('admin')),
+
+                Section::make(__('admin.sections.transit'))
+                    ->collapsed()
+                    ->schema([
+                        TransitField::make('admin'),
+                    ]),
+
+                Section::make(__('admin.sections.venue_info'))
+                    ->collapsed()
+                    ->schema([
+                        FactsField::make('admin', 'info'),
                     ]),
 
                 Section::make(__('admin.sections.media'))
@@ -457,6 +490,29 @@ class VenueResource extends Resource
         }
 
         return $days;
+    }
+
+    /**
+     * I quartieri già scritti su altri locali, offerti come suggerimento.
+     *
+     * È un `datalist` e non un elenco chiuso: un quartiere nuovo si scrive
+     * senza chiedere il permesso a nessuno. Serve solo a non ritrovarsi
+     * «Portello», «portello» e «Portello (PD)» come tre zone diverse.
+     *
+     * @return list<string>
+     */
+    private static function knownZones(): array
+    {
+        /** @var list<string> $zones */
+        $zones = Venue::query()
+            ->whereNotNull('zone')
+            ->where('zone', '!=', '')
+            ->distinct()
+            ->orderBy('zone')
+            ->pluck('zone')
+            ->all();
+
+        return $zones;
     }
 
     private static function coordinatesPreview(Get $get): HtmlString

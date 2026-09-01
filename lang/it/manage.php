@@ -39,6 +39,17 @@ return [
         'taxonomy' => 'Che genere di serata',
         'price' => 'Quanto costa',
         'links' => 'Link',
+        'ticket_tiers' => 'Fasce di prezzo',
+        'facts' => 'Scheda tecnica',
+        /* Sezioni della schermata «Il tuo locale» (§10). */
+        'venue_identity' => 'Chi siete',
+        'venue_where' => 'Dove siete',
+        'venue_hours' => 'Quando siete aperti',
+        'venue_contacts' => 'Come vi si contatta',
+        'venue_transit' => 'Come si arriva',
+        'venue_accessibility' => 'Accessibilità',
+        'venue_info' => 'Buono a sapersi',
+        'venue_membership' => 'Tesseramento',
     ],
 
     'fields' => [
@@ -67,6 +78,37 @@ return [
         'email' => 'Email',
         'role' => 'Ruolo',
         'accepted_at' => 'Ha accettato il',
+        'fact_label' => 'Voce',
+        'fact_value' => 'Valore',
+        'transit_mode' => 'Mezzo',
+        'transit_text' => 'Indicazione',
+        'tier_name' => 'Settore',
+        'tier_price' => 'Prezzo',
+        'tier_status' => 'Stato',
+        'tier_url' => 'Dove si comprano',
+        'tier_note' => 'Nota',
+        'occurrence_capacity' => 'Capienza di questa data',
+        'occurrence_capacity_left' => 'Posti ancora liberi',
+        'occurrence_highlight' => 'Etichetta di richiamo',
+        /* «Il tuo locale» */
+        'venue_name' => 'Nome',
+        'venue_type' => 'Tipo di locale',
+        'short_description' => 'In due righe',
+        'address' => 'Indirizzo',
+        'address_extra' => 'Interno, scala, indicazioni',
+        'postal_code' => 'CAP',
+        'municipality' => 'Comune',
+        'zone' => 'Quartiere',
+        'phone' => 'Telefono',
+        'website' => 'Sito',
+        'socials' => 'Social',
+        'capacity' => 'Capienza',
+        'opening_hours' => 'Orari di apertura',
+        'opening_day' => 'Giorno',
+        'opening_from' => 'Apre',
+        'opening_to' => 'Chiude',
+        'requires_membership' => 'Serve la tessera',
+        'membership_notes' => 'Come ci si tessera',
     ],
 
     'hints' => [
@@ -77,6 +119,17 @@ return [
         'ticket_url' => 'Dove si comprano i biglietti online, se ci sono.',
         'booking_url' => 'Dove si prenota un posto o un tavolo, se serve.',
         'external_links' => 'L\'evento su Facebook, il tuo sito, un articolo che ne parla. Fino a :max, tutti facoltativi.',
+        'facts' => 'Le cose che la gente chiede sempre: a che ora si apre, quanto dura, da che età. Fino a :max righe.',
+        'venue_info' => 'Quello che vale per il locale e non per la singola serata: guardaroba, regole della sala. Fino a :max righe.',
+        'transit' => 'Una riga per mezzo. La linea e la fermata scrivile nel testo: «Tram 6, fermata Ospedali, cinque minuti a piedi». Fino a :max.',
+        'ticket_tiers' => 'Vale per tutte le date di questo evento. Puoi segnare esaurito un solo settore: la serata resta in vendita.',
+        'tier_price' => 'Vuoto se il prezzo non c\'è ancora. Zero vuol dire ingresso libero.',
+        'occurrence_capacity' => 'Solo se questa sera i posti sono diversi dal solito.',
+        'occurrence_capacity_left' => 'Quanti ne restano: lo mostriamo sulla card.',
+        'occurrence_highlight' => 'Due parole in evidenza: «Ultimi posti», «Nuova data».',
+        'zone' => 'Il quartiere. In città la gente cerca così, il comune è lo stesso per tutti.',
+        'venue_name' => 'Il nome lo cambia la redazione: scrivici se è sbagliato.',
+        'capacity' => 'Quante persone entrano. Serve a dire quanti posti restano su una serata.',
     ],
 
     'placeholders' => [
@@ -85,6 +138,7 @@ return [
         'ticket_url' => 'https://…',
         'url' => 'https://…',
         'no_date' => 'Nessuna data',
+        'not_declared' => 'Non dichiarato',
         'pending_invite' => 'Invito da accettare',
     ],
 
@@ -102,6 +156,33 @@ return [
         'mark_available' => 'Ci sono ancora posti',
         'add_lineup' => 'Aggiungi chi suona',
         'add_external_link' => 'Aggiungi un link',
+        'add_fact' => 'Aggiungi una riga',
+        'add_transit' => 'Aggiungi un mezzo',
+        'add_ticket_tier' => 'Aggiungi una fascia',
+        'add_opening_hours' => 'Aggiungi un orario',
+        'sold_out_next' => 'Tutto esaurito',
+        'sold_out_next_confirm' => 'Segniamo esaurita la prossima data: :date. Puoi rimetterla in vendita quando vuoi.',
+        'available_next' => 'Ci sono ancora posti',
+        'available_next_confirm' => 'Rimettiamo in vendita la prossima data: :date.',
+        'save_venue' => 'Salva',
+    ],
+
+    /*
+     * «Il tuo locale» (§10): i campi del locale che fino a oggi esistevano
+     * nello schema e non erano mai stati mostrati a chi dovrebbe compilarli.
+     */
+    'venue' => [
+        'title' => 'Il tuo locale',
+        'subheading' => 'Quello che si legge sulla tua pagina: dove siete, quando siete aperti, come ci si arriva.',
+        'saved' => 'Dati del locale aggiornati',
+        'saved_body' => 'La pagina pubblica del locale è già cambiata.',
+        'read_only' => 'Questi dati li modifica il referente del locale.',
+    ],
+
+    'accessibility' => [
+        'yes' => 'Sì',
+        'no' => 'No',
+        'undeclared' => 'Non dichiarato',
     ],
 
     'wizard' => [

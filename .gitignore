@@ -42,3 +42,15 @@ CLAUDE.md
 
 # Artefatti degli strumenti di sviluppo (Playwright MCP)
 .playwright-mcp
+
+# Referti di Lighthouse: sono la misura di un momento, non parte del progetto
+/storage/lighthouse
+
+# Rapporti di Lighthouse: si rigenerano a ogni misura
+/.lighthouseci
+# Schermate e registri delle prove col browser
+/.playwright-mcp
+# Schermate di lavorazione lasciate in radice
+/*.png
+# Archivi di trasferimento: si cancellano nella sessione in cui si usano
+/*.zip

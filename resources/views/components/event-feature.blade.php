@@ -70,8 +70,8 @@
 @endphp
 
 <article {{ $attributes->class([
-    'group relative grid grid-cols-[minmax(0,6.5rem)_minmax(0,1fr)] gap-4 overflow-hidden rounded-card bg-surface shadow-card ring-1 ring-line transition duration-300 ease-out-soft sm:grid-cols-[minmax(0,10rem)_minmax(0,1fr)] sm:gap-6 lg:grid-cols-[minmax(0,12rem)_minmax(0,1fr)]',
-    'hover:shadow-lift hover:ring-line-strong' => $url !== null,
+    'group relative grid grid-cols-[minmax(0,6.5rem)_minmax(0,1fr)] gap-4 overflow-hidden bg-canvas border-2 border-line transition duration-300 ease-out-soft sm:grid-cols-[minmax(0,10rem)_minmax(0,1fr)] sm:gap-6 lg:grid-cols-[minmax(0,12rem)_minmax(0,1fr)]',
+    ' hover:border-accent' => $url !== null,
     'opacity-75' => ! $isScheduled,
 ]) }}>
     <div class="relative aspect-[3/4] w-full overflow-hidden poster-placeholder sm:aspect-auto sm:h-full">

@@ -28,6 +28,14 @@ return [
     'day_scroller_days' => 14,
 
     /*
+     * Il raggio della sezione «vicino a te» della pagina iniziale, in
+     * chilometri. Dodici coprono una citta' media e la sua prima cintura:
+     * piu' stretto lascia la sezione vuota nei giorni fiacchi, piu' largo
+     * mette in cima cose a mezz'ora di macchina che «vicino» non sono.
+     */
+    'nearby_radius_km' => 12.0,
+
+    /*
      * Eventi mostrati nelle sezioni di coda della scheda evento.
      */
     'related_size' => 4,

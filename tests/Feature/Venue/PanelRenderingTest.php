@@ -56,6 +56,7 @@ it('apre ogni pagina senza mostrare chiavi di traduzione', function (string $pat
     'nuovo evento' => '/eventi/nuovo',
     'statistiche' => '/statistiche',
     'collaboratori' => '/collaboratori',
+    'il tuo locale' => '/locale',
 ]);
 
 it('apre la scheda di un evento senza chiavi di traduzione', function (): void {

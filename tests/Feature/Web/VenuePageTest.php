@@ -88,7 +88,13 @@ it('offre le indicazioni verso entrambe le applicazioni di navigazione', functio
         ->assertOk()
         ->assertSee('google.com/maps/dir', escape: false)
         ->assertSee('maps.apple.com', escape: false)
-        ->assertSee('openstreetmap.org/export/embed.html', escape: false);
+        /* Il terzo rimando e' a OpenStreetMap. Era il riquadro incorporato
+           (`/export/embed.html`), che portava dentro la scheda il sito intero —
+           barra, controlli, «Make a Donation» — e soprattutto la sua tavolozza
+           chiara, che un `iframe` sottrae al foglio di stile della pagina. Ora
+           la mappa e' lo stesso riquadro Leaflet di tutto il sito e questo
+           resta un collegamento: chi vuole muoversi apre OpenStreetMap. */
+        ->assertSee('openstreetmap.org/', escape: false);
 });
 
 it('pubblica il Place nei dati strutturati del locale', function (): void {

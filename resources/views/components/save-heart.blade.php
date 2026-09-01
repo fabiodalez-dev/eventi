@@ -54,14 +54,15 @@
         aria-pressed="{{ $isSaved ? 'true' : 'false' }}"
         data-save-button
         @class([
-            'inline-flex items-center gap-1.5 rounded-pill px-3 py-1.5 text-xs font-semibold ring-1 transition',
+            'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold ring-1 transition',
             'bg-brand text-on-brand ring-brand' => $isSaved,
-            'bg-surface text-ink-muted ring-line hover:text-ink hover:ring-line-strong' => ! $isSaved,
+            'bg-surface text-ink-muted ring-line hover:text-ink hover:border-accent' => ! $isSaved,
         ])
     >
-        <svg aria-hidden="true" viewBox="0 0 24 24" class="size-4" fill="currentColor" data-save-icon @style(['fill: none; stroke: currentColor; stroke-width: 2' => ! $isSaved])>
-            <path d="M12 20.7 4.6 13.3a4.8 4.8 0 0 1 0-6.8 4.8 4.8 0 0 1 6.8 0l.6.6.6-.6a4.8 4.8 0 0 1 6.8 0 4.8 4.8 0 0 1 0 6.8Z" />
-        </svg>
+        {{-- Il cuore di Lucide (D47). Lo script di `app.js` accende e spegne
+             il riempimento via style inline: gli attributi del componente
+             (stroke, fill) sono lo stato spento, lo style quello acceso. --}}
+        <x-lucide name="heart" class="size-4" data-save-icon @style(['fill: currentColor; stroke: none; stroke-width: 0' => $isSaved]) />
 
         <span @class(['sr-only' => $variant === 'icon']) data-save-text>
             {{ $isSaved ? __('account.save.remove') : __('account.save.action') }}

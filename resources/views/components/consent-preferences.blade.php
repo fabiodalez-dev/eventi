@@ -23,13 +23,13 @@
         default => __('consent.manage.current_denied'),
     };
 
-    $choiceClasses = 'rounded-pill bg-brand px-4 py-2 text-sm font-semibold text-on-brand transition hover:bg-brand-strong';
+    $choiceClasses = 'bg-brand px-4 py-2.5 font-display text-[0.688rem] leading-none font-extrabold tracking-[0.14em] text-on-brand uppercase transition hover:bg-brand-strong';
 
     $provider = $analytics->provider();
     $host = $analytics->configured() ? (parse_url($analytics->src(), PHP_URL_HOST) ?: $analytics->src()) : null;
 @endphp
 
-<section aria-labelledby="preferenze-titolo" class="mt-section rounded-card bg-surface-sunken p-card">
+<section aria-labelledby="preferenze-titolo" class="mt-section bg-surface p-card">
     <h2 id="preferenze-titolo" class="font-display text-card text-ink">{{ __('consent.manage.title') }}</h2>
 
     <p class="mt-1.5 text-sm text-ink-muted">{{ $current }}</p>
@@ -61,7 +61,7 @@
                 @csrf
                 @method('DELETE')
 
-                <button type="submit" class="rounded-pill px-4 py-2 text-sm font-semibold text-ink-muted underline transition hover:text-ink">
+                <button type="submit" class="px-4 py-2.5 font-display text-[0.688rem] leading-none font-extrabold tracking-[0.14em] text-ink uppercase-muted underline transition hover:text-ink">
                     {{ __('consent.manage.revoke') }}
                 </button>
             </form>

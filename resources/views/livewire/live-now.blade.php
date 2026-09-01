@@ -13,7 +13,7 @@
                 tone="live"
             />
 
-            <x-event-grid :occurrences="$ongoing" context="ongoing" :eager="true" />
+            <x-event-grid :occurrences="$ongoing" context="ongoing" />
         </section>
     @endif
 

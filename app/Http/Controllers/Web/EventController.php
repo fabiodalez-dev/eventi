@@ -15,6 +15,7 @@ use App\Queries\EventOccurrenceQuery;
 use App\Services\Calendar\OccurrenceCalendar;
 use App\Services\Seo\StructuredData;
 use App\Support\Poster;
+use App\Support\TicketTiers;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Response;
@@ -64,6 +65,10 @@ final class EventController extends Controller
             'atVenue' => $atVenue,
             'meta' => $this->meta($event, $upcoming),
             'calendar' => $this->calendar,
+            /* Il listino dell'evento. Quello di una singola data — quando
+               esiste — lo risolve la vista chiedendolo per quell'occorrenza,
+               sempre attraverso `App\Support\TicketTiers`. */
+            'tiers' => TicketTiers::for($event),
             'structuredData' => [
                 ...$this->structuredData->events($event, $upcoming->isNotEmpty() ? $upcoming : $past),
                 $this->structuredData->breadcrumbs([
@@ -102,7 +107,7 @@ final class EventController extends Controller
     private function findReadable(City $city, string $slug): Event
     {
         $event = Event::query()
-            ->with(['venue', 'category', 'tags', 'city', 'media'])
+            ->with(['venue', 'category', 'tags', 'city', 'media', 'ticketTiers'])
             ->inCity($city)
             ->readable()
             ->where('slug', $slug)
@@ -188,6 +193,6 @@ final class EventController extends Controller
      */
     private function hydrate(Collection $occurrences): Collection
     {
-        return $occurrences->load(['event.venue', 'event.category', 'event.media', 'lineups']);
+        return $occurrences->load(['event.venue', 'event.category', 'event.media', 'lineups', 'ticketTiers']);
     }
 }

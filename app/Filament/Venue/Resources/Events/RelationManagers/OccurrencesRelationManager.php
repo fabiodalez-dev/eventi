@@ -70,6 +70,30 @@ class OccurrencesRelationManager extends RelationManager
                     ->after('starts_at')
                     ->timezone($timezone),
 
+                /*
+                 * Quanti posti restano, e su quanti. Il totale si chiede solo
+                 * quando questa sera è diverso dal solito: senza un totale il
+                 * conteggio resta un numero senza scala, e la card mostra il
+                 * solo «posti rimasti» invece della barra.
+                 */
+                TextInput::make('capacity')
+                    ->label(__('manage.fields.occurrence_capacity'))
+                    ->helperText(__('manage.hints.occurrence_capacity'))
+                    ->numeric()
+                    ->minValue(0),
+
+                TextInput::make('capacity_left')
+                    ->label(__('manage.fields.occurrence_capacity_left'))
+                    ->helperText(__('manage.hints.occurrence_capacity_left'))
+                    ->numeric()
+                    ->minValue(0),
+
+                TextInput::make('highlight')
+                    ->label(__('manage.fields.occurrence_highlight'))
+                    ->helperText(__('manage.hints.occurrence_highlight'))
+                    ->maxLength(40)
+                    ->columnSpanFull(),
+
                 Repeater::make('lineups')
                     ->label(__('manage.resources.lineup.plural'))
                     ->relationship()
@@ -109,6 +133,10 @@ class OccurrencesRelationManager extends RelationManager
                     ->badge()
                     ->formatStateUsing(fn (OccurrenceStatus $state): string => $state->label())
                     ->color(fn (OccurrenceStatus $state): string => EventStatusPresentation::occurrenceColor($state)),
+
+                TextColumn::make('capacity_left')
+                    ->label(__('manage.fields.occurrence_capacity_left'))
+                    ->placeholder(__('manage.placeholders.not_declared')),
 
                 TextColumn::make('lineups_count')
                     ->label(__('manage.resources.lineup.plural'))

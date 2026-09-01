@@ -15,11 +15,13 @@ use App\Models\Report;
 use App\Models\SavedEvent;
 use App\Models\ScheduledNotification;
 use App\Models\Tag;
+use App\Models\TicketTier;
 use App\Models\User;
 use App\Models\Venue;
 use App\Models\VenueApplication;
 use App\Observers\EventObserver;
 use App\Observers\EventOccurrenceObserver;
+use App\Observers\TicketTierObserver;
 use App\Observers\VenueObserver;
 use App\Policies\CategoryPolicy;
 use App\Policies\CityPolicy;
@@ -32,6 +34,7 @@ use App\Policies\ReportPolicy;
 use App\Policies\SavedEventPolicy;
 use App\Policies\ScheduledNotificationPolicy;
 use App\Policies\TagPolicy;
+use App\Policies\TicketTierPolicy;
 use App\Policies\UserPolicy;
 use App\Policies\VenueApplicationPolicy;
 use App\Policies\VenuePolicy;
@@ -39,6 +42,10 @@ use App\Services\Geo\GeoQueryInterface;
 use App\Services\Geo\MariaDbGeoQuery;
 use App\Services\Import\DnsHostResolver;
 use App\Services\Import\HostResolver;
+use App\Services\Installer\DatabaseInspector;
+use App\Services\Installer\EnvWriter;
+use App\Services\Installer\InstallLock;
+use App\Services\Installer\RequirementsChecker;
 use App\Support\Consent;
 use App\Support\CurrentCity;
 use App\Support\CurrentFollows;
@@ -83,6 +90,32 @@ class AppServiceProvider extends ServiceProvider
         $this->app->scoped(
             DateFormatter::class,
             fn ($app): DateFormatter => DateFormatter::forTimezone($app->make(CurrentCity::class)->timezone()),
+        );
+
+        /*
+         * L'installer (D42). I quattro servizi ricevono qui i percorsi su cui
+         * lavorano invece di chiamare `base_path()` dentro di sé: è ciò che
+         * permette ai test di farli scrivere su una directory temporanea
+         * invece che sul `.env` della macchina che li sta eseguendo.
+         */
+        $this->app->singleton(
+            EnvWriter::class,
+            fn (): EnvWriter => new EnvWriter(base_path('.env'), base_path('.env.example')),
+        );
+
+        $this->app->singleton(
+            InstallLock::class,
+            fn (): InstallLock => new InstallLock(storage_path('app/private/install.lock')),
+        );
+
+        $this->app->singleton(
+            DatabaseInspector::class,
+            fn (): DatabaseInspector => new DatabaseInspector(database_path('migrations')),
+        );
+
+        $this->app->singleton(
+            RequirementsChecker::class,
+            fn ($app): RequirementsChecker => new RequirementsChecker(base_path(), $app->make(EnvWriter::class)),
         );
     }
 
@@ -165,6 +198,11 @@ class AppServiceProvider extends ServiceProvider
         EventOccurrence::observe(EventOccurrenceObserver::class);
         Event::observe(EventObserver::class);
 
+        // Quando un evento ha delle fasce di prezzo, sono loro a dettare
+        // `price_min`/`price_max`: il filtro «fino a 10 €» è una WHERE su
+        // quelle colonne, e un minimo calcolato al render ne resterebbe fuori.
+        TicketTier::observe(TicketTierObserver::class);
+
         // `venues.location` non si scrive a mano: è il punto geometrico
         // derivato da `lat`/`lng`, ed è ciò su cui gira l'indice spaziale.
         Venue::observe(VenueObserver::class);
@@ -205,6 +243,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Venue::class, VenuePolicy::class);
         Gate::policy(Event::class, EventPolicy::class);
         Gate::policy(EventOccurrence::class, EventOccurrencePolicy::class);
+        Gate::policy(TicketTier::class, TicketTierPolicy::class);
         Gate::policy(VenueApplication::class, VenueApplicationPolicy::class);
         Gate::policy(Report::class, ReportPolicy::class);
         Gate::policy(Category::class, CategoryPolicy::class);

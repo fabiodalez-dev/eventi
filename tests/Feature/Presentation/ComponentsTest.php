@@ -87,6 +87,49 @@ it('l\'intestazione di sezione lega il titolo alla sezione e mostra il rimando',
         ->toContain(__('common.actions.show_all'));
 });
 
+it('il pulsante è un bottone o un collegamento, con l\'etichetta a filo a sinistra', function (): void {
+    $button = Blade::render('<x-button variant="primary">Pubblica</x-button>');
+    $link = Blade::render('<x-button variant="secondary" href="/eventi">Sfoglia</x-button>');
+
+    /* L'etichetta a filo a sinistra è una regola esplicita del sistema (D46):
+       un pulsante più largo del testo comincia il testo al bordo sinistro. */
+    expect($button)
+        ->toContain('<button type="button"')
+        ->toContain('justify-start')
+        ->toContain('text-left')
+        ->toContain('Pubblica')
+        ->not->toContain('justify-center');
+
+    expect($link)
+        ->toContain('<a href="/eventi"')
+        ->toContain('justify-start')
+        ->toContain('Sfoglia');
+});
+
+it('l\'icona è decorativa senza etichetta e parlante con l\'etichetta', function (): void {
+    $decorative = Blade::render('<x-lucide name="calendar" class="size-4" />');
+    $labelled = Blade::render('<x-lucide name="search" :label="$label" />', ['label' => 'Cerca']);
+
+    expect($decorative)
+        ->toContain('aria-hidden="true"')
+        ->toContain('stroke="currentColor"')
+        ->not->toContain('<title>');
+
+    expect($labelled)
+        ->toContain('role="img"')
+        ->toContain('<title>Cerca</title>')
+        ->not->toContain('aria-hidden');
+});
+
+it('un\'icona che non esiste fallisce subito, non in produzione', function (): void {
+    expect(fn () => Blade::render('<x-lucide name="inesistente" />'))
+        ->toThrow(Exception::class, 'Icona sconosciuta: "inesistente"');
+});
+
+it('il divisore è una regola piena di 2px', function (): void {
+    expect(Blade::render('<x-divider />'))->toContain('<hr')->toContain('divider');
+});
+
 it('il badge accetta un colore solo se è davvero un colore', function (): void {
     $legit = Blade::render('<x-badge :dot="true" dot-color="#7C3AED">Musica</x-badge>');
     $hostile = Blade::render('<x-badge :dot="true" :dot-color="$colore">Musica</x-badge>', [

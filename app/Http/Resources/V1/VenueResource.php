@@ -30,6 +30,9 @@ final class VenueResource
             'slug' => (string) $venue->slug,
             'name' => (string) $venue->name,
             'municipality' => (string) $venue->municipality,
+            // Il quartiere: più preciso del comune, ed è la scala a cui si
+            // cerca dentro una città.
+            'zone' => $venue->zone,
             'lat' => (float) $venue->lat,
             'lng' => (float) $venue->lng,
             'is_verified' => (bool) $venue->is_verified,
@@ -56,8 +59,17 @@ final class VenueResource
             'website' => $venue->website,
             'socials' => $venue->socials,
             'opening_hours' => $venue->opening_hours,
+            // «Come arrivare»: lista di `{mode, text}`, dove `mode` è un
+            // valore chiuso (`transit_mode` di §13.6) e non testo libero.
+            'transit' => $venue->transit->toArray(),
             'capacity' => $venue->capacity === null ? null : (int) $venue->capacity,
-            'accessibility' => $venue->accessibility,
+            /*
+             * Accessibilità **strutturata**: una mappa delle sole voci
+             * dichiarate. Una chiave assente significa "non dichiarato", che
+             * non è `false` — la differenza conta più qui che altrove.
+             */
+            'accessibility' => $venue->accessibility->toArray(),
+            'info' => $venue->info->toArray(),
             'requires_membership' => (bool) $venue->requires_membership,
             'membership_notes' => $venue->membership_notes,
             'cover' => self::cover($venue),

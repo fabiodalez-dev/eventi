@@ -23,14 +23,14 @@
         </header>
 
         @if (session('status'))
-            <p class="rounded-card bg-surface-sunken px-4 py-3 text-sm font-semibold text-ink">{{ session('status') }}</p>
+            <p class="bg-surface px-4 py-3 text-sm font-semibold text-ink">{{ session('status') }}</p>
         @endif
 
         <form method="POST" action="{{ $action }}" class="flex flex-col gap-6">
             @csrf
             @method('PATCH')
 
-            <section class="flex flex-col gap-4 rounded-card bg-surface-sunken p-card">
+            <section class="flex flex-col gap-4 bg-surface p-card">
                 <label class="flex items-center gap-2.5 text-sm text-ink">
                     <input type="checkbox" name="reminders" value="1" class="size-4 rounded border-line" @checked($preferences->reminders)>
                     {{ __('account.profile.reminders') }}
@@ -83,7 +83,7 @@
 
             <p class="text-sm text-ink-muted">{{ __('notifications.preferences.mandatory') }}</p>
 
-            <button type="submit" class="self-start rounded-pill bg-brand px-4 py-2.5 text-sm font-semibold text-on-brand transition hover:bg-brand-strong">
+            <button type="submit" class="self-start bg-brand px-4 py-2.5 text-sm font-semibold text-on-brand transition hover:bg-brand-strong">
                 {{ __('notifications.preferences.submit') }}
             </button>
         </form>
