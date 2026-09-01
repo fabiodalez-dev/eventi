@@ -111,6 +111,32 @@ final class EventController extends Controller
     }
 
     /**
+     * TUTTE le date future di un evento, non solo la prima.
+     *
+     * §11.5 le vuole sulla scheda, e §15.3 ne ha bisogno per il selettore che
+     * compare quando si salva un evento con piu repliche: si salva
+     * l'occorrenza, non l'evento, e senza questo elenco un client dovrebbe
+     * dedurre da se quali date esistono — ricostruendo una logica che §13.2
+     * gli vieta proprio per non farla divergere.
+     */
+    public function occurrences(EventQueryRequest $request, string $slug): JsonResponse
+    {
+        $city = $this->city();
+        $event = $this->findReadable($city, $slug);
+
+        $query = EventOccurrenceQuery::for($city)
+            ->forEvent($event)
+            ->upcoming();
+
+        $page = $this->feed->page($city, $request, $this->currentUser($request), $query);
+
+        return ApiResponse::page(
+            $page->paginator,
+            static fn (EventOccurrence $occurrence): array => OccurrenceResource::toArray($occurrence, $page->context),
+        );
+    }
+
+    /**
      * Pubblicati **e archiviati** (§14.5), come il sito: §18 scenario G vuole
      * che i due diano la stessa risposta nello stesso istante, e una scheda
      * che il sito mostra e l'API dichiara inesistente sarebbe la divergenza

@@ -115,6 +115,29 @@ final class VenueController extends Controller
         );
     }
 
+    /**
+     * L'archivio: le date gia passate di un locale.
+     *
+     * §11.9 lo tiene sul sito perche e «ottimo per la ricerca organica» — le
+     * pagine di cio che e stato restano indicizzate e portano visite. Un
+     * client che vuole mostrare la stessa scheda deve poterlo leggere, o la
+     * sua versione del locale sara sempre piu povera di quella del sito.
+     */
+    public function past(EventQueryRequest $request, string $slug): JsonResponse
+    {
+        $city = $this->city();
+        $venue = $this->findVisible($city, $slug);
+
+        $query = EventOccurrenceQuery::for($city)->atVenue($venue)->past();
+
+        $page = $this->feed->page($city, $request, $this->currentUser($request), $query);
+
+        return ApiResponse::page(
+            $page->paginator,
+            static fn (EventOccurrence $occurrence): array => OccurrenceResource::toArray($occurrence, $page->context),
+        );
+    }
+
     private function findVisible(City $city, string $slug): Venue
     {
         $venue = Venue::query()

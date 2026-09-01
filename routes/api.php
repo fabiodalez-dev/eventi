@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\V1\Auth\PasswordController;
 use App\Http\Controllers\Api\V1\CalendarController;
 use App\Http\Controllers\Api\V1\CityController;
 use App\Http\Controllers\Api\V1\ConfigController;
+use App\Http\Controllers\Api\V1\DiscoveryController;
 use App\Http\Controllers\Api\V1\EventController;
 use App\Http\Controllers\Api\V1\MapController;
 use App\Http\Controllers\Api\V1\Me\DeviceController;
@@ -20,9 +21,11 @@ use App\Http\Controllers\Api\V1\Me\NotificationPreferenceController;
 use App\Http\Controllers\Api\V1\Me\ProfileController;
 use App\Http\Controllers\Api\V1\Me\SavedController;
 use App\Http\Controllers\Api\V1\OccurrenceController;
+use App\Http\Controllers\Api\V1\PageController;
 use App\Http\Controllers\Api\V1\ReportController;
 use App\Http\Controllers\Api\V1\SearchController;
 use App\Http\Controllers\Api\V1\SubmissionController;
+use App\Http\Controllers\Api\V1\TaxonomyController;
 use App\Http\Controllers\Api\V1\VenueController;
 use App\Http\Middleware\Api\CacheJsonResponse;
 use App\Http\Middleware\Api\ResolveApiCity;
@@ -66,6 +69,7 @@ Route::prefix('v1')
              */
             Route::get('/events', [EventController::class, 'index'])->name('events.index');
             Route::get('/events/{slug}/similar', [EventController::class, 'similar'])->name('events.similar');
+            Route::get('/events/{slug}/occurrences', [EventController::class, 'occurrences'])->name('events.occurrences');
             Route::get('/events/{slug}', [EventController::class, 'show'])->name('events.show');
 
             Route::get('/occurrences/{occurrence}', [OccurrenceController::class, 'show'])
@@ -76,11 +80,28 @@ Route::prefix('v1')
 
             Route::get('/venues', [VenueController::class, 'index'])->name('venues.index');
             Route::get('/venues/{slug}/events', [VenueController::class, 'events'])->name('venues.events');
+            Route::get('/venues/{slug}/past', [VenueController::class, 'past'])->name('venues.past');
             Route::get('/venues/{slug}', [VenueController::class, 'show'])->name('venues.show');
 
             Route::get('/map/occurrences', MapController::class)->name('map.occurrences');
 
             Route::get('/search', SearchController::class)->name('search');
+
+            /* Tassonomie complete: /config ne porta un estratto, questi
+               portano i conteggi per citta e i sinonimi (§7.4, §7.5). */
+            Route::get('/categories', [TaxonomyController::class, 'categories'])->name('categories.index');
+            Route::get('/categories/{slug}', [TaxonomyController::class, 'category'])->name('categories.show');
+            Route::get('/tags', [TaxonomyController::class, 'tags'])->name('tags.index');
+            Route::get('/tags/{slug}', [TaxonomyController::class, 'tag'])->name('tags.show');
+
+            /* Le pagine legali dentro l'applicazione: gli store le pretendono. */
+            Route::get('/pages', [PageController::class, 'index'])->name('pages.index');
+            Route::get('/pages/{slug}', [PageController::class, 'show'])->name('pages.show');
+
+            /* Filtro geografico e misure di §1, per non aprire l'app vuota. */
+            Route::get('/areas', [DiscoveryController::class, 'areas'])->name('areas.index');
+            Route::get('/stats', [DiscoveryController::class, 'stats'])->name('stats');
+
         });
 
         Route::middleware('throttle:public-forms')->group(function (): void {
