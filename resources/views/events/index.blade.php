@@ -58,6 +58,17 @@
                 {{-- Il contenitore dei risultati è ciò che l'infinite scroll
                      estende: l'attributo lo dichiara, e senza JavaScript non fa
                      niente. --}}
+                {{-- La campagna in cima, quando c'è: sopra i risultati e fuori
+                     dal contenitore che l'infinite scroll estende, altrimenti
+                     ricomparirebbe a ogni pagina caricata. --}}
+                @if ($sponsorship !== null)
+                    <x-sponsored-card
+                        :sponsorship="$sponsorship"
+                        class="border-b-2 border-line"
+                        level="h2"
+                    />
+                @endif
+
                 <div data-results>
                     <x-event-grid
                         :occurrences="$occurrences->getCollection()"

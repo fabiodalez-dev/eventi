@@ -2390,3 +2390,82 @@ scivolava in diagonale sotto l'originale. Funziona con titoli di una riga —
 quelli della demo; con un titolo vero su due o tre righe quel 54% taglia in
 mezzo al blocco e la copia si accavalla al testo. Restano lo scorrimento del
 titolo e la lastra laterale, che di quel movimento sono la parte leggibile.
+
+---
+
+## D52 — Le sponsorizzazioni sono una tabella, non una spunta sull'evento
+
+**Data:** 2026-09-01 · **Stato:** applicata
+
+Un evento «in evidenza» esisteva già: `is_featured` e `featured_until` su
+`events`, con `editorial_score` a ordinarli. È la scelta della redazione, ed è
+una proprietà dell'evento — sta bene dov'è.
+
+Una sponsorizzazione somiglia a quella a schermo e non le somiglia in niente
+altro. È un contratto: ha un committente che spesso non è il locale
+(un'etichetta discografica che promuove il concerto in un circolo che non è
+suo), un importo, un periodo, un riferimento di fattura, e lo stesso evento può
+esserne oggetto più volte in campagne diverse. Schiacciarla in due colonne
+significa perderne lo storico alla prima domanda dell'amministrazione.
+
+Da qui `sponsorships`: città, evento, collocazione, finestra, priorità,
+committente, importo, contatori. **Le metriche stanno con la campagna** e non
+con l'evento per la stessa ragione — mille visualizzazioni appartengono a chi
+le ha pagate.
+
+**Tre condizioni per comparire, non due.** Stato attivo, finestra aperta, e
+**l'evento sotto ancora pubblicato**. La terza è quella che si dimentica: chi
+ha pagato non compra il diritto di tenere in vetrina una serata annullata, e
+nessun processo notturno può essere l'unica cosa che lo impedisce. Stanno in un
+solo scope (`Sponsorship::visible()`) perché sparpagliate finirebbero applicate
+a due su tre da qualche pagina.
+
+**Il tetto è nel tipo, non nella configurazione.** `SponsorshipPlacement::limit()`
+dice quante ne stanno per collocazione — oggi una. Vendere non deve poter
+cambiare l'aspetto del prodotto: firmare sei contratti per la pagina iniziale
+non la trasforma in un cartellone, li mette in rotazione.
+
+**La rotazione è legata al minuto.** Le pagine pubbliche stanno in cache un
+minuto: una rotazione casuale a ogni richiesta produrrebbe una pagina diversa da
+quella salvata, cioè in pratica sempre la stessa per tutto il minuto, scelta a
+caso. Legandola al minuto ruota davvero, e chi ricarica dentro lo stesso minuto
+vede quello che ha visto chi è passato prima.
+
+---
+
+## D53 — Una sponsorizzazione si dichiara sempre, e in ogni canale
+
+**Data:** 2026-09-01 · **Stato:** applicata · **Vincolante**
+
+La pubblicità dev'essere riconoscibile come tale: è il Codice del Consumo
+(art. 22-23), non una linea editoriale. Chi paga per stare in cima non compra
+il diritto di sembrare una scelta della redazione.
+
+Perciò, e senza modo di spegnerlo: la fascia «Sponsorizzato» **con il nome del
+committente** («sponsorizzato» senza un nome è mezza informazione, e il nome è
+spesso la parte che conta); `rel="sponsored"` sul collegamento, che è come si
+segnala a un motore di ricerca un link pagato; e il campo `sponsored` anche
+nell'API, perché un'applicazione che riceve gli eventi senza sapere quali sono
+a pagamento non può dichiararlo — l'obbligo non si ferma al browser.
+
+**La card resta la card**: non più grande, senza un colore suo, senza
+animazioni. Si distingue perché sta in cima e perché lo dichiara. Un elenco in
+cui la pubblicità urla è un elenco che si smette di leggere, e allora non vale
+niente nemmeno per chi la compra.
+
+**Chi decide non è chi modera.** `SponsorshipPolicy` apre solo ad amministratore
+e amministratore di sistema: il moderatore cura i contenuti altrui, e stabilire
+cosa compare a pagamento è una scelta commerciale. Nemmeno il referente del
+locale, che sui propri eventi può quasi tutto: potersi sponsorizzare da sé
+significherebbe che il posto in cima si prende invece di comprarlo. Vede però
+le campagne sulle proprie serate, in sola lettura — scoprire dal sito che un
+proprio evento porta un nome che non si conosce è peggio.
+
+**Le misure si contano dal browser**, perché le pagine stanno in cache e un
+contatore incrementato mentre si disegna conterebbe una visualizzazione al
+minuto invece che una per visitatore. Il prezzo è che chi blocca gli script non
+viene contato: **sono una stima al ribasso, e il posto per dirlo è il
+contratto**. Una visualizzazione si conta quando la card è entrata davvero
+nello schermo (metà elemento visibile), non quando è stata spedita: contare una
+card in fondo a una pagina che nessuno scorre è vendere aria. Due tetti, uno
+per chi chiama e uno per singola campagna: il secondo protegge la fattura.

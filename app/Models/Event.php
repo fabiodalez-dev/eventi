@@ -184,6 +184,26 @@ class Event extends Model implements HasMedia
         return $this->belongsToMany(Tag::class, 'event_tag');
     }
 
+    /**
+     * Le campagne sponsorizzate su questo evento (§sponsorizzazioni).
+     *
+     * Sono piu' d'una perche' lo stesso evento puo' essere sponsorizzato in
+     * momenti e collocazioni diversi — ed e' anche il motivo per cui vivono
+     * in una tabella loro invece che in due colonne qui: hanno un committente,
+     * un importo e uno storico che appartengono alla campagna, non all'evento.
+     *
+     * **Da non confondere con `is_featured`**, che e' la scelta gratuita della
+     * redazione. Le due cose si somigliano a schermo e sono opposte nella
+     * sostanza: una si guadagna, l'altra si compra, e solo la seconda va
+     * dichiarata a chi guarda.
+     *
+     * @return HasMany<Sponsorship, $this>
+     */
+    public function sponsorships(): HasMany
+    {
+        return $this->hasMany(Sponsorship::class);
+    }
+
     /** @return HasMany<EventOccurrence, $this> */
     public function occurrences(): HasMany
     {

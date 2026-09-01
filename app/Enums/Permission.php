@@ -41,6 +41,14 @@ enum Permission: string
 
     case ManagePages = 'pages.manage';
 
+    /*
+     * Le campagne sponsorizzate. Non e' un permesso editoriale: chi lo ha
+     * decide cosa compare a pagamento e con quale priorita', e quella e' una
+     * scelta commerciale. Per questo il moderatore, che cura i contenuti
+     * altrui, non ce l'ha.
+     */
+    case ManageSponsorships = 'sponsorships.manage';
+
     case ViewScheduledNotifications = 'notifications.view';
     case ManageScheduledNotifications = 'notifications.manage';
 

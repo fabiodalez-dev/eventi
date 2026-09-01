@@ -19,8 +19,13 @@
  *   divergerebbe dalla prima al primo cambio di badge.
  */
 import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
-import 'leaflet.markercluster/dist/MarkerCluster.css';
+
+/*
+ * I due fogli di stile di Leaflet NON si importano qui: stanno in
+ * `resources/css/app.css`, prima delle nostre regole. Importati da questo
+ * script finivano in un file caricato dopo il nostro, e a parità di
+ * specificità vincevano loro — i controlli della mappa restavano bianchi.
+ */
 
 /*
  * `leaflet.markercluster` e un innesto scritto prima dei moduli: si aggancia a

@@ -532,6 +532,77 @@ function consentBanner() {
     });
 }
 
+/**
+ * Le misure di una campagna sponsorizzata.
+ *
+ * **Perché dal browser e non dal server.** Le pagine pubbliche stanno in cache
+ * per un minuto: il server disegna la card una volta e poi serve la stessa
+ * pagina a tutti fino alla scadenza. Un contatore incrementato mentre si
+ * disegna conterebbe una visualizzazione al minuto invece che una per
+ * visitatore.
+ *
+ * **Una visualizzazione è quando la card è stata davvero vista**, non quando è
+ * stata mandata: `IntersectionObserver` con soglia a metà elemento, e una sola
+ * volta per campagna per pagina. Contare una card che sta a tremila pixel di
+ * distanza, in fondo a una pagina che nessuno scorre, significa vendere aria.
+ *
+ * `keepalive` sulle chiamate: l'apertura porta via dalla pagina, e senza
+ * quell'opzione il browser annulla la richiesta a metà.
+ *
+ * Se questo codice non gira, si perdono le misure — mai la navigazione: il
+ * collegamento alla scheda è un `href` normale.
+ */
+function sponsorshipMetrics() {
+    const cards = document.querySelectorAll('[data-sponsorship]');
+
+    if (cards.length === 0) {
+        return;
+    }
+
+    const token = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+
+    const conta = (url) => {
+        if (!url) {
+            return;
+        }
+
+        void fetch(url, {
+            method: 'POST',
+            keepalive: true,
+            headers: { 'X-CSRF-TOKEN': token, Accept: 'application/json' },
+        }).catch(() => {
+            /* Una misura persa non è un problema di chi sta navigando: nessun
+               messaggio, nessun tentativo ripetuto. */
+        });
+    };
+
+    for (const card of cards) {
+        card.addEventListener('click', () => conta(card.dataset.sponsorshipClick), { once: true });
+    }
+
+    if (typeof IntersectionObserver !== 'function') {
+        return;
+    }
+
+    const osservatore = new IntersectionObserver(
+        (voci) => {
+            for (const voce of voci) {
+                if (!voce.isIntersecting) {
+                    continue;
+                }
+
+                conta(voce.target.dataset.sponsorshipImpression);
+                osservatore.unobserve(voce.target);
+            }
+        },
+        { threshold: 0.5 },
+    );
+
+    for (const card of cards) {
+        osservatore.observe(card);
+    }
+}
+
 function start() {
     infiniteScroll();
     nativeShare();
@@ -541,6 +612,7 @@ function start() {
     dismissPrompt();
     showPromptIfDue();
     consentBanner();
+    sponsorshipMetrics();
     void mergeGuestSaves();
 }
 

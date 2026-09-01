@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Web;
 use App\DTOs\EventFilters;
 use App\Enums\DatePreset;
 use App\Enums\PriceFilter;
+use App\Enums\SponsorshipPlacement;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Web\Concerns\InteractsWithCity;
 use App\Http\Requests\Web\EventFilterRequest;
@@ -17,6 +18,7 @@ use App\Services\Search\EventFinder;
 use App\Services\Search\FilterFacets;
 use App\Services\Seo\EventListingMeta;
 use App\Services\Seo\StructuredData;
+use App\Services\Sponsorship\SponsorshipSelector;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
 
@@ -39,6 +41,7 @@ final class EventListController extends Controller
         private readonly FilterFacets $facets,
         private readonly StructuredData $structuredData,
         private readonly MapPayload $mapPayload,
+        private readonly SponsorshipSelector $sponsorships,
     ) {}
 
     public function index(EventFilterRequest $request): View
@@ -116,6 +119,10 @@ final class EventListController extends Controller
                perche' due elenchi che dicono cose diverse sono peggio di uno
                solo. */
             'mapPayload' => $this->mapPayload->build($city, $filters, null),
+            /* La campagna in cima ai risultati (§sponsorizzazioni). E' `null`
+               quasi sempre, e la vista non disegna niente: uno slot vuoto non
+               lascia un buco. */
+            'sponsorship' => $this->sponsorships->first($city, SponsorshipPlacement::ListTop),
             'meta' => $meta,
             'categories' => $this->facets->categories(),
             'tags' => $this->facets->tags(),

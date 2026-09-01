@@ -1,5 +1,23 @@
 @import 'tailwindcss';
 
+/*
+ * Il foglio di stile di Leaflet, importato QUI e non da `map.js`.
+ *
+ * Importato dallo script, Vite lo estrae in un file caricato dopo `app.css`:
+ * le regole di Leaflet e le nostre hanno la stessa specificità — usa anche lui
+ * `.leaflet-container .leaflet-control-attribution` — e a parità vince
+ * l'ultimo. I pulsanti dello zoom e la riga di attribuzione restavano bianchi
+ * in mezzo alla pagina nera, e nessuna regola scritta più sotto li toccava.
+ *
+ * Importandolo qui l'ordine è garantito dal file, non dedotto da come il
+ * compilatore raggruppa gli asset: tutto ciò che scriviamo viene dopo. Costa
+ * ~4 KB compressi su ogni pagina, comprese quelle senza mappa — che sono
+ * poche, visto che la mappa sta sulla pagina iniziale, sulla lista, sulla
+ * scheda di un evento e su quella di un locale.
+ */
+@import 'leaflet/dist/leaflet.css';
+@import 'leaflet.markercluster/dist/MarkerCluster.css';
+
 /* Font self-hosted (@fontsource): nessuna richiesta a Google Fonts o ad altri
    CDN, che sarebbe un trasferimento di dati verso terzi senza consenso.
    Il file è variabile (peso 100-900) e suddiviso per unicode-range: il browser
@@ -603,16 +621,18 @@
 }
 
 /* ---------------------------------------------------------------------------
-   La mappa (§11.6), su Leaflet.
+   Leaflet
 
-   Le tessere di OpenStreetMap arrivano a colori: qui vengono invertite e
-   portate in scala di grigi con un filtro, così la cartografia scende sul
-   fondo e i segnaposti restano l'unica cosa colorata della pagina. È il motivo
-   per cui la mappa è su Leaflet e non su MapLibre (D46): MapLibre disegna le
-   tessere in WebGL, dove un filtro CSS non arriva.
+   **Perché ogni regola è ancorata a `.leaflet-container`.** Il foglio di stile
+   di Leaflet arriva dall'`import` dentro `map.js`, quindi Vite lo estrae in un
+   file caricato DOPO `app.css`: a parità di specificità vince lui, e le regole
+   scritte qui come `.leaflet-bar a` non facevano niente — i pulsanti dello
+   zoom e la riga di attribuzione restavano bianchi in mezzo alla pagina nera.
+   Un selettore in più le mette al riparo dall'ordine dei file, che dipende da
+   come il compilatore raggruppa gli asset e può cambiare senza preavviso.
 
    Tutto il resto segue il sistema: raggio zero, bordi spessi, nessuna ombra.
-   --------------------------------------------------------------------------- */
+--------------------------------------------------------------------------- */
 
 .leaflet-container {
     background: var(--surface-sunken);
@@ -632,51 +652,57 @@
  * in meno lo riporta dentro, e mezzo punto di contrasto in piu' tiene le
  * strade staccate dal fondo dopo quell'abbassamento.
  */
-.leaflet-tile-pane {
+.leaflet-container .leaflet-tile-pane {
     filter: brightness(0.86) contrast(1.12);
 }
 
 /* I controlli: squadrati, con lo stesso bordo dei divisori. */
-.leaflet-bar,
-.leaflet-control-attribution {
+.leaflet-container .leaflet-bar,
+.leaflet-container .leaflet-control-attribution {
     border-radius: 0;
     box-shadow: none;
 }
 
-.leaflet-bar {
+.leaflet-container .leaflet-bar {
     border: 2px solid var(--ink);
 }
 
-.leaflet-bar a,
-.leaflet-bar a:hover {
+.leaflet-container .leaflet-bar a,
+.leaflet-container .leaflet-bar a:hover {
     width: 34px;
     height: 34px;
     line-height: 34px;
     border-radius: 0;
-    background: var(--bg);
+    /* `--canvas`, non `--bg`: quella variabile non esiste in questi token, e
+       una `var()` senza valore né ripiego lascia la proprietà al valore che
+       aveva — qui il bianco predefinito di Leaflet. La regola c'era, sembrava
+       giusta, e non faceva niente. */
+    background: var(--canvas);
     color: var(--ink);
     border-bottom: 2px solid var(--ink);
     font-weight: 800;
 }
 
-.leaflet-bar a:last-child {
+.leaflet-container .leaflet-bar a:last-child {
     border-bottom: 0;
 }
 
-.leaflet-bar a:hover {
+.leaflet-container .leaflet-bar a:hover {
     background: var(--accent);
-    color: var(--on-accent, #fff);
+    /* Nessun ripiego bianco: su giallo-verde il bianco sta a 1,3 a 1 e non si
+       legge. Se `--on-accent` sparisse, meglio accorgersene. */
+    color: var(--on-accent);
 }
 
-.leaflet-bar a:focus-visible {
+.leaflet-container .leaflet-bar a:focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
 }
 
 /* L'attribuzione resta leggibile: è un obbligo della licenza ODbL (D46).
    Minuta e incorniciata, come nel riferimento. */
-.leaflet-control-attribution {
-    background: var(--bg);
+.leaflet-container .leaflet-control-attribution {
+    background: var(--canvas);
     color: var(--ink-subtle);
     font-size: 0.5625rem;
     letter-spacing: 0.04em;
@@ -685,7 +711,7 @@
     border-left: 1px solid var(--line);
 }
 
-.leaflet-control-attribution a {
+.leaflet-container .leaflet-control-attribution a {
     color: var(--ink-muted);
     text-decoration: underline;
 }
@@ -775,35 +801,4 @@
     font-size: 0.8125rem;
     letter-spacing: -0.01em;
     box-shadow: 0 0 0 2px var(--canvas);
-}
-
-.rm-pin__halo {
-    width: 22px;
-    height: 22px;
-    opacity: 0.28;
-    animation: rm-pulse 2.4s ease-out infinite;
-}
-
-@keyframes rm-pulse {
-    0% { transform: translate(-50%, -50%) scale(0.6); opacity: 0.35; }
-    70% { transform: translate(-50%, -50%) scale(1.35); opacity: 0; }
-    100% { opacity: 0; }
-}
-
-/* Un gruppo: il numero dice quante SERATE, non quanti locali. */
-.rm-cluster {
-    background: none;
-    border: 0;
-}
-
-.rm-cluster span {
-    display: flex;
-    width: 100%;
-    height: 100%;
-    align-items: center;
-    justify-content: center;
-    color: #fff;
-    font-weight: 800;
-    font-size: 0.8125rem;
-    box-shadow: 0 0 0 2px var(--bg);
 }

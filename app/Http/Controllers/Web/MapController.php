@@ -5,15 +5,18 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Web;
 
 use App\DTOs\PageMeta;
+use App\Enums\SponsorshipPlacement;
 use App\Enums\VenueStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Web\Concerns\InteractsWithCity;
 use App\Http\Requests\Web\MapBoundsRequest;
 use App\Models\City;
+use App\Models\Sponsorship;
 use App\Models\Venue;
 use App\Services\Map\MapPayload;
 use App\Services\Search\EventFinder;
 use App\Services\Search\FilterFacets;
+use App\Services\Sponsorship\SponsorshipSelector;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 
@@ -51,6 +54,7 @@ final class MapController extends Controller
         private readonly MapPayload $payload,
         private readonly EventFinder $finder,
         private readonly FilterFacets $facets,
+        private readonly SponsorshipSelector $sponsorships,
     ) {}
 
     public function index(MapBoundsRequest $request): View
@@ -112,6 +116,12 @@ final class MapController extends Controller
             'venue' => $model,
             'occurrences' => $this->finder->take($city, $filters, self::SHEET_SIZE),
             'filters' => $filters,
+            /* La campagna del foglio compare solo se e' su un evento DI QUESTO
+               locale: una pubblicita' che si apre toccando un punto e parla
+               d'altro non e' pubblicita', e' un errore. */
+            'sponsorship' => $this->sponsorships
+                ->forPlacement($city, SponsorshipPlacement::MapSheet)
+                ->first(fn (Sponsorship $campagna): bool => $campagna->event?->venue_id === $model->getKey()),
         ]);
     }
 

@@ -14,6 +14,7 @@ use App\Models\Page;
 use App\Models\Report;
 use App\Models\SavedEvent;
 use App\Models\ScheduledNotification;
+use App\Models\Sponsorship;
 use App\Models\Tag;
 use App\Models\TicketTier;
 use App\Models\User;
@@ -33,6 +34,7 @@ use App\Policies\PagePolicy;
 use App\Policies\ReportPolicy;
 use App\Policies\SavedEventPolicy;
 use App\Policies\ScheduledNotificationPolicy;
+use App\Policies\SponsorshipPolicy;
 use App\Policies\TagPolicy;
 use App\Policies\TicketTierPolicy;
 use App\Policies\UserPolicy;
@@ -136,6 +138,15 @@ class AppServiceProvider extends ServiceProvider
          * riempie il registro senza mai ostacolare chi decide davvero.
          */
         RateLimiter::for('consent', static fn (Request $request): Limit => Limit::perHour(30)->by($request->ip() ?? 'sconosciuto'));
+
+        /*
+         * Le misure delle campagne sponsorizzate. Piu' largo del consenso
+         * perche' scatta a ogni card che entra nello schermo — una pagina
+         * scorsa per intero ne manda parecchie — e comunque stretto abbastanza
+         * da fermare uno script. Il tetto per SINGOLA campagna, che e' quello
+         * che protegge la fattura, sta nel controller.
+         */
+        RateLimiter::for('sponsorship-metrics', static fn (Request $request): Limit => Limit::perMinute(120)->by($request->ip() ?? 'sconosciuto'));
 
         /*
          * Limiti dell'API (§13.4): 60 richieste al minuto per chi non è
@@ -242,6 +253,7 @@ class AppServiceProvider extends ServiceProvider
 
         Gate::policy(Venue::class, VenuePolicy::class);
         Gate::policy(Event::class, EventPolicy::class);
+        Gate::policy(Sponsorship::class, SponsorshipPolicy::class);
         Gate::policy(EventOccurrence::class, EventOccurrencePolicy::class);
         Gate::policy(TicketTier::class, TicketTierPolicy::class);
         Gate::policy(VenueApplication::class, VenueApplicationPolicy::class);

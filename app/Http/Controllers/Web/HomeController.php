@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Web;
 
 use App\DTOs\EventFilters;
 use App\Enums\EventStatus;
+use App\Enums\SponsorshipPlacement;
 use App\Enums\TimeOfDay;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
@@ -16,6 +17,7 @@ use App\Models\Venue;
 use App\Queries\EventOccurrenceQuery;
 use App\Services\Map\MapPayload;
 use App\Services\Seo\StructuredData;
+use App\Services\Sponsorship\SponsorshipSelector;
 use App\Support\CurrentCity;
 use App\Support\DateFormatter;
 use Carbon\CarbonImmutable;
@@ -42,6 +44,7 @@ final class HomeController extends Controller
     public function __construct(
         private readonly StructuredData $structuredData,
         private readonly MapPayload $mapPayload,
+        private readonly SponsorshipSelector $sponsorships,
     ) {}
 
     public function __invoke(CurrentCity $currentCity): View
@@ -61,6 +64,8 @@ final class HomeController extends Controller
                 'statCells' => [],
                 'quickFilters' => [],
                 'todayLine' => '',
+                'heroSponsorship' => null,
+                'cardSponsorship' => null,
                 'mapFilters' => new EventFilters,
                 'mapPayload' => ['markers' => [], 'categories' => [], 'truncated' => false],
                 'structuredData' => [
@@ -94,6 +99,11 @@ final class HomeController extends Controller
             /* La mappa della sezione «vicino a te» mostra tutto ciò che è in
                programma, senza filtri: è una vista d'insieme della città, e
                chi vuole stringere ha la pagina della mappa a un tocco. */
+            /* Le due collocazioni della pagina iniziale. Restano `null`
+               finche' nessuno ha comprato niente, e la pagina non se ne
+               accorge. */
+            'heroSponsorship' => $this->sponsorships->first($city, SponsorshipPlacement::HomeHero),
+            'cardSponsorship' => $this->sponsorships->first($city, SponsorshipPlacement::HomeCard),
             'mapFilters' => $mapFilters = new EventFilters,
             'mapPayload' => $this->mapPayload->build($city, $mapFilters, null),
             'stats' => $stats = $this->stats($city),

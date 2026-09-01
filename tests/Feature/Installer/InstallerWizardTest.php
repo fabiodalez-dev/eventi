@@ -172,7 +172,8 @@ it('esegue la checklist un’operazione per volta e crea città e amministratore
     $this->post('/installazione/esecuzione');
     $this->post('/installazione/esecuzione');
 
-    expect(Permission::query()->count())->toBe(27);
+    /* Dalla fonte e non da un numero: vedi ProductionSeederTest. */
+    expect(Permission::query()->count())->toBe(count(\App\Enums\Permission::cases()));
 
     $city = City::query()->firstOrFail();
     expect($city->name)->toBe('Padova')

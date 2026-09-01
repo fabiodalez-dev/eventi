@@ -216,6 +216,17 @@
          grande (D40). --}}
     <livewire:live-now />
 
+    {{-- La campagna della pagina iniziale, subito dopo la fascia dei numeri:
+         sopra la piega non ci va — quello spazio è la data più importante in
+         programma, e venderlo cambierebbe cosa il sito dice di sé. --}}
+    @if ($cardSponsorship !== null)
+        <x-sponsored-card
+            :sponsorship="$cardSponsorship"
+            class="border-b-2 border-line"
+            level="h2"
+        />
+    @endif
+
     @foreach ($griglie as $sezione)
         @php $numero++; @endphp
 

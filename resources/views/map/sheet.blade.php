@@ -28,6 +28,10 @@
         </p>
     </div>
 
+    @if (($sponsorship ?? null) !== null)
+        <x-sponsored-card :sponsorship="$sponsorship" class="border-b-2 border-line" />
+    @endif
+
     @foreach ($occurrences as $occurrence)
         <x-event-card
             :occurrence="$occurrence"

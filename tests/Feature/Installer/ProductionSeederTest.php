@@ -24,8 +24,15 @@ use Spatie\Permission\Models\Role;
 it('popola ruoli, permessi, categorie, etichette e pagine legali', function (): void {
     Artisan::call('db:seed', ['--class' => ProductionSeeder::class, '--force' => true]);
 
-    expect(Role::query()->count())->toBe(6)
-        ->and(Permission::query()->count())->toBe(27)
+    /*
+     * I conteggi si leggono dalla FONTE, non da un numero scritto qui:
+     * aggiungere un ruolo o un permesso e' una cosa normale, e non deve
+     * rendere rosso un test che verifica tutt'altro — che il seeder li porti
+     * TUTTI. Un numero fisso trasforma ogni aggiunta in una correzione di
+     * test, e dopo la terza si smette di leggerli.
+     */
+    expect(Role::query()->count())->toBe(count(\App\Enums\UserRole::cases()))
+        ->and(Permission::query()->count())->toBe(count(\App\Enums\Permission::cases()))
         ->and(Category::query()->count())->toBe(14)
         ->and(Tag::query()->count())->toBe(38)
         ->and(Page::query()->count())->toBe(5);

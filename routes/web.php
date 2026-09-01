@@ -6,6 +6,7 @@ use App\Http\Controllers\Web\ConsentController;
 use App\Http\Controllers\Web\ImpersonationController;
 use App\Http\Controllers\Web\PageController;
 use App\Http\Controllers\Web\SeoController;
+use App\Http\Controllers\Web\SponsorshipMetricController;
 use App\Http\Controllers\Web\WidgetController;
 use App\Http\Middleware\RequiresOpsToken;
 use App\Http\Middleware\ResolveCity;
@@ -17,6 +18,13 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Spatie\Health\Http\Controllers\HealthCheckJsonResultsController;
 use Spatie\Health\Http\Controllers\SimpleHealthCheckController;
+
+/*
+ * Il wizard di installazione (D42). Sta **in testa** a tutto: il gruppo
+ * `/{city}` più sotto accetta qualunque segmento minuscolo, `installazione`
+ * compreso, e registrato dopo verrebbe risolto come una città inesistente.
+ */
+Route::group([], base_path('routes/installer.php'));
 
 /*
  * Le rotte del sito pubblico stanno in routes/public.php e sono registrate due
@@ -152,3 +160,24 @@ Route::post('/consenso', [ConsentController::class, 'store'])
 Route::delete('/consenso', [ConsentController::class, 'destroy'])
     ->middleware('throttle:consent')
     ->name('consent.destroy');
+
+/*
+ * Le misure di una campagna sponsorizzata (§sponsorizzazioni).
+ *
+ * Sta fra le rotte web e non sotto `/api/v1` di proposito: l'API pubblica e'
+ * di sola lettura per decisione del committente, e un test lo verifica
+ * enumerando le rotte registrate. Questa scrive — un contatore — e quindi il
+ * suo posto e' qui, dove c'e' gia' la sessione e la protezione contro le
+ * richieste da altri siti.
+ */
+Route::post('/sponsorizzazioni/{sponsorship}/{metric}', SponsorshipMetricController::class)
+    ->whereIn('metric', ['impressions', 'clicks'])
+    /*
+     * Un limitatore suo, e non quello del consenso: questa rotta scatta a ogni
+     * card sponsorizzata che entra nello schermo, mentre il consenso si da'
+     * una volta. Sono due tetti diversi perche' proteggono da due cose diverse
+     * — questo dagli abusi grossolani, quello dentro il controller
+     * dall'ingrossare UNA campagna, che e' il gesto che finisce in fattura.
+     */
+    ->middleware('throttle:sponsorship-metrics')
+    ->name('sponsorships.metric');

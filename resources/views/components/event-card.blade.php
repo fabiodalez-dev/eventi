@@ -26,6 +26,12 @@
        la card no: passarlo è ciò che rende la griglia un elenco numerato. */
     'index' => null,
     'level' => 'h3',
+    /* Il valore di `rel` sul collegamento al titolo. Serve a una cosa sola, ma
+       obbligatoria: una card sponsorizzata deve dichiarare `rel="sponsored"`,
+       che è come si segnala a un motore di ricerca un collegamento pagato.
+       Ometterlo su un contenuto a pagamento è una violazione delle linee guida
+       di Google, non una svista di stile. */
+    'rel' => null,
 ])
 
 @php
@@ -124,7 +130,11 @@
     <div class="relative pt-0.5">
         <{{ $level }} class="relative m-0 font-display text-[clamp(1.188rem,1.55vw,1.563rem)] leading-[1.03] font-extrabold tracking-[-0.025em] text-balance text-ink uppercase transition-transform duration-300 ease-[cubic-bezier(.76,0,.24,1)] group-hover:translate-x-[9px]">
             @if ($url !== null)
-                <a href="{{ $url }}" class="after:absolute after:inset-0 after:content-['']">{{ $event->title }}</a>
+                <a
+                    href="{{ $url }}"
+                    @if ($rel !== null) rel="{{ $rel }}" @endif
+                    class="after:absolute after:inset-0 after:content-['']"
+                >{{ $event->title }}</a>
             @else
                 {{ $event->title }}
             @endif

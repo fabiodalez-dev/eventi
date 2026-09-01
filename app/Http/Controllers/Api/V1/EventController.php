@@ -145,7 +145,14 @@ final class EventController extends Controller
     private function findReadable(City $city, string $slug): Event
     {
         $event = Event::query()
-            ->with(['venue', 'category', 'tags', 'media', 'ticketTiers'])
+            ->with([
+                'venue', 'category', 'tags', 'media', 'ticketTiers',
+                /* Le sole campagne vive: la risorsa non filtra, mostra cio'
+                   che trova caricato. Caricarle tutte significherebbe
+                   dichiarare sponsorizzato un evento la cui campagna e'
+                   finita a marzo. */
+                'sponsorships' => fn ($query) => $query->visible(),
+            ])
             ->inCity($city)
             ->readable()
             ->where('slug', $slug)

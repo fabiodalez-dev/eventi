@@ -78,6 +78,12 @@ class RolesAndPermissionsSeeder extends Seeder
             PermissionEnum::ViewScheduledNotifications,
         ]);
 
+        // Le sponsorizzazioni NON sono fra i permessi del moderatore: sono
+        // sopra, con admin e super admin. Decidere cosa compare a pagamento e
+        // con quale priorità è una scelta commerciale, e a schermo somiglia
+        // troppo a quella editoriale perché le due possano stare nelle stesse
+        // mani senza dirlo.
+
         // Admin: "tutto il prodotto" (§3). Super admin lo contiene e vi
         // aggiunge l'infrastruttura, che non ha permessi qui perché non
         // governa nessuno dei model coperti dalle Policy.

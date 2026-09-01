@@ -28,6 +28,27 @@ use Illuminate\Support\Facades\Route;
 final class EventResource
 {
     /**
+     * L'etichetta di sponsorizzazione, quando questo evento ne ha una viva.
+     *
+     * Legge dalla relazione **già caricata**, se c'è: chiamare il database da
+     * dentro una risorsa significa una query per ogni evento di un elenco da
+     * cinquanta. Chi vuole questo dato carica `sponsorships` con la sua
+     * finestra; chi non lo carica riceve `null`, che è la verità disponibile.
+     *
+     * @return array{advertiser: string}|null
+     */
+    private static function sponsored(Event $event): ?array
+    {
+        if (! $event->relationLoaded('sponsorships')) {
+            return null;
+        }
+
+        $campagna = $event->sponsorships->first();
+
+        return $campagna === null ? null : ['advertiser' => (string) $campagna->advertiser_name];
+    }
+
+    /**
      * @param  Collection<int, EventOccurrence>  $occurrences
      * @return array<string, mixed>
      */
@@ -55,6 +76,22 @@ final class EventResource
                 'url' => $event->organizer_url,
             ],
             'price' => PriceResource::toArray($event),
+
+            /*
+             * **Se questo evento è sponsorizzato, e da chi.**
+             *
+             * Non è un dato di comodo: la pubblicità dev'essere riconoscibile
+             * come tale, e un'applicazione che riceve gli eventi senza sapere
+             * quali sono a pagamento non può dichiararlo. Esporlo qui è ciò
+             * che permette a un client di mettere la stessa etichetta che
+             * mette il sito — e non esporlo sarebbe stato un modo per far
+             * finta che il problema non esista fuori dal browser.
+             *
+             * `null` quando non lo è, invece di `false` più un nome vuoto: è
+             * un oggetto che c'è o non c'è, e un client lo verifica una volta
+             * sola.
+             */
+            'sponsored' => self::sponsored($event),
 
             /*
              * Il listino dell'evento, sola lettura. Lo stato è **per fascia**:

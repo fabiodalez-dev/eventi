@@ -44,6 +44,19 @@ return [
         'rejected' => 'Rifiutata',
     ],
 
+    'sponsorship_placement' => [
+        'home_hero' => 'Apertura della pagina iniziale',
+        'home_card' => 'Card nella pagina iniziale',
+        'list_top' => 'In cima ai risultati',
+        'map_sheet' => 'Foglio della mappa',
+    ],
+
+    'sponsorship_status' => [
+        'draft' => 'Bozza',
+        'active' => 'Attiva',
+        'paused' => 'Sospesa',
+    ],
+
     'event_status' => [
         'draft' => 'Bozza',
         'pending' => 'In attesa di approvazione',

@@ -1,0 +1,364 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Filament\Admin\Resources\Sponsorships;
+
+use App\Enums\EventStatus;
+use App\Enums\SponsorshipPlacement;
+use App\Enums\SponsorshipStatus;
+use App\Filament\Admin\Resources\Sponsorships\Pages\CreateSponsorship;
+use App\Filament\Admin\Resources\Sponsorships\Pages\EditSponsorship;
+use App\Filament\Admin\Resources\Sponsorships\Pages\ListSponsorships;
+use App\Models\City;
+use App\Models\Event;
+use App\Models\Sponsorship;
+use BackedEnum;
+use Filament\Actions\Action;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
+use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+
+/**
+ * Le campagne sponsorizzate.
+ *
+ * **Sta in un gruppo suo e non fra i contenuti.** Una sponsorizzazione non è
+ * una proprietà editoriale dell'evento: è un contratto, con un committente e un
+ * importo, e chi la gestisce non è chi cura il catalogo. Tenerla accanto a
+ * «Eventi» inviterebbe a trattarla come una spunta da mettere.
+ */
+class SponsorshipResource extends Resource
+{
+    protected static ?string $model = Sponsorship::class;
+
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedMegaphone;
+
+    protected static ?int $navigationSort = 1;
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('sponsorships.admin.navigation');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('sponsorships.admin.singular');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('sponsorships.admin.title');
+    }
+
+    public static function form(Schema $schema): Schema
+    {
+        return $schema->components([
+            Section::make(__('sponsorships.admin.sections.what'))
+                ->columns(2)
+                ->schema([
+                    Select::make('event_id')
+                        ->label(__('sponsorships.admin.fields.event'))
+                        ->required()
+                        ->searchable()
+                        ->preload()
+                        ->getSearchResultsUsing(fn (string $search): array => Event::query()
+                            ->where('title', 'like', '%'.$search.'%')
+                            ->orderByDesc('id')
+                            ->limit(30)
+                            ->pluck('title', 'id')
+                            ->all())
+                        ->getOptionLabelUsing(fn ($value): ?string => Event::query()->whereKey($value)->value('title'))
+                        /*
+                         * Una campagna su un evento non pubblicato non compare
+                         * mai (lo impedisce `Sponsorship::scopeVisible`), e chi
+                         * la sta creando deve saperlo QUI — non scoprirlo fra
+                         * tre giorni guardando le visualizzazioni ferme a zero.
+                         */
+                        ->helperText(function (Get $get): ?string {
+                            $event = Event::query()->whereKey($get('event_id'))->first();
+
+                            return $event !== null && $event->status !== EventStatus::Published
+                                ? __('sponsorships.admin.help.event_not_published')
+                                : null;
+                        })
+                        ->live()
+                        /* La città non si sceglie: è quella dell'evento. Un
+                           menu in più sarebbe un modo in più di sbagliare. */
+                        ->afterStateUpdated(function ($state, callable $set): void {
+                            $set('city_id', Event::query()->whereKey($state)->value('city_id'));
+                        })
+                        ->columnSpanFull(),
+
+                    Select::make('placement')
+                        ->label(__('sponsorships.admin.fields.placement'))
+                        ->options(SponsorshipPlacement::options())
+                        ->required()
+                        ->native(false)
+                        ->helperText(__('sponsorships.admin.help.placement')),
+
+                    Select::make('status')
+                        ->label(__('sponsorships.admin.fields.status'))
+                        ->options(SponsorshipStatus::options())
+                        ->default(SponsorshipStatus::Draft->value)
+                        ->required()
+                        ->native(false),
+                ]),
+
+            Section::make(__('sponsorships.admin.sections.when'))
+                ->columns(3)
+                ->description(__('sponsorships.admin.help.window'))
+                ->schema([
+                    /*
+                     * Gli istanti si salvano in UTC ma si scrivono nel fuso
+                     * della città: senza `->timezone()` un «21:30» digitato qui
+                     * finisce nel database come le 21:30 UTC, cioè le 23:30
+                     * d'estate a Padova. È già successo sulle occorrenze.
+                     */
+                    DateTimePicker::make('starts_at')
+                        ->label(__('sponsorships.admin.fields.starts_at'))
+                        ->seconds(false)
+                        ->required()
+                        ->timezone(fn (Get $get): string => self::cityTimezone($get('city_id'))),
+
+                    DateTimePicker::make('ends_at')
+                        ->label(__('sponsorships.admin.fields.ends_at'))
+                        ->seconds(false)
+                        ->required()
+                        ->after('starts_at')
+                        ->validationMessages(['after' => __('sponsorships.admin.validation.ends_after_starts')])
+                        ->timezone(fn (Get $get): string => self::cityTimezone($get('city_id'))),
+
+                    TextInput::make('priority')
+                        ->label(__('sponsorships.admin.fields.priority'))
+                        ->numeric()
+                        ->default(0)
+                        ->minValue(0)
+                        ->maxValue(1000)
+                        ->helperText(__('sponsorships.admin.help.priority')),
+                ]),
+
+            Section::make(__('sponsorships.admin.sections.who'))
+                ->columns(3)
+                ->schema([
+                    TextInput::make('advertiser_name')
+                        ->label(__('sponsorships.admin.fields.advertiser_name'))
+                        ->required()
+                        ->maxLength(255)
+                        ->helperText(__('sponsorships.admin.help.advertiser_name')),
+
+                    TextInput::make('advertiser_email')
+                        ->label(__('sponsorships.admin.fields.advertiser_email'))
+                        ->email()
+                        ->maxLength(255),
+
+                    TextInput::make('advertiser_url')
+                        ->label(__('sponsorships.admin.fields.advertiser_url'))
+                        ->url()
+                        ->maxLength(255),
+                ]),
+
+            Section::make(__('sponsorships.admin.sections.money'))
+                ->columns(3)
+                ->collapsed()
+                ->schema([
+                    TextInput::make('amount_cents')
+                        ->label(__('sponsorships.admin.fields.amount'))
+                        ->numeric()
+                        ->minValue(0)
+                        /* In centesimi nel database, in euro nel modulo: i
+                           decimali in virgola mobile sommati mille volte non
+                           tornano, e chi compila un modulo non scrive
+                           centesimi. */
+                        ->formatStateUsing(fn (?int $state): ?string => $state === null ? null : number_format($state / 100, 2, '.', ''))
+                        ->dehydrateStateUsing(fn (?string $state): ?int => $state === null || $state === '' ? null : (int) round((float) $state * 100))
+                        ->prefix('€'),
+
+                    TextInput::make('currency')
+                        ->label(__('sponsorships.admin.fields.currency'))
+                        ->default('EUR')
+                        ->maxLength(3),
+
+                    TextInput::make('invoice_reference')
+                        ->label(__('sponsorships.admin.fields.invoice_reference'))
+                        ->maxLength(255),
+
+                    Textarea::make('notes')
+                        ->label(__('sponsorships.admin.fields.notes'))
+                        ->rows(3)
+                        ->columnSpanFull(),
+                ]),
+        ]);
+    }
+
+    public static function table(Table $table): Table
+    {
+        return $table
+            ->columns([
+                TextColumn::make('event.title')
+                    ->label(__('sponsorships.admin.fields.event'))
+                    ->searchable()
+                    ->wrap()
+                    ->limit(60),
+
+                TextColumn::make('placement')
+                    ->label(__('sponsorships.admin.fields.placement'))
+                    ->badge()
+                    ->formatStateUsing(fn (SponsorshipPlacement $state): string => $state->label()),
+
+                TextColumn::make('status')
+                    ->label(__('sponsorships.admin.fields.status'))
+                    ->badge()
+                    ->formatStateUsing(fn (SponsorshipStatus $state): string => $state->label())
+                    ->color(fn (SponsorshipStatus $state): string => match ($state) {
+                        SponsorshipStatus::Active => 'success',
+                        SponsorshipStatus::Paused => 'warning',
+                        SponsorshipStatus::Draft => 'gray',
+                    }),
+
+                /*
+                 * «In corso» è calcolato, non salvato: uno stato che deve
+                 * essere aggiornato da un processo notturno per restare vero è
+                 * uno stato che prima o poi mente.
+                 */
+                TextColumn::make('running')
+                    ->label(__('sponsorships.admin.fields.running'))
+                    ->badge()
+                    ->state(fn (Sponsorship $record): string => $record->isRunning() ? __('common.yes') : __('common.no'))
+                    ->color(fn (Sponsorship $record): string => $record->isRunning() ? 'success' : 'gray'),
+
+                TextColumn::make('starts_at')
+                    ->label(__('sponsorships.admin.fields.starts_at'))
+                    ->dateTime('d/m/Y H:i')
+                    ->sortable(),
+
+                TextColumn::make('ends_at')
+                    ->label(__('sponsorships.admin.fields.ends_at'))
+                    ->dateTime('d/m/Y H:i')
+                    ->sortable(),
+
+                TextColumn::make('advertiser_name')
+                    ->label(__('sponsorships.admin.fields.advertiser_name'))
+                    ->searchable()
+                    ->toggleable(),
+
+                TextColumn::make('impressions')
+                    ->label(__('sponsorships.admin.fields.impressions'))
+                    ->numeric()
+                    ->sortable(),
+
+                TextColumn::make('clicks')
+                    ->label(__('sponsorships.admin.fields.clicks'))
+                    ->numeric()
+                    ->sortable(),
+
+                TextColumn::make('click_rate')
+                    ->label(__('sponsorships.admin.fields.click_rate'))
+                    /* Trattino e non «0%» quando non è mai stata mostrata: un
+                       rapporto su zero non è zero, è una domanda senza
+                       risposta, e scriverlo come zero fa concludere che la
+                       campagna vada male quando non è ancora partita. */
+                    ->state(fn (Sponsorship $record): string => $record->clickRate() === null
+                        ? '—'
+                        : number_format($record->clickRate() * 100, 1).'%'),
+            ])
+            ->defaultSort('ends_at', 'desc')
+            ->filters([
+                SelectFilter::make('placement')
+                    ->label(__('sponsorships.admin.filters.placement'))
+                    ->options(SponsorshipPlacement::options()),
+
+                SelectFilter::make('status')
+                    ->label(__('sponsorships.admin.filters.status'))
+                    ->options(SponsorshipStatus::options()),
+
+                Filter::make('running')
+                    ->label(__('sponsorships.admin.filters.running'))
+                    /* `Sponsorship::query()->visible()` e non `$query->visible()`:
+                       il filtro riceve un builder generico, su cui lo scope del
+                       modello non e' visibile ne' a chi legge ne' all'analisi
+                       statica. Si riusa la stessa condizione applicandola
+                       sull'oggetto giusto. */
+                    ->modifyQueryUsing(fn (Builder $query): Builder => $query->whereKey(
+                        Sponsorship::query()->visible()->pluck('id')
+                    )),
+            ])
+            ->recordActions([
+                EditAction::make(),
+                self::toggleAction(),
+            ])
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
+                ]),
+            ])
+            ->emptyStateHeading(__('sponsorships.admin.empty.title'))
+            ->emptyStateDescription(__('sponsorships.admin.empty.body'));
+    }
+
+    /**
+     * Attiva o sospende con un tocco: è l'operazione più frequente — un
+     * pagamento che non arriva, una campagna da far partire — e passare dal
+     * modulo di modifica per cambiare un menu a tendina è tre gesti invece di
+     * uno.
+     */
+    private static function toggleAction(): Action
+    {
+        return Action::make('toggle')
+            ->label(fn (Sponsorship $record): string => $record->status === SponsorshipStatus::Active
+                ? __('sponsorships.admin.actions.pause')
+                : __('sponsorships.admin.actions.activate'))
+            ->icon(fn (Sponsorship $record): Heroicon => $record->status === SponsorshipStatus::Active
+                ? Heroicon::OutlinedPause
+                : Heroicon::OutlinedPlay)
+            ->requiresConfirmation()
+            ->action(function (Sponsorship $record): void {
+                $attiva = $record->status !== SponsorshipStatus::Active;
+
+                $record->update(['status' => $attiva ? SponsorshipStatus::Active : SponsorshipStatus::Paused]);
+
+                Notification::make()
+                    ->title($attiva ? __('sponsorships.admin.actions.activated') : __('sponsorships.admin.actions.paused'))
+                    ->success()
+                    ->send();
+            });
+    }
+
+    /**
+     * Il fuso della città dell'evento, per i due selettori di data.
+     */
+    private static function cityTimezone(mixed $cityId): string
+    {
+        $timezone = $cityId === null
+            ? null
+            : City::query()->whereKey($cityId)->value('timezone');
+
+        return is_string($timezone) && $timezone !== '' ? $timezone : config()->string('app.timezone');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public static function getPages(): array
+    {
+        return [
+            'index' => ListSponsorships::route('/'),
+            'create' => CreateSponsorship::route('/create'),
+            'edit' => EditSponsorship::route('/{record}/edit'),
+        ];
+    }
+}
