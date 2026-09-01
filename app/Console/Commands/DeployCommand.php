@@ -34,7 +34,8 @@ class DeployCommand extends Command
 {
     protected $signature = 'deploy:pull
         {--branch=main : Il ramo da rilasciare}
-        {--skip-composer : Salta le dipendenze, se si sa che il lock non è cambiato}';
+        {--skip-composer : Salta le dipendenze PHP, se si sa che il lock non è cambiato}
+        {--skip-assets : Salta la compilazione di CSS e JavaScript}';
 
     protected $description = 'Porta il server all\'ultimo commit del ramo e riallinea database, permessi e cache.';
 
@@ -59,6 +60,30 @@ class DeployCommand extends Command
         return 'php';
     }
 
+    /**
+     * Se `package-lock.json` sia cambiato dall'ultima installazione.
+     *
+     * Si confronta l'impronta del lock con quella salvata a fine rilascio.
+     * Senza `node_modules` la risposta è comunque sì — non c'è niente da
+     * riusare.
+     */
+    private function lockNodeCambiato(): bool
+    {
+        if (! is_dir(base_path('node_modules'))) {
+            return true;
+        }
+
+        $lock = base_path('package-lock.json');
+
+        if (! is_file($lock)) {
+            return false;
+        }
+
+        $impronta = base_path('node_modules/.eventi-lock-hash');
+
+        return ! is_file($impronta) || trim((string) file_get_contents($impronta)) !== md5_file($lock);
+    }
+
     public function handle(): int
     {
         $branch = (string) $this->option('branch');
@@ -78,10 +103,29 @@ class DeployCommand extends Command
         ];
 
         if (! $this->option('skip-composer')) {
-            $passi['dipendenze'] = [
+            $passi['dipendenze PHP'] = [
                 $this->php(), '/usr/local/bin/composer', 'install',
                 '--no-dev', '--no-interaction', '--prefer-dist', '--optimize-autoloader',
             ];
+        }
+
+        /*
+         * **Gli asset si compilano qui.** `public/build` non sta nel
+         * repository — è generato, e versionarlo significherebbe un conflitto
+         * a ogni ramo — quindi il codice appena arrivato porta le classi nuove
+         * nei template ma non il CSS che le definisce. Senza questo passo il
+         * markup cambia e la pagina resta identica: è successo, e sembrava che
+         * il rilascio non fosse arrivato.
+         *
+         * `npm ci` solo quando il lock è cambiato: reinstallare duecento
+         * megabyte di dipendenze a ogni rilascio costa minuti per niente.
+         */
+        if (! $this->option('skip-assets')) {
+            if ($this->lockNodeCambiato()) {
+                $passi['dipendenze JavaScript'] = ['npm', 'ci', '--no-audit', '--no-fund'];
+            }
+
+            $passi['compila gli asset'] = ['npm', 'run', 'build'];
         }
 
         foreach ($passi as $nome => $comando) {
@@ -126,6 +170,13 @@ class DeployCommand extends Command
            a un percorso che qui non esiste. Si ricrea solo se manca. */
         if (! is_link(public_path('storage'))) {
             Artisan::call('storage:link');
+        }
+
+        /* L'impronta del lock si scrive solo a rilascio riuscito: se qualcosa
+           è fallito a metà, il prossimo giro reinstalla invece di dare per
+           buono uno stato che non si conosce. */
+        if (! $this->option('skip-assets') && is_dir(base_path('node_modules')) && is_file(base_path('package-lock.json'))) {
+            file_put_contents(base_path('node_modules/.eventi-lock-hash'), md5_file(base_path('package-lock.json')));
         }
 
         $this->info('Rilasciato '.trim((new Process(['git', 'log', '-1', '--format=%h %s'], base_path()))->mustRun()->getOutput()));
