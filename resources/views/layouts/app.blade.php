@@ -182,32 +182,6 @@
         @endif
     @endif
 
-    {{-- Il carattere, chiesto prima che il foglio di stile lo nomini.
-
-         Archivo arriva da `@fontsource-variable`, importato dentro `app.css`:
-         il browser scarica l'HTML, poi il CSS, e solo dopo averlo letto scopre
-         che gli serve un `.woff2`. Tre viaggi in fila, e nel frattempo i
-         titoli — enormi e in grassetto 800 — restano nel carattere di
-         ripiego. Sono l'elemento più grande sopra la piega, quindi finché non
-         arriva il font il tempo di disegno non si ferma.
-
-         **Il `crossorigin` non è facoltativo**, nemmeno per un file del nostro
-         stesso dominio: i font si scaricano sempre in modalità anonima, e un
-         preload senza quell'attributo finisce in una cache diversa da quella
-         dove il CSS andrà a cercarlo — il file si scarica due volte e il
-         preload fa perdere tempo invece di guadagnarlo. --}}
-    @php
-        /* Forma estesa, non `@php(...)`: quella compatta qui si compilava in un
-           `<?php` senza chiusura, e da lì in giù il resto dell'intestazione
-           finiva dentro PHP grezzo — il blocco che definisce `$lcp`, tre righe
-           più sotto, non veniva mai eseguito e la pagina si spegneva
-           lamentandosi di una variabile che nel sorgente c'era. */
-        $fontLatino = \App\Support\Fonts::latin();
-    @endphp
-    @if ($fontLatino !== null)
-        <link rel="preload" as="font" type="font/woff2" href="{{ $fontLatino }}" crossorigin>
-    @endif
-
     {{-- Preload dell'immagine più grande sopra la piega (§11.11).
 
          Se ne dichiara **una sola**, nel formato migliore disponibile: `type`
@@ -242,6 +216,45 @@
         >
     @elseif ($lcp !== null)
         <link rel="preload" as="image" href="{{ $lcp->src }}" fetchpriority="high">
+    @endif
+
+    {{-- **Il font viene dopo l'immagine, e l'ordine qui conta.**
+
+         Stava prima. Su una banda stretta i due preload competono, e 34 KB di
+         carattere rubavano la precedenza alla locandina — che nella scheda di
+         un evento e' proprio l'elemento piu' grande sopra la piega: il referto
+         segnava quasi un secondo di attesa prima ancora che l'immagine
+         iniziasse a scaricarsi.
+
+         Il testo non ci perde niente, perche' il carattere e' dichiarato
+         `font-display: swap`: si legge subito con quello di ripiego e cambia
+         quando arriva. Un'immagine che non c'e' e' uno spazio vuoto; un testo
+         nel carattere sbagliato e' comunque un testo.
+    --}}
+    {{-- Il carattere, chiesto prima che il foglio di stile lo nomini.
+
+         Archivo arriva da `@fontsource-variable`, importato dentro `app.css`:
+         il browser scarica l'HTML, poi il CSS, e solo dopo averlo letto scopre
+         che gli serve un `.woff2`. Tre viaggi in fila, e nel frattempo i
+         titoli — enormi e in grassetto 800 — restano nel carattere di
+         ripiego. Sono l'elemento più grande sopra la piega, quindi finché non
+         arriva il font il tempo di disegno non si ferma.
+
+         **Il `crossorigin` non è facoltativo**, nemmeno per un file del nostro
+         stesso dominio: i font si scaricano sempre in modalità anonima, e un
+         preload senza quell'attributo finisce in una cache diversa da quella
+         dove il CSS andrà a cercarlo — il file si scarica due volte e il
+         preload fa perdere tempo invece di guadagnarlo. --}}
+    @php
+        /* Forma estesa, non `@php(...)`: quella compatta qui si compilava in un
+           `<?php` senza chiusura, e da lì in giù il resto dell'intestazione
+           finiva dentro PHP grezzo — il blocco che definisce `$lcp`, tre righe
+           più sotto, non veniva mai eseguito e la pagina si spegneva
+           lamentandosi di una variabile che nel sorgente c'era. */
+        $fontLatino = \App\Support\Fonts::latin();
+    @endphp
+    @if ($fontLatino !== null)
+        <link rel="preload" as="font" type="font/woff2" href="{{ $fontLatino }}" crossorigin>
     @endif
 
     {{-- I feed dichiarati qui sono ciò che fa comparire il pulsante "sottoscrivi"

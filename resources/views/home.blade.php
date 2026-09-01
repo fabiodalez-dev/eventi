@@ -48,7 +48,11 @@
     $heroPoster = $heroOccorrenza === null
         ? null
         : \App\Support\Poster::imageSet($heroOccorrenza->event)
-            ?->withSizes('(min-width: 1024px) 50vw, 100vw');
+            ?->withSizes('(min-width: 840px) 50vw, 100vw');
+            /* 840px, non 1024: le due colonne dell'apertura si affiancano
+               quando ci stanno, cioe' a `2 x 420px`. Fra 840 e 1024 la
+               dichiarazione diceva schermo intero mentre l'immagine ne
+               occupava meta', e il browser scaricava il doppio del necessario. */
 
     /* Le sezioni a griglia, nell'ordine in cui compaiono. La numerazione
        «01 —» è progressiva su ciò che si disegna davvero: una sezione vuota

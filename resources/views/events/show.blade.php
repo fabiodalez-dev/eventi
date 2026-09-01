@@ -8,7 +8,19 @@
 @php
     $formatter = app(\App\Support\DateFormatter::class);
     $venue = $event->venue;
-    $poster = \App\Support\Poster::imageSet($event)?->withSizes('(min-width: 1024px) 448px, 90vw');
+    /*
+     * Quanto spazio occupa DAVVERO. La fascia di apertura e' una griglia a due
+     * colonne che si affiancano a 800px (`minmax(min(400px,100%),1fr)`), e da
+     * quando questa scheda e' a tutta larghezza ogni colonna vale mezzo
+     * schermo: su 1440 sono 719px misurati, non i 448 che si dichiaravano
+     * prima — quando la pagina stava ancora dentro il contenitore centrato.
+     *
+     * Un `sizes` che dichiara meno del vero fa scegliere al browser una
+     * variante troppo piccola, e la locandina si vede sgranata; dichiararne
+     * di piu' gli fa scaricare peso che non serve. Va tenuto insieme alla
+     * geometria: se cambia una, va cambiato l'altro.
+     */
+    $poster = \App\Support\Poster::imageSet($event)?->withSizes('(min-width: 800px) 50vw, 100vw');
     $custom = is_array($event->custom_location) ? $event->custom_location : [];
     $shareUrl = route('events.show', $event);
     $dates = $occurrences->isNotEmpty() ? $occurrences : $pastOccurrences;
