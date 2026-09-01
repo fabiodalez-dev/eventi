@@ -67,48 +67,58 @@ it('genera le tre varianti in WebP', function (): void {
 });
 
 /*
- * L'AVIF dipende da un delegato di ImageMagick (libheif) che non c'e' ovunque.
+ * **La garanzia, non il meccanismo.**
  *
- * Il comportamento da verificare non e' «l'AVIF viene generato» — che dipende
- * dalla macchina — ma **che non venga mai generato falso**: senza il delegato,
- * ImageMagick non protesta, scrive un JPEG e gli da' il nome chiesto. Il file
- * `.avif` esisterebbe, il `<picture>` lo annuncerebbe come `image/avif`, e un
- * browser che accetta AVIF sceglierebbe proprio quella fonte ricevendo un file
- * che AVIF non e'.
+ * Se una variante AVIF esiste, dentro dev'esserci un AVIF. E' questo che il
+ * sistema promette, e vale su qualunque macchina. Che la variante venga
+ * PRODOTTA dipende invece dai delegati di ImageMagick installati: verificarlo
+ * legherebbe il test all'installazione e non al comportamento.
  *
- * Quindi: dove il delegato c'e', la variante c'e' ed e' davvero AVIF; dove non
- * c'e', la variante non esiste affatto e il `<picture>` non la offre.
+ * La versione precedente sbagliava proprio li'. Chiedeva ad `AvifSupport` se
+ * il supporto ci fosse e poi pretendeva la variante — ma quella e' una
+ * previsione, e in integrazione continua era falsa: `queryFormats` risponde di
+ * si', ImageMagick consegna un JPEG, e `RejectFakeAvifConversion` lo scarta.
+ * Tre stati, non due, e il terzo — «dichiarato ma fallito» — non si riproduce
+ * ne' su questa macchina ne' spegnendo `MEDIA_AVIF`.
  */
-it('genera l\'AVIF solo dove il supporto e dichiarato, e mai falso', function (): void {
+it('non lascia mai una variante AVIF che AVIF non e', function (): void {
     $event = eventWithPoster();
     $media = $event->getFirstMedia('poster');
-
-    $supportato = AvifSupport::available();
 
     foreach (array_keys(Variants::widths()) as $variant) {
         $nome = Variants::avif($variant);
 
-        if (! $supportato) {
-            expect($media->hasGeneratedConversion($nome))->toBeFalse(
-                "senza il delegato AVIF la variante {$nome} non deve esistere: esisterebbe come JPEG travestito"
-            );
-
+        if (! $media->hasGeneratedConversion($nome)) {
             continue;
         }
 
-        expect($media->hasGeneratedConversion($nome))->toBeTrue("manca la variante {$nome}")
-            ->and(ImageType::detect($media->getPath($nome)))->toBe(ImageType::Avif);
+        expect(ImageType::detect($media->getPath($nome)))->toBe(
+            ImageType::Avif,
+            "la variante {$nome} esiste ma non e un AVIF: e il JPEG travestito che il listener doveva scartare"
+        );
     }
 });
 
 it('non annuncia una fonte AVIF che non ha generato', function (): void {
     $event = eventWithPoster();
+    $media = $event->getFirstMedia('poster');
     $set = ImageSet::forCollection($event, 'poster');
 
-    /* La regola vale a valle come a monte: se la variante non c'e', il
-       `<picture>` non deve dichiararla. E' cio' che fa ricadere il browser sul
-       WebP invece che su un file col tipo sbagliato. */
-    if (! AvifSupport::available()) {
+    /*
+     * La regola vale a valle come a monte: la fonte AVIF si dichiara se e solo
+     * se le varianti esistono sul disco. E' cio' che fa ricadere il browser sul
+     * WebP invece che su un file col tipo sbagliato.
+     *
+     * Si guarda COSA C'E', non cosa `AvifSupport` prometteva: fra la promessa e
+     * il file c'e' `RejectFakeAvifConversion`, che puo' aver scartato tutto.
+     */
+    $generate = collect(array_keys(Variants::widths()))
+        ->filter(fn (string $variante): bool => $media->hasGeneratedConversion(Variants::avif($variante)))
+        ->isNotEmpty();
+
+    if ($generate) {
+        expect($set->sources)->toHaveKey('image/avif');
+    } else {
         expect($set->sources)->not->toHaveKey('image/avif');
     }
 

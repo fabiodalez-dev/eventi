@@ -123,3 +123,44 @@ it('non tocca le varianti che non sono AVIF', function (): void {
 
     expect($media->fresh()->hasGeneratedConversion('card'))->toBeTrue();
 });
+
+/*
+ * Lo stato che ha fatto cadere l'integrazione continua tre volte: il supporto
+ * e' DICHIARATO — `queryFormats` risponde di si' — ma le varianti sono state
+ * scartate perche' erano JPEG travestiti. Sono tre stati, non due, e questo
+ * terzo non si riproduce ne' su una macchina col delegato ne' spegnendo
+ * `MEDIA_AVIF`: bisogna costruirlo.
+ */
+it('non annuncia l\'AVIF quando il supporto è dichiarato ma le varianti sono state scartate', function (): void {
+    AvifSupport::fake(true);
+
+    $city = testCity();
+    $category = testCategory();
+    $event = occurrenceAtLocal($city, $category, '2026-09-20 21:00:00')->event;
+    $event->addMedia(ImageFixtures::upload('locandina.jpg', ImageFixtures::jpeg()))->toMediaCollection('poster');
+
+    $media = $event->refresh()->getFirstMedia('poster');
+
+    /* Si mette un JPEG in ogni variante AVIF e si lascia lavorare il listener:
+       è esattamente ciò che accade su una macchina senza libheif. */
+    foreach (Variants::names() as $variante) {
+        $nome = Variants::avif($variante);
+
+        if (! $media->hasGeneratedConversion($nome)) {
+            continue;
+        }
+
+        file_put_contents($media->getPath($nome), ImageFixtures::jpeg());
+
+        (new RejectFakeAvifConversion)->handle(
+            new ConversionHasBeenCompletedEvent($media, Conversion::create($nome))
+        );
+    }
+
+    $set = ImageSet::forCollection($event->refresh(), 'poster');
+
+    /* Il `<picture>` non deve offrire una fonte che non esiste più: il browser
+       ricade sul WebP, che è la cosa giusta da fare. */
+    expect($set->sources)->not->toHaveKey('image/avif')
+        ->and($set->sources)->toHaveKey('image/webp');
+});
