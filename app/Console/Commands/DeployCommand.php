@@ -206,7 +206,19 @@ class DeployCommand extends Command
          * qualche centinaio di chilobyte.
          */
         if (! $this->option('skip-assets')) {
-            $ramoAsset = config()->string('deploy.assets_branch');
+            /*
+             * Il valore predefinito sta QUI e non solo in `config/deploy.php`.
+             *
+             * `config()->string()` solleva se la chiave manca — e manca ogni
+             * volta che si aggiunge un file di configurazione a un'installazione
+             * che ha la configurazione in cache: la cache e' stata scritta
+             * quando quel file non esisteva, e il rilascio la rigenera solo
+             * DOPO aver usato questo valore. Il primo rilascio dopo
+             * l'aggiunta falliva percio' con un 500 muto, prima ancora che il
+             * controller potesse registrare il motivo.
+             */
+            $ramoAsset = config('deploy.assets_branch');
+            $ramoAsset = is_string($ramoAsset) && $ramoAsset !== '' ? $ramoAsset : 'assets';
             $archivio = storage_path('app/asset-rilascio.tar');
 
             $passi['scarica gli asset'] = ['git', 'fetch', '--depth', '1', 'origin', $ramoAsset];
