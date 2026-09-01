@@ -1,6 +1,7 @@
 <?php
 
 declare(strict_types=1);
+use Illuminate\Console\Scheduling\Schedule;
 
 /**
  * Il comando di rilascio, e soprattutto cosa rifiuta.
@@ -33,4 +34,29 @@ it('rifiuta un ramo con caratteri che la shell interpreta', function (): void {
             ->expectsOutputToContain('Nome di ramo non valido.')
             ->assertExitCode(1);
     }
+});
+
+/*
+ * `--if-behind`: il rilascio si controlla da se'.
+ *
+ * Serve perche' l'innesco dall'esterno non e' garantito — questo host non
+ * accetta connessioni dal runner ne' sulla 22 ne' sulla 443, e il firewall e'
+ * dell'hosting. Un rilascio che dipende da una porta in entrata su una
+ * macchina condivisa e' un rilascio che un giorno smette senza preavviso.
+ */
+it('non fa niente quando non c e niente di nuovo', function (): void {
+    /*
+     * Qui non c'è un `origin` da interrogare: il comando deve accorgersene e
+     * fermarsi senza toccare il progetto — non provare a rilasciare al buio.
+     */
+    $this->artisan('deploy:pull', ['--if-behind' => true])
+        ->assertExitCode(0);
+});
+
+it('e schedulato, cosi il rilascio avviene anche se nessuno lo chiede', function (): void {
+    $evento = collect(app(Schedule::class)->events())
+        ->first(fn ($e): bool => str_contains((string) $e->command, 'deploy:pull'));
+
+    expect($evento)->not->toBeNull('senza questo, un push non arriva in produzione se la chiamata non passa')
+        ->and($evento?->expression)->toBe('*/5 * * * *');
 });

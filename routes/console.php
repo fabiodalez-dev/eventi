@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Support\OncePerHour;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -27,7 +28,8 @@ Schedule::command('occurrences:generate')
  * `ShouldBeUnique` sul lavoro.
  */
 Schedule::command('import:run')
-    ->hourly()
+    ->everyFiveMinutes()
+    ->when(OncePerHour::for('import:run'))
     ->withoutOverlapping();
 
 /*
@@ -47,7 +49,8 @@ Schedule::command('notifications:send')
 // I riepiloghi si programmano in anticipo, non si scoprono al momento
 // dell'invio: la stessa esecuzione purga l'archivio oltre i dodici mesi (§15.9).
 Schedule::command('notifications:plan')
-    ->hourly()
+    ->everyFiveMinutes()
+    ->when(OncePerHour::for('notifications:plan'))
     ->withoutOverlapping();
 
 /*
@@ -169,3 +172,24 @@ Schedule::command('schedule-monitor:sync')
 Schedule::command('model:prune', [
     '--model' => MonitoredScheduledTaskLogItem::class,
 ])->daily();
+
+/*
+ * **Il rilascio si controlla da se'.**
+ *
+ * L'integrazione continua chiama anche `POST /rilascio`, che quando arriva da'
+ * l'aggiornamento immediato — ma non e' garantito che arrivi: questo host non
+ * accetta connessioni dal runner ne' sulla 22 ne' sulla 443, e il firewall e'
+ * dell'hosting, non nostro. Un rilascio che dipende da una porta in entrata su
+ * una macchina condivisa e' un rilascio che un giorno smette senza preavviso.
+ *
+ * Qui invece e' il server a chiedere, e non serve che nessuno lo raggiunga.
+ * `--if-behind` fa il lavoro solo quando c'e' davvero qualcosa di nuovo E gli
+ * asset di quel commit sono gia' stati pubblicati: negli altri casi costa un
+ * `git fetch` e finisce li.
+ *
+ * Cinque minuti sono il ritardo massimo fra un push e il sito aggiornato.
+ */
+Schedule::command('deploy:pull --if-behind')
+    ->everyFiveMinutes()
+    ->withoutOverlapping(30)
+    ->runInBackground();

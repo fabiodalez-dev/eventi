@@ -151,10 +151,28 @@ it('il lavoro rilancia il guasto perche la coda possa riprovare', function (): v
         ->and($source->fresh()?->last_status)->toBe(ImportRunStatus::Failed->value);
 });
 
-it('e schedulato ogni ora', function (): void {
+it('gira una volta l ora, ma si presenta piu spesso per non perdere il giro', function (): void {
     $events = collect(app(Schedule::class)->events())
         ->filter(fn ($event): bool => str_contains((string) $event->command, 'import:run'));
 
     expect($events)->toHaveCount(1)
-        ->and($events->first()?->expression)->toBe('0 * * * *');
+        /*
+         * Non piu' `0 * * * *`. Quell'espressione significa «al minuto zero», e
+         * basta che il cron slitti di un minuto perche' l'import salti l'ora
+         * intera: su questo server, in sei ore, sono andati persi i giri delle
+         * 12:00 e delle 16:00. Ora il comando si presenta ogni cinque minuti e
+         * `OncePerHour` lo lascia passare una volta sola per ora — stessa
+         * cadenza, un'ora di tolleranza sul minuto.
+         */
+        ->and($events->first()?->expression)->toBe('*/5 * * * *');
+});
+
+it('non gira due volte nella stessa ora', function (): void {
+    $evento = collect(app(Schedule::class)->events())
+        ->first(fn ($event): bool => str_contains((string) $event->command, 'import:run'));
+
+    /* La condizione e' cio' che trasforma «ogni cinque minuti» in «una volta
+       l'ora»: senza, l'import girerebbe dodici volte piu' del dovuto. */
+    expect($evento?->filtersPass(app()))->toBeTrue()
+        ->and($evento?->filtersPass(app()))->toBeFalse();
 });

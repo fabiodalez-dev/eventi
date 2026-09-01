@@ -35,7 +35,8 @@ class DeployCommand extends Command
     protected $signature = 'deploy:pull
         {--branch=main : Il ramo da rilasciare}
         {--skip-composer : Salta le dipendenze PHP, se si sa che il lock non è cambiato}
-        {--skip-assets : Salta il recupero di CSS e JavaScript compilati}';
+        {--skip-assets : Salta il recupero di CSS e JavaScript compilati}
+        {--if-behind : Rilascia solo se il ramo ha commit nuovi E gli asset sono pronti}';
 
     protected $description = 'Porta il server all\'ultimo commit del ramo e riallinea database, permessi e cache.';
 
@@ -93,6 +94,67 @@ class DeployCommand extends Command
                lettura, composer avrebbe comunque dove scrivere. */
             'COMPOSER_HOME' => $home === null ? null : $home.'/.composer',
         ]);
+    }
+
+    /**
+     * Se ci sia davvero qualcosa di nuovo da rilasciare.
+     *
+     * **Due condizioni, non una.** Che il ramo sia avanti, e che gli asset di
+     * QUEL commit siano già stati pubblicati: l'integrazione continua li
+     * compila dopo i test, e un rilascio che partisse in mezzo porterebbe il
+     * codice nuovo con i fogli di stile vecchi — il markup cambia, la pagina
+     * resta com'era, e sembra che il rilascio non sia arrivato.
+     *
+     * Il legame fra i due lo dà il messaggio del commit sul ramo degli asset,
+     * che porta lo SHA per cui sono stati compilati.
+     */
+    private function cEDaRilasciare(string $branch): bool
+    {
+        $ramoAsset = config('deploy.assets_branch');
+        $ramoAsset = is_string($ramoAsset) && $ramoAsset !== '' ? $ramoAsset : 'assets';
+
+        $fetch = new Process(['git', 'fetch', '--depth', '1', 'origin', $branch, $ramoAsset], base_path(), $this->ambiente(), timeout: 120);
+        $fetch->run();
+
+        if (! $fetch->isSuccessful()) {
+            $this->error('Non riesco a interrogare il repository:');
+            $this->line(trim($fetch->getErrorOutput()) ?: '  (nessun output)');
+
+            return false;
+        }
+
+        $qui = $this->gitOutput(['git', 'rev-parse', 'HEAD']);
+        $la = $this->gitOutput(['git', 'rev-parse', 'origin/'.$branch]);
+
+        if ($qui === $la) {
+            $this->line('Niente di nuovo: il server è già su '.mb_substr($qui ?? '', 0, 7).'.');
+
+            return false;
+        }
+
+        /* Gli asset per il commit che stiamo per rilasciare. */
+        $messaggio = $this->gitOutput(['git', 'log', '-1', '--format=%s', 'origin/'.$ramoAsset]);
+
+        if ($la !== null && ! str_contains((string) $messaggio, $la)) {
+            $this->line('Gli asset per '.mb_substr($la, 0, 7).' non sono ancora pronti: riprovo al prossimo giro.');
+
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * L'output di un comando git, o `null` se non è andato a buon fine.
+     *
+     * @param  list<string>  $comando
+     */
+    private function gitOutput(array $comando): ?string
+    {
+        $processo = new Process($comando, base_path(), $this->ambiente(), timeout: 60);
+        $processo->run();
+
+        return $processo->isSuccessful() ? trim($processo->getOutput()) : null;
     }
 
     /**
@@ -174,6 +236,10 @@ class DeployCommand extends Command
             $this->error('Nome di ramo non valido.');
 
             return self::FAILURE;
+        }
+
+        if ($this->option('if-behind') && ! $this->cEDaRilasciare($branch)) {
+            return self::SUCCESS;
         }
 
         $passi = [
