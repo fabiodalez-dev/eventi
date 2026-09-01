@@ -45,6 +45,10 @@ CLAUDE.md
 
 # Referti di Lighthouse: sono la misura di un momento, non parte del progetto
 /storage/lighthouse
+# Le locandine e le copertine caricate: sono contenuto di chi usa il sito, non
+# codice. In produzione stanno sul disco del server, in locale sono i file
+# seminati per le prove — in nessuno dei due casi appartengono al repository.
+/storage/media-library
 
 # Rapporti di Lighthouse: si rigenerano a ogni misura
 /.lighthouseci
