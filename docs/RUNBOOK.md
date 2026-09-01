@@ -407,6 +407,50 @@ Lo fa gia il deploy a ogni rilascio, e lo scheduler alle 03:05: questa riga
 serve per una modifica applicata a mano. Se il controllo di stato dice
 «fuori sorveglianza», e questo il comando da dare.
 
+## Sponsorizzazioni
+
+Le campagne si aprono da `/admin/sponsorships`, e le vede solo chi ha il
+permesso `sponsorships.manage`: amministratore e amministratore di sistema. Il
+moderatore no — decidere cosa compare a pagamento è una scelta commerciale, non
+editoriale — e nemmeno il referente del locale, che però le trova in sola
+lettura sui propri eventi in `/gestione/sponsorizzazioni`.
+
+**Per aprirne una** servono cinque cose: l'evento, la collocazione, la finestra,
+il nome del committente e lo stato `Attiva`. La città non si chiede: viene
+dall'evento. Il committente compare al pubblico accanto alla scritta
+«Sponsorizzato», quindi va scritto come deve leggersi.
+
+**Se una campagna non compare**, si controlla in quest'ordine:
+
+1. lo stato è `Attiva` (una bozza non compare mai, qualunque cosa dica la finestra);
+2. `adesso` sta dentro la finestra — le date sono in UTC nel database e nel fuso
+   della città nel modulo;
+3. **l'evento è ancora pubblicato**: è la condizione che si dimentica. Una
+   campagna viva su un evento annullato o ritirato non compare, di proposito;
+4. l'evento ha ancora almeno una data futura: una campagna su una serata già
+   passata non si disegna;
+5. per il foglio della mappa soltanto, la campagna dev'essere su un evento **di
+   quel locale**.
+
+**Se ce ne sono più d'una per la stessa collocazione**, ne compare comunque una
+sola: le altre entrano in rotazione, che avanza a ogni cambio di minuto. Chi ha
+la priorità più alta sta davanti. Il tetto è nel codice
+(`SponsorshipPlacement::limit()`), non in configurazione: alzarlo è una
+decisione di prodotto e si prende leggendo quel metodo, dove è spiegata.
+
+**Le misure sono una stima al ribasso.** Si contano dal browser — le pagine
+stanno in cache un minuto, e un contatore lato server direbbe una
+visualizzazione al minuto invece di una per visitatore — quindi chi blocca gli
+script non viene contato. Va detto nel contratto, non lasciato intendere. Una
+visualizzazione si conta quando la card è entrata davvero nello schermo, non
+quando è stata spedita.
+
+**Cosa non si può spegnere**, e non per scelta di stile: la fascia
+«Sponsorizzato» col nome del committente, il `rel="sponsored"` sul collegamento
+e il campo `sponsored` nell'API. La pubblicità dev'essere riconoscibile come
+tale (Codice del Consumo, art. 22-23) e un link pagato va marcato per i motori
+di ricerca. Se qualcuno chiede di toglierla, la risposta è no.
+
 ## Interruttori di funzione (Pennant)
 
 ```bash
