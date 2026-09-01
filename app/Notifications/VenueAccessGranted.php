@@ -7,6 +7,7 @@ namespace App\Notifications;
 use App\Enums\VenueRole;
 use App\Models\Venue;
 use Filament\Facades\Filament;
+use Illuminate\Auth\Passwords\PasswordBroker;
 use Illuminate\Contracts\Auth\CanResetPassword;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -55,12 +56,27 @@ class VenueAccessGranted extends Notification
                 'product' => $product,
             ]));
 
-        if ($this->needsPassword && $notifiable instanceof CanResetPassword) {
+        /*
+         * Il gettone per scegliere la password lo emette `createToken()`, che
+         * NON sta nel contratto `PasswordBroker` — quello dichiara soltanto
+         * `sendResetLink()` e `reset()` — ma sull'implementazione predefinita
+         * di Laravel. Chiamarlo sul contratto funziona a runtime e resta una
+         * presunzione taciuta: qui la si dichiara.
+         *
+         * Se un giorno il broker fosse sostituito con un'implementazione che
+         * quel metodo non ha, l'invito parte lo stesso e porta al pannello
+         * invece che al modulo della password — che è già il ramo previsto per
+         * chi un account ce l'ha. Meglio un invito che manda nel posto quasi
+         * giusto di un errore che non fa partire niente.
+         */
+        $broker = Password::broker();
+
+        if ($this->needsPassword && $notifiable instanceof CanResetPassword && $broker instanceof PasswordBroker) {
             return $message
                 ->line(__('manage.invitation.password_hint'))
                 ->action(
                     __('manage.invitation.password_action'),
-                    $panel->getResetPasswordUrl(Password::broker()->createToken($notifiable), $notifiable),
+                    $panel->getResetPasswordUrl($broker->createToken($notifiable), $notifiable),
                 )
                 ->line(__('manage.invitation.ignore'));
         }

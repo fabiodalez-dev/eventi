@@ -155,7 +155,18 @@ return [
          * Attenzione: senza la password l'archivio non si riapre. Va conservata
          * dove si conservano i segreti, non accanto ai backup.
          */
-        'password' => env('BACKUP_ARCHIVE_PASSWORD'),
+        /*
+         * `?: null` — cioe' «una riga lasciata vuota vale come assente».
+         *
+         * `env()` restituisce la stringa vuota per `BACKUP_ARCHIVE_PASSWORD=`,
+         * non `null`, e con una stringa vuota la libreria crede di dover
+         * cifrare: `ZipArchive::close()` fallisce con «Invalid argument» e il
+         * backup non viene creato. Il guasto e' silenzioso nel modo peggiore —
+         * si scopre il giorno in cui serve un backup e non ce n'e' nessuno —
+         * e si presenta proprio dove la riga esiste ma non e' stata
+         * valorizzata, che e' il caso normale di una prima installazione.
+         */
+        'password' => env('BACKUP_ARCHIVE_PASSWORD') ?: null,
 
         'encryption' => 'default',
 

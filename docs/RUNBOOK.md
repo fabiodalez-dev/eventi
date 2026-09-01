@@ -141,6 +141,44 @@ Due voci, aggiunte alle cinque preesistenti dell'account (che non sono state toc
 Il worker si spegne a coda vuota e viene rilanciato ogni minuto: è il sostituto di un
 demone supervisord, non disponibile sulla shared hosting.
 
+## Quando l'integrazione continua fallisce e in locale è tutto verde
+
+Tre differenze fra le due macchine, e ognuna ha già nascosto un difetto vero.
+
+**1. La CI parte da `.env.example`, lo sviluppo dal proprio `.env`.** Una
+variabile che in locale non esiste prende il valore predefinito del file di
+configurazione — quello giusto, di solito già del tipo giusto. In CI la stessa
+variabile esiste ed è una **stringa**, perché `env()` restituisce sempre
+stringhe: `TURNSTILE_TIMEOUT=5` diventa `"5"`, e `config()->integer()` la
+rifiuta sollevando. La regola: **ogni valore letto con un accessor tipizzato va
+convertito nel file di configurazione**, dove `env()` è l'unica cosa che si usa.
+E una riga lasciata vuota vale stringa vuota, non «assente»: `BACKUP_ARCHIVE_PASSWORD=`
+faceva cifrare l'archivio con password vuota, e i backup non venivano creati.
+
+Per riprodurre l'ambiente della CI in locale:
+
+```bash
+cp .env .env.mio && cp .env.example .env && php artisan key:generate
+./vendor/bin/pest --ci
+mv .env.mio .env && php artisan config:clear
+```
+
+**2. Il job di analisi statica non ha `.env` affatto.** Larastan avvia
+l'applicazione per risolvere i tipi, e senza configurazione risolve alcune cose
+in modo più conservativo — per esempio `Password::broker()` come contratto
+`PasswordBroker` invece che come implementazione concreta. Per riprodurre:
+
+```bash
+mv .env .env.mio
+./vendor/bin/phpstan clear-result-cache && ./vendor/bin/phpstan analyse --memory-limit=1G
+mv .env.mio .env
+```
+
+**3. PHPStan tiene una cache dei risultati.** Un file non toccato di recente non
+viene rianalizzato, e un errore introdotto da un aggiornamento di dipendenze
+resta invisibile finché non si tocca quel file. Prima di dare per buono un
+verde locale su un fallimento in CI: `./vendor/bin/phpstan clear-result-cache`.
+
 ## Dopo una modifica ai ruoli o ai permessi
 
 **In produzione ci pensa il rilascio**: dal 2026-09-01 la pipeline riesegue

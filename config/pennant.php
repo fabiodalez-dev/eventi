@@ -57,7 +57,12 @@ return [
          *
          *     php artisan feature:set newsletter --off
          */
-        'newsletter' => env('FEATURE_NEWSLETTER', true),
+        'newsletter' => /*
+         * `(bool)` per la stessa ragione del timeout di Turnstile: `env()`
+         * riconosce «true» e «false» come booleani ma lascia stringa qualunque
+         * altra forma — «1», «on», «yes» — e `config()->boolean()` le rifiuta.
+         */
+        (bool) env('FEATURE_NEWSLETTER', true),
 
     ],
 

@@ -52,7 +52,15 @@ return [
          * un modulo pubblico che resta fermo perché un terzo ci ripensa è un
          * disservizio nostro.
          */
-        'timeout' => env('TURNSTILE_TIMEOUT', 5),
+        'timeout' => /*
+         * `(int)` non e' zelo: `env()` restituisce sempre stringhe, e
+         * `config()->integer()` — che e' come questo valore viene letto —
+         * rifiuta una stringa e solleva. Il difetto non si vede finche'
+         * nessuno valorizza la variabile, perche' il valore predefinito qui e'
+         * gia' un intero: si e' presentato la prima volta in integrazione
+         * continua, che parte da `.env.example`, dove la riga c'e'.
+         */
+        (int) env('TURNSTILE_TIMEOUT', 5),
     ],
 
 ];

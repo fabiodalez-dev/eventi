@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Enums\UserRole;
+use App\Enums\VenueRole;
 use App\Filament\Venue\Pages\Collaborators;
 use App\Models\User;
 use App\Notifications\VenueAccessGranted;
@@ -91,4 +92,41 @@ it('chiude la pagina a un collaboratore', function (): void {
     $this->actingAs($this->scenario->editorA);
 
     expect(Collaborators::canAccess())->toBeFalse();
+});
+
+/*
+ * Il messaggio si COMPONE davvero, non si limita a partire.
+ *
+ * Gli altri test di questo file usano `Notification::fake()`, che registra
+ * l'invio senza costruire il testo: un errore dentro `toMail()` non li tocca.
+ * E' cosi' che e' passata inosservata una chiamata a `createToken()` sul
+ * contratto `PasswordBroker`, che quel metodo non dichiara — funzionava a
+ * runtime per via dell'implementazione concreta, e nessuna prova la
+ * attraversava.
+ */
+it('compone l\'invito con il collegamento per scegliere la password', function (): void {
+    $invitato = User::factory()->create(['email' => 'nuovo@collaboratore.test']);
+
+    $messaggio = (new VenueAccessGranted($this->venue, VenueRole::Editor, needsPassword: true))
+        ->toMail($invitato);
+
+    $reso = $messaggio->render()->toHtml();
+
+    expect($reso)
+        ->toContain(__('manage.invitation.password_action'))
+        /* Il gettone finisce nell'indirizzo: se `createToken()` non fosse
+           stato chiamato, il collegamento porterebbe a un modulo che rifiuta
+           chiunque. */
+        ->toMatch('/password-reset|reimposta|reset/i');
+});
+
+it('compone l\'invito senza collegamento per chi ha gia\' un account', function (): void {
+    $esistente = User::factory()->create();
+
+    $messaggio = (new VenueAccessGranted($this->venue, VenueRole::Editor, needsPassword: false))
+        ->toMail($esistente);
+
+    expect($messaggio->render()->toHtml())
+        ->toContain(__('manage.invitation.open_action'))
+        ->not->toContain(__('manage.invitation.password_action'));
 });

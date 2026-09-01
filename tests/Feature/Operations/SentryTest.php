@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Illuminate\Support\Env;
 use Sentry\Event;
 use Sentry\Laravel\Integration;
 use Sentry\State\HubInterface;
@@ -54,12 +55,30 @@ it('report() non solleva eccezioni con Sentry spento', function (): void {
  * dire «non collegato a niente» anche quando qualcuno lo configura.
  */
 it('legge il DSN dall\'ambiente', function (): void {
-    $_ENV['SENTRY_LARAVEL_DSN'] = 'https://chiave@sentry.example.test/1';
+    /*
+     * Si passa dal repository di `env()` e non da `$_ENV`.
+     *
+     * `env()` tiene i valori in un proprio archivio, riempito una volta sola
+     * all'avvio leggendo il file `.env`: scrivere in `$_ENV` dopo non lo
+     * cambia. Il test funzionava solo dove la variabile NON era dichiarata
+     * — il caso di uno sviluppo qualunque — e falliva dove lo era, per esempio
+     * in integrazione continua, che parte da `.env.example`. Un test che
+     * dipende dall'assenza di una riga in un file non versionato non verifica
+     * quello che dice di verificare.
+     */
+    $repository = Env::getRepository();
+    $precedente = $repository->get('SENTRY_LARAVEL_DSN');
+
+    $repository->set('SENTRY_LARAVEL_DSN', 'https://chiave@sentry.example.test/1');
 
     try {
         $config = require config_path('sentry.php');
     } finally {
-        unset($_ENV['SENTRY_LARAVEL_DSN']);
+        if ($precedente === null) {
+            $repository->clear('SENTRY_LARAVEL_DSN');
+        } else {
+            $repository->set('SENTRY_LARAVEL_DSN', $precedente);
+        }
     }
 
     expect($config['dsn'])->toBe('https://chiave@sentry.example.test/1');
