@@ -113,8 +113,10 @@ class DeployCommand extends Command
         if (function_exists('posix_getpwuid') && function_exists('posix_geteuid')) {
             $utente = posix_getpwuid(posix_geteuid());
 
-            if (is_array($utente) && isset($utente['dir']) && is_dir((string) $utente['dir'])) {
-                return (string) $utente['dir'];
+            /* `dir` c'è sempre quando la ricerca riesce: si verifica che la
+               cartella esista davvero, non che il campo sia presente. */
+            if (is_array($utente) && is_dir($utente['dir'])) {
+                return $utente['dir'];
             }
         }
 
