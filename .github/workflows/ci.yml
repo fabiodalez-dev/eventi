@@ -180,6 +180,19 @@ jobs:
       - name: Installa nginx
         run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends nginx
 
+      # **La stessa applicazione che riceve chi visita il sito.**
+      #
+      # In produzione il rilascio mette in cache configurazione, rotte e viste
+      # (`deploy:pull` lo fa a ogni giro). Senza, ogni richiesta rilegge tutti
+      # i file di config, ricostruisce la tabella delle rotte e ricompila i
+      # Blade: qui valeva 451ms di attesa prima del primo byte, cioe' il 22%
+      # del tempo di disegno misurato.
+      #
+      # Misurare senza equivale a bocciare il sito per la lentezza del banco di
+      # prova. Non e' addolcire la misura: e' misurare la cosa giusta.
+      - name: Prepara l'applicazione come in produzione
+        run: php artisan optimize
+
       # Si avvia `php -S` a mano invece di `php artisan serve`, e non per
       # gusto: `artisan serve` e' un padre che legge lo standard output del
       # figlio attraverso una pipe, e quando la shell di QUESTO passo termina
