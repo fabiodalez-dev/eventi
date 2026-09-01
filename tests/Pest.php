@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Enums\EventStatus;
+use App\Enums\InstallerStep;
 use App\Models\Category;
 use App\Models\City;
 use App\Models\Event;
@@ -12,9 +13,26 @@ use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Testing\TestResponse;
+use Laravel\Pennant\Feature;
 use Tests\TestCase;
 
 uses(TestCase::class, RefreshDatabase::class)->in('Feature');
+
+/*
+ * Pennant tiene in memoria il valore di un interruttore appena lo risolve, e
+ * quella cache vive quanto il processo — cioe' attraversa i test, mentre
+ * `RefreshDatabase` azzera la tabella `features` fra l'uno e l'altro.
+ *
+ * Il risultato e' un test che dipende da chi ha girato prima: se qualcuno ha
+ * gia' chiesto «la newsletter e' accesa?» il valore resta in memoria e il test
+ * successivo legge quello invece di ricalcolarlo sul database appena svuotato.
+ * Si manifesta come un fallimento ogni tante esecuzioni, che sparisce appena
+ * si prova il test da solo — la forma piu' fastidiosa di intermittenza, perche'
+ * il tentativo di riprodurla la fa svanire.
+ */
+uses()->beforeEach(function (): void {
+    Feature::flushCache();
+})->in('Feature');
 
 /**
  * La città pilota: fuso Europe/Rome, cutoff notturno alle 06:00, "inizia tra
@@ -200,4 +218,59 @@ function cookiesFrom(TestResponse $response): array
 function requestWithCookies(string $method, string $uri, array $cookies = []): TestResponse
 {
     return test()->call($method, $uri, [], $cookies);
+}
+
+/**
+ * Le credenziali del database su cui la suite sta già girando: sono quelle che
+ * i test dell'installer (D42) fanno digitare al passo 2, così la prova di
+ * connessione è una prova vera e non una finzione.
+ *
+ * @return array<string, string>
+ */
+function testDatabaseCredentials(): array
+{
+    return [
+        'db_host' => config()->string('database.connections.mariadb.host'),
+        'db_port' => (string) config('database.connections.mariadb.port'),
+        'db_database' => config()->string('database.connections.mariadb.database'),
+        'db_username' => config()->string('database.connections.mariadb.username'),
+        'db_password' => (string) config('database.connections.mariadb.password'),
+    ];
+}
+
+/**
+ * Compila i cinque moduli del wizard fino all'amministratore compreso, e
+ * lascia la sessione ferma davanti alla checklist di esecuzione.
+ */
+function completeThroughAdmin(): void
+{
+    test()->post('/installazione/requisiti')->assertRedirect(InstallerStep::Database->url());
+
+    test()->post('/installazione/database', testDatabaseCredentials())
+        ->assertRedirect(InstallerStep::Application->url());
+
+    test()->post('/installazione/applicazione', [
+        'app_name' => 'Prova inCittà',
+        'app_url' => 'https://eventi.example.test',
+        'mail_mailer' => 'log',
+    ])->assertRedirect(InstallerStep::City->url());
+
+    test()->post('/installazione/citta', [
+        'name' => 'Padova',
+        'slug' => '',
+        'province_code' => 'pd',
+        'province_name' => 'Padova',
+        'region' => 'Veneto',
+        'timezone' => 'Europe/Rome',
+        'center_lat' => '45.4064',
+        'center_lng' => '11.8768',
+        'radius_km' => '30',
+    ])->assertRedirect(InstallerStep::Admin->url());
+
+    test()->post('/installazione/amministratore', [
+        'name' => 'Chi installa',
+        'email' => 'admin@example.test',
+        'password' => 'password-lunga-1',
+        'password_confirmation' => 'password-lunga-1',
+    ])->assertRedirect(InstallerStep::Run->url());
 }
