@@ -143,21 +143,33 @@ demone supervisord, non disponibile sulla shared hosting.
 
 ## Dopo una modifica ai ruoli o ai permessi
 
+**In produzione ci pensa il rilascio**: dal 2026-09-01 la pipeline riesegue
+`RolesAndPermissionsSeeder` subito dopo le migrazioni. Non c'è più niente da
+fare a mano, ed è per questo che il passo esiste — il guasto che evitava si è
+presentato due volte.
+
 `RolesAndPermissionsSeeder` **non gira con le migrazioni**. Aggiungere un
-permesso al seeder non lo assegna a nessuno finché il seeder non viene
-rieseguito, e il sintomo è un 403 su una pagina nuova per un utente che
-dovrebbe vederla — mentre in locale i test passano, perché ogni test semina i
+permesso all'enum non lo crea nel database finché il seeder non viene
+rieseguito, e finché non esiste, la sezione che protegge risponde 403 **anche
+all'amministratore**. Il sintomo somiglia a un errore di autorizzazione ed è
+invece un dato mancante; in locale i test passano, perché ogni test semina i
 ruoli da capo.
 
-```bash
-# sviluppo
-php artisan db:seed --class=RolesAndPermissionsSeeder --force
+In sviluppo, dopo aver aggiunto un permesso:
 
-# produzione
+```bash
+php artisan db:seed --class=RolesAndPermissionsSeeder --force
+```
+
+E se serve rifarlo a mano in produzione, fuori da un rilascio:
+
+```bash
 ssh fabiodalez.it 'cd ~/eventi && /opt/cpanel/ea-php84/root/usr/bin/php artisan db:seed --class=RolesAndPermissionsSeeder --force'
 ```
 
-Il seeder è idempotente: rieseguirlo non duplica ruoli né permessi.
+Il seeder è idempotente: crea i mancanti con `firstOrCreate` e riporta ogni
+ruolo esattamente ai permessi dichiarati in codice. Non esiste un'interfaccia
+per personalizzarli, quindi non c'è niente da sovrascrivere.
 
 ## Import dei calendari (§14.2)
 

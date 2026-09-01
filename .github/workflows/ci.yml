@@ -323,6 +323,19 @@ jobs:
              cd ~/eventi
              PHP=/opt/cpanel/ea-php84/root/usr/bin/php
              $PHP artisan migrate --force
+             # I ruoli e i permessi si riallineano a ogni rilascio.
+             #
+             # Non e' zelo: un permesso nuovo nell'enum non esiste nel database
+             # finche' qualcuno non lo semina, e finche' non esiste la sezione
+             # che protegge risponde 403 anche all'amministratore. E' gia'
+             # successo, ed e' il tipo di guasto che sembra un bug di
+             # autorizzazione mentre e' un dato mancante.
+             #
+             # Rieseguirlo e' sicuro: crea i mancanti con `firstOrCreate` e
+             # riporta ogni ruolo esattamente ai permessi dichiarati in codice.
+             # Non esiste un'interfaccia per personalizzarli, quindi non c'e'
+             # niente da sovrascrivere.
+             $PHP artisan db:seed --class=RolesAndPermissionsSeeder --force
              # Tre cose non si sincronizzano mai, perche il loro contenuto
              # corretto dipende da DOVE si trovano, e vanno rigenerate qui:
              #
