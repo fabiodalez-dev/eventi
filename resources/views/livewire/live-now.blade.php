@@ -23,7 +23,7 @@
 --}}
 <div>
     @if ($ongoing->isNotEmpty())
-        <section class="border-b-2 border-line" aria-labelledby="sezione-ongoing">
+        <section class="border-b-2 border-line defer-offscreen" aria-labelledby="sezione-ongoing">
             <div class="flex flex-col gap-2 px-gutter pt-[clamp(1.5rem,2.8vw,2.75rem)] pb-[clamp(1.125rem,2vw,1.625rem)]">
                 <span class="flex items-center gap-2 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.18em] text-accent uppercase">
                     <span aria-hidden="true" class="size-[7px] shrink-0 rounded-full bg-accent blink-dot"></span>
@@ -40,7 +40,7 @@
     @endif
 
     @if ($startingSoon->isNotEmpty())
-        <section class="border-b-2 border-line" aria-labelledby="sezione-starting-soon">
+        <section class="border-b-2 border-line defer-offscreen" aria-labelledby="sezione-starting-soon">
             <div class="flex flex-col gap-2 px-gutter pt-[clamp(1.5rem,2.8vw,2.75rem)] pb-[clamp(1.125rem,2vw,1.625rem)]">
                 <span class="flex items-center gap-2 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.18em] text-ink-muted uppercase">
                     <span aria-hidden="true" class="size-[7px] shrink-0 bg-ink"></span>

@@ -278,7 +278,7 @@
     @foreach ($griglie as $sezione)
         @php $numero++; @endphp
 
-        <section class="border-b-2 border-line" aria-labelledby="sezione-{{ $sezione['key'] }}">
+        <section class="border-b-2 border-line defer-offscreen" aria-labelledby="sezione-{{ $sezione['key'] }}">
             <div class="flex flex-wrap items-end justify-between gap-5 px-gutter pt-[clamp(1.5rem,2.8vw,2.75rem)] pb-[clamp(1.125rem,2vw,1.625rem)]">
                 <div class="flex flex-col gap-2">
                     <span class="font-display text-[0.625rem] leading-none font-extrabold tracking-[0.18em] text-accent uppercase">
@@ -309,7 +309,7 @@
     @if ($categories !== [])
         @php $numero++; @endphp
 
-        <section class="border-b-2 border-line" aria-labelledby="sezione-categorie">
+        <section class="border-b-2 border-line defer-offscreen" aria-labelledby="sezione-categorie">
             <div class="flex flex-col gap-2 px-gutter pt-[clamp(1.5rem,2.8vw,2.75rem)] pb-[clamp(1.125rem,2vw,1.625rem)]">
                 <span class="font-display text-[0.625rem] leading-none font-extrabold tracking-[0.18em] text-accent uppercase">
                     {{ str_pad((string) $numero, 2, '0', STR_PAD_LEFT) }} {{ __('common.dash') }} {{ __('events.sections.by_category_eyebrow') }}
@@ -332,7 +332,7 @@
     @if ($nearby->isNotEmpty() && \Illuminate\Support\Facades\Route::has('map.index'))
         @php $numero++; @endphp
 
-        <section class="border-b-2 border-line" aria-labelledby="sezione-vicino">
+        <section class="border-b-2 border-line defer-offscreen" aria-labelledby="sezione-vicino">
             <div class="flex flex-wrap items-end justify-between gap-4 px-gutter pt-[clamp(1.5rem,2.8vw,2.75rem)] pb-[clamp(1.125rem,2vw,1.625rem)]">
                 <div class="flex flex-col gap-2">
                     <span class="font-display text-[0.625rem] leading-none font-extrabold tracking-[0.18em] text-accent uppercase">

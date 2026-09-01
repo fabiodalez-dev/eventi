@@ -414,6 +414,31 @@
 
 /* Comparsa legata allo scorrimento: si applica alle sezioni che entrano da
    sotto e ai titoli che entrano da sinistra. */
+/*
+ * Le sezioni fuori schermo non si disegnano finche' non servono.
+ *
+ * La home e' alta oltre quattromila pixel e porta decine di card: senza
+ * questo il browser calcola stile e posizione per TUTTE, comprese quelle a
+ * quattro schermate di distanza. Nel referto era il costo dominante — il 78%
+ * del tempo di disegno era attesa del thread principale, con la rete gia'
+ * ferma da un pezzo.
+ *
+ * `contain-intrinsic-size` e' la parte che si dimentica ed e' quella che
+ * evita il danno: senza un'altezza dichiarata la sezione ne varrebbe zero
+ * finche' non si disegna, la pagina si accorcerebbe di colpo e la barra di
+ * scorrimento salterebbe sotto le dita. Con `auto` il browser tiene a mente
+ * l'altezza vera dopo averla misurata una volta, e la stima serve solo al
+ * primo giro.
+ *
+ * Non va sulle sezioni sopra la piega: li' non c'e' niente da rimandare, e
+ * dichiarare un'altezza finta a qualcosa che si vede subito puo' solo
+ * spostare le cose.
+ */
+@utility defer-offscreen {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 640px;
+}
+
 @utility reveal-up {
     animation: revealUp 1ms linear both;
     animation-timeline: view();
