@@ -150,6 +150,52 @@ class SponsorshipResource extends Resource
                         ->minValue(0)
                         ->maxValue(1000)
                         ->helperText(__('sponsorships.admin.help.priority')),
+
+                    /*
+                     * Priorità e peso vendono due cose diverse, e la
+                     * differenza va spiegata qui perché è dove si sbaglia: la
+                     * priorità è una posizione — «sei sempre in cima» — e il
+                     * peso è una quota — «compari tre volte su quattro».
+                     *
+                     * Con la sola priorità, in una collocazione da uno solo,
+                     * chi ha comprato meno non compare MAI: c'è un posto e lo
+                     * prende sempre lo stesso. Il peso è ciò che permette di
+                     * vendere lo stesso spazio a più clienti.
+                     */
+                    TextInput::make('weight')
+                        ->label(__('sponsorships.admin.fields.weight'))
+                        ->numeric()
+                        ->default(1)
+                        ->minValue(1)
+                        ->maxValue(100)
+                        ->helperText(__('sponsorships.admin.help.weight')),
+                ]),
+
+            Section::make(__('sponsorships.admin.sections.caps'))
+                ->description(__('sponsorships.admin.sections.caps_lead'))
+                ->columns(2)
+                ->schema([
+                    /*
+                     * Vuoti significa «nessun tetto», che è come si è sempre
+                     * venduto qui: a tempo. Il tetto serve a chi compra un
+                     * numero di visualizzazioni invece di un periodo, ed è il
+                     * modo in cui si vende pubblicità quasi ovunque.
+                     *
+                     * Raggiunto il tetto la campagna smette di comparire ma
+                     * NON cambia stato: è finita per esaurimento, non sospesa
+                     * da qualcuno, e la differenza si deve poter leggere.
+                     */
+                    TextInput::make('impressions_cap')
+                        ->label(__('sponsorships.admin.fields.impressions_cap'))
+                        ->numeric()
+                        ->minValue(1)
+                        ->helperText(__('sponsorships.admin.help.impressions_cap')),
+
+                    TextInput::make('clicks_cap')
+                        ->label(__('sponsorships.admin.fields.clicks_cap'))
+                        ->numeric()
+                        ->minValue(1)
+                        ->helperText(__('sponsorships.admin.help.clicks_cap')),
                 ]),
 
             Section::make(__('sponsorships.admin.sections.who'))

@@ -47,6 +47,9 @@ class Sponsorship extends Model
         'starts_at',
         'ends_at',
         'priority',
+        'weight',
+        'impressions_cap',
+        'clicks_cap',
         'advertiser_name',
         'advertiser_email',
         'advertiser_url',
@@ -95,6 +98,27 @@ class Sponsorship extends Model
             ->whereHas('event', function (Builder $event): void {
                 $event->where('status', EventStatus::Published)
                     ->whereNull('deleted_at');
+            })
+            /*
+             * E i tetti di consegna, se dichiarati.
+             *
+             * **Il confronto sta qui e non in PHP** perche' una campagna
+             * esaurita non deve nemmeno essere caricata: filtrarla dopo
+             * significherebbe portarsi dietro le sue relazioni per poi
+             * scartarla, e nel caso peggiore — tutte esaurite tranne l'ultima
+             * — leggerle tutte per usarne una.
+             *
+             * `whereColumn` e non un valore: il tetto e' una colonna, e
+             * confrontarne due nel database evita di leggere il contatore per
+             * poi rileggerlo alla richiesta successiva.
+             */
+            ->where(function (Builder $tetti): void {
+                $tetti->whereNull('impressions_cap')
+                    ->orWhereColumn('impressions', '<', 'impressions_cap');
+            })
+            ->where(function (Builder $tetti): void {
+                $tetti->whereNull('clicks_cap')
+                    ->orWhereColumn('clicks', '<', 'clicks_cap');
             });
     }
 
@@ -200,6 +224,9 @@ class Sponsorship extends Model
             'starts_at' => 'immutable_datetime',
             'ends_at' => 'immutable_datetime',
             'priority' => 'integer',
+            'weight' => 'integer',
+            'impressions_cap' => 'integer',
+            'clicks_cap' => 'integer',
             'amount_cents' => 'integer',
             'impressions' => 'integer',
             'clicks' => 'integer',

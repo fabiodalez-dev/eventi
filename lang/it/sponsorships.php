@@ -72,6 +72,8 @@ return [
             'who' => 'Chi la paga',
             'money' => 'Amministrazione',
             'metrics' => 'Misure',
+            'caps' => 'Tetti di consegna',
+            'caps_lead' => 'Per vendere a numero di visualizzazioni invece che a tempo. Vuoti, la campagna dura fino alla data di fine.',
         ],
 
         'fields' => [
@@ -94,6 +96,9 @@ return [
             'created_by' => 'Creata da',
             'running' => 'In corso',
             'phase' => 'A che punto è',
+            'weight' => 'Peso in rotazione',
+            'impressions_cap' => 'Tetto visualizzazioni',
+            'clicks_cap' => 'Tetto aperture',
         ],
 
         'help' => [
@@ -103,6 +108,9 @@ return [
             'window' => 'Fuori da questa finestra la campagna non compare, qualunque sia lo stato.',
             'metrics' => 'Misurate dal browser: chi blocca gli script non viene contato, quindi sono una stima al ribasso.',
             'event_not_published' => 'Questo evento non è pubblicato: la campagna non comparirà finché non lo sarà.',
+            'weight' => 'Quante volte compare rispetto alle altre di pari priorità: peso 3 contro peso 1 significa tre volte su quattro. Serve a vendere lo stesso spazio a più clienti senza che nessuno resti a zero.',
+            'impressions_cap' => 'Lasciare vuoto per nessun tetto. Raggiunto il numero, la campagna smette di comparire ma non cambia stato: è finita per esaurimento, non sospesa.',
+            'clicks_cap' => 'Come sopra, ma sulle aperture.',
         ],
 
         'filters' => [

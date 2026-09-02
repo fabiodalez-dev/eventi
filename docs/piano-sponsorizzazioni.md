@@ -190,6 +190,70 @@ Un tetto a visualizzazioni ha senso quando il traffico è tanto e prevedibile:
 
 ---
 
+## Stato al 2 settembre 2026, sera
+
+Il piano è stato eseguito, con **due correzioni al piano stesso** emerse
+scrivendo il codice.
+
+| | cosa | stato |
+|---|---|---|
+| 1 | Serie storica giornaliera | **fatto** — `sponsorship_daily_stats`, una riga per campagna e giorno in `upsert` |
+| 2 | Campagne finite che sembrano attive | **fatto diversamente** — vedi sotto |
+| 3 | Riepilogo settimanale a chi paga | **fatto** — `sponsorships:report`, lunedì mattina |
+| 4 | Widget di controllo | **fatto** — quattro numeri e un grafico a due linee, in cima all'elenco |
+| 5 | Rotazione | **fatto, e prima del previsto** — vedi sotto |
+| 6 | Tetto a visualizzazioni | **fatto** — `impressions_cap` e `clicks_cap` |
+
+### Correzione 1: niente stato `Completed`
+
+Il piano proponeva uno stato terminale scritto da un comando notturno. Il
+commento in testa a `SponsorshipStatus` conteneva già l'obiezione, ed era
+fondata:
+
+> «Uno stato che deve essere aggiornato da un processo notturno per restare
+> vero è uno stato che prima o poi mente: basta che il processo non giri.»
+
+Il problema era reale — nell'elenco una campagna finita da tre settimane si
+leggeva «attiva» — ma la soluzione era un'altra: una **fase derivata** da stato
+più finestra (`SponsorshipPhase`), che dice il vero anche se il cron è fermo da
+una settimana. Nessun comando da far girare, nessuno stato che può mentire.
+
+### Correzione 2: la rotazione era più urgente di quanto scritto
+
+Il piano metteva la rotazione al quinto posto, «solo quando ci sono almeno due
+campagne per collocazione». Guardando il codice è emerso un difetto più grave
+di quello che avevo descritto: la rotazione era **circolare a parità di
+priorità**, e la priorità un ordine rigido. Nella collocazione in apertura, che
+ammette una sola campagna, questo significa che la priorità più alta prende il
+**cento per cento** delle apparizioni e le altre **non compaiono mai** — anche
+se hanno pagato.
+
+Con quel comportamento si può vendere solo «il primo posto», e una volta
+venduto non c'è più niente da vendere: non è un limite di comodità, è un limite
+di quanti clienti si possono avere.
+
+Ora c'è `weight`: peso 3 contro peso 1 non significa «sta davanti», significa
+«compare tre volte su quattro». Misurato su 400 minuti: 300 e 100 esatte. La
+priorità resta il criterio più forte, perché è un impegno contrattuale — il
+peso distribuisce dentro quel gruppo, non lo scavalca.
+
+La rotazione resta **deterministica dentro il minuto**: una funzione casuale
+darebbe la stessa proporzione e romperebbe la cache di pagina, perché la pagina
+salvata conterrebbe una scelta a caso valida per tutto il minuto.
+
+### Quello che è emerso strada facendo
+
+- **Tutte le email del sito finivano in inglese.** «Regards,» e «If you're
+  having trouble clicking the button» arrivano dal framework e nessuno le aveva
+  tradotte: valeva per reset password, accesso e promemoria, non solo per il
+  riepilogo nuovo. Corretto con `lang/it.json`.
+- `spatie/laravel-stats` scartato: scrive una riga per ogni incremento, e
+  quella tabella crescerebbe senza limite per contenere un dato che serve
+  aggregato per giorno. Preso `flowframe/laravel-trend`, che non memorizza
+  niente e aggrega una tabella che già esiste.
+
+---
+
 ## L'ordine che consiglio
 
 | | cosa | perché prima | costo |

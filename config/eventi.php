@@ -74,4 +74,41 @@ return [
      */
     'archive_after_days' => (int) env('EVENTS_ARCHIVE_AFTER_DAYS', 90),
 
+    /*
+     * La finestra dei salvataggi da cui si ricavano le categorie preferite di
+     * un utente autenticato, per l'affinità delle campagne sponsorizzate.
+     *
+     * Novanta giorni sono una stagione: il cartellone locale gira su quel
+     * ritmo, e chi d'estate salvava sagre può ben salvare mostre d'inverno.
+     * Più corta lascerebbe senza segnale chi salva un evento al mese; più
+     * lunga trascinerebbe gusti che l'utente stesso ha smesso di esprimere.
+     */
+    'sponsorship_affinity_window_days' => 90,
+
+    /*
+     * Quanto resta in cache, per utente, l'elenco delle categorie preferite.
+     * Dieci minuti: la wishlist cambia qualche volta a settimana, non a ogni
+     * richiesta — ma un salvataggio appena fatto deve farsi sentire entro la
+     * stessa visita, non domani.
+     */
+    'sponsorship_affinity_ttl_minutes' => 10,
+
+    /*
+     * Quanto pesa di piu' una campagna sulla categoria che l'utente ha
+     * mostrato di preferire.
+     *
+     * **Perche' un moltiplicatore e non «le affini per prime».** Mettere le
+     * affini davanti a tutte sembra ovvio ed e' sbagliato: con una sola
+     * campagna affine quell'utente la vedrebbe il cento per cento delle volte
+     * e le altre mai — cioe' il problema che il peso era nato per risolvere,
+     * reintrodotto per utente. Con peso 3 contro peso 1 e un utente affine
+     * alla seconda: a gruppi separati 0% e 100%, con ×2 il 60% e il 40%.
+     *
+     * L'affinita' deve inclinare la bilancia, non ribaltarla: chi paga ha
+     * comprato una quota e deve ritrovarla anche fra gli utenti a cui la sua
+     * categoria interessa meno. Alzare questo numero la inclina di piu' — e da
+     * un certo punto in poi torna a ribaltarla.
+     */
+    'sponsorship_affinity_multiplier' => 2,
+
 ];
