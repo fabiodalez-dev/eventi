@@ -60,3 +60,31 @@ it('e schedulato, cosi il rilascio avviene anche se nessuno lo chiede', function
     expect($evento)->not->toBeNull('senza questo, un push non arriva in produzione se la chiamata non passa')
         ->and($evento?->expression)->toBe('*/5 * * * *');
 });
+
+it('rigenera le cache in processi PHP nuovi, non dentro il proprio', function (): void {
+    /*
+     * Il difetto che questo test previene, visto in produzione il 2026-09-02:
+     * `migrate`, `route:cache` e compagni giravano con `Artisan::call`, cioe'
+     * dentro il processo avviato PRIMA del `git reset`. L'autoloader di
+     * Composer in memoria era quello di prima, quindi le classi arrivate con
+     * quel rilascio non esistevano per lui: la scoperta delle pagine di
+     * Filament non le trovava e `route:cache` congelava una mappa senza di
+     * esse.
+     *
+     * La pagina di configurazione della posta rispondeva 404 mentre il suo
+     * file era li' sul disco, e sarebbe comparsa solo al rilascio successivo.
+     *
+     * Sette avvii di Laravel sono un paio di secondi; un rilascio che non
+     * applica cio' che porta e' un rilascio da rifare a mano.
+     */
+    $codice = (string) file_get_contents(app_path('Console/Commands/DeployCommand.php'));
+
+    foreach (['migrate', 'route:cache', 'config:cache', 'view:cache', 'filament:assets'] as $comando) {
+        expect($codice)->not->toContain("Artisan::call('".$comando."'");
+    }
+
+    /* E devono comunque esserci: un rilascio che non le rigenera serve a poco. */
+    expect($codice)->toContain("'route:cache' => []")
+        ->and($codice)->toContain("'config:cache' => []")
+        ->and($codice)->toContain("'migrate' => ['--force']");
+});

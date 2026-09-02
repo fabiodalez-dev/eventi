@@ -325,24 +325,51 @@ class DeployCommand extends Command
         }
 
         /*
-         * Da qui in poi si resta dentro Laravel: `Artisan::call` non apre un
-         * processo nuovo e quindi non ripaga l'avvio del framework a ogni
-         * comando. L'ordine conta — vedi la nota in testa alla classe.
+         * **Ognuno in un processo PHP nuovo, e non e' uno spreco.**
+         *
+         * Prima erano `Artisan::call`, per non ripagare l'avvio del framework
+         * sette volte. Il risparmio costava caro: questi comandi giravano
+         * dentro il processo avviato PRIMA del `git reset`, con l'autoloader
+         * di Composer gia' caricato in memoria — quello di prima. Le classi
+         * arrivate con questo stesso rilascio non esistevano per lui, quindi
+         * la scoperta delle pagine di Filament non le trovava e `route:cache`
+         * congelava una mappa senza di esse.
+         *
+         * Il risultato era che **ogni classe nuova non veniva applicata dal
+         * rilascio che la portava**: compariva al giro successivo, o dopo un
+         * intervento a mano. Visto succedere con la pagina di configurazione
+         * della posta, che rispondeva 404 mentre il suo file era li' sul
+         * disco.
+         *
+         * Sette avvii di Laravel sono un paio di secondi. Un rilascio che non
+         * applica cio' che porta e' un rilascio che va rifatto a mano.
+         *
+         * L'ordine conta — vedi la nota in testa alla classe.
          */
-        foreach ([
-            'migrate' => ['--force' => true],
-            'db:seed' => ['--class' => 'RolesAndPermissionsSeeder', '--force' => true],
+        $artisan = [
+            'migrate' => ['--force'],
+            'db:seed' => ['--class=RolesAndPermissionsSeeder', '--force'],
             'filament:assets' => [],
             'config:cache' => [],
             'route:cache' => [],
             'view:cache' => [],
             'queue:restart' => [],
-        ] as $comando => $argomenti) {
+        ];
+
+        foreach ($artisan as $comando => $argomenti) {
             $this->line("→ {$comando}");
 
-            if (Artisan::call($comando, $argomenti) !== self::SUCCESS) {
+            $processo = new Process(
+                [$this->php(), 'artisan', $comando, ...$argomenti],
+                base_path(),
+                $this->ambiente(),
+                timeout: 600,
+            );
+            $processo->run();
+
+            if (! $processo->isSuccessful()) {
                 $this->error("«{$comando}» è fallito:");
-                $this->line(trim(Artisan::output()));
+                $this->line(trim($processo->getErrorOutput() ?: $processo->getOutput()) ?: '  (nessun output)');
 
                 return self::FAILURE;
             }
