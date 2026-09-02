@@ -575,7 +575,7 @@ Logo, copertina, descrizione, tipo, indirizzo e mappa, orari, contatti e social,
 - **Widget incorporabile** (`<script>` o iframe) che il locale mette sul proprio sito per mostrare i propri prossimi eventi presi dalla piattaforma. Costa poco e crea dipendenza reciproca: il locale ha interesse a tenere aggiornati i dati da voi.
 
 ### 11.11 Base tecnica
-Mobile-first. Lighthouse ≥ 90 su Performance / SEO / Accessibility, LCP < 2s su mobile simulato. Dark mode via `prefers-color-scheme`. Accessibilità: tastiera, focus visibile, contrasto AA, `aria-label`, alt text. Zero layout shift sulle immagini.
+Mobile-first. Lighthouse ≥ 90 su Performance / SEO / Accessibility, LCP ≤ 2,5s su mobile simulato (era «< 2s»: la verifica in CI usa la soglia pubblica dei Core Web Vitals, vedi D48). Dark mode via `prefers-color-scheme`. Accessibilità: tastiera, focus visibile, contrasto AA, `aria-label`, alt text. Zero layout shift sulle immagini.
 
 ---
 

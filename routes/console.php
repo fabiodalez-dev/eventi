@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Support\Backup\SpazioSufficiente;
 use App\Support\OncePerHour;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -89,6 +90,20 @@ Schedule::command('events:archive')
  */
 Schedule::command('backup:run')
     ->dailyAt('03:40')
+    /*
+     * **Il backup non parte se non c'e' spazio per finirlo.**
+     *
+     * Il 2 settembre 2026 e' partito, ha esaurito la quota dell'account
+     * mentre scriveva ed e' morto a meta'. Da quel momento nessun processo e'
+     * riuscito a scrivere un byte: la home ha risposto 500 mentre le altre
+     * pagine, che avevano gia' la propria cache, continuavano a funzionare —
+     * e i 128 MB di resti sono rimasti li' a tenere tutto a terra fino
+     * all'intervento a mano.
+     *
+     * Che un backup fallisca e' previsto e `backup:monitor` se ne accorge.
+     * Che si porti dietro l'applicazione no.
+     */
+    ->when(SpazioSufficiente::perIlBackup())
     ->withoutOverlapping(120)
     ->graceTimeInMinutes(120);
 

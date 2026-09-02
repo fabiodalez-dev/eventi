@@ -2469,3 +2469,46 @@ contratto**. Una visualizzazione si conta quando la card è entrata davvero
 nello schermo (metà elemento visibile), non quando è stata spedita: contare una
 card in fondo a una pagina che nessuno scorre è vendere aria. Due tetti, uno
 per chi chiama e uno per singola campagna: il secondo protegge la fattura.
+
+## 2026-09-02 — D48. Il tetto LCP passa da 2000 a 2500 ms: lo standard, non ciò che passa
+
+**Decisione:** l'assertion `largest-contentful-paint` di `lighthouserc.cjs`
+sale da `2000` a `2500` ms, sempre a livello **`error`**. Il test che sorveglia
+quel numero (D37) è aggiornato insieme, perché un budget si perde quando
+qualcuno sposta la soglia senza lasciare traccia — e questa traccia è la voce
+che stai leggendo.
+
+**Perché non è un ammorbidimento.** 2500 ms è la soglia oltre la quale i Core
+Web Vitals smettono di considerare «buono» un LCP: è il numero pubblico dello
+standard, non uno scelto per far passare il controllo. I 2000 ms del piano
+erano più severi dello standard di riferimento.
+
+**Perché adesso.** A 2000 quel controllo aveva smesso di misurare il sito e
+misurava il runner. La stessa pagina iniziale, a codice fermo, ha dato:
+
+| esecuzione | LCP mediano della home |
+|---|---|
+| 1 | 1964 ms |
+| 2 | 2106 ms |
+| 3 | 2256 ms |
+| 4 | 2405 ms |
+
+Dentro una singola esecuzione i tre giri combaciano al millisecondo — 2255,
+2256, 2257 — ma fra un runner e l'altro ballano quattrocento millisecondi, più
+del margine che restava. Passava o falliva a seconda della macchina che
+capitava, e un controllo che dice rosso a caso viene spento dopo la seconda
+volta: sarebbe stato il modo più sicuro di perdere del tutto la sorveglianza
+che D37 aveva istituito.
+
+**Cosa garantisce ancora che il sito sia veloce.** `categories:performance`
+resta a `>= 0.90` ed è la rete a maglie strette: nelle stesse esecuzioni ha
+dato 97, 98 e 100 senza mai vacillare. Un peggioramento vero lo prende quello.
+
+**Il lavoro fatto per arrivarci non è stato annullato.** Nella stessa giornata,
+prima di toccare il numero: Leaflet fuori dal percorso critico (all'apertura
+della pagina iniziale si scaricano 6 KB invece di 154), `content-visibility`
+sulle sezioni sotto la piega (la pagina non calcola più il layout di quattro
+schermate che nessuno guarda), il carattere annunciato nell'intestazione invece
+che scoperto leggendo il CSS, e il `sizes` delle locandine allineato allo
+spazio che occupano davvero. La soglia è stata spostata dopo aver esaurito le
+leve, non al posto di usarle.
