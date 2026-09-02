@@ -13,12 +13,19 @@
 
     Il messaggio di errore sta accanto al riquadro perché è la validazione del
     server a scriverlo: il gettone si verifica lì, non nel browser.
+
+    **`data-action` dice a quale modulo appartiene il gettone**, e il server lo
+    ricontrolla. Senza, un gettone risolto sul modulo meno sorvegliato varrebbe
+    per tutti gli altri: se ne risolve uno dove costa meno e lo si spende dove
+    serve.
 --}}
+@props(['action' => null])
 @if (\App\Support\Turnstile::enabled())
     <div class="flex flex-col gap-1.5">
         <div
             class="cf-turnstile"
             data-sitekey="{{ \App\Support\Turnstile::siteKey() }}"
+            @if ($action) data-action="{{ $action }}" @endif
             data-language="{{ str_replace('_', '-', app()->getLocale()) }}"
             data-theme="auto"
         ></div>

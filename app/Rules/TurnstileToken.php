@@ -37,6 +37,11 @@ final class TurnstileToken implements ValidationRule
     private const VERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
 
     /**
+     * @param  string|null  $azione  il `data-action` che il widget deve aver dichiarato
+     */
+    public function __construct(private readonly ?string $azione = null) {}
+
+    /**
      * @param  Closure(string, string|null=): PotentiallyTranslatedString  $fail
      */
     public function validate(string $attribute, mixed $value, Closure $fail): void
@@ -71,10 +76,61 @@ final class TurnstileToken implements ValidationRule
             return;
         }
 
-        if ($response->json('success') === true) {
+        if ($response->json('success') !== true) {
+            $fail(__('validation.custom.turnstile.failed'));
+
             return;
         }
 
-        $fail(__('validation.custom.turnstile.failed'));
+        /*
+         * **Non basta che il gettone sia valido: deve essere stato risolto da
+         * casa nostra.**
+         *
+         * La site key e' pubblica per costruzione — sta nell'HTML di ogni
+         * pagina. Chiunque puo' copiare quel markup su un dominio proprio,
+         * far risolvere il widget (da persone vere, o da un servizio che lo fa
+         * a pagamento) e spedire i gettoni a questo endpoint: sono gettoni
+         * autentici, `success` risponde `true`, e senza questo controllo
+         * passano. Cloudflare dice da quale host e' stato risolto, ed e'
+         * l'unico modo per accorgersene.
+         *
+         * L'elenco vuoto significa «non lo so», e allora non si giudica: e' il
+         * caso di un'installazione senza `APP_URL` sensato, dove rifiutare
+         * tutto sarebbe peggio del rischio.
+         */
+        $ammessi = Turnstile::hostnames();
+        $host = $response->json('hostname');
+
+        if ($ammessi !== [] && is_string($host) && ! in_array($host, $ammessi, strict: true)) {
+            Log::warning('Turnstile: gettone risolto su un dominio che non e nostro.', [
+                'hostname' => $host,
+                'ammessi' => $ammessi,
+            ]);
+
+            $fail(__('validation.custom.turnstile.failed'));
+
+            return;
+        }
+
+        /*
+         * E deve venire dal modulo giusto. Senza, un gettone ottenuto sul
+         * modulo meno sorvegliato vale per tutti gli altri: se ne risolve uno
+         * dove costa meno e lo si spende dove serve.
+         *
+         * Il confronto avviene solo se il widget ha dichiarato un'azione:
+         * `data-action` e' facoltativo, e un modulo che non lo mette non deve
+         * smettere di funzionare.
+         */
+        $azioneAttesa = $this->azione;
+        $azione = $response->json('action');
+
+        if ($azioneAttesa !== null && is_string($azione) && $azione !== $azioneAttesa) {
+            Log::warning('Turnstile: gettone risolto per un altro modulo.', [
+                'atteso' => $azioneAttesa,
+                'ricevuto' => $azione,
+            ]);
+
+            $fail(__('validation.custom.turnstile.failed'));
+        }
     }
 }

@@ -40,7 +40,7 @@ class StoreVenueApplicationRequest extends FormRequest
             'contact_email' => ['required', 'email:filter', 'max:255'],
             'message' => ['nullable', 'string', 'max:5000'],
             ...Honeypot::rules(),
-            ...Turnstile::rules(),
+            ...Turnstile::rules('registrazione-locale'),
         ];
     }
 

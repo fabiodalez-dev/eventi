@@ -33,7 +33,7 @@ class StoreReportRequest extends FormRequest
             'note' => ['nullable', 'string', 'max:2000'],
             'reporter_email' => ['nullable', 'email:filter', 'max:255'],
             ...Honeypot::rules(),
-            ...Turnstile::rules(),
+            ...Turnstile::rules('segnalazione'),
         ];
     }
 

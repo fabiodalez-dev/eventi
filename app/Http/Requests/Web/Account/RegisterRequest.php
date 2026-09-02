@@ -33,7 +33,7 @@ class RegisterRequest extends FormRequest
             'password' => ['required', 'string', 'confirmed', Password::defaults()],
             'marketing_opt_in' => ['nullable', 'boolean'],
             ...Honeypot::rules(),
-            ...Turnstile::rules(),
+            ...Turnstile::rules('registrazione-utente'),
         ];
     }
 

@@ -55,7 +55,7 @@
             <x-field type="email" name="contact_email" :label="__('forms.submission.fields.contact_email')" :required="true" autocomplete="email" />
         </div>
 
-        <x-turnstile />
+        <x-turnstile action="proposta-evento" />
 
         <p class="text-xs text-ink-subtle">{{ __('forms.privacy_note') }}</p>
 

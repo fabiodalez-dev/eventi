@@ -32,7 +32,7 @@
             </label>
             @endnewsletter
 
-            <x-turnstile />
+            <x-turnstile action="registrazione-utente" />
 
             <button type="submit" class="bg-brand px-4 py-2.5 text-sm font-semibold text-on-brand transition hover:bg-brand-strong">
                 {{ __('account.register.submit') }}

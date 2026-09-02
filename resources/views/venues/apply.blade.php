@@ -44,7 +44,7 @@
             :hint="__('forms.application.hints.message')"
         />
 
-        <x-turnstile />
+        <x-turnstile action="registrazione-locale" />
 
         <p class="text-xs text-ink-subtle">{{ __('forms.privacy_note') }}</p>
 

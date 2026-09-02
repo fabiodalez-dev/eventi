@@ -48,6 +48,33 @@ return [
         'secret_key' => env('TURNSTILE_SECRET_KEY', ''),
 
         /*
+         * I domini da cui accettiamo un gettone risolto.
+         *
+         * **Perche' serve, visto che la chiave e' nostra.** La site key e'
+         * pubblica per costruzione: sta nell'HTML di ogni pagina. Chiunque
+         * puo' copiare quel markup su un dominio proprio, far risolvere il
+         * widget — da persone vere, o da un servizio che lo fa a pagamento —
+         * e spedire i gettoni al NOSTRO endpoint. Sono gettoni autentici:
+         * `success` risponde `true`, e senza questo controllo passano.
+         *
+         * Cloudflare dice da quale host e' stato risolto (`hostname` nella
+         * risposta), e qui si dichiara quali accettiamo.
+         *
+         * **Vuoto significa «quello di `APP_URL`»**, che e' quasi sempre la
+         * risposta giusta e soprattutto **segue il dominio quando cambia** —
+         * e questo dominio e' provvisorio (§20.1). Scriverlo a mano qui
+         * significherebbe che il giorno del trasloco i moduli cominciano a
+         * rifiutare tutti senza un errore che lo spieghi.
+         *
+         * Si elencano a mano solo i casi con piu' domini veri: un'anteprima,
+         * un secondo nome che punta allo stesso sito.
+         */
+        'hostnames' => array_values(array_filter(array_map(
+            'trim',
+            explode(',', (string) env('TURNSTILE_HOSTNAMES', '')),
+        ))),
+
+        /*
          * Secondi di attesa per la risposta di Cloudflare. Breve di proposito:
          * un modulo pubblico che resta fermo perché un terzo ci ripensa è un
          * disservizio nostro.

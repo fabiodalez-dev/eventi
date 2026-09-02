@@ -37,7 +37,7 @@ class StoreEventSubmissionRequest extends FormRequest
             'contact_name' => ['nullable', 'string', 'max:120'],
             'contact_email' => ['required', 'email:filter', 'max:255'],
             ...Honeypot::rules(),
-            ...Turnstile::rules(),
+            ...Turnstile::rules('proposta-evento'),
         ];
     }
 

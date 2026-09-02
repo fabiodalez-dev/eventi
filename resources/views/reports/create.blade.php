@@ -38,7 +38,7 @@
             autocomplete="email"
         />
 
-        <x-turnstile />
+        <x-turnstile action="segnalazione" />
 
         <p class="text-xs text-ink-subtle">{{ __('forms.privacy_note') }}</p>
 

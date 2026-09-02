@@ -237,7 +237,12 @@ it('protegge tutti e quattro i moduli pubblici quando e configurato', function (
            secondo argomento di quel metodo e' un altro valore da cercare, non
            una spiegazione — e il test falliva dicendo che il file non contiene
            la propria descrizione. */
-        expect(str_contains($sorgente, 'Turnstile::rules()'))
+        /* `Turnstile::rules(` e non `rules()`: da quando ogni modulo dichiara
+           la propria azione la firma porta un argomento, e cercare quella
+           vuota faceva fallire il test su una modifica che migliorava proprio
+           la cosa che sorveglia. Il controllo sulle azioni sta in
+           `TurnstileVerificationTest`. */
+        expect(str_contains($sorgente, 'Turnstile::rules('))
             ->toBeTrue($richiesta.' non chiede il gettone: e una porta aperta che nessuno nota, perche gli altri moduli funzionano');
     }
 });
