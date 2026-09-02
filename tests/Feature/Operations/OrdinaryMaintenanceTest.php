@@ -76,8 +76,10 @@ it('si accorge di un backup troncato, non solo di uno vecchio', function (): voi
     $cartella = storage_path('app/private/'.config()->string('backup.backup.name'));
     File::ensureDirectoryExists($cartella);
 
+    /* Un file con nome e data perfetti che zip non riesce ad aprire: e'
+       esattamente cio' che resta di un archivio morto mentre scriveva. */
     $troncato = $cartella.'/'.now()->format('Y-m-d-H-i-s').'.zip';
-    File::put($troncato, str_repeat('x', 1024));
+    File::put($troncato, 'PK'.str_repeat('x', 4096));
 
     $esito = (new BackupFreshnessCheck)->run();
 
@@ -91,8 +93,22 @@ it('accetta un backup recente e di peso credibile', function (): void {
     $cartella = storage_path('app/private/'.config()->string('backup.backup.name'));
     File::ensureDirectoryExists($cartella);
 
+    foreach (File::glob($cartella.'/*.zip') as $vecchio) {
+        File::delete($vecchio);
+    }
+
+    /*
+     * Uno zip vero, e piccolo di proposito: un `backup:run --only-db` produce
+     * un archivio da 256 KB perfettamente valido. La prima versione del
+     * controllo lo bocciava perche' giudicava il peso — l'ho scoperto
+     * creandone uno a mano in produzione e vedendolo dichiarare troncato.
+     */
     $buono = $cartella.'/'.now()->format('Y-m-d-H-i-s').'-buono.zip';
-    File::put($buono, str_repeat('x', 2 * 1024 * 1024));
+
+    $zip = new ZipArchive;
+    $zip->open($buono, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+    $zip->addFromString('dump.sql', str_repeat('-- riga di dump'.PHP_EOL, 200));
+    $zip->close();
 
     $esito = (new BackupFreshnessCheck)->run();
 

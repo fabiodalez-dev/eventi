@@ -8,6 +8,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\File;
 use Spatie\Health\Checks\Check;
 use Spatie\Health\Checks\Result;
+use ZipArchive;
 
 /**
  * C'e' un backup recente, e sta in piedi?
@@ -34,12 +35,32 @@ final class BackupFreshnessCheck extends Check
     private int $oreMassime = 30;
 
     /**
-     * Sotto questa soglia un archivio non e' un backup: e' cio' che resta di
-     * un backup interrotto. Il valore e' volutamente basso — serve a
-     * distinguere un troncamento da un archivio piccolo, non a giudicare
-     * quanto debbano pesare i dati.
+     * L'archivio ha un indice leggibile?
+     *
+     * Non estrae niente: `CHECKCONS` verifica la coerenza delle intestazioni,
+     * che e' esattamente cio' che manca a uno zip troncato. Su un archivio da
+     * centotrenta megabyte estrarre per controllare costerebbe piu' del
+     * backup stesso.
      */
-    private int $byteMinimi = 1024 * 1024;
+    private function siApre(string $percorso): bool
+    {
+        if (! class_exists(ZipArchive::class)) {
+            /* Senza l'estensione non si puo' verificare: meglio non dire
+               niente che dire una cosa falsa. */
+            return true;
+        }
+
+        $zip = new ZipArchive;
+        $esito = $zip->open($percorso, ZipArchive::CHECKCONS);
+
+        if ($esito === true) {
+            $zip->close();
+
+            return true;
+        }
+
+        return false;
+    }
 
     public function run(): Result
     {
@@ -75,11 +96,27 @@ final class BackupFreshnessCheck extends Check
                 'quanti_conservati' => $archivi->count(),
             ]);
 
-        if ($peso < $this->byteMinimi) {
-            return $risultato->failed(sprintf(
-                'L ultimo backup pesa %d KB: e troppo poco per essere un archivio intero, probabilmente si e interrotto mentre scriveva.',
-                (int) round($peso / 1024),
-            ));
+        if (! $this->siApre($ultimo->getPathname())) {
+            /*
+             * **Si prova ad aprirlo, non si guarda quanto pesa.** Un archivio
+             * morto a meta' — e' successo il 2 settembre, con la quota
+             * esaurita mentre scriveva — ha un nome perfetto, una data
+             * recente, e dentro non c'e' niente di recuperabile. Il peso non
+             * lo distingue da un backup del solo database, che e'
+             * legittimamente piccolo.
+             *
+             * `ZipArchive::open` con `CHECKCONS` legge l'indice senza
+             * estrarre: costa una lettura, non una decompressione.
+             *
+             * **Il peso non e' piu' un criterio, ed era sbagliato che lo
+             * fosse.** La prima versione bocciava tutto cio' che stava sotto
+             * un megabyte: un `backup:run --only-db` produce un archivio da
+             * 256 KB perfettamente valido, e l'ho scoperto creandone uno a
+             * mano in produzione e vedendo il controllo dichiararlo troncato.
+             */
+            return $risultato->failed(
+                'L ultimo backup non si apre: probabilmente si e interrotto mentre scriveva. Serve quello precedente.',
+            );
         }
 
         if ($ore > $this->oreMassime) {
