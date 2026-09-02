@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use App\Listeners\CompressOversizedConversion;
+use App\Models\Event;
+use App\Support\Media\Variants;
 use Illuminate\Support\Facades\Log;
 use Spatie\MediaLibrary\Conversions\Conversion;
 use Spatie\MediaLibrary\Conversions\Events\ConversionHasBeenCompletedEvent;
@@ -134,3 +136,41 @@ it('non si arrabbia se il file non c e piu', function (): void {
        propagare. */
     eseguiSu(sys_get_temp_dir().'/questo-file-non-esiste-'.bin2hex(random_bytes(4)).'.jpg');
 })->throwsNoExceptions();
+
+it('tiene nel tetto le conversioni vere, non solo quelle di prova', function (): void {
+    /*
+     * **La prova di integrazione, che è quella che mancava.**
+     *
+     * I test qui sopra chiamano il listener a mano: verificano che sappia
+     * ricomprimere, non che venga davvero invocato quando Spatie finisce una
+     * conversione. È una differenza che si paga: la prima versione passava
+     * tutti quei test mentre in produzione le locandine restavano da 231 KB,
+     * perché una cosa è saper fare il lavoro e un'altra è essere chiamati a
+     * farlo.
+     *
+     * Qui si carica un'immagine vera su un evento vero e si guardano i file
+     * che ne escono.
+     */
+    $percorso = immagineDiProva(1600, conRumore: true);
+
+    expect(filesize($percorso))->toBeGreaterThan(120 * 1024);
+
+    $evento = Event::factory()->create();
+    $media = $evento->addMedia($percorso)->preservingOriginal()->toMediaCollection('poster');
+
+    $sopraIlTetto = [];
+
+    foreach (['thumb', 'card', 'full'] as $variante) {
+        foreach ([$variante, Variants::avif($variante)] as $nome) {
+            $file = $media->getPath($nome);
+
+            if (is_file($file) && filesize($file) > 120 * 1024) {
+                $sopraIlTetto[$nome] = round(filesize($file) / 1024).' KB';
+            }
+        }
+    }
+
+    expect($sopraIlTetto)->toBe([], 'una locandina caricata da un locale non deve poter rallentare la pagina iniziale per tutti');
+
+    unlink($percorso);
+});

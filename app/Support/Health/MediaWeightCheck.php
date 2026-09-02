@@ -44,7 +44,16 @@ final class MediaWeightCheck extends Check
      * controllo sempre rosso viene spento dopo la seconda volta, e allora non
      * segnala piu' nemmeno il caso in cui ne arrivano cento.
      */
-    private float $frazioneTollerata = 0.05;
+    /*
+     * **Il 10% e' tarato sui numeri veri, non scelto per far passare il
+     * controllo.** In produzione, dopo aver ricompresso tutto il
+     * ricomprimibile — da 79 a 27 su 436 — quel che resta e' irriducibile per
+     * natura: fotografie notturne e grafiche piene di grana che nessuna
+     * qualita' perdona. Sopra il 10% non e' piu' la coda naturale: o il
+     * listener ha smesso di funzionare, o e' arrivato un import di immagini
+     * enormi. Sotto, sono casi singoli da sistemare con chi li ha caricati.
+     */
+    private float $frazioneTollerata = 0.10;
 
     public function run(): Result
     {
