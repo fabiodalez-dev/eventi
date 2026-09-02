@@ -52,6 +52,26 @@ return [
      * Le tre varianti di §12.1, in larghezza. `full` è il tetto: nessuna
      * variante ingrandisce mai un originale più piccolo (`Fit::Max`).
      */
+    /*
+     * Il lato lungo massimo dell'ORIGINALE conservato.
+     *
+     * **Il passo che §12.1 dichiarava e che non esisteva.** La pipeline è
+     * scritta come «upload → validazione → strip EXIF → resize → varianti»
+     * qui sopra e nel piano, ma il resize avveniva soltanto *dentro* le
+     * varianti: l'originale restava com'era arrivato, per sempre.
+     *
+     * Non si vedeva perché finora le locandine venivano dal seeder e pesano
+     * 300 KB. Un locale che carica dal telefono manda 4000×3000 e cinque
+     * megabyte, e su una quota da dieci giga cento locandine così sono mezzo
+     * giga di file che nessuno serve mai — la variante più grande è 1600px.
+     *
+     * 2400 e non 1600: lascia margine per una variante più grande in futuro
+     * senza dover richiedere di nuovo le immagini ai locali, che è una cosa
+     * che non si può fare. Sotto quella soglia non si tocca niente, perché
+     * ingrandire non ha mai senso.
+     */
+    'max_original_width' => 2400,
+
     'variants' => [
         'thumb' => 400,
         'card' => 800,

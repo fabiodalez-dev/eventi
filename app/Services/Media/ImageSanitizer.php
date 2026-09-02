@@ -48,6 +48,23 @@ final class ImageSanitizer
 
             $this->applyOrientation($image);
 
+            /*
+             * Il resize che §12.1 dichiara fra lo strip e le varianti, e che
+             * non esisteva: il ridimensionamento avveniva soltanto *dentro* le
+             * conversioni, e l'originale restava com'era arrivato.
+             *
+             * Si fa qui, dove l'immagine è già aperta e già in procinto di
+             * essere riscritta: costa una chiamata, mentre in un passo a parte
+             * costerebbe un'altra apertura e un'altra scrittura dello stesso
+             * file.
+             *
+             * **Prima dello strip dei metadati, non dopo**, perché
+             * l'orientamento è appena stato applicato ai pixel: ridimensionare
+             * un'immagine ancora ruotata dall'EXIF produrrebbe un lato lungo
+             * misurato sul verso sbagliato.
+             */
+            $this->limitaDimensione($image);
+
             $profiles = $image->getImageProfiles('icc', true);
             $icc = isset($profiles['icc']) && is_string($profiles['icc']) ? $profiles['icc'] : null;
 
@@ -81,6 +98,48 @@ final class ImageSanitizer
      * Ruota davvero i pixel secondo il riquadro `Orientation`, così che
      * toglierlo non cambi ciò che si vede.
      */
+    /**
+     * Riporta il lato lungo entro `media.max_original_width`.
+     *
+     * **Perché l'originale e non solo le varianti.** La variante più grande è
+     * 1600px: un originale da 6000 non serve a nessuno, non viene servito mai,
+     * e occupa spazio su una quota che è già stata esaurita una volta. Le
+     * conversioni partono da qui, quindi un originale più piccolo le rende
+     * anche più veloci da generare.
+     *
+     * **`Fit::Max` in spirito: non si ingrandisce mai.** Una locandina
+     * quadrata da 900px resta com'è — portarla a 2400 aggiungerebbe peso e
+     * nessun dettaglio, perché i pixel che non c'erano non compaiono.
+     */
+    private function limitaDimensione(Imagick $image): void
+    {
+        $massimo = config()->integer('media.max_original_width');
+
+        if ($massimo <= 0) {
+            return;
+        }
+
+        $larghezza = $image->getImageWidth();
+        $altezza = $image->getImageHeight();
+        $latoLungo = max($larghezza, $altezza);
+
+        if ($latoLungo <= $massimo) {
+            return;
+        }
+
+        /*
+         * Zero sul lato calcolato: è così che Imagick mantiene le proporzioni.
+         * Passare entrambi i lati significherebbe deformare l'immagine ogni
+         * volta che il rapporto non coincide.
+         */
+        $image->resizeImage(
+            $larghezza >= $altezza ? $massimo : 0,
+            $larghezza >= $altezza ? 0 : $massimo,
+            Imagick::FILTER_LANCZOS,
+            1,
+        );
+    }
+
     private function applyOrientation(Imagick $image): void
     {
         if (method_exists($image, 'autoOrientImage')) {
