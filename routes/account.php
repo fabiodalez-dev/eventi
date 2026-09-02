@@ -8,6 +8,7 @@ use App\Http\Controllers\Web\Account\FollowController;
 use App\Http\Controllers\Web\Account\LoginController;
 use App\Http\Controllers\Web\Account\MagicLinkController;
 use App\Http\Controllers\Web\Account\NotificationSettingsController;
+use App\Http\Controllers\Web\Account\PasswordResetController;
 use App\Http\Controllers\Web\Account\ProfileController;
 use App\Http\Controllers\Web\Account\RegisterController;
 use App\Http\Controllers\Web\Account\SavedController;
@@ -44,6 +45,30 @@ Route::middleware('guest')->group(function (): void {
     Route::post('/accedi/collegamento', [MagicLinkController::class, 'store'])
         ->middleware('throttle:account-auth')
         ->name('account.magic-link.store');
+
+    /*
+     * Reimpostare la password (§15.2).
+     *
+     * L'indirizzo `/reimposta-password` non e' una scelta libera: e' quello
+     * che `ResetPasswordLink` mette nei messaggi quando
+     * `API_PASSWORD_RESET_URL` non e' impostato — cioe' in produzione. Finche'
+     * questa rotta non e' esistita, quel collegamento portava a un 404.
+     *
+     * Lo stesso `throttle` dell'accesso: chiedere collegamenti a raffica su
+     * indirizzi altrui e' un modo per riempire caselle di posta che non sono
+     * tue.
+     */
+    Route::get('/password-dimenticata', [PasswordResetController::class, 'create'])
+        ->name('account.password.request');
+    Route::post('/password-dimenticata', [PasswordResetController::class, 'store'])
+        ->middleware('throttle:account-auth')
+        ->name('account.password.email');
+
+    Route::get('/reimposta-password', [PasswordResetController::class, 'edit'])
+        ->name('account.password.reset');
+    Route::post('/reimposta-password', [PasswordResetController::class, 'update'])
+        ->middleware('throttle:account-auth')
+        ->name('account.password.update');
 
     /*
      * Il collegamento di accesso: la firma la verifica il middleware, il

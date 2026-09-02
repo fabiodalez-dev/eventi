@@ -41,6 +41,13 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
+            /*
+             * Un amministratore che dimentica la password restava fuori: non
+             * c'e' registrazione da rifare e nessuno a cui chiedere, perche'
+             * chi potrebbe rimediare e' lui. Il pannello dei locali lo aveva
+             * gia'; questo no, e la differenza non era voluta.
+             */
+            ->passwordReset()
             ->brandName(fn (): string => (string) config('app.name'))
             ->colors([
                 'primary' => Color::Indigo,

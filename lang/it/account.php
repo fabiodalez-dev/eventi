@@ -108,6 +108,33 @@ return [
         'logged_out' => 'Sessione chiusa.',
     ],
 
+    /*
+     * Reimpostare la password (§15.2).
+     *
+     * «Se quell'indirizzo è registrato» non è un giro di parole: la risposta
+     * dev'essere la stessa che l'email esista o no, altrimenti basta provarne
+     * una per sapere chi è iscritto. Il testo lo dice apertamente invece di
+     * fingere, perché una frase ambigua fa solo credere a un guasto.
+     */
+    'forgot' => [
+        'title' => 'Password dimenticata',
+        'lead' => 'Scrivi il tuo indirizzo: se è registrato, ti mando un collegamento per sceglierne una nuova.',
+        'submit' => 'Mandami il collegamento',
+        'sent' => 'Se quell\'indirizzo è registrato, il collegamento è partito. Controlla anche la posta indesiderata.',
+        'from_login' => 'Password dimenticata?',
+        'prefer_magic' => 'Oppure entra senza password, con un collegamento usa e getta.',
+    ],
+
+    'reset' => [
+        'title' => 'Scegli una nuova password',
+        'lead' => 'Vale una volta sola. Appena confermi, esci da tutti i dispositivi collegati.',
+        'password' => 'Nuova password',
+        'confirm' => 'Ripetila',
+        'submit' => 'Salva la nuova password',
+        'done' => 'Fatto. Ora puoi entrare con la password nuova.',
+        'failed' => 'Questo collegamento non vale più: può essere scaduto, già usato, oppure appartenere a un altro indirizzo. Chiedine un altro.',
+    ],
+
     'magic' => [
         'title' => 'Accedi senza password',
         'lead' => 'Ti mando un collegamento valido :minutes minuti: un clic e sei dentro.',
