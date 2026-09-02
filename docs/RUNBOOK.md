@@ -284,7 +284,16 @@ qualunque script.** `Turnstile::rules()` restituisce un array vuoto quando non
 una chiave sarebbe peggio — ma niente lo segnala.
 
 Le chiavi si prendono da **dash.cloudflare.com → Turnstile → Add site**:
-dominio `eventi.fabiodalez.it`, widget mode *Managed*. Escono una *Site Key*
+dominio `eventi.fabiodalez.it`, widget mode *Managed*.
+
+**Il widget è legato al nome host, e questo dominio è provvisorio** (§20.1: il
+nome definitivo non è ancora deciso). Quando si cambierà, Turnstile smetterà di
+validare **senza dire perché** — un widget interrogato da un dominio che non
+riconosce risponde no e basta. Conviene aggiungere fin d'ora il dominio nuovo
+allo stesso widget appena lo si sa, invece di scoprirlo dai moduli che
+rifiutano tutti.
+
+Sentry invece non c'entra col dominio: il DSN resta valido comunque. Escono una *Site Key*
 (pubblica, finisce nell'HTML) e una *Secret Key* (che non deve uscire dal
 server).
 
