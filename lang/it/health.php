@@ -15,6 +15,7 @@ return [
         'calendar_coverage' => 'Copertura del calendario',
         'backup_freshness' => 'Backup recente e intero',
         'media_weight' => 'Peso delle locandine',
+        'production_secrets' => 'Chiavi di produzione',
         'database' => 'Database',
         'cache' => 'Cache',
         'disk' => 'Spazio su disco',

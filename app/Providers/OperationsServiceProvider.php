@@ -9,6 +9,7 @@ use App\Support\Health\BackupFreshnessCheck;
 use App\Support\Health\CalendarCoverageCheck;
 use App\Support\Health\ImportSourcesCheck;
 use App\Support\Health\MediaWeightCheck;
+use App\Support\Health\ProductionSecretsCheck;
 use App\Support\Health\ScheduledTasksCheck;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
@@ -147,6 +148,7 @@ final class OperationsServiceProvider extends ServiceProvider
             CalendarCoverageCheck::new()->label(__('health.labels.calendar_coverage')),
             BackupFreshnessCheck::new()->label(__('health.labels.backup_freshness')),
             MediaWeightCheck::new()->label(__('health.labels.media_weight')),
+            ProductionSecretsCheck::new()->label(__('health.labels.production_secrets')),
         ]);
     }
 }

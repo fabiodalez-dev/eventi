@@ -2,9 +2,14 @@
 
 declare(strict_types=1);
 
+use App\Http\Requests\Web\Account\RegisterRequest;
+use App\Http\Requests\Web\StoreEventSubmissionRequest;
+use App\Http\Requests\Web\StoreReportRequest;
+use App\Http\Requests\Web\StoreVenueApplicationRequest;
 use App\Support\Health\BackupFreshnessCheck;
 use App\Support\Health\CalendarCoverageCheck;
 use App\Support\Health\MediaWeightCheck;
+use App\Support\Health\ProductionSecretsCheck;
 use Illuminate\Support\Facades\File;
 use Spatie\Health\Enums\Status;
 use Spatie\Health\Facades\Health;
@@ -166,4 +171,73 @@ it('il comando che ripassa lo storico esiste e non tocca niente in prova', funct
      * locandine su 495.
      */
     $this->artisan('media:compress-oversized', ['--dry-run' => true])->assertExitCode(0);
+});
+
+it('non protesta per le chiavi di produzione fuori dalla produzione', function (): void {
+    /* Un controllo che si lamenta sulla macchina di chi scrive codice viene
+       spento il primo giorno, e con lui sparisce anche in produzione. */
+    $esito = (new ProductionSecretsCheck)->run();
+
+    expect($esito->status)->toBe(Status::ok());
+});
+
+it('in produzione si accorge che Turnstile non e configurato', function (): void {
+    /*
+     * Il caso vero: `TURNSTILE_SITE_KEY` e `SECRET_KEY` sono rimaste vuote in
+     * produzione per settimane. `Turnstile::rules()` restituisce un array
+     * vuoto quando non e' configurato — scelta giusta, perche' un modulo che
+     * rifiuta tutti perche' manca una chiave sarebbe peggio — ma il risultato
+     * e' che «proponi evento» e «registra il tuo locale» accettavano invii da
+     * qualunque script, e niente lo segnalava.
+     */
+    app()->detectEnvironment(fn (): string => 'production');
+    config()->set('services.turnstile.site_key', '');
+    config()->set('services.turnstile.secret_key', '');
+
+    $esito = (new ProductionSecretsCheck)->run();
+
+    expect($esito->status)->toBe(Status::failed())
+        ->and($esito->meta['mancanti'])->toContain('TURNSTILE_SITE_KEY / SECRET_KEY');
+});
+
+it('distingue cio che espone da cio che fa perdere qualcosa', function (): void {
+    /*
+     * Senza Sentry si perdono gli errori; senza Turnstile si e' esposti a
+     * quello che arriva da fuori. Un controllo che tratta le due cose allo
+     * stesso modo insegna a rimandarle entrambe.
+     */
+    app()->detectEnvironment(fn (): string => 'production');
+    config()->set('services.turnstile.site_key', 'una-chiave');
+    config()->set('services.turnstile.secret_key', 'un-segreto');
+    config()->set('sentry.dsn', '');
+
+    $esito = (new ProductionSecretsCheck)->run();
+
+    expect($esito->status)->toBe(Status::warning())
+        ->and($esito->meta['mancanti'])->toContain('SENTRY_LARAVEL_DSN');
+});
+
+it('protegge tutti e quattro i moduli pubblici quando e configurato', function (): void {
+    /*
+     * Non basta che la classe sappia validare: le regole devono essere
+     * agganciate a ogni modulo che accetta invii da chiunque. Uno dimenticato
+     * e' una porta aperta che nessuno nota, perche' gli altri tre funzionano.
+     */
+    foreach ([
+        StoreEventSubmissionRequest::class,
+        StoreVenueApplicationRequest::class,
+        StoreReportRequest::class,
+        RegisterRequest::class,
+    ] as $richiesta) {
+        $sorgente = (string) file_get_contents(
+            base_path(str_replace(['App\\', '\\'], ['app/', '/'], $richiesta).'.php'),
+        );
+
+        /* Il nome della richiesta nel messaggio e non in `toContain`: il
+           secondo argomento di quel metodo e' un altro valore da cercare, non
+           una spiegazione — e il test falliva dicendo che il file non contiene
+           la propria descrizione. */
+        expect(str_contains($sorgente, 'Turnstile::rules()'))
+            ->toBeTrue($richiesta.' non chiede il gettone: e una porta aperta che nessuno nota, perche gli altri moduli funzionano');
+    }
 });

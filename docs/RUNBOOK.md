@@ -269,6 +269,70 @@ resta aperto** e l'episodio finisce in `storage/logs/laravel.log`: campo esca e
 limite di frequenza reggono da soli. E' voluto — un guasto di un terzo non deve
 diventare un guasto nostro.
 
+## Le chiavi di produzione (Turnstile, Sentry)
+
+Il controllo `Chiavi di produzione` in `health:check` dice quali mancano.
+Nessuna di queste, mancando, rompe qualcosa: il sito funziona, i test passano,
+la pipeline è verde — si limita a fare qualcosa di meno, e quel meno si scopre
+per caso mesi dopo.
+
+### Turnstile — la protezione dei moduli pubblici
+
+**Senza, «proponi evento» e «registra il tuo locale» accettano invii da
+qualunque script.** `Turnstile::rules()` restituisce un array vuoto quando non
+è configurato: è la scelta giusta — un modulo che rifiuta tutti perché manca
+una chiave sarebbe peggio — ma niente lo segnala.
+
+Le chiavi si prendono da **dash.cloudflare.com → Turnstile → Add site**:
+dominio `eventi.fabiodalez.it`, widget mode *Managed*. Escono una *Site Key*
+(pubblica, finisce nell'HTML) e una *Secret Key* (che non deve uscire dal
+server).
+
+```bash
+ssh fabiodalez.it "cd ~/eventi
+  printf 'TURNSTILE_SITE_KEY=%s\nTURNSTILE_SECRET_KEY=%s\n' '<site>' '<secret>' >> .env
+  /opt/cpanel/ea-php84/root/usr/bin/php artisan config:cache"
+```
+
+**Verificare che sia servito davvero**, non solo scritto nel file:
+
+```bash
+curl -s https://eventi.fabiodalez.it/proponi-evento | grep -c cf-turnstile   # deve dare ≥ 1
+```
+
+Per provare l'integrazione **senza un account**, Cloudflare pubblica due coppie
+di chiavi di prova — utili anche in locale:
+
+| site key | secret key | effetto |
+|---|---|---|
+| `1x00000000000000000000AA` | `1x0000000000000000000000000000000AA` | passa sempre |
+| `2x00000000000000000000AB` | `2x0000000000000000000000000000000AA` | rifiuta sempre |
+
+La seconda è quella che serve: con la prima **qualunque gettone viene
+accettato**, quindi non dimostra che la validazione funzioni. Con la seconda,
+se un invio passa, il codice non sta parlando con Cloudflare.
+
+### Sentry — dove finiscono gli errori
+
+Senza il DSN, un errore in produzione non arriva da nessuna parte: si scopre
+leggendo `storage/logs` dopo che qualcuno si lamenta. L'integrazione è già
+agganciata (`Integration::handles` in `bootstrap/app.php`) e `send_default_pii`
+è **false**, così negli eventi non finiscono dati personali.
+
+Il DSN si prende da **sentry.io → Projects → il progetto → Settings → Client
+Keys (DSN)**.
+
+```bash
+ssh fabiodalez.it "cd ~/eventi
+  printf 'SENTRY_LARAVEL_DSN=%s\nSENTRY_ENVIRONMENT=production\nSENTRY_TRACES_SAMPLE_RATE=0.1\n' '<dsn>' >> .env
+  /opt/cpanel/ea-php84/root/usr/bin/php artisan config:cache
+  /opt/cpanel/ea-php84/root/usr/bin/php artisan sentry:test"
+```
+
+`sentry:test` manda un'eccezione finta: se compare nel cruscotto, è collegato.
+`TRACES_SAMPLE_RATE` a `0.1` traccia una richiesta su dieci — su hosting
+condiviso tracciarle tutte costa più di quanto renda.
+
 ## Manutenzione ordinaria: i tre guasti che non si annunciano
 
 Tutti e tre sono successi. Nessuno fa cadere il sito nel momento in cui accade,
