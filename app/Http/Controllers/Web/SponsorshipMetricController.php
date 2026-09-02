@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\Sponsorship;
+use App\Models\SponsorshipDailyStat;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -62,6 +63,20 @@ final class SponsorshipMetricController extends Controller
            istante devono valere due, e una lettura seguita da una scrittura ne
            perde una. */
         $sponsorship->increment($metric);
+
+        /*
+         * E la stessa misura nel registro del giorno.
+         *
+         * **Due scritture e non una, di proposito.** Il contatore sulla
+         * campagna e' un totale: comodo e immediato per l'elenco del pannello,
+         * dove serve un numero e non una storia. La riga giornaliera e' la
+         * storia: e' cio' che permette di rispondere a «quante visualizzazioni
+         * a novembre», di ricostruire un totale che qualcuno contesta, e di
+         * disegnare un andamento. Ricavare il totale dalla somma a ogni
+         * lettura costerebbe una query aggregata dove oggi c'e' una colonna;
+         * ricavare la storia dal totale e' impossibile.
+         */
+        SponsorshipDailyStat::registra($sponsorship->getKey(), $metric);
 
         return response()->json(status: 204);
     }

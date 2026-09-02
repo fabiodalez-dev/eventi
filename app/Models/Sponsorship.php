@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\EventStatus;
+use App\Enums\SponsorshipPhase;
 use App\Enums\SponsorshipPlacement;
 use App\Enums\SponsorshipStatus;
 use Carbon\CarbonImmutable;
@@ -13,6 +14,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Number;
 
@@ -110,6 +112,42 @@ class Sponsorship extends Model
         return $this->status === SponsorshipStatus::Active
             && $this->starts_at->lessThanOrEqualTo($adesso)
             && $this->ends_at->greaterThanOrEqualTo($adesso);
+    }
+
+    /**
+     * A che punto è la campagna adesso: bozza, programmata, in corso, finita,
+     * sospesa.
+     *
+     * **Si ricava, non si conserva.** Ed è per questo che dice sempre il vero:
+     * non c'è nessun processo notturno che debba girare perché resti
+     * aggiornata — vedi il commento in testa a `SponsorshipStatus`, che è la
+     * ragione per cui `Completed` non è uno stato.
+     *
+     * Serve nell'elenco del pannello: prima c'era solo lo stato, e una
+     * campagna finita da tre settimane si leggeva «attiva». Vero alla lettera,
+     * e inutile a chi sta cercando di capire cosa stia girando adesso.
+     */
+    public function phase(?CarbonImmutable $now = null): SponsorshipPhase
+    {
+        $adesso = $now ?? CarbonImmutable::now('UTC');
+
+        return match (true) {
+            $this->status === SponsorshipStatus::Draft => SponsorshipPhase::Draft,
+            $this->status === SponsorshipStatus::Paused => SponsorshipPhase::Paused,
+            $this->starts_at->greaterThan($adesso) => SponsorshipPhase::Scheduled,
+            $this->ends_at->lessThan($adesso) => SponsorshipPhase::Ended,
+            default => SponsorshipPhase::Running,
+        };
+    }
+
+    /**
+     * Le misure giorno per giorno.
+     *
+     * @return HasMany<SponsorshipDailyStat, $this>
+     */
+    public function dailyStats(): HasMany
+    {
+        return $this->hasMany(SponsorshipDailyStat::class);
     }
 
     /**

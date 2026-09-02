@@ -13,6 +13,51 @@ declare(strict_types=1);
  */
 return [
 
+    /* Il riepilogo in cima alla pagina delle campagne. */
+    /* Usati sia dal grafico sia dal riepilogo per il committente. */
+    'metrics' => [
+        'impressions' => 'Visualizzazioni',
+        'clicks' => 'Aperture',
+    ],
+
+    /* Il riepilogo settimanale al committente. */
+    'report' => [
+        'subject' => 'Come sta andando: :evento',
+        'greeting' => 'Ciao :nome,',
+        'window' => 'Ecco il riepilogo dal :da al :a.',
+        'rate' => 'Sono :valore aperture ogni cento visualizzazioni.',
+        'total' => 'Da inizio campagna: :viste visualizzazioni e :aperture aperture.',
+        'until' => 'La campagna resta attiva fino al :data.',
+        'see_event' => 'Vedi l\'evento sul sito',
+        'how_measured' => 'Le misure si contano dal browser di chi visita il sito: chi blocca gli script non viene conteggiato, quindi questi numeri sono una stima al ribasso e non un registro contabile.',
+    ],
+
+    'widgets' => [
+        'running' => 'In corso adesso',
+        'running_lead' => 'Campagne visibili sul sito in questo momento',
+        'expiring' => 'In scadenza',
+        'expiring_lead' => 'Finiscono entro sette giorni: è il momento di richiamare chi paga',
+        'week_impressions' => 'Viste in 7 giorni',
+        'week_lead' => 'Somma di tutte le campagne',
+        'week_rate' => 'Aperture su viste',
+        'week_rate_lead' => ':aperture aperture nella settimana',
+        'week_rate_none' => 'Nessuna visualizzazione ancora: non c\'è niente da rapportare',
+        'trend' => 'Andamento degli ultimi 30 giorni',
+        'trend_lead' => 'La distanza fra le due linee dice se le campagne servono a qualcosa, non solo quanto sono state mostrate.',
+    ],
+
+    /*
+     * A che punto e' una campagna. Si ricava da stato piu' finestra, quindi
+     * dice il vero anche se nessun processo notturno gira da una settimana.
+     */
+    'phase' => [
+        'draft' => 'Bozza',
+        'scheduled' => 'Programmata',
+        'running' => 'In corso',
+        'ended' => 'Finita',
+        'paused' => 'Sospesa',
+    ],
+
     'label' => 'Sponsorizzato',
     'by' => 'a cura di :advertiser',
 
@@ -48,6 +93,7 @@ return [
             'click_rate' => 'Rapporto',
             'created_by' => 'Creata da',
             'running' => 'In corso',
+            'phase' => 'A che punto è',
         ],
 
         'help' => [

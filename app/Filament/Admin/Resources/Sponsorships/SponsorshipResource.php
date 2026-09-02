@@ -231,15 +231,22 @@ class SponsorshipResource extends Resource
                     }),
 
                 /*
-                 * «In corso» è calcolato, non salvato: uno stato che deve
-                 * essere aggiornato da un processo notturno per restare vero è
-                 * uno stato che prima o poi mente.
+                 * La fase è calcolata, non salvata: uno stato che deve essere
+                 * aggiornato da un processo notturno per restare vero è uno
+                 * stato che prima o poi mente.
+                 *
+                 * Era un sì/no. Diceva il meno utile delle due cose: che una
+                 * campagna non sta girando si vede anche dallo stato, mentre
+                 * il **perché** — non è ancora cominciata, è finita, l'hanno
+                 * sospesa — è quello che si sta cercando di capire aprendo
+                 * l'elenco, e costringeva a leggere le due date e fare il
+                 * conto a mente.
                  */
-                TextColumn::make('running')
-                    ->label(__('sponsorships.admin.fields.running'))
+                TextColumn::make('phase')
+                    ->label(__('sponsorships.admin.fields.phase'))
                     ->badge()
-                    ->state(fn (Sponsorship $record): string => $record->isRunning() ? __('common.yes') : __('common.no'))
-                    ->color(fn (Sponsorship $record): string => $record->isRunning() ? 'success' : 'gray'),
+                    ->state(fn (Sponsorship $record): string => $record->phase()->label())
+                    ->color(fn (Sponsorship $record): string => $record->phase()->color()),
 
                 TextColumn::make('starts_at')
                     ->label(__('sponsorships.admin.fields.starts_at'))

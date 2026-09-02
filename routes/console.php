@@ -208,3 +208,20 @@ Schedule::command('deploy:pull --if-behind')
     ->everyFiveMinutes()
     ->withoutOverlapping(30)
     ->runInBackground();
+
+/*
+ * Il riepilogo settimanale ai committenti delle campagne.
+ *
+ * **Lunedi' mattina e non domenica sera.** Copre la settimana appena chiusa, e
+ * chi lo riceve deve poterci fare qualcosa: un messaggio che arriva di
+ * domenica alle 22 viene letto lunedi' in mezzo a tutto il resto, e quel
+ * «come sta andando» diventa una riga fra cinquanta.
+ *
+ * `advertiser_email` veniva raccolta e non usata da nessuna parte: ogni
+ * rapporto era un lavoro a mano, e con cinque clienti sarebbe diventato il
+ * motivo per non prenderne altri.
+ */
+Schedule::command('sponsorships:report')
+    ->weeklyOn(1, '08:30')
+    ->withoutOverlapping()
+    ->graceTimeInMinutes(120);
