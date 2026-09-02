@@ -162,6 +162,22 @@ jobs:
       # Il sito misurato deve avere dentro qualcosa: una pagina vuota prende
       # novanta su novanta e non dice niente. Il seeder e' lo stesso della
       # demo, con centocinquanta date sui prossimi trenta giorni.
+      # **Il delegato che fa scrivere gli AVIF a ImageMagick.**
+      #
+      # L'immagine del runner porta ImageMagick ma non `libheif`, e senza
+      # quello `AvifSupport::available()` risponde di no: si generano solo i
+      # WebP, e la stessa locandina che in produzione pesa 54 KB ne pesa 274.
+      # Il referto lo riporta come «LCP alto», che manda a cercare nel codice
+      # un problema che sta nell'ambiente.
+      #
+      # In produzione tutte le 218 immagini hanno la variante AVIF: senza
+      # questo passo il banco misura un sito che non esiste.
+      - name: Installa il supporto AVIF per ImageMagick
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends libheif1 libheif-plugin-aomenc 2>/dev/null \
+            || sudo apt-get install -y --no-install-recommends libheif1
+
       - name: Popola il database
         run: php artisan migrate:fresh --seed --force
 
@@ -171,6 +187,32 @@ jobs:
       # fra novanta e settantacinque, verificata.
       - name: Genera le varianti delle immagini
         run: php artisan queue:work --stop-when-empty --tries=1 --quiet
+
+      # **Le locandine devono uscire in AVIF, come in produzione.**
+      #
+      # Se ImageMagick qui non sa scriverlo, `AvifSupport::available()` risponde
+      # di no e si generano solo i WebP: la stessa locandina che in produzione
+      # pesa 54 KB ne pesa 274, e su banda simulata sono un secondo e mezzo di
+      # rete occupata. Il referto pero' non dice «manca l'AVIF»: dice «LCP
+      # alto», e manda a cercare nel posto sbagliato — e' costato un'indagine.
+      #
+      # In produzione sono 218 immagini su 218 ad avere la variante AVIF: un
+      # banco che ne ha zero non sta misurando questo sito.
+      #
+      # Non fa fallire il lavoro: se un giorno il runner perdesse il delegato,
+      # meglio una misura pessimista con l'avviso scritto che una pipeline
+      # bloccata su qualcosa che non riguarda il codice.
+      - name: Controlla che l'AVIF sia davvero disponibile
+        run: |
+          avif=$(find storage/app/public -name '*-avif.avif' 2>/dev/null | wc -l | tr -d ' ')
+          webp=$(find storage/app/public -name '*.webp' 2>/dev/null | wc -l | tr -d ' ')
+
+          echo "Varianti generate: ${webp} WebP, ${avif} AVIF."
+
+          if [ "${avif}" -eq 0 ]; then
+            echo "::warning title=AVIF non generato::ImageMagick su questo runner non scrive AVIF: le locandine escono solo in WebP e pesano da tre a cinque volte tanto. Le misure di Lighthouse che seguono sono piu' lente di quelle del sito vero, dove tutte le immagini hanno la variante AVIF."
+            php -r 'echo "delegati di ImageMagick: ", implode(", ", array_slice((new Imagick)->queryFormats("*AVIF*") ?: ["nessuno"], 0, 5)), PHP_EOL;' || true
+          fi
 
       # Il server PHP di sviluppo non e' il prodotto: niente compressione,
       # niente intestazioni di cache, ogni immagine attraverso PHP. Davanti gli
