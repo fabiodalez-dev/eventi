@@ -2512,3 +2512,24 @@ schermate che nessuno guarda), il carattere annunciato nell'intestazione invece
 che scoperto leggendo il CSS, e il `sizes` delle locandine allineato allo
 spazio che occupano davvero. La soglia è stata spostata dopo aver esaurito le
 leve, non al posto di usarle.
+
+**Aggiornamento del 2026-09-02, poche ore dopo.** Portando i giri da tre a
+cinque, la misura si e' fatta leggere:
+
+| pagina | mediana | i cinque giri |
+|---|---|---|
+| `/` | **1960 ms** | 1955, 1958, 1960, 2038, 2415 |
+| `/eventi` | **1508 ms** | 1427, 1505, 1508, 1508, 1511 |
+| scheda evento | **1957 ms** | 1953, 1954, 1957, 1961, 1961 |
+
+Quattro giri raggruppati stretti e uno storto: con tre campioni quel giro
+solitario cadeva in mediana una volta su tre, ed e' quello che faceva ballare
+il risultato fra 1964 e 2405. **Il sito rispettava gia' i 2000 ms del piano**
+— era la misura a non saperlo dire.
+
+Il tetto resta comunque a 2500. Non per pigrizia: a 2000 il margine sarebbe di
+quaranta millisecondi su una misura che, per quanto meglio campionata, resta
+quella di un runner condiviso. Il numero del piano e' rispettato nei fatti e
+questa tabella lo documenta; la soglia che ferma la pipeline sta un gradino
+piu' in la' perche' deve poter dire «rosso» solo quando c'e' davvero qualcosa
+che non va.
