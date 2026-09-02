@@ -309,7 +309,17 @@
     --}}
     <header class="fixed inset-x-0 top-0 z-[9000] border-b-2 border-line bg-[rgba(11,11,11,.94)] backdrop-blur-2xl">
         <div class="flex h-[70px] items-center gap-[clamp(0.75rem,2vw,1.875rem)] px-[clamp(0.875rem,2.2vw,1.875rem)]">
-            <a href="{{ url('/') }}" class="flex shrink-0 items-baseline gap-1.5" aria-label="{{ __('ui.header.home', ['app' => $app]) }}">
+            {{-- La citta' sta SOTTO il nome, non accanto.
+
+                 Di fianco erano due parole sulla stessa riga e si leggevano
+                 come una cosa sola, «inCitta Padova»; sotto diventa quello che
+                 e': il nome, e l'edizione di cui stai guardando gli eventi.
+
+                 `items-start` e non `items-baseline`: incolonnate a sinistra,
+                 con il margine del nastro sotto a fare da riferimento. Il
+                 distacco e' di tre pixel — un occhiello attaccato al nome gli
+                 appartiene, uno staccato sembra una voce di menu. --}}
+            <a href="{{ url('/') }}" class="flex shrink-0 flex-col items-start gap-[3px]" aria-label="{{ __('ui.header.home', ['app' => $app]) }}">
                 <span class="font-display text-[1.625rem] leading-none font-extrabold tracking-[-0.05em] text-ink">{{ $app }}</span>
                 @if ($city !== null)
                     <span class="font-display text-[0.594rem] leading-none font-extrabold tracking-[0.2em] text-accent uppercase">{{ $city->name }}</span>
