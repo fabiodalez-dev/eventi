@@ -37,11 +37,21 @@ module.exports = {
             ],
 
             /*
-             * Tre giri per indirizzo: una sola misura su un runner condiviso
-             * oscilla di parecchi punti, e un lavoro che fallisce a caso viene
-             * disattivato dopo la seconda volta.
+             * Cinque giri per indirizzo, non tre. Una sola misura su un runner
+             * condiviso oscilla di parecchi punti, e un lavoro che fallisce a
+             * caso viene disattivato dopo la seconda volta.
+             *
+             * Tre bastavano finche' i giri combaciavano al millisecondo, ed e'
+             * quello che succede su un runner scarico: 2255, 2256, 2257. Su uno
+             * carico si apre a ventaglio — 2824, 2559, 2103 — e con tre
+             * campioni la mediana finisce dove capita, perche' basta un giro
+             * storto per spostarla. Con cinque il valore centrale ha due
+             * misure per parte a tenerlo fermo.
+             *
+             * Costa un paio di minuti di pipeline. Un controllo che dice rosso
+             * a caso costa molto di piu': smette di essere guardato.
              */
-            numberOfRuns: 3,
+            numberOfRuns: 5,
 
             settings: {
                 /*
@@ -61,7 +71,7 @@ module.exports = {
 
         assert: {
             /*
-             * Si giudica la **mediana** dei tre giri, non il migliore né il
+             * Si giudica la **mediana** dei giri, non il migliore né il
              * peggiore: il migliore nasconderebbe una regressione, il peggiore
              * farebbe fallire per un singolo giro sfortunato del runner.
              */

@@ -52,11 +52,23 @@ it('misura le tre famiglie di pagina, non una sola', function (): void {
 });
 
 it('giudica la mediana di più giri e non un giro solo', function (): void {
-    // Una sola misura su un runner condiviso oscilla di parecchi punti, e un
-    // lavoro che fallisce a caso viene disattivato dopo la seconda volta.
-    expect(lighthouseConfig())
-        ->toContain('numberOfRuns: 3')
-        ->toContain("aggregationMethod: 'median'");
+    /*
+     * Una sola misura su un runner condiviso oscilla di parecchi punti, e un
+     * lavoro che fallisce a caso viene disattivato dopo la seconda volta.
+     *
+     * Cinque e non tre: tre bastavano finché i giri combaciavano al
+     * millisecondo — 2255, 2256, 2257 su un runner scarico — ma su uno carico
+     * si aprono a ventaglio (2824, 2559, 2103) e con tre campioni basta un
+     * giro storto per spostare la mediana. Il minimo è un vincolo, non il
+     * numero esatto: chi vuole misurare di più non deve trovare qui un
+     * ostacolo.
+     */
+    $config = lighthouseConfig();
+
+    preg_match('/numberOfRuns:\s*(\d+)/', $config, $giri);
+
+    expect($giri[1] ?? 0)->toBeGreaterThanOrEqual(5)
+        ->and($config)->toContain("aggregationMethod: 'median'");
 });
 
 it('non sostituisce il profilo mobile con quello da scrivania', function (): void {
