@@ -49,8 +49,24 @@ class AdminPanelProvider extends PanelProvider
              */
             ->passwordReset()
             ->brandName(fn (): string => (string) config('app.name'))
+            /*
+             * Lo stesso carattere del sito, servito dal nostro dominio: e' gia'
+             * in `@fontsource`, quindi non aggiunge una richiesta a Google.
+             */
+            ->font('Archivo Variable')
+            /*
+             * Il foglio che porta qui dentro l'identita' del sito — spigoli
+             * vivi, neutri caldi, bordi visibili — senza portarne l'intensita':
+             * il perche' di ogni scelta sta scritto li'.
+             */
+            ->viteTheme('resources/css/filament/admin/theme.css')
             ->colors([
-                'primary' => Color::Indigo,
+                /*
+                 * Il lime del sito al posto dell'indaco predefinito. Filament
+                 * ne ricava una scala completa: serve per gli stati, dove un
+                 * colore solo non basta.
+                 */
+                'primary' => Color::hex('#ccff00'),
             ])
             ->navigationGroups([
                 NavigationGroup::make(fn (): string => __('admin.navigation.content')),

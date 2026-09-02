@@ -15,6 +15,10 @@ export default defineConfig({
                 'resources/js/app.js',
                 'resources/js/map.js',
                 'resources/js/calendar.js',
+                // Il tema del pannello: sta a parte perche' e' un altro
+                // prodotto CSS — quello del sito non entra in /admin e
+                // viceversa.
+                'resources/css/filament/admin/theme.css',
             ],
             refresh: true,
         }),
