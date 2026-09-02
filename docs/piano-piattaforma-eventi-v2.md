@@ -711,8 +711,11 @@ Funzione di fase 1, non rimandata alle app. È ciò che trasforma la piattaforma
 ```
 click sul cuore (guest)
   → salvato in localStorage, feedback immediato, nessuna interruzione
-  → dopo il 3° salvataggio, banner discreto:
-    "Vuoi ricevere un promemoria prima dell'evento? Crea un account in 10 secondi."
+  → subito dopo, dialogo: "Salvato su questo dispositivo — con un account lo
+    ritrovi ovunque e ti avviso prima che cominci."   [D49: era un banner
+    discreto dopo il 3° salvataggio; il primo restava muto e chi ne faceva uno
+    solo non scopriva mai che vive in quel browser]
+  → chi chiude tiene la sua data e non se lo vede più chiedere
   → alla registrazione, i salvataggi locali vengono migrati sull'account (merge, non sostituzione)
 ```
 La migrazione avviene con una chiamata `POST /v1/me/saved/merge` che accetta l'elenco di `occurrence_id` locali, ignora i duplicati e gli eventi già passati. Il `localStorage` viene svuotato solo dopo conferma del server.

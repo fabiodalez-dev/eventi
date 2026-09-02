@@ -140,15 +140,105 @@ it('non duplica nulla se la migrazione viene chiesta due volte', function (): vo
         ->and(SavedEvent::query()->where('user_id', $user->getKey())->count())->toBe(3);
 });
 
-it('mostra il cuore a chi non è collegato, senza chiedergli di registrarsi', function (): void {
+it('mostra il cuore a chi non è collegato, senza chiedergli di registrarsi prima', function (): void {
     $response = $this->get(route('events.show', $this->salvate[0]->event))->assertOk();
 
     /* Il cuore c'è, dichiara la data e dice allo script che nessuno è
        collegato: da lì in poi il salvataggio avviene nel browser. */
     $response->assertSee('data-save-id="'.$this->salvate[0]->getKey().'"', false)
         ->assertSee('data-save-authenticated="0"', false)
-        /* E il riquadro del terzo salvataggio è nel documento, nascosto:
-           lo rivela lo script quando le date salvate diventano tre. */
+        /* L'invito è nel documento ma **chiuso**: un `<dialog>` senza `open`
+           non si vede e non intercetta niente. Lo apre lo script dopo il primo
+           salvataggio — a salvataggio già scritto, mai prima (D49). */
         ->assertSee('data-save-prompt', false)
-        ->assertSee('data-account-prompt-after="3"', false);
+        ->assertSee('data-account-prompt-after="1"', false)
+        ->assertDontSee('<dialog data-save-prompt open', false);
+});
+
+it('lascia il cuore funzionante anche senza JavaScript', function (): void {
+    /*
+     * Il dialogo è una cortesia dello script, non il meccanismo. Sotto c'è un
+     * modulo vero verso una rotta protetta da `auth`: chi non è collegato e
+     * non ha JavaScript finisce alla pagina di accesso invece di premere un
+     * pulsante che non fa niente.
+     */
+    $this->post(route('account.saved.store'), ['occurrence_id' => $this->salvate[0]->getKey()])
+        ->assertRedirect(route('login'));
+});
+
+/*
+ * I tre vincoli che rendono sopportabile un dialogo sul primo gesto (D49).
+ * Sono la ragione per cui questa scelta non ricade nel «chiedere l'email prima
+ * di poter salvare» contro cui §15.1 metteva in guardia: se saltano, salta la
+ * ragione.
+ */
+it('tiene l invito chiuso finché nessuno tocca il cuore', function (): void {
+    /*
+     * Un `<dialog>` senza `open` non si vede e non intercetta niente. Lo apre
+     * lo script, e solo come conseguenza di un gesto: mai al caricamento.
+     */
+    $this->get(route('events.show', $this->salvate[0]->event))
+        ->assertOk()
+        ->assertSee('data-save-prompt', false)
+        ->assertDontSee('data-save-prompt open', false);
+});
+
+it('non chiama l invito al caricamento della pagina', function (): void {
+    $script = (string) file_get_contents(base_path('resources/js/app.js'));
+
+    /*
+     * `start()` gira a ogni caricamento. Se `showPromptIfDue()` finisse lì
+     * dentro, il dialogo si aprirebbe da solo a chi non ha toccato niente —
+     * la cosa più invadente che si possa fare, e per giunta su ogni pagina.
+     */
+    $inizio = mb_strpos($script, 'function start()');
+
+    expect($inizio)->not->toBeFalse()
+        ->and(mb_substr($script, $inizio, 900))
+        ->not->toContain('showPromptIfDue();');
+});
+
+it('ricorda il rifiuto comunque lo si chiuda, non solo col pulsante', function (): void {
+    $script = (string) file_get_contents(base_path('resources/js/app.js'));
+
+    /*
+     * `Esc` e il click sullo sfondo non passano dal gestore del pulsante: se
+     * la memoria si scrivesse lì, chi chiude in quei modi si vedrebbe
+     * riproporre il dialogo al salvataggio successivo. Va sull'evento `close`
+     * del dialogo, che è l'unico punto che li raccoglie tutti.
+     */
+    /* Le virgolette le decide Prettier, non noi: si accettano entrambe. */
+    expect($script)->toMatch('/prompt\.addEventListener\([\'"]close[\'"]/');
+});
+
+it('offre anche l accesso, non solo la registrazione', function (): void {
+    /*
+     * Chi un account ce l'ha gia' non deve trovarsi davanti un invito a
+     * crearne un altro: e' il caso di chi ha salvato da sloggato, che e'
+     * proprio quello in cui il travaso serve di piu'.
+     */
+    $this->get(route('events.show', $this->salvate[0]->event))
+        ->assertOk()
+        ->assertSee(route('account.register'), false)
+        ->assertSee(route('login'), false)
+        ->assertSee(__('account.prompt.login'), false);
+});
+
+it('chiude l invito anche quando si preme una delle sue azioni', function (): void {
+    $script = (string) file_get_contents(base_path('resources/js/app.js'));
+
+    /*
+     * «Crea un account» e «ho gia un account» sono collegamenti: portano via
+     * dalla pagina, ma senza `close()` il dialogo non viene mai chiuso e
+     * l'evento che registra la risposta non scatta. Chi ci ripensa e torna
+     * indietro se lo ritrova davanti — ed e' il difetto che si vedeva in
+     * produzione con la versione precedente.
+     *
+     * `close()` non annulla il click: il collegamento parte lo stesso.
+     */
+    $inizio = mb_strpos($script, 'function dismissPrompt()');
+
+    expect($inizio)->not->toBeFalse()
+        ->and(mb_substr($script, $inizio, 1600))
+        ->toContain('querySelectorAll("a[href]")');
 });

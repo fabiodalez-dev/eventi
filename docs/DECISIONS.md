@@ -2533,3 +2533,53 @@ quella di un runner condiviso. Il numero del piano e' rispettato nei fatti e
 questa tabella lo documenta; la soglia che ferma la pipeline sta un gradino
 piu' in la' perche' deve poter dire «rosso» solo quando c'e' davvero qualcosa
 che non va.
+
+## 2026-09-02 — D49. L'invito ad accedere diventa un dialogo, e compare al primo salvataggio
+
+**Decisione:** premendo il cuore da anonimo, la data viene salvata come prima
+nel `localStorage` e **subito dopo** si apre un dialogo che offre l'accesso.
+`guest_save_prompt_after` passa da `3` a `1`, e il riquadro discreto in fondo
+alla pagina diventa un `<dialog>` modale.
+
+**Cosa NON cambia, ed è il punto fermo di §15.1.** Il salvataggio avviene
+comunque, prima che il dialogo si apra. Il click non si perde, non si sospende
+in attesa di una registrazione, e chi chiude con «Non adesso» tiene la sua
+data. Chi accede se la ritrova sull'account, perché al primo caricamento da
+collegato il travaso parte da solo.
+
+**Perché.** §15.1 argomentava — a ragione — che chiedere l'email prima di poter
+salvare fa chiudere la scheda, e prevedeva un invito discreto dopo il terzo
+salvataggio. Quell'invito è stato costruito e funziona. Restava però un buco:
+**il primo salvataggio era muto.** Chi ne fa uno solo — cioè la maggioranza di
+chi passa — non scopriva mai che quella data vive soltanto in quel browser, e
+cambiando telefono la perdeva senza essere mai stato avvisato. Il testo del
+dialogo dice per prima cosa «Salvato su questo dispositivo»: è
+un'informazione che mancava, prima ancora che una proposta.
+
+**Il rischio è reale e va sorvegliato.** Un modale sul primo gesto è attrito
+messo nel momento in cui la persona ha appena espresso interesse, ed è
+esattamente ciò contro cui §15.1 metteva in guardia. Tre vincoli lo tengono a
+bada, e vanno mantenuti:
+
+- **Si apre solo come conseguenza di un gesto.** Mai al caricamento della
+  pagina: `showPromptIfDue()` non è più chiamato in `start()`. Un dialogo che
+  compare da solo appena si arriva su una pagina, a chi non ha toccato niente,
+  è la cosa più invadente che si possa fare.
+- **Compare una volta sola.** Chiudere è una risposta, non un rinvio — e vale
+  per tutti i modi di chiudere, il pulsante come `Esc` come il click sullo
+  sfondo. Per questo la memoria si scrive sull'evento `close` del dialogo e non
+  dentro al gestore del pulsante: `Esc` non passa di lì.
+- **Non compare quando si toglie una data.** Proporre un account a chi ha
+  appena tolto un salvataggio è chiedergli il contrario di quello che ha appena
+  detto.
+
+**`<dialog>` e non un `div` con `position: fixed`:** il focus resta dentro
+finché è aperto, `Esc` chiude, il resto della pagina diventa inerte per chi
+naviga da tastiera e per i lettori di schermo. A mano quelle cose si scrivono
+male e si dimenticano. E se `showModal()` mancasse, il dialogo resterebbe
+semplicemente chiuso: il salvataggio funzionerebbe lo stesso.
+
+**Se i numeri diranno che sbagliamo**, la via del ritorno è una riga:
+`guest_save_prompt_after` torna a `3` e il dialogo ridiventa un riquadro. La
+metrica da guardare è il rapporto fra primi salvataggi e schede chiuse subito
+dopo.

@@ -35,10 +35,19 @@ return [
         'merged' => '{0} Non c\'era nulla da recuperare.|{1} Ho ritrovato una data e l\'ho messa in agenda.|[2,*] Ho ritrovato :count date e le ho messe in agenda.',
     ],
 
+    /*
+     * Il dialogo che compare dopo il primo salvataggio da anonimo.
+     *
+     * Il titolo dice per prima cosa che **e' fatta**: chi ha appena premuto il
+     * cuore deve sapere che il gesto e' andato a segno, prima di leggere una
+     * proposta. Un invito che si apre senza confermare l'azione sembra un
+     * ostacolo messo davanti a quello che si stava facendo.
+     */
     'prompt' => [
-        'title' => 'Vuoi ricevere un promemoria prima dell\'evento?',
-        'body' => 'Crea un account in 10 secondi: ritrovi i tuoi salvataggi su ogni dispositivo e ti avviso prima che cominci.',
+        'title' => 'Salvato su questo dispositivo',
+        'body' => 'Resta qui, in questo browser: se cambi telefono non lo ritrovi. Con un account lo ritrovi ovunque e ti avviso prima che cominci.',
         'action' => 'Crea un account',
+        'login' => 'Ho già un account',
         'dismiss' => 'Non adesso',
     ],
 

@@ -17,10 +17,10 @@
  * viene aggiornato con `replaceState`, così ricaricare non riporta all'inizio.
  */
 function infiniteScroll() {
-    const results = document.querySelector('[data-results]');
-    const pagination = document.querySelector('[data-pagination]');
+    const results = document.querySelector("[data-results]");
+    const pagination = document.querySelector("[data-pagination]");
 
-    if (!results || !pagination || !('IntersectionObserver' in window)) {
+    if (!results || !pagination || !("IntersectionObserver" in window)) {
         return;
     }
 
@@ -42,15 +42,20 @@ function infiniteScroll() {
         loading = true;
 
         try {
-            const response = await fetch(url, { headers: { 'X-Requested-With': 'fetch' } });
+            const response = await fetch(url, {
+                headers: { "X-Requested-With": "fetch" },
+            });
 
             if (!response.ok) {
                 return;
             }
 
-            const document_ = new DOMParser().parseFromString(await response.text(), 'text/html');
-            const nextGrid = document_.querySelector('[data-results] > *');
-            const nextPagination = document_.querySelector('[data-pagination]');
+            const document_ = new DOMParser().parseFromString(
+                await response.text(),
+                "text/html",
+            );
+            const nextGrid = document_.querySelector("[data-results] > *");
+            const nextPagination = document_.querySelector("[data-pagination]");
             const grid = results.firstElementChild;
 
             if (nextGrid === null || nextPagination === null || grid === null) {
@@ -61,7 +66,7 @@ function infiniteScroll() {
                è la griglia a portare le colonne. */
             grid.append(...nextGrid.children);
             pagination.replaceChildren(...nextPagination.childNodes);
-            window.history.replaceState({}, '', url);
+            window.history.replaceState({}, "", url);
 
             if (nextUrl() === null) {
                 observer.disconnect();
@@ -74,13 +79,16 @@ function infiniteScroll() {
         }
     };
 
-    const observer = new IntersectionObserver((entries) => {
-        for (const entry of entries) {
-            if (entry.isIntersecting) {
-                void load(observer);
+    const observer = new IntersectionObserver(
+        (entries) => {
+            for (const entry of entries) {
+                if (entry.isIntersecting) {
+                    void load(observer);
+                }
             }
-        }
-    }, { rootMargin: '400px 0px' });
+        },
+        { rootMargin: "400px 0px" },
+    );
 
     observer.observe(pagination);
 }
@@ -91,27 +99,27 @@ function infiniteScroll() {
  * servizi, che funzionano ovunque.
  */
 function nativeShare() {
-    for (const button of document.querySelectorAll('[data-share]')) {
+    for (const button of document.querySelectorAll("[data-share]")) {
         if (!(button instanceof HTMLElement)) {
             continue;
         }
 
         const payload = {
             title: button.dataset.shareTitle ?? document.title,
-            text: button.dataset.shareText ?? '',
+            text: button.dataset.shareText ?? "",
             url: button.dataset.shareUrl ?? window.location.href,
         };
 
-        const canShare = typeof navigator.share === 'function';
+        const canShare = typeof navigator.share === "function";
         const canCopy = navigator.clipboard !== undefined;
 
         if (!canShare && !canCopy) {
             continue;
         }
 
-        button.classList.remove('hidden');
+        button.classList.remove("hidden");
 
-        button.addEventListener('click', async () => {
+        button.addEventListener("click", async () => {
             try {
                 if (canShare) {
                     await navigator.share(payload);
@@ -139,14 +147,15 @@ function nativeShare() {
  * chi cambia il raggio e poi concede la posizione si aspetta il raggio nuovo.
  */
 function radius(button) {
-    const select = button.parentElement?.querySelector('[data-geolocate-radius-input]')
-        ?? document.querySelector('[data-geolocate-radius-input]');
+    const select =
+        button.parentElement?.querySelector("[data-geolocate-radius-input]") ??
+        document.querySelector("[data-geolocate-radius-input]");
 
-    if (select instanceof HTMLSelectElement && select.value !== '') {
+    if (select instanceof HTMLSelectElement && select.value !== "") {
         return select.value;
     }
 
-    return button.dataset.geolocateRadius ?? '5';
+    return button.dataset.geolocateRadius ?? "5";
 }
 
 /**
@@ -158,32 +167,49 @@ function radius(button) {
  * dice prima perché la si chiede: qui c'è solo il gesto.
  */
 function geolocation() {
-    for (const button of document.querySelectorAll('[data-geolocate]')) {
-        if (!(button instanceof HTMLElement) || navigator.geolocation === undefined) {
+    for (const button of document.querySelectorAll("[data-geolocate]")) {
+        if (
+            !(button instanceof HTMLElement) ||
+            navigator.geolocation === undefined
+        ) {
             continue;
         }
 
-        button.classList.remove('hidden');
+        button.classList.remove("hidden");
 
-        button.addEventListener('click', () => {
-            button.setAttribute('aria-busy', 'true');
+        button.addEventListener("click", () => {
+            button.setAttribute("aria-busy", "true");
 
             navigator.geolocation.getCurrentPosition(
                 (position) => {
-                    const url = new URL(button.dataset.geolocateUrl ?? window.location.href, window.location.origin);
+                    const url = new URL(
+                        button.dataset.geolocateUrl ?? window.location.href,
+                        window.location.origin,
+                    );
 
-                    url.searchParams.set('lat', position.coords.latitude.toFixed(5));
-                    url.searchParams.set('lng', position.coords.longitude.toFixed(5));
-                    url.searchParams.set('radius', radius(button));
-                    url.searchParams.delete('page');
+                    url.searchParams.set(
+                        "lat",
+                        position.coords.latitude.toFixed(5),
+                    );
+                    url.searchParams.set(
+                        "lng",
+                        position.coords.longitude.toFixed(5),
+                    );
+                    url.searchParams.set("radius", radius(button));
+                    url.searchParams.delete("page");
 
                     window.location.assign(url.toString());
                 },
                 () => {
-                    button.removeAttribute('aria-busy');
-                    button.textContent = button.dataset.geolocateDenied ?? button.textContent;
+                    button.removeAttribute("aria-busy");
+                    button.textContent =
+                        button.dataset.geolocateDenied ?? button.textContent;
                 },
-                { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 },
+                {
+                    enableHighAccuracy: false,
+                    timeout: 10000,
+                    maximumAge: 300000,
+                },
             );
         });
     }
@@ -193,25 +219,33 @@ function geolocation() {
  * Salvataggi (§15.1). **Il cuore funziona al primo click, senza registrazione.**
  *
  * Da anonimi le date vivono nel `localStorage` e nessuna richiesta parte: è
- * quello a rendere il gesto immediato e a non interrompere niente. Dopo il
- * terzo salvataggio compare il riquadro che offre il promemoria — che è la
- * vera leva per registrarsi, non il salvataggio, che funziona già.
+ * quello a rendere il gesto immediato e a non interrompere niente. Subito
+ * dopo il primo salvataggio si apre il dialogo che offre l'accesso (D49) — a
+ * salvataggio già scritto, mai prima: quello che l'account aggiunge è
+ * ritrovare le date su ogni dispositivo e il promemoria, non il salvataggio,
+ * che funziona già.
  *
  * Da collegati il cuore parla con il server. In entrambi i casi sotto c'è un
  * modulo vero: se questo file non venisse eseguito, il cuore resterebbe un
  * pulsante di invio che funziona con un ricaricamento di pagina.
  */
-const SAVED_KEY = 'salvataggi';
-const PROMPT_KEY = 'salvataggi.promemoria-nascosto';
+const SAVED_KEY = "salvataggi";
+const PROMPT_KEY = "salvataggi.promemoria-nascosto";
 
 function accountSettings() {
-    const node = document.querySelector('[data-account]');
+    const node = document.querySelector("[data-account]");
 
     return {
-        authenticated: node?.dataset.accountAuthenticated === '1',
-        promptAfter: Number.parseInt(node?.dataset.accountPromptAfter ?? '3', 10),
+        authenticated: node?.dataset.accountAuthenticated === "1",
+        promptAfter: Number.parseInt(
+            node?.dataset.accountPromptAfter ?? "3",
+            10,
+        ),
         mergeUrl: node?.dataset.accountMerge ?? null,
-        token: document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '',
+        token:
+            document
+                .querySelector('meta[name="csrf-token"]')
+                ?.getAttribute("content") ?? "",
     };
 }
 
@@ -225,7 +259,9 @@ function localSaves() {
         const raw = window.localStorage.getItem(SAVED_KEY);
         const ids = raw === null ? [] : JSON.parse(raw);
 
-        return Array.isArray(ids) ? ids.map(Number).filter((id) => Number.isInteger(id) && id > 0) : [];
+        return Array.isArray(ids)
+            ? ids.map(Number).filter((id) => Number.isInteger(id) && id > 0)
+            : [];
     } catch {
         return [];
     }
@@ -233,7 +269,10 @@ function localSaves() {
 
 function writeLocalSaves(ids) {
     try {
-        window.localStorage.setItem(SAVED_KEY, JSON.stringify([...new Set(ids)]));
+        window.localStorage.setItem(
+            SAVED_KEY,
+            JSON.stringify([...new Set(ids)]),
+        );
     } catch {
         /* Senza spazio il salvataggio non si conserva, ma il gesto non deve
            comunque produrre un errore visibile. */
@@ -246,43 +285,57 @@ function writeLocalSaves(ids) {
  * sapere che cosa è appena successo quanto chi vede il riempimento.
  */
 function paintHeart(form, saved) {
-    const button = form.querySelector('[data-save-button]');
-    const icon = form.querySelector('[data-save-icon]');
-    const text = form.querySelector('[data-save-text]');
+    const button = form.querySelector("[data-save-button]");
+    const icon = form.querySelector("[data-save-icon]");
+    const text = form.querySelector("[data-save-text]");
 
     if (!button) {
         return;
     }
 
-    button.setAttribute('aria-pressed', saved ? 'true' : 'false');
-    button.classList.toggle('bg-brand', saved);
-    button.classList.toggle('text-on-brand', saved);
-    button.classList.toggle('ring-brand', saved);
-    button.classList.toggle('bg-surface', !saved);
-    button.classList.toggle('text-ink-muted', !saved);
-    button.classList.toggle('ring-line', !saved);
+    button.setAttribute("aria-pressed", saved ? "true" : "false");
+    button.classList.toggle("bg-brand", saved);
+    button.classList.toggle("text-on-brand", saved);
+    button.classList.toggle("ring-brand", saved);
+    button.classList.toggle("bg-surface", !saved);
+    button.classList.toggle("text-ink-muted", !saved);
+    button.classList.toggle("ring-line", !saved);
 
     if (icon) {
-        icon.style.fill = saved ? 'currentColor' : 'none';
-        icon.style.stroke = saved ? 'none' : 'currentColor';
-        icon.style.strokeWidth = saved ? '0' : '2';
+        icon.style.fill = saved ? "currentColor" : "none";
+        icon.style.stroke = saved ? "none" : "currentColor";
+        icon.style.strokeWidth = saved ? "0" : "2";
     }
 
     if (text) {
-        text.textContent = saved ? form.dataset.saveLabelSaved : form.dataset.saveLabel;
+        text.textContent = saved
+            ? form.dataset.saveLabelSaved
+            : form.dataset.saveLabel;
     }
 }
 
+/*
+ * L'invito ad accedere, dopo il primo salvataggio da anonimo (D49).
+ *
+ * **Si apre a salvataggio gia' fatto.** Chi chiama questa funzione lo fa dopo
+ * aver scritto nel `localStorage` e aver aggiornato il cuore: il click e'
+ * andato a segno, e questo dialogo e' una proposta su quello che si e' appena
+ * ottenuto — non un cancello messo davanti.
+ *
+ * Compare una volta sola per chi dice di no. Un invito che ricompare a ogni
+ * cuore e' il modo piu' rapido di far chiudere la scheda, che e' esattamente
+ * il rischio contro cui §15.1 metteva in guardia.
+ */
 function showPromptIfDue() {
-    const prompt = document.querySelector('[data-save-prompt]');
+    const prompt = document.querySelector("[data-save-prompt]");
     const { promptAfter } = accountSettings();
 
-    if (!prompt || localSaves().length < promptAfter) {
+    if (!prompt || prompt.open || localSaves().length < promptAfter) {
         return;
     }
 
     try {
-        if (window.localStorage.getItem(PROMPT_KEY) === '1') {
+        if (window.localStorage.getItem(PROMPT_KEY) === "1") {
             return;
         }
     } catch {
@@ -290,17 +343,69 @@ function showPromptIfDue() {
            nasconderla per sempre. */
     }
 
-    prompt.hidden = false;
+    /*
+     * `showModal` e non l'attributo `open`: solo il primo intrappola il focus,
+     * rende inerte il resto della pagina e accende lo sfondo. Non esiste piu'
+     * da nessuna parte che conti, ma se mancasse il dialogo resterebbe chiuso
+     * e il salvataggio funzionerebbe comunque.
+     */
+    if (typeof prompt.showModal === "function") {
+        prompt.showModal();
+    } else {
+        prompt.setAttribute("open", "");
+    }
 }
 
+/**
+ * Chiudere e' una risposta, non un rinvio: chi ha appena salvato ha gia'
+ * ottenuto quello per cui aveva premuto, e non gli si richiede piu'.
+ *
+ * Vale per tutti i modi di chiudere — il pulsante, Esc, il click fuori — ed e'
+ * per questo che la memoria si scrive sull'evento `close` del dialogo e non
+ * dentro al gestore del pulsante: Esc non passa di li'.
+ */
 function dismissPrompt() {
-    const prompt = document.querySelector('[data-save-prompt]');
+    const prompt = document.querySelector("[data-save-prompt]");
 
-    prompt?.querySelector('[data-save-prompt-dismiss]')?.addEventListener('click', () => {
-        prompt.hidden = true;
+    if (!prompt) {
+        return;
+    }
 
+    prompt
+        .querySelector("[data-save-prompt-dismiss]")
+        ?.addEventListener("click", () => {
+            prompt.close();
+        });
+
+    /*
+     * Anche premere «crea un account» o «ho gia un account» e' una risposta.
+     *
+     * Quei due sono collegamenti: portano via dalla pagina, ma il dialogo non
+     * viene mai chiuso e l'evento `close` non scatta — quindi la risposta non
+     * si registra. Chi va alla registrazione, ci ripensa e torna indietro se
+     * lo ritrova davanti; e nel frattempo resta a schermo per tutto il tempo
+     * del caricamento, sopra una pagina che sta gia' cambiando.
+     *
+     * Si chiude prima di lasciare andare il click: il collegamento parte lo
+     * stesso, perche' `close()` non lo annulla.
+     */
+    for (const azione of prompt.querySelectorAll("a[href]")) {
+        azione.addEventListener("click", () => {
+            prompt.close();
+        });
+    }
+
+    /* Il click sullo sfondo: nel dialogo nativo l'evento arriva all'elemento
+       stesso, mentre dentro arriva ai figli. */
+    prompt.addEventListener("click", (event) => {
+        if (event.target === prompt) {
+            prompt.close();
+        }
+    });
+
+    prompt.addEventListener("close", () => {
         try {
-            window.localStorage.setItem(PROMPT_KEY, '1');
+            window.localStorage.setItem(PROMPT_KEY, "1");
         } catch {
             /* Nessuna preferenza conservata: ricomparirà. */
         }
@@ -317,12 +422,12 @@ async function talkToServer(url, method, token, body) {
         const response = await fetch(url, {
             method,
             headers: {
-                'Content-Type': 'application/json',
-                Accept: 'application/json',
-                'X-CSRF-TOKEN': token,
-                'X-Requested-With': 'fetch',
+                "Content-Type": "application/json",
+                Accept: "application/json",
+                "X-CSRF-TOKEN": token,
+                "X-Requested-With": "fetch",
             },
-            body: method === 'DELETE' ? null : JSON.stringify(body),
+            body: method === "DELETE" ? null : JSON.stringify(body),
         });
 
         return response.ok;
@@ -335,31 +440,51 @@ function savedHearts() {
     const { authenticated, token } = accountSettings();
     const saves = localSaves();
 
-    for (const form of document.querySelectorAll('[data-save]')) {
-        const id = Number.parseInt(form.dataset.saveId ?? '0', 10);
+    for (const form of document.querySelectorAll("[data-save]")) {
+        const id = Number.parseInt(form.dataset.saveId ?? "0", 10);
 
         if (!authenticated) {
             paintHeart(form, saves.includes(id));
         }
 
-        form.addEventListener('submit', async (event) => {
+        form.addEventListener("submit", async (event) => {
             event.preventDefault();
 
-            const wasSaved = form.querySelector('[data-save-button]')?.getAttribute('aria-pressed') === 'true';
+            const wasSaved =
+                form
+                    .querySelector("[data-save-button]")
+                    ?.getAttribute("aria-pressed") === "true";
 
             if (!authenticated) {
                 const current = localSaves();
 
-                writeLocalSaves(wasSaved ? current.filter((saved) => saved !== id) : [...current, id]);
+                writeLocalSaves(
+                    wasSaved
+                        ? current.filter((saved) => saved !== id)
+                        : [...current, id],
+                );
                 paintHeart(form, !wasSaved);
-                showPromptIfDue();
+
+                /* Solo quando si aggiunge: proporre un account a chi ha appena
+                   tolto una data e' chiedere il contrario di quello che ha
+                   appena detto. */
+                if (!wasSaved) {
+                    showPromptIfDue();
+                }
 
                 return;
             }
 
             const ok = wasSaved
-                ? await talkToServer(form.dataset.saveDestroy, 'DELETE', token, {})
-                : await talkToServer(form.dataset.saveStore, 'POST', token, { occurrence_id: id });
+                ? await talkToServer(
+                      form.dataset.saveDestroy,
+                      "DELETE",
+                      token,
+                      {},
+                  )
+                : await talkToServer(form.dataset.saveStore, "POST", token, {
+                      occurrence_id: id,
+                  });
 
             if (ok) {
                 paintHeart(form, !wasSaved);
@@ -382,23 +507,27 @@ function savedHearts() {
 function saveAllDates() {
     const { authenticated } = accountSettings();
 
-    for (const form of document.querySelectorAll('[data-save-all]')) {
+    for (const form of document.querySelectorAll("[data-save-all]")) {
         if (authenticated) {
             continue;
         }
 
-        form.addEventListener('submit', (event) => {
+        form.addEventListener("submit", (event) => {
             event.preventDefault();
 
-            const ids = (form.dataset.saveIds ?? '')
-                .split(',')
+            const ids = (form.dataset.saveIds ?? "")
+                .split(",")
                 .map((value) => Number.parseInt(value, 10))
                 .filter((id) => Number.isInteger(id) && id > 0);
 
             writeLocalSaves([...localSaves(), ...ids]);
 
-            for (const heart of document.querySelectorAll('[data-save]')) {
-                if (ids.includes(Number.parseInt(heart.dataset.saveId ?? '0', 10))) {
+            for (const heart of document.querySelectorAll("[data-save]")) {
+                if (
+                    ids.includes(
+                        Number.parseInt(heart.dataset.saveId ?? "0", 10),
+                    )
+                ) {
                     paintHeart(heart, true);
                 }
             }
@@ -428,12 +557,12 @@ async function mergeGuestSaves() {
 
     try {
         const response = await fetch(mergeUrl, {
-            method: 'POST',
+            method: "POST",
             headers: {
-                'Content-Type': 'application/json',
-                Accept: 'application/json',
-                'X-CSRF-TOKEN': token,
-                'X-Requested-With': 'fetch',
+                "Content-Type": "application/json",
+                Accept: "application/json",
+                "X-CSRF-TOKEN": token,
+                "X-Requested-With": "fetch",
             },
             body: JSON.stringify({ occurrence_ids: ids }),
         });
@@ -444,7 +573,7 @@ async function mergeGuestSaves() {
 
         writeLocalSaves([]);
 
-        for (const heart of document.querySelectorAll('[data-save]')) {
+        for (const heart of document.querySelectorAll("[data-save]")) {
             paintHeart(heart, true);
         }
     } catch {
@@ -479,8 +608,8 @@ async function mergeGuestSaves() {
  *    nessuno capisce perché.
  */
 function consentBanner() {
-    const banner = document.querySelector('[data-consent-banner]');
-    const form = banner?.querySelector('[data-consent-form]');
+    const banner = document.querySelector("[data-consent-banner]");
+    const form = banner?.querySelector("[data-consent-form]");
 
     if (!banner || !(form instanceof HTMLFormElement)) {
         return;
@@ -489,18 +618,21 @@ function consentBanner() {
     /* Invio normale, con la scelta allegata: è ciò che sarebbe successo senza
        questo script. */
     const fallback = (scelta) => {
-        const campo = document.createElement('input');
-        campo.type = 'hidden';
-        campo.name = 'action';
+        const campo = document.createElement("input");
+        campo.type = "hidden";
+        campo.name = "action";
         campo.value = scelta;
         form.append(campo);
         form.submit();
     };
 
-    form.addEventListener('submit', async (event) => {
+    form.addEventListener("submit", async (event) => {
         const submitter = event.submitter;
 
-        if (!(submitter instanceof HTMLButtonElement) || submitter.name !== 'action') {
+        if (
+            !(submitter instanceof HTMLButtonElement) ||
+            submitter.name !== "action"
+        ) {
             return;
         }
 
@@ -508,12 +640,15 @@ function consentBanner() {
 
         const scelta = submitter.value;
         const data = new FormData(form);
-        data.set('action', scelta);
+        data.set("action", scelta);
 
         try {
-            const response = await fetch(form.getAttribute('action'), {
-                method: 'POST',
-                headers: { Accept: 'application/json', 'X-Requested-With': 'fetch' },
+            const response = await fetch(form.getAttribute("action"), {
+                method: "POST",
+                headers: {
+                    Accept: "application/json",
+                    "X-Requested-With": "fetch",
+                },
                 body: data,
             });
 
@@ -553,13 +688,14 @@ function consentBanner() {
  * collegamento alla scheda è un `href` normale.
  */
 function sponsorshipMetrics() {
-    const cards = document.querySelectorAll('[data-sponsorship]');
+    const cards = document.querySelectorAll("[data-sponsorship]");
 
     if (cards.length === 0) {
         return;
     }
 
-    const token = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+    const token =
+        document.querySelector('meta[name="csrf-token"]')?.content ?? "";
 
     const conta = (url) => {
         if (!url) {
@@ -567,9 +703,9 @@ function sponsorshipMetrics() {
         }
 
         void fetch(url, {
-            method: 'POST',
+            method: "POST",
             keepalive: true,
-            headers: { 'X-CSRF-TOKEN': token, Accept: 'application/json' },
+            headers: { "X-CSRF-TOKEN": token, Accept: "application/json" },
         }).catch(() => {
             /* Una misura persa non è un problema di chi sta navigando: nessun
                messaggio, nessun tentativo ripetuto. */
@@ -577,10 +713,14 @@ function sponsorshipMetrics() {
     };
 
     for (const card of cards) {
-        card.addEventListener('click', () => conta(card.dataset.sponsorshipClick), { once: true });
+        card.addEventListener(
+            "click",
+            () => conta(card.dataset.sponsorshipClick),
+            { once: true },
+        );
     }
 
-    if (typeof IntersectionObserver !== 'function') {
+    if (typeof IntersectionObserver !== "function") {
         return;
     }
 
@@ -610,14 +750,23 @@ function start() {
     savedHearts();
     saveAllDates();
     dismissPrompt();
-    showPromptIfDue();
+    /*
+     * `showPromptIfDue()` NON si chiama qui.
+     *
+     * Con il vecchio riquadro in fondo alla pagina aveva senso: chi tornava
+     * con gia' tre salvataggi lo trovava li'. Ora e' un dialogo, e un dialogo
+     * che si apre da solo appena si arriva su una pagina e' la cosa piu'
+     * invadente che si possa fare — per giunta a chi non ha appena toccato
+     * niente. Si apre solo come conseguenza di un gesto: il cuore, o «salva
+     * tutte le date».
+     */
     consentBanner();
     sponsorshipMetrics();
     void mergeGuestSaves();
 }
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', start);
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", start);
 } else {
     start();
 }

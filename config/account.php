@@ -11,11 +11,21 @@ declare(strict_types=1);
 return [
 
     /*
-     * Dopo quanti salvataggi da anonimo compare il riquadro che offre il
-     * promemoria (§15.1). Tre è il numero del piano: al primo click nessuna
-     * interruzione, al terzo la persona ha già dimostrato di tornare.
+     * Dopo quanti salvataggi da anonimo compare l'invito ad accedere (§15.1,
+     * rivisto — vedi D49).
+     *
+     * Era 3, con un riquadro discreto in fondo alla pagina: al primo click
+     * nessuna interruzione, al terzo la persona ha gia' dimostrato di
+     * tornare. Ora e' 1 e l'invito e' un dialogo, perche' il primo
+     * salvataggio era muto — chi ne fa uno solo non scopriva mai che vive
+     * soltanto in quel browser, e cambiando telefono lo perdeva senza essere
+     * mai stato avvisato.
+     *
+     * **Il salvataggio avviene comunque, prima che il dialogo si apra.** Il
+     * click non si perde e non si sospende in attesa di una registrazione:
+     * quello resta il punto fermo di §15.1.
      */
-    'guest_save_prompt_after' => 3,
+    'guest_save_prompt_after' => 1,
 
     /*
      * Quanti identificativi accetta al massimo `POST /v1/me/saved/merge`. È il
