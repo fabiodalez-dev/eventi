@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Support\Features;
+use App\Support\Health\BackupFreshnessCheck;
+use App\Support\Health\CalendarCoverageCheck;
 use App\Support\Health\ImportSourcesCheck;
+use App\Support\Health\MediaWeightCheck;
 use App\Support\Health\ScheduledTasksCheck;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
@@ -130,6 +133,20 @@ final class OperationsServiceProvider extends ServiceProvider
              * promemoria».
              */
             ScheduledTasksCheck::new()->label(__('health.labels.scheduled_tasks')),
+
+            /*
+             * **La manutenzione ordinaria**, cioe' i tre guasti che sono
+             * successi davvero e che nessuno vedeva arrivare.
+             *
+             * Hanno una cosa in comune: nessuno dei tre fa cadere il sito nel
+             * momento in cui accade, e tutti e tre si manifestano piu' tardi
+             * come qualcos'altro — una pagina lenta, un'email che non arriva,
+             * un 500 dove ieri non c'era. Il costo non e' il guasto: e'
+             * l'indagine per risalire dal sintomo alla causa.
+             */
+            CalendarCoverageCheck::new()->label(__('health.labels.calendar_coverage')),
+            BackupFreshnessCheck::new()->label(__('health.labels.backup_freshness')),
+            MediaWeightCheck::new()->label(__('health.labels.media_weight')),
         ]);
     }
 }

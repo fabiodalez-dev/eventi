@@ -269,6 +269,87 @@ resta aperto** e l'episodio finisce in `storage/logs/laravel.log`: campo esca e
 limite di frequenza reggono da soli. E' voluto — un guasto di un terzo non deve
 diventare un guasto nostro.
 
+## Manutenzione ordinaria: i tre guasti che non si annunciano
+
+Tutti e tre sono successi. Nessuno fa cadere il sito nel momento in cui accade,
+e tutti si presentano più tardi come qualcos'altro — che è il motivo per cui
+costano un'indagine invece di cinque minuti.
+
+Il primo posto dove guardare è sempre lo stesso:
+
+```bash
+php artisan health:check          # in locale
+ssh fabiodalez.it "cd ~/eventi && /opt/cpanel/ea-php84/root/usr/bin/php artisan health:check"
+```
+
+### «La pagina iniziale dà 500, le altre no»
+
+**Quasi certamente il disco è pieno**, non il codice. Le altre pagine reggono
+perché hanno già la loro cache; la home no, e Laravel non riesce a scrivere né
+sessioni né log — per questo `laravel.log` è muto e inganna.
+
+```bash
+ssh fabiodalez.it "uapi --output=simple Quota get_quota_info | grep -E 'megabytes_(used|remain)'"
+```
+
+Se `megabytes_remain` è `0.00`, il colpevole più probabile è un backup morto a
+metà. Si tolgono i suoi resti — **solo quelli**, dopo aver verificato che il
+backup precedente sia integro:
+
+```bash
+ssh fabiodalez.it "cd ~/eventi
+  unzip -t storage/app/private/eventi/<il-penultimo>.zip | tail -2   # deve dire 'No errors'
+  rm -rf storage/app/backup-temp
+  rm -f  storage/app/private/eventi/<quello-troncato>.zip"
+```
+
+Da settembre 2026 non dovrebbe più capitare: `SpazioSufficiente` impedisce al
+backup di partire se non c'è spazio per finirlo — e non lo stima, prova a
+scrivere 64 MB, perché su hosting condiviso `disk_free_space()` riporta il
+volume di tutti e non la quota dell'account.
+
+**Il contatore di cPanel è in cache**: dopo aver liberato può restare fermo per
+un po'. La prova vera è scrivere un file.
+
+### «Il sito è diventato lento e non ho toccato niente»
+
+Guardare **il peso delle locandine** prima del codice:
+
+```bash
+php artisan health:check | grep -A 2 'Peso delle locandine'
+php artisan media:compress-oversized --dry-run    # quali e quanto pesano
+php artisan media:compress-oversized              # le ricomprime
+```
+
+Le conversioni nuove restano nel tetto da sole (`CompressOversizedConversion`);
+il comando serve per lo storico, o dopo un import massiccio. Quelle che non
+rientrano nemmeno alla qualità minima vengono lasciate com'erano e nominate
+nell'esito: lì il problema è l'originale, e va risolto da chi l'ha caricato.
+
+Se le immagini sono a posto, il sospetto successivo è che manchino le varianti
+**AVIF**: senza, la stessa locandina pesa da tre a cinque volte tanto.
+
+```bash
+find storage/app/public -name '*-card.webp' | wc -l
+find storage/app/public -name '*-card-avif.avif' | wc -l   # devono somigliarsi
+php artisan tinker --execute="var_dump(App\Support\Media\AvifSupport::available());"
+```
+
+### «Nessuno si lamenta, quindi va tutto bene»
+
+È il guasto peggiore perché non ha sintomi: **il calendario si svuota**. Chi
+apre il sito non trova niente da fare e non torna, e nessuno scrive per dirlo.
+
+```bash
+php artisan health:check | grep -A 2 'Copertura del calendario'
+```
+
+Avvisa sotto il 70% dei prossimi quattordici giorni con almeno tre date,
+fallisce sotto il 40%. Non è un problema tecnico e non si risolve con il
+codice: si risolve chiamando i locali. Il piano lo dice già in §2.2 — *«una
+piattaforma di eventi che mostra "non ci sono eventi" è morta»* — ed è
+l'indicatore che va guardato per primo, prima di qualunque metrica di velocità.
+
 ## Vedere le email in sviluppo
 
 **Non serve una libreria PHP.** Laravel ha già due modi di non spedire davvero,

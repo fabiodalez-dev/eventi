@@ -12,6 +12,9 @@ return [
        nella risposta di `/stato/completo`. Senza, il pacchetto le deduce dal
        nome della classe e restano in inglese. */
     'labels' => [
+        'calendar_coverage' => 'Copertura del calendario',
+        'backup_freshness' => 'Backup recente e intero',
+        'media_weight' => 'Peso delle locandine',
         'database' => 'Database',
         'cache' => 'Cache',
         'disk' => 'Spazio su disco',

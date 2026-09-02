@@ -73,6 +73,24 @@ Misure primarie:
 - eventi futuri totali in qualunque momento (target ≥ 100)
 - locali attivi (≥ 1 evento negli ultimi 30 giorni)
 
+**Dove si guardano** (aggiunto il 2026-09-02). Queste misure sono rimaste a
+lungo scritte qui e in nessun altro posto: il pannello contava eventi
+incompleti, duplicati e locandine mancanti — cioè se un evento è *scritto
+male* — mai se giovedì sera la città è vuota. Il rovescio esatto delle
+priorità dichiarate in questo stesso paragrafo: la velocità di una pagina
+aveva un controllo bloccante in CI, il fatto che quella pagina avesse
+qualcosa da mostrare non aveva nemmeno un numero.
+
+Ora la copertura è un controllo di salute (`CalendarCoverageCheck`): quanti dei
+prossimi quattordici giorni hanno almeno tre date, e quante occorrenze future
+esistono in tutto. Avvisa sotto il 70% dei giorni coperti, fallisce sotto il
+40%. Si legge con `php artisan health:check` e nella pagina di stato.
+
+Si conta per `business_date` e non per `starts_at`: un concerto che comincia
+all'una di notte appartiene alla serata prima (§8), e contarlo sul giorno
+solare direbbe che mercoledì c'è qualcosa quando per chi legge quella serata è
+martedì.
+
 Misure secondarie: click su "Indicazioni", click su "Biglietti", salvataggi, condivisioni, tempo medio di inserimento evento da parte di un gestore, eventi segnalati come errati / totale, tempo medio di approvazione.
 
 ---
@@ -892,6 +910,45 @@ Duplicati, segnalazioni, dashboard qualità, archiviazione automatica degli scad
 ### F10 — GDPR, analytics, lancio
 Pagine legali, cookie banner, analytics, newsletter, backup con restore testato, monitoring, Sentry, deploy, rollback.
 
+### F10b — Manutenzione ordinaria (aggiunta il 2026-09-02)
+
+F10 copre come **arrivare** in produzione: deploy, monitoring, backup,
+rollback. Non copriva come **restarci**, e i tre guasti veri delle prime
+settimane sono stati tutti di quel genere:
+
+| cosa è successo | come si è manifestato |
+|---|---|
+| il backup notturno ha esaurito la quota mentre scriveva | la pagina iniziale rispondeva 500, le altre no |
+| una locandina da 231 KB in apertura | «tempo di disegno alto» in un referto di prestazioni |
+| il calendario che si svuota | *niente* — nessuno se ne sarebbe accorto |
+
+Hanno in comune la cosa peggiore: **nessuno fa cadere il sito nel momento in
+cui accade**, e tutti si presentano più tardi come qualcos'altro. Il costo non
+è il guasto: è l'indagine per risalire dal sintomo alla causa.
+
+**Cosa esiste ora**, oltre ai controlli che c'erano già (database, cache, disco,
+code, scheduler, sorgenti di import):
+
+- **`CalendarCoverageCheck`** — il KPI di §1, finalmente misurato: quanti dei
+  prossimi quattordici giorni hanno almeno tre date.
+- **`BackupFreshnessCheck`** — non solo «esiste un backup recente» ma anche
+  «pesa abbastanza da essere intero». Un archivio troncato ha un nome perfetto
+  e non si apre; `backup:monitor` da solo non se ne accorge.
+- **`MediaWeightCheck`** — quante locandine da elenco superano i 120 KB. Con
+  soglia **proporzionale**: alcune immagini sono irriducibili, e un controllo
+  sempre rosso viene spento dopo la seconda volta.
+- **`SpazioSufficiente`** sul backup: non parte se non c'è spazio per finirlo,
+  e non si stima — si prova a scrivere. Su hosting condiviso
+  `disk_free_space()` riporta il volume di tutti, non la quota dell'account.
+- **`CompressOversizedConversion`** e **`media:compress-oversized`**: il
+  listener tiene nel tetto le conversioni nuove, il comando ripassa lo storico.
+  Un difetto corretto solo in avanti resta a terra per tutto ciò che c'era
+  prima — erano 84 locandine su 495.
+
+**Criterio di accettazione**, da applicare anche in futuro: *un guasto
+ordinario ha un controllo che lo nomina e una pagina del RUNBOOK che dice cosa
+fare*. Se un incidente si scopre leggendo un log, manca uno dei due.
+
 ### F11 — Documento app mobile
 Solo quando sito, backend, API e contenuti sono stabili. Produrre `MOBILE-APP-SPEC.md`.
 Stack raccomandato: **React Native + Expo + TypeScript + Expo Router** — codebase unico Android/iOS, EAS per build, distribuzione e aggiornamenti.
@@ -900,7 +957,7 @@ Funzioni native che giustificano l'esistenza dell'app: push ("stasera 3 eventi c
 
 ### Ordine complessivo
 ```
-F0 → F1 → F2 → F3 → F4 → F5 → F6 → F7 → F7b → F9 → F10 → F11
+F0 → F1 → F2 → F3 → F4 → F5 → F6 → F7 → F7b → F9 → F10 → F10b → F11
         └──────── F8 in parallelo da qui ────────┘
 ```
 F8 parte appena esiste l'admin: raccogliere contenuti richiede settimane di relazioni con i locali, non giorni di codice. È il vero rischio del progetto, e non è tecnico.
@@ -948,7 +1005,15 @@ Una funzione è finita quando: codice scritto · test scritto · policy verifica
 1. Nome definitivo e dominio.
 2. Padova città o intera provincia; raggio iniziale in km.
 3. Eventi senza locale registrato ammessi in v1? *(Raccomandazione: sì, via `custom_location`, gestiti dalla redazione.)*
-4. **Modello economico.** Non va implementato ora, ma va deciso ora perché tocca schema e Termini: featured gratuiti o a pagamento, ruolo della pubblicità, eventuale gratuità per associazioni e no-profit. Lo schema deve già permettere in futuro featured, sponsorship, premium venue, promoted event, newsletter sponsorship. Nella v1 l'obiettivo è **avere eventi**, non monetizzare: la monetizzazione viene dopo che esiste un pubblico.
+4. **Modello economico.** ~~Non va implementato ora~~ — **deciso e costruito** (2026-09-02, D50 e seguenti). Restano validi i vincoli che questa voce poneva: lo schema permette featured, sponsorship, premium venue, promoted event e newsletter sponsorship, e la gratuità per associazioni e no-profit è una scelta commerciale ancora aperta.
+
+   **Cosa esiste oggi.** Campagne sponsorizzate su **eventi veri del catalogo** — non banner: la card sponsorizzata è la stessa degli altri eventi, con l'etichetta «sponsorizzato», il nome di chi paga e `rel="sponsored"`, dichiarata anche nell'API. Quattro collocazioni (apertura, card in pagina iniziale, cima delle liste, foglio della mappa), ognuna con un tetto fisso: vendere non può cambiare l'aspetto del prodotto.
+
+   Si vende **a quota, non a posizione**: `weight` distribuisce le apparizioni in proporzione (peso 3 contro 1 significa tre volte su quattro), mentre `priority` resta l'impegno contrattuale «sei sempre in cima». Prima esisteva solo la priorità, e in una collocazione da uno solo chi comprava meno non compariva **mai**: si poteva vendere un posto solo. Ci sono tetti di consegna a visualizzazioni e ad aperture, misure giorno per giorno, un riepilogo settimanale automatico ai committenti, e — per chi è autenticato — un'inclinazione verso le categorie che ha salvato.
+
+   **La riserva del piano resta vera e va tenuta a mente**: l'obiettivo primario è avere eventi. Il sistema è costruito perché sia *possibile* vendere con onestà e misurare cosa si è venduto, non perché la monetizzazione venga prima del popolamento. Il KPI di §1 resta il metro: se la copertura del calendario scende mentre le campagne salgono, si sta ottimizzando la cosa sbagliata.
+
+   **Una cosa da mettere nel contratto, non nel codice**: le misure si contano dal browser, quindi chi blocca gli script non viene contato e le cifre sono una stima al ribasso. Va scritto prima del primo cliente, non dopo la prima contestazione.
 5. Chi modera nella pratica e con quali tempi dichiarati ai locali.
 6. ~~Account utente nel primo rilascio?~~ **Deciso: sì.** Account, salvataggi e notifiche sono in fase 1 (F7b, §15). ~~Resta da scegliere se attivare Web Push al lancio~~ — **deciso dai fatti** (D8): non è installabile su Laravel 13, si parte con le sole email.
 7. Lingue al lancio: solo italiano, o anche inglese per studenti e turismo.
