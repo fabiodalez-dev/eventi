@@ -2583,3 +2583,59 @@ semplicemente chiuso: il salvataggio funzionerebbe lo stesso.
 `guest_save_prompt_after` torna a `3` e il dialogo ridiventa un riquadro. La
 metrica da guardare è il rapporto fra primi salvataggi e schede chiuse subito
 dopo.
+
+## 2026-09-02 — D50. Il server di posta si configura dal pannello, e si accende solo dopo una prova riuscita
+
+**Decisione:** una pagina in `/admin`, riservata al **super amministratore**,
+dove si scrivono le coordinate SMTP. Le impostazioni vivono in
+`spatie/laravel-settings` (gruppo `mail`), la password è cifrata a riposo, e la
+casella «usa questa configurazione» resta **bloccata** finché un invio di prova
+non riesce davvero con quelle stesse credenziali.
+
+**Perché.** In produzione la posta esce dal `sendmail` del server: funziona, ma
+un messaggio spedito da un hosting condiviso senza SPF né DKIM del mittente
+finisce nella posta indesiderata con una regolarità che si nota — e su questo
+sito la posta è quasi tutta roba che deve arrivare: promemoria, collegamenti di
+accesso, reimpostazioni di password. Cambiare fornitore significava mettere
+mano al `.env` sul server via SSH.
+
+**La tabella non si chiama `settings`.** Quel nome è già occupato: c'è un
+modello `Setting` chiave/valore tipizzato, previsto dal piano per i feature
+flag e oggi ancora inutilizzato. Il pacchetto vuole una struttura sua
+(`group`/`name`/`payload`), quindi ha la propria tabella `system_settings`. Due
+formati nella stessa tabella sarebbero un guaio che si scopre tardi.
+
+**Perché la prova è obbligatoria.** È il vincolo che regge tutto il resto: un
+refuso nella password spegnerebbe in silenzio TUTTE le notifiche del sito. I
+lavori in coda fallirebbero uno a uno e non se ne accorgerebbe nessuno finché
+qualcuno non si lamenta di non aver ricevuto un promemoria — cioè giorni dopo,
+e senza collegare la causa all'effetto.
+
+La verifica è legata a un'**impronta** di host, porta, cifratura, utenza e
+password: una prova riuscita ieri su un altro host non dice niente su quello di
+oggi, quindi cambiare una di quelle cinque cose richiude la casella. Il
+mittente non entra nell'impronta di proposito — non può rompere la connessione,
+e far rifare la prova per aver corretto un nome visualizzato sarebbe fastidio
+senza contropartita.
+
+**Come si applica.** Un service provider agganciato alla risoluzione di
+`mail.manager`, non un middleware: la posta parte anche dai lavori in coda e
+dai comandi schedulati, e un middleware coprirebbe solo la strada che passa dal
+browser — cioè quasi nessuna delle notifiche di questo sito. Se leggere le
+impostazioni fallisce (database irraggiungibile, migrazioni non ancora
+eseguite) non succede niente: resta la configurazione di `.env`. Fallire lì
+significherebbe una pagina bianca su tutto il sito per non aver potuto leggere
+un host SMTP.
+
+**L'invio di prova usa un trasporto temporaneo con un nome proprio**, non
+sovrascrive quello predefinito. La prima versione cambiava `mail.default` e
+buttava via il gestore in cache per forzarlo a ricostruirsi: funzionava, ma per
+un singolo invio metteva le mani sullo stato di tutta l'applicazione, con un
+ripristino affidato a un `finally` che qualcuno prima o poi avrebbe spostato.
+In prova distruggeva perfino `Mail::fake()`, ed è così che il difetto è venuto
+fuori.
+
+**Nasce spenta e vuota.** Finché nessuno la compila, la posta esce esattamente
+come prima. Ed è anche la via del ritorno: si spegne la casella senza cancellare
+niente, che è quello che serve nel momento peggiore — quando qualcosa è appena
+andato storto.
