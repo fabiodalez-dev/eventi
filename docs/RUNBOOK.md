@@ -269,6 +269,48 @@ resta aperto** e l'episodio finisce in `storage/logs/laravel.log`: campo esca e
 limite di frequenza reggono da soli. E' voluto — un guasto di un terzo non deve
 diventare un guasto nostro.
 
+## Vedere le email in sviluppo
+
+**Non serve una libreria PHP.** Laravel ha già due modi di non spedire davvero,
+e per guardare i messaggi c'è Mailpit — che su questa macchina è già installato
+(`brew install mailpit`).
+
+| come | cosa fa | quando conviene |
+|---|---|---|
+| `MAIL_MAILER=log` | scrive il messaggio in `storage/logs/laravel.log` | zero dipendenze, ma leggere un HTML dentro un log è penoso |
+| `MAIL_MAILER=array` | tiene i messaggi in memoria e non li scrive | nei test: è quello che usa `Mail::fake()` |
+| **Mailpit** | server SMTP finto con una casella nel browser | **il modo normale di lavorare**: si vede il messaggio come lo vedrà chi lo riceve |
+
+Mailpit si avvia così:
+
+```bash
+mailpit --smtp 127.0.0.1:1025 --listen 127.0.0.1:8025
+# oppure, per averlo sempre: brew services start mailpit
+```
+
+e in `.env`:
+
+```
+MAIL_MAILER=smtp
+MAIL_HOST=127.0.0.1
+MAIL_PORT=1025
+```
+
+La casella è su **http://127.0.0.1:8025** e ha anche un'API, comoda per
+verificare un invio da riga di comando senza aprire il browser:
+
+```bash
+curl -s http://127.0.0.1:8025/api/v1/messages | jq '.messages[0].Subject'
+```
+
+**Niente cifratura verso Mailpit**: il campo va lasciato vuoto. Con `tls`
+selezionato la connessione fallisce, ed è l'errore più facile da fare provando
+la pagina di configurazione della posta (D50) contro la casella locale.
+
+**Non spedirà mai a un indirizzo vero**, ed è il punto: qualunque destinatario
+si scriva, il messaggio resta lì. È la sola configurazione con cui si può
+provare in pace un invio massivo di promemoria.
+
 ## Misurare Lighthouse a mano
 
 La pipeline lo fa da sola (lavoro `lighthouse`, D37). Per rifare la stessa
