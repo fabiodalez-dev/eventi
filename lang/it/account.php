@@ -12,6 +12,13 @@ return [
     'title' => 'Il mio profilo',
 
     'nav' => [
+        'login' => 'Accedi',
+        'account' => 'Il mio account',
+        'feed' => 'Il mio feed',
+        'profile' => 'Profilo',
+        'admin' => 'Amministrazione',
+        'venue' => 'Il mio locale',
+        'logout' => 'Esci',
         'feed' => 'Il mio feed',
         'saved' => 'Salvati',
         'profile' => 'Profilo',

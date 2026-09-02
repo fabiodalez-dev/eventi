@@ -367,16 +367,12 @@
                 </button>
             </form>
 
-            <a
-                href="{{ auth()->check() ? route('account.saved') : route('login') }}"
-                class="ml-auto hidden h-[38px] shrink-0 items-center gap-2 border-2 border-line px-3 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.14em] uppercase transition-colors hover:border-accent hover:text-accent sm:flex"
-            >
-                <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square">
-                    <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
-                </svg>
-                {{ __('account.nav.saved') }}
-                <span class="text-accent" data-saved-count>{{ $savedCount }}</span>
-            </a>
+            {{-- Il menu dell'account: per chi non è collegato un invito ad
+                 accedere, per chi lo è le proprie pagine — e le vie verso i
+                 pannelli, che prima non esistevano da nessuna parte. Chi
+                 amministra il sito doveva ricordarsi `/admin` e scriverlo a
+                 mano. --}}
+            <x-account-menu :saved-count="$savedCount" />
 
             @if (\Illuminate\Support\Facades\Route::has('submissions.create'))
                 <a
