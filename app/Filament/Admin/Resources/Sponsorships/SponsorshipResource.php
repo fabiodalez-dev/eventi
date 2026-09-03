@@ -76,6 +76,30 @@ class SponsorshipResource extends Resource
                         ->required()
                         ->searchable()
                         ->preload()
+                        /*
+                         * **La tendina deve mostrare qualcosa appena si apre.**
+                         *
+                         * C'erano solo `getSearchResultsUsing` e
+                         * `getOptionLabelUsing`: `preload()` non ha niente da
+                         * precaricare senza `options()`, quindi l'elenco era
+                         * vuoto finche' non si digitava. Chi lo apriva leggeva
+                         * «Seleziona un'opzione» sopra il nulla e concludeva
+                         * che non ci fossero eventi da sponsorizzare — non che
+                         * dovesse scrivere per farli comparire.
+                         *
+                         * Si mostrano i pubblicati con una data futura, in
+                         * ordine di data: sono gli unici su cui una campagna
+                         * abbia senso oggi. Gli altri restano raggiungibili
+                         * scrivendo, con l'avviso qui sotto a dire perche' non
+                         * comparirebbero.
+                         */
+                        ->options(fn (): array => Event::query()
+                            ->where('status', EventStatus::Published)
+                            ->whereHas('occurrences', fn (Builder $futura): Builder => $futura->where('starts_at', '>=', now()))
+                            ->orderBy('id')
+                            ->limit(50)
+                            ->pluck('title', 'id')
+                            ->all())
                         ->getSearchResultsUsing(fn (string $search): array => Event::query()
                             ->where('title', 'like', '%'.$search.'%')
                             ->orderByDesc('id')

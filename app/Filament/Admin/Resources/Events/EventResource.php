@@ -37,6 +37,8 @@ use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\ToggleButtons;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Tabs;
+use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Support\Enums\IconPosition;
@@ -113,323 +115,352 @@ class EventResource extends Resource
     {
         return $schema
             ->components([
-                Section::make(__('admin.sections.general'))
-                    ->columns(2)
-                    ->schema([
-                        TextInput::make('title')
-                            ->label(__('admin.fields.title'))
-                            ->required()
-                            ->maxLength(255)
-                            ->columnSpanFull(),
-
-                        TextInput::make('subtitle')
-                            ->label(__('admin.fields.subtitle'))
-                            ->maxLength(255),
-
-                        TextInput::make('slug')
-                            ->label(__('admin.fields.slug'))
-                            ->maxLength(255),
-
-                        Textarea::make('short_description')
-                            ->label(__('admin.fields.short_description'))
-                            ->helperText(__('admin.hints.short_description'))
-                            ->maxLength(500)
-                            ->rows(2)
-                            ->columnSpanFull(),
-
-                        Textarea::make('description')
-                            ->label(__('admin.fields.description'))
-                            ->rows(8)
-                            ->columnSpanFull(),
-                    ]),
-
-                Section::make(__('admin.sections.where'))
-                    ->columns(2)
-                    ->schema([
-                        Select::make('city_id')
-                            ->label(__('admin.fields.city'))
-                            ->relationship('city', 'name')
-                            ->required()
-                            ->searchable()
-                            ->preload()
-                            ->live()
-                            ->default(fn (): ?int => self::defaultCityId()),
-
-                        Select::make('venue_id')
-                            ->label(__('admin.fields.venue'))
-                            ->relationship(
-                                'venue',
-                                'name',
-                                fn (Builder $query, Get $get) => $query
-                                    ->when($get('city_id'), fn (Builder $q, $city) => $q->where('city_id', $city))
-                                    ->orderBy('name'),
-                            )
-                            ->searchable()
-                            ->preload(),
-
-                        KeyValue::make('custom_location')
-                            ->label(__('admin.fields.custom_location'))
-                            ->columnSpanFull(),
-
-                        Toggle::make('is_outdoor')
-                            ->label(__('admin.fields.is_outdoor')),
-                    ]),
-
-                Section::make(__('admin.sections.when'))
-                    ->description(__('admin.hints.occurrences'))
-                    ->visible(fn (string $operation): bool => $operation === 'create')
-                    ->schema([
-                        Repeater::make('occurrences')
-                            ->label(__('admin.resources.occurrence.plural'))
-                            ->relationship()
-                            ->columns(4)
-                            ->defaultItems(1)
-                            ->minItems(1)
-                            ->addActionLabel(__('admin.actions.add_occurrence'))
-                            ->schema([
-                                DateTimePicker::make('starts_at')
-                                    ->label(__('admin.fields.starts_at'))
-                                    ->seconds(false)
-                                    ->timezone(fn (Get $get): string => self::cityTimezone($get('../../city_id')))
-                                    ->helperText(fn (Get $get): string => self::timezoneHint($get('../../city_id')))
-                                    ->required(),
-
-                                DateTimePicker::make('ends_at')
-                                    ->label(__('admin.fields.ends_at'))
-                                    ->seconds(false)
-                                    ->timezone(fn (Get $get): string => self::cityTimezone($get('../../city_id')))
-                                    ->after('starts_at'),
-
-                                DateTimePicker::make('doors_at')
-                                    ->label(__('admin.fields.doors_at'))
-                                    ->seconds(false)
-                                    ->timezone(fn (Get $get): string => self::cityTimezone($get('../../city_id'))),
-
-                                Toggle::make('is_all_day')
-                                    ->label(__('admin.fields.is_all_day'))
-                                    ->inline(false),
-                            ]),
-                    ]),
-
-                Section::make(__('admin.sections.recurrence'))
-                    ->schema([
-                        Repeater::make('recurrences')
-                            ->label(__('admin.resources.recurrence.plural'))
-                            ->relationship()
-                            ->columns(2)
-                            ->defaultItems(0)
-                            ->addActionLabel(__('admin.actions.add_recurrence'))
-                            ->schema([
-                                TextInput::make('rrule')
-                                    ->label(__('admin.fields.rrule'))
-                                    ->helperText(__('admin.hints.rrule'))
-                                    ->required()
-                                    ->maxLength(500)
-                                    ->columnSpanFull(),
-
-                                DateTimePicker::make('until')
-                                    ->label(__('admin.fields.until'))
-                                    ->seconds(false)
-                                    ->timezone(fn (Get $get): string => self::cityTimezone($get('../../city_id'))),
-
-                                DateTimePicker::make('generated_until')
-                                    ->label(__('admin.fields.generated_until'))
-                                    ->seconds(false)
-                                    ->disabled()
-                                    ->dehydrated(false),
-
-                                Textarea::make('exdates')
-                                    ->label(__('admin.fields.exdates'))
-                                    ->helperText(__('admin.hints.exdates'))
-                                    ->rows(3)
-                                    ->columnSpanFull()
-                                    // Una data per riga nel modulo, un elenco
-                                    // JSON sul database: la conversione sta in
-                                    // `StructuredFields`, che è anche l'unico
-                                    // punto in cui i due formati si incontrano.
-                                    ->formatStateUsing(StructuredFields::datesToLines(...))
-                                    ->dehydrateStateUsing(StructuredFields::linesToDates(...)),
-                            ]),
-                    ]),
-
-                Section::make(__('admin.sections.taxonomy'))
-                    ->columns(2)
-                    ->schema([
-                        Select::make('category_id')
-                            ->label(__('admin.fields.category'))
-                            ->relationship('category', 'name')
-                            ->required()
-                            ->searchable()
-                            ->preload(),
-
-                        Select::make('tags')
-                            ->label(__('admin.fields.tags'))
-                            ->relationship('tags', 'name')
-                            ->multiple()
-                            ->searchable()
-                            ->preload(),
-
-                        TextInput::make('age_restriction')
-                            ->label(__('admin.fields.age_restriction'))
-                            ->maxLength(40),
-
-                        TextInput::make('language')
-                            ->label(__('admin.fields.language'))
-                            ->maxLength(5),
-                    ]),
-
-                Section::make(__('admin.sections.price'))
-                    ->columns(3)
-                    ->schema([
-                        Select::make('price_type')
-                            ->label(__('admin.fields.price_type'))
-                            ->options(PriceType::options())
-                            ->required()
-                            ->default(PriceType::Unknown->value)
-                            ->live(),
-
-                        TextInput::make('price_min')
-                            ->label(__('admin.fields.price_min'))
-                            ->numeric()
-                            ->minValue(0),
-
-                        TextInput::make('price_max')
-                            ->label(__('admin.fields.price_max'))
-                            ->numeric()
-                            ->minValue(0),
-
-                        TextInput::make('price_notes')
-                            ->label(__('admin.fields.price_notes'))
-                            ->maxLength(255)
-                            ->columnSpan(2),
-
-                        TextInput::make('currency')
-                            ->label(__('admin.fields.currency'))
-                            ->required()
-                            ->default('EUR')
-                            ->maxLength(3),
-
-                        TextInput::make('ticket_url')
-                            ->label(__('admin.fields.ticket_url'))
-                            ->url()
-                            ->maxLength(255)
-                            ->columnSpan(2),
-
-                        Toggle::make('booking_required')
-                            ->label(__('admin.fields.booking_required'))
-                            ->live(),
-
-                        TextInput::make('booking_url')
-                            ->label(__('admin.fields.booking_url'))
-                            ->url()
-                            ->maxLength(255)
-                            ->visible(fn (Get $get): bool => (bool) $get('booking_required')),
-
-                        TextInput::make('booking_phone')
-                            ->label(__('admin.fields.booking_phone'))
-                            ->tel()
-                            ->maxLength(40)
-                            ->visible(fn (Get $get): bool => (bool) $get('booking_required')),
-                    ]),
-
-                Section::make(__('admin.sections.media'))
-                    ->columns(2)
-                    ->schema([
-                        ImageUpload::make('poster_media')
-                            ->label(__('admin.fields.poster'))
-                            ->helperText(__('admin.hints.poster'))
-                            ->collection('poster')
-                            ->imageEditor(),
-
-                        ImageUpload::make('gallery_media')
-                            ->label(__('admin.fields.gallery'))
-                            ->collection('gallery')
-                            ->multiple()
-                            ->reorderable(),
-                    ]),
-
-                Section::make(__('admin.sections.organizer'))
-                    ->columns(2)
-                    ->collapsed()
-                    ->schema([
-                        TextInput::make('organizer_name')
-                            ->label(__('admin.fields.organizer_name'))
-                            ->maxLength(255),
-
-                        TextInput::make('organizer_url')
-                            ->label(__('admin.fields.organizer_url'))
-                            ->url()
-                            ->maxLength(255),
-                    ]),
-
                 /*
-                 * Il listino dell'evento. Lo stato è **per fascia**: è la sola
-                 * forma in cui «parterre esaurito, secondo anello disponibile»
-                 * si può dire — `OccurrenceStatus::SoldOut` marca l'intera
-                 * serata e non lo sa fare.
+                 * **Schede, non dodici riquadri su due colonne.**
+                 *
+                 * E' la pagina piu' usata del pannello e ne aveva dodici, con
+                 * la stessa griglia che allineava le righe all'elemento piu'
+                 * alto: sezioni corte accanto a sezioni lunghe, e il vuoto in
+                 * mezzo. Ora ogni gruppo sta a piena larghezza dentro la
+                 * propria scheda, e «Pubblicazione» — che si cerca ogni volta
+                 * — e' a un clic invece che in fondo allo scorrimento.
                  */
-                Section::make(__('admin.sections.ticket_tiers'))
-                    ->collapsed()
-                    ->schema([
-                        TicketTiersField::make('admin'),
-                    ]),
+                Tabs::make('form_tabs')
+                    ->columnSpanFull()
+                    ->persistTabInQueryString()
+                    ->tabs([
+                        Tab::make(__('admin.form_tabs.what'))
+                            ->schema([
+                                Section::make(__('admin.sections.general'))
+                                    ->columns(2)
+                                    ->schema([
+                                        TextInput::make('title')
+                                            ->label(__('admin.fields.title'))
+                                            ->required()
+                                            ->maxLength(255)
+                                            ->columnSpanFull(),
 
-                Section::make(__('admin.sections.facts'))
-                    ->collapsed()
-                    ->schema([
-                        FactsField::make('admin', 'facts'),
-                    ]),
+                                        TextInput::make('subtitle')
+                                            ->label(__('admin.fields.subtitle'))
+                                            ->maxLength(255),
 
-                Section::make(__('admin.sections.external_links'))
-                    ->collapsed()
-                    ->schema([
-                        ExternalLinksField::make('admin'),
-                    ]),
+                                        TextInput::make('slug')
+                                            ->label(__('admin.fields.slug'))
+                                            ->maxLength(255),
 
-                Section::make(__('admin.sections.publication'))
-                    ->columns(3)
-                    ->schema([
-                        ToggleButtons::make('status')
-                            ->label(__('admin.fields.status'))
-                            ->options(EventStatus::options())
-                            ->inline()
-                            ->required()
-                            ->default(EventStatus::Draft->value)
-                            ->columnSpanFull(),
+                                        Textarea::make('short_description')
+                                            ->label(__('admin.fields.short_description'))
+                                            ->helperText(__('admin.hints.short_description'))
+                                            ->maxLength(500)
+                                            ->rows(2)
+                                            ->columnSpanFull(),
 
-                        Select::make('source')
-                            ->label(__('admin.fields.source'))
-                            ->options(EventSource::options())
-                            ->required()
-                            ->default(EventSource::Manual->value),
+                                        Textarea::make('description')
+                                            ->label(__('admin.fields.description'))
+                                            ->rows(8)
+                                            ->columnSpanFull(),
+                                    ]),
 
-                        Select::make('verification_status')
-                            ->label(__('admin.fields.verification_status'))
-                            ->options(VerificationStatus::options())
-                            ->required()
-                            ->default(VerificationStatus::Unverified->value),
+                                Section::make(__('admin.sections.taxonomy'))
+                                    ->columns(2)
+                                    ->schema([
+                                        Select::make('category_id')
+                                            ->label(__('admin.fields.category'))
+                                            ->relationship('category', 'name')
+                                            ->required()
+                                            ->searchable()
+                                            ->preload(),
 
-                        TextInput::make('editorial_score')
-                            ->label(__('admin.fields.editorial_score'))
-                            ->helperText(__('admin.hints.editorial_score'))
-                            ->numeric()
-                            ->minValue(0)
-                            ->maxValue(100)
-                            ->default(0),
+                                        Select::make('tags')
+                                            ->label(__('admin.fields.tags'))
+                                            ->relationship('tags', 'name')
+                                            ->multiple()
+                                            ->searchable()
+                                            ->preload(),
 
-                        Toggle::make('is_featured')
-                            ->label(__('admin.fields.is_featured'))
-                            ->live(),
+                                        TextInput::make('age_restriction')
+                                            ->label(__('admin.fields.age_restriction'))
+                                            ->maxLength(40),
 
-                        DateTimePicker::make('featured_until')
-                            ->label(__('admin.fields.featured_until'))
-                            ->seconds(false)
-                            ->visible(fn (Get $get): bool => (bool) $get('is_featured')),
+                                        TextInput::make('language')
+                                            ->label(__('admin.fields.language'))
+                                            ->maxLength(5),
+                                    ]),
 
-                        Textarea::make('rejection_reason')
-                            ->label(__('admin.fields.rejection_reason'))
-                            ->rows(2)
-                            ->columnSpanFull(),
+                                Section::make(__('admin.sections.media'))
+                                    ->columns(2)
+                                    ->schema([
+                                        ImageUpload::make('poster_media')
+                                            ->label(__('admin.fields.poster'))
+                                            ->helperText(__('admin.hints.poster'))
+                                            ->collection('poster')
+                                            ->imageEditor(),
+
+                                        ImageUpload::make('gallery_media')
+                                            ->label(__('admin.fields.gallery'))
+                                            ->collection('gallery')
+                                            ->multiple()
+                                            ->reorderable(),
+                                    ]),
+                            ]),
+
+                        Tab::make(__('admin.form_tabs.when'))
+                            ->schema([
+                                Section::make(__('admin.sections.when'))
+                                    ->description(__('admin.hints.occurrences'))
+                                    ->visible(fn (string $operation): bool => $operation === 'create')
+                                    ->schema([
+                                        Repeater::make('occurrences')
+                                            ->label(__('admin.resources.occurrence.plural'))
+                                            ->relationship()
+                                            ->columns(4)
+                                            ->defaultItems(1)
+                                            ->minItems(1)
+                                            ->addActionLabel(__('admin.actions.add_occurrence'))
+                                            ->schema([
+                                                DateTimePicker::make('starts_at')
+                                                    ->label(__('admin.fields.starts_at'))
+                                                    ->seconds(false)
+                                                    ->timezone(fn (Get $get): string => self::cityTimezone($get('../../city_id')))
+                                                    ->helperText(fn (Get $get): string => self::timezoneHint($get('../../city_id')))
+                                                    ->required(),
+
+                                                DateTimePicker::make('ends_at')
+                                                    ->label(__('admin.fields.ends_at'))
+                                                    ->seconds(false)
+                                                    ->timezone(fn (Get $get): string => self::cityTimezone($get('../../city_id')))
+                                                    ->after('starts_at'),
+
+                                                DateTimePicker::make('doors_at')
+                                                    ->label(__('admin.fields.doors_at'))
+                                                    ->seconds(false)
+                                                    ->timezone(fn (Get $get): string => self::cityTimezone($get('../../city_id'))),
+
+                                                Toggle::make('is_all_day')
+                                                    ->label(__('admin.fields.is_all_day'))
+                                                    ->inline(false),
+                                            ]),
+                                    ]),
+
+                                Section::make(__('admin.sections.recurrence'))
+                                    ->schema([
+                                        Repeater::make('recurrences')
+                                            ->label(__('admin.resources.recurrence.plural'))
+                                            ->relationship()
+                                            ->columns(2)
+                                            ->defaultItems(0)
+                                            ->addActionLabel(__('admin.actions.add_recurrence'))
+                                            ->schema([
+                                                TextInput::make('rrule')
+                                                    ->label(__('admin.fields.rrule'))
+                                                    ->helperText(__('admin.hints.rrule'))
+                                                    ->required()
+                                                    ->maxLength(500)
+                                                    ->columnSpanFull(),
+
+                                                DateTimePicker::make('until')
+                                                    ->label(__('admin.fields.until'))
+                                                    ->seconds(false)
+                                                    ->timezone(fn (Get $get): string => self::cityTimezone($get('../../city_id'))),
+
+                                                DateTimePicker::make('generated_until')
+                                                    ->label(__('admin.fields.generated_until'))
+                                                    ->seconds(false)
+                                                    ->disabled()
+                                                    ->dehydrated(false),
+
+                                                Textarea::make('exdates')
+                                                    ->label(__('admin.fields.exdates'))
+                                                    ->helperText(__('admin.hints.exdates'))
+                                                    ->rows(3)
+                                                    ->columnSpanFull()
+                                                    // Una data per riga nel modulo, un elenco
+                                                    // JSON sul database: la conversione sta in
+                                                    // `StructuredFields`, che è anche l'unico
+                                                    // punto in cui i due formati si incontrano.
+                                                    ->formatStateUsing(StructuredFields::datesToLines(...))
+                                                    ->dehydrateStateUsing(StructuredFields::linesToDates(...)),
+                                            ]),
+                                    ]),
+                            ]),
+
+                        Tab::make(__('admin.form_tabs.where'))
+                            ->schema([
+                                Section::make(__('admin.sections.where'))
+                                    ->columns(2)
+                                    ->schema([
+                                        Select::make('city_id')
+                                            ->label(__('admin.fields.city'))
+                                            ->relationship('city', 'name')
+                                            ->required()
+                                            ->searchable()
+                                            ->preload()
+                                            ->live()
+                                            ->default(fn (): ?int => self::defaultCityId()),
+
+                                        Select::make('venue_id')
+                                            ->label(__('admin.fields.venue'))
+                                            ->relationship(
+                                                'venue',
+                                                'name',
+                                                fn (Builder $query, Get $get) => $query
+                                                    ->when($get('city_id'), fn (Builder $q, $city) => $q->where('city_id', $city))
+                                                    ->orderBy('name'),
+                                            )
+                                            ->searchable()
+                                            ->preload(),
+
+                                        KeyValue::make('custom_location')
+                                            ->label(__('admin.fields.custom_location'))
+                                            ->columnSpanFull(),
+
+                                        Toggle::make('is_outdoor')
+                                            ->label(__('admin.fields.is_outdoor')),
+                                    ]),
+
+                                Section::make(__('admin.sections.organizer'))
+                                    ->columns(2)
+                                    ->schema([
+                                        TextInput::make('organizer_name')
+                                            ->label(__('admin.fields.organizer_name'))
+                                            ->maxLength(255),
+
+                                        TextInput::make('organizer_url')
+                                            ->label(__('admin.fields.organizer_url'))
+                                            ->url()
+                                            ->maxLength(255),
+                                    ]),
+                            ]),
+
+                        Tab::make(__('admin.form_tabs.tickets'))
+                            ->schema([
+                                Section::make(__('admin.sections.price'))
+                                    ->columns(3)
+                                    ->schema([
+                                        Select::make('price_type')
+                                            ->label(__('admin.fields.price_type'))
+                                            ->options(PriceType::options())
+                                            ->required()
+                                            ->default(PriceType::Unknown->value)
+                                            ->live(),
+
+                                        TextInput::make('price_min')
+                                            ->label(__('admin.fields.price_min'))
+                                            ->numeric()
+                                            ->minValue(0),
+
+                                        TextInput::make('price_max')
+                                            ->label(__('admin.fields.price_max'))
+                                            ->numeric()
+                                            ->minValue(0),
+
+                                        TextInput::make('price_notes')
+                                            ->label(__('admin.fields.price_notes'))
+                                            ->maxLength(255)
+                                            ->columnSpan(2),
+
+                                        TextInput::make('currency')
+                                            ->label(__('admin.fields.currency'))
+                                            ->required()
+                                            ->default('EUR')
+                                            ->maxLength(3),
+
+                                        TextInput::make('ticket_url')
+                                            ->label(__('admin.fields.ticket_url'))
+                                            ->url()
+                                            ->maxLength(255)
+                                            ->columnSpan(2),
+
+                                        Toggle::make('booking_required')
+                                            ->label(__('admin.fields.booking_required'))
+                                            ->live(),
+
+                                        TextInput::make('booking_url')
+                                            ->label(__('admin.fields.booking_url'))
+                                            ->url()
+                                            ->maxLength(255)
+                                            ->visible(fn (Get $get): bool => (bool) $get('booking_required')),
+
+                                        TextInput::make('booking_phone')
+                                            ->label(__('admin.fields.booking_phone'))
+                                            ->tel()
+                                            ->maxLength(40)
+                                            ->visible(fn (Get $get): bool => (bool) $get('booking_required')),
+                                    ]),
+
+                                /*
+                         * Il listino dell'evento. Lo stato è **per fascia**: è la sola
+                         * forma in cui «parterre esaurito, secondo anello disponibile»
+                         * si può dire — `OccurrenceStatus::SoldOut` marca l'intera
+                         * serata e non lo sa fare.
+                         */
+                                Section::make(__('admin.sections.ticket_tiers'))
+                                    ->schema([
+                                        TicketTiersField::make('admin'),
+                                    ]),
+                            ]),
+
+                        Tab::make(__('admin.form_tabs.extra'))
+                            ->schema([
+                                Section::make(__('admin.sections.facts'))
+                                    ->schema([
+                                        FactsField::make('admin', 'facts'),
+                                    ]),
+
+                                Section::make(__('admin.sections.external_links'))
+                                    ->schema([
+                                        ExternalLinksField::make('admin'),
+                                    ]),
+                            ]),
+
+                        Tab::make(__('admin.form_tabs.publish'))
+                            ->schema([
+                                Section::make(__('admin.sections.publication'))
+                                    ->columns(3)
+                                    ->schema([
+                                        ToggleButtons::make('status')
+                                            ->label(__('admin.fields.status'))
+                                            ->options(EventStatus::options())
+                                            ->inline()
+                                            ->required()
+                                            ->default(EventStatus::Draft->value)
+                                            ->columnSpanFull(),
+
+                                        Select::make('source')
+                                            ->label(__('admin.fields.source'))
+                                            ->options(EventSource::options())
+                                            ->required()
+                                            ->default(EventSource::Manual->value),
+
+                                        Select::make('verification_status')
+                                            ->label(__('admin.fields.verification_status'))
+                                            ->options(VerificationStatus::options())
+                                            ->required()
+                                            ->default(VerificationStatus::Unverified->value),
+
+                                        TextInput::make('editorial_score')
+                                            ->label(__('admin.fields.editorial_score'))
+                                            ->helperText(__('admin.hints.editorial_score'))
+                                            ->numeric()
+                                            ->minValue(0)
+                                            ->maxValue(100)
+                                            ->default(0),
+
+                                        Toggle::make('is_featured')
+                                            ->label(__('admin.fields.is_featured'))
+                                            ->live(),
+
+                                        DateTimePicker::make('featured_until')
+                                            ->label(__('admin.fields.featured_until'))
+                                            ->seconds(false)
+                                            ->visible(fn (Get $get): bool => (bool) $get('is_featured')),
+
+                                        Textarea::make('rejection_reason')
+                                            ->label(__('admin.fields.rejection_reason'))
+                                            ->rows(2)
+                                            ->columnSpanFull(),
+                                    ]),
+                            ]),
                     ]),
             ]);
     }

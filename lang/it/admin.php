@@ -117,12 +117,29 @@ return [
     /* Le schede del modulo di un locale. Distinte da `tabs`, che sono
        i filtri in cima alla lista: due cose diverse con lo stesso nome
        finiscono per essere modificate l'una al posto dell'altra. */
+    /* Le schede dei moduli. Distinte da `tabs`, che sono i filtri in cima
+       alle liste: due cose diverse con lo stesso nome finiscono per essere
+       modificate l'una al posto dell'altra.
+
+       Alcune voci servono piu' moduli — «Dove» vale per un evento come per un
+       locale — e vanno lette come etichette, non come proprieta' di una
+       risorsa sola. */
     'form_tabs' => [
+        // locali
         'identity' => 'Scheda',
-        'where' => 'Dove si trova',
         'contacts' => 'Contatti',
         'advanced' => 'Impostazioni',
         'moderation' => 'Moderazione',
+
+        // eventi
+        'what' => 'Contenuto',
+        'when' => 'Quando',
+        'tickets' => 'Ingresso',
+        'extra' => 'In più',
+        'publish' => 'Pubblicazione',
+
+        // condivise
+        'where' => 'Dove',
     ],
 
     'tabs' => [
