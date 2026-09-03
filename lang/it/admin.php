@@ -202,6 +202,7 @@ return [
         'is_featured' => 'In evidenza',
         'featured_until' => 'In evidenza fino al',
         'editorial_score' => 'Punteggio redazionale',
+        'suspension_reason' => 'Perché viene sospeso',
         'rejection_reason' => 'Motivo del rifiuto',
         'notes' => 'Note interne',
         'rrule' => 'Regola di ricorrenza',

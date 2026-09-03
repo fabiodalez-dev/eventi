@@ -145,7 +145,11 @@ final class VenueModeration
             ->visible(fn (Venue $record): bool => $record->status === VenueStatus::Approved)
             ->schema([
                 Textarea::make('reason')
-                    ->label(__('admin.fields.rejection_reason'))
+                    /* Il campo sul database e' `rejection_reason` e serve a
+                       due azioni, ma chi sospende non sta rifiutando: leggere
+                       «Motivo del rifiuto» dentro «Sospendi» fa dubitare di
+                       aver premuto il pulsante giusto. */
+                    ->label(__('admin.fields.suspension_reason'))
                     ->required()
                     ->rows(3),
             ])

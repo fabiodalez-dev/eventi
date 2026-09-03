@@ -66,6 +66,13 @@ return [
         'singular' => 'Sponsorizzazione',
         'navigation' => 'Sponsorizzazioni',
 
+        /* Le schede del modulo di una campagna. */
+        'tabs' => [
+            'campaign' => 'Campagna',
+            'period' => 'Periodo e limiti',
+            'client' => 'Cliente e ricavo',
+        ],
+
         'sections' => [
             'what' => 'Cosa e dove',
             'when' => 'Quando',
