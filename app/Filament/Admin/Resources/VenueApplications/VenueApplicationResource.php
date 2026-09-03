@@ -4,16 +4,20 @@ declare(strict_types=1);
 
 namespace App\Filament\Admin\Resources\VenueApplications;
 
+use App\Actions\ApproveVenueApplication;
 use App\Enums\ApplicationStatus;
 use App\Enums\VenueType;
 use App\Filament\Admin\Resources\VenueApplications\Pages\EditVenueApplication;
 use App\Filament\Admin\Resources\VenueApplications\Pages\ListVenueApplications;
+use App\Models\User;
 use App\Models\VenueApplication;
 use BackedEnum;
+use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Infolists\Components\TextEntry;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -21,6 +25,7 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\Auth;
 
 /**
  * §7.3 e §9.2 — le richieste di iscrizione dei locali.
@@ -171,6 +176,65 @@ class VenueApplicationResource extends Resource
                     ->options(VenueType::options()),
             ])
             ->recordActions([
+                /*
+                 * **Accettare una richiesta crea il locale.**
+                 *
+                 * Fin qui c'era solo «Modifica»: la coda sapeva contare le
+                 * richieste ma non c'era modo di accoglierne una. Chi voleva
+                 * farlo apriva la richiesta, andava in un'altra pagina e
+                 * ricopiava i dati a mano — col rischio di ricopiarli male e
+                 * la certezza di perdere il filo fra il locale nuovo e la
+                 * richiesta che l'aveva chiesto.
+                 */
+                Action::make('approva')
+                    ->label(__('admin.actions.approve'))
+                    ->icon(Heroicon::OutlinedCheckCircle)
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->modalDescription(__('venue_applications.approve_confirm'))
+                    ->visible(fn (VenueApplication $record): bool => $record->status !== ApplicationStatus::Approved)
+                    ->action(function (VenueApplication $record): void {
+                        $moderatore = Auth::user();
+
+                        if (! $moderatore instanceof User) {
+                            return;
+                        }
+
+                        $locale = app(ApproveVenueApplication::class)->handle($record, $moderatore);
+
+                        Notification::make()
+                            ->title(__('venue_applications.approved', ['venue' => $locale->name]))
+                            ->body(__('venue_applications.approved_body'))
+                            ->success()
+                            ->send();
+                    }),
+
+                Action::make('rifiuta')
+                    ->label(__('admin.actions.reject'))
+                    ->icon(Heroicon::OutlinedXCircle)
+                    ->color('danger')
+                    ->visible(fn (VenueApplication $record): bool => $record->status !== ApplicationStatus::Rejected)
+                    ->schema([
+                        Textarea::make('notes')
+                            ->label(__('venue_applications.reject_reason'))
+                            ->required()
+                            ->rows(3),
+                    ])
+                    /* Il motivo si scrive e si conserva: fra un mese, quando
+                       la stessa persona riscrivera' chiedendo perche', la
+                       risposta dev'essere nella scheda e non nella memoria di
+                       chi decise. */
+                    ->action(function (VenueApplication $record, array $data): void {
+                        $record->forceFill([
+                            'status' => ApplicationStatus::Rejected,
+                            'reviewed_by' => Auth::id(),
+                            'reviewed_at' => now(),
+                            'notes' => (string) $data['notes'],
+                        ])->save();
+
+                        Notification::make()->title(__('venue_applications.rejected'))->success()->send();
+                    }),
+
                 EditAction::make(),
             ]);
     }
