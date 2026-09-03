@@ -87,6 +87,7 @@ Route::post('/eventi/{slug}/segnala', [ReportController::class, 'storeForEvent']
     ->middleware('throttle:public-forms')
     ->name('events.report.store');
 Route::get('/eventi/{slug}/date/{occurrence}/calendario.ics', [EventController::class, 'calendar'])->name('events.calendar');
+Route::get('/eventi/{slug}/date/{occurrence}/locandina.pdf', [EventController::class, 'poster'])->name('events.poster');
 Route::get('/eventi/{slug}', [EventController::class, 'show'])->middleware(CachePage::class)->name('events.show');
 
 Route::get('/locali', [VenueController::class, 'index'])->middleware(CachePage::class)->name('venues.index');

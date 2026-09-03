@@ -9,6 +9,7 @@ use App\Support\Honeypot;
 use App\Support\Turnstile;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Propaganistas\LaravelPhone\Rules\Phone as PhoneRule;
 
 /**
  * Richiesta di accreditamento di un locale (§11.1, §7.3).
@@ -36,7 +37,20 @@ class StoreVenueApplicationRequest extends FormRequest
             'website' => ['nullable', 'url:http,https', 'max:255'],
             'contact_name' => ['required', 'string', 'max:120'],
             'contact_role' => ['nullable', 'string', 'max:120'],
-            'contact_phone' => ['nullable', 'string', 'max:40'],
+            /*
+             * Il telefono si valida davvero, non solo per lunghezza.
+             *
+             * `max:40` accettava qualunque cosa: «chiamami», un indirizzo
+             * email, quaranta lettere. E chi modera scopre che il numero non
+             * serve a niente nel momento in cui prova a usarlo — cioè quando
+             * ha bisogno di chiarire qualcosa su una richiesta.
+             *
+             * `IT` come regione implicita perché il modulo è italiano e
+             * nessuno scrive il prefisso internazionale del proprio Paese;
+             * `INTERNATIONAL` per non respingere un numero estero scritto per
+             * intero, che su un evento di confine capita.
+             */
+            'contact_phone' => ['nullable', 'string', 'max:40', (new PhoneRule)->country('IT')->type(['mobile', 'fixed_line'])->international()],
             'contact_email' => ['required', 'email:filter', 'max:255'],
             'message' => ['nullable', 'string', 'max:5000'],
             ...Honeypot::rules(),

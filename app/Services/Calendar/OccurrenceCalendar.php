@@ -6,7 +6,9 @@ namespace App\Services\Calendar;
 
 use App\Enums\OccurrenceStatus;
 use App\Models\EventOccurrence;
+use DateTimeZone;
 use Illuminate\Support\Str;
+use Spatie\CalendarLinks\Link;
 use Spatie\IcalendarGenerator\Components\Calendar;
 use Spatie\IcalendarGenerator\Components\Event as CalendarEvent;
 use Spatie\IcalendarGenerator\Enums\EventStatus as CalendarStatus;
@@ -118,20 +120,67 @@ final class OccurrenceCalendar
     }
 
     /**
-     * Google Calendar vuole gli istanti in UTC compatto (`20260905T193000Z`).
+     * I collegamenti «aggiungi al mio calendario», uno per servizio.
+     *
+     * **Perché una libreria per i link e codice nostro per l'ICS.** Il file
+     * `.ics` qui sopra porta cose che nessuna libreria mette — lo stato di
+     * un'occorrenza annullata o spostata, un identificatore stabile perché
+     * il calendario di chi l'ha salvata si aggiorni invece di duplicarla — e
+     * resta scritto a mano. I collegamenti web sono invece pura costruzione
+     * di indirizzi, e ognuno ha le sue regole: `spatie/calendar-links` le
+     * conosce per Google, Outlook e Yahoo, mentre qui c'era solo Google. Chi
+     * ha un calendario Microsoft — cioè quasi tutti gli uffici — non aveva un
+     * pulsante.
+     *
+     * @return array<string, string> servizio => indirizzo
+     */
+    public function links(EventOccurrence $occurrence): array
+    {
+        $link = $this->link($occurrence);
+
+        return [
+            'google' => $link->google(),
+            'outlook' => $link->webOutlook(),
+            'yahoo' => $link->yahoo(),
+        ];
+    }
+
+    /**
+     * Il collegamento per Google, tenuto come metodo a sé perché è quello che
+     * le viste chiamano da sempre.
      */
     public function googleUrl(EventOccurrence $occurrence): string
     {
-        $event = $occurrence->event;
+        return $this->link($occurrence)->google();
+    }
 
-        return 'https://calendar.google.com/calendar/render?'.http_build_query(array_filter([
-            'action' => 'TEMPLATE',
-            'text' => $event->title,
-            'dates' => $occurrence->starts_at->utc()->format('Ymd\THis\Z').'/'.$occurrence->effective_ends_at->utc()->format('Ymd\THis\Z'),
-            'details' => $this->description($occurrence),
-            'location' => $this->address($occurrence),
-            'ctz' => $event->city->timezone,
-        ], static fn (string $value): bool => $value !== ''));
+    private function link(EventOccurrence $occurrence): Link
+    {
+        $fuso = new DateTimeZone($occurrence->event->city->timezone);
+
+        /*
+         * Gli istanti vanno passati nel fuso della città, non in UTC: la
+         * libreria formatta a partire da quello che riceve, e un evento delle
+         * 21 salvato come 19 UTC finirebbe nel calendario alle 19.
+         */
+        $link = Link::create(
+            $occurrence->event->title,
+            $occurrence->starts_at->setTimezone($fuso)->toDateTime(),
+            $occurrence->effective_ends_at->setTimezone($fuso)->toDateTime(),
+        );
+
+        $descrizione = $this->description($occurrence);
+        $indirizzo = $this->address($occurrence);
+
+        if ($descrizione !== '') {
+            $link->description($descrizione);
+        }
+
+        if ($indirizzo !== '') {
+            $link->address($indirizzo);
+        }
+
+        return $link;
     }
 
     private function identifier(EventOccurrence $occurrence): string

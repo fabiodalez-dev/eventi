@@ -40,8 +40,10 @@ use App\Policies\TicketTierPolicy;
 use App\Policies\UserPolicy;
 use App\Policies\VenueApplicationPolicy;
 use App\Policies\VenuePolicy;
+use App\Services\Geo\AddressGeocoder;
 use App\Services\Geo\GeoQueryInterface;
 use App\Services\Geo\MariaDbGeoQuery;
+use App\Services\Geo\NominatimGeocoder;
 use App\Services\Import\DnsHostResolver;
 use App\Services\Import\HostResolver;
 use App\Services\Installer\DatabaseInspector;
@@ -95,6 +97,10 @@ class AppServiceProvider extends ServiceProvider
         // scaricare un calendario: dietro un'interfaccia perché la difesa
         // contro gli indirizzi interni si possa verificare senza DNS.
         $this->app->bind(HostResolver::class, DnsHostResolver::class);
+
+        // La traduzione degli indirizzi in coordinate: dietro un'interfaccia
+        // perche' i test non debbano interrogare OpenStreetMap.
+        $this->app->bind(AddressGeocoder::class, NominatimGeocoder::class);
 
         // La città della richiesta si carica una volta sola, e con lei il fuso
         // in cui vanno lette tutte le date mostrate a chi legge.

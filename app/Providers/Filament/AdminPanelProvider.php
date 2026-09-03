@@ -13,6 +13,7 @@ use Filament\Navigation\NavigationGroup;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Guava\Calendar\CalendarPlugin;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
@@ -81,6 +82,11 @@ class AdminPanelProvider extends PanelProvider
             ->pages([
                 Dashboard::class,
             ])
+            /* Il calendario della redazione (`guava/calendar`): il plugin
+               porta il foglio di stile e lo script del widget, che senza di
+               esso resterebbe un riquadro vuoto. */
+            ->plugin(CalendarPlugin::make())
+
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,

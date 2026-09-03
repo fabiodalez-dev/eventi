@@ -12,6 +12,7 @@ use App\Models\City;
 use App\Models\User;
 use App\Models\Venue;
 use App\Models\VenueApplication;
+use App\Services\Geo\AddressGeocoder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -33,7 +34,10 @@ use Illuminate\Support\Str;
  */
 final class ApproveVenueApplication
 {
-    public function __construct(private readonly InviteVenueMemberAction $invito) {}
+    public function __construct(
+        private readonly InviteVenueMemberAction $invito,
+        private readonly AddressGeocoder $geocoder,
+    ) {}
 
     public function handle(VenueApplication $richiesta, User $moderatore): Venue
     {
@@ -42,6 +46,22 @@ final class ApproveVenueApplication
                due schede per lo stesso posto sono un guaio che si scopre mesi
                dopo, quando gli eventi sono divisi fra le due. */
             $citta = City::query()->orderBy('id')->firstOrFail();
+
+            /*
+             * L'indirizzo scritto nella richiesta diventa un punto vero, se
+             * si riesce a tradurlo. Prima si scriveva sempre il centro della
+             * citta': un locale a due chilometri compariva in centro, e la
+             * ricerca «vicino a me» rispondeva sul posto sbagliato.
+             *
+             * Quando la traduzione non riesce — indirizzo scritto male,
+             * servizio irraggiungibile — resta il centro. Un punto da
+             * correggere e' meglio di un'approvazione che si blocca, ed e'
+             * anche il motivo per cui il locale nasce in bozza.
+             */
+            $punto = $this->geocoder->coordinate(
+                (string) ($richiesta->address ?? ''),
+                $citta->name,
+            );
 
             $locale = $richiesta->venue ?? Venue::query()->create([
                 'city_id' => $citta->getKey(),
@@ -67,8 +87,8 @@ final class ApproveVenueApplication
                  */
                 'municipality' => $citta->name,
                 'province_code' => $citta->province_code,
-                'lat' => $citta->center_lat,
-                'lng' => $citta->center_lng,
+                'lat' => $punto['lat'] ?? $citta->center_lat,
+                'lng' => $punto['lng'] ?? $citta->center_lng,
                 'name' => $richiesta->venue_name,
                 'slug' => $this->slug($richiesta->venue_name),
                 'type' => $this->tipo($richiesta),

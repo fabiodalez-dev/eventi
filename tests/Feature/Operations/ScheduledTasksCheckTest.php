@@ -21,7 +21,14 @@ function scheduleConSoloNotifiche(): void
 {
     app()->forgetInstance(Schedule::class);
 
-    $schedule = app(Schedule::class);
+    /*
+     * `new` e non `app()`: i pacchetti registrano i propri comandi schedulati
+     * dai loro ServiceProvider, quindi dal container esce uno scheduler che
+     * ne contiene già — e questo scenario, che si chiama «con solo notifiche»,
+     * ne aveva due senza dirlo. Costruendolo a mano contiene esattamente ciò
+     * che questo test dichiara.
+     */
+    $schedule = new Schedule(config('app.timezone'));
     $schedule->command('notifications:send')->everyFiveMinutes();
 
     app()->instance(Schedule::class, $schedule);
@@ -91,8 +98,15 @@ it('è rosso quando l\'ultima esecuzione di un comando è fallita', function ():
 });
 
 it('è rosso quando lo scheduler è vuoto', function (): void {
+    /*
+     * Costruito a mano, non risolto dal container: i pacchetti registrano i
+     * propri comandi schedulati dai loro ServiceProvider — non da
+     * `routes/console.php` — quindi `app(Schedule::class)` restituisce uno
+     * scheduler che contiene già qualcosa e lo scenario «vuoto» non esiste
+     * piu'. Con `new` si ha davvero il caso limite che questo test descrive.
+     */
     app()->forgetInstance(Schedule::class);
-    app()->instance(Schedule::class, app(Schedule::class));
+    app()->instance(Schedule::class, new Schedule(config('app.timezone')));
 
     $result = ScheduledTasksCheck::new()->run();
 

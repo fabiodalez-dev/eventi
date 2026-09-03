@@ -6,6 +6,7 @@ use App\Enums\NotificationType;
 use App\Models\ScheduledNotification;
 use App\Models\User;
 use App\Services\Notifications\DigestPlanner;
+use Carbon\CarbonImmutable;
 use Laravel\Pennant\Feature;
 
 /**
@@ -57,6 +58,20 @@ it('chiede di accedere a chi non lo ha fatto', function (): void {
 });
 
 it('dal consenso alla email pianificata, tutto il giro', function (): void {
+    /*
+     * **Il tempo qui è fermo, e non è pignoleria.**
+     *
+     * La newsletter esce giovedì alle 16:00 e il pianificatore guarda avanti
+     * 36 ore: girando questo test un giovedì alle 16:36 il prossimo invio
+     * cade fra sette giorni, fuori dall'orizzonte, e la coda resta vuota. È
+     * successo davvero — verde alle 8 del mattino, rosso alle 16:36 dello
+     * stesso giorno, senza che una riga di codice fosse cambiata.
+     *
+     * Fermando l'orologio a un mercoledì, giovedì è sempre a meno di 36 ore e
+     * il test misura il pianificatore invece dell'ora in cui viene lanciato.
+     */
+    test()->travelTo(CarbonImmutable::parse('2026-09-02 10:00'));
+
     Feature::for('global')->activate('newsletter');
 
     $utente = User::factory()->create(['marketing_opt_in_at' => null]);

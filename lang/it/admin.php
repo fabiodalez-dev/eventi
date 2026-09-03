@@ -15,6 +15,7 @@ return [
     ],
 
     'navigation' => [
+        'calendar' => 'Calendario',
         'content' => 'Contenuti',
         'moderation' => 'Moderazione',
         'places' => 'Luoghi',
@@ -339,6 +340,7 @@ return [
         'view_on_site' => 'Vedi sul sito',
         'publish' => 'Pubblica',
         'unpublish' => 'Torna in bozza',
+        'export' => 'Esporta',
         'approve' => 'Approva',
         'reject' => 'Rifiuta',
         'suspend' => 'Sospendi',

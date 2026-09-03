@@ -349,6 +349,17 @@ class DeployCommand extends Command
         $artisan = [
             'migrate' => ['--force'],
             'db:seed' => ['--class=RolesAndPermissionsSeeder', '--force'],
+            /*
+             * I comandi schedulati cambiano coi rilasci — e non solo per mano
+             * nostra: un pacchetto nuovo puo' registrarne uno dal proprio
+             * ServiceProvider, come fa `pxlrbt/filament-excel` con
+             * `filament-excel:prune`. Senza questa sincronizzazione quel
+             * comando gira senza che nessuno lo sorvegli, ed e' proprio il
+             * caso in cui `schedule-monitor` non serve a niente: la coda
+             * potrebbe morire in silenzio e il controllo di salute resterebbe
+             * verde.
+             */
+            'schedule-monitor:sync' => [],
             'filament:assets' => [],
             'config:cache' => [],
             'route:cache' => [],

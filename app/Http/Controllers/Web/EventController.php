@@ -13,6 +13,7 @@ use App\Models\Event;
 use App\Models\EventOccurrence;
 use App\Queries\EventOccurrenceQuery;
 use App\Services\Calendar\OccurrenceCalendar;
+use App\Services\Events\EventPoster;
 use App\Services\Seo\StructuredData;
 use App\Support\Poster;
 use App\Support\TicketTiers;
@@ -96,6 +97,33 @@ final class EventController extends Controller
         return response($this->calendar->ics($occurrence), 200, [
             'Content-Type' => 'text/calendar; charset=utf-8',
             'Content-Disposition' => 'attachment; filename="'.$this->calendar->filename($occurrence).'"',
+        ]);
+    }
+
+    /**
+     * La locandina A4 di una data, col QR che riporta a questa scheda.
+     *
+     * **Pubblica come l'ICS, e per la stessa ragione.** Chiunque può volerla
+     * stampare — il locale per la vetrina, un cliente per la bacheca del
+     * condominio, un'associazione per il proprio circolo — e chiuderla dietro
+     * un accesso significherebbe che il volantino lo rifà ognuno a modo suo,
+     * col rischio che l'orario sul muro diverga da quello sul sito.
+     */
+    public function poster(string $slug, EventOccurrence $occurrence, EventPoster $poster): Response
+    {
+        $city = $this->city();
+        $event = $this->findReadable($city, $slug);
+
+        /* Come per l'ICS: la data deve appartenere a questo evento, altrimenti
+           si potrebbe comporre la locandina di un evento accostando lo slug di
+           uno e il numero di una data di un altro. */
+        abort_unless((int) $occurrence->event_id === (int) $event->getKey(), 404);
+
+        $occurrence->setRelation('event', $event);
+
+        return response($poster->pdf($occurrence), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.$poster->filename($occurrence).'"',
         ]);
     }
 

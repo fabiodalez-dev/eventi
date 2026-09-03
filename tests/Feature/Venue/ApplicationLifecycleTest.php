@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Models\Venue;
 use App\Models\VenueApplication;
 use App\Notifications\VenueAccessGranted;
+use App\Services\Geo\AddressGeocoder;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Support\Facades\Notification;
 
@@ -24,6 +25,16 @@ use Illuminate\Support\Facades\Notification;
  */
 beforeEach(function (): void {
     Notification::fake();
+
+    /*
+     * Il geocodificatore vero chiama OpenStreetMap: una suite che lo
+     * interroga e' lenta, dipende dalla rete e consuma il limite di una
+     * richiesta al secondo di un servizio gratuito. Qui si dichiara cosa
+     * risponde, e i test che vogliono il caso «non trovato» lo cambiano.
+     */
+    $this->geocoder = Mockery::mock(AddressGeocoder::class);
+    $this->geocoder->shouldReceive('coordinate')->andReturn(['lat' => 45.4111, 'lng' => 11.8765])->byDefault();
+    app()->instance(AddressGeocoder::class, $this->geocoder);
 
     /* I ruoli globali servono davvero: l'invito assegna `venue_owner`, e senza
        il seeder l'approvazione fallisce con «There is no role named». E' lo
@@ -113,15 +124,27 @@ it('non fallisce quando due locali si chiamano davvero allo stesso modo', functi
     expect($locale->slug)->toBe('circolo-arci-prova-2');
 });
 
-it('mette il locale al centro della citta, non a zero', function (): void {
+it('mette il locale dove dice il suo indirizzo', function (): void {
+    $locale = app(ApproveVenueApplication::class)->handle($this->richiesta, $this->moderatore);
+
+    /* L'indirizzo scritto nella richiesta diventa un punto vero: prima si
+       scriveva sempre il centro della citta', e un locale a due chilometri
+       compariva in centro. */
+    expect((float) $locale->lat)->toBe(45.4111)
+        ->and((float) $locale->lng)->toBe(11.8765);
+});
+
+it('ricade sul centro della citta quando l indirizzo non si trova', function (): void {
+    $this->geocoder->shouldReceive('coordinate')->andReturn(null);
+
     $locale = app(ApproveVenueApplication::class)->handle($this->richiesta, $this->moderatore);
 
     /*
-     * La prima stesura leggeva `lat`/`lng` da `City`, che non li ha:
-     * `null ?? 0` dava zero, e ogni locale approvato sarebbe finito al largo
-     * dell'Africa. I test passavano lo stesso — controllavano nome e stato,
-     * non dove fosse il punto. L'ha visto l'analisi statica; questo test
-     * serve perche' non torni.
+     * Un indirizzo scritto male, o un servizio irraggiungibile, non devono
+     * fermare chi sta approvando: resta il centro, da correggere sulla
+     * scheda. Ed e' comunque un punto vero — la prima stesura leggeva
+     * `City::$lat`, che non esiste, e `null ?? 0` mandava ogni locale al
+     * largo dell'Africa con tutti i test verdi.
      */
     expect((float) $locale->lat)->toBe(45.4064)
         ->and((float) $locale->lng)->toBe(11.8768)

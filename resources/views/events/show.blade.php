@@ -274,14 +274,31 @@
                                             {{ __('common.actions.add_to_calendar') }}
                                         </a>
 
+                                        {{-- Google, Outlook e Yahoo. Prima c'era solo Google:
+                                             chi ha un calendario Microsoft — cioe' quasi tutti
+                                             gli uffici — poteva solo scaricare il file .ics e
+                                             aprirlo a mano. --}}
+                                        {{-- La locandina A4 col QR: chi organizza la stampa
+                                             per la vetrina e chi passa davanti trova la scheda
+                                             sempre aggiornata, invece di un orario stampato a
+                                             mano che al primo cambio diventa falso. --}}
                                         <a
-                                            href="{{ $calendar->googleUrl($occurrence) }}"
-                                            rel="noopener noreferrer"
-                                            target="_blank"
+                                            href="{{ route('events.poster', ['slug' => $event->slug, 'occurrence' => $occurrence->getKey()]) }}"
                                             class="bg-surface-sunken px-3 py-2 font-display text-[0.594rem] leading-none font-extrabold tracking-[0.12em] text-ink uppercase border-2 border-line transition hover:border-accent"
                                         >
-                                            {{ __('common.actions.google_calendar') }}
+                                            {{ __('common.actions.poster') }}
                                         </a>
+
+                                        @foreach ($calendar->links($occurrence) as $servizio => $indirizzo)
+                                            <a
+                                                href="{{ $indirizzo }}"
+                                                rel="noopener noreferrer"
+                                                target="_blank"
+                                                class="bg-surface-sunken px-3 py-2 font-display text-[0.594rem] leading-none font-extrabold tracking-[0.12em] text-ink uppercase border-2 border-line transition hover:border-accent"
+                                            >
+                                                {{ __('common.actions.calendar_'.$servizio) }}
+                                            </a>
+                                        @endforeach
                                     </div>
                                 @endif
                             </li>
