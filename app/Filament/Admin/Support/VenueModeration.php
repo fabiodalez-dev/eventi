@@ -47,6 +47,12 @@ final class VenueModeration
                 ->label(__('admin.actions.moderate'))
                 ->icon(Heroicon::OutlinedShieldCheck)
                 ->button()
+                /* Grigio, non lime.
+                   Il lime dice «questa e' l'azione principale della
+                   schermata»: ripetuto su cinquanta righe smette di dirlo, e
+                   in un elenco di locali gia' approvati l'azione principale
+                   non e' moderarli — e' trovarne uno. */
+                ->color('gray')
                 ->dropdown(),
         ];
     }
