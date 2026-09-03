@@ -7,7 +7,11 @@ namespace App\Actions;
 use App\Enums\VenueStatus;
 use App\Models\User;
 use App\Models\Venue;
+use App\Notifications\VenueModerated;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
+use Throwable;
 
 /**
  * Le decisioni della redazione su un locale (§9.2): approvare, rifiutare,
@@ -34,6 +38,8 @@ final class ModerateVenueAction
             $venue->rejection_reason = null;
             $venue->save();
 
+            self::avvisa($venue, VenueStatus::Approved);
+
             return $venue;
         });
     }
@@ -46,6 +52,8 @@ final class ModerateVenueAction
             $venue->approved_at = null;
             $venue->approved_by = null;
             $venue->save();
+
+            self::avvisa($venue, VenueStatus::Rejected, $reason);
 
             return $venue;
         });
@@ -62,7 +70,46 @@ final class ModerateVenueAction
         $venue->rejection_reason = $reason;
         $venue->save();
 
+        self::avvisa($venue, VenueStatus::Suspended, $reason);
+
         return $venue;
+    }
+
+    /**
+     * Avvisa chi gestisce il locale di cosa e' stato deciso.
+     *
+     * **Sta qui e non nel pannello.** Il cambio di stato passa da questa
+     * classe qualunque sia la strada — pulsante, comando, importazione — e
+     * mettere l'invio accanto al salvataggio e' l'unico modo perche' non
+     * esista un percorso che cambia lo stato in silenzio. Nel pannello
+     * coprirebbe soltanto il pulsante.
+     *
+     * **Un guasto della posta non annulla la decisione.** L'invio e' dentro un
+     * `try`: se il server di posta e' irraggiungibile, il locale resta
+     * sospeso e la moderazione ha fatto il suo lavoro. Il contrario — una
+     * sospensione che fallisce perche' non parte un'email — lascerebbe online
+     * un locale che qualcuno aveva deciso di togliere.
+     */
+    private static function avvisa(Venue $venue, VenueStatus $esito, ?string $motivo = null): void
+    {
+        try {
+            $destinatari = $venue->members()->get();
+
+            if ($destinatari->isEmpty()) {
+                return;
+            }
+
+            Notification::send($destinatari, new VenueModerated($venue, $esito, $motivo));
+        } catch (Throwable $e) {
+            /* Si registra, perche' un'email che non parte in silenzio diventa
+               «non mi hanno mai avvisato» settimane dopo, senza modo di
+               sapere se fu mandata. */
+            Log::warning('Avviso di moderazione non inviato', [
+                'venue' => $venue->getKey(),
+                'esito' => $esito->value,
+                'errore' => $e->getMessage(),
+            ]);
+        }
     }
 
     public function setVerified(Venue $venue, bool $verified): Venue

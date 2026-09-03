@@ -53,14 +53,17 @@ use App\Support\CurrentCity;
 use App\Support\CurrentFollows;
 use App\Support\CurrentSaves;
 use App\Support\DateFormatter;
+use App\Support\Lang\DatabaseOverrideLoader;
 use Dedoc\Scramble\Scramble;
 use Dedoc\Scramble\Support\Generator\OpenApi;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Translation\FileLoader;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -69,6 +72,24 @@ class AppServiceProvider extends ServiceProvider
         // Le query geospaziali passano tutte da qui: cambiare motore di
         // database costa questa riga più una implementazione dell'interfaccia.
         $this->app->bind(GeoQueryInterface::class, MariaDbGeoQuery::class);
+
+        /*
+         * I testi delle email si possono riscrivere dal pannello.
+         *
+         * Si sostituisce il caricatore, non il traduttore: cosi' Laravel
+         * continua a fare tutto il resto — scelta della lingua, sostituzione
+         * delle variabili, plurali — e noi ci limitiamo a sovrapporre le
+         * righe salvate sopra quelle del file. Va in `register` e non in
+         * `boot` perche' il traduttore viene costruito prestissimo, e a quel
+         * punto il caricatore dev'essere gia' il nostro.
+         */
+        $this->app->extend('translation.loader', static fn (
+            FileLoader $vecchio,
+            Application $app
+        ): DatabaseOverrideLoader => new DatabaseOverrideLoader(
+            $app->make('files'),
+            $app->langPath(),
+        ));
 
         // La risoluzione dei nomi che `ImportUrlGuard` interroga prima di
         // scaricare un calendario: dietro un'interfaccia perché la difesa

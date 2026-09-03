@@ -22,6 +22,35 @@ return [
 
     'common' => [
         'at_venue' => 'Da :venue, :municipality.',
+        'greeting' => 'Ciao :name,',
+        'reason' => 'Il motivo: :reason',
+    ],
+
+    /*
+     * Le tre decisioni sulla scheda di un locale.
+     *
+     * Il tono cambia con l'esito, ed e' voluto. L'approvazione dice cosa fare
+     * adesso; il rifiuto e la sospensione dicono cos'e' successo e come se ne
+     * esce — perche' un'email che comunica una porta chiusa senza indicare a
+     * chi rivolgersi produce una risposta che qualcuno dovra' comunque
+     * leggere.
+     */
+    'venue_approved' => [
+        'subject' => ':venue è online su :product',
+        'line' => 'La scheda di :venue è stata approvata: da adesso è visibile sul sito e puoi pubblicare i tuoi eventi.',
+        'why' => 'Ricevi questa email perché gestisci questa scheda.',
+    ],
+
+    'venue_rejected' => [
+        'subject' => 'La richiesta per :venue non è stata accolta',
+        'line' => 'Abbiamo esaminato la scheda di :venue e non possiamo pubblicarla così com\'è.',
+        'why' => 'Se pensi che ci sia un errore, rispondi a questa email: la leggiamo.',
+    ],
+
+    'venue_suspended' => [
+        'subject' => ':venue è stato sospeso',
+        'line' => 'La scheda di :venue non è più visibile sul sito, e con essa i suoi eventi. È una sospensione, non una cancellazione: si può riattivare.',
+        'why' => 'Per riattivarla, rispondi a questa email.',
     ],
 
     'reminder' => [
