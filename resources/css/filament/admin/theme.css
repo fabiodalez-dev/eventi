@@ -90,6 +90,17 @@
 .fi-wi-stats-overview-stat,
 .fi-input-wrp,
 .fi-dropdown-panel {
+    /*
+     * **La larghezza, non solo il colore.**
+     *
+     * Qui c'era il solo `border-color`, e su un bordo largo zero il colore
+     * non disegna niente: i campi erano bianchi su bianco, senza contorno.
+     * Non si capiva dove si potesse scrivere — il modulo sembrava un foglio
+     * di testo. Un colore di bordo senza larghezza e' una dichiarazione che
+     * non fallisce e non fa nulla: il posto peggiore in cui sbagliare.
+     */
+    border-width: 1px;
+    border-style: solid;
     border-color: rgba(20, 20, 19, 0.14);
 }
 
@@ -98,6 +109,8 @@
 .dark .fi-wi-stats-overview-stat,
 .dark .fi-input-wrp,
 .dark .fi-dropdown-panel {
+    border-width: 1px;
+    border-style: solid;
     border-color: rgba(245, 245, 240, 0.18);
 }
 
@@ -195,4 +208,23 @@
 :root:not(.dark) .fi-link-color-primary,
 :root:not(.dark) a.fi-link {
     color: #5c7300;
+}
+
+/*
+ * **Il testo delle celle respira meno.**
+ *
+ * Erano 16 px sopra e sotto ogni valore, ora 8: negli elenchi di sola
+ * lettura — utenti, tag, categorie — le righe si stringono e se ne
+ * confrontano di piu' a colpo d'occhio, che e' cio' per cui si guarda un
+ * elenco.
+ *
+ * **Dove ci sono pulsanti di riga non cambia nulla, ed e' giusto cosi'.**
+ * Nei Locali la riga resta a 69 px: l'altezza la detta «Moderazione», non il
+ * testo. Misurato, non dedotto — la prima versione di questa nota prometteva
+ * righe da 50 px che non sono mai esistite. I bersagli cliccabili non si
+ * comprimono per far entrare due righe in piu'.
+ */
+.fi-ta-text-item {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
 }

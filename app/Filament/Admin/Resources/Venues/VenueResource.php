@@ -37,6 +37,8 @@ use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\ToggleButtons;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Tabs;
+use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Components\Text;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
@@ -103,275 +105,313 @@ class VenueResource extends Resource
     {
         return $schema
             ->components([
-                Section::make(__('admin.sections.general'))
-                    ->columns(2)
-                    ->schema([
-                        TextInput::make('name')
-                            ->label(__('admin.fields.name'))
-                            ->required()
-                            ->maxLength(255),
-
-                        TextInput::make('slug')
-                            ->label(__('admin.fields.slug'))
-                            ->maxLength(255)
-                            ->unique(ignoreRecord: true),
-
-                        Select::make('city_id')
-                            ->label(__('admin.fields.city'))
-                            ->relationship('city', 'name')
-                            ->required()
-                            ->searchable()
-                            ->preload()
-                            ->default(fn (): ?int => City::query()->orderBy('id')->value('id')),
-
-                        Select::make('type')
-                            ->label(__('admin.fields.type'))
-                            ->options(VenueType::options())
-                            ->required()
-                            ->default(VenueType::Altro->value),
-
-                        Textarea::make('short_description')
-                            ->label(__('admin.fields.short_description'))
-                            ->helperText(__('admin.hints.short_description'))
-                            ->maxLength(500)
-                            ->rows(2)
-                            ->columnSpanFull(),
-
-                        Textarea::make('description')
-                            ->label(__('admin.fields.description'))
-                            ->rows(6)
-                            ->columnSpanFull(),
-                    ]),
-
-                Section::make(__('admin.sections.where'))
-                    ->columns(3)
-                    ->schema([
-                        TextInput::make('address')
-                            ->label(__('admin.fields.address'))
-                            ->required()
-                            ->maxLength(255)
-                            ->columnSpan(2),
-
-                        TextInput::make('address_extra')
-                            ->label(__('admin.fields.address_extra'))
-                            ->maxLength(255),
-
-                        TextInput::make('municipality')
-                            ->label(__('admin.fields.municipality'))
-                            ->required()
-                            ->maxLength(255),
-
-                        /*
-                         * Il quartiere. Non duplica il comune: in un
-                         * capoluogo il comune è lo stesso per tutti i locali
-                         * e come filtro non separa niente (§11.3).
-                         */
-                        TextInput::make('zone')
-                            ->label(__('admin.fields.zone'))
-                            ->helperText(__('admin.hints.zone'))
-                            ->maxLength(255)
-                            ->datalist(fn (): array => self::knownZones()),
-
-                        TextInput::make('postal_code')
-                            ->label(__('admin.fields.postal_code'))
-                            ->maxLength(10),
-
-                        TextInput::make('province_code')
-                            ->label(__('admin.fields.province_code'))
-                            ->required()
-                            ->maxLength(4),
-
-                        TextInput::make('lat')
-                            ->label(__('admin.fields.lat'))
-                            ->required()
-                            ->numeric()
-                            ->minValue(-90)
-                            ->maxValue(90)
-                            ->live(onBlur: true),
-
-                        TextInput::make('lng')
-                            ->label(__('admin.fields.lng'))
-                            ->required()
-                            ->numeric()
-                            ->minValue(-180)
-                            ->maxValue(180)
-                            ->live(onBlur: true),
-
-                        Text::make(fn (Get $get): HtmlString => self::coordinatesPreview($get))
-                            ->columnSpanFull(),
-                    ])
-                    ->footerActions([
-                        Action::make('center_on_city')
-                            ->label(__('admin.actions.center_on_city'))
-                            ->icon(Heroicon::OutlinedMapPin)
-                            ->action(function (Get $get, Set $set): void {
-                                $city = City::query()->find($get('city_id'));
-
-                                if ($city === null) {
-                                    return;
-                                }
-
-                                $set('lat', (float) $city->center_lat);
-                                $set('lng', (float) $city->center_lng);
-                            }),
-                    ]),
-
-                Section::make(__('admin.sections.contacts'))
-                    ->columns(3)
-                    ->schema([
-                        TextInput::make('phone')
-                            ->label(__('admin.fields.phone'))
-                            ->tel()
-                            ->maxLength(40),
-
-                        TextInput::make('email')
-                            ->label(__('admin.fields.email'))
-                            ->email()
-                            ->maxLength(255),
-
-                        TextInput::make('website')
-                            ->label(__('admin.fields.website'))
-                            ->url()
-                            ->maxLength(255),
-
-                        KeyValue::make('socials')
-                            ->label(__('admin.fields.socials'))
-                            ->columnSpanFull(),
-                    ]),
-
-                Section::make(__('admin.sections.advanced'))
-                    ->columns(3)
-                    ->collapsed()
-                    ->schema([
-                        TextInput::make('capacity')
-                            ->label(__('admin.fields.capacity'))
-                            ->numeric()
-                            ->minValue(0),
-
-                        Toggle::make('requires_membership')
-                            ->label(__('admin.fields.requires_membership')),
-
-                        Textarea::make('membership_notes')
-                            ->label(__('admin.fields.membership_notes'))
-                            ->rows(2),
-
-                        Repeater::make('opening_hours')
-                            ->label(__('admin.fields.opening_hours'))
-                            ->columnSpanFull()
-                            ->columns(3)
-                            ->defaultItems(0)
-                            ->addActionLabel(__('admin.actions.add_opening_hours'))
+                /*
+                 * **Schede, non due colonne di riquadri.**
+                 *
+                 * Le dieci sezioni stavano affiancate su due colonne, e una
+                 * griglia allinea le righe all'elemento piu' alto: una sezione
+                 * chiusa da 40 px accanto a una aperta da 250 ne lasciava 200
+                 * di grigio vuoto. Succedeva quattro volte, e intanto i campi
+                 * stavano in un quarto di schermo e troncavano il testo —
+                 * «Associazione Culturale Sagun», «info@associazion» — con
+                 * meta' pagina inutilizzata.
+                 *
+                 * Dentro una scheda il problema non si pone: le sezioni sono
+                 * impilate a piena larghezza, e chi cerca la moderazione ci va
+                 * invece di scorrere fino in fondo.
+                 *
+                 * Niente piu' sezioni chiuse: nascondere qualcosa dentro un
+                 * posto che gia' lo nasconde e' una porta in piu' da aprire
+                 * per la stessa cosa.
+                 */
+                Tabs::make('venue')
+                    ->columnSpanFull()
+                    /* La scheda aperta resta nell'indirizzo: dopo un
+                       salvataggio si torna dove si stava, e un collegamento
+                       a «Moderazione» ci porta davvero. */
+                    ->persistTabInQueryString()
+                    ->tabs([
+                        Tab::make(__('admin.form_tabs.identity'))
                             ->schema([
-                                Select::make('day')
-                                    ->label(__('admin.fields.opening_day'))
-                                    ->options(self::weekdays())
-                                    ->required(),
+                                Section::make(__('admin.sections.general'))
+                                    ->columns(2)
+                                    ->schema([
+                                        TextInput::make('name')
+                                            ->label(__('admin.fields.name'))
+                                            ->required()
+                                            ->maxLength(255),
 
-                                TimePicker::make('open')
-                                    ->label(__('admin.fields.opening_from'))
-                                    ->seconds(false)
-                                    ->required(),
+                                        TextInput::make('slug')
+                                            ->label(__('admin.fields.slug'))
+                                            ->maxLength(255)
+                                            ->unique(ignoreRecord: true),
 
-                                TimePicker::make('close')
-                                    ->label(__('admin.fields.opening_to'))
-                                    ->seconds(false)
-                                    ->required(),
+                                        Select::make('city_id')
+                                            ->label(__('admin.fields.city'))
+                                            ->relationship('city', 'name')
+                                            ->required()
+                                            ->searchable()
+                                            ->preload()
+                                            ->default(fn (): ?int => City::query()->orderBy('id')->value('id')),
+
+                                        Select::make('type')
+                                            ->label(__('admin.fields.type'))
+                                            ->options(VenueType::options())
+                                            ->required()
+                                            ->default(VenueType::Altro->value),
+
+                                        Textarea::make('short_description')
+                                            ->label(__('admin.fields.short_description'))
+                                            ->helperText(__('admin.hints.short_description'))
+                                            ->maxLength(500)
+                                            ->rows(2)
+                                            ->columnSpanFull(),
+
+                                        Textarea::make('description')
+                                            ->label(__('admin.fields.description'))
+                                            ->rows(6)
+                                            ->columnSpanFull(),
+                                    ]),
+
+                                Section::make(__('admin.sections.media'))
+                                    ->columns(3)
+                                    ->schema([
+                                        ImageUpload::make('logo')
+                                            ->label(__('admin.fields.logo'))
+                                            ->collection('logo')
+                                            ->imageEditor(),
+
+                                        ImageUpload::make('cover')
+                                            ->label(__('admin.fields.cover'))
+                                            ->collection('cover')
+                                            ->imageEditor(),
+
+                                        ImageUpload::make('gallery')
+                                            ->label(__('admin.fields.gallery'))
+                                            ->collection('gallery')
+                                            ->multiple()
+                                            ->reorderable(),
+                                    ]),
                             ]),
-                    ]),
 
-                /*
-                 * Accessibilità: sei voci, tre stati ciascuna. Era un JSON
-                 * libero che nessun modulo compilava — e un JSON libero
-                 * sull'accessibilità è peggio di un campo assente, perché non
-                 * si può né leggere a colpo d'occhio né filtrare (§11.3).
-                 */
-                Section::make(__('admin.sections.accessibility'))
-                    ->columns(3)
-                    ->collapsed()
-                    ->schema(AccessibilityField::make('admin')),
+                        Tab::make(__('admin.form_tabs.where'))
+                            ->schema([
+                                Section::make(__('admin.sections.where'))
+                                    ->columns(3)
+                                    ->schema([
+                                        TextInput::make('address')
+                                            ->label(__('admin.fields.address'))
+                                            ->required()
+                                            ->maxLength(255)
+                                            ->columnSpan(2),
 
-                Section::make(__('admin.sections.transit'))
-                    ->collapsed()
-                    ->schema([
-                        TransitField::make('admin'),
-                    ]),
+                                        TextInput::make('address_extra')
+                                            ->label(__('admin.fields.address_extra'))
+                                            ->maxLength(255),
 
-                Section::make(__('admin.sections.venue_info'))
-                    ->collapsed()
-                    ->schema([
-                        FactsField::make('admin', 'info'),
-                    ]),
+                                        TextInput::make('municipality')
+                                            ->label(__('admin.fields.municipality'))
+                                            ->required()
+                                            ->maxLength(255),
 
-                Section::make(__('admin.sections.media'))
-                    ->columns(3)
-                    ->schema([
-                        ImageUpload::make('logo')
-                            ->label(__('admin.fields.logo'))
-                            ->collection('logo')
-                            ->imageEditor(),
+                                        /*
+                                 * Il quartiere. Non duplica il comune: in un
+                                 * capoluogo il comune è lo stesso per tutti i locali
+                                 * e come filtro non separa niente (§11.3).
+                                 */
+                                        TextInput::make('zone')
+                                            ->label(__('admin.fields.zone'))
+                                            ->helperText(__('admin.hints.zone'))
+                                            ->maxLength(255)
+                                            ->datalist(fn (): array => self::knownZones()),
 
-                        ImageUpload::make('cover')
-                            ->label(__('admin.fields.cover'))
-                            ->collection('cover')
-                            ->imageEditor(),
+                                        TextInput::make('postal_code')
+                                            ->label(__('admin.fields.postal_code'))
+                                            ->maxLength(10),
 
-                        ImageUpload::make('gallery')
-                            ->label(__('admin.fields.gallery'))
-                            ->collection('gallery')
-                            ->multiple()
-                            ->reorderable(),
-                    ]),
+                                        TextInput::make('province_code')
+                                            ->label(__('admin.fields.province_code'))
+                                            ->required()
+                                            ->maxLength(4),
 
-                /*
-                 * Il codice del widget incorporabile (§11.10). È di sola
-                 * lettura e non viene salvato: si calcola dallo slug del
-                 * locale, e leggerlo qui è il gesto per cui esiste — copiarlo
-                 * e incollarlo nel proprio sito.
-                 */
-                Section::make(__('venues.widget.title'))
-                    ->description(__('venues.widget.lead'))
-                    ->visibleOn('edit')
-                    ->schema([
-                        Textarea::make('widget_snippet')
-                            ->label(__('venues.widget.snippet_label'))
-                            ->rows(3)
-                            ->readOnly()
-                            ->dehydrated(false)
-                            ->formatStateUsing(fn (?Venue $record): string => $record === null ? '' : WidgetEmbed::snippet($record)),
-                    ]),
+                                        TextInput::make('lat')
+                                            ->label(__('admin.fields.lat'))
+                                            ->required()
+                                            ->numeric()
+                                            ->minValue(-90)
+                                            ->maxValue(90)
+                                            ->live(onBlur: true),
 
-                Section::make(__('admin.sections.moderation'))
-                    ->columns(3)
-                    ->schema([
-                        ToggleButtons::make('status')
-                            ->label(__('admin.fields.status'))
-                            ->options(VenueStatus::options())
-                            ->inline()
-                            ->required()
-                            ->default(VenueStatus::Draft->value)
-                            ->columnSpanFull(),
+                                        TextInput::make('lng')
+                                            ->label(__('admin.fields.lng'))
+                                            ->required()
+                                            ->numeric()
+                                            ->minValue(-180)
+                                            ->maxValue(180)
+                                            ->live(onBlur: true),
 
-                        Toggle::make('is_verified')
-                            ->label(__('admin.fields.is_verified'))
-                            ->helperText(__('admin.hints.is_verified')),
+                                        Text::make(fn (Get $get): HtmlString => self::coordinatesPreview($get))
+                                            ->columnSpanFull(),
+                                    ])
+                                    ->footerActions([
+                                        Action::make('center_on_city')
+                                            ->label(__('admin.actions.center_on_city'))
+                                            ->icon(Heroicon::OutlinedMapPin)
+                                            ->action(function (Get $get, Set $set): void {
+                                                $city = City::query()->find($get('city_id'));
 
-                        Toggle::make('auto_publish')
-                            ->label(__('admin.fields.auto_publish'))
-                            ->helperText(__('admin.hints.auto_publish')),
+                                                if ($city === null) {
+                                                    return;
+                                                }
 
-                        Toggle::make('is_nonprofit')
-                            ->label(__('admin.fields.is_nonprofit')),
+                                                $set('lat', (float) $city->center_lat);
+                                                $set('lng', (float) $city->center_lng);
+                                            }),
+                                    ]),
 
-                        Select::make('plan')
-                            ->label(__('admin.fields.plan'))
-                            ->options(VenuePlan::options())
-                            ->required()
-                            ->default(VenuePlan::Free->value),
+                                Section::make(__('admin.sections.transit'))
+                                    ->schema([
+                                        TransitField::make('admin'),
+                                    ]),
+                            ]),
 
-                        Textarea::make('rejection_reason')
-                            ->label(__('admin.fields.rejection_reason'))
-                            ->rows(2)
-                            ->columnSpan(2),
+                        Tab::make(__('admin.form_tabs.contacts'))
+                            ->schema([
+                                Section::make(__('admin.sections.contacts'))
+                                    ->columns(3)
+                                    ->schema([
+                                        TextInput::make('phone')
+                                            ->label(__('admin.fields.phone'))
+                                            ->tel()
+                                            ->maxLength(40),
+
+                                        TextInput::make('email')
+                                            ->label(__('admin.fields.email'))
+                                            ->email()
+                                            ->maxLength(255),
+
+                                        TextInput::make('website')
+                                            ->label(__('admin.fields.website'))
+                                            ->url()
+                                            ->maxLength(255),
+
+                                        KeyValue::make('socials')
+                                            ->label(__('admin.fields.socials'))
+                                            ->columnSpanFull(),
+                                    ]),
+
+                                Section::make(__('admin.sections.venue_info'))
+                                    ->schema([
+                                        FactsField::make('admin', 'info'),
+                                    ]),
+
+                                /*
+                         * Accessibilità: sei voci, tre stati ciascuna. Era un JSON
+                         * libero che nessun modulo compilava — e un JSON libero
+                         * sull'accessibilità è peggio di un campo assente, perché non
+                         * si può né leggere a colpo d'occhio né filtrare (§11.3).
+                         */
+                                Section::make(__('admin.sections.accessibility'))
+                                    ->columns(3)
+                                    ->schema(AccessibilityField::make('admin')),
+                            ]),
+
+                        Tab::make(__('admin.form_tabs.advanced'))
+                            ->schema([
+                                Section::make(__('admin.sections.advanced'))
+                                    ->columns(3)
+                                    ->schema([
+                                        TextInput::make('capacity')
+                                            ->label(__('admin.fields.capacity'))
+                                            ->numeric()
+                                            ->minValue(0),
+
+                                        Toggle::make('requires_membership')
+                                            ->label(__('admin.fields.requires_membership')),
+
+                                        Textarea::make('membership_notes')
+                                            ->label(__('admin.fields.membership_notes'))
+                                            ->rows(2),
+
+                                        Repeater::make('opening_hours')
+                                            ->label(__('admin.fields.opening_hours'))
+                                            ->columnSpanFull()
+                                            ->columns(3)
+                                            ->defaultItems(0)
+                                            ->addActionLabel(__('admin.actions.add_opening_hours'))
+                                            ->schema([
+                                                Select::make('day')
+                                                    ->label(__('admin.fields.opening_day'))
+                                                    ->options(self::weekdays())
+                                                    ->required(),
+
+                                                TimePicker::make('open')
+                                                    ->label(__('admin.fields.opening_from'))
+                                                    ->seconds(false)
+                                                    ->required(),
+
+                                                TimePicker::make('close')
+                                                    ->label(__('admin.fields.opening_to'))
+                                                    ->seconds(false)
+                                                    ->required(),
+                                            ]),
+                                    ]),
+
+                                /*
+                         * Il codice del widget incorporabile (§11.10). È di sola
+                         * lettura e non viene salvato: si calcola dallo slug del
+                         * locale, e leggerlo qui è il gesto per cui esiste — copiarlo
+                         * e incollarlo nel proprio sito.
+                         */
+                                Section::make(__('venues.widget.title'))
+                                    ->description(__('venues.widget.lead'))
+                                    ->visibleOn('edit')
+                                    ->schema([
+                                        Textarea::make('widget_snippet')
+                                            ->label(__('venues.widget.snippet_label'))
+                                            ->rows(3)
+                                            ->readOnly()
+                                            ->dehydrated(false)
+                                            ->formatStateUsing(fn (?Venue $record): string => $record === null ? '' : WidgetEmbed::snippet($record)),
+                                    ]),
+                            ]),
+
+                        Tab::make(__('admin.form_tabs.moderation'))
+                            ->schema([
+                                Section::make(__('admin.sections.moderation'))
+                                    ->columns(3)
+                                    ->schema([
+                                        ToggleButtons::make('status')
+                                            ->label(__('admin.fields.status'))
+                                            ->options(VenueStatus::options())
+                                            ->inline()
+                                            ->required()
+                                            ->default(VenueStatus::Draft->value)
+                                            ->columnSpanFull(),
+
+                                        Toggle::make('is_verified')
+                                            ->label(__('admin.fields.is_verified'))
+                                            ->helperText(__('admin.hints.is_verified')),
+
+                                        Toggle::make('auto_publish')
+                                            ->label(__('admin.fields.auto_publish'))
+                                            ->helperText(__('admin.hints.auto_publish')),
+
+                                        Toggle::make('is_nonprofit')
+                                            ->label(__('admin.fields.is_nonprofit')),
+
+                                        Select::make('plan')
+                                            ->label(__('admin.fields.plan'))
+                                            ->options(VenuePlan::options())
+                                            ->required()
+                                            ->default(VenuePlan::Free->value),
+
+                                        Textarea::make('rejection_reason')
+                                            ->label(__('admin.fields.rejection_reason'))
+                                            ->rows(2)
+                                            ->columnSpan(2),
+                                    ]),
+                            ]),
                     ]),
             ]);
     }

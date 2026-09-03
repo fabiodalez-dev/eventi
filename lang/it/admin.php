@@ -114,6 +114,17 @@ return [
         'venue_info' => 'Buono a sapersi',
     ],
 
+    /* Le schede del modulo di un locale. Distinte da `tabs`, che sono
+       i filtri in cima alla lista: due cose diverse con lo stesso nome
+       finiscono per essere modificate l'una al posto dell'altra. */
+    'form_tabs' => [
+        'identity' => 'Scheda',
+        'where' => 'Dove si trova',
+        'contacts' => 'Contatti',
+        'advanced' => 'Impostazioni',
+        'moderation' => 'Moderazione',
+    ],
+
     'tabs' => [
         'all' => 'Tutti',
         'pending' => 'In attesa',
