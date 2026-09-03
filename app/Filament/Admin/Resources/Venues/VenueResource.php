@@ -174,16 +174,26 @@ class VenueResource extends Resource
                                     ]),
 
                                 Section::make(__('admin.sections.media'))
-                                    ->columns(3)
+                                    /*
+                                     * Due colonne, non tre.
+                                     *
+                                     * Con tre, «Logo» e «Galleria» si
+                                     * allungavano fino all'altezza
+                                     * dell'anteprima di copertina — 250 px
+                                     * quando l'immagine c'è — e restavano due
+                                     * riquadri di trascinamento mezzi vuoti.
+                                     * Ora logo e galleria stanno affiancati e
+                                     * la copertina prende una riga sua, in
+                                     * fondo: messa in mezzo spezzava la riga e
+                                     * lasciava il logo da solo — l'ordine dei
+                                     * campi decide la griglia quanto il numero
+                                     * di colonne.
+                                     */
+                                    ->columns(2)
                                     ->schema([
                                         ImageUpload::make('logo')
                                             ->label(__('admin.fields.logo'))
                                             ->collection('logo')
-                                            ->imageEditor(),
-
-                                        ImageUpload::make('cover')
-                                            ->label(__('admin.fields.cover'))
-                                            ->collection('cover')
                                             ->imageEditor(),
 
                                         ImageUpload::make('gallery')
@@ -191,6 +201,12 @@ class VenueResource extends Resource
                                             ->collection('gallery')
                                             ->multiple()
                                             ->reorderable(),
+                                        ImageUpload::make('cover')
+                                            ->label(__('admin.fields.cover'))
+                                            ->columnSpanFull()
+                                            ->collection('cover')
+                                            ->imageEditor(),
+
                                     ]),
                             ]),
 
