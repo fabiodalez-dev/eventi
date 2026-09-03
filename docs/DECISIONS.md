@@ -2639,3 +2639,46 @@ fuori.
 come prima. Ed è anche la via del ritorno: si spegne la casella senza cancellare
 niente, che è quello che serve nel momento peggiore — quando qualcosa è appena
 andato storto.
+
+## D51 — I testi delle email si riscrivono dal pannello, ma il file resta il valore predefinito
+
+**2026-09-03.** Le email si compongono con centinaia di `__('notifications.…')`
+sparse in `MessageFactory`. Per renderle modificabili senza toccare il codice
+si sostituisce il **caricatore di traduzioni** (`DatabaseOverrideLoader`), che
+carica il file come sempre e poi sovrappone le righe salvate in
+`notification_texts`.
+
+**Perché non un campo per email in una tabella di modelli.** Passare dal
+caricatore dà tre cose che l'altra strada non dà insieme: le variabili
+(`:title`, `:when`) continuano a funzionare perché le risolve Laravel dopo di
+noi; il file resta il valore predefinito, quindi un database vuoto o
+irraggiungibile lascia le email come sono; e ogni testo aggiunto in futuro
+nasce già modificabile, senza che nessuno debba ricordarsene.
+
+**La tabella contiene solo le differenze.** Un campo svuotato cancella la riga
+e torna all'originale. Copiare tutti i testi nel database al primo salvataggio
+li avrebbe congelati a quel giorno e avrebbe reso possibile un'email vuota per
+una riga cancellata per sbaglio.
+
+## D52 — Un locale sospeso si porta via i propri eventi
+
+**2026-09-03.** `EventOccurrenceQuery` non guardava lo stato del locale:
+sospendere una scheda la toglieva dall'elenco dei locali ma lasciava i suoi
+eventi in home, in mappa e nei feed, e il referente continuava a pubblicare da
+`/gestione`. Chi premeva «Sospendi» credeva di aver tolto qualcosa dal sito e
+non toglieva nulla.
+
+La distinzione fra **provvedimento** (sospeso, rifiutato) e **percorso non
+concluso** (bozza, in attesa) sta su `VenueStatus::isProvvedimento()`, in un
+posto solo: due liste ripetute in query lontane sarebbero divergute in
+silenzio, e la divergenza si sarebbe vista solo come questo stesso difetto.
+
+## D53 — Accettare una richiesta di iscrizione crea un locale in bozza
+
+**2026-09-03.** «Approva» crea la scheda dai dati della richiesta, la lega alla
+richiesta stessa e invita chi ha scritto come referente. Il locale nasce
+**in bozza**, non pubblicato: alla richiesta mancano quasi sempre coordinate,
+orari e una foto, e accettare vuol dire «ci parliamo», non «sei online». La
+pubblicazione resta una seconda decisione, presa guardando una scheda finita
+invece che un modulo.
+
