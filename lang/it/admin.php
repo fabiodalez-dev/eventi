@@ -306,6 +306,7 @@ return [
     ],
 
     'actions' => [
+        'moderate' => 'Moderazione',
         'view_on_site' => 'Vedi sul sito',
         'publish' => 'Pubblica',
         'unpublish' => 'Torna in bozza',

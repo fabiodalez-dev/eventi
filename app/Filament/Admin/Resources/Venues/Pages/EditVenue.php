@@ -42,8 +42,15 @@ class EditVenue extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            ...VenueModeration::actions(),
-            DeleteAction::make(),
+            /*
+             * Le azioni di moderazione in chiaro, e l'eliminazione dopo di
+             * loro e defilata: sospendere e' ordinario e si annulla,
+             * eliminare e' definitivo. Prima era il contrario — l'unica cosa
+             * visibile era «Elimina», il resto stava dietro un menu senza
+             * etichetta.
+             */
+            ...VenueModeration::headerActions(),
+            DeleteAction::make()->color('gray'),
         ];
     }
 }

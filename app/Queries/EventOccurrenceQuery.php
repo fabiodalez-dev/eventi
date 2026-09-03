@@ -10,6 +10,7 @@ use App\Enums\FollowableType;
 use App\Enums\OccurrenceStatus;
 use App\Enums\PriceType;
 use App\Enums\TimeOfDay;
+use App\Enums\VenueStatus;
 use App\Models\Category;
 use App\Models\City;
 use App\Models\Event;
@@ -1015,7 +1016,25 @@ final class EventOccurrenceQuery
             })
             ->where('events.city_id', $this->city->getKey())
             ->whereIn('events.status', array_map(static fn (EventStatus $status): string => $status->value, $this->statuses))
-            ->whereNull('events.deleted_at');
+            ->whereNull('events.deleted_at')
+            /*
+             * Un locale sospeso o rifiutato si porta via i propri eventi.
+             *
+             * Senza questa clausola la sospensione era un'etichetta interna:
+             * la scheda del locale spariva dall'elenco, ma i suoi eventi
+             * restavano in home, in mappa e nei feed. Chi premeva «Sospendi»
+             * credeva di aver tolto qualcosa dal sito e non toglieva nulla —
+             * il modo peggiore di fallire, perche' nessuno va a controllare.
+             *
+             * Il `whereNull` non e' ridondante: la giunzione e' esterna perche'
+             * un evento puo' non avere locale (una piazza, una manifestazione
+             * diffusa), e quelli devono restare visibili.
+             */
+            ->where(function (Builder $pubblico): void {
+                $pubblico
+                    ->whereNull('events.venue_id')
+                    ->orWhereIn('venues.status', VenueStatus::valoriSenzaProvvedimento());
+            });
     }
 
     /**

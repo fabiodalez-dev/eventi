@@ -19,7 +19,24 @@ use Carbon\CarbonImmutable;
  * c'era piu' niente da vendere.
  */
 
+/*
+ * **Il tempo qui e' fermo, ed e' l'unico modo perche' questi test dicano
+ * sempre la stessa cosa.**
+ *
+ * Le campagne nascono con una finestra ancorata a `now()` (da ieri a domani),
+ * mentre i cicli qui sotto scorrono i minuti a partire da una data scritta a
+ * mano. Finche' le due coincidono va tutto bene; il giorno dopo la finestra
+ * scivola avanti, il ciclo resta indietro, e i conteggi crollano — «31 invece
+ * di 200» — come se la rotazione fosse rotta.
+ *
+ * E' successo davvero: scritti il 2 settembre, rossi il 3, per il solo
+ * passare della mezzanotte. Un test che dipende dal giorno in cui gira non
+ * misura il codice, misura il calendario, e quando fallisce manda a cercare
+ * un guasto dove non c'e'.
+ */
 beforeEach(function (): void {
+    test()->travelTo(CarbonImmutable::parse('2026-09-02 00:00'));
+
     $this->citta = testCity();
     $this->categoria = testCategory();
 });

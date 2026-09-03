@@ -25,6 +25,11 @@ use Filament\Support\Icons\Heroicon;
 final class VenueModeration
 {
     /**
+     * Le azioni **nella riga di una tabella**, raggruppate in un menu.
+     *
+     * Lì lo spazio è poco e le righe sono molte: quattro pulsanti per riga
+     * renderebbero illeggibile l'elenco.
+     *
      * @return array<Action|ActionGroup>
      */
     public static function actions(): array
@@ -35,7 +40,43 @@ final class VenueModeration
                 self::reject(),
                 self::suspend(),
                 self::verify(),
-            ])->dropdown(),
+            ])
+                /* Un'etichetta, perché un menu di sole icone non dice cosa
+                   contiene: chi cerca «sospendi» non ha motivo di aprire tre
+                   puntini per scoprirlo. */
+                ->label(__('admin.actions.moderate'))
+                ->icon(Heroicon::OutlinedShieldCheck)
+                ->button()
+                ->dropdown(),
+        ];
+    }
+
+    /**
+     * Le stesse azioni **nell'intestazione della scheda**, in chiaro.
+     *
+     * **Perché non lo stesso menu.** Erano raggruppate anche qui, e il
+     * risultato era che nella scheda di un locale l'unica azione visibile
+     * restava «Elimina» — quella irreversibile — mentre sospendere, rifiutare
+     * e togliere la verifica stavano dietro un menu senza etichetta.
+     *
+     * È il verso sbagliato: sospendere un locale è ordinario e si annulla,
+     * eliminarlo è definitivo e capita di rado. Un'interfaccia che mette in
+     * mano la cosa pericolosa e nasconde quella di tutti i giorni fa
+     * commettere l'errore che dovrebbe prevenire.
+     *
+     * Qui lo spazio c'è: le azioni si mostrano, e sono comunque poche perché
+     * ognuna compare solo quando ha senso — «approva» sparisce su un locale
+     * già approvato, «sospendi» esiste solo per chi è approvato.
+     *
+     * @return array<Action|ActionGroup>
+     */
+    public static function headerActions(): array
+    {
+        return [
+            self::approve(),
+            self::verify(),
+            self::suspend(),
+            self::reject(),
         ];
     }
 

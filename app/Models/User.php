@@ -8,6 +8,7 @@ use App\DTOs\NotificationPreferences;
 use App\Enums\FollowableType;
 use App\Enums\UserRole;
 use App\Enums\VenueRole;
+use App\Enums\VenueStatus;
 use App\Notifications\VerifyEmailLink;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
@@ -169,7 +170,16 @@ class User extends Authenticatable implements FilamentUser, HasTenants, MustVeri
     {
         return match ($panel->getId()) {
             'admin' => $this->isEditorialStaff(),
-            'venue' => $this->venues()->exists(),
+            /*
+             * Non basta *avere* un locale: bisogna averne almeno uno su cui
+             * non penda un provvedimento. Sospendere un locale e lasciare al
+             * referente il pannello significa che continua a pubblicare
+             * eventi mentre e' fuori dal sito: la sospensione diventa una
+             * nota interna che nessuno applica.
+             */
+            'venue' => $this->venues()
+                ->whereIn('venues.status', VenueStatus::valoriSenzaProvvedimento())
+                ->exists(),
             default => false,
         };
     }
@@ -186,7 +196,10 @@ class User extends Authenticatable implements FilamentUser, HasTenants, MustVeri
     public function getTenants(Panel $panel): Collection
     {
         /** @var Collection<int, Venue> $venues */
-        $venues = $this->venues()->orderBy('name')->get();
+        $venues = $this->venues()
+            ->whereIn('venues.status', VenueStatus::valoriSenzaProvvedimento())
+            ->orderBy('name')
+            ->get();
 
         return $venues;
     }
@@ -200,7 +213,13 @@ class User extends Authenticatable implements FilamentUser, HasTenants, MustVeri
     public function canAccessTenant(Model $tenant): bool
     {
         return $tenant instanceof Venue
-            && $this->venues()->whereKey($tenant->getKey())->exists();
+            && $this->venues()
+                ->whereKey($tenant->getKey())
+                /* Lo stesso filtro di `canAccessPanel`: chi gestisce due
+                   locali entra grazie a quello sano, e non deve poter passare
+                   allo switcher su quello sospeso. */
+                ->whereIn('venues.status', VenueStatus::valoriSenzaProvvedimento())
+                ->exists();
     }
 
     /**
