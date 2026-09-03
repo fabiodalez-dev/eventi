@@ -34,6 +34,30 @@ class EventsCalendarWidget extends CalendarWidget
     protected bool $eventClickEnabled = true;
 
     /**
+     * Le opzioni passate a `vkurko/calendar`.
+     *
+     * I nomi dei giorni arrivano gia' in italiano — la libreria li chiede al
+     * browser a partire dalla lingua dell'applicazione — ma le etichette dei
+     * pulsanti no: sono testo scritto nel codice, e «today» restava in
+     * inglese in mezzo a «lun mar mer». Una parola sola, che pero' e' l'unica
+     * inglese di tutta la schermata: si nota proprio perche' e' sola.
+     *
+     * @var array<string, mixed>
+     */
+    protected array $options = [
+        'buttonText' => [
+            'today' => 'Oggi',
+            'dayGridMonth' => 'Mese',
+            'timeGridWeek' => 'Settimana',
+            'timeGridDay' => 'Giorno',
+            'listWeek' => 'Elenco',
+        ],
+        /* La settimana comincia di lunedi', come in Italia: `0` sarebbe
+           domenica, ed e' il valore predefinito della libreria. */
+        'firstDay' => 1,
+    ];
+
+    /**
      * @return Collection<int, CalendarEvent>
      */
     protected function getEvents(FetchInfo $info): Collection
