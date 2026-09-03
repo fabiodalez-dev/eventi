@@ -20,6 +20,7 @@ return [
         'venue' => 'Il mio locale',
         'logout' => 'Esci',
         'feed' => 'Il mio feed',
+        'notifications' => 'Email e avvisi',
         'saved' => 'Salvati',
         'profile' => 'Profilo',
         'login' => 'Accedi',

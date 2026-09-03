@@ -66,6 +66,13 @@
                 {{ __('account.nav.feed') }}
             </a>
 
+            {{-- Le preferenze delle email vivevano solo dietro un collegamento
+                 firmato dentro le email: chi non ne riceveva non poteva
+                 iscriversi, perche' per riceverne serviva iscriversi. --}}
+            <a role="menuitem" href="{{ route('account.notifications') }}" class="border-b-2 border-line px-3.5 py-2.5 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.14em] uppercase transition-colors hover:bg-accent hover:text-on-accent">
+                {{ __('account.nav.notifications') }}
+            </a>
+
             <a role="menuitem" href="{{ route('account.profile') }}" class="px-3.5 py-2.5 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.14em] uppercase transition-colors hover:bg-accent hover:text-on-accent">
                 {{ __('account.nav.profile') }}
             </a>

@@ -12,7 +12,10 @@ use App\Http\Controllers\Web\Account\PasswordResetController;
 use App\Http\Controllers\Web\Account\ProfileController;
 use App\Http\Controllers\Web\Account\RegisterController;
 use App\Http\Controllers\Web\Account\SavedController;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\URL;
 
 /*
 |--------------------------------------------------------------------------
@@ -116,6 +119,32 @@ Route::middleware('signed')->group(function (): void {
 
 Route::middleware('auth')->group(function (): void {
     Route::post('/esci', [LoginController::class, 'destroy'])->name('account.logout');
+
+    /*
+     * La stessa pagina delle preferenze, raggiungibile da dentro il sito.
+     *
+     * Fin qui esisteva solo dietro un collegamento firmato, cioe' **dentro le
+     * email**: un disegno giusto per la disiscrizione, che deve funzionare
+     * senza login, ma che chiudeva un cerchio per l'iscrizione. Per ricevere
+     * il riepilogo del fine settimana serve il consenso; il consenso si da'
+     * da quella pagina; a quella pagina si arriva da un'email che non si
+     * riceve perche' manca il consenso. Nessuno poteva iscriversi.
+     *
+     * Si firma al volo per se' stessi e si rimanda li': una pagina sola, un
+     * controller solo, e la firma resta l'unico modo di arrivarci — anche per
+     * chi ha fatto l'accesso.
+     */
+    Route::get('/notifiche', function (): RedirectResponse {
+        $utente = Auth::user();
+
+        abort_if($utente === null, 403);
+
+        return redirect()->to(URL::temporarySignedRoute(
+            'notifications.preferences',
+            now()->addHour(),
+            ['user' => $utente->getKey()],
+        ));
+    })->name('account.notifications');
 
     Route::get('/email/verifica', [EmailVerificationController::class, 'notice'])->name('verification.notice');
     Route::post('/email/verifica', [EmailVerificationController::class, 'send'])
