@@ -328,8 +328,31 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      # PHP e composer qui non servono piu': le dipendenze di produzione le
-      # installa il server, che e' l'unico posto dove la loro versione conta.
+      # Composer serve, e non per PHP: **il CSS del pannello importa da
+      # `vendor/`.**
+      #
+      # Era stato tolto da qui — «le dipendenze di produzione le installa il
+      # server, l'unico posto dove la loro versione conta» — e per mesi e'
+      # stato vero. Poi il tema di Filament ha aggiunto
+      # `@import '.../vendor/filament/filament/resources/css/theme.css'` e
+      # questo job ha iniziato a compilare un foglio di stile che dipende da
+      # una cartella che aveva deciso di non scaricare piu'.
+      #
+      # Il guasto e' stato invisibile piu' del dovuto: `tests` e `lighthouse`
+      # installano composer e restano verdi, quindi il rosso compariva solo
+      # nel job che pubblica — quello che si guarda solo quando ci si accorge
+      # che il sito non e' cambiato. Il tema e' rimasto due giorni fuori dalla
+      # produzione mentre in locale era perfetto.
+      #
+      # `--no-dev` perche' qui serve solo il sorgente dei pacchetti, non gli
+      # strumenti di sviluppo.
+      - uses: shivammathur/setup-php@b604ade2a87db23f8871b7182e69ec5e75effb45 # v2
+        with:
+          php-version: '8.4'
+          coverage: none
+
+      - run: composer install --no-dev --no-interaction --prefer-dist --no-progress --no-scripts
+
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22'
