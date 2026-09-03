@@ -37,6 +37,13 @@ CLAUDE.md
 # rigenerati a ogni deploy. Non vanno versionati.
 /public/css/filament
 /public/js/filament
+
+# Gli asset che i plugin di Filament pubblicano con `filament:assets`, un
+# nome di cartella per pacchetto. Si rigenerano a ogni rilascio — il comando
+# e' nel deploy — e committarli significherebbe portarsi dietro 4 MB di file
+# generati che divergono dalla versione del pacchetto installato.
+/public/css/guava
+/public/js/guava
 /public/fonts/filament
 /public/storage
 
