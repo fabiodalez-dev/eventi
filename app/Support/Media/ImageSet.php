@@ -41,6 +41,16 @@ final readonly class ImageSet
          * scarica la variante più grande anche dentro una card da 280 px.
          */
         public ?string $sizes = null,
+        /*
+         * A quali schermi serve **annunciare in anticipo** questa immagine,
+         * nella sintassi dell'attributo `media`. Stessa ragione di `sizes`: lo
+         * sa solo chi la dispone. Un preload è una promessa che l'immagine
+         * serve subito, e su un impaginato a due colonne quella promessa è
+         * vera solo finché le colonne stanno affiancate — sotto quella soglia
+         * l'immagine scende sotto la piega e il preload le fa scavalcare la
+         * fila davanti a ciò che si vede davvero.
+         */
+        public ?string $preloadMedia = null,
     ) {}
 
     /**
@@ -105,7 +115,16 @@ final readonly class ImageSet
      */
     public function withSizes(string $sizes): self
     {
-        return new self($this->src, $this->sources, $this->blurhash, $this->placeholder, $this->width, $this->height, $sizes);
+        return new self($this->src, $this->sources, $this->blurhash, $this->placeholder, $this->width, $this->height, $sizes, $this->preloadMedia);
+    }
+
+    /**
+     * La stessa immagine, da annunciare in anticipo **solo** agli schermi che
+     * la mostrano sopra la piega.
+     */
+    public function withPreloadMedia(string $media): self
+    {
+        return new self($this->src, $this->sources, $this->blurhash, $this->placeholder, $this->width, $this->height, $this->sizes, $media);
     }
 
     public function hasSources(): bool

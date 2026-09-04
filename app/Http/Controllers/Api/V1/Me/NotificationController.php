@@ -16,8 +16,9 @@ use Illuminate\Notifications\DatabaseNotification;
  * `GET /v1/me/notifications` (§15.8): l'archivio in-app.
  *
  * È il terzo canale di §15.6 — «sempre in-app come archivio consultabile» — e
- * dopo D8, che ha escluso il Web Push, è quello che insieme all'email resta
- * l'unico attivo. Un promemoria letto di sfuggita e chiuso si ritrova qui.
+ * l'unico che non si sceglie: c'è qualunque sia la strada presa in fondo alla
+ * catena, push o email (D54). Un promemoria letto di sfuggita e chiuso si
+ * ritrova qui.
  */
 final class NotificationController extends Controller
 {

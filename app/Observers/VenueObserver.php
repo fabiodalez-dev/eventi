@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Observers;
 
 use App\Models\Venue;
+use App\Support\Redirect\RegistroRedirect;
 use MatanYadaev\EloquentSpatial\Objects\Point;
 
 /**
@@ -34,6 +35,25 @@ class VenueObserver
         if ($venue->isDirty(['lat', 'lng'])) {
             $venue->location = $this->pointFor($venue);
         }
+    }
+
+    /**
+     * Lo slug di un locale che cambia lascia dietro di sé l'indirizzo stampato
+     * sui volantini e quello incorporato in ogni widget. `city_id` è nullo
+     * perché lo slug di un locale è unico in tutto il sistema (D12): la stessa
+     * riga vale sia per `/locali/x` sia per `/padova/locali/x`.
+     */
+    public function updated(Venue $venue): void
+    {
+        if (! $venue->wasChanged('slug')) {
+            return;
+        }
+
+        app(RegistroRedirect::class)->registra(
+            null,
+            '/locali/'.$venue->getOriginal('slug'),
+            '/locali/'.$venue->slug,
+        );
     }
 
     private function pointFor(Venue $venue): Point

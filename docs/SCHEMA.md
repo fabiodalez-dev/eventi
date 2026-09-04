@@ -275,6 +275,13 @@ Nessun indice unico su `push_token` / `endpoint`: sono lunghi 512 e la loro
 unicità è per utente, non globale. La deduplica avviene in fase di registrazione
 del device.
 
+**Da D54 questa tabella è anche l'archivio delle iscrizioni Web Push**, e non
+la `push_subscriptions` che il pacchetto porta con sé: una riga `platform=web`
+con `endpoint` e `keys` (`p256dh` e `auth`) è un'iscrizione, e
+`App\Models\WebPushSubscription` la legge nella forma che il canale si aspetta.
+Due tabelle per lo stesso fatto avrebbero costretto, a ogni invio, a decidere
+quale delle due dice la verità. Nessuna colonna aggiunta: c'era già tutto.
+
 ### 3.15 `scheduled_notifications`
 ```
 id · user_id→users[CASCADE] · notifiable_type(64?) · notifiable_id(ubigint?)

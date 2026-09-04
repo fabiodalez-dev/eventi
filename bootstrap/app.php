@@ -8,6 +8,7 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Sentry\Laravel\Integration;
+use Spatie\MissingPageRedirector\RedirectsMissingPages;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -42,6 +43,25 @@ return Application::configure(basePath: dirname(__DIR__))
          * indirizzi dell'installer non fa nulla.
          */
         $middleware->prependToGroup('web', InstallerSession::class);
+
+        /*
+         * Gli indirizzi che non esistono più (tabella `redirects`).
+         *
+         * **Globale e non nel gruppo `web`**, che è la sola posizione in cui
+         * funziona per intero: i middleware di gruppo sono attaccati alle
+         * rotte, e un indirizzo che non corrisponde a nessuna rotta non entra
+         * mai nel gruppo — cioè proprio il caso di una sezione sparita o di un
+         * vecchio sito. Da qui si vedono invece tutti e due i casi, perché il
+         * 404 sollevato più a fondo torna indietro come risposta lungo questa
+         * stessa catena.
+         *
+         * Costa fino a tre letture indicizzate — la città, la riga esatta, le
+         * poche righe jolly — e solo sui 404, nemmeno su tutti:
+         * `RedirectDalDatabase` scarta prima i metodi diversi da GET e le
+         * sezioni che non hanno indirizzi pubblici da salvare. È poco accanto
+         * alla pagina d'errore che quella stessa richiesta sta già disegnando.
+         */
+        $middleware->append(RedirectsMissingPages::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         /*

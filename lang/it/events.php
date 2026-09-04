@@ -70,7 +70,6 @@ return [
         'free' => 'Gratis',
         'same_venue' => 'Altri eventi in questo locale',
         'similar' => 'Eventi simili',
-        'live_loading' => 'Guardo cosa sta succedendo adesso…',
 
         /* Gli occhielli numerati «01 — apre tra poche ore». Dicono a chi
            scorre perche' quella sezione esiste, che il titolo da solo non fa:

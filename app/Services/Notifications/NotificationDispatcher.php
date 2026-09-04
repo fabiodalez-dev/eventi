@@ -42,6 +42,7 @@ final class NotificationDispatcher
     public function __construct(
         private readonly NotificationGate $gate,
         private readonly MessageFactory $messages,
+        private readonly ChannelSelector $channels,
     ) {}
 
     /**
@@ -149,8 +150,20 @@ final class NotificationDispatcher
             return;
         }
 
+        /*
+         * Il canale si sceglie adesso (§15.6, D54), non alla programmazione:
+         * `NotificationScheduler` scrive `mail` su ogni riga perché la colonna
+         * non ammette vuoti, ma quel valore ha l'età della riga. Riscriverlo
+         * prima di inviare è ciò che rende vero `notification_log`, che legge
+         * proprio da qui: un registro che dicesse «email» per un invio andato
+         * via push sarebbe peggio di un registro assente, perché lo si
+         * consulta quando qualcuno sostiene di non aver ricevuto nulla.
+         */
+        $channel = $this->channels->for($user);
+        $notification->channel = $channel;
+
         try {
-            $user->notify(new ScheduledMessage($message));
+            $user->notify(new ScheduledMessage($message, $channel));
 
             NotificationLog::query()->create([
                 'user_id' => $user->getKey(),

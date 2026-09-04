@@ -11,6 +11,7 @@ use App\Models\EventOccurrence;
 use App\Models\Follow;
 use App\Models\ImportSource;
 use App\Models\Page;
+use App\Models\Redirect;
 use App\Models\Report;
 use App\Models\SavedEvent;
 use App\Models\ScheduledNotification;
@@ -20,8 +21,11 @@ use App\Models\TicketTier;
 use App\Models\User;
 use App\Models\Venue;
 use App\Models\VenueApplication;
+use App\Observers\CategoryObserver;
+use App\Observers\CityObserver;
 use App\Observers\EventObserver;
 use App\Observers\EventOccurrenceObserver;
+use App\Observers\TagObserver;
 use App\Observers\TicketTierObserver;
 use App\Observers\VenueObserver;
 use App\Policies\CategoryPolicy;
@@ -31,6 +35,7 @@ use App\Policies\EventPolicy;
 use App\Policies\FollowPolicy;
 use App\Policies\ImportSourcePolicy;
 use App\Policies\PagePolicy;
+use App\Policies\RedirectPolicy;
 use App\Policies\ReportPolicy;
 use App\Policies\SavedEventPolicy;
 use App\Policies\ScheduledNotificationPolicy;
@@ -246,6 +251,19 @@ class AppServiceProvider extends ServiceProvider
         Venue::observe(VenueObserver::class);
 
         /*
+         * Uno slug che cambia è un indirizzo che muore, e nessuno se ne
+         * accorge: chi rinomina vede la pagina nuova. Questi observer scrivono
+         * la riga in `redirects`, che `RedirectDalDatabase` rilegge sui 404.
+         *
+         * `Event` e `Venue` sono già osservati qui sopra e fanno lo stesso al
+         * loro interno; `City` è il caso con il jolly, perché il suo slug è il
+         * prefisso di tutte le rotte del sito pubblico.
+         */
+        Category::observe(CategoryObserver::class);
+        Tag::observe(TagObserver::class);
+        City::observe(CityObserver::class);
+
+        /*
          * La documentazione OpenAPI (`/docs/api`) prende titolo e descrizione
          * da `lang/it`, non dalla configurazione: sono testi, e i testi stanno
          * in un posto solo (§2 delle convenzioni).
@@ -294,5 +312,6 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Follow::class, FollowPolicy::class);
         Gate::policy(User::class, UserPolicy::class);
         Gate::policy(Page::class, PagePolicy::class);
+        Gate::policy(Redirect::class, RedirectPolicy::class);
     }
 }

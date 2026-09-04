@@ -250,10 +250,17 @@
             type="{{ $lcpFormato }}"
             imagesrcset="{{ $lcp->sources[$lcpFormato] }}"
             imagesizes="{{ $lcp->sizes ?? '100vw' }}"
+            @if ($lcp->preloadMedia !== null) media="{{ $lcp->preloadMedia }}" @endif
             fetchpriority="high"
         >
     @elseif ($lcp !== null)
-        <link rel="preload" as="image" href="{{ $lcp->src }}" fetchpriority="high">
+        <link
+            rel="preload"
+            as="image"
+            href="{{ $lcp->src }}"
+            @if ($lcp->preloadMedia !== null) media="{{ $lcp->preloadMedia }}" @endif
+            fetchpriority="high"
+        >
     @endif
 
     {{-- I feed dichiarati qui sono ciò che fa comparire il pulsante "sottoscrivi"

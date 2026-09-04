@@ -105,6 +105,6 @@ un deep link (`API_PASSWORD_RESET_URL`).
    reset punta a `/reimposta-password` del sito e `legal` in `/config` è `null`.
 3. `media.cdn_url` è vuota: il meccanismo esiste ed è coperto da un test, il
    fornitore non è stato scelto.
-4. §13.5 "devices" registra i dispositivi ma non esiste un canale push (D8:
-   Web Push non installabile su Laravel 13); i canali reali sono email e
+4. §13.5 "devices" registra i dispositivi, e dal 2026-09-04 il canale push
+   esiste davvero (D54: Web Push riaperto). I canali reali sono push, email e
    archivio in-app.

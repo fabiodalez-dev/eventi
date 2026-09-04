@@ -82,9 +82,14 @@ return [
 
     /*
      * Interruttori che l'app legge all'avvio (§13.1). Dicono che cosa esiste
-     * davvero in questo momento, non che cosa esisterà: `push` è spento
-     * perché D8 ha escluso il Web Push, e resta spento finché non esisterà un
-     * canale di notifica istantanea.
+     * davvero in questo momento, non che cosa esisterà.
+     *
+     * `push` resta spento anche dopo D54, e non è una dimenticanza: questi
+     * interruttori parlano a un'app **nativa**, e per lei push significa FCM,
+     * che appartiene a F11. Il Web Push riaperto da D54 vive nel browser, dove
+     * nessuna app lo legge. Accendere questo interruttore adesso farebbe
+     * comparire in un'app un pulsante che non funziona, che è esattamente ciò
+     * che questo endpoint esiste per evitare.
      */
     'features' => [
         'map' => true,

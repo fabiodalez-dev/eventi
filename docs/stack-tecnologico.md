@@ -22,10 +22,13 @@ Documento di supporto a `piano-piattaforma-eventi-v2.md`. Contiene ogni tecnolog
 > Filament non sono pronti per la v5» — **non si è presentato** (Filament 5.7 e
 > Livewire 4.4 sono maturi, D2). Le rotture vere erano altrove, tutte causate
 > da `guzzlehttp/guzzle` 8 che Laravel 13 porta con sé: Pulse, Socialite e
-> Web Push non sono installabili.
+> Web Push non erano installabili.
 >
 > È la ragione per cui quella verifica va rifatta a ogni ripresa del progetto:
-> non conferma ciò che ci si aspetta, trova ciò che non ci si aspettava.
+> non conferma ciò che ci si aspetta, trova ciò che non ci si aspettava. E va
+> rifatta anche **in senso inverso**, sulle esclusioni: Web Push è rientrato
+> il 2026-09-04 (D54) perché il canale ha smesso di dipendere da Guzzle, e
+> nessuno se ne sarebbe accorto rileggendo la decisione invece dei pacchetti.
 
 ---
 
@@ -175,8 +178,8 @@ Tutto dietro `GeocodingServiceInterface`: cambiare provider deve costare una rig
 
 | Pacchetto | Vincolo | Ruolo | Note |
 |---|---|---|---|
-| ~~`minishlink/web-push`~~ | — | Web Push (VAPID) | D8: la catena `web-token` → `brick/math` non è installabile su Laravel 13. Notifiche via posta elettronica |
-| `laravel-notification-channels/webpush` | `^10.0` | Canale Laravel per Web Push | Gestisce subscription e invii |
+| `minishlink/web-push` | `^11.0` | Web Push (VAPID) | Arriva come dipendenza del canale. D8 lo escludeva, D54 lo riapre: la catena `web-token` → `brick/math` è installabile |
+| `laravel-notification-channels/webpush` | `^12.1` | Canale Laravel per Web Push | Le iscrizioni stanno in `devices`, non nella tabella del pacchetto: vedi `App\Models\WebPushSubscription` |
 | `laravel-notification-channels/fcm` | `^5.0` | Canale FCM | Serve in F11 con le app native |
 | `spatie/laravel-schedule-monitor` | `^3.0` | Allarme se uno scheduled task smette di girare | Il worker delle notifiche è critico: se muore in silenzio nessuno riceve più promemoria |
 
@@ -317,6 +320,21 @@ Da sistemare prima del lancio, non dopo.
 | Un framework SPA per il sito pubblico | Distrugge il canale di acquisizione principale, che è la ricerca organica |
 | API pubblica di Nominatim in produzione | Uso vietato dalla policy, ban dell'IP |
 
+### Pacchetti installati, valutati e rimossi (2026-09-04)
+
+Erano in `composer.json` senza una sola riga di codice che li usasse. Una
+dipendenza dichiarata e mai usata sembra una funzione esistente a chi legge il
+file, ed è l'ambiguità che questo progetto evita altrove.
+
+| Rimosso | Motivo |
+|---|---|
+| `spatie/laravel-webhook-server` | Nessun destinatario in uscita, né oggi né nel piano: le uniche integrazioni sono **in entrata** (import iCal di §14.2, segnale di rilascio di `DeployController`), e in `app/` non esiste una sola chiamata HTTP verso l'esterno che non sia geocoding o import. Costruirlo ora significherebbe inventare il consumatore per giustificare la dipendenza, e ciò che nascerebbe è una superficie in uscita — URL scelti da terzi, segreti di firma, tentativi in coda — che nessuno usa. Si reinstalla in un minuto quando un locale o un portale chiederà di essere avvisato |
+| `spatie/laravel-translatable` | Il multilingua qui non passa da colonne traducibili. Renderle traducibili significa trasformarle in JSON, e tre cose ci sbattono contro: gli indici `FULLTEXT` su `events.description` e `venues.description`, che senza Scout su Typesense sono ciò che fa funzionare la ricerca, indicizzerebbero le chiavi di lingua e tutte le lingue insieme; le query scritte a mano (`EventOccurrenceQuery`, `EditorialDashboardQuery`, che confronta i titoli per trovare i doppioni di §14.4) tornerebbero a confrontare JSON; e `HasSlug` su titoli e nomi diventerebbe uno slug per lingua, cioè indirizzi pubblici diversi, che §11 dichiara immutabili. In più i contenuti li scrivono i gestori dei locali o li porta l'import iCal: nessuno dei due produrrà mai una versione inglese, e `events.language` dice già in che lingua si **svolge** un evento, che è il dato utile allo studente o al turista. Quando la lingua servirà, la strada è quella già predisposta: `lang/en` da riempire, la lingua in `config/seo.php`, il prefisso di rotta. Traduce l'interfaccia, che il progetto controlla, e lascia stare i contenuti, che non controlla |
+| `bezhansalleh/filament-shield` | `DeployCommand` esegue `db:seed --class=RolesAndPermissionsSeeder` a **ogni** rilascio, e quel seeder chiama `syncPermissions()` su tutti e sei i ruoli: qualunque spunta messa dall'interfaccia verrebbe azzerata al rilascio successivo, senza un errore e senza un avviso. Un pannello che accetta le modifiche e le perde in silenzio è peggio di nessun pannello. Toglierlo, quel difetto, vorrebbe dire smontare l'impianto scelto — `App\Enums\Permission` è il catalogo, il seeder assegna, le diciassette Policy leggono — e ritrovarsi due sorgenti di verità che divergono senza che si veda da nessuna parte. In più il generatore riscriverebbe le Policy (che `ScopesToVenueMembership` costruisce sul `venue_id`), `panel_user` creerebbe un ruolo che `UserRole` non conosce, e la `RoleResource` senza una `RolePolicy` sarebbe aperta a chiunque entri in `/admin` — Filament, quando una Policy non esiste, risponde `allow`. Il bisogno però è reale: nessuna schermata mostra oggi cosa comporti un ruolo. La risposta giusta è una pagina di sola lettura che disegni la matrice ruoli × permessi leggendo gli enum e le assegnazioni effettive, e che mostri gli scostamenti fra ciò che l'enum prescrive e ciò che c'è nel database — l'unico controllo che oggi non esiste in nessuna forma |
+
+Una nota che vale oltre questi tre casi: **la sorgente di verità dei permessi è
+il seeder**. Finché è così, nessuna interfaccia può modificarli senza mentire.
+
 ---
 
 ## 17. Comandi di installazione
@@ -341,7 +359,7 @@ composer require spatie/laravel-permission spatie/laravel-sluggable \
   spatie/laravel-activitylog spatie/laravel-query-builder spatie/laravel-sitemap
 
 # notifiche
-# Web Push non e installabile su Laravel 13 (D8): resta fuori.
+# Web Push e attivo (D54): le chiavi VAPID stanno in .env, vedi .env.example.
 composer require \
   spatie/laravel-schedule-monitor
 
@@ -371,6 +389,6 @@ npm i leaflet flatpickr
 4. Error tracking: Sentry o GlitchTip.
 5. Hosting: Forge + Hetzner, oppure Laravel Cloud, oppure Coolify.
 6. Provider email: Postmark (deliverability) o Brevo (newsletter inclusa).
-7. Web Push al lancio o solo email — dipende dalla quota di traffico iOS (§20.6 del piano).
+7. ~~Web Push al lancio o solo email~~ — deciso: entrambi (D54). Push a chi ha un browser iscritto, email a tutti gli altri (§15.6). Su iOS serve il sito installato sulla schermata Home, e la pagina delle preferenze lo dice.
 
 Ogni voce va chiusa con una riga in `docs/DECISIONS.md`: cosa, perché, quando ricontrollare.

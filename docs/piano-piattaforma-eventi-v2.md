@@ -29,7 +29,7 @@
 > |---|---|---|
 > | PostgreSQL + PostGIS | **MariaDB** con tipi spaziali | shared hosting senza root (D3) |
 > | Redis, Horizon, Meilisearch | **file, database, Scout su database** | nessun demone installabile (D5) |
-> | Web Push | **posta elettronica** | non installabile su Laravel 13 (D8) |
+> | Web Push | **push + posta elettronica** | installabile da webpush 12.1 (D54, supera D8) |
 >
 > **Il disegno del frontend è cambiato** per decisione del committente: si segue
 > un riferimento visivo esterno («Modernist»), e dove quel riferimento e le
@@ -371,7 +371,7 @@ follows
 devices
   user_id  platform(ios|android|web)
   push_token(nullable)             -- FCM, per le app
-  endpoint  keys(json)             -- previsti per Web Push, oggi inutilizzati (D8)
+  endpoint  keys(json)             -- l'iscrizione Web Push del browser (D54)
   app_version  locale  last_seen_at  revoked_at
 
 scheduled_notifications           -- vedi §15.5, è il motore delle notifiche
@@ -807,7 +807,7 @@ push su device attivo negli ultimi 30 giorni
   → altrimenti email
   → sempre in-app (tabella notifications) come archivio consultabile
 ```
-- ~~**Web Push** (VAPID + service worker)~~ **non è installabile su Laravel 13** (D8): la catena `minishlink/web-push` → `web-token` → `brick/math` è ferma a versioni precedenti. I canali attivi sono **email** e archivio in-app. La decisione che §20.6 lasciava aperta è quindi presa, per una ragione tecnica e non di prodotto. Aggiungere push in seguito sarà un canale in più, non una riscrittura del motore.
+- **Web Push** (VAPID + service worker) è attivo (D54, che supera D8). L'ostacolo di allora — la catena `minishlink/web-push` → `web-token` → `brick/math` — non esiste più: `laravel-notification-channels/webpush` 12.1 dichiara `illuminate/* ^13.13`. I canali attivi sono quindi tre: **push** a chi ha un browser iscritto e visto negli ultimi trenta giorni, **email** a tutti gli altri, archivio in-app sempre. Come previsto, è stato un canale in più e non una riscrittura del motore: la scelta vive in `ChannelSelector`, e l'iscrizione del browser sta nella tabella `devices` che §15.8 popolava già.
 - **FCM** con le app native (fase F11).
 - Token invalidi o rifiutati → `revoked_at`, device escluso, fallback su email al prossimo invio.
 
@@ -897,7 +897,7 @@ API completa (§13), OpenAPI, collection versionata.
 **Accettazione:** ogni endpoint testato su happy path + 401/403/404/422/429; cursori, ETag e 304 funzionanti; **la schermata "cosa succede stasera" si costruisce con una sola chiamata**; `preset=starting_soon` e `preset=ongoing` restituiscono esattamente gli stessi risultati del sito nello stesso istante.
 
 ### F7b — Account, salvataggi e notifiche
-Registrazione, magic link, verifica email, profilo, cancellazione account. Salvataggio anonimo in `localStorage` e migrazione all'account. Selettore date sul cuore. Follow di locali/tag/categorie. Feed personalizzato. Preferenze notifiche. Motore `scheduled_notifications` con observer di riprogrammazione. ~~Web Push + PWA~~ (D8, non installabile): notifiche via email e archivio in-app. Newsletter con opt-in separato. Endpoint di §15.8.
+Registrazione, magic link, verifica email, profilo, cancellazione account. Salvataggio anonimo in `localStorage` e migrazione all'account. Selettore date sul cuore. Follow di locali/tag/categorie. Feed personalizzato. Preferenze notifiche. Motore `scheduled_notifications` con observer di riprogrammazione. Web Push (D54): notifiche sul dispositivo con ripiego su email e archivio in-app. La PWA resta fuori — su iOS le push web richiedono il sito installato sulla schermata Home, ed è l'unico pezzo che manca. Newsletter con opt-in separato. Endpoint di §15.8.
 **Accettazione:** un guest salva 3 eventi, si registra e li ritrova tutti sull'account; un promemoria programmato a 3h si sposta correttamente se il locale cambia l'orario dell'occorrenza; l'annullamento di un'occorrenza annulla i promemoria e invia la notifica di annullamento entro 5 minuti; nessun utente riceve la stessa notifica due volte (test sul vincolo `dedupe_key`); il cap di 2 push al giorno e le quiet hours sono rispettati; disattivando tutte le notifiche non parte più nulla tranne gli annullamenti.
 
 ### F8 — Popolamento (**inizia già durante F2, non alla fine**)
@@ -1015,7 +1015,7 @@ Una funzione è finita quando: codice scritto · test scritto · policy verifica
 
    **Una cosa da mettere nel contratto, non nel codice**: le misure si contano dal browser, quindi chi blocca gli script non viene contato e le cifre sono una stima al ribasso. Va scritto prima del primo cliente, non dopo la prima contestazione.
 5. Chi modera nella pratica e con quali tempi dichiarati ai locali.
-6. ~~Account utente nel primo rilascio?~~ **Deciso: sì.** Account, salvataggi e notifiche sono in fase 1 (F7b, §15). ~~Resta da scegliere se attivare Web Push al lancio~~ — **deciso dai fatti** (D8): non è installabile su Laravel 13, si parte con le sole email.
+6. ~~Account utente nel primo rilascio?~~ **Deciso: sì.** Account, salvataggi e notifiche sono in fase 1 (F7b, §15). ~~Resta da scegliere se attivare Web Push al lancio~~ — **deciso** (D8, poi D54): escluso per un ostacolo tecnico che nel frattempo è caduto, quindi attivato. Si parte con push ed email insieme, con l'email come ripiego di §15.6.
 7. Lingue al lancio: solo italiano, o anche inglese per studenti e turismo.
 8. Cutoff notturno e categorie iniziali (§7.4) — validare la tabella con qualche gestore reale prima di scolpirla.
 9. Provider: storage, email, geocoding.

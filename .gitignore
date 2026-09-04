@@ -1,8 +1,11 @@
 *.log
 .DS_Store
 .env
-.env.backup
-.env.production
+# Ogni copia di lavoro del .env: contengono APP_KEY e le credenziali del
+# database, e finora bastava un nome fuori elenco (.env.prima-di-qualcosa) per
+# renderle committabili. Si elencano gli ammessi, non gli esclusi.
+.env.*
+!.env.example
 .phpactor.json
 .phpunit.result.cache
 /.codex

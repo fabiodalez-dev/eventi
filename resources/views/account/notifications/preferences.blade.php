@@ -16,6 +16,12 @@
 @endphp
 
 <x-layouts.app :narrow="true" :meta="$meta">
+    @if ($pushAvailable)
+        <x-slot:head>
+            @vite('resources/js/push.js')
+        </x-slot:head>
+    @endif
+
     <div class="mx-auto flex w-full max-w-xl flex-col gap-8">
         <header class="flex flex-col gap-2">
             <h1 class="text-hero text-ink">{{ $meta->heading }}</h1>
@@ -87,5 +93,51 @@
                 {{ __('notifications.preferences.submit') }}
             </button>
         </form>
+
+        {{--
+            Le notifiche sul dispositivo stanno FUORI dal modulo delle
+            preferenze, e non e' una scelta di impaginazione: le preferenze si
+            salvano con un invio, l'iscrizione push avviene subito nel momento
+            in cui il browser concede il permesso. Dentro lo stesso modulo,
+            un interruttore che ha gia' avuto effetto starebbe accanto a
+            caselle che aspettano il pulsante — e chi lo tocca senza salvare
+            non saprebbe piu' quale delle due cose e' successa.
+
+            La sezione compare solo a chi ha una sessione su questo account e
+            solo se le chiavi VAPID esistono davvero: un interruttore che il
+            server ignora e' peggio di nessun interruttore, ed e' la stessa
+            regola che tiene fuori da questa pagina gli avvisi obbligatori.
+        --}}
+        @if ($pushAvailable)
+            <section
+                class="flex flex-col gap-3 bg-surface p-card"
+                data-push="{{ $pushKey }}"
+                data-push-on="{{ __('notifications.push.on') }}"
+                data-push-off="{{ __('notifications.push.off') }}"
+                data-push-denied="{{ __('notifications.push.denied') }}"
+                data-push-unsupported="{{ __('notifications.push.unsupported') }}"
+                data-push-failed="{{ __('notifications.push.failed') }}"
+            >
+                <h2 class="text-sm font-semibold text-ink">{{ __('notifications.push.title') }}</h2>
+                <p class="text-xs text-ink-subtle">{{ __('notifications.push.lead') }}</p>
+
+                <label class="flex items-center gap-2.5 text-sm text-ink">
+                    <input type="checkbox" data-push-toggle class="size-4 rounded border-line" @checked($pushActive)>
+                    {{ __('notifications.push.toggle') }}
+                </label>
+
+                {{-- Su iPhone le push web arrivano solo a un sito installato
+                     sulla schermata Home: senza questa riga il permesso viene
+                     concesso e non arriva mai niente. --}}
+                <p class="text-xs text-ink-subtle">{{ __('notifications.push.ios') }}</p>
+
+                <p class="text-xs text-ink-subtle" data-push-status aria-live="polite">
+                    {{ $pushActive ? __('notifications.push.on') : '' }}
+                </p>
+            </section>
+        @else
+            <p class="text-xs text-ink-subtle">{{ __('notifications.push.signed_out') }}</p>
+        @endif
+
     </div>
 </x-layouts.app>

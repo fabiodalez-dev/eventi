@@ -310,6 +310,32 @@ class User extends Authenticatable implements FilamentUser, HasTenants, MustVeri
     }
 
     /**
+     * I browser a cui il canale push consegna (§15.6, D54).
+     *
+     * Il pacchetto chiede questo metodo per nome — `routeNotificationFor` più
+     * il nome del canale — e si aspetta una collezione di iscrizioni.
+     *
+     * **Il trait `HasPushSubscriptions` del pacchetto non si usa**: costruisce
+     * una relazione morfologica verso `push_subscriptions`, una tabella che
+     * qui non esiste e non deve esistere. L'iscrizione di un browser è già un
+     * dispositivo di §15.8, e `WebPushSubscription` la legge da lì.
+     *
+     * Il filtro è lo stesso che `ChannelSelector` ha usato per scegliere il
+     * canale, e passa dallo stesso scope: se le due condizioni divergessero,
+     * un invio potrebbe essere marcato `push` e non trovare poi nessun
+     * destinatario a cui consegnarlo.
+     *
+     * @return Collection<int, WebPushSubscription>
+     */
+    public function routeNotificationForWebPush(): Collection
+    {
+        return WebPushSubscription::query()
+            ->where('user_id', $this->getKey())
+            ->usable()
+            ->get();
+    }
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array

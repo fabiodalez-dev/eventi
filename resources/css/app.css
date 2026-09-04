@@ -363,16 +363,39 @@
 /* ---------------------------------------------------------------------------
    Movimento
 
-   Le animazioni del riferimento, una per una. Tutte governate da
-   `--anim-play`, che una preferenza di sistema per il movimento ridotto porta
-   a `paused`: si fermano tutte insieme, senza che ogni singolo elemento debba
-   ricordarsi di chiederlo.
+   Le animazioni del riferimento, una per una. Quelle **decorative e infinite**
+   — il pallino che lampeggia, l'anello del segnaposto sulla mappa, il nastro —
+   sono governate da `--anim-play`, che una preferenza di sistema per il
+   movimento ridotto porta a `paused`: si fermano tutte insieme, senza che ogni
+   singolo elemento debba ricordarsi di chiederlo. Partono da un fotogramma
+   visibile, quindi fermarle le lascia visibili.
 
-   Le tre `reveal*` non hanno una durata reale — durano 1ms e sono ancorate a
-   `animation-timeline: view()`, cioe' avanzano con lo scorrimento invece che
-   col tempo. Dove il browser non conosce le timeline di scorrimento
-   l'animazione finisce subito e l'elemento resta al suo posto, visibile: il
+   **Le tre `reveal*` no, e la differenza e' costata il titolo della pagina.**
+   Partono da `opacity: 0` e hanno `fill-mode: both`: metterle in pausa le
+   congela sul PRIMO fotogramma, cioe' invisibili — per sempre, perche' nulla
+   le fara' mai ripartire. Chi chiede meno movimento otteneva una pagina in cui
+   l'`<h1>` non c'era: presente nel DOM, letto dagli assistenti vocali,
+   invisibile agli occhi. Lo stesso per i titoli di sezione e per la fascia dei
+   numeri.
+
+   Una preferenza di movimento ridotto si onora **azzerando** l'animazione, non
+   sospendendola: l'elemento deve stare fermo dove l'animazione lo avrebbe
+   lasciato, che e' la fine, non l'inizio. L'override sta subito dopo la
+   definizione di `reveal-clip`, fuori da ogni layer, perche' deve vincere
+   sulle utility.
+
+   `reveal-up` e `reveal-left` non hanno una durata reale — durano 1ms e sono
+   ancorate a `animation-timeline: view()`, cioe' avanzano con lo scorrimento
+   invece che col tempo. Dove il browser non conosce le timeline di scorrimento
+   l'animazione finisce subito e l'elemento resta al suo posto, visibile: li' il
    comportamento di ripiego e' la pagina normale, non una pagina vuota.
+   `reveal-clip` invece ha una durata vera, 0.9s, perche' sta sopra la piega e
+   non c'e' scorrimento da seguire.
+
+   Attenzione a non leggere quel ripiego come una garanzia generale: vale per
+   il browser che ignora `view()`, NON per chi chiede meno movimento. Sono due
+   strade diverse e la seconda passava dalla pausa, che e' quella che lasciava
+   la pagina vuota.
 --------------------------------------------------------------------------- */
 
 @keyframes marquee {
@@ -459,6 +482,21 @@
 @utility reveal-clip {
     animation: revealClip 0.9s cubic-bezier(0.76, 0, 0.24, 1) both;
     animation-play-state: var(--anim-play);
+}
+
+/* Chi ha chiesto meno movimento vede il contenuto FERMO E VISIBILE, non il
+   primo fotogramma di un'animazione sospesa (vedi la nota in testa a questa
+   sezione). Fuori da `@layer` di proposito: le utility di Tailwind stanno in un
+   layer, e il CSS senza layer vince su qualunque layer a prescindere dalla
+   specificita'. Con `animation: none` l'elemento torna ai suoi valori normali —
+   opacita' piena, nessun ritaglio — che e' esattamente dove l'animazione lo
+   avrebbe portato. */
+@media (prefers-reduced-motion: reduce) {
+    .reveal-up,
+    .reveal-left,
+    .reveal-clip {
+        animation: none;
+    }
 }
 
 /* Il quadratino che lampeggia accanto a «in corso adesso». */

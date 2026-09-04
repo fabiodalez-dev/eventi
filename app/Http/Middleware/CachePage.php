@@ -84,6 +84,50 @@ final class CachePage
     }
 
     /**
+     * I soli parametri della query string che entrano nella chiave.
+     *
+     * Sono i filtri che i controller leggono davvero — quelli di
+     * `EventFilterRequest`, quelli di `VenueFilterRequest` e i due nomi di
+     * pagina della paginazione. È un elenco di ciò che è **ammesso**, non di
+     * ciò che va ignorato, e la differenza non è di stile: un elenco di
+     * esclusioni copre `utm_*`, `gclid` e `fbclid` finché qualcuno non inventa
+     * il prossimo, mentre un elenco di ammessi copre anche quello.
+     *
+     * Il motivo è doppio. Il primo è visibile subito: con l'indirizzo intero
+     * nella chiave, `/eventi` e `/eventi?utm_source=newsletter` sono due voci
+     * distinte, quindi il traffico da newsletter e social — che arriva a
+     * ondate, cioè esattamente quando la cache servirebbe — non trova mai
+     * niente. Il secondo si vede solo quando è tardi: chiunque può inventare
+     * parametri a piacere e generare voci illimitate, e su un disco quasi
+     * pieno riempire la cache è un modo per fermare il sito.
+     *
+     * @var list<string>
+     */
+    private const QUERY_ALLOWED = [
+        'access',
+        'accessible',
+        'archivio',
+        'category',
+        'date',
+        'family',
+        'from',
+        'lat',
+        'lng',
+        'municipality',
+        'outdoor',
+        'page',
+        'price',
+        'radius',
+        'sort',
+        'tag',
+        'time',
+        'to',
+        'type',
+        'venue',
+        'zone',
+    ];
+
+    /**
      * La chiave. Porta dentro il numero di versione della città
      * (`App\Support\ContentVersion`): alla pubblicazione di un evento tutte le
      * chiavi vecchie diventano irraggiungibili in un colpo solo, senza dover
@@ -101,6 +145,11 @@ final class CachePage
      * di qualcun altro. Le varianti sono poche — «non ha scelto», «ha
      * accettato», «ha rifiutato» — perché l'identificativo del browser resta
      * fuori di proposito (`Consent::fingerprint()`).
+     *
+     * Dell'indirizzo prende il percorso e i soli parametri di
+     * `QUERY_ALLOWED`, riordinati: due indirizzi che chiedono la stessa cosa
+     * scritta in ordine diverso sono la stessa pagina, e devono essere la
+     * stessa voce.
      */
     public function key(Request $request): string
     {
@@ -113,8 +162,46 @@ final class CachePage
             ContentVersion::for($cityId),
             app()->getLocale(),
             app(Consent::class)->fingerprint(),
-            sha1($request->fullUrl()),
+            sha1($this->canonicalUrl($request)),
         );
+    }
+
+    /**
+     * L'indirizzo ridotto a ciò che cambia davvero la pagina.
+     *
+     * `access[]=musica&access[]=rampa` e `access=musica,rampa` sono la stessa
+     * richiesta scritta in due modi — il primo lo manda il modulo, il secondo
+     * lo produce `EventFilters::toQueryString()` — e qui diventano la stessa
+     * riga, come già succede più a valle in `EventFilterRequest`.
+     */
+    private function canonicalUrl(Request $request): string
+    {
+        $parametri = [];
+
+        foreach (self::QUERY_ALLOWED as $nome) {
+            if (! $request->query->has($nome)) {
+                continue;
+            }
+
+            $valore = $request->query->all()[$nome];
+
+            if (is_array($valore)) {
+                $valore = implode(',', array_map(
+                    static fn (mixed $voce): string => is_scalar($voce) ? (string) $voce : '',
+                    $valore,
+                ));
+            }
+
+            if (! is_scalar($valore)) {
+                continue;
+            }
+
+            $parametri[$nome] = (string) $valore;
+        }
+
+        ksort($parametri);
+
+        return $request->getPathInfo().'?'.http_build_query($parametri);
     }
 
     /**
@@ -142,6 +229,18 @@ final class CachePage
          * quarto d'ora, vista da un'altra parte.
          */
         if ($request->has('near')) {
+            return false;
+        }
+
+        /*
+         * La ricerca libera resta fuori per la stessa ragione per cui `/cerca`
+         * non ha questo middleware: ogni ricerca è diversa dalla precedente,
+         * quindi si scriverebbe sempre e si rileggerebbe quasi mai. E siccome
+         * `q` è testo arbitrario, dentro la chiave sarebbe anche il solo
+         * parametro ammesso con cui qualcuno potrebbe far crescere la cache a
+         * piacere — il buco che l'elenco di `QUERY_ALLOWED` serve a chiudere.
+         */
+        if ($request->filled('q')) {
             return false;
         }
 

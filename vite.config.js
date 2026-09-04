@@ -15,6 +15,11 @@ export default defineConfig({
                 'resources/js/app.js',
                 'resources/js/map.js',
                 'resources/js/calendar.js',
+                // L'interruttore delle notifiche push: un pacchetto suo perche'
+                // vive in una pagina sola. Il service worker che serve NON e'
+                // qui — sta in public/sw.js, perche' deve avere un indirizzo
+                // stabile alla radice del sito (vedi il commento in quel file).
+                'resources/js/push.js',
                 // Il segnaposto trascinabile dei moduli del pannello: un
                 // pacchetto a parte perche' Leaflet non deve pesare sul sito
                 // pubblico ne' sulle pagine del pannello che non hanno mappe.

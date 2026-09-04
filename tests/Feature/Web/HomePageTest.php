@@ -36,12 +36,13 @@ it('non disegna nessuna sezione quando non c\'è niente in programma', function 
 });
 
 /*
- * "In corso" e "Inizia tra poco" non stanno più nella pagina: sono un
- * componente Livewire caricato dopo il primo disegno (§12.3). Nella pagina si
- * verifica che ci sia il frammento; il contenuto si verifica sul componente,
- * in tests/Feature/Web/LiveNowTest.php.
+ * "In corso" e "Inizia tra poco" si disegnano dentro la pagina, dal server
+ * (D49). Erano un frammento caricato dopo il primo disegno, e qui si
+ * verificava la presenza del segnaposto: ma il frammento non arrivava mai
+ * sulle pagine servite dalla cache, e questo test lo dichiarava corretto.
+ * Il contenuto delle due sezioni sta in tests/Feature/Web/LiveNowTest.php.
  */
-it('rimanda "in corso" e "inizia tra poco" a un frammento caricato dopo la pagina', function (): void {
+it('disegna "in corso" e "inizia tra poco" dentro la pagina', function (): void {
     $city = testCity();
     $category = testCategory();
 
@@ -53,9 +54,9 @@ it('rimanda "in corso" e "inizia tra poco" a un frammento caricato dopo la pagin
 
     $this->get('/')
         ->assertOk()
-        ->assertSee(__('events.sections.live_loading'))
-        ->assertDontSee(__('events.sections.ongoing'))
-        ->assertDontSee(__('events.badge.ongoing'));
+        ->assertSee(__('events.sections.ongoing'))
+        ->assertSee(__('events.badge.ongoing'))
+        ->assertSee('Concerto di prova');
 });
 
 it('scrive "stasera" con l\'orario e il prezzo sulla card', function (): void {

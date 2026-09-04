@@ -48,11 +48,28 @@
     $heroPoster = $heroOccorrenza === null
         ? null
         : \App\Support\Poster::imageSet($heroOccorrenza->event)
-            ?->withSizes('(min-width: 840px) 50vw, 100vw');
+            ?->withSizes('(min-width: 840px) 50vw, 100vw')
             /* 840px, non 1024: le due colonne dell'apertura si affiancano
                quando ci stanno, cioe' a `2 x 420px`. Fra 840 e 1024 la
                dichiarazione diceva schermo intero mentre l'immagine ne
                occupava meta', e il browser scaricava il doppio del necessario. */
+            ->withPreloadMedia('(min-width: 840px)');
+            /* La stessa soglia governa anche l'ANNUNCIO: sotto gli 840px le due
+               colonne si impilano e la locandina finisce sotto la piega, dove
+               l'elemento piu' grande e' testo. Annunciare come urgente qualcosa
+               che non si vede e' una dichiarazione falsa, e l'impaginato lo
+               diceva gia' («su un telefono la locandina dell'apertura finisce
+               sotto la piega e non e' nemmeno in gara») mentre il preload la
+               chiedeva lo stesso.
+
+               ONESTA' SULLA MISURA: togliere l'annuncio sul telefono **non
+               sposta l'LCP** — verificato, 2256ms prima e dopo, su due banchi
+               indipendenti. Cio' che costa e' scaricare l'immagine, non
+               annunciarla: bloccandola del tutto si scende a 1653ms. Resta
+               perche' e' gratis e perche' Lighthouse simula la rete, e la
+               simulazione pesa male le code di priorita' — non perche' abbia
+               mostrato un guadagno. Chi cerca i millisecondi qui non li
+               trovera': sono nei byte dell'immagine. */
 
     /* Le sezioni a griglia, nell'ordine in cui compaiono. La numerazione
        «01 —» è progressiva su ciò che si disegna davvero: una sezione vuota
@@ -265,8 +282,11 @@
          il primo disegno. §12.3 le voleva differite per non mettere in cache
          una sezione che cambia ogni minuto; la misura dice altro, e differirle
          spostava di 2,7 secondi il momento in cui compare la prima immagine
-         grande (D40). --}}
-    <livewire:live-now />
+         grande (D40). Era un componente Livewire: bastava la sua presenza a
+         far entrare 84 KB di JavaScript nella pagina, e su una pagina servita
+         dalla cache quello script non veniva iniettato affatto — il frammento
+         non arrivava mai e le due sezioni non si vedevano (D51). --}}
+    <x-live-now />
 
     {{-- La campagna della pagina iniziale, subito dopo la fascia dei numeri:
          sopra la piega non ci va — quello spazio è la data più importante in

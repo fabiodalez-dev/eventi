@@ -12,8 +12,9 @@ use Illuminate\Notifications\DatabaseNotification;
  *
  * L'archivio esiste **sempre**, qualunque sia il canale scelto in fondo alla
  * catena: è il posto dove ritrovare una notifica letta di sfuggita e chiusa.
- * D8 lo ha promosso da comodità a secondo canale dopo l'esclusione del Web
- * Push.
+ * D8 lo aveva promosso da comodità a secondo canale; con D54 i canali di
+ * consegna tornano due — push ed email — e questo resta il terzo, quello che
+ * non si sceglie.
  *
  * `data` esce così com'è stato scritto da chi ha inviato: contiene il titolo,
  * il testo e il collegamento profondo che §15.4 pretende su ogni notifica.

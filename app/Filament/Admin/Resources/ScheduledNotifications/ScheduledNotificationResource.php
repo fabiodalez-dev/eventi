@@ -177,7 +177,7 @@ class ScheduledNotificationResource extends Resource
                     ->action(function (ScheduledNotification $record): void {
                         $record->markCancelled();
                     })
-                    ->successNotificationTitle(__('admin.notices.notification_cancelled')),
+                    ->successNotificationTitle(__('admin.notifications.notification_cancelled')),
             ]);
     }
 

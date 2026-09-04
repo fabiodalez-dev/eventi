@@ -20,10 +20,16 @@ use Illuminate\Http\Request;
 /**
  * `POST/DELETE /v1/me/devices` (§15.8).
  *
- * Un dispositivo si registra anche adesso che nessun canale push è attivo
- * (D8): §15.6 sceglie il canale guardando quale dispositivo è stato attivo
- * negli ultimi trenta giorni, e quella data si aggiorna solo se qualcuno la
- * scrive. Quando arriverà FCM (F11) cambierà il canale, non questa chiamata.
+ * Registrare un dispositivo è ciò che accende il canale push per chi lo usa:
+ * §15.6 sceglie guardando quale dispositivo è stato attivo negli ultimi trenta
+ * giorni, e quella data si aggiorna solo se qualcuno la scrive. Da D54 un
+ * dispositivo `web` con `endpoint` e `keys` riceve davvero le notifiche —
+ * `App\Models\WebPushSubscription` legge da questa stessa tabella. Quando
+ * arriverà FCM (F11) cambierà il canale, non questa chiamata.
+ *
+ * Il browser del **sito** non passa da qui ma da `POST /notifiche/push`:
+ * questa rotta è dietro `auth:sanctum` senza `statefulApi()`, quindi da una
+ * pagina a sessione risponderebbe 401. Vedi `PushSubscriptionController`.
  *
  * La seconda registrazione dello stesso riferimento **aggiorna** la riga
  * invece di crearne un'altra: `SCHEMA.md` §3.14 rinuncia di proposito a un

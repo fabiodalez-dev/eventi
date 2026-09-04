@@ -11,6 +11,7 @@ use App\Models\EventOccurrence;
 use App\Services\Media\OpenGraphImage;
 use App\Services\Notifications\NotificationScheduler;
 use App\Support\ContentVersion;
+use App\Support\Redirect\RegistroRedirect;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
@@ -72,6 +73,28 @@ final class EventObserver
                 EventStatus::Rejected => $scheduler->announceEventRejected($event),
                 default => null,
             };
+        }
+
+        /*
+         * Uno slug che cambia è un indirizzo che muore. `HasSlug` lo rigenera
+         * a ogni salvataggio — `Event` non ha `doNotGenerateSlugsOnUpdate()`,
+         * che solo `Page` ha — e il campo è modificabile anche a mano dal
+         * pannello: basta correggere un refuso nel titolo perché ogni link
+         * condiviso, ogni pagina indicizzata e ogni QR stampato su una
+         * locandina rispondano 404, senza che nessuno se ne accorga.
+         *
+         * La riga si scrive sulla città **di prima**: è lì che il vecchio
+         * indirizzo viveva. Un evento che cambia città nello stesso
+         * salvataggio sposta un intero spazio di indirizzi, ed è il caso in
+         * cui la redazione scrive la riga a mano dal pannello — non c'è una
+         * destinazione sola che si possa indovinare.
+         */
+        if ($event->wasChanged('slug')) {
+            app(RegistroRedirect::class)->registra(
+                (int) $event->getOriginal('city_id'),
+                '/eventi/'.$event->getOriginal('slug'),
+                '/eventi/'.$event->slug,
+            );
         }
 
         if (! $event->wasChanged(['category_id', 'city_id'])) {

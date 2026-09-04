@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace App\Notifications\Scheduled;
 
 use App\DTOs\NotificationMessage;
+use App\Enums\NotificationChannel;
 use App\Models\User;
 use App\Support\Notifications\PreferenceLinks;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use NotificationChannels\WebPush\WebPushChannel;
+use NotificationChannels\WebPush\WebPushMessage;
 use Symfony\Component\Mime\Email;
 
 /**
@@ -45,7 +48,16 @@ final class ScheduledMessage extends Notification implements ShouldQueue
      * metà può sopravvivere all'altra.
      */
 
-    public function __construct(public readonly NotificationMessage $message) {}
+    /**
+     * Il canale arriva già scelto da `ChannelSelector` (§15.6): qui non si
+     * decide, si esegue. Il valore predefinito è l'email perché è il canale
+     * che c'è sempre — chi costruisce questa notifica senza dichiarare nulla
+     * (un test, un invio a mano) ottiene il comportamento di prima di D54.
+     */
+    public function __construct(
+        public readonly NotificationMessage $message,
+        public readonly NotificationChannel $channel = NotificationChannel::Mail,
+    ) {}
 
     /**
      * @return array<int, string>
@@ -55,9 +67,20 @@ final class ScheduledMessage extends Notification implements ShouldQueue
         /*
          * §15.6: l'archivio in-app c'è **sempre**, qualunque sia il canale
          * scelto per la consegna. È il posto dove ritrovare una notifica letta
-         * di sfuggita e chiusa.
+         * di sfuggita e chiusa — ed è anche ciò che rende innocuo il caso in
+         * cui l'ultima iscrizione push sparisca fra la scelta del canale e la
+         * consegna: `WebPushChannel` in quel caso esce in silenzio, e la
+         * notifica resta comunque leggibile dentro il sito.
+         *
+         * Il canale push si dichiara con il nome della classe e non con una
+         * stringa: il pacchetto non registra alcun driver `webpush` nel
+         * gestore dei canali, e `via()` con una stringa sconosciuta solleva.
          */
-        return ['mail', 'database'];
+        $delivery = $this->channel === NotificationChannel::Push
+            ? WebPushChannel::class
+            : 'mail';
+
+        return [$delivery, 'database'];
     }
 
     /**
@@ -108,6 +131,35 @@ final class ScheduledMessage extends Notification implements ShouldQueue
             $headers->addTextHeader('List-Unsubscribe', sprintf('<%s>, <%s>', $unsubscribePost, $unsubscribe));
             $headers->addTextHeader('List-Unsubscribe-Post', 'List-Unsubscribe=One-Click');
         });
+    }
+
+    /**
+     * La stessa notifica sullo schermo di un telefono (§15.4).
+     *
+     * Il testo non si ricompone qui: arriva già fatto in `NotificationMessage`,
+     * che esiste proprio perché il messaggio archiviato e quello consegnato
+     * non possano dire due cose diverse.
+     *
+     * `data.url` è il collegamento profondo che §15.4 pretende su ogni
+     * notifica: il service worker apre quello e mai la home. `tag` è la
+     * tipologia, così due riepiloghi che si accavallano si sostituiscono
+     * invece di impilarsi — su un telefono la seconda copia della stessa cosa
+     * è rumore, non informazione.
+     *
+     * Il piè di pagina con la disiscrizione resta una faccenda dell'email:
+     * una notifica di sistema non ha spazio per un collegamento legale, e
+     * l'interruttore sta nella pagina che il tocco apre.
+     */
+    public function toWebPush(object $notifiable): WebPushMessage
+    {
+        return (new WebPushMessage)
+            ->title($this->message->heading)
+            ->body(implode(' ', $this->message->lines))
+            ->tag($this->message->type->value)
+            ->data([
+                'type' => $this->message->type->value,
+                'url' => $this->message->url,
+            ]);
     }
 
     /**

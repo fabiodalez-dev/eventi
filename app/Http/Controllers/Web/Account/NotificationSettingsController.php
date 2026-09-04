@@ -9,12 +9,15 @@ use App\Enums\NotificationType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Web\Account\UpdateNotificationSettingsRequest;
 use App\Models\User;
+use App\Models\WebPushSubscription;
+use App\Services\Notifications\ChannelSelector;
 use App\Support\Features;
 use App\Support\Notifications\PreferenceLinks;
 use Carbon\Carbon;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 /**
  * La pagina delle preferenze **raggiungibile senza accesso** e la disiscrizione
@@ -31,11 +34,28 @@ use Illuminate\Http\Request;
  */
 final class NotificationSettingsController extends Controller
 {
-    public function edit(Request $request, User $user): View
+    public function edit(Request $request, User $user, ChannelSelector $channels): View
     {
+        /*
+         * L'interruttore delle push compare solo a chi ha una sessione aperta
+         * su questo stesso account (§15.6, D54). Il collegamento firmato basta
+         * a spegnere le notifiche, non ad accendere un canale che le dirotta
+         * su uno schermo: vedi `PushSubscriptionController`.
+         *
+         * E compare solo se le chiavi VAPID ci sono davvero: senza, il canale
+         * non esiste e l'interruttore mentirebbe.
+         */
+        $own = Auth::id() === $user->getKey();
+
         return view('account.notifications.preferences', [
             'user' => $user,
             'action' => PreferenceLinks::preferences($user),
+            'pushAvailable' => $own && $channels->configured(),
+            'pushKey' => (string) config('webpush.vapid.public_key'),
+            'pushActive' => $own && WebPushSubscription::query()
+                ->where('user_id', $user->getKey())
+                ->usable()
+                ->exists(),
             'meta' => $this->meta(__('notifications.preferences.title'), __('notifications.preferences.lead')),
         ]);
     }

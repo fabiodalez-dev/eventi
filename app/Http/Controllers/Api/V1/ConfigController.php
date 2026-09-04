@@ -22,10 +22,10 @@ use Illuminate\Http\JsonResponse;
  * tre campi che governano il tempo, tag popolari, città accese — più la
  * versione minima ammessa, gli interruttori delle funzioni e i testi legali.
  *
- * Gli interruttori dicono che cosa **esiste oggi**: `saved_events` e
- * `follows` sono spenti perché quegli endpoint appartengono alla fase
- * successiva, `push` perché D8 ha escluso il Web Push in favore di email e
- * archivio in-app. Un'app che li legge non mostra un pulsante che non
+ * Gli interruttori dicono che cosa **esiste oggi** per chi li legge, cioè per
+ * un'app nativa: `push` è spento perché per un'app push significa FCM, che
+ * appartiene a F11 — il Web Push riaperto da D54 vive nel browser, dove
+ * nessuna app lo legge. Un'app che li legge non mostra un pulsante che non
  * funziona, ed è tutta la ragione per cui questo endpoint esiste.
  */
 final class ConfigController extends Controller

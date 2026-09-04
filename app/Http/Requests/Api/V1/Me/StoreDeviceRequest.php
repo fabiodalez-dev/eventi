@@ -11,10 +11,10 @@ use Illuminate\Validation\Rule;
 /**
  * `POST /v1/me/devices` (§15.8).
  *
- * Il dispositivo si registra anche adesso che non esiste alcun canale push
- * (D8): serve a §15.6 per sapere quale dispositivo è stato attivo negli ultimi
- * trenta giorni, che è ciò che decide il canale. La stessa chiamata varrà per
- * FCM in fase F11 senza cambiare forma.
+ * Serve a §15.6 per sapere quale dispositivo è stato attivo negli ultimi
+ * trenta giorni, che è ciò che decide il canale. Da D54 un dispositivo `web`
+ * con `endpoint` e `keys` riceve davvero le notifiche; la stessa chiamata
+ * varrà per FCM in fase F11 senza cambiare forma.
  *
  * Un dispositivo si riconosce dal proprio riferimento — il token FCM o
  * l'`endpoint` Web Push — e la seconda registrazione dello stesso aggiorna la

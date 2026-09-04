@@ -8,10 +8,11 @@ declare(strict_types=1);
  * Qui stanno le soglie che governano il **volume** e la resistenza ai guasti.
  * Nulla che riguardi il contenuto dei messaggi: quello sta in `lang/it`.
  *
- * I canali attivi sono email e archivio in-app (D8): Web Push non è
- * installabile su Laravel 13. Il motore resta quello descritto da §15.5 —
- * chiave di deduplica, riprogrammazione, ore di silenzio, tetto giornaliero:
- * cambia soltanto il canale scelto in fondo alla catena.
+ * I canali attivi sono tre (D54): Web Push a chi ha un browser iscritto e
+ * attivo, email a tutti gli altri, archivio in-app sempre. La scelta la fa
+ * `ChannelSelector` al momento dell'invio, non a quello della programmazione,
+ * per la stessa ragione delle preferenze: fra le due cose passano ore, e un
+ * dispositivo può essersi spento nel frattempo.
  */
 return [
 
@@ -39,6 +40,24 @@ return [
      * `NotificationType::countsTowardDailyCap()` dichiara intrusivi.
      */
     'daily_cap' => 2,
+
+    /*
+     * Il canale push (§15.4, §15.6), riaperto da D54.
+     *
+     * `device_active_days` è la finestra di §15.6: «push su device attivo
+     * negli ultimi 30 giorni, altrimenti email». Non è una scadenza tecnica —
+     * l'iscrizione di un browser non scade da sola — ma una regola di
+     * prodotto: un browser che nessuno apre da un mese è una notifica che
+     * nessuno leggerà, e l'email è il canale che aspetta.
+     *
+     * `last_seen_at` si aggiorna a ogni visita di chi ha concesso il
+     * permesso, perché la pagina rimanda al server l'iscrizione che il
+     * browser le restituisce. Senza quel rinnovo la finestra misurerebbe la
+     * data di iscrizione, cioè il contrario di ciò che serve.
+     */
+    'push' => [
+        'device_active_days' => 30,
+    ],
 
     /*
      * Le ore di silenzio (§15.4). Un invio che cade nella finestra si sposta

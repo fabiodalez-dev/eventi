@@ -86,6 +86,10 @@ dedupe_key, riprogrammazione, quiet hours, frequency cap. Cambia solo il canale 
 fondo alla catena. Aggiungere push (Web Push o FCM in fase mobile) sarà un nuovo canale di
 notifica, non una riscrittura del motore.
 **Ricontrollo:** quando `web-token` supporterà brick/math 0.18.
+**Superata da D54 il 2026-09-04:** il ricontrollo è stato fatto e la catena è
+installabile. D8 resta qui perché la scelta di allora era corretta con i
+pacchetti di allora, e perché spiega perché il motore era già pronto ad
+accogliere un terzo canale senza riscritture.
 
 ## 2026-08-23 — D9. Monetizzazione: gratuito per no-profit, a pagamento per commerciali
 
@@ -1732,6 +1736,20 @@ pronto" e "il browser lo dipinge". Non è più un problema di rete: è il costo
 di eseguire CSS e JavaScript su una CPU rallentata quattro volte, che è come
 Lighthouse simula un telefono di fascia media.
 
+> **CORREZIONE (2026-09-04, D51).** Il paragrafo qui sopra **è sbagliato**, e
+> ha mandato il lavoro successivo nella direzione opposta a quella utile. Il
+> render delay di questa pagina non è costo di CPU: TBT è **0**, il lavoro
+> complessivo del thread principale è di 424 ms, `render-blocking-resources` è
+> vuoto, e alzando `cpuSlowdownMultiplier` da 4 a 8, 12 e 16 l'LCP non si
+> muove di venticinque millisecondi. È **rete simulata**: TTFB più la coda
+> delle risorse critiche su sei connessioni HTTP/1.1, dove ciò che conta sono
+> i byte in fila, non i cicli.
+>
+> Delle tre strade elencate sotto, la prima era quella giusta — ma per il
+> motivo opposto a quello scritto. La seconda (CSS critico in linea) andava
+> ripesata: il foglio è 16,5 KB gzip, non il pezzo grosso. Il pezzo grosso
+> erano 84 KB di JavaScript che non serviva a nulla, ed è la storia di D51.
+
 **Perché non si abbassa la soglia:** una soglia truccata dà la stessa
 sensazione di sicurezza senza il contenuto. Il numero resta rosso e visibile.
 
@@ -2682,3 +2700,232 @@ orari e una foto, e accettare vuol dire «ci parliamo», non «sei online». La
 pubblicazione resta una seconda decisione, presa guardando una scheda finita
 invece che un modulo.
 
+
+## 2026-09-04 — D51. Livewire esce dal sito pubblico: 84 KB che nessuno usava, e una sezione che non si vedeva mai
+
+**Decisione:** «In corso adesso» e «Inizia tra poco» smettono di essere un
+componente Livewire e diventano una vista Blade disegnata dal server.
+`App\Livewire\LiveNow` diventa `App\View\Components\LiveNow`, e con lei sparisce
+l'unico componente Livewire del fronte pubblico — quindi anche
+`livewire.min.js`, che pesava **83.761 byte già compressi** ed era la risorsa
+più pesante della pagina iniziale dopo la locandina.
+
+**Perché D40 non era mai entrata in vigore.** D40 aveva già deciso che quella
+sezione si disegna dal server, e il tag era stato scritto `<livewire:live-now />`
+senza `lazy`. Non basta: in
+`vendor/livewire/livewire/src/Features/SupportLazyLoading/SupportLazyLoading.php`
+la disattivazione è `$lazyDisabled = isset($params['lazy']) && $params['lazy'] === false`
+— serve il parametro **scritto a mano e messo a falso**. Senza, l'attributo di
+classe `#[Lazy]` restava padrone e il componente restava differito. La
+correzione era stata scritta, non applicata, e il costo che D40 aveva misurato
+era rimasto tutto lì per tre giorni.
+
+**Il guasto vero non era la lentezza.** Su una pagina servita dalla cache non
+si renderizza alcun componente Livewire, quindi
+`SupportAutoInjectedAssets::shouldInjectLivewireAssets()` risponde di no e lo
+script **non viene iniettato** — mentre l'HTML salvato in cache contiene il
+segnaposto. Il frammento non arrivava mai. Verificato prima della correzione,
+quattro richieste di fila:
+
+| richiesta | cache | `livewire.min.js` | sezioni dal vivo |
+|---|---|---|---|
+| 1 | miss | presente | assenti (segnaposto) |
+| 2 | hit | **assente** | assenti (segnaposto) |
+| 3 | hit | **assente** | assenti (segnaposto) |
+| 4 | hit | **assente** | assenti (segnaposto) |
+
+Con `ttl_minutes` a 1 questa è la condizione normale del sito: **quasi nessun
+visitatore ha mai visto quelle due sezioni**. Leggevano «Guardo cosa sta
+succedendo adesso…» per sempre. Un difetto di prestazioni ha nascosto un
+difetto di funzionamento, e i test lo dichiaravano corretto perché pilotavano
+il componente in isolamento — dove Livewire c'è sempre.
+
+**Togliere solo `#[Lazy]` non sarebbe bastato.** `dehydrate()` mette
+`hasRenderedAComponentThisRequest = true` per **qualunque** componente
+renderizzato: lo script sarebbe stato iniettato lo stesso. Si sistemava la
+sezione invisibile e non il peso. Serviva togliere Livewire, non svegliarlo.
+
+**Misurato** su banco che replica la pipeline (nginx col template di
+`.github/lighthouse/`, gzip, `php -S`, Lighthouse 12.6.1 mobile predefinito),
+tre giri a cache fredda:
+
+| | prima | dopo |
+|---|---|---|
+| LCP | 2552 / 2555 / 2558 ms | **2253 / 2254 / 2260 ms** |
+| richieste | 10 | 9 |
+| byte trasferiti | 282.813 | 198.036 |
+| Performance | 97 | 98 |
+
+**Circa 300 ms e 84 KB.** In più le due sezioni ora si vedono, su cache miss e
+su cache hit allo stesso modo — che era il punto.
+
+**Effetto collaterale che vale quanto i millisecondi:** cache fredda e cache
+calda ora servono la **stessa pagina, agli stessi byte** (198.048 in entrambi i
+casi). Prima erano due pagine diverse — 283 KB contro 198 — e la mediana dei
+cinque giri di LHCI saltava fra i due gruppi a seconda di quanti giri
+superavano il minuto di TTL. È questa, e non un «giro storto», la forma della
+tabella di D48: 1955, 1958, 1960, 2038, **2415**. Il giro solitario era il giro
+a cache fredda. Il codice non era peggiorato di 750 ms fra un'esecuzione e
+l'altra — era la mediana che cambiava gruppo.
+
+**`ttl_minutes` resta a 1, e ora è obbligatorio.** Prima era una scelta; adesso
+le due finestre vive stanno *dentro* la pagina in cache, quindi il TTL della
+pagina non può superare la loro freschezza. Alzarlo farebbe mentire «In corso
+adesso». Le due manopole sono diventate una sola.
+
+### Cosa è stato provato e NON serviva
+
+Misurato, non dedotto. Vale la pena scriverlo perché ognuna di queste sembrava
+promettente e ognuna è costata un giro di banco:
+
+- **Spostare `map.js` fuori dall'intestazione:** bloccando del tutto `map.js` e
+  `preload-helper` l'LCP resta **2256 ms**, identico. Zero. Non fatto.
+- **Priorità della locandina (`fetchpriority`):** portarla da `high` ad `auto`
+  sulla pagina iniziale non sposta nulla (2255-2298 contro 2256-2264), e
+  rischiava di penalizzare il desktop, dove quella locandina è davvero
+  l'elemento più grande sopra la piega. **Ripristinata.**
+- **Annuncio condizionato della locandina** (`media="(min-width: 840px)"` sul
+  preload): nemmeno questo sposta la misura. È rimasto lo stesso, perché è
+  gratis e perché annunciare come urgente un'immagine che sotto gli 840px sta
+  sotto la piega è una dichiarazione falsa a prescindere — ma è rimasto
+  **senza promettere millisecondi**, e il commento nel codice lo dice.
+- **Il CSS delle animazioni:** neutralizzare `reveal-clip` non cambia l'LCP.
+
+**Dove sono i millisecondi rimasti, per chi riprende in mano il problema.**
+Nella locandina, e sono byte non priorità: bloccandola del tutto si scende da
+2256 a 1653 ms. Sul banco locale quella specifica immagine pesa 122 KB perché
+le fixture vanno da 456 byte a 243 KB e questa è fra le pesanti — la mediana
+delle varianti `card` è 48 KB. **Da qui una cosa da verificare in pipeline:** su
+CI il database si risemina a ogni esecuzione e l'evento in apertura cambia,
+quindi cambia anche il peso della sua locandina; a banda simulata la differenza
+fra una locandina da 48 KB e una da 243 KB vale centinaia di millisecondi. Se
+il numero di CI continuerà a ballare dopo questa correzione, è lì che conviene
+guardare prima che al codice.
+
+**L'elemento LCP della pagina iniziale è il paragrafo del banner dei cookie**,
+non il titolo: `aside.fixed > form.mx-auto > div.flex > p.max-w-prose`. Non è
+un difetto da correggere di nascosto — è un'informazione da tenere presente
+quando si legge il referto, perché significa che la misura descrive quando
+arriva il **carattere**, non quando arriva il contenuto.
+
+## 2026-09-04 — D52. Il movimento ridotto si onora spegnendo l'animazione, non mettendola in pausa
+
+**Difetto corretto:** con `prefers-reduced-motion: reduce` il titolo della
+pagina iniziale e quello di ogni scheda evento **restavano invisibili per
+sempre**. Non nascosti agli assistenti vocali — presenti nel DOM, letti dagli
+screen reader, invisibili agli occhi. Stessa sorte per i titoli di sezione e
+per la fascia dei numeri.
+
+**Causa:** `--anim-play: paused` spegneva ogni animazione in blocco. Funziona
+per quelle decorative e infinite — il pallino che lampeggia, l'anello del
+segnaposto — che partono da un fotogramma visibile. Non funziona per le tre
+`reveal*`, che hanno `fill-mode: both` e partono da `opacity: 0`: metterle in
+pausa le congela sul **primo** fotogramma, cioè invisibili, e nulla le farà mai
+ripartire.
+
+**Misurato** con Chrome e `--force-prefers-reduced-motion`, prima della
+correzione: `h1` con `opacity: "0"` e `clip-path: "inset(0px 0px 108%)"`, testo
+presente. Dopo: `opacity: "1"`, `clip-path: "none"`. La resa senza la
+preferenza è invariata — `revealClip` continua a girare e a chiudere a
+opacità piena, il pallino continua a lampeggiare.
+
+**Regola:** una preferenza di movimento ridotto si onora **azzerando**
+l'animazione (`animation: none`), mai sospendendola. L'elemento deve stare
+fermo dove l'animazione lo avrebbe lasciato — alla fine, non all'inizio.
+L'override sta fuori da ogni `@layer`, perché le utility di Tailwind stanno in
+un layer e il CSS senza layer vince a prescindere dalla specificità.
+
+**Sull'LCP: nessun effetto**, verificato (2253-2260 ms prima e dopo). Non è una
+correzione di prestazioni e non va contata come tale.
+
+---
+
+## 2026-09-04 — D54. Web Push riaperto: il canale c'è, l'email resta il ripiego
+
+**Decisione:** i canali attivi diventano tre. **Push** a chi ha un browser
+iscritto e visto negli ultimi trenta giorni, **email** a tutti gli altri,
+**archivio in-app** sempre. È §15.6 del piano applicato alla lettera.
+Supera D8, che resta scritto perché la scelta di allora era corretta con i
+pacchetti di allora.
+
+**Perché adesso.** D8 non era una decisione di prodotto: era un ostacolo
+tecnico — `minishlink/web-push` → `web-token` → `brick/math`, incompatibile con
+Laravel 13 — e quell'ostacolo non esiste più. `laravel-notification-channels/webpush`
+12.1 dichiara `illuminate/* ^13.13` e porta `minishlink/web-push` v11 con
+`web-token/jwt-library ^4`. **Verificato che funziona, non solo che si
+installa:** `VAPID::createVapidKeys()` genera la coppia su PHP 8.4 (gmp e
+bcmath presenti) e `WebPushChannel` si risolve dal container. La scelta torna
+quindi a essere di prodotto, ed era già presa dal piano: §15.4 elenca push come
+canale primario di quasi tutte le tipologie.
+
+**Le iscrizioni stanno in `devices`, non nella tabella del pacchetto.** Il
+pacchetto porta `push_subscriptions` e il trait `HasPushSubscriptions`;
+adottarli creerebbe un secondo archivio dello stesso fatto accanto a `devices`,
+che `POST /v1/me/devices` (§15.8) popola già con `endpoint`, `keys`,
+`last_seen_at` e `revoked_at` — cioè con tutto ciò che serve. Due archivi
+vorrebbero dire, a ogni invio, decidere quale dei due dice la verità.
+`config('webpush.model')` permette di puntare il canale su un modello proprio:
+`App\Models\WebPushSubscription` è quel modello, una lettura di `devices` nella
+forma che il canale si aspetta. **Nessuna nuova tabella, nessuna migrazione.**
+
+**Il motore non è stato riscritto**, come D8 aveva previsto. `NotificationChannel`
+aveva già il caso `Push`, le colonne `channel` di `scheduled_notifications` e
+`notification_log` avevano già l'enum a tre valori, e `NotificationMessage`
+esisteva proprio perché «i canali attivi sono due e domani potrebbero essere
+tre». È stato aggiunto un servizio che sceglie — `ChannelSelector` — e un metodo
+`toWebPush()`; il resto è il lato browser, che prima non esisteva affatto.
+
+**La scelta del canale avviene all'invio, non alla programmazione.** Stessa
+ragione delle preferenze e delle ore di silenzio: fra il salvataggio di una data
+e il promemoria passano giorni. `NotificationScheduler` continua a scrivere
+`mail` sulla riga perché la colonna non ammette vuoti, e il dispatcher
+riscrive il valore vero prima di inviare — è ciò che rende attendibile
+`notification_log`, che è il posto dove si guarda quando qualcuno sostiene di
+non aver ricevuto nulla.
+
+**Senza chiavi VAPID il canale non esiste.** `ChannelSelector` lo verifica e
+ripiega sull'email. Senza quel controllo il rifiuto arriverebbe dentro il job
+in coda, cioè come invio fallito invece che come email consegnata; ed è anche
+ciò che tiene il canale spento in sviluppo e nei test finché qualcuno non
+genera le chiavi di proposito. La stessa condizione nasconde l'interruttore
+nella pagina delle preferenze: un interruttore che il server ignora è peggio di
+nessun interruttore.
+
+**L'iscrizione vuole una sessione, non il collegamento firmato.** La pagina
+delle preferenze si raggiunge senza accesso (§15.9) e quel collegamento arriva
+per email, quindi può essere inoltrato. Finora permetteva soltanto di
+**ridurre** ciò che si riceve, e questo lo rendeva innocuo. Iscrivere un
+browser fa il contrario — dirotta il contenuto delle notifiche future verso
+uno schermo — e un collegamento inoltrato non deve poterlo fare. Da qui la
+rotta `POST /notifiche/push` dietro `auth`, e non il riuso di
+`POST /v1/me/devices`: quella sta dietro `auth:sanctum` e `bootstrap/app.php`
+non chiama `statefulApi()`, quindi da una pagina a sessione risponde 401.
+
+**Un dispositivo si revoca, non si cancella.** Il gestore dei referti del
+pacchetto chiama `delete()` sull'iscrizione che il servizio push dichiara
+scaduta: `WebPushSubscription::delete()` scrive `revoked_at`, come già faceva
+`DeviceController::destroy`. Cancellare la riga farebbe ricomparire lo stesso
+browser alla prima iscrizione automatica. Un guasto **passeggero** del servizio
+push (503, 429) non revoca niente e lascia solo una riga nel registro: revocare
+sposterebbe su email qualcuno che ha solo avuto sfortuna.
+
+**Il service worker sta in `public/sw.js`, non fra i pacchetti di Vite.** Un
+service worker governa gli indirizzi sotto il proprio, e Vite pubblica in
+`/build/assets/` con un nome che cambia a ogni rilascio: da lì vedrebbe
+`/build/` e cambierebbe identità ogni volta. Non fa cache e non intercetta le
+richieste — le pagine sono già in cache lato server, e un worker che serve
+pagine vecchie è il difetto più difficile da diagnosticare che si possa
+aggiungere a un sito.
+
+**Conseguenze operative:** nessuna. L'invio parte dal job in coda su database
+che già esisteva, le connessioni in uscita sono quelle che geocoding e import
+usano da sempre, e sull'hosting condiviso non serve niente di nuovo (D5).
+
+**Cosa resta fuori:** la PWA. Su iPhone e iPad le push web arrivano soltanto a
+un sito installato sulla schermata Home, e la pagina delle preferenze lo dice
+invece di lasciar concedere un permesso che non produrrebbe nulla.
+
+**Ricontrollo:** quando si deciderà se installare la PWA, e ogni volta che si
+rigenerano le chiavi VAPID — cambiarle invalida in un colpo solo tutte le
+iscrizioni concesse, perché il browser lega ogni iscrizione alla chiave
+pubblica con cui è stata chiesta.

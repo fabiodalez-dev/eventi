@@ -524,7 +524,8 @@ blurhash → CDN, più l'anteprima Open Graph 1200×630), `sitemap.xml` a indice
 ## C9 / F7c — Motore di invio delle notifiche (§15.4, §15.5, §15.6, §15.9) — ✅ VERIFICATO 2026-08-24
 
 Le righe di `scheduled_notifications` ora nascono, si riprogrammano, si
-annullano e partono. Canali attivi: email e archivio in-app (D8).
+annullano e partono. Canali attivi allora: email e archivio in-app (D8);
+dal 2026-09-04 anche push (D54, vedi in fondo a questo file).
 Decisioni in `DECISIONS.md` D31. **Nessuna migration**: lo schema di §7.10
 bastava già.
 
@@ -928,3 +929,145 @@ Banco: database vuoto `eventi_scratch`, utente MariaDB dedicato con password
   nullo) e poi è passato sia isolato sia nella ripetizione completa identica.
   Non riprodotto; da tenere d'occhio se ricompare in CI — il sospetto è uno
   stato condiviso attorno a `Features::newsletterActive()` (Pennant).
+
+---
+
+## Web Push riaperto e tre pacchetti rimossi (D54) — ✅ VERIFICATO 2026-09-04
+
+Quattro pacchetti erano in `composer.json` senza una riga di codice che li
+usasse. Tre sono stati rimossi, uno è stato integrato.
+
+### Rimossi
+
+| Pacchetto | Motivo in una riga |
+|---|---|
+| `spatie/laravel-webhook-server` | Nessun destinatario in uscita: le integrazioni sono tutte **in entrata** |
+| `spatie/laravel-translatable` | Il multilingua qui passa da `lang/*` e dal prefisso di rotta, non da colonne JSON che romperebbero gli indici `FULLTEXT` e gli slug |
+| `bezhansalleh/filament-shield` | Il rilascio riesegue `RolesAndPermissionsSeeder` con `syncPermissions()`: un'interfaccia che modifica i permessi mentirebbe a ogni rilascio |
+
+Le motivazioni per esteso stanno in `stack-tecnologico.md` §16. Zero
+riferimenti da ripulire in `app/`, `config/`, `database/`, `routes/`, `tests/`:
+verificato prima e dopo.
+
+### Integrato: `laravel-notification-channels/webpush` 12.1
+
+D8 aveva escluso il Web Push per un ostacolo tecnico che nel frattempo è
+caduto. Verificato che funziona e non solo che si installa: le chiavi VAPID si
+generano su PHP 8.4 e il canale si risolve dal container. Decisione completa in
+`DECISIONS.md` D54.
+
+**Nessuna migration.** Le iscrizioni stanno in `devices`, che §15.8 popolava
+già con `endpoint`, `keys`, `last_seen_at` e `revoked_at`: la tabella
+`push_subscriptions` del pacchetto non è stata pubblicata.
+
+| File | Ruolo |
+|---|---|
+| `config/webpush.php` | Punta il canale su `WebPushSubscription` invece che sulla tabella del pacchetto |
+| `app/Models/WebPushSubscription.php` | Legge `devices` nella forma che il canale si aspetta; `delete()` revoca invece di cancellare |
+| `app/Services/Notifications/ChannelSelector.php` | L'unico posto che applica §15.6: push se c'è un browser visto negli ultimi 30 giorni, altrimenti email |
+| `app/Listeners/RevokeDeadPushSubscription.php` | Revoca su iscrizione scaduta (404/410); un guasto passeggero lascia solo una riga nel registro |
+| `app/Http/Controllers/Web/Account/PushSubscriptionController.php` | `POST`/`DELETE /notifiche/push`, dietro `auth` |
+| `public/sw.js` · `resources/js/push.js` | Service worker a portata di radice e interruttore nella pagina delle preferenze |
+
+Toccati: `User` (`routeNotificationForWebPush`), `ScheduledMessage` (`via`,
+`toWebPush`), `NotificationDispatcher` (sceglie il canale prima di inviare),
+`config/notifications.php` (`push.device_active_days`), `.env.example`,
+`vite.config.js`.
+
+### Comandi eseguiti
+
+| Comando | Esito |
+|---|---|
+| `./vendor/bin/pint` | **passato**, nessun file da correggere |
+| `php artisan test` | **1625 test passati su 1625**, 5416 asserzioni (19 nuovi in `tests/Feature/Notifications/`). Diventati 1626 con il test aggiunto dalla verifica finale, qui sotto |
+| `./vendor/bin/phpstan analyse --memory-limit=1G` | **0 errori**, livello 6 |
+| `npm run build` | `push.js` nel manifest (`push-CI55D7VG.js`, 2,29 kB) |
+
+### I test rotti di proposito per controllare che misurino
+
+Nessuno dei dieci test del canale era mai fallito, il che non prova niente.
+Sette sabotaggi mirati, uno per meccanismo, e ognuno ha fatto cadere **solo** i
+test che lo riguardano:
+
+| Sabotaggio | Test caduti |
+|---|---|
+| `ChannelSelector` restituisce sempre `Mail` | l'invio via push e la revoca |
+| Tolta la finestra dei 30 giorni | il dispositivo dormiente |
+| `delete()` cancella davvero | la revoca senza cancellazione (più un errore a cascata: la riga sparita) |
+| Il listener revoca su qualunque guasto | il guasto passeggero |
+| Tolta la guardia sulle chiavi VAPID | l'invio senza VAPID |
+| Il browser non viene staccato dal proprietario precedente | il cambio di utente sullo stesso browser |
+| L'interruttore ignora la sessione | la visibilità dell'interruttore |
+
+### Cosa resta aperto
+
+- **Le chiavi VAPID vanno generate in produzione** (`php artisan webpush:vapid`)
+  e messe in `.env`. Finché mancano il canale non esiste e tutto esce per
+  email: è un ripiego previsto, non un guasto. Non è stato aggiunto uno step
+  all'installer — le chiavi non servono per stare in piedi, e uno step
+  obbligatorio per una cosa facoltativa allunga la prima messa in opera.
+- **Rigenerare le chiavi invalida tutte le iscrizioni concesse**: il browser
+  lega ogni iscrizione alla chiave pubblica con cui è stata chiesta.
+- **La PWA resta fuori.** Su iPhone e iPad le push web arrivano solo a un sito
+  installato sulla schermata Home; la pagina delle preferenze lo dice invece di
+  far concedere un permesso che non produrrebbe nulla.
+- **`api.features.push` resta spento** ed è corretto: per un'app nativa push
+  significa FCM, che è F11.
+- La matrice ruoli × permessi in sola lettura — il bisogno reale che Shield non
+  poteva soddisfare — non è stata costruita: è lavoro a sé, annotato in
+  `stack-tecnologico.md` §16.
+
+---
+
+## Verifica finale dei tre interventi (push, redirect, chiave della cache) — ✅ 2026-09-04
+
+Rilettura dello stato del repository dopo i tre agenti. `pint --test` passato,
+**1626 test su 1626** (5428 asserzioni), `phpstan --memory-limit=1G` a **0
+errori**, `npm run build` con `push.js` nel manifest.
+
+I quattro pacchetti tolti da `composer.json` non hanno lasciato riferimenti:
+cercati `FilamentShield`, `BezhanSalleh`, `ResponseCache`, `Spatie\Translatable`,
+`HasTranslations`, `WebhookServer`, `WebhookCall` in `app/`, `config/`,
+`routes/`, `database/`, `tests/`, `resources/`, `lang/`, `bootstrap/` — nessuno.
+Nessun TODO, nessun file `.bak`, nessun `dd()` o `console.log` rimasto.
+
+### Due difetti trovati e corretti
+
+- **`admin.notices.notification_cancelled` non esisteva.** La chiave sta sotto
+  `admin.notifications.*`; `ScheduledNotificationResource` la cercava sotto un
+  `notices` che nel file non c'è mai stato, quindi l'esito dell'annullamento
+  usciva nel pannello come chiave grezza. È l'ultimo strascico del blocco
+  duplicato già annotato dentro `lang/it/admin.php`. Corretta la chiamata.
+- **La guardia sulla ricerca libera in `CachePage` non era misurata da nessun
+  test.** Toglierla lasciava la suite tutta verde, ed è la guardia che impedisce
+  a `/eventi?q=jazz` e `/eventi?q=rock` di finire sulla stessa voce di cache:
+  `q` non è fra i parametri ammessi, quindi senza l'esclusione la seconda
+  ricerca riceverebbe i risultati della prima. Aggiunto
+  *«non salva in cache la pagina di una ricerca libera»*, che distingue la
+  pagina non servibile — nessuna intestazione `X-Page-Cache` — da una servibile
+  che ha solo fatto miss. Verificato che cade se la guardia si disattiva.
+
+### Altri sabotaggi di controllo
+
+| Sabotaggio | Esito |
+|---|---|
+| La chiave della cache torna a `fullUrl()` | 3 test caduti (tracciamento, chiavi inventate, cookie) |
+| `Redirect::perPercorso` salta la ricerca esatta | 8 test caduti su 12 |
+| `ChannelSelector` restituisce sempre `Push` | 6 test caduti |
+
+### Una cosa messa in sicurezza
+
+In radice c'era `.env.prima-di-mailpit`, non ignorato: una copia del `.env`
+locale con `APP_KEY` e le credenziali del database, che il primo `git add -A`
+avrebbe committato. Il file è stato lasciato dov'è — è roba di chi sviluppa —
+ma `.gitignore` ora elenca gli ammessi (`.env.*` più `!.env.example`) invece
+degli esclusi, così un nome nuovo non riapre il buco.
+
+### Cosa resta aperto
+
+- **Lo stile degli accenti è misto in tutto il repository**: i commenti di
+  oltre 120 file scrivono `e'`, `puo'`, `perche'` al posto di `è`, `può`,
+  `perché`, e i file nuovi di questo giro hanno seguito l'uso esistente. I
+  **testi che si vedono** (`lang/it/*`) usano gli accenti veri: controllato uno
+  per uno. È una disomogeneità dei soli commenti, non un difetto — sistemarla
+  vuol dire riscrivere 120 file e non è stato fatto qui.

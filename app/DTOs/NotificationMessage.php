@@ -9,10 +9,12 @@ use App\Enums\NotificationType;
 /**
  * Il contenuto di una notifica, già tradotto e pronto per qualunque canale.
  *
- * Esiste perché i canali attivi sono due (email e archivio in-app, D8) e
- * domani potrebbero essere tre: comporre il testo dentro il canale
- * significherebbe riscriverlo per ciascuno, con il rischio che il messaggio
- * archiviato dica una cosa e quello spedito un'altra.
+ * Esiste perché i canali attivi sono tre — push, email, archivio in-app
+ * (§15.6, D54) — e comporre il testo dentro il canale significherebbe
+ * riscriverlo per ciascuno, con il rischio che il messaggio archiviato dica
+ * una cosa e quello spedito un'altra. Quando era stato scritto i canali erano
+ * due e il terzo era un'ipotesi: è la ragione per cui aggiungerlo non ha
+ * richiesto di toccare né questa classe né `MessageFactory`.
  *
  * `url` è il **collegamento profondo alla scheda evento** che §15.4 pretende su
  * ogni notifica: mai la home. Per i riepiloghi è la lista da cui sono presi i

@@ -148,6 +148,32 @@ return [
         'account' => 'Hai un account: dal profilo puoi cambiare anche fuso orario, lingua e ore di silenzio.',
     ],
 
+    /*
+     * L'interruttore delle notifiche push (§15.6, D54).
+     *
+     * I messaggi di stato sono quattro perche' quattro sono gli esiti che chi
+     * tocca l'interruttore puo' vedere, e ognuno chiede una cosa diversa:
+     * fatto, rifiutato (e allora la strada e' nelle impostazioni del browser,
+     * non qui), non supportato, andato storto. Un solo «errore» li
+     * confonderebbe tutti, e il piu' frequente — il permesso negato — non e'
+     * nemmeno un errore.
+     */
+    'push' => [
+        'title' => 'Notifiche sul dispositivo',
+        'lead' => 'Ricevi gli avvisi su questo dispositivo invece che per email. Le email tornano da sole se non lo apri per un mese.',
+        'toggle' => 'Attiva le notifiche su questo dispositivo',
+        'ios' => 'Su iPhone e iPad funzionano solo se aggiungi il sito alla schermata Home.',
+        'signed_out' => 'Per attivarle su questo dispositivo devi accedere: da un collegamento ricevuto per email si possono solo spegnere.',
+        'on' => 'Attive su questo dispositivo.',
+        'off' => 'Spente su questo dispositivo. Gli avvisi tornano per email.',
+        'denied' => 'Il browser ha bloccato le notifiche per questo sito: si riattivano dalle sue impostazioni.',
+        'unsupported' => 'Questo browser non supporta le notifiche: continuerai a riceverle per email.',
+        'failed' => 'Non è stato possibile attivarle. Riprova più tardi: intanto gli avvisi arrivano per email.',
+        'enabled' => 'Notifiche attivate su questo dispositivo.',
+        'disabled' => 'Notifiche disattivate su questo dispositivo.',
+        'unauthenticated' => 'Sessione scaduta: accedi di nuovo.',
+    ],
+
     'unsubscribed' => [
         'title' => 'Fatto',
         'body' => 'Non riceverai più: :type.',
