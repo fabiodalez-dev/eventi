@@ -76,8 +76,18 @@ it('mostra il pulsante Segui come promessa, non come inganno', function (): void
 
     $this->get('/locali/'.$venue->slug)
         ->assertOk()
-        ->assertSee(__('common.actions.follow'))
-        ->assertSee(__('venues.detail.follow_soon'));
+        /*
+         * Qui si pretendeva un pulsante **spento** e la nota «funzionerà
+         * quando arriveranno gli account». Gli account sono arrivati, e con
+         * loro il feed che usa i follow: la promessa è stata mantenuta, e un
+         * test che pretende ancora la promessa impedirebbe di mantenerla.
+         *
+         * Ora si verifica il caso di chi non ha l'accesso: il pulsante c'è e
+         * porta al login. Un pulsante disabilitato sembra un'azione e non lo
+         * è; un collegamento dice cosa serve per farla.
+         */
+        ->assertSee(__('account.follow.venue'))
+        ->assertDontSee('disabled', false);
 });
 
 it('offre le indicazioni verso entrambe le applicazioni di navigazione', function (): void {

@@ -783,8 +783,74 @@ function dialoghi() {
     }
 }
 
+/**
+ * «Segui» senza ricaricare la pagina.
+ *
+ * Il modulo funziona da se': senza JavaScript invia, il server risponde con un
+ * rimando e la pagina si ricarica. Qui lo si intercetta soltanto — non lo si
+ * sostituisce — cosi' il gesto resta a un click in entrambi i casi, ed e' la
+ * stessa scelta fatta per il cuore dei salvataggi.
+ *
+ * **Il pulsante cambia prima della risposta.** Chi preme «segui» ha gia'
+ * deciso: aspettare mezzo secondo un riscontro dal server fa sembrare il sito
+ * lento anche quando non lo e'. Se la richiesta fallisce si torna indietro, e
+ * a quel punto l'errore e' vero e va mostrato.
+ */
+function follows() {
+    for (const form of document.querySelectorAll("[data-follow]")) {
+        const bottone = form.querySelector("button");
+
+        if (!bottone) {
+            continue;
+        }
+
+        form.addEventListener("submit", async (evento) => {
+            evento.preventDefault();
+
+            const seguiva = bottone.getAttribute("aria-pressed") === "true";
+            dipingiFollow(bottone, form, !seguiva);
+
+            try {
+                const risposta = await fetch(seguiva ? form.dataset.followDestroy : form.dataset.followStore, {
+                    method: seguiva ? "DELETE" : "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Accept: "application/json",
+                        "X-CSRF-TOKEN": form.querySelector("[name=_token]")?.value ?? "",
+                    },
+                    body: seguiva
+                        ? null
+                        : JSON.stringify({ type: form.dataset.followType, id: form.dataset.followId }),
+                });
+
+                if (!risposta.ok) {
+                    throw new Error(String(risposta.status));
+                }
+            } catch {
+                /* Si rimette com'era: un pulsante che dice «segui gia'» mentre
+                   il server non ha registrato niente e' peggio di un gesto
+                   fallito, perche' chi lo guarda non ha modo di saperlo. */
+                dipingiFollow(bottone, form, seguiva);
+            }
+        });
+    }
+}
+
+function dipingiFollow(bottone, form, segue) {
+    bottone.setAttribute("aria-pressed", segue ? "true" : "false");
+    bottone.textContent = segue ? form.dataset.followLabelFollowing : form.dataset.followLabel;
+
+    bottone.classList.toggle("border-accent", segue);
+    bottone.classList.toggle("bg-accent", segue);
+    bottone.classList.toggle("text-on-accent", segue);
+    bottone.classList.toggle("border-line", !segue);
+    bottone.classList.toggle("bg-surface", !segue);
+    bottone.classList.toggle("text-ink", !segue);
+}
+
 function start() {
     dialoghi();
+    follows();
     infiniteScroll();
     nativeShare();
     geolocation();

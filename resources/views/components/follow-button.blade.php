@@ -1,65 +1,82 @@
 {{--
-    «Segui» un locale, un tag o una categoria (§15.7).
+    «Segui», che ora segue davvero.
 
-    Alimenta il feed e i digest, **non** i promemoria: chi vuole essere avvisato
-    di una serata la salva. La differenza è scritta nell'aiuto sotto al
-    pulsante, perché è l'unica cosa che distingue i due gesti.
+    Era un pulsante spento con una nota — «funzionerà quando arriveranno gli
+    account» — scritta quando gli account non c'erano. Nel frattempo sono
+    arrivati, e con loro il feed che *usa già* i follow per scegliere cosa
+    mostrare: mancava soltanto il gesto per crearne uno. Rotte, controller,
+    azioni e modello erano al loro posto da tempo.
 
-    Chi non è collegato vede un collegamento alla registrazione: qui, a
-    differenza del cuore, non c'è nulla da salvare nel browser — un feed senza
-    account non esiste.
+    **Un modulo vero, come il cuore dei salvataggi.** Senza JavaScript invia e
+    ricarica la pagina; con JavaScript lo stesso modulo viene intercettato e
+    non ricarica niente. È ciò che tiene il gesto a un click in entrambi i
+    casi.
+
+    **A chi non ha l'accesso non si mente.** Il pulsante c'è e porta al login,
+    con il ritorno a questa pagina: dire «accedi per seguire» è un'informazione,
+    un pulsante che non fa niente è un inganno.
 --}}
 @props([
     'type',
     'id',
-    'following' => false,
     'label' => null,
-    'hint' => false,
+    'labelFollowing' => null,
 ])
 
 @php
-    $type = $type instanceof \App\Enums\FollowableType ? $type : \App\Enums\FollowableType::from($type);
-    $id = (int) $id;
-    $label ??= __('account.follow.'.$type->value);
+    $utente = auth()->user();
+    $tipo = $type instanceof \App\Enums\FollowableType ? $type : \App\Enums\FollowableType::from((string) $type);
+    $segue = $utente !== null && in_array((int) $id, $utente->followedIds($tipo), strict: true);
+
+    /* Le etichette del progetto, non due nuove: `account.follow.venue` dice
+       «Segui questo locale» e `account.follow.following` dice «Lo segui già».
+       Sono piu' precise di un «Segui» nudo — su una pagina che parla di un
+       locale, di eventi e di date, «Segui» da solo non dice cosa. */
+    $etichetta = $label ?? __('account.follow.'.$tipo->value);
+    $etichettaAttiva = $labelFollowing ?? __('account.follow.following');
+
+    $base = 'px-4 py-2.5 font-display text-[0.688rem] leading-none font-extrabold tracking-[0.14em] uppercase border-2 transition-colors';
 @endphp
 
-<div {{ $attributes->class(['flex flex-col gap-1']) }}>
-    @auth
-        <form
-            method="POST"
-            action="{{ $following ? route('account.follows.destroy', ['type' => $type->value, 'id' => $id]) : route('account.follows.store') }}"
+@guest
+    {{-- Il ritorno a questa pagina è nell'indirizzo: chi accede per seguire un
+         locale si aspetta di ritrovarsi sul locale, non sul proprio profilo. --}}
+    <a
+        href="{{ route('login', ['intended' => url()->current()]) }}"
+        {{ $attributes->class([$base, 'border-line bg-surface text-ink hover:border-accent hover:text-accent']) }}
+    >
+        {{ $etichetta }}
+    </a>
+@endguest
+
+@auth
+    <form
+        method="POST"
+        action="{{ $segue ? route('account.follows.destroy', ['type' => $tipo->value, 'id' => $id]) : route('account.follows.store') }}"
+        data-follow
+        data-follow-store="{{ route('account.follows.store') }}"
+        data-follow-destroy="{{ route('account.follows.destroy', ['type' => $tipo->value, 'id' => $id]) }}"
+        data-follow-type="{{ $tipo->value }}"
+        data-follow-id="{{ $id }}"
+        data-follow-label="{{ $etichetta }}"
+        data-follow-label-following="{{ $etichettaAttiva }}"
+        {{ $attributes->class(['contents']) }}
+    >
+        @csrf
+
+        @if ($segue)
+            @method('DELETE')
+        @else
+            <input type="hidden" name="type" value="{{ $tipo->value }}">
+            <input type="hidden" name="id" value="{{ $id }}">
+        @endif
+
+        <button
+            type="submit"
+            aria-pressed="{{ $segue ? 'true' : 'false' }}"
+            class="{{ $base }} {{ $segue ? 'border-accent bg-accent text-on-accent' : 'border-line bg-surface text-ink hover:border-accent hover:text-accent' }}"
         >
-            @csrf
-
-            @if ($following)
-                @method('DELETE')
-            @else
-                <input type="hidden" name="type" value="{{ $type->value }}">
-                <input type="hidden" name="id" value="{{ $id }}">
-            @endif
-
-            <button
-                type="submit"
-                aria-pressed="{{ $following ? 'true' : 'false' }}"
-                @class([
-                    'inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold ring-1 transition',
-                    'bg-brand text-on-brand ring-brand' => $following,
-                    'bg-surface text-ink ring-line hover:border-accent' => ! $following,
-                ])
-            >
-                {{ $following ? __('account.follow.following') : $label }}
-            </button>
-        </form>
-    @else
-        <a
-            href="{{ route('account.register') }}"
-            class="inline-flex items-center gap-1.5 bg-surface px-3.5 py-2 text-sm font-semibold text-ink border-2 border-line transition hover:border-accent"
-        >
-            {{ $label }}
-        </a>
-    @endauth
-
-    @if ($hint)
-        <p class="max-w-prose text-xs text-ink-subtle">{{ __('account.follow.hint') }}</p>
-    @endif
-</div>
+            {{ $segue ? $etichettaAttiva : $etichetta }}
+        </button>
+    </form>
+@endauth

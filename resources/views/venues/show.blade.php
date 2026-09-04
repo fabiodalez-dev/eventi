@@ -108,20 +108,11 @@
             </div>
         </div>
 
-        {{-- "Segui" esiste come promessa, non come inganno: finché non ci sono
-             gli account non fa nulla, e lo dice invece di fingere. --}}
-        <div class="flex flex-col items-end gap-1">
-            <button
-                type="button"
-                disabled
-                aria-describedby="segui-nota"
-                class="cursor-not-allowed bg-surface px-4 py-2.5 font-display text-[0.688rem] leading-none font-extrabold tracking-[0.14em] text-ink uppercase-subtle border-2 border-line"
-            >
-                {{ __('common.actions.follow') }}
-            </button>
-
-            <span id="segui-nota" class="text-xs text-ink-subtle">{{ __('venues.detail.follow_soon') }}</span>
-        </div>
+        {{-- «Segui» ora segue. Era spento con una nota — «funzionerà quando
+             arriveranno gli account» — scritta quando gli account non c'erano;
+             nel frattempo sono arrivati, e il feed usa già i follow per
+             scegliere cosa mostrare. Mancava solo il gesto per crearne uno. --}}
+        <x-follow-button :type="\App\Enums\FollowableType::Venue" :id="$venue->getKey()" />
     </header>
 
     <div class="mt-8 grid gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">

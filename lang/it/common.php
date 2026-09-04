@@ -22,7 +22,6 @@ return [
         'saved' => 'Salvato',
         'remove' => 'Rimuovi',
         'follow' => 'Segui',
-        'following' => 'Segui già',
         'report' => 'Segnala un errore',
         'directions' => 'Come arrivare',
         'directions_google' => 'Indicazioni con Google Maps',
