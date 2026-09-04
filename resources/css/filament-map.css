@@ -1,0 +1,73 @@
+/*
+ * Lo stile della mappa con il segnaposto.
+ *
+ * **In un file suo, non nel tema del pannello.** Il tema veste solo
+ * l'amministrazione; la mappa serve anche in `/gestione`, dove un locale
+ * mette il proprio punto — e quel pannello non ha un tema Vite. Un foglio a
+ * parte, registrato su entrambi, evita sia di duplicare le regole sia di dare
+ * al pannello dei locali un tema intero per venti righe di CSS.
+ *
+ * I colori hanno un valore di riserva (`var(--x, #...)`) perche' i token del
+ * tema esistono solo in uno dei due posti: senza riserva il segnaposto
+ * sarebbe trasparente proprio dove serve di piu'.
+ */
+
+@import 'leaflet/dist/leaflet.css';
+
+.fi-map-picker-canvas {
+    height: 320px;
+    width: 100%;
+    border: 1px solid var(--fi-hairline, rgba(20, 20, 19, 0.16));
+    background: oklch(94% 0.004 110);
+    /* Sopra i controlli del modulo ma sotto i menu a tendina, che devono
+       poter coprire la mappa. */
+    z-index: 0;
+}
+
+/*
+ * Il segnaposto: un quadrato lime con la punta, disegnato col CSS.
+ *
+ * Non l'icona predefinita di Leaflet, che è un PNG servito da un percorso che
+ * il nostro bundle non pubblica — 404 in console e nessun segnaposto a
+ * schermo. Disegnarlo qui toglie di mezzo il problema e lo fa somigliare al
+ * sito.
+ */
+.mappa-segnaposto span {
+    display: block;
+    width: 18px;
+    height: 18px;
+    margin: 4px;
+    background: var(--fi-lime, #ccff00);
+    border: 2px solid var(--fi-ink, #141413);
+    box-shadow: 0 2px 0 0 rgba(20, 20, 19, 0.35);
+    cursor: grab;
+}
+
+.mappa-segnaposto:active span {
+    cursor: grabbing;
+}
+
+/* I controlli di Leaflet vestiti come il pannello: spigoli vivi e la stessa
+   linea di tutto il resto. */
+.fi-map-picker-canvas .leaflet-bar,
+.fi-map-picker-canvas .leaflet-control-attribution {
+    border-radius: 0;
+    border-color: var(--fi-hairline, rgba(20, 20, 19, 0.16));
+    box-shadow: none;
+}
+
+.fi-map-picker-canvas .leaflet-bar a {
+    border-radius: 0;
+    color: var(--fi-ink, #141413);
+}
+
+.fi-map-picker-hint {
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+    color: oklch(47.5% 0.008 110);
+}
+.fi-map-picker-hint {
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--fi-ink-muted, #6b6b66);
+}

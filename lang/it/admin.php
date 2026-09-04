@@ -159,6 +159,14 @@ return [
         'undeclared' => 'Non dichiarato',
     ],
 
+    'map' => [
+        'hint' => 'Trascina il segnaposto o tocca la mappa per spostarlo.',
+        'locate' => 'Trova sulla mappa',
+        'located' => 'Segnaposto spostato sull\'indirizzo.',
+        'not_located' => 'Non ho trovato questo indirizzo: spostalo a mano sulla mappa.',
+        'missing' => 'Questo locale non ha ancora una posizione sulla mappa.',
+    ],
+
     'fields' => [
         'title' => 'Titolo',
         'subtitle' => 'Sottotitolo',
@@ -231,6 +239,7 @@ return [
         'locale' => 'Lingua predefinita',
         'center_lat' => 'Latitudine del centro',
         'center_lng' => 'Longitudine del centro',
+        'map' => 'Posizione sulla mappa',
         'lat' => 'Latitudine',
         'lng' => 'Longitudine',
         'default_zoom' => 'Zoom predefinito',
@@ -287,6 +296,7 @@ return [
         'is_nightlife' => 'Vita notturna',
         'organizer_name' => 'Organizzatore',
         'organizer_url' => 'Sito dell\'organizzatore',
+        'custom_location_name' => 'Come si chiama il luogo',
         'custom_location' => 'Luogo libero',
         'external_links' => 'Link esterni',
         'external_link_label' => 'Etichetta',

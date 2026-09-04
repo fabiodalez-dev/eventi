@@ -13,6 +13,7 @@ use App\Filament\Admin\Resources\Venues\Pages\ListVenues;
 use App\Filament\Admin\Resources\Venues\RelationManagers\EventsRelationManager;
 use App\Filament\Admin\Resources\Venues\RelationManagers\MembersRelationManager;
 use App\Filament\Admin\Support\VenueModeration;
+use App\Filament\Forms\Components\MapPicker;
 use App\Filament\Support\AccessibilityField;
 use App\Filament\Support\FactsField;
 use App\Filament\Support\ImageUpload;
@@ -20,6 +21,7 @@ use App\Filament\Support\TransitField;
 use App\Models\City;
 use App\Models\Venue;
 use App\Queries\EditorialDashboardQuery;
+use App\Services\Geo\AddressGeocoder;
 use App\Support\WidgetEmbed;
 use BackedEnum;
 use Carbon\CarbonImmutable;
@@ -35,6 +37,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\TimePicker;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\ToggleButtons;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
@@ -250,6 +253,27 @@ class VenueResource extends Resource
                                             ->required()
                                             ->maxLength(4),
 
+                                        /*
+                                         * La mappa sopra i numeri, non al
+                                         * loro posto.
+                                         *
+                                         * Latitudine e longitudine restano —
+                                         * a volte una coordinata la si ha
+                                         * davvero, presa da un catasto o da
+                                         * un GPS — ma nessuno le conosce a
+                                         * memoria, e finche' erano l'unico
+                                         * modo di indicare un luogo si
+                                         * lasciava il valore d'ufficio: tutti
+                                         * i locali nel punto esatto del
+                                         * centro citta', e «vicino a me» che
+                                         * rispondeva sul posto sbagliato.
+                                         */
+                                        MapPicker::make('mappa')
+                                            ->label(__('admin.fields.map'))
+                                            ->columnSpanFull()
+                                            ->coordinateFields('lat', 'lng')
+                                            ->addressFields('address', 'municipality'),
+
                                         TextInput::make('lat')
                                             ->label(__('admin.fields.lat'))
                                             ->required()
@@ -270,6 +294,58 @@ class VenueResource extends Resource
                                             ->columnSpanFull(),
                                     ])
                                     ->footerActions([
+                                        /*
+                                         * **Dall'indirizzo al punto, in un
+                                         * clic.**
+                                         *
+                                         * Chi compila l'indirizzo lo ha già
+                                         * scritto due righe sopra: chiedergli
+                                         * anche di trovarlo sulla mappa è
+                                         * chiedergli di fare due volte lo
+                                         * stesso lavoro. Quando la traduzione
+                                         * non riesce lo dice, invece di
+                                         * lasciare il segnaposto dov'era
+                                         * facendo credere che sia quello il
+                                         * posto.
+                                         */
+                                        Action::make('locate')
+                                            ->label(__('admin.map.locate'))
+                                            ->icon(Heroicon::OutlinedMagnifyingGlass)
+                                            ->action(function (Get $get, Set $set, AddressGeocoder $geocoder): void {
+                                                $punto = $geocoder->coordinate(
+                                                    (string) $get('address'),
+                                                    (string) $get('municipality'),
+                                                );
+
+                                                if ($punto === null) {
+                                                    Notification::make()
+                                                        ->title(__('admin.map.not_located'))
+                                                        ->warning()
+                                                        ->send();
+
+                                                    return;
+                                                }
+
+                                                $set('lat', $punto['lat']);
+                                                $set('lng', $punto['lng']);
+
+                                                /* La mappa non guarda i campi:
+                                                   li scrive. Cambiarli da PHP
+                                                   non la sposta, e senza
+                                                   questo segnale il segnaposto
+                                                   resterebbe indietro rispetto
+                                                   ai numeri — due verità in
+                                                   disaccordo sotto gli occhi
+                                                   di chi guarda. */
+                                                Notification::make()
+                                                    ->title(__('admin.map.located'))
+                                                    ->success()
+                                                    ->send();
+                                            })
+                                            ->extraAttributes(fn (): array => [
+                                                'x-on:click' => '$nextTick(() => $dispatch("mappa-vai-a", { campo: "mappa", lat: $wire.get("data.lat"), lng: $wire.get("data.lng") }))',
+                                            ]),
+
                                         Action::make('center_on_city')
                                             ->label(__('admin.actions.center_on_city'))
                                             ->icon(Heroicon::OutlinedMapPin)

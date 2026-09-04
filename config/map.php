@@ -67,6 +67,16 @@ return [
      */
     'venue_zoom' => 15,
 
+    /*
+     * Le tessere del **pannello**, che è chiaro.
+     *
+     * Quelle del sito sono scure perché il sito è nero: sul fondo chiaro
+     * dell'amministrazione diventano una macchia, e il segnaposto lime ci
+     * sparisce dentro. Stesso fornitore, stessa proiezione, stessa
+     * attribuzione — solo la versione chiara.
+     */
+    'tiles_url_light' => env('MAP_TILES_URL_LIGHT', 'https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}'),
+
     'attribution' => env('MAP_ATTRIBUTION', '© OpenStreetMap contributors'),
 
     'attribution_url' => 'https://www.openstreetmap.org/copyright',

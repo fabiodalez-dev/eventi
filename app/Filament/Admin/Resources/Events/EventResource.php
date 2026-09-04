@@ -14,6 +14,7 @@ use App\Filament\Admin\Resources\Events\Pages\ListEvents;
 use App\Filament\Admin\Resources\Events\RelationManagers\ActivityRelationManager;
 use App\Filament\Admin\Resources\Events\RelationManagers\OccurrencesRelationManager;
 use App\Filament\Admin\Support\StructuredFields;
+use App\Filament\Forms\Components\MapPicker;
 use App\Filament\Support\EventStatusPresentation;
 use App\Filament\Support\ExternalLinksField;
 use App\Filament\Support\FactsField;
@@ -28,7 +29,6 @@ use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\DateTimePicker;
-use Filament\Forms\Components\KeyValue;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -36,6 +36,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\ToggleButtons;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Fieldset;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
@@ -310,9 +311,58 @@ class EventResource extends Resource
                                             ->searchable()
                                             ->preload(),
 
-                                        KeyValue::make('custom_location')
-                                            ->label(__('admin.fields.custom_location'))
-                                            ->columnSpanFull(),
+                                        /*
+                                         * **Il luogo che non e' un locale.**
+                                         *
+                                         * Una piazza, un parco, una via
+                                         * chiusa per una festa: esiste sul
+                                         * territorio ma non ha una scheda, e
+                                         * per questo `custom_location` e' un
+                                         * campo JSON.
+                                         *
+                                         * Era una tabella chiave-valore: si
+                                         * scriveva a mano `name`, `address`,
+                                         * `lat`, `lng` — i nomi delle chiavi
+                                         * compresi. Chi non li sapeva a
+                                         * memoria inventava (`nome`,
+                                         * `indirizzo`) e il sito non leggeva
+                                         * piu' niente, senza che nessun
+                                         * errore lo dicesse: le viste
+                                         * cercano `name` e trovano `null`.
+                                         *
+                                         * Ora sono campi con un nome scritto
+                                         * in italiano e una mappa. Le chiavi
+                                         * del JSON restano quelle che il sito
+                                         * legge, ma non le sceglie piu'
+                                         * nessuno a mano.
+                                         */
+                                        Fieldset::make(__('admin.fields.custom_location'))
+                                            ->columnSpanFull()
+                                            ->columns(2)
+                                            ->visible(fn (Get $get): bool => blank($get('venue_id')))
+                                            ->schema([
+                                                TextInput::make('custom_location.name')
+                                                    ->label(__('admin.fields.custom_location_name'))
+                                                    ->maxLength(255),
+
+                                                TextInput::make('custom_location.address')
+                                                    ->label(__('admin.fields.address'))
+                                                    ->maxLength(255),
+
+                                                MapPicker::make('mappa_luogo')
+                                                    ->label(__('admin.fields.map'))
+                                                    ->columnSpanFull()
+                                                    ->coordinateFields('custom_location.lat', 'custom_location.lng')
+                                                    ->addressFields('custom_location.address'),
+
+                                                TextInput::make('custom_location.lat')
+                                                    ->label(__('admin.fields.lat'))
+                                                    ->numeric(),
+
+                                                TextInput::make('custom_location.lng')
+                                                    ->label(__('admin.fields.lng'))
+                                                    ->numeric(),
+                                            ]),
 
                                         Toggle::make('is_outdoor')
                                             ->label(__('admin.fields.is_outdoor')),

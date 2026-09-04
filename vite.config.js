@@ -15,6 +15,11 @@ export default defineConfig({
                 'resources/js/app.js',
                 'resources/js/map.js',
                 'resources/js/calendar.js',
+                // Il segnaposto trascinabile dei moduli del pannello: un
+                // pacchetto a parte perche' Leaflet non deve pesare sul sito
+                // pubblico ne' sulle pagine del pannello che non hanno mappe.
+                'resources/js/filament-map.js',
+                'resources/css/filament-map.css',
                 // Il tema del pannello: sta a parte perche' e' un altro
                 // prodotto CSS — quello del sito non entra in /admin e
                 // viceversa.

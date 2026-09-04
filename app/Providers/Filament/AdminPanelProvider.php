@@ -12,6 +12,8 @@ use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Navigation\NavigationGroup;
 use Filament\Panel;
 use Filament\PanelProvider;
+use Filament\Support\Assets\Css;
+use Filament\Support\Assets\Js;
 use Filament\Support\Colors\Color;
 use Guava\Calendar\CalendarPlugin;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
@@ -19,6 +21,7 @@ use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
+use Illuminate\Support\Facades\Vite;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 /**
@@ -86,6 +89,24 @@ class AdminPanelProvider extends PanelProvider
                porta il foglio di stile e lo script del widget, che senza di
                esso resterebbe un riquadro vuoto. */
             ->plugin(CalendarPlugin::make())
+
+            /*
+             * Il segnaposto trascinabile dei moduli.
+             *
+             * `loadedOnRequest()` non si usa: il componente lo cerca appena
+             * la pagina si apre, e caricarlo su richiesta significherebbe
+             * mostrare un riquadro vuoto finche' non arriva. Leaflet resta
+             * comunque fuori — lo importa il file, dinamicamente, solo quando
+             * una mappa esiste davvero.
+             */
+            ->assets([
+                /* `module()`: Vite compila con `import`/`export`, e servito
+                   come script classico il browser si ferma su «Cannot use
+                   import statement outside a module» — la mappa non compare e
+                   l'errore parla di sintassi, non di mappe. */
+                Js::make('map-picker', Vite::asset('resources/js/filament-map.js'))->module(),
+                Css::make('map-picker', Vite::asset('resources/css/filament-map.css')),
+            ])
 
             ->middleware([
                 EncryptCookies::class,

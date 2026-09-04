@@ -13,12 +13,15 @@ use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Panel;
 use Filament\PanelProvider;
+use Filament\Support\Assets\Css;
+use Filament\Support\Assets\Js;
 use Filament\Support\Colors\Color;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
+use Illuminate\Support\Facades\Vite;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 /**
@@ -66,6 +69,14 @@ class VenuePanelProvider extends PanelProvider
             ->pages([
                 Dashboard::class,
             ])
+            /* Lo stesso segnaposto del pannello della redazione: un locale
+               che deve mettersi sulla mappa ha bisogno degli stessi strumenti
+               di chi lo fa per lui. */
+            ->assets([
+                Js::make('map-picker', Vite::asset('resources/js/filament-map.js'))->module(),
+                Css::make('map-picker', Vite::asset('resources/css/filament-map.css')),
+            ])
+
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,

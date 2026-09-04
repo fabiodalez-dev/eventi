@@ -52,6 +52,12 @@ return [
         'venue_membership' => 'Tesseramento',
     ],
 
+    'location_missing' => [
+        'title' => 'Non siete ancora sulla mappa',
+        'body' => 'Il vostro segnaposto è sul centro della città insieme a tutti gli altri: spostatelo sulla vostra porta, così chi cerca «vicino a me» vi trova davvero.',
+        'action' => 'Mettici sulla mappa',
+    ],
+
     'fields' => [
         'source' => 'Provenienza',
         'poster' => 'Locandina',
@@ -94,6 +100,8 @@ return [
         'venue_name' => 'Nome',
         'venue_type' => 'Tipo di locale',
         'short_description' => 'In due righe',
+        'map' => 'Dove siete, sulla mappa',
+        'map_help' => 'Trascina il segnaposto sulla porta d\'ingresso: è il punto che vede chi cerca «vicino a me».',
         'address' => 'Indirizzo',
         'address_extra' => 'Interno, scala, indicazioni',
         'postal_code' => 'CAP',

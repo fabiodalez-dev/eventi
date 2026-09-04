@@ -6,6 +6,7 @@ namespace App\Filament\Venue\Pages;
 
 use App\Enums\VenueType;
 use App\Filament\Admin\Support\StructuredFields;
+use App\Filament\Forms\Components\MapPicker;
 use App\Filament\Support\AccessibilityField;
 use App\Filament\Support\FactsField;
 use App\Filament\Support\TransitField;
@@ -14,6 +15,7 @@ use App\Models\Venue;
 use BackedEnum;
 use Carbon\CarbonImmutable;
 use Filament\Actions\Action;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\KeyValue;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
@@ -96,7 +98,7 @@ class VenueProfile extends Page implements HasSchemas
         $this->venueForm()->fill([
             ...$venue->only([
                 'short_description', 'description', 'address', 'address_extra',
-                'postal_code', 'municipality', 'zone', 'phone', 'email', 'website',
+                'postal_code', 'municipality', 'zone', 'lat', 'lng', 'phone', 'email', 'website',
                 'capacity', 'requires_membership', 'membership_notes',
             ]),
             'socials' => $venue->socials ?? [],
@@ -147,6 +149,44 @@ class VenueProfile extends Page implements HasSchemas
                 Section::make(__('manage.sections.venue_where'))
                     ->columns(2)
                     ->schema([
+                        /*
+                         * **Il punto sulla mappa lo mette chi il posto lo
+                         * conosce.**
+                         *
+                         * Fin qui le coordinate non erano fra i campi che un
+                         * locale poteva toccare: le scriveva la redazione, e
+                         * per i locali nati da una richiesta di iscrizione
+                         * nessuno le scriveva affatto — restava il centro
+                         * citta'. Chi gestisce il posto sa dov'e' la porta;
+                         * la redazione, al massimo, sa leggere un indirizzo.
+                         */
+                        MapPicker::make('mappa')
+                            ->label(__('manage.fields.map'))
+                            ->columnSpanFull()
+                            ->coordinateFields('lat', 'lng')
+                            ->addressFields('address', 'municipality')
+                            ->helperText(__('manage.fields.map_help')),
+
+                        /*
+                         * **I due campi devono esistere, anche se non si
+                         * vedono.**
+                         *
+                         * La mappa non ha uno stato suo: scrive in `lat` e
+                         * `lng`. Se il modulo non li dichiara, Livewire non li
+                         * conosce e il salvataggio non li porta — il
+                         * segnaposto si sposta, i numeri cambiano sotto la
+                         * mappa, si preme Salva e non e' cambiato niente.
+                         * Nessun errore, nessun campo rosso: il lavoro
+                         * scompare in silenzio. L'ha trovato un test, non una
+                         * prova a mano.
+                         *
+                         * Nascosti e non numerici a schermo perche' qui il
+                         * numero non serve: chi gestisce un locale sa dov'e'
+                         * la porta, non la sua latitudine.
+                         */
+                        Hidden::make('lat'),
+                        Hidden::make('lng'),
+
                         TextInput::make('address')
                             ->label(__('manage.fields.address'))
                             ->required()
