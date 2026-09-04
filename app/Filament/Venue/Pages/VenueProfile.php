@@ -9,6 +9,7 @@ use App\Filament\Admin\Support\StructuredFields;
 use App\Filament\Forms\Components\MapPicker;
 use App\Filament\Support\AccessibilityField;
 use App\Filament\Support\FactsField;
+use App\Filament\Support\ImageUpload;
 use App\Filament\Support\TransitField;
 use App\Filament\Venue\Support\CurrentVenue;
 use App\Models\Venue;
@@ -115,6 +116,15 @@ class VenueProfile extends Page implements HasSchemas
     {
         return $schema
             ->statePath('data')
+            /*
+             * Il modulo conosce il locale, e non solo i suoi valori.
+             *
+             * Serve a caricare le immagini: `SpatieMediaLibraryFileUpload`
+             * salva i file su un record, e senza `->model()` non sa a chi
+             * attaccarli. Nelle risorse di Filament il legame è implicito —
+             * qui è una pagina, e va dichiarato.
+             */
+            ->model(CurrentVenue::get())
             ->components([
                 Section::make(__('manage.sections.venue_identity'))
                     ->schema([
@@ -145,6 +155,44 @@ class VenueProfile extends Page implements HasSchemas
                             ->columnSpanFull(),
                     ])
                     ->columns(2),
+
+                /*
+                 * **Le immagini le carica il locale.**
+                 *
+                 * Fin qui poteva farlo solo la redazione: un locale che si
+                 * iscriveva non poteva mettere nemmeno il proprio logo, e la
+                 * sua scheda restava senza faccia — mentre la pagina pubblica
+                 * il logo lo mostra da sempre, se c'è. Chi ha il file è il
+                 * locale, non chi modera.
+                 */
+                Section::make(__('manage.sections.venue_images'))
+                    ->description(__('manage.sections.venue_images_lead'))
+                    ->columns(2)
+                    ->schema([
+                        ImageUpload::make('logo')
+                            ->label(__('manage.fields.logo'))
+                            ->collection('logo')
+                            ->helperText(__('manage.fields.logo_help'))
+                            ->imageEditor(),
+
+                        ImageUpload::make('gallery')
+                            ->label(__('manage.fields.gallery'))
+                            ->collection('gallery')
+                            ->helperText(__('manage.fields.gallery_help'))
+                            ->multiple()
+                            ->reorderable(),
+
+                        /* La copertina prende una riga sua: messa in mezzo
+                           alle altre due spezza la griglia e lascia il logo da
+                           solo — lo stesso inciampo già visto nel pannello
+                           della redazione. */
+                        ImageUpload::make('cover')
+                            ->label(__('manage.fields.cover'))
+                            ->collection('cover')
+                            ->helperText(__('manage.fields.cover_help'))
+                            ->columnSpanFull()
+                            ->imageEditor(),
+                    ]),
 
                 Section::make(__('manage.sections.venue_where'))
                     ->columns(2)

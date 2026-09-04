@@ -8,6 +8,8 @@ use App\Models\City;
 use App\Models\User;
 use App\Models\Venue;
 use Filament\Facades\Filament;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\Support\VenueIsolationScenario;
 
 /**
@@ -80,4 +82,28 @@ it('lascia al locale il proprio punto, che prima non poteva toccare', function (
 
     expect((float) $scenario->venueA->fresh()->lat)->toBe(45.4111)
         ->and((float) $scenario->venueA->fresh()->lng)->toBe(11.8765);
+});
+
+it('lascia al locale caricare il proprio logo', function (): void {
+    /*
+     * Il logo esisteva come collezione e la scheda pubblica lo mostrava da
+     * sempre — ma poteva caricarlo solo la redazione. Un locale appena
+     * iscritto restava senza faccia, e il file ce l'ha lui.
+     */
+    $scenario = VenueIsolationScenario::make();
+
+    Filament::setCurrentPanel('venue');
+    $this->actingAs($scenario->ownerA);
+    Filament::setTenant($scenario->venueA);
+
+    Storage::fake('media');
+
+    Livewire\Livewire::test(VenueProfile::class)
+        ->fillForm([
+            'logo' => [UploadedFile::fake()->image('logo.png', 512, 512)],
+        ])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    expect($scenario->venueA->fresh()->getMedia('logo'))->toHaveCount(1);
 });

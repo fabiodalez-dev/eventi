@@ -19,6 +19,19 @@
 <x-layouts.app :meta="$meta" :preload="$cover">
     <x-slot:head>
         <x-json-ld :data="$structuredData" />
+
+        {{-- **Senza questo la mappa non si accende.**
+
+             Il riquadro Leaflet è nel markup — `x-venue-map` lo disegna — ma
+             chi lo anima è `map.js`, e qui non c'era: restava un rettangolo
+             vuoto con la sua frase, senza un errore in console e senza niente
+             che dicesse cosa mancava. È il modo peggiore di rompersi, perché
+             sembra un problema di dati o di rete.
+
+             Lo stesso `@vite` sta in home, nella mappa, nella lista eventi e
+             nella scheda evento. Questa pagina era l'unica ad averne bisogno e
+             a non averlo. --}}
+        @vite('resources/js/map.js')
     </x-slot:head>
 
     <nav aria-label="{{ __('ui.breadcrumb') }}" class="text-sm text-ink-subtle">
