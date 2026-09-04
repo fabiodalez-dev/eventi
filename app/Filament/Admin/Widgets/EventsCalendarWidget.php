@@ -52,9 +52,71 @@ class EventsCalendarWidget extends CalendarWidget
             'timeGridDay' => 'Giorno',
             'listWeek' => 'Elenco',
         ],
+
+        /*
+         * **Quattro viste, non le sedici che la libreria offre.**
+         *
+         * Ognuna risponde a una domanda diversa, e chi programma le fa tutte
+         * e quattro:
+         *
+         * - **mese**: «com'è messo settembre» — i buchi nel programma si
+         *   vedono solo qui, e sono l'informazione che nessuna lista dà;
+         * - **settimana** con le ore: «cosa si sovrappone» — tre concerti lo
+         *   stesso sabato alle 21 sono un problema che sulla griglia mensile
+         *   sembra una settimana piena;
+         * - **giorno**: una serata affollata, letta per intero;
+         * - **elenco**: gli eventi in fila con data e ora. È l'unica leggibile
+         *   su un telefono, dove una griglia mensile diventa trentun caselle
+         *   da un centimetro.
+         *
+         * Le altre dodici — anno, timeline, risorse — servono a chi prenota
+         * sale e attrezzature, non a chi guarda cosa succede in città. Un
+         * menu di sedici voci è rumore: si sceglie fra quattro, non si cerca
+         * fra sedici.
+         */
+        'headerToolbar' => [
+            'start' => 'title',
+            'center' => 'dayGridMonth,timeGridWeek,timeGridDay,listWeek',
+            'end' => 'today prev,next',
+        ],
+
+        /*
+         * **La giornata comincia alle 6 del mattino e finisce alle 6 del
+         * mattino dopo.**
+         *
+         * Ventiquattro ore piene, ma spostate: nessun evento sparisce e la
+         * notte finisce in fondo alla colonna del giorno a cui appartiene
+         * davvero. Un after-hours delle 2 di sabato è la fine del venerdì
+         * sera per chi c'era, e con la giornata che comincia a mezzanotte
+         * compare invece in cima al sabato, staccato dalla serata di cui fa
+         * parte.
+         *
+         * `scrollTime` non basta: la libreria lo applica creando la vista, e
+         * il calendario nasce in vista mese — passando a «Settimana» si
+         * apriva a mezzanotte su sei ore vuote. Spostare la finestra risolve
+         * il problema invece di rincorrerlo, e in più rende il tabellone più
+         * fedele a come una serata viene vissuta.
+         */
+        'slotMinTime' => '06:00:00',
+        'slotMaxTime' => '30:00:00',
+
         /* La settimana comincia di lunedi', come in Italia: `0` sarebbe
-           domenica, ed e' il valore predefinito della libreria. */
+           domenica, ed è il valore predefinito della libreria. */
         'firstDay' => 1,
+
+        /*
+         * Nella vista mese, quando gli eventi non entrano nella cella compare
+         * «+N altri» invece di allungarla. Senza, un sabato con dodici eventi
+         * rende la sua riga alta il triplo delle altre e la griglia smette di
+         * essere una griglia.
+         *
+         * **Booleano e non un numero**: qui il limite non è «quanti», è
+         * «quanti ce ne stanno» — la libreria lo calcola dall'altezza
+         * disponibile. Passare `4` non è un errore che si vede: viene letto
+         * come vero e si comporta uguale, ma dichiara un limite che nessuno
+         * applica.
+         */
+        'dayMaxEvents' => true,
     ];
 
     /**
