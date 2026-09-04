@@ -13,14 +13,14 @@ use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Panel;
 use Filament\PanelProvider;
-use Filament\Support\Assets\Css;
-use Filament\Support\Assets\Js;
 use Filament\Support\Colors\Color;
+use Filament\View\PanelsRenderHook;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
@@ -69,13 +69,31 @@ class VenuePanelProvider extends PanelProvider
             ->pages([
                 Dashboard::class,
             ])
-            /* Lo stesso segnaposto del pannello della redazione: un locale
-               che deve mettersi sulla mappa ha bisogno degli stessi strumenti
-               di chi lo fa per lui. */
-            ->assets([
-                Js::make('map-picker', Vite::asset('resources/js/filament-map.js'))->module(),
-                Css::make('map-picker', Vite::asset('resources/css/filament-map.css')),
-            ])
+            /*
+             * Il segnaposto trascinabile dei moduli.
+             *
+             * **Non `->assets()` con `Vite::asset()`.** Quel metodo risolve il
+             * percorso *quando il pannello si registra*, e i provider vengono
+             * istanziati anche da `package:discover` — che gira dentro
+             * `composer install`, prima che gli asset esistano. Il risultato
+             * era `ViteManifestNotFoundException` a ogni installazione pulita:
+             * verde in locale, dove il manifest c'era gia', e rosso sulla CI
+             * su tutti e tre i job insieme, compresa l'analisi statica che con
+             * le mappe non c'entra niente.
+             *
+             * Con il render hook la risoluzione avviene mentre si disegna la
+             * pagina, quando il manifest c'e' per definizione.
+             *
+             * `@vite` marca i moduli da se': Vite compila con
+             * `import`/`export`, e servito come script classico il browser si
+             * ferma su «Cannot use import statement outside a module» — un
+             * errore che parla di sintassi mentre il guasto e' una mappa che
+             * non compare.
+             */
+            ->renderHook(
+                PanelsRenderHook::HEAD_END,
+                fn (): string => Blade::render("@vite(['resources/js/filament-map.js', 'resources/css/filament-map.css'])"),
+            )
 
             ->middleware([
                 EncryptCookies::class,
