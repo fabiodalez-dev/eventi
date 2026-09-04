@@ -403,7 +403,23 @@
             @endif
         </article>
 
-        <aside class="flex flex-col gap-6">
+        {{-- **Su telefono la locandina viene prima del testo.**
+
+             Su schermo largo sta nella colonna di destra, accanto al corpo
+             della pagina. In una colonna sola invece finirebbe dopo date,
+             descrizione, mappa e accessibilità — in fondo a uno scorrimento
+             lungo, cioè dove non la vede nessuno. Ed è il pezzo che porta
+             l'informazione che spesso da nessun'altra parte esiste: gli ospiti,
+             l'orario esatto, il prezzo scritto dall'organizzatore.
+
+             `order` e non un secondo blocco duplicato: il markup resta uno, e
+             l'ordine di lettura per chi usa uno screen reader segue quello
+             visivo perché a cambiare è la griglia, non il documento. --}}
+        <aside class="flex flex-col gap-6 max-lg:order-first">
+            @if ($poster !== null)
+                <x-event-poster :event="$event" :set="$poster" />
+            @endif
+
             <section class="flex flex-col gap-3 bg-canvas p-5 border-2 border-line" aria-labelledby="prezzo-evento">
                 <h2 id="prezzo-evento" class="font-display text-[clamp(1.25rem,1.8vw,1.75rem)] leading-none font-extrabold tracking-[-0.03em] uppercase">{{ __('events.detail.price') }}</h2>
 

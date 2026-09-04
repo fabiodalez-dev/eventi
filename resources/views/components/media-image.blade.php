@@ -16,6 +16,19 @@
     /* App\Support\Media\ImageSet */
     'set',
     'alt',
+    /* Lascia l'immagine a colori.
+
+       Le fotografie del sito stampano in bianco e nero (D47) e la regola vale
+       per ogni immagine di contenuto: e' cio' che tiene insieme pagine piene
+       di foto arrivate da fonti diverse. Ma una **locandina** non e' una
+       fotografia di corredo — qualcuno l'ha disegnata scegliendo quei colori,
+       e sono parte di cio' che dice.
+
+       La deroga si chiede, non si aggira: chi la usa lo dichiara qui, e
+       cercare `:color="true"` dice in un colpo dove il bianco e nero non vale
+       e perche'. Aggiungere `class="filter-none"` da fuori avrebbe funzionato
+       uguale e non avrebbe lasciato traccia. */
+    'color' => false,
     /* Misure dichiarate: sono il rapporto, non la dimensione a schermo */
     'width',
     'height',
@@ -60,7 +73,8 @@
         decoding="async"
         @if ($style !== null) style="{{ $style }}" @endif
         {{-- Le fotografie stampano in bianco e nero (D47): la regola vale per
-             ogni immagine di contenuto, segnaposto sfocato compreso. --}}
-        {{ $attributes->class(['grayscale-photo']) }}
+             ogni immagine di contenuto, segnaposto sfocato compreso — salvo
+             dove si chiede il colore per una ragione dichiarata. --}}
+        {{ $attributes->class(['grayscale-photo' => ! $color]) }}
     >
 </picture>

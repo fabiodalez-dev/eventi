@@ -101,6 +101,11 @@ return [
         'to_all' => 'Sfoglia tutti gli eventi',
     ],
 
+    'poster' => [
+        'open' => 'Vedi la locandina',
+        'caption' => 'Tocca per aprirla a schermo intero.',
+    ],
+
     'detail' => [
         'when' => 'Quando',
         'where' => 'Dove',

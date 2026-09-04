@@ -743,7 +743,48 @@ function sponsorshipMetrics() {
     }
 }
 
+/**
+ * I dialoghi che si aprono da un pulsante: per ora la locandina di un evento.
+ *
+ * **`<dialog>` e non un riquadro fatto a mano.** Porta con se' il fondo
+ * oscurato, la chiusura con Esc, il fuoco intrappolato dentro e il ritorno del
+ * fuoco al pulsante che l'ha aperto — tutte cose che un `div` con
+ * `position: fixed` finisce per rifare peggio.
+ *
+ * Il collegamento e' per attributo e non per classe: chi scrive il markup
+ * dichiara *quale* dialogo apre, e due locandine sulla stessa pagina non si
+ * aprono a vicenda.
+ */
+function dialoghi() {
+    for (const bottone of document.querySelectorAll("[data-apre-dialogo]")) {
+        const dialogo = document.getElementById(bottone.dataset.apreDialogo);
+
+        if (!dialogo) {
+            continue;
+        }
+
+        bottone.addEventListener("click", () => dialogo.showModal());
+
+        /*
+         * Un clic sul fondo scuro chiude, come ci si aspetta. L'`<dialog>` non
+         * distingue il fondo dal contenuto: entrambi sono lo stesso elemento, e
+         * l'unico modo di riconoscere il fondo e' che il bersaglio del clic sia
+         * il dialogo stesso e non qualcosa dentro di lui.
+         */
+        dialogo.addEventListener("click", (evento) => {
+            if (evento.target === dialogo) {
+                dialogo.close();
+            }
+        });
+
+        for (const chiusura of dialogo.querySelectorAll("[data-chiude-dialogo]")) {
+            chiusura.addEventListener("click", () => dialogo.close());
+        }
+    }
+}
+
 function start() {
+    dialoghi();
     infiniteScroll();
     nativeShare();
     geolocation();
