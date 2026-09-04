@@ -2929,3 +2929,34 @@ invece di lasciar concedere un permesso che non produrrebbe nulla.
 rigenerano le chiavi VAPID — cambiarle invalida in un colpo solo tutte le
 iscrizioni concesse, perché il browser lega ogni iscrizione alla chiave
 pubblica con cui è stata chiesta.
+
+## D55 — La soglia LCP avvisa, non ferma
+
+**2026-09-04.** `largest-contentful-paint` passa da `error` a `warn` in
+`lighthouserc.cjs`. La soglia resta 2500 ms e la misura continua a comparire
+nel referto: quello che cambia è che non ferma più un rilascio.
+
+**Perché.** Il numero è stato 1960, 2560, 2706 e 2254 senza che il codice
+cambiasse di conseguenza. Con `page_cache.ttl_minutes` a 1, una parte dei
+cinque giri di Lighthouse cade a cache fredda (~2100 ms) e una parte a caldo
+(~1660), e la mediana salta fra i due gruppi a seconda di quanto è carico il
+runner. Più volte è stata inseguita una regressione che non esisteva: era il
+metro a muoversi.
+
+D48 aveva già alzato la soglia da 2000 a 2500 per la stessa ragione — un
+controllo che dice rosso a caso viene spento — ma alzare il numero non toglieva
+l'oscillazione, la spostava.
+
+**Cosa resta a guardare la velocità.** `categories:performance` con minimo 90,
+che qui misura 97-100 e non ha mai vacillato: è un punteggio composto, quindi
+assorbe il rumore che una singola metrica amplifica. Una regressione vera lo
+fa scendere.
+
+**Quando rimetterla bloccante.** Quando il sito avrà traffico, la misura da
+guardare non sarà comunque questa ma quella sul campo (CrUX): un LCP simulato
+su un runner condiviso dice come va su quel runner. Se un giorno si vorrà di
+nuovo un cancello, il posto giusto è quel dato, non questo.
+
+**Il livello è protetto da un test.** `LighthouseBudgetTest` verifica `warn` e
+non solo il numero: rimetterla a `error` è una decisione, e deve passare da lì
+invece di scivolare dentro con una riga.
