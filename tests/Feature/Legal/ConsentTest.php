@@ -194,9 +194,21 @@ describe('registro del consenso', function (): void {
 
         expect($log->policy_version)->toBe('2026-08-31')
             ->and($log->consent_id)->not->toBeEmpty()
+            /*
+             * L'elenco è scritto per esteso, e deve restare così.
+             *
+             * Derivarlo da `ConsentCategory::cases()` renderebbe il test
+             * sempre verde — anche il giorno in cui qualcuno aggiunge una
+             * finalità di trattamento senza accorgersene. Aggiungere una
+             * categoria è una decisione con conseguenze legali: che questa
+             * riga si rompa è il suo unico modo di chiedere che qualcuno la
+             * guardi. È successo con «marketing», arrivata quando sono
+             * arrivate le sponsorizzazioni.
+             */
             ->and($log->choices)->toBe([
                 ConsentCategory::Necessary->value => true,
                 ConsentCategory::Statistics->value => true,
+                ConsentCategory::Marketing->value => true,
             ]);
     });
 

@@ -190,13 +190,26 @@ describe('i testi seminati', function (): void {
             ->and($body)->toContain('senza scopo di lucro');
     });
 
-    it('non promette nella cookie policy cookie che il sito non usa', function (): void {
+    it('nella cookie policy dice cosa il sito fa davvero, annunci compresi', function (): void {
         $body = (string) Page::query()->where('slug', 'cookie')->value('body');
 
         expect($body)
             ->toContain('consenso')
             ->toContain('localStorage')
-            ->toContain('non usa cookie di profilazione');
+            /*
+             * Qui c'era `->toContain('non usa cookie di profilazione')`, e
+             * pretendeva una frase che nel frattempo era diventata falsa: da
+             * quando gli annunci scelgono in base agli eventi salvati, il sito
+             * profila — poco, e solo al proprio interno, ma profila.
+             *
+             * Il test non se n'è accorto perché chiedeva la presenza di una
+             * promessa, non la sua verità. È il modo in cui un'informativa
+             * invecchia con la benedizione della suite: ora pretende che la
+             * cosa sia **detta**, che è l'unica verifica che regge al passare
+             * del tempo.
+             */
+            ->toContain('profilazione')
+            ->not->toContain('non ha pubblicità');
     });
 });
 

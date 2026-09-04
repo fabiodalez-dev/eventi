@@ -36,6 +36,7 @@ class DatabaseSeeder extends Seeder
             // Le pagine informative (§11.1, §16) non dipendono da niente: stanno
             // in fondo perché il piè di pagina le mostri appena il resto esiste.
             PageSeeder::class,
+            CookieDeclarationSeeder::class,
         ]);
     }
 }

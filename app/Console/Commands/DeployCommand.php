@@ -346,9 +346,28 @@ class DeployCommand extends Command
          *
          * L'ordine conta — vedi la nota in testa alla classe.
          */
+        /*
+         * **Una lista di coppie e non una mappa comando => argomenti.**
+         *
+         * Le chiavi di un array sono uniche, e `db:seed` va eseguito due volte
+         * con classi diverse: con la mappa la seconda voce avrebbe sovrascritto
+         * la prima in silenzio, e i ruoli non sarebbero piu' stati seminati.
+         *
+         * L'ordine conta — vedi la nota in testa alla classe.
+         *
+         * @var list<array{string, list<string>}> $artisan
+         */
         $artisan = [
-            'migrate' => ['--force'],
-            'db:seed' => ['--class=RolesAndPermissionsSeeder', '--force'],
+            ['migrate', ['--force']],
+            ['db:seed', ['--class=RolesAndPermissionsSeeder', '--force']],
+            /*
+             * Il registro dei cookie: e' il contenuto di un'informativa
+             * legale, e nasce vuoto se nessuno lo semina. Il seeder e'
+             * idempotente — `updateOrCreate` sulla coppia finalita'/nome — e
+             * non tocca le righe aggiunte dal pannello, che nel suo elenco non
+             * compaiono.
+             */
+            ['db:seed', ['--class=CookieDeclarationSeeder', '--force']],
             /*
              * I comandi schedulati cambiano coi rilasci — e non solo per mano
              * nostra: un pacchetto nuovo puo' registrarne uno dal proprio
@@ -359,15 +378,15 @@ class DeployCommand extends Command
              * potrebbe morire in silenzio e il controllo di salute resterebbe
              * verde.
              */
-            'schedule-monitor:sync' => [],
-            'filament:assets' => [],
-            'config:cache' => [],
-            'route:cache' => [],
-            'view:cache' => [],
-            'queue:restart' => [],
+            ['schedule-monitor:sync', []],
+            ['filament:assets', []],
+            ['config:cache', []],
+            ['route:cache', []],
+            ['view:cache', []],
+            ['queue:restart', []],
         ];
 
-        foreach ($artisan as $comando => $argomenti) {
+        foreach ($artisan as [$comando, $argomenti]) {
             $this->line("→ {$comando}");
 
             $processo = new Process(

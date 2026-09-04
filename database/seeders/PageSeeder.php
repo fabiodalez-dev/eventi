@@ -103,7 +103,7 @@ class PageSeeder extends Seeder
             [
                 'slug' => 'cookie',
                 'title' => 'Cookie policy',
-                'excerpt' => 'I cookie che questo sito usa sono tre, e nessuno serve a profilarti.',
+                'excerpt' => 'Quali cookie usa questo sito, e cosa guardano gli annunci per scegliere cosa mostrarti.',
                 'seo_description' => 'L’elenco completo dei cookie e delle memorie locali usate da questo sito, a cosa servono e come cambiare la propria scelta.',
                 'sort_order' => 20,
                 'is_published' => true,
@@ -313,20 +313,28 @@ class PageSeeder extends Seeder
         $email = $this->contactEmail();
 
         return <<<MARKDOWN
-        Questo sito **non usa cookie di profilazione, non ha pubblicità e non condivide nulla con
-        reti pubblicitarie.** Quello che segue è l'elenco completo, senza omissioni.
+        Questo sito **non condivide nulla con reti pubblicitarie e non ti segue su altri siti.**
+        L'elenco completo dei cookie è qui sotto, diviso per finalità, e non è scritto in questa
+        pagina: viene dal registro che teniamo aggiornato quando cambia uno strumento. È l'unico
+        modo perché non resti indietro.
 
-        ## Cookie tecnici, sempre presenti
+        ## Sugli annunci, per esteso
 
-        | Nome | A cosa serve | Quanto dura |
-        |---|---|---|
-        | Cookie di sessione | Tenerti collegato mentre navighi e ricordare i messaggi di conferma | Fino alla chiusura della sessione |
-        | `XSRF-TOKEN` | Impedire che un altro sito invii moduli al posto tuo | Durata della sessione |
-        | `consenso` | Ricordare la scelta che hai fatto qui sotto, così non te la chiediamo a ogni pagina | 180 giorni |
+        Gli annunci che vedi sono eventi sponsorizzati dai locali della città. Restano qui: nessuna
+        rete esterna, nessun pixel, nessun profilo che ti segue altrove.
 
-        Sono cookie tecnici: senza, il sito non fa quello che gli chiedi. Per questo non richiedono
-        consenso e non si possono disattivare da qui. Puoi comunque cancellarli dalle impostazioni
-        del tuo browser, ricominciando da capo.
+        Ma **se hai acconsentito agli annunci, guardiamo le categorie degli eventi che hai
+        salvato** per scegliere quali mostrarti: se metti in agenda dei concerti, vedrai più
+        concerti. È una forma di profilazione — piccola, tutta interna a questo sito, ma è
+        corretto chiamarla col suo nome invece di dire che non profiliamo nessuno.
+
+        Senza il tuo consenso gli annunci restano, uguali per tutti: quello che cambia è solo se
+        teniamo conto di cosa hai salvato. E i salvataggi restano tuoi in ogni caso — non li
+        vendiamo, non li mandiamo a nessuno, non li usiamo per altro.
+
+        I cookie tecnici non richiedono consenso e non si possono disattivare da qui: senza, il
+        sito non fa quello che gli chiedi. Puoi comunque cancellarli dalle impostazioni del tuo
+        browser, ricominciando da capo.
 
         ## Memoria locale del browser
 

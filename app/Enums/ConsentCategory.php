@@ -20,14 +20,22 @@ namespace App\Enums;
  *   cookie e non profila nessuno, ma resta una richiesta verso un altro server
  *   e quindi una scelta che spetta a chi legge.
  *
- * Non esiste una categoria «marketing»: non ci sono pubblicità, pixel, né
- * strumenti di terze parti che ne abbiano bisogno. Il giorno in cui esistesse,
- * sarebbe un caso in più qui e una riga in più nella Cookie Policy.
+ * - **Marketing** — le campagne sponsorizzate: quali sono state mostrate, e a
+ *   chi. Il conteggio di base non profila nessuno e vive in `sponsorships`,
+ *   ma la scelta degli annunci guarda le categorie che una persona ha salvato
+ *   — è personalizzazione, e la personalizzazione si chiede.
+ *
+ * **Marketing è arrivata dopo, ed è la prova che questo elenco va tenuto
+ * onesto.** Qui c'era scritto che non sarebbe mai esistita, «non ci sono
+ * pubblicità, pixel, né strumenti di terze parti». Poi sono arrivate le
+ * sponsorizzazioni. Una categoria in meno di quelle vere non è prudenza: è
+ * un'informativa che descrive un sito diverso da quello che si sta usando.
  */
 enum ConsentCategory: string
 {
     case Necessary = 'necessary';
     case Statistics = 'statistics';
+    case Marketing = 'marketing';
 
     public function label(): string
     {

@@ -40,6 +40,12 @@
              banner, a quel punto, è sparito da un pezzo. Il pannello compare
              solo lì, e non su ogni pagina informativa. --}}
         @if ($page->slug === config('consent.cookie_page'))
+            {{-- L'elenco dei cookie viene dal registro, non dal testo della
+                 pagina: una fonte sola, che si aggiorna dal pannello quando
+                 cambia uno strumento. Sta sopra il pannello delle scelte
+                 perché prima si legge cosa c'è, poi si decide. --}}
+            <x-cookie-table class="mt-8" />
+
             <x-consent-preferences />
         @endif
     </article>

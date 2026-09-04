@@ -15,12 +15,22 @@
 @php
     $consent = app(\App\Support\Consent::class);
     $analytics = app(\App\Services\Analytics\AnalyticsScript::class);
-    $granted = $consent->allows(\App\Enums\ConsentCategory::Statistics);
+    /*
+     * Lo stato riassunto in una riga.
+     *
+     * Con una sola finalità facoltativa bastava «accettate» o «rifiutate». Con
+     * due, il caso più comune diventa il terzo — una sì e una no — e chiamarlo
+     * «rifiutate» sarebbe falso. Si elencano quelle attive, perché è la
+     * risposta alla domanda vera: «cosa ho acconsentito?».
+     */
+    $attive = collect(\App\Enums\ConsentCategory::optional())
+        ->filter(fn (\App\Enums\ConsentCategory $c): bool => $consent->allows($c))
+        ->map(fn (\App\Enums\ConsentCategory $c): string => mb_strtolower($c->label()));
 
     $current = match (true) {
         ! $consent->decided() => __('consent.manage.current_none'),
-        $granted => __('consent.manage.current_granted'),
-        default => __('consent.manage.current_denied'),
+        $attive->isEmpty() => __('consent.manage.current_denied'),
+        default => __('consent.manage.current_partial', ['elenco' => $attive->join(', ', ' e ')]),
     };
 
     $choiceClasses = 'bg-brand px-4 py-2.5 font-display text-[0.688rem] leading-none font-extrabold tracking-[0.14em] text-on-brand uppercase transition hover:bg-brand-strong';
@@ -43,9 +53,50 @@
             : __('consent.analytics.inactive') }}
     </p>
 
-    <div class="mt-4 flex flex-wrap items-center gap-2">
-        <form method="POST" action="{{ route('consent.store') }}" class="contents">
-            @csrf
+    {{--
+        **Una casella per finalità, non un interruttore solo.**
+
+        Fin qui c'erano due pulsanti — accetta tutto, rifiuta tutto — e
+        bastavano finché la finalità facoltativa era una. Con «Annunci» accanto
+        a «Statistiche», accettare tutto per avere le une significherebbe
+        accettare anche le altre: è esattamente il consenso «in blocco» che
+        l'articolo 7 del GDPR non considera libero.
+
+        I due pulsanti restano, perché per chi ha già deciso sono la strada più
+        corta. Ma accanto c'è la scelta per singola finalità, che è quella che
+        rende la decisione davvero granulare.
+
+        Senza JavaScript funziona lo stesso: è un modulo, con caselle vere e un
+        pulsante di invio.
+    --}}
+    <form method="POST" action="{{ route('consent.store') }}" class="mt-5 flex flex-col gap-4">
+        @csrf
+
+        <fieldset class="flex flex-col gap-3">
+            <legend class="sr-only">{{ __('consent.manage.choose') }}</legend>
+
+            @foreach (\App\Enums\ConsentCategory::optional() as $categoria)
+                <label class="flex cursor-pointer items-start gap-3 border-2 border-line p-3.5 transition-colors hover:border-accent">
+                    <input
+                        type="checkbox"
+                        name="categories[]"
+                        value="{{ $categoria->value }}"
+                        @checked($consent->allows($categoria))
+                        class="mt-0.5 size-4 shrink-0 accent-[var(--brand)]"
+                    >
+
+                    <span class="flex flex-col gap-1">
+                        <span class="font-display text-[0.688rem] leading-none font-extrabold tracking-[0.14em] uppercase">{{ $categoria->label() }}</span>
+                        <span class="text-sm text-ink-muted">{{ $categoria->description() }}</span>
+                    </span>
+                </label>
+            @endforeach
+        </fieldset>
+
+        <div class="flex flex-wrap items-center gap-2">
+            <button type="submit" name="action" value="{{ \App\Enums\ConsentAction::Custom->value }}" class="{{ $choiceClasses }}">
+                {{ __('consent.manage.save') }}
+            </button>
 
             <button type="submit" name="action" value="{{ \App\Enums\ConsentAction::AcceptAll->value }}" class="{{ $choiceClasses }}">
                 {{ __('consent.accept') }}
@@ -54,7 +105,10 @@
             <button type="submit" name="action" value="{{ \App\Enums\ConsentAction::RejectAll->value }}" class="{{ $choiceClasses }}">
                 {{ __('consent.reject') }}
             </button>
-        </form>
+        </div>
+    </form>
+
+    <div class="mt-3 flex flex-wrap items-center gap-2">
 
         @if ($consent->decided())
             <form method="POST" action="{{ route('consent.destroy') }}" class="contents">

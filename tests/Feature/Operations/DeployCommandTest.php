@@ -83,8 +83,12 @@ it('rigenera le cache in processi PHP nuovi, non dentro il proprio', function ()
         expect($codice)->not->toContain("Artisan::call('".$comando."'");
     }
 
-    /* E devono comunque esserci: un rilascio che non le rigenera serve a poco. */
-    expect($codice)->toContain("'route:cache' => []")
-        ->and($codice)->toContain("'config:cache' => []")
-        ->and($codice)->toContain("'migrate' => ['--force']");
+    /* E devono comunque esserci: un rilascio che non le rigenera serve a poco.
+
+       La forma è cambiata da mappa a lista di coppie — `db:seed` va eseguito
+       due volte con classi diverse, e le chiavi di un array sono uniche: con
+       la mappa la seconda voce avrebbe sovrascritto la prima in silenzio. */
+    expect($codice)->toContain("['route:cache', []]")
+        ->and($codice)->toContain("['config:cache', []]")
+        ->and($codice)->toContain("['migrate', ['--force']]");
 });
