@@ -10,6 +10,7 @@ use App\Http\Controllers\Web\Account\MagicLinkController;
 use App\Http\Controllers\Web\Account\NotificationSettingsController;
 use App\Http\Controllers\Web\Account\PasswordResetController;
 use App\Http\Controllers\Web\Account\ProfileController;
+use App\Http\Controllers\Web\Account\PushSubscriptionController;
 use App\Http\Controllers\Web\Account\RegisterController;
 use App\Http\Controllers\Web\Account\SavedController;
 use Illuminate\Http\RedirectResponse;
@@ -145,6 +146,25 @@ Route::middleware('auth')->group(function (): void {
             ['user' => $utente->getKey()],
         ));
     })->name('account.notifications');
+
+    /*
+     * L'iscrizione del browser al canale push (§15.6, D54).
+     *
+     * Sta qui, dentro `auth`, e non nel gruppo firmato poco sopra: il
+     * collegamento firmato arriva per email e puo' essere inoltrato, e finora
+     * permetteva soltanto di far smettere le notifiche. Iscrivere un browser
+     * fa il contrario — manda il contenuto delle notifiche future su uno
+     * schermo — e quel gesto vuole una sessione, non un indirizzo che gira.
+     *
+     * Non riusa `POST /v1/me/devices`, che fa la stessa scrittura: quella
+     * rotta e' dietro `auth:sanctum` senza `statefulApi()`, quindi da una
+     * pagina a sessione risponde 401. Vedi `PushSubscriptionController`.
+     */
+    Route::post('/notifiche/push', [PushSubscriptionController::class, 'store'])
+        ->name('account.push.store');
+
+    Route::delete('/notifiche/push', [PushSubscriptionController::class, 'destroy'])
+        ->name('account.push.destroy');
 
     Route::get('/email/verifica', [EmailVerificationController::class, 'notice'])->name('verification.notice');
     Route::post('/email/verifica', [EmailVerificationController::class, 'send'])
