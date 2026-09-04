@@ -58,12 +58,47 @@
     <figcaption class="text-xs text-ink-subtle">{{ __('events.poster.caption') }}</figcaption>
 </figure>
 
+{{--
+    **Il dialogo occupa lo schermo, e il contenuto si centra dentro.**
+
+    Un `<dialog>` si centra da solo grazie al `margin: auto` che il browser gli
+    dà — ma il reset di Tailwind azzera i margini di tutto, e con `inset: 0`
+    quel che resta è un riquadro incollato in alto a sinistra. Era largo 635 px
+    su una finestra da 1440, con 805 px di vuoto a destra.
+
+    Rimettere `margin: auto` funzionerebbe, ma solo finché il dialogo è più
+    piccolo dello schermo: una locandina molto alta tornerebbe a sbordare. Con
+    il dialogo a schermo pieno e un contenitore flex dentro, il centro è il
+    centro in ogni caso — e il clic sul vuoto attorno all'immagine continua a
+    chiudere, perché quel vuoto è ancora il dialogo.
+--}}
 <dialog
     id="{{ $id }}"
-    class="max-h-[100dvh] max-w-[100vw] bg-transparent p-0 backdrop:bg-[rgba(11,11,11,0.92)]"
+    class="fixed inset-0 m-0 h-full max-h-none w-full max-w-none bg-transparent p-0 backdrop:bg-[rgba(11,11,11,0.92)]"
     aria-label="{{ $titolo }}"
 >
-    <div class="flex max-h-[100dvh] flex-col items-center justify-center gap-3 p-4">
+    {{-- **La × in alto a destra.**
+
+         È il primo posto in cui si guarda per uscire da un'immagine aperta a
+         schermo pieno, prima ancora di cercare un pulsante. Sta sopra
+         l'immagine e non sotto perché li' la si trova senza cercarla, e perché
+         una locandina alta spinge un pulsante in fondo fuori dallo schermo.
+
+         Resta anche il tocco sul fondo scuro, e resta Esc: tre modi per la
+         stessa cosa non sono ridondanza quando il gesto e' «uscire» — chi non
+         trova il primo prova il secondo, e nessuno resta chiuso dentro. --}}
+    <button
+        type="button"
+        data-chiude-dialogo
+        aria-label="{{ __('common.actions.close') }}"
+        class="absolute top-3 right-3 z-10 flex size-11 items-center justify-center border-2 border-ink bg-canvas text-ink transition-colors hover:bg-accent hover:text-on-accent"
+    >
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.5" class="size-5" aria-hidden="true">
+            <path d="M4 4l12 12M16 4L4 16" stroke-linecap="square" />
+        </svg>
+    </button>
+
+    <div class="flex h-full w-full flex-col items-center justify-center gap-3 p-4">
         {{-- Senza ritaglio: `object-contain` e non `cover`, perché una
              locandina tagliata è una locandina non letta. --}}
         {{-- Larghezza e altezza dichiarate anche qui, dove sembrano
@@ -78,13 +113,5 @@
             height="{{ $set->height ?? 1131 }}"
             class="max-h-[calc(100dvh-6rem)] w-auto max-w-full object-contain"
         />
-
-        <button
-            type="button"
-            data-chiude-dialogo
-            class="bg-accent px-4 py-2.5 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.14em] text-on-accent uppercase transition-colors hover:bg-brand-strong"
-        >
-            {{ __('common.actions.close') }}
-        </button>
     </div>
 </dialog>
