@@ -147,7 +147,12 @@ Account demo, password comune `DemoTicket-2026!`:
 - `biglietti@example.test`: due nominativi già prenotati per ciascun esempio.
 - `attesa-ticket@example.test`: prenotazione in attesa sul laboratorio pieno.
 
-Non distribuire questi account in produzione. Il seeder non invia email.
+Il proprietario ha autorizzato questi account anche sul pubblico per una
+presentazione. Il comando esplicito `php artisan ticketing:demo --force` crea
+soltanto il locale, gli eventi e gli account demo, senza faker né reset di dati
+esistenti. Il normale deploy non esegue questo comando. Gli indirizzi `.test`
+non ricevono email reali; per verificare la consegna usare un proprio account
+con indirizzo raggiungibile. Il seeder non invia email.
 
 ## Verifica ripetibile
 

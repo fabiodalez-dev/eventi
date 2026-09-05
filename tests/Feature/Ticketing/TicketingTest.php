@@ -32,6 +32,19 @@ it('requires authentication and explicit consent', function (): void {
     $this->actingAs($this->user)->postJson('/api/v1/occurrences/'.$this->date->id.'/bookings', [...$this->payload, 'accept_terms' => false])->assertUnprocessable();
 });
 
+it('creates the standalone demo without faker or changing existing accounts', function (): void {
+    $this->artisan('ticketing:demo --force')->assertSuccessful();
+    $venue = Venue::where('slug', 'spazio-demo-biglietteria')->firstOrFail();
+    $reader = User::where('email', 'biglietti@example.test')->firstOrFail();
+    $originalPassword = $reader->password;
+    expect($venue->events()->count())->toBe(3)
+        ->and(Booking::where('user_id', $reader->id)->count())->toBe(3);
+    $this->artisan('ticketing:demo --force')->assertSuccessful();
+    expect($venue->events()->count())->toBe(3)
+        ->and($reader->fresh()->password)->toBe($originalPassword)
+        ->and(Booking::where('user_id', $reader->id)->count())->toBe(3);
+});
+
 it('collects configured booker data with separate names and records privacy privately', function (): void {
     $this->date->update(['booking_fields' => ['address' => 'required', 'phone' => 'optional', 'city' => 'hidden']]);
     $payload = [...$this->payload, 'attendees' => [['first_name' => 'Anna Maria', 'last_name' => 'De Rossi']], 'booker' => ['first_name' => 'Giulia', 'last_name' => 'Rossi', 'address' => 'Via Test 42', 'city' => 'Must not be stored']];

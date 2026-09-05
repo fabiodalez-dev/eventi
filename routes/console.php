@@ -6,6 +6,7 @@ use App\Models\MobileAuthChallenge;
 use App\Services\Ticketing\TicketingService;
 use App\Support\Backup\SpazioSufficiente;
 use App\Support\OncePerHour;
+use Database\Seeders\TicketingDemoSeeder;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -17,6 +18,18 @@ Artisan::command('ticketing:promote', function (): void {
 })->purpose('Promote waiting bookings when their reservation window is open');
 
 Schedule::command('ticketing:promote')->everyMinute()->withoutOverlapping();
+
+Artisan::command('ticketing:demo {--force : Explicitly permit demonstration accounts on the public site}', function (): int {
+    if (! app()->environment(['local', 'testing']) && ! $this->option('force')) {
+        $this->error('Public demo accounts require explicit --force authorization.');
+
+        return 1;
+    }
+    app(TicketingDemoSeeder::class)->run((bool) $this->option('force'));
+    $this->info('Ticketing demo ready. No existing accounts or real events were reset.');
+
+    return 0;
+})->purpose('Create clearly labelled demonstration tickets without running the general seeder');
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
