@@ -34,7 +34,7 @@ class TicketingIntegrationTest {
         val repo = AppRepository(ApplicationProvider.getApplicationContext())
         repo.login("biglietti@example.test", "DemoTicket-2026!")
         try {
-            val existing = repo.bookings().first { it.title.contains("illimitate") }
+            val existing = repo.bookings().first { it.title == "Padova raccontata: storie tra piazze e portici" }
             assertTrue(repo.bookingAvailability(existing.occurrenceId).open)
             val body = ReserveBody(listOf(it.fabiodalez.incitta.data.AttendeeName("Test", "Android")), UUID.randomUUID().toString(), false, true, mapOf("first_name" to "Test", "last_name" to "Android"))
             val booking = repo.reserve(existing.occurrenceId, body)

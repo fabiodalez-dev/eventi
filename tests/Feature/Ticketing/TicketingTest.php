@@ -34,7 +34,7 @@ it('requires authentication and explicit consent', function (): void {
 
 it('creates the standalone demo without faker or changing existing accounts', function (): void {
     $this->artisan('ticketing:demo --force')->assertSuccessful();
-    $venue = Venue::where('slug', 'spazio-demo-biglietteria')->firstOrFail();
+    $venue = Venue::where('slug', 'spazio-delle-erbe')->firstOrFail();
     $reader = User::where('email', 'biglietti@example.test')->firstOrFail();
     $originalPassword = $reader->password;
     expect($venue->events()->count())->toBe(3)

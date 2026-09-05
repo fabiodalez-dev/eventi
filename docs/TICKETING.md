@@ -138,14 +138,18 @@ Non sono stati aggiunti endpoint CRUD pubblico degli eventi.
 ## Demo locale
 
 `php artisan db:seed --class=TicketingDemoSeeder` è idempotente e opera soltanto
-in ambiente `local`/`testing`. Crea «Spazio Demo Biglietteria» e tre esempi futuri:
-12 posti, nessun limite, 2 posti con lista d'attesa. Nessuno è un evento reale.
+in ambiente `local`/`testing`. Usa il Circolo Arci La Fornace già presente nel
+catalogo padovano, oppure lo «Spazio delle Erbe» dove il catalogo non è caricato.
+I tre esempi verosimili sono «Jazz in acustico: chitarra e contrabbasso» (12 posti),
+«Padova raccontata: storie tra piazze e portici» (senza limite) e «Taccuini urbani:
+atelier di illustrazione» (2 posti con lista d'attesa). La descrizione chiarisce
+che sono contenuti dimostrativi, senza prefissi «Demo» nei titoli.
 
 Account demo, password comune `DemoTicket-2026!`:
 
-- `gestore-ticket@example.test`: proprietario del locale dimostrativo.
-- `biglietti@example.test`: due nominativi già prenotati per ciascun esempio.
-- `attesa-ticket@example.test`: prenotazione in attesa sul laboratorio pieno.
+- `gestore-ticket@example.test`: Marta Berti, proprietaria del locale.
+- `biglietti@example.test`: Giulia Rossi, due nominativi già prenotati per ciascun esempio.
+- `attesa-ticket@example.test`: Luca Moretti, prenotazione in attesa sul laboratorio pieno.
 
 Il proprietario ha autorizzato questi account anche sul pubblico per una
 presentazione. Il comando esplicito `php artisan ticketing:demo --force` crea

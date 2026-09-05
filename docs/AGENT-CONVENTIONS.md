@@ -14,6 +14,8 @@ motore temporale in §8). Le deviazioni approvate sono in `docs/DECISIONS.md`.
   di implementazione, dopo test e backup. Il proprietario ha autorizzato anche
   gli account e gli eventi demo del ticketing per presentare il sito: usare
   `ticketing:demo --force`, mai il seeding generale o il reset del database.
+  I contenuti sono verosimili e ambientati a Padova, in continuità con il
+  catalogo esistente: evitare titoli «Demo» e nomi di locali da banco di prova.
 - Prima di generare un nuovo APK chiedere conferma. Modificare e verificare
   il codice Android non autorizza il packaging o la consegna di un APK.
 
