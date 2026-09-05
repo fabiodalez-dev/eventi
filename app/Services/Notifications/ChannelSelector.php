@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Notifications;
 
+use App\Enums\DevicePlatform;
 use App\Enums\NotificationChannel;
 use App\Models\User;
 use App\Models\WebPushSubscription;
@@ -38,10 +39,14 @@ final class ChannelSelector
             return NotificationChannel::Mail;
         }
 
-        $hasDevice = WebPushSubscription::query()
-            ->where('user_id', $user->getKey())
-            ->usable()
-            ->exists();
+        $hasDevice = ($this->webConfigured() && WebPushSubscription::query()
+            ->where('user_id', $user->getKey())->usable()->exists())
+            || ($this->fcmConfigured() && $user->devices()
+                ->active()
+                ->whereIn('platform', [DevicePlatform::Android->value, DevicePlatform::Ios->value])
+                ->whereNotNull('push_token')
+                ->where('last_seen_at', '>=', now()->subDays(config()->integer('notifications.push.device_active_days')))
+                ->exists());
 
         return $hasDevice ? NotificationChannel::Push : NotificationChannel::Mail;
     }
@@ -60,7 +65,18 @@ final class ChannelSelector
      */
     public function configured(): bool
     {
+        return $this->webConfigured() || $this->fcmConfigured();
+    }
+
+    public function webConfigured(): bool
+    {
         return filled(config('webpush.vapid.public_key'))
             && filled(config('webpush.vapid.private_key'));
+    }
+
+    public function fcmConfigured(): bool
+    {
+        return config()->boolean('api.features.push')
+            && filled(config('firebase.projects.app.credentials'));
     }
 }

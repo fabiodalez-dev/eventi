@@ -552,6 +552,16 @@ Non ancora creata, perché non richiesta in questa fase: `notifications`
 (archivio in-app, canale `database` — arriverà con
 `php artisan notifications:table`).
 
+### 5.1 Estensioni mobile del 2026-09-04
+
+| Oggetto | Modifica |
+|---|---|
+| `devices` | `token_hash` SHA-256 unico e `installation_id` indicizzato; il push token grezzo non viene usato come chiave applicativa |
+| `personal_access_tokens` | `device_id` nullable con FK: collega una sessione revocabile al dispositivo fisico |
+| `event_occurrences` | `deleted_at`: tombstone necessario alla sincronizzazione incrementale mobile |
+| `mobile_auth_challenges` | challenge magic-link hashato, monouso, con `expires_at` e `consumed_at` |
+| Telescope | tabelle di osservabilità installate ma provider disattivato per default e dati sensibili nascosti |
+
 ---
 
 ## 6. Verifiche eseguite

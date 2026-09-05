@@ -49,18 +49,15 @@
     $attribution = __('map.attribution', [
         'osm' => '<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">'.e(__('ui.footer.osm')).'</a>',
         'license' => '<a href="https://opendatacommons.org/licenses/odbl/" target="_blank" rel="noopener noreferrer">'.e(__('ui.footer.odbl')).'</a>',
-        'tiles' => '<a href="https://www.openstreetmap.org/" target="_blank" rel="noopener noreferrer">'.e(__('map.tiles')).'</a>',
+        'tiles' => '<a href="https://openfreemap.org/" target="_blank" rel="noopener noreferrer">'.e(__('map.tiles')).'</a>',
     ]);
 
     $configuration = [
         'static' => $static,
-        'tiles' => config('map.tiles_url'),
-        'subdomains' => config('map.tiles_subdomains'),
+        'style' => config('map.style_url'),
         'maxZoom' => config()->integer('map.max_zoom'),
         'attribution' => $attribution,
-        /* Ordine `[lng, lat]`, come nel resto del sistema: MariaDB conserva i
-           punti così e cambiarlo qui creerebbe due convenzioni. Leaflet vuole
-           l'ordine inverso, e lo ribalta lo script in un punto solo. */
+        /* Ordine `[lng, lat]`, come GeoJSON e come il database. */
         'center' => $center ?? [(float) $city->center_lng, (float) $city->center_lat],
         'zoom' => $zoom ?? (int) $city->default_zoom,
         /* I confini della città inquadrano tutta la città: su un riquadro
@@ -91,10 +88,8 @@
 
 <div {{ $attributes->class(['flex flex-col']) }}>
     <div class="relative flex-auto overflow-hidden" data-map-shell>
-        {{-- La configurazione sta ACCANTO al riquadro e dentro al guscio: non
-             dentro il riquadro, perché Leaflet lo svuota quando ne prende
-             possesso; e dentro al guscio, perché una pagina può avere più di
-             una mappa e ognuna deve trovare la propria. --}}
+        {{-- La configurazione resta accanto al riquadro: una pagina può avere
+             più mappe e ognuna deve trovare la propria. --}}
         <script type="application/json" data-map-config>@json($configuration, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT)</script>
 
         <div
@@ -109,16 +104,14 @@
             </p>
         </div>
 
+        <ul class="sr-only" data-map-marker-list aria-label="{{ __('map.label') }}"></ul>
+
         {{-- "Cerca in quest'area": compare solo dopo che la mappa è stata
              spostata davvero, e solo se il JavaScript è vivo. --}}
         <button
             type="button"
             data-map-search
             hidden
-            {{-- `z-[1000]`: Leaflet dispone i propri pannelli fra 200 e 700 e i
-                 propri controlli a 1000. Qualunque cosa si sovrapponga alla
-                 mappa deve stare sopra quella scala — con uno `z-10` finiva
-                 sotto le tessere, e sembrava che il pulsante non comparisse. --}}
             class="absolute inset-x-0 top-3 z-[1000] mx-auto w-max bg-accent px-4 py-2.5 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.14em] text-on-accent uppercase"
         >
             {{ __('map.search_here') }}
@@ -160,6 +153,11 @@
 
             <div data-map-sheet-body></div>
         </div>
+    </div>
+
+    <div class="flex flex-wrap items-center justify-between gap-2 border-t-2 border-line px-4 py-2 text-[0.625rem] text-ink-subtle">
+        <p>{{ $static ? __('map.pin_hint') : __('map.cluster_hint') }}</p>
+        <p>{!! $attribution !!}</p>
     </div>
 
     @if ($showLegend)

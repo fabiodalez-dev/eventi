@@ -428,6 +428,36 @@ final class EventOccurrenceQuery
         return $this;
     }
 
+    public function contentUpdatedSince(CarbonImmutable|DateTimeInterface|string $since): self
+    {
+        $instant = ($since instanceof DateTimeInterface
+            ? CarbonImmutable::instance($since)
+            : CarbonImmutable::parse($since, $this->city->timezone))
+            ->utc()
+            ->format('Y-m-d H:i:s');
+
+        $this->query->where(function (Builder $changed) use ($instant): void {
+            $changed->where('event_occurrences.updated_at', '>=', $instant)
+                ->orWhere('events.updated_at', '>=', $instant)
+                ->orWhere('venues.updated_at', '>=', $instant)
+                ->orWhere('categories.updated_at', '>=', $instant)
+                ->orWhereExists(function (QueryBuilder $media) use ($instant): void {
+                    $media->from('media')
+                        ->whereColumn('media.model_id', 'events.id')
+                        ->where('media.model_type', Event::class)
+                        ->where('media.updated_at', '>=', $instant);
+                })
+                ->orWhereExists(function (QueryBuilder $tags) use ($instant): void {
+                    $tags->from('event_tag')
+                        ->join('tags', 'tags.id', '=', 'event_tag.tag_id')
+                        ->whereColumn('event_tag.event_id', 'events.id')
+                        ->where('tags.updated_at', '>=', $instant);
+                });
+        });
+
+        return $this;
+    }
+
     /**
      * Fascia oraria locale dell'inizio: giorno, sera o notte.
      */

@@ -37,6 +37,7 @@ class DatabaseSeeder extends Seeder
             // in fondo perché il piè di pagina le mostri appena il resto esiste.
             PageSeeder::class,
             CookieDeclarationSeeder::class,
+            TicketingDemoSeeder::class,
         ]);
     }
 }

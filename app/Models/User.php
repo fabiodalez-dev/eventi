@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\DTOs\NotificationPreferences;
+use App\Enums\DevicePlatform;
 use App\Enums\FollowableType;
 use App\Enums\UserRole;
 use App\Enums\VenueRole;
@@ -333,6 +334,23 @@ class User extends Authenticatable implements FilamentUser, HasTenants, MustVeri
             ->where('user_id', $this->getKey())
             ->usable()
             ->get();
+    }
+
+    /** @return list<string> */
+    public function routeNotificationForFcm(): array
+    {
+        /** @var list<string> $tokens */
+        $tokens = $this->devices()
+            ->active()
+            ->whereIn('platform', [DevicePlatform::Android->value, DevicePlatform::Ios->value])
+            ->whereNotNull('push_token')
+            ->where('last_seen_at', '>=', now()->subDays(config()->integer('notifications.push.device_active_days')))
+            ->pluck('push_token')
+            ->filter(static fn (mixed $token): bool => is_string($token) && $token !== '')
+            ->values()
+            ->all();
+
+        return $tokens;
     }
 
     /**

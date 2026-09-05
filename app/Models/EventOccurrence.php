@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * Nessuno scope temporale vive qui: ogni finestra ("oggi", "stasera",
@@ -22,6 +23,8 @@ class EventOccurrence extends Model
 {
     /** @use HasFactory<EventOccurrenceFactory> */
     use HasFactory;
+
+    use SoftDeletes;
 
     protected $table = 'event_occurrences';
 
@@ -40,6 +43,15 @@ class EventOccurrence extends Model
         'price_override',
         'capacity',
         'capacity_left',
+        'booking_enabled',
+        'booking_capacity',
+        'booking_limit',
+        'booking_waitlist',
+        'booking_opens_at',
+        'booking_closes_at',
+        'cancellation_closes_at',
+        'booking_instructions',
+        'booking_fields',
         'highlight',
         'is_exception',
     ];
@@ -139,6 +151,14 @@ class EventOccurrence extends Model
             'price_override' => 'array',
             'capacity' => 'integer',
             'capacity_left' => 'integer',
+            'booking_enabled' => 'boolean',
+            'booking_fields' => 'array',
+            'booking_capacity' => 'integer',
+            'booking_limit' => 'integer',
+            'booking_waitlist' => 'boolean',
+            'booking_opens_at' => 'datetime',
+            'booking_closes_at' => 'datetime',
+            'cancellation_closes_at' => 'datetime',
             'is_exception' => 'boolean',
         ];
     }

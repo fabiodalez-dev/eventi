@@ -10,6 +10,7 @@ use App\Enums\OccurrenceScope;
 use App\Enums\OccurrenceStatus;
 use App\Filament\Support\EventStatusPresentation;
 use App\Filament\Venue\Support\CurrentVenue;
+use App\Models\Booking;
 use App\Models\Event;
 use App\Models\EventOccurrence;
 use Filament\Actions\Action;
@@ -149,6 +150,10 @@ class OccurrencesRelationManager extends RelationManager
                     ->authorize(fn (): bool => $this->canAddDate()),
             ])
             ->recordActions([
+                Action::make('ticketing')
+                    ->label(__('ticketing.manage'))
+                    ->visible(fn (EventOccurrence $record): bool => auth()->user()?->can('manage', [Booking::class, $record]) ?? false)
+                    ->url(fn (EventOccurrence $record): string => route('ticketing.manage.show', $record)),
                 EditAction::make()
                     ->label(__('manage.actions.edit')),
 

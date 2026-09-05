@@ -8,12 +8,10 @@
     prezzo, a volte l'unica informazione che da nessun'altra parte esiste. Chi
     la vuole leggere deve poterla vedere per intero.
 
-    **A colori, qui e nel dialogo.** Il resto del sito passa le fotografie in
-    bianco e nero, e in cima a questa pagina la locandina fa lo stesso: lì è
-    una texture sotto il titolo. Ma qui è la locandina, non una fotografia di
-    corredo — qualcuno l'ha disegnata scegliendo quei colori, e sono parte di
-    ciò che dice. Toglierli sarebbe applicare una regola oltre il punto in cui
-    serve.
+    **Dal bianco e nero al colore.** La locandina entra nello stesso linguaggio
+    fotografico delle anteprime e, appena è pronta, recupera gradualmente i
+    colori originali. Il movimento è breve e viene disattivato quando il
+    sistema chiede animazioni ridotte.
 
     **Un `<dialog>` e non un riquadro fatto a mano.** Porta con sé il fondo
     oscurato, la chiusura con Esc, il fuoco intrappolato dentro e il ritorno
@@ -41,7 +39,8 @@
             height="1131"
             sizes="(min-width: 1024px) 22rem, 100vw"
             :color="true"
-            class="w-full"
+            data-poster-reveal
+            class="poster-reveal w-full"
         />
 
         {{-- L'invito compare al passaggio, ma su un telefono il passaggio non

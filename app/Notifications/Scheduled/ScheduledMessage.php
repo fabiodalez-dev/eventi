@@ -7,11 +7,15 @@ namespace App\Notifications\Scheduled;
 use App\DTOs\NotificationMessage;
 use App\Enums\NotificationChannel;
 use App\Models\User;
+use App\Services\Notifications\ChannelSelector;
 use App\Support\Notifications\PreferenceLinks;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use NotificationChannels\Fcm\FcmChannel;
+use NotificationChannels\Fcm\FcmMessage;
+use NotificationChannels\Fcm\Resources\Notification as FcmNotification;
 use NotificationChannels\WebPush\WebPushChannel;
 use NotificationChannels\WebPush\WebPushMessage;
 use Symfony\Component\Mime\Email;
@@ -76,11 +80,22 @@ final class ScheduledMessage extends Notification implements ShouldQueue
          * stringa: il pacchetto non registra alcun driver `webpush` nel
          * gestore dei canali, e `via()` con una stringa sconosciuta solleva.
          */
-        $delivery = $this->channel === NotificationChannel::Push
-            ? WebPushChannel::class
-            : 'mail';
+        if ($this->channel !== NotificationChannel::Push) {
+            return ['mail', 'database'];
+        }
 
-        return [$delivery, 'database'];
+        $delivery = [];
+        $selector = app(ChannelSelector::class);
+
+        if ($selector->webConfigured()) {
+            $delivery[] = WebPushChannel::class;
+        }
+
+        if ($selector->fcmConfigured()) {
+            $delivery[] = FcmChannel::class;
+        }
+
+        return [...$delivery, 'database'];
     }
 
     /**
@@ -159,6 +174,29 @@ final class ScheduledMessage extends Notification implements ShouldQueue
             ->data([
                 'type' => $this->message->type->value,
                 'url' => $this->message->url,
+            ]);
+    }
+
+    public function toFcm(object $notifiable): FcmMessage
+    {
+        return FcmMessage::create()
+            ->notification(new FcmNotification(
+                title: $this->message->heading,
+                body: implode(' ', $this->message->lines),
+            ))
+            ->data([
+                'type' => $this->message->type->value,
+                'url' => $this->message->url,
+                'occurrence_id' => $this->message->occurrenceId === null ? '' : (string) $this->message->occurrenceId,
+                'event_id' => $this->message->eventId === null ? '' : (string) $this->message->eventId,
+            ])
+            ->android([
+                'notification' => [
+                    'color' => '#ccff00',
+                    'sound' => 'default',
+                    'channel_id' => 'eventi',
+                ],
+                'priority' => 'high',
             ]);
     }
 

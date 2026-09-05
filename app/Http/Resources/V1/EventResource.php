@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Resources\V1;
 
+use App\Enums\FollowableType;
 use App\Models\Event;
 use App\Models\EventOccurrence;
 use App\Models\Tag;
@@ -37,7 +38,7 @@ final class EventResource
      *
      * @return array{advertiser: string}|null
      */
-    private static function sponsored(Event $event): ?array
+    public static function sponsored(Event $event): ?array
     {
         if (! $event->relationLoaded('sponsorships')) {
             return null;
@@ -117,12 +118,25 @@ final class EventResource
             // ce ne sono — per la stessa ragione di `external_links`.
             'facts' => $event->facts->toArray(),
             'verification_status' => $event->verification_status->value,
-            'url' => Route::has('events.show') ? route('events.show', $event) : null,
+            'url' => self::webUrl($event, $context),
+            'deep_link' => self::webUrl($event, $context),
+            'following' => [
+                'venue' => $context->isFollowing(FollowableType::Venue, $venue === null ? null : (int) $venue->getKey()),
+                'category' => $context->isFollowing(FollowableType::Category, $event->category === null ? null : (int) $event->category->getKey()),
+                'event' => $context->isFollowing(FollowableType::Event, (int) $event->getKey()),
+            ],
             'occurrences' => $occurrences
                 ->map(static fn (EventOccurrence $occurrence): array => OccurrenceResource::toArray($occurrence, $context))
                 ->all(),
             'published_at' => ApiDate::instant($event->published_at, $timezone),
             'updated_at' => ApiDate::attribute($event, 'updated_at', $timezone),
         ];
+    }
+
+    public static function webUrl(Event $event, ApiContext $context): ?string
+    {
+        return Route::has('city.events.show')
+            ? route('city.events.show', ['city' => $context->city->slug, 'slug' => $event->slug])
+            : null;
     }
 }

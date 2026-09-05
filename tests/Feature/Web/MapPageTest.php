@@ -44,7 +44,7 @@ it('risponde e dichiara l\'attribuzione a OpenStreetMap, che è un obbligo di li
 });
 
 it('non chiede alcuna chiave di accesso per le tessere', function (): void {
-    $tessere = config()->string('map.tiles_url');
+    $tessere = config()->string('map.style_url');
 
     expect($tessere)
         ->not->toContain('key=')
@@ -56,17 +56,10 @@ it('non chiede alcuna chiave di accesso per le tessere', function (): void {
 /*
  * Le due trappole in cui questa configurazione e' gia' caduta, una per test.
  */
-it('punta a un modello di tessere e non a uno stile vettoriale', function (): void {
-    /*
-     * `MAP_TILES_URL` ha contenuto per un periodo l'indirizzo di uno stile
-     * MapLibre (`.../styles/liberty`). Leaflet lo chiedeva come immagine,
-     * riceveva un JSON, e la mappa restava vuota: nessuna tessera, nessun
-     * errore in console, nessun indizio. I tre segnaposto sono cio' che
-     * distingue un modello di tessere da qualunque altro indirizzo.
-     */
-    $tessere = config()->string('map.tiles_url');
+it('punta a uno stile vettoriale scuro', function (): void {
+    $tessere = config()->string('map.style_url');
 
-    expect($tessere)->toContain('{z}')->toContain('{x}')->toContain('{y}');
+    expect($tessere)->toContain('openfreemap.org')->toContain('/styles/dark');
 });
 
 it('attribuisce le tessere a chi le serve davvero', function (): void {
@@ -90,7 +83,7 @@ it('attribuisce le tessere a chi le serve davvero', function (): void {
         'openfreemap.org' => 'OpenFreeMap',
     ];
 
-    $dominio = parse_url(config()->string('map.tiles_url'), PHP_URL_HOST) ?? '';
+    $dominio = parse_url(config()->string('map.style_url'), PHP_URL_HOST) ?? '';
 
     $atteso = collect($fornitori)
         ->first(fn (string $nome, string $host): bool => str_ends_with($dominio, $host));
@@ -104,12 +97,33 @@ it('resta leggibile senza JavaScript: sotto al riquadro c\'è l\'elenco', functi
     $category = testCategory();
 
     freezeLocal($city, '2026-09-05 12:00:00');
-    occurrenceAtLocal($city, $category, '2026-09-06 21:00:00', event: ['title' => 'Concerto in elenco']);
+    occurrenceAtLocal($city, $category, '2026-09-05 21:00:00', event: ['title' => 'Concerto in elenco']);
 
     $this->get('/mappa')
         ->assertOk()
         ->assertSee('Concerto in elenco')
         ->assertSee(__('map.fallback_title'));
+});
+
+it('apre su oggi e permette di passare esplicitamente a tutte le date', function (): void {
+    $city = testCity();
+    $category = testCategory();
+
+    freezeLocal($city, '2026-09-05 12:00:00');
+    occurrenceAtLocal($city, $category, '2026-09-05 21:00:00', event: ['title' => 'Evento di oggi']);
+    occurrenceAtLocal($city, $category, '2026-09-06 21:00:00', event: ['title' => 'Evento di domani']);
+
+    $this->get('/mappa')
+        ->assertOk()
+        ->assertSee('Evento di oggi')
+        ->assertDontSee('Evento di domani')
+        ->assertSee('/mappa?all_dates=1', escape: false)
+        ->assertDontSee('/eventi?date=tomorrow', escape: false);
+
+    $this->get('/mappa?all_dates=1')
+        ->assertOk()
+        ->assertSee('Evento di oggi')
+        ->assertSee('Evento di domani');
 });
 
 it('spedisce un carico minimo: identificativi e coordinate, non gli eventi interi', function (): void {

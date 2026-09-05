@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Support\Api;
 
 use App\Enums\ApiInclude;
+use App\Enums\FollowableType;
 use App\Models\City;
 use App\Models\SavedEvent;
 use App\Models\User;
@@ -27,9 +28,12 @@ final readonly class ApiContext
      * @param  array<int, true>|null  $savedOccurrenceIds
      */
     private function __construct(
+        public City $city,
         public string $timezone,
         public array $includes = [],
         public ?array $savedOccurrenceIds = null,
+        /** @var array<string, array<int, true>>|null */
+        public ?array $followedIds = null,
     ) {}
 
     /**
@@ -39,7 +43,7 @@ final readonly class ApiContext
      */
     public static function for(City $city, array $includes = []): self
     {
-        return new self($city->timezone, $includes);
+        return new self($city, $city->timezone, $includes);
     }
 
     /**
@@ -53,7 +57,7 @@ final readonly class ApiContext
     public static function forOccurrences(City $city, array $includes, ?User $user, array $occurrenceIds): self
     {
         if ($user === null) {
-            return new self($city->timezone, $includes);
+            return new self($city, $city->timezone, $includes);
         }
 
         $saved = [];
@@ -72,7 +76,17 @@ final readonly class ApiContext
             }
         }
 
-        return new self($city->timezone, $includes, $saved);
+        $followed = [];
+
+        foreach (FollowableType::cases() as $type) {
+            $followed[$type->value] = [];
+
+            foreach ($user->followedIds($type) as $id) {
+                $followed[$type->value][$id] = true;
+            }
+        }
+
+        return new self($city, $city->timezone, $includes, $saved, $followed);
     }
 
     public function wants(ApiInclude $include): bool
@@ -91,5 +105,14 @@ final readonly class ApiContext
         }
 
         return isset($this->savedOccurrenceIds[$occurrenceId]);
+    }
+
+    public function isFollowing(FollowableType $type, ?int $id): ?bool
+    {
+        if ($this->followedIds === null || $id === null) {
+            return null;
+        }
+
+        return isset($this->followedIds[$type->value][$id]);
     }
 }

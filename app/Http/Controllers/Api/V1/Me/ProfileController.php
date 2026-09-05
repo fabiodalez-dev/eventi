@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api\V1\Me;
 use App\Actions\Account\DeleteAccount;
 use App\Http\Controllers\Api\V1\Concerns\InteractsWithMe;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\Me\DeleteProfileRequest;
 use App\Http\Requests\Api\V1\Me\UpdateProfileRequest;
 use App\Http\Resources\V1\UserResource;
 use App\Support\Api\ApiResponse;
@@ -62,7 +63,7 @@ final class ProfileController extends Controller
      * successiva della stessa app sarà un 401, che è la conferma più onesta
      * che si possa dare.
      */
-    public function destroy(Request $request, DeleteAccount $delete): JsonResponse
+    public function destroy(DeleteProfileRequest $request, DeleteAccount $delete): JsonResponse
     {
         $delete($this->user($request));
 

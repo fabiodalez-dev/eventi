@@ -22,7 +22,7 @@
 
         {{-- **Senza questo la mappa non si accende.**
 
-             Il riquadro Leaflet è nel markup — `x-venue-map` lo disegna — ma
+             Il riquadro MapLibre è nel markup — `x-venue-map` lo disegna — ma
              chi lo anima è `map.js`, e qui non c'era: restava un rettangolo
              vuoto con la sua frase, senza un errore in console e senza niente
              che dicesse cosa mancava. È il modo peggiore di rompersi, perché

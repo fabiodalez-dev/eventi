@@ -2,12 +2,21 @@
 
 declare(strict_types=1);
 
+use App\Models\MobileAuthChallenge;
+use App\Services\Ticketing\TicketingService;
 use App\Support\Backup\SpazioSufficiente;
 use App\Support\OncePerHour;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
+use Laravel\Telescope\Telescope;
 use Spatie\ScheduleMonitor\Models\MonitoredScheduledTaskLogItem;
+
+Artisan::command('ticketing:promote', function (): void {
+    app(TicketingService::class)->promoteWaitingLists();
+})->purpose('Promote waiting bookings when their reservation window is open');
+
+Schedule::command('ticketing:promote')->everyMinute()->withoutOverlapping();
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -187,6 +196,14 @@ Schedule::command('schedule-monitor:sync')
 Schedule::command('model:prune', [
     '--model' => MonitoredScheduledTaskLogItem::class,
 ])->daily();
+
+Schedule::command('model:prune', [
+    '--model' => MobileAuthChallenge::class,
+])->daily()->doNotMonitor();
+
+if (class_exists(Telescope::class)) {
+    Schedule::command('telescope:prune --hours=48')->daily()->doNotMonitor();
+}
 
 /*
  * **Il rilascio si controlla da se'.**

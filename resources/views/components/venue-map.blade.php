@@ -8,7 +8,7 @@
     una scheda nera. Il foglio di stile della pagina non può raggiungerla,
     perché un `iframe` è un documento a sé.
 
-    Ora è lo stesso riquadro Leaflet di tutte le altre mappe del sito, in
+    Ora è lo stesso riquadro MapLibre di tutte le altre mappe del sito, in
     versione **ferma**: un punto, nessun trascinamento, nessuna rotella. Chi
     vuole muoversi ha i tre collegamenti qui sotto, che aprono l'applicazione
     di mappe che usa davvero.
@@ -31,7 +31,7 @@
     $payload = [
         'markers' => $venue->lat === null || $venue->lng === null
             ? []
-            : [[$venue->getKey(), (float) $venue->lng, (float) $venue->lat, null, 1]],
+            : [[$venue->getKey(), (float) $venue->lng, (float) $venue->lat, null, 1, $venue->name]],
         'categories' => [],
         'truncated' => false,
     ];

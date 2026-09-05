@@ -42,6 +42,7 @@ Route::group([], base_path('routes/public.php'));
  * "accedi".
  */
 Route::group([], base_path('routes/account.php'));
+Route::group([], base_path('routes/ticketing.php'));
 
 /*
  * Lo stato del sistema (§16: monitoring su endpoint **protetto** per l'uptime

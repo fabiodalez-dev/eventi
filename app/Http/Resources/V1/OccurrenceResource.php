@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Resources\V1;
 
 use App\Enums\ApiInclude;
+use App\Enums\FollowableType;
 use App\Models\EventOccurrence;
 use App\Models\Lineup;
 use App\Models\Tag;
@@ -12,8 +13,9 @@ use App\Models\TicketTier;
 use App\Queries\EventOccurrenceQuery;
 use App\Support\Api\ApiContext;
 use App\Support\Api\ApiDate;
+use App\Support\MapLinks;
 use App\Support\TicketTiers;
-use Illuminate\Support\Facades\Route;
+use DateTimeInterface;
 
 /**
  * L'unità di risposta dell'API: **un'occorrenza, non un evento** (§13.2).
@@ -67,6 +69,7 @@ final class OccurrenceResource
                locale": è là che il client la trova, non qui duplicata. */
             'capacity' => $occurrence->capacity,
             'capacity_left' => $occurrence->capacity_left,
+            'booking_enabled' => (bool) ($occurrence->booking_enabled && $venue?->ticketing_enabled),
             'title' => (string) $event->title,
             'subtitle' => $event->subtitle,
             'short_description' => $event->short_description,
@@ -81,7 +84,11 @@ final class OccurrenceResource
             'tags' => self::tags($occurrence, $context),
             'price' => PriceResource::toArray($event, $occurrence),
             'is_outdoor' => (bool) $event->is_outdoor,
-            'url' => Route::has('events.show') ? route('events.show', $event) : null,
+            'sponsored' => EventResource::sponsored($event),
+            'url' => EventResource::webUrl($event, $context),
+            'deep_link' => EventResource::webUrl($event, $context),
+            'actions' => self::actions($occurrence, $context),
+            'content_updated_at' => self::contentUpdatedAt($occurrence, $timezone),
             'updated_at' => ApiDate::attribute($occurrence, 'updated_at', $timezone),
         ];
 
@@ -114,9 +121,49 @@ final class OccurrenceResource
 
         if ($saved !== null) {
             $payload['is_saved'] = $saved;
+            $payload['following'] = [
+                'venue' => $context->isFollowing(FollowableType::Venue, $venue === null ? null : (int) $venue->getKey()),
+                'category' => $context->isFollowing(FollowableType::Category, $event->category === null ? null : (int) $event->category->getKey()),
+                'event' => $context->isFollowing(FollowableType::Event, (int) $event->getKey()),
+            ];
         }
 
         return $payload;
+    }
+
+    /** @return array<string, string|null> */
+    private static function actions(EventOccurrence $occurrence, ApiContext $context): array
+    {
+        $event = $occurrence->event;
+        $city = $context->city;
+        $parameters = ['city' => $city->slug, 'slug' => $event->slug, 'occurrence' => $occurrence->getKey()];
+
+        $venue = $event->venue;
+
+        return [
+            'web' => EventResource::webUrl($event, $context),
+            'calendar' => route('city.events.calendar', $parameters),
+            'poster_pdf' => route('city.events.poster', $parameters),
+            'google_maps' => $venue === null ? null : MapLinks::google($venue),
+            'apple_maps' => $venue === null ? null : MapLinks::apple($venue),
+            'openstreetmap' => $venue === null ? null : MapLinks::openStreetMap($venue),
+        ];
+    }
+
+    private static function contentUpdatedAt(EventOccurrence $occurrence, string $timezone): ?string
+    {
+        $latest = null;
+
+        foreach ([$occurrence, $occurrence->event, $occurrence->event->venue, $occurrence->event->category] as $model) {
+            $date = $model?->getAttribute('updated_at');
+
+            if ($date instanceof DateTimeInterface
+                && ($latest === null || $date->getTimestamp() > $latest->getTimestamp())) {
+                $latest = $date;
+            }
+        }
+
+        return ApiDate::instant($latest, $timezone);
     }
 
     /**

@@ -2960,3 +2960,58 @@ nuovo un cancello, il posto giusto è quel dato, non questo.
 **Il livello è protetto da un test.** `LighthouseBudgetTest` verifica `warn` e
 non solo il numero: rimetterla a `error` è una decisione, e deve passare da lì
 invece di scivolare dentro con una riga.
+
+## D56 — Il client Android è nativo e l'identità resta del server
+
+**2026-09-04.** L'app Android usa Kotlin e Jetpack Compose. La reference
+allegata chiedeva una trasposizione visiva precisa e l'obiettivo immediato era
+una APK Android: una WebView avrebbe ereditato sessioni e limiti del browser,
+mentre una codebase multipiattaforma avrebbe aggiunto un secondo runtime senza
+produrre alcun vantaggio su iOS in questa consegna.
+
+Il client conserva il bearer in Android Keystore, ma non conserva mai un
+`user_id` autorevole. Wishlist, follow, notifiche, device e sessioni sono
+sempre risolti dal bearer Sanctum lato Laravel. I salvataggi anonimi sono un
+set per installazione e vengono rimossi solo dopo il merge riuscito. Questo
+impedisce sia la perdita offline sia la contaminazione fra due account sullo
+stesso telefono.
+
+Per lo stesso motivo non è stato introdotto Spatie Laravel Data: FormRequest,
+Resources e Scramble sono già l'unica catena del contratto. Un secondo DTO
+server-side non renderebbe Kotlin più tipizzato; renderebbe soltanto possibile
+che due descrizioni della stessa risposta divergano.
+
+## D57 — La mappa pubblica torna vettoriale; Leaflet resta nel pannello
+
+**2026-09-05.** Questa decisione supera D46 e la parte raster di D49. Le tessere
+Esri Dark Gray terminavano prima dello zoom dichiarato e mostravano “Map data
+not yet available”; inoltre il solo livello base non conteneva le etichette
+delle vie. La mappa pubblica usa quindi MapLibre GL e lo stile scuro vettoriale
+di OpenFreeMap, caricato a richiesta. Leaflet resta nel selettore coordinate
+del pannello, dove una mappa raster chiara è sufficiente e già isolata.
+
+Un punto rappresenta un locale. Di conseguenza il numero di un cluster conta
+i **locali**, non somma le date ospitate: toccato un punto, il foglio Blade del
+locale elenca le date filtrate e porta alla relativa scheda. L'attribuzione
+rimane visibile come testo sotto la mappa, senza il controllo compatto con
+l'icona informativa. La prima apertura di `/mappa` applica “Oggi”; l'utente può
+scegliere esplicitamente “Tutte le date” e mantenere tale finestra aggiungendo
+gli altri filtri.
+
+## D58 — Biglietteria integrata per data, non una seconda piattaforma
+
+**2026-09-05.** Il modulo di prenotazioni gratuite usa gli eventi, i locali e
+gli utenti esistenti. Sanctum protegge Android; Spatie conserva i ruoli;
+Simple QrCode e DomPDF producono biglietti, ZXing legge/genera i QR. Attendize
+non viene installato come un inesistente pacchetto `laravel-ticketing`.
+
+L'inventario è facoltativo per singola data: `null` non significa zero e non
+eredita la capienza del locale. Un lock sulla data serializza emissioni,
+annullamenti e ingressi; una chiave idempotente protegge i retry. La lista
+d'attesa promuove gruppi interi in ordine FIFO. Ogni biglietto ha un token
+opaco, senza nominativo nel codice, valido per un solo ingresso online.
+
+Su richiesta viene rimosso il vincolo generale «API di sola lettura»: le
+scritture sono ammesse con autenticazione e policy, salvo i flussi pubblici
+esplicitamente previsti. Agenda e prenotazioni restano due concetti distinti.
+Dettagli, esclusioni e rilascio in [TICKETING.md](TICKETING.md).

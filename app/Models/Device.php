@@ -20,7 +20,9 @@ class Device extends Model
     protected $fillable = [
         'user_id',
         'platform',
+        'installation_id',
         'push_token',
+        'token_hash',
         'endpoint',
         'keys',
         'app_version',

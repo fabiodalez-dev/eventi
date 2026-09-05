@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Listeners\RevokeInvalidFcmToken;
+use App\Models\AdmissionTicket;
+use App\Models\Booking;
 use App\Models\Category;
 use App\Models\City;
 use App\Models\Event;
@@ -26,6 +29,7 @@ use App\Observers\CityObserver;
 use App\Observers\EventObserver;
 use App\Observers\EventOccurrenceObserver;
 use App\Observers\TagObserver;
+use App\Observers\TicketingObserver;
 use App\Observers\TicketTierObserver;
 use App\Observers\VenueObserver;
 use App\Policies\CategoryPolicy;
@@ -55,6 +59,7 @@ use App\Services\Installer\DatabaseInspector;
 use App\Services\Installer\EnvWriter;
 use App\Services\Installer\InstallLock;
 use App\Services\Installer\RequirementsChecker;
+use App\Support\Api\MobileOpenApiDocument;
 use App\Support\Consent;
 use App\Support\CurrentCity;
 use App\Support\CurrentFollows;
@@ -67,15 +72,26 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
+use Illuminate\Notifications\Events\NotificationFailed;
+use Illuminate\Support\Facades\Event as EventFacade;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Translation\FileLoader;
+use Laravel\Telescope\TelescopeApplicationServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        /* Telescope e' una dipendenza di sviluppo: in produzione, dove
+           Composer installa con --no-dev, questa condizione evita qualunque
+           riferimento a classi non presenti. */
+        if (class_exists(TelescopeApplicationServiceProvider::class)
+            && filter_var(config('telescope.enabled', false), FILTER_VALIDATE_BOOL)) {
+            $this->app->register(TelescopeServiceProvider::class);
+        }
+
         // Le query geospaziali passano tutte da qui: cambiare motore di
         // database costa questa riga più una implementazione dell'interfaccia.
         $this->app->bind(GeoQueryInterface::class, MariaDbGeoQuery::class);
@@ -155,6 +171,8 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        EventFacade::listen(NotificationFailed::class, RevokeInvalidFcmToken::class);
+
         /*
          * Limite di frequenza dei moduli pubblici (§14.7): cinque invii l'ora
          * per indirizzo IP. È la seconda barriera dopo il campo esca — la
@@ -189,8 +207,14 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('api', static function (Request $request): Limit {
             $user = $request->user('sanctum');
 
+            $installation = $request->header('X-Installation-ID');
+            $anonymousKey = is_string($installation)
+                && preg_match('/^[A-Za-z0-9._:-]{16,64}$/', $installation) === 1
+                    ? 'installazione:'.$installation
+                    : 'ip:'.($request->ip() ?? 'sconosciuto');
+
             return $user === null
-                ? Limit::perMinute(config()->integer('api.rate_limit.anonymous'))->by($request->ip() ?? 'sconosciuto')
+                ? Limit::perMinute(config()->integer('api.rate_limit.anonymous'))->by($anonymousKey)
                 : Limit::perMinute(config()->integer('api.rate_limit.authenticated'))->by('utente:'.$user->getAuthIdentifier());
         });
 
@@ -226,6 +250,8 @@ class AppServiceProvider extends ServiceProvider
         // `scheduled_notifications.notifiable_type`) contengono alias brevi e non
         // nomi di classe: i dati non devono dipendere dal namespace PHP.
         Relation::enforceMorphMap([
+            'booking' => Booking::class,
+            'admission_ticket' => AdmissionTicket::class,
             'city' => City::class,
             'venue' => Venue::class,
             'category' => Category::class,
@@ -240,6 +266,8 @@ class AppServiceProvider extends ServiceProvider
         // occorrenze già salvate.
         EventOccurrence::observe(EventOccurrenceObserver::class);
         Event::observe(EventObserver::class);
+        Event::observe(TicketingObserver::class);
+        EventOccurrence::observe(TicketingObserver::class);
 
         // Quando un evento ha delle fasce di prezzo, sono loro a dettare
         // `price_min`/`price_max`: il filtro «fino a 10 €» è una WHERE su
@@ -271,6 +299,7 @@ class AppServiceProvider extends ServiceProvider
         Scramble::configure()->withDocumentTransformers(static function (OpenApi $document): void {
             $document->info->title = __('api.docs.title');
             $document->info->description = __('api.docs.description');
+            (new MobileOpenApiDocument)($document);
         });
 
         /*

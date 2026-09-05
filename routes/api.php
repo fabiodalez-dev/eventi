@@ -5,12 +5,14 @@ declare(strict_types=1);
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Auth\EmailVerificationController;
 use App\Http\Controllers\Api\V1\Auth\MagicLinkController;
+use App\Http\Controllers\Api\V1\Auth\MagicLinkExchangeController;
 use App\Http\Controllers\Api\V1\Auth\PasswordController;
 use App\Http\Controllers\Api\V1\CalendarController;
 use App\Http\Controllers\Api\V1\CityController;
 use App\Http\Controllers\Api\V1\ConfigController;
 use App\Http\Controllers\Api\V1\DiscoveryController;
 use App\Http\Controllers\Api\V1\EventController;
+use App\Http\Controllers\Api\V1\HomeController;
 use App\Http\Controllers\Api\V1\MapController;
 use App\Http\Controllers\Api\V1\Me\DeviceController;
 use App\Http\Controllers\Api\V1\Me\ExportController;
@@ -20,16 +22,32 @@ use App\Http\Controllers\Api\V1\Me\NotificationController;
 use App\Http\Controllers\Api\V1\Me\NotificationPreferenceController;
 use App\Http\Controllers\Api\V1\Me\ProfileController;
 use App\Http\Controllers\Api\V1\Me\SavedController;
+use App\Http\Controllers\Api\V1\Me\SessionController;
 use App\Http\Controllers\Api\V1\OccurrenceController;
 use App\Http\Controllers\Api\V1\PageController;
 use App\Http\Controllers\Api\V1\ReportController;
 use App\Http\Controllers\Api\V1\SearchController;
+use App\Http\Controllers\Api\V1\SponsorshipController;
+use App\Http\Controllers\Api\V1\SponsorshipMetricController;
 use App\Http\Controllers\Api\V1\SubmissionController;
+use App\Http\Controllers\Api\V1\SyncController;
 use App\Http\Controllers\Api\V1\TaxonomyController;
 use App\Http\Controllers\Api\V1\VenueController;
+use App\Http\Controllers\TicketingController;
 use App\Http\Middleware\Api\CacheJsonResponse;
+use App\Http\Middleware\Api\IdempotentRequest;
 use App\Http\Middleware\Api\ResolveApiCity;
+use App\Http\Middleware\TicketingPrivacy;
 use Illuminate\Support\Facades\Route;
+
+Route::get('v1/occurrences/{occurrence}/booking', [TicketingController::class, 'availability']);
+Route::prefix('v1')->middleware(['auth:sanctum', TicketingPrivacy::class])->group(function (): void {
+    Route::get('/me/bookings', [TicketingController::class, 'index']);
+    Route::post('/me/bookings/{booking}/email', [TicketingController::class, 'resend'])->middleware('throttle:3,60');
+    Route::post('/occurrences/{occurrence}/bookings', [TicketingController::class, 'store'])->middleware('throttle:20,1');
+    Route::post('/me/bookings/{booking}/cancel', [TicketingController::class, 'cancel'])->middleware('throttle:30,1');
+    Route::post('/ticketing/{occurrence}/check-in', [TicketingController::class, 'checkIn'])->name('api.ticketing.manage.checkin');
+});
 
 /*
 |--------------------------------------------------------------------------
@@ -59,6 +77,7 @@ Route::prefix('v1')
 
         Route::middleware(CacheJsonResponse::class)->group(function (): void {
             Route::get('/config', ConfigController::class)->name('config');
+            Route::get('/home', HomeController::class)->name('home');
 
             Route::get('/cities', [CityController::class, 'index'])->name('cities.index');
             Route::get('/cities/{slug}', [CityController::class, 'show'])->name('cities.show');
@@ -101,13 +120,20 @@ Route::prefix('v1')
             /* Filtro geografico e misure di §1, per non aprire l'app vuota. */
             Route::get('/areas', [DiscoveryController::class, 'areas'])->name('areas.index');
             Route::get('/stats', [DiscoveryController::class, 'stats'])->name('stats');
+            Route::get('/sync', SyncController::class)->name('sync');
+            Route::get('/sponsorships', SponsorshipController::class)->name('sponsorships.index');
 
         });
 
-        Route::middleware('throttle:public-forms')->group(function (): void {
+        Route::middleware(['throttle:public-forms', IdempotentRequest::class])->group(function (): void {
             Route::post('/submissions', SubmissionController::class)->name('submissions.store');
             Route::post('/reports', ReportController::class)->name('reports.store');
         });
+
+        Route::post('/reports/sponsorships/{sponsorship}/metrics/{metric}', SponsorshipMetricController::class)
+            ->whereNumber('sponsorship')
+            ->middleware('throttle:sponsorship-metrics')
+            ->name('sponsorships.metric');
 
         Route::prefix('auth')->name('auth.')->group(function (): void {
             Route::middleware('throttle:api-auth')->group(function (): void {
@@ -125,8 +151,13 @@ Route::prefix('v1')
              */
             Route::middleware('throttle:api-auth')->group(function (): void {
                 Route::post('/magic-link', MagicLinkController::class)->name('magic-link');
+                Route::post('/magic-link/exchange', MagicLinkExchangeController::class)->name('magic-link.exchange');
                 Route::post('/verify-email', EmailVerificationController::class)->name('verify-email');
             });
+
+            Route::post('/verification/resend', [EmailVerificationController::class, 'resend'])
+                ->middleware(['auth:sanctum', 'throttle:api-auth'])
+                ->name('verification.resend');
 
             Route::post('/logout', [AuthController::class, 'logout'])
                 ->middleware('auth:sanctum')
@@ -159,25 +190,36 @@ Route::prefix('v1')
                  */
                 Route::post('/saved/merge', [SavedController::class, 'merge'])->name('saved.merge');
                 Route::get('/saved', [SavedController::class, 'index'])->name('saved.index');
-                Route::post('/saved', [SavedController::class, 'store'])->name('saved.store');
+                Route::post('/saved', [SavedController::class, 'store'])->middleware(IdempotentRequest::class)->name('saved.store');
                 Route::delete('/saved/{occurrence}', [SavedController::class, 'destroy'])
                     ->whereNumber('occurrence')
                     ->name('saved.destroy');
 
                 Route::get('/follows', [FollowController::class, 'index'])->name('follows.index');
-                Route::post('/follows', [FollowController::class, 'store'])->name('follows.store');
+                Route::post('/follows', [FollowController::class, 'store'])->middleware(IdempotentRequest::class)->name('follows.store');
                 Route::delete('/follows/{type}/{id}', [FollowController::class, 'destroy'])
                     ->whereNumber('id')
                     ->name('follows.destroy');
 
                 Route::get('/feed', FeedController::class)->name('feed');
 
-                Route::post('/devices', [DeviceController::class, 'store'])->name('devices.store');
+                Route::get('/devices', [DeviceController::class, 'index'])->name('devices.index');
+                Route::post('/devices', [DeviceController::class, 'store'])->middleware(IdempotentRequest::class)->name('devices.store');
                 Route::delete('/devices/{device}', [DeviceController::class, 'destroy'])
                     ->whereNumber('device')
                     ->name('devices.destroy');
 
+                Route::get('/sessions', [SessionController::class, 'index'])->name('sessions.index');
+                Route::delete('/sessions/{session}', [SessionController::class, 'destroy'])
+                    ->whereNumber('session')
+                    ->name('sessions.destroy');
+
                 Route::get('/notifications', NotificationController::class)->name('notifications');
+                Route::patch('/notifications/{notification}/read', [NotificationController::class, 'read'])
+                    ->whereUuid('notification')
+                    ->name('notifications.read');
+                Route::post('/notifications/read-all', [NotificationController::class, 'readAll'])
+                    ->name('notifications.read-all');
                 Route::get('/export', ExportController::class)->name('export');
             });
     });

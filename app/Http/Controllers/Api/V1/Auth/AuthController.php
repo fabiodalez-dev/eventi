@@ -12,6 +12,7 @@ use App\Http\Requests\Api\V1\Auth\LoginRequest;
 use App\Http\Requests\Api\V1\Auth\RegisterRequest;
 use App\Http\Resources\V1\UserResource;
 use App\Models\User;
+use App\Services\Account\MobileTokenIssuer;
 use App\Support\Api\ApiResponse;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -35,6 +36,8 @@ use Illuminate\Support\Facades\Hash;
  */
 final class AuthController extends Controller
 {
+    public function __construct(private readonly MobileTokenIssuer $tokens) {}
+
     public function register(RegisterRequest $request, RegisterUser $register): JsonResponse
     {
         $data = $request->validated();
@@ -47,7 +50,8 @@ final class AuthController extends Controller
         ]);
 
         return ApiResponse::item([
-            'token' => $this->issueToken($user, $request->validated('device_name')),
+            ...$this->tokens->issue($user, $request->validated('device_name')),
+            'token_type' => 'Bearer',
             'user' => UserResource::toArray($user),
             'message' => __('api.auth.registered'),
         ], status: 201);
@@ -72,7 +76,8 @@ final class AuthController extends Controller
         $user->forceFill(['last_active_at' => Carbon::now()])->save();
 
         return ApiResponse::item([
-            'token' => $this->issueToken($user, $request->validated('device_name')),
+            ...$this->tokens->issue($user, $request->validated('device_name')),
+            'token_type' => 'Bearer',
             'user' => UserResource::toArray($user),
             'message' => __('api.auth.logged_in'),
         ]);
@@ -100,14 +105,5 @@ final class AuthController extends Controller
         $user->currentAccessToken()->delete();
 
         return ApiResponse::item(['message' => __('api.auth.logged_out')]);
-    }
-
-    private function issueToken(User $user, mixed $deviceName): string
-    {
-        $name = is_string($deviceName) && trim($deviceName) !== ''
-            ? trim($deviceName)
-            : __('api.auth.token_name');
-
-        return $user->createToken($name)->plainTextToken;
     }
 }

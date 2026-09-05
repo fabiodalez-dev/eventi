@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Account;
 
+use App\Http\Resources\V1\BookingResource;
+use App\Models\Booking;
 use App\Models\Device;
 use App\Models\Follow;
 use App\Models\NotificationLog;
@@ -33,6 +35,8 @@ final class AccountExport
 
         return [
             'exported_at' => ApiDate::instant(now(), $timezone),
+            'bookings' => Booking::query()->where('user_id', $user->id)->with('tickets')->get()
+                ->map(fn ($booking) => BookingResource::toArray($booking))->all(),
             'profile' => [
                 'id' => (int) $user->getKey(),
                 'name' => $user->name,

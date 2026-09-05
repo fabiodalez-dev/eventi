@@ -783,6 +783,86 @@ function dialoghi() {
     }
 }
 
+/** Fa entrare le locandine in bianco e nero e restituisce il colore soltanto
+ * quando il file è davvero pronto, evitando che la transizione finisca mentre
+ * il browser sta ancora scaricando l'immagine. */
+function rivelaLocandine() {
+    for (const immagine of document.querySelectorAll("[data-poster-reveal]")) {
+        const rivela = () => {
+            requestAnimationFrame(() => requestAnimationFrame(() => immagine.classList.add("is-color")));
+        };
+
+        if (immagine.complete) {
+            rivela();
+        } else {
+            immagine.addEventListener("load", rivela, { once: true });
+        }
+    }
+}
+
+/** Filtra l'archivio dei locali sul server mentre si scrive. Il modulo GET
+ * resta pienamente funzionante senza JavaScript; qui sostituiamo soltanto il
+ * blocco dei risultati e teniamo l'indirizzo condivisibile. */
+function filtriLocaliRealtime() {
+    const form = document.querySelector("[data-venue-filters]");
+    let results = document.querySelector("[data-venue-results]");
+
+    if (!(form instanceof HTMLFormElement) || results === null) {
+        return;
+    }
+
+    let timer = null;
+    let controller = null;
+
+    const aggiorna = async () => {
+        controller?.abort();
+        controller = new AbortController();
+        const parameters = new URLSearchParams(new FormData(form));
+        parameters.delete("page");
+        const url = `${form.action}?${parameters.toString()}`;
+        results.setAttribute("aria-busy", "true");
+
+        try {
+            const response = await fetch(url, {
+                headers: { "X-Requested-With": "fetch" },
+                signal: controller.signal,
+            });
+
+            if (!response.ok) {
+                return;
+            }
+
+            const nextDocument = new DOMParser().parseFromString(await response.text(), "text/html");
+            const nextResults = nextDocument.querySelector("[data-venue-results]");
+
+            if (nextResults !== null) {
+                results.replaceWith(nextResults);
+                results = nextResults;
+                window.history.replaceState({}, "", url);
+            }
+        } catch (error) {
+            if (error?.name !== "AbortError") {
+                results.setAttribute("aria-busy", "false");
+            }
+        }
+    };
+
+    form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        void aggiorna();
+    });
+
+    for (const field of form.querySelectorAll("select")) {
+        field.addEventListener("change", () => void aggiorna());
+    }
+
+    const search = form.querySelector('input[name="q"]');
+    search?.addEventListener("input", () => {
+        window.clearTimeout(timer);
+        timer = window.setTimeout(() => void aggiorna(), 260);
+    });
+}
+
 /**
  * «Segui» senza ricaricare la pagina.
  *
@@ -850,6 +930,8 @@ function dipingiFollow(bottone, form, segue) {
 
 function start() {
     dialoghi();
+    rivelaLocandine();
+    filtriLocaliRealtime();
     follows();
     infiniteScroll();
     nativeShare();
@@ -877,3 +959,4 @@ if (document.readyState === "loading") {
 } else {
     start();
 }
+import './ticketing';

@@ -8,9 +8,11 @@ use App\Enums\ApiErrorCode;
 use App\Exceptions\ApiException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\Auth\VerifyEmailRequest;
+use App\Models\User;
 use App\Services\Account\SignedEmailVerification;
 use App\Support\Api\ApiResponse;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 /**
  * `POST /v1/auth/verify-email` (§15.8).
@@ -31,5 +33,20 @@ final class EmailVerificationController extends Controller
         }
 
         return ApiResponse::item(['message' => __('account.api.email_verified')]);
+    }
+
+    public function resend(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if (! $user instanceof User) {
+            throw new ApiException(ApiErrorCode::Unauthenticated);
+        }
+
+        if (! $user->hasVerifiedEmail()) {
+            $user->sendEmailVerificationNotification();
+        }
+
+        return ApiResponse::item(['message' => __('account.verify.sent')]);
     }
 }

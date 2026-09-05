@@ -1071,3 +1071,22 @@ degli esclusi, così un nome nuovo non riapre il buco.
   **testi che si vedono** (`lang/it/*`) usano gli accenti veri: controllato uno
   per uno. È una disomogeneità dei soli commenti, non un difetto — sistemarla
   vuol dire riscrivere 120 file e non è stato fatto qui.
+
+---
+
+## F11 — Android e hardening API mobile — ✅ 2026-09-04
+
+- API v1 portata a 60 operazioni: home, sync/tombstone, sponsorizzazioni,
+  sessioni, notifiche lette e magic-link exchange monouso.
+- Sanctum con scadenza, device binding e revoca mirata; wishlist verificata
+  contro accessi incrociati e collisioni di idempotenza/cache.
+- FCM server installato con revoca automatica dei token non validi; feature
+  spenta finché non vengono fornite credenziali Firebase.
+- OpenAPI 3.1 esportata in `docs/openapi.json` e resa concreta per il client.
+- App nativa in `android/`: home, ricerca, dettaglio, salvati e profilo,
+  cache offline, deep link e token in Android Keystore.
+- Verifica intermedia: PHPStan 0 errori; API 120/120 (1.062 asserzioni);
+  Android 2 test JVM + 2 strumentali su Pixel Android 15; controllo visivo
+  1080×2400 su quattro flussi.
+- Verifica finale: **1.641 test Laravel, 5.968 asserzioni**; Composer audit
+  senza advisory; Vite, lint Android e APK release minificata passati.

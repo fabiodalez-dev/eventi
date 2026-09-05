@@ -31,6 +31,10 @@
             @endunless
         </header>
 
+        <x-button :href="route('tickets.index')">{{ __('ticketing.title') }}</x-button>
+        @if ($user->ownedVenues()->exists() || $user->hasAnyRole(['admin', 'super_admin']))
+            <x-button :href="route('ticketing.manage.index')" variant="secondary">{{ __('ticketing.manage') }}</x-button>
+        @endif
         <form method="POST" action="{{ route('account.profile.update') }}" class="flex flex-col gap-6">
             @csrf
             @method('PATCH')

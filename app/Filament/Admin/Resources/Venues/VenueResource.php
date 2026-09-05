@@ -489,6 +489,12 @@ class VenueResource extends Resource
                                             ->label(__('admin.fields.auto_publish'))
                                             ->helperText(__('admin.hints.auto_publish')),
 
+                                        Toggle::make('ticketing_enabled')
+                                            ->label(__('ticketing.admin_enable'))
+                                            ->helperText(__('ticketing.admin_hint'))
+                                            ->disabled(fn (): bool => ! auth()->user()?->hasAnyRole(['admin', 'super_admin']))
+                                            ->dehydrated(fn (): bool => auth()->user()?->hasAnyRole(['admin', 'super_admin']) ?? false),
+
                                         Toggle::make('is_nonprofit')
                                             ->label(__('admin.fields.is_nonprofit')),
 

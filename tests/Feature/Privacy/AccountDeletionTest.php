@@ -196,7 +196,10 @@ it('cancella anche dall API, e il token smette di valere subito', function (): v
     $user = utenteConTuttiIDati($this->occurrence, 'app@example.test');
     $token = $user->createToken('Telefono')->plainTextToken;
 
-    $this->withToken($token)->deleteJson('/api/v1/me')->assertOk();
+    $this->withToken($token)->deleteJson('/api/v1/me', [
+        'confirmation' => 'CANCELLA',
+        'password' => 'password',
+    ])->assertOk();
 
     expect($user->fresh()?->trashed())->toBeTrue();
 

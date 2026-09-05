@@ -37,7 +37,11 @@ final class ConfigController extends Controller
         return ApiResponse::item([
             'api_version' => config()->string('api.version'),
             'min_app_version' => config()->array('api.min_app_version'),
+            'latest_app_version' => config()->array('api.latest_app_version'),
+            'store_url' => config()->array('api.store_url'),
+            'maintenance' => config()->array('api.maintenance'),
             'features' => config()->array('api.features'),
+            'mobile' => config()->array('api.mobile'),
             'limits' => [
                 'default' => config()->integer('api.limits.default'),
                 'max' => config()->integer('api.limits.max'),

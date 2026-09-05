@@ -125,6 +125,27 @@ it('spedisce alla mappa il carico minimo di §13.3', function (): void {
         ->and($data[0]['starts_at'])->toBe('2026-09-06T21:00:00+02:00');
 });
 
+it('applica alla mappa gli stessi filtri temporali della lista eventi', function (): void {
+    $city = testCity();
+    $category = testCategory();
+
+    freezeLocal($city, '2026-09-05 09:00:00');
+
+    $venue = Venue::factory()->approved()->create([
+        'city_id' => $city->getKey(),
+        'lat' => 45.4064,
+        'lng' => 11.8768,
+    ]);
+
+    occurrenceAtLocal($city, $category, '2026-09-05 21:00:00', event: ['title' => 'Oggi'], venue: $venue);
+    occurrenceAtLocal($city, $category, '2026-09-06 21:00:00', event: ['title' => 'Domani'], venue: $venue);
+
+    expect(array_column($this->getJson('/api/v1/map/occurrences?preset=today')->assertOk()->json('data'), 'title'))
+        ->toBe(['Oggi'])
+        ->and(array_column($this->getJson('/api/v1/map/occurrences?preset=tomorrow')->assertOk()->json('data'), 'title'))
+        ->toBe(['Domani']);
+});
+
 it('restringe i marcatori al rettangolo e dichiara quando ne ha tagliati', function (): void {
     $city = testCity();
     $category = testCategory();

@@ -21,7 +21,9 @@
         "@laravel/multiplex": "^0.4.1"
     },
     "dependencies": {
+        "@zxing/browser": "^0.1.5",
+        "@zxing/library": "^0.21.3",
         "leaflet": "^1.9.4",
-        "leaflet.markercluster": "^1.5.3"
+        "maplibre-gl": "^5.24.0"
     }
 }

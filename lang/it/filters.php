@@ -21,7 +21,7 @@ return [
         'range' => 'Intervallo di date',
         'from' => 'Dal',
         'to' => 'Al',
-        'any' => 'Qualsiasi data',
+        'any' => 'Tutte le date',
     ],
 
     'category' => [

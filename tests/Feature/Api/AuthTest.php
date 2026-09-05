@@ -2,8 +2,11 @@
 
 declare(strict_types=1);
 
+use App\Models\MobileAuthChallenge;
 use App\Models\User;
+use App\Notifications\MagicLoginLink;
 use App\Notifications\ResetPasswordLink;
+use App\Notifications\VerifyEmailLink;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
@@ -29,6 +32,8 @@ it('registra un utente e gli consegna un token', function (): void {
     $token = $response->json('data.token');
 
     expect($token)->toBeString()
+        ->and($response->json('data.token_type'))->toBe('Bearer')
+        ->and($response->json('data.expires_at'))->toBeString()
         ->and($response->json('data.user.email'))->toBe('giulia@example.test')
         ->and($response->json('data.user'))->not->toHaveKey('password');
 
@@ -41,7 +46,51 @@ it('registra un utente e gli consegna un token', function (): void {
         ->and($user->marketing_opt_in_at)->toBeNull()
         ->and($user->hasRole('user'))->toBeTrue()
         ->and($user->tokens()->count())->toBe(1)
-        ->and($user->tokens()->first()?->name)->toBe('iPhone di Giulia');
+        ->and($user->tokens()->first()?->name)->toBe('iPhone di Giulia')
+        ->and($user->tokens()->first()?->expires_at)->not->toBeNull();
+});
+
+it('genera un magic link mobile opaco senza rivelare se l account esiste', function (): void {
+    Notification::fake();
+
+    $user = User::factory()->create(['email' => 'magic@example.test']);
+
+    $known = $this->postJson('/api/v1/auth/magic-link', ['email' => 'magic@example.test'])->assertOk();
+    $unknown = $this->postJson('/api/v1/auth/magic-link', ['email' => 'mai-vista@example.test'])->assertOk();
+
+    expect($known->json('data.message'))->toBe($unknown->json('data.message'))
+        ->and(MobileAuthChallenge::query()->count())->toBe(1)
+        ->and(MobileAuthChallenge::query()->first()?->token_hash)->toHaveLength(64);
+
+    Notification::assertSentTo($user, MagicLoginLink::class, function (MagicLoginLink $notification) use ($user): bool {
+        $url = $notification->toMail($user)->actionUrl;
+        parse_str((string) parse_url((string) $url, PHP_URL_QUERY), $query);
+        $token = $query['token'] ?? null;
+
+        return is_string($url)
+            && str_contains($url, '/app/auth/magic?token=')
+            && is_string($token)
+            && mb_strlen($token) === 64
+            && MobileAuthChallenge::query()->where('token_hash', hash('sha256', $token))->exists();
+    });
+    Notification::assertCount(1);
+});
+
+it('reinvia la verifica email soltanto all utente autenticato non verificato', function (): void {
+    Notification::fake();
+
+    $user = User::factory()->unverified()->create();
+    $token = $user->createToken('Android')->plainTextToken;
+
+    $this->postJson('/api/v1/auth/verification/resend')->assertUnauthorized();
+
+    $this->withToken($token)->postJson('/api/v1/auth/verification/resend')->assertOk();
+    Notification::assertSentToTimes($user, VerifyEmailLink::class, 1);
+
+    $user->markEmailAsVerified();
+    $this->app->make('auth')->forgetGuards();
+    $this->withToken($token)->postJson('/api/v1/auth/verification/resend')->assertOk();
+    Notification::assertSentToTimes($user, VerifyEmailLink::class, 1);
 });
 
 it('registra il consenso marketing con una data propria solo se richiesto', function (): void {

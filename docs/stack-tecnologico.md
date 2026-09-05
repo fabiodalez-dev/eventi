@@ -114,8 +114,9 @@ Per la griglia mensile pubblica **non serve una libreria**: è una tabella di 42
 |---|---|---|---|
 | ~~`clickbar/laravel-magellan`~~ **`matanyadaev/laravel-eloquent-spatial`** | `^4.8` | Tipi spaziali in Eloquent | Magellan è solo per PostGIS |
 | — alternativa — `matanyadaev/laravel-eloquent-spatial` | `^4.0` | Idem, orientato a MySQL | Usare solo se si ripiega su MySQL |
-| ~~`maplibre-gl`~~ **`leaflet`** | `^1.9` | Mappa nel browser | Il disegno adottato inverte le tile in scala di grigi con un filtro CSS: MapLibre le disegna in WebGL, dove i filtri CSS non arrivano. Leaflet le dispone come normali elementi del documento — e pesa molto meno |
-| `@turf/turf` (npm) | `^7.0` | Calcoli geometrici lato client | 🔁 solo se serve clustering custom o buffer; con Leaflet il clustering si aggiunge con `leaflet.markercluster` |
+| **`maplibre-gl`** | `^5.24` | Mappa vettoriale pubblica | Stile scuro OpenFreeMap, clustering GeoJSON e strade leggibili fino allo zoom del locale; caricamento differito |
+| `leaflet` | `^1.9` | Selettore coordinate nel pannello | Resta confinato all'amministrazione, con tessere raster chiare |
+| `@turf/turf` (npm) | `^7.0` | Calcoli geometrici lato client | 🔁 solo se serviranno buffer o geometrie custom; il clustering corrente è nativo MapLibre |
 | `pmtiles` (npm) | `^4.0` | Lettura tile da singolo file statico | Solo se si sceglie l'hosting tile self-serve |
 
 ### Tile server — tre strade
@@ -269,26 +270,23 @@ CI: GitHub Actions — `pint --test` → `larastan` → `pest` → `lighthouse-c
 
 ---
 
-## 14. Fase mobile (F11)
+## 14. Fase mobile Android (F11)
 
-Da installare solo quando sito, API e contenuti sono stabili.
+Implementata in `android/` dopo la stabilizzazione dell'API. La scelta nativa
+privilegia integrazione Android, Keystore e una APK riproducibile senza un
+servizio di build esterno.
 
 | Pacchetto | Ruolo |
 |---|---|
-| `expo` (SDK corrente) + `react-native` | Base, codebase unico Android/iOS |
-| `expo-router` | Navigazione file-based |
-| `typescript` | Tipi condivisi con l'API generati da OpenAPI |
-| `@tanstack/react-query` | Fetch, cache, sincronizzazione con `updated_since` |
-| `react-native-mmkv` | Storage locale veloce per la cache offline 7 giorni |
-| `react-native-maps` oppure `@maplibre/maplibre-react-native` | Mappa nativa. Nota: sul sito si è passati a Leaflet, che non ha un corrispettivo nativo — la mappa dell'app userà una libreria diversa da quella del web, e i due disegni andranno tenuti allineati a mano |
-| `expo-notifications` | Push |
-| `expo-location` | "Vicino a me" |
-| `expo-calendar` | "Aggiungi al calendario" di sistema |
-| `expo-sharing` | Condivisione nativa |
-| `expo-image` | Immagini con cache e blurhash |
-| **EAS Build / Submit / Update** | Build, pubblicazione e aggiornamenti OTA |
+| Kotlin + Jetpack Compose | UI nativa e accessibile, min SDK 26 |
+| Android Keystore + AES-GCM | Bearer Sanctum cifrato e non esportabile |
+| OkHttp + Kotlin Serialization | Client API v1 tollerante ai campi additivi |
+| Coil | Immagini remote, cache e resa monocromatica |
+| Coroutines + StateFlow | Stato, retry e cancellazione della ricerca |
+| Gradle wrapper | Build locale riproducibile dell'APK |
 
-⚠️ Se si attiva un login social su iOS, **Sign in with Apple diventa obbligatorio** per la pubblicazione su App Store. Ed è richiesta la **cancellazione account dentro l'app**, non solo sul sito.
+FCM richiede credenziali Firebase esterne; il backend è già predisposto e
+ripiega su email/archivio finché la feature resta spenta.
 
 ---
 
@@ -299,7 +297,7 @@ Da sistemare prima del lancio, non dopo.
 | Elemento | Obbligo |
 |---|---|
 | Dati OpenStreetMap | Attribuzione **ODbL** visibile sulla mappa: "© OpenStreetMap contributors" |
-| Leaflet | BSD-2, attribuzione nei crediti |
+| MapLibre GL JS / Leaflet | BSD-3 / BSD-2, attribuzione nei crediti |
 | Font | Verificare la licenza di ogni famiglia self-hosted (OFL nella maggior parte dei casi) |
 | Locandine caricate dai locali | Dichiarazione di titolarità in fase di iscrizione + procedura di rimozione (§16 del piano) |
 | Pacchetti GPL/AGPL | Nessuno di quelli elencati qui lo è. **Verificare prima di aggiungerne di nuovi**: un pacchetto AGPL in un progetto che offrirà servizi a pagamento è un problema legale, non un dettaglio |

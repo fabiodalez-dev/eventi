@@ -51,7 +51,7 @@
     <x-slot:head>
         <x-json-ld :data="$structuredData" />
 
-        {{-- La mappa del locale, più in basso, è lo stesso riquadro Leaflet di
+        {{-- La mappa del locale, più in basso, è lo stesso riquadro MapLibre di
              tutto il sito e senza questo script non si accende: restava un
              rettangolo con la propria frase, e sembrava rotta. --}}
         @vite('resources/js/map.js')
@@ -266,6 +266,9 @@
                                 </div>
 
                                 @if ($occurrences->isNotEmpty())
+                                    @if ($occurrence->booking_enabled && $event->venue?->ticketing_enabled)
+                                        <x-button :href="route('tickets.create', $occurrence)" class="min-h-12">{{ __('ticketing.reserve') }}</x-button>
+                                    @endif
                                     <div class="flex flex-wrap gap-2">
                                         <a
                                             href="{{ route('events.calendar', ['slug' => $event->slug, 'occurrence' => $occurrence->getKey()]) }}"

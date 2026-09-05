@@ -14,6 +14,8 @@ use App\Http\Requests\Web\Account\MergeSavedRequest;
 use App\Http\Requests\Web\Account\StoreSavedRequest;
 use App\Models\EventOccurrence;
 use App\Queries\EventOccurrenceQuery;
+use App\Services\Calendar\OccurrenceCalendar;
+use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
@@ -33,25 +35,54 @@ final class SavedController extends Controller
     use InteractsWithAccount;
     use InteractsWithCity;
 
+    public function __construct(private readonly OccurrenceCalendar $calendar) {}
+
     public function index(Request $request): View
     {
         $city = $this->city();
         $user = $this->accountUser($request);
         $past = $request->boolean('passate');
+        $calendarView = $request->string('vista')->toString() === 'calendario';
 
         $query = EventOccurrenceQuery::for($city)->savedBy($user);
 
         $past ? $query->past()->orderByNewestFirst() : $query->upcoming();
 
-        $occurrences = $query->paginate(config()->integer('account.feed_per_page'));
+        $occurrences = $query->paginate(config()->integer('account.feed_per_page'))->withQueryString();
 
         /** @var Collection<int, EventOccurrence> $items */
         $items = new Collection($occurrences->items());
-        $items->load(['event.venue', 'event.category', 'event.media']);
+        $items->load(['event.city', 'event.venue', 'event.category', 'event.media']);
+
+        $month = CarbonImmutable::now($city->timezone)->startOfMonth();
+        $requestedMonth = $request->string('mese')->toString();
+
+        if (preg_match('/^\d{4}-\d{2}$/', $requestedMonth) === 1) {
+            try {
+                $month = CarbonImmutable::parse($requestedMonth.'-01', $city->timezone)->startOfMonth();
+            } catch (\Throwable) {
+                // Un mese non valido torna semplicemente al mese corrente.
+            }
+        }
+
+        /** @var Collection<int, EventOccurrence> $calendarOccurrences */
+        $calendarOccurrences = new Collection;
+
+        if ($calendarView) {
+            $calendarOccurrences = EventOccurrenceQuery::archiveFor($city)
+                ->savedBy($user)
+                ->between($month, $month->endOfMonth())
+                ->get();
+            $calendarOccurrences->load(['event.city', 'event.venue', 'event.category', 'event.media']);
+        }
 
         return view('account.saved', [
             'occurrences' => $occurrences,
             'past' => $past,
+            'calendarView' => $calendarView,
+            'calendarOccurrences' => $calendarOccurrences,
+            'month' => $month,
+            'calendar' => $this->calendar,
             'meta' => new PageMeta(
                 title: __('account.saved.title'),
                 heading: __('account.saved.title'),

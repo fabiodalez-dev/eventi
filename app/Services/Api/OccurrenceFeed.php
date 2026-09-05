@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Api;
 
 use App\Enums\ApiInclude;
+use App\Http\Requests\Api\V1\ApiRequest;
 use App\Http\Requests\Api\V1\EventQueryRequest;
 use App\Models\City;
 use App\Models\EventOccurrence;
@@ -55,9 +56,17 @@ final class OccurrenceFeed
      * Una pagina di occorrenze già idratata, con il contesto che le
      * accompagna: fuso, inclusioni chieste e salvataggi dell'utente.
      */
-    public function page(City $city, EventQueryRequest $request, ?User $user, ?EventOccurrenceQuery $query = null): OccurrencePage
+    public function page(City $city, ApiRequest $request, ?User $user, ?EventOccurrenceQuery $query = null): OccurrencePage
     {
-        $paginator = ($query ?? $this->query($city, $request))
+        if ($query === null) {
+            if (! $request instanceof EventQueryRequest) {
+                throw new \InvalidArgumentException('Una ApiRequest generica richiede una query di occorrenze esplicita.');
+            }
+
+            $query = $this->query($city, $request);
+        }
+
+        $paginator = $query
             ->cursorPaginate($request->limit(), $request->cursor())
             ->withQueryString();
 
@@ -84,10 +93,15 @@ final class OccurrenceFeed
      */
     public function hydrate(Collection $occurrences, array $includes): void
     {
-        $relations = ['event.venue', 'event.category', 'event.media'];
+        $relations = [
+            'event.venue',
+            'event.category',
+            'event.media',
+            'event.sponsorships' => fn ($query) => $query->visible(),
+        ];
 
         foreach (ApiInclude::relationsFor($includes) as $relation) {
-            if (! in_array($relation, $relations, true)) {
+            if (! in_array($relation, array_keys($relations), true) && ! in_array($relation, $relations, true)) {
                 $relations[] = $relation;
             }
         }

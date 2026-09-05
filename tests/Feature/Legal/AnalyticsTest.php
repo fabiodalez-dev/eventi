@@ -85,7 +85,8 @@ describe('spenta', function (): void {
                 // il browser segue solo se qualcuno li clicca: non sono
                 // risorse caricate.
                 && ! str_contains($indirizzo, 'openstreetmap.org')
-                && ! str_contains($indirizzo, 'opendatacommons.org'),
+                && ! str_contains($indirizzo, 'opendatacommons.org')
+                && ! str_contains($indirizzo, 'openfreemap.org'),
         ));
 
         expect($esterni)->toBe([])

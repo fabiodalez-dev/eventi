@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Notification;
 use Minishlink\WebPush\MessageSentReport;
 use Minishlink\WebPush\Subscription;
 use Minishlink\WebPush\WebPush;
+use NotificationChannels\Fcm\FcmChannel;
 use NotificationChannels\WebPush\Events\NotificationFailed;
 use NotificationChannels\WebPush\WebPushChannel;
 use NotificationChannels\WebPush\WebPushMessage;
@@ -207,9 +208,7 @@ it('non sceglie il push senza chiavi VAPID, anche con un browser iscritto', func
     expect(NotificationLog::query()->first()?->channel)->toBe(NotificationChannel::Mail);
 });
 
-it('ignora i dispositivi che non sono browser', function (): void {
-    // Un token FCM non è un'iscrizione Web Push: senza `endpoint` il canale
-    // non avrebbe dove consegnare.
+it('ignora i dispositivi nativi finche firebase non e configurato', function (): void {
     Notification::fake();
 
     $user = User::factory()->create();
@@ -221,6 +220,34 @@ it('ignora i dispositivi che non sono browser', function (): void {
 
     expect(NotificationLog::query()->first()?->channel)->toBe(NotificationChannel::Mail)
         ->and($user->routeNotificationForWebPush())->toBeEmpty();
+});
+
+it('sceglie FCM per un dispositivo Android attivo quando firebase e configurato', function (): void {
+    config()->set('webpush.vapid.public_key', null);
+    config()->set('webpush.vapid.private_key', null);
+    config()->set('api.features.push', true);
+    config()->set('firebase.projects.app.credentials', '/tmp/firebase-test.json');
+
+    Notification::fake();
+
+    $user = User::factory()->create();
+    $device = Device::factory()->for($user)->mobile(DevicePlatform::Android)->create();
+
+    app(SaveOccurrences::class)->one($user, $this->occurrence);
+    inviaIlPromemoria();
+
+    Notification::assertSentTo($user, ScheduledMessage::class, function (ScheduledMessage $notification) use ($device, $user): bool {
+        $payload = $notification->toFcm($user)->toArray();
+
+        return $notification->channel === NotificationChannel::Push
+            && $notification->via($user) === [FcmChannel::class, 'database']
+            && $user->routeNotificationForFcm() === [$device->push_token]
+            && ($payload['data']['type'] ?? null) === 'event_reminder'
+            && str_contains($payload['data']['url'] ?? '', '/eventi/')
+            && ($payload['android']['notification']['channel_id'] ?? null) === 'eventi';
+    });
+
+    expect(NotificationLog::query()->first()?->channel)->toBe(NotificationChannel::Push);
 });
 
 it('revoca il dispositivo quando il servizio push dice che l iscrizione è scaduta, e al giro dopo scrive per email', function (): void {

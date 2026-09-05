@@ -1,22 +1,6 @@
 @import 'tailwindcss';
 
-/*
- * Il foglio di stile di Leaflet, importato QUI e non da `map.js`.
- *
- * Importato dallo script, Vite lo estrae in un file caricato dopo `app.css`:
- * le regole di Leaflet e le nostre hanno la stessa specificità — usa anche lui
- * `.leaflet-container .leaflet-control-attribution` — e a parità vince
- * l'ultimo. I pulsanti dello zoom e la riga di attribuzione restavano bianchi
- * in mezzo alla pagina nera, e nessuna regola scritta più sotto li toccava.
- *
- * Importandolo qui l'ordine è garantito dal file, non dedotto da come il
- * compilatore raggruppa gli asset: tutto ciò che scriviamo viene dopo. Costa
- * ~4 KB compressi su ogni pagina, comprese quelle senza mappa — che sono
- * poche, visto che la mappa sta sulla pagina iniziale, sulla lista, sulla
- * scheda di un evento e su quella di un locale.
- */
-@import 'leaflet/dist/leaflet.css';
-@import 'leaflet.markercluster/dist/MarkerCluster.css';
+@import 'maplibre-gl/dist/maplibre-gl.css';
 
 /* Font self-hosted (@fontsource): nessuna richiesta a Google Fonts o ad altri
    CDN, che sarebbe un trasferimento di dati verso terzi senza consenso.
@@ -541,6 +525,21 @@
     filter: grayscale(1) contrast(1.08);
 }
 
+.poster-reveal {
+    filter: grayscale(1) contrast(1.08);
+    transition: filter 1500ms cubic-bezier(.2, .75, .2, 1);
+}
+
+.poster-reveal.is-color {
+    filter: grayscale(0) contrast(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .poster-reveal {
+        transition: none;
+    }
+}
+
 /* Riga orizzontale scorrevole con aggancio: gli scroller di giorni e di card
    sul telefono si fermano su un elemento, non a metà. */
 @utility scroll-row {
@@ -695,18 +694,65 @@
 }
 
 /* ---------------------------------------------------------------------------
-   Leaflet
+   MapLibre
 
-   **Perché ogni regola è ancorata a `.leaflet-container`.** Il foglio di stile
-   di Leaflet arriva dall'`import` dentro `map.js`, quindi Vite lo estrae in un
-   file caricato DOPO `app.css`: a parità di specificità vince lui, e le regole
-   scritte qui come `.leaflet-bar a` non facevano niente — i pulsanti dello
-   zoom e la riga di attribuzione restavano bianchi in mezzo alla pagina nera.
-   Un selettore in più le mette al riparo dall'ordine dei file, che dipende da
-   come il compilatore raggruppa gli asset e può cambiare senza preavviso.
-
-   Tutto il resto segue il sistema: raggio zero, bordi spessi, nessuna ombra.
+   Lo stile vettoriale scuro porta vie, numeri civici e nomi dei luoghi anche
+   nello zoom del singolo evento. I controlli seguono lo stesso sistema del
+   sito: squadrati, senza ombre, inchiostro e giallo-verde. L'attribuzione è
+   una riga esterna alla mappa: resta leggibile senza introdurre il pulsante
+   informativo circolare del controllo compatto.
 --------------------------------------------------------------------------- */
+
+.maplibregl-map {
+    background: var(--surface-sunken);
+    font-family: inherit;
+}
+
+.maplibregl-canvas:focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: -3px;
+}
+
+.maplibregl-ctrl-group {
+    overflow: hidden;
+    border: 2px solid var(--ink);
+    border-radius: 0;
+    background: var(--canvas);
+    box-shadow: none;
+}
+
+.maplibregl-ctrl-group button {
+    width: 36px;
+    height: 36px;
+    border-radius: 0;
+    background-color: var(--canvas);
+}
+
+.maplibregl-ctrl-group button + button {
+    border-top: 2px solid var(--ink);
+}
+
+.maplibregl-ctrl-group button:hover,
+.maplibregl-ctrl-group button:focus-visible {
+    background-color: var(--accent);
+}
+
+.maplibregl-ctrl-group button .maplibregl-ctrl-icon {
+    filter: invert(1);
+}
+
+.maplibregl-ctrl-group button:hover .maplibregl-ctrl-icon,
+.maplibregl-ctrl-group button:focus-visible .maplibregl-ctrl-icon {
+    filter: none;
+}
+
+.maplibregl-ctrl-group button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+/* Le regole Leaflet sotto restano per il selettore di coordinate del pannello,
+   che usa ancora la libreria raster chiara e un foglio dedicato. */
 
 .leaflet-container {
     background: var(--surface-sunken);

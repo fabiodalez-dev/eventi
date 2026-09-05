@@ -21,6 +21,8 @@ return [
         'invalid_cursor' => 'Il cursore di paginazione non è leggibile.',
         'invalid_token' => 'Il collegamento non è valido o è scaduto.',
         'invalid_request' => 'La richiesta non è nella forma attesa.',
+        'invalid_idempotency_key' => 'La chiave di idempotenza non è valida.',
+        'idempotency_conflict' => 'La stessa chiave di idempotenza è già stata usata con dati diversi.',
         'rate_limited' => 'Troppe richieste: riprova fra poco.',
         'server_error' => 'Errore interno del server.',
     ],

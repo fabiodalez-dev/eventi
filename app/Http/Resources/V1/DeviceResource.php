@@ -25,6 +25,7 @@ final class DeviceResource
         return [
             'id' => (int) $device->getKey(),
             'platform' => $device->platform->value,
+            'installation_id' => $device->installation_id,
             'app_version' => $device->app_version,
             'locale' => $device->locale,
             'last_seen_at' => ApiDate::instant($device->last_seen_at, $timezone),

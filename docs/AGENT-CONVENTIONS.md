@@ -8,6 +8,13 @@ motore temporale in §8). Le deviazioni approvate sono in `docs/DECISIONS.md`.
 
 ## 1. Ambiente
 
+### Preferenze operative del proprietario (2026-09-05)
+
+- Il deploy pubblico su `eventi.fabiodalez.it` è autorizzato nel normale flusso
+  di implementazione, dopo test e backup. Non distribuire seed dimostrativi.
+- Prima di generare un nuovo APK chiedere conferma. Modificare e verificare
+  il codice Android non autorizza il packaging o la consegna di un APK.
+
 | Voce | Valore |
 |---|---|
 | PHP | 8.4 |

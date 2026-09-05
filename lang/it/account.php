@@ -88,6 +88,14 @@ return [
         'past' => 'Date passate',
         'show_past' => 'Mostra anche le date passate',
         'show_upcoming' => 'Mostra solo le prossime date',
+        'view' => 'Vista dei salvataggi',
+        'list_view' => 'Lista',
+        'calendar_view' => 'Calendario',
+        'previous_month' => 'Mese precedente',
+        'next_month' => 'Mese successivo',
+        'month_events' => 'Eventi salvati di :month',
+        'no_events_in_month' => 'Non hai eventi salvati in questo mese.',
+        'saved_on_day' => ':count evento salvato|:count eventi salvati',
     ],
 
     'register' => [
@@ -217,6 +225,8 @@ return [
         'merged' => 'Salvataggi migrati sull\'account.',
         'unfollowed' => 'Non lo segui più.',
         'device_revoked' => 'Dispositivo revocato.',
+        'session_revoked' => 'Sessione revocata.',
+        'notifications_read' => 'Notifiche segnate come lette.',
         'deleted' => 'Account cancellato.',
         'magic_link_sent' => 'Se l\'indirizzo è registrato, riceverai un collegamento per entrare.',
         'email_verified' => 'Indirizzo confermato.',

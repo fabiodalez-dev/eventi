@@ -39,12 +39,18 @@ final class CacheJsonResponse
 
         $response->setEtag(md5($content));
 
+        $authenticated = $request->user('sanctum') !== null;
+
         $response->headers->set('Cache-Control', sprintf(
             '%s, max-age=%d, stale-while-revalidate=%d',
-            $request->user('sanctum') === null ? 'public' : 'private',
+            $authenticated ? 'private' : 'public',
             config()->integer('api.cache.max_age'),
             config()->integer('api.cache.stale_while_revalidate'),
         ));
+
+        if ($authenticated) {
+            $response->headers->set('Vary', 'Authorization, X-Installation-ID');
+        }
 
         /*
          * `isNotModified()` svuota il corpo e porta la risposta a 304: è la

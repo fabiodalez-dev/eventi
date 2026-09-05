@@ -6,6 +6,7 @@ namespace App\Http\Resources\V1;
 
 use App\Models\Venue;
 use App\Support\Api\ApiDate;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
  * Il locale in due forme.
@@ -77,10 +78,24 @@ final class VenueResource
         ];
     }
 
-    private static function cover(Venue $venue): ?string
+    /** @return array<string, mixed>|null */
+    private static function cover(Venue $venue): ?array
     {
-        $url = $venue->getFirstMediaUrl('cover');
+        $media = $venue->getFirstMedia('cover');
 
-        return $url === '' ? null : $url;
+        if (! $media instanceof Media) {
+            return null;
+        }
+
+        $full = $media->getFullUrl();
+
+        return [
+            'thumb' => $media->hasGeneratedConversion('thumb') ? $media->getFullUrl('thumb') : $full,
+            'card' => $media->hasGeneratedConversion('card') ? $media->getFullUrl('card') : $full,
+            'full' => $full,
+            'blurhash' => $media->getCustomProperty('blurhash') ?: null,
+            'width' => is_numeric($media->getCustomProperty('width')) ? (int) $media->getCustomProperty('width') : null,
+            'height' => is_numeric($media->getCustomProperty('height')) ? (int) $media->getCustomProperty('height') : null,
+        ];
     }
 }

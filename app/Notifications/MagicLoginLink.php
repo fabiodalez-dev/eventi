@@ -21,6 +21,8 @@ use Illuminate\Support\Facades\URL;
  */
 class MagicLoginLink extends Notification
 {
+    public function __construct(private readonly ?string $mobileUrl = null) {}
+
     /**
      * @return array<int, string>
      */
@@ -34,7 +36,7 @@ class MagicLoginLink extends Notification
         return (new MailMessage)
             ->subject(__('account.mail.magic.subject', ['product' => config()->string('app.name')]))
             ->line(__('account.mail.magic.intro'))
-            ->action(__('account.mail.magic.action'), self::url($notifiable))
+            ->action(__('account.mail.magic.action'), $this->mobileUrl ?? self::url($notifiable))
             ->line(__('account.mail.magic.expires', ['minutes' => config()->integer('account.magic_link_minutes')]))
             ->line(__('account.mail.magic.ignore'));
     }

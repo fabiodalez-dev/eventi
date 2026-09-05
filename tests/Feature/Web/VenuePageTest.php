@@ -102,7 +102,7 @@ it('offre le indicazioni verso entrambe le applicazioni di navigazione', functio
            (`/export/embed.html`), che portava dentro la scheda il sito intero —
            barra, controlli, «Make a Donation» — e soprattutto la sua tavolozza
            chiara, che un `iframe` sottrae al foglio di stile della pagina. Ora
-           la mappa e' lo stesso riquadro Leaflet di tutto il sito e questo
+           la mappa e' lo stesso riquadro MapLibre di tutto il sito e questo
            resta un collegamento: chi vuole muoversi apre OpenStreetMap. */
         ->assertSee('openstreetmap.org/', escape: false);
 });

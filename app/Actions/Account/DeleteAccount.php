@@ -7,6 +7,7 @@ namespace App\Actions\Account;
 use App\Enums\NotificationStatus;
 use App\Models\ScheduledNotification;
 use App\Models\User;
+use App\Services\Ticketing\TicketingService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -32,6 +33,8 @@ final class DeleteAccount
     public function __invoke(User $user): void
     {
         DB::transaction(function () use ($user): void {
+            User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
+            app(TicketingService::class)->eraseUser($user);
             ScheduledNotification::query()
                 ->where('user_id', $user->getKey())
                 ->where('status', NotificationStatus::Pending->value)

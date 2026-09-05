@@ -1,41 +1,161 @@
-{{--
-    Le date salvate (§15.3).
-
-    La finestra la decide il motore: `upcoming()` di norma, `past()` per
-    l'archivio. Qui non si ricalcola che cosa sia passato — è la regola che
-    vale per ogni lista del prodotto (§8.1).
---}}
+{{-- Le date salvate: lista paginata oppure calendario mensile completo. --}}
 <x-layouts.app :meta="$meta">
     <header class="flex flex-col gap-2">
         <h1 class="text-hero text-ink">{{ $meta->heading }}</h1>
         <p class="text-sm text-ink-muted">{{ __('account.saved.lead') }}</p>
 
-        <a
-            class="self-start text-sm font-semibold text-brand hover:underline"
-            href="{{ $past ? route('account.saved') : route('account.saved', ['passate' => 1]) }}"
-        >
-            {{ $past ? __('account.saved.show_upcoming') : __('account.saved.show_past') }}
-        </a>
+        @unless ($calendarView)
+            <a
+                class="self-start text-sm font-semibold text-brand hover:underline"
+                href="{{ $past ? route('account.saved') : route('account.saved', ['passate' => 1]) }}"
+            >
+                {{ $past ? __('account.saved.show_upcoming') : __('account.saved.show_past') }}
+            </a>
+        @endunless
+
+        <nav class="mt-3 grid max-w-md grid-cols-2 gap-0.5 bg-line p-0.5" aria-label="{{ __('account.saved.view') }}">
+            <a
+                href="{{ route('account.saved', array_filter(['passate' => $past ? 1 : null])) }}"
+                @class([
+                    'px-4 py-3 text-center font-display text-xs font-extrabold tracking-[0.14em] uppercase',
+                    'bg-accent text-on-accent' => ! $calendarView,
+                    'bg-canvas text-ink' => $calendarView,
+                ])
+                @if (! $calendarView) aria-current="page" @endif
+            >{{ __('account.saved.list_view') }}</a>
+            <a
+                href="{{ route('account.saved', ['vista' => 'calendario']) }}"
+                @class([
+                    'px-4 py-3 text-center font-display text-xs font-extrabold tracking-[0.14em] uppercase',
+                    'bg-accent text-on-accent' => $calendarView,
+                    'bg-canvas text-ink' => ! $calendarView,
+                ])
+                @if ($calendarView) aria-current="page" @endif
+            >{{ __('account.saved.calendar_view') }}</a>
+        </nav>
     </header>
 
-    @if ($occurrences->total() > 0)
+    @if ($calendarView)
+        @php
+            $daysByDate = $calendarOccurrences->groupBy(fn ($occurrence) => $occurrence->business_date->format('Y-m-d'));
+            $gridStart = $month->startOfWeek();
+            $gridDays = collect(range(0, 41))->map(fn (int $offset) => $gridStart->addDays($offset));
+            $monthLabel = $month->locale('it')->translatedFormat('F Y');
+            $weekdays = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
+        @endphp
+
+        <section class="mt-7" aria-labelledby="saved-calendar-title" data-saved-calendar>
+            <div class="flex items-center justify-between gap-3 border-y-2 border-line py-3">
+                <a
+                    href="{{ route('account.saved', ['vista' => 'calendario', 'mese' => $month->subMonth()->format('Y-m')]) }}"
+                    class="border-2 border-line px-3 py-2 font-display text-[0.625rem] font-extrabold tracking-[0.12em] uppercase hover:border-accent hover:text-accent"
+                    aria-label="{{ __('account.saved.previous_month') }}"
+                >← <span class="hidden sm:inline">{{ __('account.saved.previous_month') }}</span></a>
+
+                <h2 id="saved-calendar-title" class="font-display text-xl font-extrabold tracking-[-0.03em] uppercase">
+                    {{ $monthLabel }}
+                </h2>
+
+                <a
+                    href="{{ route('account.saved', ['vista' => 'calendario', 'mese' => $month->addMonth()->format('Y-m')]) }}"
+                    class="border-2 border-line px-3 py-2 font-display text-[0.625rem] font-extrabold tracking-[0.12em] uppercase hover:border-accent hover:text-accent"
+                    aria-label="{{ __('account.saved.next_month') }}"
+                ><span class="hidden sm:inline">{{ __('account.saved.next_month') }}</span> →</a>
+            </div>
+
+            <div class="mt-4 grid grid-cols-7 gap-0.5 bg-line p-0.5" role="grid" aria-label="{{ $monthLabel }}">
+                @foreach ($weekdays as $weekday)
+                    <div class="bg-surface px-1 py-2 text-center font-display text-[0.5625rem] font-extrabold tracking-[0.12em] text-ink-subtle uppercase sm:text-[0.625rem]" role="columnheader">
+                        {{ $weekday }}
+                    </div>
+                @endforeach
+
+                @foreach ($gridDays as $day)
+                    @php
+                        $dayKey = $day->format('Y-m-d');
+                        $dayItems = $daysByDate->get($dayKey, collect());
+                        $inMonth = $day->month === $month->month;
+                    @endphp
+                    <div
+                        @class([
+                            'min-h-16 bg-canvas p-1.5 sm:min-h-28 sm:p-2',
+                            'opacity-35' => ! $inMonth,
+                            'ring-2 ring-inset ring-accent' => $day->isToday(),
+                        ])
+                        role="gridcell"
+                        aria-label="{{ $day->locale('it')->translatedFormat('l j F') }}{{ $dayItems->isNotEmpty() ? ', '.trans_choice('account.saved.saved_on_day', $dayItems->count(), ['count' => $dayItems->count()]) : '' }}"
+                    >
+                        <div class="flex items-start justify-between gap-1">
+                            <time datetime="{{ $dayKey }}" class="font-display text-xs font-extrabold {{ $day->isToday() ? 'text-accent' : 'text-ink' }}">
+                                {{ $day->day }}
+                            </time>
+                            @if ($dayItems->isNotEmpty())
+                                <span class="flex size-5 items-center justify-center bg-accent font-display text-[0.625rem] font-extrabold text-on-accent">
+                                    {{ $dayItems->count() }}
+                                </span>
+                            @endif
+                        </div>
+
+                        @foreach ($dayItems->take(2) as $occurrence)
+                            <a
+                                href="#saved-{{ $occurrence->getKey() }}"
+                                class="mt-1 hidden border-l-2 border-accent pl-1 text-[0.625rem] leading-tight text-ink-muted hover:text-accent sm:block"
+                            >
+                                {{ $occurrence->is_all_day ? __('filters.time_of_day.any') : $occurrence->starts_at->format('H:i') }}
+                                · {{ $occurrence->event->title }}
+                            </a>
+                        @endforeach
+                    </div>
+                @endforeach
+            </div>
+        </section>
+
+        <section class="mt-8" aria-labelledby="saved-month-events">
+            <h2 id="saved-month-events" class="font-display text-xl font-extrabold tracking-[-0.03em] uppercase">
+                {{ __('account.saved.month_events', ['month' => $monthLabel]) }}
+            </h2>
+
+            @if ($calendarOccurrences->isEmpty())
+                <p class="mt-4 border-2 border-line p-5 text-sm text-ink-muted">{{ __('account.saved.no_events_in_month') }}</p>
+            @else
+                <div class="mt-4 flex flex-col gap-0.5" data-results>
+                    @foreach ($daysByDate as $items)
+                        <h3 class="bg-accent px-4 py-3 font-display text-sm font-extrabold tracking-[0.12em] text-on-accent uppercase">
+                            {{ $items->first()->business_date->locale('it')->translatedFormat('l j F Y') }}
+                        </h3>
+                        @foreach ($items as $occurrence)
+                            <article id="saved-{{ $occurrence->getKey() }}" class="grid gap-3 border-2 border-line bg-canvas p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+                                <a href="{{ route('events.show', $occurrence->event) }}" class="group min-w-0">
+                                    <p class="font-display text-[0.625rem] font-extrabold tracking-[0.14em] text-accent uppercase">
+                                        {{ $occurrence->is_all_day ? __('filters.time_of_day.any') : $occurrence->starts_at->format('H:i') }}
+                                    </p>
+                                    <h4 class="mt-1 text-card text-ink transition-colors group-hover:text-accent">{{ $occurrence->event->title }}</h4>
+                                    @if ($occurrence->event->venue !== null)
+                                        <p class="mt-1 text-sm text-ink-muted">{{ $occurrence->event->venue->name }}</p>
+                                    @endif
+                                </a>
+                                <a
+                                    href="{{ $calendar->googleUrl($occurrence) }}"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="border-2 border-accent px-4 py-3 text-center font-display text-[0.625rem] font-extrabold tracking-[0.12em] text-ink uppercase transition-colors hover:bg-accent hover:text-on-accent"
+                                >{{ __('common.actions.google_calendar') }}</a>
+                            </article>
+                        @endforeach
+                    @endforeach
+                </div>
+            @endif
+        </section>
+    @elseif ($occurrences->total() > 0)
         <div class="mt-6" data-results>
             <x-event-grid :occurrences="$occurrences->getCollection()" :adaptive="false" />
         </div>
-
         <div class="mt-8" data-pagination>
             <x-pagination :paginator="$occurrences" :summary="true" />
         </div>
     @else
-        <x-empty-state
-            class="mt-8"
-            :title="__('account.saved.empty_title')"
-            :description="__('account.saved.empty_body')"
-        >
-            <a
-                href="{{ route('events.index') }}"
-                class="bg-brand px-4 py-2.5 text-sm font-semibold text-on-brand transition hover:bg-brand-strong"
-            >
+        <x-empty-state class="mt-8" :title="__('account.saved.empty_title')" :description="__('account.saved.empty_body')">
+            <a href="{{ route('events.index') }}" class="bg-brand px-4 py-2.5 text-sm font-semibold text-on-brand transition hover:bg-brand-strong">
                 {{ __('events.title') }}
             </a>
         </x-empty-state>

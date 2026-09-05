@@ -19,7 +19,7 @@ return [
 
     /* Quando ANALYTICS_* è vuoto lo strumento non esiste: dirlo è più onesto
        che chiedere un consenso per qualcosa che non parte comunque. */
-    'body_without_analytics' => 'Questo sito non usa cookie pubblicitari, non profila nessuno e al momento non ha alcuno strumento di statistica attivo. Conserva sul tuo dispositivo solo quello che gli serve per funzionare: la sessione, la protezione dei moduli e le date che metti in agenda. La tua scelta resta registrata e varrà anche il giorno in cui un contatore anonimo verrà attivato.',
+    'body_without_analytics' => 'Questo sito usa cookie e memoria locale necessari al funzionamento. Mappe, immagini e altri contenuti esterni possono inoltre inviare dati tecnici ai rispettivi fornitori. Puoi accettare, rifiutare o personalizzare i servizi facoltativi; trovi il dettaglio aggiornato nelle informative.',
 
     'accept' => 'Accetta',
     'reject' => 'Rifiuta',

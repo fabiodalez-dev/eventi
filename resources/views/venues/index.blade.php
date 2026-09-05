@@ -12,7 +12,7 @@
         @endif
     </header>
 
-    <form method="GET" action="{{ route('venues.index') }}" class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <form method="GET" action="{{ route('venues.index') }}" data-venue-filters class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <x-field
             name="q"
             :label="__('venues.filters.search')"
@@ -52,24 +52,29 @@
         </div>
     </form>
 
-    @if ($venues->total() > 0)
-        <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            @foreach ($venues as $venue)
-                <x-venue-card :venue="$venue" :upcoming="$upcomingCounts[$venue->getKey()] ?? 0" />
-            @endforeach
-        </div>
+    <div data-venue-results aria-live="polite" aria-busy="false">
+        @if ($venues->total() > 0)
+            <p class="mt-6 font-display text-xs font-extrabold tracking-[0.14em] text-accent uppercase">
+                {{ trans_choice('venues.count', $venues->total(), ['count' => $venues->total()]) }}
+            </p>
+            <div class="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                @foreach ($venues as $venue)
+                    <x-venue-card :venue="$venue" :upcoming="$upcomingCounts[$venue->getKey()] ?? 0" />
+                @endforeach
+            </div>
 
-        <x-pagination :paginator="$venues" :summary="true" />
-    @else
-        <div class="mt-8">
-            <x-empty-state :title="__('venues.empty.list_title')" :description="__('venues.empty.list_body')">
-                <a
-                    href="{{ route('venues.index') }}"
-                    class="bg-brand px-4 py-2.5 font-display text-[0.688rem] leading-none font-extrabold tracking-[0.14em] text-on-brand uppercase transition hover:bg-brand-strong"
-                >
-                    {{ __('filters.reset') }}
-                </a>
-            </x-empty-state>
-        </div>
-    @endif
+            <x-pagination :paginator="$venues" :summary="true" />
+        @else
+            <div class="mt-8">
+                <x-empty-state :title="__('venues.empty.list_title')" :description="__('venues.empty.list_body')">
+                    <a
+                        href="{{ route('venues.index') }}"
+                        class="bg-brand px-4 py-2.5 font-display text-[0.688rem] leading-none font-extrabold tracking-[0.14em] text-on-brand uppercase transition hover:bg-brand-strong"
+                    >
+                        {{ __('filters.reset') }}
+                    </a>
+                </x-empty-state>
+            </div>
+        @endif
+    </div>
 </x-layouts.app>

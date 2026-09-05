@@ -1,36 +1,39 @@
 # API v1 — stato reale
 
-Aggiornato dopo la verifica finale del 2026-08-24, eseguita con server attivo
-(`php artisan serve`) su database seedato. Ogni numero e codice HTTP riportato
-qui è stato misurato, non dedotto.
+Aggiornato con il ticketing del 2026-09-05. Il contratto è verificato con
+test di integrazione e consumato dall'app Android in `android/` contro dati reali.
 
 ## Coordinate
 
 | Voce | Valore |
 |---|---|
 | Base | `/api/v1` |
-| Documentazione | `/docs/api` (Scramble) · JSON in `/docs/api.json` — OpenAPI **3.1.0**, **39 operazioni** |
-| Autenticazione | Bearer token (Sanctum) per le rotte `/me` e `auth/logout` |
+| Documentazione | `/docs/api` (Scramble) · JSON versionato in `docs/openapi.json` — OpenAPI **3.1.0**, **66 operazioni** |
+| Autenticazione | Bearer token (Sanctum) per `/me`, `auth/logout` e scritture ticketing; policy aggiuntive per il locale |
 | Formato risposte | `{data, meta{next_cursor, has_more}}` · errori `{error{code, message, fields}}` |
-| Paginazione | a cursore ovunque (`limit` 1–50, default da `config('api.limits')`); cursore illeggibile → **400** |
-| Cache | `ETag` + `Cache-Control: max-age=60, public, stale-while-revalidate=300` (private se autenticato); `If-None-Match` → **304** a corpo vuoto |
+| Paginazione | catalogo a cursore (`limit` 1–50); cursore illeggibile → **400**. Biglietti: `page`, 30 prenotazioni, `meta.next_page` nullable |
+| Cache | catalogo: `ETag` + `Cache-Control: max-age=60, public, stale-while-revalidate=300` (private se autenticato), **304**. Ticketing: `no-store`, senza ETag |
 | Rate limit | 60 req/min anonimi, 120 autenticati, con header `X-RateLimit-Limit/-Remaining/-Reset` e `Retry-After` sul 429 |
 
-## Rotte (39)
+## Rotte (66)
 
 ### Scoperta e contenuti (pubbliche)
 
 | Metodo | Rotta |
 |---|---|
 | GET | `/config` |
+| GET | `/home` · `/sync` · `/stats` · `/areas` |
 | GET | `/cities` · `/cities/{slug}` |
-| GET | `/events` · `/events/{slug}` · `/events/{slug}/similar` |
+| GET | `/events` · `/events/{slug}` · `/events/{slug}/similar` · `/events/{slug}/occurrences` |
 | GET | `/occurrences/{id}` |
 | GET | `/calendar` |
-| GET | `/venues` · `/venues/{slug}` · `/venues/{slug}/events` |
+| GET | `/venues` · `/venues/{slug}` · `/venues/{slug}/events` · `/venues/{slug}/past` |
 | GET | `/map/occurrences` (payload minimale, 7 campi) |
 | GET | `/search` |
+| GET | `/categories` · `/categories/{slug}` · `/tags` · `/tags/{slug}` · `/pages` · `/pages/{slug}` |
+| GET | `/sponsorships` |
 | POST | `/submissions` · `/reports` |
+| POST | `/reports/sponsorships/{id}/metrics/{impression|click}` |
 
 I preset temporali di `/events` (`?preset=ongoing`, `?preset=starting_soon`,
 ecc.) passano da `DatePreset` → `EventOccurrenceQuery`: sito e API condividono
@@ -38,12 +41,14 @@ una sola definizione di "adesso" (scenario G, verificato sotto).
 
 ### Autenticazione
 
-`POST /auth/register` · `login` · `logout` · `magic-link` · `verify-email` ·
+`POST /auth/register` · `login` · `logout` · `magic-link` ·
+`magic-link/exchange` · `verify-email` · `verification/resend` ·
 `password/forgot` · `password/reset`.
 
-Il magic link apre una sessione del sito, non consegna un token API (un token
-in un URL finirebbe in cronologia e log dei proxy); per la futura app servirà
-un deep link (`API_PASSWORD_RESET_URL`).
+Il link mobile porta un challenge casuale monouso e a scadenza breve. Solo
+`magic-link/exchange` lo trasforma in un token Sanctum: il bearer definitivo
+non compare mai nell'URL, nei log del browser o nel referrer. Ogni nuovo link
+invalida quelli precedenti dello stesso account.
 
 ### Account (`/me`, Bearer token; senza token → 401)
 
@@ -51,7 +56,32 @@ un deep link (`API_PASSWORD_RESET_URL`).
 `GET|POST /me/saved` · `POST /me/saved/merge` · `DELETE /me/saved/{occurrence}` ·
 `GET|POST /me/follows` · `DELETE /me/follows/{type}/{id}` ·
 `GET /me/notifications` · `GET|PATCH /me/notification-preferences` ·
-`POST /me/devices` · `DELETE /me/devices/{device}`.
+`GET|POST /me/devices` · `DELETE /me/devices/{device}` ·
+`GET /me/sessions` · `DELETE /me/sessions/{session}` ·
+`PATCH /me/notifications/{notification}/read` ·
+`POST /me/notifications/read-all`.
+
+### Biglietteria gratuita
+
+`GET /occurrences/{id}/booking` (disponibilità pubblica live),
+`POST /occurrences/{id}/bookings`, `GET /me/bookings`,
+`POST /me/bookings/{id}/cancel`, `POST /me/bookings/{id}/email`,
+`POST /ticketing/{id}/check-in` (solo proprietario del locale/admin).
+
+Vedi [TICKETING.md](TICKETING.md) per payload, inventario facoltativo, idempotenza,
+lista d'attesa, annullamenti e operatività. Il vincolo generale di sola lettura
+è superato: restano autenticazione, policy e test di isolamento.
+
+### Regole della wishlist
+
+- il server deriva sempre l'utente dal bearer token; non accetta mai `user_id`;
+- un salvataggio riguarda `occurrence_id`, quindi una data precisa e non un
+  evento astratto;
+- `saved/merge` unisce gli ID ospite in modo idempotente e ignora quelli non
+  più pubblici;
+- la cache privata varia per `Authorization` e `X-Installation-ID`;
+- l'app cancella i dati autenticati dalla memoria prima di cambiare account e
+  rimuove i salvati ospite solo dopo una risposta di merge riuscita.
 
 ## Garanzie di contratto (con test dedicati)
 
@@ -86,7 +116,7 @@ un deep link (`API_PASSWORD_RESET_URL`).
 
 | Verifica | Esito |
 |---|---|
-| `GET /docs/api` · `/docs/api.json` | 200, JSON valido, 39 operazioni |
+| `GET /docs/api` · `/docs/api.json` | 200, JSON valido, 60 operazioni |
 | config, events, venues, map, calendar, search, cities | tutti 200 |
 | `GET /me` senza token | **401** |
 | `If-None-Match` con l'ETag della prima risposta | **304** |
@@ -97,7 +127,7 @@ un deep link (`API_PASSWORD_RESET_URL`).
 | **Scenario G** `starting_soon`: sito `3,4,5` vs API `3,4,5` | **identici, stesso ordine** |
 | **Scenario G** `ongoing`: sito `1,2` vs API `1,2` | **identici, stesso ordine** |
 
-## Questioni aperte
+## Dipendenze operative esterne
 
 1. `/docs/api` è protetto da `RestrictedDocsAccess`: visibile solo in ambiente
    `local`. Per esporlo in produzione va definito il gate `viewApiDocs`.
@@ -105,6 +135,6 @@ un deep link (`API_PASSWORD_RESET_URL`).
    reset punta a `/reimposta-password` del sito e `legal` in `/config` è `null`.
 3. `media.cdn_url` è vuota: il meccanismo esiste ed è coperto da un test, il
    fornitore non è stato scelto.
-4. §13.5 "devices" registra i dispositivi, e dal 2026-09-04 il canale push
-   esiste davvero (D54: Web Push riaperto). I canali reali sono push, email e
-   archivio in-app.
+4. Il backend FCM e la revoca automatica dei token Android non validi sono
+   pronti. Per accendere la push nativa servono il progetto Firebase e le
+   credenziali `FIREBASE_CREDENTIALS`; non sono segreti generabili dal codice.

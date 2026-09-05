@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Route;
 
 /**
  * Gli endpoint che permettono a un'applicazione di costruire ogni schermata
- * senza mai leggere dal sito, e la garanzia che restino di sola lettura.
+ * senza leggere il sito, con autenticazione verificata sulle scritture.
  */
 beforeEach(function (): void {
     $this->city = testCity();
@@ -178,30 +178,16 @@ it('non espone mai il punteggio redazionale', function (): void {
     }
 });
 
-/*
- * L'API resta di SOLA LETTURA: e' una decisione del committente, non un
- * limite temporaneo dell'implementazione.
- *
- * Questo test enumera le rotte davvero registrate e verifica che i verbi che
- * scrivono esistano solo dove esistevano gia: autenticazione, area personale,
- * proposte di eventi e segnalazioni. Se qualcuno aggiunge un POST /v1/events
- * per comodita, qui diventa rosso — e la conversazione avviene prima che
- * l'endpoint sia pubblico, non dopo.
- */
-it('non ha aperto nessuna rotta di scrittura', function (): void {
-    $consentiti = ['auth', 'me', 'submissions', 'reports'];
-
-    $scritture = collect(Route::getRoutes()->getRoutes())
+/* Il vincolo generale «API di sola lettura» è superato dal ticketing.
+ * La garanzia utile rimane: ogni scrittura diversa dai flussi pubblici
+ * dichiarati deve autenticare il chiamante. Le policy sono testate per dominio. */
+it('protegge le scritture API con autenticazione salvo i flussi pubblici dichiarati', function (): void {
+    $nonProtette = collect(Route::getRoutes()->getRoutes())
         ->filter(fn ($route): bool => str_starts_with((string) $route->uri(), 'api/v1/'))
         ->filter(fn ($route): bool => (bool) array_intersect($route->methods(), ['POST', 'PUT', 'PATCH', 'DELETE']))
-        ->map(fn ($route): string => (string) $route->uri())
-        ->reject(function (string $uri) use ($consentiti): bool {
-            $segmento = explode('/', $uri)[2] ?? '';
+        ->reject(fn ($route): bool => in_array(explode('/', $route->uri())[2] ?? '', ['auth', 'submissions', 'reports'], true))
+        ->reject(fn ($route): bool => collect($route->gatherMiddleware())->contains(fn ($middleware): bool => is_string($middleware) && ($middleware === 'auth' || str_starts_with($middleware, 'auth:'))))
+        ->map(fn ($route): string => $route->uri())->values()->all();
 
-            return in_array($segmento, $consentiti, strict: true);
-        })
-        ->values()
-        ->all();
-
-    expect($scritture)->toBe([]);
+    expect($nonProtette)->toBe([]);
 });

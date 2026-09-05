@@ -53,6 +53,40 @@ it('salva una data futura e la mostra fra i salvataggi', function (): void {
         ->assertSee('aria-pressed="true"', false);
 });
 
+it('mostra i salvati anche come calendario con il collegamento a Google Calendar', function (): void {
+    $occurrence = occurrenceAt($this->city, $this->category, '2026-09-12 19:00:00');
+
+    SavedEvent::query()->create([
+        'user_id' => $this->user->getKey(),
+        'occurrence_id' => $occurrence->getKey(),
+    ]);
+
+    $this->actingAs($this->user)
+        ->get('/i-miei-salvataggi?vista=calendario')
+        ->assertOk()
+        ->assertSee(__('account.saved.calendar_view'))
+        ->assertSee('data-saved-calendar', false)
+        ->assertSee('settembre 2026')
+        ->assertSee('mese=2026-10', false)
+        ->assertSee(__('common.actions.google_calendar'))
+        ->assertSee('calendar.google.com', false);
+});
+
+it('il calendario dei salvati naviga i mesi e include anche le date passate', function (): void {
+    $past = occurrenceAt($this->city, $this->category, '2026-08-20 19:00:00', event: ['title' => 'Ricordo di agosto']);
+    $future = occurrenceAt($this->city, $this->category, '2026-09-12 19:00:00', event: ['title' => 'Appuntamento di settembre']);
+
+    SavedEvent::query()->create(['user_id' => $this->user->getKey(), 'occurrence_id' => $past->getKey()]);
+    SavedEvent::query()->create(['user_id' => $this->user->getKey(), 'occurrence_id' => $future->getKey()]);
+
+    $this->actingAs($this->user)
+        ->get('/i-miei-salvataggi?vista=calendario&mese=2026-08')
+        ->assertOk()
+        ->assertSee('Ricordo di agosto')
+        ->assertDontSee('Appuntamento di settembre')
+        ->assertSee('mese=2026-09', false);
+});
+
 it('non salva una data già passata né una che non è pubblica', function (): void {
     $passata = occurrenceAt($this->city, $this->category, '2026-08-20 21:00:00');
 

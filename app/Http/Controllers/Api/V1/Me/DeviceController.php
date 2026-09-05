@@ -16,6 +16,8 @@ use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Laravel\Sanctum\PersonalAccessToken;
 
 /**
  * `POST/DELETE /v1/me/devices` (§15.8).
@@ -39,6 +41,19 @@ final class DeviceController extends Controller
 {
     use InteractsWithMe;
 
+    public function index(Request $request): JsonResponse
+    {
+        $user = $this->user($request);
+
+        return ApiResponse::collection(
+            $user->devices()
+                ->latest('last_seen_at')
+                ->get()
+                ->map(static fn (Device $device): array => DeviceResource::toArray($device, (string) $user->timezone))
+                ->all(),
+        );
+    }
+
     public function store(StoreDeviceRequest $request): JsonResponse
     {
         $user = $this->user($request);
@@ -46,32 +61,53 @@ final class DeviceController extends Controller
 
         $pushToken = is_string($data['push_token'] ?? null) ? $data['push_token'] : null;
         $endpoint = is_string($data['endpoint'] ?? null) ? $data['endpoint'] : null;
+        $installationId = is_string($data['installation_id'] ?? null) ? $data['installation_id'] : null;
+        $tokenHash = $pushToken === null ? null : hash('sha256', $pushToken);
 
-        $device = $user->devices()
-            ->where(static function (Builder $query) use ($pushToken, $endpoint): void {
-                if ($pushToken !== null) {
-                    $query->orWhere('push_token', $pushToken);
-                }
+        $device = DB::transaction(function () use ($user, $request, $data, $pushToken, $endpoint, $installationId, $tokenHash): Device {
+            $device = Device::query()
+                ->where(static function (Builder $query) use ($user, $endpoint, $installationId, $tokenHash): void {
+                    if ($tokenHash !== null) {
+                        $query->orWhere('token_hash', $tokenHash);
+                    }
 
-                if ($endpoint !== null) {
-                    $query->orWhere('endpoint', $endpoint);
-                }
-            })
-            ->first();
+                    if ($endpoint !== null) {
+                        $query->orWhere('endpoint', $endpoint);
+                    }
 
-        $device ??= new Device(['user_id' => $user->getKey()]);
+                    if ($installationId !== null) {
+                        $query->orWhere(static fn (Builder $installation): Builder => $installation
+                            ->where('user_id', $user->getKey())
+                            ->where('installation_id', $installationId));
+                    }
+                })
+                ->lockForUpdate()
+                ->first();
 
-        $device->fill([
-            'user_id' => $user->getKey(),
-            'platform' => $request->platform(),
-            'push_token' => $pushToken,
-            'endpoint' => $endpoint,
-            'keys' => $data['keys'] ?? null,
-            'app_version' => $data['app_version'] ?? null,
-            'locale' => $data['locale'] ?? null,
-            'last_seen_at' => CarbonImmutable::now(),
-            'revoked_at' => null,
-        ])->save();
+            if ($device instanceof Device && (int) $device->user_id !== (int) $user->getKey()) {
+                PersonalAccessToken::query()->where('device_id', $device->getKey())->delete();
+            }
+
+            $device ??= new Device;
+            $device->fill([
+                'user_id' => $user->getKey(),
+                'platform' => $request->platform(),
+                'installation_id' => $installationId,
+                'push_token' => $pushToken,
+                'token_hash' => $tokenHash,
+                'endpoint' => $endpoint,
+                'keys' => $data['keys'] ?? null,
+                'app_version' => $data['app_version'] ?? null,
+                'locale' => $data['locale'] ?? null,
+                'last_seen_at' => CarbonImmutable::now(),
+                'revoked_at' => null,
+            ])->save();
+
+            $current = $user->currentAccessToken();
+            $current->forceFill(['device_id' => $device->getKey()])->save();
+
+            return $device;
+        });
 
         return ApiResponse::item(
             DeviceResource::toArray($device, (string) $user->timezone),

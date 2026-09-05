@@ -29,6 +29,26 @@ return [
         'android' => env('API_MIN_APP_VERSION_ANDROID', '1.0.0'),
     ],
 
+    'latest_app_version' => [
+        'ios' => env('API_LATEST_APP_VERSION_IOS', '1.0.0'),
+        'android' => env('API_LATEST_APP_VERSION_ANDROID', '1.0.0'),
+    ],
+
+    'store_url' => [
+        'ios' => env('API_STORE_URL_IOS'),
+        'android' => env('API_STORE_URL_ANDROID'),
+    ],
+
+    'maintenance' => [
+        'enabled' => env('API_MAINTENANCE_ENABLED', false),
+        'message' => env('API_MAINTENANCE_MESSAGE'),
+    ],
+
+    'auth' => [
+        'token_expiration_days' => (int) env('API_TOKEN_EXPIRATION_DAYS', 90),
+        'magic_link_url' => env('API_MAGIC_LINK_URL'),
+    ],
+
     /*
      * Quanti elementi restituisce una pagina. Il massimo è quello di §13.2:
      * oltre 50 la risposta smette di essere una pagina e diventa un dump.
@@ -100,7 +120,9 @@ return [
         'accounts' => true,
         'saved_events' => true,
         'follows' => true,
-        'push' => false,
+        'push' => env('API_PUSH_ENABLED', false),
+        'offline_sync' => true,
+        'sponsorships' => true,
     ],
 
     /*
@@ -110,6 +132,22 @@ return [
      * esiste ancora, e quando esisterà basterà cambiare questa riga.
      */
     'password_reset_url' => env('API_PASSWORD_RESET_URL'),
+
+    'mobile' => [
+        'web_base_url' => env('APP_URL'),
+        'support_url' => env('API_SUPPORT_URL'),
+        'design' => [
+            'font_family' => 'Archivo',
+            'colors' => [
+                'background' => '#0b0b0b',
+                'foreground' => '#f5f5f0',
+                'accent' => '#ccff00',
+            ],
+            'corner_radius_dp' => 0,
+            'divider_width_dp' => 2,
+            'shadows' => false,
+        ],
+    ],
 
     /*
      * Testi legali (§13.1, §16). L'app mostra i link e la data dell'ultima

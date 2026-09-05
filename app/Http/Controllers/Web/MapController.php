@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Web;
 
 use App\DTOs\PageMeta;
+use App\Enums\DatePreset;
 use App\Enums\SponsorshipPlacement;
 use App\Enums\VenueStatus;
 use App\Http\Controllers\Controller;
@@ -61,6 +62,13 @@ final class MapController extends Controller
     {
         $city = $this->city();
         $filters = $request->filters();
+
+        /* La mappa è uno strumento per decidere cosa fare adesso: alla prima
+           apertura mostra oggi. "Tutte le date" è esplicito e resta tale
+           mentre si aggiungono categoria, prezzo o luogo. */
+        if (! $request->boolean('all_dates') && ! $filters->hasDateWindow()) {
+            $filters = $filters->withPreset(DatePreset::Today);
+        }
 
         return view('map.index', [
             'city' => $city,

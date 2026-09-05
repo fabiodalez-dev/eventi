@@ -35,8 +35,9 @@ class StoreDeviceRequest extends FormRequest
     {
         return [
             'platform' => ['required', Rule::enum(DevicePlatform::class)],
-            'push_token' => ['nullable', 'string', 'max:512', 'required_without:endpoint'],
-            'endpoint' => ['nullable', 'string', 'max:512', 'required_without:push_token'],
+            'installation_id' => ['nullable', 'required_if:platform,android,ios', 'string', 'min:16', 'max:64', 'regex:/^[A-Za-z0-9._:-]+$/'],
+            'push_token' => ['nullable', 'required_if:platform,android,ios', 'string', 'max:512', 'required_without:endpoint'],
+            'endpoint' => ['nullable', 'required_if:platform,web', 'string', 'max:512', 'required_without:push_token'],
             'keys' => ['nullable', 'array'],
             'keys.*' => ['string', 'max:255'],
             'app_version' => ['nullable', 'string', 'max:32'],

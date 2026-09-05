@@ -60,7 +60,7 @@ final class SponsorshipSelector
      *
      * @return Collection<int, Sponsorship>
      */
-    public function forPlacement(City $city, SponsorshipPlacement $placement, ?CarbonImmutable $now = null): Collection
+    public function forPlacement(City $city, SponsorshipPlacement $placement, ?CarbonImmutable $now = null, ?User $user = null): Collection
     {
         $adesso = $now ?? CarbonImmutable::now('UTC');
 
@@ -82,7 +82,7 @@ final class SponsorshipSelector
            di chiamata — compresi quelli futuri — ha la personalizzazione senza
            doversene ricordare, e fuori da una richiesta web (code, comandi)
            il guard risponde `null` e non cambia niente. */
-        $utente = Auth::user();
+        $utente = $user ?? Auth::user();
         $preferite = $utente instanceof User ? $this->preferenze->dellUtente($utente) : [];
 
         return $this->rotate($candidate, $placement->limit(), $adesso, $preferite);
@@ -95,9 +95,9 @@ final class SponsorshipSelector
      * `forPlacement()->first()`, che direbbe la stessa cosa in modo più
      * rumoroso.
      */
-    public function first(City $city, SponsorshipPlacement $placement, ?CarbonImmutable $now = null): ?Sponsorship
+    public function first(City $city, SponsorshipPlacement $placement, ?CarbonImmutable $now = null, ?User $user = null): ?Sponsorship
     {
-        return $this->forPlacement($city, $placement, $now)->first();
+        return $this->forPlacement($city, $placement, $now, $user)->first();
     }
 
     /**

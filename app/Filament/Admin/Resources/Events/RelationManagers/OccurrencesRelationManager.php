@@ -11,6 +11,7 @@ use App\Enums\OccurrenceStatus;
 use App\Enums\TicketTierStatus;
 use App\Filament\Support\EventStatusPresentation;
 use App\Filament\Support\TicketTiersField;
+use App\Models\Booking;
 use App\Models\EventOccurrence;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
@@ -239,6 +240,10 @@ class OccurrencesRelationManager extends RelationManager
                     ->label(__('admin.actions.add_occurrence')),
             ])
             ->recordActions([
+                Action::make('ticketing')
+                    ->label(__('ticketing.manage'))
+                    ->visible(fn (EventOccurrence $record): bool => auth()->user()?->can('manage', [Booking::class, $record]) ?? false)
+                    ->url(fn (EventOccurrence $record): string => route('ticketing.manage.show', $record)),
                 EditAction::make()
                     ->modalDescription(fn (EventOccurrence $record): string => $record->recurrence_id === null
                         ? __('admin.scopes.no_series')

@@ -155,7 +155,7 @@ Motivi: SEO (metà del valore del prodotto arriva da chi cerca su Google), TTFB,
 - Cache/queue: **file e database** (D5). ~~Redis + Horizon~~: nessun demone Redis sulla shared hosting. Il worker gira da cron con `queue:work --stop-when-empty`, e senza lock distribuito la garanzia contro il doppio invio è il vincolo `dedupe_key UNIQUE`, che §7.10 già prescriveva
 - Ricerca: **Laravel Scout con driver `database`** e indici FULLTEXT (D5). ~~Meilisearch~~: nessun demone installabile
 - Media: **Spatie Media Library** + Intervention Image, storage S3-compatible (Cloudflare R2 / Hetzner Object Storage) dietro CDN
-- Mappe: **Leaflet** con tile OpenStreetMap. ~~MapLibre GL~~: il disegno adottato inverte le tile in scala di grigi con un filtro CSS, e MapLibre le disegna in WebGL, dove i filtri CSS non arrivano. Leaflet pesa anche molto meno
+- Mappe pubbliche: **MapLibre GL** con stile vettoriale scuro OpenFreeMap; Leaflet resta soltanto nel selettore coordinate dell'amministrazione
 - Geocoding: dietro `GeocodingServiceInterface`, implementazione iniziale Nominatim/Photon. **Il codice non deve mai dipendere direttamente dal provider.**
 - API auth: **Laravel Sanctum**
 - OpenAPI generato automaticamente, esposto su `/docs/api`
@@ -576,7 +576,7 @@ Il pulsante **Salva** funziona anche da anonimo e, se l'evento ha più date futu
 JSON-LD `Event` **per ogni occorrenza pubblicata**, con dati coerenti con la singola data: `location: Place` con indirizzo e coordinate, `offers`, `eventStatus`, `eventAttendanceMode`, `organizer`, `image`, `performer`.
 
 ### 11.6 Mappa
-Leaflet: clustering, marker colorati per categoria, filtri condivisi con la lista, bottom sheet con la card, geolocalizzazione opzionale, pulsante **"Cerca in quest'area"** al pan. Query per bounding box + `business_date`.
+MapLibre: clustering per **numero di locali**, marker nell'accento, filtri condivisi con la lista, bottom sheet con tutte le date del locale, geolocalizzazione opzionale, pulsante **"Cerca in quest'area"** al pan. La prima apertura mostra oggi; “Tutte le date” allarga esplicitamente la finestra. Query per bounding box + `business_date`.
 
 ### 11.7 Vicino a me
 **Non chiedere il GPS all'apertura del sito.** Chiedere solo quando serve davvero, con una frase chiara. Raggi: 1 / 5 / 10 / 25 km. La posizione non viene mai salvata: serve solo alla query.
@@ -949,9 +949,10 @@ code, scheduler, sorgenti di import):
 ordinario ha un controllo che lo nomina e una pagina del RUNBOOK che dice cosa
 fare*. Se un incidente si scopre leggendo un log, manca uno dei due.
 
-### F11 — Documento app mobile
-Solo quando sito, backend, API e contenuti sono stabili. Produrre `MOBILE-APP-SPEC.md`.
-Stack raccomandato: **React Native + Expo + TypeScript + Expo Router** — codebase unico Android/iOS, EAS per build, distribuzione e aggiornamenti.
+### F11 — App mobile Android
+Completata il 2026-09-04 con specifica in `docs/MOBILE-APP-SPEC.md`.
+Stack adottato: **Kotlin + Jetpack Compose**, client OpenAPI/JSON sopra la v1,
+token protetto da Android Keystore e build Gradle riproducibile.
 Schermate: Oggi · Esplora · Mappa · Calendario · Salvati · Profilo.
 Funzioni native che giustificano l'esistenza dell'app: push ("stasera 3 eventi che ti interessano"), GPS, calendario di sistema, share nativo, cache offline 7 giorni via `updated_since`, widget, deep linking. Requisiti store: account deletion in-app (Apple), privacy nutrition label, versione minima forzata via `/v1/config`.
 

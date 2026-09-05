@@ -20,6 +20,8 @@ return [
        La posizione si chiede al tocco e non all'apertura (§11.7), e non viene
        mai salvata da nessuna parte. */
     'pins' => 'Mappa · un locale|Mappa · :count locali',
+    'cluster_hint' => 'I numeri indicano quanti locali ci sono in quella zona.',
+    'pin_hint' => 'Tocca il punto per vedere il locale e le date in programma.',
     'locate' => 'Vai alla mia posizione',
     'search_here' => 'Cerca in quest\'area',
     'searching' => 'Cerco…',
@@ -36,7 +38,7 @@ return [
 
     /* Deve corrispondere a chi serve davvero le tessere: vedi config/map.php. */
     'attribution' => 'Dati cartografici © :osm contributors, licenza :license · tessere :tiles',
-    'tiles' => 'Esri',
+    'tiles' => 'OpenFreeMap',
 
     /* §11.7: la posizione si chiede quando serve, dicendo perché. */
     'near' => [

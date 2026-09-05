@@ -20,6 +20,8 @@
     'zones' => [],
     'venues',
     'total' => null,
+    'actionUrl' => null,
+    'defaultToday' => false,
 ])
 
 @php
@@ -31,8 +33,20 @@
 
     $formatter = app(\App\Support\DateFormatter::class);
 
-    /* Ogni pillola è semplicemente un altro insieme di filtri, reso indirizzo. */
-    $url = static fn (\App\DTOs\EventFilters $set): string => route('events.index', $set->toQueryString());
+    $destination = $actionUrl ?? route('events.index');
+    $allDates = $defaultToday && request()->boolean('all_dates');
+    $url = static function (\App\DTOs\EventFilters $set) use ($destination, $defaultToday, $allDates): string {
+        $query = $set->toQueryString();
+
+        if ($defaultToday && $allDates && ! $set->hasDateWindow()) {
+            $query['all_dates'] = '1';
+        }
+
+        return $destination.($query === [] ? '' : '?'.http_build_query($query));
+    };
+    $anyDateUrl = $defaultToday
+        ? $destination.'?'.http_build_query([...$filters->withPreset(null)->toQueryString(), 'all_dates' => '1'])
+        : $url($filters->withPreset(null));
 
     $active = $filters->activeCount();
 
@@ -98,7 +112,7 @@
 
         @if ($active > 0)
             <a
-                href="{{ route('events.index') }}"
+                href="{{ $destination }}"
                 class="border-b-2 border-line font-display text-[0.594rem] leading-none font-extrabold tracking-[0.14em] text-ink-subtle uppercase transition-colors hover:border-accent hover:text-accent"
             >
                 {{ __('filters.reset') }}
@@ -106,13 +120,27 @@
         @endif
     </div>
 
+    @if ($filters->tags !== [])
+        <div class="flex flex-wrap gap-1.5" aria-label="{{ __('filters.tag.label') }}">
+            @foreach ($filters->tags as $activeTag)
+                <x-filter-chip
+                    :href="$url($filters->withTags(array_values(array_diff($filters->tags, [$activeTag]))))"
+                    :active="true"
+                    :aria-label="__('filters.reset').' #'.($tagOptions[$activeTag] ?? $activeTag)"
+                >
+                    #{{ $tagOptions[$activeTag] ?? $activeTag }} <span aria-hidden="true">×</span>
+                </x-filter-chip>
+            @endforeach
+        </div>
+    @endif
+
     <div class="flex flex-col gap-[9px]">
         <span class="font-display text-[0.594rem] leading-none font-extrabold tracking-[0.16em] text-ink-subtle uppercase">{{ __('filters.date.label') }}</span>
 
         <div class="grid grid-cols-2 gap-0.5 bg-line p-0.5">
             <x-filter-chip
-                :href="$url($filters->withPreset(null))"
-                :active="! $filters->hasDateWindow()"
+                :href="$anyDateUrl"
+                :active="$defaultToday ? $allDates : ! $filters->hasDateWindow()"
                 class="justify-center border-0 py-2.5"
             >
                 {{ __('filters.date.any') }}
@@ -210,7 +238,10 @@
             @endif
         </summary>
 
-        <form method="GET" action="{{ route('events.index') }}" class="flex flex-col gap-4 border-t border-line px-4 py-4">
+        <form method="GET" action="{{ $destination }}" class="flex flex-col gap-4 border-t border-line px-4 py-4">
+            @if ($allDates)
+                <input type="hidden" name="all_dates" value="1">
+            @endif
             @foreach (['category' => implode(',', $filters->categories), 'lat' => $filters->lat, 'lng' => $filters->lng, 'q' => $filters->q] as $hidden => $value)
                 @if (filled($value))
                     <input type="hidden" name="{{ $hidden }}" value="{{ $value }}">
@@ -343,7 +374,7 @@
                 </button>
 
                 @if ($active > 0)
-                    <a href="{{ route('events.index') }}" class="text-sm font-semibold text-ink-muted underline hover:text-ink">
+                    <a href="{{ $destination }}" class="text-sm font-semibold text-ink-muted underline hover:text-ink">
                         {{ __('filters.reset') }}
                     </a>
                 @endif
