@@ -120,6 +120,48 @@ it('never oversells and promotes the waiting group when a place is released', fu
     expect($this->service->availability($this->date)['remaining'])->toBe(0);
 });
 
+it('rejects a second reservation with another request key on web and API', function (): void {
+    $this->date->update(['booking_capacity' => null, 'booking_limit' => 6]);
+    $booking = $this->service->reserve($this->user, $this->date, ['A'], (string) Str::uuid(), false);
+    $this->actingAs($this->user)->postJson('/api/v1/occurrences/'.$this->date->id.'/bookings', $this->payload)
+        ->assertUnprocessable()->assertJsonPath('error.fields.ticketing.0', __('ticketing.errors.already_booked'));
+    $this->post('/biglietti/prenota/'.$this->date->id, $this->payload)->assertSessionHasErrors('ticketing');
+    expect(Booking::count())->toBe(1)->and(AdmissionTicket::count())->toBe(1);
+    $this->get('/eventi/'.$this->date->event->slug)->assertOk()
+        ->assertSee(__('ticketing.manage_booking'))->assertSee(route('tickets.show', $booking), false)
+        ->assertDontSee(route('tickets.create', $this->date), false);
+    $this->get(route('tickets.show', $booking))->assertOk()->assertSee('Mostra QR');
+    $this->actingAs(User::factory()->create())->get(route('tickets.show', $booking))->assertForbidden();
+    $this->get('/eventi/'.$this->date->event->slug)->assertOk()
+        ->assertSee(route('tickets.create', $this->date), false)->assertDontSee(__('ticketing.manage_booking'));
+});
+
+it('blocks duplicate waitlists and partial cancellations but allows rebooking after full cancellation', function (): void {
+    $this->date->update(['booking_capacity' => 0]);
+    $booking = $this->service->reserve($this->user, $this->date, ['A', 'B'], (string) Str::uuid(), true);
+    $url = '/api/v1/occurrences/'.$this->date->id.'/bookings';
+    $payload = [...$this->payload, 'waitlist' => true];
+    $this->actingAs($this->user)->postJson($url, $payload)->assertUnprocessable();
+    $this->get('/biglietti/prenota/'.$this->date->id)->assertRedirect(route('tickets.show', $booking));
+    $this->service->cancel($booking, $this->user, $booking->tickets[0]->id);
+    $this->postJson($url, $payload)->assertUnprocessable();
+    $this->service->cancel($booking->fresh(), $this->user);
+    $this->get('/biglietti/prenota/'.$this->date->id)->assertOk();
+    $this->get('/eventi/'.$this->date->event->slug)->assertSee(route('tickets.create', $this->date), false);
+    $this->postJson($url, $payload)->assertCreated()->assertJsonPath('data.status', 'waitlisted');
+    expect(Booking::query()->active()->count())->toBe(1);
+});
+
+it('allows separate dates of the same event', function (): void {
+    $this->service->reserve($this->user, $this->date, ['A'], (string) Str::uuid(), false);
+    $otherDate = $this->date->replicate();
+    $otherDate->starts_at = $this->date->starts_at->copy()->addDay();
+    $otherDate->ends_at = $this->date->ends_at->copy()->addDay();
+    $otherDate->save();
+    $this->service->reserve($this->user, $otherDate, ['A'], (string) Str::uuid(), false);
+    expect(Booking::query()->active()->count())->toBe(2);
+});
+
 it('supports unlimited seats and enforces the account limit', function (): void {
     $this->date->update(['booking_capacity' => null, 'booking_limit' => 2]);
     $this->service->reserve($this->user, $this->date, ['A', 'B'], (string) Str::uuid(), false);
@@ -166,8 +208,9 @@ it('revokes all tickets when an occurrence is cancelled and never resurrects QR 
 });
 
 it('renders booking forms, QR profile and PDF', function (): void {
-    $booking = $this->service->reserve($this->user, $this->date, ['A'], (string) Str::uuid(), false);
     $this->actingAs($this->user)->get('/biglietti/prenota/'.$this->date->id)->assertOk();
+    $booking = $this->service->reserve($this->user, $this->date, ['A'], (string) Str::uuid(), false);
+    $this->get('/biglietti/prenota/'.$this->date->id)->assertRedirect(route('tickets.show', $booking));
     $this->get('/biglietti')->assertOk()->assertSee('Mostra QR');
     $this->get('/biglietti/pdf/'.$booking->tickets->first()->id)->assertOk()->assertHeader('content-type', 'application/pdf');
 });

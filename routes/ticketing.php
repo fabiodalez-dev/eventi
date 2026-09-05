@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', TicketingPrivacy::class])->group(function (): void {
     Route::get('/biglietti', [TicketingController::class, 'index'])->name('tickets.index');
+    Route::get('/biglietti/prenotazione/{booking}', [TicketingController::class, 'show'])->name('tickets.show');
     Route::post('/biglietti/{booking}/email', [TicketingController::class, 'resend'])->middleware('throttle:3,60')->name('tickets.resend');
     Route::get('/biglietti/prenota/{occurrence}', [TicketingController::class, 'create'])->name('tickets.create');
     Route::post('/biglietti/prenota/{occurrence}', [TicketingController::class, 'store'])->middleware('throttle:20,1')->name('tickets.store');

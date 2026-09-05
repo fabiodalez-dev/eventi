@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'manage_booking' => 'Gestisci la tua prenotazione',
     'booker' => 'Chi prenota',
     'form_fields' => 'Dati richiesti al prenotante',
     'form_hint' => 'Richiedi solo dati necessari a organizzare l’ingresso. Le impostazioni valgono per questa data e per le nuove prenotazioni. Nome e cognome dei partecipanti sono sempre richiesti; l’email è quella dell’account.',
@@ -53,6 +54,7 @@ return [
         'current_status' => 'Consulta i tuoi biglietti per lo stato aggiornato, la data e le istruzioni di ingresso.',
     ],
     'errors' => [
+        'already_booked' => 'Hai già una prenotazione per questa data. Vai ai tuoi biglietti per gestirla.',
         'retry_conflict' => 'Questa richiesta è già stata usata con dati diversi. Riapri il modulo.',
         'closed' => 'Le prenotazioni non sono aperte per questa data.',
         'account_limit' => 'Hai superato il numero massimo di biglietti per account.',

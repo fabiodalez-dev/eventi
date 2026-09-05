@@ -23,5 +23,5 @@ try {
     );
     echo 'confirmed';
 } catch (ValidationException $error) {
-    echo 'full';
+    echo in_array(__('ticketing.errors.already_booked'), $error->errors()['ticketing'] ?? [], true) ? 'already_booked' : 'full';
 }

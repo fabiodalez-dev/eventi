@@ -8,6 +8,7 @@ use App\DTOs\PageMeta;
 use App\Enums\EventStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Web\Concerns\InteractsWithCity;
+use App\Models\Booking;
 use App\Models\City;
 use App\Models\Event;
 use App\Models\EventOccurrence;
@@ -61,6 +62,9 @@ final class EventController extends Controller
             'city' => $city,
             'event' => $event,
             'occurrences' => $upcoming,
+            'activeBookings' => auth()->check()
+                ? Booking::query()->active()->where('user_id', auth()->id())->whereIn('occurrence_id', $upcoming->modelKeys())->get()->keyBy('occurrence_id')
+                : collect(),
             'pastOccurrences' => $past,
             'related' => $related,
             'atVenue' => $atVenue,

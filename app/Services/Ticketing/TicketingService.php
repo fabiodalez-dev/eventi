@@ -19,6 +19,12 @@ use Illuminate\Validation\ValidationException;
 
 final class TicketingService
 {
+    public function activeBooking(User $user, EventOccurrence $date): ?Booking
+    {
+        return Booking::query()->active()->where('user_id', $user->id)
+            ->where('occurrence_id', $date->id)->latest('id')->first();
+    }
+
     /** @return array<string, int> */
     public function statistics(EventOccurrence $date): array
     {
@@ -77,6 +83,7 @@ final class TicketingService
 
                 return $existing->load('tickets');
             }
+            $this->ensure($this->activeBooking($account, $date) === null, 'already_booked');
             $this->ensure($this->isOpen($date), 'closed');
             $details = app(BookingForm::class)->validate($date, $booker);
             // Resume queued groups first when a previously closed window reopens.

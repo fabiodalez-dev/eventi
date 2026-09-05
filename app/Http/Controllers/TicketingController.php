@@ -47,9 +47,23 @@ final class TicketingController extends Controller
             : view('ticketing.index', ['bookings' => $bookings, 'meta' => $this->meta('title')]);
     }
 
-    public function create(EventOccurrence $occurrence, TicketingService $service): View
+    public function show(Booking $booking): View
+    {
+        Gate::authorize('view', $booking);
+
+        return view('ticketing.index', [
+            'bookings' => Booking::query()->whereKey($booking->id)->with(['tickets', 'occurrence.event.venue'])->paginate(1),
+            'meta' => $this->meta('manage_booking'),
+        ]);
+    }
+
+    public function create(Request $request, EventOccurrence $occurrence, TicketingService $service): View|RedirectResponse
     {
         abort_unless($occurrence->event?->status === EventStatus::Published && ! $occurrence->event->venue?->status?->isProvvedimento(), 404);
+
+        if ($booking = $service->activeBooking($request->user(), $occurrence)) {
+            return redirect()->route('tickets.show', $booking);
+        }
 
         return view('ticketing.reserve', ['date' => $occurrence, 'availability' => $service->availability($occurrence), 'meta' => $this->meta('reserve')]);
     }

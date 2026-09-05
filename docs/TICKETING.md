@@ -21,6 +21,12 @@ un inventario e non viene usata come limite implicito.
 
 ## Invarianti
 
+- Una sola prenotazione attiva per account e data, anche in lista d'attesa.
+  Il controllo avviene sotto lock e vale per sito e API con chiavi diverse.
+  L'annullamento parziale non consente un secondo ordine; dopo annullamento
+  completo si può riprenotare se la finestra è aperta. Le altre date restano indipendenti.
+  Il sito mostra «Gestisci la tua prenotazione» e il vecchio URL del modulo
+  reindirizza alla prenotazione personale, protetta da policy.
 - Ogni modifica di inventario acquisisce il lock della data prima dei biglietti.
 - Un biglietto controllato non può essere riutilizzato o annullato dall'utente.
 - QR opachi, senza nome/email. Nessun ingresso viene registrato con GET.
@@ -48,8 +54,8 @@ L'email resta quella dell'account autenticato. I campi nascosti vengono scartati
 dal server; i dati aggiuntivi del prenotante sono cifrati nel database e visibili
 solo al titolare della prenotazione e al gestore autorizzato (anche nel CSV).
 
-Il limite per account conta i biglietti attivi della stessa data, anche se
-prenotati in richieste diverse, inclusa la lista d'attesa. Non limita la capienza
+Il limite per account conta i biglietti attivi della stessa data, inclusa la
+lista d'attesa e gli eventuali ordini storici precedenti al vincolo unico. Non limita la capienza
 fisica del locale. Il checkbox privacy non è preselezionato e non è consenso
 marketing; vengono registrate data e versione della presa visione.
 

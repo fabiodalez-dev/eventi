@@ -5,12 +5,19 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\BookingStatus;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Booking extends Model
 {
+    /** @param Builder<Booking> $query */
+    public function scopeActive(Builder $query): void
+    {
+        $query->whereIn('status', [BookingStatus::Confirmed, BookingStatus::Waitlisted]);
+    }
+
     protected $guarded = ['id'];
 
     protected $hidden = ['request_hash', 'request_key'];

@@ -266,7 +266,9 @@
                                 </div>
 
                                 @if ($occurrences->isNotEmpty())
-                                    @if ($occurrence->booking_enabled && $event->venue?->ticketing_enabled)
+                                    @if ($booking = $activeBookings->get($occurrence->id))
+                                        <x-button :href="route('tickets.show', $booking)" class="min-h-12">{{ __('ticketing.manage_booking') }}</x-button>
+                                    @elseif ($occurrence->booking_enabled && $event->venue?->ticketing_enabled)
                                         <x-button :href="route('tickets.create', $occurrence)" class="min-h-12">{{ __('ticketing.reserve') }}</x-button>
                                     @endif
                                     <div class="flex flex-wrap gap-2">
