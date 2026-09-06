@@ -25,6 +25,9 @@
 
     RewriteEngine On
 
+    # Vite filenames are content hashed; only these assets are immutable.
+    RewriteRule ^build/assets/ - [E=INCITTA_VERSIONED_ASSET:1]
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
@@ -42,4 +45,8 @@
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
+</IfModule>
+
+<IfModule mod_headers.c>
+    Header set Cache-Control "public, max-age=31536000, immutable" env=INCITTA_VERSIONED_ASSET
 </IfModule>

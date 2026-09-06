@@ -16,13 +16,16 @@ return [
      */
     'enabled' => filter_var(env('PAGE_CACHE_ENABLED', true), FILTER_VALIDATE_BOOLEAN),
 
+    // Null preserves the application's store. frontend-redis is opt-in only.
+    'store' => env('PAGE_CACHE_STORE'),
+
     /*
      * Scheletro della pagina iniziale, "stasera", weekend, categorie, locali
      * attivi: cinque minuti (§12.3). Non è un compromesso fra freschezza e
      * velocità — è il tempo entro cui, invalidazione a parte, nulla di ciò che
      * quelle pagine mostrano può essere cambiato.
      */
-    'ttl_minutes' => 1,
+    'ttl_minutes' => max(1, min(5, (int) env('PAGE_CACHE_TTL_MINUTES', 1))),
 
     /*
      * "In corso" e "Inizia tra poco": sessanta secondi (§12.3). Sono le due

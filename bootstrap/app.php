@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\Api\AlwaysJson;
 use App\Http\Middleware\InstallerSession;
+use App\Http\Middleware\PreventSharedResponseCache;
 use App\Support\Api\ApiExceptionRenderer;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -43,6 +44,7 @@ return Application::configure(basePath: dirname(__DIR__))
          * indirizzi dell'installer non fa nulla.
          */
         $middleware->prependToGroup('web', InstallerSession::class);
+        $middleware->prependToGroup('web', PreventSharedResponseCache::class);
 
         /*
          * Gli indirizzi che non esistono più (tabella `redirects`).

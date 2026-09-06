@@ -34,6 +34,16 @@ return [
 
     'stores' => [
 
+        'frontend-redis' => [
+            'driver' => 'failover',
+            'stores' => ['redis', 'frontend-file'],
+        ],
+
+        'frontend-file' => [
+            'driver' => 'file',
+            'path' => storage_path('framework/cache/frontend'),
+        ],
+
         'array' => [
             'driver' => 'array',
             'serialize' => false,

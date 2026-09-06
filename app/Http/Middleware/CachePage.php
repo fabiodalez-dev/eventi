@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Symfony\Component\HttpFoundation\Response;
+use Throwable;
 
 /**
  * La full-page cache di §12.3: **scheletro** della pagina iniziale, di
@@ -59,7 +60,13 @@ final class CachePage
         }
 
         $key = $this->key($request);
-        $cached = Cache::get($key);
+        try {
+            $cached = Cache::store(config('page_cache.store'))->get($key);
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return $next($request);
+        }
 
         if (is_string($cached)) {
             return response($this->restore($cached), 200)
@@ -69,14 +76,18 @@ final class CachePage
 
         $response = $next($request);
 
-        if ($this->isStorable($response)) {
+        if ($this->isCacheable($request) && $this->isStorable($response)) {
             $content = (string) $response->getContent();
 
-            Cache::put(
-                $key,
-                str_replace(csrf_token(), self::CSRF_PLACEHOLDER, $content),
-                now()->addMinutes(config()->integer('page_cache.ttl_minutes')),
-            );
+            try {
+                Cache::store(config('page_cache.store'))->put(
+                    $key,
+                    str_replace(csrf_token(), self::CSRF_PLACEHOLDER, $content),
+                    now()->addMinutes(config()->integer('page_cache.ttl_minutes')),
+                );
+            } catch (Throwable $exception) {
+                report($exception);
+            }
         }
 
         $response->headers->set('X-Page-Cache', 'miss');
@@ -163,8 +174,13 @@ final class CachePage
             ContentVersion::for($cityId),
             app()->getLocale(),
             app(Consent::class)->fingerprint(),
-            sha1($this->canonicalUrl($request).Cache::get('consent_scripts_revision', '0').SponsorshipGrant::active()
-                ->whereHas('venue', fn ($q) => $q->where('city_id', $cityId))->orderBy('id')->pluck('id')->toJson()),
+            sha1($request->getSchemeAndHttpHost().$this->canonicalUrl($request)
+                .now($city->timezone ?? config('app.timezone'))->format('Y-m-d')
+                .Cache::get('frontend_cache_revision', '0')
+                .(is_file(public_path('build/release.json')) ? hash_file('sha256', public_path('build/release.json')) : '')
+                .(is_file(public_path('build/manifest.json')) ? hash_file('sha256', public_path('build/manifest.json')) : '')
+                .Cache::get('consent_scripts_revision', '0').SponsorshipGrant::active()
+                    ->whereHas('venue', fn ($q) => $q->where('city_id', $cityId))->orderBy('id')->pluck('id')->toJson()),
         );
     }
 
@@ -208,6 +224,8 @@ final class CachePage
 
     /**
      * Si può leggere dalla cache?
+     *
+     * @phpstan-impure Session and authentication can change while rendering.
      */
     private function isCacheable(Request $request): bool
     {
@@ -219,7 +237,8 @@ final class CachePage
             return false;
         }
 
-        if (! $request->isMethod('GET') || $request->ajax()) {
+        if (! $request->isMethod('GET') || $request->ajax() || $request->expectsJson()
+            || $request->headers->has('Authorization') || $request->has('signature')) {
             return false;
         }
 
@@ -234,7 +253,7 @@ final class CachePage
          * nessuno rileggerà mai — la stessa trappola dell'arrotondamento al
          * quarto d'ora, vista da un'altra parte.
          */
-        if ($request->has('near')) {
+        if ($request->hasAny(['near', 'lat', 'lng'])) {
             return false;
         }
 
@@ -263,7 +282,9 @@ final class CachePage
          * Anche gli errori di validazione appartengono a chi ha appena
          * compilato il modulo: una pagina che li porta non si conserva.
          */
-        return ! $request->session()->has('status') && ! $request->session()->has('errors');
+        return ! $request->session()->hasAny(['status', 'errors', '_old_input'])
+            && $request->session()->get('_flash.new', []) === []
+            && $request->session()->get('_flash.old', []) === [];
     }
 
     /**
@@ -274,6 +295,10 @@ final class CachePage
     private function isStorable(Response $response): bool
     {
         if ($response->getStatusCode() !== 200) {
+            return false;
+        }
+
+        if ($response->headers->getCookies() !== [] || $response->headers->hasCacheControlDirective('no-store')) {
             return false;
         }
 

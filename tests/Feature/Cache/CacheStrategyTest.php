@@ -333,7 +333,7 @@ describe('full-page cache dello scheletro', function (): void {
          * di rotta e i cookie glieli attaccano addosso piu' tardi: fallirebbe
          * qui, che e' il punto in cui il rischio nasce.
          */
-        expect(Cache::get(app(CachePage::class)->key(Request::create('/eventi'))))->toBeString();
+        expect(Cache::get(app(CachePage::class)->key(Request::create(url('/eventi')))))->toBeString();
     });
 
     it('non mette in cache la ricerca ne una posizione', function (): void {
