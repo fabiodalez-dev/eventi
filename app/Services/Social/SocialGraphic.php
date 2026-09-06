@@ -16,6 +16,11 @@ use RuntimeException;
 /** Fixed editorial zones, measured with the same font used to draw. Never ellipsize event data. */
 final class SocialGraphic
 {
+    public static function version(): string
+    {
+        return substr(hash_file('sha256', __FILE__), 0, 16);
+    }
+
     /** @param array<string, mixed> $options */
     public function render(EventOccurrence $occurrence, SocialFormat $format, array $options = []): string
     {

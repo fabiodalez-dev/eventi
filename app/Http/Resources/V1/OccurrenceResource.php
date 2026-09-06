@@ -44,6 +44,8 @@ final class OccurrenceResource
 
         $payload = [
             'occurrence_id' => (int) $occurrence->getKey(),
+            'date_url' => route('events.occurrence', ['slug' => $event->slug, 'occurrence' => $occurrence->id]),
+            'previous_starts_at' => ApiDate::instant($occurrence->previous_starts_at, $timezone),
             'event_id' => (int) $event->getKey(),
             'event_slug' => (string) $event->slug,
             'starts_at' => ApiDate::instant($occurrence->starts_at, $timezone),

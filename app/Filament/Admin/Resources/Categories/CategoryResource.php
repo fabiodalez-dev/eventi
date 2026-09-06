@@ -7,6 +7,7 @@ namespace App\Filament\Admin\Resources\Categories;
 use App\Filament\Admin\Resources\Categories\Pages\CreateCategory;
 use App\Filament\Admin\Resources\Categories\Pages\EditCategory;
 use App\Filament\Admin\Resources\Categories\Pages\ListCategories;
+use App\Filament\Support\EditorialFields;
 use App\Models\Category;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
@@ -67,6 +68,8 @@ class CategoryResource extends Resource
     {
         return $schema->columns(1)
             ->components([
+                EditorialFields::content(false, false, true),
+                EditorialFields::seo(),
                 Section::make(__('admin.sections.general'))
                     ->columns(2)
                     ->schema([

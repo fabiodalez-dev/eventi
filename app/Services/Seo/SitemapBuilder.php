@@ -7,6 +7,7 @@ namespace App\Services\Seo;
 use App\Models\Category;
 use App\Models\City;
 use App\Models\Event;
+use App\Models\Page;
 use App\Models\Tag;
 use App\Models\Venue;
 use App\Queries\EventOccurrenceQuery;
@@ -61,6 +62,9 @@ final class SitemapBuilder
     public function index(City $city): SitemapIndex
     {
         $index = SitemapIndex::create();
+        if (! app(EditorialContent::class)->indexable($city)) {
+            return $index;
+        }
 
         foreach (self::SECTIONS as $section) {
             $pages = $this->pageCount($city, $section);
@@ -80,6 +84,9 @@ final class SitemapBuilder
      */
     public function section(City $city, string $section, int $page = 1): ?Sitemap
     {
+        if (! app(EditorialContent::class)->indexable($city)) {
+            return null;
+        }
         if (! in_array($section, self::SECTIONS, true) || $page < 1) {
             return null;
         }
@@ -148,7 +155,7 @@ final class SitemapBuilder
                 'pagine' => $this->staticPages(),
                 'eventi' => $this->events($city),
                 'locali' => $this->venues($city),
-                'tassonomie' => $this->taxonomies(),
+                'tassonomie' => $this->taxonomies($city),
                 'giorni' => $this->days($city),
                 default => [],
             },
@@ -194,6 +201,14 @@ final class SitemapBuilder
             ];
         }
 
+        foreach (Page::query()->published()->get() as $page) {
+            if (app(EditorialContent::class)->indexable($page)) {
+                $urls[] = ['loc' => route('pages.show', ['slug' => $page->slug]),
+                    'lastmod' => $this->lastModified($page->getAttribute('updated_at')),
+                    'changefreq' => Url::CHANGE_FREQUENCY_MONTHLY, 'priority' => 0.4];
+            }
+        }
+
         return $urls;
     }
 
@@ -212,15 +227,24 @@ final class SitemapBuilder
             ->inCity($city)
             ->readable()
             ->orderBy('id')
-            ->select(['id', 'slug', 'updated_at'])
+            ->select(['id', 'slug', 'updated_at', 'seo', 'is_demo'])
+            ->with('occurrences')
             ->chunk(500, function ($events) use (&$urls): void {
                 foreach ($events as $event) {
+                    if (! app(EditorialContent::class)->indexable($event)) {
+                        continue;
+                    }
                     $urls[] = [
                         'loc' => route('events.show', $event),
                         'lastmod' => $this->lastModified($event->getAttribute('updated_at')),
                         'changefreq' => Url::CHANGE_FREQUENCY_WEEKLY,
                         'priority' => 0.8,
                     ];
+                    foreach ($event->occurrences as $date) {
+                        $urls[] = ['loc' => route('events.occurrence', ['slug' => $event->slug, 'occurrence' => $date->id]),
+                            'lastmod' => $this->lastModified($date->getAttribute('updated_at')),
+                            'changefreq' => Url::CHANGE_FREQUENCY_WEEKLY, 'priority' => 0.7];
+                    }
                 }
             });
 
@@ -238,9 +262,12 @@ final class SitemapBuilder
             ->approved()
             ->inCity($city)
             ->orderBy('id')
-            ->select(['id', 'slug', 'updated_at'])
+            ->select(['id', 'slug', 'updated_at', 'seo', 'is_demo'])
             ->chunk(500, function ($venues) use (&$urls): void {
                 foreach ($venues as $venue) {
+                    if (! app(EditorialContent::class)->indexable($venue)) {
+                        continue;
+                    }
                     $urls[] = [
                         'loc' => route('venues.show', $venue),
                         'lastmod' => $this->lastModified($venue->getAttribute('updated_at')),
@@ -256,11 +283,14 @@ final class SitemapBuilder
     /**
      * @return list<array{loc: string, lastmod?: string|null, changefreq: string, priority: float}>
      */
-    private function taxonomies(): array
+    private function taxonomies(City $city): array
     {
         $urls = [];
 
         foreach (Category::query()->active()->ordered()->get() as $category) {
+            if (! app(EditorialContent::class)->taxonomyIndexable($category, $city)) {
+                continue;
+            }
             $urls[] = [
                 'loc' => route('events.category', $category),
                 'changefreq' => Url::CHANGE_FREQUENCY_DAILY,
@@ -269,6 +299,9 @@ final class SitemapBuilder
         }
 
         foreach (Tag::query()->approved()->popular()->orderBy('name')->get() as $tag) {
+            if (! app(EditorialContent::class)->taxonomyIndexable($tag, $city)) {
+                continue;
+            }
             $urls[] = [
                 'loc' => route('events.tag', $tag),
                 'changefreq' => Url::CHANGE_FREQUENCY_WEEKLY,

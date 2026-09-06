@@ -89,7 +89,12 @@ it('pubblica un nodo JSON-LD per ogni occorrenza, con luogo, offerta e stato', f
 
     $nodes = jsonLdNodes($this->get('/eventi/'.$event->slug)->assertOk()->getContent() ?: '');
 
-    $events = array_values(array_filter($nodes, static fn (array $node): bool => ($node['@type'] ?? null) === 'Event'));
+    expect(array_filter($nodes, static fn (array $node): bool => ($node['@type'] ?? null) === 'CollectionPage'))->not->toBeEmpty();
+    $events = [];
+    foreach ($event->occurrences()->orderBy('starts_at')->get() as $date) {
+        $dateNodes = jsonLdNodes($this->get(route('events.occurrence', ['slug' => $event->slug, 'occurrence' => $date->id]))->assertOk()->getContent() ?: '');
+        $events = [...$events, ...array_values(array_filter($dateNodes, static fn (array $node): bool => ($node['@type'] ?? null) === 'Event'))];
+    }
 
     expect($events)->toHaveCount(2);
 

@@ -14,7 +14,8 @@
     $updatedAt = $page->updated_at;
 @endphp
 
-<x-layouts.app :narrow="true" :meta="$meta">
+<x-layouts.app :narrow="true" :meta="app(\App\Services\Seo\EditorialContent::class)->meta($page, $meta)">
+    <x-editorial-content :model="$page" />
     <article class="mx-auto w-full max-w-prose">
         <header class="flex flex-col gap-2">
             <p class="text-eyebrow text-ink-subtle uppercase">{{ __('pages.breadcrumb') }}</p>

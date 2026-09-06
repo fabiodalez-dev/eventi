@@ -37,6 +37,11 @@ final readonly class PageMeta
         return new self($this->title, $this->heading, $this->description, $canonical, $this->image, $this->indexable, $this->imageWidth, $this->imageHeight);
     }
 
+    public function withTitle(string $title): self
+    {
+        return new self($title, $this->heading, $this->description, $this->canonical, $this->image, $this->indexable, $this->imageWidth, $this->imageHeight);
+    }
+
     public function withImage(?string $image, ?int $width = null, ?int $height = null): self
     {
         return new self($this->title, $this->heading, $this->description, $this->canonical, $image, $this->indexable, $width, $height);

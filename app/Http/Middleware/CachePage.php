@@ -211,6 +211,10 @@ final class CachePage
      */
     private function isCacheable(Request $request): bool
     {
+        // Booking capacity and sale windows must not be frozen in a full-page cache.
+        if ($request->routeIs('events.show', 'events.occurrence')) {
+            return false;
+        }
         if (! config()->boolean('page_cache.enabled')) {
             return false;
         }

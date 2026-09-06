@@ -8,6 +8,7 @@ use App\Enums\VenueType;
 use App\Filament\Admin\Support\StructuredFields;
 use App\Filament\Forms\Components\MapPicker;
 use App\Filament\Support\AccessibilityField;
+use App\Filament\Support\EditorialFields;
 use App\Filament\Support\FactsField;
 use App\Filament\Support\ImageUpload;
 use App\Filament\Support\TransitField;
@@ -98,6 +99,7 @@ class VenueProfile extends Page implements HasSchemas
 
         $this->venueForm()->fill([
             ...$venue->only([
+                'content_details', 'seo',
                 'short_description', 'description', 'address', 'address_extra',
                 'postal_code', 'municipality', 'zone', 'lat', 'lng', 'phone', 'email', 'website',
                 'capacity', 'requires_membership', 'membership_notes',
@@ -126,6 +128,8 @@ class VenueProfile extends Page implements HasSchemas
              */
             ->model(CurrentVenue::get())
             ->components([
+                EditorialFields::content(false, true),
+                EditorialFields::seo(),
                 Section::make(__('manage.sections.venue_identity'))
                     ->schema([
                         // Il nome e il tipo si leggono e non si toccano: sono

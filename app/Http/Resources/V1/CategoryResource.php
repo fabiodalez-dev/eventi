@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Resources\V1;
 
 use App\Models\Category;
+use App\Services\Seo\EditorialContent;
 
 /**
  * Una categoria con **i tre campi che governano il tempo** (§7.4, §13.1):
@@ -31,6 +32,7 @@ final class CategoryResource
             'icon' => $category->icon,
             'color' => $category->color,
             'sort_order' => (int) $category->sort_order,
+            'content_details' => app(EditorialContent::class)->details($category),
             'parent_id' => $category->parent_id === null ? null : (int) $category->parent_id,
             'supports_ongoing' => (bool) $category->supports_ongoing,
             'is_nightlife' => (bool) $category->is_nightlife,

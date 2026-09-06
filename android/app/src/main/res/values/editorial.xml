@@ -1,0 +1,20 @@
+<resources>
+    <string name="editorial_online">Evento online</string>
+    <string name="editorial_mixed">Evento di persona e online</string>
+    <string name="editorial_online_info">Informazioni per partecipare online</string>
+    <string name="editorial_yes">Sì</string>
+    <string name="editorial_no">No</string>
+    <string name="editorial_intro">Presentazione</string>
+    <string name="editorial_parking">Parcheggio</string>
+    <string name="editorial_transit">Mezzi pubblici</string>
+    <string name="editorial_entrance">Ingresso</string>
+    <string name="editorial_accessibility">Accessibilità</string>
+    <string name="editorial_minors">Regole per i minori</string>
+    <string name="editorial_cancellation">Annullamento</string>
+    <string name="editorial_refund">Rimborsi</string>
+    <string name="editorial_contact">Contatto</string>
+    <string name="editorial_caption">Locandina</string>
+    <string name="editorial_credit">Crediti</string>
+    <string name="editorial_agenda">Programma</string>
+    <string name="editorial_faq">Domande frequenti</string>
+</resources>

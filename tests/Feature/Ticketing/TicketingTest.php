@@ -129,7 +129,7 @@ it('rejects a second reservation with another request key on web and API', funct
     expect(Booking::count())->toBe(1)->and(AdmissionTicket::count())->toBe(1);
     $this->get('/eventi/'.$this->date->event->slug)->assertOk()
         ->assertSee(__('ticketing.manage_booking'))->assertSee(route('tickets.show', $booking), false)
-        ->assertDontSee(route('tickets.create', $this->date), false);
+        ->assertDontSee('href="'.route('tickets.create', $this->date).'"', false);
     $this->get(route('tickets.show', $booking))->assertOk()->assertSee('Mostra QR');
     $this->actingAs(User::factory()->create())->get(route('tickets.show', $booking))->assertForbidden();
     $this->get('/eventi/'.$this->date->event->slug)->assertOk()

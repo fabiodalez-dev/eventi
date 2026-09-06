@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Models\Concerns\HasEditorialContent;
 use Database\Factories\TagFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -17,6 +18,8 @@ use Spatie\Sluggable\SlugOptions;
 
 class Tag extends Model
 {
+    use HasEditorialContent;
+
     /** @use HasFactory<TagFactory> */
     use HasFactory;
 

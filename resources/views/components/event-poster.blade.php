@@ -21,7 +21,7 @@
 @props(['event', 'set'])
 
 @php
-    $titolo = __('events.card.poster_alt', ['title' => $event->title]);
+    $titolo = $event->content_details['poster_alt'] ?? __('events.card.poster_alt', ['title' => $event->title]);
     $id = 'locandina-'.$event->getKey();
 @endphp
 

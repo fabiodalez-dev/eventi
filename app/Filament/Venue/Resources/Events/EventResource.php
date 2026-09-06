@@ -6,6 +6,7 @@ namespace App\Filament\Venue\Resources\Events;
 
 use App\Enums\EventSource;
 use App\Enums\EventStatus;
+use App\Filament\Support\EditorialFields;
 use App\Filament\Support\EventStatusPresentation;
 use App\Filament\Venue\Resources\Events\Pages\CreateEvent;
 use App\Filament\Venue\Resources\Events\Pages\EditEvent;
@@ -118,6 +119,8 @@ class EventResource extends Resource
     {
         return $schema->columns(1)
             ->components([
+                EditorialFields::content(true, false),
+                EditorialFields::seo(),
                 Section::make(__('manage.sections.what'))
                     ->schema([
                         EventFields::poster(),

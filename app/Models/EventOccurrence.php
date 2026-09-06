@@ -142,6 +142,7 @@ class EventOccurrence extends Model
     {
         return [
             'starts_at' => 'datetime',
+            'previous_starts_at' => 'datetime',
             'ends_at' => 'datetime',
             'effective_ends_at' => 'datetime',
             'doors_at' => 'datetime',

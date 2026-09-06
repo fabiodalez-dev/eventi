@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Resources\V1;
 
 use App\Models\Venue;
+use App\Services\Seo\EditorialContent;
 use App\Support\Api\ApiDate;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
@@ -51,6 +52,7 @@ final class VenueResource
             'status' => $venue->status->value,
             'description' => $venue->description,
             'short_description' => $venue->short_description,
+            'content_details' => app(EditorialContent::class)->details($venue),
             'address' => (string) $venue->address,
             'address_extra' => $venue->address_extra,
             'postal_code' => $venue->postal_code,

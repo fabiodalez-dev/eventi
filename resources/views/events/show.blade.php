@@ -94,7 +94,7 @@
             @if ($poster !== null)
                 <x-media-image
                     :set="$poster"
-                    :alt="__('events.card.poster_alt', ['title' => $event->title])"
+                    :alt="$event->content_details['poster_alt'] ?? __('events.card.poster_alt', ['title' => $event->title])"
                     width="1200"
                     height="1600"
                     :sizes="$poster->sizes"
@@ -211,6 +211,12 @@
                     <ul class="flex flex-col gap-2">
                         @foreach ($shown as $occurrence)
                             <li class="flex flex-wrap items-center justify-between gap-3 bg-canvas px-4 py-3 border-2 border-line">
+                                @if (! ($isPreview ?? false))
+                                    <a class="underline text-accent" href="{{ route('events.occurrence', ['slug' => $event->slug, 'occurrence' => $occurrence->id]) }}">{{ __('seo.date_page') }}</a>
+                                @endif
+                                @if ($occurrence->previous_starts_at !== null)
+                                    <p>{{ __('seo.rescheduled', ['date' => $formatter->iso($occurrence->previous_starts_at)]) }}</p>
+                                @endif
                                 <div class="flex min-w-0 flex-col gap-1">
                                     <time
                                         datetime="{{ $occurrence->is_all_day ? $formatter->isoDay($occurrence->business_date) : $formatter->iso($occurrence->starts_at) }}"
@@ -333,6 +339,10 @@
             />
             @endif
 
+            @if ($selectedOccurrence ?? null)
+                <p><a class="underline text-accent" href="{{ route('events.show', $event) }}">{{ __('seo.all_dates') }}</a></p>
+            @endif
+            <x-editorial-content :model="$event" :occurrence="$selectedOccurrence ?? null" />
             @if (filled($event->description))
                 <section aria-labelledby="descrizione-evento" class="flex flex-col gap-3">
                     <h2 id="descrizione-evento" class="font-display text-[clamp(1.25rem,1.8vw,1.75rem)] leading-none font-extrabold tracking-[-0.03em] uppercase">{{ __('events.detail.description') }}</h2>
@@ -494,7 +504,7 @@
                 </dl>
             </section>
 
-            @if ($venue !== null)
+            @if ($venue !== null && ($event->content_details['attendance_mode'] ?? null) !== 'online')
                 <section class="flex flex-col gap-4 border-2 border-line bg-canvas p-5" aria-labelledby="luogo-evento">
                     <h2 id="luogo-evento" class="font-display text-[clamp(1.25rem,1.8vw,1.75rem)] leading-none font-extrabold tracking-[-0.03em] uppercase">
                         {{ __('events.detail.where') }}

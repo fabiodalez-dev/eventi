@@ -16,6 +16,7 @@ use App\Models\Tag;
 use App\Services\Map\MapPayload;
 use App\Services\Search\EventFinder;
 use App\Services\Search\FilterFacets;
+use App\Services\Seo\EditorialContent;
 use App\Services\Seo\EventListingMeta;
 use App\Services\Seo\StructuredData;
 use App\Services\Sponsorship\SponsorshipSelector;
@@ -108,8 +109,19 @@ final class EventListController extends Controller
             ->build($city, $filters, $occurrences->total())
             ->withCanonical($this->canonical($filters));
 
+        $taxonomy = null;
+        if ($filters->activeCount() === 1 && $filters->sort === null) {
+            $taxonomy = count($filters->categories) === 1 ? Category::where('slug', $filters->categories[0])->first()
+                : (count($filters->tags) === 1 ? Tag::where('slug', $filters->tags[0])->first() : null);
+        }
+        if ($taxonomy !== null) {
+            $editorial = app(EditorialContent::class);
+            $meta = $editorial->meta($taxonomy, $meta)->withIndexable($meta->indexable && $editorial->taxonomyIndexable($taxonomy, $city));
+        }
+
         return view('events.index', [
             'city' => $city,
+            'taxonomy' => $taxonomy,
             'filters' => $filters,
             'occurrences' => $occurrences,
             /* La mappa affiancata all'elenco mostra gli STESSI filtri: e' il

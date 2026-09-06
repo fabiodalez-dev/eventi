@@ -10,6 +10,7 @@ use App\Enums\EventSource;
 use App\Enums\EventStatus;
 use App\Enums\PriceType;
 use App\Enums\VerificationStatus;
+use App\Models\Concerns\HasEditorialContent;
 use App\Models\Concerns\HasImageVariants;
 use Database\Factories\EventFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -33,6 +34,8 @@ use Spatie\Sluggable\SlugOptions;
 
 class Event extends Model implements HasMedia
 {
+    use HasEditorialContent;
+
     /** @use HasFactory<EventFactory> */
     use HasFactory;
 

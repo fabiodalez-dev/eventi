@@ -22,10 +22,10 @@
     @php($dates = $this->dates())
     @if($dates->isNotEmpty())
         <div style="display:flex;gap:12px;flex-wrap:wrap"><x-filament::button color="gray" wire:click="selectAll">{{ __('social.select_all') }}</x-filament::button><x-filament::button wire:click="generate" wire:loading.attr="disabled">{{ __('social.generate') }}</x-filament::button><span wire:loading wire:target="generate">{{ __('social.generating') }}</span></div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:24px">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:24px;max-width:{{ $dates->count() === 1 ? '600px' : 'none' }}">
         @foreach($dates as $occurrence)
             <label wire:key="date-{{ $occurrence->id }}" style="cursor:pointer;display:block">
-                <img src="{{ route('social.preview', $occurrence) }}" alt="{{ __('social.preview') }}: {{ $occurrence->event->title }}" loading="lazy" style="width:100%;aspect-ratio:4/5;object-fit:contain;background:#F5F5F0;border:1px solid #ddd">
+                <img src="{{ \App\Services\Social\SocialStudio::previewUrl($occurrence) }}" alt="{{ __('social.preview') }}: {{ $occurrence->event->title }}" loading="lazy" style="width:100%;aspect-ratio:4/5;object-fit:contain;background:#F5F5F0;border:1px solid #ddd">
                 <div style="display:flex;gap:10px;margin-top:10px"><input type="checkbox" wire:model="selected" value="{{ $occurrence->id }}" style="margin-top:4px"><span>{{ $occurrence->event->title }}<br><small>{{ $occurrence->event->venue?->name }} · {{ $occurrence->is_all_day ? __('social.all_day') : $occurrence->starts_at->timezone($this->socialCity()->timezone)->format('H:i') }}</small></span></div>
             </label>
         @endforeach

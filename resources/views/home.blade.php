@@ -85,11 +85,13 @@
 @endphp
 
 <x-layouts.app
+    :meta="$city ? app(\App\Services\Seo\EditorialContent::class)->meta($city, new \App\DTOs\PageMeta(title: __('seo.home_title', ['city' => $city->name]), heading: $city->name, description: __('ui.header.tagline', ['city' => $city->name]), canonical: url('/'))) : null"
     :title="$city ? __('seo.home_title', ['city' => $city->name]) : null"
     :wide="true"
     :description="$city?->name ? __('ui.header.tagline', ['city' => $city->name]) : null"
     :preload="$heroPoster"
 >
+    @if ($city)<x-editorial-content :model="$city" />@endif
     <x-slot:head>
         <x-json-ld :data="$structuredData" />
 

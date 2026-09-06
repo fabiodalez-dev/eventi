@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Support\ReleaseManifest;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Cache;
 use Symfony\Component\Process\Process;
 
 /**
@@ -113,7 +115,7 @@ class DeployCommand extends Command
         $ramoAsset = config('deploy.assets_branch');
         $ramoAsset = is_string($ramoAsset) && $ramoAsset !== '' ? $ramoAsset : 'assets';
 
-        $fetch = new Process(['git', 'fetch', '--depth', '1', 'origin', $branch, $ramoAsset], base_path(), $this->ambiente(), timeout: 120);
+        $fetch = new Process(['git', 'fetch', '--deepen=100', 'origin', $branch, $ramoAsset], base_path(), $this->ambiente(), timeout: 120);
         $fetch->run();
 
         if (! $fetch->isSuccessful()) {
@@ -211,6 +213,21 @@ class DeployCommand extends Command
 
     public function handle(): int
     {
+        $lock = Cache::lock('deploy:execution', 3600);
+        if (! $lock->get()) {
+            $this->error('Un rilascio è già in corso.');
+
+            return self::FAILURE;
+        }
+        try {
+            return $this->release();
+        } finally {
+            $lock->release();
+        }
+    }
+
+    private function release(): int
+    {
         $branch = (string) $this->option('branch');
 
         /*
@@ -238,13 +255,60 @@ class DeployCommand extends Command
             return self::FAILURE;
         }
 
-        if ($this->option('if-behind') && ! $this->cEDaRilasciare($branch)) {
+        if (! app()->environment('production')) {
+            $this->line('Il deploy remoto è abilitato solo in produzione.');
+
+            return $this->option('if-behind') ? self::SUCCESS : self::FAILURE;
+        }
+        if ($branch !== 'main' || $this->option('skip-assets')) {
+            $this->error('Sono consentiti solo main e gli asset certificati dalla CI.');
+
+            return self::FAILURE;
+        }
+        if (! $this->cEDaRilasciare($branch)) {
             return self::SUCCESS;
         }
 
+        $sha = $this->gitOutput(['git', 'rev-parse', 'origin/main']);
+        $assetSha = $this->gitOutput(['git', 'rev-parse', 'origin/'.config('deploy.assets_branch', 'assets')]);
+        $manifest = json_decode($this->gitOutput(['git', 'show', $assetSha.':release.json']) ?? '', true);
+        if (! is_string($sha) || ! is_string($assetSha) || ! ReleaseManifest::matches($manifest, $sha)) {
+            $this->error('Manca il manifesto del rilascio verificato dalla CI. Nessun file modificato.');
+
+            return self::FAILURE;
+        }
+        if ($this->gitOutput(['git', 'status', '--porcelain', '--untracked-files=no']) !== '') {
+            $this->error('Il server contiene modifiche tracciate: deploy interrotto per conservarle.');
+
+            return self::FAILURE;
+        }
+        if (app()->isDownForMaintenance()) {
+            $this->error('Sito già in manutenzione: serve verificare il precedente rilascio.');
+
+            return self::FAILURE;
+        }
+        $snapshot = storage_path('app/private/releases/'.gmdate('Ymd-His').'-'.substr($sha, 0, 12));
+        if (! mkdir($snapshot, 0700, true)) {
+            return self::FAILURE;
+        }
+        // Backups are taken before changing code or schema. Failure stops deployment.
+        foreach ([
+            [$this->php(), 'artisan', 'backup:run', '--only-db', '--disable-notifications'],
+            ['git', 'archive', '--format=tar', '--output='.$snapshot.'/code.tar', 'HEAD'],
+            ['tar', '-czf', $snapshot.'/build.tar.gz', '-C', public_path(), 'build'],
+            [$this->php(), 'artisan', 'down', '--retry=60'],
+        ] as $command) {
+            $process = new Process($command, base_path(), $this->ambiente(), timeout: 600);
+            $process->run();
+            if (! $process->isSuccessful()) {
+                $this->error('Preparazione/backup fallito: '.$process->getErrorOutput().$process->getOutput());
+
+                return self::FAILURE;
+            }
+        }
+
         $passi = [
-            'scarica' => ['git', 'fetch', '--depth', '1', 'origin', $branch],
-            'allinea' => ['git', 'reset', '--hard', 'origin/'.$branch],
+            'allinea il commit verificato' => ['git', 'merge', '--ff-only', $sha],
         ];
 
         if (! $this->option('skip-composer')) {
@@ -271,38 +335,34 @@ class DeployCommand extends Command
          * vera, e li pubblica sul ramo `assets`: qui si scaricano e basta,
          * qualche centinaio di chilobyte.
          */
-        if (! $this->option('skip-assets')) {
-            /*
-             * Il valore predefinito sta QUI e non solo in `config/deploy.php`.
-             *
-             * `config()->string()` solleva se la chiave manca — e manca ogni
-             * volta che si aggiunge un file di configurazione a un'installazione
-             * che ha la configurazione in cache: la cache e' stata scritta
-             * quando quel file non esisteva, e il rilascio la rigenera solo
-             * DOPO aver usato questo valore. Il primo rilascio dopo
-             * l'aggiunta falliva percio' con un 500 muto, prima ancora che il
-             * controller potesse registrare il motivo.
-             */
-            $ramoAsset = config('deploy.assets_branch');
-            $ramoAsset = is_string($ramoAsset) && $ramoAsset !== '' ? $ramoAsset : 'assets';
-            $archivio = storage_path('app/asset-rilascio.tar');
+        /*
+         * Il valore predefinito sta QUI e non solo in `config/deploy.php`.
+         *
+         * `config()->string()` solleva se la chiave manca — e manca ogni
+         * volta che si aggiunge un file di configurazione a un'installazione
+         * che ha la configurazione in cache: la cache e' stata scritta
+         * quando quel file non esisteva, e il rilascio la rigenera solo
+         * DOPO aver usato questo valore. Il primo rilascio dopo
+         * l'aggiunta falliva percio' con un 500 muto, prima ancora che il
+         * controller potesse registrare il motivo.
+         */
+        $ramoAsset = config('deploy.assets_branch');
+        $ramoAsset = is_string($ramoAsset) && $ramoAsset !== '' ? $ramoAsset : 'assets';
+        $archivio = storage_path('app/asset-rilascio.tar');
 
-            $passi['scarica gli asset'] = ['git', 'fetch', '--depth', '1', 'origin', $ramoAsset];
-
-            /*
-             * `git archive` e non `git checkout`: il ramo degli asset ha i
-             * file alla propria radice — è nato da un `git init` dentro
-             * `public/build` — e un checkout li scriverebbe nella radice del
-             * progetto, sparpagliando CSS e JavaScript accanto ad `artisan`.
-             * L'archivio si estrae dove si vuole.
-             */
-            $passi['prepara gli asset'] = ['git', 'archive', '--format=tar', '--output='.$archivio, 'FETCH_HEAD'];
-            $passi['installa gli asset'] = ['tar', '-xf', $archivio, '-C', public_path('build')];
-        }
+        /*
+         * `git archive` e non `git checkout`: il ramo degli asset ha i
+         * file alla propria radice — è nato da un `git init` dentro
+         * `public/build` — e un checkout li scriverebbe nella radice del
+         * progetto, sparpagliando CSS e JavaScript accanto ad `artisan`.
+         * L'archivio si estrae dove si vuole.
+         */
+        $passi['prepara gli asset'] = ['git', 'archive', '--format=tar', '--output='.$archivio, $assetSha];
+        $passi['installa gli asset'] = ['tar', '-xf', $archivio, '-C', public_path('build')];
 
         /* La cartella deve esistere prima che `tar` ci estragga dentro: al
            primo rilascio su una macchina nuova non c'è. */
-        if (! $this->option('skip-assets') && ! is_dir(public_path('build'))) {
+        if (! is_dir(public_path('build'))) {
             mkdir(public_path('build'), 0o755, recursive: true);
         }
 
@@ -384,6 +444,7 @@ class DeployCommand extends Command
             ['route:cache', []],
             ['view:cache', []],
             ['queue:restart', []],
+            ['deploy:verify', []],
         ];
 
         foreach ($artisan as [$comando, $argomenti]) {
@@ -414,6 +475,19 @@ class DeployCommand extends Command
            a un percorso che qui non esiste. Si ricrea solo se manca. */
         if (! is_link(public_path('storage'))) {
             Artisan::call('storage:link');
+        }
+
+        $status = ['sha' => $sha, 'deployed_at' => gmdate(DATE_ATOM)];
+        $statusFile = storage_path('app/private/release-status.json');
+        if (file_put_contents($statusFile.'.tmp', json_encode($status, JSON_THROW_ON_ERROR)) === false || ! rename($statusFile.'.tmp', $statusFile)) {
+            $this->error('Impossibile registrare il rilascio. Il sito resta in manutenzione.');
+
+            return self::FAILURE;
+        }
+        $up = new Process([$this->php(), 'artisan', 'up'], base_path(), $this->ambiente(), timeout: 60);
+        $up->run();
+        if (! $up->isSuccessful()) {
+            return self::FAILURE;
         }
 
         $this->info('Rilasciato '.trim((new Process(['git', 'log', '-1', '--format=%h %s'], base_path()))->mustRun()->getOutput()));

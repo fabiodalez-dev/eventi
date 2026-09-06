@@ -14,6 +14,9 @@
     fondo, e i risultati stanno in mezzo dove servono.
 --}}
 <x-layouts.app :meta="$meta" :wide="true">
+    @if (($taxonomy ?? null) && request()->integer('page', 1) === 1)
+        <div class="px-gutter"><x-editorial-content :model="$taxonomy" /></div>
+    @endif
     <x-slot:head>
         <x-json-ld :data="$structuredData" />
         @vite('resources/js/map.js')

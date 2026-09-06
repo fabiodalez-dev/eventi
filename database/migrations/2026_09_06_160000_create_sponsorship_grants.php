@@ -37,8 +37,11 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('sponsorships', function (Blueprint $table): void {
+            $table->dropForeign(['sponsorship_grant_id']);
+        });
+        Schema::table('sponsorships', function (Blueprint $table): void {
             $table->dropUnique('sponsorship_grant_event_placement_unique');
-            $table->dropConstrainedForeignId('sponsorship_grant_id');
+            $table->dropColumn('sponsorship_grant_id');
         });
         Schema::dropIfExists('sponsorship_grants');
     }

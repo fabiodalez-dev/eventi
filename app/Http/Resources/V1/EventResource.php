@@ -9,6 +9,9 @@ use App\Models\Event;
 use App\Models\EventOccurrence;
 use App\Models\Tag;
 use App\Models\TicketTier;
+use App\Services\Seo\EditorialContent;
+use App\Services\Seo\PublicOffers;
+use App\Services\Seo\StructuredData;
 use App\Support\Api\ApiContext;
 use App\Support\Api\ApiDate;
 use App\Support\TicketTiers;
@@ -65,6 +68,7 @@ final class EventResource
             'subtitle' => $event->subtitle,
             'description' => $event->description,
             'short_description' => $event->short_description,
+            'content_details' => app(EditorialContent::class)->details($event),
             'poster' => PosterResource::toArray($event),
             'category' => $event->category === null ? null : CategoryResource::summary($event->category),
             'tags' => $event->relationLoaded('tags')
@@ -72,10 +76,7 @@ final class EventResource
                 : [],
             'venue' => $venue === null ? null : VenueResource::toArray($venue, $timezone),
             'custom_location' => $venue === null ? $event->custom_location : null,
-            'organizer' => [
-                'name' => $event->organizer_name,
-                'url' => $event->organizer_url,
-            ],
+            'organizer' => app(StructuredData::class)->organizer($event) ?: ['name' => null, 'url' => null],
             'price' => PriceResource::toArray($event),
 
             /*
@@ -126,7 +127,10 @@ final class EventResource
                 'event' => $context->isFollowing(FollowableType::Event, (int) $event->getKey()),
             ],
             'occurrences' => $occurrences
-                ->map(static fn (EventOccurrence $occurrence): array => OccurrenceResource::toArray($occurrence, $context))
+                ->map(static fn (EventOccurrence $occurrence): array => [
+                    ...OccurrenceResource::toArray($occurrence, $context),
+                    'offers' => app(PublicOffers::class)->for($event, $occurrence),
+                ])
                 ->all(),
             'published_at' => ApiDate::instant($event->published_at, $timezone),
             'updated_at' => ApiDate::attribute($event, 'updated_at', $timezone),

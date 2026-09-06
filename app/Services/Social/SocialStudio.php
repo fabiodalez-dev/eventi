@@ -65,4 +65,10 @@ final class SocialStudio
     {
         return URL::temporarySignedRoute('social.image', now()->addDays(7), ['batch' => $batch->id, 'index' => $index]);
     }
+
+    public static function previewUrl(EventOccurrence $date): string
+    {
+        return route('social.preview', ['occurrence' => $date->id,
+            'v' => SocialGraphic::version().'-'.SocialSource::fingerprint($date)]);
+    }
 }

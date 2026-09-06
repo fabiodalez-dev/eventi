@@ -11,6 +11,9 @@
     $app = config('app.name');
     $currentCity = app(\App\Support\CurrentCity::class);
     $city = $currentCity->get();
+    if ($city !== null && ! app(\App\Services\Seo\EditorialContent::class)->indexable($city)) {
+        $robots = 'noindex, follow';
+    }
     $formatter = app(\App\Support\DateFormatter::class);
     $today = $formatter->weekdayDate(\Carbon\CarbonImmutable::now($currentCity->timezone()));
 
@@ -112,6 +115,9 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    @if (filled($city?->seo['google_verification'] ?? null))
+        <meta name="google-site-verification" content="{{ $city->seo['google_verification'] }}">
+    @endif
     {{-- Un tema solo, scuro (D46). Dichiararlo qui fa nascere scure anche le
          parti che disegna il browser — barre di scorrimento, controlli dei
          moduli, la finestra di scelta di una data — invece di vederle

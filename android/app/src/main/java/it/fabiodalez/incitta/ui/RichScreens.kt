@@ -184,6 +184,7 @@ fun CompleteEventDetailScreen(
                     }
                 }
 
+                EditorialInformation(detail.contentDetails)
                 detail.description?.takeIf(String::isNotBlank)?.let { description ->
                     DetailSection("DESCRIZIONE") {
                         Text(
@@ -225,7 +226,7 @@ fun CompleteEventDetailScreen(
                     detail.booking.phone?.let { phone -> SmallLink("PRENOTA AL TELEFONO · $phone") { dial(context, phone) } }
                 }
 
-                detail.venue?.let { venue ->
+                detail.venue?.takeIf { (detail.contentDetails as? JsonObject)?.get("attendance_mode")?.jsonPrimitive?.contentOrNull != "online" }?.let { venue ->
                     DetailSection("DOVE") {
                         Text(venue.name.uppercase(), style = androidx.compose.material3.MaterialTheme.typography.headlineMedium, modifier = Modifier.clickable { onVenue(venue) })
                         venue.type?.let { Text(it.replace('_', ' ').uppercase(), color = Acid, style = androidx.compose.material3.MaterialTheme.typography.labelMedium) }
@@ -256,7 +257,7 @@ fun CompleteEventDetailScreen(
                     AccessibilitySection(venue)
                 }
 
-                if (detail.venue == null && detail.customLocation != null) {
+                if (detail.venue == null && detail.customLocation != null && (detail.contentDetails as? JsonObject)?.get("attendance_mode")?.jsonPrimitive?.contentOrNull != "online") {
                     val place = detail.customLocation
                     DetailSection("DOVE") {
                         Text((place.name ?: "LUOGO DELL'EVENTO").uppercase(), style = androidx.compose.material3.MaterialTheme.typography.headlineMedium)
@@ -391,6 +392,7 @@ fun VenueDetailScreen(
                 openingHours(venue)?.takeIf { it.isNotEmpty() }?.let { hours ->
                     DetailSection("ORARI") { hours.forEach { (day, value) -> LabeledValue(day, value) } }
                 }
+                EditorialInformation(venue.contentDetails)
                 if (venue.transit.isNotEmpty()) {
                     DetailSection("COME ARRIVARE") { venue.transit.forEach { LabeledValue(it.mode.replace('_', ' '), it.text) } }
                 }

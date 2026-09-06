@@ -15,6 +15,7 @@ use App\Models\EventOccurrence;
 use App\Queries\EventOccurrenceQuery;
 use App\Services\Calendar\OccurrenceCalendar;
 use App\Services\Events\EventPoster;
+use App\Services\Seo\EditorialContent;
 use App\Services\Seo\StructuredData;
 use App\Support\CurrentCity;
 use App\Support\Poster;
@@ -59,7 +60,16 @@ final class EventController extends Controller
             ->header('Cache-Control', 'private, no-store')->header('X-Robots-Tag', 'noindex, nofollow');
     }
 
-    private function renderEvent(City $city, Event $event, bool $isPreview = false): View
+    public function date(string $slug, EventOccurrence $occurrence): View
+    {
+        $city = $this->city();
+        $event = $this->findReadable($city, $slug);
+        abort_unless((int) $occurrence->event_id === (int) $event->id, 404);
+
+        return $this->renderEvent($city, $event, false, $occurrence);
+    }
+
+    private function renderEvent(City $city, Event $event, bool $isPreview = false, ?EventOccurrence $selected = null): View
     {
 
         $upcoming = $this->hydrate(($isPreview ? EventOccurrenceQuery::managementFor($event) : EventOccurrenceQuery::for($city)->forEvent($event))->upcoming()->get());
@@ -74,10 +84,36 @@ final class EventController extends Controller
             : new Collection;
 
         $related = $this->related($city, $event);
+        if ($selected !== null) {
+            $past = $this->hydrate(EventOccurrenceQuery::archiveFor($city)->forEvent($event)->past()->get());
+            $upcoming = $upcoming->where('id', $selected->id)->values();
+            $past = $past->where('id', $selected->id)->values();
+            abort_if($upcoming->isEmpty() && $past->isEmpty(), 404);
+        }
+        $dates = $upcoming->isNotEmpty() ? $upcoming : $past;
+        $meta = $this->meta($event, $dates)->withIndexable(! $isPreview && in_array($event->status, [EventStatus::Published, EventStatus::Archived], true));
+        if ($selected !== null) {
+            $meta = $meta->withCanonical(route('events.occurrence', ['slug' => $event->slug, 'occurrence' => $selected->id]));
+        }
+        $meta = app(EditorialContent::class)->meta($event, $meta);
+        if ($selected !== null) {
+            $meta = $meta->withTitle(__('seo.date_title', ['title' => $meta->title, 'date' => $selected->starts_at->copy()->timezone($city->timezone)->format('d/m/Y')]));
+        }
+        $schema = $selected === null && $dates->count() > 1
+            ? [$this->structuredData->collection($event->title, route('events.show', $event), $dates->map(fn ($date): array => [
+                'name' => $event->title.' · '.$date->business_date->format('d/m/Y'),
+                'url' => route('events.occurrence', ['slug' => $event->slug, 'occurrence' => $date->id]),
+            ])->all())]
+            : $this->structuredData->events($event, $dates);
+        if ($selected !== null && isset($schema[0])) {
+            $schema[0]['url'] = $meta->canonical;
+            $schema[0]['@id'] = $meta->canonical.'#event';
+        }
         $atVenue = $this->atSameVenue($city, $event);
 
         return view('events.show', [
             'isPreview' => $isPreview,
+            'selectedOccurrence' => $selected,
             'city' => $city,
             'event' => $event,
             'occurrences' => $upcoming,
@@ -87,14 +123,14 @@ final class EventController extends Controller
             'pastOccurrences' => $past,
             'related' => $related,
             'atVenue' => $atVenue,
-            'meta' => $this->meta($event, $upcoming)->withIndexable(! $isPreview && in_array($event->status, [EventStatus::Published, EventStatus::Archived], true)),
+            'meta' => $meta,
             'calendar' => $this->calendar,
             /* Il listino dell'evento. Quello di una singola data — quando
                esiste — lo risolve la vista chiedendolo per quell'occorrenza,
                sempre attraverso `App\Support\TicketTiers`. */
             'tiers' => TicketTiers::for($event),
             'structuredData' => $isPreview ? [] : [
-                ...$this->structuredData->events($event, $upcoming->isNotEmpty() ? $upcoming : $past),
+                ...$schema,
                 $this->structuredData->breadcrumbs([
                     ['name' => __('ui.nav.home'), 'url' => url('/')],
                     ['name' => __('events.title'), 'url' => route('events.index')],

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Queries;
 
 use App\Enums\AccessibilityFeature;
+use App\Enums\AttendanceMode;
 use App\Enums\EventStatus;
 use App\Enums\FollowableType;
 use App\Enums\OccurrenceStatus;
@@ -953,6 +954,7 @@ final class EventOccurrenceQuery
     public function venueMarkers(int $limit): array
     {
         $inner = (clone $this->query)
+            ->where(fn ($query) => $query->whereNull('events.content_details->attendance_mode')->orWhere('events.content_details->attendance_mode', '!=', AttendanceMode::Online->value))
             ->reorder()
             ->whereNotNull('venues.id')
             ->select([

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Models\Concerns\HasEditorialContent;
 use Database\Factories\CategoryFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -16,6 +17,8 @@ use Spatie\Sluggable\SlugOptions;
 
 class Category extends Model
 {
+    use HasEditorialContent;
+
     /** @use HasFactory<CategoryFactory> */
     use HasFactory;
 

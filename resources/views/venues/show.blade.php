@@ -16,7 +16,7 @@
     $days = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 @endphp
 
-<x-layouts.app :meta="$meta" :preload="$cover">
+<x-layouts.app :meta="app(\App\Services\Seo\EditorialContent::class)->meta($venue, $meta)" :preload="$cover">
     <x-slot:head>
         <x-json-ld :data="$structuredData" />
 
@@ -117,6 +117,7 @@
 
     <div class="mt-8 grid gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <div class="flex flex-col gap-8">
+            <x-editorial-content :model="$venue" />
             @if (filled($venue->description))
                 <section aria-labelledby="descrizione-locale" class="flex flex-col gap-3">
                     <h2 id="descrizione-locale" class="font-display text-[clamp(1.25rem,1.8vw,1.75rem)] leading-none font-extrabold tracking-[-0.03em] uppercase">{{ __('venues.detail.about') }}</h2>

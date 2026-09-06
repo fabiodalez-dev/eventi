@@ -7,6 +7,7 @@ namespace App\Filament\Admin\Resources\Cities;
 use App\Filament\Admin\Resources\Cities\Pages\CreateCity;
 use App\Filament\Admin\Resources\Cities\Pages\EditCity;
 use App\Filament\Admin\Resources\Cities\Pages\ListCities;
+use App\Filament\Support\EditorialFields;
 use App\Models\City;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
@@ -63,6 +64,8 @@ class CityResource extends Resource
     {
         return $schema->columns(1)
             ->components([
+                EditorialFields::content(false, false),
+                EditorialFields::seo(),
                 Section::make(__('admin.sections.identity'))
                     ->columns(2)
                     ->schema([

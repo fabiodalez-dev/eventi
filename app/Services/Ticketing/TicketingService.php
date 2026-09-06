@@ -8,6 +8,7 @@ use App\Enums\AdmissionStatus;
 use App\Enums\BookingStatus;
 use App\Enums\EventStatus;
 use App\Enums\OccurrenceStatus;
+use App\Enums\TicketTierStatus;
 use App\Models\AdmissionTicket;
 use App\Models\Booking;
 use App\Models\EventOccurrence;
@@ -43,6 +44,13 @@ final class TicketingService
         return [
             'enabled' => (bool) ($date->booking_enabled && $date->event?->venue?->ticketing_enabled),
             'open' => $open,
+            'sale_state' => match (true) {
+                ! $this->eventValid($date) => TicketTierStatus::Closed->value,
+                $date->status === OccurrenceStatus::SoldOut || $remaining === 0 => TicketTierStatus::SoldOut->value,
+                $open => TicketTierStatus::Available->value,
+                $date->booking_opens_at !== null && now()->lt($date->booking_opens_at) => TicketTierStatus::NotYetOnSale->value,
+                default => TicketTierStatus::Closed->value,
+            },
             'capacity' => $date->booking_capacity,
             'remaining' => $remaining,
             'limit_per_account' => $date->booking_limit,

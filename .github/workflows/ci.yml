@@ -14,7 +14,7 @@ permissions:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 # Le action di terze parti sono pinnate al commit SHA, non al tag: un tag e
 # mutabile e chi lo controlla puo spostarlo su codice diverso da quello verificato.
@@ -22,6 +22,7 @@ jobs:
   quality:
     name: Lint e analisi statica
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
@@ -41,12 +42,20 @@ jobs:
       - name: Pint
         run: ./vendor/bin/pint --test
 
+      - name: Vulnerabilità delle dipendenze PHP
+        run: composer audit --no-interaction
+
       - name: PHPStan
         run: ./vendor/bin/phpstan analyse --memory-limit=1G --no-progress
 
   tests:
-    name: Test
+    name: Test (${{ matrix.shard }}/3)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     services:
       mariadb:
         # stessa major della produzione: MySQL e MariaDB divergono sulle funzioni
@@ -98,7 +107,7 @@ jobs:
           php artisan key:generate
 
       - name: Pest
-        run: ./vendor/bin/pest --ci
+        run: ./vendor/bin/pest --ci --shard=${{ matrix.shard }}/3 --log-junit storage/logs/junit.xml
         env:
           DB_CONNECTION: mariadb
           DB_HOST: 127.0.0.1
@@ -107,9 +116,30 @@ jobs:
           DB_USERNAME: root
           DB_PASSWORD: root
 
+      - name: Vulnerabilità delle dipendenze JavaScript di produzione
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Referto dei test
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pest-report-${{ matrix.shard }}
+          path: storage/logs/junit.xml
+          retention-days: 14
+
+      - name: Conserva gli asset che hanno superato i test
+        if: matrix.shard == 1
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: tested-build
+          path: public/build
+          retention-days: 14
+          if-no-files-found: error
+
   lighthouse:
     name: Lighthouse
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     services:
       mariadb:
         image: mariadb:10.11
@@ -306,116 +336,82 @@ jobs:
           retention-days: 14
           if-no-files-found: warn
 
+  android:
+    name: Android unit test e compilazione
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+      - run: ./gradlew testDebugUnitTest compileDebugKotlin
+        working-directory: android
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: android-test-reports
+          path: android/app/build/reports/tests
+          retention-days: 14
+
   deploy:
     name: Deploy su eventi.fabiodalez.it
-    # `lighthouse` NON e' fra le dipendenze, ed e' una scelta scritta in D37:
-    # le soglie di §11.11 sono dichiarate come le vuole il piano, e LCP < 2s
-    # oggi non lo raggiunge nessun ambiente — il solo TTFB della shared hosting
-    # vale fra 0,6 e 3,0 secondi. Un criterio che nessuno soddisfa ancora non
-    # deve tenere in ostaggio ogni rilascio; il referto resta rosso e allegato,
-    # che e' il suo mestiere. Quando LCP scende sotto i due secondi, aggiungere
-    # `lighthouse` qui e' una riga.
-    needs: [quality, tests]
+    needs: [quality, tests, lighthouse, android]
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
-    environment: production
-    # Il permesso di scrittura serve **solo qui** e solo per una cosa:
-    # pubblicare `public/build` sul ramo degli asset. Gli altri job restano in
-    # sola lettura, che e' il valore predefinito: un token che puo' scrivere
-    # dove non serve e' un token in piu' da cui difendersi.
+    timeout-minutes: 25
+    environment:
+      name: production
+      url: https://eventi.fabiodalez.it
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-
-      # Composer serve, e non per PHP: **il CSS del pannello importa da
-      # `vendor/`.**
-      #
-      # Era stato tolto da qui — «le dipendenze di produzione le installa il
-      # server, l'unico posto dove la loro versione conta» — e per mesi e'
-      # stato vero. Poi il tema di Filament ha aggiunto
-      # `@import '.../vendor/filament/filament/resources/css/theme.css'` e
-      # questo job ha iniziato a compilare un foglio di stile che dipende da
-      # una cartella che aveva deciso di non scaricare piu'.
-      #
-      # Il guasto e' stato invisibile piu' del dovuto: `tests` e `lighthouse`
-      # installano composer e restano verdi, quindi il rosso compariva solo
-      # nel job che pubblica — quello che si guarda solo quando ci si accorge
-      # che il sito non e' cambiato. Il tema e' rimasto due giorni fuori dalla
-      # produzione mentre in locale era perfetto.
-      #
-      # `--no-dev` perche' qui serve solo il sorgente dei pacchetti, non gli
-      # strumenti di sviluppo.
-      - uses: shivammathur/setup-php@b604ade2a87db23f8871b7182e69ec5e75effb45 # v2
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
-          php-version: '8.4'
-          coverage: none
-
-      - run: composer install --no-dev --no-interaction --prefer-dist --no-progress --no-scripts
-
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-        with:
-          node-version: '22'
-          cache: npm
-
-      - run: npm ci
-      - run: npm run build
-
-      # ------------------------------------------------------------------
-      # Gli asset compilati vanno su un ramo dedicato, e il server li scarica.
-      #
-      # Compilarli sul server non si puo': Node cade all'avvio di Vite per i
-      # limiti della shared hosting — `Aborted (core dumped)` dentro
-      # `V8Platform::Initialize` — e quando non cade impiega piu' di dieci
-      # minuti. Qui invece c'e' una macchina vera, e il risultato pesa poche
-      # centinaia di chilobyte.
-      #
-      # Il ramo e' un artefatto, non una storia: ogni pubblicazione e' un
-      # commit orfano che sostituisce il precedente. Non va unito da nessuna
-      # parte e non va letto da nessuno.
-      - name: Pubblica gli asset compilati
+          name: tested-build
+          path: public/build
+      - name: Pubblica soltanto gli asset dello stesso commit verificato
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
+          set -euo pipefail
+          current=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)
+          test "$current" = "$GITHUB_SHA" || { echo "main è avanzato: attendo la nuova CI."; exit 1; }
+          node -e 'require("fs").writeFileSync("public/build/release.json", JSON.stringify({sha:process.env.GITHUB_SHA,run_id:process.env.GITHUB_RUN_ID,checks:"passed"}))'
           cd public/build
           git init -q
-          git checkout -q -b assets
+          git switch -c assets
           git add -A
-          git -c user.name="deploy" -c user.email="deploy@eventi.fabiodalez.it" \
-            commit -q -m "asset compilati per ${GITHUB_SHA}"
-          git push -q -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git" assets
-
-      # ------------------------------------------------------------------
-      # Il segnale al server.
-      #
-      # Qui NON si spinge niente: la porta 22 di quell'host non accetta
-      # connessioni da fuori — ogni rsync moriva in `Connection timed out` — e
-      # il deploy non ha mai funzionato per questo. Le connessioni in uscita
-      # dal server invece passano, quindi e' lui a tirare: questa chiamata dice
-      # solo «aggiornati», e a farlo e' `deploy:pull` dall'altra parte.
-      #
-      # `--fail-with-body` perche' un rilascio fallito deve rendere rosso
-      # questo passo E mostrare cosa e' andato storto, non solo il codice HTTP.
-      # Una scorciatoia, non il meccanismo: se la chiamata passa il sito e'
-      # aggiornato in pochi secondi, se non passa ci pensa il server entro
-      # cinque minuti (`deploy:pull --if-behind`, ogni cinque minuti da cron).
-      #
-      # Non e' bloccante perche' da questo runner NON e' affidabile, e non
-      # dipende da noi: prima timeout sulla 22, poi sulla 443, poi un
-      # certificato che da qui e' valido e copre il dominio ma che il runner
-      # riceve diverso. E' un hosting condiviso e il firewall e' loro. Un passo
-      # rosso a ogni rilascio, per una scorciatoia che ha gia' un'alternativa
-      # che funziona, insegna solo a non guardare piu' il colore della
-      # pipeline — ed e' cosi' che passano inosservati i guasti veri.
-      - name: Chiedi al server di aggiornarsi (facoltativo)
-        continue-on-error: true
+          git -c user.name=deploy -c user.email=deploy@eventi.fabiodalez.it commit -m "asset compilati per $GITHUB_SHA"
+          git push -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:assets
+      - name: Chiedi al server di aggiornarsi
         env:
           DEPLOY_URL: ${{ secrets.DEPLOY_HOOK_URL }}
           DEPLOY_SECRET: ${{ secrets.DEPLOY_HOOK_SECRET }}
         run: |
-          if curl --fail-with-body --silent --show-error --max-time 900 \
-              -X POST "${DEPLOY_URL}" \
-              -H "X-Secret-Token: ${DEPLOY_SECRET}" \
-              -H "Accept: application/json"; then
-            echo "Rilascio innescato subito."
-          else
-            echo "::warning::Il server non risponde alla chiamata: si aggiornera' da solo entro cinque minuti."
-          fi
+          # Il cron è il fallback, ma l'esito finale sotto è obbligatorio.
+          curl --fail --silent --show-error --max-time 600 -X POST "$DEPLOY_URL" \
+            -H "X-Secret-Token: $DEPLOY_SECRET" -H "Accept: application/json" \
+            || echo "::warning::Innesco non raggiungibile; attendo il cron e verifico il rilascio."
+      - name: Verifica il commit effettivamente online e le pagine pubbliche
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          ready=false
+          for _ in $(seq 1 60); do
+            actual=$(curl --fail --silent --show-error --max-time 10 "https://eventi.fabiodalez.it/release-status?run=$GITHUB_RUN_ID" | jq -r .sha || true)
+            if [ "$actual" = "$EXPECTED_SHA" ]; then ready=true; break; fi
+            sleep 10
+          done
+          test "$ready" = true || { echo "::error::Il server non conferma il commit verificato."; exit 1; }
+          for path in / /eventi /locali /sitemap.xml /api/v1/home /admin/login; do
+            curl --fail --silent --show-error --retry 3 --max-time 30 "https://eventi.fabiodalez.it$path" -o /dev/null
+          done
+          echo "### Rilascio verificato: $EXPECTED_SHA" >> "$GITHUB_STEP_SUMMARY"

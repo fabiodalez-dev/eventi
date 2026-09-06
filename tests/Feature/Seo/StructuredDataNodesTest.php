@@ -194,11 +194,7 @@ it('sceglie l\'organizzatore in tre gradini: chi è dichiarato, il locale, il si
         'starts_at' => localInstant($this->city, '2026-09-14 18:00')->utc(),
     ]);
 
-    expect($this->structured->event($event->fresh(), $occurrence)['organizer'])->toBe([
-        '@type' => 'Organization',
-        'name' => config()->string('app.name'),
-        'url' => url('/'),
-    ]);
+    expect($this->structured->event($event->fresh(), $occurrence))->not->toHaveKey('organizer');
 });
 
 it('ripulisce la descrizione dal markup senza troncare il contenuto', function (): void {

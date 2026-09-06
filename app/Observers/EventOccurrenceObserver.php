@@ -123,6 +123,9 @@ final class EventOccurrenceObserver
 
     public function saving(EventOccurrence $occurrence): void
     {
+        if ($occurrence->exists && $occurrence->isDirty('starts_at') && $occurrence->getOriginal('starts_at') !== null) {
+            $occurrence->previous_starts_at = $occurrence->getOriginal('starts_at');
+        }
         // L'observer scatta su qualunque salvataggio, anche su un modello
         // incompleto: si legge l'attributo grezzo invece di darlo per buono.
         $startsAt = $occurrence->getAttribute('starts_at');

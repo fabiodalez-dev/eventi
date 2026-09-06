@@ -204,9 +204,8 @@ describe('archiviare toglie dalle liste, non dal sito', function (): void {
         $this->get('/eventi/'.$occurrence->event->slug)
             ->assertOk()
             ->assertSee('Serata di gennaio')
-            /* Fuori dall'indice perché non ha più date, come ogni evento
-               passato: è già il comportamento di prima dell'archiviazione. */
-            ->assertSee('noindex', escape: false);
+            // L'archivio conserva contenuti e URL condivisi: resta indicizzabile.
+            ->assertSee('<meta name="robots" content="index, follow">', escape: false);
     });
 
     it('resta nell archivio della scheda del locale', function (): void {

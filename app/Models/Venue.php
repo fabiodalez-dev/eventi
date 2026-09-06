@@ -11,6 +11,7 @@ use App\Enums\VenuePlan;
 use App\Enums\VenueRole;
 use App\Enums\VenueStatus;
 use App\Enums\VenueType;
+use App\Models\Concerns\HasEditorialContent;
 use App\Models\Concerns\HasImageVariants;
 use Database\Factories\VenueFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -40,6 +41,8 @@ use Spatie\Sluggable\SlugOptions;
  */
 class Venue extends Model implements HasMedia
 {
+    use HasEditorialContent;
+
     /** @use HasFactory<VenueFactory> */
     use HasFactory;
 

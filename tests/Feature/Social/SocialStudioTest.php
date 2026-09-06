@@ -35,6 +35,15 @@ function socialTestBatch($test): SocialBatch
     return app(SocialStudio::class)->generate($test->date->event->city, $test->date->business_date->format('Y-m-d'), collect([$test->date]), SocialFormat::Portrait, [], $test->admin);
 }
 
+it('versions preview URLs when either the renderer or source changes', function () {
+    $before = SocialStudio::previewUrl($this->date);
+    expect($before)->toContain('v='.SocialGraphic::version());
+    $this->date->event->update(['title' => 'Un nuovo titolo per la serata']);
+    $after = SocialStudio::previewUrl($this->date->fresh());
+    expect($after)->not->toBe($before);
+    $this->actingAs($this->admin)->get($after)->assertOk()->assertHeader('content-type', 'image/jpeg');
+});
+
 function socialTestConnection($test): SocialConnection
 {
     return SocialConnection::create(['city_id' => $test->date->event->city_id, 'page_id' => '123', 'instagram_id' => '456', 'access_token' => 'secret-test-token', 'facebook_enabled' => true, 'instagram_enabled' => true, 'verified_at' => now()]);

@@ -15,6 +15,7 @@ use App\Filament\Admin\Resources\Events\RelationManagers\ActivityRelationManager
 use App\Filament\Admin\Resources\Events\RelationManagers\OccurrencesRelationManager;
 use App\Filament\Admin\Support\StructuredFields;
 use App\Filament\Forms\Components\MapPicker;
+use App\Filament\Support\EditorialFields;
 use App\Filament\Support\EventStatusPresentation;
 use App\Filament\Support\ExternalLinksField;
 use App\Filament\Support\FactsField;
@@ -124,6 +125,8 @@ class EventResource extends Resource
                     ->required()
                     ->default(EventStatus::Draft->value)
                     ->columnSpanFull(),
+                EditorialFields::content(true, false),
+                EditorialFields::seo(),
                 /*
                  * **Schede, non dodici riquadri su due colonne.**
                  *

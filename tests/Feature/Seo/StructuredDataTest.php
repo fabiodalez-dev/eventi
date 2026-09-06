@@ -75,8 +75,12 @@ it('emette un nodo Event per ogni occorrenza pubblicata, con i campi obbligatori
     freezeLocal($city, '2026-09-01 12:00');
 
     $html = $this->get(route('events.show', $event))->assertOk()->getContent();
-    $nodes = jsonLdOf($html);
-    $events = nodesOfType($nodes, 'Event');
+    expect(nodesOfType(jsonLdOf($html), 'CollectionPage'))->toHaveCount(1);
+    $events = [];
+    foreach ($event->occurrences as $date) {
+        $page = $this->get(route('events.occurrence', ['slug' => $event->slug, 'occurrence' => $date->id]))->assertOk()->getContent();
+        $events = array_merge($events, nodesOfType(jsonLdOf($page), 'Event'));
+    }
 
     // Due date pubblicate, due nodi: per un motore una serata è una data.
     expect($events)->toHaveCount(2);

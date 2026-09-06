@@ -23,7 +23,7 @@ class SocialDownloadController extends Controller
     public function preview(EventOccurrence $occurrence): Response
     {
         Gate::authorize('update', $occurrence->event);
-        $key = 'social-preview-v5-'.$occurrence->id.'-'.SocialSource::fingerprint($occurrence);
+        $key = 'social-preview-'.SocialGraphic::version().'-'.$occurrence->id.'-'.SocialSource::fingerprint($occurrence);
         try {
             $bytes = Cache::remember($key, 3600, fn () => app(SocialGraphic::class)->render($occurrence, SocialFormat::Portrait));
         } catch (\RuntimeException $e) {

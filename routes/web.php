@@ -7,6 +7,7 @@ use App\Http\Controllers\Web\DeployController;
 use App\Http\Controllers\Web\EventController;
 use App\Http\Controllers\Web\ImpersonationController;
 use App\Http\Controllers\Web\PageController;
+use App\Http\Controllers\Web\ReleaseStatusController;
 use App\Http\Controllers\Web\SeoController;
 use App\Http\Controllers\Web\SocialDownloadController;
 use App\Http\Controllers\Web\SponsorshipMetricController;
@@ -28,6 +29,8 @@ use Spatie\Health\Http\Controllers\SimpleHealthCheckController;
  * compreso, e registrato dopo verrebbe risolto come una città inesistente.
  */
 Route::group([], base_path('routes/installer.php'));
+
+Route::get('/release-status', ReleaseStatusController::class)->name('ops.release');
 
 /*
  * Le rotte del sito pubblico stanno in routes/public.php e sono registrate due

@@ -57,6 +57,7 @@ data class Poster(
 
 @Serializable
 data class Venue(
+    @SerialName("content_details") val contentDetails: JsonElement? = null,
     val id: Long? = null,
     val slug: String? = null,
     val name: String,
@@ -153,6 +154,7 @@ data class TransitLine(val mode: String, val text: String)
 
 @Serializable
 data class EventDetail(
+    @SerialName("content_details") val contentDetails: JsonElement? = null,
     val id: Long,
     val slug: String,
     val title: String,

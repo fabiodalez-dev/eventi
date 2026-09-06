@@ -8,6 +8,7 @@ use App\Actions\MergeTagsAction;
 use App\Filament\Admin\Resources\Tags\Pages\CreateTag;
 use App\Filament\Admin\Resources\Tags\Pages\EditTag;
 use App\Filament\Admin\Resources\Tags\Pages\ListTags;
+use App\Filament\Support\EditorialFields;
 use App\Models\Tag;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -59,6 +60,8 @@ class TagResource extends Resource
     {
         return $schema->columns(1)
             ->components([
+                EditorialFields::content(false, false, true),
+                EditorialFields::seo(),
                 Section::make(__('admin.sections.general'))
                     ->columns(2)
                     ->schema([

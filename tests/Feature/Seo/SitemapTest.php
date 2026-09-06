@@ -96,6 +96,7 @@ it('elenca i locali approvati', function (): void {
 it('elenca categorie e tag', function (): void {
     $categoria = Category::factory()->create(['name' => 'Teatro', 'slug' => 'teatro']);
     $tag = Tag::factory()->approved()->create(['name' => 'Jazz', 'slug' => 'jazz', 'usage_count' => 3]);
+    occurrenceAtLocal($this->city, $categoria, '2026-09-12 21:30')->event->tags()->attach($tag);
 
     $urls = sitemapUrls($this->get('/sitemap-tassonomie-1.xml')->assertOk()->getContent());
 
@@ -129,10 +130,10 @@ it('spezza una sezione in piu mappe quando supera la soglia', function (): void 
     $sezioni = sitemapUrls($this->get('/sitemap.xml')->assertOk()->getContent());
     $eventi = array_values(array_filter($sezioni, static fn (string $url): bool => str_contains($url, 'sitemap-eventi-')));
 
-    expect($eventi)->toHaveCount(3);
+    expect($eventi)->toHaveCount(5);
 
     expect(sitemapUrls($this->get('/sitemap-eventi-1.xml')->getContent()))->toHaveCount(2)
-        ->and(sitemapUrls($this->get('/sitemap-eventi-3.xml')->getContent()))->toHaveCount(1);
+        ->and(sitemapUrls($this->get('/sitemap-eventi-5.xml')->getContent()))->toHaveCount(2);
 });
 
 it('serve un robots.txt che dichiara la mappa e chiude i pannelli', function (): void {

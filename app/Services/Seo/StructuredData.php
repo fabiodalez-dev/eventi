@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Seo;
 
+use App\Enums\AttendanceMode;
 use App\Enums\OccurrenceStatus;
-use App\Enums\PriceType;
 use App\Models\City;
 use App\Models\Event;
 use App\Models\EventOccurrence;
@@ -51,6 +51,8 @@ final class StructuredData
     {
         $url = route('events.show', $event);
         $poster = Poster::absoluteUrl($event);
+        $details = app(EditorialContent::class)->details($event);
+        $mode = AttendanceMode::tryFrom($details['attendance_mode'] ?? '') ?? AttendanceMode::Offline;
 
         $node = [
             '@context' => 'https://schema.org',
@@ -62,10 +64,18 @@ final class StructuredData
                 ? $occurrence->starts_at->copy()->timezone($event->city->timezone)->toDateString()
                 : $this->formatter->iso($occurrence->starts_at),
             'eventStatus' => $this->status($occurrence->status),
-            'eventAttendanceMode' => 'https://schema.org/OfflineEventAttendanceMode',
+            'eventAttendanceMode' => $mode->schema(),
             'location' => $this->location($event),
             'organizer' => $this->organizer($event),
         ];
+        $online = SafeUrl::href($details['online_url'] ?? null);
+        if ($node['organizer'] === []) {
+            unset($node['organizer']);
+        }
+        if ($mode !== AttendanceMode::Offline && $online !== null) {
+            $virtual = ['@type' => 'VirtualLocation', 'url' => $online];
+            $node['location'] = $mode === AttendanceMode::Online ? $virtual : [$node['location'], $virtual];
+        }
 
         // A calculated duration is useful for search, but is not a confirmed ending time.
         if ($occurrence->ends_at !== null) {
@@ -94,10 +104,17 @@ final class StructuredData
             $node['image'] = [$poster];
         }
 
-        $offers = $this->offers($event, $occurrence, $url);
+        $offers = app(PublicOffers::class)->for($event, $occurrence);
 
-        if ($offers !== null) {
-            $node['offers'] = $offers;
+        if ($offers !== []) {
+            $node['offers'] = count($offers) === 1 ? $offers[0] : $offers;
+        }
+
+        if ($occurrence->previous_starts_at !== null) {
+            $node['previousStartDate'] = $this->formatter->iso($occurrence->previous_starts_at);
+            if (in_array($occurrence->status, [OccurrenceStatus::Scheduled, OccurrenceStatus::Moved, OccurrenceStatus::SoldOut], true)) {
+                $node['eventStatus'] = 'https://schema.org/EventRescheduled';
+            }
         }
 
         $performers = $this->performers($occurrence);
@@ -319,11 +336,16 @@ final class StructuredData
     /**
      * @return array<string, mixed>
      */
-    private function organizer(Event $event): array
+    public function organizer(Event $event): array
     {
+        $registered = $event->content_details['organizer_venue_id'] ?? null;
+        $organizer = $registered === null ? null : Venue::query()->approved()->whereKey($registered)->first();
+        if ($organizer !== null) {
+            return ['@type' => 'Organization', 'name' => $organizer->name, 'url' => route('venues.show', $organizer)];
+        }
         if (filled($event->organizer_name)) {
             return array_filter([
-                '@type' => 'Organization',
+                '@type' => ($event->content_details['organizer_type'] ?? null) === 'Person' ? 'Person' : 'Organization',
                 'name' => $event->organizer_name,
                 'url' => SafeUrl::href($event->organizer_url),
             ], static fn (mixed $value): bool => filled($value));
@@ -343,52 +365,7 @@ final class StructuredData
             ], static fn (mixed $value): bool => filled($value));
         }
 
-        return [
-            '@type' => 'Organization',
-            'name' => config()->string('app.name'),
-            'url' => url('/'),
-        ];
-    }
-
-    /**
-     * Il prezzo di un'occorrenza può essere sovrascritto sulla singola data
-     * (`price_override`): l'offerta dichiarata è quella della data, non quella
-     * generica dell'evento.
-     *
-     * @return array<string, mixed>|null
-     */
-    private function offers(Event $event, EventOccurrence $occurrence, string $url): ?array
-    {
-        $override = is_array($occurrence->price_override) ? $occurrence->price_override : [];
-
-        $type = isset($override['price_type']) && is_string($override['price_type'])
-            ? PriceType::tryFrom($override['price_type']) ?? $event->price_type
-            : $event->price_type;
-
-        if ($type === PriceType::Unknown) {
-            return null;
-        }
-
-        $min = $override['price_min'] ?? $event->price_min;
-        $price = $type === PriceType::Free ? 0.0 : (is_numeric($min) ? (float) $min : null);
-
-        if ($price === null) {
-            return null;
-        }
-
-        return array_filter([
-            '@type' => 'Offer',
-            'price' => number_format($price, 2, '.', ''),
-            'priceCurrency' => $event->currency !== '' ? $event->currency : 'EUR',
-            'url' => SafeUrl::href($event->ticket_url) ?? $url,
-            'availability' => match ($occurrence->status) {
-                OccurrenceStatus::SoldOut => 'https://schema.org/SoldOut',
-                OccurrenceStatus::Cancelled => 'https://schema.org/Discontinued',
-                OccurrenceStatus::Postponed => null,
-                default => 'https://schema.org/InStock',
-            },
-            'validFrom' => $event->published_at === null ? null : $this->formatter->iso($event->published_at),
-        ], static fn (mixed $value): bool => filled($value));
+        return [];
     }
 
     /**
