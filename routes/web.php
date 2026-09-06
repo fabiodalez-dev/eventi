@@ -7,6 +7,7 @@ use App\Http\Controllers\Web\DeployController;
 use App\Http\Controllers\Web\ImpersonationController;
 use App\Http\Controllers\Web\PageController;
 use App\Http\Controllers\Web\SeoController;
+use App\Http\Controllers\Web\SocialDownloadController;
 use App\Http\Controllers\Web\SponsorshipMetricController;
 use App\Http\Controllers\Web\WidgetController;
 use App\Http\Middleware\RequiresOpsToken;
@@ -43,6 +44,9 @@ Route::group([], base_path('routes/public.php'));
  */
 Route::group([], base_path('routes/account.php'));
 Route::group([], base_path('routes/ticketing.php'));
+Route::get('/social/grafiche/{batch}/{index}.jpg', [SocialDownloadController::class, 'image'])->middleware('signed')->whereNumber('index')->name('social.image');
+Route::get('/social/download/{batch}', [SocialDownloadController::class, 'zip'])->middleware('auth')->name('social.zip');
+Route::get('/social/anteprima/{occurrence}', [SocialDownloadController::class, 'preview'])->middleware(['auth', 'throttle:120,1'])->name('social.preview');
 
 /*
  * Lo stato del sistema (§16: monitoring su endpoint **protetto** per l'uptime

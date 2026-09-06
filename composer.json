@@ -29,6 +29,7 @@
         "flowframe/laravel-trend": "^0.5.0",
         "geocoder-php/nominatim-provider": "^5.8",
         "guava/calendar": "^3.2",
+        "intervention/image": "^3.11",
         "kornrunner/blurhash": "^1.2",
         "laravel-notification-channels/fcm": "^6.1",
         "laravel-notification-channels/webpush": "^12.1",

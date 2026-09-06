@@ -32,6 +32,9 @@ final class TelescopeServiceProvider extends TelescopeApplicationServiceProvider
             'password_confirmation',
             'token',
             'push_token',
+            'access_token',
+            // Livewire form updates can include the Social token in nested snapshots.
+            'components',
         ]);
 
         Telescope::hideRequestHeaders([
@@ -41,6 +44,7 @@ final class TelescopeServiceProvider extends TelescopeApplicationServiceProvider
             'x-xsrf-token',
             'x-metric-token',
         ]);
+        Telescope::hideResponseParameters(['components']);
     }
 
     protected function gate(): void

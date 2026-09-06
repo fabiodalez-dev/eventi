@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Admin\Resources\Events\Pages;
 
 use App\Actions\GenerateOccurrencesAction;
+use App\Filament\Admin\Pages\Social;
 use App\Filament\Admin\Resources\Events\EventResource;
 use App\Filament\Admin\Support\EventModeration;
 use App\Models\Event;
@@ -25,6 +26,7 @@ class EditEvent extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('social')->label(__('social.preview'))->url(fn () => Social::getUrl(['event' => $this->getRecord()->getKey()])),
             ...EventModeration::actions(),
             $this->generateOccurrencesAction(),
             DeleteAction::make(),

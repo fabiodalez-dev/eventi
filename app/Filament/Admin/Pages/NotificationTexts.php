@@ -104,8 +104,9 @@ class NotificationTexts extends Page implements HasSchemas
                     ->label(self::etichetta($chiave))
                     ->rows(self::righe($testo['predefinito']))
                     ->live(onBlur: true)
-                    ->hintActions(array_map(fn (string $variable) => Action::make('insert_'.$variable)
+                    ->aboveContent(array_map(fn (string $variable) => Action::make('insert_'.$variable)
                         ->label(__('notification_texts.insert', ['token' => __('notification_texts.tokens.'.$variable).' (:'.$variable.')']))
+                        ->button()->size('xs')->color('gray')
                         ->action(function (Textarea $component) use ($variable): void {
                             $component->state(rtrim((string) $component->getState()).' :'.$variable);
                         }), $variabili))

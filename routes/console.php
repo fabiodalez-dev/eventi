@@ -1,5 +1,7 @@
 <?php
 
+// Daily publishing is opt-in; the command uses each city's configured timezone.
+
 declare(strict_types=1);
 
 use App\Models\MobileAuthChallenge;
@@ -18,6 +20,7 @@ Artisan::command('ticketing:promote', function (): void {
 })->purpose('Promote waiting bookings when their reservation window is open');
 
 Schedule::command('ticketing:promote')->everyMinute()->withoutOverlapping();
+Schedule::command('social:daily')->everyMinute()->withoutOverlapping(30);
 
 Artisan::command('ticketing:demo {--force : Explicitly permit demonstration accounts on the public site}', function (): int {
     if (! app()->environment(['local', 'testing']) && ! $this->option('force')) {

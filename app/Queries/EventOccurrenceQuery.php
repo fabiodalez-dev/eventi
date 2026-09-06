@@ -114,6 +114,12 @@ final class EventOccurrenceQuery
         return new self($city, [EventStatus::Published, EventStatus::Archived]);
     }
 
+    /** Management-only calendar for a single event. The caller must authorize update before exposing results. */
+    public static function managementFor(Event $event): self
+    {
+        return (new self($event->city, EventStatus::cases()))->forEvent($event);
+    }
+
     /**
      * "Adesso" nella città, che è l'unico adesso che questo prodotto conosce
      * (§8.1). Esposto perché i pannelli di gestione lavorano anche su ciò che

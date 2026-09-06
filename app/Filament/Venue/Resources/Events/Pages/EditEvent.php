@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Filament\Venue\Resources\Events\Pages;
 
+use App\Filament\Venue\Pages\Social;
 use App\Filament\Venue\Resources\Events\EventResource;
 use App\Filament\Venue\Support\EventActions;
+use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 
@@ -27,6 +29,7 @@ class EditEvent extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('social')->label(__('social.preview'))->url(fn () => Social::getUrl(['event' => $this->getRecord()->getKey()])),
             EventActions::viewOnSite(),
             EventActions::publish(),
             EventActions::repeat(),
