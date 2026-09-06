@@ -31,8 +31,15 @@ it('repairs existing posters without losing originals or exposing unrelated priv
         ->and($media->conversions_disk)->toBe('public')
         ->and(Storage::disk('public')->get($path))->toBe($bytes)
         ->and(Storage::disk('local')->get($path))->toBe($bytes);
-    foreach (array_keys($media->generated_conversions) as $conversion) {
-        Storage::disk('public')->assertExists($media->getPathRelativeToRoot($conversion));
+    foreach (Storage::disk('local')->allFiles(dirname($path)) as $original) {
+        expect(Storage::disk('public')->get($original))->toBe(Storage::disk('local')->get($original));
+    }
+    // A false entry means the optional conversion was not generated (for
+    // example AVIF on a runner without its encoder), not a missing copy.
+    foreach ($media->generated_conversions as $conversion => $generated) {
+        if ($generated) {
+            Storage::disk('public')->assertExists($media->getPathRelativeToRoot($conversion));
+        }
     }
     Storage::disk('public')->assertMissing('tickets/private.pdf');
 });

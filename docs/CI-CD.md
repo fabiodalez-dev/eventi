@@ -14,7 +14,7 @@ commit. Non occorre creare un secondo repository né rendere pubblico questo.
    Android. Non viene generato un APK.
    Pest è suddiviso in tre runner con database indipendenti: nessun test viene
    saltato e le tre parti devono riuscire tutte. Gli audit delle dipendenze
-   PHP e JavaScript di produzione sono anch'essi bloccanti.
+   PHP e JavaScript, inclusi gli strumenti di sviluppo, sono anch'essi bloccanti.
 4. Unisci solo con controlli verdi. Il push su `main` esegue nuovamente i
    controlli e pubblica automaticamente. Puoi anche usare Actions → CI → Run workflow.
 5. Il job Deploy deve essere verde: verifica il commit effettivamente online e
@@ -92,3 +92,8 @@ riaprire con `artisan up`. Conservare il backup e documentare l'incidente.
 Il database e `.env` rimangono sul server, mai copiati nei runner. I vecchi
 segreti SSH/database non sono usati da questa pipeline. Rotazione dei segreti
 e upgrade del piano GitHub sono operazioni dell'account, non nuovi pacchetti Laravel.
+
+Le dipendenze transitive di Lighthouse (`tmp`, `uuid`, `qs`, `puppeteer-core`)
+sono vincolate tramite `overrides` alle versioni corrette per gli avvisi noti.
+Non rimuovere questi vincoli senza ripetere `npm audit` e una raccolta Lighthouse
+reale. Non usare `npm audit fix --force`: propone anche downgrade incompatibili.

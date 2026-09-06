@@ -116,8 +116,8 @@ jobs:
           DB_USERNAME: root
           DB_PASSWORD: root
 
-      - name: Vulnerabilità delle dipendenze JavaScript di produzione
-        run: npm audit --omit=dev --audit-level=high
+      - name: Vulnerabilità JavaScript, inclusi gli strumenti di build
+        run: npm audit --audit-level=high
 
       - name: Referto dei test
         if: always()
