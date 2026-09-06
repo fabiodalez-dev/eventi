@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Admin\Pages;
 
 use App\Models\City;
+use BackedEnum;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
@@ -12,9 +13,12 @@ use Filament\Pages\Page;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
 
 class SeoOverview extends Page
 {
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedMagnifyingGlass;
+
     /** @var array<string, mixed> */
     public array $data = [];
 

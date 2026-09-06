@@ -3,10 +3,12 @@
 declare(strict_types=1);
 
 use App\Filament\Admin\Pages\CachePerformance;
+use App\Filament\Admin\Pages\SeoOverview;
 use App\Models\User;
 use App\Services\Cache\FrontendCacheConfiguration;
 use App\Settings\FrontendCacheSettings;
 use Database\Seeders\RolesAndPermissionsSeeder;
+use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
@@ -18,6 +20,8 @@ beforeEach(function (): void {
 });
 
 it('allows admins and denies ordinary users both the page and operations', function (): void {
+    expect(CachePerformance::getNavigationIcon())->toBe(Heroicon::OutlinedBolt)
+        ->and(SeoOverview::getNavigationIcon())->toBe(Heroicon::OutlinedMagnifyingGlass);
     $this->actingAs($this->admin)->get('/admin/cache-performance')->assertOk();
     $this->actingAs(User::factory()->create())->get('/admin/cache-performance')->assertForbidden();
     expect(CachePerformance::canAccess())->toBeFalse();

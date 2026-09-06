@@ -6,6 +6,7 @@ namespace App\Filament\Admin\Pages;
 
 use App\Services\Cache\FrontendCacheConfiguration;
 use App\Settings\FrontendCacheSettings;
+use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -14,10 +15,13 @@ use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
 use Illuminate\Validation\ValidationException;
 
 class CachePerformance extends Page
 {
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBolt;
+
     protected string $view = 'filament.cache.performance';
 
     protected static ?int $navigationSort = 95;
