@@ -19,6 +19,7 @@ use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -44,6 +45,7 @@ class User extends Authenticatable implements FilamentUser, HasTenants, MustVeri
 
     /** @var list<string> */
     protected $fillable = [
+        'city_id',
         'name',
         'email',
         'password',
@@ -68,6 +70,12 @@ class User extends Authenticatable implements FilamentUser, HasTenants, MustVeri
         return $this->belongsToMany(Venue::class, 'venue_user')
             ->withPivot(['role', 'invited_at', 'accepted_at'])
             ->withTimestamps();
+    }
+
+    /** @return BelongsTo<City, $this> */
+    public function city(): BelongsTo
+    {
+        return $this->belongsTo(City::class);
     }
 
     /** @return BelongsToMany<Venue, $this> */

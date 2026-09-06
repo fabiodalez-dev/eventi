@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace App\Filament\Admin\Resources\Users;
 
 use App\Enums\UserRole;
+use App\Enums\VenueRole;
 use App\Filament\Admin\Resources\Users\Pages\CreateUser;
 use App\Filament\Admin\Resources\Users\Pages\EditUser;
 use App\Filament\Admin\Resources\Users\Pages\ListUsers;
+use App\Models\City;
 use App\Models\User;
+use App\Models\Venue;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
@@ -77,6 +80,12 @@ class UserResource extends Resource
                 Section::make(__('admin.sections.account'))
                     ->columns(2)
                     ->schema([
+                        Select::make('city_id')
+                            ->label(__('users.city'))
+                            ->relationship('city', 'name')
+                            ->searchable()
+                            ->preload()
+                            ->helperText(__('users.city_help')),
                         TextInput::make('name')
                             ->label(__('admin.fields.name'))
                             ->required()
@@ -118,9 +127,10 @@ class UserResource extends Resource
                     ]),
 
                 Section::make(__('admin.sections.roles'))
+                    ->description(__('users.roles_help'))
                     ->schema([
                         Select::make('roles')
-                            ->label(__('admin.fields.roles'))
+                            ->label(__('users.platform_roles'))
                             ->relationship('roles', 'name')
                             ->multiple()
                             ->preload()
@@ -137,35 +147,67 @@ class UserResource extends Resource
             ->columns([
                 TextColumn::make('name')
                     ->label(__('admin.fields.name'))
-                    ->searchable()
+                    ->description(fn (User $record): string => $record->email)
+                    ->searchable(['name', 'email'])
+                    ->wrap()
                     ->sortable(),
 
                 TextColumn::make('email')
                     ->label(__('admin.fields.email'))
+                    ->toggleable(isToggledHiddenByDefault: true)
                     ->searchable(),
 
                 TextColumn::make('roles.name')
-                    ->label(__('admin.fields.roles'))
+                    ->label(__('users.platform_roles'))
                     ->badge()
+                    ->placeholder(UserRole::User->label())
                     ->formatStateUsing(fn (string $state): string => self::roleLabel($state)),
 
-                TextColumn::make('venues_count')
-                    ->label(__('admin.fields.venues_count'))
-                    ->counts('venues'),
+                TextColumn::make('memberships')
+                    ->label(__('users.memberships'))
+                    ->searchable(query: fn (Builder $query, string $search): Builder => $query->whereHas('venues', fn (Builder $venues): Builder => $venues->where('name', 'like', "%{$search}%")))
+                    ->state(fn (User $record): array => $record->venues->map(fn (Venue $venue): string => $venue->name.' ('.$venue->city?->name.') — '.(VenueRole::tryFrom((string) $venue->getRelation('pivot')->getAttribute('role'))?->label() ?? '—'))->all())
+                    ->listWithLineBreaks()
+                    ->wrap()
+                    ->placeholder(__('users.no_venues')),
+
+                TextColumn::make('city.name')
+                    ->label(__('users.city'))
+                    ->placeholder(__('users.unknown_city'))
+                    ->sortable(),
+
+                TextColumn::make('venues.city.name')
+                    ->label(__('users.venue_cities'))
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->distinctList()
+                    ->listWithLineBreaks(),
 
                 TextColumn::make('email_verified_at')
                     ->label(__('admin.fields.email_verified_at'))
                     ->dateTime('d/m/Y H:i')
+                    ->toggleable(isToggledHiddenByDefault: true)
                     ->placeholder(__('admin.placeholders.never')),
 
                 TextColumn::make('last_active_at')
                     ->label(__('admin.fields.last_active_at'))
+                    ->toggleable(isToggledHiddenByDefault: true)
                     ->dateTime('d/m/Y H:i')
                     ->placeholder(__('admin.placeholders.never'))
                     ->sortable(),
             ])
             ->defaultSort('name')
             ->filters([
+                SelectFilter::make('city_id')
+                    ->label(__('users.city'))
+                    ->relationship('city', 'name')->searchable()->preload(),
+                SelectFilter::make('venue_city')
+                    ->label(__('users.venue_cities'))
+                    ->options(fn (): array => City::query()->orderBy('name')->pluck('name', 'id')->all())
+                    ->query(fn (Builder $query, array $data): Builder => $query->when($data['value'] ?? null, fn (Builder $query, $city): Builder => $query->whereHas('venues', fn (Builder $venues): Builder => $venues->where('city_id', $city)))),
+                SelectFilter::make('venues')->label(__('users.venue'))
+                    ->relationship('venues', 'name')->searchable()->preload(),
+                TernaryFilter::make('missing_city')->label(__('users.missing_city'))
+                    ->queries(true: fn (Builder $query): Builder => $query->whereNull('city_id'), false: fn (Builder $query): Builder => $query->whereNotNull('city_id')),
                 SelectFilter::make('roles')
                     ->label(__('admin.fields.roles'))
                     ->relationship('roles', 'name')
@@ -210,7 +252,7 @@ class UserResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->withoutGlobalScopes([SoftDeletingScope::class]);
+        return parent::getEloquentQuery()->with(['roles', 'venues.city', 'city'])->withoutGlobalScopes([SoftDeletingScope::class]);
     }
 
     /**
