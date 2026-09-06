@@ -17,7 +17,16 @@ use App\Filament\Support\ExternalLinksField;
 use App\Filament\Support\FactsField;
 use App\Filament\Support\TicketTiersField;
 use App\Filament\Support\TransitField;
+use Filament\Forms\Components\ToggleButtons;
 use Filament\Schemas\Schema;
+
+it('keeps event status outside tabs and defaults new events to draft', function (): void {
+    $components = EventResource::form(Schema::make())->getComponents();
+    $status = array_values($components)[0];
+    expect($status)->toBeInstanceOf(ToggleButtons::class)
+        ->and($status->getName())->toBe('status')
+        ->and($status->getDefaultState())->toBe('draft');
+});
 
 it('keeps section-based resource forms in a single outer column', function (string $resource): void {
     $schema = $resource::form(Schema::make());

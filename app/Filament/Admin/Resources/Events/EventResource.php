@@ -117,6 +117,13 @@ class EventResource extends Resource
     {
         return $schema->columns(1)
             ->components([
+                ToggleButtons::make('status')
+                    ->label(__('admin.fields.status'))
+                    ->options(EventStatus::options())
+                    ->inline()
+                    ->required()
+                    ->default(EventStatus::Draft->value)
+                    ->columnSpanFull(),
                 /*
                  * **Schede, non dodici riquadri su due colonne.**
                  *
@@ -464,14 +471,6 @@ class EventResource extends Resource
                                 Section::make(__('admin.sections.publication'))
                                     ->columns(['default' => 1, 'lg' => 2])
                                     ->schema([
-                                        ToggleButtons::make('status')
-                                            ->label(__('admin.fields.status'))
-                                            ->options(EventStatus::options())
-                                            ->inline()
-                                            ->required()
-                                            ->default(EventStatus::Draft->value)
-                                            ->columnSpanFull(),
-
                                         Select::make('source')
                                             ->label(__('admin.fields.source'))
                                             ->options(EventSource::options())

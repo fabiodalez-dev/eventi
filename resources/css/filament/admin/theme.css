@@ -238,6 +238,35 @@
     color: var(--fi-ink);
 }
 
+/* Selection is a state, not a primary action. Keep every radio group legible. */
+.fi-fo-toggle-buttons-input:not(:checked) + label.fi-btn {
+    background-color: var(--fi-paper, #f5f5f0);
+    color: var(--fi-ink);
+    box-shadow: inset 0 0 0 1px #888;
+}
+
+.fi-fo-toggle-buttons-input:checked + label.fi-btn {
+    background-color: var(--fi-lime);
+    color: var(--fi-ink);
+    box-shadow: inset 0 0 0 2px var(--fi-ink);
+}
+
+.fi-fo-toggle-buttons-input + label.fi-btn::before {
+    content: '○';
+    display: inline-block;
+    width: 1em;
+    flex-shrink: 0;
+}
+
+.fi-fo-toggle-buttons-input:checked + label.fi-btn::before {
+    content: '✓';
+}
+
+.fi-fo-toggle-buttons-input:focus-visible + label.fi-btn {
+    outline: 2px solid var(--fi-ink);
+    outline-offset: 3px;
+}
+
 /*
  * ─── Intestazioni ────────────────────────────────────────────────────────
  *
@@ -338,4 +367,3 @@
     font-weight: 800;
     letter-spacing: -0.03em;
 }
-
