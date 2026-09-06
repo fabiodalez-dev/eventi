@@ -29,6 +29,8 @@ final class ImageUpload
     public static function configure(SpatieMediaLibraryFileUpload $field): SpatieMediaLibraryFileUpload
     {
         return $field
+            // Match the media pipeline, not Filament's private default disk.
+            ->disk(config()->string('media-library.disk_name'))
             ->image()
             ->acceptedFileTypes([
                 ...RealImage::acceptedMimeTypes(),
