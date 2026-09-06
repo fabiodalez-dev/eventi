@@ -4,13 +4,16 @@ declare(strict_types=1);
 
 use App\Actions\CreateSharedEventTag;
 use App\Enums\UserRole;
+use App\Filament\Admin\Resources\Events\Pages\EditEvent;
 use App\Models\Event;
 use App\Models\Tag;
 use App\Models\User;
 use App\Models\Venue;
 use Database\Seeders\RolesAndPermissionsSeeder;
+use Filament\Facades\Filament;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Validation\ValidationException;
+use Livewire\Livewire;
 
 beforeEach(function (): void {
     (new RolesAndPermissionsSeeder)->run();
@@ -18,6 +21,18 @@ beforeEach(function (): void {
     $this->owner->assignRole(UserRole::VenueOwner->value);
     $this->venue = Venue::factory()->approved()->create();
     $this->owner->venues()->attach($this->venue, ['role' => 'owner']);
+});
+
+it('replaces the inline create option with the real selected tag id', function (): void {
+    $admin = User::factory()->create();
+    $admin->assignRole(UserRole::Admin->value);
+    $this->actingAs($admin);
+    Filament::setCurrentPanel(Filament::getPanel('admin'));
+    $event = Event::factory()->create();
+    $page = Livewire::test(EditEvent::class, ['record' => $event->slug])
+        ->set('data.tags', ['create:Teatro sperimentale']);
+    $tag = Tag::where('slug', 'teatro-sperimentale')->firstOrFail();
+    $page->assertSet('data.tags', [$tag->id]);
 });
 
 it('creates globally reusable approved tags and reuses normalized names', function (): void {

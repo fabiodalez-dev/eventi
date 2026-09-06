@@ -1,7 +1,8 @@
 <?php
 
 return [
-    'help' => 'Cerca un tag esistente oppure premi + per crearne uno condiviso con tutti i locali.',
+    'help' => 'Scrivi un tag: seleziona un risultato oppure “Crea tag” con Invio o un clic. Il nuovo tag sarà condiviso con tutti i locali.',
+    'create_named' => 'Crea tag «:name»',
     'name' => 'Nome del tag',
     'create' => 'Crea tag',
     'add' => 'Crea e seleziona',
