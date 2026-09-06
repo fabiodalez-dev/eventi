@@ -39,7 +39,7 @@
 @include('layouts.app', [
     'title' => $meta?->title ?? $title,
     'description' => $meta?->description ?? $description,
-    'canonical' => $meta?->canonical,
+    'canonical' => $meta?->canonical ?? url()->current(),
     'image' => $meta?->image,
     'imageWidth' => $meta?->imageWidth,
     'imageHeight' => $meta?->imageHeight,

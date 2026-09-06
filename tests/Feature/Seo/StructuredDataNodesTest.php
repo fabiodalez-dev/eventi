@@ -201,7 +201,7 @@ it('sceglie l\'organizzatore in tre gradini: chi è dichiarato, il locale, il si
     ]);
 });
 
-it('ripulisce la descrizione dal markup e la accorcia a cinquecento caratteri', function (): void {
+it('ripulisce la descrizione dal markup senza troncare il contenuto', function (): void {
     $occurrence = occurrenceAtLocal($this->city, $this->category, '2026-09-12 21:00', event: [
         'short_description' => null,
         'description' => '<p>Una <strong>serata</strong>   con    tanti   spazi</p>'.str_repeat(' parola', 200),
@@ -211,10 +211,8 @@ it('ripulisce la descrizione dal markup e la accorcia a cinquecento caratteri', 
 
     expect($description)->not->toContain('<')
         ->and($description)->toStartWith('Una serata con tanti spazi')
-        /* Cinquecento caratteri di testo più i puntini che dicono che il
-           discorso continua: è il taglio di `Str::limit`. */
-        ->and(mb_strlen($description))->toBe(503)
-        ->and($description)->toEndWith('...');
+        ->and(mb_strlen($description))->toBeGreaterThan(500)
+        ->and($description)->toEndWith('parola');
 });
 
 it('preferisce il sommario alla descrizione lunga, e non scrive nulla se non c\'è né l\'uno né l\'altra', function (): void {
@@ -249,7 +247,8 @@ it('porta nel nodo il sottotitolo, i tag e la categoria quando ci sono', functio
 
     expect($node['alternateName'])->toBe('Terza edizione')
         ->and($node['keywords'])->toBe('Jazz, Ingresso libero')
-        ->and($node['eventType'])->toBe($this->category->name);
+        ->and($node)->not->toHaveKey('eventType')
+        ->and($node['about']['name'])->toBe($this->category->name);
 });
 
 it('non dichiara interpreti che non ha caricato invece di inventare una lista vuota', function (): void {

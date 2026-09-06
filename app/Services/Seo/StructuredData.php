@@ -58,13 +58,27 @@ final class StructuredData
             '@id' => $url.'#data-'.$occurrence->getKey(),
             'url' => $url,
             'name' => $event->title,
-            'startDate' => $this->formatter->iso($occurrence->starts_at),
-            'endDate' => $this->formatter->iso($occurrence->effective_ends_at),
+            'startDate' => $occurrence->is_all_day
+                ? $occurrence->starts_at->copy()->timezone($event->city->timezone)->toDateString()
+                : $this->formatter->iso($occurrence->starts_at),
             'eventStatus' => $this->status($occurrence->status),
             'eventAttendanceMode' => 'https://schema.org/OfflineEventAttendanceMode',
             'location' => $this->location($event),
             'organizer' => $this->organizer($event),
         ];
+
+        // A calculated duration is useful for search, but is not a confirmed ending time.
+        if ($occurrence->ends_at !== null) {
+            $node['endDate'] = $occurrence->is_all_day
+                ? $occurrence->ends_at->copy()->timezone($event->city->timezone)->toDateString()
+                : $this->formatter->iso($occurrence->ends_at);
+        }
+        if ($occurrence->doors_at !== null) {
+            $node['doorTime'] = $this->formatter->iso($occurrence->doors_at);
+        }
+        if (filled($event->language)) {
+            $node['inLanguage'] = $event->language;
+        }
 
         if (filled($event->subtitle)) {
             $node['alternateName'] = $event->subtitle;
@@ -73,7 +87,7 @@ final class StructuredData
         $description = $event->short_description ?? $event->description;
 
         if (filled($description)) {
-            $node['description'] = str($description)->stripTags()->squish()->limit(500)->value();
+            $node['description'] = str($description)->stripTags()->squish()->value();
         }
 
         if ($poster !== null) {
@@ -97,7 +111,8 @@ final class StructuredData
         }
 
         if ($event->category !== null) {
-            $node['eventType'] = $event->category->name;
+            $node['about'] = ['@type' => 'Thing', 'name' => $event->category->name,
+                'url' => route('events.category', $event->category)];
         }
 
         return $node;
@@ -119,9 +134,30 @@ final class StructuredData
                 'telephone' => $venue->phone,
                 'email' => $venue->email,
                 'sameAs' => $this->socials($venue),
+                'image' => $venue->getFirstMediaUrl('cover'),
             ], static fn (mixed $value): bool => filled($value)),
             'address' => $this->address($venue),
             'geo' => $this->geo($venue),
+        ];
+    }
+
+    /**
+     * Describe only the links actually visible on this page, not hidden results.
+     *
+     * @param  list<array{name: string, url: string}>  $items
+     * @return array<string, mixed>
+     */
+    public function collection(string $name, string $url, array $items): array
+    {
+        return [
+            '@context' => 'https://schema.org', '@type' => 'CollectionPage',
+            '@id' => $url.'#page', 'url' => $url, 'name' => $name,
+            'inLanguage' => str_replace('_', '-', app()->getLocale()),
+            'mainEntity' => ['@type' => 'ItemList', 'numberOfItems' => count($items),
+                'itemListElement' => array_map(static fn (array $item, int $index): array => [
+                    '@type' => 'ListItem', 'position' => $index + 1,
+                    'name' => $item['name'], 'url' => $item['url'],
+                ], $items, array_keys($items))],
         ];
     }
 
@@ -150,8 +186,8 @@ final class StructuredData
     }
 
     /**
-     * `WebSite` con `SearchAction`: è ciò che permette a un motore di offrire
-     * la ricerca interna del sito direttamente fra i propri risultati.
+     * Descrive la ricerca interna. Non promette il sitelinks search box,
+     * ritirato da Google: il vocabolario Schema.org rimane valido.
      *
      * @return array<string, mixed>
      */
@@ -160,6 +196,7 @@ final class StructuredData
         return [
             '@context' => 'https://schema.org',
             '@type' => 'WebSite',
+            '@id' => url('/').'#website',
             'name' => config()->string('app.name'),
             'url' => url('/'),
             'inLanguage' => str_replace('_', '-', app()->getLocale()),
@@ -288,7 +325,7 @@ final class StructuredData
             return array_filter([
                 '@type' => 'Organization',
                 'name' => $event->organizer_name,
-                'url' => $event->organizer_url,
+                'url' => SafeUrl::href($event->organizer_url),
             ], static fn (mixed $value): bool => filled($value));
         }
 
@@ -343,10 +380,13 @@ final class StructuredData
             '@type' => 'Offer',
             'price' => number_format($price, 2, '.', ''),
             'priceCurrency' => $event->currency !== '' ? $event->currency : 'EUR',
-            'url' => $event->ticket_url ?? $url,
-            'availability' => $occurrence->status === OccurrenceStatus::SoldOut
-                ? 'https://schema.org/SoldOut'
-                : 'https://schema.org/InStock',
+            'url' => SafeUrl::href($event->ticket_url) ?? $url,
+            'availability' => match ($occurrence->status) {
+                OccurrenceStatus::SoldOut => 'https://schema.org/SoldOut',
+                OccurrenceStatus::Cancelled => 'https://schema.org/Discontinued',
+                OccurrenceStatus::Postponed => null,
+                default => 'https://schema.org/InStock',
+            },
             'validFrom' => $event->published_at === null ? null : $this->formatter->iso($event->published_at),
         ], static fn (mixed $value): bool => filled($value));
     }
@@ -366,7 +406,7 @@ final class StructuredData
             $performers[] = array_filter([
                 '@type' => 'PerformingGroup',
                 'name' => $lineup->name,
-                'url' => $lineup->url,
+                'url' => SafeUrl::href($lineup->url),
             ], static fn (mixed $value): bool => filled($value));
         }
 
@@ -381,8 +421,8 @@ final class StructuredData
         $socials = [];
 
         foreach (is_array($venue->socials) ? $venue->socials : [] as $url) {
-            if (is_string($url) && $url !== '') {
-                $socials[] = $url;
+            if (is_string($url) && SafeUrl::href($url) !== null) {
+                $socials[] = SafeUrl::href($url);
             }
         }
 

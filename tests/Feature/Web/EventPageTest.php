@@ -202,7 +202,7 @@ it('non pubblica una bozza né un evento di un\'altra città', function (): void
     $this->get('/eventi/uno-slug-che-non-esiste')->assertNotFound();
 });
 
-it('mostra l\'archivio quando tutte le date sono passate, e non finisce negli indici', function (): void {
+it('mantiene indicizzabile la scheda storica quando tutte le date sono passate', function (): void {
     $city = testCity();
     $category = testCategory();
 
@@ -213,7 +213,7 @@ it('mostra l\'archivio quando tutte le date sono passate, e non finisce negli in
     $this->get('/eventi/'.$passato->event->slug)
         ->assertOk()
         ->assertSee(__('events.detail.finished'))
-        ->assertSee('<meta name="robots" content="noindex, follow">', escape: false);
+        ->assertSee('<meta name="robots" content="index, follow">', escape: false);
 });
 
 /*

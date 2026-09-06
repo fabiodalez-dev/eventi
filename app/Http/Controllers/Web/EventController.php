@@ -87,7 +87,7 @@ final class EventController extends Controller
             'pastOccurrences' => $past,
             'related' => $related,
             'atVenue' => $atVenue,
-            'meta' => $this->meta($event, $upcoming)->withIndexable(! $isPreview && $event->status === EventStatus::Published && $upcoming->isNotEmpty()),
+            'meta' => $this->meta($event, $upcoming)->withIndexable(! $isPreview && in_array($event->status, [EventStatus::Published, EventStatus::Archived], true)),
             'calendar' => $this->calendar,
             /* Il listino dell'evento. Quello di una singola data — quando
                esiste — lo risolve la vista chiedendolo per quell'occorrenza,
@@ -180,7 +180,7 @@ final class EventController extends Controller
         $social = Poster::social($event);
 
         return new PageMeta(
-            title: $event->title,
+            title: __('seo.event_title', ['event' => $event->title, 'city' => $event->city->name]),
             heading: $event->title,
             description: $description === '' ? null : $description,
             canonical: route('events.show', $event),

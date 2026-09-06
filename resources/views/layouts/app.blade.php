@@ -135,6 +135,9 @@
     @if (filled($robots ?? null))
         <meta name="robots" content="{{ $robots }}">
     @endif
+    @if (! str_contains($robots ?? '', 'noindex'))
+        <meta name="robots" content="max-image-preview:large">
+    @endif
 
     {{-- `hreflang` predisposto (§12.2). Oggi il sito parla una lingua sola e
          l'unica riga utile è `x-default`, che dice «questa è la versione da
@@ -154,7 +157,7 @@
          un evento condiviso arriva come un link nudo (§12.2). --}}
     <meta property="og:site_name" content="{{ $app }}">
     <meta property="og:type" content="website">
-    <meta property="og:locale" content="{{ str_replace('-', '_', app()->getLocale()) }}">
+    <meta property="og:locale" content="{{ app()->getLocale() === 'it' ? 'it_IT' : str_replace('-', '_', app()->getLocale()) }}">
     <meta property="og:title" content="{{ filled($title ?? null) ? $title : $app }}">
     <meta property="og:url" content="{{ $canonical ?? url()->current() }}">
     <meta name="twitter:card" content="{{ filled($image ?? null) ? 'summary_large_image' : 'summary' }}">

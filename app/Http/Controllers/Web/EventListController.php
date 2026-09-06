@@ -129,10 +129,13 @@ final class EventListController extends Controller
             'municipalities' => $this->facets->municipalities($city),
             'zones' => $this->facets->zones($city),
             'venues' => $this->facets->venues($city),
-            'structuredData' => [$this->structuredData->breadcrumbs([
-                ['name' => __('ui.nav.home'), 'url' => url('/')],
-                ['name' => $meta->heading, 'url' => url()->current()],
-            ])],
+            'structuredData' => [$this->structuredData->collection($meta->title, $meta->canonical,
+                collect($occurrences->items())->map(fn ($occurrence): array => [
+                    'name' => $occurrence->event->title, 'url' => route('events.show', $occurrence->event),
+                ])->values()->all()), $this->structuredData->breadcrumbs([
+                    ['name' => __('ui.nav.home'), 'url' => url('/')],
+                    ['name' => $meta->heading, 'url' => url()->current()],
+                ])],
         ]);
     }
 
@@ -148,17 +151,20 @@ final class EventListController extends Controller
     private function canonical(EventFilters $filters): string
     {
         $parameters = $filters->toQueryString();
-        unset($parameters['sort']);
+        $page = max(1, request()->integer('page', 1));
 
         if (count($parameters) === 1) {
             $pretty = $this->prettyRoute($filters);
 
             if ($pretty !== null) {
-                return $pretty;
+                return $page > 1 ? $pretty.'?page='.$page : $pretty;
             }
         }
 
         $parameters = $filters->toQueryString();
+        if ($page > 1) {
+            $parameters['page'] = $page;
+        }
 
         return $parameters === [] ? route('events.index') : route('events.index').'?'.http_build_query($parameters);
     }

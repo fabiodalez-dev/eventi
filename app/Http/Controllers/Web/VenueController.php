@@ -67,6 +67,11 @@ final class VenueController extends Controller
             ->paginate(config()->integer('eventi.per_page'))
             ->withQueryString();
 
+        $parameters = array_filter(['type' => $type?->value, 'municipality' => $municipality,
+            'q' => $term, 'page' => $venues->currentPage() > 1 ? $venues->currentPage() : null],
+            static fn ($value): bool => $value !== null && $value !== '');
+        $canonical = route('venues.index').($parameters === [] ? '' : '?'.http_build_query($parameters));
+
         return view('venues.index', [
             'city' => $city,
             'venues' => $venues,
@@ -79,12 +84,16 @@ final class VenueController extends Controller
                 title: __('venues.meta.title', ['city' => $city->name]),
                 heading: __('venues.title'),
                 description: __('venues.meta.description', ['city' => $city->name]),
-                canonical: route('venues.index'),
+                canonical: $canonical,
+                indexable: $term === '' && $type === null && $municipality === null,
             ),
-            'structuredData' => [$this->structuredData->breadcrumbs([
-                ['name' => __('ui.nav.home'), 'url' => url('/')],
-                ['name' => __('venues.title'), 'url' => route('venues.index')],
-            ])],
+            'structuredData' => [$this->structuredData->collection(__('venues.title'), $canonical,
+                $venues->getCollection()->map(fn (Venue $venue): array => [
+                    'name' => $venue->name, 'url' => route('venues.show', $venue),
+                ])->values()->all()), $this->structuredData->breadcrumbs([
+                    ['name' => __('ui.nav.home'), 'url' => url('/')],
+                    ['name' => __('venues.title'), 'url' => route('venues.index')],
+                ])],
         ]);
     }
 

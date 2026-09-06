@@ -178,7 +178,7 @@ final class EventListingMeta
      */
     private function isIndexable(EventFilters $filters): bool
     {
-        if ($filters->q !== '' || $filters->hasPosition()) {
+        if ($filters->q !== '' || $filters->hasPosition() || $filters->sort !== null) {
             return false;
         }
 
