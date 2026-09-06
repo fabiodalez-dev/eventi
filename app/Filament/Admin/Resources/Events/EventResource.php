@@ -19,6 +19,7 @@ use App\Filament\Support\EventStatusPresentation;
 use App\Filament\Support\ExternalLinksField;
 use App\Filament\Support\FactsField;
 use App\Filament\Support\ImageUpload;
+use App\Filament\Support\SharedEventTags;
 use App\Filament\Support\TicketTiersField;
 use App\Models\City;
 use App\Models\Event;
@@ -172,12 +173,7 @@ class EventResource extends Resource
                                             ->searchable()
                                             ->preload(),
 
-                                        Select::make('tags')
-                                            ->label(__('admin.fields.tags'))
-                                            ->relationship('tags', 'name')
-                                            ->multiple()
-                                            ->searchable()
-                                            ->preload(),
+                                        SharedEventTags::make(),
 
                                         TextInput::make('age_restriction')
                                             ->label(__('admin.fields.age_restriction'))

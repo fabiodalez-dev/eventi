@@ -8,6 +8,7 @@ use App\Enums\PriceType;
 use App\Filament\Support\ExternalLinksField;
 use App\Filament\Support\FactsField;
 use App\Filament\Support\ImageUpload;
+use App\Filament\Support\SharedEventTags;
 use App\Filament\Support\TicketTiersField;
 use App\Models\Category;
 use Filament\Forms\Components\DateTimePicker;
@@ -86,12 +87,7 @@ final class EventFields
 
     public static function tags(): Component
     {
-        return Select::make('tags')
-            ->label(__('manage.fields.tags'))
-            ->helperText(__('manage.hints.tags'))
-            ->relationship('tags', 'name')
-            ->multiple()
-            ->preload();
+        return SharedEventTags::make();
     }
 
     public static function priceType(): Component
