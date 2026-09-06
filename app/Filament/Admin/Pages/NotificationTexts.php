@@ -15,11 +15,13 @@ use Filament\Pages\Page;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Concerns\InteractsWithSchemas;
 use Filament\Schemas\Contracts\HasSchemas;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 
 /**
  * I testi delle email, riscrivibili senza toccare il codice.
@@ -101,7 +103,16 @@ class NotificationTexts extends Page implements HasSchemas
                 $campi[] = Textarea::make(self::campo($chiave))
                     ->label(self::etichetta($chiave))
                     ->rows(self::righe($testo['predefinito']))
-                    ->helperText(self::aiuto($testo['predefinito'], $variabili))
+                    ->live(onBlur: true)
+                    ->hintActions(array_map(fn (string $variable) => Action::make('insert_'.$variable)
+                        ->label(__('notification_texts.insert', ['token' => __('notification_texts.tokens.'.$variable).' (:'.$variable.')']))
+                        ->action(function (Textarea $component) use ($variable): void {
+                            $component->state(rtrim((string) $component->getState()).' :'.$variable);
+                        }), $variabili))
+                    ->helperText(fn (Get $get) => view('filament.admin.pages.notification-text-help', [
+                        'original' => $testo['predefinito'],
+                        'preview' => strtr((string) $get(self::campo($chiave)), self::samples($chiave)),
+                    ]))
                     ->columnSpanFull();
             }
 
@@ -140,8 +151,19 @@ class NotificationTexts extends Page implements HasSchemas
 
     public function salva(): void
     {
+        abort_unless(static::canAccess(), 403);
         /** @var array<string, string> $valori */
         $valori = $this->modulo()->getState();
+        $errors = [];
+        foreach (NotificationTextCatalog::predefiniti() as $key => $default) {
+            $unknown = array_diff(NotificationTextCatalog::variabili((string) ($valori[self::campo($key)] ?? '')), NotificationTextCatalog::variabili($default));
+            if ($unknown !== []) {
+                $errors['data.'.self::campo($key)] = __('notification_texts.invalid', ['tokens' => implode(', ', $unknown)]);
+            }
+        }
+        if ($errors !== []) {
+            throw ValidationException::withMessages($errors);
+        }
         $utente = Auth::id();
         $scritti = 0;
         $ripristinati = 0;
@@ -180,6 +202,7 @@ class NotificationTexts extends Page implements HasSchemas
 
     public function ripristinaTutto(): void
     {
+        abort_unless(static::canAccess(), 403);
         NotificationText::query()->delete();
         NotificationText::dimenticaLaCache();
         $this->mount();
@@ -207,6 +230,24 @@ class NotificationTexts extends Page implements HasSchemas
     private static function campo(string $chiave): string
     {
         return str_replace('.', '__', $chiave);
+    }
+
+    /** @return array<string, string> */
+    private static function samples(string $key): array
+    {
+        $samples = [];
+        foreach (NotificationTextCatalog::predefiniti() as $text) {
+            foreach (NotificationTextCatalog::variabili($text) as $variable) {
+                $samples[':'.$variable] = __('notification_texts.examples.'.$variable) === 'notification_texts.examples.'.$variable
+                    ? '['.$variable.']' : __('notification_texts.examples.'.$variable);
+            }
+        }
+
+        if ($key === 'notifications.moved.previous') {
+            $samples[':when'] = __('notification_texts.previous_example');
+        }
+
+        return $samples;
     }
 
     /**
@@ -260,20 +301,6 @@ class NotificationTexts extends Page implements HasSchemas
         $ultima = (string) last(explode('.', $chiave));
 
         return self::PEZZI[$ultima] ?? ucfirst(str_replace('_', ' ', $ultima));
-    }
-
-    /** @param  list<string>  $variabili */
-    private static function aiuto(string $predefinito, array $variabili): string
-    {
-        $aiuto = __('notification_texts.default_was', ['testo' => $predefinito]);
-
-        if ($variabili !== []) {
-            $aiuto .= ' — '.__('notification_texts.variables', [
-                'elenco' => implode(', ', array_map(static fn (string $v): string => ':'.$v, $variabili)),
-            ]);
-        }
-
-        return $aiuto;
     }
 
     /** Righe proporzionate al testo: un oggetto non ha bisogno di sei righe. */

@@ -50,8 +50,12 @@
     <p class="mt-1 text-sm text-ink-muted">
         {{ $provider !== null && $host !== null
             ? __('consent.analytics.active', ['provider' => $provider->label(), 'host' => $host])
-            : __('consent.analytics.inactive') }}
+            : (\App\Models\ConsentScript::query()->where('enabled', true)->where('category', \App\Enums\ConsentCategory::Statistics)->exists() ? '' : __('consent.analytics.inactive')) }}
     </p>
+    @php($configuredScripts = \App\Models\ConsentScript::query()->where('enabled', true)->orderBy('name')->pluck('name'))
+    @if ($configuredScripts->isNotEmpty())
+        <p class="mt-1 text-sm text-ink-muted">{{ __('consent.analytics.scripts', ['names' => $configuredScripts->join(', ')]) }}</p>
+    @endif
 
     {{--
         **Una casella per finalità, non un interruttore solo.**

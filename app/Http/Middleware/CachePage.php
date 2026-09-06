@@ -162,7 +162,7 @@ final class CachePage
             ContentVersion::for($cityId),
             app()->getLocale(),
             app(Consent::class)->fingerprint(),
-            sha1($this->canonicalUrl($request)),
+            sha1($this->canonicalUrl($request).Cache::get('consent_scripts_revision', '0')),
         );
     }
 

@@ -279,6 +279,7 @@
     {{-- L'analitica senza cookie (§16). Con `ANALYTICS_*` vuote non emette
          niente: nessuno script, nessuna richiesta verso terzi. --}}
     <x-analytics />
+    <x-consent-scripts />
 
     {{ $head ?? '' }}
 </head>

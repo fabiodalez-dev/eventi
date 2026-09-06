@@ -15,7 +15,7 @@ return [
     'title' => 'Due parole su cosa salviamo',
 
     /* Onesto e verificabile: è esattamente ciò che il sito fa. */
-    'body' => 'Questo sito non usa cookie pubblicitari e non profila nessuno. Conserva sul tuo dispositivo solo quello che gli serve per funzionare — la sessione, la protezione dei moduli, le date che metti in agenda — e ci piacerebbe contare in forma anonima le pagine viste, per capire cosa serve davvero.',
+    'body' => 'Questo sito usa cookie e memoria locale necessari al funzionamento. I servizi facoltativi di statistiche e marketing vengono attivati secondo le tue scelte. Mappe, immagini e contenuti esterni possono inviare dati tecnici ai rispettivi fornitori. Consulta le informative per i dettagli.',
 
     /* Quando ANALYTICS_* è vuoto lo strumento non esiste: dirlo è più onesto
        che chiedere un consenso per qualcosa che non parte comunque. */
@@ -50,6 +50,7 @@ return [
     ],
 
     'analytics' => [
+        'scripts' => 'Servizi configurati nel gestore script: :names. Quelli facoltativi vengono caricati solo con il consenso alla relativa categoria.',
         /* Serve alla Cookie Policy per dire il vero anche quando la
            configurazione cambia: il testo si legge, lo stato si guarda. */
         'active' => 'In questo momento è attivo :provider, ospitato su :host.',

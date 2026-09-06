@@ -57,7 +57,7 @@
         <form
             method="POST"
             action="{{ route('consent.store') }}"
-            data-consent-form
+            @if (! \App\Models\ConsentScript::query()->where('enabled', true)->exists()) data-consent-form @endif
             class="mx-auto flex w-full max-w-content flex-col gap-3 px-gutter py-4"
         >
             @csrf
