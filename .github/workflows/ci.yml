@@ -360,7 +360,9 @@ jobs:
     name: Deploy su eventi.fabiodalez.it
     needs: [quality, tests, lighthouse, android]
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-    runs-on: ubuntu-latest
+    # Some x86 runner network ranges receive an unrelated hosting certificate.
+    # ARM connectivity was verified with strict TLS. Never bypass certificate checks.
+    runs-on: ubuntu-24.04-arm
     timeout-minutes: 25
     environment:
       name: production

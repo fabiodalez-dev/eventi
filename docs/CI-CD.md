@@ -93,6 +93,14 @@ riaprire con `artisan up`. Conservare il backup e documentare l'incidente.
 
 ## Segreti
 
+Il job di deploy usa `ubuntu-24.04-arm`: il 7 settembre 2026 il runner x86 del
+rilascio riceveva certificati estranei e timeout dall'hosting, mentre una prova
+indipendente ARM verificava hostname, certificato e SHA corretti. Test e build
+restano sui runner originali, gli asset vengono sempre dallo stesso commit.
+La verifica TLS resta obbligatoria: mai usare `curl -k`. Se il problema ricompare,
+confrontare DNS, certificato e raggiungibilità da un secondo runner prima di
+intervenire. Il controllo SHA finale non viene saltato.
+
 `DEPLOY_HOOK_URL` e `DEPLOY_HOOK_SECRET` sono GitHub Secrets già configurati.
 Il database e `.env` rimangono sul server, mai copiati nei runner. I vecchi
 segreti SSH/database non sono usati da questa pipeline. Rotazione dei segreti
