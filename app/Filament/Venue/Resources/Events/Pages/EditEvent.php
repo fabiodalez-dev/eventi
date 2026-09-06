@@ -29,6 +29,7 @@ class EditEvent extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('pagePreview')->label(__('promotions.preview'))->url(fn () => route('events.preview', $this->getRecord()))->openUrlInNewTab()->color('gray'),
             Action::make('social')->label(__('social.preview'))->url(fn () => Social::getUrl(['event' => $this->getRecord()->getKey()])),
             EventActions::viewOnSite(),
             EventActions::publish(),

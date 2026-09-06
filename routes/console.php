@@ -5,6 +5,8 @@
 declare(strict_types=1);
 
 use App\Models\MobileAuthChallenge;
+use App\Models\SponsorshipGrant;
+use App\Services\Sponsorship\GrantCampaigns;
 use App\Services\Ticketing\TicketingService;
 use App\Support\Backup\SpazioSufficiente;
 use App\Support\OncePerHour;
@@ -258,3 +260,9 @@ Schedule::command('sponsorships:report')
     ->weeklyOn(1, '08:30')
     ->withoutOverlapping()
     ->graceTimeInMinutes(120);
+
+Schedule::call(function (): void {
+    SponsorshipGrant::active()->each(function ($grant): void {
+        app(GrantCampaigns::class)->sync($grant);
+    });
+})->name('sponsorship-grants:sync')->everyMinute()->withoutOverlapping(10);

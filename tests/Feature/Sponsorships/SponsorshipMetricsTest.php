@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\RateLimiter;
  */
 beforeEach(function (): void {
     $this->city = testCity();
+    freezeLocal($this->city, '2026-09-05 12:00:00');
     $this->category = testCategory();
 
     $occorrenza = occurrenceAtLocal($this->city, $this->category, '2026-09-20 21:00:00');

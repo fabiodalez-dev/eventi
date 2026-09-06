@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Web\ConsentController;
 use App\Http\Controllers\Web\DeployController;
+use App\Http\Controllers\Web\EventController;
 use App\Http\Controllers\Web\ImpersonationController;
 use App\Http\Controllers\Web\PageController;
 use App\Http\Controllers\Web\SeoController;
@@ -43,6 +44,7 @@ Route::group([], base_path('routes/public.php'));
  * "accedi".
  */
 Route::group([], base_path('routes/account.php'));
+Route::get('/anteprima-evento/{event}', [EventController::class, 'preview'])->middleware('auth')->name('events.preview');
 Route::group([], base_path('routes/ticketing.php'));
 Route::get('/social/grafiche/{batch}/{index}.jpg', [SocialDownloadController::class, 'image'])->middleware('signed')->whereNumber('index')->name('social.image');
 Route::get('/social/download/{batch}', [SocialDownloadController::class, 'zip'])->middleware('auth')->name('social.zip');

@@ -19,6 +19,7 @@ use App\Models\Report;
 use App\Models\SavedEvent;
 use App\Models\ScheduledNotification;
 use App\Models\Sponsorship;
+use App\Models\SponsorshipGrant;
 use App\Models\Tag;
 use App\Models\TicketTier;
 use App\Models\User;
@@ -250,6 +251,7 @@ class AppServiceProvider extends ServiceProvider
         // `scheduled_notifications.notifiable_type`) contengono alias brevi e non
         // nomi di classe: i dati non devono dipendere dal namespace PHP.
         Relation::enforceMorphMap([
+            'sponsorship_grant' => SponsorshipGrant::class,
             'booking' => Booking::class,
             'admission_ticket' => AdmissionTicket::class,
             'city' => City::class,

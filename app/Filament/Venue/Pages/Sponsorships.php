@@ -4,29 +4,29 @@ declare(strict_types=1);
 
 namespace App\Filament\Venue\Pages;
 
+use App\Enums\PromotionMode;
+use App\Enums\SponsorshipStatus;
 use App\Filament\Venue\Support\CurrentVenue;
+use App\Models\Event;
 use App\Models\Sponsorship;
+use App\Models\SponsorshipGrant;
+use App\Services\Sponsorship\GrantCampaigns;
 use BackedEnum;
+use Filament\Actions\Action;
+use Filament\Forms\Components\Select;
+use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Gate;
+use Livewire\WithPagination;
 
-/**
- * Le campagne sponsorizzate sui propri eventi, in sola lettura.
- *
- * **Perché esiste, visto che il referente non può farci niente.** Perché
- * altrimenti scoprirebbe dal sito che un proprio evento sta in cima con la
- * scritta «sponsorizzato» e un nome che magari non conosce — un'etichetta
- * discografica che promuove il concerto ospitato nel suo circolo. Sapere cosa
- * si vende sulle proprie serate non è un permesso: è il minimo per non far
- * fare a qualcuno la figura di chi non sa cosa succede in casa propria.
- *
- * **Perché in sola lettura.** Potersi sponsorizzare da sé significherebbe che
- * il posto in cima si prende invece di comprarlo, ed è per questo che
- * `SponsorshipPolicy` non apre a nessun ruolo di locale.
- */
+/** Campagne e storico del locale. La scelta degli eventi passa sempre da GrantCampaigns. */
 class Sponsorships extends Page
 {
+    use WithPagination;
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedMegaphone;
 
     protected static ?int $navigationSort = 6;
@@ -47,27 +47,59 @@ class Sponsorships extends Page
 
     public function getSubheading(): ?string
     {
-        return __('sponsorships.venue.lead');
+        return __('promotions.venue_lead');
     }
 
-    /**
-     * Le campagne vive sugli eventi di questo locale.
-     *
-     * **Solo quelle vive**: uno storico di campagne finite qui non serve a
-     * niente — non è chi le paga a leggerlo — e diventerebbe un elenco che
-     * cresce senza che nessuno lo guardi.
-     *
-     * @return Collection<int, Sponsorship>
-     */
-    public function sponsorships(): Collection
+    protected function getHeaderActions(): array
+    {
+        return [Action::make('choose')->label(__('promotions.choose'))->schema([
+            Select::make('grant')->label(__('promotions.grant'))->required()->options(fn () => SponsorshipGrant::active()->where('venue_id', CurrentVenue::get()->id)
+                ->where('mode', PromotionMode::Selected)->get()->mapWithKeys(fn ($g) => [$g->id => $g->placement->label().' · '.$g->ends_at->timezone('Europe/Rome')->format('d/m/Y')])->all()),
+            Select::make('event')->label(__('promotions.event'))->required()->searchable()->options(fn () => Event::where('venue_id', CurrentVenue::get()->id)->orderBy('title')->pluck('title', 'id')),
+        ])->visible(fn (): bool => SponsorshipGrant::active()->where('venue_id', CurrentVenue::get()->id)->where('mode', PromotionMode::Selected)->exists())
+            ->action(function (array $data): void {
+                $grant = SponsorshipGrant::where('venue_id', CurrentVenue::get()->id)->findOrFail($data['grant']);
+                $event = Event::where('venue_id', CurrentVenue::get()->id)->findOrFail($data['event']);
+                app(GrantCampaigns::class)->choose(auth()->user(), $grant, $event);
+                Notification::make()->title(__('promotions.success'))->success()->send();
+            })];
+    }
+
+    /** @return Collection<int, SponsorshipGrant> */
+    public function grants(): Collection
+    {
+        return SponsorshipGrant::where('venue_id', CurrentVenue::get()->id)->orderByDesc('ends_at')->get();
+    }
+
+    public function stop(int $id): void
+    {
+        $campaign = Sponsorship::whereHas('event', fn ($q) => $q->where('venue_id', CurrentVenue::get()->id))
+            ->whereHas('grant', fn ($q) => $q->where('mode', PromotionMode::Selected)->where('venue_id', CurrentVenue::get()->id))->findOrFail($id);
+        Gate::authorize('update', $campaign->event);
+        $campaign->update(['status' => SponsorshipStatus::Paused]);
+        Notification::make()->title(__('promotions.stopped'))->success()->send();
+    }
+
+    /** @return LengthAwarePaginator<int, Sponsorship> */
+    public function sponsorships(): LengthAwarePaginator
     {
         $venue = CurrentVenue::get();
 
         return Sponsorship::query()
-            ->visible()
             ->whereHas('event', fn ($event) => $event->where('venue_id', $venue->getKey()))
-            ->with('event')
-            ->orderBy('ends_at')
-            ->get();
+            ->where(fn ($q) => $q->whereNull('sponsorship_grant_id')->orWhereHas('grant', fn ($g) => $g->where('venue_id', $venue->id)))
+            ->with(['event', 'grant'])
+            ->orderByDesc('ends_at')
+            ->paginate(25);
+    }
+
+    /** @return array{impressions: int, clicks: int} */
+    public function totals(): array
+    {
+        $totals = Sponsorship::whereHas('event', fn ($q) => $q->where('venue_id', CurrentVenue::get()->id))
+            ->where(fn ($q) => $q->whereNull('sponsorship_grant_id')->orWhereHas('grant', fn ($g) => $g->where('venue_id', CurrentVenue::get()->id)))
+            ->selectRaw('COALESCE(SUM(impressions), 0) as impressions, COALESCE(SUM(clicks), 0) as clicks')->first();
+
+        return ['impressions' => (int) $totals?->impressions, 'clicks' => (int) $totals?->clicks];
     }
 }

@@ -6,6 +6,7 @@ namespace App\Policies;
 
 use App\Enums\EventStatus;
 use App\Enums\Permission;
+use App\Enums\UserRole;
 use App\Models\Event;
 use App\Models\User;
 use App\Models\Venue;
@@ -97,6 +98,11 @@ class EventPolicy
     public function moderate(User $user, Event $event): bool
     {
         return $user->can(Permission::ModerateEvents->value);
+    }
+
+    public function feature(User $user): bool
+    {
+        return $user->hasAnyRole([UserRole::Admin->value, UserRole::SuperAdmin->value]);
     }
 
     /**

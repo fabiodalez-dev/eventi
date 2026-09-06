@@ -8,6 +8,7 @@ use App\Enums\EventStatus;
 use App\Enums\SponsorshipPhase;
 use App\Enums\SponsorshipPlacement;
 use App\Enums\SponsorshipStatus;
+use App\Support\ContentVersion;
 use Carbon\CarbonImmutable;
 use Database\Factories\SponsorshipFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -37,8 +38,15 @@ class Sponsorship extends Model
 
     use SoftDeletes;
 
+    protected static function booted(): void
+    {
+        static::saved(fn (self $campaign) => ContentVersion::bump($campaign->city_id));
+        static::deleted(fn (self $campaign) => ContentVersion::bump($campaign->city_id));
+    }
+
     /** @var list<string> */
     protected $fillable = [
+        'sponsorship_grant_id',
         'city_id',
         'event_id',
         'created_by',
@@ -77,6 +85,12 @@ class Sponsorship extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    /** @return BelongsTo<SponsorshipGrant, $this> */
+    public function grant(): BelongsTo
+    {
+        return $this->belongsTo(SponsorshipGrant::class, 'sponsorship_grant_id');
+    }
+
     /**
      * Le campagne che possono comparire adesso.
      *
@@ -91,13 +105,16 @@ class Sponsorship extends Model
         $adesso = $now ?? CarbonImmutable::now('UTC');
 
         $query->where('status', SponsorshipStatus::Active)
+            ->where(fn (Builder $q) => $q->whereNull('sponsorship_grant_id')->orWhereIn('sponsorship_grant_id', SponsorshipGrant::active($adesso)->select('id')))
             ->where('starts_at', '<=', $adesso)
             ->where('ends_at', '>=', $adesso)
             /* Il terzo requisito: l'evento sotto deve reggere ancora. Una
                campagna pagata non tiene in vetrina un evento annullato. */
             ->whereHas('event', function (Builder $event): void {
                 $event->where('status', EventStatus::Published)
-                    ->whereNull('deleted_at');
+                    ->whereNull('deleted_at')
+                    ->where(fn (Builder $q) => $q->whereNull('sponsorships.sponsorship_grant_id')
+                        ->orWhereIn('events.venue_id', SponsorshipGrant::query()->select('venue_id')->whereColumn('sponsorship_grants.id', 'sponsorships.sponsorship_grant_id')));
             })
             /*
              * E i tetti di consegna, se dichiarati.
@@ -134,6 +151,7 @@ class Sponsorship extends Model
         /* Le due date sono obbligatorie a schema: non c'e' niente da
            controllare prima di confrontarle. */
         return $this->status === SponsorshipStatus::Active
+            && ($this->sponsorship_grant_id === null || SponsorshipGrant::active($adesso)->whereKey($this->sponsorship_grant_id)->exists())
             && $this->starts_at->lessThanOrEqualTo($adesso)
             && $this->ends_at->greaterThanOrEqualTo($adesso);
     }
@@ -160,6 +178,7 @@ class Sponsorship extends Model
             $this->status === SponsorshipStatus::Paused => SponsorshipPhase::Paused,
             $this->starts_at->greaterThan($adesso) => SponsorshipPhase::Scheduled,
             $this->ends_at->lessThan($adesso) => SponsorshipPhase::Ended,
+            $this->sponsorship_grant_id !== null && ! SponsorshipGrant::active($adesso)->whereKey($this->sponsorship_grant_id)->exists() => SponsorshipPhase::Paused,
             default => SponsorshipPhase::Running,
         };
     }

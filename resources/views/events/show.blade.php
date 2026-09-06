@@ -48,6 +48,9 @@
 @endphp
 
 <x-layouts.app :meta="$meta" :preload="$poster" wide>
+    @if ($isPreview ?? false)
+        <p role="status" class="bg-accent text-on-accent p-4 font-bold">{{ __('promotions.preview_notice') }}</p>
+    @endif
     <x-slot:head>
         <x-json-ld :data="$structuredData" />
 
@@ -265,7 +268,7 @@
                                     @endif
                                 </div>
 
-                                @if ($occurrences->isNotEmpty())
+                                @if ($occurrences->isNotEmpty() && ! ($isPreview ?? false))
                                     @if ($booking = $activeBookings->get($occurrence->id))
                                         <x-button :href="route('tickets.show', $booking)" class="min-h-12">{{ __('ticketing.manage_booking') }}</x-button>
                                     @elseif ($occurrence->booking_enabled && $event->venue?->ticketing_enabled)
@@ -321,12 +324,14 @@
             {{-- Il cuore della scheda (§15.3): una data sola si salva senza
                  chiedere, più date aprono il selettore, una serie ricorrente
                  offre anche «segui questo evento». --}}
+            @if (! ($isPreview ?? false))
             <x-save-event
                 :event="$event"
                 :occurrences="$occurrences"
                 :saved="app(\App\Support\CurrentSaves::class)->all()"
                 :following="app(\App\Support\CurrentFollows::class)->has(\App\Enums\FollowableType::Event, (int) $event->getKey())"
             />
+            @endif
 
             @if (filled($event->description))
                 <section aria-labelledby="descrizione-evento" class="flex flex-col gap-3">

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Models\SponsorshipGrant;
 use App\Support\Consent;
 use App\Support\ContentVersion;
 use App\Support\CurrentCity;
@@ -162,7 +163,8 @@ final class CachePage
             ContentVersion::for($cityId),
             app()->getLocale(),
             app(Consent::class)->fingerprint(),
-            sha1($this->canonicalUrl($request).Cache::get('consent_scripts_revision', '0')),
+            sha1($this->canonicalUrl($request).Cache::get('consent_scripts_revision', '0').SponsorshipGrant::active()
+                ->whereHas('venue', fn ($q) => $q->where('city_id', $cityId))->orderBy('id')->pluck('id')->toJson()),
         );
     }
 

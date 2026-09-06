@@ -821,6 +821,12 @@ final class EventOccurrenceQuery
         return $this->build()->cursorPaginate(perPage: $perPage, cursor: $cursor);
     }
 
+    /** @return list<int> */
+    public function eventIds(): array
+    {
+        return (clone $this->query)->reorder()->distinct()->pluck('event_occurrences.event_id')->all();
+    }
+
     public function count(): int
     {
         return $this->query->count('event_occurrences.id');

@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Filament\Admin\Resources\Sponsorships\Pages;
 
+use App\Filament\Admin\Resources\SponsorshipGrants\SponsorshipGrantResource;
 use App\Filament\Admin\Resources\Sponsorships\SponsorshipResource;
 use App\Filament\Admin\Widgets\SponsorshipHealthWidget;
 use App\Filament\Admin\Widgets\SponsorshipTrendWidget;
+use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
 use pxlrbt\FilamentExcel\Actions\Pages\ExportAction;
@@ -21,6 +23,7 @@ class ListSponsorships extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('grants')->label(__('promotions.title'))->url(SponsorshipGrantResource::getUrl())->color('gray'),
             /*
              * L'esportazione dell'elenco, coi filtri applicati.
              *

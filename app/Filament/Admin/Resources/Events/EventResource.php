@@ -493,10 +493,14 @@ class EventResource extends Resource
 
                                         Toggle::make('is_featured')
                                             ->label(__('admin.fields.is_featured'))
+                                            ->disabled(fn (): bool => ! (auth()->user()?->can('feature', Event::class) ?? false))
+                                            ->dehydrated(fn (): bool => auth()->user()?->can('feature', Event::class) ?? false)
                                             ->live(),
 
                                         DateTimePicker::make('featured_until')
                                             ->label(__('admin.fields.featured_until'))
+                                            ->disabled(fn (): bool => ! (auth()->user()?->can('feature', Event::class) ?? false))
+                                            ->dehydrated(fn (): bool => auth()->user()?->can('feature', Event::class) ?? false)
                                             ->seconds(false)
                                             ->visible(fn (Get $get): bool => (bool) $get('is_featured')),
 

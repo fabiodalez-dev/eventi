@@ -16,11 +16,13 @@ use App\Queries\EventOccurrenceQuery;
 use App\Services\Calendar\OccurrenceCalendar;
 use App\Services\Events\EventPoster;
 use App\Services\Seo\StructuredData;
+use App\Support\CurrentCity;
 use App\Support\Poster;
 use App\Support\TicketTiers;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 
 /**
@@ -44,7 +46,23 @@ final class EventController extends Controller
         $city = $this->city();
         $event = $this->findReadable($city, $slug);
 
-        $upcoming = $this->hydrate(EventOccurrenceQuery::for($city)->forEvent($event)->upcoming()->get());
+        return $this->renderEvent($city, $event);
+    }
+
+    public function preview(Event $event): Response
+    {
+        Gate::authorize('update', $event);
+        $event->load(['venue', 'category', 'tags', 'city', 'media', 'ticketTiers']);
+        app(CurrentCity::class)->set($event->city);
+
+        return response($this->renderEvent($event->city, $event, true))
+            ->header('Cache-Control', 'private, no-store')->header('X-Robots-Tag', 'noindex, nofollow');
+    }
+
+    private function renderEvent(City $city, Event $event, bool $isPreview = false): View
+    {
+
+        $upcoming = $this->hydrate(($isPreview ? EventOccurrenceQuery::managementFor($event) : EventOccurrenceQuery::for($city)->forEvent($event))->upcoming()->get());
 
         /*
          * Un evento le cui date sono tutte passate resta una pagina legittima —
@@ -59,6 +77,7 @@ final class EventController extends Controller
         $atVenue = $this->atSameVenue($city, $event);
 
         return view('events.show', [
+            'isPreview' => $isPreview,
             'city' => $city,
             'event' => $event,
             'occurrences' => $upcoming,
@@ -68,13 +87,13 @@ final class EventController extends Controller
             'pastOccurrences' => $past,
             'related' => $related,
             'atVenue' => $atVenue,
-            'meta' => $this->meta($event, $upcoming),
+            'meta' => $this->meta($event, $upcoming)->withIndexable(! $isPreview && $event->status === EventStatus::Published && $upcoming->isNotEmpty()),
             'calendar' => $this->calendar,
             /* Il listino dell'evento. Quello di una singola data — quando
                esiste — lo risolve la vista chiedendolo per quell'occorrenza,
                sempre attraverso `App\Support\TicketTiers`. */
             'tiers' => TicketTiers::for($event),
-            'structuredData' => [
+            'structuredData' => $isPreview ? [] : [
                 ...$this->structuredData->events($event, $upcoming->isNotEmpty() ? $upcoming : $past),
                 $this->structuredData->breadcrumbs([
                     ['name' => __('ui.nav.home'), 'url' => url('/')],

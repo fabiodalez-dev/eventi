@@ -8,6 +8,7 @@ use App\Enums\SponsorshipPlacement;
 use App\Models\City;
 use App\Models\Sponsorship;
 use App\Models\User;
+use App\Queries\EventOccurrenceQuery;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
@@ -76,6 +77,12 @@ final class SponsorshipSelector
 
         if ($candidate->isEmpty()) {
             return $candidate;
+        }
+
+        $grantEventIds = $candidate->whereNotNull('sponsorship_grant_id')->pluck('event_id')->unique()->values()->all();
+        if ($grantEventIds !== []) {
+            $upcomingIds = EventOccurrenceQuery::for($city)->forEvents($grantEventIds)->upcoming()->eventIds();
+            $candidate = $candidate->filter(fn (Sponsorship $campaign): bool => $campaign->sponsorship_grant_id === null || in_array($campaign->event_id, $upcomingIds, true))->values();
         }
 
         /* L'utente si legge qui e non arriva dai controller: così ogni punto

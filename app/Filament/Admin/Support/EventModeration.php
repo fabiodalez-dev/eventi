@@ -163,7 +163,7 @@ final class EventModeration
                 ? __('admin.actions.unfeature')
                 : __('admin.actions.feature'))
             ->icon(Heroicon::OutlinedStar)
-            ->authorize(fn (Event $record): bool => auth()->user()?->can('moderate', $record) ?? false)
+            ->authorize(fn (Event $record): bool => auth()->user()?->can('feature', $record) ?? false)
             ->schema(fn (Event $record): array => $record->is_featured ? [] : [
                 DateTimePicker::make('featured_until')
                     ->label(__('admin.fields.featured_until'))
