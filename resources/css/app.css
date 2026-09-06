@@ -519,8 +519,8 @@
     background-color: var(--line);
 }
 
-/* Le fotografie stampano in bianco e nero: ogni immagine di contenuto passa
-   da qui. Non si tinge e non si colora l'immagine, mai. */
+/* Le anteprime restano in bianco e nero; hero e locandina nel dettaglio
+   recuperano i colori originali attraverso poster-reveal. */
 @utility grayscale-photo {
     filter: grayscale(1) contrast(1.08);
 }
@@ -536,6 +536,7 @@
 
 @media (prefers-reduced-motion: reduce) {
     .poster-reveal {
+        filter: grayscale(0) contrast(1);
         transition: none;
     }
 }

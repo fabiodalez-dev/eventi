@@ -99,11 +99,12 @@
                     height="1600"
                     :sizes="$poster->sizes"
                     :eager="true"
-                    class="absolute inset-0 size-full object-cover opacity-60 grayscale-photo"
+                    :color="true"
+                    data-poster-reveal
+                    class="poster-reveal absolute inset-0 size-full object-cover opacity-60"
                 />
+                <span aria-hidden="true" class="absolute inset-0 bg-[linear-gradient(120deg,rgba(11,11,11,.85)_0%,rgba(11,11,11,.3)_60%,rgba(11,11,11,.7)_100%)]"></span>
             @endif
-
-            <span aria-hidden="true" class="absolute inset-0 bg-[linear-gradient(120deg,rgba(11,11,11,.85)_0%,rgba(11,11,11,.3)_60%,rgba(11,11,11,.7)_100%)]"></span>
 
             <div class="relative flex h-full flex-col justify-between gap-6 p-[clamp(1.125rem,2.2vw,2rem)]">
                 <div class="flex flex-wrap gap-1.5">
@@ -124,6 +125,10 @@
                         <span class="border-2 border-ink px-2.5 py-[5px] font-display text-[0.594rem] leading-none font-extrabold tracking-[0.16em] uppercase">{{ __('events.badge.outdoor') }}</span>
                     @endif
                 </div>
+
+                @if ($poster === null)
+                    <x-event-hero-placeholder />
+                @endif
 
                 <div class="flex flex-col gap-2.5">
                     @if ($venue !== null || filled($custom['name'] ?? null))

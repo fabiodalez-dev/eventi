@@ -2,7 +2,7 @@
     La locandina di un evento, intera, che si apre a schermo pieno.
 
     **Perché intera e non ritagliata.** In cima alla pagina la locandina fa da
-    sfondo: ritagliata, coperta da un gradiente e in bianco e nero, perché lì
+    sfondo: ritagliata, coperta da un gradiente e inizialmente in bianco e nero, perché lì
     serve a dare un tono, non a essere letta. Ma una locandina è un manifesto —
     qualcuno l'ha disegnata, ci ha messo il nome degli ospiti, l'orario, il
     prezzo, a volte l'unica informazione che da nessun'altra parte esiste. Chi
