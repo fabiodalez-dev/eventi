@@ -44,6 +44,11 @@ L'hosting non è raggiungibile in modo affidabile dai runner GitHub: il webhook
 è un acceleratore, il cron Laravel controlla ogni cinque minuti. Il job non
 dichiara successo finché `/release-status` non conferma lo SHA e le pagine
 pubbliche non rispondono correttamente. Un timeout è un fallimento visibile.
+Le richieste del runner usano IPv4 esplicito, verificato con un controllo TLS
+separato: il percorso IPv6 non è disponibile su tutti i runner. La verifica
+del certificato non viene mai disabilitata. Se l'hosting restituisce ancora
+timeout o un certificato di un altro dominio, serve verificare il percorso
+di rete e la configurazione TLS con il provider; non usare `curl -k`.
 
 **Limite del piano GitHub attuale:** l'API rifiuta la protezione dei rami su
 questo repository privato (richiede Pro). Il gate di deploy funziona, ma non

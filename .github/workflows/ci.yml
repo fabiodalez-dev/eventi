@@ -396,7 +396,7 @@ jobs:
           DEPLOY_SECRET: ${{ secrets.DEPLOY_HOOK_SECRET }}
         run: |
           # Il cron è il fallback, ma l'esito finale sotto è obbligatorio.
-          curl --fail --silent --show-error --max-time 600 -X POST "$DEPLOY_URL" \
+          curl --ipv4 --fail --silent --show-error --connect-timeout 10 --max-time 120 -X POST "$DEPLOY_URL" \
             -H "X-Secret-Token: $DEPLOY_SECRET" -H "Accept: application/json" \
             || echo "::warning::Innesco non raggiungibile; attendo il cron e verifico il rilascio."
       - name: Verifica il commit effettivamente online e le pagine pubbliche
@@ -405,13 +405,14 @@ jobs:
         run: |
           set -euo pipefail
           ready=false
-          for _ in $(seq 1 60); do
-            actual=$(curl --fail --silent --show-error --max-time 10 "https://eventi.fabiodalez.it/release-status?run=$GITHUB_RUN_ID" | jq -r .sha || true)
+          deadline=$((SECONDS + 600))
+          while [ "$SECONDS" -lt "$deadline" ]; do
+            actual=$(curl --ipv4 --fail --silent --show-error --connect-timeout 5 --max-time 10 "https://eventi.fabiodalez.it/release-status?run=$GITHUB_RUN_ID" | jq -r .sha || true)
             if [ "$actual" = "$EXPECTED_SHA" ]; then ready=true; break; fi
             sleep 10
           done
           test "$ready" = true || { echo "::error::Il server non conferma il commit verificato."; exit 1; }
           for path in / /eventi /locali /sitemap.xml /api/v1/home /admin/login; do
-            curl --fail --silent --show-error --retry 3 --max-time 30 "https://eventi.fabiodalez.it$path" -o /dev/null
+            curl --ipv4 --fail --silent --show-error --retry 3 --connect-timeout 5 --max-time 30 "https://eventi.fabiodalez.it$path" -o /dev/null
           done
           echo "### Rilascio verificato: $EXPECTED_SHA" >> "$GITHUB_STEP_SUMMARY"
