@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Observers;
 
 use App\Models\Tag;
+use App\Support\ContentVersion;
 use App\Support\Redirect\RegistroRedirect;
 
 /**
@@ -13,6 +14,16 @@ use App\Support\Redirect\RegistroRedirect;
  */
 final class TagObserver
 {
+    public function saved(Tag $tag): void
+    {
+        ContentVersion::bumpTaxonomies();
+    }
+
+    public function deleted(Tag $tag): void
+    {
+        ContentVersion::bumpTaxonomies();
+    }
+
     public function updated(Tag $tag): void
     {
         if (! $tag->wasChanged('slug')) {

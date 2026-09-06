@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Middleware;
 
 use App\Models\SponsorshipGrant;
+use App\Services\Cache\FrontendCacheConfiguration;
 use App\Support\Consent;
 use App\Support\ContentVersion;
 use App\Support\CurrentCity;
@@ -55,13 +56,14 @@ final class CachePage
 
     public function handle(Request $request, Closure $next): Response
     {
+        app(FrontendCacheConfiguration::class)->apply();
         if (! $this->isCacheable($request)) {
             return $next($request);
         }
 
         $key = $this->key($request);
         try {
-            $cached = Cache::store(config('page_cache.store'))->get($key);
+            $cached = Cache::store(config('page_cache.store') ?: null)->get($key);
         } catch (Throwable $exception) {
             report($exception);
 
@@ -80,7 +82,7 @@ final class CachePage
             $content = (string) $response->getContent();
 
             try {
-                Cache::store(config('page_cache.store'))->put(
+                Cache::store(config('page_cache.store') ?: null)->put(
                     $key,
                     str_replace(csrf_token(), self::CSRF_PLACEHOLDER, $content),
                     now()->addMinutes(config()->integer('page_cache.ttl_minutes')),

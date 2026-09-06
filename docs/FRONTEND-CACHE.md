@@ -15,12 +15,23 @@ che duplichi quello già testato.
 - Chiavi separate per città, dominio, lingua, consenso, filtri e giorno locale.
 - Pubblicazione/modifica eventi invalida tramite ContentVersion; ogni release
   cambia la chiave attraverso il manifest di rilascio. Non si azzerano sessioni o lock.
+- Anche modifiche e rimozioni di locali, categorie e tag invalidano le copie;
+  le tassonomie dei filtri si aggiornano immediatamente.
 - HTML con `Cache-Control: private, no-store` e `X-LiteSpeed-Cache-Control: no-cache`.
 - Asset Vite versionati: cache pubblica di un anno, immutable, anche su LiteSpeed.
 - Gli header `X-Page-Cache: miss` e `hit` mostrano il funzionamento sui GET pubblici.
   HEAD non riempie la cache. Per controllare: `curl -sD - URL -o /dev/null` due volte.
 
 ## Comandi
+
+Gli admin e superadmin trovano **Cache e prestazioni** nella sidebar del pannello
+(`/admin/cache-performance`). La pulizia confermata invalida HTML, calendari,
+sitemap, filtri e viste compilate, preservando impostazioni, sessioni e lock.
+Si può abilitare la gestione dal pannello, scegliere file/Redis e il TTL.
+Le credenziali Redis sono cifrate con Spatie Laravel Settings; il salvataggio
+non attiva Redis se la prova di scrittura e lettura fallisce. Un campo password
+vuoto conserva quella precedente. LiteSpeed HTML condiviso resta volutamente
+non attivabile; gli asset versionati hanno già cache pubblica lunga.
 
 `php artisan frontend:cache` verifica scrittura/lettura senza stampare credenziali.
 

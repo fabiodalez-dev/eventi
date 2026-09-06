@@ -29,6 +29,15 @@ use Illuminate\Support\Facades\Cache;
  */
 final class ContentVersion
 {
+    public static function bumpTaxonomies(): void
+    {
+        Cache::forget('tassonomie:categorie');
+        Cache::forget('tassonomie:tag');
+        foreach (City::query()->pluck('id') as $id) {
+            self::bump((int) $id);
+        }
+    }
+
     /**
      * Il numero corrente. Zero è un valore legittimo: significa che da questa
      * città non è ancora stato pubblicato niente da quando la cache è viva.

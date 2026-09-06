@@ -11,7 +11,6 @@ use App\Models\Venue;
 use App\Services\Cache\LiveWindows;
 use App\Services\Calendar\MonthCalendar;
 use App\Services\Search\FilterFacets;
-use App\Support\ContentVersion;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
@@ -371,7 +370,7 @@ describe('conteggi del calendario', function (): void {
 });
 
 describe('tassonomie', function (): void {
-    it('stanno in cache per ventiquattro ore', function (): void {
+    it('restano disponibili dopo la scadenza e si aggiornano subito alle modifiche', function (): void {
         Cache::flush();
 
         testCity();
@@ -383,15 +382,15 @@ describe('tassonomie', function (): void {
 
         Category::factory()->create(['name' => 'Cinema', 'slug' => 'cinema']);
 
-        // La seconda categoria non compare: l'elenco arriva dalla copia salvata.
-        expect($facets->categories())->toHaveCount(1);
+        // Il salvataggio invalida la copia, senza attendere le ventiquattro ore.
+        expect($facets->categories())->toHaveCount(2);
 
         Carbon::setTestNow(CarbonImmutable::now()->addHours(25));
 
         expect($facets->categories())->toHaveCount(2);
     });
 
-    it('rivede i locali di una citta appena qualcosa viene pubblicato', function (): void {
+    it('rivede i locali di una citta appena vengono approvati', function (): void {
         $city = testCity();
 
         $facets = app(FilterFacets::class);
@@ -399,11 +398,7 @@ describe('tassonomie', function (): void {
 
         Venue::factory()->approved()->create(['city_id' => $city->getKey()]);
 
-        // Senza il cambio di versione l'elenco resterebbe quello di prima.
-        expect($facets->venues($city))->toHaveCount(0);
-
-        ContentVersion::bump($city);
-
+        // L'observer aggiorna la versione senza interventi manuali.
         expect($facets->venues($city))->toHaveCount(1);
     });
 });

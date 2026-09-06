@@ -3,6 +3,9 @@
 declare(strict_types=1);
 
 use App\Http\Middleware\CachePage;
+use App\Models\Category;
+use App\Models\Venue;
+use App\Services\Search\FilterFacets;
 use App\Support\CurrentCity;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -60,6 +63,35 @@ it('separates hosts and local calendar days', function (): void {
 
 it('verifies the configured cache store', function (): void {
     $this->artisan('frontend:cache')->assertSuccessful();
+});
+
+it('treats an empty optional store as the default store', function (): void {
+    config()->set('page_cache.store', '');
+    $this->get('/eventi')->assertHeader('X-Page-Cache', 'miss');
+    $this->get('/eventi')->assertHeader('X-Page-Cache', 'hit');
+});
+
+it('invalidates public HTML after venue or category edits', function (): void {
+    $venue = Venue::factory()->create(['city_id' => app(CurrentCity::class)->get()->id]);
+    $this->get('/eventi')->assertHeader('X-Page-Cache', 'miss');
+    $this->get('/eventi')->assertHeader('X-Page-Cache', 'hit');
+    $venue->update(['name' => 'New venue name']);
+    $this->get('/eventi')->assertHeader('X-Page-Cache', 'miss');
+
+    $facets = app(FilterFacets::class);
+    $facets->categories();
+    $category = Category::firstOrFail();
+    $category->update(['name' => 'New category name']);
+    $this->get('/eventi')->assertHeader('X-Page-Cache', 'miss');
+    expect($facets->categories()->firstWhere('id', $category->id)->name)->toBe('New category name');
+});
+
+it('never reuses the previous visitors CSRF token on a cache hit', function (): void {
+    $alice = str_repeat('a', 40);
+    $bob = str_repeat('b', 40);
+    $this->withSession(['_token' => $alice])->get('/eventi')->assertHeader('X-Page-Cache', 'miss')->assertSee($alice);
+    $this->withSession(['_token' => $bob])->get('/eventi')->assertHeader('X-Page-Cache', 'hit')
+        ->assertSee($bob)->assertDontSee($alice);
 });
 
 it('serves live HTML when the optional frontend store is unavailable', function (): void {

@@ -17,7 +17,7 @@ return [
     'enabled' => filter_var(env('PAGE_CACHE_ENABLED', true), FILTER_VALIDATE_BOOLEAN),
 
     // Null preserves the application's store. frontend-redis is opt-in only.
-    'store' => env('PAGE_CACHE_STORE'),
+    'store' => env('PAGE_CACHE_STORE') ?: null,
 
     /*
      * Scheletro della pagina iniziale, "stasera", weekend, categorie, locali

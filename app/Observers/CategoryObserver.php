@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Observers;
 
 use App\Models\Category;
+use App\Support\ContentVersion;
 use App\Support\Redirect\RegistroRedirect;
 
 /**
@@ -15,6 +16,16 @@ use App\Support\Redirect\RegistroRedirect;
  */
 final class CategoryObserver
 {
+    public function saved(Category $category): void
+    {
+        ContentVersion::bumpTaxonomies();
+    }
+
+    public function deleted(Category $category): void
+    {
+        ContentVersion::bumpTaxonomies();
+    }
+
     public function updated(Category $category): void
     {
         if (! $category->wasChanged('slug')) {

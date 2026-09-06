@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Observers;
 
 use App\Models\Venue;
+use App\Support\ContentVersion;
 use App\Support\Redirect\RegistroRedirect;
 use MatanYadaev\EloquentSpatial\Objects\Point;
 
@@ -24,6 +25,19 @@ use MatanYadaev\EloquentSpatial\Objects\Point;
  */
 class VenueObserver
 {
+    public function saved(Venue $venue): void
+    {
+        ContentVersion::bump($venue->city_id);
+        if ($venue->wasChanged('city_id') && $venue->getOriginal('city_id') !== null) {
+            ContentVersion::bump((int) $venue->getOriginal('city_id'));
+        }
+    }
+
+    public function deleted(Venue $venue): void
+    {
+        ContentVersion::bump($venue->city_id);
+    }
+
     public function saving(Venue $venue): void
     {
         if (! $venue->exists) {
