@@ -65,7 +65,7 @@ class CategoryResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
-        return $schema
+        return $schema->columns(1)
             ->components([
                 Section::make(__('admin.sections.general'))
                     ->columns(2)
@@ -111,7 +111,7 @@ class CategoryResource extends Resource
                     ]),
 
                 Section::make(__('admin.sections.temporal'))
-                    ->columns(3)
+                    ->columns(1)
                     ->schema([
                         TextInput::make('default_duration_minutes')
                             ->label(__('admin.fields.default_duration_minutes'))

@@ -28,6 +28,7 @@ final class FactsField
     public static function make(string $dictionary, string $name = 'facts'): Repeater
     {
         return Repeater::make($name)
+            ->columnSpanFull()
             ->hiddenLabel()
             ->helperText(__($dictionary.'.hints.facts', ['max' => FactList::MAX_FACTS]))
             ->addActionLabel(__($dictionary.'.actions.add_fact'))

@@ -75,7 +75,7 @@ class UserResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
-        return $schema
+        return $schema->columns(1)
             ->components([
                 Section::make(__('admin.sections.account'))
                     ->columns(2)
@@ -176,7 +176,8 @@ class UserResource extends Resource
                     ->placeholder(__('users.unknown_city'))
                     ->sortable(),
 
-                TextColumn::make('venues.city.name')
+                TextColumn::make('managed_city_names')
+                    ->state(fn (User $record): array => $record->venues->pluck('city.name')->filter()->unique()->values()->all())
                     ->label(__('users.venue_cities'))
                     ->toggleable(isToggledHiddenByDefault: true)
                     ->distinctList()

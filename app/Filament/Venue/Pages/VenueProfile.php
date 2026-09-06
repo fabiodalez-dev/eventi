@@ -114,7 +114,7 @@ class VenueProfile extends Page implements HasSchemas
 
     public function form(Schema $schema): Schema
     {
-        return $schema
+        return $schema->columns(1)
             ->statePath('data')
             /*
              * Il modulo conosce il locale, e non solo i suoi valori.
@@ -264,7 +264,7 @@ class VenueProfile extends Page implements HasSchemas
                     ->schema([
                         Repeater::make('opening_hours')
                             ->hiddenLabel()
-                            ->columns(3)
+                            ->columns(['default' => 1, 'lg' => 2])
                             ->defaultItems(0)
                             ->addActionLabel(__('manage.actions.add_opening_hours'))
                             ->schema([
@@ -292,7 +292,7 @@ class VenueProfile extends Page implements HasSchemas
                     ]),
 
                 Section::make(__('manage.sections.venue_contacts'))
-                    ->columns(3)
+                    ->columns(['default' => 1, 'lg' => 2])
                     ->schema([
                         TextInput::make('phone')
                             ->label(__('manage.fields.phone'))
@@ -320,7 +320,7 @@ class VenueProfile extends Page implements HasSchemas
                     ]),
 
                 Section::make(__('manage.sections.venue_accessibility'))
-                    ->columns(3)
+                    ->columns(['default' => 1, 'lg' => 2])
                     ->schema(AccessibilityField::make('manage')),
 
                 Section::make(__('manage.sections.venue_info'))

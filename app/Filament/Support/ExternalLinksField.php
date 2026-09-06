@@ -39,6 +39,7 @@ final class ExternalLinksField
     public static function make(string $dictionary): Repeater
     {
         return Repeater::make('external_links')
+            ->columnSpanFull()
             ->hiddenLabel()
             ->helperText(__($dictionary.'.hints.external_links', ['max' => ExternalLinkList::MAX_LINKS]))
             ->addActionLabel(__($dictionary.'.actions.add_external_link'))

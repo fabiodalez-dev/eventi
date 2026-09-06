@@ -119,7 +119,7 @@ class CalendarImport extends Page implements HasForms
 
     public function form(Schema $schema): Schema
     {
-        return $schema
+        return $schema->columns(1)
             ->components([
                 Section::make(__('manage.calendar.form.heading'))
                     ->description(__('manage.calendar.form.help'))

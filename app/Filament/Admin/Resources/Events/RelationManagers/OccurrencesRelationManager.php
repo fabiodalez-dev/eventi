@@ -57,7 +57,7 @@ class OccurrencesRelationManager extends RelationManager
 
     public function form(Schema $schema): Schema
     {
-        return $schema
+        return $schema->columns(1)
             ->components([
                 DateTimePicker::make('starts_at')
                     ->label(__('admin.fields.starts_at'))
@@ -121,7 +121,7 @@ class OccurrencesRelationManager extends RelationManager
                     ->relationship()
                     ->helperText(__('admin.hints.occurrence_ticket_tiers'))
                     ->addActionLabel(__('admin.actions.add_ticket_tier'))
-                    ->columns(3)
+                    ->columns(['default' => 1, 'lg' => 2])
                     ->defaultItems(0)
                     ->maxItems(TicketTiersField::MAX_TIERS)
                     ->orderColumn('sort_order')
@@ -158,7 +158,7 @@ class OccurrencesRelationManager extends RelationManager
                             ->label(__('admin.fields.tier_url'))
                             ->url()
                             ->maxLength(255)
-                            ->columnSpan(2),
+                            ->columnSpan(['default' => 1, 'lg' => 2]),
 
                         TextInput::make('note')
                             ->label(__('admin.fields.tier_note'))
@@ -168,7 +168,7 @@ class OccurrencesRelationManager extends RelationManager
                 Repeater::make('lineups')
                     ->label(__('admin.resources.lineup.plural'))
                     ->relationship()
-                    ->columns(4)
+                    ->columns(['default' => 1, 'lg' => 2])
                     ->defaultItems(0)
                     ->addActionLabel(__('admin.actions.add_lineup'))
                     ->columnSpanFull()

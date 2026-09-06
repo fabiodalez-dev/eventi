@@ -124,7 +124,7 @@ class NotificationTexts extends Page implements HasSchemas
             ]);
         }
 
-        return $schema
+        return $schema->columns(1)
             ->statePath('data')
             ->components([
                 Tabs::make('testi')->columnSpanFull()->persistTabInQueryString()->tabs($schede),

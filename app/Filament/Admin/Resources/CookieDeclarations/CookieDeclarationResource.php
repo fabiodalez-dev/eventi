@@ -62,7 +62,7 @@ class CookieDeclarationResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
-        return $schema->components([
+        return $schema->columns(1)->components([
             Select::make('category')
                 ->label(__('cookies.fields.category'))
                 ->options(ConsentCategory::options())

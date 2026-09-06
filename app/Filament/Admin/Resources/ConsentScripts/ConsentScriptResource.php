@@ -44,7 +44,7 @@ class ConsentScriptResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
-        return $schema->components([
+        return $schema->columns(1)->components([
             TextInput::make('name')->label(__('consent_scripts.name'))->required()->maxLength(255),
             Select::make('category')->label(__('consent_scripts.category'))->options(ConsentCategory::options())->required()->helperText(__('consent_scripts.category_help')),
             Toggle::make('enabled')->label(__('consent_scripts.enabled'))->default(false),

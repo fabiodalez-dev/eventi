@@ -38,6 +38,7 @@ final class TicketTiersField
     public static function make(string $dictionary): Repeater
     {
         return Repeater::make('ticketTiers')
+            ->columnSpanFull()
             ->hiddenLabel()
             ->relationship(
                 'ticketTiers',
@@ -51,7 +52,7 @@ final class TicketTiersField
             ->reorderableWithButtons()
             ->collapsible()
             ->itemLabel(static fn (array $state): ?string => self::itemLabel($state))
-            ->columns(3)
+            ->columns(['default' => 1, 'lg' => 2])
             ->schema([
                 TextInput::make('name')
                     ->label(__($dictionary.'.fields.tier_name'))
@@ -75,7 +76,7 @@ final class TicketTiersField
                     ->label(__($dictionary.'.fields.tier_url'))
                     ->url()
                     ->maxLength(255)
-                    ->columnSpan(2),
+                    ->columnSpan(['default' => 1, 'lg' => 2]),
 
                 TextInput::make('note')
                     ->label(__($dictionary.'.fields.tier_note'))

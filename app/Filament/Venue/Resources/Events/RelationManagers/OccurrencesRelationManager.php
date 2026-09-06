@@ -57,7 +57,7 @@ class OccurrencesRelationManager extends RelationManager
     {
         $timezone = CurrentVenue::timezone();
 
-        return $schema
+        return $schema->columns(1)
             ->components([
                 DateTimePicker::make('starts_at')
                     ->label(__('manage.fields.starts_at'))

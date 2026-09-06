@@ -106,7 +106,7 @@ class VenueResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
-        return $schema
+        return $schema->columns(1)
             ->components([
                 /*
                  * **Schede, non due colonne di riquadri.**
@@ -216,13 +216,13 @@ class VenueResource extends Resource
                         Tab::make(__('admin.form_tabs.where'))
                             ->schema([
                                 Section::make(__('admin.sections.where'))
-                                    ->columns(3)
+                                    ->columns(['default' => 1, 'lg' => 2])
                                     ->schema([
                                         TextInput::make('address')
                                             ->label(__('admin.fields.address'))
                                             ->required()
                                             ->maxLength(255)
-                                            ->columnSpan(2),
+                                            ->columnSpan(['default' => 1, 'lg' => 2]),
 
                                         TextInput::make('address_extra')
                                             ->label(__('admin.fields.address_extra'))
@@ -370,7 +370,7 @@ class VenueResource extends Resource
                         Tab::make(__('admin.form_tabs.contacts'))
                             ->schema([
                                 Section::make(__('admin.sections.contacts'))
-                                    ->columns(3)
+                                    ->columns(['default' => 1, 'lg' => 2])
                                     ->schema([
                                         TextInput::make('phone')
                                             ->label(__('admin.fields.phone'))
@@ -404,14 +404,14 @@ class VenueResource extends Resource
                          * si può né leggere a colpo d'occhio né filtrare (§11.3).
                          */
                                 Section::make(__('admin.sections.accessibility'))
-                                    ->columns(3)
+                                    ->columns(['default' => 1, 'lg' => 2])
                                     ->schema(AccessibilityField::make('admin')),
                             ]),
 
                         Tab::make(__('admin.form_tabs.advanced'))
                             ->schema([
                                 Section::make(__('admin.sections.advanced'))
-                                    ->columns(3)
+                                    ->columns(['default' => 1, 'lg' => 2])
                                     ->schema([
                                         TextInput::make('capacity')
                                             ->label(__('admin.fields.capacity'))
@@ -428,7 +428,7 @@ class VenueResource extends Resource
                                         Repeater::make('opening_hours')
                                             ->label(__('admin.fields.opening_hours'))
                                             ->columnSpanFull()
-                                            ->columns(3)
+                                            ->columns(['default' => 1, 'lg' => 2])
                                             ->defaultItems(0)
                                             ->addActionLabel(__('admin.actions.add_opening_hours'))
                                             ->schema([
@@ -471,7 +471,7 @@ class VenueResource extends Resource
                         Tab::make(__('admin.form_tabs.moderation'))
                             ->schema([
                                 Section::make(__('admin.sections.moderation'))
-                                    ->columns(3)
+                                    ->columns(['default' => 1, 'lg' => 2])
                                     ->schema([
                                         ToggleButtons::make('status')
                                             ->label(__('admin.fields.status'))
@@ -507,7 +507,7 @@ class VenueResource extends Resource
                                         Textarea::make('rejection_reason')
                                             ->label(__('admin.fields.rejection_reason'))
                                             ->rows(2)
-                                            ->columnSpan(2),
+                                            ->columnSpan(['default' => 1, 'lg' => 2]),
                                     ]),
                             ]),
                     ]),

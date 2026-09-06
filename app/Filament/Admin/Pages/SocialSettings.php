@@ -52,7 +52,7 @@ class SocialSettings extends Page
 
     public function form(Schema $schema): Schema
     {
-        return $schema->statePath('data')->components([
+        return $schema->columns(1)->statePath('data')->components([
             Section::make(__('social.settings_title'))->description(__('social.settings_lead'))->schema([
                 Select::make('city_id')->label(__('social.city'))->options(City::pluck('name', 'id'))->required(),
                 TextInput::make('page_id')->label(__('social.page_id'))->regex('/^\d+$/')->maxLength(80)->required(fn (Get $get) => $get('facebook_enabled') || $get('instagram_enabled')),

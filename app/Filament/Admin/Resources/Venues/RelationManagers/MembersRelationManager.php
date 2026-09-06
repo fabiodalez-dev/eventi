@@ -50,7 +50,7 @@ class MembersRelationManager extends RelationManager
 
     public function form(Schema $schema): Schema
     {
-        return $schema->components([
+        return $schema->columns(1)->components([
             Select::make('role')
                 ->label(__('admin.fields.role'))
                 ->options(VenueRole::options())

@@ -115,7 +115,7 @@ class EventResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
-        return $schema
+        return $schema->columns(1)
             ->components([
                 /*
                  * **Schede, non dodici riquadri su due colonne.**
@@ -210,7 +210,7 @@ class EventResource extends Resource
                                         Repeater::make('occurrences')
                                             ->label(__('admin.resources.occurrence.plural'))
                                             ->relationship()
-                                            ->columns(4)
+                                            ->columns(['default' => 1, 'lg' => 2])
                                             ->defaultItems(1)
                                             ->minItems(1)
                                             ->addActionLabel(__('admin.actions.add_occurrence'))
@@ -381,7 +381,7 @@ class EventResource extends Resource
                         Tab::make(__('admin.form_tabs.tickets'))
                             ->schema([
                                 Section::make(__('admin.sections.price'))
-                                    ->columns(3)
+                                    ->columns(['default' => 1, 'lg' => 2])
                                     ->schema([
                                         Select::make('price_type')
                                             ->label(__('admin.fields.price_type'))
@@ -403,7 +403,7 @@ class EventResource extends Resource
                                         TextInput::make('price_notes')
                                             ->label(__('admin.fields.price_notes'))
                                             ->maxLength(255)
-                                            ->columnSpan(2),
+                                            ->columnSpan(['default' => 1, 'lg' => 2]),
 
                                         TextInput::make('currency')
                                             ->label(__('admin.fields.currency'))
@@ -415,7 +415,7 @@ class EventResource extends Resource
                                             ->label(__('admin.fields.ticket_url'))
                                             ->url()
                                             ->maxLength(255)
-                                            ->columnSpan(2),
+                                            ->columnSpan(['default' => 1, 'lg' => 2]),
 
                                         Toggle::make('booking_required')
                                             ->label(__('admin.fields.booking_required'))
@@ -462,7 +462,7 @@ class EventResource extends Resource
                         Tab::make(__('admin.form_tabs.publish'))
                             ->schema([
                                 Section::make(__('admin.sections.publication'))
-                                    ->columns(3)
+                                    ->columns(['default' => 1, 'lg' => 2])
                                     ->schema([
                                         ToggleButtons::make('status')
                                             ->label(__('admin.fields.status'))

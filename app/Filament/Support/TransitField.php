@@ -29,6 +29,7 @@ final class TransitField
     public static function make(string $dictionary): Repeater
     {
         return Repeater::make('transit')
+            ->columnSpanFull()
             ->hiddenLabel()
             ->helperText(__($dictionary.'.hints.transit', ['max' => TransitGuide::MAX_LINES]))
             ->addActionLabel(__($dictionary.'.actions.add_transit'))
@@ -37,7 +38,7 @@ final class TransitField
             ->reorderableWithButtons()
             ->collapsible()
             ->itemLabel(static fn (array $state): ?string => self::itemLabel($state))
-            ->columns(3)
+            ->columns(['default' => 1, 'lg' => 2])
             ->rules([new TransitRows])
             ->schema([
                 Select::make('mode')
@@ -47,7 +48,6 @@ final class TransitField
 
                 TextInput::make('text')
                     ->label(__($dictionary.'.fields.transit_text'))
-                    ->columnSpan(2)
                     ->extraInputAttributes(['maxlength' => TransitLine::MAX_TEXT_LENGTH]),
             ]);
     }

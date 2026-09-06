@@ -61,7 +61,7 @@ class CityResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
-        return $schema
+        return $schema->columns(1)
             ->components([
                 Section::make(__('admin.sections.identity'))
                     ->columns(2)
@@ -100,7 +100,7 @@ class CityResource extends Resource
 
                 Section::make(__('admin.sections.geography'))
                     ->description(__('admin.hints.coordinates'))
-                    ->columns(3)
+                    ->columns(['default' => 1, 'lg' => 2])
                     ->schema([
                         TextInput::make('center_lat')
                             ->label(__('admin.fields.center_lat'))
@@ -133,7 +133,7 @@ class CityResource extends Resource
                             ->default(30),
 
                         Fieldset::make(__('admin.fields.bounds'))
-                            ->columns(4)
+                            ->columns(['default' => 1, 'lg' => 2])
                             ->columnSpanFull()
                             ->schema([
                                 TextInput::make('bounds.north')->label(__('admin.compass.north'))->numeric(),
@@ -144,7 +144,7 @@ class CityResource extends Resource
                     ]),
 
                 Section::make(__('admin.sections.temporal'))
-                    ->columns(3)
+                    ->columns(['default' => 1, 'lg' => 2])
                     ->schema([
                         Select::make('timezone')
                             ->label(__('admin.fields.timezone'))

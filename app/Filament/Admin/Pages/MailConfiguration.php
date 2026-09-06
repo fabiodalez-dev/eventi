@@ -107,7 +107,7 @@ class MailConfiguration extends Page implements HasSchemas
 
     public function form(Schema $schema): Schema
     {
-        return $schema
+        return $schema->columns(1)
             ->statePath('data')
             ->components([
                 Section::make(__('mail_settings.server.title'))

@@ -70,7 +70,7 @@ class PageResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
-        return $schema
+        return $schema->columns(1)
             ->components([
                 Section::make(__('admin.sections.content'))
                     ->columns(2)

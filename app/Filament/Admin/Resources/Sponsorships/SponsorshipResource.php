@@ -69,7 +69,7 @@ class SponsorshipResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
-        return $schema->components([
+        return $schema->columns(1)->components([
             /*
              * **Schede, non due colonne.** Le cinque sezioni stavano
              * affiancate, e la griglia allinea le righe all'elemento piu'
@@ -162,7 +162,7 @@ class SponsorshipResource extends Resource
                     Tab::make(__('sponsorships.admin.tabs.period'))
                         ->schema([
                             Section::make(__('sponsorships.admin.sections.when'))
-                                ->columns(3)
+                                ->columns(['default' => 1, 'lg' => 2])
                                 ->description(__('sponsorships.admin.help.window'))
                                 ->schema([
                                     /*
@@ -244,7 +244,7 @@ class SponsorshipResource extends Resource
                     Tab::make(__('sponsorships.admin.tabs.client'))
                         ->schema([
                             Section::make(__('sponsorships.admin.sections.who'))
-                                ->columns(3)
+                                ->columns(['default' => 1, 'lg' => 2])
                                 ->schema([
                                     TextInput::make('advertiser_name')
                                         ->label(__('sponsorships.admin.fields.advertiser_name'))
@@ -264,7 +264,7 @@ class SponsorshipResource extends Resource
                                 ]),
 
                             Section::make(__('sponsorships.admin.sections.money'))
-                                ->columns(3)
+                                ->columns(['default' => 1, 'lg' => 2])
                                 ->schema([
                                     TextInput::make('amount_cents')
                                         ->label(__('sponsorships.admin.fields.amount'))
