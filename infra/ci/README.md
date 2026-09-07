@@ -42,6 +42,22 @@ https://github.com/fabiodalez-dev/eventi/actions/runs/34098015324.
 I workflow di `eventi` sono configurati per la coda locale, compreso il deploy;
 quelli degli altri repository richiedono ancora verifica e migrazione individuale.
 
+Pinakes e FAZ Cookie sono stati revisionati e aggiunti all'allowlist pubblica.
+Le migrazioni sono nelle PR [Pinakes #417](https://github.com/fabiodalez-dev/Pinakes/pull/417)
+e [FAZ #274](https://github.com/fabiodalez-dev/FAZ-Cookie-Manager/pull/274): controllare
+i check reali prima di considerarle integrate. Tutti i job Linux selezionano la
+VM per proprietario/Dependabot e PR dello stesso repository; gli altri attori e
+fork mantengono runner GitHub. GitHub resta centrale per PR, issue, discussion,
+check/log/artefatti Actions e release: si sposta l'esecuzione, non la piattaforma.
+La release Pinakes continua a essere pubblicata su GitHub dai job esistenti;
+la migrazione non crea tag o release. GitLab rimane una copia del solo Git.
+
+Il supervisore consente i job Pinakes da 120 minuti, con margine separato per
+avvio e pulizia (SSH 7800 s, VM 8000 s, controller 8100 s). Le allowlist vengono
+rilette tra i job, senza interrompere quelli attivi. La protezione dei repository
+pubblici dipende dall'isolamento VM/host: espressioni e label di workflow non
+costituiscono da sole una barriera contro workflow modificati intenzionalmente.
+
 Permessi minimi della App:
 
 - Repository Administration: write (richiesto da GitHub per creare runner JIT).

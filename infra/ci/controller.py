@@ -63,7 +63,7 @@ def tick(api, config, repos):
                 try:
                     subprocess.run(
                         ["/usr/local/lib/fabio-ci/run_vm.py"],
-                        input=jit["encoded_jit_config"].encode(), check=True, timeout=3900,
+                        input=jit["encoded_jit_config"].encode(), check=True, timeout=8100,
                     )
                 finally:
                     # Ephemeral runners normally unregister themselves after one job.
@@ -84,6 +84,8 @@ def main():
     refreshed = 0
     while True:
         try:
+            # Reload allowlists between jobs, never interrupt an active VM.
+            config = json.loads(Path("/etc/fabio-ci/github-app.json").read_text())
             if time.time() - refreshed > 900:
                 repos = repositories(api, config["owner"])
                 refreshed = time.time()

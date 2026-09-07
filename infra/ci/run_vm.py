@@ -46,7 +46,7 @@ def main():
             "--property=NoNewPrivileges=yes", "--property=ProtectSystem=strict", "--property=ProtectHome=yes",
             "--property=PrivateTmp=yes", "--property=DevicePolicy=closed", "--property=DeviceAllow=/dev/kvm rw",
             "--property=ReadWritePaths=" + str(directory), "--property=UMask=0077",
-            "--property=CPUQuota=400%", "--property=MemoryMax=10G", "--property=RuntimeMaxSec=3800",
+            "--property=CPUQuota=400%", "--property=MemoryMax=10G", "--property=RuntimeMaxSec=8000",
             "qemu-system-x86_64", "-enable-kvm", "-cpu", "host", "-smp", "4", "-m", "8192",
             "-drive", f"file={disk},if=virtio,format=qcow2",
             "-netdev", "user,id=net0,ipv6=off,hostfwd=tcp:127.0.0.1:22220-:22",
@@ -65,7 +65,8 @@ def main():
             'set -a; . /etc/profile.d/fabio-ci.sh; set +a; '
             './run.sh --jitconfig "$(cat "$token_file")"'
         )
-        subprocess.run(SSH + [command], input=jit, check=True, timeout=3600)
+        # Pinakes browser regression jobs allow 120 minutes, plus runner cleanup.
+        subprocess.run(SSH + [command], input=jit, check=True, timeout=7800)
     finally:
         subprocess.run(["systemctl", "stop", unit], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         # The exact generated disposable disk is removed; no recursive broad delete.
