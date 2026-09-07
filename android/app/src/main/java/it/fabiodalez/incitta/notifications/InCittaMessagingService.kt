@@ -31,7 +31,7 @@ class InCittaMessagingService : FirebaseMessagingService() {
         val id = (message.messageId ?: message.data.toString()).hashCode()
         val pending = PendingIntent.getActivity(this, id, target, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         val notification = NotificationCompat.Builder(this, "eventi")
-            .setSmallIcon(R.drawable.ic_launcher)
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(message.data["title"] ?: getString(R.string.app_name))
             .setContentText(message.data["body"].orEmpty())
             .setStyle(NotificationCompat.BigTextStyle().bigText(message.data["body"].orEmpty()))
