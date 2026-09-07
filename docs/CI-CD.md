@@ -101,6 +101,32 @@ La verifica TLS resta obbligatoria: mai usare `curl -k`. Se il problema ricompar
 confrontare DNS, certificato e raggiungibilità da un secondo runner prima di
 intervenire. Il controllo SHA finale non viene saltato.
 
+### Verifica del rilascio su runner nuovi
+
+Il 7 settembre 2026 la diagnosi comparativa ha confermato che DNS di sistema
+e DNS pubblico restituiscono entrambi `185.116.60.3`. Un runner riceveva
+timeout o il certificato predefinito `*.vhosting-it.com`, mentre un altro
+otteneva HTTP 200 e il certificato corretto di `eventi.fabiodalez.it`.
+Forzare lo stesso IP con `--resolve` non correggeva il percorso guasto:
+non è quindi giustificato fissare l'IP o disabilitare TLS.
+
+La pubblicazione degli asset avviene una sola volta. La verifica pubblica
+usa un job separato e, solo se non riesce, riprova fino a due volte su nuovi
+runner GitHub ARM. Ogni tentativo deve verificare **insieme** certificato,
+SHA atteso, tutte e sei le pagine pubbliche e di nuovo lo SHA. Non si sommano
+successi parziali fra tentativi. Il gate finale «Deploy su eventi.fabiodalez.it»
+fallisce se nessun tentativo ha completato la verifica o se la pubblicazione
+è fallita. I tentativi non riusciti rimangono visibili nei log e nel riepilogo.
+`PUBLIC_SITE_URL` è una variabile repository facoltativa per il futuro cambio
+dominio (solo origine HTTPS, nessuna credenziale); il webhook conserva la sua
+configurazione separata nei Secrets.
+
+Il workflow manuale «Hosting network diagnostics» confronta i percorsi x86 e
+ARM, senza segreti né modifiche al server. È una raccolta diagnostica, non
+un gate di rilascio: i risultati delle singole connessioni sono nei log.
+Questa mitigazione non ripara il percorso dell'hosting: se ricorre, fornire
+al provider i log di DNS e certificato per verificare routing/vhost/filtri.
+
 `DEPLOY_HOOK_URL` e `DEPLOY_HOOK_SECRET` sono GitHub Secrets già configurati.
 Il database e `.env` rimangono sul server, mai copiati nei runner. I vecchi
 segreti SSH/database non sono usati da questa pipeline. Rotazione dei segreti

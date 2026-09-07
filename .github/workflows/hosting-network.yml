@@ -1,0 +1,35 @@
+name: Hosting network diagnostics
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/hosting-network.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  connectivity:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-latest, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 4
+    steps:
+      - name: Compare DNS and verified TLS routes
+        shell: bash
+        run: |
+          set -uo pipefail
+          hostname=eventi.fabiodalez.it
+          echo 'System resolver'
+          getent ahostsv4 "$hostname"
+          echo 'Public DNS over HTTPS'
+          curl --fail --silent --show-error --max-time 10 "https://dns.google/resolve?name=$hostname&type=A" | jq '{Status,Answer}'
+          echo 'System DNS HTTPS'
+          curl --ipv4 --fail --silent --show-error --connect-timeout 5 --max-time 15 --write-out '\nremote=%{remote_ip} code=%{http_code} verify=%{ssl_verify_result}\n' "https://$hostname/release-status" || true
+          echo 'Verified hosting IPv4 (observed from public DNS, 2026-09-07)'
+          curl --ipv4 --resolve "$hostname:443:185.116.60.3" --fail --silent --show-error --connect-timeout 5 --max-time 15 --write-out '\nremote=%{remote_ip} code=%{http_code} verify=%{ssl_verify_result}\n' "https://$hostname/release-status" || true
+          echo 'Presented certificate (inspection only; curl above enforces trust and hostname)'
+          timeout 15 openssl s_client -connect "$hostname:443" -servername "$hostname" </dev/null 2>/dev/null | openssl x509 -noout -subject -issuer -ext subjectAltName || true
