@@ -1,0 +1,20 @@
+[Unit]
+Description=Fabio multi-repository GitHub CI queue
+Requires=fabio-ci-firewall.service
+After=network-online.target fabio-ci-firewall.service
+ConditionPathExists=/etc/fabio-ci/github-app.json
+ConditionPathExists=/var/lib/fabio-ci/images/runner-base.qcow2
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /usr/local/lib/fabio-ci/controller.py
+Restart=on-failure
+RestartSec=30
+UMask=0077
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/fabio-ci/jobs /run
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,28 @@
+[Unit]
+Description=Fabio CI base image provisioning (no repository credentials)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=fabio-ci
+Group=fabio-ci
+SupplementaryGroups=kvm
+WorkingDirectory=/var/lib/fabio-ci/build
+ExecStart=/usr/bin/qemu-system-x86_64 -enable-kvm -cpu host -smp 4 -m 8192 -drive file=/var/lib/fabio-ci/build/base.qcow2,if=virtio,format=qcow2 -drive file=/var/lib/fabio-ci/build/seed.img,if=virtio,format=raw,readonly=on -netdev user,id=net0,ipv6=off,hostfwd=tcp:127.0.0.1:22220-:22 -device virtio-net-pci,netdev=net0 -display none -serial file:/var/lib/fabio-ci/build/serial.log -monitor none
+TimeoutStopSec=60
+RuntimeMaxSec=7200
+KillSignal=SIGTERM
+UMask=0077
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/fabio-ci/build
+DevicePolicy=closed
+DeviceAllow=/dev/kvm rw
+CPUQuota=400%
+MemoryMax=10G
+
+[Install]
+WantedBy=multi-user.target

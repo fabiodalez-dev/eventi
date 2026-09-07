@@ -45,17 +45,18 @@ Ispezione di sola lettura del 7 settembre 2026:
   di vmstat non ci sono operazioni swap-in/swap-out. Da solo non prova saturazione.
 - Molti servizi personali attivi, inclusi posta, archivi, foto, database e media.
 
-**Raccomandazione:** hardware utilizzabile, ma non installare il runner direttamente
-nell'utente personale o sul sistema YunoHost. Predisporre una VM Linux isolata,
-inizialmente 2 vCPU, 6 GiB RAM, 60 GiB disco e un solo job contemporaneo.
-Misurare prima di assegnare altre risorse. Servono isolamento di rete dalla LAN
-e dai servizi host, nessuna cartella personale condivisa, DB di test nella VM,
-nessun segreto di produzione nei job PR e ripristino di ambiente pulito per job.
-Limitare il runner al repository privato eventi. Mantenere il deploy sul runner
-GitHub ARM già verificato, con credenziali separate e privilegi minimi.
+**Aggiornamento successivo del 7 settembre:** il proprietario ha richiesto
+l'installazione per tutti i repository, precisando che i servizi personali vengono
+usati in alternanza allo sviluppo. Installati KVM/QEMU e una VM Ubuntu isolata
+con 4 vCPU, 8 GiB RAM e disco massimo 80 GiB (allocazione dinamica).
 
-Una VM persistente da sola non impedisce la contaminazione tra job: preferire
-runner effimero e ripristino snapshot. Gli aggiornamenti dell'host, il monitoraggio
-e lo spazio disco restano responsabilità del proprietario. Non è stato installato
-né registrato alcun runner: questa fase è una valutazione, non un'autorizzazione
-a cambiare virtualizzazione o rete del server.
+Una prova GitHub Actions reale sul server è passata, incluso PHP 8.4, Node 22,
+Java 21, MariaDB in Docker, presenza SDK Android 36, rete isolata e 29 test CI.
+Run: https://github.com/fabiodalez-dev/eventi/actions/runs/34096671973.
+Il runner monouso si è deregistrato e il disco temporaneo è stato eliminato.
+
+Il controller multi-repository è installato ma non attivo: manca l'autenticazione
+del proprietario per creare/installare la GitHub App dedicata. Nessun token
+personale è stato salvato sul server e nessun workflow è ancora migrato in massa.
+Il proprietario ha scelto GitLab **esterno** per le copie Git; anche qui manca
+l'accesso autenticato. I dettagli operativi sono in `infra/ci/README.md`.

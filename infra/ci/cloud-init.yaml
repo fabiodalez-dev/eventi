@@ -1,0 +1,56 @@
+#cloud-config
+hostname: fabio-ci-build
+manage_etc_hosts: true
+ssh_pwauth: false
+disable_root: true
+users:
+  - name: runner
+    shell: /bin/bash
+    groups: [sudo]
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    lock_passwd: true
+    ssh_authorized_keys:
+      - __CI_SSH_PUBLIC_KEY__
+package_update: true
+packages:
+  - ca-certificates
+  - curl
+  - git
+  - jq
+  - unzip
+  - zip
+  - rsync
+  - build-essential
+  - docker.io
+  - libicu74
+  - libssl3t64
+  - nodejs
+  - npm
+  - openjdk-21-jdk-headless
+  - mariadb-client
+  - nginx
+  - imagemagick
+  - libheif1
+  - libheif-plugin-aomenc
+  - python3
+  - python3-venv
+  - gh
+  - libnss3
+  - libatk-bridge2.0-0t64
+  - libxkbcommon0
+  - libgbm1
+  - libasound2t64
+write_files:
+  - path: /etc/profile.d/fabio-ci.sh
+    permissions: '0644'
+    content: |
+      export ANDROID_HOME=/opt/android-sdk
+      export ANDROID_SDK_ROOT=/opt/android-sdk
+      export AGENT_TOOLSDIRECTORY=/opt/hostedtoolcache
+      export PATH="$PATH:/opt/android-sdk/cmdline-tools/latest/bin:/opt/android-sdk/platform-tools"
+runcmd:
+  - [usermod, -aG, docker, runner]
+  - [systemctl, enable, --now, docker]
+  - [systemctl, disable, --now, nginx]
+  - [install, -d, -o, runner, -g, runner, /opt/actions-runner, /opt/android-sdk, /opt/hostedtoolcache]
+  - [touch, /var/lib/fabio-ci-provisioned]

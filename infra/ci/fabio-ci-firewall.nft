@@ -1,0 +1,19 @@
+table inet fabio_ci {
+    chain output {
+        type filter hook output priority 10; policy accept;
+        meta skuid "fabio-ci" jump runner_egress
+    }
+    chain runner_egress {
+        # Replies on host-initiated SSH management connections only.
+        ct state established,related accept
+        # QEMU's DNS proxy can use the host resolver; no other host service.
+        ip daddr 127.0.0.1 udp dport 53 accept
+        ip daddr 127.0.0.1 tcp dport 53 accept
+        meta nfproto ipv6 reject
+        ip daddr { 0.0.0.0/8, 10.0.0.0/8, 100.64.0.0/10, 127.0.0.0/8, 169.254.0.0/16, 172.16.0.0/12, 192.168.0.0/16, 224.0.0.0/4, 240.0.0.0/4 } reject
+        # Only public web/package endpoints and public DNS are needed.
+        tcp dport { 80, 443 } accept
+        udp dport 53 accept
+        reject
+    }
+}

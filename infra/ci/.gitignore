@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+*.pem
+*credentials*
+github-app.json

@@ -1,0 +1,13 @@
+[Unit]
+Description=Network isolation for Fabio CI virtual machines
+After=network-online.target nftables.service
+Before=fabio-ci-controller.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/sbin/nft -f /etc/fabio-ci/firewall.nft
+# No ExecStop: stopping this unit must not open access to the LAN.
+
+[Install]
+WantedBy=multi-user.target

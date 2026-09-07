@@ -1,0 +1,7 @@
+{
+  "owner": "fabiodalez-dev",
+  "app_id": 0,
+  "installation_id": 0,
+  "private_key": "/etc/fabio-ci/github-app.pem",
+  "reviewed_public_repositories": []
+}
