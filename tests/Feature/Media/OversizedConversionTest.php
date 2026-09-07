@@ -103,6 +103,36 @@ it('lascia un file valido dopo la ricompressione', function (): void {
     unlink($percorso);
 });
 
+it('applica anche la qualità del codificatore alle varianti AVIF', function (): void {
+    if (Imagick::queryFormats('AVIF') === []) {
+        $this->markTestSkipped('AVIF non disponibile');
+    }
+    $percorso = sys_get_temp_dir().'/prova-'.bin2hex(random_bytes(6)).'.avif';
+    $im = new Imagick;
+    $im->newPseudoImage(800, 640, 'plasma:fractal');
+    $im->setImageFormat('avif');
+    $im->setImageCompressionQuality(95);
+    $im->setCompressionQuality(95);
+    $im->writeImage($percorso);
+    $im->clear();
+
+    try {
+        expect(filesize($percorso))->toBeGreaterThan(120 * 1024);
+        $im = new Imagick($percorso);
+        $im->setImageCompressionQuality(70);
+        $im->setCompressionQuality(70);
+        $atteso = $im->getImageBlob();
+        $im->clear();
+        expect(strlen($atteso))->toBeLessThanOrEqual(120 * 1024);
+
+        eseguiSu($percorso);
+
+        expect(file_get_contents($percorso))->toBe($atteso);
+    } finally {
+        unlink($percorso);
+    }
+});
+
 it('tiene la variante e lo scrive quando nemmeno il minimo basta', function (): void {
     /*
      * A quel punto il problema è l'originale — una foto enorme, o piena di

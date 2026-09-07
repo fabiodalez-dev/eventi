@@ -507,7 +507,7 @@ fun CalendarScreen(state: AppUiState, padding: PaddingValues, onOpen: (Occurrenc
     val grouped = state.occurrences.groupBy { it.startsAt.take(10) }.toSortedMap()
     LazyColumn(Modifier.fillMaxSize().padding(bottom = padding.calculateBottomPadding())) {
         item { ScreenHeader("CALENDARIO", "LE PROSSIME DATE IN CITTÀ", onBack) }
-        item { CalendarSubscriptionPanel() }
+        item { CalendarSubscriptionPanel(initiallyExpanded = true) }
         if (grouped.isEmpty()) item { Text("Nessuna data disponibile.", color = Muted, modifier = Modifier.padding(24.dp)) }
         grouped.forEach { (_, events) ->
             item {

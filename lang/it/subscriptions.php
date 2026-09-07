@@ -1,6 +1,12 @@
 <?php
 
 return [
+    'banner_title' => 'La città nel tuo calendario',
+    'banner_help' => 'Scegli categorie e locali, oppure includi tutti gli eventi. Collega il calendario per ritrovare anche le nuove date, o scarica un file ICS.',
+    'create_calendar' => 'Crea calendario personalizzato',
+    'saved_title' => 'I miei eventi salvati',
+    'saved_export' => 'Esporta i salvati in ICS',
+    'saved_export_help' => 'Una copia di tutte le tue date salvate, anche passate, non solo quelle visibili in questa pagina. Il file non si aggiorna automaticamente.',
     'title' => 'Il calendario come piace a te',
     'lead' => 'Scegli cosa seguire e porta gli eventi nel tuo calendario. Non serve un account.',
     'footer' => 'Crea il tuo calendario',

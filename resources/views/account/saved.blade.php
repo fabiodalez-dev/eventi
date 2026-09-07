@@ -35,6 +35,14 @@
         </nav>
     </header>
 
+    <section class="my-6 border-y-2 border-line py-5" aria-label="{{ __('subscriptions.saved_title') }}">
+        <div class="flex flex-wrap gap-3">
+            <x-button :href="route('account.saved.calendar')" class="min-h-12">{{ __('subscriptions.saved_export') }}</x-button>
+            <x-button :href="route('feeds.wizard')" variant="secondary" class="min-h-12">{{ __('subscriptions.create_calendar') }}</x-button>
+        </div>
+        <p class="mt-3 max-w-prose text-sm text-ink-muted">{{ __('subscriptions.saved_export_help') }}</p>
+    </section>
+
     @if ($calendarView)
         @php
             $daysByDate = $calendarOccurrences->groupBy(fn ($occurrence) => $occurrence->business_date->format('Y-m-d'));
