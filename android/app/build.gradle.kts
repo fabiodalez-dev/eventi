@@ -17,6 +17,10 @@ kotlin {
 }
 
 android {
+    // Exercise the registered Firebase package on an emulator without creating
+    // a second Firebase app. Production release builds remain optimized.
+    val deviceTests = providers.gradleProperty("deviceTests").orNull == "true"
+    testBuildType = if (deviceTests) "release" else "debug"
     namespace = "it.fabiodalez.incitta"
     compileSdk = 36
 
@@ -43,8 +47,8 @@ android {
             versionNameSuffix = "-debug"
         }
         release {
-            isMinifyEnabled = true
-            isShrinkResources = true
+            isMinifyEnabled = !deviceTests
+            isShrinkResources = !deviceTests
             // Installable local artifact. The Play Store build must replace this
             // with the owner's private upload key, which is intentionally absent.
             signingConfig = signingConfigs.getByName("debug")

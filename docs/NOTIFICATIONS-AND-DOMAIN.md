@@ -47,3 +47,11 @@ Suite Laravel completa: 1.776 test e 6.671 asserzioni superati prima degli ultim
 test di inquadratura e wizard (anch'essi superati). Build Android e test unitari
 release verificati. Autocomplete locali provato in Chrome, inclusi tastiera,
 ritorno allo step precedente e rimozione. Test JS: `node --test tests/js/*.test.js`.
+
+Verifica Android sul package release configurato:
+`./gradlew -PdeviceTests=true connectedReleaseAndroidTest`.
+Questo comando usa temporaneamente una build non ottimizzata per i test;
+per l'APK da consegnare eseguire nuovamente `./gradlew assembleRelease`
+senza quella proprietà. Il test Firebase verifica registrazione e revoca reali
+del token sul solo emulatore. I test di prenotazione che richiedono il database
+locale non vengono eseguiti contro la produzione.
