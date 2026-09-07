@@ -35,12 +35,16 @@ class LocalStore(private val context: Context) {
     }
 
     fun writeSession(session: Session) {
+        if (readSession()?.user?.id != session.user.id) {
+            runCatching { it.fabiodalez.incitta.calendar.NativeCalendar.disconnect(context) }
+        }
         val stored = StoredSession(session.token, session.user, session.expiresAt)
         prefs.edit { putString(KEY_SESSION, encrypt(json.encodeToString(stored))) }
     }
 
     fun clearSession() {
         prefs.edit { remove(KEY_SESSION) }
+        runCatching { it.fabiodalez.incitta.calendar.NativeCalendar.disconnect(context) }
         it.fabiodalez.incitta.notifications.PushRegistration.disable(context)
     }
 

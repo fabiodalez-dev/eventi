@@ -10,7 +10,7 @@
     <string name="calendar_export_error">Non riesco a esportare tutte le date. Aggiorna i salvati e riprova con una connessione attiva.</string>
     <string name="search_live_help">Scrivi almeno 3 caratteri. Risultati in diretta tra titoli, descrizioni, locali e tag.</string>
     <string name="calendar_customize">Crea un calendario personalizzato</string>
-    <string name="calendar_sync_help">Collega il calendario una volta per ricevere anche i nuovi eventi. I giorni scelti sono una finestra mobile, non una scadenza. I tempi di aggiornamento dipendono dalla tua app calendario.</string>
+    <string name="calendar_sync_help">Un calendario dedicato sul telefono, visibile nella tua app Calendario. Si aggiorna tramite inCittà, senza link pubblici. Non viene caricato sul tuo account Google.</string>
     <string name="calendar_all_categories">Nessuna selezione include tutte le categorie, anche quelle aggiunte in futuro.</string>
     <string name="calendar_days">%1$d giorni</string>
     <string name="calendar_venue_search">Cerca un locale e selezionalo</string>

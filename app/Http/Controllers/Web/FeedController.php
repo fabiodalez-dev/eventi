@@ -50,7 +50,7 @@ final class FeedController extends Controller
         return response($body, 200, [
             'Content-Type' => 'text/calendar; charset=utf-8',
             'Content-Disposition' => 'inline; filename="eventi.ics"',
-            'Cache-Control' => 'public, max-age=900',
+            'Cache-Control' => 'private, no-store',
         ]);
     }
 

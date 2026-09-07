@@ -59,7 +59,7 @@ Route::get('/eventi/{date}', [EventListController::class, 'onDate'])
  * I feed (§11.10). Vanno dichiarati **prima** delle rotte che accettano uno
  * slug: `/eventi.ics` è un indirizzo, non un evento che si chiama "ics".
  */
-Route::get('/eventi.ics', [FeedController::class, 'calendar'])->name('feeds.calendar');
+Route::get('/eventi.ics', [FeedController::class, 'calendar'])->middleware('auth')->name('feeds.calendar');
 Route::get('/feed.rss', [FeedController::class, 'rss'])->name('feeds.rss');
 
 /*

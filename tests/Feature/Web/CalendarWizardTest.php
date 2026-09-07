@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\User;
 use Carbon\Carbon;
 
 beforeEach(function (): void {
@@ -17,18 +18,20 @@ it('replaces the footer download with a public wizard', function (): void {
 });
 
 it('carries category and duration choices through to the actual ics', function (): void {
+    $this->actingAs(User::factory()->create());
     occurrenceAtLocal($this->city, $this->category, '2026-09-06 20:00:00', event: ['title' => 'Concerto scelto']);
     occurrenceAtLocal($this->city, $this->category, '2026-10-06 20:00:00', event: ['title' => 'Concerto lontano']);
     $other = testCategory(['name' => 'Teatro', 'slug' => 'teatro']);
     occurrenceAtLocal($this->city, $other, '2026-09-06 20:00:00', event: ['title' => 'Spettacolo escluso']);
     $this->get('/calendario/personalizza?step=3&categories[]=musica&days=7')->assertOk()
         ->assertViewHas('preview', fn ($items) => $items->count() === 1)
-        ->assertSee('category=musica', false)->assertSee('days=7', false)->assertSee('webcal:', false);
+        ->assertSee('category=musica', false)->assertSee('days=7', false)->assertDontSee('webcal:', false);
     $this->get('/eventi.ics?category=musica&days=7')->assertOk()
         ->assertSee('Concerto scelto')->assertDontSee('Concerto lontano')->assertDontSee('Spettacolo escluso');
 });
 
 it('rejects unknown categories and invalid horizons', function (): void {
+    $this->actingAs(User::factory()->create());
     $this->getJson('/calendario/personalizza?categories[]=inesistente')->assertUnprocessable();
     $this->getJson('/eventi.ics?days=999')->assertUnprocessable();
 });
