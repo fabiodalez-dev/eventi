@@ -16,7 +16,7 @@ class CalendarSyncJob : JobService() {
                 else if (NativeCalendar.allowed(this@CalendarSyncJob) && NativeCalendar.enabled(this@CalendarSyncJob)) NativeCalendar.refresh(this@CalendarSyncJob)
             } catch (e: CancellationException) { throw e }
             catch (e: ApiException) {
-                if (e.status == 401) NativeCalendar.disconnect(this@CalendarSyncJob) else retry = true
+                retry = e.status != 401
             } catch (_: Exception) { retry = true }
             jobFinished(params, retry)
         }

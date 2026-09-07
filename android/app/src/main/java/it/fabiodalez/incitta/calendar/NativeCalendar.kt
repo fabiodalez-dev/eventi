@@ -52,7 +52,12 @@ object NativeCalendar {
         }
         val query = selection ?: saved.getString("query", "days=30")!!
         val data = try { load(session.token, query) }
-        catch (e: ApiException) { if (e.status == 401) disconnect(context); throw e }
+        catch (e: ApiException) {
+            if (e.status == 401) synchronized(lock) {
+                if (store.readSession()?.token == session.token) disconnect(context)
+            }
+            throw e
+        }
         require(data.events.all { it.end > it.start }) { "Date calendario non valide." }
         synchronized(lock) {
             check(store.readSession()?.token == session.token) { "Sessione cambiata. Accedi di nuovo." }
