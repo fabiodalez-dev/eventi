@@ -82,6 +82,8 @@ class CompressOversizedConversion
         foreach (self::GRADINI as $qualita) {
             $immagine = new Imagick($percorso);
             $immagine->setImageCompressionQuality($qualita);
+            // AVIF/libheif reads the encoder-wide quality, not only the image setting.
+            $immagine->setCompressionQuality($qualita);
 
             $blob = $immagine->getImageBlob();
             $immagine->clear();

@@ -41,6 +41,11 @@ class NavigationSmokeTest {
         compose.onNode(hasText("CERCA") and hasClickAction()).performClick()
         compose.onNodeWithText("EVENTO, LUOGO, CATEGORIA").performTextInput("teatro")
         compose.onNodeWithText(compose.activity.getString(R.string.search_live_help)).assertExists()
+        // The app intentionally hides bottom navigation while the IME is open.
+        androidx.test.espresso.Espresso.closeSoftKeyboard()
+        compose.waitUntil(5_000) {
+            compose.onAllNodes(hasText("MAPPA") and hasClickAction()).fetchSemanticsNodes().isNotEmpty()
+        }
         compose.onNode(hasText("MAPPA") and hasClickAction()).performClick()
         compose.onNodeWithText("CERCA").assertExists()
         compose.onNodeWithText("OGGI").assertExists()

@@ -139,6 +139,7 @@ class CompressExistingMedia extends Command
         foreach (self::GRADINI as $qualita) {
             $immagine = new Imagick($percorso);
             $immagine->setImageCompressionQuality($qualita);
+            $immagine->setCompressionQuality($qualita);
 
             $blob = $immagine->getImageBlob();
             $immagine->clear();
