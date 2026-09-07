@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 """Private, one-way Git backups. Never execute code from cloned repositories."""
 import fcntl
+import argparse
 import json
 import os
 from pathlib import Path
@@ -38,6 +39,11 @@ def gitlab(token, path, method='GET', data=None):
 
 def valid_name(name):
     return bool(re.fullmatch(r'[A-Za-z0-9_][A-Za-z0-9_.-]*', name)) and not name.endswith('.git')
+
+
+def needs_sync(repository, state, changed_only):
+    return (not changed_only or not state or state.get('pending_refs') is not None or not repository.get('pushed_at') or
+            state.get('source_pushed_at') != repository['pushed_at'])
 
 
 def refs(output):
@@ -161,11 +167,16 @@ def sync_repository(repository, config, token, github_token):
         raise ValueError('Remote verification failed')
     save_state(statefile, {'project_id': project['id'], 'refs': confirmed,
         'verified_at': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
+        'source_pushed_at': repository.get('pushed_at'),
         'source': repository['full_name'], 'destination': path})
     print('Verified ' + repository['full_name'] + ': ' + str(len(current)) + ' refs', flush=True)
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--changed', action='store_true', help='Only repositories with a new source push')
+    parser.add_argument('repositories', nargs='*')
+    arguments = parser.parse_args()
     os.umask(0o077)
     ROOT.mkdir(parents=True, exist_ok=True)
     lock = (ROOT / '.lock').open('w')
@@ -180,10 +191,21 @@ def main():
         for repository in repositories:
             if repository['owner']['login'].lower() != config['owner'].lower():
                 continue
-            selected = sys.argv[1:] or config.get('repositories', [])
+            selected = arguments.repositories or config.get('repositories', [])
             if selected and repository['name'] not in selected:
                 continue
             try:
+                statefile = ROOT / (str(repository['id']) + '.json')
+                state = json.loads(statefile.read_text()) if statefile.exists() else None
+                if not needs_sync(repository, state, arguments.changed):
+                    continue
+                # An uninitialized repository has no Git objects to back up.
+                # Do not confuse it with a missing destination for real code.
+                if not state:
+                    base = '/repos/' + repository['full_name']
+                    if not api.request(base + '/branches?per_page=1') and not api.request(base + '/tags?per_page=1'):
+                        print('Empty source, awaiting first push: ' + repository['full_name'], flush=True)
+                        continue
                 # Renew short-lived credentials before each repository.
                 api.request('/repos/' + repository['full_name'])
                 sync_repository(repository, config, token, api.token)

@@ -22,6 +22,17 @@ rami/tag correnti, non soltanto il commit che ha attivato il workflow. Il timer
 orario globale rimane un recupero indipendente dal Mac e da GitHub Actions.
 Un commit mai inviato a GitHub non può essere copiato dal server.
 
+Per tutti i repository autorizzati nella GitHub App, il timer
+`fabio-git-mirror-poll.timer` controlla inoltre ogni minuto, a coda libera, la
+data dell'ultimo push. Copia solo le sorgenti cambiate, senza consumare minuti
+GitHub/GitLab. Dopo un fermo recupera la cronologia corrente al riavvio. Il timer
+orario verifica nuovamente anche le destinazioni senza nuovi push. Tutti i job
+mirror condividono un lock: nessuna scrittura concorrente. Non è una garanzia
+di latenza di 60 secondi durante trasferimenti lunghi o interruzioni di rete.
+Un repository appena creato e ancora vuoto attende il primo push; prima della
+prima copia di codice deve esistere la destinazione privata GitLab. Il piccolo
+repository `fabio-ci-executor` è ancora vuoto e non viene considerato un errore.
+
 Il mirror verifica identità e visibilità privata della destinazione. Prima di
 aggiornare un riferimento già copiato, conserva il vecchio oggetto nel tag
 `mirror-history-<sha>` e usa un lease sul valore remoto verificato. Questo

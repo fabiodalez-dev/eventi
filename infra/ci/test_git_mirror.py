@@ -13,6 +13,16 @@ from git_mirror import refs, valid_name, verify_destination
 
 
 class MirrorTests(unittest.TestCase):
+    def test_only_changed_sources_need_incremental_sync(self):
+        repository = {'pushed_at': '2026-09-07T10:00:00Z'}
+        state = {'source_pushed_at': repository['pushed_at']}
+        self.assertFalse(git_mirror.needs_sync(repository, state, True))
+        self.assertTrue(git_mirror.needs_sync(repository, {**state, 'pending_refs': {}}, True))
+        self.assertTrue(git_mirror.needs_sync(repository, state, False))
+        self.assertTrue(git_mirror.needs_sync(repository, None, True))
+        self.assertTrue(git_mirror.needs_sync({}, state, True))
+        self.assertTrue(git_mirror.needs_sync({'pushed_at': 'later'}, state, True))
+
     def test_repository_name_validation(self):
         for name in ['eventi', 'Hi.Events', 'Pinakes-Android']:
             self.assertTrue(valid_name(name))

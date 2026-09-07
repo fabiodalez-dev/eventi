@@ -17,7 +17,9 @@ concurrency:
 
 jobs:
   mirror:
-    if: github.repository == 'fabiodalez-dev/eventi'
+    # Dependabot pushes do not receive Actions secrets; the server poll covers
+    # them even before their CI completion triggers the trusted workflow.
+    if: github.repository == 'fabiodalez-dev/eventi' && (github.event_name != 'push' || github.actor != 'dependabot[bot]')
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 35
     steps:

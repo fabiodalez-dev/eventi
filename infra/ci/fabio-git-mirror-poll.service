@@ -1,0 +1,20 @@
+[Unit]
+Description=Back up repositories with new GitHub pushes
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /usr/local/lib/fabio-ci/git_mirror.py --changed
+UMask=0077
+Nice=15
+IOSchedulingClass=idle
+CPUQuota=100%
+MemoryMax=2G
+TimeoutStartSec=6h
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/lib/fabio-git-mirrors
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
