@@ -31,6 +31,8 @@ jobs:
         with:
           fetch-depth: 0
       - run: node --test .github/scripts/*.test.cjs
+      - name: Verifica isolamento CI e copie Git
+        run: python3 -m unittest discover -s infra/ci -p 'test_*.py'
       - id: scope
         run: node .github/scripts/ci-scope.cjs
 

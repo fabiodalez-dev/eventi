@@ -3,6 +3,11 @@ from pathlib import Path
 import subprocess
 import sys
 import unittest
+import tempfile
+from unittest.mock import patch
+from types import SimpleNamespace
+
+import git_mirror
 
 from git_mirror import refs, valid_name, verify_destination
 
@@ -37,3 +42,97 @@ class MirrorTests(unittest.TestCase):
             result = subprocess.run([sys.executable, str(script), "Password for '" + url + "':"], env=env, capture_output=True, text=True)
             self.assertNotEqual(result.returncode, 0)
             self.assertEqual(result.stdout, '')
+
+
+class MirrorIntegrationTests(unittest.TestCase):
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temporary.cleanup)
+        self.root = Path(self.temporary.name)
+        self.source = self.root / 'source'
+        self.destination = self.root / 'destination.git'
+        self.backups = self.root / 'backups'
+        self.backups.mkdir()
+        self.git('init', '-b', 'main', str(self.source))
+        self.git('init', '--bare', str(self.destination))
+        self.git('-C', str(self.source), 'config', 'user.name', 'Mirror Test')
+        self.git('-C', str(self.source), 'config', 'user.email', 'mirror@example.test')
+        self.commit('one')
+        self.project = {'id': 4, 'namespace': {'id': 1},
+                        'path_with_namespace': 'backup/eventi', 'visibility': 'private', 'empty_repo': True}
+        self.config = {'namespace': 'backup', 'namespace_id': 1}
+        self.repository = {'id': 7, 'name': 'eventi', 'full_name': 'owner/eventi'}
+        original_git = git_mirror.run_git
+
+        def local_git(args, env, cwd=None):
+            targets = {'https://github.com/owner/eventi.git': str(self.source),
+                       'https://gitlab.com/backup/eventi.git': str(self.destination)}
+            args = [targets.get(arg, arg) for arg in args]
+            # Local bare fixtures do not advertise push options.
+            if '-o' in args:
+                index = args.index('-o')
+                del args[index:index + 2]
+            return original_git(['-c', 'protocol.file.allow=always', *args], env, cwd)
+
+        for patcher in [patch.object(git_mirror, 'ROOT', self.backups),
+                        patch.object(git_mirror, 'gitlab', return_value=self.project),
+                        patch.object(git_mirror.shutil, 'disk_usage', return_value=SimpleNamespace(free=100 * 1024**3)),
+                        patch.object(git_mirror, 'run_git', side_effect=local_git)]:
+            patcher.start()
+            self.addCleanup(patcher.stop)
+
+    def git(self, *args):
+        return subprocess.run(['git', *args], check=True, capture_output=True, text=True).stdout.strip()
+
+    def commit(self, text):
+        (self.source / 'content.txt').write_text(text)
+        self.git('-C', str(self.source), 'add', 'content.txt')
+        self.git('-C', str(self.source), 'commit', '-m', text)
+
+    def sync(self):
+        git_mirror.sync_repository(self.repository, self.config, 'test-token', 'test-github')
+
+    def test_sync_repeat_update_and_restore_bundle(self):
+        self.sync()
+        self.sync()
+        self.commit('two')
+        self.sync()
+        self.assertEqual(self.git('-C', str(self.source), 'rev-parse', 'main'),
+                         self.git('--git-dir', str(self.destination), 'rev-parse', 'main'))
+        bundle = next((self.backups / 'history' / '7').glob('*.bundle'))
+        self.git('-C', str(self.source), 'bundle', 'verify', str(bundle))
+        restore = self.root / 'restore.git'
+        self.git('clone', '--bare', str(bundle), str(restore))
+        self.assertEqual(self.git('--git-dir', str(restore), 'show', 'main:content.txt'), 'one')
+
+    def test_external_destination_change_is_rejected(self):
+        self.sync()
+        self.git('--git-dir', str(self.destination), 'update-ref', 'refs/heads/extra', 'main')
+        with self.assertRaisesRegex(ValueError, 'outside'):
+            self.sync()
+
+    def test_nonempty_destination_is_not_adopted(self):
+        self.project['empty_repo'] = False
+        with self.assertRaisesRegex(ValueError, 'nonempty'):
+            self.sync()
+
+    def test_host_disk_reserve_is_preserved(self):
+        with patch.object(git_mirror.shutil, 'disk_usage', return_value=SimpleNamespace(free=1024)):
+            with self.assertRaisesRegex(ValueError, 'reserve'):
+                self.sync()
+
+    def test_interrupted_state_save_can_recover(self):
+        original_save = git_mirror.save_state
+        calls = []
+
+        def interrupted(path, data):
+            calls.append(data)
+            if len(calls) == 2:
+                raise OSError('Simulated interruption after push')
+            original_save(path, data)
+
+        with patch.object(git_mirror, 'save_state', side_effect=interrupted):
+            with self.assertRaises(OSError):
+                self.sync()
+        self.project['empty_repo'] = False
+        self.sync()
