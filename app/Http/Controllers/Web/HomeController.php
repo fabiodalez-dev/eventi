@@ -86,15 +86,18 @@ final class HomeController extends Controller
 
         $visibili = array_filter($sections, static fn (Collection $section): bool => $section->isNotEmpty());
 
+        $heroSponsorship = $this->sponsorships->first($city, SponsorshipPlacement::HomeHero);
+        $hero = $heroSponsorship !== null
+            ? EventOccurrenceQuery::for($city)->forEvent($heroSponsorship->event_id)->promotable()->get()->first()
+            : EventOccurrenceQuery::for($city)->today()->promotable()->get()->unique('event_id')->shuffle()->first();
+        $hero?->loadMissing(['event.venue', 'event.category', 'event.media']);
+
         return view('home', [
             'city' => $city,
             'sections' => $visibili,
             'lcpOccurrence' => $this->firstVisible($city, $sections),
-            /* La data in evidenza dell'apertura: la prima della sezione «in
-               evidenza» se la redazione ne ha scelta una, altrimenti la prima
-               che comincia. L'apertura non deve mai essere vuota — e non deve
-               nemmeno inventarsi un'evidenza che nessuno ha dichiarato. */
-            'hero' => $sections['featured']->first() ?? $sections['tonight']->first() ?? $sections['weekend']->first(),
+            // Sponsorizzazione attiva, oppure un evento casuale di oggi.
+            'hero' => $hero,
             'nearby' => $this->nearby($city),
             /* La mappa della sezione «vicino a te» mostra tutto ciò che è in
                programma, senza filtri: è una vista d'insieme della città, e
@@ -102,7 +105,7 @@ final class HomeController extends Controller
             /* Le due collocazioni della pagina iniziale. Restano `null`
                finche' nessuno ha comprato niente, e la pagina non se ne
                accorge. */
-            'heroSponsorship' => $this->sponsorships->first($city, SponsorshipPlacement::HomeHero),
+            'heroSponsorship' => $heroSponsorship,
             'cardSponsorship' => $this->sponsorships->first($city, SponsorshipPlacement::HomeCard),
             'mapFilters' => $mapFilters = new EventFilters,
             'mapPayload' => $this->mapPayload->build($city, $mapFilters, null),

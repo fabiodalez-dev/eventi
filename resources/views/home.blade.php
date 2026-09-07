@@ -27,28 +27,16 @@
      */
     $heroSponsorizzato = ($heroSponsorship ?? null) !== null;
 
-    $heroOccorrenza = $heroSponsorizzato
-        ? $heroSponsorship->event?->occurrences
-            ->filter(fn ($o) => $o->starts_at?->isFuture() ?? false)
-            ->sortBy('starts_at')
-            ->first()
-        : ($hero ?? null);
-
-    /* Se la campagna esiste ma il suo evento non ha più date future, si torna
-       all'evidenza redazionale: uno spazio vuoto sarebbe il peggiore dei due
-       esiti, e mostrare una serata già passata il secondo peggiore. */
-    if ($heroOccorrenza === null) {
-        $heroOccorrenza = $hero ?? null;
-        $heroSponsorizzato = false;
-    }
+    $heroOccorrenza = $hero ?? null;
 
     /* La locandina dell'evento in apertura è l'immagine più grande sopra la
        piega, ed è quella da annunciare al browser prima che scopra l'HTML che
        la contiene (§11.11). */
     $heroPoster = $heroOccorrenza === null
         ? null
-        : \App\Support\Poster::imageSet($heroOccorrenza->event)
-            ?->withSizes('(min-width: 840px) 50vw, 100vw')
+        : (\App\Support\Poster::imageSet($heroOccorrenza->event)
+            ?? new \App\Support\Media\ImageSet(src: asset('images/home-event-fallback.jpg'), width: 1024, height: 768))
+            ->withSizes('(min-width: 840px) 50vw, 100vw')
             /* 840px, non 1024: le due colonne dell'apertura si affiancano
                quando ci stanno, cioe' a `2 x 420px`. Fra 840 e 1024 la
                dichiarazione diceva schermo intero mentre l'immagine ne
@@ -183,6 +171,7 @@
                 href="{{ route('events.show', $heroEvento) }}"
                 @if ($heroSponsorizzato) rel="sponsored" @endif
                 class="group relative flex min-h-[clamp(26.25rem,46vw,38.75rem)] flex-col overflow-hidden"
+                data-home-hero
                 @if ($heroSponsorizzato)
                     data-sponsorship="{{ $heroSponsorship->getKey() }}"
                     data-sponsorship-impression="{{ route('sponsorships.metric', ['sponsorship' => $heroSponsorship, 'metric' => 'impressions']) }}"
@@ -193,8 +182,8 @@
                     <x-media-image
                         :set="$heroPoster"
                         alt=""
-                        width="1200"
-                        height="1200"
+                        :width="$heroPoster->width ?? 1200"
+                        :height="$heroPoster->height ?? 1200"
                         :eager="true"
                         class="absolute inset-0 size-full object-cover opacity-[0.68] grayscale-photo transition-transform duration-700 ease-out-soft group-hover:scale-[1.03]"
                     />
@@ -214,7 +203,7 @@
                                 {{ __('sponsorships.by', ['advertiser' => $heroSponsorship->advertiser_name]) }}
                             </span>
                         @else
-                            {{ __('events.sections.featured') }}
+                            {{ __('events.sections.today') }}
                         @endif
                     </span>
 
@@ -227,7 +216,7 @@
 
                 <div class="relative mt-auto flex flex-col gap-3.5 p-[clamp(1.25rem,2.2vw,2.125rem)]">
                     <span class="font-display text-[0.625rem] leading-none font-extrabold tracking-[0.16em] text-accent uppercase">
-                        {{ collect([$heroEvento->category?->name, $formatter->dayAndTime($hero->business_date, $hero->starts_at)])->filter()->implode(' '.__('common.separator').' ') }}
+                        {{ collect([$heroEvento->category?->name, $formatter->dayAndTime($heroOccorrenza->business_date, $heroOccorrenza->starts_at)])->filter()->implode(' '.__('common.separator').' ') }}
                     </span>
 
                     <h2 class="m-0 font-display text-[clamp(1.875rem,3.3vw,3.5rem)] leading-[0.94] font-extrabold tracking-[-0.04em] uppercase">

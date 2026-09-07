@@ -270,6 +270,16 @@ final class EventOccurrenceQuery
         return $this;
     }
 
+    /** Date promuovibili: non terminate, annullate, rinviate o sostituite. */
+    public function promotable(): self
+    {
+        $this->query
+            ->where('event_occurrences.effective_ends_at', '>', $this->nowUtc())
+            ->whereIn('event_occurrences.status', [OccurrenceStatus::Scheduled->value, OccurrenceStatus::SoldOut->value]);
+
+        return $this;
+    }
+
     /**
      * Giornate evento già trascorse: l'archivio della scheda locale (§11.9).
      */

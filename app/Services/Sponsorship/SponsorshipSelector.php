@@ -79,6 +79,11 @@ final class SponsorshipSelector
             return $candidate;
         }
 
+        if ($placement === SponsorshipPlacement::HomeHero) {
+            $eligibleIds = EventOccurrenceQuery::for($city)->promotable()->eventIds();
+            $candidate = $candidate->whereIn('event_id', $eligibleIds)->values();
+        }
+
         $grantEventIds = $candidate->whereNotNull('sponsorship_grant_id')->pluck('event_id')->unique()->values()->all();
         if ($grantEventIds !== []) {
             $upcomingIds = EventOccurrenceQuery::for($city)->forEvents($grantEventIds)->upcoming()->eventIds();
