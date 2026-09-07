@@ -9,6 +9,7 @@ enum NotificationChannel: string
     case Mail = 'mail';
     case Push = 'push';
     case Database = 'database';
+    case Both = 'both';
 
     public function label(): string
     {

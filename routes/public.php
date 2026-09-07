@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Web\CalendarController;
+use App\Http\Controllers\Web\CalendarWizardController;
 use App\Http\Controllers\Web\EventController;
 use App\Http\Controllers\Web\EventListController;
 use App\Http\Controllers\Web\EventSubmissionController;
@@ -11,6 +12,7 @@ use App\Http\Controllers\Web\HomeController;
 use App\Http\Controllers\Web\MapController;
 use App\Http\Controllers\Web\ReportController;
 use App\Http\Controllers\Web\SearchController;
+use App\Http\Controllers\Web\SearchSuggestionsController;
 use App\Http\Controllers\Web\VenueApplicationController;
 use App\Http\Controllers\Web\VenueController;
 use App\Http\Middleware\CachePage;
@@ -76,11 +78,14 @@ Route::get('/mappa/locale/{venue}', [MapController::class, 'venue'])
  * indirizzo stabile che si può condividere e mettere fra i preferiti.
  */
 Route::get('/calendario', CalendarController::class)->name('calendar.index');
+Route::get('/calendario/personalizza', CalendarWizardController::class)->name('feeds.wizard');
 Route::get('/calendario/{month}', CalendarController::class)
     ->where('month', '[0-9]{4}-[0-9]{2}')
     ->name('calendar.month');
 
 Route::get('/cerca', SearchController::class)->name('search');
+Route::get('/cerca/suggerimenti', SearchSuggestionsController::class)
+    ->middleware('throttle:120,1')->name('search.suggestions');
 
 Route::get('/eventi/{slug}/segnala', [ReportController::class, 'createForEvent'])->name('events.report');
 Route::post('/eventi/{slug}/segnala', [ReportController::class, 'storeForEvent'])

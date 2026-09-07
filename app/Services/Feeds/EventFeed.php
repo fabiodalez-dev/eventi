@@ -33,7 +33,7 @@ final class EventFeed
     /**
      * @return Collection<int, EventOccurrence>
      */
-    public function occurrences(City $city, EventFilters $filters, ?int $limit = null): Collection
+    public function occurrences(City $city, EventFilters $filters, ?int $limit = null, ?int $days = null): Collection
     {
         /*
          * `nextDays()` si somma alla finestra già chiesta invece di
@@ -43,7 +43,7 @@ final class EventFeed
          */
         $occurrences = $this->finder
             ->query($city, $filters)
-            ->nextDays(config()->integer('feeds.days_ahead'))
+            ->nextDays(min($days ?? config()->integer('feeds.days_ahead'), config()->integer('feeds.days_ahead')))
             ->get()
             ->take($limit ?? config()->integer('feeds.max_items'));
 

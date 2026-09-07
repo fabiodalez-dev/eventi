@@ -6,6 +6,7 @@ namespace App\Services\Notifications;
 
 use App\Enums\DevicePlatform;
 use App\Enums\NotificationChannel;
+use App\Enums\NotificationDelivery;
 use App\Models\User;
 use App\Models\WebPushSubscription;
 
@@ -35,6 +36,15 @@ final class ChannelSelector
 {
     public function for(User $user): NotificationChannel
     {
+        $delivery = $user->notificationPreferences()->delivery;
+        if ($delivery !== NotificationDelivery::Auto) {
+            return match ($delivery) {
+                NotificationDelivery::Mail => NotificationChannel::Mail,
+                NotificationDelivery::Push => $this->configured() ? NotificationChannel::Push : NotificationChannel::Database,
+                NotificationDelivery::Both => $this->configured() ? NotificationChannel::Both : NotificationChannel::Mail,
+                default => NotificationChannel::Database,
+            };
+        }
         if (! $this->configured()) {
             return NotificationChannel::Mail;
         }

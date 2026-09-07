@@ -37,7 +37,7 @@ final class FeedController extends Controller
         $name = $this->feed->name($city, $filters);
 
         $body = $this->calendar->feed(
-            $this->feed->occurrences($city, $filters),
+            $this->feed->occurrences($city, $filters, days: $request->integer('days', config()->integer('feeds.days_ahead'))),
             $name,
             __('feeds.calendar.description', ['name' => $name, 'app' => config()->string('app.name')]),
         );

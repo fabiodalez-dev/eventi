@@ -176,7 +176,7 @@ fun SearchScreen(
                     leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
                     colors = fieldColors(),
                 )
-                Text("Scrivi almeno due caratteri. La ricerca include eventi e locali di Padova.", color = Muted, modifier = Modifier.padding(top = 10.dp))
+                Text(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.search_live_help), color = Muted, modifier = Modifier.padding(top = 10.dp))
                 state.activeTag?.let { tag ->
                     Button(
                         onClick = onClearTag,
@@ -191,12 +191,12 @@ fun SearchScreen(
             }
         }
         if (state.isSearching) item { LoadingBlock() }
-        if ((query.length >= 2 || state.activeTag != null) && !state.isSearching && state.searchResults.isEmpty() && state.searchVenues.isEmpty()) {
+        if ((query.trim().length >= 3 || state.activeTag != null) && !state.isSearching && state.searchResults.isEmpty() && state.searchVenues.isEmpty() && state.searchTags.isEmpty()) {
             item { EmptyBlock("NESSUN RISULTATO", "Prova un genere, il nome di un locale o una parola più breve.") }
         }
         val venues = when {
             state.activeTag != null -> emptyList()
-            query.length >= 2 -> state.searchVenues
+            query.trim().length >= 3 -> state.searchVenues
             else -> state.venues
         }
         if (state.searchTags.isNotEmpty()) {
@@ -414,6 +414,7 @@ fun AccountScreen(
                 MetaLabel("ACCOUNT")
                 Text(state.session.user.name?.ifBlank { null } ?: "LETTORE IN CITTÀ", style = androidx.compose.material3.MaterialTheme.typography.headlineLarge)
                 Text(state.session.user.email, color = Muted, modifier = Modifier.padding(top = 6.dp))
+                NotificationSettingsPanel(state.session)
                 HorizontalDivider(Modifier.padding(vertical = 24.dp), thickness = 2.dp, color = Rule)
                 Text("I salvataggi appartengono esclusivamente a questo account. Uscendo, quelli sincronizzati non vengono mostrati a un altro utente del dispositivo.")
                 Spacer(Modifier.height(28.dp))
@@ -601,7 +602,7 @@ internal fun FilterLabel(text: String, selected: Boolean = false, onClick: () ->
 private fun FeatureCard(event: Occurrence, saved: Boolean, onOpen: (Occurrence) -> Unit, onSave: (Long) -> Unit) {
     Column(Modifier.fillMaxWidth().clickable { onOpen(event) }) {
         Box {
-            PosterImage(event.poster?.full ?: event.poster?.card, Modifier.fillMaxWidth().aspectRatio(16f / 9f))
+            PosterImage(event.poster?.full ?: event.poster?.card, Modifier.fillMaxWidth().aspectRatio(16f / 9f), concertFallback = true)
             Text(event.category?.name?.uppercase() ?: "EVENTO", color = Ink, modifier = Modifier.align(Alignment.TopStart).background(Acid).padding(horizontal = 12.dp, vertical = 8.dp), style = androidx.compose.material3.MaterialTheme.typography.labelMedium)
             SaveButton(saved, Modifier.align(Alignment.TopEnd)) { onSave(event.occurrenceId) }
         }
@@ -678,12 +679,13 @@ private fun SaveButton(saved: Boolean, modifier: Modifier = Modifier, onClick: (
 }
 
 @Composable
-private fun PosterImage(url: String?, modifier: Modifier) {
+private fun PosterImage(url: String?, modifier: Modifier, concertFallback: Boolean = false) {
     val matrix = remember { ColorMatrix().apply { setToSaturation(0f) } }
     Box(modifier.background(Color(0xFF202020)).clipToBounds()) {
-        if (url != null) {
+        if (url != null || concertFallback) {
             AsyncImage(
-                model = url,
+                model = url ?: it.fabiodalez.incitta.R.drawable.event_concert_placeholder,
+                error = if (concertFallback) androidx.compose.ui.res.painterResource(it.fabiodalez.incitta.R.drawable.event_concert_placeholder) else null,
                 contentDescription = null,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop,

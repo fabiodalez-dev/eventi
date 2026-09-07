@@ -109,6 +109,8 @@ import org.maplibre.android.MapLibre
 import org.maplibre.android.annotations.IconFactory
 import org.maplibre.android.annotations.MarkerOptions
 import org.maplibre.android.camera.CameraUpdateFactory
+import org.maplibre.android.geometry.LatLngBounds
+import androidx.core.view.doOnLayout
 import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.maps.MapView
@@ -505,6 +507,7 @@ fun CalendarScreen(state: AppUiState, padding: PaddingValues, onOpen: (Occurrenc
     val grouped = state.occurrences.groupBy { it.startsAt.take(10) }.toSortedMap()
     LazyColumn(Modifier.fillMaxSize().padding(bottom = padding.calculateBottomPadding())) {
         item { ScreenHeader("CALENDARIO", "LE PROSSIME DATE IN CITTÀ", onBack) }
+        item { CalendarSubscriptionPanel() }
         if (grouped.isEmpty()) item { Text("Nessuna data disponibile.", color = Muted, modifier = Modifier.padding(24.dp)) }
         grouped.forEach { (_, events) ->
             item {
@@ -700,6 +703,14 @@ private fun InteractiveMap(
                     }
                     map.addOnCameraIdleListener(::renderMarkers)
                     renderMarkers()
+                    this@apply.doOnLayout {
+                        val locations = points.map { LatLng(it.lat, it.lng) }.distinctBy { it.latitude to it.longitude }
+                        if (locations.size > 1) {
+                            map.moveCamera(CameraUpdateFactory.newLatLngBounds(LatLngBounds.Builder().includes(locations).build(), (48 * context.resources.displayMetrics.density).toInt()))
+                        } else if (locations.size == 1) {
+                            map.moveCamera(CameraUpdateFactory.newLatLngZoom(locations.first(), zoom.coerceAtLeast(14.0)))
+                        }
+                    }
                 }
             }
         }

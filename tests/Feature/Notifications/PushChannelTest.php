@@ -244,7 +244,10 @@ it('sceglie FCM per un dispositivo Android attivo quando firebase e configurato'
             && $user->routeNotificationForFcm() === [$device->push_token]
             && ($payload['data']['type'] ?? null) === 'event_reminder'
             && str_contains($payload['data']['url'] ?? '', '/eventi/')
-            && ($payload['android']['notification']['channel_id'] ?? null) === 'eventi';
+            && ($payload['data']['user_id'] ?? null) === (string) $user->id
+            && filled($payload['data']['title'] ?? null)
+            && ($payload['android']['priority'] ?? null) === 'high'
+            && empty($payload['notification']);
     });
 
     expect(NotificationLog::query()->first()?->channel)->toBe(NotificationChannel::Push);

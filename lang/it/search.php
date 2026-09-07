@@ -12,6 +12,12 @@ return [
     'placeholder' => 'Un evento, un locale, un artista',
     'label' => 'Che cosa cerchi',
     'submit' => 'Cerca',
+    'live' => [
+        'loading' => 'Ricerca in corso…',
+        'error' => 'I suggerimenti non sono disponibili. Premi Cerca per riprovare.',
+        'all' => 'Vedi tutti i risultati',
+        'label' => 'Risultati della ricerca in diretta',
+    ],
 
     'meta' => [
         'title' => 'Cerca fra gli eventi di :city',

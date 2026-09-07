@@ -15,7 +15,7 @@ import javax.crypto.spec.GCMParameterSpec
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
-class LocalStore(context: Context) {
+class LocalStore(private val context: Context) {
     private val prefs = context.getSharedPreferences("incitta", Context.MODE_PRIVATE)
     private val json = Json { ignoreUnknownKeys = true; explicitNulls = false }
 
@@ -41,6 +41,7 @@ class LocalStore(context: Context) {
 
     fun clearSession() {
         prefs.edit { remove(KEY_SESSION) }
+        it.fabiodalez.incitta.notifications.PushRegistration.disable(context)
     }
 
     fun guestSavedIds(): Set<Long> = prefs.getStringSet(KEY_GUEST_SAVED, emptySet())

@@ -928,7 +928,21 @@ function dipingiFollow(bottone, form, segue) {
     bottone.classList.toggle("text-ink", !segue);
 }
 
+import { liveSearch, continuousTicker } from './live-search';
+import { venueAutocomplete } from './venue-autocomplete';
+
 function start() {
+    for (const button of document.querySelectorAll('[data-copy-calendar]')) {
+        button.addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(button.dataset.copyCalendar);
+                button.textContent = button.dataset.copied;
+            } catch { button.previousElementSibling?.querySelector('input')?.select(); }
+        });
+    }
+    liveSearch();
+    venueAutocomplete();
+    continuousTicker();
     dialoghi();
     rivelaLocandine();
     filtriLocaliRealtime();

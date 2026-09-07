@@ -50,7 +50,7 @@ class UpdateProfileRequest extends FormRequest
 
     public function preferences(): NotificationPreferences
     {
-        return NotificationPreferences::defaults()->with([
+        return NotificationPreferences::fromUser($this->user())->with([
             'reminders' => $this->boolean('reminders'),
             'sold_out' => $this->boolean('sold_out'),
             'venue_digest' => $this->boolean('venue_digest'),

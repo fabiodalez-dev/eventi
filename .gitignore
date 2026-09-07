@@ -68,3 +68,8 @@ CLAUDE.md
 /*.png
 # Archivi di trasferimento: si cancellano nella sessione in cui si usano
 /*.zip
+/android/app/google-services.json
+/android/app/src/debug/google-services.json
+/android/app/src/release/google-services.json
+*firebase-adminsdk*.json
+/storage/app/private/firebase/

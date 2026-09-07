@@ -14,6 +14,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        it.fabiodalez.incitta.notifications.PushRegistration.refresh(applicationContext)
         handleIntent(intent)
         setContent { InCittaApp(viewModel) }
     }
@@ -25,14 +26,17 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handleIntent(intent: Intent?) {
+        if (intent?.hasExtra("notification_user_id") == true &&
+            intent.getLongExtra("notification_user_id", -1) != it.fabiodalez.incitta.data.LocalStore(this).readSession()?.user?.id) return
         val uri = intent?.data ?: return
         when {
             uri.scheme == "incitta" && uri.host == "auth" -> {
                 uri.getQueryParameter("token")?.takeIf(String::isNotBlank)?.let(viewModel::exchangeMagicToken)
             }
-            uri.host == "eventi.fabiodalez.it" -> {
+            uri.host == "eventi.fabiodalez.it" || uri.host == android.net.Uri.parse(BuildConfig.API_BASE_URL).host -> {
                 val parts = uri.pathSegments
                 when {
+                    parts.firstOrNull() == "il-mio-feed" || parts.firstOrNull() == "notifiche" -> viewModel.selectTab(AppTab.ACCOUNT)
                     parts.firstOrNull() == "locali" && parts.size >= 2 -> viewModel.openVenueSlug(parts[1])
                     parts.firstOrNull() == "mappa" -> viewModel.selectTab(AppTab.MAP)
                     parts.firstOrNull() == "calendario" -> viewModel.selectTab(AppTab.CALENDAR)

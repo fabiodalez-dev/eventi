@@ -248,7 +248,7 @@ async function startMap(shell) {
             map.fitBounds([
                 [config.bounds.min_lng, config.bounds.min_lat],
                 [config.bounds.max_lng, config.bounds.max_lat],
-            ], { padding: 32, duration: 0 });
+            ], { padding: 48, maxZoom: 14, duration: 0 });
         }
 
         renderAccessibleMarkers(currentPayload);

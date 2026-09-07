@@ -34,6 +34,7 @@ use App\Http\Controllers\Api\V1\SyncController;
 use App\Http\Controllers\Api\V1\TaxonomyController;
 use App\Http\Controllers\Api\V1\VenueController;
 use App\Http\Controllers\TicketingController;
+use App\Http\Controllers\Web\Account\NotificationInterestsController;
 use App\Http\Middleware\Api\CacheJsonResponse;
 use App\Http\Middleware\Api\IdempotentRequest;
 use App\Http\Middleware\Api\ResolveApiCity;
@@ -182,6 +183,8 @@ Route::prefix('v1')
                 Route::delete('/', [ProfileController::class, 'destroy'])->name('destroy');
 
                 Route::get('/notification-preferences', [NotificationPreferenceController::class, 'show'])->name('preferences.show');
+                Route::get('/notification-interests', [NotificationInterestsController::class, 'index'])->name('interests.show');
+                Route::patch('/notification-interests', [NotificationInterestsController::class, 'update'])->name('interests.update');
                 Route::patch('/notification-preferences', [NotificationPreferenceController::class, 'update'])->name('preferences.update');
 
                 /*

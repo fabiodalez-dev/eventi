@@ -272,9 +272,8 @@ final readonly class MessageFactory
      * «Stasera nei tuoi generi» (§15.4). "Stasera" lo definisce il motore e
      * nessun altro: è la stessa finestra della homepage (§8.4).
      *
-     * Chi non segue ancora nulla riceve la sera della città, non una pagina
-     * vuota: ha acceso il riepilogo, e un riepilogo vuoto sarebbe la risposta
-     * peggiore possibile a quella richiesta.
+     * Il riepilogo è personale: togliere tutti gli interessi non deve
+     * allargare di nascosto l'iscrizione a tutta la città.
      */
     private function dailyDigest(User $user): NotificationMessage|NotificationSkipReason
     {
@@ -284,11 +283,7 @@ final readonly class MessageFactory
             return NotificationSkipReason::NothingToSend;
         }
 
-        $query = EventOccurrenceQuery::for($city)->tonight();
-
-        if ($user->followsAnything()) {
-            $query->followedBy($user);
-        }
+        $query = EventOccurrenceQuery::for($city)->tonight()->followedBy($user);
 
         $items = $this->items($query, config()->integer('notifications.digests.daily.max_items'), $user);
 

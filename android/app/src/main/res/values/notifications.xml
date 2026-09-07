@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="notification_inbox">Archivio notifiche</string>
+    <string name="notification_more">Carica altre notifiche</string>
+    <string name="notification_channel">Eventi e riepiloghi</string>
+    <string name="notification_settings">NOTIFICHE E INTERESSI</string>
+    <string name="notification_saved">Preferenze salvate e sincronizzate con il sito.</string>
+    <string name="notification_interest_help">Scegli categorie oppure locali. Riceverai riepiloghi aggregati, non un avviso per ogni nuovo evento. Senza interessi selezionati non invieremo riepiloghi personalizzati.</string>
+    <string name="notification_delivery">Dove ricevere gli avvisi</string>
+    <string name="notification_auto">Automatico: dispositivo, altrimenti email</string>
+    <string name="notification_mail">Solo email</string>
+    <string name="notification_push">Solo dispositivo e archivio</string>
+    <string name="notification_both">Email e dispositivo</string>
+    <string name="notification_archive">Solo archivio in app</string>
+    <string name="notification_daily">Riepilogo giornaliero</string>
+    <string name="notification_weekly">Riepilogo settimanale</string>
+    <string name="notification_reminders">Promemoria degli eventi salvati</string>
+    <string name="notification_sold_out">Avvisi posti esauriti</string>
+    <string name="notification_time">Orario riepilogo (HH:mm)</string>
+    <string name="notification_categories">Categorie</string>
+    <string name="notification_venues">Locali</string>
+    <string name="notification_save">SALVA PREFERENZE</string>
+    <string name="notification_enable_device">ATTIVA NOTIFICHE SU QUESTO DISPOSITIVO</string>
+    <string name="notification_disable_device">Disattiva su questo dispositivo</string>
+    <string name="notification_device_enabled">Dispositivo collegato per le notifiche.</string>
+    <string name="notification_device_disabled">Notifiche disattivate su questo dispositivo.</string>
+    <string name="notification_device_failed">Impossibile attivare: controlla il permesso nelle impostazioni Android e la connessione, poi riprova.</string>
+    <string name="notification_push_unavailable">Le push non sono disponibili in questa configurazione. Puoi usare le email.</string>
+</resources>

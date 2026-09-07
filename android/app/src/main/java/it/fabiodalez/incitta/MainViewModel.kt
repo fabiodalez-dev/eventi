@@ -219,8 +219,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun search(query: String) {
         searchJob?.cancel()
         _state.value = _state.value.copy(activeTag = null)
-        if (query.trim().length < 2) {
-            _state.value = _state.value.copy(searchResults = emptyList(), searchTags = emptyList(), isSearching = false)
+        if (query.trim().length < 3) {
+            _state.value = _state.value.copy(searchResults = emptyList(), searchVenues = emptyList(), searchTags = emptyList(), isSearching = false)
             return
         }
         searchJob = viewModelScope.launch {

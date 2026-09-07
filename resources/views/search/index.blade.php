@@ -16,11 +16,15 @@
         @endif
     </header>
 
-    <form method="GET" action="{{ route('search') }}" role="search" class="mt-6 flex flex-wrap items-center gap-2">
+    <form method="GET" action="{{ route('search') }}" role="search" data-live-search="{{ route('search.suggestions') }}" data-search-loading="{{ __('search.live.loading') }}" data-search-error="{{ __('search.live.error') }}" class="relative mt-6 flex flex-wrap items-center gap-2">
         <label for="ricerca" class="sr-only">{{ __('search.label') }}</label>
 
         <input
             id="ricerca"
+            autocomplete="off"
+            maxlength="120"
+            aria-expanded="false"
+            aria-controls="page-search-suggestions"
             type="search"
             name="q"
             value="{{ $term }}"
@@ -35,6 +39,7 @@
         >
             {{ __('search.submit') }}
         </button>
+        <div id="page-search-suggestions" data-search-suggestions hidden role="region" aria-live="polite" aria-label="{{ __('search.live.label') }}" class="absolute inset-x-0 top-full z-50 mt-1 max-h-[60dvh] overflow-y-auto border-2 border-line bg-canvas shadow-xl"></div>
     </form>
 
     @if ($events !== null && $events->isNotEmpty())

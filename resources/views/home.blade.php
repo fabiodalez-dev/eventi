@@ -257,7 +257,7 @@
          La fascia dei numeri: dice se il catalogo regge, prima ancora di
          scorrere. Sono le misure di §1 del piano.
     ------------------------------------------------------------------- --}}
-    <section class="grid gap-0.5 border-b-2 border-line bg-line [grid-template-columns:repeat(auto-fit,minmax(min(200px,100%),1fr))]" aria-label="{{ __('ui.stats.label') }}">
+    <section class="grid grid-cols-2 gap-0.5 border-b-2 border-line bg-line min-[840px]:grid-cols-4" aria-label="{{ __('ui.stats.label') }}">
         @foreach ($statCells as $cella)
             <div class="flex flex-col gap-1.5 bg-canvas px-[clamp(1rem,2vw,1.75rem)] py-[22px] reveal-up">
                 <span class="font-display text-[clamp(1.75rem,2.6vw,2.75rem)] leading-none font-extrabold tracking-[-0.03em] {{ $cella['accent'] ?? false ? 'text-accent' : '' }}">

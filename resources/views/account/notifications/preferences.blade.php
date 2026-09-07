@@ -27,6 +27,9 @@
             <h1 class="text-hero text-ink">{{ $meta->heading }}</h1>
             <p class="text-sm text-ink-muted">{{ __('notifications.preferences.lead') }}</p>
         </header>
+        @if (auth()->id() === $user->id)
+            <a href="{{ route('account.notifications.interests') }}" class="border-2 border-accent p-4 font-display font-bold text-accent">{{ __('subscriptions.interests') }} →</a>
+        @endif
 
         @if (session('status'))
             <p class="bg-surface px-4 py-3 text-sm font-semibold text-ink">{{ session('status') }}</p>
@@ -37,6 +40,13 @@
             @method('PATCH')
 
             <section class="flex flex-col gap-4 bg-surface p-card">
+                <label class="block text-sm">{{ __('subscriptions.delivery') }}
+                    <select name="delivery" class="mt-2 w-full border border-line bg-canvas p-3">
+                        @foreach (\App\Enums\NotificationDelivery::cases() as $delivery)
+                            <option value="{{ $delivery->value }}" @selected($preferences->delivery === $delivery)>{{ __('subscriptions.delivery_options.'.$delivery->value) }}</option>
+                        @endforeach
+                    </select>
+                </label>
                 <label class="flex items-center gap-2.5 text-sm text-ink">
                     <input type="checkbox" name="reminders" value="1" class="size-4 rounded border-line" @checked($preferences->reminders)>
                     {{ __('account.profile.reminders') }}
@@ -87,7 +97,7 @@
                 @endnewsletter
             </section>
 
-            <p class="text-sm text-ink-muted">{{ __('notifications.preferences.mandatory') }}</p>
+            <p class="text-sm text-ink-muted">{{ __('subscriptions.mandatory') }}</p>
 
             <button type="submit" class="self-start bg-brand px-4 py-2.5 text-sm font-semibold text-on-brand transition hover:bg-brand-strong">
                 {{ __('notifications.preferences.submit') }}

@@ -15,7 +15,6 @@ use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use NotificationChannels\Fcm\FcmChannel;
 use NotificationChannels\Fcm\FcmMessage;
-use NotificationChannels\Fcm\Resources\Notification as FcmNotification;
 use NotificationChannels\WebPush\WebPushChannel;
 use NotificationChannels\WebPush\WebPushMessage;
 use Symfony\Component\Mime\Email;
@@ -80,11 +79,14 @@ final class ScheduledMessage extends Notification implements ShouldQueue
          * stringa: il pacchetto non registra alcun driver `webpush` nel
          * gestore dei canali, e `via()` con una stringa sconosciuta solleva.
          */
-        if ($this->channel !== NotificationChannel::Push) {
+        if ($this->channel === NotificationChannel::Database) {
+            return ['database'];
+        }
+        if ($this->channel === NotificationChannel::Mail) {
             return ['mail', 'database'];
         }
 
-        $delivery = [];
+        $delivery = $this->channel === NotificationChannel::Both ? ['mail'] : [];
         $selector = app(ChannelSelector::class);
 
         if ($selector->webConfigured()) {
@@ -180,23 +182,18 @@ final class ScheduledMessage extends Notification implements ShouldQueue
     public function toFcm(object $notifiable): FcmMessage
     {
         return FcmMessage::create()
-            ->notification(new FcmNotification(
-                title: $this->message->heading,
-                body: implode(' ', $this->message->lines),
-            ))
             ->data([
+                'title' => $this->message->heading,
+                'body' => mb_substr(implode(' ', $this->message->lines), 0, 1000),
+                'user_id' => $notifiable instanceof User ? (string) $notifiable->getKey() : '',
                 'type' => $this->message->type->value,
                 'url' => $this->message->url,
                 'occurrence_id' => $this->message->occurrenceId === null ? '' : (string) $this->message->occurrenceId,
                 'event_id' => $this->message->eventId === null ? '' : (string) $this->message->eventId,
             ])
             ->android([
-                'notification' => [
-                    'color' => '#ccff00',
-                    'sound' => 'default',
-                    'channel_id' => 'eventi',
-                ],
                 'priority' => 'high',
+                'ttl' => '3600s',
             ]);
     }
 

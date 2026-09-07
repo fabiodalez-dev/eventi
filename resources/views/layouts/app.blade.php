@@ -81,7 +81,8 @@
      * telefono ogni mattina senza dover tornare qui.
      */
     $feedLinks = $links([
-        'feeds.calendar' => __('ui.footer.calendar_feed'),
+        'feeds.wizard' => __('subscriptions.footer'),
+        'account.notifications' => __('subscriptions.notifications'),
         'feeds.rss' => __('ui.footer.rss_feed'),
     ]);
 
@@ -363,7 +364,10 @@
                 action="{{ route('search') }}"
                 method="GET"
                 role="search"
-                class="flex h-[38px] max-w-[420px] flex-auto items-center border-2 border-line pl-2.5 focus-within:border-accent"
+                data-live-search="{{ route('search.suggestions') }}"
+                data-search-loading="{{ __('search.live.loading') }}"
+                data-search-error="{{ __('search.live.error') }}"
+                class="relative flex h-[38px] max-w-[420px] flex-auto items-center border-2 border-line pl-2.5 focus-within:border-accent"
             >
                 <label for="site-search" class="sr-only">
                     {{ __('ui.header.search_label', ['city' => $city?->name ?? $app]) }}
@@ -373,6 +377,10 @@
                 </svg>
                 <input
                     id="site-search"
+                    autocomplete="off"
+                    maxlength="120"
+                    aria-expanded="false"
+                    aria-controls="site-search-suggestions"
                     type="search"
                     name="q"
                     value="{{ request()->string('q') }}"
@@ -382,6 +390,7 @@
                 <button type="submit" class="h-full shrink-0 bg-accent px-3.5 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.14em] text-on-accent uppercase">
                     {{ __('common.actions.search') }}
                 </button>
+                <div id="site-search-suggestions" data-search-suggestions hidden role="region" aria-live="polite" aria-label="{{ __('search.live.label') }}" class="absolute -left-0.5 -right-0.5 top-full z-50 mt-1 max-h-[60dvh] overflow-y-auto border-2 border-line bg-canvas shadow-xl"></div>
             </form>
 
             {{-- Il menu dell'account: per chi non è collegato un invito ad

@@ -57,12 +57,11 @@
 @endphp
 
 @if ($voci !== [])
-    <div class="flex h-8 items-center overflow-hidden border-t-2 border-canvas bg-accent">
-        {{-- La striscia contiene due copie identiche e trasla del 50%: quando
-             la prima esce, la seconda è già al suo posto e il movimento non ha
-             stacchi. Il duplicato è `aria-hidden`, altrimenti chi ascolta la
-             pagina sentirebbe l'elenco due volte. --}}
-        <div class="flex flex-none animate-[marquee_var(--tk-dur)_linear_infinite] [animation-play-state:var(--anim-play)] will-change-transform">
+    <div data-ticker class="flex h-8 items-center overflow-hidden border-t-2 border-canvas bg-accent">
+        {{-- JavaScript misura una copia e ne aggiunge quante ne servono per
+             coprire la finestra anche alla fine del ciclo. Senza JS resta
+             leggibile e ferma. Solo la prima copia è accessibile. --}}
+        <div data-ticker-track class="flex flex-none [animation-play-state:var(--anim-play)] will-change-transform">
             @foreach ([false, true] as $copia)
                 <div class="flex flex-none items-center gap-[34px] pr-[34px]" @if ($copia) aria-hidden="true" @endif>
                     @foreach ($voci as $voce)

@@ -7,6 +7,7 @@ use App\Http\Controllers\Web\Account\FeedController;
 use App\Http\Controllers\Web\Account\FollowController;
 use App\Http\Controllers\Web\Account\LoginController;
 use App\Http\Controllers\Web\Account\MagicLinkController;
+use App\Http\Controllers\Web\Account\NotificationInterestsController;
 use App\Http\Controllers\Web\Account\NotificationSettingsController;
 use App\Http\Controllers\Web\Account\PasswordResetController;
 use App\Http\Controllers\Web\Account\ProfileController;
@@ -119,6 +120,8 @@ Route::middleware('signed')->group(function (): void {
 });
 
 Route::middleware('auth')->group(function (): void {
+    Route::get('/notifiche/interessi', [NotificationInterestsController::class, 'index'])->name('account.notifications.interests');
+    Route::patch('/notifiche/interessi', [NotificationInterestsController::class, 'update'])->name('account.notifications.interests.update');
     Route::post('/esci', [LoginController::class, 'destroy'])->name('account.logout');
 
     /*

@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Http\Requests\Web\Account;
 
 use App\DTOs\NotificationPreferences;
+use App\Enums\NotificationDelivery;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 /**
  * Le preferenze di notifica cambiate **senza accesso**, dal collegamento
@@ -36,6 +38,7 @@ class UpdateNotificationSettingsRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'delivery' => ['sometimes', Rule::enum(NotificationDelivery::class)],
             'reminders' => ['nullable', 'boolean'],
             'sold_out' => ['nullable', 'boolean'],
             'venue_digest' => ['nullable', 'boolean'],
@@ -50,7 +53,8 @@ class UpdateNotificationSettingsRequest extends FormRequest
 
     public function preferences(): NotificationPreferences
     {
-        return NotificationPreferences::defaults()->with([
+        return NotificationPreferences::fromUser($this->route('user'))->with([
+            'delivery' => $this->validated('delivery', $this->route('user')->notificationPreferences()->delivery->value),
             'reminders' => $this->boolean('reminders'),
             'sold_out' => $this->boolean('sold_out'),
             'venue_digest' => $this->boolean('venue_digest'),
