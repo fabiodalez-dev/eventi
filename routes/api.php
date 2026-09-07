@@ -35,6 +35,7 @@ use App\Http\Controllers\Api\V1\TaxonomyController;
 use App\Http\Controllers\Api\V1\VenueController;
 use App\Http\Controllers\TicketingController;
 use App\Http\Controllers\Web\Account\NotificationInterestsController;
+use App\Http\Controllers\Web\Account\SavedCalendarController;
 use App\Http\Middleware\Api\CacheJsonResponse;
 use App\Http\Middleware\Api\IdempotentRequest;
 use App\Http\Middleware\Api\ResolveApiCity;
@@ -193,6 +194,8 @@ Route::prefix('v1')
                  */
                 Route::post('/saved/merge', [SavedController::class, 'merge'])->name('saved.merge');
                 Route::get('/saved', [SavedController::class, 'index'])->name('saved.index');
+                Route::get('/saved/calendar', [SavedCalendarController::class, 'api'])
+                    ->middleware('throttle:60,1')->name('saved.calendar');
                 Route::post('/saved', [SavedController::class, 'store'])->middleware(IdempotentRequest::class)->name('saved.store');
                 Route::delete('/saved/{occurrence}', [SavedController::class, 'destroy'])
                     ->whereNumber('occurrence')

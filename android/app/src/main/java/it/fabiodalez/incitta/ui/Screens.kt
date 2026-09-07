@@ -144,6 +144,7 @@ fun EventsScreen(
                 EventRow(occurrence, occurrence.occurrenceId in state.savedIds, onOpen, onSave)
             }
         }
+        item { CalendarBanner(onCalendar) }
         item { Spacer(Modifier.height(24.dp)) }
     }
 }
@@ -261,6 +262,7 @@ fun SavedScreen(
                 }
             }
         }
+        item { SavedCalendarActions(state) }
         if (state.isLoading) item { LoadingBlock() }
         if (!state.isLoading && items.isEmpty() && mode == 0) {
             item { EmptyBlock("LA LISTA È VUOTA", "Tocca il segnalibro su un evento per ritrovarlo qui.") }

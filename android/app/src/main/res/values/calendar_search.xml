@@ -1,5 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="calendar_banner_title">LA CITTÀ NEL TUO CALENDARIO</string>
+    <string name="calendar_banner_help">Scegli categorie e locali, oppure includi tutti gli eventi. Collega il calendario o scarica un file ICS.</string>
+    <string name="calendar_saved_title">I miei eventi salvati</string>
+    <string name="calendar_export_saved">Esporta i salvati in ICS</string>
+    <string name="calendar_export_help">Esporta tutte le date salvate, non solo il mese visibile. Il file è una copia e non si aggiorna automaticamente.</string>
+    <string name="calendar_export_loading">Preparo il calendario…</string>
+    <string name="calendar_export_done">Calendario salvato nella cartella scelta.</string>
+    <string name="calendar_export_error">Non riesco a esportare tutte le date. Aggiorna i salvati e riprova con una connessione attiva.</string>
     <string name="search_live_help">Scrivi almeno 3 caratteri. Risultati in diretta tra titoli, descrizioni, locali e tag.</string>
     <string name="calendar_customize">Crea un calendario personalizzato</string>
     <string name="calendar_sync_help">Collega il calendario una volta per ricevere anche i nuovi eventi. I giorni scelti sono una finestra mobile, non una scadenza. I tempi di aggiornamento dipendono dalla tua app calendario.</string>

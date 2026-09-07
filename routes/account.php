@@ -13,6 +13,7 @@ use App\Http\Controllers\Web\Account\PasswordResetController;
 use App\Http\Controllers\Web\Account\ProfileController;
 use App\Http\Controllers\Web\Account\PushSubscriptionController;
 use App\Http\Controllers\Web\Account\RegisterController;
+use App\Http\Controllers\Web\Account\SavedCalendarController;
 use App\Http\Controllers\Web\Account\SavedController;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
@@ -182,6 +183,8 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/il-mio-feed', FeedController::class)->name('account.feed');
 
     Route::get('/i-miei-salvataggi', [SavedController::class, 'index'])->name('account.saved');
+    Route::get('/i-miei-salvataggi/calendario.ics', [SavedCalendarController::class, 'download'])
+        ->middleware('throttle:60,1')->name('account.saved.calendar');
 
     /*
      * `salvataggi/unisci` prima di `salvataggi/{occurrence}`: dichiarata dopo,

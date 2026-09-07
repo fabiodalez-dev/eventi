@@ -439,4 +439,13 @@
             </div>
         </div>
     </section>
+    <section class="border-t-2 border-line bg-canvas px-gutter py-12 text-ink" aria-labelledby="calendar-banner-title" data-calendar-banner>
+        <div class="flex flex-col items-start gap-6 lg:flex-row lg:items-center lg:justify-between">
+            <div class="max-w-prose">
+                <h2 id="calendar-banner-title" class="font-display text-3xl font-extrabold tracking-tight uppercase">{{ __('subscriptions.banner_title') }}</h2>
+                <p class="mt-3 text-ink-muted">{{ __('subscriptions.banner_help') }}</p>
+            </div>
+            <x-button :href="route('feeds.wizard')" class="min-h-12">{{ __('subscriptions.create_calendar') }}</x-button>
+        </div>
+    </section>
 </x-layouts.app>

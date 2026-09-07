@@ -18,10 +18,10 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 
 @Composable
-fun CalendarSubscriptionPanel() {
+fun CalendarSubscriptionPanel(initiallyExpanded: Boolean = false) {
     val context = LocalContext.current
     val api = remember { ApiClient(LocalStore(context).installationId) }
-    var expanded by remember { mutableStateOf(false) }
+    var expanded by remember { mutableStateOf(initiallyExpanded) }
     var categories by remember { mutableStateOf(emptyList<Category>()) }
     var selected by remember { mutableStateOf(emptySet<String>()) }
     var venue by remember { mutableStateOf<Venue?>(null) }
