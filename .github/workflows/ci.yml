@@ -21,7 +21,7 @@ concurrency:
 jobs:
   scope:
     name: Seleziona controlli necessari
-    runs-on: ${{ fromJSON(github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository && '["ubuntu-latest"]' || '["self-hosted","Linux","X64","fabio-ci"]') }}
+    runs-on: ubuntu-latest
     timeout-minutes: 3
     outputs:
       web: ${{ steps.scope.outputs.web }}
@@ -40,7 +40,7 @@ jobs:
     needs: scope
     if: needs.scope.outputs.web == 'true'
     name: Lint e analisi statica
-    runs-on: ${{ fromJSON(github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository && '["ubuntu-latest"]' || '["self-hosted","Linux","X64","fabio-ci"]') }}
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -71,7 +71,7 @@ jobs:
     needs: [scope, quality]
     if: needs.scope.outputs.web == 'true'
     name: Test (${{ matrix.shard }}/3)
-    runs-on: ${{ fromJSON(github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository && '["ubuntu-latest"]' || '["self-hosted","Linux","X64","fabio-ci"]') }}
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
       fail-fast: false
@@ -162,7 +162,7 @@ jobs:
     needs: [scope, quality]
     if: needs.scope.outputs.web == 'true'
     name: Lighthouse
-    runs-on: ${{ fromJSON(github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository && '["ubuntu-latest"]' || '["self-hosted","Linux","X64","fabio-ci"]') }}
+    runs-on: ubuntu-latest
     timeout-minutes: 25
     services:
       mariadb:
@@ -376,7 +376,7 @@ jobs:
     needs: scope
     if: needs.scope.outputs.android == 'true'
     name: Android unit test e compilazione
-    runs-on: ${{ fromJSON(github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository && '["ubuntu-latest"]' || '["self-hosted","Linux","X64","fabio-ci"]') }}
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -398,7 +398,7 @@ jobs:
     name: Controlli richiesti
     needs: [scope, quality, tests, lighthouse, android]
     if: always()
-    runs-on: ${{ fromJSON(github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository && '["ubuntu-latest"]' || '["self-hosted","Linux","X64","fabio-ci"]') }}
+    runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -411,8 +411,8 @@ jobs:
     name: Deploy su eventi.fabiodalez.it
     needs: [checks, quality, tests, lighthouse, android]
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-    # Strict TLS from the isolated local runner was verified before migration.
-    runs-on: [self-hosted, Linux, X64, fabio-ci]
+    # The ARM route to production has verified TLS connectivity.
+    runs-on: ubuntu-24.04-arm
     timeout-minutes: 25
     environment:
       name: production

@@ -1,5 +1,16 @@
 # Fabio CI: server di esecuzione multi-repository
 
+## Aggiornamento del 7 settembre 2026: eventi pubblico
+
+Per `eventi` la configurazione corrente è descritta in
+[`docs/PUBLIC-REPOSITORY.md`](../../docs/PUBLIC-REPOSITORY.md): CI sui runner
+standard GitHub, mirror GitLab privato attivato dai push e dalla fine della CI.
+Il timer orario resta un recupero. Il server non deve registrare runner per
+`eventi` pubblico. Pinakes e FAZ sono stati rimossi dall'allowlist pubblica:
+le loro PR self-hosted restano sospese, non vanno considerate integrate.
+Le sezioni seguenti documentano anche la precedente installazione e non
+autorizzano a riattivare le allowlist dei repository pubblici.
+
 ## Stato dell'installazione
 
 Host SSH: `fabiodalez` (YunoHost/Debian, separato dall'hosting eventi).

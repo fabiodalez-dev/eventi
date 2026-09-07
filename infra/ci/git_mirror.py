@@ -134,12 +134,27 @@ def sync_repository(repository, config, token, github_token):
     remote = refs(run_git(['ls-remote', '--refs', destination], env, local))
     if remote != (state or {}).get('refs', {}):
         # An interrupted push can have succeeded before state was persisted.
-        if remote != current:
+        if remote != current and remote != state.get('pending_refs'):
             raise ValueError('Destination changed outside this backup service')
     if current and current != remote:
-        # Deliberately do not delete destination branches/tags or rewrite history.
-        # Such changes require review; the independent backup must keep old data.
-        run_git(['push', '--atomic', '-o', 'ci.skip', destination,
+        lease = []
+        expected = {**remote, **current}
+        # Source branches may be rebased (Dependabot) or replaced (built assets).
+        # Preserve every replaced target in an immutable tag, then use an exact
+        # lease: an external concurrent change still rejects the entire push.
+        for ref, previous in remote.items():
+            if ref in current and current[ref] != previous:
+                run_git(['fetch', destination, ref], env, local)
+                backup_ref = 'refs/tags/mirror-history-' + previous
+                run_git(['update-ref', backup_ref, previous], env, local)
+                expected[backup_ref] = previous
+                lease.append('--force-with-lease=' + ref + ':' + previous)
+        # Do not delete remote refs. Old history is retained on GitLab as well
+        # as in the local bundle, even when the source rewrites its branches.
+        # Persist the exact atomic result before pushing, so a crash after a
+        # rewrite can be recovered without accepting unrelated remote changes.
+        save_state(statefile, {**state, 'pending_refs': expected})
+        run_git(['push', '--atomic', *lease, '-o', 'ci.skip', destination,
                  'refs/heads/*:refs/heads/*', 'refs/tags/*:refs/tags/*'], env, local)
     confirmed = refs(run_git(['ls-remote', '--refs', destination], env, local))
     if any(confirmed.get(ref) != sha for ref, sha in current.items()):
@@ -154,7 +169,7 @@ def main():
     os.umask(0o077)
     ROOT.mkdir(parents=True, exist_ok=True)
     lock = (ROOT / '.lock').open('w')
-    fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    fcntl.flock(lock, fcntl.LOCK_EX)
     config = json.loads(CONFIG.read_text())
     token = Path('/etc/fabio-ci/gitlab-mirror.token').read_text().strip()
     api = GitHub(json.loads(Path('/etc/fabio-ci/github-app.json').read_text()))
@@ -165,7 +180,8 @@ def main():
         for repository in repositories:
             if repository['owner']['login'].lower() != config['owner'].lower():
                 continue
-            if config.get('repositories') and repository['name'] not in config['repositories']:
+            selected = sys.argv[1:] or config.get('repositories', [])
+            if selected and repository['name'] not in selected:
                 continue
             try:
                 # Renew short-lived credentials before each repository.

@@ -1,5 +1,14 @@
 # Costi CI e server dedicato
 
+## Configurazione corrente: eventi pubblico
+
+Il 7 settembre 2026 Fabio ha autorizzato eventi pubblico, con CI parallela sui
+runner standard GitHub (minuti gratuiti per repository pubblici). Il server
+mantiene le copie GitLab private, senza eseguire i job pubblici di eventi.
+Le prove self-hosted qui sotto sono storiche; vedere `docs/PUBLIC-REPOSITORY.md`.
+Il budget account a zero resta utile per gli altri repository privati e non
+viene alzato. Non usare larger runner a pagamento.
+
 ## Budget verificato il 7 settembre 2026
 
 Nella pagina GitHub personale `Settings > Billing and licensing > Budgets and alerts`

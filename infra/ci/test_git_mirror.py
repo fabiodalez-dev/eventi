@@ -111,6 +111,18 @@ class MirrorIntegrationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'outside'):
             self.sync()
 
+    def test_source_rewrite_preserves_previous_commit_on_gitlab(self):
+        self.sync()
+        previous = self.git('-C', str(self.source), 'rev-parse', 'HEAD')
+        self.git('-C', str(self.source), 'checkout', '--orphan', 'replacement')
+        self.commit('rewritten')
+        self.git('-C', str(self.source), 'branch', '-M', 'main')
+        self.sync()
+        self.assertEqual(self.git('-C', str(self.source), 'rev-parse', 'HEAD'),
+                         self.git('--git-dir', str(self.destination), 'rev-parse', 'main'))
+        self.assertEqual(previous, self.git('--git-dir', str(self.destination), 'rev-parse', 'refs/tags/mirror-history-' + previous))
+        self.sync()
+
     def test_nonempty_destination_is_not_adopted(self):
         self.project['empty_repo'] = False
         with self.assertRaisesRegex(ValueError, 'nonempty'):
@@ -123,11 +135,8 @@ class MirrorIntegrationTests(unittest.TestCase):
 
     def test_interrupted_state_save_can_recover(self):
         original_save = git_mirror.save_state
-        calls = []
-
         def interrupted(path, data):
-            calls.append(data)
-            if len(calls) == 2:
+            if 'verified_at' in data and 'pending_refs' not in data:
                 raise OSError('Simulated interruption after push')
             original_save(path, data)
 
@@ -136,3 +145,23 @@ class MirrorIntegrationTests(unittest.TestCase):
                 self.sync()
         self.project['empty_repo'] = False
         self.sync()
+
+    def test_interrupted_rewrite_recovers_without_losing_archive(self):
+        self.sync()
+        previous = self.git('-C', str(self.source), 'rev-parse', 'HEAD')
+        self.git('-C', str(self.source), 'checkout', '--orphan', 'replacement')
+        self.commit('replacement')
+        self.git('-C', str(self.source), 'branch', '-M', 'main')
+        original_save = git_mirror.save_state
+
+        def interrupted(path, data):
+            if 'verified_at' in data and 'pending_refs' not in data:
+                raise OSError('Simulated interruption after rewrite')
+            original_save(path, data)
+
+        with patch.object(git_mirror, 'save_state', side_effect=interrupted):
+            with self.assertRaises(OSError):
+                self.sync()
+        self.sync()
+        self.assertEqual(previous, self.git('--git-dir', str(self.destination),
+                         'rev-parse', 'refs/tags/mirror-history-' + previous))

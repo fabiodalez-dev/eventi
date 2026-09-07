@@ -1,0 +1,17 @@
+[Unit]
+Description=Private GitLab backup after an eventi push
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/flock -w 21600 /run/lock/fabio-git-mirror-trigger.lock /usr/bin/python3 /usr/local/lib/fabio-ci/git_mirror.py eventi
+UMask=0077
+Nice=15
+CPUQuota=100%
+MemoryMax=2G
+TimeoutStartSec=6h
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/lib/fabio-git-mirrors /run/lock

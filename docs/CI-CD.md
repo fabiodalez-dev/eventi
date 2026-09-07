@@ -1,8 +1,10 @@
 # Sviluppo locale e rilascio continuo
 
-Il repository privato esistente è `fabiodalez-dev/eventi`: sito Laravel e sorgenti
+Il repository principale è `fabiodalez-dev/eventi`: sito Laravel e sorgenti
 Android restano insieme, così le modifiche API e client si verificano nello stesso
-commit. Non occorre creare un secondo repository né rendere pubblico questo.
+commit. Il proprietario ha autorizzato la visibilità pubblica il 7 settembre 2026.
+La CI torna sui runner standard GitHub, gratuiti per repository pubblici;
+il mirror GitLab rimane privato. Vedere `docs/PUBLIC-REPOSITORY.md`.
 
 ## Flusso quotidiano
 
@@ -50,12 +52,10 @@ del certificato non viene mai disabilitata. Se l'hosting restituisce ancora
 timeout o un certificato di un altro dominio, serve verificare il percorso
 di rete e la configurazione TLS con il provider; non usare `curl -k`.
 
-**Limite del piano GitHub attuale:** l'API rifiuta la protezione dei rami su
-questo repository privato (richiede Pro). Il gate di deploy funziona, ma non
-possiamo imporre tramite GitHub il divieto di push diretto o merge con test rossi.
-Non rendere pubblico il repository per aggirare questo limite. Dopo l'upgrade,
-attivare su `main` pull request obbligatoria, controlli richiesti, divieto di
-force-push/eliminazione e applicazione anche agli amministratori.
+La protezione dei rami è disponibile sui repository pubblici del piano Free.
+Verificare la configurazione effettiva su GitHub: la sola visibilità pubblica
+non attiva automaticamente regole di protezione. Il gate di deploy continua
+a richiedere tutti i controlli previsti, anche per i push diretti su `main`.
 
 ## Migrazioni e recupero
 

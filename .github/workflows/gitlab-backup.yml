@@ -1,0 +1,41 @@
+name: Private GitLab backup
+
+on:
+  push:
+  workflow_dispatch:
+  # GITHUB_TOKEN pushes to assets do not emit another push workflow.
+  # This trigger reads no PR code or artifacts: it only requests a fixed backup.
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+
+permissions: {}
+
+concurrency:
+  group: private-gitlab-backup
+  cancel-in-progress: false
+
+jobs:
+  mirror:
+    if: github.repository == 'fabiodalez-dev/eventi'
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 35
+    steps:
+      - name: Trigger isolated server backup
+        env:
+          MIRROR_KEY: ${{ secrets.MIRROR_TRIGGER_KEY }}
+          MIRROR_HOST_KEYS: ${{ secrets.MIRROR_HOST_KEYS }}
+        run: |
+          set -euo pipefail
+          umask 077
+          test -n "$MIRROR_KEY"
+          test -n "$MIRROR_HOST_KEYS"
+          task_dir=$(mktemp -d)
+          trap 'rm -f "$task_dir/key" "$task_dir/known_hosts"; rmdir "$task_dir"' EXIT
+          printf '%s\n' "$MIRROR_KEY" > "$task_dir/key"
+          printf '%s\n' "$MIRROR_HOST_KEYS" > "$task_dir/known_hosts"
+          ssh -p 2222 -i "$task_dir/key" \
+            -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="$task_dir/known_hosts" \
+            -o ConnectTimeout=20 -o ServerAliveInterval=20 -o ServerAliveCountMax=3 \
+            fabiodalez@fabiodalez.noho.st
