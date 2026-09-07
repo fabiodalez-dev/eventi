@@ -408,7 +408,7 @@ jobs:
         run: node .github/scripts/ci-gate.cjs
 
   deploy:
-    name: Deploy su eventi.fabiodalez.it
+    name: Pubblica il rilascio verificato
     needs: [checks, quality, tests, lighthouse, android]
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     # The ARM route to production has verified TLS connectivity.
@@ -451,20 +451,43 @@ jobs:
           curl --ipv4 --fail --silent --show-error --connect-timeout 10 --max-time 120 -X POST "$DEPLOY_URL" \
             -H "X-Secret-Token: $DEPLOY_SECRET" -H "Accept: application/json" \
             || echo "::warning::Innesco non raggiungibile; attendo il cron e verifico il rilascio."
-      - name: Verifica il commit effettivamente online e le pagine pubbliche
+
+  verify-release:
+    needs: deploy
+    uses: ./.github/workflows/verify-release.yml
+    with:
+      expected_sha: ${{ github.sha }}
+
+  verify-release-retry:
+    needs: [deploy, verify-release]
+    if: ${{ !cancelled() && needs.deploy.result == 'success' && needs.verify-release.outputs.verified != 'true' }}
+    uses: ./.github/workflows/verify-release.yml
+    with:
+      expected_sha: ${{ github.sha }}
+
+  verify-release-last:
+    needs: [deploy, verify-release, verify-release-retry]
+    if: ${{ !cancelled() && needs.deploy.result == 'success' && needs.verify-release.outputs.verified != 'true' && needs.verify-release-retry.outputs.verified != 'true' }}
+    uses: ./.github/workflows/verify-release.yml
+    with:
+      expected_sha: ${{ github.sha }}
+
+  deployed:
+    name: Deploy su eventi.fabiodalez.it
+    needs: [deploy, verify-release, verify-release-retry, verify-release-last]
+    if: ${{ always() && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Richiedi una verifica completa da un runner GitHub
         env:
+          PUBLISHED: ${{ needs.deploy.result }}
+          FIRST: ${{ needs.verify-release.outputs.verified }}
+          SECOND: ${{ needs.verify-release-retry.outputs.verified }}
+          THIRD: ${{ needs.verify-release-last.outputs.verified }}
           EXPECTED_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
-          ready=false
-          deadline=$((SECONDS + 600))
-          while [ "$SECONDS" -lt "$deadline" ]; do
-            actual=$(curl --ipv4 --fail --silent --show-error --connect-timeout 5 --max-time 10 "https://eventi.fabiodalez.it/release-status?run=$GITHUB_RUN_ID" | jq -r .sha || true)
-            if [ "$actual" = "$EXPECTED_SHA" ]; then ready=true; break; fi
-            sleep 10
-          done
-          test "$ready" = true || { echo "::error::Il server non conferma il commit verificato."; exit 1; }
-          for path in / /eventi /locali /sitemap.xml /api/v1/home /admin/login; do
-            curl --ipv4 --fail --silent --show-error --retry 3 --connect-timeout 5 --max-time 30 "https://eventi.fabiodalez.it$path" -o /dev/null
-          done
-          echo "### Rilascio verificato: $EXPECTED_SHA" >> "$GITHUB_STEP_SUMMARY"
+          test "$PUBLISHED" = success
+          test "$FIRST" = true || test "$SECOND" = true || test "$THIRD" = true
+          echo "### Rilascio verificato con TLS e pagine pubbliche: $EXPECTED_SHA" >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,30 @@
+name: Verify public release
+
+on:
+  workflow_call:
+    inputs:
+      expected_sha:
+        required: true
+        type: string
+    outputs:
+      verified:
+        value: ${{ jobs.verify.outputs.verified }}
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 5
+    outputs:
+      verified: ${{ steps.probe.outputs.verified }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - id: probe
+        name: Verify TLS, commit and every public page
+        continue-on-error: true
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          PUBLIC_SITE_URL: ${{ vars.PUBLIC_SITE_URL || 'https://eventi.fabiodalez.it' }}
+        run: node .github/scripts/verify-release.cjs
