@@ -293,7 +293,7 @@
 
     {{ $head ?? '' }}
 </head>
-<body class="min-h-dvh bg-canvas text-ink antialiased">
+<body class="min-h-dvh bg-canvas text-ink antialiased pb-[calc(4rem+env(safe-area-inset-bottom))] lg:pb-0">
     <a
         href="#contenuto"
         class="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-50 focus:focus:bg-brand focus:px-4 focus:py-2 focus:font-semibold focus:text-on-brand"
@@ -541,5 +541,6 @@
             </div>
         </div>
     </footer>
+    <x-mobile-navigation />
 </body>
 </html>
