@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Enums\EventStatus;
 use App\Enums\VenueStatus;
+use App\Models\User;
 use App\Models\Venue;
 use App\Support\WidgetEmbed;
 use Carbon\Carbon;
@@ -22,6 +23,7 @@ afterEach(function (): void {
 });
 
 describe('/eventi.ics', function (): void {
+    beforeEach(fn () => $this->actingAs(User::factory()->create()));
     it('produce un calendario valido secondo sabre/vobject', function (): void {
         $city = testCity();
         $category = testCategory();

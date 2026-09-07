@@ -16,21 +16,66 @@ import it.fabiodalez.incitta.R
 import it.fabiodalez.incitta.data.*
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import it.fabiodalez.incitta.calendar.NativeCalendar
+import it.fabiodalez.incitta.calendar.CalendarExport
+import it.fabiodalez.incitta.MainActivity
 
 @Composable
 fun CalendarSubscriptionPanel(initiallyExpanded: Boolean = false) {
     val context = LocalContext.current
     val api = remember { ApiClient(LocalStore(context).installationId) }
+    val session = LocalStore(context).readSession()
+    val savedSelection = remember(session?.user?.id) { Uri.parse("https://local.invalid/?${NativeCalendar.selection(context).orEmpty()}") }
+    val scope = rememberCoroutineScope()
+    var connected by remember { mutableStateOf(NativeCalendar.enabled(context)) }
+    var busy by remember { mutableStateOf(false) }
+    var pendingQuery by remember { mutableStateOf<String?>(null) }
+    var pendingIcs by remember(session?.token) { mutableStateOf<String?>(null) }
     var expanded by remember { mutableStateOf(initiallyExpanded) }
     var categories by remember { mutableStateOf(emptyList<Category>()) }
-    var selected by remember { mutableStateOf(emptySet<String>()) }
-    var venue by remember { mutableStateOf<Venue?>(null) }
-    var query by remember { mutableStateOf("") }
+    var selected by remember { mutableStateOf(savedSelection.getQueryParameter("category")?.split(",")?.filter(String::isNotBlank)?.toSet() ?: emptySet()) }
+    var venue by remember { mutableStateOf(savedSelection.getQueryParameter("venue")?.let { Venue(slug = it, name = it.replace('-', ' ')) }) }
+    var query by remember { mutableStateOf(venue?.name.orEmpty()) }
     var suggestions by remember { mutableStateOf(emptyList<Venue>()) }
-    var days by remember { mutableIntStateOf(30) }
-    var free by remember { mutableStateOf(false) }
+    var days by remember { mutableIntStateOf(savedSelection.getQueryParameter("days")?.toIntOrNull() ?: 30) }
+    var free by remember { mutableStateOf(savedSelection.getQueryParameter("price") == "free") }
     var error by remember { mutableStateOf("") }
     var loading by remember { mutableStateOf(false) }
+    fun connect(selection: String) {
+        scope.launch {
+            busy = true
+            try {
+                val count = NativeCalendar.refresh(context, selection)
+                connected = true
+                error = "Calendario collegato: $count date. Si aggiorna quando apri inCittà e periodicamente mentre resti collegato."
+                runCatching { NativeCalendar.open(context) }.onFailure { error += " Apri la tua app Calendario e attiva inCittà nell'elenco dei calendari." }
+            } catch (e: CancellationException) { throw e }
+            catch (e: Exception) { error = e.message ?: "Collegamento non riuscito. Riprova." }
+            finally { busy = false }
+        }
+    }
+    val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+        val selection = pendingQuery
+        pendingQuery = null
+        if (NativeCalendar.allowed(context) && selection != null) connect(selection)
+        else error = "Permesso calendario negato. Puoi ancora scaricare un file ICS dopo l'accesso."
+    }
+    val download = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/calendar")) { uri ->
+        val text = pendingIcs
+        pendingIcs = null
+        if (uri != null && text != null && LocalStore(context).readSession()?.token == session?.token) scope.launch {
+            try {
+                withContext(Dispatchers.IO) { requireNotNull(context.contentResolver.openOutputStream(uri)).use { it.write(text.toByteArray(Charsets.UTF_8)) } }
+                error = "File ICS salvato. È una copia, non un collegamento automatico."
+            } catch (e: CancellationException) { throw e }
+            catch (_: Exception) { error = "Non è stato possibile salvare il file." }
+        }
+    }
     LaunchedEffect(expanded) {
         if (expanded) {
             loading = true
@@ -54,6 +99,7 @@ fun CalendarSubscriptionPanel(initiallyExpanded: Boolean = false) {
     if (!expanded) return
     Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(stringResource(R.string.calendar_sync_help), color = Muted)
+        Text("L'accesso è obbligatorio. Con il tuo consenso modifichiamo solo il calendario inCittà. Scollegamento e logout rimuovono questo calendario dal telefono, non gli altri.", color = Muted)
         if (loading) LinearProgressIndicator(Modifier.fillMaxWidth())
         if (error.isNotBlank()) Text(error, color = Acid)
         Column(Modifier.heightIn(max = 240.dp).verticalScroll(rememberScrollState())) {
@@ -79,16 +125,39 @@ fun CalendarSubscriptionPanel(initiallyExpanded: Boolean = false) {
                 venue?.let { appendQueryParameter("venue", it.slug) }
                 if (free) appendQueryParameter("price", "free")
             }.build()
-        val valid = !loading && (query.isBlank() || venue != null)
-        Button(enabled = valid, onClick = {
-            val google = Uri.parse("https://calendar.google.com/calendar/u/0/r").buildUpon().appendQueryParameter("cid", url.toString()).build()
-            runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, google)) }.onFailure { error = it.message.orEmpty() }
-        }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.calendar_subscribe_google)) }
-        TextButton(enabled = valid, onClick = {
-            val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-            clipboard.setPrimaryClip(android.content.ClipData.newPlainText(context.getString(R.string.calendar_customize), url.toString()))
-            error = context.getString(R.string.calendar_link_copied)
-        }) { Text(stringResource(R.string.calendar_copy_link)) }
-        TextButton(enabled = valid, onClick = { runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, url)) }.onFailure { error = it.message.orEmpty() } }) { Text(stringResource(R.string.calendar_download)) }
+        val valid = !busy && !loading && (query.isBlank() || venue != null)
+        if (session == null) {
+            Button(onClick = {
+                context.startActivity(Intent(context, MainActivity::class.java).setData(Uri.parse("incitta://account"))
+                    .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP))
+            }, modifier = Modifier.fillMaxWidth()) { Text("Accedi per collegare il calendario") }
+        } else {
+            Button(enabled = valid, onClick = {
+                val selection = url.encodedQuery.orEmpty()
+                if (NativeCalendar.allowed(context)) connect(selection)
+                else { pendingQuery = selection; permission.launch(arrayOf(android.Manifest.permission.READ_CALENDAR, android.Manifest.permission.WRITE_CALENDAR)) }
+            }, modifier = Modifier.fillMaxWidth()) { Text(if (busy) "Aggiornamento…" else if (connected) "Aggiorna calendario sul telefono" else "Collega al calendario del telefono") }
+            if (connected) {
+                TextButton(onClick = { runCatching { NativeCalendar.open(context) }.onFailure { error = "Nessuna app Calendario disponibile sul telefono." } }) { Text("Apri app Calendario") }
+                TextButton(enabled = !busy, onClick = { scope.launch {
+                    try {
+                        withContext(Dispatchers.IO) { NativeCalendar.disconnect(context) }
+                        connected = false; error = "Calendario inCittà scollegato. Gli altri calendari non sono stati modificati."
+                    } catch (e: CancellationException) { throw e }
+                    catch (_: Exception) { connected = false; error = "Sincronizzazione fermata. Per rimuovere il calendario, ripristina il permesso calendario e riprova." }
+                } }) { Text("Scollega e rimuovi calendario inCittà") }
+            }
+            TextButton(enabled = valid, onClick = { scope.launch {
+                busy = true
+                try {
+                    val result = api.get<ApiEnvelope<CalendarExport>>("me/calendar/export?${url.encodedQuery}", session.token).data
+                    check(LocalStore(context).readSession()?.token == session.token)
+                    pendingIcs = result.ics
+                    download.launch("incitta-personalizzato.ics")
+                } catch (e: CancellationException) { throw e }
+                catch (_: Exception) { error = "Download non riuscito. Verifica l'accesso e riprova." }
+                finally { busy = false }
+            } }) { Text(stringResource(R.string.calendar_download)) }
+        }
     }
 }

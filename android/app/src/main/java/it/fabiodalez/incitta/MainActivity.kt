@@ -7,9 +7,23 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import it.fabiodalez.incitta.ui.InCittaApp
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
 
 class MainActivity : ComponentActivity() {
     private val viewModel: MainViewModel by viewModels()
+
+    override fun onResume() {
+        super.onResume()
+        lifecycleScope.launch(Dispatchers.IO) {
+            runCatching {
+                if (it.fabiodalez.incitta.calendar.NativeCalendar.enabled(applicationContext)) {
+                    it.fabiodalez.incitta.calendar.NativeCalendar.refresh(applicationContext)
+                } else it.fabiodalez.incitta.calendar.NativeCalendar.disconnect(applicationContext)
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -30,6 +44,7 @@ class MainActivity : ComponentActivity() {
             intent.getLongExtra("notification_user_id", -1) != it.fabiodalez.incitta.data.LocalStore(this).readSession()?.user?.id) return
         val uri = intent?.data ?: return
         when {
+            uri.scheme == "incitta" && uri.host == "account" -> viewModel.selectTab(AppTab.ACCOUNT)
             uri.scheme == "incitta" && uri.host == "auth" -> {
                 uri.getQueryParameter("token")?.takeIf(String::isNotBlank)?.let(viewModel::exchangeMagicToken)
             }

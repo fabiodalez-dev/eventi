@@ -67,14 +67,9 @@
             </div>
             <p class="text-sm text-ink-muted">{{ __('subscriptions.limit', ['count' => config('feeds.max_items')]) }}</p>
             <div class="flex flex-wrap gap-3">
-                <x-button :href="preg_replace('/^https?:/', 'webcal:', $calendarUrl)">{{ __('subscriptions.subscribe') }}</x-button>
-                <x-button :href="'https://calendar.google.com/calendar/u/0/r?cid='.rawurlencode($calendarUrl)">{{ __('subscriptions.google') }}</x-button>
-                <a href="{{ $calendarUrl }}" download="eventi.ics" class="border-2 border-line px-4 py-3 font-bold">{{ __('subscriptions.download') }}</a>
+                <x-button :href="$calendarUrl">{{ auth()->check() ? __('subscriptions.download') : 'Accedi per scaricare il calendario' }}</x-button>
             </div>
-            <label class="block text-sm">{{ __('subscriptions.url') }}<input readonly value="{{ $calendarUrl }}" class="mt-2 w-full border border-line bg-canvas p-3 text-ink-muted"></label>
-            <button type="button" data-copy-calendar="{{ $calendarUrl }}" data-copied="{{ __('subscriptions.copied') }}" class="underline">{{ __('subscriptions.copy') }}</button>
             <p class="text-sm text-ink-muted">{{ __('subscriptions.subscription_help') }}</p>
-            @if (in_array(request()->getHost(), ['localhost', '127.0.0.1'], true))<p class="border border-accent p-4 text-sm">{{ __('subscriptions.local_help') }}</p>@endif
             <a class="inline-block p-3 underline" href="{{ route('feeds.wizard', [...$selection, 'step' => 2]) }}">{{ __('subscriptions.back') }}</a>
         @endif
     </form>
