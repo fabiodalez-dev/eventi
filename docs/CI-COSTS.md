@@ -55,8 +55,10 @@ Java 21, MariaDB in Docker, presenza SDK Android 36, rete isolata e 29 test CI.
 Run: https://github.com/fabiodalez-dev/eventi/actions/runs/34096671973.
 Il runner monouso si è deregistrato e il disco temporaneo è stato eliminato.
 
-Il controller multi-repository è installato ma non attivo: manca l'autenticazione
-del proprietario per creare/installare la GitHub App dedicata. Nessun token
-personale è stato salvato sul server e nessun workflow è ancora migrato in massa.
+Il controller multi-repository è attivo e abilitato all'avvio con la GitHub App
+dedicata, chiave root-only. La prova autonoma 34098015324 è passata. Nessun token
+personale è stato salvato sul server. Il workflow di eventi ora usa il server
+per tutti i job, incluso il deploy; quelli degli altri repository non sono ancora
+migrati in massa e richiedono verifiche dei runtime e delle policy delle PR.
 Il proprietario ha scelto GitLab **esterno** per le copie Git; anche qui manca
 l'accesso autenticato. I dettagli operativi sono in `infra/ci/README.md`.

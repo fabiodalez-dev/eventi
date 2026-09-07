@@ -34,9 +34,13 @@ di ripetere i test d'isolamento prima di eseguire job.
 
 ## Credenziali dedicate richieste per l'autonomia
 
-Il token personale del Mac **non viene copiato sul server**. Il controller resta
-disattivato finché il proprietario non completa l'autenticazione GitHub e approva
-una GitHub App privata, installata sul proprio account/repository.
+Il token personale del Mac **non viene copiato sul server**. La GitHub App privata
+`fabiodalez-ci-server` (ID 4858177, installazione 159702150) è ora collegata:
+vede i 36 repository autorizzati. Il controller è attivo e abilitato all'avvio.
+La prova autonoma, senza token del Mac per registrare il runner, è passata:
+https://github.com/fabiodalez-dev/eventi/actions/runs/34098015324.
+I workflow di `eventi` sono configurati per la coda locale, compreso il deploy;
+quelli degli altri repository richiedono ancora verifica e migrazione individuale.
 
 Permessi minimi della App:
 
