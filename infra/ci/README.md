@@ -88,10 +88,43 @@ usata da overlay. Il provisioning rimane distinto dalle VM dei job.
 ## GitLab esterno
 
 Il proprietario ha scelto GitLab esterno, non GitLab installato su YunoHost.
-L'accesso GitLab deve essere completato dal proprietario; nessuna destinazione
-o credenziale viene inventata. Creare copie **private**, con sincronizzazione
-monodirezionale GitHub → GitLab. Prima della prima sincronizzazione verificare
-che la destinazione sia vuota e destinata esclusivamente al mirror.
+Account GitLab `fabiodalezbackup`, gruppo privato `fabiodalez-dev-group`
+(ID 141574454). Le 36 destinazioni dei repository sono state create vuote,
+private e con lo stesso nome della sorgente. Il progetto iniziale
+`fabiodalez-dev-project` del proprietario non viene toccato.
+
+Il token `fabiodalez-server-git-mirrors` scade il **6 settembre 2027**.
+È un token fine-grained gratuito, limitato al solo gruppo: Project Read/Update,
+Code Download/Push; nessun permesso utente/globale, eliminazione, condivisione
+o trasferimento. I token di gruppo richiedono un abbonamento e non sono
+disponibili nel trial. Nessun abbonamento è stato acquistato.
+La creazione API di progetti richiede invece un permesso utente: il servizio
+non lo possiede. Per un nuovo repository creare prima nel pannello GitLab la
+destinazione vuota privata, con nome identico, nel gruppo dedicato.
+
+`/etc/fabio-ci/gitlab-mirror.token` e `gitlab-mirror.json` sono root:root 0600.
+`fabio-git-mirror.timer` esegue la copia ogni ora, anche senza il Mac.
+`git_mirror.py` usa la GitHub App per leggere e il token granulare per scrivere;
+le credenziali non sono salvate negli URL Git o nei repository.
+Disabilita CI/CD, shared runners e Auto DevOps prima del primo push.
+La prima adozione richiede una destinazione vuota. Un cambio esterno di
+destinazione/visibilità/riferimenti interrompe la sincronizzazione.
+I push sono atomici, senza force e senza cancellazioni sul remoto:
+riscritture della storia richiedono verifica manuale, non cancellano i backup.
+
+Stato verificato e repository bare sono in `/var/lib/fabio-git-mirrors`.
+Le copie storiche giornaliere `.bundle` sono nella sottocartella `history`;
+non vengono eliminate automaticamente. Con meno di 20 GiB liberi il servizio
+si ferma prima del prossimo repository. Non modificare direttamente le copie.
+
+```sh
+sudo systemctl start fabio-git-mirror.service
+sudo journalctl -u fabio-git-mirror.service --since today
+sudo systemctl list-timers fabio-git-mirror.timer
+```
+
+Riferimenti: [token granulari](https://docs.gitlab.com/auth/tokens/fine_grained_access_tokens/),
+[permessi Git](https://docs.gitlab.com/auth/tokens/fine_grained_access_tokens_other/).
 
 Un mirror Git copia commit/rami/tag, non issue, PR, Actions secrets, database,
 upload del sito o automaticamente gli oggetti Git LFS. Non è il backup completo
