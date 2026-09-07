@@ -11,6 +11,28 @@ import org.junit.runner.RunWith
 class NavigationSmokeTest {
     @get:Rule val compose = createAndroidComposeRule<MainActivity>()
 
+    private fun dismissConsent() {
+        compose.waitForIdle()
+        if (compose.onAllNodesWithText("RIFIUTA").fetchSemanticsNodes().isNotEmpty()) {
+            compose.onNodeWithText("RIFIUTA").performClick()
+        }
+    }
+
+    @Test fun savedShowsExportAndCalendarCreation() {
+        dismissConsent()
+        compose.onNode(hasText("SALVATI") and hasClickAction()).performClick()
+        compose.onNodeWithText(compose.activity.getString(R.string.calendar_export_saved)).assertExists()
+        compose.onNodeWithText(compose.activity.getString(R.string.calendar_customize)).performScrollTo().performClick()
+        compose.onNodeWithText(compose.activity.getString(R.string.calendar_all_categories)).assertExists()
+    }
+
+    @Test fun homeBannerOpensCalendarConfiguration() {
+        dismissConsent()
+        compose.onAllNodes(hasScrollAction()).onFirst().performScrollToNode(hasText(compose.activity.getString(R.string.calendar_banner_title)))
+        compose.onNodeWithText(compose.activity.getString(R.string.calendar_customize)).performClick()
+        compose.onNodeWithText(compose.activity.getString(R.string.calendar_sync_help)).assertExists()
+    }
+
     @Test fun liveSearchAndMapKeepBottomNavigationAvailable() {
         compose.waitForIdle()
         if (compose.onAllNodesWithText("RIFIUTA").fetchSemanticsNodes().isNotEmpty()) {
