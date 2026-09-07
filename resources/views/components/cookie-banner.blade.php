@@ -52,7 +52,7 @@
         data-consent-banner
         role="region"
         aria-labelledby="consenso-titolo"
-        class="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface"
+        class="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] lg:bottom-0 z-[9001] max-h-[70dvh] overflow-y-auto border-t border-line bg-surface"
     >
         <form
             method="POST"

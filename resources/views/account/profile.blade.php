@@ -32,6 +32,12 @@
         </header>
 
         <x-button :href="route('tickets.index')">{{ __('ticketing.title') }}</x-button>
+        @if ($user->isEditorialStaff())
+            <x-button :href="url('/admin')" variant="secondary">{{ __('account.nav.admin') }}</x-button>
+        @endif
+        @if ($user->venues()->exists())
+            <x-button :href="url('/gestione')" variant="secondary">{{ __('account.nav.venue') }}</x-button>
+        @endif
         @if ($user->ownedVenues()->exists() || $user->hasAnyRole(['admin', 'super_admin']))
             <x-button :href="route('ticketing.manage.index')" variant="secondary">{{ __('ticketing.manage') }}</x-button>
         @endif

@@ -18,6 +18,14 @@ motore temporale in §8). Le deviazioni approvate sono in `docs/DECISIONS.md`.
   catalogo esistente: evitare titoli «Demo» e nomi di locali da banco di prova.
 - Prima di generare un nuovo APK chiedere conferma. Modificare e verificare
   il codice Android non autorizza il packaging o la consegna di un APK.
+- Le password degli amministratori remoti non vanno cambiate da test, seeder,
+  smoke test o deploy. Il riferimento privato indicato dal proprietario è
+  `/Users/fabio/Desktop/inCittà/Accessi-amministratori-inCitta.md`: non copiarlo
+  nel repository, nei log o negli artefatti. Cambiare credenziali solo su
+  richiesta esplicita, senza introdurre reset automatici a ogni rilascio.
+- La suite PHP rifiuta database privi del segmento `test` nel nome e ambienti
+  diversi da `testing`, prima dei trait che eseguono `migrate:fresh`.
+  Non rimuovere questo blocco per eseguire test contro il sito pubblico.
 
 | Voce | Valore |
 |---|---|
