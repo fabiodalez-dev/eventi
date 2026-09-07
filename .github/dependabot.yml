@@ -5,18 +5,38 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 1
+    groups:
+      php-compatible:
+        patterns: ['*']
+        update-types: [minor, patch]
   - package-ecosystem: npm
     directory: /
     schedule:
       interval: weekly
     open-pull-requests-limit: 1
+    groups:
+      javascript-compatible:
+        patterns: ['*']
+        exclude-patterns: ['@zxing/*']
+        update-types: [minor, patch]
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
     open-pull-requests-limit: 1
+    groups:
+      actions-compatible:
+        patterns: ['*']
+        update-types: [minor, patch]
   - package-ecosystem: gradle
     directory: /android
     schedule:
       interval: weekly
     open-pull-requests-limit: 1
+    groups:
+      kotlin-toolchain:
+        patterns: ['org.jetbrains.kotlin*']
+      android-compatible:
+        patterns: ['*']
+        exclude-patterns: ['org.jetbrains.kotlin*']
+        update-types: [minor, patch]

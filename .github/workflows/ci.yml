@@ -19,7 +19,24 @@ concurrency:
 # Le action di terze parti sono pinnate al commit SHA, non al tag: un tag e
 # mutabile e chi lo controlla puo spostarlo su codice diverso da quello verificato.
 jobs:
+  scope:
+    name: Seleziona controlli necessari
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      web: ${{ steps.scope.outputs.web }}
+      android: ${{ steps.scope.outputs.android }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+      - run: node --test .github/scripts/*.test.cjs
+      - id: scope
+        run: node .github/scripts/ci-scope.cjs
+
   quality:
+    needs: scope
+    if: needs.scope.outputs.web == 'true'
     name: Lint e analisi statica
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -49,6 +66,8 @@ jobs:
         run: ./vendor/bin/phpstan analyse --memory-limit=1G --no-progress
 
   tests:
+    needs: [scope, quality]
+    if: needs.scope.outputs.web == 'true'
     name: Test (${{ matrix.shard }}/3)
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -117,6 +136,7 @@ jobs:
           DB_PASSWORD: root
 
       - name: Vulnerabilità JavaScript, inclusi gli strumenti di build
+        if: matrix.shard == 1
         run: npm audit --audit-level=high
 
       - name: Referto dei test
@@ -137,6 +157,8 @@ jobs:
           if-no-files-found: error
 
   lighthouse:
+    needs: [scope, quality]
+    if: needs.scope.outputs.web == 'true'
     name: Lighthouse
     runs-on: ubuntu-latest
     timeout-minutes: 25
@@ -337,6 +359,8 @@ jobs:
           if-no-files-found: warn
 
   android:
+    needs: scope
+    if: needs.scope.outputs.android == 'true'
     name: Android unit test e compilazione
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -356,9 +380,22 @@ jobs:
           path: android/app/build/reports/tests
           retention-days: 14
 
+  checks:
+    name: Controlli richiesti
+    needs: [scope, quality, tests, lighthouse, android]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Nessun controllo richiesto può essere saltato o fallire
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: node .github/scripts/ci-gate.cjs
+
   deploy:
     name: Deploy su eventi.fabiodalez.it
-    needs: [quality, tests, lighthouse, android]
+    needs: [checks, quality, tests, lighthouse, android]
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     # Some x86 runner network ranges receive an unrelated hosting certificate.
     # ARM connectivity was verified with strict TLS. Never bypass certificate checks.
