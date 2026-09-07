@@ -50,7 +50,7 @@ final class NotificationSettingsController extends Controller
         return view('account.notifications.preferences', [
             'user' => $user,
             'action' => PreferenceLinks::preferences($user),
-            'pushAvailable' => $own && $channels->configured(),
+            'pushAvailable' => $own && $channels->webConfigured(),
             'pushKey' => (string) config('webpush.vapid.public_key'),
             'pushActive' => $own && WebPushSubscription::query()
                 ->where('user_id', $user->getKey())

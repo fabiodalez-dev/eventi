@@ -84,7 +84,7 @@ data class Venue(
     val info: List<Fact> = emptyList(),
     @SerialName("requires_membership") val requiresMembership: Boolean = false,
     @SerialName("membership_notes") val membershipNotes: String? = null,
-    val cover: String? = null,
+    @Serializable(with = CoverUrlSerializer::class) val cover: String? = null,
     @SerialName("upcoming_occurrences") val upcomingOccurrences: Int? = null,
 )
 

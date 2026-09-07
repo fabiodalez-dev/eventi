@@ -727,10 +727,11 @@ final class EventOccurrenceQuery
     }
 
     /**
-     * Ricerca testuale su titolo, sottotitolo, descrizione breve, organizzatore
-     * e nome del locale.
+     * Ricerca parziale su contenuti pubblici, locale e tag approvati.
+     *
+     * @param  list<int>  $matchingEventIds  corrispondenze aggiuntive da Scout
      */
-    public function search(string $term): self
+    public function search(string $term, array $matchingEventIds = []): self
     {
         $term = trim($term);
 
@@ -740,15 +741,46 @@ final class EventOccurrenceQuery
 
         $pattern = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\%', '\_'], $term).'%';
 
-        $this->query->where(function (Builder $match) use ($pattern): void {
+        $this->query->where(function (Builder $match) use ($pattern, $matchingEventIds): void {
             $match->where('events.title', 'like', $pattern)
                 ->orWhere('events.subtitle', 'like', $pattern)
                 ->orWhere('events.short_description', 'like', $pattern)
                 ->orWhere('events.organizer_name', 'like', $pattern)
-                ->orWhere('venues.name', 'like', $pattern);
+                ->orWhere('events.description', 'like', $pattern)
+                ->orWhere('venues.name', 'like', $pattern)
+                ->orWhere('venues.short_description', 'like', $pattern)
+                ->orWhere('venues.description', 'like', $pattern)
+                ->orWhereIn('events.id', $matchingEventIds)
+                ->orWhereExists(function ($tags) use ($pattern): void {
+                    $tags->selectRaw('1')->from('event_tag')
+                        ->join('tags', 'tags.id', '=', 'event_tag.tag_id')
+                        ->whereColumn('event_tag.event_id', 'events.id')
+                        ->where('tags.is_approved', true)
+                        ->where('tags.name', 'like', $pattern);
+                });
         });
 
         return $this;
+    }
+
+    /**
+     * Una sola data per evento, con limite applicato dal database, non dopo
+     * aver caricato tutte le ricorrenze del catalogo.
+     *
+     * @return Collection<int, EventOccurrence>
+     */
+    public function firstPerEvent(int $limit): Collection
+    {
+        $ranked = (clone $this->query)->reorder()
+            ->select(['event_occurrences.id', 'event_occurrences.starts_at'])
+            ->selectRaw('ROW_NUMBER() OVER (PARTITION BY event_occurrences.event_id ORDER BY event_occurrences.starts_at, event_occurrences.id) as search_rank')
+            ->toBase();
+        $ids = DB::query()->fromSub($ranked, 'search_dates')
+            ->where('search_rank', 1)->orderBy('starts_at')->orderBy('id')
+            ->limit(max(1, $limit))->pluck('id');
+
+        return (clone $this->query)->whereIn('event_occurrences.id', $ids)
+            ->reorder()->orderBy('event_occurrences.starts_at')->orderBy('event_occurrences.id')->get();
     }
 
     // ------------------------------------------------------------ ordinamento

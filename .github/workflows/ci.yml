@@ -30,7 +30,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           fetch-depth: 0
-      - run: node --test .github/scripts/*.test.cjs
+      - run: node --test .github/scripts/*.test.cjs tests/js/*.test.js
       - name: Verifica isolamento CI e copie Git
         run: python3 -m unittest discover -s infra/ci -p 'test_*.py'
       - id: scope

@@ -46,6 +46,17 @@
 ])
 
 @php
+    $initialBounds = $center === null && is_array($city->bounds) ? $city->bounds : null;
+    // I risultati hanno precedenza sui confini amministrativi della città.
+    // Un centro esplicito (scheda locale/evento) resta invece invariato.
+    if ($center === null && count($payload['markers'] ?? []) > 0) {
+        $longitudes = array_column($payload['markers'], 1);
+        $latitudes = array_column($payload['markers'], 2);
+        $initialBounds = [
+            'min_lng' => min($longitudes), 'min_lat' => min($latitudes),
+            'max_lng' => max($longitudes), 'max_lat' => max($latitudes),
+        ];
+    }
     $attribution = __('map.attribution', [
         'osm' => '<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">'.e(__('ui.footer.osm')).'</a>',
         'license' => '<a href="https://opendatacommons.org/licenses/odbl/" target="_blank" rel="noopener noreferrer">'.e(__('ui.footer.odbl')).'</a>',
@@ -63,7 +74,7 @@
         /* I confini della città inquadrano tutta la città: su un riquadro
            centrato su un singolo locale rifarebbero lo zoom indietro,
            annullando il centro appena scelto. */
-        'bounds' => $center === null && is_array($city->bounds) ? $city->bounds : null,
+        'bounds' => $initialBounds,
         'fallbackColor' => config('map.fallback_color'),
         'endpoints' => [
             'markers' => route('map.markers', $filters->toQueryString()),

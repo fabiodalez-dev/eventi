@@ -5,6 +5,10 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization")
 }
 
+if (file("google-services.json").exists() || file("src/release/google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
+}
+
 kotlin {
     jvmToolchain(21)
     compilerOptions {
@@ -13,6 +17,10 @@ kotlin {
 }
 
 android {
+    // Exercise the registered Firebase package on an emulator without creating
+    // a second Firebase app. Production release builds remain optimized.
+    val deviceTests = providers.gradleProperty("deviceTests").orNull == "true"
+    testBuildType = if (deviceTests) "release" else "debug"
     namespace = "it.fabiodalez.incitta"
     compileSdk = 36
 
@@ -20,8 +28,8 @@ android {
         applicationId = "it.fabiodalez.incitta"
         minSdk = 26
         targetSdk = 36
-        versionCode = 6
-        versionName = "1.4.0"
+        versionCode = 9
+        versionName = "1.5.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
@@ -39,8 +47,8 @@ android {
             versionNameSuffix = "-debug"
         }
         release {
-            isMinifyEnabled = true
-            isShrinkResources = true
+            isMinifyEnabled = !deviceTests
+            isShrinkResources = !deviceTests
             // Installable local artifact. The Play Store build must replace this
             // with the owner's private upload key, which is intentionally absent.
             signingConfig = signingConfigs.getByName("debug")
@@ -77,6 +85,8 @@ android.sourceSets.getByName("main").res.srcDir(layout.buildDirectory.dir("gener
 tasks.named("preBuild").configure { dependsOn(generateArchivoFont) }
 
 dependencies {
+    implementation(platform("com.google.firebase:firebase-bom:34.18.0"))
+    implementation("com.google.firebase:firebase-messaging")
     val composeBom = platform("androidx.compose:compose-bom:2026.06.00")
     implementation(composeBom)
     androidTestImplementation(composeBom)

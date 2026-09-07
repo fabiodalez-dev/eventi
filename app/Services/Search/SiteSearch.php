@@ -22,7 +22,8 @@ use Illuminate\Database\Eloquent\Collection;
  * **Scout dice quali eventi somigliano a ciò che è stato scritto; quali date
  * siano ancora future lo dice il motore temporale.** È la ragione per cui la
  * ricerca degli eventi passa in due tempi: prima gli identificativi dal motore
- * di ricerca, poi `EventOccurrenceQuery::forEvents()`. Chiedere direttamente a
+ * di ricerca, poi il motore temporale integra corrispondenze parziali e tag.
+ * Chiedere direttamente a
  * Scout le occorrenze significherebbe riscrivere qui la definizione di "futuro"
  * (§8.1), e diventerebbe la seconda.
  *
@@ -44,38 +45,37 @@ final class SiteSearch
     {
         $ids = $this->eventIds($city, $term);
 
-        if ($ids === []) {
-            return new Collection;
-        }
-
         /** @var Collection<int, EventOccurrence> $occurrences */
         $occurrences = EventOccurrenceQuery::for($city)
             ->upcoming()
-            ->forEvents($ids)
-            ->get()
-            ->unique('event_id')
-            ->take($limit)
-            ->values();
+            ->search($term, $ids)
+            ->firstPerEvent($limit);
 
         return $occurrences->load(['event.venue', 'event.category', 'event.media']);
     }
 
     /**
-     * I vincoli si esprimono con `where()` di Scout e non con gli scope del
-     * modello: `query()` consegna un costruttore di query **non tipizzato**, e
-     * chiamarci sopra uno scope significherebbe rinunciare a sapere se quello
-     * scope esiste ancora. `with()` resta lì perché è del costruttore di base.
+     * Scout cerca nei campi del locale; LIKE integra le parole ancora
+     * incomplete nelle descrizioni. I vincoli pubblici restano fuori dall'OR.
      *
      * @return Collection<int, Venue>
      */
     public function venues(City $city, string $term, int $limit): Collection
     {
-        /** @var Collection<int, Venue> $venues */
-        $venues = Venue::search($term)
+        $ids = Venue::search($term)
             ->where('status', VenueStatus::Approved->value)
             ->where('city_id', $city->getKey())
-            ->query(fn (Builder $query) => $query->with('media'))
             ->take($limit)
+            ->keys();
+
+        $pattern = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $term).'%';
+        $venues = Venue::query()
+            ->where('status', VenueStatus::Approved)
+            ->where('city_id', $city->getKey())
+            ->where(fn (Builder $query) => $query->whereIn('id', $ids)->orWhere('description', 'like', $pattern))
+            ->with('media')
+            ->orderBy('name')
+            ->limit($limit)
             ->get();
 
         return $venues;

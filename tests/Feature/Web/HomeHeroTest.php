@@ -15,6 +15,15 @@ beforeEach(function (): void {
 
 afterEach(fn () => Carbon::setTestNow());
 
+it('keeps the four counters in two columns until the wide layout', function (): void {
+    occurrenceAtLocal($this->city, $this->category, '2026-09-05 18:00:00');
+
+    $this->get('/')->assertOk()
+        ->assertSee('grid-cols-2')
+        ->assertSee('min-[840px]:grid-cols-4')
+        ->assertDontSee('repeat(auto-fit,minmax(min(200px,100%),1fr))');
+});
+
 it('uses the supplied grayscale image for a today event without a poster', function (): void {
     $today = occurrenceAtLocal($this->city, $this->category, '2026-09-05 18:00:00');
     occurrenceAtLocal($this->city, $this->category, '2026-09-06 18:00:00');

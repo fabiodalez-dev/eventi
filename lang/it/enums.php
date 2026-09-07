@@ -183,6 +183,7 @@ return [
     ],
 
     'notification_channel' => [
+        'both' => 'Email e push',
         'mail' => 'Email',
         'push' => 'Notifica push',
         'database' => 'Archivio in app',

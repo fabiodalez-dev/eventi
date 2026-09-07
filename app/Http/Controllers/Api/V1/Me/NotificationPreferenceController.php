@@ -9,6 +9,7 @@ use App\DTOs\QuietHours;
 use App\Http\Controllers\Api\V1\Concerns\InteractsWithMe;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\Me\UpdateNotificationPreferencesRequest;
+use App\Services\Notifications\ChannelSelector;
 use App\Support\Api\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -37,6 +38,9 @@ final class NotificationPreferenceController extends Controller
         $preferences = NotificationPreferences::fromUser($user)->with($request->validated());
 
         $user->notification_preferences = $preferences->toArray();
+        if ($request->has('daily_digest_time')) {
+            $user->daily_digest_time = $request->validated('daily_digest_time');
+        }
         $user->save();
 
         return ApiResponse::item($this->payload($request));
@@ -50,6 +54,7 @@ final class NotificationPreferenceController extends Controller
         $user = $this->user($request);
 
         return [
+            'push_available' => app(ChannelSelector::class)->fcmConfigured(),
             ...$user->notificationPreferences()->toArray(),
 
             /*

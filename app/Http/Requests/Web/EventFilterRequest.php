@@ -53,6 +53,7 @@ class EventFilterRequest extends FormRequest
             'family' => ['nullable', 'boolean'],
             'sort' => ['nullable', Rule::in(EventSort::values())],
             'q' => ['nullable', 'string', 'max:120'],
+            'days' => ['nullable', 'integer', Rule::in([7, 30, 90])],
         ];
     }
 

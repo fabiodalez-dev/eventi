@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\DTOs;
 
+use App\Enums\NotificationDelivery;
 use App\Models\User;
 
 /**
@@ -35,6 +36,7 @@ final readonly class NotificationPreferences
         public bool $soldOut,
         public bool $venueDigest,
         public bool $dailyDigest,
+        public NotificationDelivery $delivery = NotificationDelivery::Auto,
     ) {}
 
     /**
@@ -69,6 +71,7 @@ final readonly class NotificationPreferences
             soldOut: self::boolean($stored, 'sold_out', $defaults->soldOut),
             venueDigest: self::boolean($stored, 'venue_digest', $defaults->venueDigest),
             dailyDigest: self::boolean($stored, 'daily_digest', $defaults->dailyDigest),
+            delivery: NotificationDelivery::tryFrom(is_string($stored['delivery'] ?? null) ? $stored['delivery'] : '') ?? $defaults->delivery,
         );
     }
 
@@ -90,6 +93,7 @@ final readonly class NotificationPreferences
             soldOut: self::boolean($changes, 'sold_out', $this->soldOut),
             venueDigest: self::boolean($changes, 'venue_digest', $this->venueDigest),
             dailyDigest: self::boolean($changes, 'daily_digest', $this->dailyDigest),
+            delivery: NotificationDelivery::tryFrom(is_string($changes['delivery'] ?? null) ? $changes['delivery'] : '') ?? $this->delivery,
         );
     }
 
@@ -104,6 +108,7 @@ final readonly class NotificationPreferences
             'sold_out' => $this->soldOut,
             'venue_digest' => $this->venueDigest,
             'daily_digest' => $this->dailyDigest,
+            'delivery' => $this->delivery->value,
         ];
     }
 
@@ -115,7 +120,7 @@ final readonly class NotificationPreferences
      */
     public static function keys(): array
     {
-        return ['reminders', 'reminder_hours', 'sold_out', 'venue_digest', 'daily_digest'];
+        return ['reminders', 'reminder_hours', 'sold_out', 'venue_digest', 'daily_digest', 'delivery'];
     }
 
     /**

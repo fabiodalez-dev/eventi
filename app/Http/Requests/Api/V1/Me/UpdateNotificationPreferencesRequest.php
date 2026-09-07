@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Api\V1\Me;
 
+use App\Enums\NotificationDelivery;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 /**
  * `PATCH /v1/me/notification-preferences` (§15.4).
@@ -27,6 +29,8 @@ class UpdateNotificationPreferencesRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'delivery' => ['sometimes', Rule::enum(NotificationDelivery::class)],
+            'daily_digest_time' => ['sometimes', 'nullable', 'date_format:H:i'],
             'reminders' => ['sometimes', 'boolean'],
             'reminder_hours' => ['sometimes', 'array', 'max:4'],
             'reminder_hours.*' => ['integer', 'between:1,168'],

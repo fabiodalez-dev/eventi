@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="search_live_help">Scrivi almeno 3 caratteri. Risultati in diretta tra titoli, descrizioni, locali e tag.</string>
+    <string name="calendar_customize">Crea un calendario personalizzato</string>
+    <string name="calendar_sync_help">Collega il calendario una volta per ricevere anche i nuovi eventi. I giorni scelti sono una finestra mobile, non una scadenza. I tempi di aggiornamento dipendono dalla tua app calendario.</string>
+    <string name="calendar_all_categories">Nessuna selezione include tutte le categorie, anche quelle aggiunte in futuro.</string>
+    <string name="calendar_days">%1$d giorni</string>
+    <string name="calendar_venue_search">Cerca un locale e selezionalo</string>
+    <string name="calendar_all_venues">Rimuovi: tutti i locali</string>
+    <string name="calendar_free">Solo eventi gratuiti</string>
+    <string name="calendar_subscribe_google">Collega a Google Calendar</string>
+    <string name="calendar_copy_link">Copia il link di abbonamento</string>
+    <string name="calendar_link_copied">Link copiato</string>
+    <string name="calendar_download">Scarica ICS (copia senza aggiornamenti)</string>
+</resources>
