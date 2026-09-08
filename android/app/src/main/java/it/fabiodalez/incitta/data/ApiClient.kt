@@ -26,6 +26,18 @@ internal class ApiClient(
     suspend inline fun <reified T> get(path: String, token: String? = null): T =
         execute(path, "GET", null, token)
 
+    suspend fun sponsorshipMetric(banner: SponsoredBanner, click: Boolean) = withContext(Dispatchers.IO) {
+        if (!banner.validAt()) return@withContext
+        val metric = if (click) "clicks" else "impressions"
+        val request = Request.Builder()
+            .url(BuildConfig.API_BASE_URL + "reports/sponsorships/${banner.id}/metrics/$metric")
+            .header("Accept", "application/json")
+            .header("X-Installation-ID", installationId)
+            .header("X-Metric-Token", banner.metricToken)
+            .post("".toRequestBody()).build()
+        client.newCall(request).execute().use { /* A metric returns 204, not a JSON envelope. */ }
+    }
+
     suspend inline fun <reified T, reified B> post(
         path: String,
         body: B,

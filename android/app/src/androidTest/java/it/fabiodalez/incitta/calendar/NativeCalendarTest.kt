@@ -39,6 +39,17 @@ class NativeCalendarTest {
         assertTrue(eventRows().isEmpty())
     }
 
+    @Test fun openingCalendarTargetsADayWithImportedEvents() = runBlocking {
+        NativeCalendar.sync(context, "days=30") { _, _ -> CalendarExport(listOf(entry()), "") }
+        var opened: Intent? = null
+        val capture = object : ContextWrapper(context) {
+            override fun startActivity(intent: Intent) { opened = intent }
+        }
+        NativeCalendar.open(capture)
+        assertEquals(Intent.ACTION_VIEW, opened?.action)
+        assertEquals(entry().start.toString(), opened?.data?.lastPathSegment)
+    }
+
     @Test fun logoutAndAccountSwitchRemoveOwnedCalendar() = runBlocking {
         NativeCalendar.sync(context, "days=7") { _, _ -> CalendarExport(listOf(entry()), "") }
         store.writeSession(session.copy(user = User(161, "Altro", "altro@example.test")))

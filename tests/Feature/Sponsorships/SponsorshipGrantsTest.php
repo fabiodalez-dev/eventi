@@ -38,6 +38,7 @@ beforeEach(function (): void {
 });
 
 it('requires payment or explicit complimentary authorization and expires without cron', function (): void {
+    EventOccurrence::factory()->create(['event_id' => $this->event->id, 'starts_at' => now()->addDay(), 'ends_at' => now()->addDay()->addHour()]);
     expect(SponsorshipGrant::active()->count())->toBe(0);
     $this->grant->update(['paid_at' => now()]);
     $campaign = app(GrantCampaigns::class)->choose($this->owner, $this->grant, $this->event);

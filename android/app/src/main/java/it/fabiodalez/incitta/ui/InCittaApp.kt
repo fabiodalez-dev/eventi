@@ -35,8 +35,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import it.fabiodalez.incitta.AppTab
 import it.fabiodalez.incitta.MainViewModel
+import it.fabiodalez.incitta.supportsSponsoredBanner
 
 @Composable
 fun InCittaApp(viewModel: MainViewModel) {
@@ -44,6 +46,28 @@ fun InCittaApp(viewModel: MainViewModel) {
         val state by viewModel.state.collectAsStateWithLifecycle()
         val snackbar = remember { SnackbarHostState() }
         val imeVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
+        val lifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
+        val bannerScreen = state.supportsSponsoredBanner() && !imeVisible && androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp >= 480
+        val excludedEvent = state.selected?.slug
+
+        LaunchedEffect(bannerScreen, excludedEvent, lifecycle) {
+            viewModel.clearSponsoredBanner()
+            if (bannerScreen) lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
+                try {
+                    while (true) {
+                        viewModel.refreshSponsoredBanner(excludedEvent)
+                        kotlinx.coroutines.delay(45_000)
+                    }
+                } finally { viewModel.clearSponsoredBanner() }
+            }
+        }
+        LaunchedEffect(state.sponsoredBanner?.expiresAt) {
+            state.sponsoredBanner?.let {
+                val expiry = runCatching { java.time.Instant.parse(it.expiresAt).toEpochMilli() }.getOrDefault(0L)
+                kotlinx.coroutines.delay((expiry - System.currentTimeMillis()).coerceAtLeast(0L))
+                viewModel.clearSponsoredBanner()
+            }
+        }
 
         LaunchedEffect(state.message) {
             state.message?.let {
@@ -62,6 +86,14 @@ fun InCittaApp(viewModel: MainViewModel) {
             snackbarHost = { SnackbarHost(snackbar) },
             bottomBar = {
                 if (!imeVisible) androidx.compose.foundation.layout.Column {
+                    state.sponsoredBanner?.takeIf { bannerScreen && it.validAt() && it.eventSlug != excludedEvent }?.let { banner ->
+                        SponsoredEventBanner(banner, { viewModel.bannerMetric(banner, false) }) {
+                            if (banner.validAt()) {
+                                viewModel.bannerMetric(banner, true)
+                                viewModel.openSlug(banner.eventSlug)
+                            }
+                        }
+                    }
                     HorizontalDivider(thickness = 2.dp, color = Paper)
                     BottomAppBar(
                         containerColor = Ink,

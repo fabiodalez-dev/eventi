@@ -10,6 +10,14 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class CalendarLinksTest {
+    @Test fun nativeLinkRequestsInsertionInsteadOfOnlyOpeningTheApp() {
+        val intent = checkNotNull(calendarInsertIntent(occurrence("2026-09-04T17:45:00+02:00", "2026-09-04T19:15:00+02:00")))
+        assertEquals(android.content.Intent.ACTION_INSERT, intent.action)
+        assertEquals(android.provider.CalendarContract.Events.CONTENT_URI, intent.data)
+        assertEquals("Evento prova", intent.getStringExtra(android.provider.CalendarContract.Events.TITLE))
+        assertEquals(java.time.Instant.parse("2026-09-04T15:45:00Z").toEpochMilli(), intent.getLongExtra(android.provider.CalendarContract.EXTRA_EVENT_BEGIN_TIME, 0))
+    }
+
     @Test
     fun timedEventCreatesAGoogleCalendarTemplateWithVenue() {
         val event = occurrence(

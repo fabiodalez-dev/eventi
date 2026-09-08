@@ -1,3 +1,5 @@
+import { sponsorshipBanners } from './sponsorship-banner';
+
 /*
  * Miglioramenti progressivi del sito pubblico.
  *
@@ -965,6 +967,7 @@ function start() {
      */
     consentBanner();
     sponsorshipMetrics();
+    sponsorshipBanners();
     void mergeGuestSaves();
 }
 

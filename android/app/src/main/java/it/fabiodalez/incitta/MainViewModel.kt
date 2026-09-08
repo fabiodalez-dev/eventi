@@ -36,6 +36,7 @@ data class AppUiState(
     val bookingError: String? = null,
     val bookingRequestKey: String = "",
     val tab: AppTab = AppTab.EVENTS,
+    val sponsoredBanner: it.fabiodalez.incitta.data.SponsoredBanner? = null,
     val occurrences: List<Occurrence> = emptyList(),
     val eventFilter: EventFilter = EventFilter.ALL,
     val searchResults: List<Occurrence> = emptyList(),
@@ -65,6 +66,10 @@ data class AppUiState(
     val message: String? = null,
 )
 
+internal fun AppUiState.supportsSponsoredBanner(): Boolean = bookingDate == null &&
+    (selected != null || selectedVenue != null || tab in listOf(AppTab.EVENTS, AppTab.SEARCH, AppTab.VENUES) ||
+        (tab == AppTab.ACCOUNT && session != null))
+
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     private sealed interface DetailSnapshot {
         data class Event(val detail: EventDetail, val related: List<Occurrence>) : DetailSnapshot
@@ -79,6 +84,31 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         ),
     )
     val state: StateFlow<AppUiState> = _state.asStateFlow()
+    private val bannerImpressions = mutableSetOf<Long>()
+    private val bannerClicks = mutableSetOf<Long>()
+
+    suspend fun refreshSponsoredBanner(excludeEvent: String?) {
+        try {
+            val banner = repository.sponsoredBanner(excludeEvent)?.takeIf { it.validAt() }
+            _state.value = _state.value.copy(sponsoredBanner = banner)
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            clearSponsoredBanner()
+        }
+    }
+
+    fun clearSponsoredBanner() { _state.value = _state.value.copy(sponsoredBanner = null) }
+
+    fun bannerMetric(banner: it.fabiodalez.incitta.data.SponsoredBanner, click: Boolean) {
+        val recorded = if (click) bannerClicks else bannerImpressions
+        if (!banner.validAt() || !recorded.add(banner.id)) return
+        viewModelScope.launch {
+            try { repository.sponsorshipMetric(banner, click) }
+            catch (cancelled: CancellationException) { throw cancelled }
+            catch (_: Exception) { /* Measurement failure must never interrupt navigation. */ }
+        }
+    }
     private var searchJob: Job? = null
     private var refreshJob: Job? = null
     private var detailJob: Job? = null

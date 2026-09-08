@@ -112,6 +112,17 @@ final class SponsorshipSelector
         return $this->forPlacement($city, $placement, $now, $user)->first();
     }
 
+    public function banner(City $city, ?string $excludeEvent = null): ?Sponsorship
+    {
+        $candidates = Sponsorship::query()->visible()->where('city_id', $city->id)
+            ->when($excludeEvent, fn ($q) => $q->whereHas('event', fn ($event) => $event->where('slug', '!=', $excludeEvent)))
+            ->with(['event.venue', 'event.category', 'event.media', 'grant'])
+            ->orderByDesc('priority')->orderBy('id')->get()->unique('event_id')->values();
+
+        // Public, non-personalized inventory; one event even if it has several campaigns.
+        return $this->rotate($candidates, 1, CarbonImmutable::now('UTC'))->first();
+    }
+
     /**
      * Ruota di un passo per minuto, dentro ogni gruppo di pari priorità.
      *
