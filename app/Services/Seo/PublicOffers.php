@@ -20,7 +20,7 @@ final class PublicOffers
     public function for(Event $event, EventOccurrence $date): array
     {
         $url = route('events.occurrence', ['slug' => $event->slug, 'occurrence' => $date->id]);
-        if ($date->booking_enabled && $event->venue?->ticketing_enabled) {
+        if ($date->booking_enabled && $date->effectiveVenue()?->ticketing_enabled) {
             $booking = app(TicketingService::class)->availability($date);
 
             return [$this->offer($date, '0.00', 'EUR', route('tickets.create', $date), TicketTierStatus::from($booking['sale_state']))];

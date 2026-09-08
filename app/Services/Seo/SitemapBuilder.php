@@ -7,6 +7,7 @@ namespace App\Services\Seo;
 use App\Models\Category;
 use App\Models\City;
 use App\Models\Event;
+use App\Models\Organizer;
 use App\Models\Page;
 use App\Models\Tag;
 use App\Models\Venue;
@@ -257,6 +258,10 @@ final class SitemapBuilder
     private function venues(City $city): array
     {
         $urls = [];
+        foreach (Organizer::query()->where('is_active', true)->where('city_id', $city->id)->orderBy('id')->cursor() as $organizer) {
+            $urls[] = ['loc' => route('organizers.show', $organizer), 'lastmod' => $this->lastModified($organizer->updated_at),
+                'changefreq' => Url::CHANGE_FREQUENCY_WEEKLY, 'priority' => 0.6];
+        }
 
         Venue::query()
             ->approved()

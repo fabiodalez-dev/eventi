@@ -76,7 +76,12 @@ final class EventResource
                 : [],
             'venue' => $venue === null ? null : VenueResource::toArray($venue, $timezone),
             'custom_location' => $venue === null ? $event->custom_location : null,
-            'organizer' => app(StructuredData::class)->organizer($event) ?: ['name' => null, 'url' => null],
+            'organizer' => [
+                ...(app(StructuredData::class)->organizer($event) ?: ['name' => null, 'url' => null]),
+                'id' => $event->organizer?->is_active ? $event->organizer->id : null,
+                'slug' => $event->organizer?->is_active ? $event->organizer->slug : null,
+                'host_fallback' => ! $event->organizer?->is_active && blank($event->organizer_name) && empty($event->content_details['organizer_venue_id']),
+            ],
             'price' => PriceResource::toArray($event),
 
             /*
@@ -129,6 +134,7 @@ final class EventResource
             'occurrences' => $occurrences
                 ->map(static fn (EventOccurrence $occurrence): array => [
                     ...OccurrenceResource::toArray($occurrence, $context),
+                    'content_details' => app(EditorialContent::class)->details($event, $occurrence),
                     'offers' => app(PublicOffers::class)->for($event, $occurrence),
                 ])
                 ->all(),

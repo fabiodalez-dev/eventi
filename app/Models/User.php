@@ -16,6 +16,7 @@ use Filament\Models\Contracts\FilamentUser;
 use Filament\Models\Contracts\HasTenants;
 use Filament\Panel;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -182,6 +183,7 @@ class User extends Authenticatable implements FilamentUser, HasTenants, MustVeri
     public function canAccessPanel(Panel $panel): bool
     {
         return match ($panel->getId()) {
+            'organizer' => $this->managedOrganizers()->exists(),
             'admin' => $this->isEditorialStaff(),
             /*
              * Non basta *avere* un locale: bisogna averne almeno uno su cui
@@ -204,10 +206,13 @@ class User extends Authenticatable implements FilamentUser, HasTenants, MustVeri
      * lo stesso insieme che interrogano le Policy. Se un giorno divergessero,
      * lo switcher offrirebbe un locale che poi nessuna azione lascia toccare.
      *
-     * @return Collection<int, Venue>
+     * @return Collection<int, Venue>|Collection<int, Organizer>
      */
     public function getTenants(Panel $panel): Collection
     {
+        if ($panel->getId() === 'organizer') {
+            return $this->managedOrganizers()->orderBy('name')->get();
+        }
         /** @var Collection<int, Venue> $venues */
         $venues = $this->venues()
             ->whereIn('venues.status', VenueStatus::valoriSenzaProvvedimento())
@@ -225,6 +230,10 @@ class User extends Authenticatable implements FilamentUser, HasTenants, MustVeri
      */
     public function canAccessTenant(Model $tenant): bool
     {
+        if ($tenant instanceof Organizer) {
+            return $tenant->managedBy($this);
+        }
+
         return $tenant instanceof Venue
             && $this->venues()
                 ->whereKey($tenant->getKey())
@@ -243,6 +252,13 @@ class User extends Authenticatable implements FilamentUser, HasTenants, MustVeri
     public function getFilamentName(): string
     {
         return filled($this->name) ? (string) $this->name : (string) $this->email;
+    }
+
+    /** @return Builder<Organizer> */
+    public function managedOrganizers(): Builder
+    {
+        return Organizer::query()->where('is_active', true)->where(fn ($query) => $query
+            ->where('owner_id', $this->id)->orWhereHas('users', fn ($users) => $users->whereKey($this->id)));
     }
 
     /**
@@ -271,11 +287,12 @@ class User extends Authenticatable implements FilamentUser, HasTenants, MustVeri
      *
      * @return list<int>
      */
-    public function followedIds(FollowableType $type): array
+    public function followedIds(FollowableType $type, bool $notifyingOnly = false): array
     {
         /** @var list<int> $ids */
         $ids = $this->follows()
             ->where('followable_type', $type->value)
+            ->when($notifyingOnly, fn ($query) => $query->where('notify', true))
             ->pluck('followable_id')
             ->map(static fn (mixed $id): int => (int) $id)
             ->all();

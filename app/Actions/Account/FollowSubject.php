@@ -27,7 +27,7 @@ final class FollowSubject
     public function __invoke(User $user, FollowableType $type, int $id, bool $notify = true): Follow
     {
         /** @var Follow $follow */
-        $follow = $user->follows()->firstOrCreate(
+        $follow = $user->follows()->updateOrCreate(
             ['followable_type' => $type->value, 'followable_id' => $id],
             ['notify' => $notify],
         );

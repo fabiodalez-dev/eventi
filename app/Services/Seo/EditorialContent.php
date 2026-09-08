@@ -9,6 +9,7 @@ use App\Enums\SeoIndexing;
 use App\Models\Category;
 use App\Models\City;
 use App\Models\Event;
+use App\Models\EventOccurrence;
 use App\Models\Tag;
 use App\Support\CurrentCity;
 use App\Support\SafeUrl;
@@ -17,8 +18,12 @@ use Illuminate\Database\Eloquent\Model;
 final class EditorialContent
 {
     /** @return array<string, mixed> */
-    public function details(Model $model): array
+    public function details(Model $model, ?EventOccurrence $occurrence = null): array
     {
+        if ($model instanceof Event && $occurrence !== null) {
+            $model = clone $model;
+            $model->setRelation('venue', $occurrence->effectiveVenue());
+        }
         $own = is_array($model->getAttribute('content_details')) ? $model->getAttribute('content_details') : [];
         if ($model instanceof Category || $model instanceof Tag) {
             $city = app(CurrentCity::class)->get();

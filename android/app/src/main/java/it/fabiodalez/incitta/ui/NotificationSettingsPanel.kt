@@ -22,6 +22,7 @@ import kotlinx.serialization.json.Json
 
 @Composable
 fun NotificationSettingsPanel(session: Session) {
+    val deviceDisabled = stringResource(R.string.notification_device_disabled)
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val api = remember { ApiClient(LocalStore(context).installationId) }
@@ -104,7 +105,7 @@ fun NotificationSettingsPanel(session: Session) {
                 Button(onClick = {
                     if (Build.VERSION.SDK_INT >= 33) permission.launch(Manifest.permission.POST_NOTIFICATIONS) else enableDevice()
                 }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.notification_enable_device)) }
-                TextButton(onClick = { PushRegistration.disable(context); status = context.getString(R.string.notification_device_disabled) }) { Text(stringResource(R.string.notification_disable_device)) }
+                TextButton(onClick = { PushRegistration.disable(context); status = deviceDisabled }) { Text(stringResource(R.string.notification_disable_device)) }
             } else Text(stringResource(R.string.notification_push_unavailable), color = Muted)
         }
         HorizontalDivider(Modifier.padding(vertical = 12.dp))

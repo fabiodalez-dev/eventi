@@ -56,6 +56,14 @@
         </section>
     @endif
 
+    @if ($organizers !== null && $organizers->isNotEmpty())
+        <section class="my-8" aria-labelledby="organizzatori-risultati">
+            <h2 id="organizzatori-risultati" class="text-xl font-bold">Organizzatori</h2>
+            @foreach($organizers as $organizer)
+                <a class="block border-b border-line py-4 underline" href="{{ route('organizers.show', $organizer) }}">{{ $organizer->name }}</a>
+            @endforeach
+        </section>
+    @endif
     @if ($venues !== null && $venues->isNotEmpty())
         <section class="mt-section" aria-labelledby="risultati-locali">
             <x-section-heading

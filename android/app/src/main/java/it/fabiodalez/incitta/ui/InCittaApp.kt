@@ -30,6 +30,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
@@ -44,20 +46,27 @@ import it.fabiodalez.incitta.supportsSponsoredBanner
 fun InCittaApp(viewModel: MainViewModel) {
     InCittaTheme {
         val state by viewModel.state.collectAsStateWithLifecycle()
+        var organizerSlug by remember { mutableStateOf<String?>(null) }
+        var tonightOpen by remember { mutableStateOf(false) }
+        val tonightState = androidx.compose.runtime.saveable.rememberSaveableStateHolder()
+        LaunchedEffect(state.tab) { tonightOpen = false }
         val snackbar = remember { SnackbarHostState() }
         val imeVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
         val lifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
-        val bannerScreen = state.supportsSponsoredBanner() && !imeVisible && androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp >= 480
+        var lastBannerImpression by remember { mutableStateOf<Long?>(null) }
+        val eventList = !tonightOpen && organizerSlug == null && state.tab == AppTab.EVENTS && state.selected == null && state.selectedVenue == null
+        val bannerAllowed = remember(eventList, state.session?.user?.id) {
+            lastBannerImpression?.let { android.os.SystemClock.elapsedRealtime() - it >= 300_000 } ?: true
+        }
+        val bannerScreen = eventList && bannerAllowed && !imeVisible
         val excludedEvent = state.selected?.slug
 
         LaunchedEffect(bannerScreen, excludedEvent, state.selectedVenue?.slug, state.activeTag?.slug, state.session?.user?.id, lifecycle) {
             viewModel.clearSponsoredBanner()
             if (bannerScreen) lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
                 try {
-                    while (true) {
-                        viewModel.refreshSponsoredBanner(excludedEvent)
-                        kotlinx.coroutines.delay(45_000)
-                    }
+                    viewModel.refreshSponsoredBanner(excludedEvent)
+                    kotlinx.coroutines.awaitCancellation()
                 } finally { viewModel.clearSponsoredBanner() }
             }
         }
@@ -77,8 +86,8 @@ fun InCittaApp(viewModel: MainViewModel) {
         }
 
         BackHandler(
-            enabled = state.selected != null || state.selectedVenue != null || state.tab != AppTab.EVENTS,
-            onBack = viewModel::goBack,
+            enabled = tonightOpen || organizerSlug != null || state.selected != null || state.selectedVenue != null || state.tab != AppTab.EVENTS,
+            onBack = { if (tonightOpen && state.selected == null && state.selectedVenue == null && state.bookingDate == null) tonightOpen = false else if (organizerSlug != null) organizerSlug = null else viewModel.goBack() },
         )
 
         Scaffold(
@@ -86,25 +95,17 @@ fun InCittaApp(viewModel: MainViewModel) {
             snackbarHost = { SnackbarHost(snackbar) },
             bottomBar = {
                 if (!imeVisible) androidx.compose.foundation.layout.Column {
-                    state.sponsoredBanner?.takeIf { bannerScreen && it.validAt() && it.eventSlug != excludedEvent }?.let { banner ->
-                        SponsoredEventBanner(banner, { viewModel.bannerMetric(banner, false) }) {
-                            if (banner.validAt()) {
-                                viewModel.bannerMetric(banner, true)
-                                viewModel.openSlug(banner.eventSlug)
-                            }
-                        }
-                    }
                     HorizontalDivider(thickness = 2.dp, color = Paper)
                     BottomAppBar(
                         containerColor = Ink,
                         contentColor = Paper,
                         modifier = Modifier.navigationBarsPadding(),
                     ) {
-                        NavItem(state.tab, AppTab.EVENTS, "Eventi", Icons.Outlined.Event, viewModel::selectTab)
-                        NavItem(state.tab, AppTab.MAP, "Mappa", Icons.Outlined.Map, viewModel::selectTab)
-                        NavItem(state.tab, AppTab.SEARCH, "Cerca", Icons.Outlined.Search, viewModel::selectTab)
-                        NavItem(state.tab, AppTab.SAVED, "Salvati", Icons.Outlined.BookmarkBorder, viewModel::selectTab)
-                        NavItem(if (state.tab == AppTab.TICKETS) AppTab.ACCOUNT else state.tab, AppTab.ACCOUNT, "Profilo", Icons.Outlined.AccountCircle, viewModel::selectTab)
+                        NavItem(state.tab, AppTab.EVENTS, "Eventi", Icons.Outlined.Event, { tonightOpen = false; organizerSlug = null; viewModel.selectTab(it) })
+                        NavItem(state.tab, AppTab.MAP, "Mappa", Icons.Outlined.Map, { tonightOpen = false; organizerSlug = null; viewModel.selectTab(it) })
+                        NavItem(state.tab, AppTab.SEARCH, "Cerca", Icons.Outlined.Search, { tonightOpen = false; organizerSlug = null; viewModel.selectTab(it) })
+                        NavItem(state.tab, AppTab.SAVED, "Salvati", Icons.Outlined.BookmarkBorder, { tonightOpen = false; organizerSlug = null; viewModel.selectTab(it) })
+                        NavItem(if (state.tab == AppTab.TICKETS) AppTab.ACCOUNT else state.tab, AppTab.ACCOUNT, "Profilo", Icons.Outlined.AccountCircle, { tonightOpen = false; organizerSlug = null; viewModel.selectTab(it) })
                     }
                 }
             },
@@ -113,6 +114,20 @@ fun InCittaApp(viewModel: MainViewModel) {
             val selected = state.selected
 
             when {
+                tonightOpen && selected == null && selectedVenue == null && state.bookingDate == null -> Box(Modifier.fillMaxSize().padding(padding)) {
+                    tonightState.SaveableStateProvider("tonight-${state.session?.user?.id}") {
+                    TonightWizard(state.session, state.savedIds,
+                        onBack = { tonightOpen = false },
+                        onOpen = viewModel::open,
+                        onSave = viewModel::toggleSaved,
+                        onAll = { tonightOpen = false; viewModel.selectTab(AppTab.EVENTS); viewModel.refresh(it.fabiodalez.incitta.data.EventFilter.ALL) })
+                    }
+                }
+                organizerSlug != null -> Box(Modifier.fillMaxSize().padding(padding)) {
+                    OrganizerScreen(organizerSlug!!, state.session, state.savedIds,
+                        onBack = { organizerSlug = null }, onOrganizer = { organizerSlug = it },
+                        onOpen = { organizerSlug = null; viewModel.open(it) }, onSave = viewModel::toggleSaved)
+                }
                 state.bookingDate != null -> ReservationScreen(state, padding, viewModel::reserve, viewModel::goBack) { state.bookingDate?.let(viewModel::startReservation) }
                 selectedVenue != null -> Box(Modifier.fillMaxSize().padding(padding)) {
                     VenueDetailScreen(
@@ -137,6 +152,7 @@ fun InCittaApp(viewModel: MainViewModel) {
                         onTag = viewModel::browseTag,
                         onOpenEvent = viewModel::open,
                         onReserve = viewModel::startReservation,
+                        onOrganizer = { organizerSlug = it },
                     )
                 }
 
@@ -150,6 +166,19 @@ fun InCittaApp(viewModel: MainViewModel) {
                         viewModel::refresh,
                         { viewModel.selectTab(AppTab.CALENDAR) },
                         { viewModel.selectTab(AppTab.VENUES) },
+                        inlineBanner = state.sponsoredBanner?.takeIf { bannerScreen && it.validAt() },
+                        onOrganizers = { organizerSlug = "" },
+                        onTonight = { tonightOpen = true },
+                        onBannerImpression = { banner ->
+                            lastBannerImpression = android.os.SystemClock.elapsedRealtime()
+                            viewModel.bannerMetric(banner, false)
+                        },
+                        onBannerOpen = { banner ->
+                            if (banner.validAt()) {
+                                viewModel.bannerMetric(banner, true)
+                                viewModel.openSlug(banner.eventSlug)
+                            }
+                        },
                     )
                     AppTab.MAP -> MapScreen(
                         state = state,
@@ -168,6 +197,7 @@ fun InCittaApp(viewModel: MainViewModel) {
                         viewModel::openVenue,
                         viewModel::browseTag,
                         viewModel::clearTagFilter,
+                        onOrganizer = { organizerSlug = it },
                     )
                     AppTab.SAVED -> SavedScreen(state, padding, viewModel::open, viewModel::toggleSaved)
                     AppTab.ACCOUNT -> AccountScreen(

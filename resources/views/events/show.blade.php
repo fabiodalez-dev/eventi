@@ -7,7 +7,10 @@
 --}}
 @php
     $formatter = app(\App\Support\DateFormatter::class);
-    $venue = $event->venue;
+    $venue = isset($selectedOccurrence) && $selectedOccurrence !== null ? $selectedOccurrence->effectiveVenue() : $event->venue;
+    $organizerEvent = clone $event;
+    $organizerEvent->setRelation('venue', $venue);
+    $organizerInfo = app(\App\Services\Seo\StructuredData::class)->organizer($organizerEvent);
     /*
      * Quanto spazio occupa DAVVERO. La fascia di apertura e' una griglia a due
      * colonne che si affiancano a 800px (`minmax(min(400px,100%),1fr)`), e da
@@ -211,11 +214,20 @@
 
             @if ($shown->isNotEmpty())
                 <section aria-labelledby="date-evento" class="flex flex-col gap-3">
+                    @if(filled($organizerInfo['name'] ?? null))
+                        <p>Organizzato da
+                            @if(filled($organizerInfo['url'] ?? null))<a class="inline-flex min-h-12 items-center underline" href="{{ $organizerInfo['url'] }}">{{ $organizerInfo['name'] }}</a>
+                            @else {{ $organizerInfo['name'] }} @endif
+                        </p>
+                    @endif
                     <h2 id="date-evento" class="font-display text-[clamp(1.25rem,1.8vw,1.75rem)] leading-none font-extrabold tracking-[-0.03em] uppercase">{{ __('events.detail.all_dates') }}</h2>
 
                     <ul class="flex flex-col gap-2">
                         @foreach ($shown as $occurrence)
                             <li class="flex flex-wrap items-center justify-between gap-3 bg-canvas px-4 py-3 border-2 border-line">
+                                @if($occurrence->effectiveVenue())
+                                    <a class="inline-flex min-h-12 items-center underline" href="{{ route('venues.show', $occurrence->effectiveVenue()) }}">{{ $occurrence->effectiveVenue()->name }}</a>
+                                @endif
                                 @if (! ($isPreview ?? false))
                                     <a class="underline text-accent" href="{{ route('events.occurrence', ['slug' => $event->slug, 'occurrence' => $occurrence->id]) }}">{{ __('seo.date_page') }}</a>
                                 @endif
@@ -282,7 +294,7 @@
                                 @if ($occurrences->isNotEmpty() && ! ($isPreview ?? false))
                                     @if ($booking = $activeBookings->get($occurrence->id))
                                         <x-button :href="route('tickets.show', $booking)" class="min-h-12">{{ __('ticketing.manage_booking') }}</x-button>
-                                    @elseif ($occurrence->booking_enabled && $event->venue?->ticketing_enabled)
+                                    @elseif ($occurrence->booking_enabled && $occurrence->effectiveVenue()?->ticketing_enabled)
                                         <x-button :href="route('tickets.create', $occurrence)" class="min-h-12">{{ __('ticketing.reserve') }}</x-button>
                                     @endif
                                     <div class="flex flex-wrap gap-2">

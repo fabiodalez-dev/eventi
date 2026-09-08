@@ -55,8 +55,9 @@ final class SearchController extends Controller
         $events = $term === '' ? null : $this->search->events($city, $term, self::EVENTS);
         $venues = $term === '' ? null : $this->search->venues($city, $term, self::VENUES);
         $tags = $term === '' ? null : $this->search->tags($term, self::TAGS);
+        $organizers = $term === '' ? null : $this->search->organizers($city, $term, self::VENUES);
 
-        $found = ($events?->count() ?? 0) + ($venues?->count() ?? 0) + ($tags?->count() ?? 0);
+        $found = ($events?->count() ?? 0) + ($venues?->count() ?? 0) + ($tags?->count() ?? 0) + ($organizers?->count() ?? 0);
 
         return view('search.index', [
             'city' => $city,
@@ -64,6 +65,7 @@ final class SearchController extends Controller
             'events' => $events,
             'venues' => $venues,
             'tags' => $tags,
+            'organizers' => $organizers,
             'found' => $found,
             /* I suggerimenti si calcolano solo quando servono davvero: una
                ricerca riuscita non ha bisogno di alternative. */

@@ -57,6 +57,7 @@
         data-follow-store="{{ route('account.follows.store') }}"
         data-follow-destroy="{{ route('account.follows.destroy', ['type' => $tipo->value, 'id' => $id]) }}"
         data-follow-type="{{ $tipo->value }}"
+        data-follow-reload="{{ $tipo === \App\Enums\FollowableType::Organizer ? 'true' : 'false' }}"
         data-follow-id="{{ $id }}"
         data-follow-label="{{ $etichetta }}"
         data-follow-label-following="{{ $etichettaAttiva }}"

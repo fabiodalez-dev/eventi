@@ -19,7 +19,7 @@ class TicketingObserver
         if ($model instanceof EventOccurrence) {
             if ($model->wasChanged('status') && $model->status === OccurrenceStatus::Cancelled) {
                 $service->cancelDate($model);
-            } elseif ($model->wasChanged(['starts_at', 'ends_at', 'doors_at', 'status'])) {
+            } elseif ($model->wasChanged(['starts_at', 'ends_at', 'doors_at', 'status', 'venue_id'])) {
                 $service->announceChange($model);
             }
         } elseif ($model instanceof Event && $model->wasChanged(['status', 'venue_id', 'title'])) {

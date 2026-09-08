@@ -12,6 +12,7 @@ use App\Filament\Support\EditorialFields;
 use App\Filament\Support\FactsField;
 use App\Filament\Support\ImageUpload;
 use App\Filament\Support\TransitField;
+use App\Filament\Support\VenueGeographyFields;
 use App\Filament\Venue\Support\CurrentVenue;
 use App\Models\Venue;
 use BackedEnum;
@@ -252,16 +253,8 @@ class VenueProfile extends Page implements HasSchemas
                             ->label(__('manage.fields.postal_code'))
                             ->maxLength(10),
 
-                        TextInput::make('municipality')
-                            ->label(__('manage.fields.municipality'))
-                            ->required()
-                            ->maxLength(255),
-
-                        TextInput::make('zone')
-                            ->label(__('manage.fields.zone'))
-                            ->helperText(__('manage.hints.zone'))
-                            ->maxLength(255)
-                            ->columnSpanFull(),
+                        VenueGeographyFields::municipality(),
+                        VenueGeographyFields::district(),
                     ]),
 
                 Section::make(__('manage.sections.venue_hours'))

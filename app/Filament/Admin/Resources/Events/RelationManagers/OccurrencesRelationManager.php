@@ -59,6 +59,7 @@ class OccurrencesRelationManager extends RelationManager
     {
         return $schema->columns(1)
             ->components([
+                Select::make('venue_id')->label('Locale di questa data')->relationship('venue', 'name', fn ($query) => $query->approved())->searchable()->placeholder('Usa il locale principale'),
                 DateTimePicker::make('starts_at')
                     ->label(__('admin.fields.starts_at'))
                     ->seconds(false)

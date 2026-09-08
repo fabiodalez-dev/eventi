@@ -15,6 +15,7 @@ use App\Http\Requests\Api\V1\Me\MeQueryRequest;
 use App\Http\Requests\Api\V1\Me\StoreFollowRequest;
 use App\Http\Resources\V1\FollowResource;
 use App\Models\Follow;
+use App\Models\Organizer;
 use App\Support\Api\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -59,17 +60,28 @@ final class FollowController extends Controller
          * seguire un locale mai esistito, che poi comparirebbe nel feed come
          * una riga vuota.
          */
-        if (! $type->modelClass()::query()->whereKey($id)->exists()) {
+        if (! $type->modelClass()::query()->whereKey($id)->exists()
+            || ($type === FollowableType::Organizer && ! Organizer::query()->whereKey($id)->where('is_active', true)->exists())) {
             throw new ApiException(ApiErrorCode::NotFound);
         }
 
-        $row = $follow($user, $type, $id, $request->boolean('notify', true));
+        $row = $follow($user, $type, $id, $request->boolean('notify', $type !== FollowableType::Organizer));
         $row->load('followable');
 
         return ApiResponse::item(
             FollowResource::toArray($row, (string) $user->timezone),
             status: 201,
         );
+    }
+
+    public function show(Request $request, string $type, int $id): JsonResponse
+    {
+        if (FollowableType::tryFrom($type) === null) {
+            throw new ApiException(ApiErrorCode::NotFound);
+        }
+        $follow = $this->user($request)->follows()->where('followable_type', $type)->where('followable_id', $id)->first();
+
+        return ApiResponse::item(['following' => $follow !== null, 'notify' => (bool) $follow?->notify]);
     }
 
     public function destroy(Request $request, string $type, int $id, UnfollowSubject $unfollow): JsonResponse

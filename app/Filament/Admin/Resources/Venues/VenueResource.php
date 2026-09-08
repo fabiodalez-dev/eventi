@@ -19,6 +19,7 @@ use App\Filament\Support\EditorialFields;
 use App\Filament\Support\FactsField;
 use App\Filament\Support\ImageUpload;
 use App\Filament\Support\TransitField;
+use App\Filament\Support\VenueGeographyFields;
 use App\Models\City;
 use App\Models\Venue;
 use App\Queries\EditorialDashboardQuery;
@@ -231,21 +232,14 @@ class VenueResource extends Resource
                                             ->label(__('admin.fields.address_extra'))
                                             ->maxLength(255),
 
-                                        TextInput::make('municipality')
-                                            ->label(__('admin.fields.municipality'))
-                                            ->required()
-                                            ->maxLength(255),
+                                        VenueGeographyFields::municipality(),
 
                                         /*
                                  * Il quartiere. Non duplica il comune: in un
                                  * capoluogo il comune è lo stesso per tutti i locali
                                  * e come filtro non separa niente (§11.3).
                                  */
-                                        TextInput::make('zone')
-                                            ->label(__('admin.fields.zone'))
-                                            ->helperText(__('admin.hints.zone'))
-                                            ->maxLength(255)
-                                            ->datalist(fn (): array => self::knownZones()),
+                                        VenueGeographyFields::district(),
 
                                         TextInput::make('postal_code')
                                             ->label(__('admin.fields.postal_code'))
@@ -631,29 +625,6 @@ class VenueResource extends Resource
         }
 
         return $days;
-    }
-
-    /**
-     * I quartieri già scritti su altri locali, offerti come suggerimento.
-     *
-     * È un `datalist` e non un elenco chiuso: un quartiere nuovo si scrive
-     * senza chiedere il permesso a nessuno. Serve solo a non ritrovarsi
-     * «Portello», «portello» e «Portello (PD)» come tre zone diverse.
-     *
-     * @return list<string>
-     */
-    private static function knownZones(): array
-    {
-        /** @var list<string> $zones */
-        $zones = Venue::query()
-            ->whereNotNull('zone')
-            ->where('zone', '!=', '')
-            ->distinct()
-            ->orderBy('zone')
-            ->pluck('zone')
-            ->all();
-
-        return $zones;
     }
 
     private static function coordinatesPreview(Get $get): HtmlString

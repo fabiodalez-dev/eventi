@@ -99,7 +99,7 @@ final class SocialGraphic
         $date = $when->translatedFormat('D j F');
         $time = $occurrence->is_all_day ? __('social.all_day') : $when->format('H:i');
         $image->text(mb_strtoupper($date).'  /  '.$time, 54, $metaTop, fn (FontFactory $f) => $f->filename($font)->size(32)->color('#CCFF00'));
-        $venue = $event->venue;
+        $venue = $occurrence->effectiveVenue();
         $custom = is_array($event->custom_location) ? $event->custom_location : [];
         $where = $venue !== null ? $venue->name : (string) ($custom['name'] ?? $event->city->name);
         [$venueLines, $venueSize] = $this->fit($where, $font, 972, 68, 30, 20);

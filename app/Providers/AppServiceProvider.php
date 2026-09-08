@@ -13,6 +13,7 @@ use App\Models\Event;
 use App\Models\EventOccurrence;
 use App\Models\Follow;
 use App\Models\ImportSource;
+use App\Models\Organizer;
 use App\Models\Page;
 use App\Models\Redirect;
 use App\Models\Report;
@@ -256,6 +257,7 @@ class AppServiceProvider extends ServiceProvider
             'admission_ticket' => AdmissionTicket::class,
             'city' => City::class,
             'venue' => Venue::class,
+            'organizer' => Organizer::class,
             'category' => Category::class,
             'tag' => Tag::class,
             'event' => Event::class,

@@ -19,8 +19,11 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * Nessuno scope temporale vive qui: ogni finestra ("oggi", "stasera",
  * "in corso", "inizia tra poco") sta in App\Queries\EventOccurrenceQuery.
  */
+/** @property int|null $venue_id */
 class EventOccurrence extends Model
 {
+    protected $with = ['venue'];
+
     /** @use HasFactory<EventOccurrenceFactory> */
     use HasFactory;
 
@@ -31,6 +34,7 @@ class EventOccurrence extends Model
     /** @var list<string> */
     protected $fillable = [
         'event_id',
+        'venue_id',
         'recurrence_id',
         'starts_at',
         'ends_at',
@@ -60,6 +64,17 @@ class EventOccurrence extends Model
     public function event(): BelongsTo
     {
         return $this->belongsTo(Event::class);
+    }
+
+    /** @return BelongsTo<Venue, $this> */
+    public function venue(): BelongsTo
+    {
+        return $this->belongsTo(Venue::class);
+    }
+
+    public function effectiveVenue(): ?Venue
+    {
+        return $this->venue_id !== null ? $this->venue : $this->event?->venue;
     }
 
     /** @return BelongsTo<EventRecurrence, $this> */

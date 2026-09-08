@@ -5,6 +5,9 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import it.fabiodalez.incitta.data.ApiException
 import it.fabiodalez.incitta.data.loginFailureMessage
+import it.fabiodalez.incitta.data.requestFailureMessage
+import it.fabiodalez.incitta.data.shouldShowOffline
+import it.fabiodalez.incitta.data.selectOccurrence
 import it.fabiodalez.incitta.data.AppRepository
 import it.fabiodalez.incitta.data.EventDetail
 import it.fabiodalez.incitta.data.EventFilter
@@ -41,6 +44,7 @@ data class AppUiState(
     val eventFilter: EventFilter = EventFilter.ALL,
     val searchResults: List<Occurrence> = emptyList(),
     val searchVenues: List<Venue> = emptyList(),
+    val searchOrganizers: List<it.fabiodalez.incitta.data.Organizer> = emptyList(),
     val searchTags: List<Tag> = emptyList(),
     val activeTag: Tag? = null,
     val venues: List<Venue> = emptyList(),
@@ -255,7 +259,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     if (error is CancellationException) return@onFailure
                     _state.value = _state.value.copy(
                         isLoading = false,
-                        isOffline = _state.value.occurrences.isNotEmpty(),
+                        isOffline = shouldShowOffline(error, _state.value.occurrences.isNotEmpty()),
                         message = userMessage(error),
                     )
                 }
@@ -268,7 +272,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         detailHistory.clear()
         searchJob?.cancel()
         repository.clearDiscoveryCache()
-        _state.value = _state.value.copy(occurrences = emptyList(), searchResults = emptyList(), searchVenues = emptyList(), searchTags = emptyList(), activeTag = null, mapMarkers = emptyList(), mapPreviewEvents = emptyList(), sponsoredBanner = null, relatedOccurrences = emptyList(), venueOccurrences = emptyList(), venuePastOccurrences = emptyList())
+        _state.value = _state.value.copy(occurrences = emptyList(), searchResults = emptyList(), searchOrganizers = emptyList(), searchVenues = emptyList(), searchTags = emptyList(), activeTag = null, mapMarkers = emptyList(), mapPreviewEvents = emptyList(), sponsoredBanner = null, relatedOccurrences = emptyList(), venueOccurrences = emptyList(), venuePastOccurrences = emptyList())
         refresh()
         loadMap()
         viewModelScope.launch { refreshSponsoredBanner(null) }
@@ -278,7 +282,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         searchJob?.cancel()
         _state.value = _state.value.copy(activeTag = null)
         if (query.trim().length < 3) {
-            _state.value = _state.value.copy(searchResults = emptyList(), searchVenues = emptyList(), searchTags = emptyList(), isSearching = false)
+            _state.value = _state.value.copy(searchResults = emptyList(), searchOrganizers = emptyList(), searchVenues = emptyList(), searchTags = emptyList(), isSearching = false)
             return
         }
         searchJob = viewModelScope.launch {
@@ -289,6 +293,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     _state.value = _state.value.copy(
                         searchResults = it.events,
                         searchVenues = it.venues,
+                        searchOrganizers = it.organizers,
                         searchTags = it.tags,
                         isSearching = false,
                     )
@@ -306,7 +311,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         detailJob = viewModelScope.launch {
             val previous = currentSnapshot()
             _state.value = _state.value.copy(isLoading = true, message = null)
-            runCatching { detailWithRelated(occurrence.eventSlug) }
+            runCatching {
+                val (detail, related) = detailWithRelated(occurrence.eventSlug)
+                val venueSlug = occurrence.venue?.slug
+                val venue = if (venueSlug != null && venueSlug != detail.venue?.slug) repository.venue(venueSlug) else detail.venue
+                detail.selectOccurrence(occurrence, venue) to related
+            }
                 .onSuccess { (detail, related) ->
                     previous?.let(detailHistory::add)
                     _state.value = _state.value.copy(
@@ -397,7 +407,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         selected = null,
                         selectedVenue = null,
                         searchResults = it,
-                        searchVenues = emptyList(),
+                        searchOrganizers = emptyList(), searchVenues = emptyList(),
                         searchTags = emptyList(),
                         activeTag = tag,
                         isSearching = false,
@@ -418,7 +428,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         selected = null,
                         selectedVenue = null,
                         searchResults = it,
-                        searchVenues = emptyList(),
+                        searchOrganizers = emptyList(), searchVenues = emptyList(),
                         searchTags = emptyList(),
                         activeTag = null,
                         isSearching = false,
@@ -433,7 +443,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             activeTag = null,
             searchResults = emptyList(),
             searchTags = emptyList(),
-            searchVenues = emptyList(),
+            searchOrganizers = emptyList(), searchVenues = emptyList(),
             message = null,
         )
     }
@@ -638,9 +648,5 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    private fun userMessage(error: Throwable): String = when (error) {
-        is ApiException -> error.message ?: "Richiesta non riuscita"
-        is IOException -> error.message ?: "Connessione non disponibile"
-        else -> "Qualcosa non ha funzionato. Riprova."
-    }
+    private fun userMessage(error: Throwable): String = requestFailureMessage(error)
 }

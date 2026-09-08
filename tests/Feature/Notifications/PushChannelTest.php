@@ -209,6 +209,8 @@ it('non sceglie il push senza chiavi VAPID, anche con un browser iscritto', func
 });
 
 it('ignora i dispositivi nativi finche firebase non e configurato', function (): void {
+    config()->set('api.features.push', false);
+    config()->set('firebase.projects.app.credentials', null);
     Notification::fake();
 
     $user = User::factory()->create();

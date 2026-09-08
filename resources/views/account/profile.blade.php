@@ -33,6 +33,9 @@
 
         <x-button :href="route('tickets.index')">{{ __('ticketing.title') }}</x-button>
         <x-button :href="route('account.content-preferences')" variant="secondary">I miei interessi · scegli cosa vedere</x-button>
+        @if(auth()->user()->managedOrganizers()->exists())
+            <x-button :href="url('/organizza')" variant="secondary">Gestisci i tuoi organizzatori</x-button>
+        @endif
         @if ($user->isEditorialStaff())
             <x-button :href="url('/admin')" variant="secondary">{{ __('account.nav.admin') }}</x-button>
         @endif

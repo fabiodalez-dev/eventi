@@ -26,6 +26,7 @@ final class SearchSuggestionsController extends Controller
             'events' => $eligible ? $search->events($city, $term, 5) : collect(),
             'venues' => $eligible ? $search->venues($city, $term, 4) : collect(),
             'tags' => $eligible ? $search->tags($term, 4) : collect(),
+            'organizers' => $eligible ? $search->organizers($city, $term, 4) : collect(),
         ])->header('Cache-Control', 'private, no-store')->header('X-Robots-Tag', 'noindex');
     }
 }

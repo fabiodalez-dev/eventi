@@ -155,7 +155,7 @@ class EventsCalendarWidget extends CalendarWidget
 
     private function titolo(EventOccurrence $occorrenza): string
     {
-        $locale = $occorrenza->event->venue?->name;
+        $locale = $occorrenza->effectiveVenue()?->name;
 
         /* Il locale nel titolo e non in un riquadro a parte: su una cella di
            calendario larga cento pixel non c'è spazio per due righe, e

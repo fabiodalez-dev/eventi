@@ -375,8 +375,9 @@ class EventResource extends Resource
                                     ]),
 
                                 Section::make(__('admin.sections.organizer'))
-                                    ->columns(2)
+                                    ->columns(1)
                                     ->schema([
+                                        Select::make('organizer_id')->label('Organizzatore registrato')->relationship('organizer', 'name', fn ($query) => $query->where('is_active', true))->searchable()->helperText('Se vuoto, il locale ospitante è anche l’organizzatore.'),
                                         TextInput::make('organizer_name')
                                             ->label(__('admin.fields.organizer_name'))
                                             ->maxLength(255),

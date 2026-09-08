@@ -1,0 +1,28 @@
+<resources>
+    <string name="tonight_title">La tua prossima serata.</string>
+    <string name="tonight_lead">Poche scelte. Fino a cinque proposte adatte a te.</string>
+    <string name="tonight_when">Quando vuoi uscire?</string>
+    <string name="tonight_evening">Stasera</string>
+    <string name="tonight_soon">Tra poco</string>
+    <string name="tonight_zone">In quale quartiere di Padova?</string>
+    <string name="tonight_municipality">In quale comune?</string>
+    <string name="tonight_everywhere">Ovunque in provincia</string>
+    <string name="tonight_search_place">Cerca nell’elenco</string>
+    <string name="tonight_any_zone">Tutta la città</string>
+    <string name="tonight_budget">Budget per l’ingresso</string>
+    <string name="tonight_any_budget">Nessun limite</string>
+    <string name="tonight_free">Ingresso gratuito</string>
+    <string name="tonight_up_to">Fino a %1$s €</string>
+    <string name="tonight_budget_help">Tessere e altri costi obbligatori sono separati. Con un limite escludiamo i prezzi non comunicati.</string>
+    <string name="tonight_categories">Che cosa ti va?</string>
+    <string name="tonight_categories_help">Seleziona le categorie oppure lasciale tutte aperte. Le esclusioni del profilo restano rispettate.</string>
+    <string name="tonight_next">Continua</string>
+    <string name="tonight_find">Trova la mia serata</string>
+    <string name="tonight_back">Indietro</string>
+    <string name="tonight_retry">Riprova</string>
+    <string name="tonight_edit">Cambia le scelte</string>
+    <string name="tonight_all">Mostra tutti gli eventi</string>
+    <string name="tonight_order">In ordine di inizio, senza posizioni acquistate o interessi dedotti.</string>
+    <string name="tonight_empty">Questa combinazione non trova una serata. Cambia zona, budget o categorie: non aggiungiamo risultati incompatibili.</string>
+    <string name="tonight_steps">Domanda %1$d di %2$d</string>
+</resources>

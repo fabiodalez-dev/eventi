@@ -130,6 +130,7 @@ fun CompleteEventDetailScreen(
     onTag: (Tag) -> Unit,
     onOpenEvent: (Occurrence) -> Unit,
     onReserve: (Occurrence) -> Unit,
+    onOrganizer: (String) -> Unit = {},
 ) {
     val context = LocalContext.current
     val scrollState = rememberScrollState()
@@ -288,7 +289,9 @@ fun CompleteEventDetailScreen(
                     DetailSection("LINK E ORGANIZZATORE") {
                         detail.organizer.name?.let { name ->
                             LabeledValue("Organizza", name)
-                            detail.organizer.url?.let { url -> SmallLink("SITO DELL'ORGANIZZATORE") { openUrl(context, url) } }
+                            if (detail.organizer.slug != null) SmallLink("TUTTI GLI EVENTI DELL'ORGANIZZATORE") { onOrganizer(detail.organizer.slug) }
+                            else if (detail.organizer.hostFallback && detail.venue != null) SmallLink("TUTTI GLI EVENTI DEL LOCALE") { onVenue(detail.venue) }
+                            else detail.organizer.url?.let { url -> SmallLink("SITO DELL'ORGANIZZATORE") { openUrl(context, url) } }
                         }
                         detail.externalLinks.forEach { link -> SmallLink(link.label.uppercase()) { openUrl(context, link.url) } }
                     }
@@ -328,6 +331,7 @@ fun CompleteEventDetailScreen(
 private fun OccurrenceDateBlock(detail: EventDetail, occurrence: Occurrence, saved: Boolean, onSave: (Long) -> Unit) {
     val context = LocalContext.current
     Text(fullDate(occurrence.startsAt), style = androidx.compose.material3.MaterialTheme.typography.titleLarge)
+    occurrence.venue?.name?.let { Text(it, color = Muted) }
     Text(timeRange(occurrence), color = Acid, style = androidx.compose.material3.MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = 5.dp))
     occurrence.statusNote?.let { Text(it, color = Muted, modifier = Modifier.padding(top = 6.dp)) }
     Row(Modifier.fillMaxWidth().padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1002,7 +1006,7 @@ private fun addToCalendar(context: android.content.Context, detail: EventDetail,
         event = occurrence,
         title = detail.title,
         description = detail.description ?: detail.shortDescription,
-        location = detail.venue?.let { "${it.name}, ${address(it)}" } ?: detail.customLocation?.let { listOfNotNull(it.name, it.address, it.municipality).joinToString(", ") },
+        location = (occurrence.venue ?: detail.venue)?.let { "${it.name}, ${address(it)}" } ?: detail.customLocation?.let { listOfNotNull(it.name, it.address, it.municipality).joinToString(", ") },
         url = detail.url ?: "https://eventi.fabiodalez.it/eventi/${detail.slug}",
     )
 }

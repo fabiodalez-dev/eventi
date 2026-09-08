@@ -32,7 +32,7 @@ final class TicketingController extends Controller
 {
     public function availability(EventOccurrence $occurrence, TicketingService $service): JsonResponse
     {
-        abort_unless($occurrence->event?->status === EventStatus::Published && ! $occurrence->event->venue?->status?->isProvvedimento(), 404);
+        abort_unless($occurrence->event?->status === EventStatus::Published && ! $occurrence->effectiveVenue()?->status?->isProvvedimento(), 404);
 
         return response()->json(['data' => $service->availability($occurrence)])->header('Cache-Control', 'no-store');
     }
@@ -59,7 +59,7 @@ final class TicketingController extends Controller
 
     public function create(Request $request, EventOccurrence $occurrence, TicketingService $service): View|RedirectResponse
     {
-        abort_unless($occurrence->event?->status === EventStatus::Published && ! $occurrence->event->venue?->status?->isProvvedimento(), 404);
+        abort_unless($occurrence->event?->status === EventStatus::Published && ! $occurrence->effectiveVenue()?->status?->isProvvedimento(), 404);
 
         if ($booking = $service->activeBooking($request->user(), $occurrence)) {
             return redirect()->route('tickets.show', $booking);
@@ -108,8 +108,11 @@ final class TicketingController extends Controller
     {
         $user = $request->user();
         $admin = $user->hasAnyRole([UserRole::Admin->value, UserRole::SuperAdmin->value]);
-        abort_unless($admin || $user->ownedVenues()->exists(), 403);
-        $dates = EventOccurrence::query()->whereHas('event', fn ($q) => $q->when(! $admin, fn ($q) => $q->whereIn('venue_id', $user->ownedVenues()->select('venues.id'))))
+        abort_unless($admin || $user->ownedVenues()->exists() || $user->managedOrganizers()->exists(), 403);
+        $dates = EventOccurrence::query()->when(! $admin, fn ($query) => $query->where(fn ($allowed) => $allowed
+            ->whereIn('venue_id', $user->ownedVenues()->select('venues.id'))
+            ->orWhere(fn ($fallback) => $fallback->whereNull('venue_id')->whereHas('event', fn ($event) => $event->whereIn('venue_id', $user->ownedVenues()->select('venues.id'))))
+            ->orWhereHas('event', fn ($event) => $event->whereIn('organizer_id', $user->managedOrganizers()->select('organizers.id')))))
             ->with('event.venue')->orderByDesc('starts_at')->paginate(30);
 
         return view('ticketing.dashboard', ['dates' => $dates, 'meta' => $this->meta('manage')]);

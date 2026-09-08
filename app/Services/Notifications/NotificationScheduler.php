@@ -17,6 +17,7 @@ use App\Models\User;
 use App\Models\Venue;
 use Carbon\CarbonImmutable;
 use DateTimeInterface;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
@@ -290,15 +291,19 @@ final class NotificationScheduler
     {
         $venue = $event->venue;
 
-        if (! $venue instanceof Venue) {
-            return 0;
-        }
-
         $now = CarbonImmutable::now();
         $rows = [];
 
+        $members = $venue instanceof Venue ? $venue->members : new Collection;
+        if ($event->organizer?->is_active) {
+            $members = $members->merge($event->organizer->users);
+            if ($event->organizer->owner !== null) {
+                $members->push($event->organizer->owner);
+            }
+        }
+
         /** @var User $member */
-        foreach ($venue->members as $member) {
+        foreach ($members->unique('id') as $member) {
             $rows[] = $this->row(
                 userId: (int) $member->getKey(),
                 type: $type,

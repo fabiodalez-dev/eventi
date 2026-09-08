@@ -1,4 +1,6 @@
 import { sponsorshipBanners } from './sponsorship-banner';
+import { placeChoices } from './place-choices';
+
 import { sponsorshipContext } from './sponsorship-context';
 
 /*
@@ -892,6 +894,8 @@ function follows() {
         form.addEventListener("submit", async (evento) => {
             evento.preventDefault();
 
+            if (bottone.disabled) return;
+            bottone.disabled = true;
             const seguiva = bottone.getAttribute("aria-pressed") === "true";
             dipingiFollow(bottone, form, !seguiva);
 
@@ -911,11 +915,14 @@ function follows() {
                 if (!risposta.ok) {
                     throw new Error(String(risposta.status));
                 }
+                if (form.dataset.followReload === "true") window.location.reload();
             } catch {
                 /* Si rimette com'era: un pulsante che dice «segui gia'» mentre
                    il server non ha registrato niente e' peggio di un gesto
                    fallito, perche' chi lo guarda non ha modo di saperlo. */
                 dipingiFollow(bottone, form, seguiva);
+            } finally {
+                bottone.disabled = false;
             }
         });
     }
@@ -937,6 +944,7 @@ import { liveSearch, continuousTicker } from './live-search';
 import { venueAutocomplete } from './venue-autocomplete';
 
 function start() {
+    placeChoices();
     for (const button of document.querySelectorAll('[data-copy-calendar]')) {
         button.addEventListener('click', async () => {
             try {

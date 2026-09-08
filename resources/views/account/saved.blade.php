@@ -131,8 +131,8 @@
                                         {{ $occurrence->is_all_day ? __('filters.time_of_day.any') : $occurrence->starts_at->format('H:i') }}
                                     </p>
                                     <h4 class="mt-1 text-card text-ink transition-colors group-hover:text-accent">{{ $occurrence->event->title }}</h4>
-                                    @if ($occurrence->event->venue !== null)
-                                        <p class="mt-1 text-sm text-ink-muted">{{ $occurrence->event->venue->name }}</p>
+                                    @if ($occurrence->effectiveVenue() !== null)
+                                        <p class="mt-1 text-sm text-ink-muted">{{ $occurrence->effectiveVenue()->name }}</p>
                                     @endif
                                 </a>
                                 <a

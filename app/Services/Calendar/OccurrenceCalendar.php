@@ -92,7 +92,7 @@ final class OccurrenceCalendar
             $entry->description($description);
         }
 
-        $venue = $event->venue;
+        $venue = $occurrence->effectiveVenue();
 
         if ($venue !== null) {
             $entry->address($this->address($occurrence), $venue->name);
@@ -212,7 +212,7 @@ final class OccurrenceCalendar
 
     private function address(EventOccurrence $occurrence): string
     {
-        $venue = $occurrence->event->venue;
+        $venue = $occurrence->effectiveVenue();
 
         if ($venue === null) {
             $custom = is_array($occurrence->event->custom_location) ? $occurrence->event->custom_location : [];

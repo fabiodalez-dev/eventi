@@ -1,7 +1,7 @@
 <x-layouts.app :meta="$meta"><div class="flex flex-col gap-6">
     <a href="{{ route('ticketing.manage.index') }}" class="text-brand">{{ __('ticketing.manage') }}</a>
     <h1 class="text-hero">{{ $date->event->title }}</h1>
-    <p>{{ $date->starts_at->timezone($date->event->city->timezone)->format('d/m/Y H:i') }} · {{ $date->event->venue?->name }}</p>
+    <p>{{ $date->starts_at->timezone($date->event->city->timezone)->format('d/m/Y H:i') }} · {{ $date->effectiveVenue()?->name }}</p>
     @include('ticketing.errors')
     <dl class="flex flex-wrap gap-x-8 gap-y-3 text-sm">
         @foreach (['valid', 'checked_in', 'waitlisted', 'cancelled'] as $status)
@@ -9,7 +9,7 @@
         @endforeach
     </dl>
     <p>{{ $availability['remaining'] === null ? __('ticketing.unlimited') : __('ticketing.remaining', ['count' => $availability['remaining']]) }}</p>
-    @if (! $date->event->venue?->ticketing_enabled)<p>{{ __('ticketing.disabled_hint') }}</p>@else
+    @if (! $date->effectiveVenue()?->ticketing_enabled)<p>{{ __('ticketing.disabled_hint') }}</p>@else
     <details class="border border-line p-4"><summary class="cursor-pointer font-bold py-2">{{ __('ticketing.settings') }}</summary>
         <form action="{{ route('ticketing.manage.configure', $date) }}" method="POST" class="mt-5 grid gap-5 md:grid-cols-2">@csrf
             <label><input type="hidden" name="booking_enabled" value="0"><input type="checkbox" name="booking_enabled" value="1" @checked(old('booking_enabled', $date->booking_enabled))> {{ __('ticketing.enabled') }}</label>

@@ -1,5 +1,8 @@
 @props(['model', 'occurrence' => null])
-@php($details = app(\App\Services\Seo\EditorialContent::class)->details($model))
+@php($details = app(\App\Services\Seo\EditorialContent::class)->details($model, $occurrence))
+@if($model instanceof \App\Models\Event)
+    <h2 class="font-display text-xl font-extrabold my-6">{{ __('seo.before_going') }}</h2>
+@endif
 @if (filled($details['organizer_venue_id'] ?? null))
     @php($organizer = \App\Models\Venue::query()->approved()->whereKey($details['organizer_venue_id'])->first())
     @if ($organizer)
@@ -21,7 +24,7 @@
 @if (filled($details['introduction'] ?? null))
     <p class="max-w-prose whitespace-pre-line">{{ $details['introduction'] }}</p>
 @endif
-@foreach (['parking_notes', 'transit_notes', 'entrance_notes', 'accessibility_notes', 'minors_policy', 'cancellation_policy', 'refund_policy', 'public_contact', 'poster_caption', 'poster_credit'] as $field)
+@foreach (['parking_notes', 'transit_notes', 'entrance_notes', 'accessibility_notes', 'membership_notes', 'mandatory_costs', 'weather_policy', 'minors_policy', 'cancellation_policy', 'refund_policy', 'public_contact', 'poster_caption', 'poster_credit'] as $field)
     @if (filled($details[$field] ?? null))
         <section class="py-4 border-b border-line">
             <h3 class="font-bold">{{ __('seo.fields.'.$field) }}</h3>
@@ -29,9 +32,7 @@
         </section>
     @endif
 @endforeach
-@if (filled($details['accessibility'] ?? null))
-    <p>{{ __('seo.fields.accessibility') }}: {{ $details['accessibility'] === 'yes' ? __('seo.yes') : __('seo.no') }}</p>
-@endif
+<p>{{ __('seo.fields.accessibility') }}: {{ match($details['accessibility'] ?? null) { 'yes' => __('seo.yes'), 'no' => __('seo.no'), default => __('seo.unspecified') } }}</p>
 @if (! empty($details['agenda']))
     <section class="py-6">
         <h2 class="font-display text-xl font-extrabold">{{ __('seo.agenda') }}</h2>

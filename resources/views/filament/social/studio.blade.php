@@ -26,7 +26,7 @@
         @foreach($dates as $occurrence)
             <label wire:key="date-{{ $occurrence->id }}" style="cursor:pointer;display:block">
                 <img src="{{ \App\Services\Social\SocialStudio::previewUrl($occurrence) }}" alt="{{ __('social.preview') }}: {{ $occurrence->event->title }}" loading="lazy" style="width:100%;aspect-ratio:4/5;object-fit:contain;background:#F5F5F0;border:1px solid #ddd">
-                <div style="display:flex;gap:10px;margin-top:10px"><input type="checkbox" wire:model="selected" value="{{ $occurrence->id }}" style="margin-top:4px"><span>{{ $occurrence->event->title }}<br><small>{{ $occurrence->event->venue?->name }} · {{ $occurrence->is_all_day ? __('social.all_day') : $occurrence->starts_at->timezone($this->socialCity()->timezone)->format('H:i') }}</small></span></div>
+                <div style="display:flex;gap:10px;margin-top:10px"><input type="checkbox" wire:model="selected" value="{{ $occurrence->id }}" style="margin-top:4px"><span>{{ $occurrence->event->title }}<br><small>{{ $occurrence->effectiveVenue()?->name }} · {{ $occurrence->is_all_day ? __('social.all_day') : $occurrence->starts_at->timezone($this->socialCity()->timezone)->format('H:i') }}</small></span></div>
             </label>
         @endforeach
         </div>

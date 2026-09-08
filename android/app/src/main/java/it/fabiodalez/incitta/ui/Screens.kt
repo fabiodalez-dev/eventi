@@ -1,6 +1,7 @@
 package it.fabiodalez.incitta.ui
 
 import android.content.Intent
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -13,6 +14,7 @@ import it.fabiodalez.incitta.data.hasEnded
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -109,6 +111,11 @@ fun EventsScreen(
     onFilter: (EventFilter) -> Unit,
     onCalendar: () -> Unit,
     onVenues: () -> Unit,
+    inlineBanner: it.fabiodalez.incitta.data.SponsoredBanner? = null,
+    onBannerImpression: (it.fabiodalez.incitta.data.SponsoredBanner) -> Unit = {},
+    onBannerOpen: (it.fabiodalez.incitta.data.SponsoredBanner) -> Unit = {},
+    onOrganizers: () -> Unit = {},
+    onTonight: () -> Unit = {},
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(bottom = padding.calculateBottomPadding()),
@@ -121,6 +128,8 @@ fun EventsScreen(
                 Text("STASERA\nIN CITTÀ", style = androidx.compose.material3.MaterialTheme.typography.displayLarge)
                 Spacer(Modifier.height(10.dp))
                 Text("PADOVA · EVENTI VERIFICATI E POSTI DOVE ANDARE", color = Muted, style = androidx.compose.material3.MaterialTheme.typography.labelLarge)
+                Spacer(Modifier.height(16.dp))
+                Button(onClick = onTonight, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) { Text(stringResource(R.string.tonight_find)) }
             }
         }
         item {
@@ -135,6 +144,7 @@ fun EventsScreen(
                 FilterLabel("GRATIS", state.eventFilter == EventFilter.FREE) { onFilter(EventFilter.FREE) }
                 FilterLabel("CALENDARIO", false, onCalendar)
                 FilterLabel("LOCALI", false, onVenues)
+                FilterLabel("ORGANIZZATORI", false, onOrganizers)
                 IconButton(onClick = onRefresh, modifier = Modifier.size(48.dp).background(Paper)) {
                     Icon(Icons.Outlined.Refresh, contentDescription = "Aggiorna", tint = Ink)
                 }
@@ -151,7 +161,15 @@ fun EventsScreen(
                 FeatureCard(featured, featured.occurrenceId in state.savedIds, onOpen, onSave)
                 SectionTitle("IN PROGRAMMA", "${state.occurrences.size} APPUNTAMENTI")
             }
-            items(state.occurrences.drop(1), key = Occurrence::occurrenceId) { occurrence ->
+            items(state.occurrences.drop(1).take(5), key = Occurrence::occurrenceId) { occurrence ->
+                EventRow(occurrence, occurrence.occurrenceId in state.savedIds, onOpen, onSave)
+            }
+            if (state.occurrences.size > 6 && inlineBanner != null) {
+                item(key = "inline-sponsored-event") {
+                    SponsoredEventBanner(inlineBanner, { onBannerImpression(inlineBanner) }, { onBannerOpen(inlineBanner) })
+                }
+            }
+            items(state.occurrences.drop(6), key = Occurrence::occurrenceId) { occurrence ->
                 EventRow(occurrence, occurrence.occurrenceId in state.savedIds, onOpen, onSave)
             }
         }
@@ -170,6 +188,7 @@ fun SearchScreen(
     onVenue: (Venue) -> Unit,
     onTag: (Tag) -> Unit,
     onClearTag: () -> Unit,
+    onOrganizer: (String) -> Unit = {},
 ) {
     var query by remember { mutableStateOf("") }
     LazyColumn(Modifier.fillMaxSize().padding(bottom = padding.calculateBottomPadding())) {
@@ -203,7 +222,7 @@ fun SearchScreen(
             }
         }
         if (state.isSearching) item { LoadingBlock() }
-        if ((query.trim().length >= 3 || state.activeTag != null) && !state.isSearching && state.searchResults.isEmpty() && state.searchVenues.isEmpty() && state.searchTags.isEmpty()) {
+        if ((query.trim().length >= 3 || state.activeTag != null) && !state.isSearching && state.searchResults.isEmpty() && state.searchVenues.isEmpty() && state.searchTags.isEmpty() && state.searchOrganizers.isEmpty()) {
             item { EmptyBlock("NESSUN RISULTATO", "Prova un genere, il nome di un locale o una parola più breve.") }
         }
         val venues = when {
@@ -219,6 +238,12 @@ fun SearchScreen(
             }
         }
         if (venues.isNotEmpty()) item { SectionTitle("LOCALI", "${venues.size} RISULTATI") }
+        if (query.trim().length >= 3 && state.activeTag == null && state.searchOrganizers.isNotEmpty()) {
+            item { SectionTitle("ORGANIZZATORI", "${state.searchOrganizers.size} RISULTATI") }
+            items(state.searchOrganizers, key = { "organizer-${it.id}" }) { organizer ->
+                TextButton(onClick = { organizer.slug?.let(onOrganizer) }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text(organizer.name.orEmpty()) }
+            }
+        }
         items(venues, key = { "venue-${it.id}-${it.slug}" }) { venue -> VenueResultRow(venue, onVenue) }
         if (state.searchResults.isNotEmpty()) item {
             SectionTitle(
@@ -268,10 +293,10 @@ fun SavedScreen(
                     color = Acid,
                     style = androidx.compose.material3.MaterialTheme.typography.labelMedium,
                 )
-                Row(Modifier.fillMaxWidth().padding(top = 18.dp)) {
-                    ModeButton("LISTA", mode == 0, Modifier.weight(1f)) { mode = 0 }
-                    ModeButton("CALENDARIO", mode == 1, Modifier.weight(1f)) { mode = 1 }
-                    ModeButton(stringResource(R.string.saved_past), mode == 2, Modifier.weight(1f)) { mode = 2 }
+                Row(Modifier.fillMaxWidth().padding(top = 18.dp).horizontalScroll(rememberScrollState())) {
+                    ModeButton("LISTA", mode == 0, Modifier) { mode = 0 }
+                    ModeButton("CALENDARIO", mode == 1, Modifier) { mode = 1 }
+                    ModeButton(stringResource(R.string.saved_past), mode == 2, Modifier) { mode = 2 }
                 }
             }
         }
@@ -473,6 +498,7 @@ fun AccountScreen(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var validationError by remember { mutableStateOf<String?>(null) }
+    val confirmationMismatch = stringResource(R.string.auth_confirmation_mismatch)
     val context = LocalContext.current
     val focus = LocalFocusManager.current
     val keyboard = LocalSoftwareKeyboardController.current
@@ -485,7 +511,7 @@ fun AccountScreen(
         onClearAuthError()
         validationError = authValidationMessage(email, password, mode == 1, magic)?.let(context::getString)
         if (!magic && mode == 1 && validationError == null && confirmation != password) {
-            validationError = context.getString(R.string.auth_confirmation_mismatch)
+            validationError = confirmationMismatch
         }
         if (validationError == null) {
             if (magic) onMagic(email.trim())
@@ -715,7 +741,7 @@ private fun SectionTitle(title: String, detail: String) {
 }
 
 @Composable
-private fun EventRow(event: Occurrence, saved: Boolean, onOpen: (Occurrence) -> Unit, onSave: (Long) -> Unit) {
+internal fun EventRow(event: Occurrence, saved: Boolean, onOpen: (Occurrence) -> Unit, onSave: (Long) -> Unit) {
     Row(
         Modifier.fillMaxWidth().height(190.dp).clickable { onOpen(event) },
     ) {
@@ -814,9 +840,10 @@ private fun ModeButton(text: String, selected: Boolean, modifier: Modifier, onCl
     Button(
         onClick = onClick,
         modifier = modifier.height(48.dp),
+        contentPadding = PaddingValues(horizontal = 12.dp),
         shape = RectangleShape,
         colors = ButtonDefaults.buttonColors(containerColor = if (selected) Acid else Rule, contentColor = if (selected) Ink else Paper),
-    ) { Text(text) }
+    ) { Text(text, maxLines = 1, softWrap = false) }
 }
 
 @Composable

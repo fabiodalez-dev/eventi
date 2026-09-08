@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'before_going' => 'Prima di andare',
     'city_introductions' => 'Presentazioni specifiche per città',
     'registered_organizer' => 'Organizzatore già presente tra i locali', 'minimum_age' => 'Età minima',
     'parking_type' => 'Tipo di parcheggio', 'parking_free' => 'Gratuito', 'parking_paid' => 'A pagamento', 'parking_none' => 'Non disponibile',
@@ -40,6 +41,9 @@ return [
     'date_page' => 'Dettagli di questa data', 'all_dates' => 'Tutte le date di questo evento',
     'rescheduled' => 'Data precedente: :date',
     'fields' => [
+        'membership_notes' => 'Tessera e iscrizione',
+        'mandatory_costs' => 'Costi obbligatori oltre all’ingresso',
+        'weather_policy' => 'In caso di maltempo',
         'starts_at' => 'Inizio del momento in programma', 'ends_at' => 'Fine del momento in programma', 'occurrence' => 'Programma valido per la data',
         'title' => 'Titolo', 'description' => 'Descrizione', 'image' => 'Indirizzo immagine social',
         'introduction' => 'Presentazione', 'parking_notes' => 'Parcheggio', 'transit_notes' => 'Mezzi pubblici',
