@@ -136,3 +136,6 @@ Le dipendenze transitive di Lighthouse (`tmp`, `uuid`, `qs`, `puppeteer-core`)
 sono vincolate tramite `overrides` alle versioni corrette per gli avvisi noti.
 Non rimuovere questi vincoli senza ripetere `npm audit` e una raccolta Lighthouse
 reale. Non usare `npm audit fix --force`: propone anche downgrade incompatibili.
+# Pausa temporanea Lighthouse
+
+Su richiesta esplicita del proprietario (8 settembre 2026), `CI_LIGHTHOUSE_PAUSED=true` nelle variabili del repository salta temporaneamente **solo Lighthouse**. Per riattivarlo, eliminare la variabile o impostarla a `false`. Analisi statica, vulnerabilità, test PHP/Android e verifica del deploy restano obbligatori. Il gate accetta soltanto lo stato `skipped` intenzionale di Lighthouse, mai un fallimento o una cancellazione. Le esecuzioni già avviate con il vecchio workflow non cambiano retroattivamente.

@@ -9,6 +9,21 @@ const complete = () => ({
 });
 
 test('all required checks pass', () => assert.equal(passed(complete()), true));
+test('explicit Lighthouse pause allows only an intentional skip', () => {
+    const needs = complete();
+    needs.lighthouse.result = 'skipped';
+    assert.equal(passed(needs, true), true);
+    for (const result of ['failure', 'cancelled', undefined]) {
+        needs.lighthouse.result = result;
+        assert.equal(passed(needs, true), false);
+    }
+    needs.lighthouse.result = 'skipped';
+    for (const job of ['scope', 'quality', 'tests', 'android']) {
+        const broken = structuredClone(needs);
+        broken[job].result = 'skipped';
+        assert.equal(passed(broken, true), false);
+    }
+});
 for (const job of ['scope', 'quality', 'tests', 'lighthouse', 'android']) {
     for (const result of ['failure', 'cancelled', 'skipped']) {
         test(`${job} ${result} blocks release`, () => {
