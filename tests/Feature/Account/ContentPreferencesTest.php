@@ -36,14 +36,15 @@ it('requires authentication and validates dynamic categories and conflicting cho
 it('filters API discovery and map while preserving direct event access and other accounts', function (): void {
     Sanctum::actingAs($this->user);
     $this->patchJson('/api/v1/me/content-preferences', contentSelection(['hidden_categories' => [$this->music->id]]))->assertOk();
-    $response = $this->getJson('/api/v1/events?limit=50')->assertOk();
-    expect($response->getContent())->not->toContain($this->a->event->title)->toContain($this->b->event->title);
+    $this->getJson('/api/v1/events?limit=50')->assertOk()
+        ->assertJsonMissing(['event_id' => $this->a->event_id])
+        ->assertJsonFragment(['event_id' => $this->b->event_id]);
     $this->getJson('/api/v1/map/occurrences?date=2026-09-11')->assertOk()->assertJsonMissing(['event_id' => $this->a->event_id]);
-    expect($this->getJson('/api/v1/home')->assertOk()->getContent())->not->toContain($this->a->event->title);
+    $this->getJson('/api/v1/home')->assertOk()->assertJsonMissing(['event_id' => $this->a->event_id]);
     $this->getJson('/api/v1/events/'.$this->a->event->slug)->assertOk();
     $this->getJson('/api/v1/occurrences/'.$this->a->id)->assertOk();
     Sanctum::actingAs(User::factory()->create());
-    expect($this->getJson('/api/v1/events?limit=50')->assertOk()->getContent())->toContain($this->a->event->title);
+    $this->getJson('/api/v1/events?limit=50')->assertOk()->assertJsonFragment(['event_id' => $this->a->event_id]);
 });
 
 it('filters live search, calendar and feed without silently subscribing to notifications', function (): void {
