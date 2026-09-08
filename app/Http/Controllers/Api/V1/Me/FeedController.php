@@ -13,6 +13,7 @@ use App\Http\Resources\V1\VenueResource;
 use App\Models\Category;
 use App\Models\EventOccurrence;
 use App\Models\Venue;
+use App\Services\Account\ContentPreferences;
 use App\Services\Account\PersonalFeed;
 use App\Services\Api\OccurrenceFeed;
 use App\Support\Api\ApiContext;
@@ -42,7 +43,7 @@ final class FeedController extends Controller
         $city = $this->city();
         $user = $this->user($request);
 
-        if (! $user->followsAnything()) {
+        if (! $user->followsAnything() && app(ContentPreferences::class)->selection($user)['categories'] === []) {
             return ApiResponse::collection([], ['onboarding' => $this->onboarding()]);
         }
 

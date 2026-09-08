@@ -19,6 +19,7 @@ use App\Models\EventOccurrence;
 use App\Models\Tag;
 use App\Models\User;
 use App\Models\Venue;
+use App\Services\Account\ContentPreferences;
 use App\Services\Geo\GeoQueryInterface;
 use Carbon\CarbonImmutable;
 use DateTimeInterface;
@@ -97,7 +98,18 @@ final class EventOccurrenceQuery
      */
     public static function for(City $city): self
     {
-        return new self($city, [EventStatus::Published]);
+        return (new self($city, [EventStatus::Published]))->withContentPreferences();
+    }
+
+    private function withContentPreferences(): self
+    {
+        $preferences = app(ContentPreferences::class);
+        $hidden = $preferences->hidden($preferences->discoveryUser());
+        if ($hidden !== []) {
+            $this->query->withGlobalScope('content_preferences', fn (Builder $query) => $query->whereNotIn('events.category_id', $hidden));
+        }
+
+        return $this;
     }
 
     /**
@@ -112,7 +124,7 @@ final class EventOccurrenceQuery
      */
     public static function archiveFor(City $city): self
     {
-        return new self($city, [EventStatus::Published, EventStatus::Archived]);
+        return (new self($city, [EventStatus::Published, EventStatus::Archived]))->withContentPreferences();
     }
 
     /** Management-only calendar for a single event. The caller must authorize update before exposing results. */
@@ -608,6 +620,8 @@ final class EventOccurrenceQuery
      */
     public function forEvent(Event|int $event): self
     {
+        // A directly opened event (including a booked ticket) remains accessible.
+        $this->query->withoutGlobalScope('content_preferences');
         $this->query->where('events.id', $event instanceof Event ? $event->getKey() : $event);
 
         return $this;
@@ -637,6 +651,7 @@ final class EventOccurrenceQuery
      */
     public function forOccurrence(EventOccurrence|int $occurrence): self
     {
+        $this->query->withoutGlobalScope('content_preferences');
         $this->query->where(
             'event_occurrences.id',
             $occurrence instanceof EventOccurrence ? $occurrence->getKey() : $occurrence,
@@ -674,10 +689,13 @@ final class EventOccurrenceQuery
      * risponde con l'avvio guidato di §15.7, che è un'altra cosa e la decide
      * il controller.
      */
-    public function followedBy(User $user): self
+    public function followedBy(User $user, bool $includeContentPreferences = false): self
     {
         $venues = $user->followedIds(FollowableType::Venue);
         $categories = $user->followedIds(FollowableType::Category);
+        if ($includeContentPreferences) {
+            $categories = array_values(array_unique([...$categories, ...app(ContentPreferences::class)->selection($user)['categories']]));
+        }
         $tags = $user->followedIds(FollowableType::Tag);
 
         if ($venues === [] && $categories === [] && $tags === []) {

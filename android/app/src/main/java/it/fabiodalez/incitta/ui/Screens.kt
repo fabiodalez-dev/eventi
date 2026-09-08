@@ -421,6 +421,7 @@ fun AccountScreen(
     onDeleteAccount: (String) -> Unit,
     onTickets: () -> Unit,
     onClearAuthError: () -> Unit = {},
+    onInterestsSaved: () -> Unit = {},
 ) {
     if (state.session != null) {
         var deletePassword by remember { mutableStateOf("") }
@@ -436,6 +437,7 @@ fun AccountScreen(
                 MetaLabel("ACCOUNT")
                 Text(state.session.user.name?.ifBlank { null } ?: "LETTORE IN CITTÀ", style = androidx.compose.material3.MaterialTheme.typography.headlineLarge)
                 Text(state.session.user.email, color = Muted, modifier = Modifier.padding(top = 6.dp))
+                ContentPreferencesPanel(state.session, onInterestsSaved)
                 NotificationSettingsPanel(state.session)
                 HorizontalDivider(Modifier.padding(vertical = 24.dp), thickness = 2.dp, color = Rule)
                 Text("I salvataggi appartengono esclusivamente a questo account. Uscendo, quelli sincronizzati non vengono mostrati a un altro utente del dispositivo.")

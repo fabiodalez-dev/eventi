@@ -12,6 +12,7 @@ use App\Http\Controllers\Web\SeoController;
 use App\Http\Controllers\Web\SocialDownloadController;
 use App\Http\Controllers\Web\SponsorshipMetricController;
 use App\Http\Controllers\Web\WidgetController;
+use App\Http\Middleware\PersonalizeDiscovery;
 use App\Http\Middleware\RequiresOpsToken;
 use App\Http\Middleware\ResolveCity;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
@@ -38,7 +39,7 @@ Route::get('/release-status', ReleaseStatusController::class)->name('ops.release
  * altre (§11.1). Il secondo gruppo arriva per ultimo, così `/eventi` resta la
  * rotta della città predefinita e non viene letto come "città eventi".
  */
-Route::group([], base_path('routes/public.php'));
+Route::middleware(PersonalizeDiscovery::class)->group(base_path('routes/public.php'));
 
 /*
  * Account, salvataggi e feed (§15). Stanno fuori dai gruppi del sito pubblico
@@ -97,7 +98,7 @@ Route::middleware(RequiresOpsToken::class)
 
 Route::prefix('{city}')
     ->where(['city' => '[a-z][a-z0-9-]*'])
-    ->middleware(ResolveCity::class)
+    ->middleware([ResolveCity::class, PersonalizeDiscovery::class])
     ->name('city.')
     ->group(base_path('routes/public.php'));
 

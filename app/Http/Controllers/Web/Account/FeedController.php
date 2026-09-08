@@ -10,6 +10,7 @@ use App\Http\Controllers\Web\Concerns\InteractsWithAccount;
 use App\Http\Controllers\Web\Concerns\InteractsWithCity;
 use App\Models\Category;
 use App\Models\Venue;
+use App\Services\Account\ContentPreferences;
 use App\Services\Account\PersonalFeed;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
@@ -36,7 +37,7 @@ final class FeedController extends Controller
         $input = $request->validate(['venue_q' => 'nullable|string|max:120', 'venues_page' => 'nullable|integer|min:1', 'categories_page' => 'nullable|integer|min:1']);
         $venueSearch = trim($input['venue_q'] ?? '');
 
-        $follows = $user->followsAnything();
+        $follows = $user->followsAnything() || app(ContentPreferences::class)->selection($user)['categories'] !== [];
 
         $occurrences = $follows
             ? $this->feed->paginate($city, $user, min(12, config()->integer('account.feed_per_page')))->withQueryString()

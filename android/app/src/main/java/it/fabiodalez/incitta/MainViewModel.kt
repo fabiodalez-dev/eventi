@@ -80,16 +80,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _state = MutableStateFlow(
         AppUiState(
             occurrences = repository.cachedOccurrences(),
+            session = repository.session.value,
             privacyConsent = repository.privacyConsent(),
         ),
     )
     val state: StateFlow<AppUiState> = _state.asStateFlow()
     private val bannerImpressions = mutableSetOf<Long>()
+    private var discoveryGeneration = 0
 
     suspend fun refreshSponsoredBanner(excludeEvent: String?) {
+        val generation = discoveryGeneration
         try {
             val banner = repository.sponsoredBanner(excludeEvent, _state.value.selectedVenue?.slug, _state.value.activeTag?.slug)?.takeIf { it.validAt() }
-            _state.value = _state.value.copy(sponsoredBanner = banner)
+            if (generation == discoveryGeneration) _state.value = _state.value.copy(sponsoredBanner = banner)
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (_: Exception) {
@@ -118,6 +121,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
     private var searchJob: Job? = null
     private var refreshJob: Job? = null
+    private var mapJob: Job? = null
     private var detailJob: Job? = null
     private var bookingJob: Job? = null
     private val detailHistory = mutableListOf<DetailSnapshot>()
@@ -126,11 +130,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             combine(repository.session, repository.savedIds) { session, saved -> session to saved }
                 .collect { (session, saved) ->
-                    if (_state.value.session?.token != session?.token) {
+                    val sessionChanged = _state.value.session?.token != session?.token
+                    if (sessionChanged) {
                         bookingJob?.cancel()
                         _state.value = _state.value.copy(bookings = emptyList(), bookingDate = null, bookingAvailability = null, bookingBusy = false, bookingError = null)
                     }
                     _state.value = _state.value.copy(session = session, savedIds = saved)
+                    if (sessionChanged) interestsChanged()
                 }
         }
         refresh(EventFilter.ALL)
@@ -146,6 +152,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (tab == AppTab.MAP) loadMap()
         if (tab == AppTab.SEARCH || tab == AppTab.VENUES) loadVenues()
         if (tab == AppTab.CALENDAR) refresh(EventFilter.ALL)
+        if (tab == AppTab.EVENTS) refresh()
         if (tab == AppTab.TICKETS) loadBookings()
     }
 
@@ -253,6 +260,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     )
                 }
         }
+    }
+
+    fun interestsChanged() {
+        discoveryGeneration++
+        detailJob?.cancel()
+        detailHistory.clear()
+        searchJob?.cancel()
+        repository.clearDiscoveryCache()
+        _state.value = _state.value.copy(occurrences = emptyList(), searchResults = emptyList(), searchVenues = emptyList(), searchTags = emptyList(), activeTag = null, mapMarkers = emptyList(), mapPreviewEvents = emptyList(), sponsoredBanner = null, relatedOccurrences = emptyList(), venueOccurrences = emptyList(), venuePastOccurrences = emptyList())
+        refresh()
+        loadMap()
+        viewModelScope.launch { refreshSponsoredBanner(null) }
     }
 
     fun search(query: String) {
@@ -560,7 +579,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun loadMap(filter: EventFilter = _state.value.mapFilter) {
-        viewModelScope.launch {
+        mapJob?.cancel()
+        mapJob = viewModelScope.launch {
             _state.value = _state.value.copy(
                 mapFilter = filter,
                 isMapLoading = true,
@@ -575,6 +595,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 }
                 .onFailure {
+                    if (it is CancellationException) return@onFailure
                     if (_state.value.mapFilter == filter) {
                         _state.value = _state.value.copy(isMapLoading = false, message = userMessage(it))
                     }

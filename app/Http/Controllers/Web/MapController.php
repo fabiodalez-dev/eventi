@@ -102,7 +102,7 @@ final class MapController extends Controller
 
         return response()
             ->json($this->payload->build($city, $request->filters(), $request->bounds()))
-            ->header('Cache-Control', 'private, max-age=60');
+            ->header('Cache-Control', $request->user() ? 'private, no-store' : 'private, max-age=60');
     }
 
     /**

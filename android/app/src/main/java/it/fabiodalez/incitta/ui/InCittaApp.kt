@@ -180,6 +180,7 @@ fun InCittaApp(viewModel: MainViewModel) {
                         onDeleteAccount = viewModel::deleteAccount,
                         onTickets = { viewModel.selectTab(AppTab.TICKETS) },
                         onClearAuthError = viewModel::clearAuthError,
+                        onInterestsSaved = viewModel::interestsChanged,
                     )
                     AppTab.CALENDAR -> CalendarScreen(state, padding, viewModel::open, viewModel::toggleSaved) { viewModel.selectTab(AppTab.EVENTS) }
                     AppTab.VENUES -> VenuesScreen(state, padding, viewModel::openVenue) { viewModel.selectTab(AppTab.EVENTS) }

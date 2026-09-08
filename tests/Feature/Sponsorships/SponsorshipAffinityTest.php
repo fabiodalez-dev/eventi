@@ -135,10 +135,7 @@ it('inclina la bilancia senza ribaltarla: chi ha comprato compare comunque', fun
     expect($conteggio['una mostra'] ?? 0)->toBeGreaterThan(0, 'chi non e affine non deve sparire');
 });
 
-it('rispetta il moltiplicatore dichiarato, non un ordine arbitrario', function (): void {
-    /* Pari peso e moltiplicatore 2: l'affine vale il doppio, quindi due terzi
-       delle apparizioni. Un numero verificabile, non «prima lei». */
-    config()->set('eventi.sponsorship_affinity_multiplier', 2);
+it('usa il peso inferito 1.5 senza superare le preferenze esplicite', function (): void {
 
     campagnaSuCategoria($this->concerti, 'un concerto');
     campagnaSuCategoria($this->mostre, 'una mostra');
@@ -147,8 +144,8 @@ it('rispetta il moltiplicatore dichiarato, non un ordine arbitrario', function (
 
     $conteggio = conteggioSuMinuti(300);
 
-    expect($conteggio['un concerto'])->toBe(200)
-        ->and($conteggio['una mostra'])->toBe(100);
+    expect($conteggio['un concerto'])->toBe(180)
+        ->and($conteggio['una mostra'])->toBe(120);
 });
 
 it('non cambia niente per chi non e collegato', function (): void {

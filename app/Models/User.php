@@ -28,6 +28,7 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
+/** @property array{mode?: string, categories?: list<int>, hidden_categories?: list<int>, inferred_ads?: bool}|null $content_preferences */
 class User extends Authenticatable implements FilamentUser, HasTenants, MustVerifyEmail
 {
     /*
@@ -54,6 +55,7 @@ class User extends Authenticatable implements FilamentUser, HasTenants, MustVeri
         'timezone',
         'locale',
         'notification_preferences',
+        'content_preferences',
         'daily_digest_time',
         'quiet_hours',
         'marketing_opt_in_at',
@@ -372,6 +374,7 @@ class User extends Authenticatable implements FilamentUser, HasTenants, MustVeri
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'notification_preferences' => 'array',
+            'content_preferences' => 'array',
             'quiet_hours' => 'array',
             'marketing_opt_in_at' => 'datetime',
             'last_active_at' => 'datetime',

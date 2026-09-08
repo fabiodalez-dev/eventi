@@ -38,7 +38,7 @@ final class PersonalFeed
     {
         $paginator = EventOccurrenceQuery::for($city)
             ->upcoming()
-            ->followedBy($user)
+            ->followedBy($user, includeContentPreferences: true)
             ->paginate($perPage, $page);
 
         /** @var Collection<int, EventOccurrence> $items */
@@ -57,7 +57,7 @@ final class PersonalFeed
     {
         return EventOccurrenceQuery::for($city)
             ->upcoming()
-            ->followedBy($user)
+            ->followedBy($user, includeContentPreferences: true)
             ->cursorPaginate($perPage, $cursor);
     }
 

@@ -30,7 +30,9 @@ class NavigationSmokeTest {
         dismissConsent()
         compose.onAllNodes(hasScrollAction()).onFirst().performScrollToNode(hasText(compose.activity.getString(R.string.calendar_banner_title)))
         compose.onNodeWithText(compose.activity.getString(R.string.calendar_customize)).performClick()
-        compose.onNodeWithText(compose.activity.getString(R.string.calendar_sync_help)).assertExists()
+        // Calendar configuration is a lazy item below the month header.
+        compose.onAllNodes(hasScrollAction()).onFirst().performScrollToNode(hasText(compose.activity.getString(R.string.calendar_sync_help)))
+        compose.onNodeWithText(compose.activity.getString(R.string.calendar_sync_help)).assertIsDisplayed()
     }
 
     @Test fun liveSearchAndMapKeepBottomNavigationAvailable() {
