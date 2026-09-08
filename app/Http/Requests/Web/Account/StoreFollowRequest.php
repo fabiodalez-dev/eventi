@@ -23,6 +23,7 @@ class StoreFollowRequest extends FormRequest
         return [
             'type' => ['required', Rule::enum(FollowableType::class)],
             'id' => ['required', 'integer', 'min:1'],
+            'notify' => ['sometimes', 'boolean'],
         ];
     }
 

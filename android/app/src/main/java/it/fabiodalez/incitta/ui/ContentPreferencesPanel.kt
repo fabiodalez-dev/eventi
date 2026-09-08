@@ -44,7 +44,7 @@ fun ContentPreferencesPanel(session: Session, onSaved: () -> Unit) {
             message = ""
         } catch (error: Exception) {
             if (error is CancellationException) throw error
-            message = "Non riesco a caricare gli interessi. Controlla la connessione e riprova."
+            message = "Interessi non caricati. ${requestFailureMessage(error)}"
         } finally { busy = false }
     }
     LaunchedEffect(expanded, session.user.id) { if (expanded && data == null) load() }
@@ -110,7 +110,7 @@ fun ContentPreferencesPanel(session: Session, onSaved: () -> Unit) {
                 onSaved()
             } catch (error: Exception) {
                 if (error is CancellationException) throw error
-                message = "Salvataggio non riuscito. Le modifiche non sono state applicate: riprova."
+                message = "Salvataggio non confermato. ${requestFailureMessage(error)}"
             } finally { busy = false }
         }
     }, enabled = !busy, shape = RectangleShape, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text("SALVA I MIEI INTERESSI") }

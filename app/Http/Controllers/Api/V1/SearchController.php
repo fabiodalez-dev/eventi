@@ -62,6 +62,9 @@ final class SearchController extends Controller
         $timezone = $city->timezone;
 
         return ApiResponse::collection([
+            'organizers' => $this->search->organizers($city, $term, $limit)->map(fn ($organizer) => [
+                'id' => $organizer->id, 'slug' => $organizer->slug, 'name' => $organizer->name, 'url' => route('organizers.show', $organizer),
+            ])->all(),
             'events' => $occurrences
                 ->map(static fn (EventOccurrence $occurrence): array => OccurrenceResource::toArray($occurrence, $context))
                 ->all(),

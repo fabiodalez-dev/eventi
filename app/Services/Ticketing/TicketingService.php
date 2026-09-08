@@ -42,7 +42,7 @@ final class TicketingService
         $open = $this->isOpen($date);
 
         return [
-            'enabled' => (bool) ($date->booking_enabled && $date->event?->venue?->ticketing_enabled),
+            'enabled' => (bool) ($date->booking_enabled && $date->effectiveVenue()?->ticketing_enabled),
             'open' => $open,
             'sale_state' => match (true) {
                 ! $this->eventValid($date) => TicketTierStatus::Closed->value,
@@ -179,7 +179,7 @@ final class TicketingService
     {
         DB::transaction(function () use ($date, $settings, $actor): void {
             $date = EventOccurrence::query()->lockForUpdate()->findOrFail($date->id);
-            $this->ensure((bool) $date->event?->venue?->ticketing_enabled, 'disabled');
+            $this->ensure((bool) $date->effectiveVenue()?->ticketing_enabled, 'disabled');
             $capacity = $settings['booking_capacity'] ?? null;
             $this->ensure($capacity === null || $capacity >= $this->occupied($date), 'capacity_too_low');
             $date->update($settings);
@@ -262,14 +262,14 @@ final class TicketingService
     private function eventValid(EventOccurrence $date): bool
     {
         return ! $date->trashed() && $date->event?->status === EventStatus::Published
-            && ! $date->event->venue?->status?->isProvvedimento()
+            && ! $date->effectiveVenue()?->status?->isProvvedimento()
             && in_array($date->status, [OccurrenceStatus::Scheduled, OccurrenceStatus::SoldOut, OccurrenceStatus::Moved], true);
     }
 
     private function isOpen(EventOccurrence $date): bool
     {
         return $this->eventValid($date) && $date->status !== OccurrenceStatus::SoldOut
-            && $date->booking_enabled && $date->event?->venue?->ticketing_enabled
+            && $date->booking_enabled && $date->effectiveVenue()?->ticketing_enabled
             && ($date->booking_opens_at === null || now()->gte($date->booking_opens_at))
             && now()->lt($date->booking_closes_at ?? $date->starts_at)
             && now()->lt($date->starts_at);

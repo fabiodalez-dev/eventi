@@ -210,7 +210,7 @@ final class DigestPlanner
             FollowableType::feedSources(),
         );
 
-        foreach (Follow::query()->whereIn('followable_type', $sources)->distinct()->pluck('user_id') as $id) {
+        foreach (Follow::query()->notifying()->whereIn('followable_type', $sources)->distinct()->pluck('user_id') as $id) {
             $ids[(int) $id] = true;
         }
 

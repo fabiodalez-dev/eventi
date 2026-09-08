@@ -16,6 +16,7 @@ use App\Models\Category;
 use App\Models\City;
 use App\Models\Event;
 use App\Models\EventOccurrence;
+use App\Models\Organizer;
 use App\Models\Tag;
 use App\Models\User;
 use App\Models\Venue;
@@ -404,6 +405,29 @@ final class EventOccurrenceQuery
         return $this;
     }
 
+    /** Only dates that can still be proposed as a concrete outing. */
+    public function availableForDiscovery(): self
+    {
+        $this->query->whereIn('event_occurrences.status', [OccurrenceStatus::Scheduled->value, OccurrenceStatus::Moved->value]);
+
+        return $this;
+    }
+
+    /** Match the effective date price, not a cheaper default on the parent event. */
+    public function discoveryBudget(int $amount): self
+    {
+        $overrideType = "JSON_UNQUOTE(JSON_EXTRACT(event_occurrences.price_override, '$.price_type'))";
+        $type = "CASE WHEN {$overrideType} IN ('free','donation','ticket','membership','unknown') THEN {$overrideType} ELSE events.price_type END";
+        $minimum = "COALESCE(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(event_occurrences.price_override, '$.price_min')), 'null'), events.price_min)";
+        if ($amount === 0) {
+            $this->query->whereRaw("({$type}) = ?", [PriceType::Free->value]);
+        } else {
+            $this->query->whereRaw("(({$type}) IN (?, ?) OR (({$type}) IN (?, ?) AND ({$minimum}) REGEXP '^[0-9]+([.][0-9]+)?$' AND CAST(({$minimum}) AS DECIMAL(12,2)) <= ?))", [PriceType::Free->value, PriceType::Donation->value, PriceType::Ticket->value, PriceType::Membership->value, $amount]);
+        }
+
+        return $this;
+    }
+
     /**
      * A offerta libera: si entra senza biglietto ma si lascia qualcosa.
      */
@@ -517,7 +541,15 @@ final class EventOccurrenceQuery
 
     public function atVenue(Venue|int $venue): self
     {
-        $this->query->where('events.venue_id', $venue instanceof Venue ? $venue->getKey() : $venue);
+        $this->query->where('venues.id', $venue instanceof Venue ? $venue->getKey() : $venue);
+
+        return $this;
+    }
+
+    public function byOrganizer(Organizer $organizer): self
+    {
+        $this->query->withoutGlobalScope('city');
+        $this->query->where('events.organizer_id', $organizer->id);
 
         return $this;
     }
@@ -689,24 +721,29 @@ final class EventOccurrenceQuery
      * risponde con l'avvio guidato di §15.7, che è un'altra cosa e la decide
      * il controller.
      */
-    public function followedBy(User $user, bool $includeContentPreferences = false): self
+    public function followedBy(User $user, bool $includeContentPreferences = false, bool $notifyingOnly = false): self
     {
-        $venues = $user->followedIds(FollowableType::Venue);
-        $categories = $user->followedIds(FollowableType::Category);
+        $venues = $user->followedIds(FollowableType::Venue, $notifyingOnly);
+        $organizers = Organizer::query()->where('is_active', true)
+            ->whereIn('id', $user->followedIds(FollowableType::Organizer, $notifyingOnly))->pluck('id')->all();
+        $categories = $user->followedIds(FollowableType::Category, $notifyingOnly);
         if ($includeContentPreferences) {
             $categories = array_values(array_unique([...$categories, ...app(ContentPreferences::class)->selection($user)['categories']]));
         }
-        $tags = $user->followedIds(FollowableType::Tag);
+        $tags = $user->followedIds(FollowableType::Tag, $notifyingOnly);
 
-        if ($venues === [] && $categories === [] && $tags === []) {
+        if ($venues === [] && $organizers === [] && $categories === [] && $tags === []) {
             $this->query->whereRaw('1 = 0');
 
             return $this;
         }
 
-        $this->query->where(function (Builder $match) use ($venues, $categories, $tags): void {
+        $this->query->where(function (Builder $match) use ($venues, $organizers, $categories, $tags): void {
+            if ($organizers !== []) {
+                $match->orWhereIn('events.organizer_id', $organizers);
+            }
             if ($venues !== []) {
-                $match->orWhereIn('events.venue_id', $venues);
+                $match->orWhereIn('venues.id', $venues);
             }
 
             if ($categories !== []) {
@@ -772,6 +809,9 @@ final class EventOccurrenceQuery
                 ->orWhere('events.subtitle', 'like', $pattern)
                 ->orWhere('events.short_description', 'like', $pattern)
                 ->orWhere('events.organizer_name', 'like', $pattern)
+                ->orWhereExists(fn ($organizers) => $organizers->selectRaw('1')->from('organizers')
+                    ->whereColumn('organizers.id', 'events.organizer_id')->where('organizers.is_active', true)
+                    ->where(fn ($text) => $text->where('organizers.name', 'like', $pattern)->orWhere('organizers.description', 'like', $pattern)))
                 ->orWhere('events.description', 'like', $pattern)
                 ->orWhere('venues.name', 'like', $pattern)
                 ->orWhere('venues.short_description', 'like', $pattern)
@@ -929,7 +969,7 @@ final class EventOccurrenceQuery
      */
     public function countsByVenue(): array
     {
-        return $this->keyedCounts('events.venue_id');
+        return $this->keyedCounts('venues.id');
     }
 
     /**
@@ -1124,9 +1164,9 @@ final class EventOccurrenceQuery
             ->join('events', 'events.id', '=', 'event_occurrences.event_id')
             ->join('categories', 'categories.id', '=', 'events.category_id')
             ->leftJoin('venues', function (JoinClause $join): void {
-                $join->on('venues.id', '=', 'events.venue_id')->whereNull('venues.deleted_at');
+                $join->on('venues.id', '=', DB::raw('COALESCE(event_occurrences.venue_id, events.venue_id)'))->whereNull('venues.deleted_at');
             })
-            ->where('events.city_id', $this->city->getKey())
+            ->withGlobalScope('city', fn (Builder $query) => $query->where('events.city_id', $this->city->getKey()))
             ->whereIn('events.status', array_map(static fn (EventStatus $status): string => $status->value, $this->statuses))
             ->whereNull('events.deleted_at')
             /*
@@ -1144,7 +1184,7 @@ final class EventOccurrenceQuery
              */
             ->where(function (Builder $pubblico): void {
                 $pubblico
-                    ->whereNull('events.venue_id')
+                    ->whereRaw('COALESCE(event_occurrences.venue_id, events.venue_id) IS NULL')
                     ->orWhereIn('venues.status', VenueStatus::valoriSenzaProvvedimento());
             });
     }

@@ -61,7 +61,7 @@ final class EditorialFields
                 $fields[] = TextInput::make('organizer_name')->label(__('seo.organizer_name'))->maxLength(180);
                 $fields[] = TextInput::make('organizer_url')->label(__('seo.organizer_url'))->url()->maxLength(2048);
             }
-            foreach (['minors_policy', 'cancellation_policy', 'refund_policy', 'public_contact', 'poster_alt', 'poster_caption', 'poster_credit'] as $key) {
+            foreach (['membership_notes', 'mandatory_costs', 'weather_policy', 'minors_policy', 'cancellation_policy', 'refund_policy', 'public_contact', 'poster_alt', 'poster_caption', 'poster_credit'] as $key) {
                 $fields[] = Textarea::make('content_details.'.$key)->label(__('seo.fields.'.$key))->maxLength(2000)->rows(2);
             }
             $fields[] = Repeater::make('content_details.agenda')->label(__('seo.agenda'))->defaultItems(0)->maxItems(50)

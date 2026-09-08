@@ -56,7 +56,7 @@ final class SponsorshipBannerController extends Controller
                     'event_slug' => $event->slug,
                     'title' => $event->title,
                     'when' => $date->is_all_day ? $format->day($date->business_date).' · '.__('events.badge.all_day') : $format->dayAndTime($date->business_date, $date->starts_at),
-                    'place' => $event->venue->name ?? ($event->custom_location['name'] ?? ''),
+                    'place' => $date->effectiveVenue()->name ?? ($event->custom_location['name'] ?? ''),
                     'category' => $event->category->name ?? '',
                     'price' => $priceLabel,
                     'advertiser' => $campaign->advertiser_name,

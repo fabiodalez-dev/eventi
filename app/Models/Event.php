@@ -34,6 +34,8 @@ use Spatie\Sluggable\SlugOptions;
 
 class Event extends Model implements HasMedia
 {
+    protected $with = ['organizer'];
+
     use HasEditorialContent;
 
     /** @use HasFactory<EventFactory> */
@@ -50,6 +52,7 @@ class Event extends Model implements HasMedia
     protected $fillable = [
         'city_id',
         'venue_id',
+        'organizer_id',
         'category_id',
         'created_by',
         'organizer_name',
@@ -167,6 +170,12 @@ class Event extends Model implements HasMedia
     public function venue(): BelongsTo
     {
         return $this->belongsTo(Venue::class);
+    }
+
+    /** @return BelongsTo<Organizer, $this> */
+    public function organizer(): BelongsTo
+    {
+        return $this->belongsTo(Organizer::class);
     }
 
     /** @return BelongsTo<Category, $this> */

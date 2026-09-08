@@ -44,6 +44,7 @@ data class Occurrence(
     @SerialName("is_outdoor") val isOutdoor: Boolean = false,
     val url: String? = null,
     @SerialName("is_saved") val isSaved: Boolean = false,
+    @SerialName("content_details") val contentDetails: JsonElement? = null,
 )
 
 @Serializable
@@ -141,7 +142,7 @@ data class ExternalBooking(
 )
 
 @Serializable
-data class Organizer(val name: String? = null, val url: String? = null)
+data class Organizer(val name: String? = null, val url: String? = null, val id: Long? = null, val slug: String? = null, @SerialName("host_fallback") val hostFallback: Boolean = false)
 
 @Serializable
 data class ExternalLink(val label: String, val url: String)
@@ -210,6 +211,7 @@ data class MergeResult(
 
 @Serializable
 data class SearchResults(
+    val organizers: List<Organizer> = emptyList(),
     val events: List<Occurrence> = emptyList(),
     val venues: List<Venue> = emptyList(),
     val tags: List<Tag> = emptyList(),

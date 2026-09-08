@@ -229,6 +229,7 @@ return [
     ],
 
     'followable_type' => [
+        'organizer' => 'Organizzatore',
         'venue' => 'Locale',
         'tag' => 'Tag',
         'category' => 'Categoria',

@@ -39,6 +39,8 @@ use App\Http\Controllers\TicketingController;
 use App\Http\Controllers\Web\Account\ContentPreferencesController;
 use App\Http\Controllers\Web\Account\NotificationInterestsController;
 use App\Http\Controllers\Web\Account\SavedCalendarController;
+use App\Http\Controllers\Web\OrganizerController;
+use App\Http\Controllers\Web\TonightController;
 use App\Http\Middleware\Api\CacheJsonResponse;
 use App\Http\Middleware\Api\IdempotentRequest;
 use App\Http\Middleware\Api\ResolveApiCity;
@@ -83,6 +85,7 @@ Route::prefix('v1')
 
         // Deliberately outside the JSON cache: switches and short ad leases must stay live.
         Route::get('/sponsorships/banner', SponsorshipBannerController::class)->name('sponsorships.banner');
+        Route::get('/tonight', TonightController::class)->middleware(PersonalizeDiscovery::class)->name('tonight');
 
         Route::middleware([CacheJsonResponse::class, PersonalizeDiscovery::class])->group(function (): void {
             Route::get('/config', ConfigController::class)->name('config');
@@ -107,6 +110,8 @@ Route::prefix('v1')
             Route::get('/calendar', CalendarController::class)->name('calendar');
 
             Route::get('/venues', [VenueController::class, 'index'])->name('venues.index');
+            Route::get('/organizers', [OrganizerController::class, 'index'])->name('organizers.index');
+            Route::get('/organizers/{slug}', [OrganizerController::class, 'show'])->name('organizers.show');
             Route::get('/venues/{slug}/events', [VenueController::class, 'events'])->name('venues.events');
             Route::get('/venues/{slug}/past', [VenueController::class, 'past'])->name('venues.past');
             Route::get('/venues/{slug}', [VenueController::class, 'show'])->name('venues.show');
@@ -213,6 +218,7 @@ Route::prefix('v1')
                     ->name('saved.destroy');
 
                 Route::get('/follows', [FollowController::class, 'index'])->name('follows.index');
+                Route::get('/follows/{type}/{id}', [FollowController::class, 'show'])->whereNumber('id')->name('follows.show');
                 Route::post('/follows', [FollowController::class, 'store'])->middleware(IdempotentRequest::class)->name('follows.store');
                 Route::delete('/follows/{type}/{id}', [FollowController::class, 'destroy'])
                     ->whereNumber('id')

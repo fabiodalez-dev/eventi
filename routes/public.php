@@ -11,13 +11,19 @@ use App\Http\Controllers\Web\EventSubmissionController;
 use App\Http\Controllers\Web\FeedController;
 use App\Http\Controllers\Web\HomeController;
 use App\Http\Controllers\Web\MapController;
+use App\Http\Controllers\Web\OrganizerController;
 use App\Http\Controllers\Web\ReportController;
 use App\Http\Controllers\Web\SearchController;
 use App\Http\Controllers\Web\SearchSuggestionsController;
+use App\Http\Controllers\Web\TonightController;
 use App\Http\Controllers\Web\VenueApplicationController;
 use App\Http\Controllers\Web\VenueController;
 use App\Http\Middleware\CachePage;
+use App\Http\Middleware\PersonalizeDiscovery;
 use Illuminate\Support\Facades\Route;
+
+Route::get('/organizzatori', [OrganizerController::class, 'index'])->name('organizers.index');
+Route::get('/organizzatori/{slug}', [OrganizerController::class, 'show'])->name('organizers.show');
 
 /*
 |--------------------------------------------------------------------------
@@ -43,6 +49,7 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/', HomeController::class)->middleware(CachePage::class)->name('home');
+Route::get('/stasera', TonightController::class)->middleware(PersonalizeDiscovery::class)->name('tonight.wizard');
 
 // Web middleware resolves the session; never cache personalized banner responses.
 Route::get('/banner-sponsorizzato', SponsorshipBannerController::class)->name('sponsorships.banner');

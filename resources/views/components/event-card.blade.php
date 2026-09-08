@@ -38,7 +38,7 @@
     $formatter = app(\App\Support\DateFormatter::class);
 
     $event = $occurrence->event;
-    $venue = $event->venue;
+    $venue = $occurrence->effectiveVenue();
     $category = $event->category;
     $status = $occurrence->status;
 

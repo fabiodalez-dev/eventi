@@ -7,6 +7,7 @@ namespace App\Http\Resources\V1;
 use App\Models\Category;
 use App\Models\Event;
 use App\Models\Follow;
+use App\Models\Organizer;
 use App\Models\Tag;
 use App\Models\Venue;
 use App\Support\Api\ApiDate;
@@ -42,7 +43,7 @@ final class FollowResource
     private static function name(?object $subject): ?string
     {
         return match (true) {
-            $subject instanceof Venue, $subject instanceof Tag, $subject instanceof Category => $subject->name,
+            $subject instanceof Venue, $subject instanceof Organizer, $subject instanceof Tag, $subject instanceof Category => $subject->name,
             $subject instanceof Event => $subject->title,
             default => null,
         };
@@ -51,7 +52,7 @@ final class FollowResource
     private static function slug(?object $subject): ?string
     {
         return match (true) {
-            $subject instanceof Venue, $subject instanceof Tag, $subject instanceof Category, $subject instanceof Event => $subject->slug,
+            $subject instanceof Venue, $subject instanceof Organizer, $subject instanceof Tag, $subject instanceof Category, $subject instanceof Event => $subject->slug,
             default => null,
         };
     }

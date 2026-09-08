@@ -101,7 +101,7 @@ internal class ApiClient(
             try {
                 json.decodeFromString<T>(payload)
             } catch (error: SerializationException) {
-                throw IOException("La risposta del server non è compatibile con questa versione dell'app.", error)
+                throw ApiPayloadException(error)
             }
         }
     }

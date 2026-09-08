@@ -25,6 +25,9 @@ fun EditorialInformation(value: JsonElement?) {
         "transit_notes" to R.string.editorial_transit,
         "entrance_notes" to R.string.editorial_entrance,
         "accessibility_notes" to R.string.editorial_accessibility,
+        "membership_notes" to R.string.editorial_membership,
+        "mandatory_costs" to R.string.editorial_mandatory_costs,
+        "weather_policy" to R.string.editorial_weather,
         "minors_policy" to R.string.editorial_minors,
         "cancellation_policy" to R.string.editorial_cancellation,
         "refund_policy" to R.string.editorial_refund,
@@ -33,6 +36,13 @@ fun EditorialInformation(value: JsonElement?) {
         "poster_credit" to R.string.editorial_credit,
     )
     Column(Modifier.padding(horizontal = 22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(stringResource(R.string.editorial_before_going), style = MaterialTheme.typography.titleLarge)
+        text("minimum_age")?.let { Text(stringResource(R.string.editorial_minimum_age) + ": " + it) }
+        when (text("parking_type")) {
+            "free" -> Text(stringResource(R.string.editorial_parking_free))
+            "paid" -> Text(stringResource(R.string.editorial_parking_paid))
+            "none" -> Text(stringResource(R.string.editorial_parking_none))
+        }
         text("attendance_mode")?.takeIf { it != "offline" }?.let {
             Text(stringResource(if (it == "online") R.string.editorial_online else R.string.editorial_mixed))
             text("online_url")?.let { url ->
@@ -44,9 +54,11 @@ fun EditorialInformation(value: JsonElement?) {
                 }
             }
         }
-        text("accessibility")?.let {
-            Text(stringResource(R.string.editorial_accessibility) + ": " + stringResource(if (it == "yes") R.string.editorial_yes else R.string.editorial_no))
-        }
+        Text(stringResource(R.string.editorial_accessibility) + ": " + stringResource(when (text("accessibility")) {
+            "yes" -> R.string.editorial_yes
+            "no" -> R.string.editorial_no
+            else -> R.string.editorial_unspecified
+        }))
         fields.forEach { (key, label) ->
             text(key)?.let {
                 Text(stringResource(label), style = MaterialTheme.typography.titleMedium)

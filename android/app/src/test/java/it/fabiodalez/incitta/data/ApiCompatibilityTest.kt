@@ -48,6 +48,7 @@ class ApiCompatibilityTest {
         }
         val events = json.decodeFromString<ApiEnvelope<List<Occurrence>>>(fetch("events?city=padova")).data
         val venues = json.decodeFromString<ApiEnvelope<List<Venue>>>(fetch("venues?city=padova")).data
+        json.decodeFromString<ApiEnvelope<it.fabiodalez.incitta.ui.TonightPayload>>(fetch("tonight?city=padova&step=3"))
         json.decodeFromString<ApiEnvelope<SearchResults>>(fetch("search?city=padova&q=teatro"))
         json.decodeFromString<ApiEnvelope<List<MapMarker>>>(fetch("map/occurrences?city=padova&preset=today"))
         events.map { it.eventSlug }.distinct().forEach { slug ->

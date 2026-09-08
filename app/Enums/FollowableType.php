@@ -6,6 +6,7 @@ namespace App\Enums;
 
 use App\Models\Category;
 use App\Models\Event;
+use App\Models\Organizer;
 use App\Models\Tag;
 use App\Models\Venue;
 use Illuminate\Database\Eloquent\Model;
@@ -23,6 +24,7 @@ use Illuminate\Database\Eloquent\Model;
 enum FollowableType: string
 {
     case Venue = 'venue';
+    case Organizer = 'organizer';
     case Tag = 'tag';
     case Category = 'category';
     case Event = 'event';
@@ -43,6 +45,7 @@ enum FollowableType: string
     {
         return match ($this) {
             self::Venue => Venue::class,
+            self::Organizer => Organizer::class,
             self::Tag => Tag::class,
             self::Category => Category::class,
             self::Event => Event::class,
@@ -58,7 +61,7 @@ enum FollowableType: string
      */
     public static function feedSources(): array
     {
-        return [self::Venue, self::Tag, self::Category];
+        return [self::Venue, self::Organizer, self::Tag, self::Category];
     }
 
     public function isFeedSource(): bool

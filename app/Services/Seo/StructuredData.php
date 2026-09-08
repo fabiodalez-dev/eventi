@@ -49,6 +49,8 @@ final class StructuredData
      */
     public function event(Event $event, EventOccurrence $occurrence): array
     {
+        $event = clone $event;
+        $event->setRelation('venue', $occurrence->effectiveVenue());
         $url = route('events.show', $event);
         $poster = Poster::absoluteUrl($event);
         $details = app(EditorialContent::class)->details($event);
@@ -338,6 +340,10 @@ final class StructuredData
      */
     public function organizer(Event $event): array
     {
+        if ($event->organizer?->is_active) {
+            return ['@type' => 'Organization', '@id' => route('organizers.show', $event->organizer).'#organizer',
+                'name' => $event->organizer->name, 'url' => route('organizers.show', $event->organizer)];
+        }
         $registered = $event->content_details['organizer_venue_id'] ?? null;
         $organizer = $registered === null ? null : Venue::query()->approved()->whereKey($registered)->first();
         if ($organizer !== null) {

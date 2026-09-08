@@ -17,4 +17,13 @@
     <string name="editorial_credit">Crediti</string>
     <string name="editorial_agenda">Programma</string>
     <string name="editorial_faq">Domande frequenti</string>
+    <string name="editorial_before_going">Prima di andare</string>
+    <string name="editorial_unspecified">Non comunicato</string>
+    <string name="editorial_membership">Tessera e iscrizione</string>
+    <string name="editorial_mandatory_costs">Costi obbligatori oltre all’ingresso</string>
+    <string name="editorial_weather">In caso di maltempo</string>
+    <string name="editorial_minimum_age">Età minima</string>
+    <string name="editorial_parking_free">Parcheggio gratuito</string>
+    <string name="editorial_parking_paid">Parcheggio a pagamento</string>
+    <string name="editorial_parking_none">Parcheggio non disponibile</string>
 </resources>

@@ -39,7 +39,7 @@ final class OccurrenceResource
     public static function toArray(EventOccurrence $occurrence, ApiContext $context): array
     {
         $event = $occurrence->event;
-        $venue = $event->venue;
+        $venue = $occurrence->effectiveVenue();
         $timezone = $context->timezone;
 
         $payload = [

@@ -9,6 +9,7 @@ use App\Enums\VenueStatus;
 use App\Models\City;
 use App\Models\Event;
 use App\Models\EventOccurrence;
+use App\Models\Organizer;
 use App\Models\Tag;
 use App\Models\Venue;
 use App\Queries\EventOccurrenceQuery;
@@ -33,6 +34,16 @@ use Illuminate\Database\Eloquent\Collection;
  */
 final class SiteSearch
 {
+    /** @return Collection<int, Organizer> */
+    public function organizers(City $city, string $term, int $limit): Collection
+    {
+        $pattern = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $term).'%';
+
+        return Organizer::query()->visibleInCity($city)
+            ->where(fn ($query) => $query->where('name', 'like', $pattern)->orWhere('description', 'like', $pattern))
+            ->orderBy('name')->limit($limit)->get();
+    }
+
     /**
      * Quanti eventi chiedere al motore testuale prima di filtrare le date.
      */

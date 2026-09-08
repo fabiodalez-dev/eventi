@@ -58,9 +58,12 @@ final class EventPoster
     /** Il PDF della locandina, come stringa binaria. */
     public function pdf(EventOccurrence $occurrence): string
     {
+        $event = clone $occurrence->event;
+        $event->setRelation('venue', $occurrence->effectiveVenue());
+
         return Pdf::loadView('pdf.event-poster', [
             'occurrence' => $occurrence,
-            'event' => $occurrence->event,
+            'event' => $event,
             'qr' => $this->qrData($occurrence, 260),
             'url' => $this->url($occurrence),
         ])->setPaper('a4')->output();

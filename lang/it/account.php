@@ -60,6 +60,10 @@ return [
     ],
 
     'follow' => [
+        'organizer' => 'Segui questo organizzatore',
+        'notify_organizer' => 'Includi questo organizzatore nei riepiloghi',
+        'save_notifications' => 'Salva preferenza notifiche',
+        'organizer_hint' => 'Seguirlo alimenta il feed. I riepiloghi rispettano anche le preferenze generali delle notifiche.',
         'venue' => 'Segui questo locale',
         'tag' => 'Segui questo tag',
         'category' => 'Segui questa categoria',

@@ -33,6 +33,9 @@ fun CalendarBanner(onCreate: () -> Unit) {
 
 @Composable
 fun SavedCalendarActions(state: AppUiState) {
+    val exportDone = stringResource(R.string.calendar_export_done)
+    val exportError = stringResource(R.string.calendar_export_error)
+    val savedTitle = stringResource(R.string.calendar_saved_title)
     val context = LocalContext.current
     val store = remember { LocalStore(context) }
     val scope = rememberCoroutineScope()
@@ -46,9 +49,9 @@ fun SavedCalendarActions(state: AppUiState) {
         if (uri != null && body != null && store.readSession()?.token == token) scope.launch {
             try {
                 withContext(Dispatchers.IO) { requireNotNull(context.contentResolver.openOutputStream(uri)).use { it.write(body.toByteArray(Charsets.UTF_8)) } }
-                message = context.getString(R.string.calendar_export_done)
+                message = exportDone
             } catch (e: CancellationException) { throw e }
-            catch (_: Exception) { message = context.getString(R.string.calendar_export_error) }
+            catch (_: Exception) { message = exportError }
         }
     }
     Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -59,13 +62,13 @@ fun SavedCalendarActions(state: AppUiState) {
                     val body = if (token != null) ApiClient(store.installationId).get<ApiEnvelope<CalendarFilePayload>>("me/saved/calendar", token).data.ics
                     else {
                         check(state.savedOccurrences.map { it.occurrenceId }.toSet() == state.savedIds)
-                        SavedCalendarFile.render(state.savedOccurrences, BuildConfig.API_BASE_URL, context.getString(R.string.calendar_saved_title))
+                        SavedCalendarFile.render(state.savedOccurrences, BuildConfig.API_BASE_URL, savedTitle)
                     }
                     check(store.readSession()?.token == token)
                     payload = body
                     launcher.launch("incitta-salvati.ics")
                 } catch (e: CancellationException) { throw e }
-                catch (_: Exception) { message = context.getString(R.string.calendar_export_error) }
+                catch (_: Exception) { message = exportError }
                 finally { busy = false }
             }
         }) { Text(stringResource(if (busy) R.string.calendar_export_loading else R.string.calendar_export_saved)) }

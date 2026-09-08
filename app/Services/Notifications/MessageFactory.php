@@ -8,6 +8,7 @@ use App\DTOs\NotificationMessage;
 use App\Enums\NotificationSkipReason;
 use App\Enums\NotificationType;
 use App\Enums\OccurrenceStatus;
+use App\Filament\Organizer\Resources\Events\EventResource;
 use App\Models\City;
 use App\Models\Event;
 use App\Models\EventOccurrence;
@@ -247,7 +248,7 @@ final readonly class MessageFactory
             : CarbonImmutable::now()->subDays(config()->integer('notifications.digests.venue.window_days'));
 
         $query = EventOccurrenceQuery::for($city)
-            ->followedBy($user)
+            ->followedBy($user, notifyingOnly: true)
             ->upcoming()
             ->updatedSince($window);
 
@@ -283,7 +284,7 @@ final readonly class MessageFactory
             return NotificationSkipReason::NothingToSend;
         }
 
-        $query = EventOccurrenceQuery::for($city)->tonight()->followedBy($user);
+        $query = EventOccurrenceQuery::for($city)->tonight()->followedBy($user, notifyingOnly: true);
 
         $items = $this->items($query, config()->integer('notifications.digests.daily.max_items'), $user);
 
@@ -371,7 +372,9 @@ final readonly class MessageFactory
                 __('notifications.event_rejected.line'),
             ])),
             actionLabel: __('notifications.actions.open_panel'),
-            url: $this->panelUrl($event->venue),
+            url: $event->organizer !== null
+                ? EventResource::getUrl('edit', ['record' => $event], panel: 'organizer', tenant: $event->organizer)
+                : $this->panelUrl($event->venue),
             eventId: (int) $event->getKey(),
         );
     }
@@ -465,7 +468,7 @@ final readonly class MessageFactory
 
     private function where(EventOccurrence $occurrence): string
     {
-        $venue = $occurrence->event->venue;
+        $venue = $occurrence->effectiveVenue();
 
         if (! $venue instanceof Venue) {
             return '';

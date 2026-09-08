@@ -1,7 +1,7 @@
 <x-layouts.app :narrow="true" :meta="$meta">
     <div class="mx-auto flex max-w-2xl flex-col gap-6">
         <header><p class="text-brand font-bold">{{ __('ticketing.free') }}</p><h1 class="text-hero">{{ $date->event->title }}</h1>
-            <p class="mt-3">{{ $date->starts_at->timezone($date->event->city->timezone)->format('d/m/Y H:i') }} · {{ $date->event->venue?->name }}</p></header>
+            <p class="mt-3">{{ $date->starts_at->timezone($date->event->city->timezone)->format('d/m/Y H:i') }} · {{ $date->effectiveVenue()?->name }}</p></header>
         @include('ticketing.errors')
         <p class="text-sm text-ink-muted">{{ __('ticketing.admission_notice') }}</p>
         @if ($availability['open'])

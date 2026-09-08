@@ -39,7 +39,7 @@ final readonly class Capacity
             return null;
         }
 
-        $total = $occurrence->capacity ?? $occurrence->event?->venue?->capacity;
+        $total = $occurrence->capacity ?? $occurrence->effectiveVenue()?->capacity;
 
         if ($total !== null && $total <= 0) {
             $total = null;

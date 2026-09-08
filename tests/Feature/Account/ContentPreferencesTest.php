@@ -70,9 +70,11 @@ it('lets web users change their mind and does not hide purchases or edit credent
     $password = $this->user->password;
     $this->actingAs($this->user)->get('/profilo/interessi')->assertOk()->assertSee('I miei interessi');
     $this->patch('/profilo/interessi', ['mode' => 'selected', 'choices' => [$this->music->id => 'interested', $this->other->id => 'hidden'], 'inferred_ads' => '1'])->assertRedirect();
-    $this->get('/eventi')->assertOk()->assertSee($this->a->event->title)->assertDontSee($this->b->event->title);
+    $this->get('/eventi')->assertOk()
+        ->assertSee('href="'.route('events.show', $this->a->event->slug).'"', false)
+        ->assertDontSee('href="'.route('events.show', $this->b->event->slug).'"', false);
     $this->patch('/profilo/interessi', ['mode' => 'all', 'choices' => [], 'inferred_ads' => '1'])->assertRedirect();
-    $this->get('/eventi')->assertOk()->assertSee($this->b->event->title);
+    $this->get('/eventi')->assertOk()->assertSee('href="'.route('events.show', $this->b->event->slug).'"', false);
     expect($this->user->fresh()->password)->toBe($password);
 });
 

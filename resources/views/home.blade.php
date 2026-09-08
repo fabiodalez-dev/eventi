@@ -136,6 +136,7 @@
             @endif
 
             <div class="flex flex-wrap items-center gap-2.5">
+                <a href="{{ route('tonight.wizard') }}" class="inline-flex min-h-[52px] items-center border-2 border-accent px-[22px] py-3 font-display text-xs font-extrabold uppercase tracking-wide text-accent hover:bg-accent hover:text-on-accent">{{ __('tonight.hero_action') }} →</a>
                 <a
                     href="{{ route('events.index') }}"
                     class="inline-flex h-[52px] items-center gap-2 bg-accent px-[22px] font-display text-xs leading-none font-extrabold tracking-[0.14em] text-on-accent uppercase transition-colors hover:bg-brand-strong"
@@ -292,6 +293,12 @@
         />
     @endif
 
+    <section class="border-y-2 border-line px-6 py-10 sm:px-12">
+        <div class="flex flex-col justify-between gap-6 sm:flex-row sm:items-center">
+            <div><h2 class="font-display text-3xl font-extrabold">{{ __('tonight.banner_title') }}</h2><p class="mt-3 text-ink-muted">{{ __('tonight.banner_help') }}</p></div>
+            <a class="inline-flex min-h-14 items-center justify-center bg-brand px-8 py-4 font-bold text-on-brand" href="{{ route('tonight.wizard') }}">{{ __('tonight.find') }} →</a>
+        </div>
+    </section>
     @foreach ($griglie as $sezione)
         @php $numero++; @endphp
 
@@ -381,7 +388,7 @@
                             <span class="flex min-w-0 flex-auto flex-col gap-1">
                                 <span class="font-display text-[clamp(0.938rem,1.25vw,1.188rem)] leading-[1.1] font-extrabold tracking-[-0.02em] uppercase">{{ $occorrenza->event->title }}</span>
                                 <span class="truncate text-xs leading-[1.4] text-ink-subtle">
-                                    {{ collect([$occorrenza->event->venue?->name, $occorrenza->event->venue?->zone ?: $occorrenza->event->venue?->municipality])->filter()->implode(' '.__('common.separator').' ') }}
+                                    {{ collect([$occorrenza->effectiveVenue()?->name, $occorrenza->effectiveVenue()?->zone ?: $occorrenza->effectiveVenue()?->municipality])->filter()->implode(' '.__('common.separator').' ') }}
                                 </span>
                             </span>
                             <span class="font-display text-[0.813rem] leading-none font-extrabold whitespace-nowrap">

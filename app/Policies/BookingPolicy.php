@@ -18,7 +18,10 @@ class BookingPolicy
 
     public function manage(User $user, EventOccurrence $occurrence): bool
     {
-        $venueId = $occurrence->event?->venue_id;
+        if ($occurrence->event?->organizer?->managedBy($user)) {
+            return true;
+        }
+        $venueId = $occurrence->effectiveVenue()?->id;
 
         return $venueId !== null && ($user->hasAnyRole([UserRole::Admin->value, UserRole::SuperAdmin->value])
             || $user->ownedVenues()->whereKey($venueId)->exists());

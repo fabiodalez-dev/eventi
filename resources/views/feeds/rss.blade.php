@@ -27,7 +27,8 @@
         <lastBuildDate>{{ now()->toRfc2822String() }}</lastBuildDate>
         @foreach ($occurrences as $occurrence)
             @php
-                $event = $occurrence->event;
+                $event = clone $occurrence->event;
+                $event->setRelation('venue', $occurrence->effectiveVenue());
                 $url = route('events.show', $event);
                 $poster = \App\Support\Poster::absoluteUrl($event);
 

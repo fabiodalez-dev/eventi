@@ -71,6 +71,9 @@ class EventOccurrencePolicy
 
     private function canActOnEventVenue(User $user, Event $event, Permission $permission): bool
     {
+        if ($event->organizer?->managedBy($user)) {
+            return true;
+        }
         if ($event->venue_id === null) {
             return $this->isGlobalStaff($user) && $user->can($permission->value);
         }

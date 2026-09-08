@@ -16,6 +16,7 @@ use App\Support\ContentVersion;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 use DateTimeInterface;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Le due colonne calcolate di `event_occurrences` (§8.2 e §8.3) nascono qui e
@@ -89,6 +90,9 @@ final class EventOccurrenceObserver
     public function updated(EventOccurrence $occurrence): void
     {
         $scheduler = app(NotificationScheduler::class);
+        if ($occurrence->wasChanged('venue_id') && ! $occurrence->wasChanged(['starts_at', 'status'])) {
+            $scheduler->announceMove($occurrence, $this->previousStart($occurrence));
+        }
 
         if ($occurrence->wasChanged('status')) {
             match ($occurrence->status) {
@@ -142,6 +146,13 @@ final class EventOccurrenceObserver
 
         $city = $event->city;
         $category = $event->category;
+        if ($occurrence->venue_id !== null && $occurrence->isDirty('venue_id')) {
+            $occurrence->unsetRelation('venue');
+            $venue = $occurrence->venue;
+            if ($venue === null || (int) $venue->city_id !== (int) $event->city_id) {
+                throw ValidationException::withMessages(['venue_id' => 'Scegli un locale della città dell’evento.']);
+            }
+        }
 
         if (! $city instanceof City || ! $category instanceof Category) {
             return;
@@ -150,7 +161,7 @@ final class EventOccurrenceObserver
         $startsAtLocal = CarbonImmutable::instance($startsAt)->setTimezone($city->timezone);
 
         $occurrence->business_date = Carbon::instance($this->businessDate($startsAtLocal, $city, $category));
-        $occurrence->effective_ends_at = Carbon::instance($this->effectiveEndsAt($occurrence, $startsAtLocal, $category, $event->venue));
+        $occurrence->effective_ends_at = Carbon::instance($this->effectiveEndsAt($occurrence, $startsAtLocal, $category, $occurrence->effectiveVenue()));
     }
 
     /**

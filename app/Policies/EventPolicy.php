@@ -8,6 +8,7 @@ use App\Enums\EventStatus;
 use App\Enums\Permission;
 use App\Enums\UserRole;
 use App\Models\Event;
+use App\Models\Organizer;
 use App\Models\User;
 use App\Models\Venue;
 use App\Policies\Concerns\ScopesToVenueMembership;
@@ -47,8 +48,11 @@ class EventPolicy
      * assoluto?", e la risposta è riservata allo staff globale: un referente
      * o un collaboratore crea sempre *per* un locale preciso, mai in astratto.
      */
-    public function create(User $user, ?Venue $venue = null): bool
+    public function create(User $user, Venue|Organizer|null $venue = null): bool
     {
+        if ($venue instanceof Organizer) {
+            return $venue->managedBy($user);
+        }
         if ($venue === null) {
             return $this->isGlobalStaff($user) && $user->can(Permission::CreateEvents->value);
         }
@@ -112,6 +116,10 @@ class EventPolicy
      */
     private function canActOnEvent(User $user, Event $event, Permission $permission): bool
     {
+        if (in_array($permission, [Permission::ViewEvents, Permission::UpdateEvents, Permission::DeleteEvents], true)
+            && $event->organizer?->managedBy($user)) {
+            return true;
+        }
         if ($event->venue_id === null) {
             return $this->isGlobalStaff($user) && $user->can($permission->value);
         }
