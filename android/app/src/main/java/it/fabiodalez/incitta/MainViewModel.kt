@@ -31,6 +31,9 @@ import kotlinx.coroutines.launch
 
 enum class AppTab { EVENTS, MAP, SEARCH, SAVED, ACCOUNT, CALENDAR, VENUES, TICKETS }
 
+internal fun navigationTarget(tab: AppTab, authenticated: Boolean): AppTab =
+    if (tab == AppTab.SAVED && !authenticated) AppTab.ACCOUNT else tab
+
 data class AppUiState(
     val bookings: List<it.fabiodalez.incitta.data.Booking> = emptyList(),
     val bookingDate: Occurrence? = null,
@@ -149,6 +152,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun selectTab(tab: AppTab) {
+        if (navigationTarget(tab, _state.value.session != null) != tab) {
+            selectTab(AppTab.ACCOUNT)
+            _state.value = _state.value.copy(message = getApplication<Application>().getString(R.string.saved_login_required))
+            return
+        }
         _state.value = _state.value.copy(bookingDate = null, bookingAvailability = null)
         detailHistory.clear()
         _state.value = _state.value.copy(tab = tab, selected = null, selectedVenue = null, mapPreviewEvents = emptyList(), mapPreviewTotal = 0, message = null)

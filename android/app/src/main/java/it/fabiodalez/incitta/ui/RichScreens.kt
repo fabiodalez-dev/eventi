@@ -231,7 +231,7 @@ fun CompleteEventDetailScreen(
 
                 detail.venue?.takeIf { (detail.contentDetails as? JsonObject)?.get("attendance_mode")?.jsonPrimitive?.contentOrNull != "online" }?.let { venue ->
                     DetailSection("DOVE") {
-                        Text(venue.name.uppercase(), style = androidx.compose.material3.MaterialTheme.typography.headlineMedium, modifier = Modifier.clickable { onVenue(venue) })
+                        Text(venue.name.uppercase(), style = androidx.compose.material3.MaterialTheme.typography.headlineMedium, modifier = Modifier.heightIn(min = 48.dp).clickable { onVenue(venue) })
                         venue.type?.let { Text(it.replace('_', ' ').uppercase(), color = Acid, style = androidx.compose.material3.MaterialTheme.typography.labelMedium) }
                         venue.description?.let { Text(it, modifier = Modifier.padding(top = 10.dp)) }
                         Text(address(venue), color = Muted, modifier = Modifier.padding(top = 10.dp))
@@ -683,7 +683,7 @@ private fun InteractiveMap(
                             val group = venueGroupCluster.flatten()
                             val position = LatLng(group.map(MapPoint::lat).average(), group.map(MapPoint::lng).average())
                             val venueCount = venueGroupCluster.size
-                            val icon = iconFactory.fromBitmap(mapMarkerBitmap(venueCount))
+                            val icon = iconFactory.fromBitmap(mapMarkerBitmap(venueCount, context.resources.displayMetrics))
                             val marker = map.addMarker(MarkerOptions().position(position).icon(icon))
                             markerGroups[marker.id] = group
                             groupPositions[marker.id] = position
@@ -739,30 +739,28 @@ private fun InteractiveMap(
     AndroidView(factory = { mapView }, modifier = modifier.background(Color(0xFF242424)))
 }
 
-private fun mapMarkerBitmap(count: Int): Bitmap {
-    val size = when {
-        count >= 50 -> 60
-        count >= 10 -> 54
-        count > 1 -> 48
-        else -> 42
-    }
+private fun mapMarkerBitmap(count: Int, metrics: android.util.DisplayMetrics): Bitmap {
+    val size = markerDiameterDp(count)
     val center = size / 2f
-    val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+    val pixels = (size * metrics.density).toInt().coerceAtLeast(size)
+    val bitmap = Bitmap.createBitmap(pixels, pixels, Bitmap.Config.ARGB_8888)
+    bitmap.density = metrics.densityDpi
     val canvas = Canvas(bitmap)
+    canvas.scale(metrics.density, metrics.density)
     val paint = Paint(Paint.ANTI_ALIAS_FLAG)
 
     if (count == 1) {
         paint.style = Paint.Style.STROKE
         paint.strokeWidth = 3f
         paint.color = android.graphics.Color.argb(95, 204, 255, 0)
-        canvas.drawCircle(center, center, 18f, paint)
+        canvas.drawCircle(center, center, 21f, paint)
         paint.style = Paint.Style.FILL
         paint.color = android.graphics.Color.rgb(204, 255, 0)
-        canvas.drawCircle(center, center, 10f, paint)
+        canvas.drawCircle(center, center, 14f, paint)
         paint.style = Paint.Style.STROKE
         paint.strokeWidth = 3f
         paint.color = android.graphics.Color.rgb(11, 11, 11)
-        canvas.drawCircle(center, center, 10f, paint)
+        canvas.drawCircle(center, center, 14f, paint)
     } else {
         paint.style = Paint.Style.FILL
         paint.color = android.graphics.Color.rgb(204, 255, 0)

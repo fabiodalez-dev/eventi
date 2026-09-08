@@ -3,6 +3,8 @@ package it.fabiodalez.incitta.ui
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -86,8 +88,8 @@ fun TonightWizard(session: Session?, savedIds: Set<Long>, onBack: () -> Unit, on
             } else if (step == 5) {
                 item { Text(stringResource(R.string.tonight_categories), style = MaterialTheme.typography.headlineMedium); Text(stringResource(R.string.tonight_categories_help), color = Muted) }
                 items(payload.categories, key = { it.id }) { category ->
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Checkbox(category.id in selected, onCheckedChange = { checked -> selected = ArrayList(if (checked) (selected + category.id).distinct() else selected - category.id) })
+                    Row(Modifier.fillMaxWidth().heightIn(min = 56.dp).toggleable(value = category.id in selected, role = Role.Checkbox, onValueChange = { checked -> selected = ArrayList(if (checked) (selected + category.id).distinct() else selected - category.id) }), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Checkbox(category.id in selected, onCheckedChange = null)
                         Text(category.name, modifier = Modifier.weight(1f).padding(top = 12.dp))
                     }
                 }

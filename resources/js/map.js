@@ -199,7 +199,7 @@ async function startMap(shell) {
             filter: ["has", "point_count"],
             paint: {
                 "circle-color": config.fallbackColor,
-                "circle-radius": ["step", ["get", "point_count"], 15, 5, 18, 20, 22],
+                "circle-radius": ["step", ["get", "point_count"], 24, 5, 27, 20, 30],
                 "circle-stroke-color": "#0b0b0b", "circle-stroke-width": 2,
             },
         });
@@ -208,7 +208,7 @@ async function startMap(shell) {
             filter: ["has", "point_count"],
             layout: {
                 "text-field": ["get", "point_count_abbreviated"],
-                "text-size": 13,
+                "text-size": 15,
                 "text-font": ["Noto Sans Bold"],
             },
             paint: { "text-color": "#0b0b0b" },
@@ -216,15 +216,22 @@ async function startMap(shell) {
         map.addLayer({
             id: "event-points-halo", type: "circle", source: "events",
             filter: ["!", ["has", "point_count"]],
-            paint: { "circle-color": config.fallbackColor, "circle-radius": 13, "circle-opacity": 0.22 },
+            paint: { "circle-color": config.fallbackColor, "circle-radius": 19, "circle-opacity": 0.22 },
         });
         map.addLayer({
             id: "event-points", type: "circle", source: "events",
             filter: ["!", ["has", "point_count"]],
             paint: {
-                "circle-color": config.fallbackColor, "circle-radius": 7,
+                "circle-color": config.fallbackColor, "circle-radius": 12,
                 "circle-stroke-color": "#0b0b0b", "circle-stroke-width": 2,
             },
+        });
+
+        // A 48px touch target, independent of the visible dot; still opens the preview sheet.
+        map.addLayer({
+            id: "event-points-hit", type: "circle", source: "events",
+            filter: ["!", ["has", "point_count"]],
+            paint: { "circle-radius": 24, "circle-opacity": 0 },
         });
 
         map.on("click", "event-clusters", async (event) => {
@@ -234,12 +241,12 @@ async function startMap(shell) {
             const zoom = await map.getSource("events").getClusterExpansionZoom(clusterId);
             map.easeTo({ center: feature.geometry.coordinates, zoom });
         });
-        map.on("click", "event-points", (event) => {
+        map.on("click", "event-points-hit", (event) => {
             const venue = event.features?.[0]?.properties?.venue;
             if (venue !== undefined) void openSheet(String(venue));
         });
 
-        for (const layer of ["event-clusters", "event-points"]) {
+        for (const layer of ["event-clusters", "event-points-hit"]) {
             map.on("mouseenter", layer, () => { map.getCanvas().style.cursor = "pointer"; });
             map.on("mouseleave", layer, () => { map.getCanvas().style.cursor = ""; });
         }
