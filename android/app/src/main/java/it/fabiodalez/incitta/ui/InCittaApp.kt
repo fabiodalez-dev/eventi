@@ -50,7 +50,7 @@ fun InCittaApp(viewModel: MainViewModel) {
         val bannerScreen = state.supportsSponsoredBanner() && !imeVisible && androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp >= 480
         val excludedEvent = state.selected?.slug
 
-        LaunchedEffect(bannerScreen, excludedEvent, lifecycle) {
+        LaunchedEffect(bannerScreen, excludedEvent, state.selectedVenue?.slug, state.activeTag?.slug, state.session?.user?.id, lifecycle) {
             viewModel.clearSponsoredBanner()
             if (bannerScreen) lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
                 try {

@@ -120,6 +120,37 @@ it('non è una pagina pubblica', function (): void {
     $this->get('/il-mio-feed')->assertRedirect(route('login'));
 });
 
+it('mantiene la lista e permette altri follow dopo il primo locale', function (): void {
+    $this->actingAs($this->user)->postJson('/segui', ['type' => 'venue', 'id' => $this->seguito->id])->assertOk();
+    $this->get('/il-mio-feed')->assertOk()->assertSee('data-feed-venues', false)->assertSee('Circolo ignorato')->assertSee('Gestisci locali e categorie seguiti');
+    $this->postJson('/segui', ['type' => 'venue', 'id' => $this->altro->id])->assertOk();
+    expect($this->user->followedIds(FollowableType::Venue))->toContain($this->seguito->id, $this->altro->id);
+    $response = $this->get('/il-mio-feed')->assertOk()->assertSee('data-live-sponsorship', false);
+    expect(strpos($response->getContent(), 'data-live-sponsorship'))->toBeLessThan(strpos($response->getContent(), 'id="feed-events"'));
+});
+
+it('pagina locali e categorie e permette di cercare un locale fuori dalla prima pagina', function (): void {
+    Venue::factory()->approved()->count(12)->create(['city_id' => $this->city->id]);
+    Venue::factory()->approved()->create(['city_id' => $this->city->id, 'name' => 'Zzz Teatro nascosto']);
+    $first = $this->actingAs($this->user)->get('/il-mio-feed')->assertOk();
+    expect($first->viewData('venues')->count())->toBe(6)
+        ->and($first->viewData('venues')->total())->toBe(15);
+    $second = $this->get('/il-mio-feed?venues_page=2')->assertOk();
+    expect($second->viewData('venues')->currentPage())->toBe(2);
+    $search = $this->get('/il-mio-feed?venue_q=Teatro%20nascosto')->assertOk()->assertSee('Zzz Teatro nascosto');
+    expect($search->viewData('venues')->total())->toBe(1);
+});
+
+it('usa pagine esplicite di dodici eventi invece della lista infinita', function (): void {
+    Follow::create(['user_id' => $this->user->id, 'followable_type' => 'venue', 'followable_id' => $this->seguito->id]);
+    for ($i = 0; $i < 13; $i++) {
+        occurrenceAt($this->city, $this->category, '2026-09-12 19:00:00', venue: $this->seguito);
+    }
+    $response = $this->actingAs($this->user)->get('/il-mio-feed')->assertOk()->assertSee('data-feed-pagination', false)->assertDontSee('data-results', false);
+    expect($response->viewData('occurrences')->count())->toBe(12)->and($response->viewData('occurrences')->total())->toBe(13);
+    expect($this->get('/il-mio-feed?page=2')->assertOk()->viewData('occurrences')->count())->toBe(1);
+});
+
 it('seguire un evento non lo fa comparire nel feed come sorgente', function (): void {
     /*
      * §15.3: seguire un evento significa salvarne le date, non seguire una

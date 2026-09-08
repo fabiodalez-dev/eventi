@@ -112,15 +112,18 @@ final class SponsorshipSelector
         return $this->forPlacement($city, $placement, $now, $user)->first();
     }
 
-    public function banner(City $city, ?string $excludeEvent = null): ?Sponsorship
+    /** @param array<string, mixed> $context */
+    public function banner(City $city, ?string $excludeEvent = null, ?User $user = null, array $context = []): ?Sponsorship
     {
         $candidates = Sponsorship::query()->visible()->where('city_id', $city->id)
             ->when($excludeEvent, fn ($q) => $q->whereHas('event', fn ($event) => $event->where('slug', '!=', $excludeEvent)))
-            ->with(['event.venue', 'event.category', 'event.media', 'grant'])
+            ->with(['event.venue', 'event.category', 'event.media', 'event.tags', 'grant'])
             ->orderByDesc('priority')->orderBy('id')->get()->unique('event_id')->values();
 
-        // Public, non-personalized inventory; one event even if it has several campaigns.
-        return $this->rotate($candidates, 1, CarbonImmutable::now('UTC'))->first();
+        // Eligibility and commercial priority stay unchanged; preferences adjust the rotation weight only.
+        $weighted = app(BannerAffinity::class)->apply($candidates, $city, $user, $context);
+
+        return $this->rotate($weighted, 1, CarbonImmutable::now('UTC'))->first();
     }
 
     /**

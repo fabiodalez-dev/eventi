@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Api\V1\SponsorshipBannerController;
 use App\Http\Controllers\Web\CalendarController;
 use App\Http\Controllers\Web\CalendarWizardController;
 use App\Http\Controllers\Web\EventController;
@@ -42,6 +43,9 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/', HomeController::class)->middleware(CachePage::class)->name('home');
+
+// Web middleware resolves the session; never cache personalized banner responses.
+Route::get('/banner-sponsorizzato', SponsorshipBannerController::class)->name('sponsorships.banner');
 
 Route::get('/eventi', [EventListController::class, 'index'])->middleware(CachePage::class)->name('events.index');
 Route::get('/eventi/oggi', [EventListController::class, 'today'])->middleware(CachePage::class)->name('events.today');

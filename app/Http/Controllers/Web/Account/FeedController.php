@@ -8,6 +8,8 @@ use App\DTOs\PageMeta;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Web\Concerns\InteractsWithAccount;
 use App\Http\Controllers\Web\Concerns\InteractsWithCity;
+use App\Models\Category;
+use App\Models\Venue;
 use App\Services\Account\PersonalFeed;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
@@ -31,17 +33,24 @@ final class FeedController extends Controller
     {
         $city = $this->city();
         $user = $this->accountUser($request);
+        $input = $request->validate(['venue_q' => 'nullable|string|max:120', 'venues_page' => 'nullable|integer|min:1', 'categories_page' => 'nullable|integer|min:1']);
+        $venueSearch = trim($input['venue_q'] ?? '');
 
         $follows = $user->followsAnything();
 
         $occurrences = $follows
-            ? $this->feed->paginate($city, $user, config()->integer('account.feed_per_page'))
+            ? $this->feed->paginate($city, $user, min(12, config()->integer('account.feed_per_page')))->withQueryString()
             : null;
 
         return view('account.feed', [
             'occurrences' => $occurrences,
-            'venues' => $follows ? null : $this->feed->suggestedVenues($city, config()->integer('account.onboarding_venues')),
-            'categories' => $follows ? null : $this->feed->suggestedCategories($city, config()->integer('account.onboarding_categories')),
+            'city' => $city,
+            'hasFollows' => $follows,
+            'venueSearch' => $venueSearch,
+            'venues' => Venue::query()->approved()->where('city_id', $city->id)
+                ->when($venueSearch !== '', fn ($q) => $q->where('name', 'like', '%'.addcslashes($venueSearch, '%_\\').'%'))
+                ->orderBy('name')->orderBy('id')->paginate(6, ['*'], 'venues_page')->withQueryString()->fragment('feed-interests'),
+            'categories' => Category::query()->active()->ordered()->paginate(6, ['*'], 'categories_page')->withQueryString()->fragment('feed-interests'),
             'meta' => new PageMeta(
                 title: __('account.feed.title'),
                 heading: __('account.feed.title'),

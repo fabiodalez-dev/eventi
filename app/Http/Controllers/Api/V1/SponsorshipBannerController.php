@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V1\Concerns\InteractsWithApi;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\V1\PosterResource;
 use App\Http\Resources\V1\PriceResource;
+use App\Models\User;
 use App\Services\Sponsorship\SponsorshipSelector;
 use App\Settings\SponsorshipBannerSettings;
 use App\Support\DateFormatter;
@@ -23,10 +24,12 @@ final class SponsorshipBannerController extends Controller
 
     public function __invoke(Request $request, SponsorshipSelector $selector, SponsorshipBannerSettings $settings): JsonResponse
     {
-        $input = $request->validate(['platform' => 'required|in:web,android', 'exclude_event' => 'nullable|string|max:255']);
+        $input = $request->validate(['platform' => 'required|in:web,android', 'exclude_event' => 'nullable|string|max:255',
+            'category' => 'nullable|string|max:255', 'venue' => 'nullable|string|max:255', 'tag' => 'nullable|string|max:255']);
         $enabled = $input['platform'] === 'web' ? $settings->web_enabled : $settings->android_enabled;
         $city = $this->city();
-        $campaign = $enabled ? $selector->banner($city, $input['exclude_event'] ?? null) : null;
+        $user = $request->routeIs('api.*') ? $this->currentUser($request) : $request->user();
+        $campaign = $enabled ? $selector->banner($city, $input['exclude_event'] ?? null, $user instanceof User ? $user : null, $input) : null;
         $data = null;
         if ($campaign !== null && $campaign->event !== null) {
             $event = $campaign->event;
