@@ -102,7 +102,7 @@
                                 href="{{ route('events.show', $occurrence->event) }}"
                                 class="mt-1 hidden text-[0.625rem] leading-tight text-ink-muted hover:text-accent sm:block"
                             >
-                                {{ $occurrence->is_all_day ? __('filters.time_of_day.any') : $occurrence->starts_at->format('H:i') }}
+                                {{ $occurrence->is_all_day ? __('events.badge.all_day') : app(\App\Support\DateFormatter::class)->time($occurrence->starts_at) }}
                                 · {{ $occurrence->event->title }}
                             </a>
                         @endforeach
