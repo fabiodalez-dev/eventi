@@ -2,10 +2,12 @@
  * il foglio di un locale continua a essere disegnato dal server. */
 let maplibregl = null;
 let library = null;
+import mapWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 
 function loadLibrary() {
     library ??= import("maplibre-gl").then((module) => {
         maplibregl = module.default ?? module;
+        maplibregl.setWorkerUrl(mapWorkerUrl);
     });
 
     return library;
