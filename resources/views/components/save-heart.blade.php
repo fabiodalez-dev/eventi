@@ -54,7 +54,7 @@
         aria-pressed="{{ $isSaved ? 'true' : 'false' }}"
         data-save-button
         @class([
-            'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold ring-1 transition',
+            'inline-flex min-h-12 min-w-12 items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold ring-1 transition',
             'bg-brand text-on-brand ring-brand' => $isSaved,
             'bg-surface text-ink-muted ring-line hover:text-ink hover:border-accent' => ! $isSaved,
         ])

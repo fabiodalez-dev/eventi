@@ -123,7 +123,7 @@
             type="button"
             data-map-search
             hidden
-            class="absolute inset-x-0 top-3 z-[1000] mx-auto w-max bg-accent px-4 py-2.5 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.14em] text-on-accent uppercase"
+            class="absolute inset-x-0 top-3 z-[1000] mx-auto min-h-12 w-max bg-accent px-4 py-2.5 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.14em] text-on-accent uppercase"
         >
             {{ __('map.search_here') }}
         </button>
@@ -156,7 +156,7 @@
             <button
                 type="button"
                 data-map-sheet-close
-                class="float-right -mt-1 px-2 py-1 font-display text-sm font-extrabold text-ink-muted hover:text-accent"
+                class="float-right -mt-1 min-h-12 min-w-12 px-2 py-1 font-display text-xl font-extrabold text-ink-muted hover:text-accent"
             >
                 <span class="sr-only">{{ __('map.close_sheet') }}</span>
                 <span aria-hidden="true">&times;</span>

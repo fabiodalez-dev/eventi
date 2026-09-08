@@ -32,7 +32,7 @@
     $classes = [
         'inline-flex items-center justify-start gap-1.5 text-left',
         'font-display text-sm font-extrabold leading-tight',
-        'px-4 py-2 cursor-pointer no-underline transition',
+        'min-h-12 px-4 py-2 cursor-pointer no-underline transition',
         'disabled:cursor-not-allowed disabled:opacity-45',
         $variants[$variant] ?? $variants['primary'],
     ];

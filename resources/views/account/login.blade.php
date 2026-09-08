@@ -2,6 +2,9 @@
      non al posto: è la via raccomandata, non l'unica. --}}
 <x-layouts.app :narrow="true" :meta="$meta">
     <div class="mx-auto flex w-full max-w-md flex-col gap-6">
+        @if(str_contains((string) session('url.intended'), '/i-miei-salvataggi'))
+            <p role="status" class="border-2 border-accent p-4 text-ink">{{ __('account.saved.login_required') }}</p>
+        @endif
         <header class="flex flex-col gap-2">
             <h1 class="text-hero text-ink">{{ $meta->heading }}</h1>
             <p class="text-sm text-ink-muted">{{ __('account.login.lead') }}</p>

@@ -1,4 +1,7 @@
 <resources>
+    <string name="saved_preview_close">CHIUDI</string>
+    <string name="saved_preview_open">APRI EVENTO</string>
+    <string name="saved_login_required">Accedi o crea un account dal Profilo per aprire i tuoi Salvati.</string>
     <string name="saved_past">PASSATI</string>
     <string name="saved_calendar_help">Tocca un giorno: apre l’evento se è uno solo, oppure mostra l’elenco delle date salvate per quel giorno.</string>
 </resources>

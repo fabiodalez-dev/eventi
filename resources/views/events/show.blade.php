@@ -360,22 +360,7 @@
                 <p><a class="underline text-accent" href="{{ route('events.show', $event) }}">{{ __('seo.all_dates') }}</a></p>
             @endif
             <x-editorial-content :model="$event" :occurrence="$selectedOccurrence ?? null" />
-            @if (filled($event->description))
-                <section aria-labelledby="descrizione-evento" class="flex flex-col gap-3">
-                    <h2 id="descrizione-evento" class="font-display text-[clamp(1.25rem,1.8vw,1.75rem)] leading-none font-extrabold tracking-[-0.03em] uppercase">{{ __('events.detail.description') }}</h2>
-
-                    {{-- `max-w-prose` è 65 caratteri: il punto oltre il quale
-                         rileggere due volte la stessa riga smette di essere un
-                         caso e diventa la norma. --}}
-                    <div class="flex max-w-prose flex-col gap-3 text-ink-muted">
-                        @foreach (preg_split('/\R{2,}/', (string) $event->description) ?: [] as $paragraph)
-                            @if (trim($paragraph) !== '')
-                                <p>{{ $paragraph }}</p>
-                            @endif
-                        @endforeach
-                    </div>
-                </section>
-            @endif
+            <x-event-description :event="$event" class="max-lg:hidden" />
 
             {{-- La scheda tecnica dell'evento: apertura porte, durata, età
                  minima. Coppie etichetta/valore, e nessuna sezione se non ce
@@ -456,6 +441,8 @@
             @if ($poster !== null)
                 <x-event-poster :event="$event" :set="$poster" />
             @endif
+
+            <x-event-description :event="$event" id="descrizione-evento-mobile" class="lg:hidden" />
 
             <section class="flex flex-col gap-3 bg-canvas p-5 border-2 border-line" aria-labelledby="prezzo-evento">
                 <h2 id="prezzo-evento" class="font-display text-[clamp(1.25rem,1.8vw,1.75rem)] leading-none font-extrabold tracking-[-0.03em] uppercase">{{ __('events.detail.price') }}</h2>

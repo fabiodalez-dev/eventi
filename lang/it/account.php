@@ -85,6 +85,8 @@ return [
     ],
 
     'saved' => [
+        'open_event' => 'Apri evento',
+        'login_required' => 'Accedi o crea un account per aprire i tuoi Salvati. Dopo l’accesso tornerai qui; gli eventi salvati su questo dispositivo non vengono cancellati.',
         'past_tab' => 'Passati',
         'title' => 'I miei salvataggi',
         'lead' => 'Le date che hai messo in agenda.',
