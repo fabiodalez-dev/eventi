@@ -7,6 +7,7 @@ export function sponsorshipBanners() {
         let loading = false;
         const seen = new Set();
         const clicked = new Set();
+        const failedImages = new Set();
         const link = slot.querySelector('a');
         const picture = slot.querySelector('img');
         const hide = () => { slot.hidden = true; banner = null; };
@@ -27,7 +28,7 @@ export function sponsorshipBanners() {
             if (!banner || Date.parse(banner.expires_at) <= Date.now()) { event.preventDefault(); hide(); return; }
             if (!clicked.has(banner.id)) { metric('clicks'); clicked.add(banner.id); }
         });
-        picture.addEventListener('error', () => { picture.hidden = true; picture.previousElementSibling.hidden = false; });
+        picture.addEventListener('error', () => { failedImages.add(picture.getAttribute('src')); picture.hidden = true; picture.previousElementSibling.hidden = false; });
         const refresh = async () => {
             if (loading || document.hidden) return;
             loading = true;
@@ -43,9 +44,10 @@ export function sponsorshipBanners() {
                 slot.querySelector('[data-banner-when]').textContent = [data.when, data.price].filter(Boolean).join(' · ');
                 slot.querySelector('[data-banner-place]').textContent = [data.place, data.category].filter(Boolean).join(' · ');
                 slot.querySelector('[data-banner-by]').textContent = `Sponsorizzato da ${data.advertiser}`;
-                picture.hidden = !data.image;
-                picture.previousElementSibling.hidden = !!data.image;
-                if (data.image && picture.getAttribute('src') !== data.image) picture.src = data.image;
+                const showImage = data.image && !failedImages.has(data.image);
+                picture.hidden = !showImage;
+                picture.previousElementSibling.hidden = !!showImage;
+                if (showImage && picture.getAttribute('src') !== data.image) picture.src = data.image;
                 slot.hidden = false;
                 observer.unobserve(slot);
                 observer.observe(slot);
