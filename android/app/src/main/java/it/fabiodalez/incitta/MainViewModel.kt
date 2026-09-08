@@ -66,6 +66,10 @@ data class AppUiState(
     val message: String? = null,
 )
 
+internal fun AppUiState.supportsSponsoredBanner(): Boolean = bookingDate == null &&
+    (selected != null || selectedVenue != null || tab in listOf(AppTab.EVENTS, AppTab.SEARCH, AppTab.VENUES) ||
+        (tab == AppTab.ACCOUNT && session != null))
+
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     private sealed interface DetailSnapshot {
         data class Event(val detail: EventDetail, val related: List<Occurrence>) : DetailSnapshot

@@ -38,6 +38,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import it.fabiodalez.incitta.AppTab
 import it.fabiodalez.incitta.MainViewModel
+import it.fabiodalez.incitta.supportsSponsoredBanner
 
 @Composable
 fun InCittaApp(viewModel: MainViewModel) {
@@ -46,8 +47,7 @@ fun InCittaApp(viewModel: MainViewModel) {
         val snackbar = remember { SnackbarHostState() }
         val imeVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
         val lifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
-        val bannerScreen = state.bookingDate == null && !imeVisible && androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp >= 480 &&
-            (state.selected != null || state.selectedVenue != null || state.tab in listOf(AppTab.EVENTS, AppTab.SEARCH, AppTab.VENUES))
+        val bannerScreen = state.supportsSponsoredBanner() && !imeVisible && androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp >= 480
         val excludedEvent = state.selected?.slug
 
         LaunchedEffect(bannerScreen, excludedEvent, lifecycle) {

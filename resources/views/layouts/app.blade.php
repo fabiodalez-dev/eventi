@@ -463,7 +463,7 @@
         @if (! ($wide ?? false))
             </div>
         @endif
-        @if ($city !== null && request()->routeIs('home', 'events.index', 'events.show', 'venues.*', 'search', 'categories.*', 'tags.*', 'city.home', 'city.events.index', 'city.events.show', 'city.venues.*', 'city.search', 'city.categories.*', 'city.tags.*'))
+        @if ($city !== null && request()->routeIs('home', 'events.index', 'events.show', 'venues.*', 'search', 'categories.*', 'tags.*', 'account.profile', 'city.home', 'city.events.index', 'city.events.show', 'city.venues.*', 'city.search', 'city.categories.*', 'city.tags.*'))
             <x-sponsorship-banner :city="$city" />
         @endif
     </main>

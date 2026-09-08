@@ -9,6 +9,7 @@ use App\Models\Sponsorship;
 use App\Models\User;
 use App\Settings\SponsorshipBannerSettings;
 use Database\Seeders\RolesAndPermissionsSeeder;
+use Database\Seeders\SponsorshipBannerDemoSeeder;
 use Livewire\Livewire;
 
 beforeEach(function (): void {
@@ -94,4 +95,26 @@ it('non pubblicizza locali sospesi né eventi appartenenti a un altra città', f
     $date->event->venue->update(['status' => 'approved']);
     $campaign->update(['city_id' => testCity(['slug' => 'vicenza'])->id]);
     expect(Sponsorship::visible()->whereKey($campaign->id)->exists())->toBeFalse();
+});
+
+it('include il banner nel profilo autenticato ma non nel login', function (): void {
+    $this->get('/accedi')->assertOk()->assertDontSee('data-live-sponsorship', false);
+    $this->actingAs(User::factory()->create())->get('/il-mio-profilo')->assertOk()->assertSee('data-live-sponsorship', false);
+});
+
+it('crea tre campagne dimostrative idempotenti senza pagamenti', function (): void {
+    for ($i = 0; $i < 3; $i++) {
+        occurrenceAtLocal($this->city, $this->category, '2026-09-11 21:00');
+    }
+    $this->seed(SponsorshipBannerDemoSeeder::class);
+    $this->seed(SponsorshipBannerDemoSeeder::class);
+    expect(Sponsorship::visible()->count())->toBe(3)
+        ->and(Sponsorship::sum('amount_cents'))->toBe(0);
+});
+
+it('non pubblica demo in produzione senza autorizzazione esplicita', function (): void {
+    $this->app->instance('env', 'production');
+    $this->artisan('sponsorships:demo', ['city' => $this->city->slug])->assertFailed();
+    expect(Sponsorship::count())->toBe(0);
+    $this->app->instance('env', 'testing');
 });

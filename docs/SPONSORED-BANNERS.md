@@ -6,7 +6,11 @@ Nel pannello admin, **Banner sponsorizzati** (`/admin/sponsorship-banners`) cont
 
 I banner usano le campagne già attive: nessun nuovo contratto, pagamento o diritto del locale. Restano obbligatori autorizzazione/pagamento del grant, finestra della campagna e limiti di impression/click. La rotazione mantiene priorità e pesi; un evento con più campagne appare una volta sola nel pool aggiuntivo.
 
-Web: banner prima del footer nelle pagine di scoperta (home, eventi, locali, ricerca, categorie e tag). Android: banner sopra la navigazione nelle viste eventi, ricerca, locali e dettagli; escluso da login, prenotazione e mappa. Nessuna sovrapposizione ai contenuti. L'evento già aperto è escluso.
+Web: banner prima del footer nelle pagine di scoperta (home, eventi, locali, ricerca, categorie e tag) e nel profilo. Android: banner sopra la navigazione nelle viste eventi, ricerca, locali, dettagli e profilo autenticato; escluso da login, prenotazione, mappa e finestre troppo basse. Nessuna sovrapposizione ai contenuti. L'evento già aperto è escluso.
+
+Per creare o aggiornare tre campagne di prova sugli eventi esistenti: `php artisan db:seed --class=SponsorshipBannerDemoSeeder`. Sono riconoscibili dalla nota **DEMO locale — banner di prova** e non registrano pagamenti. Il seeder è idempotente, non viene eseguito dai deploy e rifiuta l'ambiente production. La rotazione cambia ogni minuto: non compaiono tutte e tre insieme.
+
+Su richiesta esplicita del proprietario si possono pubblicare anche sul remoto: `php artisan sponsorships:demo padova --allow-production`. Il comando non è inserito in cron/deploy e senza il flag rifiuta production. La dicitura nelle note resta la stessa per idempotenza; sono campagne dimostrative anche quando pubblicate.
 
 ## Scadenze e cache
 
