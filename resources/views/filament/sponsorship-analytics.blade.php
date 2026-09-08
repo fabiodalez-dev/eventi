@@ -2,7 +2,7 @@
     <style>
         .sponsor-report { display:grid; gap:1.5rem; min-width:0; }
         .sponsor-report > * { min-width:0; }
-        .sponsor-report svg { display:block; width:100%; }
+        .sponsor-report .sponsor-chart { display:block; width:100%; }
         .sponsor-report .sponsor-stats { display:grid; gap:1rem; }
         @media(min-width:640px) { .sponsor-report .sponsor-stats { grid-template-columns:repeat(3,minmax(0,1fr)); } }
         .sponsor-report strong { font-size:1.75rem; }
@@ -29,7 +29,7 @@
             $points = $report['series']->map(fn ($row, $i) => (10 + $i * 580 / max(1, $report['series']->count() - 1)).','.(150 - $row[$metric] * 130 / $max))->implode(' ');
         @endphp
         <x-filament::section :heading="$label">
-            <svg viewBox="0 0 600 170" class="w-full" style="max-height:220px" role="img" aria-label="{{ $label }}. Massimo {{ $max }}. I valori esatti sono nella tabella giornaliera.">
+            <svg viewBox="0 0 600 170" class="sponsor-chart" style="max-height:220px" role="img" aria-label="{{ $label }}. Massimo {{ $max }}. I valori esatti sono nella tabella giornaliera.">
                 <line x1="10" y1="150" x2="590" y2="150" stroke="currentColor" opacity=".3"/>
                 <polyline points="{{ $points }}" fill="none" stroke="currentColor" stroke-width="3"/>
             </svg>
@@ -57,7 +57,7 @@
                 </tr>
             @empty<tr><td colspan="6" class="p-4">Nessun clic nel registro per questo periodo.</td></tr>@endforelse
         </tbody></table></div>
-        {{ $report['records']->links() }}
+        <x-filament::pagination :paginator="$report['records']" />
     </x-filament::section>
     </div>
 </x-filament-panels::page>
