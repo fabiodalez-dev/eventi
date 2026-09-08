@@ -6,6 +6,7 @@
     $venueContext = $slug(request()->routeIs('venues.show', 'city.venues.show') ? request()->route('slug') : request()->query('venue'));
 @endphp
 <aside hidden data-live-sponsorship
+    data-city="{{ $city->slug }}"
     data-endpoint="{{ route('city.sponsorships.banner', ['platform' => 'web', 'city' => $city->slug, 'exclude_event' => request()->routeIs('events.show', 'city.events.show') ? request()->route('slug') : null, 'category' => $categoryContext, 'venue' => $venueContext, 'tag' => $tagContext]) }}"
     data-metric-base="{{ url('/api/v1/reports/sponsorships') }}"
     aria-label="Evento sponsorizzato"

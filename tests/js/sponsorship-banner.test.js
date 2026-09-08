@@ -15,7 +15,7 @@ function fixture(t) {
     let observer;
     let data = { id: 1, title: '<script>test</script>', when: 'Oggi', price: 'Gratis', place: 'Teatro', category: 'Musica', advertiser: 'Teatro', image: '/broken.jpg', url: '/eventi/prova', expires_at: new Date(Date.now() + 60000).toISOString(), metric_token: 'test' };
     globalThis.document = { hidden: false, querySelectorAll: () => [slot], addEventListener() {} };
-    globalThis.window = { addEventListener() {} };
+    globalThis.window = { location: { pathname: '/' }, addEventListener() {} };
     globalThis.IntersectionObserver = class {
         constructor(callback) { observer = callback; }
         observe() {} unobserve() {}
@@ -36,6 +36,19 @@ test('renders text safely and counts only visible impressions once', async t => 
     assert.equal(f.calls.length, 1);
     f.visible(); f.visible(); await flush();
     assert.equal(f.calls.filter(call => call.url.endsWith('/impressions')).length, 1);
+});
+
+test('records separate clicks with different delivery identifiers', async t => {
+    const f = fixture(t); await flush();
+    f.link.listeners.click({ preventDefault() {} });
+    f.link.listeners.click({ preventDefault() {} });
+    const clicks = f.calls.filter(call => call.url.endsWith('/clicks'));
+    assert.equal(clicks.length, 2);
+    const first = JSON.parse(clicks[0].options.body);
+    const second = JSON.parse(clicks[1].options.body);
+    assert.notEqual(first.click_id, second.click_id);
+    assert.equal(first.page, 'home');
+    assert.equal(first.placement, 'banner');
 });
 
 test('keeps the placeholder after a failed image even across live refreshes', async t => {

@@ -174,6 +174,7 @@
                 data-home-hero
                 @if ($heroSponsorizzato)
                     data-sponsorship="{{ $heroSponsorship->getKey() }}"
+                    data-sponsorship-placement="home_hero"
                     data-sponsorship-impression="{{ route('sponsorships.metric', ['sponsorship' => $heroSponsorship, 'metric' => 'impressions']) }}"
                     data-sponsorship-click="{{ route('sponsorships.metric', ['sponsorship' => $heroSponsorship, 'metric' => 'clicks']) }}"
                 @endif

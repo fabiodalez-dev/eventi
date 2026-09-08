@@ -1,21 +1,24 @@
 // Ads never live in the page cache. A short server lease also handles midnight,
 // lost connectivity, campaign pauses and the backend switch on already open pages.
+import { sponsorshipContext } from './sponsorship-context.js';
+
 export function sponsorshipBanners() {
     for (const slot of document.querySelectorAll('[data-live-sponsorship]')) {
         let banner = null;
         let expiry;
         let loading = false;
         const seen = new Set();
-        const clicked = new Set();
         const failedImages = new Set();
         const link = slot.querySelector('a');
         const picture = slot.querySelector('img');
         const hide = () => { slot.hidden = true; banner = null; };
         const metric = (kind) => {
             if (!banner || Date.parse(banner.expires_at) <= Date.now()) return;
-            void fetch(`${slot.dataset.metricBase}/${banner.id}/metrics/${kind}`, {
+            const city = slot.dataset.city ? `?city=${encodeURIComponent(slot.dataset.city)}` : '';
+            void fetch(`${slot.dataset.metricBase}/${banner.id}/metrics/${kind}${city}`, {
                 method: 'POST', keepalive: true,
-                headers: { Accept: 'application/json', 'X-Metric-Token': banner.metric_token },
+                headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-Metric-Token': banner.metric_token },
+                body: JSON.stringify(sponsorshipContext('banner', kind === 'clicks')),
             }).catch(() => {});
         };
         const observer = new IntersectionObserver((entries) => {
@@ -24,10 +27,12 @@ export function sponsorshipBanners() {
                 seen.add(banner.id);
             }
         }, { threshold: 0.5 });
-        link.addEventListener('click', (event) => {
+        const click = (event) => {
             if (!banner || Date.parse(banner.expires_at) <= Date.now()) { event.preventDefault(); hide(); return; }
-            if (!clicked.has(banner.id)) { metric('clicks'); clicked.add(banner.id); }
-        });
+            metric('clicks');
+        };
+        link.addEventListener('click', click);
+        link.addEventListener('auxclick', event => { if (event.button === 1) click(event); });
         picture.addEventListener('error', () => { failedImages.add(picture.getAttribute('src')); picture.hidden = true; picture.previousElementSibling.hidden = false; });
         const refresh = async () => {
             if (loading || document.hidden) return;

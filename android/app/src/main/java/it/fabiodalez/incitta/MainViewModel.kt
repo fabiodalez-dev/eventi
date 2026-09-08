@@ -85,7 +85,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     )
     val state: StateFlow<AppUiState> = _state.asStateFlow()
     private val bannerImpressions = mutableSetOf<Long>()
-    private val bannerClicks = mutableSetOf<Long>()
 
     suspend fun refreshSponsoredBanner(excludeEvent: String?) {
         try {
@@ -101,10 +100,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun clearSponsoredBanner() { _state.value = _state.value.copy(sponsoredBanner = null) }
 
     fun bannerMetric(banner: it.fabiodalez.incitta.data.SponsoredBanner, click: Boolean) {
-        val recorded = if (click) bannerClicks else bannerImpressions
-        if (!banner.validAt() || !recorded.add(banner.id)) return
+        if (!banner.validAt() || (!click && !bannerImpressions.add(banner.id))) return
+        val current = _state.value
+        val page = when {
+            current.selected != null -> "event"
+            current.selectedVenue != null || current.tab == AppTab.VENUES -> "venues"
+            current.tab == AppTab.ACCOUNT -> "profile"
+            current.tab == AppTab.SEARCH -> "search"
+            current.tab == AppTab.EVENTS -> "home"
+            else -> "other"
+        }
         viewModelScope.launch {
-            try { repository.sponsorshipMetric(banner, click) }
+            try { repository.sponsorshipMetric(banner, click, page) }
             catch (cancelled: CancellationException) { throw cancelled }
             catch (_: Exception) { /* Measurement failure must never interrupt navigation. */ }
         }
