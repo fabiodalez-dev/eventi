@@ -16,6 +16,23 @@ beforeEach(function (): void {
 });
 afterEach(fn () => Carbon::setTestNow());
 
+it('shows city local time or all-day text in the saved calendar grid', function (string $date, bool $allDay): void {
+    $item = occurrenceAtLocal($this->city, $this->category, $date.' 21:30');
+    $item->update(['is_all_day' => $allDay]);
+    SavedEvent::create(['user_id' => $this->user->id, 'occurrence_id' => $item->id]);
+    $html = $this->actingAs($this->user)->get('/i-miei-salvataggi?vista=calendario&mese='.substr($date, 0, 7))->assertOk()->getContent();
+    $document = new DOMDocument;
+    @$document->loadHTML($html);
+    $xpath = new DOMXPath($document);
+    $labels = $xpath->query('//section[@data-saved-calendar]//a[contains(@class,"sm:block")]');
+    expect($labels->length)->toBe(1);
+    expect(trim($labels->item(0)->textContent))->toStartWith($allDay ? __('events.badge.all_day') : '21:30');
+})->with([
+    'summer time' => ['2026-09-12', false],
+    'winter time' => ['2026-12-12', false],
+    'all day' => ['2026-09-12', true],
+]);
+
 it('moves a finished date from agenda to past without waiting for midnight', function (): void {
     $past = occurrenceAtLocal($this->city, $this->category, '2026-09-10 14:00', '2026-09-10 16:00', event: ['title' => 'Finito oggi']);
     $ongoing = occurrenceAtLocal($this->city, $this->category, '2026-09-10 17:00', '2026-09-10 20:00', event: ['title' => 'Ancora in corso']);
