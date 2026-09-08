@@ -30,7 +30,7 @@ it('non disegna nessuna sezione quando non c\'è niente in programma', function 
 
     $response->assertDontSee(__('events.sections.ongoing'))
         ->assertDontSee(__('events.sections.starting_soon'))
-        ->assertDontSee(__('events.sections.tonight'))
+        ->assertDontSee('id="sezione-tonight"', false)
         ->assertDontSee(__('events.sections.weekend'))
         ->assertDontSee('Nessun evento');
 });

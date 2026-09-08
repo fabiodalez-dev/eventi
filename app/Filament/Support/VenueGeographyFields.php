@@ -16,7 +16,9 @@ final class VenueGeographyFields
         return Select::make('municipality')->label(__('tonight.municipality'))
             ->options(function (Get $get, ?Venue $record): array {
                 $city = City::find($get('city_id')) ?? $record->city ?? app(CurrentCity::class)->get();
-                $names = config()->array('discovery-geography.'.$city?->slug.'.municipalities', $city ? [$city->name] : []);
+                // The municipal catalog belongs to the province, not to a unique editorial slug.
+                $catalog = $city?->province_code === 'PD' ? 'padova' : $city?->slug;
+                $names = config()->array('discovery-geography.'.$catalog.'.municipalities', $city ? [$city->name] : []);
 
                 return array_combine($names, $names);
             })
