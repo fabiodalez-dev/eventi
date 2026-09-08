@@ -23,9 +23,11 @@
 @php
     $currentCity = app(\App\Support\CurrentCity::class);
     $city = $currentCity->get();
+    $contentPreferences = app(\App\Services\Account\ContentPreferences::class);
+    $interestKey = hash('sha256', json_encode($contentPreferences->selection($contentPreferences->discoveryUser())));
 
     $voci = $city === null ? [] : cache()->remember(
-        'ticker:'.$city->getKey().':'.now($currentCity->timezone())->format('Y-m-d-H-i'),
+        'ticker:'.$city->getKey().':'.$interestKey.':'.now($currentCity->timezone())->format('Y-m-d-H-i'),
         now()->addMinute(),
         function () use ($city, $currentCity): array {
             $voci = [];

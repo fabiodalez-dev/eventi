@@ -42,7 +42,7 @@ it('usa categorie salvate e contesto esplicito senza inventare preferenze anonim
     $campaigns = collect([$this->a->load(['event.venue', 'event.category', 'event.tags']), $this->b->load(['event.venue', 'event.category', 'event.tags'])]);
     $affinity = app(BannerAffinity::class);
     expect($affinity->apply($campaigns, $this->city, null, [])->pluck('weight')->all())->toBe([1, 1]);
-    expect($affinity->apply($campaigns, $this->city, $this->user, [])->pluck('weight')->all())->toBe([2, 1]);
+    expect($affinity->apply($campaigns, $this->city, $this->user, [])->pluck('weight')->all())->toBe([3, 2]);
     expect($affinity->apply($campaigns, $this->city, null, ['category' => $this->second->event->category->slug])->pluck('weight')->all())->toBe([1, 2]);
     expect($campaigns->pluck('weight')->all())->toBe([1, 1]);
 });

@@ -45,6 +45,7 @@ final class AccountExport
                 'timezone' => $timezone,
                 'locale' => (string) $user->locale,
                 'notification_preferences' => $user->notificationPreferences()->toArray(),
+                'content_preferences' => app(ContentPreferences::class)->selection($user),
                 'daily_digest_time' => $user->daily_digest_time,
                 'quiet_hours' => $user->quiet_hours,
                 'marketing_opt_in_at' => ApiDate::instant($user->marketing_opt_in_at, $timezone),

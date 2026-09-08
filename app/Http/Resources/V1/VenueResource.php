@@ -60,7 +60,7 @@ final class VenueResource
             'phone' => $venue->phone,
             'email' => $venue->email,
             'website' => $venue->website,
-            'socials' => $venue->socials,
+            'socials' => (object) $venue->socials,
             'opening_hours' => $venue->opening_hours,
             // «Come arrivare»: lista di `{mode, text}`, dove `mode` è un
             // valore chiuso (`transit_mode` di §13.6) e non testo libero.
@@ -71,7 +71,7 @@ final class VenueResource
              * dichiarate. Una chiave assente significa "non dichiarato", che
              * non è `false` — la differenza conta più qui che altrove.
              */
-            'accessibility' => $venue->accessibility->toArray(),
+            'accessibility' => (object) $venue->accessibility->toArray(),
             'info' => $venue->info->toArray(),
             'requires_membership' => (bool) $venue->requires_membership,
             'membership_notes' => $venue->membership_notes,

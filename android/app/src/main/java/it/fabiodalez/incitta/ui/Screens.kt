@@ -2,8 +2,6 @@ package it.fabiodalez.incitta.ui
 
 import android.content.Intent
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.relocation.BringIntoViewRequester
-import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
@@ -421,6 +419,7 @@ fun AccountScreen(
     onDeleteAccount: (String) -> Unit,
     onTickets: () -> Unit,
     onClearAuthError: () -> Unit = {},
+    onInterestsSaved: () -> Unit = {},
 ) {
     if (state.session != null) {
         var deletePassword by remember { mutableStateOf("") }
@@ -436,6 +435,7 @@ fun AccountScreen(
                 MetaLabel("ACCOUNT")
                 Text(state.session.user.name?.ifBlank { null } ?: "LETTORE IN CITTÀ", style = androidx.compose.material3.MaterialTheme.typography.headlineLarge)
                 Text(state.session.user.email, color = Muted, modifier = Modifier.padding(top = 6.dp))
+                ContentPreferencesPanel(state.session, onInterestsSaved)
                 NotificationSettingsPanel(state.session)
                 HorizontalDivider(Modifier.padding(vertical = 24.dp), thickness = 2.dp, color = Rule)
                 Text("I salvataggi appartengono esclusivamente a questo account. Uscendo, quelli sincronizzati non vengono mostrati a un altro utente del dispositivo.")
@@ -477,7 +477,6 @@ fun AccountScreen(
     val focus = LocalFocusManager.current
     val keyboard = LocalSoftwareKeyboardController.current
     val error = validationError ?: state.authError
-    val errorPosition = remember { BringIntoViewRequester() }
     fun clearError() { validationError = null; onClearAuthError() }
     fun submit(magic: Boolean = false) {
         if (state.isAuthenticating) return
@@ -494,18 +493,10 @@ fun AccountScreen(
             else onRegister(name, lastName, email.trim(), password)
         }
     }
-    @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
-    val imeVisible = WindowInsets.isImeVisible
-    LaunchedEffect(error, imeVisible) {
-        if (error != null) {
-            // Wait for the error to be measured, and repeat after the keyboard closes.
-            withFrameNanos { }
-            errorPosition.bringIntoView()
-        }
-    }
     Column(
-        Modifier.fillMaxSize().padding(bottom = padding.calculateBottomPadding()).verticalScroll(rememberScrollState()).imePadding(),
+        Modifier.fillMaxSize().padding(bottom = padding.calculateBottomPadding()).imePadding(),
     ) {
+    Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())) {
         BrandHeader(compact = true)
         Column(Modifier.padding(18.dp)) {
             Text("ENTRA IN CITTÀ", style = androidx.compose.material3.MaterialTheme.typography.displayMedium)
@@ -532,14 +523,6 @@ fun AccountScreen(
                     context.startActivity(Intent(Intent.ACTION_VIEW, (it.fabiodalez.incitta.BuildConfig.API_BASE_URL.removeSuffix("api/v1/") + "pagine/privacy").toUri()))
                 }) { Text(stringResource(R.string.auth_privacy)) }
             }
-            if (error != null) {
-                Text(
-                    error,
-                    color = Danger,
-                    modifier = Modifier.fillMaxWidth().bringIntoViewRequester(errorPosition)
-                        .padding(top = 12.dp).semantics { liveRegion = LiveRegionMode.Assertive },
-                )
-            }
             Spacer(Modifier.height(16.dp))
             Button(
                 onClick = { submit() },
@@ -561,6 +544,12 @@ fun AccountScreen(
                 Text("INVIAMI UN LINK DI ACCESSO", color = Paper)
             }
             Text("Il link è monouso. Non rivela se l’indirizzo è già registrato.", color = Muted, style = androidx.compose.material3.MaterialTheme.typography.bodyMedium)
+        }
+    }
+        if (error != null) {
+            // Keep feedback outside the scrolling form, visible above keyboard/navigation.
+            Text(error, color = Danger, modifier = Modifier.fillMaxWidth().background(Ink).padding(18.dp)
+                .semantics { liveRegion = LiveRegionMode.Assertive })
         }
     }
 }

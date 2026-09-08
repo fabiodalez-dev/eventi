@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Web\Account\ContentPreferencesController;
 use App\Http\Controllers\Web\Account\EmailVerificationController;
 use App\Http\Controllers\Web\Account\FeedController;
 use App\Http\Controllers\Web\Account\FollowController;
@@ -15,6 +16,7 @@ use App\Http\Controllers\Web\Account\PushSubscriptionController;
 use App\Http\Controllers\Web\Account\RegisterController;
 use App\Http\Controllers\Web\Account\SavedCalendarController;
 use App\Http\Controllers\Web\Account\SavedController;
+use App\Http\Middleware\PersonalizeDiscovery;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -121,6 +123,8 @@ Route::middleware('signed')->group(function (): void {
 });
 
 Route::middleware('auth')->group(function (): void {
+    Route::get('/profilo/interessi', [ContentPreferencesController::class, 'index'])->name('account.content-preferences');
+    Route::patch('/profilo/interessi', [ContentPreferencesController::class, 'update'])->name('account.content-preferences.update');
     Route::get('/notifiche/interessi', [NotificationInterestsController::class, 'index'])->name('account.notifications.interests');
     Route::patch('/notifiche/interessi', [NotificationInterestsController::class, 'update'])->name('account.notifications.interests.update');
     Route::post('/esci', [LoginController::class, 'destroy'])->name('account.logout');
@@ -180,7 +184,7 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/il-mio-profilo/dati', [ProfileController::class, 'export'])->name('account.profile.export');
     Route::delete('/il-mio-profilo', [ProfileController::class, 'destroy'])->name('account.profile.destroy');
 
-    Route::get('/il-mio-feed', FeedController::class)->name('account.feed');
+    Route::get('/il-mio-feed', FeedController::class)->middleware(PersonalizeDiscovery::class)->name('account.feed');
 
     Route::get('/i-miei-salvataggi', [SavedController::class, 'index'])->name('account.saved');
     Route::get('/i-miei-salvataggi/calendario.ics', [SavedCalendarController::class, 'download'])

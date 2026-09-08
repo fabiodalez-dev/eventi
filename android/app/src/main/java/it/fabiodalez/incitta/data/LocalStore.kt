@@ -36,6 +36,7 @@ class LocalStore(private val context: Context) {
 
     fun writeSession(session: Session) {
         if (readSession()?.user?.id != session.user.id) {
+            cacheOccurrences(emptyList())
             runCatching { it.fabiodalez.incitta.calendar.NativeCalendar.disconnect(context) }
         }
         val stored = StoredSession(session.token, session.user, session.expiresAt)
@@ -43,7 +44,7 @@ class LocalStore(private val context: Context) {
     }
 
     fun clearSession() {
-        prefs.edit { remove(KEY_SESSION) }
+        prefs.edit { remove(KEY_SESSION); remove(KEY_OCCURRENCES) }
         runCatching { it.fabiodalez.incitta.calendar.NativeCalendar.disconnect(context) }
         it.fabiodalez.incitta.notifications.PushRegistration.disable(context)
     }

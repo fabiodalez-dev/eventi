@@ -31,6 +31,7 @@ class AppRepository(context: Context) {
     val savedIds: StateFlow<Set<Long>> = _savedIds.asStateFlow()
 
     fun cachedOccurrences(): List<Occurrence> = store.cachedOccurrences()
+    fun clearDiscoveryCache() = store.cacheOccurrences(emptyList())
 
     suspend fun bookingAvailability(id: Long): BookingAvailability =
         api.get<ApiEnvelope<BookingAvailability>>("occurrences/$id/booking").data
@@ -58,6 +59,7 @@ class AppRepository(context: Context) {
     }
 
     suspend fun occurrences(filter: EventFilter = EventFilter.ALL): List<Occurrence> {
+        val token = _session.value?.token
         val suffix = when (filter) {
             EventFilter.ALL -> ""
             EventFilter.TODAY -> "&preset=today"
@@ -67,8 +69,9 @@ class AppRepository(context: Context) {
         }
         val items = api.get<ApiEnvelope<List<Occurrence>>>(
             "events?city=padova$suffix",
-            _session.value?.token,
+            token,
         ).data
+        if (_session.value?.token != token) throw kotlinx.coroutines.CancellationException("Session changed")
         if (filter == EventFilter.ALL) store.cacheOccurrences(items)
         return items
     }

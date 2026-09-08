@@ -48,6 +48,10 @@ class LoginFeedbackTest {
         compose.onNodeWithText("PASSWORD").performScrollTo().performTextInput("password-di-prova")
         compose.onNodeWithText(compose.activity.getString(R.string.auth_confirm_password)).performScrollTo().performTextInput("diversa")
         compose.onNodeWithText("CREA ACCOUNT").performScrollTo().performClick()
+        // The IME closes while the persistent error panel is measured.
+        compose.waitUntil(5_000) {
+            runCatching { compose.onNodeWithText(compose.activity.getString(R.string.auth_confirmation_mismatch)).assertIsDisplayed() }.isSuccess
+        }
         compose.onNodeWithText(compose.activity.getString(R.string.auth_confirmation_mismatch)).assertIsDisplayed()
         compose.onNodeWithText(compose.activity.getString(R.string.auth_privacy)).assertExists()
     }

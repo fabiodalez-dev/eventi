@@ -199,3 +199,12 @@ it('cerca eventi, locali e tag e pretende almeno due caratteri', function (): vo
 
     $this->getJson('/api/v1/search')->assertStatus(422);
 });
+
+it('serializes empty venue maps as JSON objects for native clients', function (): void {
+    $city = testCity();
+    $venue = Venue::factory()->approved()->create(['city_id' => $city->id, 'socials' => [], 'accessibility' => []]);
+    $response = $this->getJson('/api/v1/venues/'.$venue->slug)->assertOk();
+    $data = json_decode($response->getContent())->data;
+    expect($data->socials)->toBeInstanceOf(stdClass::class)
+        ->and($data->accessibility)->toBeInstanceOf(stdClass::class);
+});

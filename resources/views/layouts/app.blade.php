@@ -458,6 +458,12 @@
             </p>
         @endif
 
+        @auth
+            @php($contentSelection = app(\App\Services\Account\ContentPreferences::class)->selection(auth()->user()))
+            @if($contentSelection['mode'] === 'selected' || $contentSelection['hidden_categories'] !== [])
+                <p class="bg-surface px-gutter py-3 text-sm">Stai esplorando gli eventi secondo i tuoi interessi. <a class="font-bold underline" href="{{ route('account.content-preferences') }}">Modifica o mostra tutto</a></p>
+            @endif
+        @endauth
         {{ $slot }}
 
         @if (! ($wide ?? false))

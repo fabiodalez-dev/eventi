@@ -36,11 +36,13 @@ use App\Http\Controllers\Api\V1\SyncController;
 use App\Http\Controllers\Api\V1\TaxonomyController;
 use App\Http\Controllers\Api\V1\VenueController;
 use App\Http\Controllers\TicketingController;
+use App\Http\Controllers\Web\Account\ContentPreferencesController;
 use App\Http\Controllers\Web\Account\NotificationInterestsController;
 use App\Http\Controllers\Web\Account\SavedCalendarController;
 use App\Http\Middleware\Api\CacheJsonResponse;
 use App\Http\Middleware\Api\IdempotentRequest;
 use App\Http\Middleware\Api\ResolveApiCity;
+use App\Http\Middleware\PersonalizeDiscovery;
 use App\Http\Middleware\TicketingPrivacy;
 use Illuminate\Support\Facades\Route;
 
@@ -82,7 +84,7 @@ Route::prefix('v1')
         // Deliberately outside the JSON cache: switches and short ad leases must stay live.
         Route::get('/sponsorships/banner', SponsorshipBannerController::class)->name('sponsorships.banner');
 
-        Route::middleware(CacheJsonResponse::class)->group(function (): void {
+        Route::middleware([CacheJsonResponse::class, PersonalizeDiscovery::class])->group(function (): void {
             Route::get('/config', ConfigController::class)->name('config');
             Route::get('/home', HomeController::class)->name('home');
 
@@ -189,6 +191,8 @@ Route::prefix('v1')
                 Route::delete('/', [ProfileController::class, 'destroy'])->name('destroy');
 
                 Route::get('/notification-preferences', [NotificationPreferenceController::class, 'show'])->name('preferences.show');
+                Route::get('/content-preferences', [ContentPreferencesController::class, 'index'])->name('content-preferences.show');
+                Route::patch('/content-preferences', [ContentPreferencesController::class, 'update'])->name('content-preferences.update');
                 Route::get('/notification-interests', [NotificationInterestsController::class, 'index'])->name('interests.show');
                 Route::patch('/notification-interests', [NotificationInterestsController::class, 'update'])->name('interests.update');
                 Route::patch('/notification-preferences', [NotificationPreferenceController::class, 'update'])->name('preferences.update');
@@ -214,7 +218,7 @@ Route::prefix('v1')
                     ->whereNumber('id')
                     ->name('follows.destroy');
 
-                Route::get('/feed', FeedController::class)->name('feed');
+                Route::get('/feed', FeedController::class)->middleware(PersonalizeDiscovery::class)->name('feed');
 
                 Route::get('/devices', [DeviceController::class, 'index'])->name('devices.index');
                 Route::post('/devices', [DeviceController::class, 'store'])->middleware(IdempotentRequest::class)->name('devices.store');

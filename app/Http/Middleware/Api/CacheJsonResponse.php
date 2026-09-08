@@ -50,6 +50,7 @@ final class CacheJsonResponse
 
         if ($authenticated) {
             $response->headers->set('Vary', 'Authorization, X-Installation-ID');
+            $response->headers->set('Cache-Control', 'private, no-store');
         }
 
         /*
