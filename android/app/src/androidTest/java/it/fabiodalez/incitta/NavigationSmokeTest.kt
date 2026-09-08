@@ -18,12 +18,12 @@ class NavigationSmokeTest {
         }
     }
 
-    @Test fun savedShowsExportAndCalendarCreation() {
+    @Test fun guestSavedOpensProfileLogin() {
         dismissConsent()
         compose.onNode(hasText("SALVATI") and hasClickAction()).performClick()
-        compose.onNodeWithText(compose.activity.getString(R.string.calendar_export_saved)).assertExists()
-        compose.onNodeWithText(compose.activity.getString(R.string.calendar_customize)).performScrollTo().performClick()
-        compose.onNodeWithText(compose.activity.getString(R.string.calendar_all_categories)).assertExists()
+        compose.onNodeWithText("EMAIL").assertExists()
+        compose.onNodeWithText("REGISTRATI").assertExists()
+        compose.onNodeWithText(compose.activity.getString(R.string.calendar_export_saved)).assertDoesNotExist()
     }
 
     @Test fun homeBannerOpensCalendarConfiguration() {
