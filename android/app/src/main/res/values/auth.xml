@@ -1,0 +1,17 @@
+<resources>
+    <string name="auth_last_name">COGNOME (FACOLTATIVO)</string>
+    <string name="auth_confirm_password">CONFERMA PASSWORD</string>
+    <string name="auth_confirmation_mismatch">Le password non coincidono. Controlla la conferma password.</string>
+    <string name="auth_registration_help">Nome e cognome sono facoltativi. Usa almeno 8 caratteri per la password. Registrarti non ti iscrive a messaggi promozionali.</string>
+    <string name="auth_privacy">Leggi l’informativa privacy</string>
+    <string name="auth_invalid_credentials">Email o password non corrette. Controlla i dati e riprova, oppure richiedi un link di accesso.</string>
+    <string name="auth_rate_limited">Troppi tentativi di accesso. Attendi qualche minuto prima di riprovare.</string>
+    <string name="auth_server_unavailable">Il servizio di accesso non è disponibile al momento. Riprova tra poco.</string>
+    <string name="auth_connection_failed">Non riusciamo a collegarci al server. Controlla la connessione e riprova.</string>
+    <string name="auth_failed">Accesso non riuscito. Riprova tra poco.</string>
+    <string name="auth_email_required">Inserisci il tuo indirizzo email.</string>
+    <string name="auth_email_invalid">Inserisci un indirizzo email valido, ad esempio nome@dominio.it.</string>
+    <string name="auth_password_required">Inserisci la password oppure richiedi un link di accesso.</string>
+    <string name="auth_password_short">Per creare un account scegli una password di almeno 8 caratteri.</string>
+    <string name="auth_in_progress">Accesso in corso…</string>
+</resources>

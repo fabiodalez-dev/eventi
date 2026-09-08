@@ -49,7 +49,7 @@ final class SavedController extends Controller
          * serata più lontana nel passato si scorre fino in fondo prima di
          * arrivare a ieri.
          */
-        $request->onlyUpcoming() ? $query->upcoming() : $query->orderByNewestFirst();
+        $request->onlyUpcoming() ? $query->ended(false) : $query->orderByNewestFirst();
 
         $paginator = $query->cursorPaginate($request->limit(), $request->cursor())->withQueryString();
 

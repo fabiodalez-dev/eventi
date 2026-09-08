@@ -17,7 +17,8 @@
             @csrf
             <x-honeypot />
 
-            <x-field name="name" :label="__('account.register.name')" autocomplete="name" />
+            <x-field name="first_name" :label="__('account.register.first_name')" autocomplete="given-name" />
+            <x-field name="last_name" :label="__('account.register.last_name')" autocomplete="family-name" />
             <x-field name="email" type="email" :label="__('account.register.email')" :required="true" autocomplete="email" />
             <x-field name="password" type="password" :label="__('account.register.password')" :required="true" autocomplete="new-password" />
             <x-field name="password_confirmation" type="password" :label="__('account.register.password')" :required="true" autocomplete="new-password" />

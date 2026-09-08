@@ -47,6 +47,8 @@ class User extends Authenticatable implements FilamentUser, HasTenants, MustVeri
     protected $fillable = [
         'city_id',
         'name',
+        'first_name',
+        'last_name',
         'email',
         'password',
         'timezone',

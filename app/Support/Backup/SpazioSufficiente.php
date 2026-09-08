@@ -38,13 +38,25 @@ final class SpazioSufficiente
     /**
      * Quanto margine pretendere prima di lasciar partire il backup.
      *
-     * L'archivio di questo progetto pesa circa 130 MB e ne serve il doppio,
-     * perche' viene composto in una cartella temporanea e poi copiato. Non si
-     * prova a scrivere tutto quel peso — sarebbe lento e occuperebbe davvero
-     * lo spazio che stiamo misurando: 64 MB bastano a distinguere «pieno» da
-     * «c'e' posto», che e' la sola domanda a cui questo controllo risponde.
+     * Il margine cresce con gli archivi reali: una prova fissa da 64 MB
+     * lasciava partire backup da oltre 250 MB che saturavano la quota.
+     * Servono spazio temporaneo, copia finale e margine per l'applicazione.
      */
-    private const MEGABYTE_DI_PROVA = 64;
+    public static function megabyteDiProva(): int
+    {
+        $largest = 0;
+        $directory = storage_path('app/private/'.config('backup.backup.name'));
+        if (File::isDirectory($directory)) {
+            foreach (File::files($directory) as $archive) {
+                if ($archive->getExtension() === 'zip') {
+                    $largest = max($largest, $archive->getSize());
+                }
+            }
+        }
+
+        // Temporary archive, destination copy, growth allowance and headroom for the site.
+        return max(256, (int) ceil($largest * 3 / 1048576) + 128);
+    }
 
     /**
      * La condizione da passare a `->when()` nello scheduler.
@@ -77,9 +89,10 @@ final class SpazioSufficiente
              * controllo invece della cosa controllata.
              */
             $blocco = str_repeat('0', 1024 * 1024);
+            $megabytes = self::megabyteDiProva();
 
-            for ($i = 0; $i < self::MEGABYTE_DI_PROVA; $i++) {
-                if (fwrite($file, $blocco) === false) {
+            for ($i = 0; $i < $megabytes; $i++) {
+                if (fwrite($file, $blocco) !== strlen($blocco)) {
                     fclose($file);
 
                     return self::rifiuta('lo spazio e finito dopo '.$i.' MB');
@@ -144,8 +157,12 @@ final class SpazioSufficiente
 
     private static function rifiuta(string $motivo): bool
     {
-        Log::error('[backup] Salto il backup di stanotte: '.$motivo.'. '
-            .'Meglio nessun backup che un sito a terra — `backup:monitor` avvisera del buco.');
+        try {
+            Log::error('[backup] Salto il backup di stanotte: '.$motivo.'. '
+                .'Spazio insufficiente per archivio temporaneo, copia e margine operativo.');
+        } catch (Throwable) {
+            // A full quota can prevent logging too. The backup must still be refused.
+        }
 
         return false;
     }

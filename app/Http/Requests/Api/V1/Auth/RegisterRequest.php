@@ -26,6 +26,9 @@ final class RegisterRequest extends ApiRequest
             /* Il nome è facoltativo (§15.2): si raccoglie il minimo, e il
                minimo è email e password. */
             'name' => ['nullable', 'string', 'max:255'],
+            'first_name' => ['nullable', 'string', 'max:120'],
+            'last_name' => ['nullable', 'string', 'max:120'],
+            'password_confirmation' => ['sometimes', 'required', 'same:password'],
             'email' => ['required', 'email:filter', 'max:255', Rule::unique('users', 'email')],
             'password' => ['required', 'string', Password::defaults()],
             'device_name' => ['nullable', 'string', 'max:120'],

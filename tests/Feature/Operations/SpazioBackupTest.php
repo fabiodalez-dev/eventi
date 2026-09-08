@@ -40,6 +40,15 @@ it('lascia passare il backup quando c e spazio', function (): void {
     expect(SpazioSufficiente::verifica())->toBeTrue();
 });
 
+it('scales the quota probe with actual archives rather than a fixed 64 MB', function (): void {
+    $directory = storage_path('app/private/'.config('backup.backup.name'));
+    File::ensureDirectoryExists($directory);
+    $file = fopen($directory.'/large.zip', 'wb');
+    ftruncate($file, 200 * 1048576);
+    fclose($file);
+    expect(SpazioSufficiente::megabyteDiProva())->toBe(728);
+});
+
 it('non lascia dietro il proprio file di prova', function (): void {
     SpazioSufficiente::verifica();
 

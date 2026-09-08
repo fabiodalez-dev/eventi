@@ -44,6 +44,8 @@ final class AuthController extends Controller
 
         $user = $register([
             'name' => is_string($data['name'] ?? null) ? $data['name'] : null,
+            'first_name' => $request->validated('first_name'),
+            'last_name' => $request->validated('last_name'),
             'email' => (string) $data['email'],
             'password' => (string) $data['password'],
             'marketing_opt_in' => $request->boolean('marketing_opt_in'),

@@ -81,6 +81,7 @@ return [
     ],
 
     'saved' => [
+        'past_tab' => 'Passati',
         'title' => 'I miei salvataggi',
         'lead' => 'Le date che hai messo in agenda.',
         'empty_title' => 'Non hai ancora salvato nessuna data',
@@ -99,6 +100,8 @@ return [
     ],
 
     'register' => [
+        'first_name' => 'Nome (facoltativo)',
+        'last_name' => 'Cognome (facoltativo)',
         'title' => 'Crea un account',
         'lead' => 'Serve solo per i promemoria e per ritrovare i salvataggi su ogni dispositivo. Nient\'altro.',
         'name' => 'Nome (facoltativo)',

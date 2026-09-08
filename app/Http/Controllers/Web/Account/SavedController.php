@@ -46,7 +46,10 @@ final class SavedController extends Controller
 
         $query = EventOccurrenceQuery::for($city)->savedBy($user);
 
-        $past ? $query->past()->orderByNewestFirst() : $query->upcoming();
+        $query->ended($past);
+        if ($past) {
+            $query->orderByNewestFirst();
+        }
 
         $occurrences = $query->paginate(config()->integer('account.feed_per_page'))->withQueryString();
 
@@ -71,6 +74,7 @@ final class SavedController extends Controller
         if ($calendarView) {
             $calendarOccurrences = EventOccurrenceQuery::archiveFor($city)
                 ->savedBy($user)
+                ->ended(false)
                 ->between($month, $month->endOfMonth())
                 ->get();
             $calendarOccurrences->load(['event.city', 'event.venue', 'event.category', 'event.media']);
