@@ -90,4 +90,5 @@ it('validates neighborhood choices when a venue saves its profile', function (st
     }
 })->with([
     ['Padova', 'Brusegana', true], ['Padova', null, false], ['Padova', 'Nord', false], ['Abano Terme', 'Guizza', true],
+    ['Padova', 'Centro storico', true],
 ]);
