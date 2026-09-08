@@ -102,6 +102,20 @@ it('include il banner nel profilo autenticato ma non nel login', function (): vo
     $this->actingAs(User::factory()->create())->get('/il-mio-profilo')->assertOk()->assertSee('data-live-sponsorship', false);
 });
 
+it('mostra un banner prima di stasera in home oltre alla collocazione in fondo', function (): void {
+    occurrenceAtLocal($this->city, $this->category, '2026-09-10 21:00');
+    $response = $this->get('/')->assertOk();
+    $response->assertSeeInOrder(['data-live-sponsorship', 'id="sezione-tonight"', 'data-live-sponsorship'], false);
+});
+
+it('usa colonne bilanciate per entrambi i gruppi di eventi correlati', function (): void {
+    $event = occurrenceAtLocal($this->city, $this->category, '2026-09-11 21:00')->event;
+    occurrenceAtLocal($this->city, $this->category, '2026-09-12 21:00', event: ['venue_id' => $event->venue_id]);
+    occurrenceAtLocal($this->city, $this->category, '2026-09-13 21:00');
+    $response = $this->get('/eventi/'.$event->slug)->assertOk();
+    $response->assertSeeInOrder(['id="sezione-stesso-locale"', 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-4', 'id="sezione-simili"', 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-4'], false);
+});
+
 it('crea tre campagne dimostrative idempotenti senza pagamenti', function (): void {
     for ($i = 0; $i < 3; $i++) {
         occurrenceAtLocal($this->city, $this->category, '2026-09-11 21:00');

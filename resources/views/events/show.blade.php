@@ -624,7 +624,7 @@
                 :href="route('venues.show', $venue)"
             />
 
-            <x-event-grid :occurrences="$atVenue" :show-venue="false" />
+            <x-event-grid :occurrences="$atVenue" :show-venue="false" :balanced="true" />
         </section>
     @endif
 
@@ -637,7 +637,7 @@
                 :href="$event->category !== null ? route('events.category', $event->category) : route('events.index')"
             />
 
-            <x-event-grid :occurrences="$related" />
+            <x-event-grid :occurrences="$related" :balanced="true" />
         </section>
     @endif
 </x-layouts.app>

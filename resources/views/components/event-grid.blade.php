@@ -38,10 +38,14 @@
     /* Da quale numero parte questa griglia: le liste paginate continuano il
        conteggio invece di ricominciare da «01» a ogni pagina. */
     'offset' => 0,
+    /* Related-event groups use 1 / 2 / 4 columns, never an orphaned 3 + 1. */
+    'balanced' => false,
 ])
 
 <div {{ $attributes->class([
-    'grid [grid-template-columns:repeat(auto-fill,minmax(min(298px,100%),1fr))]',
+    'grid',
+    'grid-cols-1 sm:grid-cols-2 xl:grid-cols-4' => $balanced,
+    '[grid-template-columns:repeat(auto-fill,minmax(min(298px,100%),1fr))]' => ! $balanced,
 ]) }}>
     @foreach ($occurrences as $occurrence)
         <x-event-card

@@ -294,6 +294,10 @@
     @foreach ($griglie as $sezione)
         @php $numero++; @endphp
 
+        @if ($sezione['key'] === 'tonight')
+            <x-sponsorship-banner :city="$city" />
+        @endif
+
         <section class="border-b-2 border-line defer-offscreen" aria-labelledby="sezione-{{ $sezione['key'] }}">
             <div class="flex flex-wrap items-end justify-between gap-5 px-gutter pt-[clamp(1.5rem,2.8vw,2.75rem)] pb-[clamp(1.125rem,2vw,1.625rem)]">
                 <div class="flex flex-col gap-2">
