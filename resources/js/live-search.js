@@ -11,7 +11,6 @@ export function liveSearch() {
             paragraph.textContent = text;
             panel.replaceChildren(paragraph);
             panel.hidden = false;
-            input.setAttribute('aria-expanded', 'true');
         };
         const close = () => {
             clearTimeout(timer);
@@ -19,7 +18,6 @@ export function liveSearch() {
             generation++;
             panel.hidden = true;
             panel.removeAttribute('aria-busy');
-            input.setAttribute('aria-expanded', 'false');
         };
         input.addEventListener('input', (event) => {
             close();
@@ -41,7 +39,6 @@ export function liveSearch() {
                     // Only the escaped Blade fragment from our own endpoint is inserted.
                     panel.innerHTML = html;
                     panel.hidden = false;
-                    input.setAttribute('aria-expanded', 'true');
                 } catch (error) {
                     if (current === generation && error.name !== 'AbortError') message(form.dataset.searchError);
                 } finally {

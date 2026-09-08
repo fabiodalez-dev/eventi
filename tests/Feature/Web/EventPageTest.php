@@ -15,6 +15,28 @@ afterEach(function (): void {
     Carbon::setTestNow();
 });
 
+it('preserves readable cancelled cards and generous venue contact targets', function (): void {
+    $city = testCity();
+    freezeLocal($city, '2026-09-05 12:00:00');
+    $venue = Venue::factory()->approved()->create([
+        'city_id' => $city->id, 'phone' => '+390491234567',
+        'email' => 'info@example.test', 'website' => 'https://example.test',
+    ]);
+    $date = occurrenceAtLocal($city, testCategory(), '2026-09-10 21:00:00', venue: $venue);
+    $html = $this->get('/eventi/'.$date->event->slug)->assertOk()->getContent();
+    $document = new DOMDocument;
+    @$document->loadHTML($html);
+    $xpath = new DOMXPath($document);
+    foreach (['tel:+390491234567', 'mailto:info@example.test', 'https://example.test'] as $href) {
+        $link = $xpath->query('//a[@href="'.$href.'"]')->item(0);
+        expect($link)->not->toBeNull();
+        expect($link->getAttribute('class'))->toContain('min-h-12');
+    }
+    $date->update(['status' => OccurrenceStatus::Cancelled]);
+    $card = Blade::render('<x-event-card :occurrence="$date" />', ['date' => $date->fresh()]);
+    expect($card)->not->toContain('opacity-60')->toContain(__('events.badge.cancelled'));
+});
+
 /** @return array<int, array<string, mixed>> */
 function jsonLdNodes(string $html): array
 {
