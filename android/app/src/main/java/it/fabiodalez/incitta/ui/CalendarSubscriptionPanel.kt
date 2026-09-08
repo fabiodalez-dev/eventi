@@ -35,6 +35,8 @@ fun CalendarSubscriptionPanel(initiallyExpanded: Boolean = false) {
     var connected by remember { mutableStateOf(NativeCalendar.enabled(context)) }
     var busy by remember { mutableStateOf(false) }
     var pendingQuery by remember { mutableStateOf<String?>(null) }
+    var confirmQuery by remember { mutableStateOf<String?>(null) }
+    var importedCount by remember { mutableStateOf<Int?>(null) }
     var pendingIcs by remember(session?.token) { mutableStateOf<String?>(null) }
     var expanded by remember { mutableStateOf(initiallyExpanded) }
     var categories by remember { mutableStateOf(emptyList<Category>()) }
@@ -52,8 +54,8 @@ fun CalendarSubscriptionPanel(initiallyExpanded: Boolean = false) {
             try {
                 val count = NativeCalendar.refresh(context, selection)
                 connected = true
+                importedCount = count
                 error = "Calendario collegato: $count date. Si aggiorna quando apri inCittà e periodicamente mentre resti collegato."
-                runCatching { NativeCalendar.open(context) }.onFailure { error += " Apri la tua app Calendario e attiva inCittà nell'elenco dei calendari." }
             } catch (e: CancellationException) { throw e }
             catch (e: Exception) { error = e.message ?: "Collegamento non riuscito. Riprova." }
             finally { busy = false }
@@ -65,6 +67,28 @@ fun CalendarSubscriptionPanel(initiallyExpanded: Boolean = false) {
         if (NativeCalendar.allowed(context) && selection != null) connect(selection)
         else error = "Permesso calendario negato. Puoi ancora scaricare un file ICS dopo l'accesso."
     }
+    if (confirmQuery != null) AlertDialog(
+        onDismissRequest = { confirmQuery = null },
+        title = { Text(if (connected) "Aggiornare il calendario inCittà?" else "Aggiungere il calendario inCittà?") },
+        text = { Text("Creiamo un calendario separato sul telefono con gli eventi selezionati. Non è un abbonamento nel tuo account Google: inCittà lo aggiorna mentre resti autenticato. Non modifichiamo gli altri calendari. Al logout viene rimosso.") },
+        confirmButton = { TextButton(onClick = {
+            val selection = confirmQuery ?: return@TextButton
+            confirmQuery = null
+            if (NativeCalendar.allowed(context)) connect(selection)
+            else { pendingQuery = selection; permission.launch(arrayOf(android.Manifest.permission.READ_CALENDAR, android.Manifest.permission.WRITE_CALENDAR)) }
+        }) { Text(if (connected) "Aggiorna" else "Aggiungi calendario") } },
+        dismissButton = { TextButton(onClick = { confirmQuery = null }) { Text("Annulla") } },
+    )
+    if (importedCount != null) AlertDialog(
+        onDismissRequest = { importedCount = null },
+        title = { Text("Calendario aggiunto al telefono") },
+        text = { Text("${importedCount} date nel calendario «inCittà · Eventi». Non devi aggiungerlo di nuovo in Google Calendar. Se non lo vedi, apri il menu della tua app Calendario e seleziona «inCittà · Eventi» tra i calendari del dispositivo.\n\n" + if (importedCount == 0) "Nessun evento corrisponde ai filtri scelti: arriveranno con i prossimi aggiornamenti." else "Puoi tornare qui per cambiare filtri o scollegarlo.") },
+        confirmButton = { TextButton(onClick = {
+            importedCount = null
+            runCatching { NativeCalendar.open(context) }.onFailure { error = "Calendario creato. Installa o apri un’app compatibile con i calendari del dispositivo." }
+        }) { Text("Apri Calendario") } },
+        dismissButton = { TextButton(onClick = { importedCount = null }) { Text("Resta in inCittà") } },
+    )
     val download = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/calendar")) { uri ->
         val text = pendingIcs
         pendingIcs = null
@@ -133,9 +157,7 @@ fun CalendarSubscriptionPanel(initiallyExpanded: Boolean = false) {
             }, modifier = Modifier.fillMaxWidth()) { Text("Accedi per collegare il calendario") }
         } else {
             Button(enabled = valid, onClick = {
-                val selection = url.encodedQuery.orEmpty()
-                if (NativeCalendar.allowed(context)) connect(selection)
-                else { pendingQuery = selection; permission.launch(arrayOf(android.Manifest.permission.READ_CALENDAR, android.Manifest.permission.WRITE_CALENDAR)) }
+                confirmQuery = url.encodedQuery.orEmpty()
             }, modifier = Modifier.fillMaxWidth()) { Text(if (busy) "Aggiornamento…" else if (connected) "Aggiorna calendario sul telefono" else "Collega al calendario del telefono") }
             if (connected) {
                 TextButton(onClick = { runCatching { NativeCalendar.open(context) }.onFailure { error = "Nessuna app Calendario disponibile sul telefono." } }) { Text("Apri app Calendario") }

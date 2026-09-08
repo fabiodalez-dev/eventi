@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\EventStatus;
+use App\Enums\OccurrenceStatus;
 use App\Enums\SponsorshipPhase;
 use App\Enums\SponsorshipPlacement;
 use App\Enums\SponsorshipStatus;
+use App\Enums\VenueStatus;
 use App\Support\ContentVersion;
 use Carbon\CarbonImmutable;
 use Database\Factories\SponsorshipFactory;
@@ -105,6 +107,17 @@ class Sponsorship extends Model
         $adesso = $now ?? CarbonImmutable::now('UTC');
 
         $query->where('status', SponsorshipStatus::Active)
+            // Civil midnight in each city's timezone, not the server's UTC day.
+            // Multi-day and recurring events remain eligible until their last valid date.
+            ->where(function (Builder $cities) use ($adesso): void {
+                $cities->whereRaw('1 = 0');
+                foreach (City::query()->get(['id', 'timezone']) as $city) {
+                    $cities->orWhere(fn (Builder $q) => $q->where('sponsorships.city_id', $city->id)
+                        ->whereHas('event.occurrences', fn (Builder $dates) => $dates
+                            ->whereIn('status', [OccurrenceStatus::Scheduled, OccurrenceStatus::SoldOut])
+                            ->where('effective_ends_at', '>', $adesso->setTimezone($city->timezone)->startOfDay()->utc())));
+                }
+            })
             ->where(fn (Builder $q) => $q->whereNull('sponsorship_grant_id')->orWhereIn('sponsorship_grant_id', SponsorshipGrant::active($adesso)->select('id')))
             ->where('starts_at', '<=', $adesso)
             ->where('ends_at', '>=', $adesso)
@@ -113,6 +126,8 @@ class Sponsorship extends Model
             ->whereHas('event', function (Builder $event): void {
                 $event->where('status', EventStatus::Published)
                     ->whereNull('deleted_at')
+                    ->whereColumn('events.city_id', 'sponsorships.city_id')
+                    ->where(fn (Builder $q) => $q->whereNull('venue_id')->orWhereHas('venue', fn (Builder $venue) => $venue->whereIn('status', VenueStatus::valoriSenzaProvvedimento())))
                     ->where(fn (Builder $q) => $q->whereNull('sponsorships.sponsorship_grant_id')
                         ->orWhereIn('events.venue_id', SponsorshipGrant::query()->select('venue_id')->whereColumn('sponsorship_grants.id', 'sponsorships.sponsorship_grant_id')));
             })

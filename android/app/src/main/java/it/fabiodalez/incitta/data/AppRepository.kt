@@ -14,6 +14,12 @@ import kotlinx.coroutines.coroutineScope
 class AppRepository(context: Context) {
     private val store = LocalStore(context)
     private val api = ApiClient(store.installationId)
+
+    suspend fun sponsoredBanner(excludeEvent: String?): SponsoredBanner? =
+        api.get<ApiEnvelope<SponsoredBanner?>>("sponsorships/banner?platform=android" +
+            (excludeEvent?.let { "&exclude_event=" + URLEncoder.encode(it, "UTF-8") } ?: "")).data
+
+    suspend fun sponsorshipMetric(banner: SponsoredBanner, click: Boolean) = api.sponsorshipMetric(banner, click)
     private val deviceName = "${Build.MANUFACTURER} ${Build.MODEL}".trim()
 
     private val _session = MutableStateFlow(store.readSession())

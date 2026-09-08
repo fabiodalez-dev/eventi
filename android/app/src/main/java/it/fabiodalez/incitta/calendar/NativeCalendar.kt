@@ -84,6 +84,10 @@ object NativeCalendar {
                 calendarId = ContentUris.parseId(requireNotNull(resolver.insert(uri(CalendarContract.Calendars.CONTENT_URI), values)))
             }
             val id = requireNotNull(calendarId)
+            if (selection != null) resolver.update(uri(ContentUris.withAppendedId(CalendarContract.Calendars.CONTENT_URI, id)), ContentValues().apply {
+                put(CalendarContract.Calendars.VISIBLE, 1)
+                put(CalendarContract.Calendars.SYNC_EVENTS, 1)
+            }, null, null)
             val existing = mutableMapOf<String, Long>()
             resolver.query(CalendarContract.Events.CONTENT_URI, arrayOf(CalendarContract.Events._SYNC_ID, CalendarContract.Events._ID),
                 "calendar_id = ?", arrayOf(id.toString()), null)?.use { while (it.moveToNext()) existing[it.getString(0).orEmpty()] = it.getLong(1) }
@@ -124,7 +128,14 @@ object NativeCalendar {
     }
 
     fun open(context: Context) {
-        val calendar = CalendarContract.CONTENT_URI.buildUpon().appendPath("time").appendPath(System.currentTimeMillis().toString()).build()
+        // Show a day containing an imported date, rather than an empty today view.
+        var time = System.currentTimeMillis()
+        if (allowed(context)) context.contentResolver.query(CalendarContract.Events.CONTENT_URI,
+            arrayOf(CalendarContract.Events.DTSTART), "account_name = ? AND account_type = ? AND dtend > ?",
+            arrayOf(ACCOUNT, CalendarContract.ACCOUNT_TYPE_LOCAL, time.toString()), "dtstart ASC")?.use {
+            if (it.moveToFirst()) time = it.getLong(0)
+        }
+        val calendar = CalendarContract.CONTENT_URI.buildUpon().appendPath("time").appendPath(time.toString()).build()
         context.startActivity(Intent(Intent.ACTION_VIEW, calendar).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }
 }

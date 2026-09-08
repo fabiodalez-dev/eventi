@@ -28,6 +28,7 @@ use App\Http\Controllers\Api\V1\OccurrenceController;
 use App\Http\Controllers\Api\V1\PageController;
 use App\Http\Controllers\Api\V1\ReportController;
 use App\Http\Controllers\Api\V1\SearchController;
+use App\Http\Controllers\Api\V1\SponsorshipBannerController;
 use App\Http\Controllers\Api\V1\SponsorshipController;
 use App\Http\Controllers\Api\V1\SponsorshipMetricController;
 use App\Http\Controllers\Api\V1\SubmissionController;
@@ -77,6 +78,9 @@ Route::prefix('v1')
     ->middleware(ResolveApiCity::class)
     ->name('api.v1.')
     ->group(function (): void {
+
+        // Deliberately outside the JSON cache: switches and short ad leases must stay live.
+        Route::get('/sponsorships/banner', SponsorshipBannerController::class)->name('sponsorships.banner');
 
         Route::middleware(CacheJsonResponse::class)->group(function (): void {
             Route::get('/config', ConfigController::class)->name('config');
