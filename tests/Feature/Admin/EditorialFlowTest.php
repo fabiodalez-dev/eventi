@@ -76,6 +76,7 @@ it('porta un amministratore da nessuna città a un evento pubblicato con tre dat
             'type' => 'circolo',
             'address' => 'Via Portello 12',
             'municipality' => 'Padova',
+            'zone' => 'Portello',
             'province_code' => 'PD',
             'lat' => 45.4084,
             'lng' => 11.8880,
