@@ -52,7 +52,7 @@ class Sponsorships extends Page
 
     protected function getHeaderActions(): array
     {
-        return [Action::make('choose')->label(__('promotions.choose'))->schema([
+        return [Action::make('analytics')->label('Statistiche e registro clic')->url(SponsorshipAnalytics::getUrl())->color('gray'), Action::make('choose')->label(__('promotions.choose'))->schema([
             Select::make('grant')->label(__('promotions.grant'))->required()->options(fn () => SponsorshipGrant::active()->where('venue_id', CurrentVenue::get()->id)
                 ->where('mode', PromotionMode::Selected)->get()->mapWithKeys(fn ($g) => [$g->id => $g->placement->label().' · '.$g->ends_at->timezone('Europe/Rome')->format('d/m/Y')])->all()),
             Select::make('event')->label(__('promotions.event'))->required()->searchable()->options(fn () => Event::where('venue_id', CurrentVenue::get()->id)->orderBy('title')->pluck('title', 'id')),

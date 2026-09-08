@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Admin\Resources\Sponsorships\Pages;
 
+use App\Filament\Admin\Pages\SponsorshipAnalytics;
 use App\Filament\Admin\Resources\SponsorshipGrants\SponsorshipGrantResource;
 use App\Filament\Admin\Resources\Sponsorships\SponsorshipResource;
 use App\Filament\Admin\Widgets\SponsorshipHealthWidget;
@@ -23,6 +24,7 @@ class ListSponsorships extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('analytics')->label('Statistiche e registro clic')->url(SponsorshipAnalytics::getUrl())->color('gray'),
             Action::make('grants')->label(__('promotions.title'))->url(SponsorshipGrantResource::getUrl())->color('gray'),
             /*
              * L'esportazione dell'elenco, coi filtri applicati.

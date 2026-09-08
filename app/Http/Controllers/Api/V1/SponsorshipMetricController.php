@@ -9,7 +9,7 @@ use App\Exceptions\ApiException;
 use App\Http\Controllers\Api\V1\Concerns\InteractsWithApi;
 use App\Http\Controllers\Controller;
 use App\Models\Sponsorship;
-use App\Models\SponsorshipDailyStat;
+use App\Services\Sponsorship\RecordSponsorshipMetric;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -37,12 +37,12 @@ final class SponsorshipMetricController extends Controller
         $actor = $this->actor($request);
         $dedupe = 'api-sponsor:'.hash('sha256', $actor.'|'.$campaign->getKey().'|'.$metric);
 
-        if (! Cache::add($dedupe, true, now()->addMinutes(15))) {
+        $request->validate(['click_id' => 'nullable|uuid']);
+        if (! ($metric === 'clicks' && $request->filled('click_id')) && ! Cache::add($dedupe, true, now()->addMinutes(15))) {
             return response()->json(status: 204);
         }
 
-        $campaign->increment($metric);
-        SponsorshipDailyStat::registra($campaign->getKey(), $metric);
+        app(RecordSponsorshipMetric::class)->record($campaign, $metric, $request, $request->hasHeader('X-Installation-ID') ? 'android' : 'web');
 
         return response()->json(status: 204);
     }

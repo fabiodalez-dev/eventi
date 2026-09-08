@@ -21,7 +21,7 @@ class AppRepository(context: Context) {
             (venue?.let { "&venue=" + URLEncoder.encode(it, "UTF-8") } ?: "") +
             (tag?.let { "&tag=" + URLEncoder.encode(it, "UTF-8") } ?: ""), _session.value?.token).data
 
-    suspend fun sponsorshipMetric(banner: SponsoredBanner, click: Boolean) = api.sponsorshipMetric(banner, click)
+    suspend fun sponsorshipMetric(banner: SponsoredBanner, click: Boolean, page: String) = api.sponsorshipMetric(banner, click, page)
     private val deviceName = "${Build.MANUFACTURER} ${Build.MODEL}".trim()
 
     private val _session = MutableStateFlow(store.readSession())

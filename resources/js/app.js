@@ -1,4 +1,5 @@
 import { sponsorshipBanners } from './sponsorship-banner';
+import { sponsorshipContext } from './sponsorship-context';
 
 /*
  * Miglioramenti progressivi del sito pubblico.
@@ -699,7 +700,7 @@ function sponsorshipMetrics() {
     const token =
         document.querySelector('meta[name="csrf-token"]')?.content ?? "";
 
-    const conta = (url) => {
+    const conta = (url, placement = 'card', click = false) => {
         if (!url) {
             return;
         }
@@ -707,7 +708,8 @@ function sponsorshipMetrics() {
         void fetch(url, {
             method: "POST",
             keepalive: true,
-            headers: { "X-CSRF-TOKEN": token, Accept: "application/json" },
+            headers: { "X-CSRF-TOKEN": token, Accept: "application/json", "Content-Type": "application/json" },
+            body: JSON.stringify(sponsorshipContext(placement, click)),
         }).catch(() => {
             /* Una misura persa non è un problema di chi sta navigando: nessun
                messaggio, nessun tentativo ripetuto. */
@@ -715,11 +717,12 @@ function sponsorshipMetrics() {
     };
 
     for (const card of cards) {
-        card.addEventListener(
-            "click",
-            () => conta(card.dataset.sponsorshipClick),
-            { once: true },
-        );
+        const click = (event) => {
+            if (!event.target.closest('a[rel~="sponsored"]')) return;
+            conta(card.dataset.sponsorshipClick, card.dataset.sponsorshipPlacement || 'card', true);
+        };
+        card.addEventListener('click', click);
+        card.addEventListener('auxclick', event => { if (event.button === 1) click(event); });
     }
 
     if (typeof IntersectionObserver !== "function") {

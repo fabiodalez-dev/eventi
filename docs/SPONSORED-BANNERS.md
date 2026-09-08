@@ -36,6 +36,14 @@ Per un singolo evento si usa `ACTION_INSERT` sul Calendar Provider (editor con p
 
 ## Verifiche
 
+### Registro dei clic
+
+La voce **Statistiche sponsorizzazioni** è disponibile in admin e gestione locale, con ricerca della campagna, periodi di 7/30/90 giorni, contatori, grafici e registro da 25 clic per pagina. Le query del locale verificano il tenant e la sua appartenenza anche nelle richieste Livewire. Gli ID di campagne altrui sono rifiutati.
+
+`sponsorship_clicks` conserva soltanto campagna, istante UTC, canale, collocazione e tipo di pagina. Nessun IP, identificativo utente o URL con query string. La chiave tecnica rende idempotente la ritrasmissione di un singolo clic; clic distinti hanno chiavi diverse. Contatori cumulativi, aggregato giornaliero e registro vengono aggiornati nella stessa transazione. I client API precedenti senza `click_id` mantengono la deduplicazione di 15 minuti; il nuovo sorgente Android invia un UUID per azione, senza distribuire un APK.
+
+Il registro non può ricostruire i clic storici: i precedenti aggregati rimangono nei contatori/grafici. Non si promette una misurazione assoluta: blocchi JavaScript, perdita di connessione e limiti antiabuso possono impedire il conteggio. Le impression restano aggregate, non sono un log di navigazione personale.
+
 - Test PHP `SponsorshipBannerTest`: autocompilazione, metriche, interruttori, autorizzazioni, esclusione dettaglio corrente, mezzanotte Europe/Rome, eventi su più giorni e ricorrenti.
 - Regressioni dell'intera cartella `tests/Feature/Sponsorships` e `MobileHomeAndSponsorshipTest`.
 - Android: `SponsoredBannerTest`, `SponsoredBannerUiTest`, `CalendarLinksTest`, `CalendarConfirmationUiTest`, `NativeCalendarTest`.
