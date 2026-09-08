@@ -9,6 +9,10 @@
         .sponsor-report .sponsor-labels { display:flex; justify-content:space-between; gap:1rem; font-size:.875rem; }
         .sponsor-report .sponsor-scroll { overflow-x:auto; max-width:100%; }
         .sponsor-report table { width:100%; font-size:.875rem; border-collapse:collapse; }
+        .sponsor-report .sponsor-clicks { min-width:48rem; }
+        .sponsor-report .sponsor-clicks td:nth-child(2) { min-width:14rem; }
+        .sponsor-report .sponsor-scroll-hint { font-size:.8125rem; margin-bottom:.5rem; }
+        @media(min-width:1024px) { .sponsor-report .sponsor-scroll-hint { display:none; } }
         .sponsor-report th, .sponsor-report td { padding:.75rem; text-align:left; vertical-align:top; }
         .sponsor-report tbody tr { border-top:1px solid color-mix(in srgb,currentColor 18%,transparent); }
         .sponsor-report .sponsor-note { font-size:.875rem; margin-bottom:1rem; }
@@ -44,7 +48,8 @@
     </details>
     <x-filament::section heading="Registro dei clic">
         <p class="sponsor-note">Una riga per ogni clic ricevuto e accettato dai controlli antiabuso. Il dettaglio inizia dall’attivazione del registro: i totali precedenti restano nei grafici. Nessun IP o dato personale viene conservato qui. I clic bloccati dal browser o senza connessione non possono essere misurati.</p>
-        <div class="sponsor-scroll"><table><thead><tr>
+        <p class="sponsor-scroll-hint">Scorri la tabella orizzontalmente per vedere tutte le colonne.</p>
+        <div class="sponsor-scroll" tabindex="0" role="region" aria-label="Registro clic, tabella scorrevole"><table class="sponsor-clicks"><thead><tr>
             @foreach (['Data e ora (UTC)', 'Evento / locale', 'Campagna', 'Canale', 'Collocazione', 'Pagina'] as $label)<th class="p-3 text-left">{{ $label }}</th>@endforeach
         </tr></thead><tbody>
             @forelse ($report['records'] as $click)

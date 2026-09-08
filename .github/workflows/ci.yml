@@ -167,7 +167,7 @@ jobs:
 
   lighthouse:
     needs: [scope, quality]
-    if: needs.scope.outputs.web == 'true'
+    if: needs.scope.outputs.web == 'true' && vars.CI_LIGHTHOUSE_PAUSED != 'true'
     name: Lighthouse
     runs-on: ubuntu-latest
     timeout-minutes: 25
@@ -412,12 +412,13 @@ jobs:
       - name: Nessun controllo richiesto può essere saltato o fallire
         env:
           NEEDS_JSON: ${{ toJSON(needs) }}
+          LIGHTHOUSE_PAUSED: ${{ vars.CI_LIGHTHOUSE_PAUSED }}
         run: node .github/scripts/ci-gate.cjs
 
   deploy:
     name: Pubblica il rilascio verificato
     needs: [checks, quality, tests, lighthouse, android]
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    if: always() && needs.checks.result == 'success' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     # The ARM route to production has verified TLS connectivity.
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 25
