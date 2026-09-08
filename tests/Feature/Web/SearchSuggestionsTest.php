@@ -83,3 +83,15 @@ it('provides live search hooks and a measured ticker on the home page', function
     $this->get('/')->assertOk()->assertSee('data-live-search', false)
         ->assertSee('data-ticker-track', false)->assertSee('data-ticker', false);
 });
+
+it('keeps search semantics valid and includes the visible city in the home link name', function (): void {
+    $html = $this->get('/')->assertOk()->getContent();
+    $document = new DOMDocument;
+    @$document->loadHTML($html);
+    $xpath = new DOMXPath($document);
+    $search = $xpath->query('//input[@id="site-search"]')->item(0);
+    expect($search->hasAttribute('aria-expanded'))->toBeFalse();
+    expect($search->getAttribute('aria-controls'))->toBe('site-search-suggestions');
+    $brand = $xpath->query('//header//a[@aria-label]')->item(0);
+    expect($brand->getAttribute('aria-label'))->toContain($this->city->name);
+});

@@ -337,7 +337,7 @@
                  con il margine del nastro sotto a fare da riferimento. Il
                  distacco e' di tre pixel — un occhiello attaccato al nome gli
                  appartiene, uno staccato sembra una voce di menu. --}}
-            <a href="{{ url('/') }}" class="flex shrink-0 flex-col items-start gap-[3px]" aria-label="{{ __('ui.header.home', ['app' => $app]) }}">
+            <a href="{{ url('/') }}" class="flex shrink-0 flex-col items-start gap-[3px]" aria-label="{{ __('ui.header.home', ['app' => trim($app.' '.($city?->name ?? ''))]) }}">
                 <span class="font-display text-[1.625rem] leading-none font-extrabold tracking-[-0.05em] text-ink">{{ $app }}</span>
                 @if ($city !== null)
                     <span class="font-display text-[0.594rem] leading-none font-extrabold tracking-[0.2em] text-accent uppercase">{{ $city->name }}</span>
@@ -379,7 +379,6 @@
                     id="site-search"
                     autocomplete="off"
                     maxlength="120"
-                    aria-expanded="false"
                     aria-controls="site-search-suggestions"
                     type="search"
                     name="q"

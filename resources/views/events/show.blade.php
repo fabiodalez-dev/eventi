@@ -547,16 +547,16 @@
                     @if (filled($venue->phone) || filled($venue->email) || filled($venue->website))
                         <div class="flex flex-wrap gap-x-4 gap-y-1 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.12em] uppercase">
                             @if (filled($venue->phone))
-                                <a class="hover:text-accent" href="tel:{{ preg_replace('/\s+/', '', $venue->phone) }}">{{ $venue->phone }}</a>
+                                <a class="inline-flex min-h-12 items-center hover:text-accent" href="tel:{{ preg_replace('/\s+/', '', $venue->phone) }}">{{ $venue->phone }}</a>
                             @endif
 
                             @if (filled($venue->email))
-                                <a class="hover:text-accent" href="mailto:{{ $venue->email }}">{{ $venue->email }}</a>
+                                <a class="inline-flex min-h-12 items-center break-all hover:text-accent" href="mailto:{{ $venue->email }}">{{ $venue->email }}</a>
                             @endif
 
                             @php $sitoLocale = \App\Support\SafeUrl::href($venue->website); @endphp
                             @if ($sitoLocale !== null)
-                                <a class="hover:text-accent" href="{{ $sitoLocale }}" rel="noopener noreferrer" target="_blank">{{ __('venues.detail.website') }}</a>
+                                <a class="inline-flex min-h-12 items-center hover:text-accent" href="{{ $sitoLocale }}" rel="noopener noreferrer" target="_blank">{{ __('venues.detail.website') }}</a>
                             @endif
                         </div>
                     @endif
