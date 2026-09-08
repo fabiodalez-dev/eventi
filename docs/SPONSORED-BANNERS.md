@@ -12,6 +12,14 @@ Per creare o aggiornare tre campagne di prova sugli eventi esistenti: `php artis
 
 Su richiesta esplicita del proprietario si possono pubblicare anche sul remoto: `php artisan sponsorships:demo padova --allow-production`. Il comando non è inserito in cron/deploy e senza il flag rifiuta production. La dicitura nelle note resta la stessa per idempotenza; sono campagne dimostrative anche quando pubblicate.
 
+## Preferenze e feed
+
+Nel **Mio feed** il banner è in testa. Locali e categorie rimangono gestibili dopo il primo follow: sei per pagina, ricerca locali e paginatori indipendenti. Gli eventi del feed usano pagine esplicite da 12 risultati, non scroll infinito.
+
+L'affinità non cambia ammissibilità o priorità commerciale: modifica solo il peso nella rotazione, senza salvarlo sulla campagna. Moltiplicatori (non cumulativi): ×4 locale/evento seguito, ×3 categoria/tag seguito, ×2 categoria di eventi salvati di recente o contesto esplicito categoria/tag/locale della pagina, ×1 senza segnali. Tutti i candidati restano in rotazione. Non vengono usati cronologia, fingerprint o dati esterni.
+
+Il sito legge il banner da `/{city}/banner-sponsorizzato?platform=web`, con la sessione web; Android dall'API con il proprio token, quando presente. Entrambe le risposte sono private e non memorizzabili. Nessun user_id può essere scelto dal chiamante. Gli anonimi usano soltanto il contesto esplicito della pagina, altrimenti la rotazione neutra.
+
 ## Scadenze e cache
 
 `Sponsorship::visible()` esclude eventi senza date valide dalla mezzanotte locale successiva alla fine effettiva. Valgono solo date scheduled/sold_out. Eventi su più giorni e ricorrenti restano eleggibili se esiste ancora una data valida. La home hero conserva la sua regola più restrittiva: nessuna data già terminata.

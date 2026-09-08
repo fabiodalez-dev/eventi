@@ -1,6 +1,12 @@
 @props(['city'])
+@php
+    $slug = static fn ($value) => $value instanceof \Illuminate\Database\Eloquent\Model ? $value->getRouteKey() : (is_string($value) ? mb_substr($value, 0, 255) : null);
+    $categoryContext = $slug(request()->route('category') ?? request()->query('category'));
+    $tagContext = $slug(request()->route('tag') ?? request()->query('tag'));
+    $venueContext = $slug(request()->routeIs('venues.show', 'city.venues.show') ? request()->route('slug') : request()->query('venue'));
+@endphp
 <aside hidden data-live-sponsorship
-    data-endpoint="{{ route('api.v1.sponsorships.banner', ['platform' => 'web', 'city' => $city->slug, 'exclude_event' => request()->routeIs('events.show', 'city.events.show') ? request()->route('slug') : null]) }}"
+    data-endpoint="{{ route('city.sponsorships.banner', ['platform' => 'web', 'city' => $city->slug, 'exclude_event' => request()->routeIs('events.show', 'city.events.show') ? request()->route('slug') : null, 'category' => $categoryContext, 'venue' => $venueContext, 'tag' => $tagContext]) }}"
     data-metric-base="{{ url('/api/v1/reports/sponsorships') }}"
     aria-label="Evento sponsorizzato"
     class="mx-auto my-8 w-full max-w-content px-gutter">

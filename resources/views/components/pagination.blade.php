@@ -2,6 +2,7 @@
     'paginator',
     /* "Da 1 a 24 di 143 risultati" sotto ai controlli */
     'summary' => false,
+    'label' => null,
 ])
 
 @php
@@ -32,7 +33,7 @@
 @endphp
 
 @if ($hasPages)
-    <nav {{ $attributes->class(['mt-8']) }} role="navigation" aria-label="{{ __('ui.pagination.label') }}">
+    <nav {{ $attributes->class(['mt-8']) }} role="navigation" aria-label="{{ $label ?? __('ui.pagination.label') }}">
         <div class="flex flex-wrap items-center justify-center gap-2">
             @if ($paginator->previousPageUrl())
                 <a href="{{ $paginator->previousPageUrl() }}" rel="prev" class="{{ $link }}">

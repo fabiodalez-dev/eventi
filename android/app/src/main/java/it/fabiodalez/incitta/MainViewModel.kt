@@ -89,7 +89,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     suspend fun refreshSponsoredBanner(excludeEvent: String?) {
         try {
-            val banner = repository.sponsoredBanner(excludeEvent)?.takeIf { it.validAt() }
+            val banner = repository.sponsoredBanner(excludeEvent, _state.value.selectedVenue?.slug, _state.value.activeTag?.slug)?.takeIf { it.validAt() }
             _state.value = _state.value.copy(sponsoredBanner = banner)
         } catch (cancelled: CancellationException) {
             throw cancelled

@@ -15,9 +15,11 @@ class AppRepository(context: Context) {
     private val store = LocalStore(context)
     private val api = ApiClient(store.installationId)
 
-    suspend fun sponsoredBanner(excludeEvent: String?): SponsoredBanner? =
+    suspend fun sponsoredBanner(excludeEvent: String?, venue: String? = null, tag: String? = null): SponsoredBanner? =
         api.get<ApiEnvelope<SponsoredBanner?>>("sponsorships/banner?platform=android" +
-            (excludeEvent?.let { "&exclude_event=" + URLEncoder.encode(it, "UTF-8") } ?: "")).data
+            (excludeEvent?.let { "&exclude_event=" + URLEncoder.encode(it, "UTF-8") } ?: "") +
+            (venue?.let { "&venue=" + URLEncoder.encode(it, "UTF-8") } ?: "") +
+            (tag?.let { "&tag=" + URLEncoder.encode(it, "UTF-8") } ?: ""), _session.value?.token).data
 
     suspend fun sponsorshipMetric(banner: SponsoredBanner, click: Boolean) = api.sponsorshipMetric(banner, click)
     private val deviceName = "${Build.MANUFACTURER} ${Build.MODEL}".trim()
