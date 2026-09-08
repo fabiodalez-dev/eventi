@@ -10,6 +10,16 @@ import org.junit.Test
 class ApiCompatibilityTest {
     private val json = Json { ignoreUnknownKeys = true; explicitNulls = false; isLenient = true }
 
+    @Test fun `empty venue maps accept older arrays without breaking discovery`() {
+        for (empty in listOf("[]", "{}", "null")) {
+            val venue = json.decodeFromString<Venue>("""{"name":"Locale","socials":$empty,"accessibility":$empty}""")
+            assertEquals(emptyMap<String, String>(), venue.socials)
+            assertEquals(emptyMap<String, Boolean>(), venue.accessibility)
+        }
+        val venue = json.decodeFromString<Venue>("""{"name":"Locale","accessibility":{"step_free_entrance":true}}""")
+        assertEquals(true, venue.accessibility["step_free_entrance"])
+    }
+
     @Test
     fun `venue cover accepts variants and legacy cached URLs`() {
         val venue = json.decodeFromString<Venue>("""{"name":"Teatro","cover":{"thumb":"https://example.test/thumb.webp","card":"https://example.test/card.webp","full":"https://example.test/full.jpg","width":800}}""")
@@ -46,6 +56,8 @@ class ApiCompatibilityTest {
         venues.forEach { venue ->
             json.decodeFromString<ApiEnvelope<Venue>>(fetch("venues/${venue.slug}"))
         }
-        json.decodeFromString<ApiEnvelope<BookingAvailability>>(fetch("occurrences/249/booking"))
+        events.firstOrNull()?.let { event ->
+            json.decodeFromString<ApiEnvelope<BookingAvailability>>(fetch("occurrences/${event.occurrenceId}/booking"))
+        }
     }
 }

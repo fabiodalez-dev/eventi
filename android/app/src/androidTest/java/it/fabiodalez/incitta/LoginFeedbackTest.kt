@@ -48,7 +48,7 @@ class LoginFeedbackTest {
         compose.onNodeWithText("PASSWORD").performScrollTo().performTextInput("password-di-prova")
         compose.onNodeWithText(compose.activity.getString(R.string.auth_confirm_password)).performScrollTo().performTextInput("diversa")
         compose.onNodeWithText("CREA ACCOUNT").performScrollTo().performClick()
-        // The IME closes and BringIntoView scrolls the measured error into view.
+        // The IME closes while the persistent error panel is measured.
         compose.waitUntil(5_000) {
             runCatching { compose.onNodeWithText(compose.activity.getString(R.string.auth_confirmation_mismatch)).assertIsDisplayed() }.isSuccess
         }
