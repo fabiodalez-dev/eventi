@@ -61,7 +61,7 @@ it('mostra contatori grafici e registro paginato agli admin', function (): void 
         app(RecordSponsorshipMetric::class)->record($this->campaign, 'clicks', Request::create('/'), 'web');
     }
     Livewire::test(AdminAnalytics::class)->assertSee('Registro dei clic')->assertSee('Clic giornalieri')
-        ->assertSee('Concerto del locale A')->call('setPage', 2)->assertSee('Concerto del locale A');
+        ->assertSee('fi-pagination', false)->assertSee('Concerto del locale A')->call('setPage', 2)->assertSee('Concerto del locale A');
     $this->get('/admin/statistiche-sponsorizzazioni')->assertOk();
 });
 
