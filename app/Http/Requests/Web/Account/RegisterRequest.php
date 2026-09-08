@@ -29,6 +29,8 @@ class RegisterRequest extends FormRequest
     {
         return [
             'name' => ['nullable', 'string', 'max:255'],
+            'first_name' => ['nullable', 'string', 'max:120'],
+            'last_name' => ['nullable', 'string', 'max:120'],
             'email' => ['required', 'email:filter', 'max:255', Rule::unique('users', 'email')],
             'password' => ['required', 'string', 'confirmed', Password::defaults()],
             'marketing_opt_in' => ['nullable', 'boolean'],

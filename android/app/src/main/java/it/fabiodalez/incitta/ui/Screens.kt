@@ -2,6 +2,16 @@ package it.fabiodalez.incitta.ui
 
 import android.content.Intent
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import it.fabiodalez.incitta.R
+import it.fabiodalez.incitta.data.authValidationMessage
+import it.fabiodalez.incitta.data.hasEnded
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -17,6 +27,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -51,6 +63,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -230,7 +243,8 @@ fun SavedScreen(
 ) {
     val context = LocalContext.current
     var mode by remember { mutableIntStateOf(0) }
-    val items = state.savedOccurrences
+    val items = state.savedOccurrences.filter { it.hasEnded() == (mode == 2) }
+        .let { if (mode == 2) it.sortedByDescending(Occurrence::startsAt) else it.sortedBy(Occurrence::startsAt) }
     val initialMonth = remember(items) {
         items.firstOrNull()?.let { date(it.startsAt)?.let { value -> YearMonth.from(value) } } ?: YearMonth.now()
     }
@@ -259,15 +273,16 @@ fun SavedScreen(
                 Row(Modifier.fillMaxWidth().padding(top = 18.dp)) {
                     ModeButton("LISTA", mode == 0, Modifier.weight(1f)) { mode = 0 }
                     ModeButton("CALENDARIO", mode == 1, Modifier.weight(1f)) { mode = 1 }
+                    ModeButton(stringResource(R.string.saved_past), mode == 2, Modifier.weight(1f)) { mode = 2 }
                 }
             }
         }
         item { SavedCalendarActions(state) }
         if (state.isLoading) item { LoadingBlock() }
-        if (!state.isLoading && items.isEmpty() && mode == 0) {
+        if (!state.isLoading && items.isEmpty() && mode != 1) {
             item { EmptyBlock("LA LISTA È VUOTA", "Tocca il segnalibro su un evento per ritrovarlo qui.") }
         }
-        if (mode == 0) {
+        if (mode != 1) {
             items(items, key = Occurrence::occurrenceId) { occurrence ->
                 EventRow(occurrence, true, onOpen, onSave)
             }
@@ -279,7 +294,11 @@ fun SavedScreen(
                     selectedDate = selectedDate,
                     onPrevious = { calendarMonth = calendarMonth.minusMonths(1) },
                     onNext = { calendarMonth = calendarMonth.plusMonths(1) },
-                    onSelect = { selectedDate = if (selectedDate == it) null else it },
+                    onSelect = { day ->
+                        val matches = items.filter { date(it.startsAt)?.toLocalDate() == day }
+                        if (matches.size == 1) onOpen(matches.single())
+                        else selectedDate = if (selectedDate == day) null else day
+                    },
                 )
             }
             if (!state.isLoading && items.isEmpty()) {
@@ -368,7 +387,7 @@ private fun SavedMonthCalendar(
                 }
             }
         }
-        Text("TOCCA UN GIORNO PER FILTRARE · TOCCALO ANCORA PER VEDERE TUTTO IL MESE", color = Muted, style = androidx.compose.material3.MaterialTheme.typography.labelSmall, modifier = Modifier.padding(top = 8.dp))
+        Text(stringResource(R.string.saved_calendar_help), color = Muted, style = androidx.compose.material3.MaterialTheme.typography.labelSmall, modifier = Modifier.padding(top = 8.dp))
     }
 }
 
@@ -396,11 +415,12 @@ fun AccountScreen(
     state: AppUiState,
     padding: PaddingValues,
     onLogin: (String, String) -> Unit,
-    onRegister: (String, String, String) -> Unit,
+    onRegister: (String, String, String, String) -> Unit,
     onMagic: (String) -> Unit,
     onLogout: () -> Unit,
     onDeleteAccount: (String) -> Unit,
     onTickets: () -> Unit,
+    onClearAuthError: () -> Unit = {},
 ) {
     if (state.session != null) {
         var deletePassword by remember { mutableStateOf("") }
@@ -448,8 +468,41 @@ fun AccountScreen(
 
     var mode by remember { mutableIntStateOf(0) }
     var name by remember { mutableStateOf("") }
+    var lastName by remember { mutableStateOf("") }
+    var confirmation by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var validationError by remember { mutableStateOf<String?>(null) }
+    val context = LocalContext.current
+    val focus = LocalFocusManager.current
+    val keyboard = LocalSoftwareKeyboardController.current
+    val error = validationError ?: state.authError
+    val errorPosition = remember { BringIntoViewRequester() }
+    fun clearError() { validationError = null; onClearAuthError() }
+    fun submit(magic: Boolean = false) {
+        if (state.isAuthenticating) return
+        focus.clearFocus()
+        keyboard?.hide()
+        onClearAuthError()
+        validationError = authValidationMessage(email, password, mode == 1, magic)?.let(context::getString)
+        if (!magic && mode == 1 && validationError == null && confirmation != password) {
+            validationError = context.getString(R.string.auth_confirmation_mismatch)
+        }
+        if (validationError == null) {
+            if (magic) onMagic(email.trim())
+            else if (mode == 0) onLogin(email.trim(), password)
+            else onRegister(name, lastName, email.trim(), password)
+        }
+    }
+    @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+    val imeVisible = WindowInsets.isImeVisible
+    LaunchedEffect(error, imeVisible) {
+        if (error != null) {
+            // Wait for the error to be measured, and repeat after the keyboard closes.
+            withFrameNanos { }
+            errorPosition.bringIntoView()
+        }
+    }
     Column(
         Modifier.fillMaxSize().padding(bottom = padding.calculateBottomPadding()).verticalScroll(rememberScrollState()).imePadding(),
     ) {
@@ -458,31 +511,53 @@ fun AccountScreen(
             Text("ENTRA IN CITTÀ", style = androidx.compose.material3.MaterialTheme.typography.displayMedium)
             Text("Sincronizza i tuoi eventi senza perdere quelli salvati come ospite.", color = Muted, modifier = Modifier.padding(top = 8.dp, bottom = 20.dp))
             Row(Modifier.fillMaxWidth()) {
-                ModeButton("ACCEDI", mode == 0, Modifier.weight(1f)) { mode = 0 }
-                ModeButton("REGISTRATI", mode == 1, Modifier.weight(1f)) { mode = 1 }
+                ModeButton("ACCEDI", mode == 0, Modifier.weight(1f)) { if (!state.isAuthenticating) { mode = 0; clearError() } }
+                ModeButton("REGISTRATI", mode == 1, Modifier.weight(1f)) { if (!state.isAuthenticating) { mode = 1; clearError() } }
             }
             Spacer(Modifier.height(18.dp))
             if (mode == 1) {
                 AuthField(name, { name = it }, "NOME (FACOLTATIVO)")
                 Spacer(Modifier.height(10.dp))
+                AuthField(lastName, { lastName = it }, stringResource(R.string.auth_last_name), enabled = !state.isAuthenticating)
+                Spacer(Modifier.height(10.dp))
             }
-            AuthField(email, { email = it }, "EMAIL")
+            AuthField(email, { email = it; clearError() }, "EMAIL", enabled = !state.isAuthenticating)
             Spacer(Modifier.height(10.dp))
-            AuthField(password, { password = it }, "PASSWORD", password = true)
+            AuthField(password, { password = it; clearError() }, "PASSWORD", password = true, enabled = !state.isAuthenticating)
+            if (mode == 1) {
+                Spacer(Modifier.height(10.dp))
+                AuthField(confirmation, { confirmation = it; clearError() }, stringResource(R.string.auth_confirm_password), password = true, enabled = !state.isAuthenticating)
+                Text(stringResource(R.string.auth_registration_help), color = Muted, modifier = Modifier.padding(top = 12.dp))
+                TextButton(onClick = {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, (it.fabiodalez.incitta.BuildConfig.API_BASE_URL.removeSuffix("api/v1/") + "pagine/privacy").toUri()))
+                }) { Text(stringResource(R.string.auth_privacy)) }
+            }
+            if (error != null) {
+                Text(
+                    error,
+                    color = Danger,
+                    modifier = Modifier.fillMaxWidth().bringIntoViewRequester(errorPosition)
+                        .padding(top = 12.dp).semantics { liveRegion = LiveRegionMode.Assertive },
+                )
+            }
             Spacer(Modifier.height(16.dp))
             Button(
-                onClick = { if (mode == 0) onLogin(email, password) else onRegister(name, email, password) },
-                enabled = email.isNotBlank() && password.length >= 8 && !state.isAuthenticating,
+                onClick = { submit() },
+                enabled = !state.isAuthenticating,
                 modifier = Modifier.fillMaxWidth().height(54.dp),
                 shape = RectangleShape,
                 colors = ButtonDefaults.buttonColors(containerColor = Acid, contentColor = Ink, disabledContainerColor = Rule),
             ) {
-                if (state.isAuthenticating) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                if (state.isAuthenticating) {
+                    CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                    Spacer(Modifier.width(10.dp))
+                    Text(stringResource(R.string.auth_in_progress))
+                }
                 else Text(if (mode == 0) "ACCEDI" else "CREA ACCOUNT")
             }
             Spacer(Modifier.height(22.dp))
             HorizontalDivider(thickness = 2.dp, color = Rule)
-            TextButton(onClick = { if (email.isNotBlank()) onMagic(email) }, modifier = Modifier.fillMaxWidth().height(52.dp)) {
+            TextButton(onClick = { submit(magic = true) }, enabled = !state.isAuthenticating, modifier = Modifier.fillMaxWidth().height(52.dp)) {
                 Text("INVIAMI UN LINK DI ACCESSO", color = Paper)
             }
             Text("Il link è monouso. Non rivela se l’indirizzo è già registrato.", color = Muted, style = androidx.compose.material3.MaterialTheme.typography.bodyMedium)
@@ -756,10 +831,11 @@ private fun ModeButton(text: String, selected: Boolean, modifier: Modifier, onCl
 }
 
 @Composable
-private fun AuthField(value: String, change: (String) -> Unit, label: String, password: Boolean = false) {
+private fun AuthField(value: String, change: (String) -> Unit, label: String, password: Boolean = false, enabled: Boolean = true) {
     OutlinedTextField(
         value = value,
         onValueChange = change,
+        enabled = enabled,
         modifier = Modifier.fillMaxWidth(),
         singleLine = true,
         label = { Text(label) },

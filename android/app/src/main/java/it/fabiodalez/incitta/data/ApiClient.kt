@@ -105,6 +105,8 @@ data class RegisterBody(
     val password: String,
     @kotlinx.serialization.SerialName("password_confirmation") val passwordConfirmation: String,
     @kotlinx.serialization.SerialName("device_name") val deviceName: String,
+    @kotlinx.serialization.SerialName("first_name") val firstName: String? = null,
+    @kotlinx.serialization.SerialName("last_name") val lastName: String? = null,
 )
 
 @kotlinx.serialization.Serializable

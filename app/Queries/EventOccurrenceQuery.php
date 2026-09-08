@@ -270,6 +270,14 @@ final class EventOccurrenceQuery
         return $this;
     }
 
+    /** Saved agenda: ongoing dates stay visible until their effective end. */
+    public function ended(bool $past = true): self
+    {
+        $this->query->where('event_occurrences.effective_ends_at', $past ? '<=' : '>', $this->nowUtc());
+
+        return $this;
+    }
+
     /** Date promuovibili: non terminate, annullate, rinviate o sostituite. */
     public function promotable(): self
     {

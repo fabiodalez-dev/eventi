@@ -140,11 +140,12 @@ class AppRepository(context: Context) {
         return payload.user
     }
 
-    suspend fun register(name: String, email: String, password: String): User {
+    suspend fun register(firstName: String, lastName: String, email: String, password: String): User {
         clearAuthenticatedState()
         val payload = api.post<ApiEnvelope<AuthPayload>, RegisterBody>(
             "auth/register",
-            RegisterBody(name.trim().ifBlank { null }, email.trim(), password, password, deviceName),
+            RegisterBody(listOf(firstName.trim(), lastName.trim()).filter(String::isNotBlank).joinToString(" ").ifBlank { null }, email.trim(), password, password, deviceName,
+                firstName.trim().ifBlank { null }, lastName.trim().ifBlank { null }),
         ).data
         acceptSession(payload)
         runCatching {
@@ -214,7 +215,17 @@ class AppRepository(context: Context) {
         }
         return try {
             mergeGuestWishlist()
-            api.get<ApiEnvelope<List<Occurrence>>>("me/saved?city=padova", token).data.also { items ->
+            val result = mutableListOf<Occurrence>()
+            var cursor: String? = null
+            val seen = mutableSetOf<String>()
+            do {
+                if (_session.value?.token != token) throw kotlinx.coroutines.CancellationException("Session changed")
+                val page = api.get<ApiEnvelope<List<Occurrence>>>("me/saved?city=padova&upcoming=0&limit=50" + (cursor?.let { "&cursor=${it.urlEncoded()}" } ?: ""), token)
+                result += page.data
+                cursor = page.meta?.nextCursor?.takeIf { seen.add(it) }
+            } while (cursor != null)
+            result.distinctBy(Occurrence::occurrenceId).sortedBy(Occurrence::startsAt).also { items ->
+                if (_session.value?.token != token) throw kotlinx.coroutines.CancellationException("Session changed")
                 _savedIds.value = items.map(Occurrence::occurrenceId).toSet()
             }
         } catch (error: ApiException) {

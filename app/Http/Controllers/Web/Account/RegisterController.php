@@ -43,6 +43,8 @@ final class RegisterController extends Controller
     {
         $user = $register([
             'name' => $request->string('name')->value(),
+            'first_name' => $request->validated('first_name'),
+            'last_name' => $request->validated('last_name'),
             'email' => (string) $request->validated('email'),
             'password' => (string) $request->validated('password'),
             /*

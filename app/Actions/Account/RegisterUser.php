@@ -24,12 +24,16 @@ use Illuminate\Support\Facades\Hash;
 final class RegisterUser
 {
     /**
-     * @param  array{name?: string|null, email: string, password: string, marketing_opt_in?: bool}  $data
+     * @param  array{name?: string|null, first_name?: string|null, last_name?: string|null, email: string, password: string, marketing_opt_in?: bool}  $data
      */
     public function __invoke(array $data): User
     {
+        $first = $this->name($data['first_name'] ?? null);
+        $last = $this->name($data['last_name'] ?? null);
         $user = new User([
-            'name' => $this->name($data['name'] ?? null),
+            'first_name' => $first,
+            'last_name' => $last,
+            'name' => $this->name(trim(($first ?? '').' '.($last ?? ''))) ?? $this->name($data['name'] ?? null),
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
         ]);

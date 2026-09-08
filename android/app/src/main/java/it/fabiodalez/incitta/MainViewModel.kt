@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import it.fabiodalez.incitta.data.ApiException
+import it.fabiodalez.incitta.data.loginFailureMessage
 import it.fabiodalez.incitta.data.AppRepository
 import it.fabiodalez.incitta.data.EventDetail
 import it.fabiodalez.incitta.data.EventFilter
@@ -59,6 +60,7 @@ data class AppUiState(
     val isLoading: Boolean = true,
     val isSearching: Boolean = false,
     val isAuthenticating: Boolean = false,
+    val authError: String? = null,
     val isOffline: Boolean = false,
     val message: String? = null,
 )
@@ -443,16 +445,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun login(email: String, password: String) {
-        authenticate { repository.login(email, password) }
+        authenticate(login = true) { repository.login(email, password) }
     }
 
-    fun register(name: String, email: String, password: String) {
-        authenticate { repository.register(name, email, password) }
+    fun clearAuthError() {
+        _state.value = _state.value.copy(authError = null)
+    }
+
+    fun register(firstName: String, lastName: String, email: String, password: String) {
+        authenticate { repository.register(firstName, lastName, email, password) }
     }
 
     fun requestMagicLink(email: String) {
+        if (_state.value.isAuthenticating) return
         viewModelScope.launch {
-            _state.value = _state.value.copy(isAuthenticating = true, message = null)
+            _state.value = _state.value.copy(isAuthenticating = true, message = null, authError = null)
             runCatching { repository.requestMagicLink(email) }
                 .onSuccess {
                     _state.value = _state.value.copy(
@@ -460,7 +467,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         message = "Se l’indirizzo è registrato, riceverai il link di accesso.",
                     )
                 }
-                .onFailure { _state.value = _state.value.copy(isAuthenticating = false, message = userMessage(it)) }
+                .onFailure {
+                    if (it is CancellationException) throw it
+                    _state.value = _state.value.copy(isAuthenticating = false, authError = userMessage(it))
+                }
         }
     }
 
@@ -496,10 +506,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun loadSaved() {
         viewModelScope.launch {
+            val token = repository.session.value?.token
             _state.value = _state.value.copy(isLoading = true, message = null)
             runCatching { repository.savedOccurrences() }
-                .onSuccess { _state.value = _state.value.copy(savedOccurrences = it, isLoading = false) }
-                .onFailure { _state.value = _state.value.copy(isLoading = false, message = userMessage(it)) }
+                .onSuccess { if (repository.session.value?.token == token) _state.value = _state.value.copy(savedOccurrences = it, isLoading = false) }
+                .onFailure { if (it !is CancellationException && repository.session.value?.token == token) _state.value = _state.value.copy(isLoading = false, message = userMessage(it)) }
         }
     }
 
@@ -544,17 +555,28 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         return detail to related
     }
 
-    private fun authenticate(action: suspend () -> Any) {
+    private fun authenticate(login: Boolean = false, action: suspend () -> Any) {
+        if (_state.value.isAuthenticating) return
         viewModelScope.launch {
-            _state.value = _state.value.copy(isAuthenticating = true, message = null)
+            _state.value = _state.value.copy(isAuthenticating = true, message = null, authError = null)
             runCatching { action() }
                 .onSuccess {
                     _state.value = _state.value.copy(
                         isAuthenticating = false,
+                        authError = null,
                         message = "Accesso eseguito. I salvati del dispositivo sono stati sincronizzati.",
                     )
                 }
-                .onFailure { _state.value = _state.value.copy(isAuthenticating = false, message = userMessage(it)) }
+                .onFailure {
+                    if (it is CancellationException) throw it
+                    val feedback = if (login) getApplication<Application>().getString(loginFailureMessage(it)) else userMessage(it)
+                    _state.value = _state.value.copy(
+                        isAuthenticating = false,
+                        authError = feedback,
+                        // Magic-link exchange can fail while a different tab is open.
+                        message = if (login) null else feedback,
+                    )
+                }
         }
     }
 

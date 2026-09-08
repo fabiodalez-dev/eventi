@@ -72,7 +72,7 @@ it('mostra i salvati anche come calendario con il collegamento a Google Calendar
         ->assertSee('calendar.google.com', false);
 });
 
-it('il calendario dei salvati naviga i mesi e include anche le date passate', function (): void {
+it('il calendario dei salvati naviga i mesi e lascia le date passate nella tab archivio', function (): void {
     $past = occurrenceAt($this->city, $this->category, '2026-08-20 19:00:00', event: ['title' => 'Ricordo di agosto']);
     $future = occurrenceAt($this->city, $this->category, '2026-09-12 19:00:00', event: ['title' => 'Appuntamento di settembre']);
 
@@ -82,9 +82,10 @@ it('il calendario dei salvati naviga i mesi e include anche le date passate', fu
     $this->actingAs($this->user)
         ->get('/i-miei-salvataggi?vista=calendario&mese=2026-08')
         ->assertOk()
-        ->assertSee('Ricordo di agosto')
+        ->assertDontSee('Ricordo di agosto')
         ->assertDontSee('Appuntamento di settembre')
         ->assertSee('mese=2026-09', false);
+    $this->get('/i-miei-salvataggi?passate=1')->assertOk()->assertSee('Ricordo di agosto');
 });
 
 it('non salva una data già passata né una che non è pubblica', function (): void {

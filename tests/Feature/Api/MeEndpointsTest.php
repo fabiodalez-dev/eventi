@@ -253,11 +253,11 @@ it('non mette in cache condivisa le risposte dell area personale', function (): 
 });
 
 it('dichiara nella configurazione che salvataggi e follow esistono', function (): void {
+    config(['api.features.push' => false]);
     $this->getJson('/api/v1/config')
         ->assertOk()
         ->assertJsonPath('data.features.saved_events', true)
         ->assertJsonPath('data.features.follows', true)
-        /* Il push resta spento: D8 lo ha escluso, e un'app non deve mostrare
-           un interruttore che non fa niente. */
+        /* Optional FCM configuration must not depend on the developer's .env. */
         ->assertJsonPath('data.features.push', false);
 });

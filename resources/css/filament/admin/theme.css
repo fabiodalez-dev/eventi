@@ -267,6 +267,35 @@
     outline-offset: 3px;
 }
 
+/* Theme tokens above are light-only; radio state must define both colours. */
+.dark .fi-fo-toggle-buttons-input:not(:checked) + label.fi-btn {
+    background-color: oklch(22% 0.006 110);
+    color: oklch(95% 0.006 110);
+}
+.dark .fi-fo-toggle-buttons-input:checked + label.fi-btn {
+    background-color: #ccff00;
+    color: oklch(13.5% 0.004 110);
+}
+.fi-fo-toggle-buttons-input + label.fi-btn .fi-icon {
+    color: inherit;
+}
+.dark .fi-fo-toggle-buttons-input:focus-visible + label.fi-btn {
+    outline-color: #ccff00;
+}
+
+/* Calendar controls wrap inside their panel, never widen the whole page. */
+.ec-toolbar { flex-wrap: wrap; gap: .75rem; }
+.ec-toolbar > div { min-width: 0; flex-wrap: wrap; gap: .35rem; }
+.ec-toolbar .ec-button-group { display: flex; flex-wrap: wrap; gap: .25rem; }
+.ec-toolbar .ec-title { overflow-wrap: anywhere; }
+.fi-section-content, .fi-wi-widget, .fi-main, .fi-sc-component { min-width: 0; }
+@media (max-width: 48rem) {
+    .fi-tabs { flex-wrap: wrap; justify-content: flex-start; overflow: visible; }
+    .fi-tabs-item { white-space: normal; min-width: 0; }
+    .ec-toolbar { align-items: flex-start; }
+    .ec-toolbar > div { max-width: 100%; }
+}
+
 /*
  * ─── Intestazioni ────────────────────────────────────────────────────────
  *

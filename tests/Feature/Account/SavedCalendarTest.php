@@ -16,6 +16,21 @@ beforeEach(function (): void {
 });
 afterEach(fn () => Carbon::setTestNow());
 
+it('moves a finished date from agenda to past without waiting for midnight', function (): void {
+    $past = occurrenceAtLocal($this->city, $this->category, '2026-09-10 14:00', '2026-09-10 16:00', event: ['title' => 'Finito oggi']);
+    $ongoing = occurrenceAtLocal($this->city, $this->category, '2026-09-10 17:00', '2026-09-10 20:00', event: ['title' => 'Ancora in corso']);
+    foreach ([$past, $ongoing] as $item) {
+        SavedEvent::create(['user_id' => $this->user->id, 'occurrence_id' => $item->id]);
+    }
+    $this->actingAs($this->user)->get('/i-miei-salvataggi')->assertOk()->assertSee('Ancora in corso')->assertDontSee('Finito oggi')->assertSee('Passati');
+    $this->get('/i-miei-salvataggi?passate=1')->assertOk()->assertSee('Finito oggi')->assertDontSee('Ancora in corso');
+    $calendar = $this->get('/i-miei-salvataggi?vista=calendario')->assertOk()->assertDontSee('Finito oggi');
+    $calendar->assertSee('href="'.route('events.show', $ongoing->event).'"', false);
+    Sanctum::actingAs($this->user);
+    $this->getJson('/api/v1/me/saved')->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.title', 'Ancora in corso');
+    $this->getJson('/api/v1/me/saved?upcoming=0')->assertOk()->assertJsonCount(2, 'data');
+});
+
 it('requires authentication and never exposes a public saved calendar', function (): void {
     $this->get('/i-miei-salvataggi/calendario.ics')->assertRedirect(route('login'));
     $this->getJson('/api/v1/me/saved/calendar')->assertUnauthorized();

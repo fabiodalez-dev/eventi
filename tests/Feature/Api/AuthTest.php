@@ -21,6 +21,16 @@ beforeEach(function (): void {
     (new RolesAndPermissionsSeeder)->run();
 });
 
+it('keeps separate registration names and validates an explicitly supplied confirmation', function (): void {
+    Notification::fake();
+    $data = ['first_name' => 'Giulia', 'last_name' => 'Rossi', 'email' => 'separate@example.test', 'password' => 'una-password-lunga', 'password_confirmation' => 'diversa'];
+    $this->postJson('/api/v1/auth/register', $data)->assertUnprocessable();
+    $data['password_confirmation'] = $data['password'];
+    $this->postJson('/api/v1/auth/register', $data)->assertCreated()->assertJsonPath('data.user.name', 'Giulia Rossi');
+    $user = User::where('email', $data['email'])->firstOrFail();
+    expect($user->first_name)->toBe('Giulia')->and($user->last_name)->toBe('Rossi')->and($user->marketing_opt_in_at)->toBeNull();
+});
+
 it('registra un utente e gli consegna un token', function (): void {
     $response = $this->postJson('/api/v1/auth/register', [
         'name' => 'Giulia Rossi',
