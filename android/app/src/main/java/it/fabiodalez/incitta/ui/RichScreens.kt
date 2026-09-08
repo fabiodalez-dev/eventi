@@ -753,14 +753,14 @@ private fun mapMarkerBitmap(count: Int, metrics: android.util.DisplayMetrics): B
         paint.style = Paint.Style.STROKE
         paint.strokeWidth = 3f
         paint.color = android.graphics.Color.argb(95, 204, 255, 0)
-        canvas.drawCircle(center, center, 21f, paint)
+        canvas.drawCircle(center, center, 28f, paint)
         paint.style = Paint.Style.FILL
         paint.color = android.graphics.Color.rgb(204, 255, 0)
-        canvas.drawCircle(center, center, 14f, paint)
+        canvas.drawCircle(center, center, 20f, paint)
         paint.style = Paint.Style.STROKE
         paint.strokeWidth = 3f
         paint.color = android.graphics.Color.rgb(11, 11, 11)
-        canvas.drawCircle(center, center, 14f, paint)
+        canvas.drawCircle(center, center, 20f, paint)
     } else {
         paint.style = Paint.Style.FILL
         paint.color = android.graphics.Color.rgb(204, 255, 0)
@@ -938,7 +938,7 @@ private fun ActionButton(text: String, icon: androidx.compose.ui.graphics.vector
     }
 }
 
-private fun priceText(price: Price?): String = when (price?.type) {
+internal fun priceText(price: Price?): String = when (price?.type) {
     "free" -> "Ingresso gratuito"
     "donation" -> price.notes ?: "Offerta libera"
     "ticket", "paid" -> when {
@@ -991,7 +991,7 @@ private fun parsed(value: String): OffsetDateTime? = runCatching { OffsetDateTim
 private fun fullDate(value: String): String = parsed(value)?.format(fullFormatter)?.replaceFirstChar { it.uppercase() } ?: value.take(10)
 private fun shortDate(value: String): String = parsed(value)?.format(shortFormatter)?.uppercase() ?: value.take(10)
 private fun clock(value: String): String = parsed(value)?.format(clockFormatter) ?: "--:--"
-private fun timeRange(event: Occurrence): String {
+internal fun timeRange(event: Occurrence): String {
     if (event.isAllDay) return "Tutto il giorno"
     val end = event.endsAt ?: event.effectiveEndsAt
     val prefix = "Dalle ${clock(event.startsAt)}"

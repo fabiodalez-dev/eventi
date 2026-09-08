@@ -16,6 +16,19 @@ beforeEach(function (): void {
 });
 afterEach(fn () => Carbon::setTestNow());
 
+it('opens saved calendar previews before navigating and keeps tabs unwrapped', function (): void {
+    $item = occurrenceAtLocal($this->city, $this->category, '2026-09-12 21:30');
+    SavedEvent::create(['user_id' => $this->user->id, 'occurrence_id' => $item->id]);
+    $this->actingAs($this->user)->get('/i-miei-salvataggi?vista=calendario&mese=2026-09')
+        ->assertOk()
+        ->assertSee('whitespace-nowrap', false)
+        ->assertSee('data-calendar-preview="saved-preview-'.$item->id.'"', false)
+        ->assertSee('data-calendar-preview="saved-day-2026-09-12"', false)
+        ->assertSee('<dialog id="saved-preview-'.$item->id.'"', false)
+        ->assertSee('method="dialog"', false)
+        ->assertSee(__('account.saved.open_event'));
+});
+
 it('shows city local time or all-day text in the saved calendar grid', function (string $date, bool $allDay): void {
     $item = occurrenceAtLocal($this->city, $this->category, $date.' 21:30');
     $item->update(['is_all_day' => $allDay]);

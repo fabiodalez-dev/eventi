@@ -39,11 +39,18 @@ class SavedAgendaUiTest {
         compose.onNodeWithText("PASSATO DI PROVA").assertExists()
         compose.onNodeWithText("FUTURO DI PROVA").assertDoesNotExist()
     }
-    @Test fun tappingTheDayWithOneSavedEventOpensIt() {
+    @Test fun tappingTheDayPreviewsBeforeOpeningAndCanBeDismissed() {
         var opened: Long? = null
         screen { opened = it.occurrenceId }
         compose.onNode(hasText("CALENDARIO") and hasClickAction()).performClick()
         compose.onNodeWithText(futureDate.dayOfMonth.toString()).performScrollTo().performClick()
+        compose.runOnIdle { assertEquals(null, opened) }
+        compose.onNodeWithText("Futuro di prova").assertIsDisplayed()
+        compose.onNodeWithText("CHIUDI").performClick()
+        compose.runOnIdle { assertEquals(null, opened) }
+        compose.onNodeWithText("APRI EVENTO").assertDoesNotExist()
+        compose.onNodeWithText(futureDate.dayOfMonth.toString()).performScrollTo().performClick()
+        compose.onNodeWithText("APRI EVENTO").performClick()
         compose.runOnIdle { assertEquals(2L, opened) }
     }
 }

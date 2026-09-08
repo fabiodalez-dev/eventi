@@ -1,4 +1,5 @@
 import { sponsorshipBanners } from './sponsorship-banner';
+import './calendar-preview';
 import { placeChoices } from './place-choices';
 
 import { sponsorshipContext } from './sponsorship-context';

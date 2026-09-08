@@ -62,6 +62,7 @@ async function vectorStyle(url) {
 }
 
 async function startMap(shell) {
+    const mobileMarkers = window.matchMedia('(max-width: 767px)').matches;
     const container = shell.querySelector("[data-map]");
     const configNode = shell.querySelector("[data-map-config]");
     if (!container || !configNode) return;
@@ -199,7 +200,7 @@ async function startMap(shell) {
             filter: ["has", "point_count"],
             paint: {
                 "circle-color": config.fallbackColor,
-                "circle-radius": ["step", ["get", "point_count"], 24, 5, 27, 20, 30],
+                "circle-radius": mobileMarkers ? ["step", ["get", "point_count"], 30, 5, 33, 20, 36] : ["step", ["get", "point_count"], 24, 5, 27, 20, 30],
                 "circle-stroke-color": "#0b0b0b", "circle-stroke-width": 2,
             },
         });
@@ -216,13 +217,13 @@ async function startMap(shell) {
         map.addLayer({
             id: "event-points-halo", type: "circle", source: "events",
             filter: ["!", ["has", "point_count"]],
-            paint: { "circle-color": config.fallbackColor, "circle-radius": 19, "circle-opacity": 0.22 },
+            paint: { "circle-color": config.fallbackColor, "circle-radius": mobileMarkers ? 27 : 19, "circle-opacity": 0.22 },
         });
         map.addLayer({
             id: "event-points", type: "circle", source: "events",
             filter: ["!", ["has", "point_count"]],
             paint: {
-                "circle-color": config.fallbackColor, "circle-radius": 12,
+                "circle-color": config.fallbackColor, "circle-radius": mobileMarkers ? 18 : 12,
                 "circle-stroke-color": "#0b0b0b", "circle-stroke-width": 2,
             },
         });
@@ -231,7 +232,7 @@ async function startMap(shell) {
         map.addLayer({
             id: "event-points-hit", type: "circle", source: "events",
             filter: ["!", ["has", "point_count"]],
-            paint: { "circle-radius": 24, "circle-opacity": 0 },
+            paint: { "circle-radius": mobileMarkers ? 32 : 24, "circle-opacity": 0 },
         });
 
         map.on("click", "event-clusters", async (event) => {

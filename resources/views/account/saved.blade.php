@@ -4,7 +4,7 @@
         <h1 class="text-hero text-ink">{{ $meta->heading }}</h1>
         <p class="text-sm text-ink-muted">{{ __('account.saved.lead') }}</p>
 
-        <nav class="mt-3 grid max-w-md grid-cols-3 gap-0.5 bg-line p-0.5" aria-label="{{ __('account.saved.view') }}">
+        <nav class="mt-3 flex w-full max-w-md gap-0.5 overflow-x-auto whitespace-nowrap bg-line p-0.5 [&>a]:min-h-12 [&>a]:shrink-0 [&>a]:grow" aria-label="{{ __('account.saved.view') }}">
             <a
                 href="{{ route('account.saved') }}"
                 @class([
@@ -91,7 +91,7 @@
                                 {{ $day->day }}
                             </time>
                             @if ($dayItems->isNotEmpty())
-                                <a href="{{ $dayItems->count() === 1 ? route('events.show', $dayItems->first()->event) : '#saved-'.$dayItems->first()->getKey() }}" aria-label="{{ trans_choice('account.saved.saved_on_day', $dayItems->count(), ['count' => $dayItems->count()]) }}" class="flex min-h-11 w-full items-center justify-center bg-accent font-display text-[0.625rem] font-extrabold text-on-accent">
+                                <a data-calendar-preview="saved-day-{{ $dayKey }}" href="#saved-{{ $dayItems->first()->getKey() }}" aria-haspopup="dialog" aria-label="{{ trans_choice('account.saved.saved_on_day', $dayItems->count(), ['count' => $dayItems->count()]) }}" class="flex min-h-12 w-full items-center justify-center bg-accent font-display text-[0.625rem] font-extrabold text-on-accent">
                                     {{ $dayItems->count() }}
                                 </a>
                             @endif
@@ -100,6 +100,7 @@
                         @foreach ($dayItems->take(2) as $occurrence)
                             <a
                                 href="{{ route('events.show', $occurrence->event) }}"
+                                data-calendar-preview="saved-preview-{{ $occurrence->getKey() }}" aria-haspopup="dialog"
                                 class="mt-1 hidden text-[0.625rem] leading-tight text-ink-muted hover:text-accent sm:block"
                             >
                                 {{ $occurrence->is_all_day ? __('events.badge.all_day') : app(\App\Support\DateFormatter::class)->time($occurrence->starts_at) }}
@@ -126,7 +127,7 @@
                         </h3>
                         @foreach ($items as $occurrence)
                             <article id="saved-{{ $occurrence->getKey() }}" class="scroll-mt-28 grid gap-3 border-2 border-line bg-canvas p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
-                                <a href="{{ route('events.show', $occurrence->event) }}" class="group min-w-0">
+                                <a href="{{ route('events.show', $occurrence->event) }}" data-calendar-preview="saved-preview-{{ $occurrence->getKey() }}" aria-haspopup="dialog" class="group min-w-0">
                                     <p class="font-display text-[0.625rem] font-extrabold tracking-[0.14em] text-accent uppercase">
                                         {{ $occurrence->is_all_day ? __('filters.time_of_day.any') : $occurrence->starts_at->format('H:i') }}
                                     </p>
@@ -147,6 +148,12 @@
                 </div>
             @endif
         </section>
+        @foreach ($daysByDate as $dateKey => $items)
+            <x-saved-calendar-preview :id="'saved-day-'.$dateKey" :occurrences="$items" />
+            @foreach ($items as $occurrence)
+                <x-saved-calendar-preview :id="'saved-preview-'.$occurrence->getKey()" :occurrences="collect([$occurrence])" />
+            @endforeach
+        @endforeach
     @elseif ($occurrences->total() > 0)
         <div class="mt-6" data-results>
             <x-event-grid :occurrences="$occurrences->getCollection()" :adaptive="false" />

@@ -19,7 +19,7 @@ class TouchNavigationTest {
 
     @Test fun markersHaveAtLeast48DpTargetsAtEveryClusterSize() {
         listOf(0, 1, 2, 9, 10, 49, 50, 1000).forEach { assertTrue(markerDiameterDp(it) >= 48) }
-        assertEquals(48, markerDiameterDp(1))
+        assertEquals(64, markerDiameterDp(1))
         assertTrue(markerDiameterDp(50) > markerDiameterDp(1))
     }
 }

@@ -266,6 +266,7 @@ fun SavedScreen(
 ) {
     val context = LocalContext.current
     var mode by remember { mutableIntStateOf(0) }
+    var calendarPreview by remember { mutableStateOf<List<Occurrence>>(emptyList()) }
     val items = state.savedOccurrences.filter { it.hasEnded() == (mode == 2) }
         .let { if (mode == 2) it.sortedByDescending(Occurrence::startsAt) else it.sortedBy(Occurrence::startsAt) }
     val initialMonth = remember(items) {
@@ -295,7 +296,7 @@ fun SavedScreen(
                 )
                 Row(Modifier.fillMaxWidth().padding(top = 18.dp).horizontalScroll(rememberScrollState())) {
                     ModeButton("LISTA", mode == 0, Modifier) { mode = 0 }
-                    ModeButton("CALENDARIO", mode == 1, Modifier) { mode = 1 }
+                    ModeButton("CALENDARIO", mode == 1, Modifier.width(156.dp)) { mode = 1 }
                     ModeButton(stringResource(R.string.saved_past), mode == 2, Modifier) { mode = 2 }
                 }
             }
@@ -319,8 +320,8 @@ fun SavedScreen(
                     onNext = { calendarMonth = calendarMonth.plusMonths(1) },
                     onSelect = { day ->
                         val matches = items.filter { date(it.startsAt)?.toLocalDate() == day }
-                        if (matches.size == 1) onOpen(matches.single())
-                        else selectedDate = if (selectedDate == day) null else day
+                        selectedDate = if (selectedDate == day) null else day
+                        calendarPreview = matches
                     },
                 )
             }
@@ -342,9 +343,31 @@ fun SavedScreen(
                 items(events, key = { "saved-calendar-${it.occurrenceId}" }) { event ->
                     SavedCalendarRow(
                         event = event,
-                        onOpen = { onOpen(event) },
+                        onOpen = { calendarPreview = listOf(event) },
                         onGoogleCalendar = { openGoogleCalendar(context, event) },
                     )
+                }
+            }
+        }
+    }
+    if (calendarPreview.isNotEmpty()) {
+        androidx.compose.ui.window.Dialog(onDismissRequest = { calendarPreview = emptyList() }) {
+            androidx.compose.material3.Surface(color = Ink, contentColor = Paper, border = BorderStroke(2.dp, Acid)) {
+                Column(Modifier.heightIn(max = 520.dp).verticalScroll(rememberScrollState()).padding(16.dp)) {
+                    TextButton(onClick = { calendarPreview = emptyList() }, modifier = Modifier.align(Alignment.End).heightIn(min = 48.dp)) {
+                        Text(stringResource(R.string.saved_preview_close), color = Acid)
+                    }
+                    calendarPreview.forEach { event ->
+                        Text(event.title, style = MaterialTheme.typography.titleLarge)
+                        Text(formatFullDate(event.startsAt), color = Muted)
+                        Text(timeRange(event), color = Muted)
+                        event.venue?.name?.let { Text(it) }
+                        Text(priceText(event.price), color = Acid)
+                        Button(onClick = { calendarPreview = emptyList(); onOpen(event) }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                            Text(stringResource(R.string.saved_preview_open))
+                        }
+                        HorizontalDivider(Modifier.padding(vertical = 12.dp), color = Rule)
+                    }
                 }
             }
         }
