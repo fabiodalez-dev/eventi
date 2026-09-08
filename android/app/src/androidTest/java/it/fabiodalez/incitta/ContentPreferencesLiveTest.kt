@@ -2,10 +2,14 @@ package it.fabiodalez.incitta
 
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Surface
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.platform.app.InstrumentationRegistry
@@ -13,6 +17,8 @@ import it.fabiodalez.incitta.data.Session
 import it.fabiodalez.incitta.data.User
 import it.fabiodalez.incitta.ui.ContentPreferencesPanel
 import it.fabiodalez.incitta.ui.InCittaTheme
+import it.fabiodalez.incitta.ui.Ink
+import it.fabiodalez.incitta.ui.Paper
 import org.junit.Assume.assumeTrue
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -29,8 +35,10 @@ class ContentPreferencesLiveTest {
         compose.runOnIdle {
             compose.activity.setContent {
                 InCittaTheme {
-                    Column(Modifier.verticalScroll(rememberScrollState())) {
-                        ContentPreferencesPanel(Session(requireNotNull(token), User(0, "QA", "qa@example.test"), "2099-01-01T00:00:00Z")) { saves++ }
+                    Surface(color = Ink, contentColor = Paper) {
+                        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(18.dp)) {
+                            ContentPreferencesPanel(Session(requireNotNull(token), User(0, "QA", "qa@example.test"), "2099-01-01T00:00:00Z")) { saves++ }
+                        }
                     }
                 }
             }
