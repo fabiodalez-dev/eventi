@@ -39,6 +39,19 @@ class LoginFeedbackTest {
         compose.onNodeWithText(compose.activity.getString(R.string.auth_password_required)).assertIsDisplayed()
     }
 
+    @Test fun registrationOffersSeparateNamesAndRejectsMismatchedConfirmation() {
+        loginScreen()
+        compose.onNodeWithText("REGISTRATI").performClick()
+        compose.onNodeWithText("NOME (FACOLTATIVO)").assertExists()
+        compose.onNodeWithText(compose.activity.getString(R.string.auth_last_name)).assertExists()
+        compose.onNodeWithText("EMAIL").performScrollTo().performTextInput("registration-feedback@example.test")
+        compose.onNodeWithText("PASSWORD").performScrollTo().performTextInput("password-di-prova")
+        compose.onNodeWithText(compose.activity.getString(R.string.auth_confirm_password)).performScrollTo().performTextInput("diversa")
+        compose.onNodeWithText("CREA ACCOUNT").performScrollTo().performClick()
+        compose.onNodeWithText(compose.activity.getString(R.string.auth_confirmation_mismatch)).assertIsDisplayed()
+        compose.onNodeWithText(compose.activity.getString(R.string.auth_privacy)).assertExists()
+    }
+
     /** One deliberately invalid request, no real credentials or account changes. */
     @Test fun rejectedShortPasswordIsVisibleAndPersistent() {
         loginScreen()
