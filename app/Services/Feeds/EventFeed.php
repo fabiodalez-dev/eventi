@@ -50,7 +50,7 @@ final class EventFeed
         /** @var Collection<int, EventOccurrence> $occurrences */
         $occurrences = $occurrences->values();
 
-        return $occurrences->load(['event.venue', 'event.category', 'event.city', 'event.media']);
+        return $occurrences->load(['venue', 'event.venue', 'event.category', 'event.city', 'event.media']);
     }
 
     /**

@@ -265,6 +265,20 @@ class AppRepository(context: Context) {
         }
     }
 
+    suspend fun refreshProfile() {
+        val current = _session.value ?: return
+        try {
+            val user = api.get<ApiEnvelope<User>>("me", current.token).data
+            if (_session.value?.token != current.token || user.id != current.user.id) return
+            val updated = current.copy(user = user)
+            store.writeSession(updated)
+            _session.value = updated
+        } catch (error: ApiException) {
+            if (error.status == 401 && _session.value?.token == current.token) clearAuthenticatedState()
+            throw error
+        }
+    }
+
     suspend fun logout() {
         _session.value?.token?.let { token ->
             runCatching { api.post<ApiEnvelope<ApiMessage>, Map<String, String>>("auth/logout", emptyMap(), token) }

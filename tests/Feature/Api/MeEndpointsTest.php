@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Enums\DevicePlatform;
 use App\Enums\FollowableType;
+use App\Enums\UserRole;
 use App\Models\Device;
 use App\Models\Follow;
 use App\Models\SavedEvent;
@@ -11,6 +12,7 @@ use App\Models\User;
 use App\Models\Venue;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Notification;
+use Spatie\Permission\Models\Role;
 
 /**
  * Gli endpoint dell'area personale di §15.8.
@@ -56,6 +58,7 @@ it('restituisce e aggiorna il profilo minimo', function (): void {
         ->assertOk()
         ->assertJsonPath('data.email', 'giulia@example.test')
         ->assertJsonPath('data.name', 'Giulia')
+        ->assertJsonPath('data.role_label', UserRole::User->label())
         ->assertJsonPath('data.timezone', 'Europe/Rome')
         ->assertJsonPath('data.marketing_opt_in', false);
 
@@ -76,6 +79,23 @@ it('restituisce e aggiorna il profilo minimo', function (): void {
     $this->withToken($this->token)->patchJson('/api/v1/me', ['timezone' => 'Marte/Olympus'])
         ->assertStatus(422)
         ->assertJsonPath('error.code', 'VALIDATION_FAILED');
+});
+
+it('identifies only the authenticated account role without exposing permissions', function (UserRole $role): void {
+    $this->user->assignRole(Role::findOrCreate($role->value, 'web'));
+    $other = User::factory()->create();
+    $other->assignRole(Role::findOrCreate(UserRole::SuperAdmin->value, 'web'));
+    $this->withToken($this->token)->getJson('/api/v1/me')->assertOk()
+        ->assertJsonPath('data.role_label', $role->label())
+        ->assertJsonPath('data.email', $this->user->email)
+        ->assertJsonMissingPath('data.roles')
+        ->assertJsonMissingPath('data.permissions');
+})->with(UserRole::cases());
+
+it('does not let a profile edit change its role label or permissions', function (): void {
+    $this->withToken($this->token)->patchJson('/api/v1/me', ['name' => 'Giulia', 'role_label' => 'Amministratore', 'role' => 'admin'])
+        ->assertOk()->assertJsonPath('data.role_label', UserRole::User->label());
+    expect($this->user->fresh()->hasRole(UserRole::Admin))->toBeFalse();
 });
 
 it('espone le preferenze di notifica con i valori predefiniti di §15.4', function (): void {

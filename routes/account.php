@@ -16,7 +16,9 @@ use App\Http\Controllers\Web\Account\PushSubscriptionController;
 use App\Http\Controllers\Web\Account\RegisterController;
 use App\Http\Controllers\Web\Account\SavedCalendarController;
 use App\Http\Controllers\Web\Account\SavedController;
+use App\Http\Controllers\Web\GoogleCalendarController;
 use App\Http\Middleware\PersonalizeDiscovery;
+use App\Http\Middleware\TicketingPrivacy;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -123,6 +125,14 @@ Route::middleware('signed')->group(function (): void {
 });
 
 Route::middleware('auth')->group(function (): void {
+    Route::prefix('il-mio-calendario/google')->name('google-calendar.')->middleware(TicketingPrivacy::class)->group(function (): void {
+        Route::get('/', [GoogleCalendarController::class, 'index'])->name('index');
+        Route::get('/da-app/{user}', [GoogleCalendarController::class, 'mobile'])->whereNumber('user')->middleware('signed')->name('mobile');
+        Route::post('/collega', [GoogleCalendarController::class, 'connect'])->middleware('throttle:10,1')->name('connect');
+        Route::get('/callback', [GoogleCalendarController::class, 'callback'])->middleware('throttle:30,1')->name('callback');
+        Route::patch('/', [GoogleCalendarController::class, 'update'])->middleware('throttle:10,1')->name('update');
+        Route::delete('/', [GoogleCalendarController::class, 'disconnect'])->middleware('throttle:10,1')->name('disconnect');
+    });
     Route::get('/profilo/interessi', [ContentPreferencesController::class, 'index'])->name('account.content-preferences');
     Route::patch('/profilo/interessi', [ContentPreferencesController::class, 'update'])->name('account.content-preferences.update');
     Route::get('/notifiche/interessi', [NotificationInterestsController::class, 'index'])->name('account.notifications.interests');

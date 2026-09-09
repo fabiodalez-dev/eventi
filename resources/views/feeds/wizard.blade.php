@@ -67,9 +67,10 @@
             </div>
             <p class="text-sm text-ink-muted">{{ __('subscriptions.limit', ['count' => config('feeds.max_items')]) }}</p>
             <div class="flex flex-wrap gap-3">
-                <x-button :href="$calendarUrl">{{ auth()->check() ? __('subscriptions.download') : 'Accedi per scaricare il calendario' }}</x-button>
+                <x-button :href="route('google-calendar.index', array_diff_key($selection, ['step' => true]))">{{ __('google_calendar.manage') }}</x-button>
+                <x-button :href="$calendarUrl" variant="secondary">{{ auth()->check() ? __('subscriptions.download') : __('google_calendar.download_login') }}</x-button>
             </div>
-            <p class="text-sm text-ink-muted">{{ __('subscriptions.subscription_help') }}</p>
+            <p class="text-sm text-ink-muted">{{ __('google_calendar.download_help') }}</p>
             <a class="inline-block p-3 underline" href="{{ route('feeds.wizard', [...$selection, 'step' => 2]) }}">{{ __('subscriptions.back') }}</a>
         @endif
     </form>

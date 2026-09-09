@@ -29,7 +29,7 @@ final class NativeCalendarController extends Controller
                 $start = CarbonImmutable::parse($start->setTimezone($city->timezone)->format('Y-m-d'), 'UTC');
                 $end = CarbonImmutable::parse($end->subSecond()->setTimezone($city->timezone)->format('Y-m-d'), 'UTC')->addDay();
             }
-            $venue = $item->event->venue;
+            $venue = $item->effectiveVenue();
 
             return [
                 'id' => (int) $item->id,

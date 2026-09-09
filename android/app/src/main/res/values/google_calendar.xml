@@ -1,0 +1,15 @@
+<resources>
+    <string name="google_calendar_connect">Collega a Google Calendar</string>
+    <string name="google_calendar_manage">Gestisci il calendario Google</string>
+    <string name="google_calendar_help">Un calendario inCittà separato nel tuo account Google, sincronizzato anche sugli altri dispositivi. Non modifichiamo gli altri calendari.</string>
+    <string name="google_calendar_browser">Si apre il collegamento sicuro nel browser. Se richiesto, accedi con lo stesso account inCittà dell’app; poi scegli il tuo account Google e autorizza il calendario.</string>
+    <string name="google_calendar_unconfigured">Il collegamento Google non è ancora stato attivato sul server. Puoi scaricare una copia ICS.</string>
+    <string name="google_calendar_pending">Google collegato. Prima sincronizzazione in attesa.</string>
+    <string name="google_calendar_synced">Google collegato: %1$d date sincronizzate. Aggiornamento: %2$s.</string>
+    <string name="google_calendar_error">Il calendario Google richiede attenzione: apri Gestisci per riprovare o rinnovare il consenso.</string>
+    <string name="google_calendar_status_error">Non riesco a verificare il collegamento Google. Controlla la connessione e riprova.</string>
+    <string name="google_calendar_open_error">Non riesco ad aprire il collegamento Google. Controlla la connessione e che sia installato un browser.</string>
+    <string name="google_calendar_logout">La sincronizzazione Google continua anche dopo il logout. Puoi fermarla da Gestisci il calendario Google → Scollega Google.</string>
+    <string name="calendar_local_options">Altre opzioni: calendario del telefono</string>
+    <string name="calendar_local_help">Questa è una copia sul dispositivo, non nel tuo account Google. Google Calendar potrebbe non mostrarla. Al logout viene rimossa.</string>
+</resources>
