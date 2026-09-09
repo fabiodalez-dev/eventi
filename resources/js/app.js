@@ -1041,6 +1041,17 @@ function start() {
             movement = next.movement;
             if (next.visible !== null && !alwaysVisible && !navigation.contains(document.activeElement)) show(next.visible);
         }, { passive: true });
+        // Place lists scroll independently of the page in the evening wizard.
+        const listOffsets = new WeakMap();
+        document.addEventListener('scroll', event => {
+            const list = event.target;
+            if (!(list instanceof HTMLElement) || !list.closest('[data-place-choices]')) return;
+            const delta = list.scrollTop - (listOffsets.get(list) ?? 0);
+            listOffsets.set(list, list.scrollTop);
+            const next = navigationMovement(movement, delta);
+            movement = next.movement;
+            if (next.visible !== null && !alwaysVisible && !navigation.contains(document.activeElement)) show(next.visible);
+        }, { capture: true, passive: true });
         // Keyboard navigation must remain possible without scrolling.
         window.addEventListener('keydown', event => { if (event.key === 'Tab') show(true); });
     }
