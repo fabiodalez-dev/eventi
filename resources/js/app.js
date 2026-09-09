@@ -2,6 +2,9 @@ import { sponsorshipBanners } from './sponsorship-banner';
 import './calendar-preview';
 import { placeChoices } from './place-choices';
 import { navigationMovement } from './scroll-navigation';
+import { peekTabs } from './peek-tabs';
+import { tonightCounts } from './tonight-counts';
+import { eventFilters } from './event-filters';
 
 import { sponsorshipContext } from './sponsorship-context';
 
@@ -65,6 +68,8 @@ function infiniteScroll() {
             const nextPagination = document_.querySelector("[data-pagination]");
             const grid = results.firstElementChild;
 
+            if (!results.isConnected) return;
+
             if (nextGrid === null || nextPagination === null || grid === null) {
                 return;
             }
@@ -98,6 +103,7 @@ function infiniteScroll() {
     );
 
     observer.observe(pagination);
+    document.addEventListener('event-browser:before-update', () => observer.disconnect(), { once: true });
 }
 
 /**
@@ -185,7 +191,10 @@ function geolocation() {
         button.classList.remove("hidden");
 
         button.addEventListener("click", () => {
+            if (button.getAttribute('aria-busy') === 'true') return;
             button.setAttribute("aria-busy", "true");
+            const status = button.closest('section')?.querySelector('[data-geolocate-status]');
+            if (status) status.textContent = button.dataset.geolocateLoading;
 
             navigator.geolocation.getCurrentPosition(
                 (position) => {
@@ -203,14 +212,17 @@ function geolocation() {
                         position.coords.longitude.toFixed(5),
                     );
                     url.searchParams.set("radius", radius(button));
+                    url.searchParams.set("sort", "distance");
                     url.searchParams.delete("page");
 
-                    window.location.assign(url.toString());
+                    if (document.querySelector('[data-event-browser]')) {
+                        document.dispatchEvent(new CustomEvent('event-browser:navigate', { detail: url.toString() }));
+                    } else window.location.assign(url.toString());
+                    button.removeAttribute('aria-busy');
                 },
-                () => {
+                (error) => {
                     button.removeAttribute("aria-busy");
-                    button.textContent =
-                        button.dataset.geolocateDenied ?? button.textContent;
+                    if (status) status.textContent = error.code === 1 ? button.dataset.geolocateDenied : button.dataset.geolocateUnavailable;
                 },
                 {
                     enableHighAccuracy: false,
@@ -982,16 +994,27 @@ import { liveSearch, continuousTicker } from './live-search';
 import { venueAutocomplete } from './venue-autocomplete';
 
 function start() {
+    eventFilters();
+    document.addEventListener('event-browser:updated', () => {
+        infiniteScroll();
+        savedHearts();
+        geolocation();
+        rivelaLocandine();
+        sponsorshipMetrics();
+    });
+    peekTabs();
+    tonightCounts();
     const navigation = document.querySelector('[data-scroll-navigation]');
     if (navigation) {
         let previous = Math.max(0, window.scrollY);
-        let movement = 0;
+        let movement = previous;
+        const alwaysVisible = navigation.hasAttribute('data-navigation-always') || document.documentElement.scrollHeight <= window.innerHeight + 96;
         const show = visible => {
             navigation.style.opacity = visible ? '1' : '0';
             navigation.style.pointerEvents = visible ? '' : 'none';
             navigation.inert = !visible;
         };
-        show(false);
+        show(alwaysVisible || previous >= 96);
         navigation.style.transition = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'none' : 'opacity 200ms ease-out';
         window.addEventListener('scroll', () => {
             const current = Math.max(0, window.scrollY);
@@ -999,13 +1022,10 @@ function start() {
             previous = current;
             const next = navigationMovement(movement, delta);
             movement = next.movement;
-            if (next.visible !== null) show(next.visible);
+            if (next.visible !== null && !alwaysVisible && !navigation.contains(document.activeElement)) show(next.visible);
         }, { passive: true });
         // Keyboard navigation must remain possible without scrolling.
         window.addEventListener('keydown', event => { if (event.key === 'Tab') show(true); });
-        document.addEventListener('click', event => {
-            if (!event.target.closest('a, button, input, select, textarea, label, [role="button"]')) show(navigation.inert);
-        });
     }
     placeChoices();
     for (const button of document.querySelectorAll('[data-copy-calendar]')) {

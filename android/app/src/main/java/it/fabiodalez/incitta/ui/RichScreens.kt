@@ -279,7 +279,7 @@ fun CompleteEventDetailScreen(
 
                 if (detail.tags.isNotEmpty()) {
                     DetailSection("TAG") {
-                        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        PeekTabRow {
                             detail.tags.forEach { tag -> TagButton(tag) { onTag(tag) } }
                         }
                     }
@@ -462,10 +462,7 @@ fun VenuesScreen(state: AppUiState, padding: PaddingValues, onVenue: (Venue) -> 
                         cursorColor = Acid,
                     ),
                 )
-                Row(
-                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(top = 12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
+                PeekTabRow(Modifier.padding(top = 12.dp)) {
                     VenueTypeFilter("TUTTI", selectedType == null) { selectedType = null }
                     types.forEach { type ->
                         VenueTypeFilter(venueTypeLabel(type), selectedType == type) { selectedType = type }
@@ -534,10 +531,7 @@ fun MapScreen(
     Column(Modifier.fillMaxSize().padding(bottom = padding.calculateBottomPadding())) {
         val venueCount = state.mapMarkers.distinctBy { "%.5f:%.5f".format(Locale.US, it.lat, it.lng) }.size
         ScreenHeader("MAPPA", "${mapFilterLabel(state.mapFilter)} · $venueCount LUOGHI · ${state.mapMarkers.size} APPUNTAMENTI")
-        Row(
-            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 9.dp),
-            horizontalArrangement = Arrangement.spacedBy(7.dp),
-        ) {
+        PeekTabRow(Modifier.padding(start = 12.dp, top = 9.dp, bottom = 9.dp)) {
             FilterLabel("OGGI", state.mapFilter == EventFilter.TODAY) { onFilter(EventFilter.TODAY) }
             FilterLabel("DOMANI", state.mapFilter == EventFilter.TOMORROW) { onFilter(EventFilter.TOMORROW) }
             FilterLabel("WEEKEND", state.mapFilter == EventFilter.WEEKEND) { onFilter(EventFilter.WEEKEND) }

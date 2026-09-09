@@ -80,6 +80,7 @@ async function startMap(shell) {
     container.querySelector("[data-map-placeholder]")?.remove();
 
     const style = await vectorStyle(config.style);
+    if (!shell.isConnected) return;
     const map = new maplibregl.Map({
         container,
         style,
@@ -92,6 +93,7 @@ async function startMap(shell) {
         touchPitch: false,
     });
 
+    document.addEventListener('event-browser:before-update', () => map.remove(), { once: true });
     map.on("styleimagemissing", (event) => {
         if (!map.hasImage(event.id)) {
             map.addImage(event.id, { width: 1, height: 1, data: new Uint8Array([0, 0, 0, 0]) });
@@ -289,8 +291,10 @@ async function start() {
         }
     }, { rootMargin: "500px 0px" });
     for (const shell of shells) observer.observe(shell);
+    document.addEventListener('event-browser:before-update', () => observer.disconnect(), { once: true });
 }
 
 const boot = () => start().catch((error) => console.error("[mappa] avvio fallito", error));
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
 else boot();
+document.addEventListener('event-browser:updated', boot);

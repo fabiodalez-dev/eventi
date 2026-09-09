@@ -19,6 +19,7 @@ class TonightRequest extends FormRequest
         $city = app(CurrentCity::class)->get();
 
         return [
+            'preview' => ['sometimes', 'boolean'],
             'step' => ['sometimes', 'integer', 'between:1,3'],
             'question' => ['sometimes', Rule::in(['municipality', 'district', 'when', 'budget', 'categories', 'results'])],
             'municipality' => ['nullable', Rule::in(config('discovery-geography.'.$city?->slug.'.municipalities', [$city?->name]))],

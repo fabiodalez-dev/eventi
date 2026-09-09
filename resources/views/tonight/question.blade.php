@@ -4,7 +4,7 @@
     $next = $question === 'municipality' ? 'district' : $questions[$index + 1];
 @endphp
 <p class="my-8 border-y-2 border-line py-4 text-sm text-accent">{{ __('tonight.progress', ['current' => $index + 1, 'total' => count($questions) - 1]) }}</p>
-<form method="GET" action="{{ route('tonight.wizard') }}" class="space-y-8">
+<form method="GET" action="{{ route('tonight.wizard') }}" class="space-y-8" data-tonight-counts data-count-loading="{{ __('tonight.count_loading') }}" data-count-error="{{ __('tonight.count_error') }}" data-count-template="{{ __('tonight.count_template') }}">
     <input type="hidden" name="question" value="{{ $next }}">
     @foreach(['municipality', 'zone', 'when', 'budget'] as $key)
         @if($key !== $field)<input type="hidden" name="{{ $key }}" value="{{ $input[$key] ?? ($key === 'when' ? 'tonight' : '') }}">@endif
@@ -27,8 +27,14 @@
                 </label>
                 <div class="grid max-h-80 gap-2 overflow-y-auto pr-2 sm:grid-cols-2">
                     @foreach($choices as $label => $value)
-                        <label data-place-option class="flex min-h-14 cursor-pointer items-center gap-3 border-2 border-line p-4 has-[:checked]:border-accent has-[:checked]:text-accent">
-                            <input type="radio" name="{{ $field }}" value="{{ $value }}" @checked(($input[$field] ?? '') === $value)> {{ $label }}
+                        @php
+                            $placeCount = $question === 'municipality'
+                                ? ($value === '' ? $counts['everywhere'] : ($counts['municipalities'][$value] ?? 0))
+                                : ($value === '' ? ($counts['municipalities']['Padova'] ?? 0) : ($counts['zones'][$value] ?? 0));
+                        @endphp
+                        <label data-place-option class="flex min-h-14 cursor-pointer items-center gap-3 border-2 border-line p-4 has-[:checked]:border-accent has-[:checked]:text-accent has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-45">
+                            <input type="radio" name="{{ $field }}" value="{{ $value }}" @checked(($input[$field] ?? '') === $value) @disabled($placeCount === 0 && ($input[$field] ?? '') !== $value)> {{ $label }}
+                            <span class="ml-auto tabular-nums" data-place-count="{{ $value }}" data-place-kind="{{ $question }}">{{ $question === 'municipality' ? ($value === '' ? $counts['everywhere'] : ($counts['municipalities'][$value] ?? 0)) : ($value === '' ? ($counts['municipalities']['Padova'] ?? 0) : ($counts['zones'][$value] ?? 0)) }}</span>
                         </label>
                     @endforeach
                 </div>
@@ -62,7 +68,7 @@
         @endif
     </fieldset>
     <div class="flex flex-wrap items-center gap-6 border-t-2 border-line pt-6">
-        <button class="min-h-14 bg-brand px-8 py-4 font-bold text-on-brand" type="submit">{{ $question === 'categories' ? __('tonight.find') : __('tonight.next') }} →</button>
+        <button class="min-h-14 bg-brand px-8 py-4 font-bold text-on-brand" type="submit">{{ $question === 'categories' ? __('tonight.find') : __('tonight.next') }} <span data-count-total aria-live="polite">({{ __('tonight.count_template', ['count' => $counts['total']]) }})</span> →</button>
         @if($index > 0)<a class="inline-flex min-h-12 items-center underline" href="{{ route('tonight.wizard', [...\Illuminate\Support\Arr::except($input, ['step']), 'question' => $questions[$index - 1]]) }}">{{ __('tonight.back') }}</a>@endif
     </div>
 </form>

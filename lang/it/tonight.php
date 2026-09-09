@@ -1,6 +1,9 @@
 <?php
 
 return [
+    'count_template' => ':count appuntamenti',
+    'count_loading' => 'Conteggio in corso…',
+    'count_error' => 'Conteggio non disponibile',
     'search_place' => 'Cerca nell’elenco',
     'municipality' => 'In quale comune?', 'everywhere' => 'Ovunque in provincia',
     'district' => 'In quale quartiere di Padova?',

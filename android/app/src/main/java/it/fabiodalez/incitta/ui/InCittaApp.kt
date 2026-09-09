@@ -37,8 +37,6 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
@@ -63,7 +61,8 @@ fun InCittaApp(viewModel: MainViewModel) {
         var lastBannerImpression by remember { mutableStateOf<Long?>(null) }
         val eventList = !tonightOpen && organizerSlug == null && state.tab == AppTab.EVENTS && state.selected == null && state.selectedVenue == null
         var navigationRevealed by remember(state.tab, state.selected?.slug, state.selectedVenue?.slug, organizerSlug, tonightOpen) { mutableStateOf(false) }
-        val threshold = with(LocalDensity.current) { 16.dp.toPx() }
+        val threshold = with(LocalDensity.current) { 96.dp.toPx() }
+        val navigationRequired = !eventList && state.selected == null && state.selectedVenue == null
         val revealNavigation = remember(state.tab, state.selected?.slug, state.selectedVenue?.slug, organizerSlug, tonightOpen, threshold) { object : NestedScrollConnection {
             val navigation = ScrollNavigation(threshold)
             override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
@@ -117,14 +116,12 @@ fun InCittaApp(viewModel: MainViewModel) {
         )
 
         Scaffold(
-            modifier = Modifier.nestedScroll(revealNavigation).pointerInput(state.tab, state.selected?.slug) {
-                detectTapGestures(onTap = { navigationRevealed = !navigationRevealed })
-            },
+            modifier = Modifier.nestedScroll(revealNavigation),
             containerColor = Ink,
             snackbarHost = { SnackbarHost(snackbar) },
             bottomBar = {
                 androidx.compose.animation.AnimatedVisibility(
-                    visible = !imeVisible && (navigationRevealed || accessibility?.isTouchExplorationEnabled == true),
+                    visible = !imeVisible && (navigationRequired || navigationRevealed || accessibility?.isTouchExplorationEnabled == true),
                     enter = androidx.compose.animation.fadeIn(), exit = androidx.compose.animation.fadeOut(),
                 ) { androidx.compose.foundation.layout.Column {
                     HorizontalDivider(thickness = 2.dp, color = Paper)
@@ -231,6 +228,7 @@ fun InCittaApp(viewModel: MainViewModel) {
                         onOrganizer = { organizerSlug = it },
                         onEditDiscovery = { tonightOpen = true },
                         onClearDiscovery = viewModel::clearDiscovery,
+                        onFilters = viewModel::updateSearchFilters,
                     )
                     AppTab.SAVED -> SavedScreen(state, padding, viewModel::open, viewModel::toggleSaved)
                     AppTab.ACCOUNT -> AccountScreen(

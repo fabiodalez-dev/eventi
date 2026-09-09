@@ -1,4 +1,7 @@
 <resources>
+    <string name="tonight_count">%1$d appuntamenti</string>
+    <string name="tonight_count_loading">Conteggio…</string>
+    <string name="tonight_count_error">Conteggio non disponibile</string>
     <string name="tonight_filtered">Solo eventi che rispettano queste scelte.</string>
     <string name="tonight_edit_filters">Modifica le scelte</string>
     <string name="tonight_clear_filters">Rimuovi tutti i filtri</string>

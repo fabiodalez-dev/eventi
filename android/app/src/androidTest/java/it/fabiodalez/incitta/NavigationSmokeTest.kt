@@ -19,10 +19,13 @@ class NavigationSmokeTest {
     }
 
     private fun revealNavigation() {
-        compose.onRoot().performTouchInput { swipeUp() }
+        // Do not swipe the short loading skeleton before the event feed arrives.
+        compose.waitUntil(15_000) { compose.onAllNodesWithText("IN PROGRAMMA").fetchSemanticsNodes().isNotEmpty() }
+        compose.onAllNodes(hasScrollAction()).onFirst().performTouchInput { swipeUp() }
         compose.waitForIdle()
-        compose.onRoot().performTouchInput { swipeDown() }
-        compose.waitForIdle()
+        compose.waitUntil(5_000) {
+            compose.onAllNodes(hasText("SALVATI") and hasClickAction()).fetchSemanticsNodes().isNotEmpty()
+        }
     }
 
     @Test fun guestSavedOpensProfileLogin() {
@@ -54,13 +57,11 @@ class NavigationSmokeTest {
         compose.onNodeWithText(compose.activity.getString(R.string.search_live_help)).assertExists()
         // The app intentionally hides bottom navigation while the IME is open.
         androidx.test.espresso.Espresso.closeSoftKeyboard()
-        compose.onNodeWithText("CERCA").performTouchInput { click() }
         compose.waitUntil(5_000) {
             compose.onAllNodes(hasText("MAPPA") and hasClickAction()).fetchSemanticsNodes().isNotEmpty()
         }
         compose.onNode(hasText("MAPPA") and hasClickAction()).performClick()
         compose.onNodeWithText("OGGI").assertExists()
-        compose.onNodeWithText("MAPPA").performTouchInput { click() }
         compose.onNode(hasText("CERCA") and hasClickAction()).assertExists()
         compose.onNodeWithText("OGGI").assertExists()
     }

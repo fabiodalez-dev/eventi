@@ -339,6 +339,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         search("")
     }
 
+    fun updateSearchFilters(filters: Map<String, String>, summary: String, query: String) {
+        val tags = _state.value.activeTag?.slug
+        val effective = if (tags != null) filters + ("tags" to tags) else filters
+        _state.value = _state.value.copy(discoveryFilters = effective, discoverySummary = summary,
+            searchVenues = emptyList(), searchOrganizers = emptyList(), searchTags = emptyList())
+        search(query)
+    }
+
     suspend fun synchronizeSaved() {
         val token = repository.session.value?.token ?: return
         try {
