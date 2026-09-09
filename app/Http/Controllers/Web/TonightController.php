@@ -57,7 +57,7 @@ class TonightController extends Controller
         $municipalities = config('discovery-geography.'.$city->slug.'.municipalities', [$city->name]);
         $dates = $question === 'results' ? $discovery->find($city, $input) : new Collection;
         $counts = $discovery->counts($city, $input);
-        $apiCounts = [...$counts, 'municipalities' => (object) $counts['municipalities'], 'zones' => (object) $counts['zones']];
+        $apiCounts = [...$counts, 'municipalities' => (object) $counts['municipalities'], 'zones' => (object) $counts['zones'], 'categories' => (object) $counts['categories'], 'budgets' => (object) $counts['budgets']];
         if ($request->boolean('preview')) {
             return response()->json(['data' => $apiCounts])->header('Cache-Control', 'private, no-store');
         }

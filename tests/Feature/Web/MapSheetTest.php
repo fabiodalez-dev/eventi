@@ -95,7 +95,11 @@ it('etichetta ogni marcatore col nome del locale', function (): void {
      * col proprio identificativo numerico, e chi naviga con uno screen reader
      * sente «pulsante 24». Il nome viaggia nel carico, in sesta posizione.
      */
-    $html = $this->get('/mappa')->assertOk()->getContent();
-
-    expect($html)->toContain('Teatro del nome');
+    // Il locale non ha date oggi: non deve apparire nemmeno nei filtri.
+    $this->get('/mappa')->assertOk()->assertDontSee('Teatro del nome');
+    // Verifica il marcatore, non la presenza accidentale nel menu dei locali.
+    $this->get('/mappa?date=tomorrow')->assertOk()
+        ->assertViewHas('payload', fn (array $payload): bool => count($payload['markers']) === 1
+            && $payload['markers'][0][0] === $venue->id
+            && $payload['markers'][0][5] === 'Teatro del nome');
 });

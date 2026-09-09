@@ -8,6 +8,22 @@ import org.junit.Test
 class TonightContractTest {
     private val json = Json { ignoreUnknownKeys = true }
 
+    @Test fun categoryAndBudgetCountsIncludeDisabledZeros() {
+        val data = json.decodeFromString<TonightPayload>("""{"counts":{"total":2,"everywhere":2,"categories":{"7":2,"8":0},"budgets":{"":2,"0":0,"20":2}}}""")
+        assertEquals(2, data.counts!!.categories["7"])
+        assertEquals(0, data.counts!!.categories["8"])
+        assertEquals(0, data.counts!!.budgets["0"])
+        assertEquals(2, data.counts!!.budgets[""])
+    }
+
+    @Test fun emptyFacetMapsRemainDecodable() {
+        val data = json.decodeFromString<TonightPayload>("""{"counts":{"total":0,"everywhere":0,"categories":{},"budgets":{},"zones":{},"municipalities":{}}}""")
+        assertTrue(data.counts!!.categories.isEmpty())
+        val facets = json.decodeFromString<ApiEnvelope<Map<String, Map<String, Int>>>>("""{"data":{"category":{},"time":{"night":0}}}""")
+        assertTrue(facets.data.getValue("category").isEmpty())
+        assertEquals(0, facets.data.getValue("time")["night"])
+    }
+
     @Test fun geographicCatalogComesFromTheServer() {
         val data = json.decodeFromString<TonightPayload>("""{"municipalities":["Padova","Abano Terme"],"neighborhood_municipality":"Padova","zones":["Brusegana","Guizza"]}""")
         assertEquals("Padova", data.municipalities.first())

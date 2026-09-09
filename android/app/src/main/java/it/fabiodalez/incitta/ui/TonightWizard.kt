@@ -30,7 +30,7 @@ internal data class TonightResult(val occurrence: Occurrence, val reasons: List<
 internal data class TonightPayload(val categories: List<TonightOption> = emptyList(), val zones: List<String> = emptyList(), val municipalities: List<String> = emptyList(), val neighborhood_municipality: String? = null, val results: List<TonightResult> = emptyList(), val soon_minutes: Int = 180, val counts: TonightCounts? = null)
 
 @Serializable
-internal data class TonightCounts(val total: Int, val everywhere: Int, val municipalities: Map<String, Int> = emptyMap(), val zones: Map<String, Int> = emptyMap())
+internal data class TonightCounts(val total: Int, val everywhere: Int, val municipalities: Map<String, Int> = emptyMap(), val zones: Map<String, Int> = emptyMap(), val categories: Map<String, Int> = emptyMap(), val budgets: Map<String, Int> = emptyMap())
 
 @Composable
 fun TonightWizard(session: Session?, onBack: () -> Unit, onResults: (Map<String, String>, String) -> Unit) {
@@ -64,6 +64,10 @@ fun TonightWizard(session: Session?, onBack: () -> Unit, onResults: (Map<String,
             val fields = mapOf("when" to whenValue, "municipality" to municipality, "zone" to (if (municipality == "Padova") zone else ""), "budget" to budget)
             val path = "tonight?step=1&" + fields.entries.joinToString("&") { "${it.key}=${URLEncoder.encode(it.value, "UTF-8")}" } + selected.joinToString("") { "&categories[]=$it" }
             payload = api.get<ApiEnvelope<TonightPayload>>(path, session?.token).data
+            payload.counts?.let { counts ->
+                val valid = selected.filter { (counts.categories[it.toString()] ?: 0) > 0 }
+                if (valid != selected) selected = ArrayList(valid)
+            }
         } catch (e: Exception) {
             if (e is CancellationException) throw e
             error = requestFailureMessage(e)
@@ -95,7 +99,7 @@ fun TonightWizard(session: Session?, onBack: () -> Unit, onResults: (Map<String,
             } else if (step == 4) {
                 item {
                     ChoiceMenu(stringResource(R.string.tonight_budget), budget,
-                        listOf("" to stringResource(R.string.tonight_any_budget), "0" to stringResource(R.string.tonight_free)) + listOf("10", "20", "30", "50").map { it to stringResource(R.string.tonight_up_to, it) }) { budget = it }
+                        listOf("" to stringResource(R.string.tonight_any_budget), "0" to stringResource(R.string.tonight_free)) + listOf("10", "20", "30", "50").map { it to stringResource(R.string.tonight_up_to, it) }, counts = payload.counts?.budgets) { budget = it }
                     Text(stringResource(R.string.tonight_budget_help), color = Muted, modifier = Modifier.padding(top = 12.dp))
                 }
             } else if (step == 5) {
@@ -104,11 +108,12 @@ fun TonightWizard(session: Session?, onBack: () -> Unit, onResults: (Map<String,
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         row.forEach { category ->
                             val checked = category.id in selected
+                            val count = payload.counts?.categories?.get(category.id.toString()) ?: 0
                             Surface(modifier = Modifier.weight(1f), color = Ink, contentColor = Paper, shape = androidx.compose.ui.graphics.RectangleShape,
                                 border = androidx.compose.foundation.BorderStroke(2.dp, if (checked) Acid else Rule)) {
-                                Column(Modifier.heightIn(min = 96.dp).toggleable(value = checked, role = Role.Checkbox, onValueChange = { enabled -> selected = ArrayList(if (enabled) (selected + category.id).distinct() else selected - category.id) }).padding(12.dp)) {
-                                    Checkbox(checked, onCheckedChange = null)
-                                    Text(category.name, style = MaterialTheme.typography.bodyMedium)
+                                Column(Modifier.heightIn(min = 96.dp).toggleable(value = checked && count > 0, enabled = count > 0 && !counting, role = Role.Checkbox, onValueChange = { enabled -> selected = ArrayList(if (enabled) (selected + category.id).distinct() else selected - category.id) }).padding(12.dp)) {
+                                    Checkbox(checked && count > 0, enabled = count > 0 && !counting, onCheckedChange = null)
+                                    Text(category.name + " · " + count, style = MaterialTheme.typography.bodyMedium, color = if (count > 0) Paper else Muted)
                                 }
                             }
                         }
@@ -124,7 +129,7 @@ fun TonightWizard(session: Session?, onBack: () -> Unit, onResults: (Map<String,
                         val summary = listOf(timeSummary, placeSummary, if (hasNeighborhoods) zone else "", budgetSummary, categories.joinToString(", ") { it.name }).filter { it.isNotBlank() }.joinToString(" · ")
                         onResults(filters, summary)
                     } else step = if (step == 2 && !hasNeighborhoods) 4 else step + 1
-                }, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp), shape = androidx.compose.ui.graphics.RectangleShape, colors = ButtonDefaults.buttonColors(containerColor = Acid, contentColor = Ink)) {
+                }, enabled = !counting && error == null, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp), shape = androidx.compose.ui.graphics.RectangleShape, colors = ButtonDefaults.buttonColors(containerColor = Acid, contentColor = Ink)) {
                     Text(stringResource(if (step == 5) R.string.tonight_find else R.string.tonight_next))
                     Text(" · " + if (counting) stringResource(R.string.tonight_count_loading) else if (error != null || payload.counts == null) stringResource(R.string.tonight_count_error) else stringResource(R.string.tonight_count, payload.counts!!.total))
                 }

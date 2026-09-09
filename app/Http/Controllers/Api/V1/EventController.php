@@ -16,6 +16,7 @@ use App\Models\Event;
 use App\Models\EventOccurrence;
 use App\Queries\EventOccurrenceQuery;
 use App\Services\Api\OccurrenceFeed;
+use App\Services\Search\ContextualFacets;
 use App\Support\Api\ApiContext;
 use App\Support\Api\ApiResponse;
 use Illuminate\Database\Eloquent\Collection;
@@ -43,6 +44,13 @@ final class EventController extends Controller
             $page->paginator,
             static fn (EventOccurrence $occurrence): array => OccurrenceResource::toArray($occurrence, $page->context),
         );
+    }
+
+    public function facets(EventQueryRequest $request): JsonResponse
+    {
+        return ApiResponse::item(array_map(fn (array $counts): object => (object) $counts, app(ContextualFacets::class)->build(
+            $this->city(), $request->filters(), fn () => $this->feed->query($this->city(), $request),
+        )));
     }
 
     public function show(EventQueryRequest $request, string $slug): JsonResponse

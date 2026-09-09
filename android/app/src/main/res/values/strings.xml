@@ -1,3 +1,5 @@
 <resources>
+    <string name="map_filters_open">Filtra gli eventi sulla mappa ⌄</string>
+    <string name="map_filters_close">Torna alla mappa ⌃</string>
     <string name="app_name">inCittà</string>
 </resources>

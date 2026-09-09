@@ -214,7 +214,7 @@ fun SearchScreen(
                     colors = fieldColors(),
                 )
                 Text(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.search_live_help), color = Muted, modifier = Modifier.padding(top = 10.dp))
-                SearchFilters(state) { filters, summary -> onFilters(filters, summary, query) }
+                SearchFilters(state, query) { filters, summary -> onFilters(filters, summary, query) }
                 state.activeTag?.let { tag ->
                     Button(
                         onClick = onClearTag,
