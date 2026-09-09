@@ -19,7 +19,8 @@ class NavigationSmokeTest {
     }
 
     private fun revealNavigation() {
-        compose.onRoot().performTouchInput { swipeUp() }
+        compose.waitUntil(15_000) { compose.onAllNodes(hasScrollAction()).fetchSemanticsNodes().isNotEmpty() }
+        compose.onAllNodes(hasScrollAction()).onFirst().performTouchInput { swipeUp() }
         compose.waitForIdle()
     }
 

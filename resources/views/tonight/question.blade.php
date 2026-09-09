@@ -27,7 +27,11 @@
                 </label>
                 <div class="grid max-h-80 gap-2 overflow-y-auto pr-2 sm:grid-cols-2">
                     @foreach($choices as $label => $value)
-                        @php($placeCount = $question === 'municipality' ? ($value === '' ? $counts['everywhere'] : ($counts['municipalities'][$value] ?? 0)) : ($value === '' ? ($counts['municipalities']['Padova'] ?? 0) : ($counts['zones'][$value] ?? 0)))
+                        @php
+                            $placeCount = $question === 'municipality'
+                                ? ($value === '' ? $counts['everywhere'] : ($counts['municipalities'][$value] ?? 0))
+                                : ($value === '' ? ($counts['municipalities']['Padova'] ?? 0) : ($counts['zones'][$value] ?? 0));
+                        @endphp
                         <label data-place-option class="flex min-h-14 cursor-pointer items-center gap-3 border-2 border-line p-4 has-[:checked]:border-accent has-[:checked]:text-accent has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-45">
                             <input type="radio" name="{{ $field }}" value="{{ $value }}" @checked(($input[$field] ?? '') === $value) @disabled($placeCount === 0 && ($input[$field] ?? '') !== $value)> {{ $label }}
                             <span class="ml-auto tabular-nums" data-place-count="{{ $value }}" data-place-kind="{{ $question }}">{{ $question === 'municipality' ? ($value === '' ? $counts['everywhere'] : ($counts['municipalities'][$value] ?? 0)) : ($value === '' ? ($counts['municipalities']['Padova'] ?? 0) : ($counts['zones'][$value] ?? 0)) }}</span>
