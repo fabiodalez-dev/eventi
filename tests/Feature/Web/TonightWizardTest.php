@@ -12,6 +12,14 @@ beforeEach(function (): void {
     $this->venue = Venue::factory()->approved()->create(['city_id' => $this->city->id, 'zone' => 'Centro']);
 });
 
+it('keeps wizard actions outside scrollable choices on every mobile question', function (string $question): void {
+    $this->get('/stasera?question='.$question.'&municipality=Padova')->assertOk()
+        ->assertSee('data-wizard-actions', false)
+        ->assertSee('bottom-[calc(4rem+2px+env(safe-area-inset-bottom))]', false)
+        ->assertSee('lg:static', false)
+        ->assertSee('pb-36 lg:pb-0', false);
+})->with(['when', 'municipality', 'district', 'budget', 'categories']);
+
 it('renders all wizard steps and returns the same actual dates on web and API', function (): void {
     $date = occurrenceAtLocal($this->city, $this->category, '2026-09-10 21:00', venue: $this->venue, event: ['price_type' => 'free']);
     $this->get('/stasera')->assertOk()->assertSee('La tua prossima serata.');

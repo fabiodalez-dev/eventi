@@ -16,6 +16,17 @@ function selectedFilterHtml(EventFilters $filters): string
     ]);
 }
 
+it('highlights all dates without a misleading removal cross on entry', function () {
+    $html = selectedFilterHtml(new EventFilters);
+    $dom = new DOMDocument;
+    @$dom->loadHTML('<?xml encoding="UTF-8">'.$html);
+    $xpath = new DOMXPath($dom);
+    $all = $xpath->query('//a[contains(., "Tutte le date")]')->item(0);
+    expect($all)->not->toBeNull()
+        ->and($all->getAttribute('aria-current'))->toBe('true')
+        ->and($all->textContent)->not->toContain('×');
+});
+
 it('shows only selected category chips and preserves other filters on removal', function () {
     $html = selectedFilterHtml(new EventFilters(categories: ['cinema'], price: PriceFilter::Free));
     $chips = explode('<details', $html)[0];
