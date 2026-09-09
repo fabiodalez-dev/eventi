@@ -43,7 +43,7 @@ export function eventFilters() {
                 if (geoStatus) geoStatus.textContent = '';
                 return;
             }
-            if (region.querySelector('aside details[open]')) next.querySelector('aside details')?.setAttribute('open', '');
+            next.querySelectorAll('aside details').forEach(details => details.removeAttribute('open'));
             document.dispatchEvent(new Event('event-browser:before-update'));
             region.replaceWith(next);
             document.title = page.title;
