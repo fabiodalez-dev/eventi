@@ -1,5 +1,17 @@
 # Fabio CI: server di esecuzione multi-repository
 
+## Decisione corrente: tutta la CI su GitHub
+
+Il proprietario ha ritirato tutte le migrazioni self-hosted il 7 settembre 2026.
+I workflow attivi e le PR aperte sono stati controllati su 37 repository:
+solo Pinakes #417 e FAZ #274 richiedevano ancora la VM, ora ripristinati su
+`ubuntu-latest`, comprese le release. Eventi usa già runner standard GitHub.
+`fabio-ci-controller` è fermo e disabilitato all'avvio: non riattivarlo.
+Le istruzioni self-hosted seguenti sono solo documentazione storica.
+Restano attivi entrambi i timer GitLab e il servizio di backup su push di eventi.
+PR, issue e release rimangono su GitHub; i repository privati restano privati.
+Vedere `docs/PUBLIC-REPOSITORY.md` per la configurazione corrente.
+
 ## Aggiornamento del 7 settembre 2026: eventi pubblico
 
 Per `eventi` la configurazione corrente è descritta in
