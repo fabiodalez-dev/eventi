@@ -50,6 +50,8 @@ data class AppUiState(
     val searchOrganizers: List<it.fabiodalez.incitta.data.Organizer> = emptyList(),
     val searchTags: List<Tag> = emptyList(),
     val activeTag: Tag? = null,
+    val discoveryFilters: Map<String, String> = emptyMap(),
+    val discoverySummary: String? = null,
     val venues: List<Venue> = emptyList(),
     val mapFilter: EventFilter = EventFilter.TODAY,
     val mapMarkers: List<MapMarker> = emptyList(),
@@ -288,6 +290,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun search(query: String) {
         searchJob?.cancel()
+        if (_state.value.discoveryFilters.isNotEmpty()) {
+            val filters = _state.value.discoveryFilters
+            _state.value = _state.value.copy(isSearching = true, searchResults = emptyList())
+            searchJob = viewModelScope.launch {
+                delay(280)
+                runCatching { repository.filteredOccurrences(filters, query.trim()) }
+                    .onSuccess { _state.value = _state.value.copy(searchResults = it, isSearching = false) }
+                    .onFailure { if (it !is CancellationException) _state.value = _state.value.copy(isSearching = false, message = userMessage(it)) }
+            }
+            return
+        }
         _state.value = _state.value.copy(activeTag = null)
         if (query.trim().length < 3) {
             _state.value = _state.value.copy(searchResults = emptyList(), searchOrganizers = emptyList(), searchVenues = emptyList(), searchTags = emptyList(), isSearching = false)
@@ -311,6 +324,29 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         _state.value = _state.value.copy(isSearching = false, message = userMessage(it))
                     }
                 }
+        }
+    }
+
+    fun applyDiscovery(filters: Map<String, String>, summary: String) {
+        selectTab(AppTab.SEARCH)
+        _state.value = _state.value.copy(discoveryFilters = filters, discoverySummary = summary, activeTag = null,
+            searchVenues = emptyList(), searchOrganizers = emptyList(), searchTags = emptyList())
+        search("")
+    }
+
+    fun clearDiscovery() {
+        _state.value = _state.value.copy(discoveryFilters = emptyMap(), discoverySummary = null)
+        search("")
+    }
+
+    suspend fun synchronizeSaved() {
+        val token = repository.session.value?.token ?: return
+        try {
+            val saved = repository.savedOccurrences()
+            if (repository.session.value?.token == token) _state.value = _state.value.copy(savedOccurrences = saved)
+        } catch (error: Exception) {
+            if (error is CancellationException) throw error
+            // Keep the last successful snapshot when temporarily offline.
         }
     }
 
@@ -405,6 +441,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun browseTag(tag: Tag) {
+        searchJob?.cancel()
+        _state.value = _state.value.copy(discoveryFilters = emptyMap(), discoverySummary = null)
         viewModelScope.launch {
             val previous = currentSnapshot()
             _state.value = _state.value.copy(tab = AppTab.SEARCH, isSearching = true, message = null)
@@ -426,6 +464,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun browseCategory(slug: String) {
+        searchJob?.cancel()
+        _state.value = _state.value.copy(discoveryFilters = emptyMap(), discoverySummary = null)
         viewModelScope.launch {
             val previous = currentSnapshot()
             _state.value = _state.value.copy(tab = AppTab.SEARCH, isSearching = true, message = null)
@@ -504,7 +544,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _state.value = _state.value.copy(privacyConsent = accepted)
     }
 
+    private val pendingSaves = mutableSetOf<Long>()
+
     fun toggleSaved(occurrenceId: Long) {
+        if (!pendingSaves.add(occurrenceId)) return
         viewModelScope.launch {
             val wasSaved = occurrenceId in _state.value.savedIds
             runCatching { repository.toggleSaved(occurrenceId) }
@@ -515,6 +558,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     if (_state.value.tab == AppTab.SAVED) loadSaved()
                 }
                 .onFailure { _state.value = _state.value.copy(message = userMessage(it)) }
+            pendingSaves.remove(occurrenceId)
         }
     }
 

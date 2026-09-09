@@ -53,6 +53,7 @@
     $presets = [
         DatePreset::Today,
         DatePreset::Tonight,
+        DatePreset::StartingSoon,
         DatePreset::Tomorrow,
         DatePreset::Weekend,
         DatePreset::Week,
@@ -96,6 +97,9 @@
         $tagOptions[$tag->slug] = $tag->name;
     }
 @endphp
+@if ($filters->budget !== null)
+    <a class="inline-flex min-h-12 items-center border-2 border-accent p-3" href="{{ $destination.'?'.http_build_query(\Illuminate\Support\Arr::except($filters->toQueryString(), ['budget'])) }}">{{ __('tonight.up_to', ['amount' => $filters->budget]) }} ×</a>
+@endif
 
 <section {{ $attributes->class(['flex flex-col gap-6']) }} aria-label="{{ __('filters.title') }}">
     {{--
@@ -242,7 +246,7 @@
             @if ($allDates)
                 <input type="hidden" name="all_dates" value="1">
             @endif
-            @foreach (['category' => implode(',', $filters->categories), 'lat' => $filters->lat, 'lng' => $filters->lng, 'q' => $filters->q] as $hidden => $value)
+            @foreach (['category' => implode(',', $filters->categories), 'lat' => $filters->lat, 'lng' => $filters->lng, 'q' => $filters->q, 'budget' => $filters->budget, 'discovery' => $filters->discovery ? '1' : null] as $hidden => $value)
                 @if (filled($value))
                     <input type="hidden" name="{{ $hidden }}" value="{{ $value }}">
                 @endif

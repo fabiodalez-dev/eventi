@@ -15,6 +15,7 @@ use App\Models\Tag;
 use App\Models\User;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
+use Laravel\Sanctum\Sanctum;
 
 /**
  * Che cosa si salva e che cosa si segue (§15.3).
@@ -34,6 +35,19 @@ beforeEach(function (): void {
 
 afterEach(function (): void {
     Carbon::setTestNow();
+});
+
+it('synchronizes independent dates across web and authenticated API without sharing another account saves', function (): void {
+    $first = occurrenceAt($this->city, $this->category, '2026-09-12 19:00:00');
+    $second = EventOccurrence::factory()->create(['event_id' => $first->event_id, 'starts_at' => '2026-09-13 19:00:00']);
+    $this->actingAs($this->user)->post('/salvataggi', ['occurrence_ids' => [$first->id, $second->id]])->assertRedirect();
+    $this->getJson('/salvataggi/stato')->assertOk()->assertJsonCount(2, 'ids')->assertHeader('Cache-Control', 'no-store, private');
+    Sanctum::actingAs($this->user);
+    $response = $this->getJson('/api/v1/me/saved?upcoming=0')->assertOk()->assertJsonCount(2, 'data');
+    expect(collect($response->json('data'))->pluck('occurrence_id')->all())->toContain($first->id, $second->id);
+    $this->deleteJson('/api/v1/me/saved/'.$first->id)->assertSuccessful();
+    $this->getJson('/salvataggi/stato')->assertJson(['ids' => [$second->id]]);
+    $this->actingAs(User::factory()->create())->getJson('/salvataggi/stato')->assertJson(['ids' => []]);
 });
 
 it('salva una data futura e la mostra fra i salvataggi', function (): void {

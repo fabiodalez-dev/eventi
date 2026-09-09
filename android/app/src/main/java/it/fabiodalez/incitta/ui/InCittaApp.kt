@@ -33,6 +33,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
@@ -52,9 +58,29 @@ fun InCittaApp(viewModel: MainViewModel) {
         LaunchedEffect(state.tab) { tonightOpen = false }
         val snackbar = remember { SnackbarHostState() }
         val imeVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
+        val accessibility = androidx.compose.ui.platform.LocalContext.current.getSystemService(android.content.Context.ACCESSIBILITY_SERVICE) as? android.view.accessibility.AccessibilityManager
         val lifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
         var lastBannerImpression by remember { mutableStateOf<Long?>(null) }
         val eventList = !tonightOpen && organizerSlug == null && state.tab == AppTab.EVENTS && state.selected == null && state.selectedVenue == null
+        var navigationRevealed by remember(state.tab, state.selected?.slug, state.selectedVenue?.slug, organizerSlug, tonightOpen) { mutableStateOf(false) }
+        val threshold = with(LocalDensity.current) { 16.dp.toPx() }
+        val revealNavigation = remember(state.tab, state.selected?.slug, state.selectedVenue?.slug, organizerSlug, tonightOpen, threshold) { object : NestedScrollConnection {
+            val navigation = ScrollNavigation(threshold)
+            override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
+                if (source == NestedScrollSource.UserInput && consumed.y != 0f) {
+                    navigation.scroll(consumed.y)?.let { navigationRevealed = it }
+                }
+                return Offset.Zero
+            }
+        } }
+        LaunchedEffect(lifecycle, state.session?.token) {
+            if (state.session != null) lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
+                while (true) {
+                    viewModel.synchronizeSaved()
+                    kotlinx.coroutines.delay(30_000)
+                }
+            }
+        }
         val bannerAllowed = remember(eventList, state.session?.user?.id) {
             lastBannerImpression?.let { android.os.SystemClock.elapsedRealtime() - it >= 300_000 } ?: true
         }
@@ -91,10 +117,16 @@ fun InCittaApp(viewModel: MainViewModel) {
         )
 
         Scaffold(
+            modifier = Modifier.nestedScroll(revealNavigation).pointerInput(state.tab, state.selected?.slug) {
+                detectTapGestures(onTap = { navigationRevealed = !navigationRevealed })
+            },
             containerColor = Ink,
             snackbarHost = { SnackbarHost(snackbar) },
             bottomBar = {
-                if (!imeVisible) androidx.compose.foundation.layout.Column {
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = !imeVisible && (navigationRevealed || accessibility?.isTouchExplorationEnabled == true),
+                    enter = androidx.compose.animation.fadeIn(), exit = androidx.compose.animation.fadeOut(),
+                ) { androidx.compose.foundation.layout.Column {
                     HorizontalDivider(thickness = 2.dp, color = Paper)
                     BottomAppBar(
                         containerColor = Ink,
@@ -108,6 +140,7 @@ fun InCittaApp(viewModel: MainViewModel) {
                         NavItem(if (state.tab == AppTab.TICKETS) AppTab.ACCOUNT else state.tab, AppTab.ACCOUNT, "Profilo", Icons.Outlined.AccountCircle, { tonightOpen = false; organizerSlug = null; viewModel.selectTab(it) })
                     }
                 }
+                }
             },
         ) { padding ->
             val selectedVenue = state.selectedVenue
@@ -116,11 +149,9 @@ fun InCittaApp(viewModel: MainViewModel) {
             when {
                 tonightOpen && selected == null && selectedVenue == null && state.bookingDate == null -> Box(Modifier.fillMaxSize().padding(padding)) {
                     tonightState.SaveableStateProvider("tonight-${state.session?.user?.id}") {
-                    TonightWizard(state.session, state.savedIds,
+                    TonightWizard(state.session,
                         onBack = { tonightOpen = false },
-                        onOpen = viewModel::open,
-                        onSave = viewModel::toggleSaved,
-                        onAll = { tonightOpen = false; viewModel.selectTab(AppTab.EVENTS); viewModel.refresh(it.fabiodalez.incitta.data.EventFilter.ALL) })
+                        onResults = { filters, summary -> tonightOpen = false; viewModel.applyDiscovery(filters, summary) })
                     }
                 }
                 organizerSlug != null -> Box(Modifier.fillMaxSize().padding(padding)) {
@@ -198,6 +229,8 @@ fun InCittaApp(viewModel: MainViewModel) {
                         viewModel::browseTag,
                         viewModel::clearTagFilter,
                         onOrganizer = { organizerSlug = it },
+                        onEditDiscovery = { tonightOpen = true },
+                        onClearDiscovery = viewModel::clearDiscovery,
                     )
                     AppTab.SAVED -> SavedScreen(state, padding, viewModel::open, viewModel::toggleSaved)
                     AppTab.ACCOUNT -> AccountScreen(

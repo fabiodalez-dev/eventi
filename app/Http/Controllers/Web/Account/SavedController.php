@@ -37,6 +37,12 @@ final class SavedController extends Controller
 
     public function __construct(private readonly OccurrenceCalendar $calendar) {}
 
+    public function state(Request $request): JsonResponse
+    {
+        return response()->json(['ids' => $this->accountUser($request)->savedEvents()->pluck('occurrence_id')])
+            ->header('Cache-Control', 'private, no-store');
+    }
+
     public function index(Request $request): View
     {
         $city = $this->city();

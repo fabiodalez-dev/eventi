@@ -10,6 +10,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 class AppRepository(context: Context) {
     private val store = LocalStore(context)
@@ -27,7 +29,8 @@ class AppRepository(context: Context) {
     private val _session = MutableStateFlow(store.readSession())
     val session: StateFlow<Session?> = _session.asStateFlow()
 
-    private val _savedIds = MutableStateFlow(store.guestSavedIds())
+    private val savedMutex = Mutex()
+    private val _savedIds = MutableStateFlow(if (_session.value == null) store.guestSavedIds() else emptySet())
     val savedIds: StateFlow<Set<Long>> = _savedIds.asStateFlow()
 
     fun cachedOccurrences(): List<Occurrence> = store.cachedOccurrences()
@@ -184,7 +187,22 @@ class AppRepository(context: Context) {
         return payload.user
     }
 
-    suspend fun toggleSaved(occurrenceId: Long) {
+    suspend fun filteredOccurrences(filters: Map<String, String>, query: String): List<Occurrence> {
+        val token = _session.value?.token
+        val parameters = (filters + mapOf("q" to query, "limit" to "50")).entries.joinToString("&") { "${it.key.urlEncoded()}=${it.value.urlEncoded()}" }
+        val result = mutableListOf<Occurrence>()
+        val seen = mutableSetOf<String>()
+        var cursor: String? = null
+        do {
+            val page = api.get<ApiEnvelope<List<Occurrence>>>("events?$parameters" + (cursor?.let { "&cursor=${it.urlEncoded()}" } ?: ""), token)
+            if (_session.value?.token != token) throw kotlinx.coroutines.CancellationException("Session changed")
+            result += page.data
+            cursor = page.meta?.nextCursor?.takeIf { seen.add(it) }
+        } while (cursor != null)
+        return result.distinctBy(Occurrence::occurrenceId)
+    }
+
+    suspend fun toggleSaved(occurrenceId: Long) = savedMutex.withLock {
         val token = _session.value?.token
         if (token == null) {
             val next = _savedIds.value.toMutableSet().apply {
@@ -192,12 +210,13 @@ class AppRepository(context: Context) {
             }.toSet()
             _savedIds.value = next
             store.setGuestSaved(next)
-            return
+            return@withLock
         }
 
         try {
             if (occurrenceId in _savedIds.value) {
                 api.delete<ApiEnvelope<ApiMessage>>("me/saved/$occurrenceId", token)
+                if (_session.value?.token != token) throw kotlinx.coroutines.CancellationException("Session changed")
                 _savedIds.value = _savedIds.value - occurrenceId
             } else {
                 api.post<ApiEnvelope<ApiMessage>, SaveBody>(
@@ -206,25 +225,26 @@ class AppRepository(context: Context) {
                     token,
                     idempotent = true,
                 )
+                if (_session.value?.token != token) throw kotlinx.coroutines.CancellationException("Session changed")
                 _savedIds.value = _savedIds.value + occurrenceId
             }
         } catch (error: ApiException) {
-            if (error.status == 401) clearAuthenticatedState()
+            if (error.status == 401 && _session.value?.token == token) clearAuthenticatedState()
             throw error
         }
     }
 
-    suspend fun savedOccurrences(): List<Occurrence> {
+    suspend fun savedOccurrences(): List<Occurrence> = savedMutex.withLock {
         val token = _session.value?.token
         if (token == null) {
             val cached = cachedOccurrences().associateBy(Occurrence::occurrenceId)
-            return coroutineScope {
+            return@withLock coroutineScope {
                 _savedIds.value.map { id ->
                     async { cached[id] ?: runCatching { occurrence(id) }.getOrNull() }
                 }.awaitAll().filterNotNull().sortedBy(Occurrence::startsAt)
             }
         }
-        return try {
+        try {
             mergeGuestWishlist()
             val result = mutableListOf<Occurrence>()
             var cursor: String? = null
@@ -240,7 +260,7 @@ class AppRepository(context: Context) {
                 _savedIds.value = items.map(Occurrence::occurrenceId).toSet()
             }
         } catch (error: ApiException) {
-            if (error.status == 401) clearAuthenticatedState()
+            if (error.status == 401 && _session.value?.token == token) clearAuthenticatedState()
             throw error
         }
     }

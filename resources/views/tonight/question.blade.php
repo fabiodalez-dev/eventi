@@ -43,16 +43,18 @@
             <div class="grid gap-3 sm:grid-cols-2">
                 @foreach($options as $value => $label)
                     <label class="flex min-h-14 cursor-pointer items-center gap-3 border-2 border-line p-4 has-[:checked]:border-accent has-[:checked]:text-accent">
-                        <input type="radio" name="{{ $field }}" value="{{ $value }}" @checked((string)($input[$field] ?? ($field === 'when' ? 'tonight' : '')) === (string)$value)> {{ $label }}
+                        <input type="radio" name="{{ $field }}" value="{{ $value }}" @checked((string)($input[$field] ?? ($field === 'when' ? 'tonight' : '')) === (string)$value)>
+                        <span><span class="block font-bold">{{ $label }}</span>
+                        @if($question === 'when')<span class="mt-2 block text-sm text-ink-muted">{{ $value === 'tonight' ? __('tonight.tonight_help') : __('tonight.soon_help', ['minutes' => $city->starting_soon_minutes]) }}</span>@endif</span>
                     </label>
                 @endforeach
             </div>
             @if($question === 'budget')<p class="mt-4 max-w-prose text-sm text-ink-muted">{{ __('tonight.budget_help') }}</p>@endif
         @else
             <p class="mb-6 text-ink-muted">{{ __('tonight.categories_help') }}</p>
-            <div class="grid gap-3 sm:grid-cols-2">
+            <div class="grid grid-cols-2 gap-3">
                 @foreach($categories as $category)
-                    <label class="flex min-h-14 cursor-pointer items-center gap-3 border-2 border-line p-4 has-[:checked]:border-accent has-[:checked]:text-accent">
+                    <label class="flex min-h-16 cursor-pointer items-center gap-2 border-2 border-line p-3 text-sm has-[:checked]:border-accent has-[:checked]:text-accent">
                         <input type="checkbox" name="categories[]" value="{{ $category->id }}" @checked(in_array($category->id, array_map('intval', $input['categories'] ?? []), true))>{{ $category->name }}
                     </label>
                 @endforeach

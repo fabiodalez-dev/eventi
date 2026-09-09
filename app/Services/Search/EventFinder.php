@@ -35,6 +35,12 @@ final class EventFinder
         $this->applyPlace($query, $filters);
         $this->applyFeatures($query, $filters);
         $this->applyOrdering($query, $filters);
+        if ($filters->budget !== null) {
+            $query->discoveryBudget($filters->budget);
+        }
+        if ($filters->discovery) {
+            $query->upcoming()->ended(false)->availableForDiscovery();
+        }
 
         if ($filters->q !== '') {
             $query->search($filters->q);

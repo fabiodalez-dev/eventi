@@ -1,6 +1,7 @@
 import { sponsorshipBanners } from './sponsorship-banner';
 import './calendar-preview';
 import { placeChoices } from './place-choices';
+import { navigationMovement } from './scroll-navigation';
 
 import { sponsorshipContext } from './sponsorship-context';
 
@@ -445,6 +446,38 @@ async function talkToServer(url, method, token, body) {
 function savedHearts() {
     const { authenticated, token } = accountSettings();
     const saves = localSaves();
+    const pending = new Set();
+    let saveRevision = 0;
+    let savedSnapshot = null;
+    const paintAll = (id, saved) => document.querySelectorAll('[data-save]').forEach(form => {
+        if (Number(form.dataset.saveId) === id) paintHeart(form, saved);
+    });
+    let syncing = false;
+    const synchronize = async () => {
+        const url = document.querySelector('meta[name="saved-state-url"]')?.content;
+        if (!authenticated || !url || document.hidden || syncing || pending.size) return;
+        syncing = true;
+        const revision = saveRevision;
+        try {
+            const response = await fetch(url, { headers: { Accept: 'application/json' }, cache: 'no-store' });
+            if (!response.ok) return;
+            const { ids } = await response.json();
+            if (!Array.isArray(ids) || pending.size || revision !== saveRevision) return;
+            const saved = new Set(ids.map(Number));
+            const snapshot = [...saved].sort((a, b) => a - b).join(',');
+            if (savedSnapshot !== null && savedSnapshot !== snapshot && document.querySelector('[data-saved-page]')) {
+                window.location.reload();
+                return;
+            }
+            savedSnapshot = snapshot;
+            document.querySelectorAll('[data-save]').forEach(form => paintHeart(form, saved.has(Number(form.dataset.saveId))));
+        } catch { /* Preserve the last confirmed state while offline. */ }
+        finally { syncing = false; }
+    };
+    window.addEventListener('focus', synchronize);
+    document.addEventListener('visibilitychange', synchronize);
+    window.setInterval(synchronize, 30_000);
+    synchronize();
 
     for (const form of document.querySelectorAll("[data-save]")) {
         const id = Number.parseInt(form.dataset.saveId ?? "0", 10);
@@ -455,6 +488,7 @@ function savedHearts() {
 
         form.addEventListener("submit", async (event) => {
             event.preventDefault();
+            if (pending.has(id)) return;
 
             const wasSaved =
                 form
@@ -469,7 +503,7 @@ function savedHearts() {
                         ? current.filter((saved) => saved !== id)
                         : [...current, id],
                 );
-                paintHeart(form, !wasSaved);
+                paintAll(id, !wasSaved);
 
                 /* Solo quando si aggiunge: proporre un account a chi ha appena
                    tolto una data e' chiedere il contrario di quello che ha
@@ -481,6 +515,8 @@ function savedHearts() {
                 return;
             }
 
+            pending.add(id);
+            saveRevision++;
             const ok = wasSaved
                 ? await talkToServer(
                       form.dataset.saveDestroy,
@@ -492,8 +528,9 @@ function savedHearts() {
                       occurrence_id: id,
                   });
 
+            pending.delete(id);
             if (ok) {
-                paintHeart(form, !wasSaved);
+                paintAll(id, !wasSaved);
 
                 return;
             }
@@ -945,6 +982,31 @@ import { liveSearch, continuousTicker } from './live-search';
 import { venueAutocomplete } from './venue-autocomplete';
 
 function start() {
+    const navigation = document.querySelector('[data-scroll-navigation]');
+    if (navigation) {
+        let previous = Math.max(0, window.scrollY);
+        let movement = 0;
+        const show = visible => {
+            navigation.style.opacity = visible ? '1' : '0';
+            navigation.style.pointerEvents = visible ? '' : 'none';
+            navigation.inert = !visible;
+        };
+        show(false);
+        navigation.style.transition = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'none' : 'opacity 200ms ease-out';
+        window.addEventListener('scroll', () => {
+            const current = Math.max(0, window.scrollY);
+            const delta = current - previous;
+            previous = current;
+            const next = navigationMovement(movement, delta);
+            movement = next.movement;
+            if (next.visible !== null) show(next.visible);
+        }, { passive: true });
+        // Keyboard navigation must remain possible without scrolling.
+        window.addEventListener('keydown', event => { if (event.key === 'Tab') show(true); });
+        document.addEventListener('click', event => {
+            if (!event.target.closest('a, button, input, select, textarea, label, [role="button"]')) show(navigation.inert);
+        });
+    }
     placeChoices();
     for (const button of document.querySelectorAll('[data-copy-calendar]')) {
         button.addEventListener('click', async () => {

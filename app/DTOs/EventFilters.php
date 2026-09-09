@@ -51,6 +51,8 @@ final readonly class EventFilters
         public bool $family = false,
         public ?EventSort $sort = null,
         public string $q = '',
+        public ?int $budget = null,
+        public bool $discovery = false,
     ) {}
 
     /**
@@ -82,6 +84,8 @@ final readonly class EventFilters
             family: self::flag($input['family'] ?? null),
             sort: self::enum(EventSort::class, $input['sort'] ?? null),
             q: self::text($input['q'] ?? null) ?? '',
+            budget: isset($input['budget']) ? (int) $input['budget'] : null,
+            discovery: self::flag($input['discovery'] ?? false),
         );
     }
 
@@ -113,6 +117,8 @@ final readonly class EventFilters
             'family' => $this->family ? '1' : null,
             'sort' => $this->sort?->value,
             'q' => $this->q === '' ? null : $this->q,
+            'budget' => $this->budget === null ? null : (string) $this->budget,
+            'discovery' => $this->discovery ? '1' : null,
         ];
 
         return array_filter(
@@ -127,7 +133,7 @@ final readonly class EventFilters
      */
     public function activeCount(): int
     {
-        return count($this->toQueryString()) - ($this->sort === null ? 0 : 1);
+        return count($this->toQueryString()) - ($this->sort === null ? 0 : 1) - ($this->discovery ? 1 : 0);
     }
 
     public function isEmpty(): bool
@@ -315,6 +321,8 @@ final readonly class EventFilters
             'family' => $this->family,
             'sort' => $this->sort,
             'q' => $this->q,
+            'budget' => $this->budget,
+            'discovery' => $this->discovery,
             ...$overrides,
         ];
 
