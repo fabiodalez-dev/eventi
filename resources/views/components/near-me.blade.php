@@ -65,7 +65,9 @@
                 data-geolocate-url="{{ $target }}?{{ http_build_query($filters->toQueryString()) }}"
                 data-geolocate-radius="{{ $current ?? $default }}"
                 data-geolocate-denied="{{ __('map.near.denied') }}"
-                class="hidden bg-brand px-4 py-2.5 font-display text-[0.688rem] leading-none font-extrabold tracking-[0.14em] text-on-brand uppercase transition hover:bg-brand-strong"
+                data-geolocate-loading="{{ __('map.near.loading') }}"
+                data-geolocate-unavailable="{{ __('map.near.unavailable') }}"
+                class="hidden min-h-12 bg-brand px-4 py-2.5 font-display text-[0.688rem] leading-none font-extrabold tracking-[0.14em] text-on-brand uppercase transition hover:bg-brand-strong"
             >
                 {{ __('map.near.allow') }}
             </button>
@@ -87,5 +89,6 @@
                 </select>
             </label>
         </div>
+        <p data-geolocate-status role="status" aria-live="polite" class="mt-2 text-sm text-ink-muted"></p>
     @endif
 </section>

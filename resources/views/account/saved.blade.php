@@ -4,7 +4,7 @@
         <h1 class="text-hero text-ink">{{ $meta->heading }}</h1>
         <p class="text-sm text-ink-muted">{{ __('account.saved.lead') }}</p>
 
-        <nav class="mt-3 flex w-full max-w-md gap-0.5 overflow-x-auto whitespace-nowrap bg-line p-0.5 [&>a]:min-h-12 [&>a]:shrink-0 [&>a]:grow" aria-label="{{ __('account.saved.view') }}">
+        <nav data-peek-tabs class="mt-3 flex w-full max-w-md gap-0.5 overflow-x-auto whitespace-nowrap bg-line p-0.5 [&>a]:min-h-12 [&>a]:shrink-0 [&>a]:grow" aria-label="{{ __('account.saved.view') }}">
             <a
                 href="{{ route('account.saved') }}"
                 @class([

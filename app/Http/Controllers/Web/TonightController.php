@@ -34,13 +34,13 @@ class TonightController extends Controller
         if (array_key_exists('municipality', $input) && $input['municipality'] !== 'Padova') {
             $input['zone'] = null;
         }
-        $question = $input['question'] ?? ($guided ? 'municipality' : match ((int) ($input['step'] ?? 1)) {
+        $question = $input['question'] ?? ($guided ? 'when' : match ((int) ($input['step'] ?? 1)) {
             3 => 'results', 2 => 'categories', default => 'municipality'
         });
         if ($question === 'district' && ($input['municipality'] ?? null) !== 'Padova') {
-            $question = 'when';
+            $question = 'budget';
         }
-        $questions = ['municipality', ...(($input['municipality'] ?? null) === 'Padova' ? ['district'] : []), 'when', 'budget', 'categories', 'results'];
+        $questions = ['when', 'municipality', ...(($input['municipality'] ?? null) === 'Padova' ? ['district'] : []), 'budget', 'categories', 'results'];
         $user = $request->is('api/*') ? $request->user('sanctum') : $request->user();
         $user = $user instanceof User ? $user : null;
         $categories = Category::query()->active()->ordered()->whereNotIn('id', $preferences->hidden($user))->get();
@@ -56,10 +56,16 @@ class TonightController extends Controller
         $zones = collect(config()->array('discovery-geography.'.$city->slug.'.districts', []));
         $municipalities = config('discovery-geography.'.$city->slug.'.municipalities', [$city->name]);
         $dates = $question === 'results' ? $discovery->find($city, $input) : new Collection;
+        $counts = $discovery->counts($city, $input);
+        $apiCounts = [...$counts, 'municipalities' => (object) $counts['municipalities'], 'zones' => (object) $counts['zones']];
+        if ($request->boolean('preview')) {
+            return response()->json(['data' => $apiCounts])->header('Cache-Control', 'private, no-store');
+        }
         if ($request->is('api/*')) {
             $context = ApiContext::forOccurrences($city, [], $user, $dates->modelKeys());
 
             return ApiResponse::item([
+                'counts' => $apiCounts,
                 'categories' => $categories->map(fn ($category) => ['id' => $category->id, 'name' => $category->name, 'slug' => $category->slug])->all(),
                 'soon_minutes' => $city->starting_soon_minutes,
                 'zones' => $zones->all(),
@@ -79,6 +85,7 @@ class TonightController extends Controller
             'categories' => $categories, 'zones' => $zones, 'dates' => $dates,
             'municipalities' => $municipalities, 'question' => $question, 'questions' => $questions,
             'discovery' => $discovery,
+            'counts' => $counts,
             'meta' => new PageMeta(title: __('tonight.title'), heading: __('tonight.title'), indexable: false),
         ]);
     }

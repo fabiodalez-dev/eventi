@@ -4,6 +4,7 @@ namespace App\Services\Search;
 
 use App\Models\City;
 use App\Models\EventOccurrence;
+use App\Models\Venue;
 use App\Queries\EventOccurrenceQuery;
 use App\Services\Seo\EditorialContent;
 use Illuminate\Database\Eloquent\Collection;
@@ -14,6 +15,12 @@ final class TonightDiscovery
      * @return Collection<int, EventOccurrence>
      */
     public function find(City $city, array $input): Collection
+    {
+        return $this->query($city, $input)->firstPerEvent(5)->load(['event.category', 'event.media', 'event.venue', 'venue']);
+    }
+
+    /** @param array<string, mixed> $input */
+    private function query(City $city, array $input): EventOccurrenceQuery
     {
         $query = EventOccurrenceQuery::for($city);
         ($input['when'] ?? 'tonight') === 'starting_soon' ? $query->startingSoon() : $query->tonight();
@@ -31,7 +38,30 @@ final class TonightDiscovery
             $query->inCategories(array_map('intval', $input['categories']));
         }
 
-        return $query->firstPerEvent(5)->load(['event.category', 'event.media', 'event.venue', 'venue']);
+        return $query;
+    }
+
+    /**
+     * Place facets replace the current place, retaining time, budget and categories.
+     *
+     * @param  array<string, mixed>  $input
+     * @return array{total:int, everywhere:int, municipalities:array<string,int>, zones:array<string,int>}
+     */
+    public function counts(City $city, array $input): array
+    {
+        $base = [...$input, 'municipality' => '', 'zone' => ''];
+        $byVenue = $this->query($city, $base)->countsByVenue();
+        $municipalities = [];
+        $zones = [];
+        foreach (Venue::query()->whereIn('id', array_keys($byVenue))->get(['id', 'municipality', 'zone']) as $venue) {
+            $name = (string) $venue->municipality;
+            $municipalities[$name] = ($municipalities[$name] ?? 0) + $byVenue[$venue->id];
+            if ($name === 'Padova' && filled($venue->zone)) {
+                $zones[$venue->zone] = ($zones[$venue->zone] ?? 0) + $byVenue[$venue->id];
+            }
+        }
+
+        return ['total' => $this->query($city, $input)->count(), 'everywhere' => $this->query($city, $base)->count(), 'municipalities' => $municipalities, 'zones' => $zones];
     }
 
     /** @param array<string, mixed> $input

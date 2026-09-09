@@ -32,7 +32,9 @@
         </section>
     @endif
 @endforeach
-<p>{{ __('seo.fields.accessibility') }}: {{ match($details['accessibility'] ?? null) { 'yes' => __('seo.yes'), 'no' => __('seo.no'), default => __('seo.unspecified') } }}</p>
+@if ($model instanceof \App\Models\Event || $model instanceof \App\Models\Venue)
+    <p>{{ __('seo.fields.accessibility') }}: {{ match($details['accessibility'] ?? null) { 'yes' => __('seo.yes'), 'no' => __('seo.no'), default => __('seo.unspecified') } }}</p>
+@endif
 @if (! empty($details['agenda']))
     <section class="py-6">
         <h2 class="font-display text-xl font-extrabold">{{ __('seo.agenda') }}</h2>

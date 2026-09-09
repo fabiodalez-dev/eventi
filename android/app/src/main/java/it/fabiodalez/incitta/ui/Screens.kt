@@ -133,10 +133,7 @@ fun EventsScreen(
             }
         }
         item {
-            Row(
-                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 18.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
+            PeekTabRow(Modifier.padding(start = 18.dp)) {
                 FilterLabel("TUTTI", state.eventFilter == EventFilter.ALL) { onFilter(EventFilter.ALL) }
                 FilterLabel("OGGI", state.eventFilter == EventFilter.TODAY) { onFilter(EventFilter.TODAY) }
                 FilterLabel("DOMANI", state.eventFilter == EventFilter.TOMORROW) { onFilter(EventFilter.TOMORROW) }
@@ -191,8 +188,9 @@ fun SearchScreen(
     onOrganizer: (String) -> Unit = {},
     onEditDiscovery: () -> Unit = {},
     onClearDiscovery: () -> Unit = {},
+    onFilters: (Map<String, String>, String, String) -> Unit = { _, _, _ -> },
 ) {
-    var query by remember(state.discoverySummary) { mutableStateOf("") }
+    var query by remember { mutableStateOf("") }
     LazyColumn(Modifier.fillMaxSize().padding(bottom = padding.calculateBottomPadding())) {
         item { BrandHeader(compact = true) }
         item {
@@ -216,6 +214,7 @@ fun SearchScreen(
                     colors = fieldColors(),
                 )
                 Text(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.search_live_help), color = Muted, modifier = Modifier.padding(top = 10.dp))
+                SearchFilters(state) { filters, summary -> onFilters(filters, summary, query) }
                 state.activeTag?.let { tag ->
                     Button(
                         onClick = onClearTag,
@@ -241,7 +240,7 @@ fun SearchScreen(
         }
         if (state.searchTags.isNotEmpty()) {
             item {
-                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 18.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                PeekTabRow(Modifier.padding(start = 18.dp, top = 8.dp, bottom = 8.dp)) {
                     state.searchTags.forEach { tag -> FilterLabel("#${tag.name}", false) { onTag(tag) } }
                 }
             }
@@ -303,7 +302,7 @@ fun SavedScreen(
                     color = Acid,
                     style = androidx.compose.material3.MaterialTheme.typography.labelMedium,
                 )
-                Row(Modifier.fillMaxWidth().padding(top = 18.dp).horizontalScroll(rememberScrollState())) {
+                PeekTabRow(Modifier.padding(top = 18.dp)) {
                     ModeButton("LISTA", mode == 0, Modifier) { mode = 0 }
                     ModeButton("CALENDARIO", mode == 1, Modifier.width(156.dp)) { mode = 1 }
                     ModeButton(stringResource(R.string.saved_past), mode == 2, Modifier) { mode = 2 }
@@ -715,7 +714,7 @@ internal fun FilterLabel(text: String, selected: Boolean = false, onClick: () ->
             .background(if (selected) Acid else Ink)
             .clickable(onClick = onClick)
             .semantics { role = Role.Button; this.selected = selected }
-            .padding(horizontal = 16.dp),
+            .padding(horizontal = 12.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(text, color = if (selected) Ink else Paper, style = androidx.compose.material3.MaterialTheme.typography.labelLarge)

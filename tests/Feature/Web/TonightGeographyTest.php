@@ -27,8 +27,8 @@ it('links the wizard from the home hero', function (): void {
     $this->get('/')->assertOk()->assertSee(__('tonight.hero_action'))->assertSee(route('tonight.wizard'), false);
 });
 
-it('starts with Padova selected and only the municipality question', function (): void {
-    $this->get('/stasera')->assertOk()->assertViewHas('question', 'municipality')
+it('starts with time before the municipality question', function (): void {
+    $this->get('/stasera')->assertOk()->assertViewHas('question', 'when')
         ->assertViewHas('input', fn ($input) => $input['municipality'] === 'Padova')
         ->assertDontSee('<legend class="mb-6 font-display text-2xl font-bold sm:text-3xl">'.__('tonight.budget'), false);
 });
@@ -38,7 +38,7 @@ it('advances or skips the neighborhood question appropriately', function (string
         ->assertOk()->assertViewHas('question', $expected)
         ->assertViewHas('input', fn ($input) => $input['budget'] === '0' && ($municipality === 'Padova' || $input['zone'] === null));
 })->with([
-    ['Padova', 'district', 'district'], ['Abano Terme', 'district', 'when'], ['', 'district', 'when'],
+    ['Padova', 'district', 'district'], ['Abano Terme', 'district', 'budget'], ['', 'district', 'budget'],
     ['Padova', 'budget', 'budget'], ['Padova', 'categories', 'categories'],
 ]);
 

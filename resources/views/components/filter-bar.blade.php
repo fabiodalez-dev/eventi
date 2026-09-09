@@ -96,6 +96,10 @@
     foreach ($tags as $tag) {
         $tagOptions[$tag->slug] = $tag->name;
     }
+
+    $selectedOptions = static fn (array $options, ?string $value): array => filled($value)
+        ? [$value => $options[$value] ?? $value]
+        : $options;
 @endphp
 @if ($filters->budget !== null)
     <a class="inline-flex min-h-12 items-center border-2 border-accent p-3" href="{{ $destination.'?'.http_build_query(\Illuminate\Support\Arr::except($filters->toQueryString(), ['budget'])) }}">{{ __('tonight.up_to', ['amount' => $filters->budget]) }} ×</a>
@@ -142,17 +146,26 @@
         <span class="font-display text-[0.594rem] leading-none font-extrabold tracking-[0.16em] text-ink-subtle uppercase">{{ __('filters.date.label') }}</span>
 
         <div class="grid grid-cols-2 gap-0.5 bg-line p-0.5">
+            @if ($filters->hasDateWindow() && $filters->preset === null)
+                <x-filter-chip :href="$anyDateUrl" :active="true" class="col-span-2 justify-center">
+                    {{ $filters->date?->format('d/m/Y') ?? ($filters->from?->format('d/m/Y').' – '.$filters->to?->format('d/m/Y')) }}
+                </x-filter-chip>
+            @endif
+            @if (! $filters->hasDateWindow())
             <x-filter-chip
                 :href="$anyDateUrl"
-                :active="$defaultToday ? $allDates : ! $filters->hasDateWindow()"
+                :active="false"
                 class="justify-center border-0 py-2.5"
             >
                 {{ __('filters.date.any') }}
             </x-filter-chip>
+            @endif
 
             @foreach ($presets as $preset)
+                @continue($filters->hasDateWindow() && $filters->preset === null)
+                @continue($filters->preset !== null && $filters->preset !== $preset)
                 <x-filter-chip
-                    :href="$url($filters->preset === $preset ? $filters->withPreset(null) : $filters->withPreset($preset))"
+                    :href="$filters->preset === $preset ? $anyDateUrl : $url($filters->withPreset($preset))"
                     :active="$filters->preset === $preset"
                     class="justify-center border-0 py-2.5"
                 >
@@ -168,6 +181,7 @@
 
             <div class="flex flex-wrap gap-1.5">
                 @foreach ($categories as $category)
+                    @continue($filters->categories !== [] && ! $filters->hasCategory($category->slug))
                     <x-filter-chip
                         :href="$url($filters->toggleCategory($category->slug))"
                         :active="$filters->hasCategory($category->slug)"
@@ -184,6 +198,7 @@
 
         <div class="flex flex-wrap gap-1.5">
             @foreach ($prices as $price)
+                @continue($filters->price !== null && $filters->price !== $price)
                 <x-filter-chip
                     :href="$url($filters->price === $price ? $filters->withPrice(null) : $filters->withPrice($price))"
                     :active="$filters->price === $price"
@@ -199,6 +214,7 @@
 
         <div class="flex flex-wrap gap-1.5">
             @foreach (TimeOfDay::cases() as $band)
+                @continue($filters->time !== null && $filters->time !== $band)
                 <x-filter-chip
                     :href="$url($filters->time === $band ? $filters->withTime(null) : $filters->withTime($band))"
                     :active="$filters->time === $band"
@@ -213,17 +229,24 @@
         <span class="font-display text-[0.594rem] leading-none font-extrabold tracking-[0.16em] text-ink-subtle uppercase">{{ __('filters.features.label') }}</span>
 
         <div class="flex flex-wrap gap-1.5">
+            @php($hasFeature = $filters->outdoor || $filters->accessible || $filters->family)
+            @if (! $hasFeature || $filters->outdoor)
             <x-filter-chip :href="$url($filters->withOutdoor(! $filters->outdoor))" :active="$filters->outdoor">
                 {{ __('filters.features.outdoor') }}
             </x-filter-chip>
+            @endif
 
+            @if (! $hasFeature || $filters->accessible)
             <x-filter-chip :href="$url($filters->withAccessible(! $filters->accessible))" :active="$filters->accessible">
                 {{ __('filters.features.accessible') }}
             </x-filter-chip>
+            @endif
 
+            @if (! $hasFeature || $filters->family)
             <x-filter-chip :href="$url($filters->withFamily(! $filters->family))" :active="$filters->family">
                 {{ __('filters.features.family') }}
             </x-filter-chip>
+            @endif
         </div>
     </div>
 
@@ -234,9 +257,9 @@
         </div>
     @endif
 
-    <details class="bg-canvas border-2 border-line" @if ($active > 0) open @endif>
+    <details class="bg-canvas border-2 border-line">
         <summary class="cursor-pointer list-none px-4 py-3 text-sm font-semibold text-ink">
-            {{ __('filters.open') }}
+            {{ __('filters.advanced') }} <span aria-hidden="true">⌄</span>
             @if ($active > 0)
                 <span class="text-ink-subtle">{{ trans_choice('filters.active', $active, ['count' => $active]) }}</span>
             @endif
@@ -256,7 +279,7 @@
                 <x-field
                     name="date"
                     :label="__('filters.date.label')"
-                    :options="$dateOptions"
+                    :options="$selectedOptions($dateOptions, $filters->preset?->value ?? $filters->date?->format('Y-m-d'))"
                     :placeholder-option="__('filters.date.any')"
                     :value="$filters->preset?->value ?? $filters->date?->format('Y-m-d')"
                 />
@@ -267,7 +290,7 @@
                 <x-field
                     name="tag"
                     :label="__('filters.tag.label')"
-                    :options="$tagOptions"
+                    :options="$selectedOptions($tagOptions, $filters->tags[0] ?? null)"
                     :placeholder-option="__('filters.tag.any')"
                     :value="$filters->tags[0] ?? null"
                 />
@@ -275,7 +298,7 @@
                 <x-field
                     name="price"
                     :label="__('filters.price.label')"
-                    :options="\App\Enums\PriceFilter::options()"
+                    :options="$selectedOptions(\App\Enums\PriceFilter::options(), $filters->price?->value)"
                     :placeholder-option="__('filters.price.any')"
                     :value="$filters->price?->value"
                 />
@@ -283,7 +306,7 @@
                 <x-field
                     name="time"
                     :label="__('filters.time_of_day.label')"
-                    :options="TimeOfDay::options()"
+                    :options="$selectedOptions(TimeOfDay::options(), $filters->time?->value)"
                     :placeholder-option="__('filters.time_of_day.any')"
                     :value="$filters->time?->value"
                 />
@@ -291,7 +314,7 @@
                 <x-field
                     name="municipality"
                     :label="__('filters.place.municipality')"
-                    :options="$municipalityOptions"
+                    :options="$selectedOptions($municipalityOptions, $filters->municipality)"
                     :placeholder-option="__('filters.place.any')"
                     :value="$filters->municipality"
                 />
@@ -300,7 +323,7 @@
                     <x-field
                         name="zone"
                         :label="__('filters.place.zone')"
-                        :options="$zoneOptions"
+                        :options="$selectedOptions($zoneOptions, $filters->zone)"
                         :placeholder-option="__('filters.place.any_zone')"
                         :value="$filters->zone"
                     />
@@ -309,7 +332,7 @@
                 <x-field
                     name="venue"
                     :label="__('filters.place.venue')"
-                    :options="$venueOptions"
+                    :options="$selectedOptions($venueOptions, $filters->venue)"
                     :placeholder-option="__('filters.place.any')"
                     :value="$filters->venue"
                 />

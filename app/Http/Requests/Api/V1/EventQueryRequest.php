@@ -36,6 +36,9 @@ class EventQueryRequest extends ApiRequest
             'municipality' => ['nullable', 'string', 'max:120'],
             'budget' => ['nullable', 'integer', 'min:0', 'max:10000'],
             'discovery' => ['nullable', 'boolean'],
+            'outdoor' => ['nullable', 'boolean'],
+            'accessible' => ['nullable', 'boolean'],
+            'family' => ['nullable', 'boolean'],
             'preset' => ['nullable', Rule::in(DatePreset::values())],
             'date' => ['nullable', 'date_format:Y-m-d'],
             'from' => ['nullable', 'date_format:Y-m-d'],
@@ -88,6 +91,9 @@ class EventQueryRequest extends ApiRequest
             municipality: $this->text('municipality'),
             budget: $this->validated('budget') !== null ? (int) $this->validated('budget') : null,
             discovery: $this->boolean('discovery'),
+            outdoor: $this->boolean('outdoor'),
+            accessible: $this->boolean('accessible'),
+            family: $this->boolean('family'),
         );
     }
 

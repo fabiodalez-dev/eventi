@@ -14,6 +14,7 @@
     fondo, e i risultati stanno in mezzo dove servono.
 --}}
 <x-layouts.app :meta="$meta" :wide="true">
+    <div data-event-browser>
     @if ($filters->discovery)
         <p class="border-b-2 border-line p-gutter text-ink-muted">{{ __('tonight.filtered') }}</p>
     @endif
@@ -141,5 +142,6 @@
                 map-class="h-full min-h-[320px] w-full"
             />
         </section>
+    </div>
     </div>
 </x-layouts.app>

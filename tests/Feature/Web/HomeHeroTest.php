@@ -19,6 +19,7 @@ it('keeps the four counters in two columns until the wide layout', function (): 
     occurrenceAtLocal($this->city, $this->category, '2026-09-05 18:00:00');
 
     $this->get('/')->assertOk()
+        ->assertDontSee(__('seo.fields.accessibility').':')
         ->assertSee('grid-cols-2')
         ->assertSee('min-[840px]:grid-cols-4')
         ->assertDontSee('repeat(auto-fit,minmax(min(200px,100%),1fr))');

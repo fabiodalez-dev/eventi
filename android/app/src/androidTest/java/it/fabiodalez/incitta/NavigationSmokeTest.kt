@@ -21,8 +21,6 @@ class NavigationSmokeTest {
     private fun revealNavigation() {
         compose.onRoot().performTouchInput { swipeUp() }
         compose.waitForIdle()
-        compose.onRoot().performTouchInput { swipeDown() }
-        compose.waitForIdle()
     }
 
     @Test fun guestSavedOpensProfileLogin() {
@@ -54,13 +52,11 @@ class NavigationSmokeTest {
         compose.onNodeWithText(compose.activity.getString(R.string.search_live_help)).assertExists()
         // The app intentionally hides bottom navigation while the IME is open.
         androidx.test.espresso.Espresso.closeSoftKeyboard()
-        compose.onNodeWithText("CERCA").performTouchInput { click() }
         compose.waitUntil(5_000) {
             compose.onAllNodes(hasText("MAPPA") and hasClickAction()).fetchSemanticsNodes().isNotEmpty()
         }
         compose.onNode(hasText("MAPPA") and hasClickAction()).performClick()
         compose.onNodeWithText("OGGI").assertExists()
-        compose.onNodeWithText("MAPPA").performTouchInput { click() }
         compose.onNode(hasText("CERCA") and hasClickAction()).assertExists()
         compose.onNodeWithText("OGGI").assertExists()
     }
