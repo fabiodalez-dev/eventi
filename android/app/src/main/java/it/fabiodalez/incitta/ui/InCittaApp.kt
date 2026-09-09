@@ -213,6 +213,7 @@ fun InCittaApp(viewModel: MainViewModel) {
                         padding = padding,
                         onMarker = viewModel::previewMarkers,
                         onFilter = viewModel::applyMapFilter,
+                        onSearchFilters = viewModel::updateMapFilters,
                         onOpen = viewModel::open,
                         onDismissPreview = viewModel::dismissMapPreview,
                     )

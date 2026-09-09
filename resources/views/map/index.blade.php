@@ -26,7 +26,7 @@
         <p class="m-0 text-[0.813rem] leading-[1.5] text-ink-muted">{{ $meta->description }}</p>
     </header>
 
-    <div class="grid items-start gap-0.5 bg-line lg:[grid-template-columns:minmax(240px,300px)_minmax(0,1fr)]">
+    <div data-event-browser class="grid items-start gap-0.5 bg-line lg:[grid-template-columns:minmax(240px,300px)_minmax(0,1fr)]">
         <aside class="order-2 flex flex-col gap-6 overflow-y-auto bg-canvas p-[clamp(1rem,1.6vw,1.375rem)] lg:order-1 lg:sticky lg:top-header lg:max-h-below-header">
             <header class="hidden flex-col gap-2 lg:flex">
                 <h1 class="m-0 font-display text-[clamp(1.5rem,2.4vw,2.25rem)] leading-[0.96] font-extrabold tracking-[-0.04em] text-balance uppercase">{{ $meta->heading }}</h1>
@@ -34,6 +34,7 @@
             </header>
 
             <x-filter-bar
+                :counts="$facetCounts"
                 :filters="$filters"
                 :categories="$categories"
                 :tags="$tags"

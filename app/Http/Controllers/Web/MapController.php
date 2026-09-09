@@ -15,6 +15,7 @@ use App\Models\City;
 use App\Models\Sponsorship;
 use App\Models\Venue;
 use App\Services\Map\MapPayload;
+use App\Services\Search\ContextualFacets;
 use App\Services\Search\EventFinder;
 use App\Services\Search\FilterFacets;
 use App\Services\Sponsorship\SponsorshipSelector;
@@ -73,6 +74,7 @@ final class MapController extends Controller
         return view('map.index', [
             'city' => $city,
             'filters' => $filters,
+            'facetCounts' => app(ContextualFacets::class)->build($city, $filters),
             'payload' => $this->payload->build($city, $filters, $request->bounds()),
             'occurrences' => $this->finder->take($city, $filters, self::FALLBACK_SIZE),
             'categories' => $this->facets->categories(),

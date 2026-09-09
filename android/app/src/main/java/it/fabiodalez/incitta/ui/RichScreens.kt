@@ -525,18 +525,28 @@ fun MapScreen(
     padding: PaddingValues,
     onMarker: (List<MapMarker>) -> Unit,
     onFilter: (EventFilter) -> Unit,
+    onSearchFilters: (Map<String, String>) -> Unit,
     onOpen: (Occurrence) -> Unit,
     onDismissPreview: () -> Unit,
 ) {
+    var showMapFilters by remember { mutableStateOf(false) }
     Column(Modifier.fillMaxSize().padding(bottom = padding.calculateBottomPadding())) {
         val venueCount = state.mapMarkers.distinctBy { "%.5f:%.5f".format(Locale.US, it.lat, it.lng) }.size
-        ScreenHeader("MAPPA", "${mapFilterLabel(state.mapFilter)} · $venueCount LUOGHI · ${state.mapMarkers.size} APPUNTAMENTI")
-        PeekTabRow(Modifier.padding(start = 12.dp, top = 9.dp, bottom = 9.dp)) {
-            FilterLabel("OGGI", state.mapFilter == EventFilter.TODAY) { onFilter(EventFilter.TODAY) }
-            FilterLabel("DOMANI", state.mapFilter == EventFilter.TOMORROW) { onFilter(EventFilter.TOMORROW) }
-            FilterLabel("WEEKEND", state.mapFilter == EventFilter.WEEKEND) { onFilter(EventFilter.WEEKEND) }
-            FilterLabel("GRATIS", state.mapFilter == EventFilter.FREE) { onFilter(EventFilter.FREE) }
-            FilterLabel("TUTTI", state.mapFilter == EventFilter.ALL) { onFilter(EventFilter.ALL) }
+        ScreenHeader("MAPPA", "$venueCount LUOGHI · ${state.mapMarkers.size} APPUNTAMENTI")
+        OutlinedButton(onClick = { showMapFilters = !showMapFilters }, modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp).heightIn(min = 48.dp)) {
+            Text(androidx.compose.ui.res.stringResource(if (showMapFilters) it.fabiodalez.incitta.R.string.map_filters_close else it.fabiodalez.incitta.R.string.map_filters_open))
+        }
+        if (showMapFilters) {
+            val active = state.mapSearchFilters ?: when (state.mapFilter) {
+                EventFilter.ALL -> emptyMap()
+                EventFilter.TODAY -> mapOf("preset" to "today")
+                EventFilter.TOMORROW -> mapOf("preset" to "tomorrow")
+                EventFilter.WEEKEND -> mapOf("preset" to "weekend")
+                EventFilter.FREE -> mapOf("price" to "free")
+            }
+            Column(Modifier.fillMaxWidth().heightIn(max = 320.dp).verticalScroll(rememberScrollState()).padding(horizontal = 12.dp)) {
+                SearchFilters(state.copy(discoveryFilters = active)) { filters, _ -> onSearchFilters(filters) }
+            }
         }
         if (state.isMapLoading && state.mapMarkers.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("CARICAMENTO MAPPA…", color = Muted) }

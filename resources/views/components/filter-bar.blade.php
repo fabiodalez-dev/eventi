@@ -14,6 +14,7 @@
 --}}
 @props([
     'filters',
+    'counts' => null,
     'categories',
     'tags',
     'municipalities',
@@ -61,6 +62,17 @@
 
     $prices = [PriceFilter::Free, PriceFilter::Donation, PriceFilter::Max10, PriceFilter::Max20];
 
+    $available = static fn (string $group, string $value): bool => $counts === null || ($counts[$group][$value] ?? 0) > 0;
+    $categories = collect($categories)->filter(fn ($value) => $filters->hasCategory($value->slug) || $available('category', $value->slug));
+    $tags = collect($tags)->filter(fn ($value) => $filters->hasTag($value->slug) || $available('tag', $value->slug));
+    $venues = collect($venues)->filter(fn ($value) => $filters->venue === $value->slug || $available('venue', $value->slug));
+    $municipalities = collect($municipalities)->filter(fn ($value) => $filters->municipality === $value || $available('municipality', $value));
+    $zones = collect($zones)->filter(fn ($value) => $filters->zone === $value || $available('zone', $value));
+    $presets = array_filter($presets, fn ($value) => $filters->preset === $value || $available('date', $value->value));
+    $prices = array_filter($prices, fn ($value) => $filters->price === $value || $available('price', $value->value));
+    $priceOptions = array_filter(PriceFilter::options(), fn ($key) => $filters->price?->value === $key || $available('price', $key), ARRAY_FILTER_USE_KEY);
+    $timeOptions = array_filter(TimeOfDay::options(), fn ($key) => $filters->time?->value === $key || $available('time', $key), ARRAY_FILTER_USE_KEY);
+
     $dateOptions = [];
 
     foreach ($presets as $preset) {
@@ -102,10 +114,11 @@
         : $options;
 @endphp
 @if ($filters->budget !== null)
-    <a class="inline-flex min-h-12 items-center border-2 border-accent p-3" href="{{ $destination.'?'.http_build_query(\Illuminate\Support\Arr::except($filters->toQueryString(), ['budget'])) }}">{{ __('tonight.up_to', ['amount' => $filters->budget]) }} ×</a>
+    <a data-filter-link class="inline-flex min-h-12 items-center border-2 border-accent p-3" href="{{ $destination.'?'.http_build_query(\Illuminate\Support\Arr::except($filters->toQueryString(), ['budget'])) }}">{{ __('tonight.up_to', ['amount' => $filters->budget]) }} ×</a>
 @endif
 
-<section {{ $attributes->class(['flex flex-col gap-6']) }} aria-label="{{ __('filters.title') }}">
+<section data-filter-panel data-filter-error="{{ __('tonight.count_error') }}" {{ $attributes->class(['flex flex-col gap-6']) }} aria-label="{{ __('filters.title') }}">
+    <p data-filter-status role="status" hidden></p>
     {{--
         La colonna dei filtri del riferimento (D46): gruppi impilati, ognuno
         con la propria etichetta in maiuscoletto, e in fondo il conteggio dei
@@ -193,6 +206,7 @@
         </div>
     @endif
 
+    @if ($prices !== [])
     <div class="flex flex-col gap-[9px]">
         <span class="font-display text-[0.594rem] leading-none font-extrabold tracking-[0.16em] text-ink-subtle uppercase">{{ __('filters.price.label') }}</span>
 
@@ -209,11 +223,14 @@
         </div>
     </div>
 
+    @endif
+    @if ($timeOptions !== [])
     <div class="flex flex-col gap-[9px]">
         <span class="font-display text-[0.594rem] leading-none font-extrabold tracking-[0.16em] text-ink-subtle uppercase">{{ __('filters.time.label') }}</span>
 
         <div class="flex flex-wrap gap-1.5">
             @foreach (TimeOfDay::cases() as $band)
+                @continue($filters->time !== $band && ! $available('time', $band->value))
                 @continue($filters->time !== null && $filters->time !== $band)
                 <x-filter-chip
                     :href="$url($filters->time === $band ? $filters->withTime(null) : $filters->withTime($band))"
@@ -225,24 +242,26 @@
         </div>
     </div>
 
+    @endif
+    @if ($filters->outdoor || $filters->accessible || $filters->family || $available('features', 'outdoor') || $available('features', 'accessible') || $available('features', 'family'))
     <div class="flex flex-col gap-[9px]">
         <span class="font-display text-[0.594rem] leading-none font-extrabold tracking-[0.16em] text-ink-subtle uppercase">{{ __('filters.features.label') }}</span>
 
         <div class="flex flex-wrap gap-1.5">
             @php($hasFeature = $filters->outdoor || $filters->accessible || $filters->family)
-            @if (! $hasFeature || $filters->outdoor)
+            @if ($filters->outdoor || ((! $hasFeature || $counts !== null) && $available('features', 'outdoor')))
             <x-filter-chip :href="$url($filters->withOutdoor(! $filters->outdoor))" :active="$filters->outdoor">
                 {{ __('filters.features.outdoor') }}
             </x-filter-chip>
             @endif
 
-            @if (! $hasFeature || $filters->accessible)
+            @if ($filters->accessible || ((! $hasFeature || $counts !== null) && $available('features', 'accessible')))
             <x-filter-chip :href="$url($filters->withAccessible(! $filters->accessible))" :active="$filters->accessible">
                 {{ __('filters.features.accessible') }}
             </x-filter-chip>
             @endif
 
-            @if (! $hasFeature || $filters->family)
+            @if ($filters->family || ((! $hasFeature || $counts !== null) && $available('features', 'family')))
             <x-filter-chip :href="$url($filters->withFamily(! $filters->family))" :active="$filters->family">
                 {{ __('filters.features.family') }}
             </x-filter-chip>
@@ -250,6 +269,7 @@
         </div>
     </div>
 
+    @endif
     @if ($total !== null)
         <div class="mt-auto flex flex-col gap-1 border-t-2 border-line pt-3.5">
             <span class="font-display text-[clamp(1.5rem,2vw,2.125rem)] leading-none font-extrabold tracking-[-0.03em] text-accent">{{ $total }}</span>
@@ -298,7 +318,7 @@
                 <x-field
                     name="price"
                     :label="__('filters.price.label')"
-                    :options="$selectedOptions(\App\Enums\PriceFilter::options(), $filters->price?->value)"
+                    :options="$selectedOptions($priceOptions, $filters->price?->value)"
                     :placeholder-option="__('filters.price.any')"
                     :value="$filters->price?->value"
                 />
@@ -306,7 +326,7 @@
                 <x-field
                     name="time"
                     :label="__('filters.time_of_day.label')"
-                    :options="$selectedOptions(TimeOfDay::options(), $filters->time?->value)"
+                    :options="$selectedOptions($timeOptions, $filters->time?->value)"
                     :placeholder-option="__('filters.time_of_day.any')"
                     :value="$filters->time?->value"
                 />
@@ -358,6 +378,7 @@
                 <legend class="mb-2 text-sm font-semibold text-ink">{{ __('filters.features.label') }}</legend>
 
                 @foreach (['outdoor' => __('filters.features.outdoor'), 'accessible' => __('filters.features.accessible'), 'family' => __('filters.features.family')] as $flag => $label)
+                    @continue(! $filters->{$flag} && ! $available('features', $flag))
                     <label class="flex items-center gap-2 text-sm text-ink-muted">
                         <input
                             type="checkbox"
@@ -379,6 +400,7 @@
                 <legend class="mb-2 text-sm font-semibold text-ink">{{ __('filters.accessibility.label') }}</legend>
 
                 @foreach (AccessibilityFeature::cases() as $feature)
+                    @continue(! $filters->hasAccess($feature->value) && ! $available('access', $feature->value))
                     <label class="flex items-center gap-2 text-sm text-ink-muted">
                         <input
                             type="checkbox"

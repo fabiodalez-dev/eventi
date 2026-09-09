@@ -54,6 +54,7 @@ data class AppUiState(
     val discoverySummary: String? = null,
     val venues: List<Venue> = emptyList(),
     val mapFilter: EventFilter = EventFilter.TODAY,
+    val mapSearchFilters: Map<String, String>? = null,
     val mapMarkers: List<MapMarker> = emptyList(),
     val mapPreviewEvents: List<Occurrence> = emptyList(),
     val mapPreviewTotal: Int = 0,
@@ -433,7 +434,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _state.value = _state.value.copy(mapPreviewEvents = emptyList(), mapPreviewTotal = 0)
     }
 
-    fun applyMapFilter(filter: EventFilter) = loadMap(filter)
+    fun applyMapFilter(filter: EventFilter) {
+        _state.value = _state.value.copy(mapSearchFilters = null)
+        loadMap(filter)
+    }
+
+    fun updateMapFilters(filters: Map<String, String>) {
+        _state.value = _state.value.copy(mapSearchFilters = filters)
+        loadMap()
+    }
 
     fun openVenue(venue: Venue) {
         val slug = venue.slug ?: return
@@ -662,6 +671,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun loadMap(filter: EventFilter = _state.value.mapFilter) {
         mapJob?.cancel()
+        val filters = _state.value.mapSearchFilters
         mapJob = viewModelScope.launch {
             _state.value = _state.value.copy(
                 mapFilter = filter,
@@ -670,15 +680,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 mapPreviewTotal = 0,
                 message = null,
             )
-            runCatching { repository.mapMarkers(filter) }
+            runCatching { repository.mapMarkers(filter, filters) }
                 .onSuccess {
-                    if (_state.value.mapFilter == filter) {
+                    if (_state.value.mapFilter == filter && _state.value.mapSearchFilters == filters) {
                         _state.value = _state.value.copy(mapMarkers = it, isMapLoading = false)
                     }
                 }
                 .onFailure {
                     if (it is CancellationException) return@onFailure
-                    if (_state.value.mapFilter == filter) {
+                    if (_state.value.mapFilter == filter && _state.value.mapSearchFilters == filters) {
                         _state.value = _state.value.copy(isMapLoading = false, message = userMessage(it))
                     }
                 }

@@ -2,6 +2,7 @@
 
 namespace App\Services\Search;
 
+use App\Models\Category;
 use App\Models\City;
 use App\Models\EventOccurrence;
 use App\Models\Venue;
@@ -45,7 +46,7 @@ final class TonightDiscovery
      * Place facets replace the current place, retaining time, budget and categories.
      *
      * @param  array<string, mixed>  $input
-     * @return array{total:int, everywhere:int, municipalities:array<string,int>, zones:array<string,int>}
+     * @return array{total:int, everywhere:int, municipalities:array<string,int>, zones:array<string,int>, categories:array<int,int>, budgets:array<int|string,int>}
      */
     public function counts(City $city, array $input): array
     {
@@ -61,7 +62,17 @@ final class TonightDiscovery
             }
         }
 
-        return ['total' => $this->query($city, $input)->count(), 'everywhere' => $this->query($city, $base)->count(), 'municipalities' => $municipalities, 'zones' => $zones];
+        $categoryCounts = $this->query($city, [...$input, 'categories' => []])->countsByCategory();
+        $categories = [];
+        foreach (Category::query()->active()->pluck('id') as $id) {
+            $categories[$id] = $categoryCounts[$id] ?? 0;
+        }
+        $budgets = [];
+        foreach (['', '0', '10', '20', '30', '50'] as $budget) {
+            $budgets[$budget] = $this->query($city, [...$input, 'budget' => $budget])->count();
+        }
+
+        return ['total' => $this->query($city, $input)->count(), 'everywhere' => $this->query($city, $base)->count(), 'municipalities' => $municipalities, 'zones' => $zones, 'categories' => $categories, 'budgets' => $budgets];
     }
 
     /** @param array<string, mixed> $input

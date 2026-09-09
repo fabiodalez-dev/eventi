@@ -20,13 +20,51 @@ import Alpine from 'alpinejs';
 function isTyping(event) {
     const target = event.target;
 
-    if (event.metaKey || event.ctrlKey || event.altKey) {
+    if (document.querySelector('dialog[open]') || event.metaKey || event.ctrlKey || event.altKey) {
         return true;
     }
 
     return target instanceof HTMLElement
         && (target.isContentEditable || ['INPUT', 'SELECT', 'TEXTAREA'].includes(target.tagName));
 }
+
+let dayRequest;
+document.addEventListener('click', async event => {
+    const day = event.target.closest('[data-calendar-day]');
+    const pageLink = event.target.closest('#calendar-day-preview [data-pagination] a');
+    if ((!day && !pageLink) || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.button !== 0) return;
+    const dialog = document.getElementById('calendar-day-preview');
+    if (!dialog?.showModal) return;
+    event.preventDefault();
+    dayRequest?.abort();
+    const request = new AbortController();
+    dayRequest = request;
+    const content = dialog.querySelector('[data-day-results]');
+    const title = document.getElementById('calendar-day-title');
+    if (day) title.textContent = day.dataset.dayLabel;
+    const url = day?.dataset.calendarDay ?? pageLink.href;
+    content.textContent = dialog.dataset.loading;
+    if (!dialog.open) dialog.showModal();
+    dialog.addEventListener('close', () => request.abort(), { once: true });
+    try {
+        const response = await fetch(url, { signal: request.signal });
+        if (!response.ok) throw new Error('calendar');
+        const page = new DOMParser().parseFromString(await response.text(), 'text/html');
+        const results = page.querySelector('[data-results]');
+        if (!results) throw new Error('calendar');
+        content.replaceChildren(results);
+        const pagination = page.querySelector('[data-pagination]');
+        if (pagination) content.append(pagination);
+    } catch (error) {
+        if (error.name === 'AbortError') return;
+        content.textContent = dialog.dataset.error + ' ';
+        const fallback = document.createElement('a');
+        fallback.href = url;
+        fallback.textContent = title.textContent;
+        fallback.className = 'underline';
+        content.append(fallback);
+    }
+});
 
 function calendario(config = {}) {
     return {

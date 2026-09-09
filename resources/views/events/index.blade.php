@@ -29,6 +29,7 @@
     <div class="grid items-start gap-0.5 bg-line lg:[grid-template-columns:minmax(232px,268px)_minmax(0,1.32fr)_minmax(0,1fr)]">
         <aside class="flex flex-col gap-6 overflow-y-auto bg-canvas p-[clamp(1rem,1.6vw,1.375rem)] lg:sticky lg:top-header lg:max-h-below-header">
             <x-filter-bar
+                :counts="$facetCounts"
                 :filters="$filters"
                 :categories="$categories"
                 :tags="$tags"

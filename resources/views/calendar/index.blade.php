@@ -103,6 +103,7 @@
 
                 <div
                     role="gridcell"
+                    @if ($cell['count'] > 0) data-calendar-day="{{ route('events.date', ['date' => $iso]) }}" data-day-label="{{ $long }}" @endif
                     @class([
                         'flex min-h-20 flex-col p-1.5 ring-1 transition sm:min-h-28 sm:p-2',
                         'bg-surface ring-line' => $cell['in_month'],
@@ -151,6 +152,12 @@
             @endforeach
         </div>
     </div>
+
+    <dialog id="calendar-day-preview" aria-labelledby="calendar-day-title" class="m-auto max-h-[85dvh] w-[calc(100%-2rem)] max-w-4xl overflow-y-auto border-2 border-accent bg-canvas p-5 text-ink backdrop:bg-black/70" data-loading="{{ __('tonight.count_loading') }}" data-error="{{ __('tonight.count_error') }}">
+        <form method="dialog" class="flex justify-end"><button autofocus class="min-h-12 min-w-12 px-3 font-bold">{{ __('common.actions.close') }}</button></form>
+        <h2 id="calendar-day-title" class="mb-4 text-lg font-bold"></h2>
+        <div data-day-results aria-live="polite"></div>
+    </dialog>
 
     @if ($total === 0)
         <div class="mt-8">

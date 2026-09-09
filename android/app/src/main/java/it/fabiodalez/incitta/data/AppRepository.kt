@@ -115,8 +115,11 @@ class AppRepository(context: Context) {
             _session.value?.token,
         ).data
 
-    suspend fun mapMarkers(filter: EventFilter = EventFilter.TODAY): List<MapMarker> {
-        val suffix = when (filter) {
+    suspend fun mapMarkers(filter: EventFilter = EventFilter.TODAY, filters: Map<String, String>? = null): List<MapMarker> {
+        val suffix = if (filters != null) filters.entries.joinToString("", prefix = "") {
+            val value = if (it.key == "price") when (it.value) { "max10" -> "max:10"; "max20" -> "max:20"; else -> it.value } else it.value
+            "&${it.key.urlEncoded()}=${value.urlEncoded()}"
+        } else when (filter) {
             EventFilter.ALL -> ""
             EventFilter.TODAY -> "&preset=today"
             EventFilter.TOMORROW -> "&preset=tomorrow"
@@ -189,7 +192,10 @@ class AppRepository(context: Context) {
 
     suspend fun filteredOccurrences(filters: Map<String, String>, query: String): List<Occurrence> {
         val token = _session.value?.token
-        val parameters = (filters + mapOf("q" to query, "limit" to "50")).entries.joinToString("&") { "${it.key.urlEncoded()}=${it.value.urlEncoded()}" }
+        val parameters = (filters + mapOf("q" to query, "limit" to "50")).entries.joinToString("&") {
+            val value = if (it.key == "price") when (it.value) { "max10" -> "max:10"; "max20" -> "max:20"; else -> it.value } else it.value
+            "${it.key.urlEncoded()}=${value.urlEncoded()}"
+        }
         val result = mutableListOf<Occurrence>()
         val seen = mutableSetOf<String>()
         var cursor: String? = null

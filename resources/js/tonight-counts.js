@@ -22,6 +22,15 @@ export function tonightCounts() {
                     const { data } = await response.json();
                     if (revision !== current) return;
                     output.textContent = `(${form.dataset.countTemplate.replace(':count', data.total)})`;
+                    form.querySelectorAll('[data-option-count]').forEach(label => {
+                        const count = data[label.dataset.countKind]?.[label.dataset.optionCount] ?? 0;
+                        label.textContent = count;
+                        const input = label.closest('label').querySelector('input');
+                        if (input.type === 'checkbox') {
+                            input.disabled = count === 0;
+                            if (count === 0) input.checked = false;
+                        }
+                    });
                     form.querySelectorAll('[data-place-count]').forEach(label => {
                         const key = label.dataset.placeCount;
                         label.textContent = label.dataset.placeKind === 'municipality'

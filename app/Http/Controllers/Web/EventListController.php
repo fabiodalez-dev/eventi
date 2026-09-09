@@ -14,6 +14,7 @@ use App\Http\Requests\Web\EventFilterRequest;
 use App\Models\Category;
 use App\Models\Tag;
 use App\Services\Map\MapPayload;
+use App\Services\Search\ContextualFacets;
 use App\Services\Search\EventFinder;
 use App\Services\Search\FilterFacets;
 use App\Services\Seo\EditorialContent;
@@ -123,6 +124,7 @@ final class EventListController extends Controller
             'city' => $city,
             'taxonomy' => $taxonomy,
             'filters' => $filters,
+            'facetCounts' => app(ContextualFacets::class)->build($city, $filters),
             'occurrences' => $occurrences,
             /* La mappa affiancata all'elenco mostra gli STESSI filtri: e' il
                senso della terza colonna del riferimento (D46) — si stringe un
