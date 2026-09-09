@@ -455,9 +455,11 @@ async function talkToServer(url, method, token, body) {
     }
 }
 
+let savedHeartsInitialized = false;
 function savedHearts() {
+    if (savedHeartsInitialized) return;
+    savedHeartsInitialized = true;
     const { authenticated, token } = accountSettings();
-    const saves = localSaves();
     const pending = new Set();
     let saveRevision = 0;
     let savedSnapshot = null;
@@ -491,7 +493,11 @@ function savedHearts() {
     window.setInterval(synchronize, 30_000);
     synchronize();
 
+    const attach = () => {
+    const saves = localSaves();
     for (const form of document.querySelectorAll("[data-save]")) {
+        if (form.dataset.saveBound) continue;
+        form.dataset.saveBound = '1';
         const id = Number.parseInt(form.dataset.saveId ?? "0", 10);
 
         if (!authenticated) {
@@ -552,6 +558,10 @@ function savedHearts() {
                che cambia colore senza aver salvato niente. */
             form.submit();
         });
+    } };
+    attach();
+    for (const name of ['event-browser:updated', 'calendar-day:updated']) {
+        document.addEventListener(name, () => { attach(); void synchronize(); });
     }
 }
 

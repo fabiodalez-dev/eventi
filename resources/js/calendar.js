@@ -55,6 +55,7 @@ document.addEventListener('click', async event => {
         content.replaceChildren(results);
         const pagination = page.querySelector('[data-pagination]');
         if (pagination) content.append(pagination);
+        document.dispatchEvent(new Event('calendar-day:updated'));
     } catch (error) {
         if (error.name === 'AbortError') return;
         content.textContent = dialog.dataset.error + ' ';

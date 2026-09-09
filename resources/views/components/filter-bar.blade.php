@@ -278,7 +278,7 @@
     @endif
 
     <details class="bg-canvas border-2 border-line">
-        <summary class="cursor-pointer list-none px-4 py-3 text-sm font-semibold text-ink">
+        <summary class="min-h-12 cursor-pointer list-none px-4 py-3 text-base font-semibold text-ink">
             {{ __('filters.advanced') }} <span aria-hidden="true">⌄</span>
             @if ($active > 0)
                 <span class="text-ink-subtle">{{ trans_choice('filters.active', $active, ['count' => $active]) }}</span>
@@ -295,7 +295,7 @@
                 @endif
             @endforeach
 
-            <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div data-advanced-filter-fields class="grid min-w-0 grid-cols-1 gap-5 [&>div]:min-w-0 [&_label]:text-base [&_select]:min-w-0 [&_select]:text-base [&_input]:min-w-0 [&_input]:text-base">
                 <x-field
                     name="date"
                     :label="__('filters.date.label')"
@@ -374,18 +374,18 @@
                 @endif
             </div>
 
-            <fieldset class="flex flex-wrap gap-4">
+            <fieldset class="flex min-w-0 flex-col gap-2">
                 <legend class="mb-2 text-sm font-semibold text-ink">{{ __('filters.features.label') }}</legend>
 
                 @foreach (['outdoor' => __('filters.features.outdoor'), 'accessible' => __('filters.features.accessible'), 'family' => __('filters.features.family')] as $flag => $label)
                     @continue(! $filters->{$flag} && ! $available('features', $flag))
-                    <label class="flex items-center gap-2 text-sm text-ink-muted">
+                    <label class="flex min-h-12 cursor-pointer items-center gap-3 text-base text-ink">
                         <input
                             type="checkbox"
                             name="{{ $flag }}"
                             value="1"
                             @checked($filters->{$flag})
-                            class="size-4 rounded border-line text-brand focus:ring-focus"
+                            class="size-5 shrink-0 rounded border-line text-brand focus:ring-focus"
                         >
                         {{ $label }}
                     </label>
@@ -396,18 +396,18 @@
                  perché `venues.accessibility` è strutturato. Sono in AND, e
                  il modulo lo dice mostrandole come caselle e non come
                  alternative. --}}
-            <fieldset class="flex flex-wrap gap-4">
+            <fieldset class="flex min-w-0 flex-col gap-2">
                 <legend class="mb-2 text-sm font-semibold text-ink">{{ __('filters.accessibility.label') }}</legend>
 
                 @foreach (AccessibilityFeature::cases() as $feature)
                     @continue(! $filters->hasAccess($feature->value) && ! $available('access', $feature->value))
-                    <label class="flex items-center gap-2 text-sm text-ink-muted">
+                    <label class="flex min-h-12 cursor-pointer items-center gap-3 text-base text-ink">
                         <input
                             type="checkbox"
                             name="access[]"
                             value="{{ $feature->value }}"
                             @checked($filters->hasAccess($feature->value))
-                            class="size-4 rounded border-line text-brand focus:ring-focus"
+                            class="size-5 shrink-0 rounded border-line text-brand focus:ring-focus"
                         >
                         {{ $feature->label() }}
                     </label>
@@ -417,7 +417,7 @@
             <div class="flex flex-wrap items-center gap-3">
                 <button
                     type="submit"
-                    class="bg-brand px-4 py-2.5 font-display text-[0.688rem] leading-none font-extrabold tracking-[0.14em] text-on-brand uppercase transition hover:bg-brand-strong"
+                    class="min-h-12 bg-brand px-4 py-2.5 font-display text-sm leading-tight font-extrabold tracking-wide text-on-brand uppercase transition hover:bg-brand-strong"
                 >
                     {{ __('filters.apply') }}
                 </button>
