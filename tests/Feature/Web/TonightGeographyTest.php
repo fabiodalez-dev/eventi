@@ -23,6 +23,24 @@ it('serves human neighborhoods not administrative districts', function (): void 
     expect($names)->toContain('Brusegana', 'Guizza', 'Arcella')->not->toContain('Nord', 'Sud-Est');
 });
 
+it('returns empty facet maps as JSON objects for Android', function (): void {
+    $response = $this->getJson('/api/v1/tonight')->assertOk()->assertJsonPath('data.counts.total', 0);
+    $counts = json_decode($response->getContent())->data->counts;
+    expect($counts->municipalities)->toBeInstanceOf(stdClass::class)
+        ->and($counts->zones)->toBeInstanceOf(stdClass::class);
+});
+
+it('counts available places using the actual venue while retaining the time selection', function (): void {
+    $category = testCategory();
+    $parent = Venue::factory()->approved()->create(['city_id' => $this->city->id, 'municipality' => 'Padova', 'zone' => 'Brusegana']);
+    $actual = Venue::factory()->approved()->create(['city_id' => $this->city->id, 'municipality' => 'Abano Terme', 'zone' => null]);
+    occurrenceAtLocal($this->city, $category, '2026-09-10 21:00', venue: $parent, occurrence: ['venue_id' => $actual->id]);
+    occurrenceAtLocal($this->city, $category, '2026-09-11 21:00', venue: $parent);
+    $this->getJson('/api/v1/tonight?municipality=Padova')->assertOk()
+        ->assertJsonPath('data.counts.total', 0)->assertJsonPath('data.counts.everywhere', 1)
+        ->assertJsonPath('data.counts.municipalities.Abano Terme', 1);
+});
+
 it('links the wizard from the home hero', function (): void {
     $this->get('/')->assertOk()->assertSee(__('tonight.hero_action'))->assertSee(route('tonight.wizard'), false);
 });

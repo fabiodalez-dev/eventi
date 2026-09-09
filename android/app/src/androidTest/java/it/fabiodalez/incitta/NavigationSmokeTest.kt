@@ -19,9 +19,13 @@ class NavigationSmokeTest {
     }
 
     private fun revealNavigation() {
-        compose.waitUntil(15_000) { compose.onAllNodes(hasScrollAction()).fetchSemanticsNodes().isNotEmpty() }
+        // Do not swipe the short loading skeleton before the event feed arrives.
+        compose.waitUntil(15_000) { compose.onAllNodesWithText("IN PROGRAMMA").fetchSemanticsNodes().isNotEmpty() }
         compose.onAllNodes(hasScrollAction()).onFirst().performTouchInput { swipeUp() }
         compose.waitForIdle()
+        compose.waitUntil(5_000) {
+            compose.onAllNodes(hasText("SALVATI") and hasClickAction()).fetchSemanticsNodes().isNotEmpty()
+        }
     }
 
     @Test fun guestSavedOpensProfileLogin() {
