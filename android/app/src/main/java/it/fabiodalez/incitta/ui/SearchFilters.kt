@@ -49,7 +49,6 @@ internal fun SearchFilters(state: AppUiState, query: String = "", apply: (Map<St
         val next = filters.toMutableMap()
         if (key == "municipality") next.remove("zone")
         if (value.isBlank()) next.remove(key) else next[key] = value
-        next["discovery"] = "1"
         apply(next, "Filtri personalizzati")
     }
     LaunchedEffect(state.session?.token) {
@@ -66,7 +65,7 @@ internal fun SearchFilters(state: AppUiState, query: String = "", apply: (Map<St
             status = "Cerco la tua posizione…"
             try {
                 val location = withTimeout(15000) { deviceLocation(context) }
-                latestApply(latestFilters + mapOf("near" to "${location.latitude},${location.longitude}", "radius_km" to "5", "sort" to "distance", "discovery" to "1"), "Entro 5 km dalla tua posizione")
+                latestApply(latestFilters + mapOf("near" to "${location.latitude},${location.longitude}", "radius_km" to "5", "sort" to "distance"), "Entro 5 km dalla tua posizione")
                 status = null
             } catch (error: Exception) {
                 if (error is CancellationException && error !is TimeoutCancellationException) throw error

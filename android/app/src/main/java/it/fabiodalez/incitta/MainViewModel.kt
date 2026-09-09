@@ -303,7 +303,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun search(query: String) {
         searchJob?.cancel()
-        if (_state.value.discoveryFilters.isNotEmpty()) {
+        if (_state.value.discoveryFilters.isNotEmpty() || _state.value.discoverySummary != null) {
             val filters = _state.value.discoveryFilters
             _state.value = _state.value.copy(isSearching = true, searchResults = emptyList())
             searchJob = viewModelScope.launch {
