@@ -22,8 +22,15 @@ final class ContextualFacets
      */
     public function build(City $city, EventFilters $filters, ?\Closure $factory = null): array
     {
+        $web = $factory === null;
         $factory ??= fn () => app(EventFinder::class)->query($city, $filters);
         $result = array_fill_keys(['category', 'tag', 'municipality', 'zone', 'venue', 'date', 'price', 'time', 'features', 'access'], []);
+        if ($web && $filters->hasPosition()) {
+            foreach (config()->array('eventi.distance_options') as $km) {
+                $result['radius'][(string) $km] = app(EventFinder::class)
+                    ->query($city, $filters->withPosition($filters->lat, $filters->lng, (float) $km))->count();
+            }
+        }
         $categoryCounts = $factory()->countsByCategory();
         foreach (Category::query()->whereIn('id', array_keys($categoryCounts))->get(['id', 'slug']) as $category) {
             $result['category'][$category->slug] = $categoryCounts[$category->id];
