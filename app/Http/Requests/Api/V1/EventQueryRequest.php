@@ -33,6 +33,9 @@ class EventQueryRequest extends ApiRequest
     {
         return [
             ...parent::rules(),
+            'municipality' => ['nullable', 'string', 'max:120'],
+            'budget' => ['nullable', 'integer', 'min:0', 'max:10000'],
+            'discovery' => ['nullable', 'boolean'],
             'preset' => ['nullable', Rule::in(DatePreset::values())],
             'date' => ['nullable', 'date_format:Y-m-d'],
             'from' => ['nullable', 'date_format:Y-m-d'],
@@ -82,6 +85,9 @@ class EventQueryRequest extends ApiRequest
             lng: $lng,
             radius: $this->radius(),
             q: $this->text('q') ?? '',
+            municipality: $this->text('municipality'),
+            budget: $this->validated('budget') !== null ? (int) $this->validated('budget') : null,
+            discovery: $this->boolean('discovery'),
         );
     }
 

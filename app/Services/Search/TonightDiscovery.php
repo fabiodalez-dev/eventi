@@ -17,7 +17,7 @@ final class TonightDiscovery
     {
         $query = EventOccurrenceQuery::for($city);
         ($input['when'] ?? 'tonight') === 'starting_soon' ? $query->startingSoon() : $query->tonight();
-        $query->upcoming()->availableForDiscovery();
+        $query->upcoming()->ended(false)->availableForDiscovery();
         if (filled($input['municipality'] ?? null)) {
             $query->inMunicipality($input['municipality']);
         }

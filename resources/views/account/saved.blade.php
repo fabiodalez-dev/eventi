@@ -1,6 +1,6 @@
 {{-- Le date salvate: lista paginata oppure calendario mensile completo. --}}
 <x-layouts.app :meta="$meta">
-    <header class="flex flex-col gap-2">
+    <header class="flex flex-col gap-2" data-saved-page>
         <h1 class="text-hero text-ink">{{ $meta->heading }}</h1>
         <p class="text-sm text-ink-muted">{{ __('account.saved.lead') }}</p>
 

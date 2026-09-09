@@ -14,6 +14,9 @@
     fondo, e i risultati stanno in mezzo dove servono.
 --}}
 <x-layouts.app :meta="$meta" :wide="true">
+    @if ($filters->discovery)
+        <p class="border-b-2 border-line p-gutter text-ink-muted">{{ __('tonight.filtered') }}</p>
+    @endif
     @if (($taxonomy ?? null) && request()->integer('page', 1) === 1)
         <div class="px-gutter"><x-editorial-content :model="$taxonomy" /></div>
     @endif
@@ -64,7 +67,7 @@
                 {{-- La campagna in cima, quando c'è: sopra i risultati e fuori
                      dal contenitore che l'infinite scroll estende, altrimenti
                      ricomparirebbe a ogni pagina caricata. --}}
-                @if ($sponsorship !== null)
+                @if ($sponsorship !== null && ! $filters->discovery)
                     <x-sponsored-card
                         :sponsorship="$sponsorship"
                         class="border-b-2 border-line"

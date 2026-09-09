@@ -7,7 +7,8 @@
         ['url' => route('account.profile'), 'label' => __('account.nav.profile'), 'active' => request()->routeIs('account.profile*', 'login', 'account.register*', 'account.password.*'), 'path' => 'M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0 M4 21v-2a8 8 0 0 1 16 0v2'],
     ];
 @endphp
-<nav data-mobile-navigation aria-label="{{ __('ui.nav.label') }}" class="fixed inset-x-0 bottom-0 z-[9000] grid grid-cols-5 border-t-2 border-line bg-canvas pb-[env(safe-area-inset-bottom)] lg:hidden">
+@auth <meta name="saved-state-url" content="{{ route('account.saved.state') }}"> @endauth
+<nav data-mobile-navigation data-scroll-navigation aria-label="{{ __('ui.nav.label') }}" class="fixed inset-x-0 bottom-0 z-[9000] grid grid-cols-5 border-t-2 border-line bg-canvas pb-[env(safe-area-inset-bottom)] lg:hidden">
     @foreach ($items as $item)
         <a href="{{ $item['url'] }}" @if ($item['active']) aria-current="page" @endif
            class="flex min-h-16 min-w-0 flex-col items-center justify-center gap-1 px-1 py-2 text-[0.625rem] font-extrabold uppercase tracking-wide focus-visible:outline-2 focus-visible:outline-accent {{ $item['active'] ? 'bg-accent text-on-accent' : 'text-ink-muted hover:text-accent' }}">

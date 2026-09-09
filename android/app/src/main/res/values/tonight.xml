@@ -1,6 +1,11 @@
 <resources>
+    <string name="tonight_filtered">Solo eventi che rispettano queste scelte.</string>
+    <string name="tonight_edit_filters">Modifica le scelte</string>
+    <string name="tonight_clear_filters">Rimuovi tutti i filtri</string>
     <string name="tonight_title">La tua prossima serata.</string>
-    <string name="tonight_lead">Poche scelte. Fino a cinque proposte adatte a te.</string>
+    <string name="tonight_lead">Scegli i filtri. Alla fine apriremo la ricerca con tutti e solo gli eventi corrispondenti.</string>
+    <string name="tonight_evening_help">Eventi della giornata che iniziano dalle 17:00, non ancora conclusi.</string>
+    <string name="tonight_soon_help">Iniziano da adesso entro %1$d minuti, non sono già iniziati.</string>
     <string name="tonight_when">Quando vuoi uscire?</string>
     <string name="tonight_evening">Stasera</string>
     <string name="tonight_soon">Tra poco</string>
@@ -17,7 +22,7 @@
     <string name="tonight_categories">Che cosa ti va?</string>
     <string name="tonight_categories_help">Seleziona le categorie oppure lasciale tutte aperte. Le esclusioni del profilo restano rispettate.</string>
     <string name="tonight_next">Continua</string>
-    <string name="tonight_find">Trova la mia serata</string>
+    <string name="tonight_find">Mostra gli eventi</string>
     <string name="tonight_back">Indietro</string>
     <string name="tonight_retry">Riprova</string>
     <string name="tonight_edit">Cambia le scelte</string>

@@ -189,13 +189,21 @@ fun SearchScreen(
     onTag: (Tag) -> Unit,
     onClearTag: () -> Unit,
     onOrganizer: (String) -> Unit = {},
+    onEditDiscovery: () -> Unit = {},
+    onClearDiscovery: () -> Unit = {},
 ) {
-    var query by remember { mutableStateOf("") }
+    var query by remember(state.discoverySummary) { mutableStateOf("") }
     LazyColumn(Modifier.fillMaxSize().padding(bottom = padding.calculateBottomPadding())) {
         item { BrandHeader(compact = true) }
         item {
             Column(Modifier.padding(18.dp)) {
                 Text("CERCA", style = androidx.compose.material3.MaterialTheme.typography.displayMedium)
+                state.discoverySummary?.let { summary ->
+                    Text(summary, modifier = Modifier.padding(vertical = 12.dp), color = Acid)
+                    Text(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.tonight_filtered), color = Muted)
+                    TextButton(onClick = onEditDiscovery, modifier = Modifier.heightIn(min = 48.dp)) { Text(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.tonight_edit_filters)) }
+                    TextButton(onClick = { query = ""; onClearDiscovery() }, modifier = Modifier.heightIn(min = 48.dp)) { Text(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.tonight_clear_filters)) }
+                }
                 Spacer(Modifier.height(16.dp))
                 OutlinedTextField(
                     value = query,
@@ -222,10 +230,11 @@ fun SearchScreen(
             }
         }
         if (state.isSearching) item { LoadingBlock() }
-        if ((query.trim().length >= 3 || state.activeTag != null) && !state.isSearching && state.searchResults.isEmpty() && state.searchVenues.isEmpty() && state.searchTags.isEmpty() && state.searchOrganizers.isEmpty()) {
+        if ((query.trim().length >= 3 || state.activeTag != null || state.discoverySummary != null) && !state.isSearching && state.searchResults.isEmpty() && state.searchVenues.isEmpty() && state.searchTags.isEmpty() && state.searchOrganizers.isEmpty()) {
             item { EmptyBlock("NESSUN RISULTATO", "Prova un genere, il nome di un locale o una parola più breve.") }
         }
         val venues = when {
+            state.discoverySummary != null -> emptyList()
             state.activeTag != null -> emptyList()
             query.trim().length >= 3 -> state.searchVenues
             else -> state.venues

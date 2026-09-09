@@ -187,6 +187,7 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/il-mio-feed', FeedController::class)->middleware(PersonalizeDiscovery::class)->name('account.feed');
 
     Route::get('/i-miei-salvataggi', [SavedController::class, 'index'])->name('account.saved');
+    Route::get('/salvataggi/stato', [SavedController::class, 'state'])->name('account.saved.state');
     Route::get('/i-miei-salvataggi/calendario.ics', [SavedCalendarController::class, 'download'])
         ->middleware('throttle:60,1')->name('account.saved.calendar');
 

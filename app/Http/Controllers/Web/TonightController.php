@@ -16,12 +16,13 @@ use App\Support\Api\ApiResponse;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 
 class TonightController extends Controller
 {
     use Concerns\InteractsWithCity;
 
-    public function __invoke(TonightRequest $request, TonightDiscovery $discovery, ContentPreferences $preferences): View|JsonResponse
+    public function __invoke(TonightRequest $request, TonightDiscovery $discovery, ContentPreferences $preferences): View|JsonResponse|RedirectResponse
     {
         $city = $this->city();
         $input = $request->validated();
@@ -43,6 +44,15 @@ class TonightController extends Controller
         $user = $request->is('api/*') ? $request->user('sanctum') : $request->user();
         $user = $user instanceof User ? $user : null;
         $categories = Category::query()->active()->ordered()->whereNotIn('id', $preferences->hidden($user))->get();
+        if (! $request->is('api/*') && $question === 'results') {
+            $selected = Category::query()->whereIn('id', $input['categories'] ?? [])->pluck('slug')->implode(',');
+
+            return redirect()->route('events.index', array_filter([
+                'date' => $input['when'] ?? 'tonight', 'municipality' => $input['municipality'] ?? null,
+                'zone' => $input['zone'] ?? null, 'budget' => $input['budget'] ?? null,
+                'category' => $selected, 'discovery' => '1',
+            ], fn ($value) => $value !== null && $value !== ''));
+        }
         $zones = collect(config()->array('discovery-geography.'.$city->slug.'.districts', []));
         $municipalities = config('discovery-geography.'.$city->slug.'.municipalities', [$city->name]);
         $dates = $question === 'results' ? $discovery->find($city, $input) : new Collection;
@@ -50,7 +60,8 @@ class TonightController extends Controller
             $context = ApiContext::forOccurrences($city, [], $user, $dates->modelKeys());
 
             return ApiResponse::item([
-                'categories' => $categories->map(fn ($category) => ['id' => $category->id, 'name' => $category->name])->all(),
+                'categories' => $categories->map(fn ($category) => ['id' => $category->id, 'name' => $category->name, 'slug' => $category->slug])->all(),
+                'soon_minutes' => $city->starting_soon_minutes,
                 'zones' => $zones->all(),
                 'municipalities' => $municipalities,
                 'neighborhood_municipality' => $city->slug === 'padova' ? 'Padova' : null,

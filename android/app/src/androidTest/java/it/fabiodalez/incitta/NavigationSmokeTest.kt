@@ -18,8 +18,16 @@ class NavigationSmokeTest {
         }
     }
 
+    private fun revealNavigation() {
+        compose.onRoot().performTouchInput { swipeUp() }
+        compose.waitForIdle()
+        compose.onRoot().performTouchInput { swipeDown() }
+        compose.waitForIdle()
+    }
+
     @Test fun guestSavedOpensProfileLogin() {
         dismissConsent()
+        revealNavigation()
         compose.onNode(hasText("SALVATI") and hasClickAction()).performClick()
         compose.onNodeWithText("EMAIL").assertExists()
         compose.onNodeWithText("REGISTRATI").assertExists()
@@ -40,16 +48,20 @@ class NavigationSmokeTest {
         if (compose.onAllNodesWithText("RIFIUTA").fetchSemanticsNodes().isNotEmpty()) {
             compose.onNodeWithText("RIFIUTA").performClick()
         }
+        revealNavigation()
         compose.onNode(hasText("CERCA") and hasClickAction()).performClick()
         compose.onNodeWithText("EVENTO, LUOGO, CATEGORIA").performTextInput("teatro")
         compose.onNodeWithText(compose.activity.getString(R.string.search_live_help)).assertExists()
         // The app intentionally hides bottom navigation while the IME is open.
         androidx.test.espresso.Espresso.closeSoftKeyboard()
+        compose.onNodeWithText("CERCA").performTouchInput { click() }
         compose.waitUntil(5_000) {
             compose.onAllNodes(hasText("MAPPA") and hasClickAction()).fetchSemanticsNodes().isNotEmpty()
         }
         compose.onNode(hasText("MAPPA") and hasClickAction()).performClick()
-        compose.onNodeWithText("CERCA").assertExists()
+        compose.onNodeWithText("OGGI").assertExists()
+        compose.onNodeWithText("MAPPA").performTouchInput { click() }
+        compose.onNode(hasText("CERCA") and hasClickAction()).assertExists()
         compose.onNodeWithText("OGGI").assertExists()
     }
 }
