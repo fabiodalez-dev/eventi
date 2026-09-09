@@ -15,7 +15,7 @@ beforeEach(function (): void {
 it('keeps wizard actions outside scrollable choices on every mobile question', function (string $question): void {
     $this->get('/stasera?question='.$question.'&municipality=Padova')->assertOk()
         ->assertSee('data-wizard-actions', false)
-        ->assertSee('bottom-[calc(4rem+2px+env(safe-area-inset-bottom))]', false)
+        ->assertSee('--visible-navigation-height', false)
         ->assertSee('lg:static', false)
         ->assertSee('pb-36 lg:pb-0', false);
 })->with(['when', 'municipality', 'district', 'budget', 'categories']);

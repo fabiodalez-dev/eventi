@@ -69,7 +69,7 @@
             </div>
         @endif
     </fieldset>
-    <div data-wizard-actions class="fixed inset-x-0 bottom-[calc(4rem+2px+env(safe-area-inset-bottom))] z-[8999] flex flex-wrap items-center gap-3 border-t-2 border-line bg-canvas p-3 lg:static lg:gap-6 lg:p-0 lg:pt-6 [&>button]:flex-1 lg:[&>button]:flex-none">
+    <div data-wizard-actions class="fixed inset-x-0 bottom-[max(env(safe-area-inset-bottom),var(--visible-navigation-height,calc(4rem+2px+env(safe-area-inset-bottom))))] z-[8999] flex flex-wrap items-center gap-3 border-t-2 border-line bg-canvas p-3 lg:static lg:gap-6 lg:p-0 lg:pt-6 [&>button]:flex-1 lg:[&>button]:flex-none">
         <button class="min-h-14 bg-brand px-8 py-4 font-bold text-on-brand" type="submit">{{ $question === 'categories' ? __('tonight.find') : __('tonight.next') }} <span data-count-total aria-live="polite">({{ __('tonight.count_template', ['count' => $counts['total']]) }})</span> →</button>
         @if($index > 0)<a class="inline-flex min-h-12 items-center underline" href="{{ route('tonight.wizard', [...\Illuminate\Support\Arr::except($input, ['step']), 'question' => $questions[$index - 1]]) }}">{{ __('tonight.back') }}</a>@endif
     </div>

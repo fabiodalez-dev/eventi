@@ -1019,12 +1019,19 @@ function start() {
         let previous = Math.max(0, window.scrollY);
         let movement = previous;
         const alwaysVisible = navigation.hasAttribute('data-navigation-always') || document.documentElement.scrollHeight <= window.innerHeight + 96;
+        let navigationVisible = false;
+        const updateNavigationSpace = () => {
+            document.documentElement.style.setProperty('--visible-navigation-height', `${navigationVisible ? navigation.getBoundingClientRect().height : 0}px`);
+        };
         const show = visible => {
+            navigationVisible = visible;
             navigation.style.opacity = visible ? '1' : '0';
             navigation.style.pointerEvents = visible ? '' : 'none';
             navigation.inert = !visible;
+            updateNavigationSpace();
         };
         show(alwaysVisible || previous >= 96);
+        new ResizeObserver(updateNavigationSpace).observe(navigation);
         navigation.style.transition = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'none' : 'opacity 200ms ease-out';
         window.addEventListener('scroll', () => {
             const current = Math.max(0, window.scrollY);
