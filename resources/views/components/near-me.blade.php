@@ -17,17 +17,21 @@
     'filters',
     /* Dove riportare chi concede la posizione: la lista o la mappa */
     'action' => null,
+    'counts' => null,
 ])
 
 @php
     $radii = config('eventi.distance_options');
     $target = $action ?? route('events.index');
-    $current = $filters->radius === null ? null : (int) $filters->radius;
+    $current = $filters->hasPosition() ? (int) ($filters->radius ?? $radii[0]) : null;
     $default = $radii[1] ?? $radii[0];
 
-    $urlFor = static fn (int $km): string => $target.'?'.http_build_query(
-        $filters->withPosition($filters->lat, $filters->lng, (float) $km)->toQueryString()
-    );
+    $urlFor = static function (?int $km) use ($target, $filters): string {
+        $set = $filters->withPosition($km === null ? null : $filters->lat, $km === null ? null : $filters->lng, $km === null ? null : (float) $km);
+        $query = $set->toQueryString();
+        if (request()->boolean('all_dates') && ! $set->hasDateWindow()) $query['all_dates'] = '1';
+        return $target.'?'.http_build_query($query);
+    };
 @endphp
 
 <section {{ $attributes->class(['bg-canvas p-4 border-2 border-line']) }} aria-labelledby="vicino-a-me">
@@ -40,14 +44,16 @@
 
         <div class="mt-3 flex flex-wrap items-center gap-2">
             @foreach ($radii as $km)
-                <x-filter-chip :href="$urlFor((int) $km)" :active="$current === (int) $km">
+                @continue($current !== (int) $km && $counts !== null && ($counts['radius'][(string) $km] ?? 0) === 0)
+                <x-filter-chip data-filter-link :href="$urlFor($current === (int) $km ? null : (int) $km)" :active="$current === (int) $km">
                     {{ __('map.near.radius', ['km' => $km]) }}
                 </x-filter-chip>
             @endforeach
 
             <a
-                href="{{ $target.'?'.http_build_query($filters->withPosition(null, null, null)->toQueryString()) }}"
-                class="text-sm font-semibold text-ink-muted underline hover:text-ink"
+                data-filter-link
+                href="{{ $urlFor(null) }}"
+                class="inline-flex min-h-12 items-center text-base font-semibold text-ink underline hover:text-accent"
             >
                 {{ __('map.near.clear') }}
             </a>
@@ -62,7 +68,7 @@
             <button
                 type="button"
                 data-geolocate
-                data-geolocate-url="{{ $target }}?{{ http_build_query($filters->toQueryString()) }}"
+                data-geolocate-url="{{ $urlFor(null) }}"
                 data-geolocate-radius="{{ $current ?? $default }}"
                 data-geolocate-denied="{{ __('map.near.denied') }}"
                 data-geolocate-loading="{{ __('map.near.loading') }}"

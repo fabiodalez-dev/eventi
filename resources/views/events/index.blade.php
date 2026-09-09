@@ -14,7 +14,7 @@
     fondo, e i risultati stanno in mezzo dove servono.
 --}}
 <x-layouts.app :meta="$meta" :wide="true">
-    <div data-event-browser>
+    <div data-event-browser data-result-count="{{ $occurrences->total() }}">
     @if ($filters->discovery)
         <p class="border-b-2 border-line p-gutter text-ink-muted">{{ __('tonight.filtered') }}</p>
     @endif
@@ -41,7 +41,7 @@
 
             {{-- "Vicino a me" (§11.7): la posizione si chiede qui, con la frase
                  che dice perché, e non all'apertura del sito. --}}
-            <x-near-me :filters="$filters" :action="route('events.index')" />
+            <x-near-me :filters="$filters" :counts="$facetCounts" :action="route('events.index')" />
         </aside>
 
         <section class="bg-canvas lg:min-h-below-header">

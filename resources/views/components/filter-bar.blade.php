@@ -117,7 +117,7 @@
     <a data-filter-link class="inline-flex min-h-12 items-center border-2 border-accent p-3" href="{{ $destination.'?'.http_build_query(\Illuminate\Support\Arr::except($filters->toQueryString(), ['budget'])) }}">{{ __('tonight.up_to', ['amount' => $filters->budget]) }} ×</a>
 @endif
 
-<section data-filter-panel data-filter-error="{{ __('tonight.count_error') }}" {{ $attributes->class(['flex flex-col gap-6']) }} aria-label="{{ __('filters.title') }}">
+<section data-filter-panel data-filter-empty="{{ __('map.empty_change') }}" data-filter-error="{{ __('tonight.count_error') }}" {{ $attributes->class(['flex flex-col gap-6']) }} aria-label="{{ __('filters.title') }}">
     <p data-filter-status role="status" hidden></p>
     {{--
         La colonna dei filtri del riferimento (D46): gruppi impilati, ognuno
@@ -360,7 +360,7 @@
                 <x-field
                     name="sort"
                     :label="__('filters.sort.label')"
-                    :options="EventSort::options()"
+                    :options="array_filter(EventSort::options(), fn ($key) => $key !== EventSort::Distance->value || $filters->hasPosition(), ARRAY_FILTER_USE_KEY)"
                     :value="$filters->sort?->value ?? EventSort::Time->value"
                 />
 
@@ -368,7 +368,7 @@
                     <x-field
                         name="radius"
                         :label="__('filters.distance.label')"
-                        :options="collect(config('eventi.distance_options'))->mapWithKeys(fn (int $km): array => [$km => __('filters.distance.radius', ['km' => $km])])->all()"
+                        :options="collect(config('eventi.distance_options'))->filter(fn (int $km): bool => $filters->radius === (float) $km || $available('radius', (string) $km))->mapWithKeys(fn (int $km): array => [$km => __('filters.distance.radius', ['km' => $km])])->all()"
                         :value="$filters->radius === null ? null : (string) (int) $filters->radius"
                     />
                 @endif

@@ -1,3 +1,18 @@
+export function wouldEmptyResults(previous, next, push = true) {
+    return push && Number(previous) > 0 && next !== undefined && Number(next) === 0;
+}
+
+export function removesFilters(previous, next) {
+    const before = new URL(previous).searchParams;
+    return [...new URL(next).searchParams].every(([key, value]) => {
+        if (!value || ['all_dates', 'sort', 'page'].includes(key)) return true;
+        if (['category', 'tag', 'access'].includes(key)) {
+            return value.split(',').every(item => (before.get(key) ?? '').split(',').includes(item));
+        }
+        return before.get(key) === value;
+    });
+}
+
 export function eventFilters() {
     if (!document.querySelector('[data-event-browser]')) return;
     let pending;
@@ -8,6 +23,7 @@ export function eventFilters() {
         const current = ++revision;
         const region = document.querySelector('[data-event-browser]');
         region.setAttribute('aria-busy', 'true');
+        region.querySelector('aside')?.setAttribute('inert', '');
         try {
             const response = await fetch(url, { signal: pending.signal, headers: { 'X-Requested-With': 'fetch' } });
             if (!response.ok) throw new Error('response');
@@ -15,6 +31,18 @@ export function eventFilters() {
             const next = page.querySelector('[data-event-browser]');
             if (!next) throw new Error('page');
             if (revision !== current) return;
+            if (wouldEmptyResults(region.dataset.resultCount, next.dataset.resultCount, push && !removesFilters(location.href, url))) {
+                region.querySelectorAll('aside form').forEach(form => form.reset());
+                const status = region.querySelector('[data-filter-status]');
+                if (status) {
+                    status.hidden = false;
+                    status.textContent = region.querySelector('[data-filter-panel]').dataset.filterEmpty;
+                    status.scrollIntoView({ block: 'nearest' });
+                }
+                const geoStatus = region.querySelector('[data-geolocate-status]');
+                if (geoStatus) geoStatus.textContent = '';
+                return;
+            }
             if (region.querySelector('aside details[open]')) next.querySelector('aside details')?.setAttribute('open', '');
             document.dispatchEvent(new Event('event-browser:before-update'));
             region.replaceWith(next);
@@ -34,12 +62,16 @@ export function eventFilters() {
             heading?.focus({ preventScroll: true });
         } catch (error) {
             if (error.name !== 'AbortError' && current === revision) {
+                region.querySelectorAll('aside form').forEach(form => form.reset());
                 const panel = region.querySelector('[data-filter-panel]');
                 const status = panel?.querySelector('[data-filter-status]');
                 if (status) { status.hidden = false; status.textContent = panel.dataset.filterError; }
             }
         } finally {
-            if (current === revision) document.querySelector('[data-event-browser]')?.removeAttribute('aria-busy');
+            if (current === revision) {
+                document.querySelector('[data-event-browser]')?.removeAttribute('aria-busy');
+                document.querySelector('[data-event-browser] aside')?.removeAttribute('inert');
+            }
         }
     };
     document.addEventListener('click', event => {

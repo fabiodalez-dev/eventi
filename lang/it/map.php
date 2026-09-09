@@ -8,6 +8,7 @@ declare(strict_types=1);
 return [
 
     'title' => 'Mappa degli eventi',
+    'empty_change' => 'Questa scelta non trova eventi con gli altri filtri attivi. Ho mantenuto i risultati precedenti: togli un filtro o scegli una zona più ampia.',
 
     'meta' => [
         'title' => 'Mappa degli eventi a :city',

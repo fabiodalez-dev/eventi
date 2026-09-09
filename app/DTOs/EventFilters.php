@@ -133,7 +133,10 @@ final readonly class EventFilters
      */
     public function activeCount(): int
     {
-        return count($this->toQueryString()) - ($this->sort === null ? 0 : 1) - ($this->discovery ? 1 : 0);
+        $parameters = $this->toQueryString();
+        unset($parameters['sort'], $parameters['discovery'], $parameters['lat'], $parameters['lng'], $parameters['radius']);
+
+        return count($parameters) + ($this->hasPosition() ? 1 : 0);
     }
 
     public function isEmpty(): bool
@@ -242,7 +245,10 @@ final readonly class EventFilters
 
     public function withPosition(?float $lat, ?float $lng, ?float $radius): self
     {
-        return $this->copy(['lat' => $lat, 'lng' => $lng, 'radius' => $radius]);
+        return $this->copy([
+            'lat' => $lat, 'lng' => $lng, 'radius' => $radius,
+            'sort' => ($lat === null || $lng === null) && $this->sort === EventSort::Distance ? null : $this->sort,
+        ]);
     }
 
     /**
