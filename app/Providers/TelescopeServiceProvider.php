@@ -16,12 +16,12 @@ final class TelescopeServiceProvider extends TelescopeApplicationServiceProvider
     {
         $local = $this->app->environment('local');
 
-        Telescope::filter(static fn (IncomingEntry $entry): bool => $local
+        Telescope::filter(static fn (IncomingEntry $entry): bool => ! str_contains((string) ($entry->content['uri'] ?? ''), '/il-mio-calendario/google/callback') && ($local
             || $entry->isReportableException()
             || $entry->isFailedRequest()
             || $entry->isFailedJob()
             || $entry->isScheduledTask()
-            || $entry->hasMonitoredTag());
+            || $entry->hasMonitoredTag()));
 
         /* Credenziali e token non devono finire nell'osservabilita', neppure
            sul computer di sviluppo: un dump locale viene condiviso piu'
@@ -33,6 +33,10 @@ final class TelescopeServiceProvider extends TelescopeApplicationServiceProvider
             'token',
             'push_token',
             'access_token',
+            'refresh_token',
+            'code',
+            'state',
+            'google_calendar_oauth',
             // Livewire form updates can include the Social token in nested snapshots.
             'components',
         ]);

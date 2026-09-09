@@ -4,8 +4,11 @@
 
 declare(strict_types=1);
 
+use App\Jobs\SyncGoogleCalendar;
+use App\Models\GoogleCalendarConnection;
 use App\Models\MobileAuthChallenge;
 use App\Models\SponsorshipGrant;
+use App\Services\Calendar\GoogleCalendarClient;
 use App\Services\Sponsorship\GrantCampaigns;
 use App\Services\Ticketing\TicketingService;
 use App\Support\Backup\SpazioSufficiente;
@@ -22,6 +25,20 @@ Artisan::command('ticketing:promote', function (): void {
 })->purpose('Promote waiting bookings when their reservation window is open');
 
 Schedule::command('ticketing:promote')->everyMinute()->withoutOverlapping();
+
+Schedule::call(function (): void {
+    if (! app(GoogleCalendarClient::class)->configured()) {
+        return;
+    }
+    GoogleCalendarConnection::where('enabled', true)->chunkById(100, function ($connections): void {
+        foreach ($connections as $connection) {
+            SyncGoogleCalendar::dispatch($connection->user_id);
+        }
+    });
+})->name('google-calendar:sync')->everyFifteenMinutes()->withoutOverlapping();
+
+Schedule::command('queue:work google_calendar --queue=google-calendar --stop-when-empty --max-time=50 --timeout=540')
+    ->everyMinute()->withoutOverlapping(12)->runInBackground()->doNotMonitor();
 Schedule::command('social:daily')->everyMinute()->withoutOverlapping(30);
 
 Artisan::command('ticketing:demo {--force : Explicitly permit demonstration accounts on the public site}', function (): int {

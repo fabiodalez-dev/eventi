@@ -31,6 +31,16 @@ return [
 
     'connections' => [
 
+        // A Calendar sync may exceed the normal queue's 90-second reservation.
+        'google_calendar' => [
+            'driver' => 'database',
+            'connection' => env('DB_QUEUE_CONNECTION'),
+            'table' => env('DB_QUEUE_TABLE', 'jobs'),
+            'queue' => 'google-calendar',
+            'retry_after' => 660,
+            'after_commit' => true,
+        ],
+
         'sync' => [
             'driver' => 'sync',
         ],

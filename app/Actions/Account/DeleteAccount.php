@@ -7,6 +7,7 @@ namespace App\Actions\Account;
 use App\Enums\NotificationStatus;
 use App\Models\ScheduledNotification;
 use App\Models\User;
+use App\Services\Calendar\GoogleCalendarSync;
 use App\Services\Ticketing\TicketingService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -32,7 +33,7 @@ final class DeleteAccount
 {
     public function __invoke(User $user): void
     {
-        DB::transaction(function () use ($user): void {
+        app(GoogleCalendarSync::class)->forget($user->id, fn () => DB::transaction(function () use ($user): void {
             User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
             app(TicketingService::class)->eraseUser($user);
             ScheduledNotification::query()
@@ -60,7 +61,7 @@ final class DeleteAccount
             ])->save();
 
             $user->delete();
-        });
+        }));
     }
 
     /**

@@ -26,10 +26,16 @@ class CalendarConfirmationUiTest {
             compose.runOnIdle { compose.activity.setContent {
                 InCittaTheme { Column(Modifier.verticalScroll(rememberScrollState())) { CalendarSubscriptionPanel(initiallyExpanded = true) } }
             } }
-            compose.waitUntil(15_000) { compose.onAllNodesWithText("Collega al calendario del telefono").fetchSemanticsNodes().isNotEmpty() }
+            compose.waitUntil(15_000) { compose.onAllNodesWithText("Altre opzioni: calendario del telefono").fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithText("Altre opzioni: calendario del telefono").performScrollTo().performClick()
             compose.onNodeWithText("Collega al calendario del telefono").performScrollTo()
             compose.waitUntil(15_000) { compose.onAllNodes(hasText("Collega al calendario del telefono") and isEnabled()).fetchSemanticsNodes().isNotEmpty() }
             compose.onNodeWithText("Collega al calendario del telefono").performClick()
+            // Dialogs use a separate Android window; wait for it to be laid out
+            // after the click rather than treating its first frame as a failure.
+            compose.waitUntil(5_000) {
+                runCatching { compose.onNodeWithText("Aggiungere il calendario inCittà?").assertIsDisplayed() }.isSuccess
+            }
             compose.onNodeWithText("Aggiungere il calendario inCittà?").assertIsDisplayed()
             compose.onNodeWithText("Annulla").performClick()
             assertFalse(NativeCalendar.enabled(compose.activity))

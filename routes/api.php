@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\V1\Me\DeviceController;
 use App\Http\Controllers\Api\V1\Me\ExportController;
 use App\Http\Controllers\Api\V1\Me\FeedController;
 use App\Http\Controllers\Api\V1\Me\FollowController;
+use App\Http\Controllers\Api\V1\Me\GoogleCalendarController;
 use App\Http\Controllers\Api\V1\Me\NativeCalendarController;
 use App\Http\Controllers\Api\V1\Me\NotificationController;
 use App\Http\Controllers\Api\V1\Me\NotificationPreferenceController;
@@ -212,6 +213,10 @@ Route::prefix('v1')
                     ->middleware('throttle:60,1')->name('saved.calendar');
                 Route::get('/calendar/export', NativeCalendarController::class)
                     ->middleware('throttle:60,1')->name('calendar.export');
+                Route::get('/calendar/google', GoogleCalendarController::class)
+                    ->middleware('throttle:60,1')->name('calendar.google');
+                Route::post('/calendar/google/manage', [GoogleCalendarController::class, 'manage'])
+                    ->middleware('throttle:10,1')->name('calendar.google.manage');
                 Route::post('/saved', [SavedController::class, 'store'])->middleware(IdempotentRequest::class)->name('saved.store');
                 Route::delete('/saved/{occurrence}', [SavedController::class, 'destroy'])
                     ->whereNumber('occurrence')

@@ -168,6 +168,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (tab == AppTab.CALENDAR) refresh(EventFilter.ALL)
         if (tab == AppTab.EVENTS) refresh()
         if (tab == AppTab.TICKETS) loadBookings()
+        if (tab == AppTab.ACCOUNT && _state.value.session != null) viewModelScope.launch {
+            val token = _state.value.session?.token
+            try {
+                repository.refreshProfile()
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                if (_state.value.session?.token == token && _state.value.tab == AppTab.ACCOUNT) {
+                    _state.value = _state.value.copy(message = userMessage(error))
+                }
+            }
+        }
     }
 
     fun startReservation(date: Occurrence) {

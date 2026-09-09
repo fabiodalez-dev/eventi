@@ -478,19 +478,18 @@ fun AccountScreen(
     onInterestsSaved: () -> Unit = {},
 ) {
     if (state.session != null) {
-        var deletePassword by remember { mutableStateOf("") }
-        var deleteArmed by remember { mutableStateOf(false) }
+        var deletePassword by remember(state.session.user.id) { mutableStateOf("") }
+        var deleteArmed by remember(state.session.user.id) { mutableStateOf(false) }
         Column(
             Modifier.fillMaxSize().padding(bottom = padding.calculateBottomPadding()).verticalScroll(rememberScrollState()),
         ) {
             BrandHeader(compact = true)
             Column(Modifier.padding(18.dp)) {
-                Text("IL TUO PROFILO", style = androidx.compose.material3.MaterialTheme.typography.displayMedium)
+                Text(stringResource(R.string.profile_title), style = androidx.compose.material3.MaterialTheme.typography.headlineLarge)
+                Spacer(Modifier.height(18.dp))
+                AccountIdentity(state.session.user, onLogout, enabled = !state.isAuthenticating)
                 Button(onClick = onTickets, modifier = Modifier.fillMaxWidth().padding(top = 18.dp), shape = RectangleShape) { Text(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.ticket_title)) }
                 Spacer(Modifier.height(28.dp))
-                MetaLabel("ACCOUNT")
-                Text(state.session.user.name?.ifBlank { null } ?: "LETTORE IN CITTÀ", style = androidx.compose.material3.MaterialTheme.typography.headlineLarge)
-                Text(state.session.user.email, color = Muted, modifier = Modifier.padding(top = 6.dp))
                 ContentPreferencesPanel(state.session, onInterestsSaved)
                 NotificationSettingsPanel(state.session)
                 HorizontalDivider(Modifier.padding(vertical = 24.dp), thickness = 2.dp, color = Rule)
