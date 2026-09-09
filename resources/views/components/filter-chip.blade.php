@@ -14,6 +14,7 @@
 @props([
     'href',
     'active' => false,
+    'removable' => true,
     'count' => null,
 ])
 
@@ -47,7 +48,7 @@
         <span class="{{ $active ? 'text-on-accent/70' : 'text-ink-subtle' }}">{{ $count }}</span>
     @endif
 
-    @if ($active)
+    @if ($active && $removable)
         <span aria-hidden="true">&times;</span>
     @endif
 </a>

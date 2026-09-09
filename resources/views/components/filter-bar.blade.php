@@ -167,7 +167,8 @@
             @if (! $filters->hasDateWindow())
             <x-filter-chip
                 :href="$anyDateUrl"
-                :active="false"
+                :active="true"
+                :removable="false"
                 class="justify-center border-0 py-2.5"
             >
                 {{ __('filters.date.any') }}
