@@ -59,7 +59,17 @@ export function eventFilters() {
     document.addEventListener('change', event => {
         const input = event.target;
         const form = input.closest('[data-event-browser] aside form');
-        if (form?.method.toLowerCase() === 'get' && input.matches('select, input[type="checkbox"], input[type="date"]')) form.requestSubmit();
+        if (form?.method.toLowerCase() !== 'get' || !input.matches('select, input[type="checkbox"], input[type="date"]')) return;
+        if (input.name === 'from' || input.name === 'to') form.querySelector('[name="date"]').value = '';
+        if (input.name === 'date') {
+            form.querySelector('[name="from"]').value = '';
+            form.querySelector('[name="to"]').value = '';
+        }
+        if (input.name === 'municipality') {
+            const zone = form.querySelector('[name="zone"]');
+            if (zone) zone.value = '';
+        }
+        form.requestSubmit();
     });
     window.addEventListener('popstate', () => void navigate(location.href, false));
     document.addEventListener('event-browser:navigate', event => void navigate(event.detail));

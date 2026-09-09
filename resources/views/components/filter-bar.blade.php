@@ -286,7 +286,7 @@
         </summary>
 
         <form method="GET" action="{{ $destination }}" class="flex flex-col gap-4 border-t border-line px-4 py-4">
-            @if ($allDates)
+            @if ($defaultToday)
                 <input type="hidden" name="all_dates" value="1">
             @endif
             @foreach (['category' => implode(',', $filters->categories), 'lat' => $filters->lat, 'lng' => $filters->lng, 'q' => $filters->q, 'budget' => $filters->budget, 'discovery' => $filters->discovery ? '1' : null] as $hidden => $value)
