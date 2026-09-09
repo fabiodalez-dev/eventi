@@ -16,7 +16,7 @@
     $message = $text ?? $title;
 @endphp
 
-<div {{ $attributes->class(['flex flex-wrap items-center gap-2']) }}>
+<div {{ $attributes->class(['grid grid-cols-2 gap-2 sm:grid-cols-4 [&>a]:flex [&>a]:items-center [&>a]:justify-center [&>a]:text-center [&>a]:min-h-12 [&>button]:min-h-12 [&>a]:px-2 [&>button]:px-2 [&:not(:has(button:not(.hidden)))]:grid-cols-3']) }}>
     <button
         type="button"
         class="hidden bg-surface px-3.5 py-2 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.14em] text-ink uppercase border-2 border-line transition hover:border-accent"
