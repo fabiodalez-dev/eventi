@@ -48,8 +48,8 @@
             @endphp
             <div class="grid gap-3 sm:grid-cols-2">
                 @foreach($options as $value => $label)
-                    <label class="flex min-h-14 cursor-pointer items-center gap-3 border-2 border-line p-4 has-[:checked]:border-accent has-[:checked]:text-accent">
-                        <input type="radio" name="{{ $field }}" value="{{ $value }}" @checked((string)($input[$field] ?? ($field === 'when' ? 'tonight' : '')) === (string)$value)>
+                    <label class="flex min-h-14 cursor-pointer items-center gap-3 border-2 border-line p-4 has-[:checked]:border-accent has-[:checked]:text-accent has-[:disabled]:opacity-45 has-[:disabled]:cursor-not-allowed">
+                        <input type="radio" name="{{ $field }}" value="{{ $value }}" @disabled($question === 'budget' && ($counts['budgets'][$value] ?? 0) === 0 && (string)($input['budget'] ?? '') !== (string)$value) @checked((string)($input[$field] ?? ($field === 'when' ? 'tonight' : '')) === (string)$value)>
                         <span><span class="block font-bold">{{ $label }}</span>
                         @if($question === 'when')<span class="mt-2 block text-sm text-ink-muted">{{ $value === 'tonight' ? __('tonight.tonight_help') : __('tonight.soon_help', ['minutes' => $city->starting_soon_minutes]) }}</span>@endif</span>
                         @if($question === 'budget')<span class="ml-auto tabular-nums" data-option-count="{{ $value }}" data-count-kind="budgets">{{ $counts['budgets'][$value] ?? 0 }}</span>@endif

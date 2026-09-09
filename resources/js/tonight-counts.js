@@ -29,7 +29,7 @@ export function tonightCounts() {
                         if (input.type === 'checkbox') {
                             input.disabled = count === 0;
                             if (count === 0) input.checked = false;
-                        }
+                        } else input.disabled = count === 0 && !input.checked;
                     });
                     form.querySelectorAll('[data-place-count]').forEach(label => {
                         const key = label.dataset.placeCount;
