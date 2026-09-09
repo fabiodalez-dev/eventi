@@ -71,7 +71,7 @@ jobs:
     needs: [scope, quality]
     if: needs.scope.outputs.web == 'true'
     name: Test (${{ matrix.shard }}/3)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     strategy:
       fail-fast: false
@@ -108,10 +108,15 @@ jobs:
 
       # queryFormats('AVIF') alone can report support without a working encoder.
       # Exercise real AVIF files in the media tests, as in Lighthouse/production.
-      - name: Installa il codificatore AVIF per i test media
+      # Only Ubuntu packages are needed here. Third-party indexes (e.g. Chrome)
+      # must not block these tests when their metadata is temporarily inconsistent.
+      # mariadb-client supplies mariadb-dump for the real backup tests.
+      - name: Installa AVIF e client MariaDB dalle sorgenti Ubuntu
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends libheif1 libheif-plugin-aomenc
+          test -s /etc/apt/sources.list.d/ubuntu.sources
+          ubuntu_sources=(-o Dir::Etc::sourcelist=/etc/apt/sources.list.d/ubuntu.sources -o Dir::Etc::sourceparts=-)
+          sudo apt-get "${ubuntu_sources[@]}" update -qq
+          sudo apt-get "${ubuntu_sources[@]}" install -y --no-install-recommends libheif1 libheif-plugin-aomenc mariadb-client
 
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
@@ -120,14 +125,6 @@ jobs:
 
       - run: npm ci
       - run: npm run build
-
-      # `mariadb-client` e non il `mysqldump` gia' presente sull'immagine:
-      # quello e' il client di MySQL 8, che contro un server MariaDB fallisce
-      # su `--column-statistics` — un'opzione che MySQL manda di suo e MariaDB
-      # non conosce. Il dump esce con stato 1 e il backup non viene creato.
-      # Spatie cerca `mariadb-dump` per primo su una connessione `mariadb`.
-      - name: Client MariaDB per il dump del database
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq mariadb-client
 
       - name: Prepara ambiente
         run: |
