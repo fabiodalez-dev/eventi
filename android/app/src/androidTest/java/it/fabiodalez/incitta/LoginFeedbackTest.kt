@@ -16,12 +16,10 @@ class LoginFeedbackTest {
         if (compose.onAllNodesWithText("RIFIUTA").fetchSemanticsNodes().isNotEmpty()) {
             compose.onNodeWithText("RIFIUTA").performClick()
         }
-        compose.runOnUiThread {
-            compose.activity.startActivity(android.content.Intent(compose.activity, MainActivity::class.java)
-                .setData(android.net.Uri.parse("incitta://account"))
-                .addFlags(android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP))
-        }
-        compose.waitForIdle()
+        compose.waitUntil(15_000) { compose.onAllNodesWithText("IN PROGRAMMA").fetchSemanticsNodes().isNotEmpty() }
+        compose.onAllNodes(hasScrollAction()).onFirst().performTouchInput { swipeUp() }
+        compose.waitUntil(5_000) { compose.onAllNodes(hasText("PROFILO") and hasClickAction()).fetchSemanticsNodes().isNotEmpty() }
+        compose.onNode(hasText("PROFILO") and hasClickAction()).performClick()
     }
 
     private fun submit() = compose.onAllNodes(hasText("ACCEDI") and hasClickAction()).onLast().performScrollTo().performClick()
