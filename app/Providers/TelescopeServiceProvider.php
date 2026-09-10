@@ -16,7 +16,9 @@ final class TelescopeServiceProvider extends TelescopeApplicationServiceProvider
     {
         $local = $this->app->environment('local');
 
-        Telescope::filter(static fn (IncomingEntry $entry): bool => ! str_contains((string) ($entry->content['uri'] ?? ''), '/il-mio-calendario/google/callback') && ($local
+        Telescope::filter(static fn (IncomingEntry $entry): bool => ! str_contains((string) ($entry->content['uri'] ?? ''), '/il-mio-calendario/google/callback') && ! str_contains((string) ($entry->content['uri'] ?? ''), '/social/meta/')
+            && ! str_contains((string) ($entry->content['uri'] ?? $entry->content['url'] ?? ''), 'graph.facebook.com')
+            && ! str_contains((string) ($entry->content['uri'] ?? $entry->content['url'] ?? ''), 'api.telegram.org') && ($local
             || $entry->isReportableException()
             || $entry->isFailedRequest()
             || $entry->isFailedJob()
@@ -33,6 +35,12 @@ final class TelescopeServiceProvider extends TelescopeApplicationServiceProvider
             'token',
             'push_token',
             'access_token',
+            'app_secret',
+            'telegram_bot_token',
+            'client_secret',
+            'fb_exchange_token',
+            'meta_oauth',
+            'meta_pages',
             'refresh_token',
             'code',
             'state',

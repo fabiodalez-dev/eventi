@@ -31,6 +31,14 @@
         @endforeach
         </div>
     @else <p>{{ __('social.empty') }}</p> @endif
+    @if($this->socialVenue() === null)
+        <section style="border-top:1px solid var(--fi-line);padding-top:24px;display:grid;gap:12px">
+            <h2 style="font-size:22px;font-weight:700">Programma la pubblicazione</h2>
+            <p>Prepara e controlla l’anteprima, poi scegli quando inviarla. Orari in {{ $this->socialCity()->timezone }}. Il cron controlla ogni minuto; l’elaborazione di Meta può richiedere qualche minuto in più.</p>
+            <label>Data e ora<x-filament::input.wrapper><x-filament::input type="datetime-local" wire:model="scheduledAt" /></x-filament::input.wrapper></label>
+            <p>Se un evento cambia o viene annullato prima dell’invio, il post viene fermato: rigenera l’anteprima. Le storie restano disponibili per il download manuale.</p>
+        </section>
+    @endif
     @if($batch = $this->batch())
         <section style="border-top:1px solid #999;padding-top:24px;display:grid;gap:20px">
             <h2 style="font-size:24px;font-weight:700">{{ __('social.ready') }}</h2><p>{{ __('social.snapshot') }}</p>
@@ -40,7 +48,7 @@
                 @foreach(app(\App\Services\Social\SocialPublisher::class)->captions($batch) as $caption)
                     <div><strong>{{ __('social.caption_preview') }}</strong><p style="white-space:pre-wrap;max-width:70ch">{{ $caption }}</p></div>
                 @endforeach
-                <div><x-filament::button wire:click="publish" wire:confirm="{{ __('social.confirm') }}" wire:loading.attr="disabled">{{ __('social.publish') }}</x-filament::button></div>
+                <div><x-filament::button wire:click="publish" wire:confirm="{{ __('social.confirm') }}" wire:loading.attr="disabled">{{ __('social.publish') }}</x-filament::button> <x-filament::button color="gray" wire:click="schedulePublication" wire:loading.attr="disabled">Programma</x-filament::button></div>
             @else <p style="white-space:pre-wrap">{{ $batch->caption }}</p> @endif
         </section>
     @endif
@@ -51,8 +59,10 @@
     @endif
     @if($this->socialVenue() === null)
         <section wire:poll.15s style="border-top:1px solid #999;padding-top:24px"><h2 style="font-size:22px;font-weight:700">{{ __('social.history') }}</h2>
-        @foreach(\App\Models\SocialPublication::latest()->limit(30)->get() as $publication)
-            <div style="padding:12px 0;border-bottom:1px solid #ddd">{{ $publication->created_at->timezone($this->socialCity()->timezone)->format('d/m H:i') }} · {{ ucfirst($publication->platform) }} · {{ __('social.part') }} {{ $publication->part+1 }} · <strong>{{ __('social.'.$publication->status->value.'_status') }}</strong>@if($publication->error)<p>{{ $publication->error }}</p>@endif
+        @foreach(\App\Models\SocialPublication::whereIn('social_batch_id', \App\Models\SocialBatch::where('city_id', $this->socialCity()->id)->select('id'))->latest()->limit(30)->get() as $publication)
+            <div style="padding:12px 0;border-bottom:1px solid #ddd">{{ $publication->created_at->timezone($this->socialCity()->timezone)->format('d/m H:i') }} · {{ ucfirst($publication->platform) }} · {{ __('social.part') }} {{ $publication->part+1 }} · <strong>{{ __('social.'.$publication->status->value.'_status') }}</strong>@if($publication->scheduled_at)<span> · Prevista: {{ $publication->scheduled_at->timezone($this->socialCity()->timezone)->format('d/m/Y H:i') }}</span>@endif
+            @if($publication->status === \App\Enums\SocialPublicationStatus::Scheduled)<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px"><x-filament::button size="sm" color="gray" wire:click="reschedulePublication({{ $publication->id }})">Usa la nuova data e ora</x-filament::button><x-filament::button size="sm" color="gray" wire:click="cancelScheduledPublication({{ $publication->id }})">Annulla programmazione</x-filament::button></div>@endif
+            @if($publication->error)<p>{{ $publication->error }}</p>@endif
             @if(in_array($publication->status, [\App\Enums\SocialPublicationStatus::Failed, \App\Enums\SocialPublicationStatus::Uncertain], true))<x-filament::button size="sm" color="gray" wire:click="retryPublication({{ $publication->id }})" wire:confirm="{{ __('social.retry_confirm') }}">{{ __('social.retry') }}</x-filament::button>@endif</div>
         @endforeach
         </section>

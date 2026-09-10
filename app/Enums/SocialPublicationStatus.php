@@ -6,6 +6,8 @@ namespace App\Enums;
 
 enum SocialPublicationStatus: string
 {
+    case Scheduled = 'scheduled';
+    case Cancelled = 'cancelled';
     case Queued = 'queued';
     case Processing = 'processing';
     case Published = 'published';

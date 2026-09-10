@@ -13,6 +13,6 @@ class SocialPublication extends Model
 
     protected function casts(): array
     {
-        return ['status' => SocialPublicationStatus::class, 'remote_ids' => 'array'];
+        return ['status' => SocialPublicationStatus::class, 'remote_ids' => 'array', 'scheduled_at' => 'immutable_datetime'];
     }
 }

@@ -10,6 +10,7 @@ use App\Models\SocialConnection;
 use App\Models\SocialPublication;
 use App\Services\Social\SocialPublisher;
 use App\Services\Social\SocialStudio;
+use App\Services\Social\TelegramPublisher;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\Middleware\WithoutOverlapping;
@@ -40,6 +41,12 @@ class PublishSocial implements ShouldQueue
         $connection = SocialConnection::findOrFail($publication->social_connection_id);
         $batch = SocialBatch::findOrFail($publication->social_batch_id);
         try {
+            if ($publication->platform === 'telegram') {
+                $publisher->assertFresh($batch);
+                app(TelegramPublisher::class)->publish($publication, $connection, $batch);
+
+                return;
+            }
             if (! $connection->verified_at || ! $connection->{$publication->platform.'_enabled'}) {
                 throw new \RuntimeException(__('social.not_connected'));
             }

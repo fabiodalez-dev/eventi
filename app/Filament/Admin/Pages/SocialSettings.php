@@ -7,6 +7,7 @@ namespace App\Filament\Admin\Pages;
 use App\Models\City;
 use App\Models\SocialConnection;
 use App\Services\Social\SocialPublisher;
+use App\Services\Social\TelegramPublisher;
 use BackedEnum;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -15,7 +16,6 @@ use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\Section;
-use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Validation\ValidationException;
@@ -54,14 +54,21 @@ class SocialSettings extends Page
     {
         return $schema->columns(1)->statePath('data')->components([
             Section::make(__('social.settings_title'))->description(__('social.settings_lead'))->schema([
+                TextInput::make('app_id')->label('Meta App ID')->regex('/^\d+$/')->maxLength(80),
+                TextInput::make('app_secret')->label('Meta App Secret')->password()->autocomplete('off')->maxLength(4096)->helperText('Cifrato. Lascia vuoto per mantenere il valore salvato.'),
                 Select::make('city_id')->label(__('social.city'))->options(City::pluck('name', 'id'))->required(),
-                TextInput::make('page_id')->label(__('social.page_id'))->regex('/^\d+$/')->maxLength(80)->required(fn (Get $get) => $get('facebook_enabled') || $get('instagram_enabled')),
-                TextInput::make('instagram_id')->label(__('social.instagram_id'))->regex('/^\d+$/')->maxLength(80)->required(fn (Get $get) => $get('instagram_enabled')),
+                TextInput::make('page_id')->label(__('social.page_id'))->regex('/^\d+$/')->maxLength(80)->helperText('Compilato dal collegamento Meta; obbligatorio per verificare un token manuale.'),
+                TextInput::make('instagram_id')->label(__('social.instagram_id'))->regex('/^\d+$/')->maxLength(80)->helperText('Account Instagram professionale collegato alla Pagina Facebook.'),
                 TextInput::make('access_token')->label(__('social.token'))->password()->autocomplete('off')->helperText(__('social.token_help'))->maxLength(4096),
                 TextInput::make('graph_version')->label(__('social.graph_version'))->regex('/^v\d+\.\d+$/')->required(),
                 Toggle::make('facebook_enabled')->label(__('social.facebook_enabled')),
                 Toggle::make('instagram_enabled')->label(__('social.instagram_enabled')),
             ])->columns(2),
+            Section::make('Telegram')->description('Crea un bot con @BotFather e aggiungilo come amministratore del canale con permesso di pubblicare. Non serve OAuth.')->schema([
+                TextInput::make('telegram_bot_token')->label('Token del bot')->password()->autocomplete('off')->regex('/^\d+:[A-Za-z0-9_-]+$/')->maxLength(4096)->helperText('Cifrato. Lascia vuoto per mantenere il token salvato.'),
+                TextInput::make('telegram_chat_id')->label('Canale: @username oppure ID numerico')->regex('/^(@[A-Za-z][A-Za-z0-9_]{4,}|-?\d+)$/')->maxLength(100),
+                Toggle::make('telegram_enabled')->label('Pubblica su Telegram'),
+            ]),
             Section::make(__('social.automatic'))->description(__('social.automatic_help'))->schema([
                 Toggle::make('automatic')->label(__('social.automatic')),
                 Toggle::make('graphic_options.monochrome')->label(__('social.monochrome'))->default(true),
@@ -85,21 +92,56 @@ class SocialSettings extends Page
             throw ValidationException::withMessages(['data.caption' => __('social.invalid_tokens', ['tokens' => implode(', ', $unknown)])]);
         }
         $connection = SocialConnection::first() ?? new SocialConnection;
-        if (blank($values['access_token'] ?? null)) {
-            unset($values['access_token']);
+        foreach (['access_token', 'app_secret', 'telegram_bot_token'] as $secret) {
+            if (blank($values[$secret] ?? null)) {
+                unset($values[$secret]);
+            }
         }
         $connection->fill($values);
-        if ($connection->isDirty(['access_token', 'page_id', 'instagram_id', 'graph_version', 'facebook_enabled', 'instagram_enabled'])) {
+        if ($connection->isDirty(['city_id', 'app_id', 'app_secret', 'access_token', 'page_id', 'instagram_id', 'graph_version', 'facebook_enabled', 'instagram_enabled'])) {
             $connection->verified_at = null;
         }
-        if ($connection->automatic && ! $connection->verified_at) {
+        if ($connection->isDirty(['city_id', 'telegram_bot_token', 'telegram_chat_id', 'telegram_enabled'])) {
+            $connection->telegram_verified_at = null;
+        }
+        if ($connection->automatic && ! (($connection->verified_at && ($connection->instagram_enabled || $connection->facebook_enabled)) || ($connection->telegram_enabled && $connection->telegram_verified_at))) {
             $connection->automatic = false;
             Notification::make()->title(__('social.not_connected'))->warning()->send();
         }
         $connection->save();
         $this->data['access_token'] = '';
+        $this->data['app_secret'] = '';
+        $this->data['telegram_bot_token'] = '';
         $this->data['automatic'] = $connection->automatic;
         Notification::make()->title(__('social.saved'))->success()->send();
+    }
+
+    public function connectMeta(): void
+    {
+        abort_unless(static::canAccess(), 403);
+        $this->save();
+        $this->redirect(route('social.meta.connect'));
+    }
+
+    public function disconnectMeta(): void
+    {
+        abort_unless(static::canAccess(), 403);
+        SocialConnection::query()->update(['access_token' => null, 'verified_at' => null, 'automatic' => false]);
+        session()->forget('meta_oauth');
+        session()->forget('meta_pages');
+        Notification::make()->title('Collegamento locale rimosso; pubblicazioni automatiche disattivate')->success()->send();
+    }
+
+    public function verifyTelegram(): void
+    {
+        abort_unless(static::canAccess(), 403);
+        $this->save();
+        try {
+            app(TelegramPublisher::class)->verify(SocialConnection::firstOrFail());
+            Notification::make()->title('Bot e permessi del canale Telegram verificati')->success()->send();
+        } catch (\RuntimeException $e) {
+            Notification::make()->title($e->getMessage())->danger()->send();
+        }
     }
 
     public function verify(): void

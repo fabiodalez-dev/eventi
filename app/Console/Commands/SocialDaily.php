@@ -22,7 +22,7 @@ class SocialDaily extends Command
 
     public function handle(SocialCatalog $catalog, SocialStudio $studio, SocialPublisher $publisher): int
     {
-        foreach (SocialConnection::where('automatic', true)->whereNotNull('verified_at')->get() as $connection) {
+        foreach (SocialConnection::where('automatic', true)->where(fn ($query) => $query->whereNotNull('verified_at')->orWhereNotNull('telegram_verified_at'))->get() as $connection) {
             $city = City::findOrFail($connection->city_id);
             $clock = EventOccurrenceQuery::for($city);
             if ($clock->now()->format('H:i') < $connection->publish_time) {

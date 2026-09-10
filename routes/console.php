@@ -39,6 +39,7 @@ Schedule::call(function (): void {
 
 Schedule::command('queue:work google_calendar --queue=google-calendar --stop-when-empty --max-time=50 --timeout=540')
     ->everyMinute()->withoutOverlapping(12)->runInBackground()->doNotMonitor();
+Schedule::command('social:publish-due')->everyMinute()->withoutOverlapping(5);
 Schedule::command('social:daily')->everyMinute()->withoutOverlapping(30);
 
 Artisan::command('ticketing:demo {--force : Explicitly permit demonstration accounts on the public site}', function (): int {
