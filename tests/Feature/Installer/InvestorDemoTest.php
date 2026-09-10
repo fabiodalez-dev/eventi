@@ -57,10 +57,15 @@ it('imports exactly 300 illustrated demo events over 60 days and is idempotent',
         ->and($events->flatMap->occurrences->map(fn ($date) => $date->starts_at->format('Y-m-d'))->unique())->toHaveCount(60)
         ->and($events->flatMap->occurrences->min('starts_at')->isFuture())->toBeTrue();
     $first = $events->first();
+    expect($first->description)->not->toContain('<p>')->toContain('Evento dimostrativo');
     $first->update(['title' => 'Titolo corretto dalla redazione']);
     $this->travel(2)->days();
     $this->artisan('events:investor-demo')->assertSuccessful();
     expect(Event::count())->toBe(301)
         ->and($first->fresh()->title)->toBe('Titolo corretto dalla redazione')
         ->and($existing->fresh()->source_ref)->toBe($existing->source_ref);
+    $first->update(['description' => '<p>Evento dimostrativo</p><p><a href="https://example.com/credit">Autore</a></p>']);
+    $this->artisan('events:investor-demo', ['--repair-descriptions' => true])->assertSuccessful();
+    expect($first->fresh()->description)->toBe("Evento dimostrativo\n\nAutore (https://example.com/credit)")
+        ->and(Event::count())->toBe(301);
 });

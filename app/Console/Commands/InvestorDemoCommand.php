@@ -18,7 +18,7 @@ class InvestorDemoCommand extends Command
 {
     public const PREFIX = 'investor-demo-v1:';
 
-    protected $signature = 'events:investor-demo {city=padova} {--dry-run} {--allow-production}';
+    protected $signature = 'events:investor-demo {city=padova} {--dry-run} {--allow-production} {--repair-descriptions : Converte le descrizioni HTML del primo import in testo semplice}';
 
     protected $description = 'Importa 300 eventi dimostrativi in 60 giorni, con fotografie accreditate, senza modificare account o eventi esistenti';
 
@@ -65,6 +65,11 @@ class InvestorDemoCommand extends Command
                 if ($event?->trashed()) {
                     continue; // An editor's deletion is respected.
                 }
+                if ($this->option('repair-descriptions') && $event?->getAttribute('is_demo') && str_starts_with($event->description ?? '', '<p>') && str_contains($event->description, 'Evento dimostrativo')) {
+                    $text = str_replace('</p><p>', "\n\n", $event->description);
+                    $text = preg_replace('~<a href="([^"]+)">([^<]*)</a>~', '$2 ($1)', $text);
+                    $event->update(['description' => html_entity_decode(strip_tags($text))]);
+                }
                 $credit = $credits[$row['category']];
                 if ($event === null) {
                     $matching = $venues->filter(fn ($venue) => $venue->type->value === $row['venue_type'])->values();
@@ -75,8 +80,8 @@ class InvestorDemoCommand extends Command
                     };
                     $date = $start->addDays(intdiv($index, 5))->setTime($hour, ($index % 2) * 30);
                     $paid = in_array($row['category'], ['musica-dal-vivo', 'dj-set-nightlife', 'teatro-e-danza', 'cinema', 'corsi-e-workshop', 'food-e-sagre'], true);
-                    $description = '<p>'.e($row['description']).'</p><p><strong>Evento dimostrativo</strong>: appuntamento fittizio per presentare inCittà, non confermato dal locale. Non è possibile prenotare.</p>';
-                    $description .= '<p>Fotografia illustrativa (non dell’evento): '.e(strip_tags($credit['author'])).' — <a href="'.e($credit['source']).'">'.e($credit['title']).'</a>, '.e($credit['license']).'.'.($credit['license_url'] ? ' <a href="'.e($credit['license_url']).'">Licenza</a>.' : '').' Ritagli e ridimensionamenti automatici nelle anteprime.</p>';
+                    $description = $row['description']."\n\nEvento dimostrativo: appuntamento fittizio per presentare inCittà, non confermato dal locale. Non è possibile prenotare.";
+                    $description .= "\n\nFotografia illustrativa (non dell’evento): ".html_entity_decode(strip_tags($credit['author'])).' — '.$credit['title'].', '.$credit['license'].".\nFonte: ".$credit['source']."\nLicenza: ".$credit['license_url']."\nRitagli e ridimensionamenti automatici nelle anteprime.";
                     $event = DB::transaction(function () use ($city, $venue, $categories, $row, $ref, $date, $paid, $index, $description) {
                         $event = Event::create([
                             'city_id' => $city->id, 'venue_id' => $venue->id, 'category_id' => $categories[$row['category']]->id,
