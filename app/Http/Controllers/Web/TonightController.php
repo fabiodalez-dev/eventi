@@ -54,7 +54,7 @@ class TonightController extends Controller
             ], fn ($value) => $value !== null && $value !== ''));
         }
         $zones = collect(config()->array('discovery-geography.'.$city->slug.'.districts', []));
-        $municipalities = config('discovery-geography.'.$city->slug.'.municipalities', [$city->name]);
+        $municipalities = config()->array('discovery-geography.'.$city->slug.'.municipalities', [$city->name]);
         $dates = $question === 'results' ? $discovery->find($city, $input) : new Collection;
         $counts = $discovery->counts($city, $input);
         $municipalities = collect($municipalities)->sortBy(fn (string $name): int => ($counts['municipalities'][$name] ?? 0) > 0 ? 0 : 1)->values()->all();
