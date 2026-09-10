@@ -840,7 +840,7 @@ function dialoghi() {
          * il dialogo stesso e non qualcosa dentro di lui.
          */
         dialogo.addEventListener("click", (evento) => {
-            if (evento.target === dialogo) {
+            if (evento.target === dialogo || evento.target.hasAttribute("data-dialog-backdrop")) {
                 dialogo.close();
             }
         });
