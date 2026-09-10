@@ -123,6 +123,40 @@ async function startMap(shell) {
     let loading = false;
     let settled = false;
     let currentPayload = config.payload ?? { markers: [], categories: [] };
+    let ready = false;
+    let automaticFrame = false;
+    let frameRequest = null;
+
+    const frameResults = () => {
+        // Explicit venue/event centres stay fixed. Result maps include every
+        // loaded marker, even beyond the city boundary or after a resize.
+        if (!config.bounds) return;
+        const markers = toMarkers(currentPayload);
+        const bounds = markers.length ? {
+            min_lng: Math.min(...markers.map(marker => marker.lng)),
+            max_lng: Math.max(...markers.map(marker => marker.lng)),
+            min_lat: Math.min(...markers.map(marker => marker.lat)),
+            max_lat: Math.max(...markers.map(marker => marker.lat)),
+        } : config.bounds;
+        if (!Object.values(bounds).every(Number.isFinite)) return;
+        map.fitBounds([
+            [bounds.min_lng, bounds.min_lat],
+            [bounds.max_lng, bounds.max_lat],
+        ], { padding: { top: 56, bottom: 56, left: 56, right: 88 }, maxZoom: 14, duration: 0 });
+        if (searchButton) searchButton.hidden = true;
+    };
+
+    const scheduleFraming = () => {
+        if (!ready) return;
+        automaticFrame = true;
+        cancelAnimationFrame(frameRequest);
+        frameRequest = requestAnimationFrame(() => {
+            frameResults();
+            automaticFrame = false;
+        });
+    };
+    // MapLibre observes the container, including responsive column changes.
+    map.on("resize", scheduleFraming);
 
     const closeSheet = () => {
         if (sheet) sheet.hidden = true;
@@ -262,12 +296,8 @@ async function startMap(shell) {
             map.on("mouseleave", layer, () => { map.getCanvas().style.cursor = ""; });
         }
 
-        if (config.bounds && Object.values(config.bounds).every((value) => typeof value === "number")) {
-            map.fitBounds([
-                [config.bounds.min_lng, config.bounds.min_lat],
-                [config.bounds.max_lng, config.bounds.max_lat],
-            ], { padding: 48, maxZoom: 14, duration: 0 });
-        }
+        ready = true;
+        scheduleFraming();
 
         renderAccessibleMarkers(currentPayload);
         map.once("idle", () => { settled = true; });
@@ -284,10 +314,12 @@ async function startMap(shell) {
     window.addEventListener('appearance:change', changeTheme);
     map.on('remove', () => {
         themeRevision++;
+        ready = false;
+        cancelAnimationFrame(frameRequest);
         window.removeEventListener('appearance:change', changeTheme);
     });
     map.on("moveend", () => {
-        if (settled && searchButton && !config.static) searchButton.hidden = false;
+        if (settled && !automaticFrame && searchButton && !config.static) searchButton.hidden = false;
     });
     searchButton?.addEventListener("click", () => void load());
 }
