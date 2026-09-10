@@ -19,7 +19,7 @@
                 $options = $question === 'municipality' ? $municipalities : $zones->all();
                 $allLabel = $question === 'municipality' ? __('tonight.everywhere') : __('tonight.any_zone');
                 $choices = array_combine($options, $options);
-                $choices = $question === 'municipality' ? [($options[0] ?? $city->name) => ($options[0] ?? $city->name), $allLabel => '', ...$choices] : [$allLabel => '', ...$choices];
+                $choices = [$allLabel => '', ...$choices];
             @endphp
             <div data-place-choices>
                 <label class="block text-sm text-ink-muted">{{ __('tonight.search_place') }}
