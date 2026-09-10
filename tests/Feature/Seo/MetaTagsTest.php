@@ -29,10 +29,10 @@ it('dichiara canonical, Open Graph e X su una scheda evento', function (): void 
     $html = $this->get(route('events.show', $event))->assertOk()->getContent();
 
     expect($html)
-        ->toContain('<link rel="canonical" href="'.route('events.show', $event).'">')
+        ->toContain('<link rel="canonical" href="'.route('events.occurrence', ['slug' => $event->slug, 'occurrence' => $event->occurrences()->first()->id]).'">')
         ->toContain('<meta name="robots" content="index, follow">')
         ->toContain('<meta property="og:title" content="Concerto al circolo a '.$this->city->name.'">')
-        ->toContain('<meta property="og:url" content="'.route('events.show', $event).'">')
+        ->toContain('<meta property="og:url" content="'.route('events.occurrence', ['slug' => $event->slug, 'occurrence' => $event->occurrences()->first()->id]).'">')
         ->toContain('<meta name="twitter:title" content="Concerto al circolo a '.$this->city->name.'">')
         ->toContain('<meta property="og:description" content="Una serata di musica dal vivo.">')
         ->toContain('<meta name="twitter:description" content="Una serata di musica dal vivo.">');

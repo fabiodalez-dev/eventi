@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Admin\Pages;
 
 use App\Models\City;
+use App\Support\CurrentCity;
 use BackedEnum;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -47,6 +48,10 @@ class SeoOverview extends Page
         $state = $this->getSchema('form')->getState();
         $city = City::findOrFail($state['city_id']);
         $city->update(['seo' => array_replace($city->seo ?? [], ['google_verification' => $state['verification'] ?? null])]);
+        $currentCity = app(CurrentCity::class);
+        if ($currentCity->get()?->id === $city->id) {
+            $currentCity->set($city);
+        }
         Notification::make()->title(__('seo.search_console.saved'))->success()->send();
     }
 

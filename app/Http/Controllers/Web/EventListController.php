@@ -120,6 +120,10 @@ final class EventListController extends Controller
             $meta = $editorial->meta($taxonomy, $meta)->withIndexable($meta->indexable && $editorial->taxonomyIndexable($taxonomy, $city));
         }
 
+        if (request()->integer('page', 1) > 1) {
+            $meta = $meta->withTitle($meta->title.' — Pagina '.request()->integer('page'));
+        }
+
         return view('events.index', [
             'city' => $city,
             'taxonomy' => $taxonomy,
@@ -145,7 +149,7 @@ final class EventListController extends Controller
             'venues' => $this->facets->venues($city),
             'structuredData' => [$this->structuredData->collection($meta->title, $meta->canonical,
                 collect($occurrences->items())->map(fn ($occurrence): array => [
-                    'name' => $occurrence->event->title, 'url' => route('events.show', $occurrence->event),
+                    'name' => $occurrence->event->title, 'url' => route('events.occurrence', ['slug' => $occurrence->event->slug, 'occurrence' => $occurrence->id]),
                 ])->values()->all()), $this->structuredData->breadcrumbs([
                     ['name' => __('ui.nav.home'), 'url' => url('/')],
                     ['name' => $meta->heading, 'url' => url()->current()],

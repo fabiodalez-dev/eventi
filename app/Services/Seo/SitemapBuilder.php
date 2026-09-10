@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Seo;
 
+use App\DTOs\EventFilters;
 use App\Models\Category;
 use App\Models\City;
 use App\Models\Event;
@@ -12,6 +13,7 @@ use App\Models\Page;
 use App\Models\Tag;
 use App\Models\Venue;
 use App\Queries\EventOccurrenceQuery;
+use App\Services\Search\EventFinder;
 use App\Support\ContentVersion;
 use Carbon\CarbonImmutable;
 use DateTimeInterface;
@@ -153,7 +155,7 @@ final class SitemapBuilder
             $key,
             now()->addMinutes(config()->integer('seo.sitemap.ttl_minutes')),
             fn (): array => match ($section) {
-                'pagine' => $this->staticPages(),
+                'pagine' => $this->staticPages($city),
                 'eventi' => $this->events($city),
                 'locali' => $this->venues($city),
                 'tassonomie' => $this->taxonomies($city),
@@ -172,7 +174,7 @@ final class SitemapBuilder
      *
      * @return list<array{loc: string, lastmod?: string|null, changefreq: string, priority: float}>
      */
-    private function staticPages(): array
+    private function staticPages(City $city): array
     {
         $routes = [
             'home' => 1.0,
@@ -192,6 +194,15 @@ final class SitemapBuilder
 
         foreach ($routes as $name => $priority) {
             if (! Route::has($name)) {
+                continue;
+            }
+
+            $filter = match ($name) {
+                'events.today' => ['date' => 'today'], 'events.tomorrow' => ['date' => 'tomorrow'],
+                'events.weekend' => ['date' => 'weekend'], 'events.free' => ['price' => 'free'],
+                default => null,
+            };
+            if ($filter !== null && ! $this->hasResults($city, $filter)) {
                 continue;
             }
 
@@ -228,24 +239,36 @@ final class SitemapBuilder
             ->inCity($city)
             ->readable()
             ->orderBy('id')
-            ->select(['id', 'slug', 'updated_at', 'seo', 'is_demo'])
-            ->with('occurrences')
+            ->select(['id', 'slug', 'updated_at', 'seo', 'is_demo', 'venue_id', 'organizer_id', 'content_details'])
+            ->with(['occurrences.venue', 'occurrences.lineups', 'occurrences.ticketTiers', 'venue', 'organizer', 'media', 'ticketTiers'])
+            ->withCount('recurrences')
             ->chunk(500, function ($events) use (&$urls): void {
                 foreach ($events as $event) {
                     if (! app(EditorialContent::class)->indexable($event)) {
                         continue;
                     }
-                    $urls[] = [
-                        'loc' => route('events.show', $event),
-                        'lastmod' => $this->lastModified($event->getAttribute('updated_at')),
-                        'changefreq' => Url::CHANGE_FREQUENCY_WEEKLY,
-                        'priority' => 0.8,
-                    ];
-                    foreach ($event->occurrences as $date) {
-                        $urls[] = ['loc' => route('events.occurrence', ['slug' => $event->slug, 'occurrence' => $date->id]),
-                            'lastmod' => $this->lastModified($date->getAttribute('updated_at')),
-                            'changefreq' => Url::CHANGE_FREQUENCY_WEEKLY, 'priority' => 0.7];
+                    $shared = collect([$event->getAttribute('updated_at'), $event->venue?->getAttribute('updated_at'), $event->organizer?->updated_at])
+                        ->merge($event->media->pluck('updated_at'))
+                        ->merge($event->ticketTiers->pluck('updated_at'));
+                    $registered = $event->content_details['organizer_venue_id'] ?? null;
+                    if ($registered !== null) {
+                        $shared->push(Venue::whereKey($registered)->value('updated_at'));
                     }
+                    $dateEntries = [];
+                    foreach ($event->occurrences as $date) {
+                        $modified = $shared->merge([$date->getAttribute('updated_at'), $date->venue?->getAttribute('updated_at')])
+                            ->merge($date->lineups->pluck('updated_at'))->merge($date->ticketTiers->pluck('updated_at'))
+                            ->filter()->map(fn ($value) => CarbonImmutable::parse($value))->max();
+                        $dateEntries[] = ['loc' => route('events.occurrence', ['slug' => $event->slug, 'occurrence' => $date->id]),
+                            'lastmod' => $this->lastModified($modified),
+                            'changefreq' => Url::CHANGE_FREQUENCY_WEEKLY, 'priority' => 0.8];
+                    }
+                    if ($event->occurrences->count() > 1 || $event->recurrences_count > 0) {
+                        $urls[] = ['loc' => route('events.show', $event),
+                            'lastmod' => collect($dateEntries)->pluck('lastmod')->max() ?? $this->lastModified($event->getAttribute('updated_at')),
+                            'changefreq' => Url::CHANGE_FREQUENCY_WEEKLY, 'priority' => 0.8];
+                    }
+                    array_push($urls, ...$dateEntries);
                 }
             });
 
@@ -293,7 +316,7 @@ final class SitemapBuilder
         $urls = [];
 
         foreach (Category::query()->active()->ordered()->get() as $category) {
-            if (! app(EditorialContent::class)->taxonomyIndexable($category, $city)) {
+            if (! app(EditorialContent::class)->taxonomyIndexable($category, $city) || ! $this->hasResults($city, ['category' => $category->slug])) {
                 continue;
             }
             $urls[] = [
@@ -304,7 +327,7 @@ final class SitemapBuilder
         }
 
         foreach (Tag::query()->approved()->popular()->orderBy('name')->get() as $tag) {
-            if (! app(EditorialContent::class)->taxonomyIndexable($tag, $city)) {
+            if (! app(EditorialContent::class)->taxonomyIndexable($tag, $city) || ! $this->hasResults($city, ['tag' => $tag->slug])) {
                 continue;
             }
             $urls[] = [
@@ -346,6 +369,12 @@ final class SitemapBuilder
         }
 
         return $urls;
+    }
+
+    /** @param array<string, string> $parameters */
+    private function hasResults(City $city, array $parameters): bool
+    {
+        return app(EventFinder::class)->query($city, EventFilters::fromArray($parameters))->count() > 0;
     }
 
     private function lastModified(mixed $value): string

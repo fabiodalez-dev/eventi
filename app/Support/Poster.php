@@ -69,6 +69,24 @@ final class Poster
         return Str::startsWith($poster, ['http://', 'https://']) ? $poster : url($poster);
     }
 
+    /** @return list<string> */
+    public static function schemaImages(Event $event): array
+    {
+        $urls = [];
+        $media = $event->getFirstMedia('poster');
+        foreach (['schema-square', 'schema-landscape', 'schema-wide'] as $name) {
+            if ($media?->hasGeneratedConversion($name)) {
+                $urls[] = $media->getFullUrl($name);
+            }
+        }
+        $original = self::absoluteUrl($event);
+        if ($original !== null) {
+            $urls[] = $original;
+        }
+
+        return array_values(array_unique($urls));
+    }
+
     /**
      * La locandina con tutte le sue varianti (§12.1), pronta per un
      * `<picture>`.

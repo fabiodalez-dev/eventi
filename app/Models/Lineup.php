@@ -17,6 +17,9 @@ class Lineup extends Model
     use HasFactory;
 
     /** @var list<string> */
+    protected $touches = ['occurrence'];
+
+    /** @var list<string> */
     protected $fillable = [
         'occurrence_id',
         'name',

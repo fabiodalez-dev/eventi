@@ -8,9 +8,7 @@
 @php
     $formatter = app(\App\Support\DateFormatter::class);
     $venue = isset($selectedOccurrence) && $selectedOccurrence !== null ? $selectedOccurrence->effectiveVenue() : $event->venue;
-    $organizerEvent = clone $event;
-    $organizerEvent->setRelation('venue', $venue);
-    $organizerInfo = app(\App\Services\Seo\StructuredData::class)->organizer($organizerEvent);
+    $organizerInfo = app(\App\Services\Seo\StructuredData::class)->organizer($event);
     /*
      * Quanto spazio occupa DAVVERO. La fascia di apertura e' una griglia a due
      * colonne che si affiancano a 800px (`minmax(min(400px,100%),1fr)`), e da
@@ -25,7 +23,7 @@
      */
     $poster = \App\Support\Poster::imageSet($event)?->withSizes('(min-width: 800px) 50vw, 100vw');
     $custom = is_array($event->custom_location) ? $event->custom_location : [];
-    $shareUrl = route('events.show', $event);
+    $shareUrl = $meta->canonical ?? route('events.show', $event);
     $dates = $occurrences->isNotEmpty() ? $occurrences : $pastOccurrences;
     $shown = $dates->take(config('eventi.dates_shown'));
     $lineups = $dates->flatMap(fn ($occurrence) => $occurrence->lineups)->unique('id');
@@ -85,6 +83,10 @@
             @endif
             {{ $shown->first() !== null ? $formatter->day($shown->first()->business_date) : '' }}
         </span>
+        @if (($selectedOccurrence ?? null) !== null)
+            <a class="underline min-h-12 inline-flex items-center" href="{{ route('events.show', $event) }}">{{ $event->title }}</a>
+            <span aria-current="page">{{ $selectedOccurrence->starts_at->copy()->timezone($city->timezone)->format('d/m/Y') }}</span>
+        @endif
     </nav>
 
     {{-- ------------------------------------------------------------------

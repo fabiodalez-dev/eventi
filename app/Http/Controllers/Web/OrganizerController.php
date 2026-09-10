@@ -53,7 +53,7 @@ class OrganizerController extends Controller
 
         return view('organizers.show', ['organizer' => $organizer, 'occurrences' => $dates, 'past' => $past,
             'meta' => new PageMeta(title: $organizer->name, heading: $organizer->name, description: Str::limit(strip_tags($organizer->description ?? ''), 160), canonical: route('organizers.show', $organizer)),
-            'structuredData' => [['@context' => 'https://schema.org', '@type' => 'Organization', 'name' => $organizer->name, 'url' => route('organizers.show', $organizer)]]]);
+            'structuredData' => [['@context' => 'https://schema.org', '@type' => 'Organization', '@id' => route('organizers.show', $organizer).'#organizer', 'name' => $organizer->name, 'url' => route('organizers.show', $organizer)]]]);
     }
 
     /** @return array<string, mixed> */

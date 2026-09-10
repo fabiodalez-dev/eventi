@@ -45,7 +45,6 @@ return [
             '/widget',
             '/api/',
             '/docs/api',
-            '/cerca',
         ],
     ],
 
