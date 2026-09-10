@@ -112,7 +112,11 @@
                      capo» nel testo non è un «a capo» a schermo. I due valori
                      inseriti passano da `e()`; il testo attorno è nostro. --}}
                 <span class="hero-title-dark">{!! nl2br(__('ui.hero.title', ['city' => e($city?->name ?? config('app.name')), 'accent' => '<span class="text-accent">'.e(__('ui.hero.title_accent')).'</span>'])) !!}</span>
-                <span class="hero-title-light">{!! nl2br(__('ui.hero.title_light', ['city' => e($city?->name ?? config('app.name')), 'accent' => '<span class="text-accent">'.e(__('ui.hero.title_accent')).'</span>'])) !!}</span>
+                <span class="hero-title-light">
+                    @foreach (explode("\n", __('ui.hero.title_light', ['city' => e($city?->name ?? config('app.name')), 'accent' => '<span class="text-accent">'.e(__('ui.hero.title_accent')).'</span>'])) as $heroLine)
+                        <span class="hero-title-line">{!! $heroLine !!}</span>
+                    @endforeach
+                </span>
             </h1>
 
             <p class="home-lead m-0 max-w-[52ch] text-[clamp(0.938rem,1.15vw,1.063rem)] leading-[1.55] text-pretty text-ink-muted">

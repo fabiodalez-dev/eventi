@@ -129,7 +129,7 @@
 .hero-title-light { display: none; }
 :root[data-theme="light"] {
     --font-sans: 'Manrope Variable', ui-sans-serif, system-ui, sans-serif;
-    --font-display: 'Manrope Variable', ui-sans-serif, system-ui, sans-serif;
+    --font-display: 'Bricolage Grotesque Variable', ui-sans-serif, system-ui, sans-serif;
     --canvas: oklch(98.8% 0.002 80);
     --surface: oklch(96.5% 0.003 80);
     --surface-raised: oklch(99.4% 0.001 80);
@@ -146,9 +146,17 @@
     --accent-soft: oklch(96.5% 0.01 65);
 }
 :root[data-theme="light"] body,
-:root[data-theme="light"] .font-display { font-family: var(--font-display); }
+:root[data-theme="light"] .font-display { font-family: var(--font-sans); }
+:root[data-theme="light"] :is(h1, h2, h3, h4, .text-hero, .text-section) {
+    font-family: var(--font-display);
+    font-optical-sizing: auto;
+    font-weight: 700;
+    letter-spacing: -.035em;
+}
+
 :root[data-theme="light"] .hero-title-dark { display: none; }
 :root[data-theme="light"] .hero-title-light { display: inline; }
+:root[data-theme="light"] .hero-title-line { display: block; }
 :root[data-theme="light"] .site-header { backdrop-filter: none; }
 :root[data-theme="light"] .site-header [role="search"] {
     border-radius: 8px;
@@ -171,8 +179,9 @@
 :root[data-theme="light"] .home-headline {
     font-size: clamp(42px, 7.8vw, 132px);
     line-height: .94;
-    font-weight: 650;
-    letter-spacing: -.06em;
+    font-weight: 800;
+    font-variation-settings: "opsz" 96;
+    letter-spacing: -.045em;
     overflow-wrap: anywhere;
 }
 :root[data-theme="light"] .home-lead {
@@ -269,7 +278,7 @@
 :root[data-theme="light"] .event-card time { font-size: 12px; letter-spacing: 0; font-weight: 700; }
 :root[data-theme="light"] .event-card .text-ink-subtle { font-size: 12px; }
 :root[data-theme="light"] h2[id^="sezione-"] {
-    font-weight: 650;
+    font-weight: 700;
     font-size: clamp(32px, 4vw, 60px);
     letter-spacing: -.045em;
     line-height: 1;
@@ -284,7 +293,7 @@
 }
 @media (max-width: 639px) {
     :root[data-theme="light"] .home-intro { gap: 24px; }
-    :root[data-theme="light"] .home-headline { font-size: clamp(40px, 12.5vw, 72px); letter-spacing: -.055em; }
+    :root[data-theme="light"] .home-headline { font-size: clamp(40px, 12.5vw, 72px); letter-spacing: -.045em; }
     :root[data-theme="light"] .home-opening [data-home-hero] { min-height: 400px; }
     :root[data-theme="light"] .home-shortcuts a { padding: 11px 13px; }
     :root[data-theme="light"] .event-card { padding: 24px; }
