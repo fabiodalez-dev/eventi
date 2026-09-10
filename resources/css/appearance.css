@@ -114,3 +114,14 @@
 :root[data-theme="light"] .photo-panel .bg-surface { color: #faf9f6; }
 
 :root[data-theme="light"] .bg-accent-soft { --on-accent: #963e1b; }
+
+@media (max-width: 639px) {
+    .appearance-menu > summary {
+        width: 32px;
+        min-width: 32px;
+        min-height: 40px;
+        padding-inline: 0;
+        gap: 0;
+    }
+    .appearance-menu > summary svg { width: 18px; height: 18px; }
+}
