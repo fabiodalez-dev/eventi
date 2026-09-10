@@ -76,7 +76,7 @@ Il testo è configurabile e i chip sopra il campo inseriscono:
 | `:parti` | Numero totale delle parti |
 
 I segnaposti sconosciuti sono respinti al salvataggio. La didascalia compilata
-deve restare entro 2.200 caratteri; in caso contrario l'invio viene fermato.
+deve restare entro 2.200 caratteri (1.024 con Telegram abilitato); in caso contrario l'invio viene fermato.
 Prima dell'invio manuale si vedono le didascalie effettive.
 
 L'automatismo è **spento per default**. Dopo il collegamento verificato si
@@ -99,9 +99,9 @@ condiviso col sito, comprese le regole degli eventi notturni.
   Il pulsante di nuovo tentativo richiede di aver controllato sul social che
   il post non esista già.
 - Gli URL temporanei delle immagini durano sette giorni e possono essere
-  letti da Meta; i file e gli ZIP non sono in una directory pubblica.
+  letti da Meta e Telegram; i file e gli ZIP non sono in una directory pubblica.
 - Non c'è pubblicazione reale finché non vengono forniti token validi e
-  attivati i canali. I test automatici usano risposte Meta simulate.
+  attivati i canali. I test automatici usano risposte Meta e Telegram simulate.
 
 ## Dipendenze e rilascio
 
@@ -110,3 +110,65 @@ server pubblico). Non richiede browser, Node o un servizio di grafica esterno.
 Sono necessarie le migrazioni `2026_09_06_120000` e `2026_09_06_130000` e
 `composer install` dal lock aggiornato. Scheduler e worker già presenti
 restano i medesimi. Nessun APK viene generato da questo rilascio.
+
+## Autenticazione Meta dal backend
+
+In Social → Impostazioni inserire App ID e App Secret dell’app Meta.
+Registrare in Facebook Login l’URL di callback mostrato nella pagina, identico
+al dominio HTTPS pubblico. «Collega con Meta» apre l’autorizzazione; dopo
+il consenso si sceglie una delle Pagine amministrate. Il sistema recupera
+il token della Pagina e l’account Instagram professionale collegato.
+Il flusso richiede anche `pages_show_list` e usa uno stato monouso valido
+dieci minuti. Rimane disponibile l’inserimento manuale degli ID e del token.
+App Secret e token sono cifrati e non vengono rimostrati nel modulo.
+La pubblicazione automatica resta spenta dopo il collegamento.
+
+## Collegare Telegram
+
+1. Creare un bot tramite BotFather e inserirne il token in Social → Impostazioni.
+2. Aggiungere il bot come amministratore del canale con il permesso di pubblicare.
+3. Inserire `@nomecanale` oppure l’ID numerico del canale, abilitare Telegram,
+   salvare e premere «Verifica Telegram». La verifica non invia messaggi.
+
+Una sola immagine viene inviata come foto, più immagini come album in parti
+fino a dieci, con la didascalia sulla prima immagine. La didascalia deve
+rientrare in 1.024 caratteri: se necessario accorciare il modello prima di
+preparare il contenuto. Il token del bot è cifrato e nascosto; errori e
+diagnostica non registrano gli URL Telegram contenenti la credenziale.
+
+## Programmare, spostare o annullare un post
+
+In Social preparare le grafiche, scegliere data e ora nella sezione
+«Programma la pubblicazione» e premere «Programma» sul contenuto preparato.
+L’ora segue il fuso della città, indicato accanto al campo. Le pubblicazioni
+programmate compaiono nello storico per ciascun canale e parte.
+Per spostarle impostare la nuova data e premere «Usa la nuova data e ora»
+sulla riga desiderata; «Annulla programmazione» annulla quella riga finché
+non è già entrata in esecuzione. Le storie restano scaricabili manualmente.
+
+`social:publish-due` controlla ogni minuto e accoda una sola volta i post
+scaduti. L’orario effettivo dipende anche dal worker e dai tempi delle API.
+I contenuti vengono ricontrollati all’invio: eventi modificati richiedono
+nuove grafiche. Gli URL firmati delle immagini vengono creati al momento
+dell’invio, quindi una programmazione lontana non li fa scadere in anticipo.
+
+## Cron e monitoraggio
+
+Sistema → Cron e programmazioni mostra tutte le attività registrate nello
+scheduler, con spiegazione, frequenza, prossima esecuzione e storico del
+monitor. La pagina genera i due comandi cron per il percorso e PHP del
+server: scheduler e worker ogni minuto, protetti da `flock`. Tutte le
+programmazioni applicative passano dallo scheduler centrale; non aggiungere
+un cron separato per ciascuna attività. Sostituire eventuali righe precedenti,
+senza duplicarle. Se il processo web non può leggere il crontab, la pagina
+lo indica senza dichiarare i cron assenti.
+
+Sul server eventi sono installati entrambi i cron. Il percorso PHP può
+essere configurato con `SCHEDULER_PHP_BINARY`. Dopo il rilascio delle tre
+migrazioni `2026_09_10_150000`, `150100` e `150200`, eseguire
+`php artisan schedule-monitor:sync` per registrare subito la nuova attività.
+
+L’integrazione usa il publisher applicativo esistente, esteso con Telegram
+e OAuth Meta. La libreria laravel-social-auto-post è stata valutata ma non
+aggiunta: il flusso esistente conserva stato dei contenitori Instagram,
+deduplicazione e gestione esplicita degli invii dall’esito incerto.

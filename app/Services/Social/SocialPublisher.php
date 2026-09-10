@@ -54,11 +54,17 @@ final class SocialPublisher
         return $number.'. '.$item['title'].($meta !== '' ? "\n".$meta : '').($organizer !== '' && $organizer !== $venue ? "\n".__('social.organized_by', ['name' => $organizer]) : '');
     }
 
-    public function enqueue(SocialBatch $batch, bool $automatic = false): void
+    public function enqueue(SocialBatch $batch, bool $automatic = false, ?CarbonImmutable $scheduledAt = null): void
     {
+        if ($scheduledAt !== null && $scheduledAt->isPast()) {
+            throw new RuntimeException('Scegli una data e un orario futuri.');
+        }
         $connection = SocialConnection::where('city_id', $batch->city_id)->first();
-        if (! $connection || ! $connection->verified_at || (! $connection->facebook_enabled && ! $connection->instagram_enabled) || $batch->venue_id !== null) {
+        if (! $connection || ((! $connection->verified_at || (! $connection->facebook_enabled && ! $connection->instagram_enabled)) && (! $connection->telegram_enabled || ! $connection->telegram_verified_at)) || $batch->venue_id !== null) {
             throw new RuntimeException(__('social.not_connected'));
+        }
+        if ((($connection->facebook_enabled || $connection->instagram_enabled) && ! $connection->verified_at) || ($connection->telegram_enabled && ! $connection->telegram_verified_at)) {
+            throw new RuntimeException('Verifica tutti i canali abilitati oppure disattiva quelli che non vuoi usare.');
         }
         if ($batch->format === 'story') {
             throw new RuntimeException(__('social.story_manual'));
@@ -68,18 +74,21 @@ final class SocialPublisher
         if (collect($captions)->contains(fn ($text) => mb_strlen($text) > 2200)) {
             throw new RuntimeException(__('social.caption_long'));
         }
+        if ($connection->telegram_enabled && collect($captions)->contains(fn ($text) => mb_strlen($text) > 1024)) {
+            throw new RuntimeException('Telegram ammette 1024 caratteri: accorcia il modello della didascalia prima di programmare.');
+        }
         // Store precisely the captions shown at enqueue time; later settings edits cannot change a queued post.
         $options = $batch->options;
         $options['captions'] = $captions;
         $batch->update(['options' => $options, 'caption' => implode("\n\n", $captions)]);
-        foreach (['facebook', 'instagram'] as $platform) {
-            if (! $connection->{$platform.'_enabled'}) {
+        foreach (['facebook', 'instagram', 'telegram'] as $platform) {
+            if (! $connection->{$platform.'_enabled'} || ($platform === 'telegram' ? ! $connection->telegram_verified_at : ! $connection->verified_at)) {
                 continue;
             }
             foreach ($captions as $part => $caption) {
                 $key = $connection->id.':'.$platform.':'.($automatic ? $batch->date->format('Y-m-d') : $batch->id).':'.$part;
-                $publication = SocialPublication::firstOrCreate(['dedupe_key' => $key], ['social_batch_id' => $batch->id, 'social_connection_id' => $connection->id, 'platform' => $platform, 'part' => $part, 'remote_ids' => ['page_id' => $connection->page_id, 'instagram_id' => $connection->instagram_id]]);
-                if ($publication->wasRecentlyCreated) {
+                $publication = SocialPublication::firstOrCreate(['dedupe_key' => $key], ['social_batch_id' => $batch->id, 'social_connection_id' => $connection->id, 'platform' => $platform, 'part' => $part, 'status' => $scheduledAt === null ? 'queued' : 'scheduled', 'scheduled_at' => $scheduledAt, 'remote_ids' => ['page_id' => $connection->page_id, 'instagram_id' => $connection->instagram_id, 'telegram_chat_id' => $connection->telegram_chat_id]]);
+                if ($publication->wasRecentlyCreated && $scheduledAt === null) {
                     PublishSocial::dispatch($publication->id)->afterCommit();
                 }
             }
@@ -121,6 +130,7 @@ final class SocialPublisher
 
     public function verify(SocialConnection $connection): void
     {
+        $connection->update(['verified_at' => null]);
         if ($connection->facebook_enabled) {
             $page = $this->request($connection, 'get', $connection->page_id, ['fields' => 'id,name']);
             if ((string) ($page['id'] ?? '') !== $connection->page_id) {

@@ -6,6 +6,7 @@ use App\Http\Controllers\Web\ConsentController;
 use App\Http\Controllers\Web\DeployController;
 use App\Http\Controllers\Web\EventController;
 use App\Http\Controllers\Web\ImpersonationController;
+use App\Http\Controllers\Web\MetaOAuthController;
 use App\Http\Controllers\Web\PageController;
 use App\Http\Controllers\Web\ReleaseStatusController;
 use App\Http\Controllers\Web\SeoController;
@@ -207,3 +208,10 @@ Route::post('/sponsorizzazioni/{sponsorship}/{metric}', SponsorshipMetricControl
      */
     ->middleware('throttle:sponsorship-metrics')
     ->name('sponsorships.metric');
+
+Route::middleware(['auth', 'throttle:20,1'])->prefix('social/meta')->name('social.meta.')->group(function (): void {
+    Route::get('/collega', [MetaOAuthController::class, 'connect'])->name('connect');
+    Route::get('/callback', [MetaOAuthController::class, 'callback'])->name('callback');
+    Route::get('/pagine', [MetaOAuthController::class, 'pages'])->name('pages');
+    Route::post('/pagine', [MetaOAuthController::class, 'select'])->name('select');
+});

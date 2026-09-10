@@ -1,6 +1,8 @@
 <?php
 
 return [
+    'scheduled_status' => 'Programmata',
+    'cancelled_status' => 'Programmazione annullata',
     'organized_by' => 'Organizza: :name',
     'retry' => 'Riprova dopo aver controllato', 'retry_confirm' => 'Hai verificato sul social che il post NON sia già presente e corretto eventuali problemi del collegamento? Confermando avvii un nuovo tentativo.',
     'download_today' => 'Scarica le grafiche di oggi (.zip)',

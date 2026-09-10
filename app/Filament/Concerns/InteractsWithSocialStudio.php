@@ -17,9 +17,11 @@ use App\Queries\EventOccurrenceQuery;
 use App\Services\Social\SocialCatalog;
 use App\Services\Social\SocialPublisher;
 use App\Services\Social\SocialStudio;
+use Carbon\CarbonImmutable;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Validator;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Url;
 
@@ -89,7 +91,7 @@ trait InteractsWithSocialStudio
     /** @return Collection<int, EventOccurrence> */
     public function dates(): Collection
     {
-        $this->validate(['date' => ['required', 'date_format:Y-m-d']]);
+        Validator::make(['date' => $this->date], ['date' => ['required', 'date_format:Y-m-d']])->validate();
         if ($this->event !== null) {
             Gate::authorize('update', Event::findOrFail($this->event));
         }
@@ -166,6 +168,61 @@ trait InteractsWithSocialStudio
         $this->batchId = $id;
     }
 
+    public string $scheduledAt = '';
+
+    public function schedulePublication(): void
+    {
+        abort_unless($this->socialVenue() === null && auth()->user()?->hasAnyRole(['admin', 'super_admin']), 403);
+        $this->validate(['scheduledAt' => ['required', 'date_format:Y-m-d\\TH:i']]);
+        $when = CarbonImmutable::parse($this->scheduledAt, $this->socialCity()->timezone)->utc();
+        if ($when->lessThanOrEqualTo(now())) {
+            $this->addError('scheduledAt', 'Scegli una data e un orario futuri.');
+
+            return;
+        }
+        $batch = $this->batch();
+        abort_if($batch === null, 404);
+        if (SocialPublication::where('social_batch_id', $batch->id)->exists()) {
+            $this->addError('scheduledAt', 'Questo contenuto è già nello storico. Modifica la programmazione da lì oppure prepara un nuovo contenuto.');
+
+            return;
+        }
+        try {
+            app(SocialPublisher::class)->enqueue($batch, scheduledAt: $when);
+            Notification::make()->title('Pubblicazione programmata')->success()->send();
+        } catch (\RuntimeException $e) {
+            $this->addError('scheduledAt', $e->getMessage());
+        }
+    }
+
+    public function cancelScheduledPublication(int $id): void
+    {
+        abort_unless($this->socialVenue() === null && auth()->user()?->hasAnyRole(['admin', 'super_admin']), 403);
+        SocialPublication::whereKey($id)->where('status', SocialPublicationStatus::Scheduled)
+            ->update(['status' => SocialPublicationStatus::Cancelled->value]);
+        Notification::make()->title('Programmazione annullata se non era già in esecuzione')->success()->send();
+    }
+
+    public function reschedulePublication(int $id): void
+    {
+        abort_unless($this->socialVenue() === null && auth()->user()?->hasAnyRole(['admin', 'super_admin']), 403);
+        $this->validate(['scheduledAt' => ['required', 'date_format:Y-m-d\\TH:i']]);
+        $publication = SocialPublication::findOrFail($id);
+        $batch = SocialBatch::findOrFail($publication->social_batch_id);
+        $city = City::findOrFail($batch->city_id);
+        $when = CarbonImmutable::parse($this->scheduledAt, $city->timezone)->utc();
+        if ($when->lessThanOrEqualTo(now())) {
+            $this->addError('scheduledAt', 'Scegli una data e un orario futuri.');
+
+            return;
+        }
+        $changed = SocialPublication::whereKey($id)->where('status', SocialPublicationStatus::Scheduled)
+            ->update(['scheduled_at' => $when]);
+        if ($changed) {
+            Notification::make()->title('Programmazione aggiornata')->success()->send();
+        }
+    }
+
     public function publish(): void
     {
         abort_unless($this->socialVenue() === null && auth()->user()?->hasAnyRole(['admin', 'super_admin']), 403);
@@ -188,7 +245,7 @@ trait InteractsWithSocialStudio
         try {
             app(SocialPublisher::class)->assertFresh($batch);
             $connection = SocialConnection::findOrFail($publication->social_connection_id);
-            $changed = SocialPublication::whereKey($id)->where('status', $publication->status->value)->update(['status' => SocialPublicationStatus::Queued->value, 'error' => null, 'remote_ids' => json_encode(['page_id' => $connection->page_id, 'instagram_id' => $connection->instagram_id], JSON_THROW_ON_ERROR)]);
+            $changed = SocialPublication::whereKey($id)->where('status', $publication->status->value)->update(['status' => SocialPublicationStatus::Queued->value, 'error' => null, 'remote_ids' => json_encode(['page_id' => $connection->page_id, 'instagram_id' => $connection->instagram_id, 'telegram_chat_id' => $connection->telegram_chat_id], JSON_THROW_ON_ERROR)]);
             if ($changed) {
                 PublishSocial::dispatch($id);
             }
