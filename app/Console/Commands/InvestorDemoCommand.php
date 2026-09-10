@@ -65,7 +65,7 @@ class InvestorDemoCommand extends Command
                 if ($event?->trashed()) {
                     continue; // An editor's deletion is respected.
                 }
-                if ($this->option('repair-descriptions') && $event?->is_demo && str_starts_with($event->description ?? '', '<p>') && str_contains($event->description, 'Evento dimostrativo')) {
+                if ($this->option('repair-descriptions') && $event?->getAttribute('is_demo') && str_starts_with($event->description ?? '', '<p>') && str_contains($event->description, 'Evento dimostrativo')) {
                     $text = str_replace('</p><p>', "\n\n", $event->description);
                     $text = preg_replace('~<a href="([^"]+)">([^<]*)</a>~', '$2 ($1)', $text);
                     $event->update(['description' => html_entity_decode(strip_tags($text))]);
