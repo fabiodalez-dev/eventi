@@ -1,0 +1,1802 @@
+[
+  {
+    "title": "Suoni d’acqua",
+    "description": "«Suoni d’acqua»: Il programma comprende soundcheck, due set dal vivo e una jam conclusiva. Chitarre, percussioni e voce si alternano in blocchi brevi, con pausa per domande e cambio strumenti. Il pubblico può seguire dal palco o dalle sedute laterali; all’ingresso sono indicati capienza, contributo eventuale e accessi.",
+    "category": "musica-dal-vivo",
+    "venue_type": "bar"
+  },
+  {
+    "title": "Trame elettriche",
+    "description": "«Trame elettriche»: Il programma comprende soundcheck, due set dal vivo e una jam conclusiva. Chitarre, percussioni e voce si alternano in blocchi brevi, con pausa per domande e cambio strumenti. Il pubblico può seguire dal palco o dalle sedute laterali; all’ingresso sono indicati capienza, contributo eventuale e accessi.",
+    "category": "musica-dal-vivo",
+    "venue_type": "pub"
+  },
+  {
+    "title": "Corde in cortile",
+    "description": "«Corde in cortile»: Il programma comprende soundcheck, due set dal vivo e una jam conclusiva. Chitarre, percussioni e voce si alternano in blocchi brevi, con pausa per domande e cambio strumenti. Il pubblico può seguire dal palco o dalle sedute laterali; all’ingresso sono indicati capienza, contributo eventuale e accessi.",
+    "category": "musica-dal-vivo",
+    "venue_type": "circolo"
+  },
+  {
+    "title": "Voci del Brenta",
+    "description": "«Voci del Brenta»: Il programma comprende soundcheck, due set dal vivo e una jam conclusiva. Chitarre, percussioni e voce si alternano in blocchi brevi, con pausa per domande e cambio strumenti. Il pubblico può seguire dal palco o dalle sedute laterali; all’ingresso sono indicati capienza, contributo eventuale e accessi.",
+    "category": "musica-dal-vivo",
+    "venue_type": "centro_sociale"
+  },
+  {
+    "title": "Ritmi di quartiere",
+    "description": "«Ritmi di quartiere»: Il programma comprende soundcheck, due set dal vivo e una jam conclusiva. Chitarre, percussioni e voce si alternano in blocchi brevi, con pausa per domande e cambio strumenti. Il pubblico può seguire dal palco o dalle sedute laterali; all’ingresso sono indicati capienza, contributo eventuale e accessi.",
+    "category": "musica-dal-vivo",
+    "venue_type": "club"
+  },
+  {
+    "title": "Legni e ottoni",
+    "description": "«Legni e ottoni»: Il programma comprende soundcheck, due set dal vivo e una jam conclusiva. Chitarre, percussioni e voce si alternano in blocchi brevi, con pausa per domande e cambio strumenti. Il pubblico può seguire dal palco o dalle sedute laterali; all’ingresso sono indicati capienza, contributo eventuale e accessi.",
+    "category": "musica-dal-vivo",
+    "venue_type": "teatro"
+  },
+  {
+    "title": "Piccolo atlante sonoro",
+    "description": "«Piccolo atlante sonoro»: Il programma comprende soundcheck, due set dal vivo e una jam conclusiva. Chitarre, percussioni e voce si alternano in blocchi brevi, con pausa per domande e cambio strumenti. Il pubblico può seguire dal palco o dalle sedute laterali; all’ingresso sono indicati capienza, contributo eventuale e accessi.",
+    "category": "musica-dal-vivo",
+    "venue_type": "spazio_pubblico"
+  },
+  {
+    "title": "Onde acustiche",
+    "description": "«Onde acustiche»: Il programma comprende soundcheck, due set dal vivo e una jam conclusiva. Chitarre, percussioni e voce si alternano in blocchi brevi, con pausa per domande e cambio strumenti. Il pubblico può seguire dal palco o dalle sedute laterali; all’ingresso sono indicati capienza, contributo eventuale e accessi.",
+    "category": "musica-dal-vivo",
+    "venue_type": "bar"
+  },
+  {
+    "title": "Notturno di provincia",
+    "description": "«Notturno di provincia»: Il programma comprende soundcheck, due set dal vivo e una jam conclusiva. Chitarre, percussioni e voce si alternano in blocchi brevi, con pausa per domande e cambio strumenti. Il pubblico può seguire dal palco o dalle sedute laterali; all’ingresso sono indicati capienza, contributo eventuale e accessi.",
+    "category": "musica-dal-vivo",
+    "venue_type": "pub"
+  },
+  {
+    "title": "Armonie in transito",
+    "description": "«Armonie in transito»: Il programma comprende soundcheck, due set dal vivo e una jam conclusiva. Chitarre, percussioni e voce si alternano in blocchi brevi, con pausa per domande e cambio strumenti. Il pubblico può seguire dal palco o dalle sedute laterali; all’ingresso sono indicati capienza, contributo eventuale e accessi.",
+    "category": "musica-dal-vivo",
+    "venue_type": "circolo"
+  },
+  {
+    "title": "Piano e polvere",
+    "description": "«Piano e polvere»: Il programma comprende soundcheck, due set dal vivo e una jam conclusiva. Chitarre, percussioni e voce si alternano in blocchi brevi, con pausa per domande e cambio strumenti. Il pubblico può seguire dal palco o dalle sedute laterali; all’ingresso sono indicati capienza, contributo eventuale e accessi.",
+    "category": "musica-dal-vivo",
+    "venue_type": "centro_sociale"
+  },
+  {
+    "title": "Frequenze gentili",
+    "description": "«Frequenze gentili»: Il programma comprende soundcheck, due set dal vivo e una jam conclusiva. Chitarre, percussioni e voce si alternano in blocchi brevi, con pausa per domande e cambio strumenti. Il pubblico può seguire dal palco o dalle sedute laterali; all’ingresso sono indicati capienza, contributo eventuale e accessi.",
+    "category": "musica-dal-vivo",
+    "venue_type": "club"
+  },
+  {
+    "title": "Canzoni in prestito",
+    "description": "«Canzoni in prestito»: Il programma comprende soundcheck, due set dal vivo e una jam conclusiva. Chitarre, percussioni e voce si alternano in blocchi brevi, con pausa per domande e cambio strumenti. Il pubblico può seguire dal palco o dalle sedute laterali; all’ingresso sono indicati capienza, contributo eventuale e accessi.",
+    "category": "musica-dal-vivo",
+    "venue_type": "teatro"
+  },
+  {
+    "title": "Passi di swing",
+    "description": "«Passi di swing»: Il programma comprende soundcheck, due set dal vivo e una jam conclusiva. Chitarre, percussioni e voce si alternano in blocchi brevi, con pausa per domande e cambio strumenti. Il pubblico può seguire dal palco o dalle sedute laterali; all’ingresso sono indicati capienza, contributo eventuale e accessi.",
+    "category": "musica-dal-vivo",
+    "venue_type": "spazio_pubblico"
+  },
+  {
+    "title": "Tavolozza folk",
+    "description": "«Tavolozza folk»: Il programma comprende soundcheck, due set dal vivo e una jam conclusiva. Chitarre, percussioni e voce si alternano in blocchi brevi, con pausa per domande e cambio strumenti. Il pubblico può seguire dal palco o dalle sedute laterali; all’ingresso sono indicati capienza, contributo eventuale e accessi.",
+    "category": "musica-dal-vivo",
+    "venue_type": "bar"
+  },
+  {
+    "title": "Risonanze padovane",
+    "description": "«Risonanze padovane»: Il programma comprende soundcheck, due set dal vivo e una jam conclusiva. Chitarre, percussioni e voce si alternano in blocchi brevi, con pausa per domande e cambio strumenti. Il pubblico può seguire dal palco o dalle sedute laterali; all’ingresso sono indicati capienza, contributo eventuale e accessi.",
+    "category": "musica-dal-vivo",
+    "venue_type": "pub"
+  },
+  {
+    "title": "Stanze in ascolto",
+    "description": "«Stanze in ascolto»: Il programma comprende soundcheck, due set dal vivo e una jam conclusiva. Chitarre, percussioni e voce si alternano in blocchi brevi, con pausa per domande e cambio strumenti. Il pubblico può seguire dal palco o dalle sedute laterali; all’ingresso sono indicati capienza, contributo eventuale e accessi.",
+    "category": "musica-dal-vivo",
+    "venue_type": "circolo"
+  },
+  {
+    "title": "Percorsi di blues",
+    "description": "«Percorsi di blues»: Il programma comprende soundcheck, due set dal vivo e una jam conclusiva. Chitarre, percussioni e voce si alternano in blocchi brevi, con pausa per domande e cambio strumenti. Il pubblico può seguire dal palco o dalle sedute laterali; all’ingresso sono indicati capienza, contributo eventuale e accessi.",
+    "category": "musica-dal-vivo",
+    "venue_type": "centro_sociale"
+  },
+  {
+    "title": "Coro a porte aperte",
+    "description": "«Coro a porte aperte»: Il programma comprende soundcheck, due set dal vivo e una jam conclusiva. Chitarre, percussioni e voce si alternano in blocchi brevi, con pausa per domande e cambio strumenti. Il pubblico può seguire dal palco o dalle sedute laterali; all’ingresso sono indicati capienza, contributo eventuale e accessi.",
+    "category": "musica-dal-vivo",
+    "venue_type": "club"
+  },
+  {
+    "title": "Battiti analogici",
+    "description": "«Battiti analogici»: Il programma comprende soundcheck, due set dal vivo e una jam conclusiva. Chitarre, percussioni e voce si alternano in blocchi brevi, con pausa per domande e cambio strumenti. Il pubblico può seguire dal palco o dalle sedute laterali; all’ingresso sono indicati capienza, contributo eventuale e accessi.",
+    "category": "musica-dal-vivo",
+    "venue_type": "teatro"
+  },
+  {
+    "title": "Sette corde",
+    "description": "«Sette corde»: Il programma comprende soundcheck, due set dal vivo e una jam conclusiva. Chitarre, percussioni e voce si alternano in blocchi brevi, con pausa per domande e cambio strumenti. Il pubblico può seguire dal palco o dalle sedute laterali; all’ingresso sono indicati capienza, contributo eventuale e accessi.",
+    "category": "musica-dal-vivo",
+    "venue_type": "spazio_pubblico"
+  },
+  {
+    "title": "Paesaggi in levare",
+    "description": "«Paesaggi in levare»: Il programma comprende soundcheck, due set dal vivo e una jam conclusiva. Chitarre, percussioni e voce si alternano in blocchi brevi, con pausa per domande e cambio strumenti. Il pubblico può seguire dal palco o dalle sedute laterali; all’ingresso sono indicati capienza, contributo eventuale e accessi.",
+    "category": "musica-dal-vivo",
+    "venue_type": "bar"
+  },
+  {
+    "title": "DJ Bassi in laguna",
+    "description": "«DJ Bassi in laguna»: La serata è divisa in tre set: apertura disco, parte centrale house e chiusura elettronica. Il cambio in consolle avviene senza interrompere la pista, mentre il personale gestisce guardaroba e aree di sosta. Sono comunicati all’ingresso tessera eventuale, capienza, volume, orari del bar e uscite.",
+    "category": "dj-set-nightlife",
+    "venue_type": "club"
+  },
+  {
+    "title": "Vinili al Portello — selezione notturna",
+    "description": "«Vinili al Portello — selezione notturna»: La serata è divisa in tre set: apertura disco, parte centrale house e chiusura elettronica. Il cambio in consolle avviene senza interrompere la pista, mentre il personale gestisce guardaroba e aree di sosta. Sono comunicati all’ingresso tessera eventuale, capienza, volume, orari del bar e uscite.",
+    "category": "dj-set-nightlife",
+    "venue_type": "bar"
+  },
+  {
+    "title": "Circuito notturno — selezione notturna",
+    "description": "«Circuito notturno — selezione notturna»: La serata è divisa in tre set: apertura disco, parte centrale house e chiusura elettronica. Il cambio in consolle avviene senza interrompere la pista, mentre il personale gestisce guardaroba e aree di sosta. Sono comunicati all’ingresso tessera eventuale, capienza, volume, orari del bar e uscite.",
+    "category": "dj-set-nightlife",
+    "venue_type": "pub"
+  },
+  {
+    "title": "DJ Cassa dritta",
+    "description": "«DJ Cassa dritta»: La serata è divisa in tre set: apertura disco, parte centrale house e chiusura elettronica. Il cambio in consolle avviene senza interrompere la pista, mentre il personale gestisce guardaroba e aree di sosta. Sono comunicati all’ingresso tessera eventuale, capienza, volume, orari del bar e uscite.",
+    "category": "dj-set-nightlife",
+    "venue_type": "club"
+  },
+  {
+    "title": "Riflessi fluorescenti — selezione notturna",
+    "description": "«Riflessi fluorescenti — selezione notturna»: La serata è divisa in tre set: apertura disco, parte centrale house e chiusura elettronica. Il cambio in consolle avviene senza interrompere la pista, mentre il personale gestisce guardaroba e aree di sosta. Sono comunicati all’ingresso tessera eventuale, capienza, volume, orari del bar e uscite.",
+    "category": "dj-set-nightlife",
+    "venue_type": "bar"
+  },
+  {
+    "title": "Pista elastica — selezione notturna",
+    "description": "«Pista elastica — selezione notturna»: La serata è divisa in tre set: apertura disco, parte centrale house e chiusura elettronica. Il cambio in consolle avviene senza interrompere la pista, mentre il personale gestisce guardaroba e aree di sosta. Sono comunicati all’ingresso tessera eventuale, capienza, volume, orari del bar e uscite.",
+    "category": "dj-set-nightlife",
+    "venue_type": "pub"
+  },
+  {
+    "title": "DJ Suoni sintetici",
+    "description": "«DJ Suoni sintetici»: La serata è divisa in tre set: apertura disco, parte centrale house e chiusura elettronica. Il cambio in consolle avviene senza interrompere la pista, mentre il personale gestisce guardaroba e aree di sosta. Sono comunicati all’ingresso tessera eventuale, capienza, volume, orari del bar e uscite.",
+    "category": "dj-set-nightlife",
+    "venue_type": "club"
+  },
+  {
+    "title": "Groove laterale — selezione notturna",
+    "description": "«Groove laterale — selezione notturna»: La serata è divisa in tre set: apertura disco, parte centrale house e chiusura elettronica. Il cambio in consolle avviene senza interrompere la pista, mentre il personale gestisce guardaroba e aree di sosta. Sono comunicati all’ingresso tessera eventuale, capienza, volume, orari del bar e uscite.",
+    "category": "dj-set-nightlife",
+    "venue_type": "bar"
+  },
+  {
+    "title": "Nebbia digitale — selezione notturna",
+    "description": "«Nebbia digitale — selezione notturna»: La serata è divisa in tre set: apertura disco, parte centrale house e chiusura elettronica. Il cambio in consolle avviene senza interrompere la pista, mentre il personale gestisce guardaroba e aree di sosta. Sono comunicati all’ingresso tessera eventuale, capienza, volume, orari del bar e uscite.",
+    "category": "dj-set-nightlife",
+    "venue_type": "pub"
+  },
+  {
+    "title": "DJ Ritmo orbitale",
+    "description": "«DJ Ritmo orbitale»: La serata è divisa in tre set: apertura disco, parte centrale house e chiusura elettronica. Il cambio in consolle avviene senza interrompere la pista, mentre il personale gestisce guardaroba e aree di sosta. Sono comunicati all’ingresso tessera eventuale, capienza, volume, orari del bar e uscite.",
+    "category": "dj-set-nightlife",
+    "venue_type": "club"
+  },
+  {
+    "title": "Frequenza profonda — selezione notturna",
+    "description": "«Frequenza profonda — selezione notturna»: La serata è divisa in tre set: apertura disco, parte centrale house e chiusura elettronica. Il cambio in consolle avviene senza interrompere la pista, mentre il personale gestisce guardaroba e aree di sosta. Sono comunicati all’ingresso tessera eventuale, capienza, volume, orari del bar e uscite.",
+    "category": "dj-set-nightlife",
+    "venue_type": "bar"
+  },
+  {
+    "title": "Danza magnetica — selezione notturna",
+    "description": "«Danza magnetica — selezione notturna»: La serata è divisa in tre set: apertura disco, parte centrale house e chiusura elettronica. Il cambio in consolle avviene senza interrompere la pista, mentre il personale gestisce guardaroba e aree di sosta. Sono comunicati all’ingresso tessera eventuale, capienza, volume, orari del bar e uscite.",
+    "category": "dj-set-nightlife",
+    "venue_type": "pub"
+  },
+  {
+    "title": "DJ Selezione obliqua",
+    "description": "«DJ Selezione obliqua»: La serata è divisa in tre set: apertura disco, parte centrale house e chiusura elettronica. Il cambio in consolle avviene senza interrompere la pista, mentre il personale gestisce guardaroba e aree di sosta. Sono comunicati all’ingresso tessera eventuale, capienza, volume, orari del bar e uscite.",
+    "category": "dj-set-nightlife",
+    "venue_type": "club"
+  },
+  {
+    "title": "Pulsazioni urbane — selezione notturna",
+    "description": "«Pulsazioni urbane — selezione notturna»: La serata è divisa in tre set: apertura disco, parte centrale house e chiusura elettronica. Il cambio in consolle avviene senza interrompere la pista, mentre il personale gestisce guardaroba e aree di sosta. Sono comunicati all’ingresso tessera eventuale, capienza, volume, orari del bar e uscite.",
+    "category": "dj-set-nightlife",
+    "venue_type": "bar"
+  },
+  {
+    "title": "Luci basse — selezione notturna",
+    "description": "«Luci basse — selezione notturna»: La serata è divisa in tre set: apertura disco, parte centrale house e chiusura elettronica. Il cambio in consolle avviene senza interrompere la pista, mentre il personale gestisce guardaroba e aree di sosta. Sono comunicati all’ingresso tessera eventuale, capienza, volume, orari del bar e uscite.",
+    "category": "dj-set-nightlife",
+    "venue_type": "pub"
+  },
+  {
+    "title": "DJ Marea elettronica",
+    "description": "«DJ Marea elettronica»: La serata è divisa in tre set: apertura disco, parte centrale house e chiusura elettronica. Il cambio in consolle avviene senza interrompere la pista, mentre il personale gestisce guardaroba e aree di sosta. Sono comunicati all’ingresso tessera eventuale, capienza, volume, orari del bar e uscite.",
+    "category": "dj-set-nightlife",
+    "venue_type": "club"
+  },
+  {
+    "title": "Rituali in cuffia — selezione notturna",
+    "description": "«Rituali in cuffia — selezione notturna»: La serata è divisa in tre set: apertura disco, parte centrale house e chiusura elettronica. Il cambio in consolle avviene senza interrompere la pista, mentre il personale gestisce guardaroba e aree di sosta. Sono comunicati all’ingresso tessera eventuale, capienza, volume, orari del bar e uscite.",
+    "category": "dj-set-nightlife",
+    "venue_type": "bar"
+  },
+  {
+    "title": "Modulare notturno — selezione notturna",
+    "description": "«Modulare notturno — selezione notturna»: La serata è divisa in tre set: apertura disco, parte centrale house e chiusura elettronica. Il cambio in consolle avviene senza interrompere la pista, mentre il personale gestisce guardaroba e aree di sosta. Sono comunicati all’ingresso tessera eventuale, capienza, volume, orari del bar e uscite.",
+    "category": "dj-set-nightlife",
+    "venue_type": "pub"
+  },
+  {
+    "title": "DJ Club delle frequenze",
+    "description": "«DJ Club delle frequenze»: La serata è divisa in tre set: apertura disco, parte centrale house e chiusura elettronica. Il cambio in consolle avviene senza interrompere la pista, mentre il personale gestisce guardaroba e aree di sosta. Sono comunicati all’ingresso tessera eventuale, capienza, volume, orari del bar e uscite.",
+    "category": "dj-set-nightlife",
+    "venue_type": "club"
+  },
+  {
+    "title": "Sincopi liquide — selezione notturna",
+    "description": "«Sincopi liquide — selezione notturna»: La serata è divisa in tre set: apertura disco, parte centrale house e chiusura elettronica. Il cambio in consolle avviene senza interrompere la pista, mentre il personale gestisce guardaroba e aree di sosta. Sono comunicati all’ingresso tessera eventuale, capienza, volume, orari del bar e uscite.",
+    "category": "dj-set-nightlife",
+    "venue_type": "bar"
+  },
+  {
+    "title": "Echo room — selezione notturna",
+    "description": "«Echo room — selezione notturna»: La serata è divisa in tre set: apertura disco, parte centrale house e chiusura elettronica. Il cambio in consolle avviene senza interrompere la pista, mentre il personale gestisce guardaroba e aree di sosta. Sono comunicati all’ingresso tessera eventuale, capienza, volume, orari del bar e uscite.",
+    "category": "dj-set-nightlife",
+    "venue_type": "pub"
+  },
+  {
+    "title": "DJ Alba in levare",
+    "description": "«DJ Alba in levare»: La serata è divisa in tre set: apertura disco, parte centrale house e chiusura elettronica. Il cambio in consolle avviene senza interrompere la pista, mentre il personale gestisce guardaroba e aree di sosta. Sono comunicati all’ingresso tessera eventuale, capienza, volume, orari del bar e uscite.",
+    "category": "dj-set-nightlife",
+    "venue_type": "club"
+  },
+  {
+    "title": "Il giardino delle sedie",
+    "description": "«Il giardino delle sedie»: Lo spettacolo si sviluppa in tre quadri con dialoghi, movimento e una scena corale. La scenografia usa oggetti semplici che cambiano funzione davanti al pubblico; una breve conversazione segue il finale. La sala indica durata, pausa, posti accessibili e modalità per lasciare domande alla compagnia.",
+    "category": "teatro-e-danza",
+    "venue_type": "teatro"
+  },
+  {
+    "title": "Geometrie del gesto",
+    "description": "«Geometrie del gesto»: Lo spettacolo si sviluppa in tre quadri con dialoghi, movimento e una scena corale. La scenografia usa oggetti semplici che cambiano funzione davanti al pubblico; una breve conversazione segue il finale. La sala indica durata, pausa, posti accessibili e modalità per lasciare domande alla compagnia.",
+    "category": "teatro-e-danza",
+    "venue_type": "teatro"
+  },
+  {
+    "title": "La stanza delle voci",
+    "description": "«La stanza delle voci»: Lo spettacolo si sviluppa in tre quadri con dialoghi, movimento e una scena corale. La scenografia usa oggetti semplici che cambiano funzione davanti al pubblico; una breve conversazione segue il finale. La sala indica durata, pausa, posti accessibili e modalità per lasciare domande alla compagnia.",
+    "category": "teatro-e-danza",
+    "venue_type": "teatro"
+  },
+  {
+    "title": "Atlante dei passi",
+    "description": "«Atlante dei passi»: Lo spettacolo si sviluppa in tre quadri con dialoghi, movimento e una scena corale. La scenografia usa oggetti semplici che cambiano funzione davanti al pubblico; una breve conversazione segue il finale. La sala indica durata, pausa, posti accessibili e modalità per lasciare domande alla compagnia.",
+    "category": "teatro-e-danza",
+    "venue_type": "teatro"
+  },
+  {
+    "title": "Piccole tragedie domestiche",
+    "description": "«Piccole tragedie domestiche»: Lo spettacolo si sviluppa in tre quadri con dialoghi, movimento e una scena corale. La scenografia usa oggetti semplici che cambiano funzione davanti al pubblico; una breve conversazione segue il finale. La sala indica durata, pausa, posti accessibili e modalità per lasciare domande alla compagnia.",
+    "category": "teatro-e-danza",
+    "venue_type": "teatro"
+  },
+  {
+    "title": "Sotto la stessa luce",
+    "description": "«Sotto la stessa luce»: Lo spettacolo si sviluppa in tre quadri con dialoghi, movimento e una scena corale. La scenografia usa oggetti semplici che cambiano funzione davanti al pubblico; una breve conversazione segue il finale. La sala indica durata, pausa, posti accessibili e modalità per lasciare domande alla compagnia.",
+    "category": "teatro-e-danza",
+    "venue_type": "teatro"
+  },
+  {
+    "title": "Il filo e il nodo",
+    "description": "«Il filo e il nodo»: Lo spettacolo si sviluppa in tre quadri con dialoghi, movimento e una scena corale. La scenografia usa oggetti semplici che cambiano funzione davanti al pubblico; una breve conversazione segue il finale. La sala indica durata, pausa, posti accessibili e modalità per lasciare domande alla compagnia.",
+    "category": "teatro-e-danza",
+    "venue_type": "teatro"
+  },
+  {
+    "title": "Figure in prestito",
+    "description": "«Figure in prestito»: Lo spettacolo si sviluppa in tre quadri con dialoghi, movimento e una scena corale. La scenografia usa oggetti semplici che cambiano funzione davanti al pubblico; una breve conversazione segue il finale. La sala indica durata, pausa, posti accessibili e modalità per lasciare domande alla compagnia.",
+    "category": "teatro-e-danza",
+    "venue_type": "teatro"
+  },
+  {
+    "title": "Una finestra aperta",
+    "description": "«Una finestra aperta»: Lo spettacolo si sviluppa in tre quadri con dialoghi, movimento e una scena corale. La scenografia usa oggetti semplici che cambiano funzione davanti al pubblico; una breve conversazione segue il finale. La sala indica durata, pausa, posti accessibili e modalità per lasciare domande alla compagnia.",
+    "category": "teatro-e-danza",
+    "venue_type": "teatro"
+  },
+  {
+    "title": "La prova generale",
+    "description": "«La prova generale»: Lo spettacolo si sviluppa in tre quadri con dialoghi, movimento e una scena corale. La scenografia usa oggetti semplici che cambiano funzione davanti al pubblico; una breve conversazione segue il finale. La sala indica durata, pausa, posti accessibili e modalità per lasciare domande alla compagnia.",
+    "category": "teatro-e-danza",
+    "venue_type": "teatro"
+  },
+  {
+    "title": "Corpi di carta",
+    "description": "«Corpi di carta»: Lo spettacolo si sviluppa in tre quadri con dialoghi, movimento e una scena corale. La scenografia usa oggetti semplici che cambiano funzione davanti al pubblico; una breve conversazione segue il finale. La sala indica durata, pausa, posti accessibili e modalità per lasciare domande alla compagnia.",
+    "category": "teatro-e-danza",
+    "venue_type": "teatro"
+  },
+  {
+    "title": "Dialoghi al margine",
+    "description": "«Dialoghi al margine»: Lo spettacolo si sviluppa in tre quadri con dialoghi, movimento e una scena corale. La scenografia usa oggetti semplici che cambiano funzione davanti al pubblico; una breve conversazione segue il finale. La sala indica durata, pausa, posti accessibili e modalità per lasciare domande alla compagnia.",
+    "category": "teatro-e-danza",
+    "venue_type": "teatro"
+  },
+  {
+    "title": "Il rumore del silenzio",
+    "description": "«Il rumore del silenzio»: Lo spettacolo si sviluppa in tre quadri con dialoghi, movimento e una scena corale. La scenografia usa oggetti semplici che cambiano funzione davanti al pubblico; una breve conversazione segue il finale. La sala indica durata, pausa, posti accessibili e modalità per lasciare domande alla compagnia.",
+    "category": "teatro-e-danza",
+    "venue_type": "teatro"
+  },
+  {
+    "title": "Tre sedie vuote",
+    "description": "«Tre sedie vuote»: Lo spettacolo si sviluppa in tre quadri con dialoghi, movimento e una scena corale. La scenografia usa oggetti semplici che cambiano funzione davanti al pubblico; una breve conversazione segue il finale. La sala indica durata, pausa, posti accessibili e modalità per lasciare domande alla compagnia.",
+    "category": "teatro-e-danza",
+    "venue_type": "teatro"
+  },
+  {
+    "title": "Gesti quotidiani",
+    "description": "«Gesti quotidiani»: Lo spettacolo si sviluppa in tre quadri con dialoghi, movimento e una scena corale. La scenografia usa oggetti semplici che cambiano funzione davanti al pubblico; una breve conversazione segue il finale. La sala indica durata, pausa, posti accessibili e modalità per lasciare domande alla compagnia.",
+    "category": "teatro-e-danza",
+    "venue_type": "teatro"
+  },
+  {
+    "title": "La mappa capovolta",
+    "description": "«La mappa capovolta»: Lo spettacolo si sviluppa in tre quadri con dialoghi, movimento e una scena corale. La scenografia usa oggetti semplici che cambiano funzione davanti al pubblico; una breve conversazione segue il finale. La sala indica durata, pausa, posti accessibili e modalità per lasciare domande alla compagnia.",
+    "category": "teatro-e-danza",
+    "venue_type": "teatro"
+  },
+  {
+    "title": "Una casa in scena",
+    "description": "«Una casa in scena»: Lo spettacolo si sviluppa in tre quadri con dialoghi, movimento e una scena corale. La scenografia usa oggetti semplici che cambiano funzione davanti al pubblico; una breve conversazione segue il finale. La sala indica durata, pausa, posti accessibili e modalità per lasciare domande alla compagnia.",
+    "category": "teatro-e-danza",
+    "venue_type": "teatro"
+  },
+  {
+    "title": "Quinte mobili",
+    "description": "«Quinte mobili»: Lo spettacolo si sviluppa in tre quadri con dialoghi, movimento e una scena corale. La scenografia usa oggetti semplici che cambiano funzione davanti al pubblico; una breve conversazione segue il finale. La sala indica durata, pausa, posti accessibili e modalità per lasciare domande alla compagnia.",
+    "category": "teatro-e-danza",
+    "venue_type": "teatro"
+  },
+  {
+    "title": "Lato B del palco",
+    "description": "«Lato B del palco»: Lo spettacolo si sviluppa in tre quadri con dialoghi, movimento e una scena corale. La scenografia usa oggetti semplici che cambiano funzione davanti al pubblico; una breve conversazione segue il finale. La sala indica durata, pausa, posti accessibili e modalità per lasciare domande alla compagnia.",
+    "category": "teatro-e-danza",
+    "venue_type": "teatro"
+  },
+  {
+    "title": "Respiri condivisi",
+    "description": "«Respiri condivisi»: Lo spettacolo si sviluppa in tre quadri con dialoghi, movimento e una scena corale. La scenografia usa oggetti semplici che cambiano funzione davanti al pubblico; una breve conversazione segue il finale. La sala indica durata, pausa, posti accessibili e modalità per lasciare domande alla compagnia.",
+    "category": "teatro-e-danza",
+    "venue_type": "teatro"
+  },
+  {
+    "title": "La durata di un passo",
+    "description": "«La durata di un passo»: Lo spettacolo si sviluppa in tre quadri con dialoghi, movimento e una scena corale. La scenografia usa oggetti semplici che cambiano funzione davanti al pubblico; una breve conversazione segue il finale. La sala indica durata, pausa, posti accessibili e modalità per lasciare domande alla compagnia.",
+    "category": "teatro-e-danza",
+    "venue_type": "teatro"
+  },
+  {
+    "title": "Canti senza parole",
+    "description": "«Canti senza parole»: Lo spettacolo si sviluppa in tre quadri con dialoghi, movimento e una scena corale. La scenografia usa oggetti semplici che cambiano funzione davanti al pubblico; una breve conversazione segue il finale. La sala indica durata, pausa, posti accessibili e modalità per lasciare domande alla compagnia.",
+    "category": "teatro-e-danza",
+    "venue_type": "teatro"
+  },
+  {
+    "title": "Rassegna Sguardi sul quartiere",
+    "description": "«Rassegna Sguardi sul quartiere»: La rassegna accosta un cortometraggio e un film di media durata sul tema della città. Una breve introduzione precede la visione e un moderatore raccoglie domande al termine. La scheda riporta lingua, sottotitoli, audio, durata, posti disponibili e regole per entrare o uscire dalla sala.",
+    "category": "cinema",
+    "venue_type": "cinema"
+  },
+  {
+    "title": "Pellicole di confine",
+    "description": "«Pellicole di confine»: La rassegna accosta un cortometraggio e un film di media durata sul tema della città. Una breve introduzione precede la visione e un moderatore raccoglie domande al termine. La scheda riporta lingua, sottotitoli, audio, durata, posti disponibili e regole per entrare o uscire dalla sala.",
+    "category": "cinema",
+    "venue_type": "associazione"
+  },
+  {
+    "title": "Luce radente",
+    "description": "«Luce radente»: La rassegna accosta un cortometraggio e un film di media durata sul tema della città. Una breve introduzione precede la visione e un moderatore raccoglie domande al termine. La scheda riporta lingua, sottotitoli, audio, durata, posti disponibili e regole per entrare o uscire dalla sala.",
+    "category": "cinema",
+    "venue_type": "cinema"
+  },
+  {
+    "title": "Rassegna Storie in movimento",
+    "description": "«Rassegna Storie in movimento»: La rassegna accosta un cortometraggio e un film di media durata sul tema della città. Una breve introduzione precede la visione e un moderatore raccoglie domande al termine. La scheda riporta lingua, sottotitoli, audio, durata, posti disponibili e regole per entrare o uscire dalla sala.",
+    "category": "cinema",
+    "venue_type": "associazione"
+  },
+  {
+    "title": "Il montaggio delle cose",
+    "description": "«Il montaggio delle cose»: La rassegna accosta un cortometraggio e un film di media durata sul tema della città. Una breve introduzione precede la visione e un moderatore raccoglie domande al termine. La scheda riporta lingua, sottotitoli, audio, durata, posti disponibili e regole per entrare o uscire dalla sala.",
+    "category": "cinema",
+    "venue_type": "cinema"
+  },
+  {
+    "title": "Schermi d’acqua",
+    "description": "«Schermi d’acqua»: La rassegna accosta un cortometraggio e un film di media durata sul tema della città. Una breve introduzione precede la visione e un moderatore raccoglie domande al termine. La scheda riporta lingua, sottotitoli, audio, durata, posti disponibili e regole per entrare o uscire dalla sala.",
+    "category": "cinema",
+    "venue_type": "associazione"
+  },
+  {
+    "title": "Rassegna Visioni minime",
+    "description": "«Rassegna Visioni minime»: La rassegna accosta un cortometraggio e un film di media durata sul tema della città. Una breve introduzione precede la visione e un moderatore raccoglie domande al termine. La scheda riporta lingua, sottotitoli, audio, durata, posti disponibili e regole per entrare o uscire dalla sala.",
+    "category": "cinema",
+    "venue_type": "cinema"
+  },
+  {
+    "title": "Paesaggi interiori",
+    "description": "«Paesaggi interiori»: La rassegna accosta un cortometraggio e un film di media durata sul tema della città. Una breve introduzione precede la visione e un moderatore raccoglie domande al termine. La scheda riporta lingua, sottotitoli, audio, durata, posti disponibili e regole per entrare o uscire dalla sala.",
+    "category": "cinema",
+    "venue_type": "associazione"
+  },
+  {
+    "title": "Cinema senza fretta",
+    "description": "«Cinema senza fretta»: La rassegna accosta un cortometraggio e un film di media durata sul tema della città. Una breve introduzione precede la visione e un moderatore raccoglie domande al termine. La scheda riporta lingua, sottotitoli, audio, durata, posti disponibili e regole per entrare o uscire dalla sala.",
+    "category": "cinema",
+    "venue_type": "cinema"
+  },
+  {
+    "title": "Rassegna Fuori campo",
+    "description": "«Rassegna Fuori campo»: La rassegna accosta un cortometraggio e un film di media durata sul tema della città. Una breve introduzione precede la visione e un moderatore raccoglie domande al termine. La scheda riporta lingua, sottotitoli, audio, durata, posti disponibili e regole per entrare o uscire dalla sala.",
+    "category": "cinema",
+    "venue_type": "associazione"
+  },
+  {
+    "title": "La città riflessa",
+    "description": "«La città riflessa»: La rassegna accosta un cortometraggio e un film di media durata sul tema della città. Una breve introduzione precede la visione e un moderatore raccoglie domande al termine. La scheda riporta lingua, sottotitoli, audio, durata, posti disponibili e regole per entrare o uscire dalla sala.",
+    "category": "cinema",
+    "venue_type": "cinema"
+  },
+  {
+    "title": "Grana fine",
+    "description": "«Grana fine»: La rassegna accosta un cortometraggio e un film di media durata sul tema della città. Una breve introduzione precede la visione e un moderatore raccoglie domande al termine. La scheda riporta lingua, sottotitoli, audio, durata, posti disponibili e regole per entrare o uscire dalla sala.",
+    "category": "cinema",
+    "venue_type": "associazione"
+  },
+  {
+    "title": "Rassegna Cortili sullo schermo",
+    "description": "«Rassegna Cortili sullo schermo»: La rassegna accosta un cortometraggio e un film di media durata sul tema della città. Una breve introduzione precede la visione e un moderatore raccoglie domande al termine. La scheda riporta lingua, sottotitoli, audio, durata, posti disponibili e regole per entrare o uscire dalla sala.",
+    "category": "cinema",
+    "venue_type": "cinema"
+  },
+  {
+    "title": "Oltre la pellicola",
+    "description": "«Oltre la pellicola»: La rassegna accosta un cortometraggio e un film di media durata sul tema della città. Una breve introduzione precede la visione e un moderatore raccoglie domande al termine. La scheda riporta lingua, sottotitoli, audio, durata, posti disponibili e regole per entrare o uscire dalla sala.",
+    "category": "cinema",
+    "venue_type": "associazione"
+  },
+  {
+    "title": "Racconti in controluce",
+    "description": "«Racconti in controluce»: La rassegna accosta un cortometraggio e un film di media durata sul tema della città. Una breve introduzione precede la visione e un moderatore raccoglie domande al termine. La scheda riporta lingua, sottotitoli, audio, durata, posti disponibili e regole per entrare o uscire dalla sala.",
+    "category": "cinema",
+    "venue_type": "cinema"
+  },
+  {
+    "title": "Rassegna Un’altra inquadratura",
+    "description": "«Rassegna Un’altra inquadratura»: La rassegna accosta un cortometraggio e un film di media durata sul tema della città. Una breve introduzione precede la visione e un moderatore raccoglie domande al termine. La scheda riporta lingua, sottotitoli, audio, durata, posti disponibili e regole per entrare o uscire dalla sala.",
+    "category": "cinema",
+    "venue_type": "associazione"
+  },
+  {
+    "title": "Il suono delle immagini",
+    "description": "«Il suono delle immagini»: La rassegna accosta un cortometraggio e un film di media durata sul tema della città. Una breve introduzione precede la visione e un moderatore raccoglie domande al termine. La scheda riporta lingua, sottotitoli, audio, durata, posti disponibili e regole per entrare o uscire dalla sala.",
+    "category": "cinema",
+    "venue_type": "cinema"
+  },
+  {
+    "title": "Finestre sul reale",
+    "description": "«Finestre sul reale»: La rassegna accosta un cortometraggio e un film di media durata sul tema della città. Una breve introduzione precede la visione e un moderatore raccoglie domande al termine. La scheda riporta lingua, sottotitoli, audio, durata, posti disponibili e regole per entrare o uscire dalla sala.",
+    "category": "cinema",
+    "venue_type": "associazione"
+  },
+  {
+    "title": "Rassegna Proiezioni oblique",
+    "description": "«Rassegna Proiezioni oblique»: La rassegna accosta un cortometraggio e un film di media durata sul tema della città. Una breve introduzione precede la visione e un moderatore raccoglie domande al termine. La scheda riporta lingua, sottotitoli, audio, durata, posti disponibili e regole per entrare o uscire dalla sala.",
+    "category": "cinema",
+    "venue_type": "cinema"
+  },
+  {
+    "title": "Sale d’ascolto",
+    "description": "«Sale d’ascolto»: La rassegna accosta un cortometraggio e un film di media durata sul tema della città. Una breve introduzione precede la visione e un moderatore raccoglie domande al termine. La scheda riporta lingua, sottotitoli, audio, durata, posti disponibili e regole per entrare o uscire dalla sala.",
+    "category": "cinema",
+    "venue_type": "associazione"
+  },
+  {
+    "title": "Fotogrammi vicini",
+    "description": "«Fotogrammi vicini»: La rassegna accosta un cortometraggio e un film di media durata sul tema della città. Una breve introduzione precede la visione e un moderatore raccoglie domande al termine. La scheda riporta lingua, sottotitoli, audio, durata, posti disponibili e regole per entrare o uscire dalla sala.",
+    "category": "cinema",
+    "venue_type": "cinema"
+  },
+  {
+    "title": "Rassegna Orizzonti tascabili",
+    "description": "«Rassegna Orizzonti tascabili»: La rassegna accosta un cortometraggio e un film di media durata sul tema della città. Una breve introduzione precede la visione e un moderatore raccoglie domande al termine. La scheda riporta lingua, sottotitoli, audio, durata, posti disponibili e regole per entrare o uscire dalla sala.",
+    "category": "cinema",
+    "venue_type": "associazione"
+  },
+  {
+    "title": "Esposizione Materia quotidiana",
+    "description": "«Esposizione Materia quotidiana»: Il percorso riunisce opere su carta, ceramiche e assemblaggi in quattro nuclei. Una mappa suggerisce l’ordine di visita, mentre un tavolo espone bozzetti e materiali. Le didascalie spiegano tecnica e dimensioni; all’accoglienza sono indicati passaggi, illuminazione, fotografie consentite e modalità del laboratorio.",
+    "category": "arte-e-mostre",
+    "venue_type": "galleria"
+  },
+  {
+    "title": "Segni di passaggio",
+    "description": "«Segni di passaggio»: Il percorso riunisce opere su carta, ceramiche e assemblaggi in quattro nuclei. Una mappa suggerisce l’ordine di visita, mentre un tavolo espone bozzetti e materiali. Le didascalie spiegano tecnica e dimensioni; all’accoglienza sono indicati passaggi, illuminazione, fotografie consentite e modalità del laboratorio.",
+    "category": "arte-e-mostre",
+    "venue_type": "libreria"
+  },
+  {
+    "title": "Colori di soglia",
+    "description": "«Colori di soglia»: Il percorso riunisce opere su carta, ceramiche e assemblaggi in quattro nuclei. Una mappa suggerisce l’ordine di visita, mentre un tavolo espone bozzetti e materiali. Le didascalie spiegano tecnica e dimensioni; all’accoglienza sono indicati passaggi, illuminazione, fotografie consentite e modalità del laboratorio.",
+    "category": "arte-e-mostre",
+    "venue_type": "associazione"
+  },
+  {
+    "title": "Esposizione Mappe sensibili",
+    "description": "«Esposizione Mappe sensibili»: Il percorso riunisce opere su carta, ceramiche e assemblaggi in quattro nuclei. Una mappa suggerisce l’ordine di visita, mentre un tavolo espone bozzetti e materiali. Le didascalie spiegano tecnica e dimensioni; all’accoglienza sono indicati passaggi, illuminazione, fotografie consentite e modalità del laboratorio.",
+    "category": "arte-e-mostre",
+    "venue_type": "galleria"
+  },
+  {
+    "title": "Superfici padovane",
+    "description": "«Superfici padovane»: Il percorso riunisce opere su carta, ceramiche e assemblaggi in quattro nuclei. Una mappa suggerisce l’ordine di visita, mentre un tavolo espone bozzetti e materiali. Le didascalie spiegano tecnica e dimensioni; all’accoglienza sono indicati passaggi, illuminazione, fotografie consentite e modalità del laboratorio.",
+    "category": "arte-e-mostre",
+    "venue_type": "libreria"
+  },
+  {
+    "title": "Archivio delle nuvole",
+    "description": "«Archivio delle nuvole»: Il percorso riunisce opere su carta, ceramiche e assemblaggi in quattro nuclei. Una mappa suggerisce l’ordine di visita, mentre un tavolo espone bozzetti e materiali. Le didascalie spiegano tecnica e dimensioni; all’accoglienza sono indicati passaggi, illuminazione, fotografie consentite e modalità del laboratorio.",
+    "category": "arte-e-mostre",
+    "venue_type": "associazione"
+  },
+  {
+    "title": "Esposizione Forme in ascolto",
+    "description": "«Esposizione Forme in ascolto»: Il percorso riunisce opere su carta, ceramiche e assemblaggi in quattro nuclei. Una mappa suggerisce l’ordine di visita, mentre un tavolo espone bozzetti e materiali. Le didascalie spiegano tecnica e dimensioni; all’accoglienza sono indicati passaggi, illuminazione, fotografie consentite e modalità del laboratorio.",
+    "category": "arte-e-mostre",
+    "venue_type": "galleria"
+  },
+  {
+    "title": "Luce e argilla",
+    "description": "«Luce e argilla»: Il percorso riunisce opere su carta, ceramiche e assemblaggi in quattro nuclei. Una mappa suggerisce l’ordine di visita, mentre un tavolo espone bozzetti e materiali. Le didascalie spiegano tecnica e dimensioni; all’accoglienza sono indicati passaggi, illuminazione, fotografie consentite e modalità del laboratorio.",
+    "category": "arte-e-mostre",
+    "venue_type": "libreria"
+  },
+  {
+    "title": "Tracce d’acqua",
+    "description": "«Tracce d’acqua»: Il percorso riunisce opere su carta, ceramiche e assemblaggi in quattro nuclei. Una mappa suggerisce l’ordine di visita, mentre un tavolo espone bozzetti e materiali. Le didascalie spiegano tecnica e dimensioni; all’accoglienza sono indicati passaggi, illuminazione, fotografie consentite e modalità del laboratorio.",
+    "category": "arte-e-mostre",
+    "venue_type": "associazione"
+  },
+  {
+    "title": "Esposizione Oggetti in sospeso",
+    "description": "«Esposizione Oggetti in sospeso»: Il percorso riunisce opere su carta, ceramiche e assemblaggi in quattro nuclei. Una mappa suggerisce l’ordine di visita, mentre un tavolo espone bozzetti e materiali. Le didascalie spiegano tecnica e dimensioni; all’accoglienza sono indicati passaggi, illuminazione, fotografie consentite e modalità del laboratorio.",
+    "category": "arte-e-mostre",
+    "venue_type": "galleria"
+  },
+  {
+    "title": "Linee di cortile",
+    "description": "«Linee di cortile»: Il percorso riunisce opere su carta, ceramiche e assemblaggi in quattro nuclei. Una mappa suggerisce l’ordine di visita, mentre un tavolo espone bozzetti e materiali. Le didascalie spiegano tecnica e dimensioni; all’accoglienza sono indicati passaggi, illuminazione, fotografie consentite e modalità del laboratorio.",
+    "category": "arte-e-mostre",
+    "venue_type": "libreria"
+  },
+  {
+    "title": "Variazioni sul vuoto",
+    "description": "«Variazioni sul vuoto»: Il percorso riunisce opere su carta, ceramiche e assemblaggi in quattro nuclei. Una mappa suggerisce l’ordine di visita, mentre un tavolo espone bozzetti e materiali. Le didascalie spiegano tecnica e dimensioni; all’accoglienza sono indicati passaggi, illuminazione, fotografie consentite e modalità del laboratorio.",
+    "category": "arte-e-mostre",
+    "venue_type": "associazione"
+  },
+  {
+    "title": "Esposizione Carta, filo, terra",
+    "description": "«Esposizione Carta, filo, terra»: Il percorso riunisce opere su carta, ceramiche e assemblaggi in quattro nuclei. Una mappa suggerisce l’ordine di visita, mentre un tavolo espone bozzetti e materiali. Le didascalie spiegano tecnica e dimensioni; all’accoglienza sono indicati passaggi, illuminazione, fotografie consentite e modalità del laboratorio.",
+    "category": "arte-e-mostre",
+    "venue_type": "galleria"
+  },
+  {
+    "title": "Piccola topografia",
+    "description": "«Piccola topografia»: Il percorso riunisce opere su carta, ceramiche e assemblaggi in quattro nuclei. Una mappa suggerisce l’ordine di visita, mentre un tavolo espone bozzetti e materiali. Le didascalie spiegano tecnica e dimensioni; all’accoglienza sono indicati passaggi, illuminazione, fotografie consentite e modalità del laboratorio.",
+    "category": "arte-e-mostre",
+    "venue_type": "libreria"
+  },
+  {
+    "title": "Sguardi laterali",
+    "description": "«Sguardi laterali»: Il percorso riunisce opere su carta, ceramiche e assemblaggi in quattro nuclei. Una mappa suggerisce l’ordine di visita, mentre un tavolo espone bozzetti e materiali. Le didascalie spiegano tecnica e dimensioni; all’accoglienza sono indicati passaggi, illuminazione, fotografie consentite e modalità del laboratorio.",
+    "category": "arte-e-mostre",
+    "venue_type": "associazione"
+  },
+  {
+    "title": "Esposizione Impronte urbane",
+    "description": "«Esposizione Impronte urbane»: Il percorso riunisce opere su carta, ceramiche e assemblaggi in quattro nuclei. Una mappa suggerisce l’ordine di visita, mentre un tavolo espone bozzetti e materiali. Le didascalie spiegano tecnica e dimensioni; all’accoglienza sono indicati passaggi, illuminazione, fotografie consentite e modalità del laboratorio.",
+    "category": "arte-e-mostre",
+    "venue_type": "galleria"
+  },
+  {
+    "title": "Il peso del colore",
+    "description": "«Il peso del colore»: Il percorso riunisce opere su carta, ceramiche e assemblaggi in quattro nuclei. Una mappa suggerisce l’ordine di visita, mentre un tavolo espone bozzetti e materiali. Le didascalie spiegano tecnica e dimensioni; all’accoglienza sono indicati passaggi, illuminazione, fotografie consentite e modalità del laboratorio.",
+    "category": "arte-e-mostre",
+    "venue_type": "libreria"
+  },
+  {
+    "title": "Raccolta di margini",
+    "description": "«Raccolta di margini»: Il percorso riunisce opere su carta, ceramiche e assemblaggi in quattro nuclei. Una mappa suggerisce l’ordine di visita, mentre un tavolo espone bozzetti e materiali. Le didascalie spiegano tecnica e dimensioni; all’accoglienza sono indicati passaggi, illuminazione, fotografie consentite e modalità del laboratorio.",
+    "category": "arte-e-mostre",
+    "venue_type": "associazione"
+  },
+  {
+    "title": "Esposizione Stanze cromatiche",
+    "description": "«Esposizione Stanze cromatiche»: Il percorso riunisce opere su carta, ceramiche e assemblaggi in quattro nuclei. Una mappa suggerisce l’ordine di visita, mentre un tavolo espone bozzetti e materiali. Le didascalie spiegano tecnica e dimensioni; all’accoglienza sono indicati passaggi, illuminazione, fotografie consentite e modalità del laboratorio.",
+    "category": "arte-e-mostre",
+    "venue_type": "galleria"
+  },
+  {
+    "title": "Natura costruita",
+    "description": "«Natura costruita»: Il percorso riunisce opere su carta, ceramiche e assemblaggi in quattro nuclei. Una mappa suggerisce l’ordine di visita, mentre un tavolo espone bozzetti e materiali. Le didascalie spiegano tecnica e dimensioni; all’accoglienza sono indicati passaggi, illuminazione, fotografie consentite e modalità del laboratorio.",
+    "category": "arte-e-mostre",
+    "venue_type": "libreria"
+  },
+  {
+    "title": "Dettagli in comune",
+    "description": "«Dettagli in comune»: Il percorso riunisce opere su carta, ceramiche e assemblaggi in quattro nuclei. Una mappa suggerisce l’ordine di visita, mentre un tavolo espone bozzetti e materiali. Le didascalie spiegano tecnica e dimensioni; all’accoglienza sono indicati passaggi, illuminazione, fotografie consentite e modalità del laboratorio.",
+    "category": "arte-e-mostre",
+    "venue_type": "associazione"
+  },
+  {
+    "title": "Esposizione Piani sovrapposti",
+    "description": "«Esposizione Piani sovrapposti»: Il percorso riunisce opere su carta, ceramiche e assemblaggi in quattro nuclei. Una mappa suggerisce l’ordine di visita, mentre un tavolo espone bozzetti e materiali. Le didascalie spiegano tecnica e dimensioni; all’accoglienza sono indicati passaggi, illuminazione, fotografie consentite e modalità del laboratorio.",
+    "category": "arte-e-mostre",
+    "venue_type": "galleria"
+  },
+  {
+    "title": "Pagine di passaggio",
+    "description": "«Pagine di passaggio»: L’incontro alterna tre letture, un dialogo sul lavoro del libro e domande dal pubblico. Un tavolo permette di consultare copie e appunti, con una pausa per lo scambio informale. La libreria comunica sedute, durata, eventuale prenotazione, disponibilità dei volumi e tempi per la firma.",
+    "category": "libri-e-presentazioni",
+    "venue_type": "libreria"
+  },
+  {
+    "title": "Racconti dalla riva",
+    "description": "«Racconti dalla riva»: L’incontro alterna tre letture, un dialogo sul lavoro del libro e domande dal pubblico. Un tavolo permette di consultare copie e appunti, con una pausa per lo scambio informale. La libreria comunica sedute, durata, eventuale prenotazione, disponibilità dei volumi e tempi per la firma.",
+    "category": "libri-e-presentazioni",
+    "venue_type": "bar"
+  },
+  {
+    "title": "La casa delle parole",
+    "description": "«La casa delle parole»: L’incontro alterna tre letture, un dialogo sul lavoro del libro e domande dal pubblico. Un tavolo permette di consultare copie e appunti, con una pausa per lo scambio informale. La libreria comunica sedute, durata, eventuale prenotazione, disponibilità dei volumi e tempi per la firma.",
+    "category": "libri-e-presentazioni",
+    "venue_type": "associazione"
+  },
+  {
+    "title": "Quaderni aperti",
+    "description": "«Quaderni aperti»: L’incontro alterna tre letture, un dialogo sul lavoro del libro e domande dal pubblico. Un tavolo permette di consultare copie e appunti, con una pausa per lo scambio informale. La libreria comunica sedute, durata, eventuale prenotazione, disponibilità dei volumi e tempi per la firma.",
+    "category": "libri-e-presentazioni",
+    "venue_type": "circolo"
+  },
+  {
+    "title": "Voci in margine",
+    "description": "«Voci in margine»: L’incontro alterna tre letture, un dialogo sul lavoro del libro e domande dal pubblico. Un tavolo permette di consultare copie e appunti, con una pausa per lo scambio informale. La libreria comunica sedute, durata, eventuale prenotazione, disponibilità dei volumi e tempi per la firma.",
+    "category": "libri-e-presentazioni",
+    "venue_type": "libreria"
+  },
+  {
+    "title": "Biblioteca minima",
+    "description": "«Biblioteca minima»: L’incontro alterna tre letture, un dialogo sul lavoro del libro e domande dal pubblico. Un tavolo permette di consultare copie e appunti, con una pausa per lo scambio informale. La libreria comunica sedute, durata, eventuale prenotazione, disponibilità dei volumi e tempi per la firma.",
+    "category": "libri-e-presentazioni",
+    "venue_type": "bar"
+  },
+  {
+    "title": "Storie per attraversare",
+    "description": "«Storie per attraversare»: L’incontro alterna tre letture, un dialogo sul lavoro del libro e domande dal pubblico. Un tavolo permette di consultare copie e appunti, con una pausa per lo scambio informale. La libreria comunica sedute, durata, eventuale prenotazione, disponibilità dei volumi e tempi per la firma.",
+    "category": "libri-e-presentazioni",
+    "venue_type": "associazione"
+  },
+  {
+    "title": "Il mestiere di leggere",
+    "description": "«Il mestiere di leggere»: L’incontro alterna tre letture, un dialogo sul lavoro del libro e domande dal pubblico. Un tavolo permette di consultare copie e appunti, con una pausa per lo scambio informale. La libreria comunica sedute, durata, eventuale prenotazione, disponibilità dei volumi e tempi per la firma.",
+    "category": "libri-e-presentazioni",
+    "venue_type": "circolo"
+  },
+  {
+    "title": "Carte d’argine",
+    "description": "«Carte d’argine»: L’incontro alterna tre letture, un dialogo sul lavoro del libro e domande dal pubblico. Un tavolo permette di consultare copie e appunti, con una pausa per lo scambio informale. La libreria comunica sedute, durata, eventuale prenotazione, disponibilità dei volumi e tempi per la firma.",
+    "category": "libri-e-presentazioni",
+    "venue_type": "libreria"
+  },
+  {
+    "title": "Parole in cortile",
+    "description": "«Parole in cortile»: L’incontro alterna tre letture, un dialogo sul lavoro del libro e domande dal pubblico. Un tavolo permette di consultare copie e appunti, con una pausa per lo scambio informale. La libreria comunica sedute, durata, eventuale prenotazione, disponibilità dei volumi e tempi per la firma.",
+    "category": "libri-e-presentazioni",
+    "venue_type": "bar"
+  },
+  {
+    "title": "Una trama comune",
+    "description": "«Una trama comune»: L’incontro alterna tre letture, un dialogo sul lavoro del libro e domande dal pubblico. Un tavolo permette di consultare copie e appunti, con una pausa per lo scambio informale. La libreria comunica sedute, durata, eventuale prenotazione, disponibilità dei volumi e tempi per la firma.",
+    "category": "libri-e-presentazioni",
+    "venue_type": "associazione"
+  },
+  {
+    "title": "Letture di vicinato",
+    "description": "«Letture di vicinato»: L’incontro alterna tre letture, un dialogo sul lavoro del libro e domande dal pubblico. Un tavolo permette di consultare copie e appunti, con una pausa per lo scambio informale. La libreria comunica sedute, durata, eventuale prenotazione, disponibilità dei volumi e tempi per la firma.",
+    "category": "libri-e-presentazioni",
+    "venue_type": "circolo"
+  },
+  {
+    "title": "Scritture d’acqua",
+    "description": "«Scritture d’acqua»: L’incontro alterna tre letture, un dialogo sul lavoro del libro e domande dal pubblico. Un tavolo permette di consultare copie e appunti, con una pausa per lo scambio informale. La libreria comunica sedute, durata, eventuale prenotazione, disponibilità dei volumi e tempi per la firma.",
+    "category": "libri-e-presentazioni",
+    "venue_type": "libreria"
+  },
+  {
+    "title": "Punti e virgole",
+    "description": "«Punti e virgole»: L’incontro alterna tre letture, un dialogo sul lavoro del libro e domande dal pubblico. Un tavolo permette di consultare copie e appunti, con una pausa per lo scambio informale. La libreria comunica sedute, durata, eventuale prenotazione, disponibilità dei volumi e tempi per la firma.",
+    "category": "libri-e-presentazioni",
+    "venue_type": "bar"
+  },
+  {
+    "title": "Cronache minute",
+    "description": "«Cronache minute»: L’incontro alterna tre letture, un dialogo sul lavoro del libro e domande dal pubblico. Un tavolo permette di consultare copie e appunti, con una pausa per lo scambio informale. La libreria comunica sedute, durata, eventuale prenotazione, disponibilità dei volumi e tempi per la firma.",
+    "category": "libri-e-presentazioni",
+    "venue_type": "associazione"
+  },
+  {
+    "title": "Il libro condiviso",
+    "description": "«Il libro condiviso»: L’incontro alterna tre letture, un dialogo sul lavoro del libro e domande dal pubblico. Un tavolo permette di consultare copie e appunti, con una pausa per lo scambio informale. La libreria comunica sedute, durata, eventuale prenotazione, disponibilità dei volumi e tempi per la firma.",
+    "category": "libri-e-presentazioni",
+    "venue_type": "circolo"
+  },
+  {
+    "title": "Dialoghi tra scaffali",
+    "description": "«Dialoghi tra scaffali»: L’incontro alterna tre letture, un dialogo sul lavoro del libro e domande dal pubblico. Un tavolo permette di consultare copie e appunti, con una pausa per lo scambio informale. La libreria comunica sedute, durata, eventuale prenotazione, disponibilità dei volumi e tempi per la firma.",
+    "category": "libri-e-presentazioni",
+    "venue_type": "libreria"
+  },
+  {
+    "title": "Taccuino delle botteghe",
+    "description": "«Taccuino delle botteghe»: L’incontro alterna tre letture, un dialogo sul lavoro del libro e domande dal pubblico. Un tavolo permette di consultare copie e appunti, con una pausa per lo scambio informale. La libreria comunica sedute, durata, eventuale prenotazione, disponibilità dei volumi e tempi per la firma.",
+    "category": "libri-e-presentazioni",
+    "venue_type": "bar"
+  },
+  {
+    "title": "Versi a bassa voce",
+    "description": "«Versi a bassa voce»: L’incontro alterna tre letture, un dialogo sul lavoro del libro e domande dal pubblico. Un tavolo permette di consultare copie e appunti, con una pausa per lo scambio informale. La libreria comunica sedute, durata, eventuale prenotazione, disponibilità dei volumi e tempi per la firma.",
+    "category": "libri-e-presentazioni",
+    "venue_type": "associazione"
+  },
+  {
+    "title": "Righe di confine",
+    "description": "«Righe di confine»: L’incontro alterna tre letture, un dialogo sul lavoro del libro e domande dal pubblico. Un tavolo permette di consultare copie e appunti, con una pausa per lo scambio informale. La libreria comunica sedute, durata, eventuale prenotazione, disponibilità dei volumi e tempi per la firma.",
+    "category": "libri-e-presentazioni",
+    "venue_type": "circolo"
+  },
+  {
+    "title": "La pagina successiva",
+    "description": "«La pagina successiva»: L’incontro alterna tre letture, un dialogo sul lavoro del libro e domande dal pubblico. Un tavolo permette di consultare copie e appunti, con una pausa per lo scambio informale. La libreria comunica sedute, durata, eventuale prenotazione, disponibilità dei volumi e tempi per la firma.",
+    "category": "libri-e-presentazioni",
+    "venue_type": "libreria"
+  },
+  {
+    "title": "Nomi per le cose",
+    "description": "«Nomi per le cose»: L’incontro alterna tre letture, un dialogo sul lavoro del libro e domande dal pubblico. Un tavolo permette di consultare copie e appunti, con una pausa per lo scambio informale. La libreria comunica sedute, durata, eventuale prenotazione, disponibilità dei volumi e tempi per la firma.",
+    "category": "libri-e-presentazioni",
+    "venue_type": "bar"
+  },
+  {
+    "title": "Casa e affitti",
+    "description": "«Casa e affitti»: L’assemblea affronta tre temi scelti dal quartiere, usando mappe, fogli e interventi brevi. I partecipanti lavorano in tavoli, raccolgono problemi e formulano proposte, poi un moderatore legge la sintesi. Sono spiegati turni di parola, materiali disponibili, contatti dei promotori e modalità per aggiungere contributi.",
+    "category": "politica-e-attivismo",
+    "venue_type": "centro_sociale"
+  },
+  {
+    "title": "Strade per tutti",
+    "description": "«Strade per tutti»: L’assemblea affronta tre temi scelti dal quartiere, usando mappe, fogli e interventi brevi. I partecipanti lavorano in tavoli, raccolgono problemi e formulano proposte, poi un moderatore legge la sintesi. Sono spiegati turni di parola, materiali disponibili, contatti dei promotori e modalità per aggiungere contributi.",
+    "category": "politica-e-attivismo",
+    "venue_type": "circolo"
+  },
+  {
+    "title": "Quartieri resilienti",
+    "description": "«Quartieri resilienti»: L’assemblea affronta tre temi scelti dal quartiere, usando mappe, fogli e interventi brevi. I partecipanti lavorano in tavoli, raccolgono problemi e formulano proposte, poi un moderatore legge la sintesi. Sono spiegati turni di parola, materiali disponibili, contatti dei promotori e modalità per aggiungere contributi.",
+    "category": "politica-e-attivismo",
+    "venue_type": "associazione"
+  },
+  {
+    "title": "Lavoro che cambia",
+    "description": "«Lavoro che cambia»: L’assemblea affronta tre temi scelti dal quartiere, usando mappe, fogli e interventi brevi. I partecipanti lavorano in tavoli, raccolgono problemi e formulano proposte, poi un moderatore legge la sintesi. Sono spiegati turni di parola, materiali disponibili, contatti dei promotori e modalità per aggiungere contributi.",
+    "category": "politica-e-attivismo",
+    "venue_type": "spazio_pubblico"
+  },
+  {
+    "title": "Aria di città",
+    "description": "«Aria di città»: L’assemblea affronta tre temi scelti dal quartiere, usando mappe, fogli e interventi brevi. I partecipanti lavorano in tavoli, raccolgono problemi e formulano proposte, poi un moderatore legge la sintesi. Sono spiegati turni di parola, materiali disponibili, contatti dei promotori e modalità per aggiungere contributi.",
+    "category": "politica-e-attivismo",
+    "venue_type": "centro_sociale"
+  },
+  {
+    "title": "Cura dello spazio comune",
+    "description": "«Cura dello spazio comune»: L’assemblea affronta tre temi scelti dal quartiere, usando mappe, fogli e interventi brevi. I partecipanti lavorano in tavoli, raccolgono problemi e formulano proposte, poi un moderatore legge la sintesi. Sono spiegati turni di parola, materiali disponibili, contatti dei promotori e modalità per aggiungere contributi.",
+    "category": "politica-e-attivismo",
+    "venue_type": "circolo"
+  },
+  {
+    "title": "Diritti in pratica",
+    "description": "«Diritti in pratica»: L’assemblea affronta tre temi scelti dal quartiere, usando mappe, fogli e interventi brevi. I partecipanti lavorano in tavoli, raccolgono problemi e formulano proposte, poi un moderatore legge la sintesi. Sono spiegati turni di parola, materiali disponibili, contatti dei promotori e modalità per aggiungere contributi.",
+    "category": "politica-e-attivismo",
+    "venue_type": "associazione"
+  },
+  {
+    "title": "Panchine e piazze",
+    "description": "«Panchine e piazze»: L’assemblea affronta tre temi scelti dal quartiere, usando mappe, fogli e interventi brevi. I partecipanti lavorano in tavoli, raccolgono problemi e formulano proposte, poi un moderatore legge la sintesi. Sono spiegati turni di parola, materiali disponibili, contatti dei promotori e modalità per aggiungere contributi.",
+    "category": "politica-e-attivismo",
+    "venue_type": "spazio_pubblico"
+  },
+  {
+    "title": "Scelte energetiche",
+    "description": "«Scelte energetiche»: L’assemblea affronta tre temi scelti dal quartiere, usando mappe, fogli e interventi brevi. I partecipanti lavorano in tavoli, raccolgono problemi e formulano proposte, poi un moderatore legge la sintesi. Sono spiegati turni di parola, materiali disponibili, contatti dei promotori e modalità per aggiungere contributi.",
+    "category": "politica-e-attivismo",
+    "venue_type": "centro_sociale"
+  },
+  {
+    "title": "Scuola e territorio",
+    "description": "«Scuola e territorio»: L’assemblea affronta tre temi scelti dal quartiere, usando mappe, fogli e interventi brevi. I partecipanti lavorano in tavoli, raccolgono problemi e formulano proposte, poi un moderatore legge la sintesi. Sono spiegati turni di parola, materiali disponibili, contatti dei promotori e modalità per aggiungere contributi.",
+    "category": "politica-e-attivismo",
+    "venue_type": "circolo"
+  },
+  {
+    "title": "Parole migranti",
+    "description": "«Parole migranti»: L’assemblea affronta tre temi scelti dal quartiere, usando mappe, fogli e interventi brevi. I partecipanti lavorano in tavoli, raccolgono problemi e formulano proposte, poi un moderatore legge la sintesi. Sono spiegati turni di parola, materiali disponibili, contatti dei promotori e modalità per aggiungere contributi.",
+    "category": "politica-e-attivismo",
+    "venue_type": "associazione"
+  },
+  {
+    "title": "Reti di vicinato",
+    "description": "«Reti di vicinato»: L’assemblea affronta tre temi scelti dal quartiere, usando mappe, fogli e interventi brevi. I partecipanti lavorano in tavoli, raccolgono problemi e formulano proposte, poi un moderatore legge la sintesi. Sono spiegati turni di parola, materiali disponibili, contatti dei promotori e modalità per aggiungere contributi.",
+    "category": "politica-e-attivismo",
+    "venue_type": "spazio_pubblico"
+  },
+  {
+    "title": "Acqua bene comune",
+    "description": "«Acqua bene comune»: L’assemblea affronta tre temi scelti dal quartiere, usando mappe, fogli e interventi brevi. I partecipanti lavorano in tavoli, raccolgono problemi e formulano proposte, poi un moderatore legge la sintesi. Sono spiegati turni di parola, materiali disponibili, contatti dei promotori e modalità per aggiungere contributi.",
+    "category": "politica-e-attivismo",
+    "venue_type": "centro_sociale"
+  },
+  {
+    "title": "Trasporti quotidiani",
+    "description": "«Trasporti quotidiani»: L’assemblea affronta tre temi scelti dal quartiere, usando mappe, fogli e interventi brevi. I partecipanti lavorano in tavoli, raccolgono problemi e formulano proposte, poi un moderatore legge la sintesi. Sono spiegati turni di parola, materiali disponibili, contatti dei promotori e modalità per aggiungere contributi.",
+    "category": "politica-e-attivismo",
+    "venue_type": "circolo"
+  },
+  {
+    "title": "Bilanci dal basso",
+    "description": "«Bilanci dal basso»: L’assemblea affronta tre temi scelti dal quartiere, usando mappe, fogli e interventi brevi. I partecipanti lavorano in tavoli, raccolgono problemi e formulano proposte, poi un moderatore legge la sintesi. Sono spiegati turni di parola, materiali disponibili, contatti dei promotori e modalità per aggiungere contributi.",
+    "category": "politica-e-attivismo",
+    "venue_type": "associazione"
+  },
+  {
+    "title": "Città accessibile",
+    "description": "«Città accessibile»: L’assemblea affronta tre temi scelti dal quartiere, usando mappe, fogli e interventi brevi. I partecipanti lavorano in tavoli, raccolgono problemi e formulano proposte, poi un moderatore legge la sintesi. Sono spiegati turni di parola, materiali disponibili, contatti dei promotori e modalità per aggiungere contributi.",
+    "category": "politica-e-attivismo",
+    "venue_type": "spazio_pubblico"
+  },
+  {
+    "title": "Agricoltura urbana",
+    "description": "«Agricoltura urbana»: L’assemblea affronta tre temi scelti dal quartiere, usando mappe, fogli e interventi brevi. I partecipanti lavorano in tavoli, raccolgono problemi e formulano proposte, poi un moderatore legge la sintesi. Sono spiegati turni di parola, materiali disponibili, contatti dei promotori e modalità per aggiungere contributi.",
+    "category": "politica-e-attivismo",
+    "venue_type": "centro_sociale"
+  },
+  {
+    "title": "Presìdi di ascolto",
+    "description": "«Presìdi di ascolto»: L’assemblea affronta tre temi scelti dal quartiere, usando mappe, fogli e interventi brevi. I partecipanti lavorano in tavoli, raccolgono problemi e formulano proposte, poi un moderatore legge la sintesi. Sono spiegati turni di parola, materiali disponibili, contatti dei promotori e modalità per aggiungere contributi.",
+    "category": "politica-e-attivismo",
+    "venue_type": "circolo"
+  },
+  {
+    "title": "Regole condivise",
+    "description": "«Regole condivise»: L’assemblea affronta tre temi scelti dal quartiere, usando mappe, fogli e interventi brevi. I partecipanti lavorano in tavoli, raccolgono problemi e formulano proposte, poi un moderatore legge la sintesi. Sono spiegati turni di parola, materiali disponibili, contatti dei promotori e modalità per aggiungere contributi.",
+    "category": "politica-e-attivismo",
+    "venue_type": "associazione"
+  },
+  {
+    "title": "Tempo e lavoro",
+    "description": "«Tempo e lavoro»: L’assemblea affronta tre temi scelti dal quartiere, usando mappe, fogli e interventi brevi. I partecipanti lavorano in tavoli, raccolgono problemi e formulano proposte, poi un moderatore legge la sintesi. Sono spiegati turni di parola, materiali disponibili, contatti dei promotori e modalità per aggiungere contributi.",
+    "category": "politica-e-attivismo",
+    "venue_type": "spazio_pubblico"
+  },
+  {
+    "title": "Voci dal margine",
+    "description": "«Voci dal margine»: L’assemblea affronta tre temi scelti dal quartiere, usando mappe, fogli e interventi brevi. I partecipanti lavorano in tavoli, raccolgono problemi e formulano proposte, poi un moderatore legge la sintesi. Sono spiegati turni di parola, materiali disponibili, contatti dei promotori e modalità per aggiungere contributi.",
+    "category": "politica-e-attivismo",
+    "venue_type": "centro_sociale"
+  },
+  {
+    "title": "Sessione Corriamo insieme",
+    "description": "«Sessione Corriamo insieme»: La sessione alterna riscaldamento, esercizi a stazioni e una partita finale a squadre miste. Un istruttore spiega livelli, regole e pause prima dell’avvio; l’attrezzatura essenziale è disponibile sul posto. Sono indicati punto di ritrovo, spogliatoi, passaggi liberi, abbigliamento consigliato e iscrizione.",
+    "category": "sport",
+    "venue_type": "spazio_pubblico"
+  },
+  {
+    "title": "Pedali di quartiere",
+    "description": "«Pedali di quartiere»: La sessione alterna riscaldamento, esercizi a stazioni e una partita finale a squadre miste. Un istruttore spiega livelli, regole e pause prima dell’avvio; l’attrezzatura essenziale è disponibile sul posto. Sono indicati punto di ritrovo, spogliatoi, passaggi liberi, abbigliamento consigliato e iscrizione.",
+    "category": "sport",
+    "venue_type": "circolo"
+  },
+  {
+    "title": "Racchette in piazza",
+    "description": "«Racchette in piazza»: La sessione alterna riscaldamento, esercizi a stazioni e una partita finale a squadre miste. Un istruttore spiega livelli, regole e pause prima dell’avvio; l’attrezzatura essenziale è disponibile sul posto. Sono indicati punto di ritrovo, spogliatoi, passaggi liberi, abbigliamento consigliato e iscrizione.",
+    "category": "sport",
+    "venue_type": "spazio_pubblico"
+  },
+  {
+    "title": "Sessione Canestri aperti",
+    "description": "«Sessione Canestri aperti»: La sessione alterna riscaldamento, esercizi a stazioni e una partita finale a squadre miste. Un istruttore spiega livelli, regole e pause prima dell’avvio; l’attrezzatura essenziale è disponibile sul posto. Sono indicati punto di ritrovo, spogliatoi, passaggi liberi, abbigliamento consigliato e iscrizione.",
+    "category": "sport",
+    "venue_type": "circolo"
+  },
+  {
+    "title": "Passaggi sul prato",
+    "description": "«Passaggi sul prato»: La sessione alterna riscaldamento, esercizi a stazioni e una partita finale a squadre miste. Un istruttore spiega livelli, regole e pause prima dell’avvio; l’attrezzatura essenziale è disponibile sul posto. Sono indicati punto di ritrovo, spogliatoi, passaggi liberi, abbigliamento consigliato e iscrizione.",
+    "category": "sport",
+    "venue_type": "spazio_pubblico"
+  },
+  {
+    "title": "Scacchi senza fretta",
+    "description": "«Scacchi senza fretta»: La sessione alterna riscaldamento, esercizi a stazioni e una partita finale a squadre miste. Un istruttore spiega livelli, regole e pause prima dell’avvio; l’attrezzatura essenziale è disponibile sul posto. Sono indicati punto di ritrovo, spogliatoi, passaggi liberi, abbigliamento consigliato e iscrizione.",
+    "category": "sport",
+    "venue_type": "circolo"
+  },
+  {
+    "title": "Sessione Cammino dei portici",
+    "description": "«Sessione Cammino dei portici»: La sessione alterna riscaldamento, esercizi a stazioni e una partita finale a squadre miste. Un istruttore spiega livelli, regole e pause prima dell’avvio; l’attrezzatura essenziale è disponibile sul posto. Sono indicati punto di ritrovo, spogliatoi, passaggi liberi, abbigliamento consigliato e iscrizione.",
+    "category": "sport",
+    "venue_type": "spazio_pubblico"
+  },
+  {
+    "title": "Palla al centro",
+    "description": "«Palla al centro»: La sessione alterna riscaldamento, esercizi a stazioni e una partita finale a squadre miste. Un istruttore spiega livelli, regole e pause prima dell’avvio; l’attrezzatura essenziale è disponibile sul posto. Sono indicati punto di ritrovo, spogliatoi, passaggi liberi, abbigliamento consigliato e iscrizione.",
+    "category": "sport",
+    "venue_type": "circolo"
+  },
+  {
+    "title": "Giochi di equilibrio",
+    "description": "«Giochi di equilibrio»: La sessione alterna riscaldamento, esercizi a stazioni e una partita finale a squadre miste. Un istruttore spiega livelli, regole e pause prima dell’avvio; l’attrezzatura essenziale è disponibile sul posto. Sono indicati punto di ritrovo, spogliatoi, passaggi liberi, abbigliamento consigliato e iscrizione.",
+    "category": "sport",
+    "venue_type": "spazio_pubblico"
+  },
+  {
+    "title": "Sessione Circuito dolce",
+    "description": "«Sessione Circuito dolce»: La sessione alterna riscaldamento, esercizi a stazioni e una partita finale a squadre miste. Un istruttore spiega livelli, regole e pause prima dell’avvio; l’attrezzatura essenziale è disponibile sul posto. Sono indicati punto di ritrovo, spogliatoi, passaggi liberi, abbigliamento consigliato e iscrizione.",
+    "category": "sport",
+    "venue_type": "circolo"
+  },
+  {
+    "title": "Tavoli da ping pong",
+    "description": "«Tavoli da ping pong»: La sessione alterna riscaldamento, esercizi a stazioni e una partita finale a squadre miste. Un istruttore spiega livelli, regole e pause prima dell’avvio; l’attrezzatura essenziale è disponibile sul posto. Sono indicati punto di ritrovo, spogliatoi, passaggi liberi, abbigliamento consigliato e iscrizione.",
+    "category": "sport",
+    "venue_type": "spazio_pubblico"
+  },
+  {
+    "title": "Respiri in movimento",
+    "description": "«Respiri in movimento»: La sessione alterna riscaldamento, esercizi a stazioni e una partita finale a squadre miste. Un istruttore spiega livelli, regole e pause prima dell’avvio; l’attrezzatura essenziale è disponibile sul posto. Sono indicati punto di ritrovo, spogliatoi, passaggi liberi, abbigliamento consigliato e iscrizione.",
+    "category": "sport",
+    "venue_type": "circolo"
+  },
+  {
+    "title": "Sessione Volley nel parco",
+    "description": "«Sessione Volley nel parco»: La sessione alterna riscaldamento, esercizi a stazioni e una partita finale a squadre miste. Un istruttore spiega livelli, regole e pause prima dell’avvio; l’attrezzatura essenziale è disponibile sul posto. Sono indicati punto di ritrovo, spogliatoi, passaggi liberi, abbigliamento consigliato e iscrizione.",
+    "category": "sport",
+    "venue_type": "spazio_pubblico"
+  },
+  {
+    "title": "Calcio per tutti",
+    "description": "«Calcio per tutti»: La sessione alterna riscaldamento, esercizi a stazioni e una partita finale a squadre miste. Un istruttore spiega livelli, regole e pause prima dell’avvio; l’attrezzatura essenziale è disponibile sul posto. Sono indicati punto di ritrovo, spogliatoi, passaggi liberi, abbigliamento consigliato e iscrizione.",
+    "category": "sport",
+    "venue_type": "circolo"
+  },
+  {
+    "title": "Yoga all’aperto",
+    "description": "«Yoga all’aperto»: La sessione alterna riscaldamento, esercizi a stazioni e una partita finale a squadre miste. Un istruttore spiega livelli, regole e pause prima dell’avvio; l’attrezzatura essenziale è disponibile sul posto. Sono indicati punto di ritrovo, spogliatoi, passaggi liberi, abbigliamento consigliato e iscrizione.",
+    "category": "sport",
+    "venue_type": "spazio_pubblico"
+  },
+  {
+    "title": "Sessione Bici e manutenzione",
+    "description": "«Sessione Bici e manutenzione»: La sessione alterna riscaldamento, esercizi a stazioni e una partita finale a squadre miste. Un istruttore spiega livelli, regole e pause prima dell’avvio; l’attrezzatura essenziale è disponibile sul posto. Sono indicati punto di ritrovo, spogliatoi, passaggi liberi, abbigliamento consigliato e iscrizione.",
+    "category": "sport",
+    "venue_type": "circolo"
+  },
+  {
+    "title": "Salti condivisi",
+    "description": "«Salti condivisi»: La sessione alterna riscaldamento, esercizi a stazioni e una partita finale a squadre miste. Un istruttore spiega livelli, regole e pause prima dell’avvio; l’attrezzatura essenziale è disponibile sul posto. Sono indicati punto di ritrovo, spogliatoi, passaggi liberi, abbigliamento consigliato e iscrizione.",
+    "category": "sport",
+    "venue_type": "spazio_pubblico"
+  },
+  {
+    "title": "Orienteering urbano",
+    "description": "«Orienteering urbano»: La sessione alterna riscaldamento, esercizi a stazioni e una partita finale a squadre miste. Un istruttore spiega livelli, regole e pause prima dell’avvio; l’attrezzatura essenziale è disponibile sul posto. Sono indicati punto di ritrovo, spogliatoi, passaggi liberi, abbigliamento consigliato e iscrizione.",
+    "category": "sport",
+    "venue_type": "circolo"
+  },
+  {
+    "title": "Sessione Sport e vicinato",
+    "description": "«Sessione Sport e vicinato»: La sessione alterna riscaldamento, esercizi a stazioni e una partita finale a squadre miste. Un istruttore spiega livelli, regole e pause prima dell’avvio; l’attrezzatura essenziale è disponibile sul posto. Sono indicati punto di ritrovo, spogliatoi, passaggi liberi, abbigliamento consigliato e iscrizione.",
+    "category": "sport",
+    "venue_type": "spazio_pubblico"
+  },
+  {
+    "title": "Mattina in movimento",
+    "description": "«Mattina in movimento»: La sessione alterna riscaldamento, esercizi a stazioni e una partita finale a squadre miste. Un istruttore spiega livelli, regole e pause prima dell’avvio; l’attrezzatura essenziale è disponibile sul posto. Sono indicati punto di ritrovo, spogliatoi, passaggi liberi, abbigliamento consigliato e iscrizione.",
+    "category": "sport",
+    "venue_type": "circolo"
+  },
+  {
+    "title": "Tiro al bersaglio",
+    "description": "«Tiro al bersaglio»: La sessione alterna riscaldamento, esercizi a stazioni e una partita finale a squadre miste. Un istruttore spiega livelli, regole e pause prima dell’avvio; l’attrezzatura essenziale è disponibile sul posto. Sono indicati punto di ritrovo, spogliatoi, passaggi liberi, abbigliamento consigliato e iscrizione.",
+    "category": "sport",
+    "venue_type": "spazio_pubblico"
+  },
+  {
+    "title": "Degustazione Tavola del territorio",
+    "description": "«Degustazione Tavola del territorio»: Il programma propone banco di assaggi, dimostrazione di una ricetta e tavola conclusiva. I produttori descrivono ingredienti, lavorazioni e abbinamenti, mentre una scheda raccoglie allergeni dichiarati. Il ristorante indica porzioni, turni di servizio, costi, modalità di pagamento e disponibilità dei tavoli.",
+    "category": "food-e-sagre",
+    "venue_type": "ristorante"
+  },
+  {
+    "title": "Sapori di corte",
+    "description": "«Sapori di corte»: Il programma propone banco di assaggi, dimostrazione di una ricetta e tavola conclusiva. I produttori descrivono ingredienti, lavorazioni e abbinamenti, mentre una scheda raccoglie allergeni dichiarati. Il ristorante indica porzioni, turni di servizio, costi, modalità di pagamento e disponibilità dei tavoli.",
+    "category": "food-e-sagre",
+    "venue_type": "spazio_pubblico"
+  },
+  {
+    "title": "Forchette curiose",
+    "description": "«Forchette curiose»: Il programma propone banco di assaggi, dimostrazione di una ricetta e tavola conclusiva. I produttori descrivono ingredienti, lavorazioni e abbinamenti, mentre una scheda raccoglie allergeni dichiarati. Il ristorante indica porzioni, turni di servizio, costi, modalità di pagamento e disponibilità dei tavoli.",
+    "category": "food-e-sagre",
+    "venue_type": "circolo"
+  },
+  {
+    "title": "Degustazione Pane e stagioni",
+    "description": "«Degustazione Pane e stagioni»: Il programma propone banco di assaggi, dimostrazione di una ricetta e tavola conclusiva. I produttori descrivono ingredienti, lavorazioni e abbinamenti, mentre una scheda raccoglie allergeni dichiarati. Il ristorante indica porzioni, turni di servizio, costi, modalità di pagamento e disponibilità dei tavoli.",
+    "category": "food-e-sagre",
+    "venue_type": "ristorante"
+  },
+  {
+    "title": "Orti nel piatto",
+    "description": "«Orti nel piatto»: Il programma propone banco di assaggi, dimostrazione di una ricetta e tavola conclusiva. I produttori descrivono ingredienti, lavorazioni e abbinamenti, mentre una scheda raccoglie allergeni dichiarati. Il ristorante indica porzioni, turni di servizio, costi, modalità di pagamento e disponibilità dei tavoli.",
+    "category": "food-e-sagre",
+    "venue_type": "spazio_pubblico"
+  },
+  {
+    "title": "Cucina senza sprechi",
+    "description": "«Cucina senza sprechi»: Il programma propone banco di assaggi, dimostrazione di una ricetta e tavola conclusiva. I produttori descrivono ingredienti, lavorazioni e abbinamenti, mentre una scheda raccoglie allergeni dichiarati. Il ristorante indica porzioni, turni di servizio, costi, modalità di pagamento e disponibilità dei tavoli.",
+    "category": "food-e-sagre",
+    "venue_type": "circolo"
+  },
+  {
+    "title": "Degustazione Pentole in piazza",
+    "description": "«Degustazione Pentole in piazza»: Il programma propone banco di assaggi, dimostrazione di una ricetta e tavola conclusiva. I produttori descrivono ingredienti, lavorazioni e abbinamenti, mentre una scheda raccoglie allergeni dichiarati. Il ristorante indica porzioni, turni di servizio, costi, modalità di pagamento e disponibilità dei tavoli.",
+    "category": "food-e-sagre",
+    "venue_type": "ristorante"
+  },
+  {
+    "title": "Mercato da assaggiare",
+    "description": "«Mercato da assaggiare»: Il programma propone banco di assaggi, dimostrazione di una ricetta e tavola conclusiva. I produttori descrivono ingredienti, lavorazioni e abbinamenti, mentre una scheda raccoglie allergeni dichiarati. Il ristorante indica porzioni, turni di servizio, costi, modalità di pagamento e disponibilità dei tavoli.",
+    "category": "food-e-sagre",
+    "venue_type": "spazio_pubblico"
+  },
+  {
+    "title": "Erbe e impasti",
+    "description": "«Erbe e impasti»: Il programma propone banco di assaggi, dimostrazione di una ricetta e tavola conclusiva. I produttori descrivono ingredienti, lavorazioni e abbinamenti, mentre una scheda raccoglie allergeni dichiarati. Il ristorante indica porzioni, turni di servizio, costi, modalità di pagamento e disponibilità dei tavoli.",
+    "category": "food-e-sagre",
+    "venue_type": "circolo"
+  },
+  {
+    "title": "Degustazione Raccolto conviviale",
+    "description": "«Degustazione Raccolto conviviale»: Il programma propone banco di assaggi, dimostrazione di una ricetta e tavola conclusiva. I produttori descrivono ingredienti, lavorazioni e abbinamenti, mentre una scheda raccoglie allergeni dichiarati. Il ristorante indica porzioni, turni di servizio, costi, modalità di pagamento e disponibilità dei tavoli.",
+    "category": "food-e-sagre",
+    "venue_type": "ristorante"
+  },
+  {
+    "title": "Profumi del Brenta",
+    "description": "«Profumi del Brenta»: Il programma propone banco di assaggi, dimostrazione di una ricetta e tavola conclusiva. I produttori descrivono ingredienti, lavorazioni e abbinamenti, mentre una scheda raccoglie allergeni dichiarati. Il ristorante indica porzioni, turni di servizio, costi, modalità di pagamento e disponibilità dei tavoli.",
+    "category": "food-e-sagre",
+    "venue_type": "spazio_pubblico"
+  },
+  {
+    "title": "Ricette di vicinato",
+    "description": "«Ricette di vicinato»: Il programma propone banco di assaggi, dimostrazione di una ricetta e tavola conclusiva. I produttori descrivono ingredienti, lavorazioni e abbinamenti, mentre una scheda raccoglie allergeni dichiarati. Il ristorante indica porzioni, turni di servizio, costi, modalità di pagamento e disponibilità dei tavoli.",
+    "category": "food-e-sagre",
+    "venue_type": "circolo"
+  },
+  {
+    "title": "Degustazione Legumi protagonisti",
+    "description": "«Degustazione Legumi protagonisti»: Il programma propone banco di assaggi, dimostrazione di una ricetta e tavola conclusiva. I produttori descrivono ingredienti, lavorazioni e abbinamenti, mentre una scheda raccoglie allergeni dichiarati. Il ristorante indica porzioni, turni di servizio, costi, modalità di pagamento e disponibilità dei tavoli.",
+    "category": "food-e-sagre",
+    "venue_type": "ristorante"
+  },
+  {
+    "title": "Grani e farine",
+    "description": "«Grani e farine»: Il programma propone banco di assaggi, dimostrazione di una ricetta e tavola conclusiva. I produttori descrivono ingredienti, lavorazioni e abbinamenti, mentre una scheda raccoglie allergeni dichiarati. Il ristorante indica porzioni, turni di servizio, costi, modalità di pagamento e disponibilità dei tavoli.",
+    "category": "food-e-sagre",
+    "venue_type": "spazio_pubblico"
+  },
+  {
+    "title": "Calici consapevoli",
+    "description": "«Calici consapevoli»: Il programma propone banco di assaggi, dimostrazione di una ricetta e tavola conclusiva. I produttori descrivono ingredienti, lavorazioni e abbinamenti, mentre una scheda raccoglie allergeni dichiarati. Il ristorante indica porzioni, turni di servizio, costi, modalità di pagamento e disponibilità dei tavoli.",
+    "category": "food-e-sagre",
+    "venue_type": "circolo"
+  },
+  {
+    "title": "Degustazione Bottega a tavola",
+    "description": "«Degustazione Bottega a tavola»: Il programma propone banco di assaggi, dimostrazione di una ricetta e tavola conclusiva. I produttori descrivono ingredienti, lavorazioni e abbinamenti, mentre una scheda raccoglie allergeni dichiarati. Il ristorante indica porzioni, turni di servizio, costi, modalità di pagamento e disponibilità dei tavoli.",
+    "category": "food-e-sagre",
+    "venue_type": "ristorante"
+  },
+  {
+    "title": "Dolci da forno",
+    "description": "«Dolci da forno»: Il programma propone banco di assaggi, dimostrazione di una ricetta e tavola conclusiva. I produttori descrivono ingredienti, lavorazioni e abbinamenti, mentre una scheda raccoglie allergeni dichiarati. Il ristorante indica porzioni, turni di servizio, costi, modalità di pagamento e disponibilità dei tavoli.",
+    "category": "food-e-sagre",
+    "venue_type": "spazio_pubblico"
+  },
+  {
+    "title": "Verdure in festa",
+    "description": "«Verdure in festa»: Il programma propone banco di assaggi, dimostrazione di una ricetta e tavola conclusiva. I produttori descrivono ingredienti, lavorazioni e abbinamenti, mentre una scheda raccoglie allergeni dichiarati. Il ristorante indica porzioni, turni di servizio, costi, modalità di pagamento e disponibilità dei tavoli.",
+    "category": "food-e-sagre",
+    "venue_type": "circolo"
+  },
+  {
+    "title": "Degustazione Piccoli produttori",
+    "description": "«Degustazione Piccoli produttori»: Il programma propone banco di assaggi, dimostrazione di una ricetta e tavola conclusiva. I produttori descrivono ingredienti, lavorazioni e abbinamenti, mentre una scheda raccoglie allergeni dichiarati. Il ristorante indica porzioni, turni di servizio, costi, modalità di pagamento e disponibilità dei tavoli.",
+    "category": "food-e-sagre",
+    "venue_type": "ristorante"
+  },
+  {
+    "title": "Cucina di recupero",
+    "description": "«Cucina di recupero»: Il programma propone banco di assaggi, dimostrazione di una ricetta e tavola conclusiva. I produttori descrivono ingredienti, lavorazioni e abbinamenti, mentre una scheda raccoglie allergeni dichiarati. Il ristorante indica porzioni, turni di servizio, costi, modalità di pagamento e disponibilità dei tavoli.",
+    "category": "food-e-sagre",
+    "venue_type": "spazio_pubblico"
+  },
+  {
+    "title": "Morsi di provincia",
+    "description": "«Morsi di provincia»: Il programma propone banco di assaggi, dimostrazione di una ricetta e tavola conclusiva. I produttori descrivono ingredienti, lavorazioni e abbinamenti, mentre una scheda raccoglie allergeni dichiarati. Il ristorante indica porzioni, turni di servizio, costi, modalità di pagamento e disponibilità dei tavoli.",
+    "category": "food-e-sagre",
+    "venue_type": "circolo"
+  },
+  {
+    "title": "Mercatino Scambi sotto i portici",
+    "description": "«Mercatino Scambi sotto i portici»: Le bancarelle propongono libri, vinili, tessuti, utensili e oggetti restaurati. Una mappa ordina gli espositori per tema e lascia corridoi tra i tavoli; un punto centrale raccoglie materiali per il baratto. Sono spiegati montaggio, prezzi esposti, imballaggi, accessi e ritiro a fine giornata.",
+    "category": "mercatini",
+    "venue_type": "spazio_pubblico"
+  },
+  {
+    "title": "Riuso in piazza",
+    "description": "«Riuso in piazza»: Le bancarelle propongono libri, vinili, tessuti, utensili e oggetti restaurati. Una mappa ordina gli espositori per tema e lascia corridoi tra i tavoli; un punto centrale raccoglie materiali per il baratto. Sono spiegati montaggio, prezzi esposti, imballaggi, accessi e ritiro a fine giornata.",
+    "category": "mercatini",
+    "venue_type": "galleria"
+  },
+  {
+    "title": "Bancarelle gentili",
+    "description": "«Bancarelle gentili»: Le bancarelle propongono libri, vinili, tessuti, utensili e oggetti restaurati. Una mappa ordina gli espositori per tema e lascia corridoi tra i tavoli; un punto centrale raccoglie materiali per il baratto. Sono spiegati montaggio, prezzi esposti, imballaggi, accessi e ritiro a fine giornata.",
+    "category": "mercatini",
+    "venue_type": "spazio_pubblico"
+  },
+  {
+    "title": "Mercatino Vinili e carta",
+    "description": "«Mercatino Vinili e carta»: Le bancarelle propongono libri, vinili, tessuti, utensili e oggetti restaurati. Una mappa ordina gli espositori per tema e lascia corridoi tra i tavoli; un punto centrale raccoglie materiali per il baratto. Sono spiegati montaggio, prezzi esposti, imballaggi, accessi e ritiro a fine giornata.",
+    "category": "mercatini",
+    "venue_type": "galleria"
+  },
+  {
+    "title": "Oggetti con storia",
+    "description": "«Oggetti con storia»: Le bancarelle propongono libri, vinili, tessuti, utensili e oggetti restaurati. Una mappa ordina gli espositori per tema e lascia corridoi tra i tavoli; un punto centrale raccoglie materiali per il baratto. Sono spiegati montaggio, prezzi esposti, imballaggi, accessi e ritiro a fine giornata.",
+    "category": "mercatini",
+    "venue_type": "spazio_pubblico"
+  },
+  {
+    "title": "Mani e mestieri",
+    "description": "«Mani e mestieri»: Le bancarelle propongono libri, vinili, tessuti, utensili e oggetti restaurati. Una mappa ordina gli espositori per tema e lascia corridoi tra i tavoli; un punto centrale raccoglie materiali per il baratto. Sono spiegati montaggio, prezzi esposti, imballaggi, accessi e ritiro a fine giornata.",
+    "category": "mercatini",
+    "venue_type": "galleria"
+  },
+  {
+    "title": "Mercatino Piccolo vintage",
+    "description": "«Mercatino Piccolo vintage»: Le bancarelle propongono libri, vinili, tessuti, utensili e oggetti restaurati. Una mappa ordina gli espositori per tema e lascia corridoi tra i tavoli; un punto centrale raccoglie materiali per il baratto. Sono spiegati montaggio, prezzi esposti, imballaggi, accessi e ritiro a fine giornata.",
+    "category": "mercatini",
+    "venue_type": "spazio_pubblico"
+  },
+  {
+    "title": "Mercato delle idee",
+    "description": "«Mercato delle idee»: Le bancarelle propongono libri, vinili, tessuti, utensili e oggetti restaurati. Una mappa ordina gli espositori per tema e lascia corridoi tra i tavoli; un punto centrale raccoglie materiali per il baratto. Sono spiegati montaggio, prezzi esposti, imballaggi, accessi e ritiro a fine giornata.",
+    "category": "mercatini",
+    "venue_type": "galleria"
+  },
+  {
+    "title": "Cose ritrovate",
+    "description": "«Cose ritrovate»: Le bancarelle propongono libri, vinili, tessuti, utensili e oggetti restaurati. Una mappa ordina gli espositori per tema e lascia corridoi tra i tavoli; un punto centrale raccoglie materiali per il baratto. Sono spiegati montaggio, prezzi esposti, imballaggi, accessi e ritiro a fine giornata.",
+    "category": "mercatini",
+    "venue_type": "spazio_pubblico"
+  },
+  {
+    "title": "Mercatino Baratto di quartiere",
+    "description": "«Mercatino Baratto di quartiere»: Le bancarelle propongono libri, vinili, tessuti, utensili e oggetti restaurati. Una mappa ordina gli espositori per tema e lascia corridoi tra i tavoli; un punto centrale raccoglie materiali per il baratto. Sono spiegati montaggio, prezzi esposti, imballaggi, accessi e ritiro a fine giornata.",
+    "category": "mercatini",
+    "venue_type": "galleria"
+  },
+  {
+    "title": "Stampe e tessuti",
+    "description": "«Stampe e tessuti»: Le bancarelle propongono libri, vinili, tessuti, utensili e oggetti restaurati. Una mappa ordina gli espositori per tema e lascia corridoi tra i tavoli; un punto centrale raccoglie materiali per il baratto. Sono spiegati montaggio, prezzi esposti, imballaggi, accessi e ritiro a fine giornata.",
+    "category": "mercatini",
+    "venue_type": "spazio_pubblico"
+  },
+  {
+    "title": "Seconda vita",
+    "description": "«Seconda vita»: Le bancarelle propongono libri, vinili, tessuti, utensili e oggetti restaurati. Una mappa ordina gli espositori per tema e lascia corridoi tra i tavoli; un punto centrale raccoglie materiali per il baratto. Sono spiegati montaggio, prezzi esposti, imballaggi, accessi e ritiro a fine giornata.",
+    "category": "mercatini",
+    "venue_type": "galleria"
+  },
+  {
+    "title": "Mercatino Botteghe temporanee",
+    "description": "«Mercatino Botteghe temporanee»: Le bancarelle propongono libri, vinili, tessuti, utensili e oggetti restaurati. Una mappa ordina gli espositori per tema e lascia corridoi tra i tavoli; un punto centrale raccoglie materiali per il baratto. Sono spiegati montaggio, prezzi esposti, imballaggi, accessi e ritiro a fine giornata.",
+    "category": "mercatini",
+    "venue_type": "spazio_pubblico"
+  },
+  {
+    "title": "Collezioni minute",
+    "description": "«Collezioni minute»: Le bancarelle propongono libri, vinili, tessuti, utensili e oggetti restaurati. Una mappa ordina gli espositori per tema e lascia corridoi tra i tavoli; un punto centrale raccoglie materiali per il baratto. Sono spiegati montaggio, prezzi esposti, imballaggi, accessi e ritiro a fine giornata.",
+    "category": "mercatini",
+    "venue_type": "galleria"
+  },
+  {
+    "title": "Fatto a mano",
+    "description": "«Fatto a mano»: Le bancarelle propongono libri, vinili, tessuti, utensili e oggetti restaurati. Una mappa ordina gli espositori per tema e lascia corridoi tra i tavoli; un punto centrale raccoglie materiali per il baratto. Sono spiegati montaggio, prezzi esposti, imballaggi, accessi e ritiro a fine giornata.",
+    "category": "mercatini",
+    "venue_type": "spazio_pubblico"
+  },
+  {
+    "title": "Mercatino Cianfrusaglie scelte",
+    "description": "«Mercatino Cianfrusaglie scelte»: Le bancarelle propongono libri, vinili, tessuti, utensili e oggetti restaurati. Una mappa ordina gli espositori per tema e lascia corridoi tra i tavoli; un punto centrale raccoglie materiali per il baratto. Sono spiegati montaggio, prezzi esposti, imballaggi, accessi e ritiro a fine giornata.",
+    "category": "mercatini",
+    "venue_type": "galleria"
+  },
+  {
+    "title": "Libri in circolo",
+    "description": "«Libri in circolo»: Le bancarelle propongono libri, vinili, tessuti, utensili e oggetti restaurati. Una mappa ordina gli espositori per tema e lascia corridoi tra i tavoli; un punto centrale raccoglie materiali per il baratto. Sono spiegati montaggio, prezzi esposti, imballaggi, accessi e ritiro a fine giornata.",
+    "category": "mercatini",
+    "venue_type": "spazio_pubblico"
+  },
+  {
+    "title": "Design di recupero",
+    "description": "«Design di recupero»: Le bancarelle propongono libri, vinili, tessuti, utensili e oggetti restaurati. Una mappa ordina gli espositori per tema e lascia corridoi tra i tavoli; un punto centrale raccoglie materiali per il baratto. Sono spiegati montaggio, prezzi esposti, imballaggi, accessi e ritiro a fine giornata.",
+    "category": "mercatini",
+    "venue_type": "galleria"
+  },
+  {
+    "title": "Mercatino Fili e bottoni",
+    "description": "«Mercatino Fili e bottoni»: Le bancarelle propongono libri, vinili, tessuti, utensili e oggetti restaurati. Una mappa ordina gli espositori per tema e lascia corridoi tra i tavoli; un punto centrale raccoglie materiali per il baratto. Sono spiegati montaggio, prezzi esposti, imballaggi, accessi e ritiro a fine giornata.",
+    "category": "mercatini",
+    "venue_type": "spazio_pubblico"
+  },
+  {
+    "title": "Antichi utensili",
+    "description": "«Antichi utensili»: Le bancarelle propongono libri, vinili, tessuti, utensili e oggetti restaurati. Una mappa ordina gli espositori per tema e lascia corridoi tra i tavoli; un punto centrale raccoglie materiali per il baratto. Sono spiegati montaggio, prezzi esposti, imballaggi, accessi e ritiro a fine giornata.",
+    "category": "mercatini",
+    "venue_type": "galleria"
+  },
+  {
+    "title": "Giochi d’altri tempi",
+    "description": "«Giochi d’altri tempi»: Le bancarelle propongono libri, vinili, tessuti, utensili e oggetti restaurati. Una mappa ordina gli espositori per tema e lascia corridoi tra i tavoli; un punto centrale raccoglie materiali per il baratto. Sono spiegati montaggio, prezzi esposti, imballaggi, accessi e ritiro a fine giornata.",
+    "category": "mercatini",
+    "venue_type": "spazio_pubblico"
+  },
+  {
+    "title": "Workshop Argilla per principianti",
+    "description": "«Workshop Argilla per principianti»: Il laboratorio parte da una dimostrazione e prosegue con esercizi guidati, lavoro autonomo e revisione finale. Materiali e strumenti sono distribuiti sui tavoli, con una scheda per chi parte da zero. Il docente indica pulizia, tempi, quota eventuale, iscrizione e come conservare il lavoro realizzato.",
+    "category": "corsi-e-workshop",
+    "venue_type": "associazione"
+  },
+  {
+    "title": "Fotografie di strada",
+    "description": "«Fotografie di strada»: Il laboratorio parte da una dimostrazione e prosegue con esercizi guidati, lavoro autonomo e revisione finale. Materiali e strumenti sono distribuiti sui tavoli, con una scheda per chi parte da zero. Il docente indica pulizia, tempi, quota eventuale, iscrizione e come conservare il lavoro realizzato.",
+    "category": "corsi-e-workshop",
+    "venue_type": "circolo"
+  },
+  {
+    "title": "Scrivere il quotidiano",
+    "description": "«Scrivere il quotidiano»: Il laboratorio parte da una dimostrazione e prosegue con esercizi guidati, lavoro autonomo e revisione finale. Materiali e strumenti sono distribuiti sui tavoli, con una scheda per chi parte da zero. Il docente indica pulizia, tempi, quota eventuale, iscrizione e come conservare il lavoro realizzato.",
+    "category": "corsi-e-workshop",
+    "venue_type": "libreria"
+  },
+  {
+    "title": "Workshop Orto sul balcone",
+    "description": "«Workshop Orto sul balcone»: Il laboratorio parte da una dimostrazione e prosegue con esercizi guidati, lavoro autonomo e revisione finale. Materiali e strumenti sono distribuiti sui tavoli, con una scheda per chi parte da zero. Il docente indica pulizia, tempi, quota eventuale, iscrizione e come conservare il lavoro realizzato.",
+    "category": "corsi-e-workshop",
+    "venue_type": "galleria"
+  },
+  {
+    "title": "Cucina vegetale",
+    "description": "«Cucina vegetale»: Il laboratorio parte da una dimostrazione e prosegue con esercizi guidati, lavoro autonomo e revisione finale. Materiali e strumenti sono distribuiti sui tavoli, con una scheda per chi parte da zero. Il docente indica pulizia, tempi, quota eventuale, iscrizione e come conservare il lavoro realizzato.",
+    "category": "corsi-e-workshop",
+    "venue_type": "associazione"
+  },
+  {
+    "title": "Legno e incastri",
+    "description": "«Legno e incastri»: Il laboratorio parte da una dimostrazione e prosegue con esercizi guidati, lavoro autonomo e revisione finale. Materiali e strumenti sono distribuiti sui tavoli, con una scheda per chi parte da zero. Il docente indica pulizia, tempi, quota eventuale, iscrizione e come conservare il lavoro realizzato.",
+    "category": "corsi-e-workshop",
+    "venue_type": "circolo"
+  },
+  {
+    "title": "Workshop Stampa manuale",
+    "description": "«Workshop Stampa manuale»: Il laboratorio parte da una dimostrazione e prosegue con esercizi guidati, lavoro autonomo e revisione finale. Materiali e strumenti sono distribuiti sui tavoli, con una scheda per chi parte da zero. Il docente indica pulizia, tempi, quota eventuale, iscrizione e come conservare il lavoro realizzato.",
+    "category": "corsi-e-workshop",
+    "venue_type": "libreria"
+  },
+  {
+    "title": "Riparazioni domestiche",
+    "description": "«Riparazioni domestiche»: Il laboratorio parte da una dimostrazione e prosegue con esercizi guidati, lavoro autonomo e revisione finale. Materiali e strumenti sono distribuiti sui tavoli, con una scheda per chi parte da zero. Il docente indica pulizia, tempi, quota eventuale, iscrizione e come conservare il lavoro realizzato.",
+    "category": "corsi-e-workshop",
+    "venue_type": "galleria"
+  },
+  {
+    "title": "Colori naturali",
+    "description": "«Colori naturali»: Il laboratorio parte da una dimostrazione e prosegue con esercizi guidati, lavoro autonomo e revisione finale. Materiali e strumenti sono distribuiti sui tavoli, con una scheda per chi parte da zero. Il docente indica pulizia, tempi, quota eventuale, iscrizione e come conservare il lavoro realizzato.",
+    "category": "corsi-e-workshop",
+    "venue_type": "associazione"
+  },
+  {
+    "title": "Workshop Podcast di quartiere",
+    "description": "«Workshop Podcast di quartiere»: Il laboratorio parte da una dimostrazione e prosegue con esercizi guidati, lavoro autonomo e revisione finale. Materiali e strumenti sono distribuiti sui tavoli, con una scheda per chi parte da zero. Il docente indica pulizia, tempi, quota eventuale, iscrizione e come conservare il lavoro realizzato.",
+    "category": "corsi-e-workshop",
+    "venue_type": "circolo"
+  },
+  {
+    "title": "Taccuino dei percorsi",
+    "description": "«Taccuino dei percorsi»: Il laboratorio parte da una dimostrazione e prosegue con esercizi guidati, lavoro autonomo e revisione finale. Materiali e strumenti sono distribuiti sui tavoli, con una scheda per chi parte da zero. Il docente indica pulizia, tempi, quota eventuale, iscrizione e come conservare il lavoro realizzato.",
+    "category": "corsi-e-workshop",
+    "venue_type": "libreria"
+  },
+  {
+    "title": "Pane fatto in casa",
+    "description": "«Pane fatto in casa»: Il laboratorio parte da una dimostrazione e prosegue con esercizi guidati, lavoro autonomo e revisione finale. Materiali e strumenti sono distribuiti sui tavoli, con una scheda per chi parte da zero. Il docente indica pulizia, tempi, quota eventuale, iscrizione e come conservare il lavoro realizzato.",
+    "category": "corsi-e-workshop",
+    "venue_type": "galleria"
+  },
+  {
+    "title": "Workshop Cianotipia pratica",
+    "description": "«Workshop Cianotipia pratica»: Il laboratorio parte da una dimostrazione e prosegue con esercizi guidati, lavoro autonomo e revisione finale. Materiali e strumenti sono distribuiti sui tavoli, con una scheda per chi parte da zero. Il docente indica pulizia, tempi, quota eventuale, iscrizione e come conservare il lavoro realizzato.",
+    "category": "corsi-e-workshop",
+    "venue_type": "associazione"
+  },
+  {
+    "title": "Cura delle piante",
+    "description": "«Cura delle piante»: Il laboratorio parte da una dimostrazione e prosegue con esercizi guidati, lavoro autonomo e revisione finale. Materiali e strumenti sono distribuiti sui tavoli, con una scheda per chi parte da zero. Il docente indica pulizia, tempi, quota eventuale, iscrizione e come conservare il lavoro realizzato.",
+    "category": "corsi-e-workshop",
+    "venue_type": "circolo"
+  },
+  {
+    "title": "Mappe disegnate",
+    "description": "«Mappe disegnate»: Il laboratorio parte da una dimostrazione e prosegue con esercizi guidati, lavoro autonomo e revisione finale. Materiali e strumenti sono distribuiti sui tavoli, con una scheda per chi parte da zero. Il docente indica pulizia, tempi, quota eventuale, iscrizione e come conservare il lavoro realizzato.",
+    "category": "corsi-e-workshop",
+    "venue_type": "libreria"
+  },
+  {
+    "title": "Workshop Cucito essenziale",
+    "description": "«Workshop Cucito essenziale»: Il laboratorio parte da una dimostrazione e prosegue con esercizi guidati, lavoro autonomo e revisione finale. Materiali e strumenti sono distribuiti sui tavoli, con una scheda per chi parte da zero. Il docente indica pulizia, tempi, quota eventuale, iscrizione e come conservare il lavoro realizzato.",
+    "category": "corsi-e-workshop",
+    "venue_type": "galleria"
+  },
+  {
+    "title": "Suono e registrazione",
+    "description": "«Suono e registrazione»: Il laboratorio parte da una dimostrazione e prosegue con esercizi guidati, lavoro autonomo e revisione finale. Materiali e strumenti sono distribuiti sui tavoli, con una scheda per chi parte da zero. Il docente indica pulizia, tempi, quota eventuale, iscrizione e come conservare il lavoro realizzato.",
+    "category": "corsi-e-workshop",
+    "venue_type": "associazione"
+  },
+  {
+    "title": "Compostaggio facile",
+    "description": "«Compostaggio facile»: Il laboratorio parte da una dimostrazione e prosegue con esercizi guidati, lavoro autonomo e revisione finale. Materiali e strumenti sono distribuiti sui tavoli, con una scheda per chi parte da zero. Il docente indica pulizia, tempi, quota eventuale, iscrizione e come conservare il lavoro realizzato.",
+    "category": "corsi-e-workshop",
+    "venue_type": "circolo"
+  },
+  {
+    "title": "Workshop Erbario personale",
+    "description": "«Workshop Erbario personale»: Il laboratorio parte da una dimostrazione e prosegue con esercizi guidati, lavoro autonomo e revisione finale. Materiali e strumenti sono distribuiti sui tavoli, con una scheda per chi parte da zero. Il docente indica pulizia, tempi, quota eventuale, iscrizione e come conservare il lavoro realizzato.",
+    "category": "corsi-e-workshop",
+    "venue_type": "libreria"
+  },
+  {
+    "title": "Ceramica da tavola",
+    "description": "«Ceramica da tavola»: Il laboratorio parte da una dimostrazione e prosegue con esercizi guidati, lavoro autonomo e revisione finale. Materiali e strumenti sono distribuiti sui tavoli, con una scheda per chi parte da zero. Il docente indica pulizia, tempi, quota eventuale, iscrizione e come conservare il lavoro realizzato.",
+    "category": "corsi-e-workshop",
+    "venue_type": "galleria"
+  },
+  {
+    "title": "Parlare in pubblico",
+    "description": "«Parlare in pubblico»: Il laboratorio parte da una dimostrazione e prosegue con esercizi guidati, lavoro autonomo e revisione finale. Materiali e strumenti sono distribuiti sui tavoli, con una scheda per chi parte da zero. Il docente indica pulizia, tempi, quota eventuale, iscrizione e come conservare il lavoro realizzato.",
+    "category": "corsi-e-workshop",
+    "venue_type": "associazione"
+  },
+  {
+    "title": "Storie con le mani",
+    "description": "«Storie con le mani»: L’attività alterna una storia, un laboratorio con materiali di riciclo e un gioco conclusivo. I bambini lavorano a piccoli gruppi, con colori, cartoncini e oggetti da esplorare; un adulto resta con loro. Sono indicati pause, bagno, area passeggini, capienza, durata e modalità di accoglienza.",
+    "category": "bambini-e-famiglie",
+    "venue_type": "libreria"
+  },
+  {
+    "title": "Piccoli esploratori",
+    "description": "«Piccoli esploratori»: L’attività alterna una storia, un laboratorio con materiali di riciclo e un gioco conclusivo. I bambini lavorano a piccoli gruppi, con colori, cartoncini e oggetti da esplorare; un adulto resta con loro. Sono indicati pause, bagno, area passeggini, capienza, durata e modalità di accoglienza.",
+    "category": "bambini-e-famiglie",
+    "venue_type": "associazione"
+  },
+  {
+    "title": "Il teatro dei burattini",
+    "description": "«Il teatro dei burattini»: L’attività alterna una storia, un laboratorio con materiali di riciclo e un gioco conclusivo. I bambini lavorano a piccoli gruppi, con colori, cartoncini e oggetti da esplorare; un adulto resta con loro. Sono indicati pause, bagno, area passeggini, capienza, durata e modalità di accoglienza.",
+    "category": "bambini-e-famiglie",
+    "venue_type": "spazio_pubblico"
+  },
+  {
+    "title": "Colori in natura",
+    "description": "«Colori in natura»: L’attività alterna una storia, un laboratorio con materiali di riciclo e un gioco conclusivo. I bambini lavorano a piccoli gruppi, con colori, cartoncini e oggetti da esplorare; un adulto resta con loro. Sono indicati pause, bagno, area passeggini, capienza, durata e modalità di accoglienza.",
+    "category": "bambini-e-famiglie",
+    "venue_type": "circolo"
+  },
+  {
+    "title": "Giochi senza schermo",
+    "description": "«Giochi senza schermo»: L’attività alterna una storia, un laboratorio con materiali di riciclo e un gioco conclusivo. I bambini lavorano a piccoli gruppi, con colori, cartoncini e oggetti da esplorare; un adulto resta con loro. Sono indicati pause, bagno, area passeggini, capienza, durata e modalità di accoglienza.",
+    "category": "bambini-e-famiglie",
+    "venue_type": "libreria"
+  },
+  {
+    "title": "Costruiamo una città",
+    "description": "«Costruiamo una città»: L’attività alterna una storia, un laboratorio con materiali di riciclo e un gioco conclusivo. I bambini lavorano a piccoli gruppi, con colori, cartoncini e oggetti da esplorare; un adulto resta con loro. Sono indicati pause, bagno, area passeggini, capienza, durata e modalità di accoglienza.",
+    "category": "bambini-e-famiglie",
+    "venue_type": "associazione"
+  },
+  {
+    "title": "Musica per crescere",
+    "description": "«Musica per crescere»: L’attività alterna una storia, un laboratorio con materiali di riciclo e un gioco conclusivo. I bambini lavorano a piccoli gruppi, con colori, cartoncini e oggetti da esplorare; un adulto resta con loro. Sono indicati pause, bagno, area passeggini, capienza, durata e modalità di accoglienza.",
+    "category": "bambini-e-famiglie",
+    "venue_type": "spazio_pubblico"
+  },
+  {
+    "title": "Caccia ai dettagli",
+    "description": "«Caccia ai dettagli»: L’attività alterna una storia, un laboratorio con materiali di riciclo e un gioco conclusivo. I bambini lavorano a piccoli gruppi, con colori, cartoncini e oggetti da esplorare; un adulto resta con loro. Sono indicati pause, bagno, area passeggini, capienza, durata e modalità di accoglienza.",
+    "category": "bambini-e-famiglie",
+    "venue_type": "circolo"
+  },
+  {
+    "title": "Favole in valigia",
+    "description": "«Favole in valigia»: L’attività alterna una storia, un laboratorio con materiali di riciclo e un gioco conclusivo. I bambini lavorano a piccoli gruppi, con colori, cartoncini e oggetti da esplorare; un adulto resta con loro. Sono indicati pause, bagno, area passeggini, capienza, durata e modalità di accoglienza.",
+    "category": "bambini-e-famiglie",
+    "venue_type": "libreria"
+  },
+  {
+    "title": "Laboratorio dei semi",
+    "description": "«Laboratorio dei semi»: L’attività alterna una storia, un laboratorio con materiali di riciclo e un gioco conclusivo. I bambini lavorano a piccoli gruppi, con colori, cartoncini e oggetti da esplorare; un adulto resta con loro. Sono indicati pause, bagno, area passeggini, capienza, durata e modalità di accoglienza.",
+    "category": "bambini-e-famiglie",
+    "venue_type": "associazione"
+  },
+  {
+    "title": "Piedi nel prato",
+    "description": "«Piedi nel prato»: L’attività alterna una storia, un laboratorio con materiali di riciclo e un gioco conclusivo. I bambini lavorano a piccoli gruppi, con colori, cartoncini e oggetti da esplorare; un adulto resta con loro. Sono indicati pause, bagno, area passeggini, capienza, durata e modalità di accoglienza.",
+    "category": "bambini-e-famiglie",
+    "venue_type": "spazio_pubblico"
+  },
+  {
+    "title": "Rime in movimento",
+    "description": "«Rime in movimento»: L’attività alterna una storia, un laboratorio con materiali di riciclo e un gioco conclusivo. I bambini lavorano a piccoli gruppi, con colori, cartoncini e oggetti da esplorare; un adulto resta con loro. Sono indicati pause, bagno, area passeggini, capienza, durata e modalità di accoglienza.",
+    "category": "bambini-e-famiglie",
+    "venue_type": "circolo"
+  },
+  {
+    "title": "Invenzioni di cartone",
+    "description": "«Invenzioni di cartone»: L’attività alterna una storia, un laboratorio con materiali di riciclo e un gioco conclusivo. I bambini lavorano a piccoli gruppi, con colori, cartoncini e oggetti da esplorare; un adulto resta con loro. Sono indicati pause, bagno, area passeggini, capienza, durata e modalità di accoglienza.",
+    "category": "bambini-e-famiglie",
+    "venue_type": "libreria"
+  },
+  {
+    "title": "Segreti del quartiere",
+    "description": "«Segreti del quartiere»: L’attività alterna una storia, un laboratorio con materiali di riciclo e un gioco conclusivo. I bambini lavorano a piccoli gruppi, con colori, cartoncini e oggetti da esplorare; un adulto resta con loro. Sono indicati pause, bagno, area passeggini, capienza, durata e modalità di accoglienza.",
+    "category": "bambini-e-famiglie",
+    "venue_type": "associazione"
+  },
+  {
+    "title": "Disegni giganti",
+    "description": "«Disegni giganti»: L’attività alterna una storia, un laboratorio con materiali di riciclo e un gioco conclusivo. I bambini lavorano a piccoli gruppi, con colori, cartoncini e oggetti da esplorare; un adulto resta con loro. Sono indicati pause, bagno, area passeggini, capienza, durata e modalità di accoglienza.",
+    "category": "bambini-e-famiglie",
+    "venue_type": "spazio_pubblico"
+  },
+  {
+    "title": "Piccolo circo",
+    "description": "«Piccolo circo»: L’attività alterna una storia, un laboratorio con materiali di riciclo e un gioco conclusivo. I bambini lavorano a piccoli gruppi, con colori, cartoncini e oggetti da esplorare; un adulto resta con loro. Sono indicati pause, bagno, area passeggini, capienza, durata e modalità di accoglienza.",
+    "category": "bambini-e-famiglie",
+    "venue_type": "circolo"
+  },
+  {
+    "title": "Suoni da scoprire",
+    "description": "«Suoni da scoprire»: L’attività alterna una storia, un laboratorio con materiali di riciclo e un gioco conclusivo. I bambini lavorano a piccoli gruppi, con colori, cartoncini e oggetti da esplorare; un adulto resta con loro. Sono indicati pause, bagno, area passeggini, capienza, durata e modalità di accoglienza.",
+    "category": "bambini-e-famiglie",
+    "venue_type": "libreria"
+  },
+  {
+    "title": "Forme e fantasia",
+    "description": "«Forme e fantasia»: L’attività alterna una storia, un laboratorio con materiali di riciclo e un gioco conclusivo. I bambini lavorano a piccoli gruppi, con colori, cartoncini e oggetti da esplorare; un adulto resta con loro. Sono indicati pause, bagno, area passeggini, capienza, durata e modalità di accoglienza.",
+    "category": "bambini-e-famiglie",
+    "venue_type": "associazione"
+  },
+  {
+    "title": "Merenda creativa",
+    "description": "«Merenda creativa»: L’attività alterna una storia, un laboratorio con materiali di riciclo e un gioco conclusivo. I bambini lavorano a piccoli gruppi, con colori, cartoncini e oggetti da esplorare; un adulto resta con loro. Sono indicati pause, bagno, area passeggini, capienza, durata e modalità di accoglienza.",
+    "category": "bambini-e-famiglie",
+    "venue_type": "spazio_pubblico"
+  },
+  {
+    "title": "Avventure tra i libri",
+    "description": "«Avventure tra i libri»: L’attività alterna una storia, un laboratorio con materiali di riciclo e un gioco conclusivo. I bambini lavorano a piccoli gruppi, con colori, cartoncini e oggetti da esplorare; un adulto resta con loro. Sono indicati pause, bagno, area passeggini, capienza, durata e modalità di accoglienza.",
+    "category": "bambini-e-famiglie",
+    "venue_type": "circolo"
+  },
+  {
+    "title": "Toccare e trasformare",
+    "description": "«Toccare e trasformare»: L’attività alterna una storia, un laboratorio con materiali di riciclo e un gioco conclusivo. I bambini lavorano a piccoli gruppi, con colori, cartoncini e oggetti da esplorare; un adulto resta con loro. Sono indicati pause, bagno, area passeggini, capienza, durata e modalità di accoglienza.",
+    "category": "bambini-e-famiglie",
+    "venue_type": "libreria"
+  },
+  {
+    "title": "Ascolto di quartiere",
+    "description": "«Ascolto di quartiere»: L’incontro usa una mappa della zona e una bacheca per raccogliere bisogni su verde, mobilità e servizi. Dopo un giro di interventi si formano tavoli tematici, quindi si leggono proposte e prossimi passi. Il moderatore spiega tempi, turni, accessi e dove consultare il resoconto.",
+    "category": "comunita-e-assemblee",
+    "venue_type": "centro_sociale"
+  },
+  {
+    "title": "Tavolo della mobilità",
+    "description": "«Tavolo della mobilità»: L’incontro usa una mappa della zona e una bacheca per raccogliere bisogni su verde, mobilità e servizi. Dopo un giro di interventi si formano tavoli tematici, quindi si leggono proposte e prossimi passi. Il moderatore spiega tempi, turni, accessi e dove consultare il resoconto.",
+    "category": "comunita-e-assemblee",
+    "venue_type": "circolo"
+  },
+  {
+    "title": "Piazza da abitare",
+    "description": "«Piazza da abitare»: L’incontro usa una mappa della zona e una bacheca per raccogliere bisogni su verde, mobilità e servizi. Dopo un giro di interventi si formano tavoli tematici, quindi si leggono proposte e prossimi passi. Il moderatore spiega tempi, turni, accessi e dove consultare il resoconto.",
+    "category": "comunita-e-assemblee",
+    "venue_type": "associazione"
+  },
+  {
+    "title": "Reti per il verde",
+    "description": "«Reti per il verde»: L’incontro usa una mappa della zona e una bacheca per raccogliere bisogni su verde, mobilità e servizi. Dopo un giro di interventi si formano tavoli tematici, quindi si leggono proposte e prossimi passi. Il moderatore spiega tempi, turni, accessi e dove consultare il resoconto.",
+    "category": "comunita-e-assemblee",
+    "venue_type": "spazio_pubblico"
+  },
+  {
+    "title": "Condomini solidali",
+    "description": "«Condomini solidali»: L’incontro usa una mappa della zona e una bacheca per raccogliere bisogni su verde, mobilità e servizi. Dopo un giro di interventi si formano tavoli tematici, quindi si leggono proposte e prossimi passi. Il moderatore spiega tempi, turni, accessi e dove consultare il resoconto.",
+    "category": "comunita-e-assemblee",
+    "venue_type": "centro_sociale"
+  },
+  {
+    "title": "Proposte dal vicinato",
+    "description": "«Proposte dal vicinato»: L’incontro usa una mappa della zona e una bacheca per raccogliere bisogni su verde, mobilità e servizi. Dopo un giro di interventi si formano tavoli tematici, quindi si leggono proposte e prossimi passi. Il moderatore spiega tempi, turni, accessi e dove consultare il resoconto.",
+    "category": "comunita-e-assemblee",
+    "venue_type": "circolo"
+  },
+  {
+    "title": "Cura dei beni comuni",
+    "description": "«Cura dei beni comuni»: L’incontro usa una mappa della zona e una bacheca per raccogliere bisogni su verde, mobilità e servizi. Dopo un giro di interventi si formano tavoli tematici, quindi si leggono proposte e prossimi passi. Il moderatore spiega tempi, turni, accessi e dove consultare il resoconto.",
+    "category": "comunita-e-assemblee",
+    "venue_type": "associazione"
+  },
+  {
+    "title": "Parliamone insieme",
+    "description": "«Parliamone insieme»: L’incontro usa una mappa della zona e una bacheca per raccogliere bisogni su verde, mobilità e servizi. Dopo un giro di interventi si formano tavoli tematici, quindi si leggono proposte e prossimi passi. Il moderatore spiega tempi, turni, accessi e dove consultare il resoconto.",
+    "category": "comunita-e-assemblee",
+    "venue_type": "spazio_pubblico"
+  },
+  {
+    "title": "Mappa dei bisogni",
+    "description": "«Mappa dei bisogni»: L’incontro usa una mappa della zona e una bacheca per raccogliere bisogni su verde, mobilità e servizi. Dopo un giro di interventi si formano tavoli tematici, quindi si leggono proposte e prossimi passi. Il moderatore spiega tempi, turni, accessi e dove consultare il resoconto.",
+    "category": "comunita-e-assemblee",
+    "venue_type": "centro_sociale"
+  },
+  {
+    "title": "Orti condivisi",
+    "description": "«Orti condivisi»: L’incontro usa una mappa della zona e una bacheca per raccogliere bisogni su verde, mobilità e servizi. Dopo un giro di interventi si formano tavoli tematici, quindi si leggono proposte e prossimi passi. Il moderatore spiega tempi, turni, accessi e dove consultare il resoconto.",
+    "category": "comunita-e-assemblee",
+    "venue_type": "circolo"
+  },
+  {
+    "title": "Strade scolastiche",
+    "description": "«Strade scolastiche»: L’incontro usa una mappa della zona e una bacheca per raccogliere bisogni su verde, mobilità e servizi. Dopo un giro di interventi si formano tavoli tematici, quindi si leggono proposte e prossimi passi. Il moderatore spiega tempi, turni, accessi e dove consultare il resoconto.",
+    "category": "comunita-e-assemblee",
+    "venue_type": "associazione"
+  },
+  {
+    "title": "Accoglienza concreta",
+    "description": "«Accoglienza concreta»: L’incontro usa una mappa della zona e una bacheca per raccogliere bisogni su verde, mobilità e servizi. Dopo un giro di interventi si formano tavoli tematici, quindi si leggono proposte e prossimi passi. Il moderatore spiega tempi, turni, accessi e dove consultare il resoconto.",
+    "category": "comunita-e-assemblee",
+    "venue_type": "spazio_pubblico"
+  },
+  {
+    "title": "Gruppi di prossimità",
+    "description": "«Gruppi di prossimità»: L’incontro usa una mappa della zona e una bacheca per raccogliere bisogni su verde, mobilità e servizi. Dopo un giro di interventi si formano tavoli tematici, quindi si leggono proposte e prossimi passi. Il moderatore spiega tempi, turni, accessi e dove consultare il resoconto.",
+    "category": "comunita-e-assemblee",
+    "venue_type": "centro_sociale"
+  },
+  {
+    "title": "Agenda del quartiere",
+    "description": "«Agenda del quartiere»: L’incontro usa una mappa della zona e una bacheca per raccogliere bisogni su verde, mobilità e servizi. Dopo un giro di interventi si formano tavoli tematici, quindi si leggono proposte e prossimi passi. Il moderatore spiega tempi, turni, accessi e dove consultare il resoconto.",
+    "category": "comunita-e-assemblee",
+    "venue_type": "circolo"
+  },
+  {
+    "title": "Servizi e persone",
+    "description": "«Servizi e persone»: L’incontro usa una mappa della zona e una bacheca per raccogliere bisogni su verde, mobilità e servizi. Dopo un giro di interventi si formano tavoli tematici, quindi si leggono proposte e prossimi passi. Il moderatore spiega tempi, turni, accessi e dove consultare il resoconto.",
+    "category": "comunita-e-assemblee",
+    "venue_type": "associazione"
+  },
+  {
+    "title": "Patti di collaborazione",
+    "description": "«Patti di collaborazione»: L’incontro usa una mappa della zona e una bacheca per raccogliere bisogni su verde, mobilità e servizi. Dopo un giro di interventi si formano tavoli tematici, quindi si leggono proposte e prossimi passi. Il moderatore spiega tempi, turni, accessi e dove consultare il resoconto.",
+    "category": "comunita-e-assemblee",
+    "venue_type": "spazio_pubblico"
+  },
+  {
+    "title": "Idee per la piazza",
+    "description": "«Idee per la piazza»: L’incontro usa una mappa della zona e una bacheca per raccogliere bisogni su verde, mobilità e servizi. Dopo un giro di interventi si formano tavoli tematici, quindi si leggono proposte e prossimi passi. Il moderatore spiega tempi, turni, accessi e dove consultare il resoconto.",
+    "category": "comunita-e-assemblee",
+    "venue_type": "centro_sociale"
+  },
+  {
+    "title": "Vivere la zona",
+    "description": "«Vivere la zona»: L’incontro usa una mappa della zona e una bacheca per raccogliere bisogni su verde, mobilità e servizi. Dopo un giro di interventi si formano tavoli tematici, quindi si leggono proposte e prossimi passi. Il moderatore spiega tempi, turni, accessi e dove consultare il resoconto.",
+    "category": "comunita-e-assemblee",
+    "venue_type": "circolo"
+  },
+  {
+    "title": "Assemblea diffusa",
+    "description": "«Assemblea diffusa»: L’incontro usa una mappa della zona e una bacheca per raccogliere bisogni su verde, mobilità e servizi. Dopo un giro di interventi si formano tavoli tematici, quindi si leggono proposte e prossimi passi. Il moderatore spiega tempi, turni, accessi e dove consultare il resoconto.",
+    "category": "comunita-e-assemblee",
+    "venue_type": "associazione"
+  },
+  {
+    "title": "Cittadinanza attiva",
+    "description": "«Cittadinanza attiva»: L’incontro usa una mappa della zona e una bacheca per raccogliere bisogni su verde, mobilità e servizi. Dopo un giro di interventi si formano tavoli tematici, quindi si leggono proposte e prossimi passi. Il moderatore spiega tempi, turni, accessi e dove consultare il resoconto.",
+    "category": "comunita-e-assemblee",
+    "venue_type": "spazio_pubblico"
+  },
+  {
+    "title": "Sportello collettivo",
+    "description": "«Sportello collettivo»: L’incontro usa una mappa della zona e una bacheca per raccogliere bisogni su verde, mobilità e servizi. Dopo un giro di interventi si formano tavoli tematici, quindi si leggono proposte e prossimi passi. Il moderatore spiega tempi, turni, accessi e dove consultare il resoconto.",
+    "category": "comunita-e-assemblee",
+    "venue_type": "centro_sociale"
+  },
+  {
+    "title": "Incontri fuori traccia",
+    "description": "«Incontri fuori traccia»: Il formato combina una dimostrazione, un tavolo di prova e una conversazione finale. I partecipanti possono osservare oppure usare i materiali messi a disposizione, seguendo indicazioni semplici. Un referente presenta il programma e comunica all’ingresso posti, pause, accessibilità, eventuale contributo e modalità per lasciare commenti.",
+    "category": "altro",
+    "venue_type": "bar"
+  },
+  {
+    "title": "Una stanza per tutti",
+    "description": "«Una stanza per tutti»: Il formato combina una dimostrazione, un tavolo di prova e una conversazione finale. I partecipanti possono osservare oppure usare i materiali messi a disposizione, seguendo indicazioni semplici. Un referente presenta il programma e comunica all’ingresso posti, pause, accessibilità, eventuale contributo e modalità per lasciare commenti.",
+    "category": "altro",
+    "venue_type": "circolo"
+  },
+  {
+    "title": "Sperimentazioni locali",
+    "description": "«Sperimentazioni locali»: Il formato combina una dimostrazione, un tavolo di prova e una conversazione finale. I partecipanti possono osservare oppure usare i materiali messi a disposizione, seguendo indicazioni semplici. Un referente presenta il programma e comunica all’ingresso posti, pause, accessibilità, eventuale contributo e modalità per lasciare commenti.",
+    "category": "altro",
+    "venue_type": "associazione"
+  },
+  {
+    "title": "Formato aperto",
+    "description": "«Formato aperto»: Il formato combina una dimostrazione, un tavolo di prova e una conversazione finale. I partecipanti possono osservare oppure usare i materiali messi a disposizione, seguendo indicazioni semplici. Un referente presenta il programma e comunica all’ingresso posti, pause, accessibilità, eventuale contributo e modalità per lasciare commenti.",
+    "category": "altro",
+    "venue_type": "spazio_pubblico"
+  },
+  {
+    "title": "Pomeriggio laterale",
+    "description": "«Pomeriggio laterale»: Il formato combina una dimostrazione, un tavolo di prova e una conversazione finale. I partecipanti possono osservare oppure usare i materiali messi a disposizione, seguendo indicazioni semplici. Un referente presenta il programma e comunica all’ingresso posti, pause, accessibilità, eventuale contributo e modalità per lasciare commenti.",
+    "category": "altro",
+    "venue_type": "galleria"
+  },
+  {
+    "title": "Pratiche inattese",
+    "description": "«Pratiche inattese»: Il formato combina una dimostrazione, un tavolo di prova e una conversazione finale. I partecipanti possono osservare oppure usare i materiali messi a disposizione, seguendo indicazioni semplici. Un referente presenta il programma e comunica all’ingresso posti, pause, accessibilità, eventuale contributo e modalità per lasciare commenti.",
+    "category": "altro",
+    "venue_type": "bar"
+  },
+  {
+    "title": "Piccolo laboratorio comune",
+    "description": "«Piccolo laboratorio comune»: Il formato combina una dimostrazione, un tavolo di prova e una conversazione finale. I partecipanti possono osservare oppure usare i materiali messi a disposizione, seguendo indicazioni semplici. Un referente presenta il programma e comunica all’ingresso posti, pause, accessibilità, eventuale contributo e modalità per lasciare commenti.",
+    "category": "altro",
+    "venue_type": "circolo"
+  },
+  {
+    "title": "Fuori programma",
+    "description": "«Fuori programma»: Il formato combina una dimostrazione, un tavolo di prova e una conversazione finale. I partecipanti possono osservare oppure usare i materiali messi a disposizione, seguendo indicazioni semplici. Un referente presenta il programma e comunica all’ingresso posti, pause, accessibilità, eventuale contributo e modalità per lasciare commenti.",
+    "category": "altro",
+    "venue_type": "associazione"
+  },
+  {
+    "title": "Connessioni semplici",
+    "description": "«Connessioni semplici»: Il formato combina una dimostrazione, un tavolo di prova e una conversazione finale. I partecipanti possono osservare oppure usare i materiali messi a disposizione, seguendo indicazioni semplici. Un referente presenta il programma e comunica all’ingresso posti, pause, accessibilità, eventuale contributo e modalità per lasciare commenti.",
+    "category": "altro",
+    "venue_type": "spazio_pubblico"
+  },
+  {
+    "title": "Tavolo delle idee",
+    "description": "«Tavolo delle idee»: Il formato combina una dimostrazione, un tavolo di prova e una conversazione finale. I partecipanti possono osservare oppure usare i materiali messi a disposizione, seguendo indicazioni semplici. Un referente presenta il programma e comunica all’ingresso posti, pause, accessibilità, eventuale contributo e modalità per lasciare commenti.",
+    "category": "altro",
+    "venue_type": "galleria"
+  },
+  {
+    "title": "Sosta creativa",
+    "description": "«Sosta creativa»: Il formato combina una dimostrazione, un tavolo di prova e una conversazione finale. I partecipanti possono osservare oppure usare i materiali messi a disposizione, seguendo indicazioni semplici. Un referente presenta il programma e comunica all’ingresso posti, pause, accessibilità, eventuale contributo e modalità per lasciare commenti.",
+    "category": "altro",
+    "venue_type": "bar"
+  },
+  {
+    "title": "Incroci padovani",
+    "description": "«Incroci padovani»: Il formato combina una dimostrazione, un tavolo di prova e una conversazione finale. I partecipanti possono osservare oppure usare i materiali messi a disposizione, seguendo indicazioni semplici. Un referente presenta il programma e comunica all’ingresso posti, pause, accessibilità, eventuale contributo e modalità per lasciare commenti.",
+    "category": "altro",
+    "venue_type": "circolo"
+  },
+  {
+    "title": "Un tempo condiviso",
+    "description": "«Un tempo condiviso»: Il formato combina una dimostrazione, un tavolo di prova e una conversazione finale. I partecipanti possono osservare oppure usare i materiali messi a disposizione, seguendo indicazioni semplici. Un referente presenta il programma e comunica all’ingresso posti, pause, accessibilità, eventuale contributo e modalità per lasciare commenti.",
+    "category": "altro",
+    "venue_type": "associazione"
+  },
+  {
+    "title": "Prova di comunità",
+    "description": "«Prova di comunità»: Il formato combina una dimostrazione, un tavolo di prova e una conversazione finale. I partecipanti possono osservare oppure usare i materiali messi a disposizione, seguendo indicazioni semplici. Un referente presenta il programma e comunica all’ingresso posti, pause, accessibilità, eventuale contributo e modalità per lasciare commenti.",
+    "category": "altro",
+    "venue_type": "spazio_pubblico"
+  },
+  {
+    "title": "Spazio alle domande",
+    "description": "«Spazio alle domande»: Il formato combina una dimostrazione, un tavolo di prova e una conversazione finale. I partecipanti possono osservare oppure usare i materiali messi a disposizione, seguendo indicazioni semplici. Un referente presenta il programma e comunica all’ingresso posti, pause, accessibilità, eventuale contributo e modalità per lasciare commenti.",
+    "category": "altro",
+    "venue_type": "galleria"
+  },
+  {
+    "title": "Percorso trasversale",
+    "description": "«Percorso trasversale»: Il formato combina una dimostrazione, un tavolo di prova e una conversazione finale. I partecipanti possono osservare oppure usare i materiali messi a disposizione, seguendo indicazioni semplici. Un referente presenta il programma e comunica all’ingresso posti, pause, accessibilità, eventuale contributo e modalità per lasciare commenti.",
+    "category": "altro",
+    "venue_type": "bar"
+  },
+  {
+    "title": "Scoperte di vicinato",
+    "description": "«Scoperte di vicinato»: Il formato combina una dimostrazione, un tavolo di prova e una conversazione finale. I partecipanti possono osservare oppure usare i materiali messi a disposizione, seguendo indicazioni semplici. Un referente presenta il programma e comunica all’ingresso posti, pause, accessibilità, eventuale contributo e modalità per lasciare commenti.",
+    "category": "altro",
+    "venue_type": "circolo"
+  },
+  {
+    "title": "Appunti dal territorio",
+    "description": "«Appunti dal territorio»: Il formato combina una dimostrazione, un tavolo di prova e una conversazione finale. I partecipanti possono osservare oppure usare i materiali messi a disposizione, seguendo indicazioni semplici. Un referente presenta il programma e comunica all’ingresso posti, pause, accessibilità, eventuale contributo e modalità per lasciare commenti.",
+    "category": "altro",
+    "venue_type": "associazione"
+  },
+  {
+    "title": "Una pausa attiva",
+    "description": "«Una pausa attiva»: Il formato combina una dimostrazione, un tavolo di prova e una conversazione finale. I partecipanti possono osservare oppure usare i materiali messi a disposizione, seguendo indicazioni semplici. Un referente presenta il programma e comunica all’ingresso posti, pause, accessibilità, eventuale contributo e modalità per lasciare commenti.",
+    "category": "altro",
+    "venue_type": "spazio_pubblico"
+  },
+  {
+    "title": "Cantiere leggero",
+    "description": "«Cantiere leggero»: Il formato combina una dimostrazione, un tavolo di prova e una conversazione finale. I partecipanti possono osservare oppure usare i materiali messi a disposizione, seguendo indicazioni semplici. Un referente presenta il programma e comunica all’ingresso posti, pause, accessibilità, eventuale contributo e modalità per lasciare commenti.",
+    "category": "altro",
+    "venue_type": "galleria"
+  },
+  {
+    "title": "Esperienze in comune",
+    "description": "«Esperienze in comune»: Il formato combina una dimostrazione, un tavolo di prova e una conversazione finale. I partecipanti possono osservare oppure usare i materiali messi a disposizione, seguendo indicazioni semplici. Un referente presenta il programma e comunica all’ingresso posti, pause, accessibilità, eventuale contributo e modalità per lasciare commenti.",
+    "category": "altro",
+    "venue_type": "bar"
+  }
+]
