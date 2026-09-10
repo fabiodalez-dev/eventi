@@ -197,17 +197,27 @@ Componente tipografico numerato. Categoria in un box da 2 dp, titolo maiuscolo, 
 - **Don't** usare strisce laterali colorate maggiori di 1 px come decorazione delle card.
 - **Don't** confondere sponsorizzazioni e catalogo editoriale: ogni contenuto pagato porta una label visibile.
 
-## Tema chiaro: Carta e terracotta
+## Tema chiaro: Bianco e grafite
 
 Il sito pubblico offre Aspetto → Scuro / Chiaro. Alla prima visita il sito rileva il tema di sistema e lo memorizza;
 la selezione si salva nel profilo per gli autenticati e nel cookie necessario `incitta_appearance` (un anno) per i
 visitatori, con memoria locale di supporto. Il profilo prevale sulle preferenze locali durante gli accessi.
 
-Il chiaro usa carta #FAF9F6, superfici #F1F0EC, grafite #262624, testo
-secondario #686863 e terracotta #B54D23. Tinte selezionate #F7E9E1, bordi
-#DEDDD7 da 1 px e controlli con raggio 6 px. Archivo resta l'unica famiglia,
-con pesi 500–650, meno maiuscole e sezioni più ariose. L'accento identifica
-azioni e selezioni; navigazione e metadati sono neutri. Le fotografie con
+Sul web il chiaro usa bianco morbido `oklch(98.8% 0.002 80)`, superfici
+`oklch(96.5% 0.003 80)`, grafite #262624, testo secondario #686863 e
+accento #B54D23. Bordi neutri da 1 px e controlli con raggio 6–8 px. Sul web Manrope variabile,
+ospitato localmente, sostituisce Archivo nel solo tema chiaro. Titoli da
+600–700 con interlinea 1,08 e tracking negativo; il titolo della homepage
+usa 0,94, fino a 132 px e tre righe: città, promessa, scelta. Le dimensioni
+si adattano a desktop, tablet e telefono senza cambiare il contenuto.
+Fondi quasi bianchi e grigi neutri a bassissima cromaticità. Nessuna fascia
+arancione: il colore è limitato a parole chiave, azioni e selezioni.
+La fotografia di apertura ha raggio 12 px; su tablet si dispone sotto il titolo.
+I dati del catalogo formano una riga discreta: numeri da 22 px e descrizioni
+grigie da 11 px, affiancati senza riquadri. Le scorciatoie sono capsule bordate.
+Le card mantengono la griglia continua, con titoli Manrope 700, categorie
+neutre e date leggibili. L'hover applica un grigio tenue senza spostare il testo.
+Il tema scuro conserva Archivo e la sua impaginazione. Le fotografie con
 testo sovrapposto mantengono un contrasto locale indipendente dal tema.
 Le mappe usano lo stile Positron nel tema chiaro e marcatori terracotta.
 

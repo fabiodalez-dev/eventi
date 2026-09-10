@@ -337,7 +337,7 @@
         e' il motivo per cui questi bordi non sono decorazione e non vanno
         assottigliati.
     --}}
-    <header class="fixed inset-x-0 top-0 z-[9000] border-b-2 border-line bg-[var(--header-surface)] backdrop-blur-2xl">
+    <header class="site-header fixed inset-x-0 top-0 z-[9000] border-b-2 border-line bg-[var(--header-surface)] backdrop-blur-2xl">
         <div class="flex h-[70px] items-center gap-[clamp(0.75rem,2vw,1.875rem)] px-[clamp(0.875rem,2.2vw,1.875rem)]">
             {{-- La citta' sta SOTTO il nome, non accanto.
 

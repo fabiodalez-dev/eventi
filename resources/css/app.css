@@ -9,6 +9,7 @@
    scarica il solo sottoinsieme che gli serve. Tutto il sistema — titoli e
    corpo — è in Archivo, come prescrive il design system Modernist. */
 @import '@fontsource-variable/archivo/wght.css';
+@import '@fontsource-variable/manrope/wght.css';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';

@@ -160,7 +160,7 @@
             </div>
         </div>
 
-        <div class="flex flex-col justify-center gap-[clamp(1rem,1.8vw,1.5rem)] bg-canvas p-[clamp(1.25rem,2.4vw,2.25rem)]">
+        <div class="event-heading-panel flex flex-col justify-center gap-[clamp(1rem,1.8vw,1.5rem)] bg-canvas p-[clamp(1.25rem,2.4vw,2.25rem)]">
             <h1 class="m-0 font-display text-[clamp(2.125rem,4.4vw,4.75rem)] leading-[0.9] font-extrabold tracking-[-0.045em] uppercase reveal-clip">
                 {{ $event->title }}
             </h1>

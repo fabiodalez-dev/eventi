@@ -45,7 +45,7 @@
         </aside>
 
         <section class="bg-canvas lg:min-h-below-header">
-            <div class="flex flex-col gap-4 border-b-2 border-line px-[clamp(1rem,1.8vw,1.625rem)] py-[clamp(1.125rem,2.2vw,1.875rem)]">
+            <div class="catalog-heading-panel flex flex-col gap-4 border-b-2 border-line px-[clamp(1rem,1.8vw,1.625rem)] py-[clamp(1.125rem,2.2vw,1.875rem)]">
                 <div class="flex items-center gap-2.5">
                     <span aria-hidden="true" class="size-2 bg-accent blink-dot"></span>
                     <span class="font-display text-[0.625rem] leading-none font-extrabold tracking-[0.18em] text-ink-muted uppercase">
