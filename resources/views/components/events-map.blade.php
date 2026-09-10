@@ -152,12 +152,12 @@
                 finiva coperto. Ancorato al viewport è sempre intero, qualunque
                 cosa faccia la pagina sotto.
             --}}
-            class="fixed inset-x-0 bottom-0 z-[1100] max-h-[70%] overflow-y-auto border-t-2 border-line bg-canvas p-4 sm:top-header sm:right-0 sm:left-auto sm:max-h-none sm:w-96 sm:border-t-0 sm:border-l-2"
+            class="map-sheet fixed inset-x-0 bottom-0 z-[1100] max-h-[70%] overflow-y-auto border-t-2 border-line bg-canvas p-4 sm:top-header sm:right-0 sm:left-auto sm:max-h-none sm:w-96 sm:border-t-0 sm:border-l-2"
         >
             <button
                 type="button"
                 data-map-sheet-close
-                class="float-right -mt-1 min-h-12 min-w-12 px-2 py-1 font-display text-xl font-extrabold text-ink-muted hover:text-accent"
+                class="absolute top-3 right-3 min-h-12 min-w-12 px-2 py-1 font-display text-xl font-extrabold text-ink-muted hover:text-accent"
             >
                 <span class="sr-only">{{ __('map.close_sheet') }}</span>
                 <span aria-hidden="true">&times;</span>

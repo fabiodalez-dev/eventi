@@ -73,7 +73,7 @@
 --}}
 <dialog
     id="{{ $id }}"
-    class="fixed inset-0 m-0 h-full max-h-none w-full max-w-none bg-transparent p-0 backdrop:bg-[rgba(11,11,11,0.92)]"
+    class="poster-lightbox fixed inset-0 m-0 max-w-none bg-transparent p-0 backdrop:bg-[rgba(11,11,11,0.92)]"
     aria-label="{{ $titolo }}"
 >
     {{-- **La × in alto a destra.**
@@ -90,14 +90,14 @@
         type="button"
         data-chiude-dialogo
         aria-label="{{ __('common.actions.close') }}"
-        class="absolute top-3 right-3 z-10 flex size-11 items-center justify-center border-2 border-ink bg-canvas text-ink transition-colors hover:bg-accent hover:text-on-accent"
+        class="poster-lightbox-close absolute z-10 flex size-12 items-center justify-center border-2 border-ink bg-canvas text-ink transition-colors hover:bg-accent hover:text-on-accent"
     >
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.5" class="size-5" aria-hidden="true">
             <path d="M4 4l12 12M16 4L4 16" stroke-linecap="square" />
         </svg>
     </button>
 
-    <div class="flex h-full w-full flex-col items-center justify-center gap-3 p-4">
+    <div data-dialog-backdrop class="poster-lightbox-frame">
         {{-- Senza ritaglio: `object-contain` e non `cover`, perché una
              locandina tagliata è una locandina non letta. --}}
         {{-- Larghezza e altezza dichiarate anche qui, dove sembrano
@@ -110,7 +110,7 @@
             alt="{{ $titolo }}"
             width="{{ $set->width ?? 800 }}"
             height="{{ $set->height ?? 1131 }}"
-            class="max-h-[calc(100dvh-6rem)] w-auto max-w-full object-contain"
+            class="poster-lightbox-image"
         />
     </div>
 </dialog>
