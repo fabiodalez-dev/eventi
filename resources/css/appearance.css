@@ -281,5 +281,5 @@
 :root[data-theme="light"] .event-heading-panel a { border-radius: 6px; }
 
 /* Small text on apricot needs the stronger terracotta, unlike display type. */
-:root[data-theme="light"] .home-intro > div .text-accent,
+:root[data-theme="light"] .home-intro > div .text-accent:not(:hover),
 :root[data-theme="light"] :is(.event-heading-panel, .catalog-heading-panel, .event-card) .text-accent { color: var(--brand-strong); }
