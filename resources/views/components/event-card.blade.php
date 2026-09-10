@@ -96,7 +96,7 @@
 @endphp
 
 <article {{ $attributes->class([
-    'group relative flex h-full min-h-[252px] flex-col gap-[13px] overflow-hidden bg-canvas px-[22px] py-5 pl-[26px] transition-transform duration-300 ease-out-soft',
+    'event-card group relative flex h-full min-h-[252px] flex-col gap-[13px] overflow-hidden bg-canvas px-[22px] py-5 pl-[26px] transition-transform duration-300 ease-out-soft',
     'hover:-translate-y-[3px] hover:bg-accent/[0.055]' => $url !== null,
 ]) }}>
     {{-- La lastra: entra da sinistra al passaggio del puntatore. È l'unico

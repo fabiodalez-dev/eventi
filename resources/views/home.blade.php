@@ -95,8 +95,8 @@
          largo, una sull'altra sul telefono — `auto-fit` con soglia a 420px lo
          decide senza un punto di rottura scritto a mano.
     ------------------------------------------------------------------- --}}
-    <section class="grid border-b-2 border-line [grid-template-columns:repeat(auto-fit,minmax(min(420px,100%),1fr))]">
-        <div class="flex flex-col gap-[clamp(1.125rem,1.8vw,1.625rem)] border-line p-[clamp(1.625rem,3.4vw,3.625rem)] lg:border-r-2">
+    <section class="home-opening grid border-b-2 border-line [grid-template-columns:repeat(auto-fit,minmax(min(420px,100%),1fr))]">
+        <div class="home-intro flex flex-col gap-[clamp(1.125rem,1.8vw,1.625rem)] border-line p-[clamp(1.625rem,3.4vw,3.625rem)] lg:border-r-2">
             @if ($city !== null)
                 <div class="flex items-center gap-2.5">
                     <span aria-hidden="true" class="size-2 bg-accent blink-dot"></span>
@@ -106,15 +106,16 @@
                 </div>
             @endif
 
-            <h1 class="m-0 font-display text-[clamp(2.875rem,6.4vw,6.5rem)] leading-[0.9] font-extrabold tracking-[-0.05em] uppercase reveal-clip">
+            <h1 class="home-headline m-0 font-display text-[clamp(2.875rem,6.4vw,6.5rem)] leading-[0.9] font-extrabold tracking-[-0.05em] uppercase reveal-clip">
                 {{-- `nl2br` perché i ritorni a capo del titolo sono parte del
                      disegno: nel riferimento sta su tre righe, e in HTML un «a
                      capo» nel testo non è un «a capo» a schermo. I due valori
                      inseriti passano da `e()`; il testo attorno è nostro. --}}
-                {!! nl2br(__('ui.hero.title', ['city' => e($city?->name ?? config('app.name')), 'accent' => '<span class="text-accent">'.e(__('ui.hero.title_accent')).'</span>'])) !!}
+                <span class="hero-title-dark">{!! nl2br(__('ui.hero.title', ['city' => e($city?->name ?? config('app.name')), 'accent' => '<span class="text-accent">'.e(__('ui.hero.title_accent')).'</span>'])) !!}</span>
+                <span class="hero-title-light">{!! nl2br(__('ui.hero.title_light', ['city' => e($city?->name ?? config('app.name')), 'accent' => '<span class="text-accent">'.e(__('ui.hero.title_accent')).'</span>'])) !!}</span>
             </h1>
 
-            <p class="m-0 max-w-[52ch] text-[clamp(0.938rem,1.15vw,1.063rem)] leading-[1.55] text-pretty text-ink-muted">
+            <p class="home-lead m-0 max-w-[52ch] text-[clamp(0.938rem,1.15vw,1.063rem)] leading-[1.55] text-pretty text-ink-muted">
                 {{ __('ui.hero.lead') }}
             </p>
 
@@ -122,7 +123,7 @@
                  tocca dopo il titolo: non sono voci di menu, sono l'elenco di
                  sempre guardato da quattro finestre diverse. --}}
             @if ($quickFilters !== [])
-                <div class="flex w-fit flex-wrap gap-0.5 bg-line p-0.5">
+                <div class="home-shortcuts flex w-fit flex-wrap gap-0.5 bg-line p-0.5">
                     @foreach ($quickFilters as $filtro)
                         <a
                             href="{{ $filtro['url'] }}"
@@ -259,7 +260,7 @@
          La fascia dei numeri: dice se il catalogo regge, prima ancora di
          scorrere. Sono le misure di §1 del piano.
     ------------------------------------------------------------------- --}}
-    <section class="grid grid-cols-2 gap-0.5 border-b-2 border-line bg-line min-[840px]:grid-cols-4" aria-label="{{ __('ui.stats.label') }}">
+    <section class="home-stats grid grid-cols-2 gap-0.5 border-b-2 border-line bg-line min-[840px]:grid-cols-4" aria-label="{{ __('ui.stats.label') }}">
         @foreach ($statCells as $cella)
             <div class="flex flex-col gap-1.5 bg-canvas px-[clamp(1rem,2vw,1.75rem)] py-[22px] reveal-up">
                 <span class="font-display text-[clamp(1.75rem,2.6vw,2.75rem)] leading-none font-extrabold tracking-[-0.03em] {{ $cella['accent'] ?? false ? 'text-accent' : '' }}">
@@ -293,7 +294,7 @@
         />
     @endif
 
-    <section class="border-y-2 border-line px-6 py-10 sm:px-12">
+    <section class="home-tonight border-y-2 border-line px-6 py-10 sm:px-12">
         <div class="flex flex-col justify-between gap-6 sm:flex-row sm:items-center">
             <div><h2 class="font-display text-3xl font-extrabold">{{ __('tonight.banner_title') }}</h2><p class="mt-3 text-ink-muted">{{ __('tonight.banner_help') }}</p></div>
             <a class="inline-flex min-h-14 items-center justify-center bg-brand px-8 py-4 font-bold text-on-brand" href="{{ route('tonight.wizard') }}">{{ __('tonight.find') }} →</a>

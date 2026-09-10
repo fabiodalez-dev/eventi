@@ -28,6 +28,7 @@ return [
      */
     'hero' => [
         'title' => "A :city succede\n:accent.\nTu scegli cosa.",
+        'title_light' => "A :city\nsuccede :accent.\nTu scegli cosa.",
         'title_accent' => 'tutto',
         'lead' => 'Concerti, serate, mostre, teatro, mercati, sport. Tutto quello che apre le porte in città, in un posto solo. Filtra per stasera, per zona, per quanto vuoi spendere — e vai.',
         'explore' => 'Esplora l\'unico evento|Esplora :count eventi',

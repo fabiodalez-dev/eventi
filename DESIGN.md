@@ -204,10 +204,18 @@ la selezione si salva nel profilo per gli autenticati e nel cookie necessario `i
 visitatori, con memoria locale di supporto. Il profilo prevale sulle preferenze locali durante gli accessi.
 
 Il chiaro usa carta #FAF9F6, superfici #F1F0EC, grafite #262624, testo
-secondario #686863 e terracotta #B54D23. Tinte selezionate #F7E9E1, bordi
-#DEDDD7 da 1 px e controlli con raggio 6 px. Archivo resta l'unica famiglia,
-con pesi 500–650, meno maiuscole e sezioni più ariose. L'accento identifica
-azioni e selezioni; navigazione e metadati sono neutri. Le fotografie con
+secondario #686863 e terracotta #B54D23. Tinte selezionate #F7E9E1, bordi da 1 px e controlli con raggio 6–8 px. Sul web Manrope variabile,
+ospitato localmente, sostituisce Archivo nel solo tema chiaro. Titoli da
+600–700 con interlinea 1,08 e tracking negativo; il titolo della homepage
+usa 0,94, fino a 132 px e tre righe: città, promessa, scelta. Le dimensioni
+si adattano a desktop, tablet e telefono senza cambiare il contenuto.
+L'apertura e le intestazioni di catalogo e dettaglio hanno un fondo albicocca
+`oklch(93.5% 0.045 62)`. La fotografia di apertura ha raggio 12 px; su tablet
+si dispone sotto il titolo. La fascia con i dati del catalogo è terracotta
+con testo carta, le scorciatoie sono capsule bordate. Le card mantengono
+la griglia continua, con titoli Manrope 700, categorie su fondo tenue e date
+più leggibili. L'hover colora la superficie senza spostare testo o card.
+Il tema scuro conserva Archivo e la sua impaginazione. Le fotografie con
 testo sovrapposto mantengono un contrasto locale indipendente dal tema.
 Le mappe usano lo stile Positron nel tema chiaro e marcatori terracotta.
 
