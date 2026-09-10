@@ -149,7 +149,7 @@
                     :active="true"
                     :aria-label="__('filters.reset').' #'.($tagOptions[$activeTag] ?? $activeTag)"
                 >
-                    #{{ $tagOptions[$activeTag] ?? $activeTag }} <span aria-hidden="true">×</span>
+                    #{{ $tagOptions[$activeTag] ?? $activeTag }}
                 </x-filter-chip>
             @endforeach
         </div>

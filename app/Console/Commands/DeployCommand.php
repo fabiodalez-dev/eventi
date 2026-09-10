@@ -6,6 +6,7 @@ namespace App\Console\Commands;
 
 use App\Support\HostingHtaccess;
 use App\Support\ReleaseManifest;
+use App\Support\ReleaseSnapshots;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
@@ -295,6 +296,8 @@ class DeployCommand extends Command
 
             return self::FAILURE;
         }
+        // Reserve room before creating the next archive, keeping ten releases in total.
+        app(ReleaseSnapshots::class)->prune(storage_path('app/private/releases'), 9);
         $snapshot = storage_path('app/private/releases/'.gmdate('Ymd-His').'-'.substr($sha, 0, 12));
         if (! mkdir($snapshot, 0700, true)) {
             return self::FAILURE;
