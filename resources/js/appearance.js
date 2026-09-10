@@ -1,13 +1,20 @@
 const root = document.documentElement;
 const key = `incitta:appearance:${root.dataset.themeUser ?? 'guest'}`;
 const forms = [...document.querySelectorAll('[data-appearance-form]')];
-const choices = [...document.querySelectorAll('[data-appearance-choice]')];
+const choices = [...document.querySelectorAll('[data-appearance-choice], [data-appearance-toggle]')];
 
 
 function apply(theme) {
     root.dataset.theme = theme;
     document.querySelector('meta[name="color-scheme"]')?.setAttribute('content', theme);
-    for (const choice of choices) choice.setAttribute('aria-pressed', String(choice.value === theme));
+    for (const choice of choices) {
+        if (choice.hasAttribute('data-appearance-toggle')) {
+            choice.value = theme === 'light' ? 'dark' : 'light';
+            const label = theme === 'light' ? 'Passa al tema scuro' : 'Passa al tema chiaro';
+            choice.setAttribute('aria-label', label);
+            choice.title = label;
+        } else choice.setAttribute('aria-pressed', String(choice.value === theme));
+    }
     window.dispatchEvent(new CustomEvent('appearance:change', { detail: { theme } }));
 }
 function remember(theme) {
@@ -23,6 +30,8 @@ apply(root.dataset.theme === 'light' ? 'light' : 'dark');
 async function choose(choice) {
     const form = choice.closest("[data-appearance-form]");
     const status = form.querySelector("[data-appearance-status]");
+    const feedback = document.querySelector('[data-appearance-error]');
+    if (feedback) feedback.hidden = true;
     const previous = root.dataset.theme;
     const theme = choice.value;
     apply(theme);
@@ -43,13 +52,14 @@ async function choose(choice) {
     } catch {
         apply(previous);
         status.textContent = 'Salvataggio non riuscito. Riprova; se la sessione è scaduta, accedi di nuovo.';
+        if (feedback) { feedback.textContent = status.textContent; feedback.hidden = false; }
     } finally {
         for (const button of choices) button.disabled = false;
     }
 }
 for (const form of forms) form.addEventListener('submit', (event) => {
     event.preventDefault();
-    if (event.submitter?.matches('[data-appearance-choice]')) void choose(event.submitter);
+    if (event.submitter?.matches('[data-appearance-choice], [data-appearance-toggle]')) void choose(event.submitter);
 });
 if (root.dataset.themeUser === 'guest') {
     for (const choice of choices) choice.addEventListener('click', () => void choose(choice));
@@ -65,9 +75,3 @@ window.addEventListener('pageshow', (event) => {
     }
 });
 
-for (const menu of document.querySelectorAll('.appearance-menu')) {
-    document.addEventListener('click', (event) => { if (!menu.contains(event.target)) menu.open = false; });
-    menu.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape') { menu.open = false; menu.querySelector('summary').focus(); }
-    });
-}
