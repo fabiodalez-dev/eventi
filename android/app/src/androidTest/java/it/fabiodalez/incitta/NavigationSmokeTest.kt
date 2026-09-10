@@ -61,8 +61,8 @@ class NavigationSmokeTest {
             compose.onAllNodes(hasText("MAPPA") and hasClickAction()).fetchSemanticsNodes().isNotEmpty()
         }
         compose.onNode(hasText("MAPPA") and hasClickAction()).performClick()
-        compose.onNodeWithText("Oggi", ignoreCase = true).assertExists()
+        compose.onNodeWithText(compose.activity.getString(R.string.map_filters_open)).performClick()
+        compose.onNodeWithText(compose.activity.getString(R.string.map_filters_close)).assertExists()
         compose.onNode(hasText("CERCA") and hasClickAction()).assertExists()
-        compose.onNodeWithText("Oggi", ignoreCase = true).assertExists()
     }
 }
