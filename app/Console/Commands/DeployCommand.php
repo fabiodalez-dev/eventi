@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Support\HostingHtaccess;
 use App\Support\ReleaseManifest;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Artisan;
@@ -277,7 +278,14 @@ class DeployCommand extends Command
 
             return self::FAILURE;
         }
-        if ($this->gitOutput(['git', 'status', '--porcelain', '--untracked-files=no']) !== '') {
+        $dirty = $this->gitOutput(['git', 'status', '--porcelain', '--untracked-files=no']);
+        $hostingOnly = $dirty === 'M public/.htaccess' && HostingHtaccess::isOnlyPhp84Handler(
+            $this->gitOutput(['git', 'show', 'HEAD:public/.htaccess']) ?? '',
+            (string) file_get_contents(public_path('.htaccess')),
+        );
+        // merge --ff-only leaves this hosting-generated addition untouched;
+        // if upstream changes the same file, Git still refuses any overwrite.
+        if ($dirty !== '' && ! $hostingOnly) {
             $this->error('Il server contiene modifiche tracciate: deploy interrotto per conservarle.');
 
             return self::FAILURE;
