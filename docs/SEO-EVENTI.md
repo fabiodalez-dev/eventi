@@ -77,3 +77,12 @@ Ispezione URL nella Search Console del dominio. Schema valido non garantisce
 rich result: le esperienze esclusivamente virtuali e gli eventi riservati
 agli iscritti non sono idonei alla specifica esperienza Google Event.
 Core Web Vitals va valutato sui dati reali; Lighthouse è una misura di laboratorio.
+
+## Spazio del server e archivi dei deploy
+
+Il deploy conserva al massimo dieci copie riconosciute di codice e asset. Prima
+di crearne una nuova elimina le copie più vecchie, lasciando nove rollback.
+La pulizia riguarda soltanto le cartelle datate contenenti `code.tar` e
+`build.tar.gz`; backup del database, media, file aggiuntivi e collegamenti
+simbolici restano esclusi. La quota del singolo account hosting può esaurirsi
+anche quando `df` mostra spazio libero sul disco del server.
