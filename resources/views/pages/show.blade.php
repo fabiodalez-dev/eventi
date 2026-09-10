@@ -45,6 +45,12 @@
                  pagina: una fonte sola, che si aggiorna dal pannello quando
                  cambia uno strumento. Sta sopra il pannello delle scelte
                  perché prima si legge cosa c'è, poi si decide. --}}
+            <section class="rich-text mt-8 text-sm sm:text-base" aria-labelledby="appearance-cookie-policy">
+                <h2 id="appearance-cookie-policy">Aspetto e preferenza del tema</h2>
+                <p>Il cookie essenziale <code>incitta_appearance</code>, impostato da questo sito, ricorda il tema chiaro o scuro per un anno dall’ultima visita. Alla prima apertura rileviamo il tema del sistema; puoi cambiarlo dal selettore Aspetto o dal profilo. Non viene usato per pubblicità o tracciamento.</p>
+                <p>Conserviamo una copia di supporto nella memoria locale del browser (<code>incitta:appearance:guest</code>), fino alla cancellazione dei dati del sito. La preferenza funziona anche rifiutando i cookie facoltativi. Per ripartire dalla scelta di sistema, cancella cookie e memoria locale del sito nelle impostazioni del browser.</p>
+                <p>Se accedi, prevale il tema salvato nel tuo profilo, condiviso con gli altri dispositivi e con l’app Android.</p>
+            </section>
             <x-cookie-table class="mt-8" />
 
             <x-consent-preferences />

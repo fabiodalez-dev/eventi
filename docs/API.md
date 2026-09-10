@@ -138,3 +138,12 @@ lista d'attesa, annullamenti e operatività. Il vincolo generale di sola lettura
 4. Il backend FCM e la revoca automatica dei token Android non validi sono
    pronti. Per accendere la push nativa servono il progetto Firebase e le
    credenziali `FIREBASE_CREDENTIALS`; non sono segreti generabili dal codice.
+
+### Aspetto del profilo
+
+`GET /api/v1/me` e le risposte di autenticazione espongono `appearance`
+(`dark` oppure `light`). `PATCH /api/v1/me` accetta lo stesso campo e modifica
+solo il profilo autenticato. Il sito e l'app Android condividono la preferenza;
+le installazioni precedenti restano compatibili grazie al valore `dark` predefinito.
+I visitatori del sito partono dal tema di sistema, memorizzato per un anno nel
+cookie necessario `incitta_appearance`, e possono cambiarlo da Aspetto.

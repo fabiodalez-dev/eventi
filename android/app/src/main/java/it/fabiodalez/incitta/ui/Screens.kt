@@ -425,7 +425,7 @@ private fun SavedMonthCalendar(
                     Box(
                         Modifier.weight(1f).aspectRatio(1f)
                             .padding(2.dp)
-                            .background(if (selected) Acid else if (count > 0) Color(0xFF2A330F) else Color.Transparent)
+                            .background(if (selected) Acid else if (count > 0) MaterialTheme.colorScheme.primaryContainer else Color.Transparent)
                             .clickable(enabled = day != null) { day?.let(onSelect) },
                         contentAlignment = Alignment.Center,
                     ) {
@@ -449,7 +449,7 @@ private fun SavedMonthCalendar(
 private fun SavedCalendarRow(event: Occurrence, onOpen: () -> Unit, onGoogleCalendar: () -> Unit) {
     Column(Modifier.fillMaxWidth().clickable(onClick = onOpen).padding(horizontal = 18.dp, vertical = 14.dp)) {
         Text(formatTime(event), color = Acid, style = androidx.compose.material3.MaterialTheme.typography.labelMedium)
-        Text(event.title.uppercase(), style = androidx.compose.material3.MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 3.dp))
+        Text(eventTitle(event.title), style = androidx.compose.material3.MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 3.dp))
         Text(event.venue?.name ?: "Luogo da verificare", color = Muted, modifier = Modifier.padding(top = 4.dp))
         OutlinedButton(
             onClick = onGoogleCalendar,
@@ -476,6 +476,7 @@ fun AccountScreen(
     onTickets: () -> Unit,
     onClearAuthError: () -> Unit = {},
     onInterestsSaved: () -> Unit = {},
+    onAppearance: (String) -> Unit = {},
 ) {
     if (state.session != null) {
         var deletePassword by remember(state.session.user.id) { mutableStateOf("") }
@@ -487,6 +488,8 @@ fun AccountScreen(
             Column(Modifier.padding(18.dp)) {
                 Text(stringResource(R.string.profile_title), style = androidx.compose.material3.MaterialTheme.typography.headlineLarge)
                 Spacer(Modifier.height(18.dp))
+                AppearancePicker(state.appearance, state.appearanceSaving, true, onAppearance)
+                Spacer(Modifier.height(24.dp))
                 AccountIdentity(state.session.user, onLogout, enabled = !state.isAuthenticating)
                 Button(onClick = onTickets, modifier = Modifier.fillMaxWidth().padding(top = 18.dp), shape = RectangleShape) { Text(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.ticket_title)) }
                 Spacer(Modifier.height(28.dp))
@@ -555,6 +558,8 @@ fun AccountScreen(
     Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())) {
         BrandHeader(compact = true)
         Column(Modifier.padding(18.dp)) {
+            AppearancePicker(state.appearance, state.appearanceSaving, false, onAppearance)
+            Spacer(Modifier.height(24.dp))
             Text("ENTRA IN CITTÀ", style = androidx.compose.material3.MaterialTheme.typography.displayMedium)
             Text("Sincronizza i tuoi eventi senza perdere quelli salvati come ospite.", color = Muted, modifier = Modifier.padding(top = 8.dp, bottom = 20.dp))
             Row(Modifier.fillMaxWidth()) {
@@ -641,7 +646,7 @@ fun EventDetailScreen(
             PosterImage(detail.poster?.full ?: detail.poster?.card, Modifier.fillMaxWidth().aspectRatio(4f / 3f))
             Column(Modifier.padding(18.dp)) {
                 MetaLabel(detail.category?.name ?: "EVENTO")
-                Text(detail.title.uppercase(), style = androidx.compose.material3.MaterialTheme.typography.displayMedium)
+                Text(eventTitle(detail.title), style = androidx.compose.material3.MaterialTheme.typography.displayMedium)
                 detail.subtitle?.let { Text(it, color = Muted, style = androidx.compose.material3.MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 8.dp)) }
                 HorizontalDivider(Modifier.padding(vertical = 20.dp), thickness = 2.dp, color = Paper)
                 occurrence?.let {
@@ -731,7 +736,7 @@ private fun FeatureCard(event: Occurrence, saved: Boolean, onOpen: (Occurrence) 
         Row(Modifier.fillMaxWidth().background(Paper).padding(14.dp), verticalAlignment = Alignment.Top) {
             Column(Modifier.weight(1f)) {
                 Text(formatDay(event.startsAt), color = Ink, style = androidx.compose.material3.MaterialTheme.typography.labelLarge)
-                Text(event.title.uppercase(), color = Ink, style = androidx.compose.material3.MaterialTheme.typography.headlineLarge, maxLines = 3, overflow = TextOverflow.Ellipsis)
+                Text(eventTitle(event.title), color = Ink, style = androidx.compose.material3.MaterialTheme.typography.headlineLarge, maxLines = 3, overflow = TextOverflow.Ellipsis)
                 Text(event.venue?.name?.uppercase() ?: "PADOVA", color = Color(0xFF555550), style = androidx.compose.material3.MaterialTheme.typography.labelMedium, modifier = Modifier.padding(top = 8.dp))
             }
             Text(
@@ -778,7 +783,7 @@ internal fun EventRow(event: Occurrence, saved: Boolean, onOpen: (Occurrence) ->
         PosterImage(event.poster?.card ?: event.poster?.thumb, Modifier.width(116.dp).fillMaxHeight())
         Column(Modifier.weight(1f).padding(14.dp)) {
             Text("${formatDay(event.startsAt)} · ${if (event.isAllDay) "TUTTO IL GIORNO" else formatClock(event.startsAt)}", color = Acid, style = androidx.compose.material3.MaterialTheme.typography.labelMedium)
-            Text(event.title.uppercase(), style = androidx.compose.material3.MaterialTheme.typography.titleLarge, maxLines = 3, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 5.dp))
+            Text(eventTitle(event.title), style = androidx.compose.material3.MaterialTheme.typography.titleLarge, maxLines = 3, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 5.dp))
             event.shortDescription?.takeIf(String::isNotBlank)?.let {
                 Text(it, color = Muted, maxLines = 2, overflow = TextOverflow.Ellipsis, style = androidx.compose.material3.MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 5.dp))
             }

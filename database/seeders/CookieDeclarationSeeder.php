@@ -32,6 +32,22 @@ final class CookieDeclarationSeeder extends Seeder
         $righe = [
             [
                 'category' => ConsentCategory::Necessary,
+                'name' => 'incitta_appearance',
+                'provider' => null,
+                'purpose' => 'Ricorda il tema chiaro o scuro. Alla prima visita usa il tema di sistema; il selettore Aspetto permette di cambiarlo. Nessuna finalità pubblicitaria.',
+                'duration' => '1 anno dall’ultima visita',
+                'sort_order' => 50,
+            ],
+            [
+                'category' => ConsentCategory::Necessary,
+                'name' => 'incitta:appearance:guest (localStorage)',
+                'provider' => null,
+                'purpose' => 'Copia locale di supporto della preferenza del tema per i visitatori.',
+                'duration' => 'Fino alla cancellazione dei dati del sito',
+                'sort_order' => 51,
+            ],
+            [
+                'category' => ConsentCategory::Necessary,
                 'name' => $sessione,
                 'provider' => null,
                 'purpose' => 'Tiene il filo della visita: ricorda che hai fatto l\'accesso e mostra i messaggi di conferma una volta sola.',

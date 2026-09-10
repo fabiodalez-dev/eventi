@@ -271,11 +271,32 @@ class AppRepository(context: Context) {
         }
     }
 
+    fun appearance(): String = _session.value?.user?.appearance ?: store.guestAppearance()
+    private var appearanceRevision = 0
+    private var appearanceUpdating = false
+
+    suspend fun setAppearance(value: String) {
+        require(value in listOf("dark", "light"))
+        appearanceRevision++
+        val current = _session.value
+        if (current == null) { store.setGuestAppearance(value); return }
+        appearanceUpdating = true
+        try {
+            val user = api.execute<ApiEnvelope<User>>("me", "PATCH", "{\"appearance\":\"$value\"}", current.token).data
+            if (_session.value?.token != current.token) throw kotlinx.coroutines.CancellationException("Session changed")
+            val updated = current.copy(user = user)
+            store.writeSession(updated)
+            _session.value = updated
+        } finally { appearanceUpdating = false }
+    }
+
     suspend fun refreshProfile() {
+        if (appearanceUpdating) return
+        val revision = appearanceRevision
         val current = _session.value ?: return
         try {
             val user = api.get<ApiEnvelope<User>>("me", current.token).data
-            if (_session.value?.token != current.token || user.id != current.user.id) return
+            if (_session.value?.token != current.token || user.id != current.user.id || revision != appearanceRevision) return
             val updated = current.copy(user = user)
             store.writeSession(updated)
             _session.value = updated

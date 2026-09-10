@@ -35,7 +35,7 @@ final class ProfileController extends Controller
         $user = $this->user($request);
         $data = $request->validated();
 
-        foreach (['name', 'timezone', 'locale', 'daily_digest_time', 'quiet_hours'] as $field) {
+        foreach (['name', 'timezone', 'locale', 'daily_digest_time', 'quiet_hours', 'appearance'] as $field) {
             if (array_key_exists($field, $data)) {
                 $user->setAttribute($field, $data[$field]);
             }

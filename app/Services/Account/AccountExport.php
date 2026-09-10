@@ -44,6 +44,7 @@ final class AccountExport
                 'email_verified_at' => ApiDate::instant($user->email_verified_at, $timezone),
                 'timezone' => $timezone,
                 'locale' => (string) $user->locale,
+                'appearance' => $user->appearance,
                 'notification_preferences' => $user->notificationPreferences()->toArray(),
                 'content_preferences' => app(ContentPreferences::class)->selection($user),
                 'daily_digest_time' => $user->daily_digest_time,

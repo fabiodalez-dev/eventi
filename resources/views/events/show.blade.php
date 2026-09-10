@@ -93,7 +93,7 @@
          fotografia occupa spazio — sotto, il contenuto è tutto testo.
     ------------------------------------------------------------------- --}}
     <section class="grid gap-0.5 border-b-2 border-line bg-line [grid-template-columns:repeat(auto-fit,minmax(min(400px,100%),1fr))]">
-        <div @class(['relative min-h-[clamp(20.625rem,42vw,33.75rem)] overflow-hidden', 'bg-canvas' => $poster !== null, 'bg-surface-sunken' => $poster === null])>
+        <div @class(['photo-panel relative min-h-[clamp(20.625rem,42vw,33.75rem)] overflow-hidden', 'bg-canvas' => $poster !== null, 'bg-surface-sunken' => $poster === null])>
             @if ($poster !== null)
                 <x-media-image
                     :set="$poster"

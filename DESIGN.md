@@ -90,7 +90,7 @@ Su Android il sistema conserva questa identità senza combattere le convenzioni 
 
 **Key Characteristics:**
 
-- Fondo scuro permanente e contrasto alto.
+- Tema scuro predefinito; tema chiaro opzionale con scelta persistente.
 - Archivo per ogni ruolo, con titoli molto pesanti e compatti.
 - Griglia modulare, allineamento a sinistra, divisori forti da 2 px.
 - Un solo accento elettrico, usato per azioni e stato corrente.
@@ -196,3 +196,21 @@ Componente tipografico numerato. Categoria in un box da 2 dp, titolo maiuscolo, 
 - **Don't** nascondere informazioni o azioni essenziali dietro animazioni.
 - **Don't** usare strisce laterali colorate maggiori di 1 px come decorazione delle card.
 - **Don't** confondere sponsorizzazioni e catalogo editoriale: ogni contenuto pagato porta una label visibile.
+
+## Tema chiaro: Carta e terracotta
+
+Il sito pubblico offre Aspetto → Scuro / Chiaro. Alla prima visita il sito rileva il tema di sistema e lo memorizza;
+la selezione si salva nel profilo per gli autenticati e nel cookie necessario `incitta_appearance` (un anno) per i
+visitatori, con memoria locale di supporto. Il profilo prevale sulle preferenze locali durante gli accessi.
+
+Il chiaro usa carta #FAF9F6, superfici #F1F0EC, grafite #262624, testo
+secondario #686863 e terracotta #B54D23. Tinte selezionate #F7E9E1, bordi
+#DEDDD7 da 1 px e controlli con raggio 6 px. Archivo resta l'unica famiglia,
+con pesi 500–650, meno maiuscole e sezioni più ariose. L'accento identifica
+azioni e selezioni; navigazione e metadati sono neutri. Le fotografie con
+testo sovrapposto mantengono un contrasto locale indipendente dal tema.
+Le mappe usano lo stile Positron nel tema chiaro e marcatori terracotta.
+
+Queste regole sostituiscono nel solo tema chiaro le prescrizioni precedenti
+su lime, raggio zero e divisori da 2 px. Android offre lo stesso selettore nel profilo, con persistenza locale da ospite e
+sincronizzazione della preferenza attraverso GET/PATCH /api/v1/me.

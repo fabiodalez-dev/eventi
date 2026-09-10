@@ -640,7 +640,8 @@ private fun InteractiveMap(
 ) {
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
-    val mapView = remember(points) {
+    val light = androidx.compose.material3.MaterialTheme.colorScheme.background == Color(0xFFFAF9F6)
+    val mapView = remember(points, light) {
         MapLibre.getInstance(context)
         MapView(context).apply {
             onCreate(null)
@@ -657,7 +658,7 @@ private fun InteractiveMap(
                     isRotateGesturesEnabled = false
                     isTiltGesturesEnabled = false
                 }
-                map.setStyle(Style.Builder().fromUri(MAP_STYLE)) {
+                map.setStyle(Style.Builder().fromUri(if (light) "https://tiles.openfreemap.org/styles/positron" else MAP_STYLE)) {
                     val markerGroups = mutableMapOf<Long, List<MapPoint>>()
                     val groupPositions = mutableMapOf<Long, LatLng>()
                     val groupVenueCounts = mutableMapOf<Long, Int>()
@@ -687,7 +688,7 @@ private fun InteractiveMap(
                             val group = venueGroupCluster.flatten()
                             val position = LatLng(group.map(MapPoint::lat).average(), group.map(MapPoint::lng).average())
                             val venueCount = venueGroupCluster.size
-                            val icon = iconFactory.fromBitmap(mapMarkerBitmap(venueCount, context.resources.displayMetrics))
+                            val icon = iconFactory.fromBitmap(mapMarkerBitmap(venueCount, context.resources.displayMetrics, light))
                             val marker = map.addMarker(MarkerOptions().position(position).icon(icon))
                             markerGroups[marker.id] = group
                             groupPositions[marker.id] = position
@@ -740,10 +741,10 @@ private fun InteractiveMap(
             mapView.onDestroy()
         }
     }
-    AndroidView(factory = { mapView }, modifier = modifier.background(Color(0xFF242424)))
+    androidx.compose.runtime.key(mapView) { AndroidView(factory = { mapView }, modifier = modifier.background(Ink)) }
 }
 
-private fun mapMarkerBitmap(count: Int, metrics: android.util.DisplayMetrics): Bitmap {
+private fun mapMarkerBitmap(count: Int, metrics: android.util.DisplayMetrics, light: Boolean = false): Bitmap {
     val size = markerDiameterDp(count)
     val center = size / 2f
     val pixels = (size * metrics.density).toInt().coerceAtLeast(size)
@@ -756,25 +757,25 @@ private fun mapMarkerBitmap(count: Int, metrics: android.util.DisplayMetrics): B
     if (count == 1) {
         paint.style = Paint.Style.STROKE
         paint.strokeWidth = 3f
-        paint.color = android.graphics.Color.argb(95, 204, 255, 0)
+        paint.color = if (light) android.graphics.Color.argb(95, 181, 77, 35) else android.graphics.Color.argb(95, 204, 255, 0)
         canvas.drawCircle(center, center, 28f, paint)
         paint.style = Paint.Style.FILL
-        paint.color = android.graphics.Color.rgb(204, 255, 0)
+        paint.color = if (light) android.graphics.Color.rgb(181, 77, 35) else android.graphics.Color.rgb(204, 255, 0)
         canvas.drawCircle(center, center, 20f, paint)
         paint.style = Paint.Style.STROKE
         paint.strokeWidth = 3f
-        paint.color = android.graphics.Color.rgb(11, 11, 11)
+        paint.color = if (light) android.graphics.Color.rgb(250, 249, 246) else android.graphics.Color.rgb(11, 11, 11)
         canvas.drawCircle(center, center, 20f, paint)
     } else {
         paint.style = Paint.Style.FILL
-        paint.color = android.graphics.Color.rgb(204, 255, 0)
+        paint.color = if (light) android.graphics.Color.rgb(181, 77, 35) else android.graphics.Color.rgb(204, 255, 0)
         canvas.drawCircle(center, center, center - 3f, paint)
         paint.style = Paint.Style.STROKE
         paint.strokeWidth = 4f
-        paint.color = android.graphics.Color.rgb(11, 11, 11)
+        paint.color = if (light) android.graphics.Color.rgb(250, 249, 246) else android.graphics.Color.rgb(11, 11, 11)
         canvas.drawCircle(center, center, center - 3f, paint)
         paint.style = Paint.Style.FILL
-        paint.color = android.graphics.Color.rgb(11, 11, 11)
+        paint.color = if (light) android.graphics.Color.rgb(250, 249, 246) else android.graphics.Color.rgb(11, 11, 11)
         paint.textAlign = Paint.Align.CENTER
         paint.typeface = android.graphics.Typeface.DEFAULT_BOLD
         paint.textSize = if (count >= 100) 16f else 18f
