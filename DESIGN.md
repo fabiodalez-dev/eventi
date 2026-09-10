@@ -205,17 +205,18 @@ visitatori, con memoria locale di supporto. Il profilo prevale sulle preferenze 
 
 Sul web il chiaro usa bianco morbido `oklch(98.8% 0.002 80)`, superfici
 `oklch(96.5% 0.003 80)`, grafite #262624, testo secondario #686863 e
-accento #B54D23. Bordi neutri da 1 px e controlli con raggio 6–8 px. Sul web Manrope variabile,
-ospitato localmente, sostituisce Archivo nel solo tema chiaro. Titoli da
-600–700 con interlinea 1,08 e tracking negativo; il titolo della homepage
-usa 0,94, fino a 132 px e tre righe: città, promessa, scelta. Le dimensioni
+accento #B54D23. Bordi neutri da 1 px e controlli con raggio 6–8 px. Sul web Bricolage Grotesque variabile, ospitato localmente, distingue i titoli
+con peso 700 e dimensione ottica adattiva. Manrope resta per testo,
+metadati e comandi. Il titolo della homepage usa la dimensione ottica 96,
+interlinea 0,94, fino a 132 px e tre righe: città, promessa, scelta. Tutte le righe
+del titolo principale hanno peso 800. Le dimensioni
 si adattano a desktop, tablet e telefono senza cambiare il contenuto.
 Fondi quasi bianchi e grigi neutri a bassissima cromaticità. Nessuna fascia
 arancione: il colore è limitato a parole chiave, azioni e selezioni.
 La fotografia di apertura ha raggio 12 px; su tablet si dispone sotto il titolo.
 I dati del catalogo formano una riga discreta: numeri da 22 px e descrizioni
 grigie da 11 px, affiancati senza riquadri. Le scorciatoie sono capsule bordate.
-Le card mantengono la griglia continua, con titoli Manrope 700, categorie
+Le card mantengono la griglia continua, con titoli Bricolage Grotesque 700, categorie
 neutre e date leggibili. L'hover applica un grigio tenue senza spostare il testo.
 Il tema scuro conserva Archivo e la sua impaginazione. Le fotografie con
 testo sovrapposto mantengono un contrasto locale indipendente dal tema.

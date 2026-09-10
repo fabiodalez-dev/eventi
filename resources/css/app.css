@@ -6,10 +6,11 @@
 /* Font self-hosted (@fontsource): nessuna richiesta a Google Fonts o ad altri
    CDN, che sarebbe un trasferimento di dati verso terzi senza consenso.
    Il file è variabile (peso 100-900) e suddiviso per unicode-range: il browser
-   scarica il solo sottoinsieme che gli serve. Tutto il sistema — titoli e
-   corpo — è in Archivo, come prescrive il design system Modernist. */
+   scarica il solo sottoinsieme che gli serve. Archivo serve il tema scuro;
+   nel chiaro Bricolage distingue i titoli e Manrope serve testo e comandi. */
 @import '@fontsource-variable/archivo/wght.css';
 @import '@fontsource-variable/manrope/wght.css';
+@import '@fontsource-variable/bricolage-grotesque/standard.css';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
