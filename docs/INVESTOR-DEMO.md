@@ -1,7 +1,7 @@
 # Catalogo dimostrativo per investitori
 
 Il comando `php artisan events:investor-demo padova --dry-run` verifica il catalogo senza scrivere.
-Per importarlo: `php artisan events:investor-demo padova`; sul server occorre anche `--allow-production`, dopo un backup del database.
+Per importarlo: `php -d memory_limit=512M artisan events:investor-demo padova`; sul server occorre anche `--allow-production`, dopo un backup del database. Il margine di memoria copre anche i registri diagnostici locali e le operazioni media.
 
 - 300 titoli fittizi, 14 categorie, cinque appuntamenti al giorno per 60 giorni da domani, nel fuso della città.
 - Locali già approvati nella città, selezionati per tipologia; nessuna modifica a utenti, password, prenotazioni o altri eventi.

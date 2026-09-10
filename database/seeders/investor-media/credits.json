@@ -29,16 +29,6 @@
     "license_url": "",
     "description": "reproduction of a picture by Vojtěch Hynais, from the book Modern and contemporary Czech Art"
   },
-  "cinema": {
-    "file": "cinema.jpg",
-    "title": "File:Movie projector monument in Stolin - 2.jpg",
-    "source": "https://commons.wikimedia.org/wiki/File:Movie_projector_monument_in_Stolin_-_2.jpg",
-    "image": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4c/Movie_projector_monument_in_Stolin_-_2.jpg/1280px-Movie_projector_monument_in_Stolin_-_2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-    "author": "<a href=\"//commons.wikimedia.org/wiki/User:KarlKori\" title=\"User:KarlKori\">Dzyanis Kurhan</a>",
-    "license": "CC BY-SA 4.0",
-    "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-    "description": "Movie projector monument in Stolin (near cinema)"
-  },
   "arte-e-mostre": {
     "file": "arte-e-mostre.jpg",
     "title": "File:Schmucker Art Gallery Interior, Gettysburg College.jpg",
@@ -138,5 +128,15 @@
     "license": "CC BY-SA 2.5",
     "license_url": "https://creativecommons.org/licenses/by-sa/2.5",
     "description": ""
+  },
+  "cinema": {
+    "file": "cinema.jpg",
+    "title": "File:Cinema Seats I (51830912465).jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Cinema_Seats_I_(51830912465).jpg",
+    "image": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/db/Cinema_Seats_I_%2851830912465%29.jpg/1280px-Cinema_Seats_I_%2851830912465%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "author": "<a rel=\"nofollow\" class=\"external text\" href=\"https://www.flickr.com/people/10485077@N06\">Eden, Janine and Jim</a> from New York City",
+    "license": "CC BY 2.0",
+    "license_url": "https://creativecommons.org/licenses/by/2.0",
+    "description": "Cinema Seats I"
   }
 }
