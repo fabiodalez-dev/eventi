@@ -150,7 +150,7 @@ jobs:
 
       - name: Referto dei test
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: pest-report-${{ matrix.shard }}
           path: storage/logs/junit.xml
@@ -158,7 +158,7 @@ jobs:
 
       - name: Conserva gli asset che hanno superato i test
         if: matrix.shard == 1
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: tested-build
           path: public/build
@@ -210,7 +210,7 @@ jobs:
       - run: composer test:browser -- --ci --log-junit storage/logs/browser-junit.xml
       - name: Referti browser
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: browser-report
           path: |
@@ -425,7 +425,7 @@ jobs:
       # traccia di com'era il sito il giorno in cui e' stato misurato.
       - name: Allega i referti
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: lighthouse
           path: ${{ runner.temp }}/lighthouse
@@ -447,7 +447,7 @@ jobs:
           cache: gradle
       - run: ./gradlew testDebugUnitTest compileDebugKotlin
         working-directory: android
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         if: always()
         with:
           name: android-test-reports
