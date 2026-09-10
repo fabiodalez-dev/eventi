@@ -76,7 +76,7 @@ it('elenca gli eventi pubblicati e non le bozze', function (): void {
 
     $urls = sitemapUrls($this->get('/sitemap-eventi-1.xml')->assertOk()->getContent());
 
-    expect($urls)->toContain(route('events.show', $pubblicato))
+    expect($urls)->toContain(route('events.occurrence', ['slug' => $pubblicato->slug, 'occurrence' => $pubblicato->occurrences()->first()->id]))
         ->not->toContain(route('events.show', $bozza));
 });
 
@@ -130,10 +130,10 @@ it('spezza una sezione in piu mappe quando supera la soglia', function (): void 
     $sezioni = sitemapUrls($this->get('/sitemap.xml')->assertOk()->getContent());
     $eventi = array_values(array_filter($sezioni, static fn (string $url): bool => str_contains($url, 'sitemap-eventi-')));
 
-    expect($eventi)->toHaveCount(5);
+    expect($eventi)->toHaveCount(3);
 
     expect(sitemapUrls($this->get('/sitemap-eventi-1.xml')->getContent()))->toHaveCount(2)
-        ->and(sitemapUrls($this->get('/sitemap-eventi-5.xml')->getContent()))->toHaveCount(2);
+        ->and(sitemapUrls($this->get('/sitemap-eventi-3.xml')->getContent()))->toHaveCount(1);
 });
 
 it('serve un robots.txt che dichiara la mappa e chiude i pannelli', function (): void {

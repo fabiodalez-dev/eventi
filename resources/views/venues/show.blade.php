@@ -161,7 +161,7 @@
                     <ul class="flex flex-col gap-2">
                         @foreach ($archive as $occurrence)
                             <li class="flex flex-wrap items-baseline justify-between gap-3 bg-canvas px-4 py-3 border-2 border-line">
-                                <a class="font-semibold text-ink hover:underline" href="{{ route('events.show', $occurrence->event) }}">
+                                <a class="font-semibold text-ink hover:underline" href="{{ route('events.occurrence', ['slug' => $occurrence->event->slug, 'occurrence' => $occurrence->id]) }}">
                                     {{ $occurrence->event->title }}
                                 </a>
 

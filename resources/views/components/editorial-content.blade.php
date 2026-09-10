@@ -3,12 +3,6 @@
 @if($model instanceof \App\Models\Event)
     <h2 class="font-display text-xl font-extrabold my-6">{{ __('seo.before_going') }}</h2>
 @endif
-@if (filled($details['organizer_venue_id'] ?? null))
-    @php($organizer = \App\Models\Venue::query()->approved()->whereKey($details['organizer_venue_id'])->first())
-    @if ($organizer)
-        <p>{{ __('seo.organizer_name') }}: <a class="underline" href="{{ route('venues.show', $organizer) }}">{{ $organizer->name }}</a></p>
-    @endif
-@endif
 @if (isset($details['minimum_age']))
     <p>{{ __('seo.minimum_age') }}: {{ $details['minimum_age'] }}</p>
 @endif

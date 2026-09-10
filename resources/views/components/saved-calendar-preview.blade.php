@@ -12,7 +12,7 @@
                 <p class="mt-2">{{ $occurrence->effectiveVenue()->name }}</p>
             @endif
             <div class="mt-2"><x-price-tag :event="$occurrence->event" /></div>
-            <x-button :href="route('events.show', $occurrence->event)" class="mt-4">{{ __('account.saved.open_event') }}</x-button>
+            <x-button :href="route('events.occurrence', ['slug' => $occurrence->event->slug, 'occurrence' => $occurrence->id])" class="mt-4">{{ __('account.saved.open_event') }}</x-button>
         </article>
     @endforeach
 </dialog>

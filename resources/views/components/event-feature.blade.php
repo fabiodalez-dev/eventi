@@ -31,7 +31,7 @@
     $status = $occurrence->status;
 
     $url = \Illuminate\Support\Facades\Route::has('events.show')
-        ? route('events.show', $event)
+        ? route('events.occurrence', ['slug' => $event->slug, 'occurrence' => $occurrence->id])
         : null;
 
     $poster = \App\Support\Poster::imageSet($event);

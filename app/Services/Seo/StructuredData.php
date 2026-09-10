@@ -49,9 +49,10 @@ final class StructuredData
      */
     public function event(Event $event, EventOccurrence $occurrence): array
     {
+        $organizer = $this->organizer($event);
         $event = clone $event;
         $event->setRelation('venue', $occurrence->effectiveVenue());
-        $url = route('events.show', $event);
+        $url = route('events.occurrence', ['slug' => $event->slug, 'occurrence' => $occurrence->id]);
         $poster = Poster::absoluteUrl($event);
         $details = app(EditorialContent::class)->details($event);
         $mode = AttendanceMode::tryFrom($details['attendance_mode'] ?? '') ?? AttendanceMode::Offline;
@@ -59,7 +60,7 @@ final class StructuredData
         $node = [
             '@context' => 'https://schema.org',
             '@type' => 'Event',
-            '@id' => $url.'#data-'.$occurrence->getKey(),
+            '@id' => $url.'#event',
             'url' => $url,
             'name' => $event->title,
             'startDate' => $occurrence->is_all_day
@@ -68,7 +69,7 @@ final class StructuredData
             'eventStatus' => $this->status($occurrence->status),
             'eventAttendanceMode' => $mode->schema(),
             'location' => $this->location($event),
-            'organizer' => $this->organizer($event),
+            'organizer' => $organizer,
         ];
         $online = SafeUrl::href($details['online_url'] ?? null);
         if ($node['organizer'] === []) {
@@ -103,7 +104,7 @@ final class StructuredData
         }
 
         if ($poster !== null) {
-            $node['image'] = [$poster];
+            $node['image'] = Poster::schemaImages($event);
         }
 
         $offers = app(PublicOffers::class)->for($event, $occurrence);
@@ -297,7 +298,7 @@ final class StructuredData
 
         return array_filter([
             '@type' => 'Place',
-            'name' => is_string($custom['name'] ?? null) ? $custom['name'] : $event->city->name,
+            'name' => is_string($custom['name'] ?? null) ? $custom['name'] : null,
             'address' => array_filter([
                 '@type' => 'PostalAddress',
                 'streetAddress' => is_string($custom['address'] ?? null) ? $custom['address'] : null,
@@ -357,18 +358,11 @@ final class StructuredData
             ], static fn (mixed $value): bool => filled($value));
         }
 
-        $venue = $event->venue;
-
-        if ($venue !== null) {
-            return array_filter([
-                '@type' => 'Organization',
-                'name' => $venue->name,
-                /* Il sito del locale lo scrive chi lo gestisce: passa da
-                   `SafeUrl` come ovunque, e se lo schema non e' http(s) si
-                   ricade sulla scheda qui sul sito — che e' comunque
-                   l'indirizzo giusto per quel locale. */
-                'url' => SafeUrl::href($venue->website) ?? route('venues.show', $venue),
-            ], static fn (mixed $value): bool => filled($value));
+        // Product rule: absent an explicit organizer, the original event venue organizes.
+        // The effective venue of a moved occurrence must not change this identity.
+        if ($event->venue !== null) {
+            return ['@type' => 'Organization', 'name' => $event->venue->name,
+                'url' => SafeUrl::href($event->venue->website) ?? route('venues.show', $event->venue)];
         }
 
         return [];

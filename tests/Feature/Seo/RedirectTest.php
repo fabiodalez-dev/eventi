@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\Category;
 use App\Models\City;
 use App\Models\Event;
+use App\Models\EventOccurrence;
 use App\Models\Redirect;
 use App\Models\Tag;
 use App\Models\Venue;
@@ -247,6 +248,8 @@ describe('i reindirizzamenti non entrano dove non devono', function (): void {
             'category_id' => $category->id,
             'title' => 'Evento con un nome sbagliato',
         ]);
+
+        EventOccurrence::factory()->create(['event_id' => $event->id]);
 
         $vecchio = $event->slug;
         $event->update(['title' => 'Evento con il nome giusto']);

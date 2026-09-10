@@ -55,7 +55,7 @@
 
                     <li>
                         <a
-                            href="{{ route('events.show', $event) }}"
+                            href="{{ route('events.occurrence', ['slug' => $event->slug, 'occurrence' => $occurrence->id]) }}"
                             target="_blank"
                             rel="noopener"
                             class="flex items-center gap-3 rounded-card bg-surface px-3 py-2.5 ring-1 ring-line transition hover:ring-line-strong"

@@ -26,6 +26,7 @@ use Laravel\Scout\Attributes\SearchUsingFullText;
 use Laravel\Scout\Searchable;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
+use Spatie\Image\Enums\Fit;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
@@ -158,6 +159,10 @@ class Event extends Model implements HasMedia
     public function registerMediaConversions(?Media $media = null): void
     {
         $this->registerImageVariants();
+        foreach (['schema-square' => [1200, 1200], 'schema-landscape' => [1600, 1200], 'schema-wide' => [1920, 1080]] as $name => [$width, $height]) {
+            $this->addMediaConversion($name)->performOnCollections('poster')->queued()
+                ->fit(Fit::Fill, $width, $height)->background('#f5f5f5')->format('webp')->quality(85);
+        }
     }
 
     /** @return BelongsTo<City, $this> */

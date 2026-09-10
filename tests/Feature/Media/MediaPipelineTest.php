@@ -248,3 +248,14 @@ describe('regola di validazione', function (): void {
             ->and($validator->errors()->first('file'))->toContain('supera');
     });
 });
+
+it('generates uncropped schema images in all three recommended aspect ratios', function (): void {
+    $event = eventWithPoster(ImageFixtures::jpeg(900, 1200));
+    $media = $event->getFirstMedia('poster');
+    foreach (['schema-square' => [1200, 1200], 'schema-landscape' => [1600, 1200], 'schema-wide' => [1920, 1080]] as $name => $expected) {
+        expect($media->hasGeneratedConversion($name))->toBeTrue();
+        $size = getimagesize($media->getPath($name));
+        expect([$size[0], $size[1]])->toBe($expected);
+        expect(Poster::schemaImages($event))->toContain($media->getFullUrl($name));
+    }
+});

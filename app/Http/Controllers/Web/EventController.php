@@ -91,15 +91,17 @@ final class EventController extends Controller
             abort_if($upcoming->isEmpty() && $past->isEmpty(), 404);
         }
         $dates = $upcoming->isNotEmpty() ? $upcoming : $past;
+        $isSeries = $event->occurrences()->count() > 1 || $event->recurrences()->exists();
+        $canonicalDate = $selected ?? (! $isSeries ? $dates->first() : null);
         $meta = $this->meta($event, $dates)->withIndexable(! $isPreview && in_array($event->status, [EventStatus::Published, EventStatus::Archived], true));
-        if ($selected !== null) {
-            $meta = $meta->withCanonical(route('events.occurrence', ['slug' => $event->slug, 'occurrence' => $selected->id]));
+        if ($canonicalDate !== null) {
+            $meta = $meta->withCanonical(route('events.occurrence', ['slug' => $event->slug, 'occurrence' => $canonicalDate->id]));
         }
         $meta = app(EditorialContent::class)->meta($event, $meta);
         if ($selected !== null) {
             $meta = $meta->withTitle(__('seo.date_title', ['title' => $meta->title, 'date' => $selected->starts_at->copy()->timezone($city->timezone)->format('d/m/Y')]));
         }
-        $schema = $selected === null && $dates->count() > 1
+        $schema = $selected === null && $isSeries
             ? [$this->structuredData->collection($event->title, route('events.show', $event), $dates->map(fn ($date): array => [
                 'name' => $event->title.' · '.$date->business_date->format('d/m/Y'),
                 'url' => route('events.occurrence', ['slug' => $event->slug, 'occurrence' => $date->id]),
@@ -113,7 +115,7 @@ final class EventController extends Controller
 
         return view('events.show', [
             'isPreview' => $isPreview,
-            'selectedOccurrence' => $selected,
+            'selectedOccurrence' => $canonicalDate,
             'city' => $city,
             'event' => $event,
             'occurrences' => $upcoming,
@@ -134,7 +136,8 @@ final class EventController extends Controller
                 $this->structuredData->breadcrumbs([
                     ['name' => __('ui.nav.home'), 'url' => url('/')],
                     ['name' => __('events.title'), 'url' => route('events.index')],
-                    ['name' => $event->title, 'url' => route('events.show', $event)],
+                    ...($isSeries ? [['name' => $event->title, 'url' => route('events.show', $event)]] : []),
+                    ...($canonicalDate !== null ? [['name' => $event->title.' · '.$canonicalDate->starts_at->copy()->timezone($city->timezone)->format('d/m/Y'), 'url' => $meta->canonical]] : []),
                 ]),
             ],
         ]);

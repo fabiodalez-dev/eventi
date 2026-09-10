@@ -6,6 +6,8 @@ namespace App\Services\Seo;
 
 use App\DTOs\EventFilters;
 use App\DTOs\PageMeta;
+use App\Enums\DatePreset;
+use App\Enums\PriceFilter;
 use App\Models\Category;
 use App\Models\City;
 use App\Models\Tag;
@@ -34,7 +36,7 @@ final class EventListingMeta
             title: $heading,
             heading: $heading,
             description: $this->description($city, $filters, $heading, $total),
-            indexable: $this->isIndexable($filters),
+            indexable: $this->isIndexable($filters) && ($filters->isEmpty() || $total > 0),
         );
     }
 
@@ -172,9 +174,9 @@ final class EventListingMeta
 
     /**
      * Le combinazioni di filtri sono infinite e le pagine che meritano di stare
-     * in un indice sono poche: una categoria, una data, un comune. Oltre due
-     * filtri, o con una ricerca libera o una posizione, la pagina resta
-     * navigabile ma non indicizzabile.
+     * in un indice sono poche: una categoria, una data, un comune con risultati.
+     * Combinazioni, budget arbitrari e ricerche libere restano navigabili
+     * ma non indicizzabili.
      */
     private function isIndexable(EventFilters $filters): bool
     {
@@ -182,6 +184,17 @@ final class EventListingMeta
             return false;
         }
 
-        return $filters->activeCount() <= config()->integer('eventi.indexable_filters');
+        if ($filters->isEmpty()) {
+            return true;
+        }
+        // Only useful, bounded landing pages; combinations remain navigable.
+        if ($filters->activeCount() !== 1 || $filters->discovery) {
+            return false;
+        }
+
+        return count($filters->categories) === 1 || count($filters->tags) === 1
+            || $filters->municipality !== null || $filters->zone !== null
+            || $filters->date !== null || $filters->price === PriceFilter::Free
+            || in_array($filters->preset, [DatePreset::Today, DatePreset::Tomorrow, DatePreset::Weekend], true);
     }
 }

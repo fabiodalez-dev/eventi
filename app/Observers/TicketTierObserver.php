@@ -48,6 +48,8 @@ final class TicketTierObserver
     private function sync(TicketTier $tier): void
     {
         if ($tier->occurrence_id !== null) {
+            $tier->occurrence?->touch();
+
             return;
         }
 
@@ -62,6 +64,8 @@ final class TicketTierObserver
         $min = TicketTiers::lowestPrice($event);
 
         if ($min === null) {
+            $event->touch();
+
             return;
         }
 

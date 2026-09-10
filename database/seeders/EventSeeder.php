@@ -173,9 +173,9 @@ class EventSeeder extends Seeder
         $music = $this->categories['Musica dal vivo'];
         $event = $this->makeEvent([
             'title' => 'Concerto: Trio Acustico',
-            'subtitle' => 'Serata dal vivo già iniziata',
-            'description' => "Un trio acustico che suona da mezz'ora davanti a un pubblico raccolto. Ingresso libero, cassa per le consumazioni al bancone.",
-            'short_description' => 'Concerto acustico in corso, ingresso libero.',
+            'subtitle' => 'Serata di musica acustica',
+            'description' => 'Un trio acustico dal vivo davanti a un pubblico raccolto. Biglietto di ingresso: 8 euro; consumazioni al bancone.',
+            'short_description' => 'Concerto acustico dal vivo. Ingresso: 8 euro.',
             'category' => $music,
             'venue' => $this->venueOfType([VenueType::Club, VenueType::Circolo]) ?? $this->venues->first(),
             'price_type' => PriceType::Ticket,
@@ -568,6 +568,7 @@ class EventSeeder extends Seeder
         unset($overrides['venue']);
 
         $defaults = [
+            'is_demo' => true,
             'city_id' => $this->city->getKey(),
             'created_by' => $this->admin->getKey(),
             'organizer_name' => null,

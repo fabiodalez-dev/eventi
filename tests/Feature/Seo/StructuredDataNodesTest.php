@@ -136,7 +136,7 @@ it('descrive il luogo di un evento che non si tiene in un locale registrato', fu
         ->and($location)->not->toHaveKey('geo');
 });
 
-it('ripiega sul nome della città quando il luogo libero non ha nemmeno un nome', function (): void {
+it('omette il nome della sede quando non è conosciuto', function (): void {
     $event = Event::factory()->published()->create([
         'city_id' => $this->city->getKey(),
         'category_id' => $this->category->getKey(),
@@ -149,8 +149,7 @@ it('ripiega sul nome della città quando il luogo libero non ha nemmeno un nome'
         'starts_at' => localInstant($this->city, '2026-09-12 18:00')->utc(),
     ]);
 
-    expect($this->structured->event($event->fresh(), $occurrence)['location']['name'])
-        ->toBe($this->city->name);
+    expect($this->structured->event($event->fresh(), $occurrence)['location'])->not->toHaveKey('name');
 });
 
 it('sceglie l\'organizzatore in tre gradini: chi è dichiarato, il locale, il sito', function (): void {
@@ -297,7 +296,7 @@ it('numera le briciole di pane da uno, nell\'ordine in cui gliele si danno', fun
         ->and($this->structured->breadcrumbs([])['itemListElement'])->toBe([]);
 });
 
-it('genera un nodo per ogni data di un ciclo, tutti con lo stesso indirizzo e identificativi diversi', function (): void {
+it('genera un nodo per ogni data di un ciclo, ognuno con indirizzo e identificativo propri', function (): void {
     $prima = occurrenceAtLocal($this->city, $this->category, '2026-09-12 21:00');
     $event = $prima->event;
 
@@ -309,8 +308,8 @@ it('genera un nodo per ogni data di un ciclo, tutti con lo stesso indirizzo e id
     $nodes = $this->structured->events($event, collect([$prima, $seconda]));
 
     expect($nodes)->toHaveCount(2)
-        ->and($nodes[0]['url'])->toBe($nodes[1]['url'])
-        ->and($nodes[0]['@id'])->toBe($nodes[0]['url'].'#data-'.$prima->getKey())
-        ->and($nodes[1]['@id'])->toBe($nodes[1]['url'].'#data-'.$seconda->getKey())
+        ->and($nodes[0]['url'])->not->toBe($nodes[1]['url'])
+        ->and($nodes[0]['@id'])->toBe($nodes[0]['url'].'#event')
+        ->and($nodes[1]['@id'])->toBe($nodes[1]['url'].'#event')
         ->and($this->structured->events($event, collect()))->toBe([]);
 });

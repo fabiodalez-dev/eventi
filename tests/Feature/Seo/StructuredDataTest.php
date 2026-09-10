@@ -137,7 +137,7 @@ it('dichiara le briciole di pane sulla scheda di un evento', function (): void {
     expect($breadcrumbs)->toHaveCount(1)
         ->and($breadcrumbs[0]['itemListElement'])->toHaveCount(3)
         ->and($breadcrumbs[0]['itemListElement'][0]['position'])->toBe(1)
-        ->and($breadcrumbs[0]['itemListElement'][2]['name'])->toBe($event->title);
+        ->and($breadcrumbs[0]['itemListElement'][2]['name'])->toBe($event->title.' · 12/09/2026');
 });
 
 it('dichiara Place sulla scheda di un locale', function (): void {

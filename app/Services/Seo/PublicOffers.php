@@ -19,11 +19,14 @@ final class PublicOffers
     /** @return list<array<string, mixed>> */
     public function for(Event $event, EventOccurrence $date): array
     {
+        if ($date->effective_ends_at->isPast()) {
+            return [];
+        }
         $url = route('events.occurrence', ['slug' => $event->slug, 'occurrence' => $date->id]);
         if ($date->booking_enabled && $date->effectiveVenue()?->ticketing_enabled) {
             $booking = app(TicketingService::class)->availability($date);
 
-            return [$this->offer($date, '0.00', 'EUR', route('tickets.create', $date), TicketTierStatus::from($booking['sale_state']))];
+            return [$this->offer($date, '0.00', 'EUR', route('tickets.create', $date), TicketTierStatus::from($booking['sale_state']), $booking['opens_at'])];
         }
         $offers = [];
         foreach (TicketTiers::for($event, $date) as $tier) {
@@ -46,7 +49,7 @@ final class PublicOffers
     }
 
     /** @return array<string, mixed> */
-    private function offer(EventOccurrence $date, string $price, string $currency, string $url, TicketTierStatus $state): array
+    private function offer(EventOccurrence $date, string $price, string $currency, string $url, TicketTierStatus $state, ?string $validFrom = null): array
     {
         $availability = match (true) {
             $date->status === OccurrenceStatus::Cancelled => 'Discontinued',
@@ -54,12 +57,12 @@ final class PublicOffers
             $date->status === OccurrenceStatus::SoldOut => 'SoldOut',
             default => match ($state) {
                 TicketTierStatus::Available => 'InStock', TicketTierStatus::SoldOut => 'SoldOut',
-                TicketTierStatus::NotYetOnSale => 'PreSale', TicketTierStatus::Closed => 'Discontinued',
+                TicketTierStatus::NotYetOnSale => null, TicketTierStatus::Closed => 'Discontinued',
             },
         };
 
         return array_filter(['@type' => 'Offer', 'price' => $price, 'priceCurrency' => $currency,
-            'url' => $url, 'availability' => $availability === null ? null : 'https://schema.org/'.$availability],
+            'validFrom' => $validFrom, 'url' => $url, 'availability' => $availability === null ? null : 'https://schema.org/'.$availability],
             fn ($value): bool => $value !== null);
     }
 }
