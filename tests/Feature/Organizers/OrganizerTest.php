@@ -68,12 +68,12 @@ it('finds organizers and their events by partial description without exposing in
     $this->get('/organizzatori/'.$this->organizer->slug)->assertNotFound();
     expect(EventOccurrenceQuery::for($this->city)->upcoming()->search('rasseg')->get()->modelKeys())->not->toContain($this->date->id);
 });
-it('uses the host as organizer when no separate organizer is configured', function (): void {
+it('uses the original event venue as organizer when a date moves without a separate organizer', function (): void {
     $venue = Venue::factory()->create(['city_id' => $this->city->id, 'status' => 'approved']);
     $this->date->event->update(['organizer_id' => null, 'organizer_name' => null, 'organizer_url' => null, 'content_details' => []]);
     $this->date->update(['venue_id' => $venue->id]);
     $node = app(StructuredData::class)->event($this->date->fresh()->event, $this->date->fresh());
-    expect($node['organizer']['name'])->toBe($venue->name);
+    expect($node['organizer']['name'])->toBe($this->date->event->venue->name);
     expect($node['location']['name'])->toBe($venue->name);
 });
 it('keeps hidden categories out of organizer archives', function (): void {

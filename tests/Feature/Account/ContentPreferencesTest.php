@@ -71,10 +71,10 @@ it('lets web users change their mind and does not hide purchases or edit credent
     $this->actingAs($this->user)->get('/profilo/interessi')->assertOk()->assertSee('I miei interessi');
     $this->patch('/profilo/interessi', ['mode' => 'selected', 'choices' => [$this->music->id => 'interested', $this->other->id => 'hidden'], 'inferred_ads' => '1'])->assertRedirect();
     $this->get('/eventi')->assertOk()
-        ->assertSee('href="'.route('events.show', $this->a->event->slug).'"', false)
-        ->assertDontSee('href="'.route('events.show', $this->b->event->slug).'"', false);
+        ->assertSee('href="'.route('events.occurrence', ['slug' => $this->a->event->slug, 'occurrence' => $this->a->id]).'"', false)
+        ->assertDontSee('href="'.route('events.occurrence', ['slug' => $this->b->event->slug, 'occurrence' => $this->b->id]).'"', false);
     $this->patch('/profilo/interessi', ['mode' => 'all', 'choices' => [], 'inferred_ads' => '1'])->assertRedirect();
-    $this->get('/eventi')->assertOk()->assertSee('href="'.route('events.show', $this->b->event->slug).'"', false);
+    $this->get('/eventi')->assertOk()->assertSee('href="'.route('events.occurrence', ['slug' => $this->b->event->slug, 'occurrence' => $this->b->id]).'"', false);
     expect($this->user->fresh()->password)->toBe($password);
 });
 

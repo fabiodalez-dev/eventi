@@ -16,7 +16,7 @@ afterEach(function (): void {
  */
 function slugsInPagina(string $html): array
 {
-    preg_match_all('#/eventi/([a-z0-9-]+)"#', $html, $matches);
+    preg_match_all('#/eventi/([a-z0-9-]+)(?:/date/[0-9]+)?"#', $html, $matches);
 
     $slugs = [];
 
