@@ -4,6 +4,7 @@ namespace App\Providers\Filament;
 
 use App\Filament\Organizer\Pages\Profile;
 use App\Models\Organizer;
+use Filament\FontProviders\LocalFontProvider;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -23,7 +24,10 @@ class OrganizerPanelProvider extends PanelProvider
     public function panel(Panel $panel): Panel
     {
         return $panel->id('organizer')->path('organizza')->login()->passwordReset()
-            ->brandName('inCittà · Organizzatori')->colors(['primary' => Color::Amber])
+            ->darkMode(false)
+            ->font('Manrope Variable', provider: LocalFontProvider::class)
+            ->viteTheme('resources/css/filament/admin/theme.css')
+            ->brandName('inCittà · Organizzatori')->colors(['primary' => Color::hex('#b54d23')])
             ->tenant(Organizer::class, ownershipRelationship: 'organizer')
             ->pages([Profile::class])
             ->discoverResources(in: app_path('Filament/Organizer/Resources'), for: 'App\\Filament\\Organizer\\Resources')

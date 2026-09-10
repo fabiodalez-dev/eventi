@@ -225,3 +225,11 @@ Le mappe usano lo stile Positron nel tema chiaro e marcatori terracotta.
 Queste regole sostituiscono nel solo tema chiaro le prescrizioni precedenti
 su lime, raggio zero e divisori da 2 px. Android offre lo stesso selettore nel profilo, con persistenza locale da ospite e
 sincronizzazione della preferenza attraverso GET/PATCH /api/v1/me.
+
+## Backend, sempre chiaro
+
+Amministrazione, gestione locali e organizzatori condividono il tema chiaro:
+Manrope nei controlli e nelle tabelle, Bricolage Grotesque 700–800 nei titoli,
+fondi neutri quasi bianchi, accento #B54D23 e bordi sottili con raggi 6–8 px.
+La modalità scura è disabilitata nei pannelli, indipendentemente dal sistema
+e dalla preferenza salvata sul sito pubblico. I font sono serviti localmente.
