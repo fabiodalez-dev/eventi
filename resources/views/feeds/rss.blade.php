@@ -29,7 +29,7 @@
             @php
                 $event = clone $occurrence->event;
                 $event->setRelation('venue', $occurrence->effectiveVenue());
-                $url = route('events.show', $event);
+                $url = route('events.occurrence', ['slug' => $event->slug, 'occurrence' => $occurrence->id]);
                 $poster = \App\Support\Poster::absoluteUrl($event);
 
                 /* In un feed la data va scritta per esteso: "oggi" è vero solo

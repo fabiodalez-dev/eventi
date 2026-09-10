@@ -174,7 +174,7 @@
             @endphp
 
             <a
-                href="{{ route('events.show', $heroEvento) }}"
+                href="{{ route('events.occurrence', ['slug' => $heroEvento->slug, 'occurrence' => $heroOccorrenza->id]) }}"
                 @if ($heroSponsorizzato) rel="sponsored" @endif
                 class="photo-panel group relative flex min-h-[clamp(26.25rem,46vw,38.75rem)] flex-col overflow-hidden"
                 data-home-hero
@@ -384,7 +384,7 @@
                 <div class="flex flex-col bg-canvas">
                     @foreach ($nearby as $occorrenza)
                         <a
-                            href="{{ route('events.show', $occorrenza->event) }}"
+                            href="{{ route('events.occurrence', ['slug' => $occorrenza->event->slug, 'occurrence' => $occorrenza->id]) }}"
                             class="group flex items-center gap-3.5 border-b-2 border-line px-[clamp(1rem,1.6vw,1.25rem)] py-3.5 transition-colors hover:bg-accent/[0.055]"
                         >
                             <span class="min-w-14 font-display text-[0.688rem] leading-none font-extrabold tracking-[0.1em] text-accent uppercase">
