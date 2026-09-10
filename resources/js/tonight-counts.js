@@ -39,6 +39,12 @@ export function tonightCounts() {
                         const input = label.closest('[data-place-option]').querySelector('input');
                         input.disabled = Number(label.textContent) === 0 && !input.checked;
                     });
+                    const places = [...form.querySelectorAll('[data-place-option]')];
+                    places.sort((a, b) => {
+                        const rank = option => option.querySelector('input').value === '' ? -1
+                            : Number(option.querySelector('[data-place-count]').textContent) > 0 ? 0 : 1;
+                        return rank(a) - rank(b);
+                    }).forEach(option => option.parentElement.append(option));
                 } catch (error) {
                     if (error.name !== 'AbortError' && revision === current) output.textContent = `(${form.dataset.countError})`;
                 }

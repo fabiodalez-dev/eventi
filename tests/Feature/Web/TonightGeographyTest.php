@@ -110,3 +110,31 @@ it('validates neighborhood choices when a venue saves its profile', function (st
     ['Padova', 'Brusegana', true], ['Padova', null, false], ['Padova', 'Nord', false], ['Abano Terme', 'Guizza', true],
     ['Padova', 'Centro storico', true],
 ]);
+
+it('puts municipalities and neighborhoods with matching events before empty places on web and API', function (): void {
+    $category = testCategory();
+    foreach ([['Vigonza', null], ['Padova', 'Torre']] as [$municipality, $zone]) {
+        $venue = Venue::factory()->approved()->create(['city_id' => $this->city->id, 'municipality' => $municipality, 'zone' => $zone]);
+        occurrenceAtLocal($this->city, $category, '2026-09-10 21:00', venue: $venue);
+    }
+    $tomorrow = Venue::factory()->approved()->create(['city_id' => $this->city->id, 'municipality' => 'Abano Terme', 'zone' => null]);
+    occurrenceAtLocal($this->city, $category, '2026-09-11 21:00', venue: $tomorrow);
+
+    $this->getJson('/api/v1/tonight')->assertOk()
+        ->assertJsonPath('data.municipalities.0', 'Padova')
+        ->assertJsonPath('data.municipalities.1', 'Vigonza')
+        ->assertJsonPath('data.municipalities.2', 'Abano Terme')
+        ->assertJsonPath('data.zones.0', 'Torre');
+    $this->get('/stasera?question=municipality')->assertOk()
+        ->assertSeeInOrder(['data-place-count="Vigonza"', 'data-place-count="Abano Terme"'], false);
+    $this->get('/stasera?question=district&municipality=Padova')->assertOk()
+        ->assertSeeInOrder(['data-place-count="Torre"', 'data-place-count="Centro"'], false);
+});
+
+it('moves Padova below municipalities with events when Padova is empty', function (): void {
+    $venue = Venue::factory()->approved()->create(['city_id' => $this->city->id, 'municipality' => 'Vigonza', 'zone' => null]);
+    occurrenceAtLocal($this->city, testCategory(), '2026-09-10 21:00', venue: $venue);
+    $this->getJson('/api/v1/tonight')->assertOk()->assertJsonPath('data.municipalities.0', 'Vigonza');
+    $this->get('/stasera?question=municipality&municipality=Padova')->assertOk()
+        ->assertSeeInOrder(['data-place-count="Vigonza"', 'data-place-count="Padova"'], false);
+});
