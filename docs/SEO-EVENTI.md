@@ -50,12 +50,14 @@ locandina disponibile. La generazione avviene nella coda media esistente.
 Per rigenerare le sole varianti mancanti dei poster già caricati:
 
 ```sh
-php artisan media-library:regenerate 'App\Models\Event' --only=schema-square --only=schema-landscape --only=schema-wide --only-missing --queue-all --force
+php artisan media-library:regenerate event --only=schema-square --only=schema-landscape --only=schema-wide --only-missing --queue-all --force
 ```
 
 Usare in produzione il percorso PHP indicato in Sistema → Cron e
 programmazioni. Il cron del worker già installato consuma anche queste
 conversioni: non occorre aggiungerne uno.
+Il comando filtra il valore salvato in `media.model_type`: qui è `event`,
+l’alias della morph map, non il nome completo della classe PHP.
 
 La sitemap calcola lastmod dai dati dell’evento, data, sede, organizzatore,
 media, lineup e listino. Eliminare una fascia o una voce di lineup aggiorna
