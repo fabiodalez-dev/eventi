@@ -1,289 +1,76 @@
 @import '../../../../vendor/filament/filament/resources/css/theme.css';
+@import '@fontsource-variable/manrope/wght.css';
+@import '@fontsource-variable/bricolage-grotesque/standard.css';
 
-@import '@fontsource-variable/archivo/wght.css';
-
-/*
- * Il pannello di inCittà.
- *
- * ─── Da dove nasce ────────────────────────────────────────────────────────
- *
- * Il sito pubblico è un manifesto: fondo #141413, lime #ccff00, spigoli vivi,
- * maiuscolo spaziato. Regge perché una pagina pubblica si guarda un minuto.
- *
- * Qui dentro si lavora: tabelle da cinquanta righe, moduli da trenta campi,
- * pomeriggi interi. Le stesse scelte prese alla lettera diventano faticose, e
- * la strada opposta — lasciare Filament come esce dalla scatola — dà un
- * pannello che non somiglia a niente. Nessuna delle due va bene.
- *
- * La regola è: **gli stessi pigmenti, l'intensità dimezzata.**
- *
- * ─── Le tre cose che facevano sembrare il pannello un altro prodotto ──────
- *
- * 1. **Il bianco.** Filament parte da bianco puro e grigi neutri: freddo,
- *    clinico, e in stridore con un sito costruito su un nero caldo tinto di
- *    verde. Qui ogni superficie e ogni grigio sono tinti verso lo stesso
- *    pigmento — appena l'1-2% di croma, invisibile a occhio nudo, decisivo
- *    nell'insieme. È il motivo per cui due schermate scattate a distanza di
- *    un secondo sembravano di due software diversi.
- *
- * 2. **I pulsanti senza gerarchia.** Un `.fi-btn` senza colore, in Filament 5,
- *    è testo nudo: nessun bordo, nessuno sfondo. «Elimina» e «Invita un
- *    collaboratore» sembravano etichette, e l'unica cosa premibile era quella
- *    colorata. Qui i pulsanti hanno tre livelli dichiarati — pieno, contorno,
- *    testo — e il contorno ha un bordo che si vede davvero.
- *
- * 3. **La densità uniforme.** Lo stesso margine attorno a tutto: un elenco di
- *    cinquanta locali e un modulo di due campi respiravano allo stesso modo.
- *    Le tabelle si stringono, i moduli restano larghi.
- *
- * ─── Cosa NON si porta dal sito ──────────────────────────────────────────
- *
- * Il fondo nero (stanca), il maiuscolo spaziato sul corpo del testo
- * (illeggibile su una colonna lunga), il lime su grandi superfici (grida). Il
- * lime resta un accento: pulsante principale, voce attiva, poco altro.
- */
-
+/* Shared by all back-office panels, always light like the public light theme. */
 @theme {
-    --font-sans: 'Archivo Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
-
-    /*
-     * Spigoli vivi come sul sito. È la cosa che si riconosce prima di tutte —
-     * prima del carattere, prima del colore.
-     */
-    --radius-xs: 0;
-    --radius-sm: 0;
-    --radius-md: 0;
-    --radius-lg: 0;
-    --radius-xl: 0;
-    --radius-2xl: 0;
-    --radius-3xl: 0;
-    --radius-full: 0;
-
-    /*
-     * I grigi, tinti verso il pigmento del sito.
-     *
-     * Filament li usa per tutto: fondi, bordi, testo secondario, righe delle
-     * tabelle. Ridefinirli qui significa vestire l'intero pannello con una
-     * dichiarazione, invece di rincorrere una classe alla volta.
-     *
-     * Sono in OKLCH perché la scala resti percettivamente uniforme: gli stessi
-     * passi in esadecimale danno salti visibili nei toni medi. Il croma cala
-     * verso gli estremi — a piena luminosità un grigio tinto diventa giallo
-     * sporco, e sul nero diventa fango.
-     */
-    --color-gray-50: oklch(98.4% 0.004 110);
-    --color-gray-100: oklch(96.4% 0.006 110);
-    --color-gray-200: oklch(92.4% 0.007 110);
-    --color-gray-300: oklch(86.5% 0.008 110);
-    --color-gray-400: oklch(71.5% 0.009 110);
-    --color-gray-500: oklch(58.5% 0.009 110);
-    --color-gray-600: oklch(47.5% 0.008 110);
-    --color-gray-700: oklch(38.5% 0.007 110);
-    --color-gray-800: oklch(27.5% 0.006 110);
-    --color-gray-900: oklch(19.5% 0.005 110);
-    --color-gray-950: oklch(13.5% 0.004 110);
+    --font-sans: 'Manrope Variable', ui-sans-serif, system-ui, sans-serif;
+    --radius-xs: 4px;
+    --radius-sm: 6px;
+    --radius-md: 6px;
+    --radius-lg: 8px;
+    --radius-xl: 8px;
+    --radius-2xl: 12px;
+    --color-gray-50: oklch(98.8% 0.002 80);
+    --color-gray-100: oklch(96.5% 0.003 80);
+    --color-gray-200: oklch(89% 0.003 80);
+    --color-gray-300: oklch(82% 0.003 80);
+    --color-gray-400: oklch(66% 0.003 80);
+    --color-gray-500: oklch(53% 0.003 80);
+    --color-gray-600: oklch(46% 0.003 80);
+    --color-gray-700: oklch(38% 0.003 80);
+    --color-gray-800: oklch(29% 0.003 80);
+    --color-gray-900: oklch(24% 0.003 80);
+    --color-gray-950: oklch(19% 0.003 80);
 }
-
-/*
- * ─── Superfici ───────────────────────────────────────────────────────────
- *
- * Due livelli e non uno: il fondo della pagina è appena più scuro delle
- * schede che ci stanno sopra. Serve a far vedere dove finisce una sezione e
- * comincia l'altra senza disegnare altre linee — su una pagina con nove
- * sezioni ogni linea in meno è un guadagno.
- */
-:root:not(.dark) {
-    --fi-canvas: oklch(97.2% 0.005 110);
-    --fi-panel: oklch(99.3% 0.003 110);
-    --fi-hairline: oklch(13.5% 0.004 110 / 0.16);
-    --fi-hairline-strong: oklch(13.5% 0.004 110 / 0.32);
-    --fi-lime: #ccff00;
-    --fi-lime-ink: #5c7300;
-    --fi-ink: oklch(13.5% 0.004 110);
+:root {
+    color-scheme: light;
+    --fi-canvas: oklch(98.8% 0.002 80);
+    --fi-panel: oklch(99.4% 0.001 80);
+    --fi-ink: #262624;
+    --fi-accent: #b54d23;
+    --fi-line: oklch(89% 0.003 80);
 }
-
-:root:not(.dark) body,
-:root:not(.dark) .fi-body {
-    background-color: var(--fi-canvas);
-    color: var(--fi-ink);
+body, .fi-body { background: var(--fi-canvas); color: var(--fi-ink); }
+.fi-sidebar { border-right: 1px solid var(--fi-line); }
+.fi-topbar > nav, .fi-section, .fi-ta-ctn, .fi-wi-stats-overview-stat,
+.fi-dropdown-panel, .fi-modal-window, .fi-simple-main { background: var(--fi-panel); }
+.fi-section, .fi-ta-ctn, .fi-wi-stats-overview-stat, .fi-input-wrp,
+.fi-dropdown-panel, .fi-fo-file-upload-dropzone {
+    border: 1px solid var(--fi-line);
+    box-shadow: none;
 }
-
-/*
- * La barra laterale resta sul fondo della pagina, con una linea a separarla.
- *
- * Darle un fondo proprio sembrava giusto — e infatti è ciò che si era fatto —
- * ma è `sticky` e alta quanto la finestra: su una pagina lunga il suo colore
- * si interrompe a metà, e sotto ricompare il fondo. Una linea verticale separa
- * altrettanto bene e non ha un'altezza da sbagliare.
- */
-:root:not(.dark) .fi-sidebar {
-    border-right: 1px solid var(--fi-hairline);
+.fi-input-wrp:focus-within { border-color: var(--fi-accent); box-shadow: 0 0 0 1px var(--fi-accent); }
+.fi-header-heading, .fi-section-header-heading, .fi-modal-heading, .fi-simple-header-heading, .fi-logo {
+    font-family: 'Bricolage Grotesque Variable', var(--font-sans);
+    font-weight: 700;
+    letter-spacing: -.025em;
+    font-variation-settings: 'opsz' 32;
 }
-
-:root:not(.dark) .fi-topbar > nav,
-:root:not(.dark) .fi-section,
-:root:not(.dark) .fi-ta-ctn,
-:root:not(.dark) .fi-wi-stats-overview-stat,
-:root:not(.dark) .fi-dropdown-panel,
-:root:not(.dark) .fi-modal-window {
-    background-color: var(--fi-panel);
+.fi-header-heading, .fi-logo { font-weight: 800; }
+.fi-btn { font-weight: 650; letter-spacing: 0; }
+.fi-btn:not(.fi-color):not(.fi-link):not(.fi-icon-btn):not(.fi-dropdown-list-item) {
+    border: 1px solid oklch(72% 0.003 80); background: var(--fi-panel);
 }
-
-/*
- * ─── Linee ───────────────────────────────────────────────────────────────
- *
- * **La larghezza, non solo il colore.** Qui c'era il solo `border-color`, e su
- * un bordo largo zero il colore non disegna niente: i campi erano bianchi su
- * bianco e non si capiva dove si potesse scrivere. Un colore di bordo senza
- * larghezza è una dichiarazione che non fallisce e non fa nulla — il posto
- * peggiore in cui sbagliare, perché rileggendo il foglio sembra corretta.
- */
-:root:not(.dark) .fi-section,
-:root:not(.dark) .fi-ta-ctn,
-:root:not(.dark) .fi-wi-stats-overview-stat,
-:root:not(.dark) .fi-input-wrp,
-:root:not(.dark) .fi-dropdown-panel,
-:root:not(.dark) .fi-fo-file-upload-dropzone {
-    border-width: 1px;
-    border-style: solid;
-    border-color: var(--fi-hairline);
+.fi-btn.fi-color-primary { background: var(--fi-accent); color: oklch(99.4% 0.001 80); }
+.fi-btn.fi-color-primary:hover { background: #963e1b; }
+.fi-btn.fi-color-primary .fi-icon { color: inherit; }
+.fi-sidebar-item a[aria-current='page'] { background: oklch(96.5% 0.003 80); font-weight: 700; box-shadow: none; }
+.fi-sidebar-group-label, .fi-ta-header-cell {
+    font-size: .75rem; font-weight: 700; letter-spacing: .015em; text-transform: none;
 }
-
-.dark .fi-section,
-.dark .fi-ta-ctn,
-.dark .fi-wi-stats-overview-stat,
-.dark .fi-input-wrp,
-.dark .fi-dropdown-panel {
-    border-width: 1px;
-    border-style: solid;
-    border-color: oklch(96.4% 0.006 110 / 0.2);
-}
-
-/* Il campo attivo si riconosce dal bordo, non da un anello sfocato: è la
-   stessa grammatica degli spigoli vivi. */
-:root:not(.dark) .fi-input-wrp:focus-within {
-    border-color: var(--fi-ink);
-    box-shadow: inset 0 0 0 1px var(--fi-ink);
-}
-
-/*
- * ─── Pulsanti ────────────────────────────────────────────────────────────
- *
- * Tre livelli, e si distinguono a colpo d'occhio:
- *
- * - **pieno** (lime, o rosso se distrugge): l'azione principale, una per
- *   schermata;
- * - **contorno**: tutto il resto delle azioni. È il livello che mancava — in
- *   Filament 5 un pulsante senza colore non ha né sfondo né bordo, e su fondo
- *   chiaro diventa una scritta;
- * - **testo**: solo dentro i menu a tendina, dove il riquadro c'è già.
- *
- * La distinzione sta qui e non nel codice delle azioni: ripeterla su ogni
- * `Action::make()` significherebbe dimenticarla su qualcuna.
- */
-.fi-btn {
-    font-weight: 600;
-    letter-spacing: 0.01em;
-}
-
-:root:not(.dark) .fi-btn:not(.fi-color):not(.fi-link):not(.fi-icon-btn):not(.fi-dropdown-list-item) {
-    border-width: 1px;
-    border-style: solid;
-    border-color: var(--fi-hairline-strong);
-    background-color: var(--fi-panel);
-}
-
-:root:not(.dark) .fi-btn:not(.fi-color):not(.fi-link):not(.fi-icon-btn):not(.fi-dropdown-list-item):hover {
-    border-color: var(--fi-ink);
-    background-color: oklch(13.5% 0.004 110 / 0.04);
-}
-
-.dark .fi-btn:not(.fi-color):not(.fi-link):not(.fi-icon-btn):not(.fi-dropdown-list-item) {
-    border-width: 1px;
-    border-style: solid;
-    border-color: oklch(96.4% 0.006 110 / 0.28);
-}
-
-/*
- * Il pulsante lime porta inchiostro scuro, non bianco.
- *
- * Su #ccff00 il testo bianco ha un contrasto di 1,3:1 — illeggibile. Filament
- * lo sa e lo fa già; questa regola esiste perché una versione precedente del
- * tema, colorando *tutto* ciò che era `fi-color-primary`, sovrascriveva anche
- * l'inchiostro dei pulsanti e produceva oliva su lime. Trovato misurando il
- * pulsante disegnato, non rileggendo il CSS.
- */
-.fi-btn.fi-color-primary {
-    /*
-     * **Il lime del sito, non quello calcolato.**
-     *
-     * Da `#ccff00` Filament genera una scala e per i pulsanti usa il gradino
-     * 400, che è un oliva spento: riconoscibile come «un verde», non come
-     * *quel* verde. Su una schermata dove il pulsante principale è l'unica
-     * superficie colorata, è la differenza fra un pannello che appartiene al
-     * sito e uno che gli somiglia.
-     *
-     * L'inchiostro resta scuro: su lime il bianco fa 1,3:1, il nero caldo
-     * supera 15:1.
-     */
-    background-color: var(--fi-lime);
-    color: var(--fi-ink);
-}
-
-.fi-btn.fi-color-primary:hover {
-    background-color: #b4e000;
-}
-
-.fi-btn.fi-color-primary .fi-icon {
-    color: var(--fi-ink);
-}
-
-/* Selection is a state, not a primary action. Keep every radio group legible. */
+.fi-ta-header-cell { background: oklch(96.5% 0.003 80); color: oklch(38% 0.003 80); }
+.fi-ta-text-item { padding-block: .5rem; }
 .fi-fo-toggle-buttons-input:not(:checked) + label.fi-btn {
-    background-color: var(--fi-paper, #f5f5f0);
-    color: var(--fi-ink);
-    box-shadow: inset 0 0 0 1px #888;
+    background: var(--fi-panel); color: var(--fi-ink); box-shadow: inset 0 0 0 1px var(--fi-line);
 }
-
 .fi-fo-toggle-buttons-input:checked + label.fi-btn {
-    background-color: var(--fi-lime);
-    color: var(--fi-ink);
-    box-shadow: inset 0 0 0 2px var(--fi-ink);
+    background: var(--fi-accent); color: oklch(99.4% 0.001 80); box-shadow: none;
 }
-
-.fi-fo-toggle-buttons-input + label.fi-btn::before {
-    content: '○';
-    display: inline-block;
-    width: 1em;
-    flex-shrink: 0;
-}
-
-.fi-fo-toggle-buttons-input:checked + label.fi-btn::before {
-    content: '✓';
-}
-
-.fi-fo-toggle-buttons-input:focus-visible + label.fi-btn {
-    outline: 2px solid var(--fi-ink);
-    outline-offset: 3px;
-}
-
-/* Theme tokens above are light-only; radio state must define both colours. */
-.dark .fi-fo-toggle-buttons-input:not(:checked) + label.fi-btn {
-    background-color: oklch(22% 0.006 110);
-    color: oklch(95% 0.006 110);
-}
-.dark .fi-fo-toggle-buttons-input:checked + label.fi-btn {
-    background-color: #ccff00;
-    color: oklch(13.5% 0.004 110);
-}
-.fi-fo-toggle-buttons-input + label.fi-btn .fi-icon {
-    color: inherit;
-}
-.dark .fi-fo-toggle-buttons-input:focus-visible + label.fi-btn {
-    outline-color: #ccff00;
-}
-
-/* Calendar controls wrap inside their panel, never widen the whole page. */
+.fi-fo-toggle-buttons-input + label.fi-btn::before { content: '○'; width: 1em; flex-shrink: 0; }
+.fi-fo-toggle-buttons-input:checked + label.fi-btn::before { content: '✓'; }
+.fi-fo-toggle-buttons-input:focus-visible + label.fi-btn { outline: 2px solid var(--fi-accent); outline-offset: 3px; }
+.fi-fo-toggle-buttons-input + label.fi-btn .fi-icon { color: inherit; }
 .ec-toolbar { flex-wrap: wrap; gap: .75rem; }
 .ec-toolbar > div { min-width: 0; flex-wrap: wrap; gap: .35rem; }
 .ec-toolbar .ec-button-group { display: flex; flex-wrap: wrap; gap: .25rem; }
@@ -294,105 +81,4 @@
     .fi-tabs-item { white-space: normal; min-width: 0; }
     .ec-toolbar { align-items: flex-start; }
     .ec-toolbar > div { max-width: 100%; }
-}
-
-/*
- * ─── Intestazioni ────────────────────────────────────────────────────────
- *
- * L'occhiello del sito — maiuscolo, piccolo, spaziato — vive qui: sopra le
- * colonne delle tabelle e sui titoli di sezione. Sono etichette di due parole,
- * lette una volta e poi riconosciute per posizione: è esattamente il caso in
- * cui il maiuscolo spaziato aiuta invece di stancare. Sul corpo del testo,
- * dove si legge riga per riga, non si usa mai.
- */
-.fi-ta-header-cell {
-    font-size: 0.6875rem;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-}
-
-:root:not(.dark) .fi-ta-header-cell {
-    color: oklch(38.5% 0.007 110);
-    background-color: oklch(96.4% 0.006 110);
-}
-
-.fi-section-header-heading,
-.fi-modal-heading {
-    font-weight: 700;
-    letter-spacing: -0.01em;
-}
-
-.fi-header-heading {
-    font-weight: 800;
-    letter-spacing: -0.02em;
-}
-
-/*
- * ─── Densità ─────────────────────────────────────────────────────────────
- *
- * Il testo delle celle respira 8 px invece di 16: negli elenchi di sola
- * lettura le righe si stringono e se ne confrontano più a colpo d'occhio, che
- * è ciò per cui si guarda un elenco.
- *
- * **Dove ci sono pulsanti di riga non cambia nulla, ed è giusto così.** Nei
- * Locali la riga resta a 69 px perché l'altezza la detta «Moderazione», non il
- * testo. Misurato: una prima versione di questa regola, messa sulla cella
- * invece che sul contenuto, si sommava al margine esistente e faceva crescere
- * le righe da 69 a 77 px — un ritocco pensato per stringere che allargava.
- */
-.fi-ta-text-item {
-    padding-top: 0.5rem;
-    padding-bottom: 0.5rem;
-}
-
-/*
- * ─── Barra laterale ──────────────────────────────────────────────────────
- *
- * La voce attiva porta una barra lime a sinistra e un fondo appena tinto: si
- * trova con la coda dell'occhio tornando da un'altra finestra, che è il
- * momento in cui serve.
- */
-:root:not(.dark) .fi-sidebar-item a[aria-current='page'] {
-    background-color: oklch(97% 0.06 110);
-    box-shadow: inset 3px 0 0 0 var(--fi-lime-ink);
-    font-weight: 700;
-}
-
-.dark .fi-sidebar-item a[aria-current='page'] {
-    box-shadow: inset 3px 0 0 0 var(--fi-lime);
-    font-weight: 700;
-}
-
-:root:not(.dark) .fi-sidebar-group-label {
-    font-size: 0.6875rem;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: oklch(47.5% 0.008 110);
-}
-
-/*
- * ─── Lime leggibile ──────────────────────────────────────────────────────
- *
- * Su fondo chiaro il lime #ccff00 ha 1,4:1 contro il bianco: va bene come
- * superficie, è invisibile come testo. Il lime «da inchiostro» è più scuro —
- * #5c7300, oltre 4,5:1 — e si usa per collegamenti ed etichette.
- *
- * L'esclusione dei pulsanti e delle pastiglie non è cautela: senza di essa
- * questa regola vince sull'inchiostro scuro che Filament mette sul lime pieno,
- * e il testo diventa oliva su lime.
- */
-:root:not(.dark) .fi-color-primary:not(.fi-btn):not(.fi-badge),
-:root:not(.dark) .fi-link-color-primary,
-:root:not(.dark) a.fi-link {
-    color: var(--fi-lime-ink);
-}
-
-/*
- * ─── Marchio ─────────────────────────────────────────────────────────────
- */
-.fi-logo {
-    font-weight: 800;
-    letter-spacing: -0.03em;
 }

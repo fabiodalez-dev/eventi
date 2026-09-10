@@ -7,6 +7,7 @@ namespace App\Providers\Filament;
 use App\Filament\Venue\Pages\Dashboard;
 use App\Models\User;
 use App\Models\Venue;
+use Filament\FontProviders\LocalFontProvider;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -55,9 +56,12 @@ class VenuePanelProvider extends PanelProvider
             ->path('gestione')
             ->login()
             ->passwordReset()
+            ->darkMode(false)
+            ->font('Manrope Variable', provider: LocalFontProvider::class)
+            ->viteTheme('resources/css/filament/admin/theme.css')
             ->brandName(fn (): string => (string) config('app.name'))
             ->colors([
-                'primary' => Color::Amber,
+                'primary' => Color::hex('#b54d23'),
             ])
             ->tenant(Venue::class, ownershipRelationship: 'venue')
             // Lo switcher ha senso solo per chi gestisce più di un locale:

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Providers\Filament;
 
 use App\Filament\Admin\Pages\Dashboard;
+use Filament\FontProviders\LocalFontProvider;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -57,20 +58,21 @@ class AdminPanelProvider extends PanelProvider
              * Lo stesso carattere del sito, servito dal nostro dominio: e' gia'
              * in `@fontsource`, quindi non aggiunge una richiesta a Google.
              */
-            ->font('Archivo Variable')
+            ->font('Manrope Variable', provider: LocalFontProvider::class)
+            ->darkMode(false)
             /*
-             * Il foglio che porta qui dentro l'identita' del sito — spigoli
-             * vivi, neutri caldi, bordi visibili — senza portarne l'intensita':
+             * Il foglio che porta qui dentro l'identita' del sito — titoli Bricolage,
+             * superfici chiare e bordi sottili — senza portarne l'intensita':
              * il perche' di ogni scelta sta scritto li'.
              */
             ->viteTheme('resources/css/filament/admin/theme.css')
             ->colors([
                 /*
-                 * Il lime del sito al posto dell'indaco predefinito. Filament
+                 * L'arancione del tema chiaro del sito. Filament
                  * ne ricava una scala completa: serve per gli stati, dove un
                  * colore solo non basta.
                  */
-                'primary' => Color::hex('#ccff00'),
+                'primary' => Color::hex('#b54d23'),
             ])
             ->navigationGroups([
                 NavigationGroup::make(fn (): string => __('admin.navigation.content')),
