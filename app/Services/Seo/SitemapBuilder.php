@@ -15,6 +15,7 @@ use App\Models\Venue;
 use App\Queries\EventOccurrenceQuery;
 use App\Services\Search\EventFinder;
 use App\Support\ContentVersion;
+use App\Support\EventUrl;
 use Carbon\CarbonImmutable;
 use DateTimeInterface;
 use Illuminate\Support\Facades\Cache;
@@ -256,10 +257,11 @@ final class SitemapBuilder
                     }
                     $dateEntries = [];
                     foreach ($event->occurrences as $date) {
+                        $date->setRelation('event', $event);
                         $modified = $shared->merge([$date->getAttribute('updated_at'), $date->venue?->getAttribute('updated_at')])
                             ->merge($date->lineups->pluck('updated_at'))->merge($date->ticketTiers->pluck('updated_at'))
                             ->filter()->map(fn ($value) => CarbonImmutable::parse($value))->max();
-                        $dateEntries[] = ['loc' => route('events.occurrence', ['slug' => $event->slug, 'occurrence' => $date->id]),
+                        $dateEntries[] = ['loc' => EventUrl::occurrence($date),
                             'lastmod' => $this->lastModified($modified),
                             'changefreq' => Url::CHANGE_FREQUENCY_WEEKLY, 'priority' => 0.8];
                     }

@@ -167,6 +167,7 @@ class EventOccurrence extends Model
             'price_override' => 'array',
             'capacity' => 'integer',
             'capacity_left' => 'integer',
+            'url_number' => 'integer',
             'booking_enabled' => 'boolean',
             'booking_fields' => 'array',
             'booking_capacity' => 'integer',

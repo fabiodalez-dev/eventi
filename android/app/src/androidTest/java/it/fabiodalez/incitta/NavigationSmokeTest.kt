@@ -42,8 +42,8 @@ class NavigationSmokeTest {
         compose.onAllNodes(hasScrollAction()).onFirst().performScrollToNode(hasText(compose.activity.getString(R.string.calendar_banner_title)))
         compose.onNodeWithText(compose.activity.getString(R.string.calendar_customize)).performScrollTo().assertIsDisplayed().performClick()
         // Calendar configuration is a lazy item below the month header.
-        compose.onAllNodes(hasScrollAction()).onFirst().performScrollToNode(hasText(compose.activity.getString(R.string.calendar_sync_help)))
-        compose.onNodeWithText(compose.activity.getString(R.string.calendar_sync_help)).assertIsDisplayed()
+        compose.onAllNodes(hasScrollAction()).onFirst().performScrollToNode(hasText(compose.activity.getString(R.string.google_calendar_help)))
+        compose.onNodeWithText(compose.activity.getString(R.string.google_calendar_help)).assertIsDisplayed()
     }
 
     @Test fun liveSearchAndMapKeepBottomNavigationAvailable() {
@@ -61,8 +61,8 @@ class NavigationSmokeTest {
             compose.onAllNodes(hasText("MAPPA") and hasClickAction()).fetchSemanticsNodes().isNotEmpty()
         }
         compose.onNode(hasText("MAPPA") and hasClickAction()).performClick()
-        compose.onNodeWithText("OGGI").assertExists()
+        compose.onNodeWithText(compose.activity.getString(R.string.map_filters_open)).performClick()
+        compose.onNodeWithText(compose.activity.getString(R.string.map_filters_close)).assertExists()
         compose.onNode(hasText("CERCA") and hasClickAction()).assertExists()
-        compose.onNodeWithText("OGGI").assertExists()
     }
 }

@@ -9,6 +9,7 @@ use App\Enums\PriceType;
 use App\Models\EventOccurrence;
 use App\Models\Lineup;
 use App\Models\Venue;
+use App\Support\EventUrl;
 use Carbon\Carbon;
 
 afterEach(function (): void {
@@ -114,7 +115,7 @@ it('pubblica un nodo JSON-LD per ogni occorrenza, con luogo, offerta e stato', f
     expect(array_filter($nodes, static fn (array $node): bool => ($node['@type'] ?? null) === 'CollectionPage'))->not->toBeEmpty();
     $events = [];
     foreach ($event->occurrences()->orderBy('starts_at')->get() as $date) {
-        $dateNodes = jsonLdNodes($this->get(route('events.occurrence', ['slug' => $event->slug, 'occurrence' => $date->id]))->assertOk()->getContent() ?: '');
+        $dateNodes = jsonLdNodes($this->get(EventUrl::occurrence($date))->assertOk()->getContent() ?: '');
         $events = [...$events, ...array_values(array_filter($dateNodes, static fn (array $node): bool => ($node['@type'] ?? null) === 'Event'))];
     }
 
@@ -163,7 +164,7 @@ it('offre un file .ics per la singola data', function (): void {
 
     $response = $this->get(route('events.calendar', [
         'slug' => $occurrence->event->slug,
-        'occurrence' => $occurrence->getKey(),
+        'occurrence' => $occurrence->url_number,
     ]))->assertOk();
 
     $response->assertHeader('content-type', 'text/calendar; charset=utf-8');
@@ -186,7 +187,7 @@ it('non consegna il calendario di una data che appartiene a un altro evento', fu
 
     $this->get(route('events.calendar', [
         'slug' => $primo->event->slug,
-        'occurrence' => $secondo->getKey(),
+        'occurrence' => $primo->url_number + 1,
     ]))->assertNotFound();
 });
 

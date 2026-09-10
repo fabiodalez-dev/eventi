@@ -6,6 +6,7 @@ namespace App\Services\Calendar;
 
 use App\Enums\OccurrenceStatus;
 use App\Models\EventOccurrence;
+use App\Support\EventUrl;
 use DateTimeZone;
 use Illuminate\Support\Str;
 use Spatie\CalendarLinks\Link;
@@ -83,7 +84,7 @@ final class OccurrenceCalendar
             ->uniqueIdentifier($this->identifier($occurrence))
             ->startsAt($occurrence->starts_at->utc())
             ->endsAt($occurrence->effective_ends_at->utc())
-            ->url(route('events.show', $event))
+            ->url(EventUrl::occurrence($occurrence))
             ->status($this->status($occurrence->status));
 
         $description = $this->description($occurrence);
@@ -204,7 +205,7 @@ final class OccurrenceCalendar
         $parts = array_filter([
             $event->subtitle,
             $event->short_description,
-            route('events.show', $event),
+            EventUrl::occurrence($occurrence),
         ], static fn (?string $value): bool => filled($value));
 
         return implode("\n\n", $parts);

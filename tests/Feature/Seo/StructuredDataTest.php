@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Enums\OccurrenceStatus;
 use App\Enums\PriceType;
 use App\Models\Lineup;
+use App\Support\EventUrl;
 use Illuminate\Support\Facades\Storage;
 use Tests\Support\ImageFixtures;
 
@@ -78,7 +79,7 @@ it('emette un nodo Event per ogni occorrenza pubblicata, con i campi obbligatori
     expect(nodesOfType(jsonLdOf($html), 'CollectionPage'))->toHaveCount(1);
     $events = [];
     foreach ($event->occurrences as $date) {
-        $page = $this->get(route('events.occurrence', ['slug' => $event->slug, 'occurrence' => $date->id]))->assertOk()->getContent();
+        $page = $this->get(EventUrl::occurrence($date))->assertOk()->getContent();
         $events = array_merge($events, nodesOfType(jsonLdOf($page), 'Event'));
     }
 

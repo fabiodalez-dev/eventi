@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true"
+>
+    <testsuites>
+        <testsuite name="Browser">
+            <directory>tests/Browser</directory>
+        </testsuite>
+    </testsuites>
+    <source>
+        <include>
+            <directory>app</directory>
+        </include>
+    </source>
+    <php>
+        <!--
+            La suite completa supera i 128 MB del limite predefinito della CLI:
+            centinaia di test in un solo processo, e la pipeline media (§12.1)
+            apre file immagine veri con ImageMagick. Dichiararlo qui evita che
+            `./vendor/bin/pest` muoia con un errore di memoria che non dice
+            nulla su ciò che è andato storto.
+        -->
+        <ini name="memory_limit" value="512M"/>
+        <env name="APP_ENV" value="testing"/>
+        <env name="APP_MAINTENANCE_DRIVER" value="file"/>
+        <env name="BCRYPT_ROUNDS" value="4"/>
+        <env name="BROADCAST_CONNECTION" value="null"/>
+        <env name="CACHE_STORE" value="array"/>
+        <env name="DB_CONNECTION" value="mariadb"/>
+        <env name="DB_HOST" value="127.0.0.1"/>
+        <env name="DB_PORT" value="3307"/>
+        <env name="DB_DATABASE" value="eventi_test"/>
+        <env name="DB_USERNAME" value="root"/>
+        <env name="DB_PASSWORD" value=""/>
+        <env name="DB_URL" value=""/>
+        <env name="MAIL_MAILER" value="array"/>
+        <!--
+            L'anteprima social (§12.1) si compone con ImageMagick e costa
+            qualche decimo di secondo per evento: accesa qui, ogni test che
+            crea un evento pubblicato ne disegnerebbe una. La riaccende il test
+            che la riguarda, che verifica il file vero.
+        -->
+        <env name="MEDIA_OG_ENABLED" value="false"/>
+        <!--
+            La full-page cache di §12.3 servirebbe ai test la copia salvata
+            invece del codice che stanno verificando. La riaccende il test che
+            la riguarda.
+        -->
+        <env name="PAGE_CACHE_ENABLED" value="false"/>
+        <env name="QUEUE_CONNECTION" value="sync"/>
+        <env name="SESSION_DRIVER" value="array"/>
+        <env name="PULSE_ENABLED" value="false"/>
+        <env name="TELESCOPE_ENABLED" value="false"/>
+        <env name="NIGHTWATCH_ENABLED" value="false"/>
+    </php>
+</phpunit>

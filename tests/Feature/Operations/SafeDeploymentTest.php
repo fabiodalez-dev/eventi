@@ -38,10 +38,11 @@ it('reports only deployment identity and never caches it', function (): void {
 it('gates production on the full test suite including Android and Lighthouse', function (): void {
     $workflow = file_get_contents(base_path('.github/workflows/ci.yml'));
     preg_match('/^  deploy:\n(?<job>.*?)(?=^  [a-z]+:|\z)/ms', $workflow, $deploy);
-    expect($deploy['job'])->toContain('needs: [checks, quality, tests, lighthouse, android]')
-        ->not->toContain('always()', 'failure()');
+    expect($deploy['job'])->toContain('needs: [checks, quality, tests, browser, lighthouse, android]')
+        ->toContain("needs.checks.result == 'success'")
+        ->not->toContain('failure()');
     preg_match('/^  checks:\n(?<job>.*?)(?=^  [a-z]+:|\z)/ms', $workflow, $checks);
-    expect($checks['job'])->toContain('needs: [scope, quality, tests, lighthouse, android]', 'node .github/scripts/ci-gate.cjs');
+    expect($checks['job'])->toContain('needs: [scope, quality, tests, browser, lighthouse, android]', 'node .github/scripts/ci-gate.cjs');
     expect($workflow)->toContain('name: tested-build', 'EXPECTED_SHA:', 'cancel-in-progress: false')
         ->not->toContain('continue-on-error: true', 'assembleRelease');
 });

@@ -7,6 +7,7 @@ use App\Enums\VenueStatus;
 use App\Models\Category;
 use App\Models\Tag;
 use App\Models\Venue;
+use App\Support\EventUrl;
 
 /**
  * `sitemap.xml` a indice e `robots.txt` (§12.2).
@@ -76,7 +77,7 @@ it('elenca gli eventi pubblicati e non le bozze', function (): void {
 
     $urls = sitemapUrls($this->get('/sitemap-eventi-1.xml')->assertOk()->getContent());
 
-    expect($urls)->toContain(route('events.occurrence', ['slug' => $pubblicato->slug, 'occurrence' => $pubblicato->occurrences()->first()->id]))
+    expect($urls)->toContain(EventUrl::occurrence($pubblicato->occurrences()->first()))
         ->not->toContain(route('events.show', $bozza));
 });
 

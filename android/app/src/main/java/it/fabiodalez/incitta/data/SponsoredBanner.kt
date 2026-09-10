@@ -17,6 +17,7 @@ data class SponsoredBanner(
     val image: String? = null,
     @SerialName("expires_at") val expiresAt: String,
     @SerialName("metric_token") val metricToken: String,
+    @SerialName("occurrence_id") val occurrenceId: Long? = null,
 ) {
     fun validAt(now: Instant = Instant.now()): Boolean =
         runCatching { Instant.parse(expiresAt).isAfter(now) }.getOrDefault(false)

@@ -13,6 +13,7 @@ use App\Http\Controllers\Web\Concerns\InteractsWithCity;
 use App\Http\Requests\Web\EventFilterRequest;
 use App\Models\Category;
 use App\Models\Tag;
+use App\Queries\EventOccurrenceQuery;
 use App\Services\Map\MapPayload;
 use App\Services\Search\ContextualFacets;
 use App\Services\Search\EventFinder;
@@ -21,6 +22,7 @@ use App\Services\Seo\EditorialContent;
 use App\Services\Seo\EventListingMeta;
 use App\Services\Seo\StructuredData;
 use App\Services\Sponsorship\SponsorshipSelector;
+use App\Support\EventUrl;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
 
@@ -124,6 +126,16 @@ final class EventListController extends Controller
             $meta = $meta->withTitle($meta->title.' — Pagina '.request()->integer('page'));
         }
 
+        $sponsorship = $this->sponsorships->first($city, SponsorshipPlacement::ListTop, filters: $filters);
+        $sponsoredOccurrence = null;
+        if ($sponsorship !== null) {
+            $sponsoredOccurrence = $this->finder->query($city, $filters)
+                ->forEvents([$sponsorship->event_id])->promotable()->firstPerEvent(1)->first()
+                ?? EventOccurrenceQuery::for($city)->forEvents([$sponsorship->event_id])
+                    ->promotable()->firstPerEvent(1)->first();
+            $sponsoredOccurrence?->loadMissing(['event.venue', 'event.category', 'event.media', 'venue']);
+        }
+
         return view('events.index', [
             'city' => $city,
             'taxonomy' => $taxonomy,
@@ -140,7 +152,8 @@ final class EventListController extends Controller
             /* La campagna in cima ai risultati (§sponsorizzazioni). E' `null`
                quasi sempre, e la vista non disegna niente: uno slot vuoto non
                lascia un buco. */
-            'sponsorship' => $this->sponsorships->first($city, SponsorshipPlacement::ListTop),
+            'sponsorship' => $sponsorship,
+            'sponsoredOccurrence' => $sponsoredOccurrence,
             'meta' => $meta,
             'categories' => $this->facets->categories(),
             'tags' => $this->facets->tags(),
@@ -149,7 +162,7 @@ final class EventListController extends Controller
             'venues' => $this->facets->venues($city),
             'structuredData' => [$this->structuredData->collection($meta->title, $meta->canonical,
                 collect($occurrences->items())->map(fn ($occurrence): array => [
-                    'name' => $occurrence->event->title, 'url' => route('events.occurrence', ['slug' => $occurrence->event->slug, 'occurrence' => $occurrence->id]),
+                    'name' => $occurrence->event->title, 'url' => EventUrl::occurrence($occurrence),
                 ])->values()->all()), $this->structuredData->breadcrumbs([
                     ['name' => __('ui.nav.home'), 'url' => url('/')],
                     ['name' => $meta->heading, 'url' => url()->current()],

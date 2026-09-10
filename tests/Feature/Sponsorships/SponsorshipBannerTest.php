@@ -132,3 +132,37 @@ it('non pubblica demo in produzione senza autorizzazione esplicita', function ()
     expect(Sponsorship::count())->toBe(0);
     $this->app->instance('env', 'testing');
 });
+
+it('preferisce un altro evento sponsorizzato su web e Android quando quello aperto ha priorità maggiore', function (): void {
+    $opened = occurrenceAtLocal($this->city, $this->category, '2026-09-11 21:00');
+    $other = occurrenceAtLocal($this->city, $this->category, '2026-09-12 21:00');
+    Sponsorship::factory()->create(['city_id' => $this->city->id, 'event_id' => $opened->event_id, 'priority' => 100]);
+    Sponsorship::factory()->create(['city_id' => $this->city->id, 'event_id' => $other->event_id, 'priority' => 1]);
+
+    foreach (['web', 'android'] as $platform) {
+        $this->getJson('/api/v1/sponsorships/banner?platform='.$platform.'&exclude_event='.$opened->event->slug)
+            ->assertOk()->assertJsonPath('data.event_slug', $other->event->slug);
+    }
+});
+
+it('esclude la serie aperta da ogni banner anche con prefisso città e replica', function (): void {
+    $date = occurrenceAtLocal($this->city, $this->category, '2026-09-11 21:00');
+    Sponsorship::factory()->create(['city_id' => $this->city->id, 'event_id' => $date->event_id]);
+    foreach (['events.show', 'city.events.show', 'events.occurrence', 'city.events.occurrence'] as $route) {
+        $parameters = ['slug' => $date->event->slug];
+        if (str_starts_with($route, 'city.')) {
+            $parameters['city'] = $this->city->slug;
+        }
+        if (str_ends_with($route, 'occurrence')) {
+            $parameters['occurrence'] = $date->url_number;
+        }
+        $html = $this->get(route($route, $parameters))->assertOk()->getContent();
+        preg_match_all('/data-endpoint="([^"]+)"/', $html, $matches);
+        expect($matches[1])->not->toBeEmpty();
+        foreach ($matches[1] as $endpoint) {
+            $endpoint = html_entity_decode($endpoint, ENT_QUOTES);
+            expect($endpoint)->toContain('exclude_event='.$date->event->slug);
+            $this->getJson($endpoint)->assertOk()->assertJsonPath('data', null);
+        }
+    }
+});

@@ -43,7 +43,7 @@
     $status = $occurrence->status;
 
     $url = $href ?? (\Illuminate\Support\Facades\Route::has('events.show')
-        ? route('events.occurrence', ['slug' => $event->slug, 'occurrence' => $occurrence->id])
+        ? \App\Support\EventUrl::occurrence($occurrence)
         : null);
 
     $isScheduled = $status === \App\Enums\OccurrenceStatus::Scheduled;

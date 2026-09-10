@@ -38,6 +38,16 @@ test('renders text safely and counts only visible impressions once', async t => 
     assert.equal(f.calls.filter(call => call.url.endsWith('/impressions')).length, 1);
 });
 
+test('hides the current event without counting an impression even if returned by the server', async t => {
+    const f = fixture(t);
+    f.slot.dataset.excludeEvent = 'evento-aperto';
+    f.setData({ id: 9, event_slug: 'evento-aperto', expires_at: new Date(Date.now() + 60000).toISOString() });
+    await flush();
+    assert.equal(f.slot.hidden, true);
+    f.visible();
+    assert.equal(f.calls.filter(call => call.url.endsWith('/impressions')).length, 0);
+});
+
 test('records separate clicks with different delivery identifiers', async t => {
     const f = fixture(t); await flush();
     f.link.listeners.click({ preventDefault() {} });

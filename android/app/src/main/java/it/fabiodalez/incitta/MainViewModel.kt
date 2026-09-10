@@ -29,7 +29,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
-enum class AppTab { EVENTS, MAP, SEARCH, SAVED, ACCOUNT, CALENDAR, VENUES, TICKETS }
+enum class AppTab { HOME, EVENTS, MAP, SEARCH, SAVED, ACCOUNT, CALENDAR, VENUES, TICKETS }
 
 internal fun navigationTarget(tab: AppTab, authenticated: Boolean): AppTab =
     if (tab == AppTab.SAVED && !authenticated) AppTab.ACCOUNT else tab
@@ -43,7 +43,7 @@ data class AppUiState(
     val bookingBusy: Boolean = false,
     val bookingError: String? = null,
     val bookingRequestKey: String = "",
-    val tab: AppTab = AppTab.EVENTS,
+    val tab: AppTab = AppTab.HOME,
     val sponsoredBanner: it.fabiodalez.incitta.data.SponsoredBanner? = null,
     val occurrences: List<Occurrence> = emptyList(),
     val eventFilter: EventFilter = EventFilter.ALL,
@@ -79,7 +79,7 @@ data class AppUiState(
 )
 
 internal fun AppUiState.supportsSponsoredBanner(): Boolean = bookingDate == null &&
-    (selected != null || selectedVenue != null || tab in listOf(AppTab.EVENTS, AppTab.SEARCH, AppTab.VENUES) ||
+    (selected != null || selectedVenue != null || tab in listOf(AppTab.HOME, AppTab.SEARCH, AppTab.VENUES) ||
         (tab == AppTab.ACCOUNT && session != null))
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -104,7 +104,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     suspend fun refreshSponsoredBanner(excludeEvent: String?) {
         val generation = discoveryGeneration
         try {
-            val banner = repository.sponsoredBanner(excludeEvent, _state.value.selectedVenue?.slug, _state.value.activeTag?.slug)?.takeIf { it.validAt() }
+            val current = _state.value
+            val filters = current.discoveryFilters.toMutableMap()
+            filters["categories"]?.let { filters["category"] = it }
+            filters["preset"]?.let { filters["date"] = it }
+            if (current.tab == AppTab.HOME) {
+                when (current.eventFilter) {
+                    EventFilter.TODAY -> filters["date"] = "today"
+                    EventFilter.TOMORROW -> filters["date"] = "tomorrow"
+                    EventFilter.WEEKEND -> filters["date"] = "weekend"
+                    else -> Unit
+                }
+            }
+            val banner = repository.sponsoredBanner(excludeEvent, current.selectedVenue?.slug, current.activeTag?.slug, filters)?.takeIf { it.validAt() && it.eventSlug != excludeEvent }
             if (generation == discoveryGeneration) _state.value = _state.value.copy(sponsoredBanner = banner)
         } catch (cancelled: CancellationException) {
             throw cancelled
@@ -123,7 +135,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             current.selectedVenue != null || current.tab == AppTab.VENUES -> "venues"
             current.tab == AppTab.ACCOUNT -> "profile"
             current.tab == AppTab.SEARCH -> "search"
-            current.tab == AppTab.EVENTS -> "home"
+            current.tab == AppTab.HOME -> "home"
             else -> "other"
         }
         viewModelScope.launch {
@@ -193,7 +205,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (tab == AppTab.MAP) loadMap()
         if (tab == AppTab.SEARCH || tab == AppTab.VENUES) loadVenues()
         if (tab == AppTab.CALENDAR) refresh(EventFilter.ALL)
-        if (tab == AppTab.EVENTS) refresh()
+        if (tab == AppTab.HOME) refresh()
+        if (tab == AppTab.EVENTS) {
+            _state.value = _state.value.copy(searchVenues = emptyList(), searchTags = emptyList(), searchOrganizers = emptyList())
+            loadVenues()
+            search("")
+        }
         if (tab == AppTab.TICKETS) loadBookings()
         if (tab == AppTab.ACCOUNT && _state.value.session != null) viewModelScope.launch {
             val token = _state.value.session?.token
@@ -329,7 +346,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun search(query: String) {
         searchJob?.cancel()
-        if (_state.value.discoveryFilters.isNotEmpty() || _state.value.discoverySummary != null) {
+        if (_state.value.tab == AppTab.EVENTS || _state.value.discoveryFilters.isNotEmpty() || _state.value.discoverySummary != null) {
             val filters = _state.value.discoveryFilters
             _state.value = _state.value.copy(isSearching = true, searchResults = emptyList())
             searchJob = viewModelScope.launch {
@@ -420,6 +437,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     )
                 }
                 .onFailure { if (it !is CancellationException) _state.value = _state.value.copy(isLoading = false, message = userMessage(it)) }
+        }
+    }
+
+    fun openDate(slug: String, number: Int) {
+        viewModelScope.launch {
+            runCatching { repository.occurrenceByNumber(slug, number) }
+                .onSuccess(::open)
+                .onFailure { if (it !is CancellationException) _state.value = _state.value.copy(message = userMessage(it)) }
+        }
+    }
+
+    fun openOccurrence(id: Long) {
+        viewModelScope.launch {
+            runCatching { repository.occurrence(id) }.onSuccess(::open)
+                .onFailure { if (it !is CancellationException) _state.value = _state.value.copy(message = userMessage(it)) }
         }
     }
 
@@ -583,7 +615,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 _state.value = if (current.selected != null || current.selectedVenue != null) {
                     current.copy(selected = null, selectedVenue = null, mapPreviewEvents = emptyList(), mapPreviewTotal = 0)
                 } else {
-                    current.copy(tab = AppTab.EVENTS, mapPreviewEvents = emptyList(), mapPreviewTotal = 0)
+                    current.copy(tab = AppTab.HOME, mapPreviewEvents = emptyList(), mapPreviewTotal = 0)
                 }
             }
         }

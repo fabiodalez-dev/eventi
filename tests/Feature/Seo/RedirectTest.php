@@ -34,7 +34,7 @@ describe('una rinomina non lascia indietro un 404', function (): void {
 
         $vecchio = $event->slug;
 
-        $event->update(['title' => 'Concerto di fine estate']);
+        $event->update(['title' => 'Concerto di fine estate', 'slug' => 'concerto-di-fine-estate']);
         $event->refresh();
 
         expect($event->slug)->not->toBe($vecchio);
@@ -59,7 +59,7 @@ describe('una rinomina non lascia indietro un 404', function (): void {
         ]);
 
         $vecchio = $event->slug;
-        $event->update(['title' => 'Rassegna del venerdi']);
+        $event->update(['title' => 'Rassegna del venerdi', 'slug' => 'rassegna-del-venerdi']);
         $event->refresh();
 
         $this->get('/'.$city->slug.'/eventi/'.$vecchio)
@@ -125,11 +125,11 @@ describe('le due trappole di ogni tabella di reindirizzamenti', function (): voi
 
         $primo = $event->slug;
 
-        $event->update(['title' => 'Secondo nome']);
+        $event->update(['title' => 'Secondo nome', 'slug' => 'secondo-nome']);
         $event->refresh();
         $secondo = $event->slug;
 
-        $event->update(['title' => 'Terzo nome']);
+        $event->update(['title' => 'Terzo nome', 'slug' => 'terzo-nome']);
         $event->refresh();
 
         $this->get('/eventi/'.$primo)->assertRedirect('/eventi/'.$event->slug);
@@ -157,7 +157,7 @@ describe('le due trappole di ogni tabella di reindirizzamenti', function (): voi
 
         $primo = $event->slug;
 
-        $event->update(['title' => 'Nome nuovo']);
+        $event->update(['title' => 'Nome nuovo', 'slug' => 'nome-nuovo']);
         $event->refresh();
         $secondo = $event->slug;
 
@@ -252,7 +252,7 @@ describe('i reindirizzamenti non entrano dove non devono', function (): void {
         EventOccurrence::factory()->create(['event_id' => $event->id]);
 
         $vecchio = $event->slug;
-        $event->update(['title' => 'Evento con il nome giusto']);
+        $event->update(['title' => 'Evento con il nome giusto', 'slug' => 'evento-con-il-nome-giusto']);
         $event->refresh();
 
         $this->get('/sitemap.xml')->assertOk();
@@ -281,7 +281,7 @@ describe('i reindirizzamenti non entrano dove non devono', function (): void {
         ]);
 
         $vecchio = $event->slug;
-        $event->update(['title' => 'Serata rinominata']);
+        $event->update(['title' => 'Serata rinominata', 'slug' => 'serata-rinominata']);
         $event->refresh();
 
         $this->get('/eventi/'.$vecchio)->assertRedirect('/eventi/'.$event->slug);

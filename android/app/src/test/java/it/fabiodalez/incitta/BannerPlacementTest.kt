@@ -11,7 +11,7 @@ class BannerPlacementTest {
         assertFalse(guest.supportsSponsoredBanner())
         assertTrue(guest.copy(session = Session("test", User(1, "Test", "test@example.test"), "2099-01-01T00:00:00Z")).supportsSponsoredBanner())
         assertFalse(guest.copy(tab = AppTab.MAP).supportsSponsoredBanner())
-        assertTrue(guest.copy(tab = AppTab.EVENTS).supportsSponsoredBanner())
+        assertTrue(guest.copy(tab = AppTab.HOME).supportsSponsoredBanner())
         assertTrue(guest.copy(tab = AppTab.SEARCH).supportsSponsoredBanner())
         assertTrue(guest.copy(tab = AppTab.VENUES).supportsSponsoredBanner())
     }

@@ -16,10 +16,10 @@
     $message = $text ?? $title;
 @endphp
 
-<div {{ $attributes->class(['grid grid-cols-2 gap-2 sm:grid-cols-4 [&>a]:flex [&>a]:items-center [&>a]:justify-center [&>a]:text-center [&>a]:min-h-12 [&>button]:min-h-12 [&>a]:px-2 [&>button]:px-2 [&:not(:has(button:not(.hidden)))]:grid-cols-3']) }}>
+<div {{ $attributes->class(['share-links grid grid-cols-2 gap-2 sm:grid-cols-4 [&>a]:flex [&>a]:items-center [&>a]:justify-center [&>a]:text-center [&>a]:min-h-12 [&>button]:min-h-12 [&>a]:px-2 [&>button]:px-2 [&:not(:has(button:not(.hidden)))]:grid-cols-3']) }}>
     <button
         type="button"
-        class="hidden bg-surface px-3.5 py-2 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.14em] text-ink uppercase border-2 border-line transition hover:border-accent"
+        class="hidden event-utility-action bg-surface px-3.5 py-2 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.14em] text-ink uppercase border-2 border-line transition hover:border-accent"
         data-share
         data-share-url="{{ $url }}"
         data-share-title="{{ $title }}"
@@ -33,7 +33,7 @@
         href="https://wa.me/?{{ http_build_query(['text' => $message.' '.$url]) }}"
         rel="noopener noreferrer"
         target="_blank"
-        class="bg-surface px-3.5 py-2 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.14em] text-ink uppercase border-2 border-line transition hover:border-accent"
+        class="event-utility-action bg-surface px-3.5 py-2 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.14em] text-ink uppercase border-2 border-line transition hover:border-accent"
     >
         {{ __('common.share.whatsapp') }}
     </a>
@@ -42,14 +42,14 @@
         href="https://t.me/share/url?{{ http_build_query(['url' => $url, 'text' => $message]) }}"
         rel="noopener noreferrer"
         target="_blank"
-        class="bg-surface px-3.5 py-2 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.14em] text-ink uppercase border-2 border-line transition hover:border-accent"
+        class="event-utility-action bg-surface px-3.5 py-2 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.14em] text-ink uppercase border-2 border-line transition hover:border-accent"
     >
         {{ __('common.share.telegram') }}
     </a>
 
     <a
         href="mailto:?{{ http_build_query(['subject' => $title, 'body' => $message."\n\n".$url]) }}"
-        class="bg-surface px-3.5 py-2 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.14em] text-ink uppercase border-2 border-line transition hover:border-accent"
+        class="event-utility-action bg-surface px-3.5 py-2 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.14em] text-ink uppercase border-2 border-line transition hover:border-accent"
     >
         {{ __('common.share.email') }}
     </a>

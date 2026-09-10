@@ -931,7 +931,7 @@
 /* The close control must not make the map fragment wrap around a float. */
 .map-sheet [data-map-sheet-body],
 .map-sheet .event-card { width: 100%; min-width: 0; }
-:root[data-theme="light"] .map-sheet .event-card { padding-inline: 0; }
+:root[data-theme="light"] .map-sheet .event-card { padding: 20px 16px; }
 @media (max-width: 1023px) {
     .map-sheet {
         bottom: calc(4rem + 2px + env(safe-area-inset-bottom));
@@ -973,3 +973,7 @@
     right: max(12px, env(safe-area-inset-right));
 }
 html:has(.poster-lightbox[open]) { overflow: hidden; }
+
+/* La lista scorre sopra la mappa sticky: anche le celle vuote e i margini
+   hanno una superficie opaca. Il fade interessa soltanto il contenuto. */
+.map-results { background-color: var(--canvas); }

@@ -7,6 +7,7 @@ use App\Models\Sponsorship;
 use App\Models\User;
 use App\Services\Sponsorship\BannerAffinity;
 use App\Services\Sponsorship\SponsorshipSelector;
+use App\Support\EventUrl;
 use Laravel\Sanctum\Sanctum;
 
 beforeEach(function (): void {
@@ -71,10 +72,10 @@ it('lets web users change their mind and does not hide purchases or edit credent
     $this->actingAs($this->user)->get('/profilo/interessi')->assertOk()->assertSee('I miei interessi');
     $this->patch('/profilo/interessi', ['mode' => 'selected', 'choices' => [$this->music->id => 'interested', $this->other->id => 'hidden'], 'inferred_ads' => '1'])->assertRedirect();
     $this->get('/eventi')->assertOk()
-        ->assertSee('href="'.route('events.occurrence', ['slug' => $this->a->event->slug, 'occurrence' => $this->a->id]).'"', false)
-        ->assertDontSee('href="'.route('events.occurrence', ['slug' => $this->b->event->slug, 'occurrence' => $this->b->id]).'"', false);
+        ->assertSee('href="'.EventUrl::occurrence($this->a).'"', false)
+        ->assertDontSee('href="'.EventUrl::occurrence($this->b).'"', false);
     $this->patch('/profilo/interessi', ['mode' => 'all', 'choices' => [], 'inferred_ads' => '1'])->assertRedirect();
-    $this->get('/eventi')->assertOk()->assertSee('href="'.route('events.occurrence', ['slug' => $this->b->event->slug, 'occurrence' => $this->b->id]).'"', false);
+    $this->get('/eventi')->assertOk()->assertSee('href="'.EventUrl::occurrence($this->b).'"', false);
     expect($this->user->fresh()->password)->toBe($password);
 });
 

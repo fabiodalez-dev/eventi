@@ -11,6 +11,7 @@ use App\Models\Event;
 use App\Models\EventOccurrence;
 use App\Models\Venue;
 use App\Support\DateFormatter;
+use App\Support\EventUrl;
 use App\Support\Poster;
 use App\Support\SafeUrl;
 use Illuminate\Support\Collection;
@@ -52,7 +53,7 @@ final class StructuredData
         $organizer = $this->organizer($event);
         $event = clone $event;
         $event->setRelation('venue', $occurrence->effectiveVenue());
-        $url = route('events.occurrence', ['slug' => $event->slug, 'occurrence' => $occurrence->id]);
+        $url = EventUrl::occurrence($occurrence);
         $poster = Poster::absoluteUrl($event);
         $details = app(EditorialContent::class)->details($event);
         $mode = AttendanceMode::tryFrom($details['attendance_mode'] ?? '') ?? AttendanceMode::Offline;

@@ -49,7 +49,8 @@ class MainActivity : ComponentActivity() {
                 uri.getQueryParameter("token")?.takeIf(String::isNotBlank)?.let(viewModel::exchangeMagicToken)
             }
             uri.host == "eventi.fabiodalez.it" || uri.host == android.net.Uri.parse(BuildConfig.API_BASE_URL).host -> {
-                val parts = uri.pathSegments
+                val rawParts = uri.pathSegments
+                val parts = if (rawParts.size > 1 && rawParts[1] in setOf("eventi", "locali", "mappa", "calendario")) rawParts.drop(1) else rawParts
                 when {
                     parts.firstOrNull() == "il-mio-feed" || parts.firstOrNull() == "notifiche" -> viewModel.selectTab(AppTab.ACCOUNT)
                     parts.firstOrNull() == "locali" && parts.size >= 2 -> viewModel.openVenueSlug(parts[1])
@@ -59,10 +60,11 @@ class MainActivity : ComponentActivity() {
                     parts.take(2) == listOf("eventi", "tag") && parts.size >= 3 ->
                         viewModel.browseTag(it.fabiodalez.incitta.data.Tag(slug = parts[2], name = parts[2]))
                     parts.take(2) == listOf("eventi", "categoria") && parts.size >= 3 -> viewModel.browseCategory(parts[2])
-                    parts == listOf("eventi", "oggi") -> { viewModel.selectTab(AppTab.EVENTS); viewModel.refresh(it.fabiodalez.incitta.data.EventFilter.TODAY) }
-                    parts == listOf("eventi", "domani") -> { viewModel.selectTab(AppTab.EVENTS); viewModel.refresh(it.fabiodalez.incitta.data.EventFilter.TOMORROW) }
-                    parts == listOf("eventi", "weekend") -> { viewModel.selectTab(AppTab.EVENTS); viewModel.refresh(it.fabiodalez.incitta.data.EventFilter.WEEKEND) }
-                    parts == listOf("eventi", "gratis") -> { viewModel.selectTab(AppTab.EVENTS); viewModel.refresh(it.fabiodalez.incitta.data.EventFilter.FREE) }
+                    parts == listOf("eventi", "oggi") -> { viewModel.selectTab(AppTab.HOME); viewModel.refresh(it.fabiodalez.incitta.data.EventFilter.TODAY) }
+                    parts == listOf("eventi", "domani") -> { viewModel.selectTab(AppTab.HOME); viewModel.refresh(it.fabiodalez.incitta.data.EventFilter.TOMORROW) }
+                    parts == listOf("eventi", "weekend") -> { viewModel.selectTab(AppTab.HOME); viewModel.refresh(it.fabiodalez.incitta.data.EventFilter.WEEKEND) }
+                    parts == listOf("eventi", "gratis") -> { viewModel.selectTab(AppTab.HOME); viewModel.refresh(it.fabiodalez.incitta.data.EventFilter.FREE) }
+                    parts.firstOrNull() == "eventi" && parts.size == 3 && parts[2].toIntOrNull()?.let { it > 0 } == true -> viewModel.openDate(parts[1], parts[2].toInt())
                     parts.firstOrNull() == "eventi" && parts.size >= 2 -> viewModel.openSlug(parts[1])
                 }
             }

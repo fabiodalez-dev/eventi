@@ -11,6 +11,7 @@ use App\Http\Resources\V1\PriceResource;
 use App\Models\Event;
 use App\Models\EventOccurrence;
 use App\Services\Ticketing\TicketingService;
+use App\Support\EventUrl;
 use App\Support\SafeUrl;
 use App\Support\TicketTiers;
 
@@ -22,7 +23,7 @@ final class PublicOffers
         if ($date->effective_ends_at->isPast()) {
             return [];
         }
-        $url = route('events.occurrence', ['slug' => $event->slug, 'occurrence' => $date->id]);
+        $url = EventUrl::occurrence($date);
         if ($date->booking_enabled && $date->effectiveVenue()?->ticketing_enabled) {
             $booking = app(TicketingService::class)->availability($date);
 

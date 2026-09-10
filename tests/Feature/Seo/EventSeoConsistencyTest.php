@@ -10,6 +10,7 @@ use App\Models\Venue;
 use App\Services\Seo\EventListingMeta;
 use App\Services\Seo\PublicOffers;
 use App\Services\Seo\StructuredData;
+use App\Support\EventUrl;
 
 /** @return list<array<string, mixed>> */
 function seoEventNodes(string $html): array
@@ -37,7 +38,7 @@ beforeEach(function (): void {
 });
 
 it('consolidates a single event onto its permanent date URL in HTML schema and sitemap', function (): void {
-    $canonical = route('events.occurrence', ['slug' => $this->event->slug, 'occurrence' => $this->date->id]);
+    $canonical = EventUrl::occurrence($this->date);
     foreach ([route('events.show', $this->event), $canonical] as $url) {
         $html = $this->get($url)->assertOk()->getContent();
         expect($html)->toContain('<link rel="canonical" href="'.$canonical.'">');
@@ -66,7 +67,7 @@ it('keeps organizer independent of original and moved venues in JSON-LD and visi
     $this->date->refresh();
     $node = app(StructuredData::class)->event($this->event->fresh(), $this->date);
     expect($node['organizer']['name'])->toBe($organizer->name)->and($node['location']['name'])->toBe($moved->name);
-    $this->get(route('events.occurrence', ['slug' => $this->event->slug, 'occurrence' => $this->date->id]))
+    $this->get(EventUrl::occurrence($this->date))
         ->assertOk()->assertSee($organizer->name)->assertSee($moved->name)->assertDontSee($legacy->name);
 });
 
@@ -90,7 +91,7 @@ it('retains an explicitly selected venue as organizer when the event moves', fun
 it('removes outdated offers while preserving the historic event', function (): void {
     freezeLocal($this->city, '2026-09-20 12:00');
     expect(app(PublicOffers::class)->for($this->event, $this->date))->toBe([]);
-    $this->get(route('events.occurrence', ['slug' => $this->event->slug, 'occurrence' => $this->date->id]))->assertOk();
+    $this->get(EventUrl::occurrence($this->date))->assertOk();
 });
 
 it('does not claim preorder availability for tickets not yet on sale', function (): void {

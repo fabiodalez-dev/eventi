@@ -40,7 +40,7 @@
 @endphp
 
 <span {{ $attributes->class([
-    'inline-flex items-center font-display font-extrabold uppercase tracking-[0.12em] whitespace-nowrap',
+    'status-badge inline-flex items-center font-display font-extrabold uppercase tracking-[0.12em] whitespace-nowrap',
     $tones[$tone] ?? $tones['neutral'],
     $sizes[$size] ?? $sizes['md'],
 ]) }}>

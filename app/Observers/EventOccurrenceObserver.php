@@ -16,6 +16,7 @@ use App\Support\ContentVersion;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 use DateTimeInterface;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -62,6 +63,22 @@ final class EventOccurrenceObserver
     public function saved(EventOccurrence $occurrence): void
     {
         $this->forgetCalendar($occurrence);
+    }
+
+    public function creating(EventOccurrence $occurrence): void
+    {
+        // Prenota il numero sotto lock, anche per import concorrenti.
+        // Il contatore non dipende dalle date rimaste dopo una cancellazione.
+        $occurrence->url_number = DB::transaction(function () use ($occurrence): int {
+            $event = DB::table('events')->where('id', $occurrence->event_id)->lockForUpdate()->first();
+            if ($event === null) {
+                throw ValidationException::withMessages(['event_id' => 'Evento inesistente.']);
+            }
+            $number = (int) $event->next_occurrence_number;
+            DB::table('events')->where('id', $event->id)->update(['next_occurrence_number' => $number + 1]);
+
+            return $number;
+        });
     }
 
     /**

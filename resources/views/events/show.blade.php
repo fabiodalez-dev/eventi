@@ -231,7 +231,7 @@
                                     <a class="inline-flex min-h-12 items-center underline" href="{{ route('venues.show', $occurrence->effectiveVenue()) }}">{{ $occurrence->effectiveVenue()->name }}</a>
                                 @endif
                                 @if (! ($isPreview ?? false))
-                                    <a class="underline text-accent" href="{{ route('events.occurrence', ['slug' => $event->slug, 'occurrence' => $occurrence->id]) }}">{{ __('seo.date_page') }}</a>
+                                    <a class="underline text-accent" href="{{ \App\Support\EventUrl::occurrence($occurrence) }}">{{ __('seo.date_page') }}</a>
                                 @endif
                                 @if ($occurrence->previous_starts_at !== null)
                                     <p>{{ __('seo.rescheduled', ['date' => $formatter->iso($occurrence->previous_starts_at)]) }}</p>
@@ -301,8 +301,8 @@
                                     @endif
                                     <div class="flex flex-wrap gap-2">
                                         <a
-                                            href="{{ route('events.calendar', ['slug' => $event->slug, 'occurrence' => $occurrence->getKey()]) }}"
-                                            class="bg-surface-sunken px-3 py-2 font-display text-[0.594rem] leading-none font-extrabold tracking-[0.12em] text-ink uppercase border-2 border-line transition hover:border-accent"
+                                            href="{{ route('events.calendar', ['slug' => $event->slug, 'occurrence' => $occurrence->url_number]) }}"
+                                            class="event-utility-action bg-surface-sunken px-3 py-2 font-display text-[0.594rem] leading-none font-extrabold tracking-[0.12em] text-ink uppercase border-2 border-line transition hover:border-accent"
                                         >
                                             {{ __('common.actions.add_to_calendar') }}
                                         </a>
@@ -316,8 +316,8 @@
                                              sempre aggiornata, invece di un orario stampato a
                                              mano che al primo cambio diventa falso. --}}
                                         <a
-                                            href="{{ route('events.poster', ['slug' => $event->slug, 'occurrence' => $occurrence->getKey()]) }}"
-                                            class="bg-surface-sunken px-3 py-2 font-display text-[0.594rem] leading-none font-extrabold tracking-[0.12em] text-ink uppercase border-2 border-line transition hover:border-accent"
+                                            href="{{ route('events.poster', ['slug' => $event->slug, 'occurrence' => $occurrence->url_number]) }}"
+                                            class="event-utility-action bg-surface-sunken px-3 py-2 font-display text-[0.594rem] leading-none font-extrabold tracking-[0.12em] text-ink uppercase border-2 border-line transition hover:border-accent"
                                         >
                                             {{ __('common.actions.poster') }}
                                         </a>
@@ -327,7 +327,7 @@
                                                 href="{{ $indirizzo }}"
                                                 rel="noopener noreferrer"
                                                 target="_blank"
-                                                class="bg-surface-sunken px-3 py-2 font-display text-[0.594rem] leading-none font-extrabold tracking-[0.12em] text-ink uppercase border-2 border-line transition hover:border-accent"
+                                                class="event-utility-action bg-surface-sunken px-3 py-2 font-display text-[0.594rem] leading-none font-extrabold tracking-[0.12em] text-ink uppercase border-2 border-line transition hover:border-accent"
                                             >
                                                 {{ __('common.actions.calendar_'.$servizio) }}
                                             </a>
@@ -417,7 +417,7 @@
                         @foreach ($event->tags as $tag)
                             <a
                                 href="{{ route('events.tag', $tag) }}"
-                                class="bg-surface px-3 py-1.5 text-sm font-semibold text-ink-muted border-2 border-line transition hover:text-ink hover:border-accent"
+                                class="event-utility-action bg-surface px-3 py-1.5 text-sm font-semibold text-ink-muted border-2 border-line transition hover:text-ink hover:border-accent"
                             >
                                 #{{ $tag->name }}
                             </a>

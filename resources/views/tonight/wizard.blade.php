@@ -14,7 +14,7 @@
                     <ul class="my-4 flex list-none flex-wrap gap-x-6 gap-y-2 text-sm text-ink-muted">
                         @foreach($discovery->reasons($date, $input) as $reason)<li>{{ $reason }}</li>@endforeach
                     </ul>
-                    <x-event-card :occurrence="$date" :href="route('events.occurrence', ['slug'=>$date->event->slug, 'occurrence'=>$date->id])" />
+                    <x-event-card :occurrence="$date" :href="\App\Support\EventUrl::occurrence($date)" />
                     <details class="mt-4">
                         <summary class="min-h-12 cursor-pointer py-3 font-bold">{{ __('seo.before_going') }}</summary>
                         <dl class="grid gap-4 py-4 sm:grid-cols-2">

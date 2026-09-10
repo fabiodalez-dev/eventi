@@ -62,7 +62,9 @@
         "typesense/typesense-php": "^6.0"
     },
     "require-dev": {
+        "deptrac/deptrac": "^4.7",
         "fakerphp/faker": "^1.23",
+        "infection/infection": "^0.35.4",
         "larastan/larastan": "^3.10",
         "laravel/pail": "^1.2.5",
         "laravel/pao": "^1.0.6",
@@ -121,7 +123,15 @@
         ],
         "pre-package-uninstall": [
             "Illuminate\\Foundation\\ComposerScripts::prePackageUninstall"
-        ]
+        ],
+        "test:unit": "@php vendor/bin/pest --testsuite=Unit",
+        "test:feature": "@php vendor/bin/pest --testsuite=Feature",
+        "test:arch": "@php vendor/bin/pest --testsuite=Architecture",
+        "test:browser": "@php vendor/bin/pest --configuration=phpunit.browser.xml",
+        "analyse": "@php vendor/bin/phpstan analyse --memory-limit=1G --no-progress",
+        "analyse:max": "@php vendor/bin/phpstan analyse --configuration=phpstan-max.neon --memory-limit=2G --no-progress",
+        "architecture": "@php vendor/bin/deptrac analyse --no-progress",
+        "mutation": "@php vendor/bin/infection app/Support/SafeUrl.php --with-uncovered --test-framework-options=\"--testsuite=Unit\" --threads=2 --min-msi=80 --min-covered-msi=90"
     },
     "extra": {
         "laravel": {
@@ -134,7 +144,8 @@
         "sort-packages": true,
         "allow-plugins": {
             "pestphp/pest-plugin": true,
-            "php-http/discovery": true
+            "php-http/discovery": true,
+            "infection/extension-installer": true
         }
     },
     "minimum-stability": "stable",

@@ -21,6 +21,8 @@ data class PageMeta(
 data class Occurrence(
     @SerialName("booking_enabled") val bookingEnabled: Boolean = false,
     @SerialName("occurrence_id") val occurrenceId: Long,
+    @SerialName("url_number") val urlNumber: Int? = null,
+    @SerialName("date_url") val dateUrl: String? = null,
     @SerialName("event_id") val eventId: Long,
     @SerialName("event_slug") val eventSlug: String,
     @SerialName("starts_at") val startsAt: String,

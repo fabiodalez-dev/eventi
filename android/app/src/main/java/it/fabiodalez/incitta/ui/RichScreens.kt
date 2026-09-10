@@ -63,6 +63,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -180,7 +181,7 @@ fun CompleteEventDetailScreen(
                         if (index > 0) HorizontalDivider(Modifier.padding(vertical = 14.dp), color = Rule)
                         OccurrenceDateBlock(detail, occurrence, occurrence.occurrenceId in savedIds, onSave)
                         if (occurrence.bookingEnabled) {
-                            Button(onClick = { onReserve(occurrence) }, modifier = Modifier.fillMaxWidth().padding(top = 10.dp), shape = androidx.compose.ui.graphics.RectangleShape) {
+                            Button(onClick = { onReserve(occurrence) }, modifier = Modifier.fillMaxWidth().padding(top = 10.dp), shape = ControlShape) {
                                 Text(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.ticket_reserve))
                             }
                         }
@@ -242,7 +243,7 @@ fun CompleteEventDetailScreen(
                         OutlinedButton(
                             onClick = { onVenue(venue) },
                             modifier = Modifier.fillMaxWidth().height(50.dp),
-                            shape = androidx.compose.ui.graphics.RectangleShape,
+                            shape = ControlShape,
                             border = BorderStroke(2.dp, Acid),
                         ) { Text("SCOPRI IL LOCALE") }
                         if (venue.lat != null && venue.lng != null) {
@@ -309,7 +310,7 @@ fun CompleteEventDetailScreen(
                     OutlinedButton(
                         onClick = { openUrl(context, "https://eventi.fabiodalez.it/eventi/${detail.slug}/segnala") },
                         modifier = Modifier.fillMaxWidth().height(50.dp),
-                        shape = androidx.compose.ui.graphics.RectangleShape,
+                        shape = ControlShape,
                         border = BorderStroke(2.dp, Rule),
                     ) { Text("SEGNALA UN ERRORE") }
                     Spacer(Modifier.height(24.dp))
@@ -338,13 +339,13 @@ private fun OccurrenceDateBlock(detail: EventDetail, occurrence: Occurrence, sav
         OutlinedButton(
             onClick = { addToCalendar(context, detail, occurrence) },
             modifier = Modifier.weight(1f),
-            shape = androidx.compose.ui.graphics.RectangleShape,
+            shape = ControlShape,
             border = BorderStroke(2.dp, Rule),
         ) { Text("CALENDARIO", fontSize = 11.sp) }
         Button(
             onClick = { onSave(occurrence.occurrenceId) },
             modifier = Modifier.weight(1f),
-            shape = androidx.compose.ui.graphics.RectangleShape,
+            shape = ControlShape,
             colors = ButtonDefaults.buttonColors(containerColor = if (saved) Acid else Paper, contentColor = Ink),
         ) { Text(if (saved) "SALVATA" else "SALVA", fontSize = 11.sp) }
     }
@@ -451,7 +452,7 @@ fun VenuesScreen(state: AppUiState, padding: PaddingValues, onVenue: (Venue) -> 
                     singleLine = true,
                     label = { Text("FILTRA PER NOME, ZONA O INDIRIZZO") },
                     leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
-                    shape = androidx.compose.ui.graphics.RectangleShape,
+                    shape = ControlShape,
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedTextColor = Paper,
                         unfocusedTextColor = Paper,
@@ -493,7 +494,7 @@ fun VenuesScreen(state: AppUiState, padding: PaddingValues, onVenue: (Venue) -> 
 private fun VenueTypeFilter(label: String, selected: Boolean, onClick: () -> Unit) {
     Button(
         onClick = onClick,
-        shape = androidx.compose.ui.graphics.RectangleShape,
+        shape = ControlShape,
         colors = ButtonDefaults.buttonColors(
             containerColor = if (selected) Acid else Ink,
             contentColor = if (selected) Ink else Paper,
@@ -554,9 +555,13 @@ fun MapScreen(
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("NESSUN APPUNTAMENTO PER QUESTO FILTRO", color = Muted) }
         } else {
             val points = state.mapMarkers.map { MapPoint(it.lat, it.lng, it.title, it) }
+            val mapOpacity by androidx.compose.animation.core.animateFloatAsState(
+                targetValue = if (state.isMapLoading) 0.5f else 1f,
+                animationSpec = androidx.compose.animation.core.tween(180), label = "mapFilters",
+            )
             Box(Modifier.fillMaxWidth().weight(1f)) {
                 key(state.mapFilter, state.mapMarkers.map(MapMarker::id)) {
-                    InteractiveMap(points, Modifier.fillMaxSize(), 11.2) { group ->
+                    InteractiveMap(points, Modifier.fillMaxSize().graphicsLayer { alpha = mapOpacity }, 11.2) { group ->
                         onMarker(group.mapNotNull(MapPoint::payload))
                     }
                 }
@@ -617,8 +622,8 @@ fun ConsentOverlay(onChoice: (Boolean) -> Unit) {
                 modifier = Modifier.padding(top = 12.dp),
             )
             Row(Modifier.fillMaxWidth().padding(top = 14.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = { onChoice(true) }, modifier = Modifier.weight(1f).height(50.dp), shape = androidx.compose.ui.graphics.RectangleShape, colors = ButtonDefaults.buttonColors(containerColor = Acid, contentColor = Ink)) { Text("ACCETTA") }
-                OutlinedButton(onClick = { onChoice(false) }, modifier = Modifier.weight(1f).height(50.dp), shape = androidx.compose.ui.graphics.RectangleShape, border = BorderStroke(2.dp, Ink)) { Text("RIFIUTA", color = Ink) }
+                Button(onClick = { onChoice(true) }, modifier = Modifier.weight(1f).height(50.dp), shape = ControlShape, colors = ButtonDefaults.buttonColors(containerColor = Acid, contentColor = Ink)) { Text("ACCETTA") }
+                OutlinedButton(onClick = { onChoice(false) }, modifier = Modifier.weight(1f).height(50.dp), shape = ControlShape, border = BorderStroke(2.dp, Ink)) { Text("RIFIUTA", color = Ink) }
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
                 TextButton(onClick = { openUrl(context, "https://eventi.fabiodalez.it/pagine/privacy") }) { Text("PRIVACY", color = Ink) }
@@ -640,7 +645,7 @@ private fun InteractiveMap(
 ) {
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
-    val light = androidx.compose.material3.MaterialTheme.colorScheme.background == Color(0xFFFAF9F6)
+    val light = androidx.compose.material3.MaterialTheme.colorScheme.background == Color(0xFFFCFCFB)
     val mapView = remember(points, light) {
         MapLibre.getInstance(context)
         MapView(context).apply {
@@ -924,7 +929,7 @@ private fun LabeledValue(label: String, value: String) {
 
 @Composable
 private fun TagButton(tag: Tag, onClick: () -> Unit) {
-    OutlinedButton(onClick = onClick, shape = androidx.compose.ui.graphics.RectangleShape, border = BorderStroke(2.dp, Rule)) { Text("#${tag.name}") }
+    OutlinedButton(onClick = onClick, shape = ControlShape, border = BorderStroke(1.dp, Rule)) { Text("#${tag.name}") }
 }
 
 @Composable
@@ -937,7 +942,7 @@ private fun SmallLink(text: String, onClick: () -> Unit) {
 
 @Composable
 private fun ActionButton(text: String, icon: androidx.compose.ui.graphics.vector.ImageVector, onClick: () -> Unit) {
-    Button(onClick = onClick, modifier = Modifier.fillMaxWidth().height(52.dp), shape = androidx.compose.ui.graphics.RectangleShape, colors = ButtonDefaults.buttonColors(containerColor = Paper, contentColor = Ink)) {
+    Button(onClick = onClick, modifier = Modifier.fillMaxWidth().height(48.dp), shape = ControlShape, colors = ButtonDefaults.buttonColors(containerColor = Paper, contentColor = Ink)) {
         Text(text, modifier = Modifier.weight(1f))
         Icon(icon, null)
     }

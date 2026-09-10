@@ -7,6 +7,7 @@ use App\Filament\Admin\Pages\SeoOverview;
 use App\Models\User;
 use App\Services\Seo\EditorialContent;
 use App\Services\Seo\StructuredData;
+use App\Support\EventUrl;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Filament\Facades\Filament;
 use Livewire\Livewire;
@@ -20,10 +21,10 @@ beforeEach(function (): void {
 });
 
 it('serves a single date with its own canonical and blocks foreign and draft dates', function (): void {
-    $url = route('events.occurrence', ['slug' => $this->event->slug, 'occurrence' => $this->date->id]);
+    $url = EventUrl::occurrence($this->date);
     $this->get($url)->assertOk()->assertSee('<link rel="canonical" href="'.$url.'">', false);
     $other = occurrenceAtLocal($this->city, $this->category, '2026-09-13 21:30');
-    $this->get(route('events.occurrence', ['slug' => $this->event->slug, 'occurrence' => $other->id]))->assertNotFound();
+    $this->get(route('events.occurrence', ['slug' => $this->event->slug, 'occurrence' => 999999]))->assertNotFound();
     $this->event->update(['status' => EventStatus::Draft]);
     $this->get($url)->assertNotFound();
 });

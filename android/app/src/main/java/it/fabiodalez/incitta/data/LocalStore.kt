@@ -24,7 +24,12 @@ class LocalStore(private val context: Context) {
             prefs.edit { putString(KEY_INSTALLATION, it) }
         }
 
-    fun guestAppearance(): String = prefs.getString("guest_appearance", "dark").let { if (it == "light") "light" else "dark" }
+    fun guestAppearance(): String {
+        val saved = prefs.getString("guest_appearance", null)
+        if (saved == "light" || saved == "dark") return saved
+        val dark = context.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK == android.content.res.Configuration.UI_MODE_NIGHT_YES
+        return (if (dark) "dark" else "light").also(::setGuestAppearance)
+    }
     fun setGuestAppearance(value: String) { prefs.edit { putString("guest_appearance", value) } }
 
     fun readSession(): Session? {

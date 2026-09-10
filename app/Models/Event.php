@@ -128,6 +128,7 @@ class Event extends Model implements HasMedia
         return SlugOptions::create()
             ->generateSlugsFrom('title')
             ->saveSlugsTo('slug')
+            ->doNotGenerateSlugsOnUpdate()
             ->extraScope(fn (Builder $query) => $query->where('city_id', $this->city_id));
     }
 

@@ -195,7 +195,7 @@ fun SearchScreen(
         item { BrandHeader(compact = true) }
         item {
             Column(Modifier.padding(18.dp)) {
-                Text("CERCA", style = androidx.compose.material3.MaterialTheme.typography.displayMedium)
+                Text(if (state.tab == it.fabiodalez.incitta.AppTab.EVENTS) "EVENTI" else "CERCA", style = androidx.compose.material3.MaterialTheme.typography.displayMedium)
                 state.discoverySummary?.let { summary ->
                     Text(summary, modifier = Modifier.padding(vertical = 12.dp), color = Acid)
                     Text(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.tonight_filtered), color = Muted)
@@ -209,7 +209,7 @@ fun SearchScreen(
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     label = { Text("EVENTO, LUOGO, CATEGORIA") },
-                    shape = RectangleShape,
+                    shape = ControlShape,
                     leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
                     colors = fieldColors(),
                 )
@@ -219,7 +219,7 @@ fun SearchScreen(
                     Button(
                         onClick = onClearTag,
                         modifier = Modifier.padding(top = 14.dp),
-                        shape = RectangleShape,
+                        shape = ControlShape,
                         colors = ButtonDefaults.buttonColors(containerColor = Acid, contentColor = Ink),
                     ) {
                         Text("#${tag.name.uppercase()}")
@@ -233,6 +233,7 @@ fun SearchScreen(
             item { EmptyBlock("NESSUN RISULTATO", "Prova un genere, il nome di un locale o una parola più breve.") }
         }
         val venues = when {
+            state.tab == it.fabiodalez.incitta.AppTab.EVENTS -> emptyList()
             state.discoverySummary != null -> emptyList()
             state.activeTag != null -> emptyList()
             query.trim().length >= 3 -> state.searchVenues
@@ -454,7 +455,7 @@ private fun SavedCalendarRow(event: Occurrence, onOpen: () -> Unit, onGoogleCale
         OutlinedButton(
             onClick = onGoogleCalendar,
             modifier = Modifier.fillMaxWidth().padding(top = 10.dp).height(46.dp),
-            shape = RectangleShape,
+            shape = ControlShape,
             border = BorderStroke(2.dp, Acid),
         ) {
             Icon(Icons.Outlined.CalendarMonth, contentDescription = null, tint = Acid)
@@ -491,14 +492,14 @@ fun AccountScreen(
                 AppearancePicker(state.appearance, state.appearanceSaving, true, onAppearance)
                 Spacer(Modifier.height(24.dp))
                 AccountIdentity(state.session.user, onLogout, enabled = !state.isAuthenticating)
-                Button(onClick = onTickets, modifier = Modifier.fillMaxWidth().padding(top = 18.dp), shape = RectangleShape) { Text(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.ticket_title)) }
+                Button(onClick = onTickets, modifier = Modifier.fillMaxWidth().padding(top = 18.dp), shape = ControlShape) { Text(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.ticket_title)) }
                 Spacer(Modifier.height(28.dp))
                 ContentPreferencesPanel(state.session, onInterestsSaved)
                 NotificationSettingsPanel(state.session)
                 HorizontalDivider(Modifier.padding(vertical = 24.dp), thickness = 2.dp, color = Rule)
                 Text("I salvataggi appartengono esclusivamente a questo account. Uscendo, quelli sincronizzati non vengono mostrati a un altro utente del dispositivo.")
                 Spacer(Modifier.height(28.dp))
-                OutlinedButton(onClick = onLogout, modifier = Modifier.fillMaxWidth().height(52.dp), shape = RectangleShape, border = BorderStroke(2.dp, Paper)) {
+                OutlinedButton(onClick = onLogout, modifier = Modifier.fillMaxWidth().height(52.dp), shape = ControlShape, border = BorderStroke(2.dp, Paper)) {
                     Text("ESCI DA QUESTO DISPOSITIVO")
                 }
                 HorizontalDivider(Modifier.padding(vertical = 28.dp), thickness = 2.dp, color = Rule)
@@ -511,7 +512,7 @@ fun AccountScreen(
                         onClick = { onDeleteAccount(deletePassword) },
                         enabled = deletePassword.isNotBlank() && !state.isAuthenticating,
                         modifier = Modifier.fillMaxWidth().height(52.dp),
-                        shape = RectangleShape,
+                        shape = ControlShape,
                         colors = ButtonDefaults.buttonColors(containerColor = Danger, contentColor = Ink),
                     ) { Text("CONFERMA CANCELLAZIONE") }
                 } else {
@@ -589,7 +590,7 @@ fun AccountScreen(
                 onClick = { submit() },
                 enabled = !state.isAuthenticating,
                 modifier = Modifier.fillMaxWidth().height(54.dp),
-                shape = RectangleShape,
+                shape = ControlShape,
                 colors = ButtonDefaults.buttonColors(containerColor = Acid, contentColor = Ink, disabledContainerColor = Rule),
             ) {
                 if (state.isAuthenticating) {
@@ -727,7 +728,7 @@ internal fun FilterLabel(text: String, selected: Boolean = false, onClick: () ->
 
 @Composable
 private fun FeatureCard(event: Occurrence, saved: Boolean, onOpen: (Occurrence) -> Unit, onSave: (Long) -> Unit) {
-    val light = MaterialTheme.colorScheme.background == Color(0xFFFAF9F6)
+    val light = MaterialTheme.colorScheme.background == Color(0xFFFCFCFB)
     val panel = if (light) MaterialTheme.colorScheme.surfaceVariant else Paper
     val onPanel = if (light) Paper else Ink
     val secondary = if (light) Muted else Color(0xFF555550)
@@ -868,7 +869,7 @@ private fun PriceLabel(price: it.fabiodalez.incitta.data.Price?) {
 
 @Composable
 private fun PrimaryAction(text: String, icon: androidx.compose.ui.graphics.vector.ImageVector, onClick: () -> Unit) {
-    Button(onClick = onClick, modifier = Modifier.fillMaxWidth().height(54.dp), shape = RectangleShape, colors = ButtonDefaults.buttonColors(containerColor = Paper, contentColor = Ink)) {
+    Button(onClick = onClick, modifier = Modifier.fillMaxWidth().height(54.dp), shape = ControlShape, colors = ButtonDefaults.buttonColors(containerColor = Paper, contentColor = Ink)) {
         Text(text, modifier = Modifier.weight(1f))
         Icon(icon, null)
     }
@@ -880,7 +881,7 @@ private fun ModeButton(text: String, selected: Boolean, modifier: Modifier, onCl
         onClick = onClick,
         modifier = modifier.height(48.dp),
         contentPadding = PaddingValues(horizontal = 12.dp),
-        shape = RectangleShape,
+        shape = ControlShape,
         colors = ButtonDefaults.buttonColors(containerColor = if (selected) Acid else Rule, contentColor = if (selected) Ink else Paper),
     ) { Text(text, maxLines = 1, softWrap = false) }
 }
@@ -894,7 +895,7 @@ private fun AuthField(value: String, change: (String) -> Unit, label: String, pa
         modifier = Modifier.fillMaxWidth(),
         singleLine = true,
         label = { Text(label) },
-        shape = RectangleShape,
+        shape = ControlShape,
         visualTransformation = if (password) PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
         colors = fieldColors(),
     )

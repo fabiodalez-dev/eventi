@@ -705,7 +705,7 @@ function consentBanner() {
         event.preventDefault();
 
         const scelta = submitter.value;
-        const data = new FormData(form);
+        const data = new URLSearchParams(new FormData(form));
         data.set("action", scelta);
 
         try {

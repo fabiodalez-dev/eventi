@@ -29,7 +29,7 @@ fun AccountIdentity(user: User, onChangeAccount: () -> Unit, enabled: Boolean = 
             Text(stringResource(R.string.profile_role, it), color = Muted, style = MaterialTheme.typography.bodyMedium)
         }
         OutlinedButton(onClick = onChangeAccount, enabled = enabled,
-            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp), shape = RectangleShape,
+            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp), shape = ControlShape,
             border = BorderStroke(2.dp, Rule)) {
             Text(stringResource(R.string.profile_change_account))
         }

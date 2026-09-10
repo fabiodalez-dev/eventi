@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Services\Sponsorship;
 
+use App\DTOs\EventFilters;
 use App\Enums\SponsorshipPlacement;
 use App\Models\City;
 use App\Models\Sponsorship;
 use App\Models\User;
 use App\Queries\EventOccurrenceQuery;
+use App\Services\Search\EventFinder;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
@@ -53,7 +55,7 @@ final class SponsorshipSelector
      *
      * @return Collection<int, Sponsorship>
      */
-    public function forPlacement(City $city, SponsorshipPlacement $placement, ?CarbonImmutable $now = null, ?User $user = null): Collection
+    public function forPlacement(City $city, SponsorshipPlacement $placement, ?CarbonImmutable $now = null, ?User $user = null, ?EventFilters $filters = null): Collection
     {
         $adesso = $now ?? CarbonImmutable::now('UTC');
 
@@ -71,8 +73,10 @@ final class SponsorshipSelector
             return $candidate;
         }
 
-        if ($placement === SponsorshipPlacement::HomeHero) {
-            $eligibleIds = EventOccurrenceQuery::for($city)->promotable()->eventIds();
+        if ($placement === SponsorshipPlacement::HomeHero || ($placement === SponsorshipPlacement::ListTop && $filters !== null)) {
+            $eligibleIds = EventOccurrenceQuery::for($city)
+                ->forEvents($candidate->pluck('event_id')->unique()->values()->all())
+                ->promotable()->eventIds();
             $candidate = $candidate->whereIn('event_id', $eligibleIds)->values();
         }
 
@@ -89,6 +93,19 @@ final class SponsorshipSelector
         $utente = $user ?? Auth::user();
         $weighted = app(BannerAffinity::class)->apply($candidate, $city, $utente instanceof User ? $utente : null, []);
 
+        // Prefer the archive's actual results, across all pages. Commercial
+        // priority and rotation apply within that pool; use the general pool
+        // only when no eligible campaign matches the selected filters.
+        if ($filters !== null && $filters->activeCount() > 0 && $weighted->isNotEmpty()) {
+            $matchingIds = app(EventFinder::class)->query($city, $filters)
+                ->forEvents($weighted->pluck('event_id')->unique()->values()->all())
+                ->promotable()->eventIds();
+            $matching = $weighted->whereIn('event_id', $matchingIds)->values();
+            if ($matching->isNotEmpty()) {
+                $weighted = $matching;
+            }
+        }
+
         return $this->rotate($weighted, $placement->limit(), $adesso);
     }
 
@@ -99,9 +116,9 @@ final class SponsorshipSelector
      * `forPlacement()->first()`, che direbbe la stessa cosa in modo più
      * rumoroso.
      */
-    public function first(City $city, SponsorshipPlacement $placement, ?CarbonImmutable $now = null, ?User $user = null): ?Sponsorship
+    public function first(City $city, SponsorshipPlacement $placement, ?CarbonImmutable $now = null, ?User $user = null, ?EventFilters $filters = null): ?Sponsorship
     {
-        return $this->forPlacement($city, $placement, $now, $user)->first();
+        return $this->forPlacement($city, $placement, $now, $user, $filters)->first();
     }
 
     /** @param array<string, mixed> $context */
@@ -114,6 +131,15 @@ final class SponsorshipSelector
 
         // Eligibility and commercial priority stay unchanged; preferences adjust the rotation weight only.
         $weighted = app(BannerAffinity::class)->apply($candidates, $city, $user, $context);
+        $filters = EventFilters::fromArray($context);
+        if ($filters->activeCount() > 0 && $weighted->isNotEmpty()) {
+            $ids = app(EventFinder::class)->query($city, $filters)
+                ->forEvents($weighted->pluck('event_id')->unique()->values()->all())->promotable()->eventIds();
+            $matching = $weighted->whereIn('event_id', $ids)->values();
+            if ($matching->isNotEmpty()) {
+                $weighted = $matching;
+            }
+        }
 
         return $this->rotate($weighted, 1, CarbonImmutable::now('UTC'))->first();
     }

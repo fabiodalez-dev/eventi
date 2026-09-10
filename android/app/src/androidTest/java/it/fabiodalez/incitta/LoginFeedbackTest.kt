@@ -16,6 +16,9 @@ class LoginFeedbackTest {
         if (compose.onAllNodesWithText("RIFIUTA").fetchSemanticsNodes().isNotEmpty()) {
             compose.onNodeWithText("RIFIUTA").performClick()
         }
+        compose.waitUntil(15_000) { compose.onAllNodesWithText("IN PROGRAMMA").fetchSemanticsNodes().isNotEmpty() }
+        compose.onAllNodes(hasScrollAction()).onFirst().performTouchInput { swipeUp() }
+        compose.waitUntil(5_000) { compose.onAllNodes(hasText("PROFILO") and hasClickAction()).fetchSemanticsNodes().isNotEmpty() }
         compose.onNode(hasText("PROFILO") and hasClickAction()).performClick()
     }
 

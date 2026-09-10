@@ -1,0 +1,20 @@
+{
+    "$schema": "vendor/infection/infection/resources/schema.json",
+    "source": {
+        "directories": [
+            "app/Support"
+        ]
+    },
+    "phpUnit": {
+        "customPath": "tools/testing/pest-infection.php"
+    },
+    "timeout": 20,
+    "logs": {
+        "text": "storage/logs/infection.log",
+        "html": "storage/logs/infection.html",
+        "summaryJson": "storage/logs/infection-summary.json"
+    },
+    "mutators": {
+        "@default": true
+    }
+}

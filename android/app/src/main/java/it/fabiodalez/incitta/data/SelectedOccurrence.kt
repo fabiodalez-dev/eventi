@@ -6,8 +6,8 @@ internal fun EventDetail.selectOccurrence(occurrence: Occurrence, actualVenue: V
     val selected = occurrences.find { it.occurrenceId == occurrence.occurrenceId } ?: occurrence
     return copy(
         venue = actualVenue,
-        occurrences = listOf(selected) + occurrences.filterNot { it.occurrenceId == selected.occurrenceId },
+        occurrences = listOf(selected),
+        url = selected.dateUrl ?: occurrence.dateUrl ?: url,
         contentDetails = selected.contentDetails ?: contentDetails,
-        organizer = if (organizer.hostFallback && actualVenue != null) organizer.copy(name = actualVenue.name) else organizer,
     )
 }

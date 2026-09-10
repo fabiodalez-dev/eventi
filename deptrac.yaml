@@ -1,0 +1,31 @@
+deptrac:
+  paths:
+    - ./app
+  layers:
+    - name: Core
+      collectors:
+        - type: classLike
+          value: ^App\\(DTOs|Enums|Models|Queries)\\.*
+    - name: Services
+      collectors:
+        - type: classLike
+          value: ^App\\Services\\.*
+    - name: Delivery
+      collectors:
+        - type: classLike
+          value: ^App\\(Http\\Controllers|Filament|Console)\\.*
+    - name: Support
+      collectors:
+        - type: classLike
+          value: ^App\\(?!(DTOs|Enums|Models|Queries|Services|Filament|Console)\\|Http\\Controllers\\).*
+  ruleset:
+    Core: [Core, Services, Support]
+    Services: [Core, Services, Support]
+    Delivery: [Core, Services, Delivery, Support]
+    Support: [Core, Services, Delivery, Support]
+  # Dipendenze preesistenti, circoscritte: non autorizzano altri servizi a usare Filament.
+  skip_violations:
+    App\Services\Sponsorship\SponsorshipReport:
+      - App\Filament\Venue\Support\CurrentVenue
+    App\Services\Notifications\MessageFactory:
+      - App\Filament\Organizer\Resources\Events\EventResource

@@ -48,7 +48,7 @@ fun ContentPreferencesPanel(session: Session, onSaved: () -> Unit) {
         } finally { busy = false }
     }
     LaunchedEffect(expanded, session.user.id) { if (expanded && data == null) load() }
-    OutlinedButton(onClick = { expanded = !expanded }, shape = RectangleShape, modifier = Modifier.fillMaxWidth().padding(top = 16.dp).heightIn(min = 48.dp)) {
+    OutlinedButton(onClick = { expanded = !expanded }, shape = ControlShape, modifier = Modifier.fillMaxWidth().padding(top = 16.dp).heightIn(min = 48.dp)) {
         Text(if (expanded) "CHIUDI I MIEI INTERESSI" else "I MIEI INTERESSI · COSA VEDERE")
     }
     if (!expanded) return
@@ -78,7 +78,7 @@ fun ContentPreferencesPanel(session: Session, onSaved: () -> Unit) {
         Column(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
             Text(category.name, style = MaterialTheme.typography.titleMedium)
             Box {
-                OutlinedButton(onClick = { menu = true }, enabled = !busy, shape = RectangleShape, modifier = Modifier.heightIn(min = 48.dp), colors = ButtonDefaults.outlinedButtonColors(contentColor = if (value == "interested") Acid else Paper)) {
+                OutlinedButton(onClick = { menu = true }, enabled = !busy, shape = ControlShape, modifier = Modifier.heightIn(min = 48.dp), colors = ButtonDefaults.outlinedButtonColors(contentColor = if (value == "interested") Acid else Paper)) {
                     Text(when(value) { "hidden" -> "Nascondi"; "interested" -> "Mi interessa"; else -> "Nessuna preferenza" })
                 }
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
@@ -113,6 +113,6 @@ fun ContentPreferencesPanel(session: Session, onSaved: () -> Unit) {
                 message = "Salvataggio non confermato. ${requestFailureMessage(error)}"
             } finally { busy = false }
         }
-    }, enabled = !busy, shape = RectangleShape, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text("SALVA I MIEI INTERESSI") }
+    }, enabled = !busy, shape = ControlShape, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text("SALVA I MIEI INTERESSI") }
     TextButton(onClick = { change(ContentSelection(inferredAds = current.selection.inferredAds)) }, enabled = !busy) { Text("RIPRISTINA TUTTE LE CATEGORIE (POI SALVA)") }
 }

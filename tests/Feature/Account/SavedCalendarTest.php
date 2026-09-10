@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Enums\EventStatus;
 use App\Models\SavedEvent;
 use App\Models\User;
+use App\Support\EventUrl;
 use Carbon\Carbon;
 use Laravel\Sanctum\Sanctum;
 
@@ -55,7 +56,7 @@ it('moves a finished date from agenda to past without waiting for midnight', fun
     $this->actingAs($this->user)->get('/i-miei-salvataggi')->assertOk()->assertSee('Ancora in corso')->assertDontSee('Finito oggi')->assertSee('Passati');
     $this->get('/i-miei-salvataggi?passate=1')->assertOk()->assertSee('Finito oggi')->assertDontSee('Ancora in corso');
     $calendar = $this->get('/i-miei-salvataggi?vista=calendario')->assertOk()->assertDontSee('Finito oggi');
-    $calendar->assertSee('href="'.route('events.occurrence', ['slug' => $ongoing->event->slug, 'occurrence' => $ongoing->id]).'"', false);
+    $calendar->assertSee('href="'.EventUrl::occurrence($ongoing).'"', false);
     Sanctum::actingAs($this->user);
     $this->getJson('/api/v1/me/saved')->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.title', 'Ancora in corso');
     $this->getJson('/api/v1/me/saved?upcoming=0')->assertOk()->assertJsonCount(2, 'data');
