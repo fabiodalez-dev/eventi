@@ -3,7 +3,7 @@
     "info": {
         "title": "API pubblica",
         "version": "1.0.0",
-        "description": "Interfaccia pubblica della piattaforma eventi: occorrenze, locali, calendario, mappa e ricerca. Le date sono ISO 8601 con offset e portano sempre la giornata evento (business_date). La paginazione \u00e8 a cursore."
+        "description": "Interfaccia pubblica della piattaforma eventi: occorrenze, locali, calendario, mappa e ricerca. Le date sono ISO 8601 con offset e portano sempre la giornata evento (business_date). La paginazione è a cursore."
     },
     "servers": [
         {
@@ -91,6 +91,14 @@
                                                                 "string",
                                                                 "null"
                                                             ]
+                                                        },
+                                                        "appearance": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "dark",
+                                                                "light"
+                                                            ],
+                                                            "description": "Tema persistente condiviso tra sito e app Android."
                                                         }
                                                     },
                                                     "required": [
@@ -222,6 +230,14 @@
                                                                 "string",
                                                                 "null"
                                                             ]
+                                                        },
+                                                        "appearance": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "dark",
+                                                                "light"
+                                                            ],
+                                                            "description": "Tema persistente condiviso tra sito e app Android."
                                                         }
                                                     },
                                                     "required": [
@@ -281,7 +297,7 @@
         "/auth/logout": {
             "post": {
                 "operationId": "v1.auth.logout",
-                "summary": "Esce da **questo** dispositivo. Revocare tutti i token a ogni uscita\nbutterebbe fuori anche il telefono di chi sta chiudendo la sessione sul\ntablet, che non \u00e8 ci\u00f2 che chiede chi tocca \"esci\"",
+                "summary": "Esce da **questo** dispositivo. Revocare tutti i token a ogni uscita\nbutterebbe fuori anche il telefono di chi sta chiudendo la sessione sul\ntablet, che non è ciò che chiede chi tocca \"esci\"",
                 "tags": [
                     "Auth"
                 ],
@@ -1362,7 +1378,7 @@
         "/me/devices/{device}": {
             "delete": {
                 "operationId": "v1.me.devices.destroy",
-                "summary": "Un dispositivo non si cancella, si **revoca**: la riga resta perch\u00e9\n`revoked_at` \u00e8 ci\u00f2 che dice a \u00a715.6 di escluderlo e di ripiegare\nsull'email al prossimo invio. Cancellarla farebbe ricomparire lo stesso\ndispositivo alla prima registrazione automatica dell'app",
+                "summary": "Un dispositivo non si cancella, si **revoca**: la riga resta perché\n`revoked_at` è ciò che dice a §15.6 di escluderlo e di ripiegare\nsull'email al prossimo invio. Cancellarla farebbe ricomparire lo stesso\ndispositivo alla prima registrazione automatica dell'app",
                 "tags": [
                     "Device"
                 ],
@@ -1528,7 +1544,7 @@
         "/stats": {
             "get": {
                 "operationId": "v1.stats",
-                "summary": "Le misure di \u00a71: non \u00abquanti utenti abbiamo\u00bb, ma \u00abc'\u00e8 qualcosa da fare\u00bb",
+                "summary": "Le misure di §1: non «quanti utenti abbiamo», ma «c'è qualcosa da fare»",
                 "tags": [
                     "Discovery"
                 ],
@@ -1564,7 +1580,7 @@
                                                 },
                                                 "covered_days_next_14": {
                                                     "type": "integer",
-                                                    "description": "\u00ab% dei prossimi 14 giorni con almeno 3 date\u00bb \u00e8 il primo indicatore\ndi \u00a71, ed \u00e8 quello che dice se il catalogo regge davvero.",
+                                                    "description": "«% dei prossimi 14 giorni con almeno 3 date» è il primo indicatore\ndi §1, ed è quello che dice se il catalogo regge davvero.",
                                                     "minimum": 0
                                                 },
                                                 "active_venues": {
@@ -2099,7 +2115,7 @@
         "/events/{slug}/similar": {
             "get": {
                 "operationId": "v1.events.similar",
-                "summary": "Eventi simili: stessa categoria, prossime date, questo escluso \u2014 la\nstessa definizione della scheda del sito, perch\u00e9 due risposte diverse\nalla stessa domanda sono un difetto anche quando entrambe sono sensate",
+                "summary": "Eventi simili: stessa categoria, prossime date, questo escluso — la\nstessa definizione della scheda del sito, perché due risposte diverse\nalla stessa domanda sono un difetto anche quando entrambe sono sensate",
                 "tags": [
                     "Event"
                 ],
@@ -2447,7 +2463,7 @@
         "/events/{slug}/occurrences": {
             "get": {
                 "operationId": "v1.events.occurrences",
-                "description": "\u00a711.5 le vuole sulla scheda, e \u00a715.3 ne ha bisogno per il selettore che\ncompare quando si salva un evento con piu repliche: si salva\nl'occorrenza, non l'evento, e senza questo elenco un client dovrebbe\ndedurre da se quali date esistono \u2014 ricostruendo una logica che \u00a713.2\ngli vieta proprio per non farla divergere.",
+                "description": "§11.5 le vuole sulla scheda, e §15.3 ne ha bisogno per il selettore che\ncompare quando si salva un evento con piu repliche: si salva\nl'occorrenza, non l'evento, e senza questo elenco un client dovrebbe\ndedurre da se quali date esistono — ricostruendo una logica che §13.2\ngli vieta proprio per non farla divergere.",
                 "summary": "TUTTE le date future di un evento, non solo la prima",
                 "tags": [
                     "Event"
@@ -3158,7 +3174,7 @@
                                                             },
                                                             "title": {
                                                                 "type": "string",
-                                                                "const": "Evento non pi\u00f9 disponibile"
+                                                                "const": "Evento non più disponibile"
                                                             },
                                                             "event_slug": {
                                                                 "type": "string"
@@ -3346,6 +3362,14 @@
                                                                 "string",
                                                                 "null"
                                                             ]
+                                                        },
+                                                        "appearance": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "dark",
+                                                                "light"
+                                                            ],
+                                                            "description": "Tema persistente condiviso tra sito e app Android."
                                                         }
                                                     },
                                                     "required": [
@@ -3573,7 +3597,7 @@
                                                                                     "string",
                                                                                     "null"
                                                                                 ],
-                                                                                "description": "Il quartiere: pi\u00f9 preciso del comune, ed \u00e8 la scala a cui si\ncerca dentro una citt\u00e0."
+                                                                                "description": "Il quartiere: più preciso del comune, ed è la scala a cui si\ncerca dentro una città."
                                                                             },
                                                                             "lat": {
                                                                                 "type": "number"
@@ -3900,7 +3924,7 @@
                                             "properties": {
                                                 "message": {
                                                     "type": "string",
-                                                    "const": "Non lo segui pi\u00f9."
+                                                    "const": "Non lo segui più."
                                                 }
                                             },
                                             "required": [
@@ -4275,7 +4299,7 @@
                                                                         },
                                                                         "ends_at_estimated": {
                                                                             "type": "boolean",
-                                                                            "description": "`ends_at` assente significa che la fine \u00e8 dedotta dalla durata\ndella categoria (\u00a78.3): il client deve poterlo dire, perch\u00e9\n\"finisce alle 23\" e \"finir\u00e0 verso le 23\" non sono la stessa cosa."
+                                                                            "description": "`ends_at` assente significa che la fine è dedotta dalla durata\ndella categoria (§8.3): il client deve poterlo dire, perché\n\"finisce alle 23\" e \"finirà verso le 23\" non sono la stessa cosa."
                                                                         },
                                                                         "doors_at": {
                                                                             "type": [
@@ -4306,14 +4330,14 @@
                                                                                 "string",
                                                                                 "null"
                                                                             ],
-                                                                            "description": "L'etichetta di richiamo scritta dal locale (\u00abULTIMI POSTI\u00bb):\ntesto gi\u00e0 pronto da mostrare, non un codice da interpretare."
+                                                                            "description": "L'etichetta di richiamo scritta dal locale («ULTIMI POSTI»):\ntesto già pronto da mostrare, non un codice da interpretare."
                                                                         },
                                                                         "capacity": {
                                                                             "type": [
                                                                                 "integer",
                                                                                 "null"
                                                                             ],
-                                                                            "description": "Capienza e posti rimasti. `capacity` nullo significa \"quella del\n   locale\": \u00e8 l\u00e0 che il client la trova, non qui duplicata."
+                                                                            "description": "Capienza e posti rimasti. `capacity` nullo significa \"quella del\n   locale\": è là che il client la trova, non qui duplicata."
                                                                         },
                                                                         "capacity_left": {
                                                                             "type": [
@@ -4451,7 +4475,7 @@
                                                                                                 "string",
                                                                                                 "null"
                                                                                             ],
-                                                                                            "description": "Il quartiere: pi\u00f9 preciso del comune, ed \u00e8 la scala a cui si\ncerca dentro una citt\u00e0."
+                                                                                            "description": "Il quartiere: più preciso del comune, ed è la scala a cui si\ncerca dentro una città."
                                                                                         },
                                                                                         "lat": {
                                                                                             "type": "number"
@@ -4532,7 +4556,7 @@
                                                                                         },
                                                                                         "transit": {
                                                                                             "type": "array",
-                                                                                            "description": "\u00abCome arrivare\u00bb: lista di `{mode, text}`, dove `mode` \u00e8 un\nvalore chiuso (`transit_mode` di \u00a713.6) e non testo libero.",
+                                                                                            "description": "«Come arrivare»: lista di `{mode, text}`, dove `mode` è un\nvalore chiuso (`transit_mode` di §13.6) e non testo libero.",
                                                                                             "items": {}
                                                                                         },
                                                                                         "capacity": {
@@ -4543,7 +4567,7 @@
                                                                                         },
                                                                                         "accessibility": {
                                                                                             "type": "object",
-                                                                                            "description": "Accessibilit\u00e0 **strutturata**: una mappa delle sole voci\ndichiarate. Una chiave assente significa \"non dichiarato\", che\nnon \u00e8 `false` \u2014 la differenza conta pi\u00f9 qui che altrove.",
+                                                                                            "description": "Accessibilità **strutturata**: una mappa delle sole voci\ndichiarate. Una chiave assente significa \"non dichiarato\", che\nnon è `false` — la differenza conta più qui che altrove.",
                                                                                             "additionalProperties": {
                                                                                                 "type": "boolean"
                                                                                             }
@@ -4663,7 +4687,7 @@
                                                                                                 "string",
                                                                                                 "null"
                                                                                             ],
-                                                                                            "description": "Il quartiere: pi\u00f9 preciso del comune, ed \u00e8 la scala a cui si\ncerca dentro una citt\u00e0."
+                                                                                            "description": "Il quartiere: più preciso del comune, ed è la scala a cui si\ncerca dentro una città."
                                                                                         },
                                                                                         "lat": {
                                                                                             "type": "number"
@@ -5129,7 +5153,7 @@
                                                                         },
                                                                         "ends_at_estimated": {
                                                                             "type": "boolean",
-                                                                            "description": "`ends_at` assente significa che la fine \u00e8 dedotta dalla durata\ndella categoria (\u00a78.3): il client deve poterlo dire, perch\u00e9\n\"finisce alle 23\" e \"finir\u00e0 verso le 23\" non sono la stessa cosa."
+                                                                            "description": "`ends_at` assente significa che la fine è dedotta dalla durata\ndella categoria (§8.3): il client deve poterlo dire, perché\n\"finisce alle 23\" e \"finirà verso le 23\" non sono la stessa cosa."
                                                                         },
                                                                         "doors_at": {
                                                                             "type": [
@@ -5160,14 +5184,14 @@
                                                                                 "string",
                                                                                 "null"
                                                                             ],
-                                                                            "description": "L'etichetta di richiamo scritta dal locale (\u00abULTIMI POSTI\u00bb):\ntesto gi\u00e0 pronto da mostrare, non un codice da interpretare."
+                                                                            "description": "L'etichetta di richiamo scritta dal locale («ULTIMI POSTI»):\ntesto già pronto da mostrare, non un codice da interpretare."
                                                                         },
                                                                         "capacity": {
                                                                             "type": [
                                                                                 "integer",
                                                                                 "null"
                                                                             ],
-                                                                            "description": "Capienza e posti rimasti. `capacity` nullo significa \"quella del\n   locale\": \u00e8 l\u00e0 che il client la trova, non qui duplicata."
+                                                                            "description": "Capienza e posti rimasti. `capacity` nullo significa \"quella del\n   locale\": è là che il client la trova, non qui duplicata."
                                                                         },
                                                                         "capacity_left": {
                                                                             "type": [
@@ -5305,7 +5329,7 @@
                                                                                                 "string",
                                                                                                 "null"
                                                                                             ],
-                                                                                            "description": "Il quartiere: pi\u00f9 preciso del comune, ed \u00e8 la scala a cui si\ncerca dentro una citt\u00e0."
+                                                                                            "description": "Il quartiere: più preciso del comune, ed è la scala a cui si\ncerca dentro una città."
                                                                                         },
                                                                                         "lat": {
                                                                                             "type": "number"
@@ -5386,7 +5410,7 @@
                                                                                         },
                                                                                         "transit": {
                                                                                             "type": "array",
-                                                                                            "description": "\u00abCome arrivare\u00bb: lista di `{mode, text}`, dove `mode` \u00e8 un\nvalore chiuso (`transit_mode` di \u00a713.6) e non testo libero.",
+                                                                                            "description": "«Come arrivare»: lista di `{mode, text}`, dove `mode` è un\nvalore chiuso (`transit_mode` di §13.6) e non testo libero.",
                                                                                             "items": {}
                                                                                         },
                                                                                         "capacity": {
@@ -5397,7 +5421,7 @@
                                                                                         },
                                                                                         "accessibility": {
                                                                                             "type": "object",
-                                                                                            "description": "Accessibilit\u00e0 **strutturata**: una mappa delle sole voci\ndichiarate. Una chiave assente significa \"non dichiarato\", che\nnon \u00e8 `false` \u2014 la differenza conta pi\u00f9 qui che altrove.",
+                                                                                            "description": "Accessibilità **strutturata**: una mappa delle sole voci\ndichiarate. Una chiave assente significa \"non dichiarato\", che\nnon è `false` — la differenza conta più qui che altrove.",
                                                                                             "additionalProperties": {
                                                                                                 "type": "boolean"
                                                                                             }
@@ -5517,7 +5541,7 @@
                                                                                                 "string",
                                                                                                 "null"
                                                                                             ],
-                                                                                            "description": "Il quartiere: pi\u00f9 preciso del comune, ed \u00e8 la scala a cui si\ncerca dentro una citt\u00e0."
+                                                                                            "description": "Il quartiere: più preciso del comune, ed è la scala a cui si\ncerca dentro una città."
                                                                                         },
                                                                                         "lat": {
                                                                                             "type": "number"
@@ -6089,7 +6113,7 @@
                                             "properties": {
                                                 "message": {
                                                     "type": "string",
-                                                    "const": "Se l'indirizzo \u00e8 registrato, riceverai un collegamento per entrare."
+                                                    "const": "Se l'indirizzo è registrato, riceverai un collegamento per entrare."
                                                 }
                                             },
                                             "required": [
@@ -6200,6 +6224,14 @@
                                                                 "string",
                                                                 "null"
                                                             ]
+                                                        },
+                                                        "appearance": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "dark",
+                                                                "light"
+                                                            ],
+                                                            "description": "Tema persistente condiviso tra sito e app Android."
                                                         }
                                                     },
                                                     "required": [
@@ -6915,14 +6947,14 @@
                                                 },
                                                 "cancellations": {
                                                     "type": "boolean",
-                                                    "description": "\u00a715.4: \u00abattivo, non disattivabile\u00bb. Un promemoria per una serata\nannullata \u00e8 peggio dell'assenza di promemoria."
+                                                    "description": "§15.4: «attivo, non disattivabile». Un promemoria per una serata\nannullata è peggio dell'assenza di promemoria."
                                                 },
                                                 "daily_digest_time": {
                                                     "type": "string"
                                                 },
                                                 "quiet_hours": {
                                                     "type": "string",
-                                                    "description": "Due campi e non uno (D36). `quiet_hours` \u00e8 **la scelta**: gli\norari se ne sono stati scritti, un oggetto vuoto se la persona\nha rifiutato il silenzio, `null` se non ha ancora deciso.\n`quiet_hours_effective` \u00e8 ci\u00f2 che il motore applica davvero, e\nper chi non ha deciso \u00e8 la finestra predefinita. Senza il secondo, un'applicazione che mostra il primo direbbe\n\u00abnessuna ora di silenzio\u00bb a chi le ha eccome, e l'unico modo di\naccorgersene sarebbe un promemoria che non arriva."
+                                                    "description": "Due campi e non uno (D36). `quiet_hours` è **la scelta**: gli\norari se ne sono stati scritti, un oggetto vuoto se la persona\nha rifiutato il silenzio, `null` se non ha ancora deciso.\n`quiet_hours_effective` è ciò che il motore applica davvero, e\nper chi non ha deciso è la finestra predefinita. Senza il secondo, un'applicazione che mostra il primo direbbe\n«nessuna ora di silenzio» a chi le ha eccome, e l'unico modo di\naccorgersene sarebbe un promemoria che non arriva."
                                                 },
                                                 "quiet_hours_effective": {
                                                     "type": [
@@ -7043,14 +7075,14 @@
                                                 },
                                                 "cancellations": {
                                                     "type": "boolean",
-                                                    "description": "\u00a715.4: \u00abattivo, non disattivabile\u00bb. Un promemoria per una serata\nannullata \u00e8 peggio dell'assenza di promemoria."
+                                                    "description": "§15.4: «attivo, non disattivabile». Un promemoria per una serata\nannullata è peggio dell'assenza di promemoria."
                                                 },
                                                 "daily_digest_time": {
                                                     "type": "string"
                                                 },
                                                 "quiet_hours": {
                                                     "type": "string",
-                                                    "description": "Due campi e non uno (D36). `quiet_hours` \u00e8 **la scelta**: gli\norari se ne sono stati scritti, un oggetto vuoto se la persona\nha rifiutato il silenzio, `null` se non ha ancora deciso.\n`quiet_hours_effective` \u00e8 ci\u00f2 che il motore applica davvero, e\nper chi non ha deciso \u00e8 la finestra predefinita. Senza il secondo, un'applicazione che mostra il primo direbbe\n\u00abnessuna ora di silenzio\u00bb a chi le ha eccome, e l'unico modo di\naccorgersene sarebbe un promemoria che non arriva."
+                                                    "description": "Due campi e non uno (D36). `quiet_hours` è **la scelta**: gli\norari se ne sono stati scritti, un oggetto vuoto se la persona\nha rifiutato il silenzio, `null` se non ha ancora deciso.\n`quiet_hours_effective` è ciò che il motore applica davvero, e\nper chi non ha deciso è la finestra predefinita. Senza il secondo, un'applicazione che mostra il primo direbbe\n«nessuna ora di silenzio» a chi le ha eccome, e l'unico modo di\naccorgersene sarebbe un promemoria che non arriva."
                                                 },
                                                 "quiet_hours_effective": {
                                                     "type": [
@@ -7695,7 +7727,7 @@
                                             "properties": {
                                                 "message": {
                                                     "type": "string",
-                                                    "const": "Se l'indirizzo \u00e8 registrato, riceverai un messaggio con le istruzioni."
+                                                    "const": "Se l'indirizzo è registrato, riceverai un messaggio con le istruzioni."
                                                 }
                                             },
                                             "required": [
@@ -7848,6 +7880,14 @@
                                                         "string",
                                                         "null"
                                                     ]
+                                                },
+                                                "appearance": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "dark",
+                                                        "light"
+                                                    ],
+                                                    "description": "Tema persistente condiviso tra sito e app Android."
                                                 }
                                             },
                                             "required": [
@@ -7980,6 +8020,14 @@
                                                         "string",
                                                         "null"
                                                     ]
+                                                },
+                                                "appearance": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "dark",
+                                                        "light"
+                                                    ],
+                                                    "description": "Tema persistente condiviso tra sito e app Android."
                                                 }
                                             },
                                             "required": [
@@ -8026,7 +8074,7 @@
             },
             "delete": {
                 "operationId": "v1.me.destroy",
-                "summary": "Cancellazione self-service con effetto immediato (\u00a715.2). Il token con\ncui \u00e8 arrivata la richiesta muore insieme all'account: la risposta\nsuccessiva della stessa app sar\u00e0 un 401, che \u00e8 la conferma pi\u00f9 onesta\nche si possa dare",
+                "summary": "Cancellazione self-service con effetto immediato (§15.2). Il token con\ncui è arrivata la richiesta muore insieme all'account: la risposta\nsuccessiva della stessa app sarà un 401, che è la conferma più onesta\nche si possa dare",
                 "tags": [
                     "Profile"
                 ],
@@ -8185,7 +8233,7 @@
         "/me/saved/merge": {
             "post": {
                 "operationId": "v1.me.saved.merge",
-                "summary": "La migrazione dei salvataggi di chi era anonimo (\u00a715.1). Duplicati ed\neventi gi\u00e0 passati si ignorano in silenzio, e la risposta dice quante\ndate sono entrate davvero: \u00e8 quel numero che permette al client di\nsvuotare il `localStorage` **solo dopo** la conferma del server",
+                "summary": "La migrazione dei salvataggi di chi era anonimo (§15.1). Duplicati ed\neventi già passati si ignorano in silenzio, e la risposta dice quante\ndate sono entrate davvero: è quel numero che permette al client di\nsvuotare il `localStorage` **solo dopo** la conferma del server",
                 "tags": [
                     "Saved"
                 ],
@@ -8630,7 +8678,7 @@
                                                             },
                                                             "ends_at_estimated": {
                                                                 "type": "boolean",
-                                                                "description": "`ends_at` assente significa che la fine \u00e8 dedotta dalla durata\ndella categoria (\u00a78.3): il client deve poterlo dire, perch\u00e9\n\"finisce alle 23\" e \"finir\u00e0 verso le 23\" non sono la stessa cosa."
+                                                                "description": "`ends_at` assente significa che la fine è dedotta dalla durata\ndella categoria (§8.3): il client deve poterlo dire, perché\n\"finisce alle 23\" e \"finirà verso le 23\" non sono la stessa cosa."
                                                             },
                                                             "doors_at": {
                                                                 "type": [
@@ -8661,14 +8709,14 @@
                                                                     "string",
                                                                     "null"
                                                                 ],
-                                                                "description": "L'etichetta di richiamo scritta dal locale (\u00abULTIMI POSTI\u00bb):\ntesto gi\u00e0 pronto da mostrare, non un codice da interpretare."
+                                                                "description": "L'etichetta di richiamo scritta dal locale («ULTIMI POSTI»):\ntesto già pronto da mostrare, non un codice da interpretare."
                                                             },
                                                             "capacity": {
                                                                 "type": [
                                                                     "integer",
                                                                     "null"
                                                                 ],
-                                                                "description": "Capienza e posti rimasti. `capacity` nullo significa \"quella del\n   locale\": \u00e8 l\u00e0 che il client la trova, non qui duplicata."
+                                                                "description": "Capienza e posti rimasti. `capacity` nullo significa \"quella del\n   locale\": è là che il client la trova, non qui duplicata."
                                                             },
                                                             "capacity_left": {
                                                                 "type": [
@@ -8806,7 +8854,7 @@
                                                                                     "string",
                                                                                     "null"
                                                                                 ],
-                                                                                "description": "Il quartiere: pi\u00f9 preciso del comune, ed \u00e8 la scala a cui si\ncerca dentro una citt\u00e0."
+                                                                                "description": "Il quartiere: più preciso del comune, ed è la scala a cui si\ncerca dentro una città."
                                                                             },
                                                                             "lat": {
                                                                                 "type": "number"
@@ -8887,7 +8935,7 @@
                                                                             },
                                                                             "transit": {
                                                                                 "type": "array",
-                                                                                "description": "\u00abCome arrivare\u00bb: lista di `{mode, text}`, dove `mode` \u00e8 un\nvalore chiuso (`transit_mode` di \u00a713.6) e non testo libero.",
+                                                                                "description": "«Come arrivare»: lista di `{mode, text}`, dove `mode` è un\nvalore chiuso (`transit_mode` di §13.6) e non testo libero.",
                                                                                 "items": {}
                                                                             },
                                                                             "capacity": {
@@ -8898,7 +8946,7 @@
                                                                             },
                                                                             "accessibility": {
                                                                                 "type": "object",
-                                                                                "description": "Accessibilit\u00e0 **strutturata**: una mappa delle sole voci\ndichiarate. Una chiave assente significa \"non dichiarato\", che\nnon \u00e8 `false` \u2014 la differenza conta pi\u00f9 qui che altrove.",
+                                                                                "description": "Accessibilità **strutturata**: una mappa delle sole voci\ndichiarate. Una chiave assente significa \"non dichiarato\", che\nnon è `false` — la differenza conta più qui che altrove.",
                                                                                 "additionalProperties": {
                                                                                     "type": "boolean"
                                                                                 }
@@ -9018,7 +9066,7 @@
                                                                                     "string",
                                                                                     "null"
                                                                                 ],
-                                                                                "description": "Il quartiere: pi\u00f9 preciso del comune, ed \u00e8 la scala a cui si\ncerca dentro una citt\u00e0."
+                                                                                "description": "Il quartiere: più preciso del comune, ed è la scala a cui si\ncerca dentro una città."
                                                                             },
                                                                             "lat": {
                                                                                 "type": "number"
@@ -9421,7 +9469,7 @@
                                                                     "string",
                                                                     "null"
                                                                 ],
-                                                                "description": "Il quartiere: pi\u00f9 preciso del comune, ed \u00e8 la scala a cui si\ncerca dentro una citt\u00e0."
+                                                                "description": "Il quartiere: più preciso del comune, ed è la scala a cui si\ncerca dentro una città."
                                                             },
                                                             "lat": {
                                                                 "type": "number"
@@ -9890,7 +9938,7 @@
                                                 },
                                                 "message": {
                                                     "type": "string",
-                                                    "const": "Proposta ricevuta: la redazione la valuter\u00e0 prima della pubblicazione."
+                                                    "const": "Proposta ricevuta: la redazione la valuterà prima della pubblicazione."
                                                 },
                                                 "created_at": {
                                                     "type": [
@@ -11407,7 +11455,7 @@
         "/venues/{slug}/events": {
             "get": {
                 "operationId": "v1.venues.events",
-                "summary": "Le date di un locale: gli stessi parametri di `GET /v1/events` con il\nlocale gi\u00e0 scelto, cos\u00ec chi sa leggere una lista le sa leggere tutte",
+                "summary": "Le date di un locale: gli stessi parametri di `GET /v1/events` con il\nlocale già scelto, così chi sa leggere una lista le sa leggere tutte",
                 "tags": [
                     "Venue"
                 ],
@@ -11755,7 +11803,7 @@
         "/venues/{slug}/past": {
             "get": {
                 "operationId": "v1.venues.past",
-                "description": "\u00a711.9 lo tiene sul sito perche e \u00abottimo per la ricerca organica\u00bb \u2014 le\npagine di cio che e stato restano indicizzate e portano visite. Un\nclient che vuole mostrare la stessa scheda deve poterlo leggere, o la\nsua versione del locale sara sempre piu povera di quella del sito.",
+                "description": "§11.9 lo tiene sul sito perche e «ottimo per la ricerca organica» — le\npagine di cio che e stato restano indicizzate e portano visite. Un\nclient che vuole mostrare la stessa scheda deve poterlo leggere, o la\nsua versione del locale sara sempre piu povera di quella del sito.",
                 "summary": "L'archivio: le date gia passate di un locale",
                 "tags": [
                     "Venue"
@@ -12267,7 +12315,7 @@
             },
             "FollowableType": {
                 "type": "string",
-                "description": "Che cosa si pu\u00f2 seguire. I primi tre casi sono i \u00absegui\u00bb di \u00a715.3: alimentano il feed personalizzato e i digest, **non** i promemoria. Il quarto \u00e8 un'altra cosa e sta qui solo perch\u00e9 il magazzino \u00e8 lo stesso: seguire un *evento* ricorrente significa \u00absalvami ogni nuova data che nasce\u00bb, e produce quindi salvataggi \u2014 cio\u00e8 promemoria puntuali. Le due famiglie non vanno mai mescolate in lettura: `feedSources()` \u00e8 l'elenco di ci\u00f2 che il feed guarda.\n",
+                "description": "Che cosa si può seguire. I primi tre casi sono i «segui» di §15.3: alimentano il feed personalizzato e i digest, **non** i promemoria. Il quarto è un'altra cosa e sta qui solo perché il magazzino è lo stesso: seguire un *evento* ricorrente significa «salvami ogni nuova data che nasce», e produce quindi salvataggi — cioè promemoria puntuali. Le due famiglie non vanno mai mescolate in lettura: `feedSources()` è l'elenco di ciò che il feed guarda.\n",
                 "enum": [
                     "venue",
                     "tag",
@@ -12292,7 +12340,7 @@
             },
             "LoginRequest": {
                 "type": "object",
-                "description": "`POST /v1/auth/login` (\u00a713.4).\n\n`device_name` d\u00e0 un nome al token, perch\u00e9 un utente deve poter revocare il\ntelefono che ha perso senza perdere anche il tablet.",
+                "description": "`POST /v1/auth/login` (§13.4).\n\n`device_name` dà un nome al token, perché un utente deve poter revocare il\ntelefono che ha perso senza perdere anche il tablet.",
                 "properties": {
                     "email": {
                         "type": "string",
@@ -12339,7 +12387,7 @@
             },
             "MagicLinkRequest": {
                 "type": "object",
-                "description": "`POST /v1/auth/magic-link` (\u00a715.2).\n\nCome per la reimpostazione della password, la risposta \u00e8 sempre la stessa\nche l'indirizzo esista o no: dire \u00abquesta email non \u00e8 registrata\u00bb regala a\nchiunque l'elenco degli account.",
+                "description": "`POST /v1/auth/magic-link` (§15.2).\n\nCome per la reimpostazione della password, la risposta è sempre la stessa\nche l'indirizzo esista o no: dire «questa email non è registrata» regala a\nchiunque l'elenco degli account.",
                 "properties": {
                     "email": {
                         "type": "string",
@@ -12354,7 +12402,7 @@
             },
             "MergeSavedRequest": {
                 "type": "object",
-                "description": "`POST /v1/me/saved/merge` (\u00a715.1): la migrazione dei salvataggi di chi ha\nusato il sito senza registrarsi.\n\nLa lista arriva dal `localStorage` e pu\u00f2 contenere di tutto \u2014 date\ncancellate, eventi mai pubblicati, serate di sei mesi fa. Nessuno di quei\ncasi \u00e8 un errore da segnalare: si ignorano, e la risposta dice che cosa \u00e8\nentrato davvero. Il tetto serve a un solo scopo: distinguere una migrazione\nda un carico.",
+                "description": "`POST /v1/me/saved/merge` (§15.1): la migrazione dei salvataggi di chi ha\nusato il sito senza registrarsi.\n\nLa lista arriva dal `localStorage` e può contenere di tutto — date\ncancellate, eventi mai pubblicati, serate di sei mesi fa. Nessuno di quei\ncasi è un errore da segnalare: si ignorano, e la risposta dice che cosa è\nentrato davvero. Il tetto serve a un solo scopo: distinguere una migrazione\nda un carico.",
                 "properties": {
                     "occurrence_ids": {
                         "type": "array",
@@ -12757,14 +12805,14 @@
             },
             "RegisterRequest": {
                 "type": "object",
-                "description": "`POST /v1/auth/register` (\u00a713.4, \u00a715.2).\n\nSi chiede il minimo: email e password, con il nome facoltativo (\u00a716). Il consenso marketing \u00e8\nseparato e facoltativo, perch\u00e9 \u00e8 giuridicamente un'altra cosa dalle\nnotifiche transazionali (\u00a715.9) \u2014 e nasce spento.",
+                "description": "`POST /v1/auth/register` (§13.4, §15.2).\n\nSi chiede il minimo: email e password, con il nome facoltativo (§16). Il consenso marketing è\nseparato e facoltativo, perché è giuridicamente un'altra cosa dalle\nnotifiche transazionali (§15.9) — e nasce spento.",
                 "properties": {
                     "name": {
                         "type": [
                             "string",
                             "null"
                         ],
-                        "description": "Il nome \u00e8 facoltativo (\u00a715.2): si raccoglie il minimo, e il\nminimo \u00e8 email e password.",
+                        "description": "Il nome è facoltativo (§15.2): si raccoglie il minimo, e il\nminimo è email e password.",
                         "maxLength": 255
                     },
                     "email": {
@@ -12868,7 +12916,7 @@
             },
             "ResetPasswordRequest": {
                 "type": "object",
-                "description": "`POST /v1/auth/password/reset` (\u00a713.4).\n\nNon si chiede la conferma della password: chi manda JSON non digita due\nvolte lo stesso campo, e un secondo campo obbligatorio sarebbe soltanto un\nmodo in pi\u00f9 di sbagliare la chiamata.",
+                "description": "`POST /v1/auth/password/reset` (§13.4).\n\nNon si chiede la conferma della password: chi manda JSON non digita due\nvolte lo stesso campo, e un secondo campo obbligatorio sarebbe soltanto un\nmodo in più di sbagliare la chiamata.",
                 "properties": {
                     "token": {
                         "type": "string"
@@ -12891,7 +12939,7 @@
             },
             "SponsorshipPlacement": {
                 "type": "string",
-                "description": "Dove una sponsorizzazione pu\u00f2 comparire. Non \u00e8 un elenco di posti liberi: ogni collocazione ha un tetto e una forma propria, ed \u00e8 per questo che \u00e8 un tipo chiuso invece di una stringa. Aprire una collocazione nuova significa decidere quante ne stanno, come si dichiarano e dove finiscono nella pagina \u2014 cio\u00e8 scrivere codice, non aggiungere una riga a una tabella.\n| |\n|---|\n| `home_hero` <br/> Il riquadro grande in apertura della pagina iniziale. |\n| `home_card` <br/> Una card in mezzo alle sezioni della pagina iniziale. |\n| `list_top` <br/> In cima ai risultati di una lista. |\n| `map_sheet` <br/> Nel foglio che si apre toccando un punto della mappa. |",
+                "description": "Dove una sponsorizzazione può comparire. Non è un elenco di posti liberi: ogni collocazione ha un tetto e una forma propria, ed è per questo che è un tipo chiuso invece di una stringa. Aprire una collocazione nuova significa decidere quante ne stanno, come si dichiarano e dove finiscono nella pagina — cioè scrivere codice, non aggiungere una riga a una tabella.\n| |\n|---|\n| `home_hero` <br/> Il riquadro grande in apertura della pagina iniziale. |\n| `home_card` <br/> Una card in mezzo alle sezioni della pagina iniziale. |\n| `list_top` <br/> In cima ai risultati di una lista. |\n| `map_sheet` <br/> Nel foglio che si apre toccando un punto della mappa. |",
                 "enum": [
                     "home_hero",
                     "home_card",
@@ -12902,7 +12950,7 @@
             },
             "StoreDeviceRequest": {
                 "type": "object",
-                "description": "`POST /v1/me/devices` (\u00a715.8).\n\nServe a \u00a715.6 per sapere quale dispositivo \u00e8 stato attivo negli ultimi\ntrenta giorni, che \u00e8 ci\u00f2 che decide il canale. Da D54 un dispositivo `web`\ncon `endpoint` e `keys` riceve davvero le notifiche; la stessa chiamata\nvarr\u00e0 per FCM in fase F11 senza cambiare forma.\n\nUn dispositivo si riconosce dal proprio riferimento \u2014 il token FCM o\nl'`endpoint` Web Push \u2014 e la seconda registrazione dello stesso aggiorna la\nriga invece di crearne un'altra: \u00a73.14 di `SCHEMA.md` lo dice esplicitamente,\nla deduplica avviene qui e non con un indice unico.",
+                "description": "`POST /v1/me/devices` (§15.8).\n\nServe a §15.6 per sapere quale dispositivo è stato attivo negli ultimi\ntrenta giorni, che è ciò che decide il canale. Da D54 un dispositivo `web`\ncon `endpoint` e `keys` riceve davvero le notifiche; la stessa chiamata\nvarrà per FCM in fase F11 senza cambiare forma.\n\nUn dispositivo si riconosce dal proprio riferimento — il token FCM o\nl'`endpoint` Web Push — e la seconda registrazione dello stesso aggiorna la\nriga invece di crearne un'altra: §3.14 di `SCHEMA.md` lo dice esplicitamente,\nla deduplica avviene qui e non con un indice unico.",
                 "properties": {
                     "platform": {
                         "$ref": "#/components/schemas/DevicePlatform"
@@ -12962,7 +13010,7 @@
             },
             "StoreFollowRequest": {
                 "type": "object",
-                "description": "`POST /v1/me/follows` (\u00a715.8): seguire un locale, un tag, una categoria o\nun evento ricorrente.",
+                "description": "`POST /v1/me/follows` (§15.8): seguire un locale, un tag, una categoria o\nun evento ricorrente.",
                 "properties": {
                     "type": {
                         "$ref": "#/components/schemas/FollowableType"
@@ -12983,7 +13031,7 @@
             },
             "StoreReportRequest": {
                 "type": "object",
-                "description": "`POST /v1/reports` (\u00a713.1, \u00a714.6).\n\nLa segnalazione dice **su che cosa** verte: un evento o un locale, indicati\ncon l'alias della morph map (`event`, `venue`) e lo slug pubblico. Gli id\ninterni non entrano nel contratto \u2014 sono un dettaglio del database \u2014 e lo\nslug \u00e8 ci\u00f2 che il client ha gi\u00e0 in mano, perch\u00e9 \u00e8 quello che ha ricevuto\nnella risposta precedente.",
+                "description": "`POST /v1/reports` (§13.1, §14.6).\n\nLa segnalazione dice **su che cosa** verte: un evento o un locale, indicati\ncon l'alias della morph map (`event`, `venue`) e lo slug pubblico. Gli id\ninterni non entrano nel contratto — sono un dettaglio del database — e lo\nslug è ciò che il client ha già in mano, perché è quello che ha ricevuto\nnella risposta precedente.",
                 "properties": {
                     "subject_type": {
                         "type": "string",
@@ -13032,7 +13080,7 @@
             },
             "StoreSavedRequest": {
                 "type": "object",
-                "description": "`POST /v1/me/saved` (\u00a715.8). **Si salva un'occorrenza** (\u00a715.3): il campo si\nchiama `occurrence_id` e non `event_id` perch\u00e9 \u00e8 la data che si mette in\nagenda, e un evento con dieci serate non dice quale.",
+                "description": "`POST /v1/me/saved` (§15.8). **Si salva un'occorrenza** (§15.3): il campo si\nchiama `occurrence_id` e non `event_id` perché è la data che si mette in\nagenda, e un evento con dieci serate non dice quale.",
                 "properties": {
                     "occurrence_id": {
                         "type": "integer",
@@ -13046,7 +13094,7 @@
             },
             "StoreSubmissionRequest": {
                 "type": "object",
-                "description": "`POST /v1/submissions` (\u00a713.1): la stessa proposta del modulo pubblico,\nsenza il campo esca.\n\nL'esca (`Honeypot`) ferma i robot che compilano moduli HTML; qui non ha\nsenso \u2014 chi parla con l'API compila JSON \u2014 e a fermare gli abusi resta il\nlimite di frequenza per indirizzo IP (\u00a714.7).",
+                "description": "`POST /v1/submissions` (§13.1): la stessa proposta del modulo pubblico,\nsenza il campo esca.\n\nL'esca (`Honeypot`) ferma i robot che compilano moduli HTML; qui non ha\nsenso — chi parla con l'API compila JSON — e a fermare gli abusi resta il\nlimite di frequenza per indirizzo IP (§14.7).",
                 "properties": {
                     "title": {
                         "type": "string",
@@ -13100,7 +13148,7 @@
             },
             "UpdateNotificationPreferencesRequest": {
                 "type": "object",
-                "description": "`PATCH /v1/me/notification-preferences` (\u00a715.4).\n\nGli **annullamenti non sono qui** e non ci saranno: \u00a715.4 li dichiara\n\u00abattivi, non disattivabili\u00bb. Chiedere di spegnerli non produce un errore n\u00e9\nun effetto: la chiave semplicemente non esiste, e questo \u00e8 il modo pi\u00f9\nchiaro di dirlo a un client.",
+                "description": "`PATCH /v1/me/notification-preferences` (§15.4).\n\nGli **annullamenti non sono qui** e non ci saranno: §15.4 li dichiara\n«attivi, non disattivabili». Chiedere di spegnerli non produce un errore né\nun effetto: la chiave semplicemente non esiste, e questo è il modo più\nchiaro di dirlo a un client.",
                 "properties": {
                     "reminders": {
                         "type": "boolean"
@@ -13128,7 +13176,7 @@
             },
             "UpdateProfileRequest": {
                 "type": "object",
-                "description": "`PATCH /v1/me` (\u00a715.8). Il profilo \u00e8 minimo per scelta (\u00a715.2): nome\nfacoltativo, fuso, lingua, consenso marketing. Nient'altro \u00e8 modificabile\nperch\u00e9 nient'altro viene raccolto.\n\nL'email non si cambia da qui: cambiarla significherebbe rifare la verifica,\ned \u00e8 un flusso proprio con un proprio messaggio, non un campo in un modulo.",
+                "description": "`PATCH /v1/me` (§15.8). Il profilo è minimo per scelta (§15.2): nome\nfacoltativo, fuso, lingua, consenso marketing. Nient'altro è modificabile\nperché nient'altro viene raccolto.\n\nL'email non si cambia da qui: cambiarla significherebbe rifare la verifica,\ned è un flusso proprio con un proprio messaggio, non un campo in un modulo.",
                 "properties": {
                     "name": {
                         "type": [
@@ -13159,7 +13207,7 @@
                     },
                     "quiet_hours": {
                         "type": "object",
-                        "description": "Tre valori accettati, tre significati diversi (D36):\n`{\"from\":\"23:00\",\"to\":\"08:00\"}` sono le proprie ore, `{}` \u00e8\n\u00abnessun silenzio\u00bb scelto di proposito, `null` \u00e8 \u00abnon decido\u00bb e\nriporta alla finestra predefinita. `required_with` non scatta su\nun oggetto vuoto \u2014 un valore vuoto non conta come presente \u2014 ed\n\u00e8 ci\u00f2 che rende dichiarabile il secondo caso.",
+                        "description": "Tre valori accettati, tre significati diversi (D36):\n`{\"from\":\"23:00\",\"to\":\"08:00\"}` sono le proprie ore, `{}` è\n«nessun silenzio» scelto di proposito, `null` è «non decido» e\nriporta alla finestra predefinita. `required_with` non scatta su\nun oggetto vuoto — un valore vuoto non conta come presente — ed\nè ciò che rende dichiarabile il secondo caso.",
                         "properties": {
                             "from": {
                                 "type": "string"
@@ -13172,13 +13220,20 @@
                             "from",
                             "to"
                         ]
+                    },
+                    "appearance": {
+                        "type": "string",
+                        "enum": [
+                            "dark",
+                            "light"
+                        ]
                     }
                 },
                 "title": "UpdateProfileRequest"
             },
             "VerifyEmailRequest": {
                 "type": "object",
-                "description": "`POST /v1/auth/verify-email` (\u00a715.8).\n\nIl campo \u00e8 l'**indirizzo completo** ricevuto per posta, firma compresa, e\nnon la coppia `id`+`hash`: quel `hash` \u00e8 `sha1(email)`, cio\u00e8 un valore che\nchiunque conosca l'indirizzo pu\u00f2 calcolare. \u00c8 la firma a rendere il\ncollegamento una prova, e la firma copre l'indirizzo intero \u2014 quindi\nl'indirizzo intero \u00e8 ci\u00f2 che va rimandato indietro.",
+                "description": "`POST /v1/auth/verify-email` (§15.8).\n\nIl campo è l'**indirizzo completo** ricevuto per posta, firma compresa, e\nnon la coppia `id`+`hash`: quel `hash` è `sha1(email)`, cioè un valore che\nchiunque conosca l'indirizzo può calcolare. È la firma a rendere il\ncollegamento una prova, e la firma copre l'indirizzo intero — quindi\nl'indirizzo intero è ciò che va rimandato indietro.",
                 "properties": {
                     "url": {
                         "type": "string",

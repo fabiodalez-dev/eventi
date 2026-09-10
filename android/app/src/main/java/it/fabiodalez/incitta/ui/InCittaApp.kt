@@ -48,8 +48,8 @@ import it.fabiodalez.incitta.supportsSponsoredBanner
 
 @Composable
 fun InCittaApp(viewModel: MainViewModel) {
-    InCittaTheme {
-        val state by viewModel.state.collectAsStateWithLifecycle()
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    InCittaTheme(light = state.appearance == "light") {
         var organizerSlug by remember { mutableStateOf<String?>(null) }
         var tonightOpen by remember { mutableStateOf(false) }
         val tonightState = androidx.compose.runtime.saveable.rememberSaveableStateHolder()
@@ -75,6 +75,7 @@ fun InCittaApp(viewModel: MainViewModel) {
         LaunchedEffect(lifecycle, state.session?.token) {
             if (state.session != null) lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
                 while (true) {
+                    viewModel.synchronizeAppearance()
                     viewModel.synchronizeSaved()
                     kotlinx.coroutines.delay(30_000)
                 }
@@ -243,6 +244,7 @@ fun InCittaApp(viewModel: MainViewModel) {
                         onTickets = { viewModel.selectTab(AppTab.TICKETS) },
                         onClearAuthError = viewModel::clearAuthError,
                         onInterestsSaved = viewModel::interestsChanged,
+                        onAppearance = viewModel::setAppearance,
                     )
                     AppTab.CALENDAR -> CalendarScreen(state, padding, viewModel::open, viewModel::toggleSaved) { viewModel.selectTab(AppTab.EVENTS) }
                     AppTab.VENUES -> VenuesScreen(state, padding, viewModel::openVenue) { viewModel.selectTab(AppTab.EVENTS) }

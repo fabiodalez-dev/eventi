@@ -79,7 +79,10 @@ async function startMap(shell) {
 
     container.querySelector("[data-map-placeholder]")?.remove();
 
-    const style = await vectorStyle(config.style);
+    const isLight = () => document.documentElement.dataset.theme === 'light';
+    const colors = () => ({ accent: isLight() ? '#b54d23' : config.fallbackColor, canvas: isLight() ? '#faf9f6' : '#0b0b0b', onAccent: isLight() ? '#faf9f6' : '#0b0b0b' });
+    const styleUrl = () => isLight() ? (config.lightStyle ?? config.style) : config.style;
+    const style = await vectorStyle(styleUrl());
     if (!shell.isConnected) return;
     const map = new maplibregl.Map({
         container,
@@ -193,7 +196,7 @@ async function startMap(shell) {
         if (event.key === "Escape") closeSheet();
     });
 
-    map.on("load", () => {
+    map.on("style.load", () => {
         map.addSource("events", {
             type: "geojson", data: featureCollection(currentPayload),
             cluster: true, clusterMaxZoom: 15, clusterRadius: 48,
@@ -203,9 +206,9 @@ async function startMap(shell) {
             id: "event-clusters", type: "circle", source: "events",
             filter: ["has", "point_count"],
             paint: {
-                "circle-color": config.fallbackColor,
+                "circle-color": colors().accent,
                 "circle-radius": mobileMarkers ? ["step", ["get", "point_count"], 30, 5, 33, 20, 36] : ["step", ["get", "point_count"], 24, 5, 27, 20, 30],
-                "circle-stroke-color": "#0b0b0b", "circle-stroke-width": 2,
+                "circle-stroke-color": colors().canvas, "circle-stroke-width": 2,
             },
         });
         map.addLayer({
@@ -216,19 +219,19 @@ async function startMap(shell) {
                 "text-size": 15,
                 "text-font": ["Noto Sans Bold"],
             },
-            paint: { "text-color": "#0b0b0b" },
+            paint: { "text-color": colors().onAccent },
         });
         map.addLayer({
             id: "event-points-halo", type: "circle", source: "events",
             filter: ["!", ["has", "point_count"]],
-            paint: { "circle-color": config.fallbackColor, "circle-radius": mobileMarkers ? 27 : 19, "circle-opacity": 0.22 },
+            paint: { "circle-color": colors().accent, "circle-radius": mobileMarkers ? 27 : 19, "circle-opacity": 0.22 },
         });
         map.addLayer({
             id: "event-points", type: "circle", source: "events",
             filter: ["!", ["has", "point_count"]],
             paint: {
-                "circle-color": config.fallbackColor, "circle-radius": mobileMarkers ? 18 : 12,
-                "circle-stroke-color": "#0b0b0b", "circle-stroke-width": 2,
+                "circle-color": colors().accent, "circle-radius": mobileMarkers ? 18 : 12,
+                "circle-stroke-color": colors().canvas, "circle-stroke-width": 2,
             },
         });
 
@@ -239,6 +242,9 @@ async function startMap(shell) {
             paint: { "circle-radius": mobileMarkers ? 32 : 24, "circle-opacity": 0 },
         });
 
+    });
+
+    map.on("load", () => {
         map.on("click", "event-clusters", async (event) => {
             const feature = map.queryRenderedFeatures(event.point, { layers: ["event-clusters"] })[0];
             const clusterId = feature?.properties?.cluster_id;
@@ -267,6 +273,19 @@ async function startMap(shell) {
         map.once("idle", () => { settled = true; });
     });
 
+    let themeRevision = 0;
+    const changeTheme = async () => {
+        const revision = ++themeRevision;
+        try {
+            const nextStyle = await vectorStyle(styleUrl());
+            if (revision === themeRevision && shell.isConnected) map.setStyle(nextStyle);
+        } catch { /* Keep the working map if the tile provider is unavailable. */ }
+    };
+    window.addEventListener('appearance:change', changeTheme);
+    map.on('remove', () => {
+        themeRevision++;
+        window.removeEventListener('appearance:change', changeTheme);
+    });
     map.on("moveend", () => {
         if (settled && searchButton && !config.static) searchButton.hidden = false;
     });

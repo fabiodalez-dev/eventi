@@ -112,18 +112,30 @@
         : [];
 @endphp
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html data-theme="{{ auth()->user()?->appearance === 'light' ? 'light' : 'dark' }}" data-theme-user="{{ auth()->id() ?? 'guest' }}" lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     @if (filled($city?->seo['google_verification'] ?? null))
         <meta name="google-site-verification" content="{{ $city->seo['google_verification'] }}">
     @endif
-    {{-- Un tema solo, scuro (D46). Dichiararlo qui fa nascere scure anche le
-         parti che disegna il browser — barre di scorrimento, controlli dei
-         moduli, la finestra di scelta di una data — invece di vederle
-         comparire bianche in mezzo alla pagina. --}}
-    <meta name="color-scheme" content="dark">
+    <meta name="color-scheme" content="dark light">
+    {{-- Applied before CSS paints. Guests share cached HTML, never preferences. --}}
+    <script>
+        (() => {
+            const root = document.documentElement;
+            if (root.dataset.themeUser === 'guest') {
+                const cookie = document.cookie.split('; ').find(value => value.startsWith('incitta_appearance='))?.split('=')[1];
+                let saved = cookie;
+                if (saved !== 'light' && saved !== 'dark') {
+                    try { saved = localStorage.getItem('incitta:appearance:guest'); } catch {}
+                }
+                root.dataset.theme = saved === 'light' || saved === 'dark' ? saved : (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+                document.cookie = 'incitta_appearance=' + root.dataset.theme + '; Path=/; Max-Age=31536000; SameSite=Lax' + (location.protocol === 'https:' ? '; Secure' : '');
+            }
+            document.querySelector('meta[name="color-scheme"]').content = root.dataset.theme;
+        })();
+    </script>
 
     {{-- Il token con cui lo script conferma al server i salvataggi fatti dal
          cuore: senza, ogni chiamata asincrona sarebbe un 419. --}}
@@ -325,7 +337,7 @@
         e' il motivo per cui questi bordi non sono decorazione e non vanno
         assottigliati.
     --}}
-    <header class="fixed inset-x-0 top-0 z-[9000] border-b-2 border-line bg-[rgba(11,11,11,.94)] backdrop-blur-2xl">
+    <header class="fixed inset-x-0 top-0 z-[9000] border-b-2 border-line bg-[var(--header-surface)] backdrop-blur-2xl">
         <div class="flex h-[70px] items-center gap-[clamp(0.75rem,2vw,1.875rem)] px-[clamp(0.875rem,2.2vw,1.875rem)]">
             {{-- La citta' sta SOTTO il nome, non accanto.
 
@@ -367,7 +379,7 @@
                 data-live-search="{{ route('search.suggestions') }}"
                 data-search-loading="{{ __('search.live.loading') }}"
                 data-search-error="{{ __('search.live.error') }}"
-                class="relative flex h-[38px] max-w-[420px] flex-auto items-center border-2 border-line pl-2.5 focus-within:border-accent"
+                class="relative flex h-[38px] min-w-0 max-w-[420px] flex-auto items-center border-2 border-line pl-2.5 focus-within:border-accent"
             >
                 <label for="site-search" class="sr-only">
                     {{ __('ui.header.search_label', ['city' => $city?->name ?? $app]) }}
@@ -397,6 +409,26 @@
                  pannelli, che prima non esistevano da nessuna parte. Chi
                  amministra il sito doveva ricordarsi `/admin` e scriverlo a
                  mano. --}}
+            <details class="appearance-menu relative ml-auto shrink-0">
+                <summary aria-label="Aspetto: scegli tema chiaro o scuro" class="inline-flex min-h-12 min-w-12 cursor-pointer list-none items-center justify-center gap-2 px-2 text-sm text-ink-muted hover:text-ink">
+                    <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/></svg>
+                    <span class="hidden xl:inline">Aspetto</span>
+                </summary>
+                <div class="absolute right-0 top-full w-64 border border-line bg-canvas p-4 shadow-card">
+                    <form data-appearance-form action="{{ route('appearance.update') }}" method="POST">
+                        @csrf
+                        @method('PATCH')
+                        <p class="mb-3 text-sm font-semibold">Aspetto</p>
+                        <div class="flex gap-2">
+                            @foreach (['dark' => 'Scuro', 'light' => 'Chiaro'] as $value => $label)
+                                <button type="{{ auth()->check() ? 'submit' : 'button' }}" name="appearance" value="{{ $value }}" data-appearance-choice="{{ $value }}" aria-pressed="{{ (auth()->user()?->appearance ?? 'dark') === $value ? 'true' : 'false' }}" class="appearance-quick flex min-h-12 flex-1 items-center justify-center gap-2 border border-line px-3 text-sm"><span aria-hidden="true" class="appearance-swatch appearance-swatch--{{ $value }}"></span>{{ $label }}</button>
+                            @endforeach
+                        </div>
+                        <p data-appearance-status role="status" aria-live="polite" class="mt-2 text-xs text-ink-muted"></p>
+                    </form>
+                    <a href="{{ route('appearance') }}" class="mt-3 inline-flex min-h-10 items-center text-xs underline underline-offset-4">Anteprime e preferenze</a>
+                </div>
+            </details>
             <x-account-menu :saved-count="$savedCount" />
 
             @if (\Illuminate\Support\Facades\Route::has('submissions.create'))

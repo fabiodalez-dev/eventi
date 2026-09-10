@@ -35,6 +35,8 @@ internal fun navigationTarget(tab: AppTab, authenticated: Boolean): AppTab =
     if (tab == AppTab.SAVED && !authenticated) AppTab.ACCOUNT else tab
 
 data class AppUiState(
+    val appearance: String = "dark",
+    val appearanceSaving: Boolean = false,
     val bookings: List<it.fabiodalez.incitta.data.Booking> = emptyList(),
     val bookingDate: Occurrence? = null,
     val bookingAvailability: it.fabiodalez.incitta.data.BookingAvailability? = null,
@@ -89,6 +91,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = AppRepository(application)
     private val _state = MutableStateFlow(
         AppUiState(
+            appearance = repository.appearance(),
             occurrences = repository.cachedOccurrences(),
             session = repository.session.value,
             privacyConsent = repository.privacyConsent(),
@@ -145,13 +148,36 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         bookingJob?.cancel()
                         _state.value = _state.value.copy(bookings = emptyList(), bookingDate = null, bookingAvailability = null, bookingBusy = false, bookingError = null)
                     }
-                    _state.value = _state.value.copy(session = session, savedIds = saved)
+                    _state.value = _state.value.copy(session = session, savedIds = saved, appearance = repository.appearance())
                     if (sessionChanged) interestsChanged()
                 }
         }
         refresh(EventFilter.ALL)
         loadVenues()
         loadMap()
+    }
+
+    fun setAppearance(value: String) {
+        if (_state.value.appearanceSaving || value !in listOf("dark", "light")) return
+        val previous = _state.value.appearance
+        val token = repository.session.value?.token
+        _state.value = _state.value.copy(appearance = value, appearanceSaving = true)
+        viewModelScope.launch {
+            try {
+                repository.setAppearance(value)
+                _state.value = _state.value.copy(appearance = repository.appearance(), message = "Aspetto salvato.")
+            } catch (cancelled: CancellationException) { throw cancelled }
+            catch (_: Exception) {
+                if (repository.session.value?.token == token) _state.value = _state.value.copy(appearance = previous, message = "Salvataggio non riuscito. Riprova quando sei online.")
+            } finally { _state.value = _state.value.copy(appearanceSaving = false) }
+        }
+    }
+
+    suspend fun synchronizeAppearance() {
+        if (_state.value.appearanceSaving) return
+        try { repository.refreshProfile() }
+        catch (cancelled: CancellationException) { throw cancelled }
+        catch (_: Exception) { /* Cached profile remains available offline. */ }
     }
 
     fun selectTab(tab: AppTab) {

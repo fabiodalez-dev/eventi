@@ -33,6 +33,7 @@ final class UserResource
             'email_verified' => $user->email_verified_at !== null,
             'timezone' => $timezone,
             'locale' => (string) $user->locale,
+            'appearance' => $user->appearance,
             'marketing_opt_in' => $user->marketing_opt_in_at !== null,
             'created_at' => ApiDate::attribute($user, 'created_at', $timezone),
             'updated_at' => ApiDate::attribute($user, 'updated_at', $timezone),

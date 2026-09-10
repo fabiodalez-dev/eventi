@@ -18,25 +18,31 @@ import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 import it.fabiodalez.incitta.R
 
-val Ink = Color(0xFF0B0B0B)
-val Paper = Color(0xFFF5F5F0)
-val Acid = Color(0xFFCCFF00)
-val Muted = Color(0xFFA3A39D)
-val Rule = Color(0xFF383838)
-val Danger = Color(0xFFFF5A5F)
+val Ink: Color @Composable get() = MaterialTheme.colorScheme.background
+val Paper: Color @Composable get() = MaterialTheme.colorScheme.onBackground
+val Acid: Color @Composable get() = MaterialTheme.colorScheme.primary
+val Muted: Color @Composable get() = MaterialTheme.colorScheme.onSurfaceVariant
+val Rule: Color @Composable get() = MaterialTheme.colorScheme.outlineVariant
+val Danger: Color @Composable get() = MaterialTheme.colorScheme.error
 
 private val Archivo = FontFamily(Font(R.font.archivo_semibold, FontWeight.SemiBold))
 
 private val Colors = darkColorScheme(
-    primary = Acid,
-    onPrimary = Ink,
-    background = Ink,
-    onBackground = Paper,
-    surface = Ink,
-    onSurface = Paper,
-    surfaceVariant = Color(0xFF171717),
-    onSurfaceVariant = Muted,
-    error = Danger,
+    primary = Color(0xFFCCFF00), onPrimary = Color(0xFF0B0B0B),
+    background = Color(0xFF0B0B0B), onBackground = Color(0xFFF5F5F0),
+    surface = Color(0xFF0B0B0B), onSurface = Color(0xFFF5F5F0),
+    surfaceVariant = Color(0xFF171717), onSurfaceVariant = Color(0xFFA3A39D),
+    outlineVariant = Color(0xFF383838), error = Color(0xFFFF5A5F),
+)
+private val LightColors = androidx.compose.material3.lightColorScheme(
+    primary = Color(0xFFB54D23), onPrimary = Color(0xFFFAF9F6),
+    background = Color(0xFFFAF9F6), onBackground = Color(0xFF262624),
+    surface = Color(0xFFFAF9F6), onSurface = Color(0xFF262624),
+    surfaceVariant = Color(0xFFF1F0EC), onSurfaceVariant = Color(0xFF686863),
+    primaryContainer = Color(0xFFF7E9E1), onPrimaryContainer = Color(0xFF963E1B),
+    secondaryContainer = Color(0xFFF7E9E1), onSecondaryContainer = Color(0xFF963E1B),
+    outline = Color(0xFF85847E), outlineVariant = Color(0xFFDEDDD7),
+    error = Color(0xFFB42318), onError = Color(0xFFFAF9F6),
 )
 
 private val Typography = androidx.compose.material3.Typography(
@@ -61,14 +67,17 @@ private val SquareShapes = Shapes(
 )
 
 @Composable
-fun InCittaTheme(content: @Composable () -> Unit) {
+fun InCittaTheme(light: Boolean = false, content: @Composable () -> Unit) {
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false
-            WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = false
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = light
+            WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = light
         }
     }
-    MaterialTheme(colorScheme = Colors, typography = Typography, shapes = SquareShapes, content = content)
+    MaterialTheme(colorScheme = if (light) LightColors else Colors, typography = Typography, shapes = if (light) Shapes() else SquareShapes, content = content)
 }
+
+@Composable
+fun eventTitle(text: String): String = if (MaterialTheme.colorScheme.background == Color(0xFFFAF9F6)) text else text.uppercase()

@@ -171,7 +171,7 @@
             <a
                 href="{{ route('events.show', $heroEvento) }}"
                 @if ($heroSponsorizzato) rel="sponsored" @endif
-                class="group relative flex min-h-[clamp(26.25rem,46vw,38.75rem)] flex-col overflow-hidden"
+                class="photo-panel group relative flex min-h-[clamp(26.25rem,46vw,38.75rem)] flex-col overflow-hidden"
                 data-home-hero
                 @if ($heroSponsorizzato)
                     data-sponsorship="{{ $heroSponsorship->getKey() }}"

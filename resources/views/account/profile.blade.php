@@ -31,6 +31,10 @@
             @endunless
         </header>
 
+        <section aria-labelledby="profile-appearance">
+            <h2 id="profile-appearance" class="text-section">Aspetto</h2>
+            <x-appearance-picker />
+        </section>
         <x-button :href="route('tickets.index')">{{ __('ticketing.title') }}</x-button>
         <x-button :href="route('account.content-preferences')" variant="secondary">I miei interessi · scegli cosa vedere</x-button>
         @if(auth()->user()->managedOrganizers()->exists())

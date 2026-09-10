@@ -65,6 +65,7 @@
 
     $configuration = [
         'static' => $static,
+        'lightStyle' => config('map.light_style_url'),
         'style' => config('map.style_url'),
         'maxZoom' => config()->integer('map.max_zoom'),
         'attribution' => $attribution,

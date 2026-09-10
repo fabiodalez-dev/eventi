@@ -29,6 +29,7 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
+/** @property string $appearance */
 /** @property array{mode?: string, categories?: list<int>, hidden_categories?: list<int>, inferred_ads?: bool}|null $content_preferences */
 class User extends Authenticatable implements FilamentUser, HasTenants, MustVerifyEmail
 {

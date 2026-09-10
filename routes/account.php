@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Web\Account\AppearanceController;
 use App\Http\Controllers\Web\Account\ContentPreferencesController;
 use App\Http\Controllers\Web\Account\EmailVerificationController;
 use App\Http\Controllers\Web\Account\FeedController;
@@ -39,6 +40,9 @@ use Illuminate\Support\Facades\URL;
 | qualche parte: chiamarla altrimenti significherebbe dichiarare quel
 | reindirizzamento a mano in un punto lontano da qui.
 */
+
+Route::get('/aspetto', [AppearanceController::class, 'index'])->name('appearance');
+Route::patch('/aspetto', [AppearanceController::class, 'update'])->middleware(['auth', 'throttle:60,1'])->name('appearance.update');
 
 Route::middleware('guest')->group(function (): void {
     Route::get('/registrati', [RegisterController::class, 'create'])->name('account.register');

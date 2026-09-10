@@ -197,6 +197,7 @@ data class User(
     val email: String,
     @SerialName("email_verified") val emailVerified: Boolean = false,
     @SerialName("role_label") val roleLabel: String? = null,
+    val appearance: String = "dark",
 )
 
 @Serializable

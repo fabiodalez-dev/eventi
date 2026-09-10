@@ -1,0 +1,116 @@
+/* Carta e terracotta. Theme roles also cover badges, maps and embedded forms. */
+:root[data-theme="light"] {
+    color-scheme: light;
+    --canvas: #faf9f6;
+    --canvas-deep: #f1f0ec;
+    --surface: #f1f0ec;
+    --surface-raised: #fdfcf9;
+    --surface-sunken: #eae9e3;
+    --overlay: rgb(38 38 36 / 45%);
+    --ink: #262624;
+    --ink-muted: #686863;
+    --ink-subtle: #686863;
+    --ink-inverted: #faf9f6;
+    --line: #deddd7;
+    --line-strong: #85847e;
+    --brand: #b54d23;
+    --brand-strong: #963e1b;
+    --brand-soft: #f7e9e1;
+    --on-brand: #faf9f6;
+    --on-brand-soft: #963e1b;
+    --accent: #b54d23;
+    --accent-soft: #f7e9e1;
+    --on-accent: #faf9f6;
+    --live: #b54d23;
+    --live-soft: #f7e9e1;
+    --on-live: #faf9f6;
+    --on-live-soft: #963e1b;
+    --soon: #262624;
+    --soon-soft: #eae9e3;
+    --on-soon-soft: #53534e;
+    --free: #686863;
+    --free-soft: #eae9e3;
+    --on-free-soft: #53534e;
+    --muted-badge: #eae9e3;
+    --on-muted-badge: #53534e;
+    --focus: #b54d23;
+    --elev-card: none;
+    --elev-lift: 0 0 0 1px var(--line);
+    --poster-from: #eae9e3;
+    --poster-to: #deddd7;
+    --spacing-section: 3.5rem;
+    --text-hero--font-weight: 650;
+    --text-section--font-weight: 650;
+    --text-eyebrow--font-weight: 500;
+    --header-surface: #faf9f6;
+}
+
+:root[data-theme="light"] :is(h1, h2, h3, .text-hero, .text-section) {
+    font-weight: 650;
+    text-transform: none;
+    letter-spacing: -0.025em;
+    line-height: 1.15;
+}
+:root[data-theme="light"] :is(.font-extrabold, .font-black) { font-weight: 600; }
+:root[data-theme="light"] :is(button, summary, nav a, .font-display.uppercase) {
+    text-transform: none;
+    letter-spacing: 0;
+}
+:root[data-theme="light"] :is(button, input:not([type="checkbox"]):not([type="radio"]), select, textarea, summary) { border-radius: 6px; }
+:root[data-theme="light"] :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) { border-color: var(--line-strong); }
+:root[data-theme="light"] .border-2 { border-width: 1px; }
+:root[data-theme="light"] .border-t-2 { border-top-width: 1px; }
+:root[data-theme="light"] .border-b-2 { border-bottom-width: 1px; }
+:root[data-theme="light"] .border-l-2 { border-left-width: 1px; }
+:root[data-theme="light"] .border-r-2 { border-right-width: 1px; }
+:root[data-theme="light"] .divider { height: 1px; }
+:root[data-theme="light"] [data-mobile-navigation] a[aria-current="page"] { background: var(--accent-soft); color: var(--accent); }
+:root[data-theme="light"] .maplibregl-ctrl-icon { filter: none !important; }
+:root[data-theme="light"] .maplibregl-ctrl-group button:hover .maplibregl-ctrl-icon { filter: invert(1) !important; }
+/* Text over photographs keeps its own contrast, independently of the page. */
+:root[data-theme="light"] .photo-panel {
+    --surface: #383834;
+    --on-free-soft: #53534e;
+    --ink: #faf9f6;
+    --ink-muted: #e4e2dd;
+    --ink-subtle: #e4e2dd;
+    --line: rgb(250 249 246 / 40%);
+    --accent: #f1b597;
+    --on-accent: #262624;
+    color: var(--ink);
+    background-color: #262624;
+}
+.appearance-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.appearance-option { text-align: left; padding: 6px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
+.appearance-option[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.appearance-option:disabled { cursor: progress; opacity: .7; }
+.appearance-preview { display: flex; height: 150px; border-radius: 4px; overflow: hidden; background: var(--preview-canvas); color: var(--preview-ink); }
+.appearance-preview--dark { --preview-canvas: #0b0b0b; --preview-ink: #f5f5f0; --preview-panel: #1a1a19; --preview-accent: #ccff00; }
+.appearance-preview--light { --preview-canvas: #faf9f6; --preview-ink: #262624; --preview-panel: #eae9e3; --preview-accent: #b54d23; }
+.preview-nav { display: flex; flex-direction: column; width: 27%; background: var(--preview-panel); padding: 18px 10px; gap: 10px; }
+.preview-nav span { height: 6px; background: var(--preview-ink); margin-bottom: 12px; }
+.preview-nav i { height: 4px; background: var(--preview-ink); opacity: .3; }
+.preview-content { flex: 1; padding: 22px 14px; }
+.preview-content > b { display: block; background: var(--preview-ink); height: 8px; width: 80%; }
+.preview-content > i { display: block; background: var(--preview-accent); height: 12px; width: 35%; margin: 12px 0; border-radius: 2px; }
+.preview-content > span { display: flex; flex-direction: column; gap: 12px; }
+.preview-content em { display: block; height: 4px; background: var(--preview-ink); opacity: .2; }
+.appearance-caption { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 14px 8px 8px; }
+.appearance-caption strong { display: block; font-size: 16px; font-weight: 600; }
+.appearance-caption small { display: block; font-size: 12px; color: var(--ink-muted); margin-top: 4px; }
+.appearance-check { visibility: hidden; color: var(--accent); }
+[aria-pressed="true"] .appearance-check { visibility: visible; }
+@media (max-width: 380px) { .appearance-options { gap: 12px; } .appearance-preview { height: 120px; } }
+
+.appearance-menu summary::-webkit-details-marker { display: none; }
+.appearance-quick[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--on-brand-soft); box-shadow: inset 0 0 0 1px var(--accent); }
+.appearance-swatch { width: 14px; height: 14px; border: 1px solid var(--line-strong); border-radius: 50%; }
+.appearance-swatch--dark { background: #0b0b0b; }
+.appearance-swatch--light { background: #faf9f6; }
+:root[data-theme="light"] [data-ticker] { background: var(--surface); border-color: var(--line); --on-accent: var(--ink-muted); }
+:root[data-theme="light"] [data-ticker-track] { animation: none; }
+
+:root[data-theme="light"] :is(.reveal-clip, .reveal-left, .reveal-up) { animation: none; }
+:root[data-theme="light"] .photo-panel .bg-surface { color: #faf9f6; }
+
+:root[data-theme="light"] .bg-accent-soft { --on-accent: #963e1b; }

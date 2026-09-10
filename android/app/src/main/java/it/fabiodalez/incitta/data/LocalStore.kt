@@ -24,6 +24,9 @@ class LocalStore(private val context: Context) {
             prefs.edit { putString(KEY_INSTALLATION, it) }
         }
 
+    fun guestAppearance(): String = prefs.getString("guest_appearance", "dark").let { if (it == "light") "light" else "dark" }
+    fun setGuestAppearance(value: String) { prefs.edit { putString("guest_appearance", value) } }
+
     fun readSession(): Session? {
         val encrypted = prefs.getString(KEY_SESSION, null) ?: return null
         return runCatching {

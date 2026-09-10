@@ -6,6 +6,8 @@ declare(strict_types=1);
  * a ogni zoom e non esiste il limite delle vecchie tessere raster Esri, che
  * oltre il livello 16 mostravano "Map data not yet available". */
 return [
+    'light_style_url' => env('MAP_LIGHT_STYLE_URL', 'https://tiles.openfreemap.org/styles/positron'),
+
     'style_url' => env('MAP_STYLE_URL', 'https://tiles.openfreemap.org/styles/dark'),
 
     'max_zoom' => 19,
