@@ -410,16 +410,6 @@
                  amministra il sito doveva ricordarsi `/admin` e scriverlo a
                  mano. --}}
             <x-account-menu :saved-count="$savedCount" />
-            <form data-appearance-form action="{{ route('appearance.update') }}" method="POST" class="shrink-0">
-                @csrf
-                @method('PATCH')
-                <button type="{{ auth()->check() ? 'submit' : 'button' }}" name="appearance" value="{{ auth()->user()?->appearance === 'light' ? 'dark' : 'light' }}" data-appearance-toggle aria-label="Cambia tema" title="Cambia tema" class="appearance-toggle inline-flex min-h-12 min-w-12 cursor-pointer items-center justify-center text-ink-muted hover:text-ink">
-                    <svg class="theme-icon-sun" aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></svg>
-                    <svg class="theme-icon-moon" aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 15.5A8.5 8.5 0 0 1 8.5 4a8.5 8.5 0 1 0 11.5 11.5Z"/></svg>
-                </button>
-                <span data-appearance-status role="status" aria-live="polite" class="sr-only"></span>
-            </form>
-
 
             @if (\Illuminate\Support\Facades\Route::has('submissions.create'))
                 <a
@@ -429,6 +419,16 @@
                     {{ __('ui.header.submit_event') }}
                 </a>
             @endif
+
+            <form data-appearance-form action="{{ route('appearance.update') }}" method="POST" class="shrink-0">
+                @csrf
+                @method('PATCH')
+                <button type="{{ auth()->check() ? 'submit' : 'button' }}" name="appearance" value="{{ auth()->user()?->appearance === 'light' ? 'dark' : 'light' }}" data-appearance-toggle aria-label="Cambia tema" title="Cambia tema" class="appearance-toggle inline-flex min-h-12 min-w-12 cursor-pointer items-center justify-center text-ink-muted hover:text-ink">
+                    <svg class="theme-icon-sun" aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></svg>
+                    <svg class="theme-icon-moon" aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 15.5A8.5 8.5 0 0 1 8.5 4a8.5 8.5 0 1 0 11.5 11.5Z"/></svg>
+                </button>
+                <span data-appearance-status role="status" aria-live="polite" class="sr-only"></span>
+            </form>
         </div>
 
         {{-- Il nastro: le stesse notizie che stanno nella pagina, in movimento.
