@@ -43,6 +43,7 @@ export function sponsorshipBanners() {
                 const { data } = await response.json();
                 clearTimeout(expiry);
                 if (!data || Date.parse(data.expires_at) <= Date.now()) { hide(); return; }
+                if (slot.dataset.excludeEvent && data.event_slug === slot.dataset.excludeEvent) { hide(); return; }
                 banner = data;
                 link.href = data.url;
                 slot.querySelector('[data-banner-title]').textContent = data.title;

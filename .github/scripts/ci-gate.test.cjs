@@ -4,7 +4,7 @@ const { passed } = require('./ci-gate.cjs');
 
 const complete = () => ({
     scope: { result: 'success', outputs: { web: 'true', android: 'true' } },
-    quality: { result: 'success' }, tests: { result: 'success' },
+    quality: { result: 'success' }, tests: { result: 'success' }, browser: { result: 'success' },
     lighthouse: { result: 'success' }, android: { result: 'success' },
 });
 
@@ -18,13 +18,13 @@ test('explicit Lighthouse pause allows only an intentional skip', () => {
         assert.equal(passed(needs, true), false);
     }
     needs.lighthouse.result = 'skipped';
-    for (const job of ['scope', 'quality', 'tests', 'android']) {
+    for (const job of ['scope', 'quality', 'tests', 'browser', 'android']) {
         const broken = structuredClone(needs);
         broken[job].result = 'skipped';
         assert.equal(passed(broken, true), false);
     }
 });
-for (const job of ['scope', 'quality', 'tests', 'lighthouse', 'android']) {
+for (const job of ['scope', 'quality', 'tests', 'browser', 'lighthouse', 'android']) {
     for (const result of ['failure', 'cancelled', 'skipped']) {
         test(`${job} ${result} blocks release`, () => {
             const needs = complete();

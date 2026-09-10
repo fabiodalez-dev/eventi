@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Support\EventUrl;
 use App\Support\Poster;
 use Carbon\Carbon;
 
@@ -31,7 +32,7 @@ it('shows a branded placeholder on event and occurrence pages without a poster',
     freezeLocal($city, '2026-09-07 12:00:00');
     $occurrence = occurrenceAtLocal($city, testCategory(), '2026-09-10 21:00:00', event: ['poster' => null]);
 
-    foreach ([route('events.show', $occurrence->event), route('events.occurrence', ['slug' => $occurrence->event->slug, 'occurrence' => $occurrence->id])] as $url) {
+    foreach ([route('events.show', $occurrence->event), EventUrl::occurrence($occurrence)] as $url) {
         $this->get($url)->assertOk()
             ->assertSee('data-event-hero-placeholder', false)
             ->assertSee(__('events.card.poster_missing'))

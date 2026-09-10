@@ -16,7 +16,7 @@ use Illuminate\Testing\TestResponse;
 use Laravel\Pennant\Feature;
 use Tests\TestCase;
 
-uses(TestCase::class, RefreshDatabase::class)->in('Feature');
+uses(TestCase::class, RefreshDatabase::class)->in('Feature', 'Browser');
 
 /*
  * Pennant tiene in memoria il valore di un interruttore appena lo risolve, e
@@ -32,7 +32,7 @@ uses(TestCase::class, RefreshDatabase::class)->in('Feature');
  */
 uses()->beforeEach(function (): void {
     Feature::flushCache();
-})->in('Feature');
+})->in('Feature', 'Browser');
 
 /**
  * La città pilota: fuso Europe/Rome, cutoff notturno alle 06:00, "inizia tra

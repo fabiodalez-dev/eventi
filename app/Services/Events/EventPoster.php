@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Events;
 
 use App\Models\EventOccurrence;
+use App\Support\EventUrl;
 use Barryvdh\DomPDF\Facade\Pdf;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
@@ -79,6 +80,6 @@ final class EventPoster
 
     private function url(EventOccurrence $occurrence): string
     {
-        return route('events.show', $occurrence->event);
+        return EventUrl::occurrence($occurrence);
     }
 }

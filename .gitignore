@@ -73,3 +73,8 @@ CLAUDE.md
 /android/app/src/release/google-services.json
 *firebase-adminsdk*.json
 /storage/app/private/firebase/
+
+# Referti e schermate generati dalle suite di qualità
+/tests/Browser/Screenshots/
+/.deptrac.cache
+/.infection/

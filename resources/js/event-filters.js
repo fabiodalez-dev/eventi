@@ -13,6 +13,26 @@ export function removesFilters(previous, next) {
     });
 }
 
+async function fadeFilterParts(region, from, to, duration, signal) {
+    if (!region.hasAttribute('data-filter-fade') || signal.aborted
+        || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    const animations = [...region.querySelectorAll('[data-filter-transition]')]
+        .filter(element => typeof element.animate === 'function')
+        .map(element => element.animate([{ opacity: from }, { opacity: to }], {
+            duration, easing: 'cubic-bezier(0.25, 1, 0.5, 1)', fill: 'both',
+        }));
+    const cancel = () => animations.forEach(animation => animation.cancel());
+    signal.addEventListener('abort', cancel, { once: true });
+    try {
+        await Promise.allSettled(animations.map(animation => animation.finished));
+    } finally {
+        signal.removeEventListener('abort', cancel);
+        // Never leave an interrupted navigation transparent.
+        cancel();
+    }
+}
+
 export function eventFilters() {
     if (!document.querySelector('[data-event-browser]')) return;
     let pending;
@@ -20,12 +40,13 @@ export function eventFilters() {
     const navigate = async (url, push = true) => {
         pending?.abort();
         pending = new AbortController();
+        const signal = pending.signal;
         const current = ++revision;
         const region = document.querySelector('[data-event-browser]');
         region.setAttribute('aria-busy', 'true');
         region.querySelector('aside')?.setAttribute('inert', '');
         try {
-            const response = await fetch(url, { signal: pending.signal, headers: { 'X-Requested-With': 'fetch' } });
+            const response = await fetch(url, { signal, headers: { 'X-Requested-With': 'fetch' } });
             if (!response.ok) throw new Error('response');
             const page = new DOMParser().parseFromString(await response.text(), 'text/html');
             const next = page.querySelector('[data-event-browser]');
@@ -44,8 +65,15 @@ export function eventFilters() {
                 return;
             }
             next.querySelectorAll('aside details').forEach(details => details.removeAttribute('open'));
+            // Keep the current content visible until the replacement is ready.
+            await fadeFilterParts(region, 1, 0, 120, signal);
+            if (revision !== current || signal.aborted) return;
+            const sidebarScroll = region.querySelector('aside')?.scrollTop ?? 0;
             document.dispatchEvent(new Event('event-browser:before-update'));
             region.replaceWith(next);
+            const nextSidebar = next.querySelector('aside');
+            if (next.hasAttribute('data-filter-fade') && nextSidebar) nextSidebar.scrollTop = sidebarScroll;
+            next.setAttribute('aria-busy', 'true');
             document.title = page.title;
             for (const selector of ['link[rel="canonical"]', 'meta[name="description"]', 'meta[name="robots"]']) {
                 const previous = document.head.querySelector(selector);
@@ -60,6 +88,7 @@ export function eventFilters() {
             const heading = next.querySelector('h1');
             heading?.setAttribute('tabindex', '-1');
             heading?.focus({ preventScroll: true });
+            await fadeFilterParts(next, 0, 1, 200, signal);
         } catch (error) {
             if (error.name !== 'AbortError' && current === revision) {
                 region.querySelectorAll('aside form').forEach(form => form.reset());

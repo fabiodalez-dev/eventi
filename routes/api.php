@@ -101,6 +101,7 @@ Route::prefix('v1')
              */
             Route::get('/events', [EventController::class, 'index'])->name('events.index');
             Route::get('/events/facets', [EventController::class, 'facets'])->name('events.facets');
+            Route::get('/events/{slug}/dates/{number}', [OccurrenceController::class, 'byNumber'])->whereNumber('number')->name('events.date');
             Route::get('/events/{slug}/similar', [EventController::class, 'similar'])->name('events.similar');
             Route::get('/events/{slug}/occurrences', [EventController::class, 'occurrences'])->name('events.occurrences');
             Route::get('/events/{slug}', [EventController::class, 'show'])->name('events.show');

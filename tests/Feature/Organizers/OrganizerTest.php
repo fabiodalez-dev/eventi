@@ -14,6 +14,7 @@ use App\Policies\EventPolicy;
 use App\Queries\EventOccurrenceQuery;
 use App\Services\Seo\EditorialContent;
 use App\Services\Seo\StructuredData;
+use App\Support\EventUrl;
 use Filament\Facades\Filament;
 use Illuminate\Validation\ValidationException;
 use Laravel\Sanctum\Sanctum;
@@ -56,7 +57,7 @@ it('uses the actual venue per date for API maps and venue archives', function ()
         expect(EventOccurrenceQuery::for($this->city)->upcoming()->atVenue($original)->get()->modelKeys())->not->toContain($this->date->id);
     }
     $this->getJson('/api/v1/occurrences/'.$this->date->id)->assertOk()->assertJsonPath('data.venue.id', $venue->id);
-    $this->get('/eventi/'.$this->date->event->slug.'/date/'.$this->date->id)->assertOk()->assertSee($venue->name);
+    $this->get(EventUrl::occurrence($this->date))->assertOk()->assertSee($venue->name);
 });
 it('finds organizers and their events by partial description without exposing inactive organizers', function (): void {
     $this->get('/cerca/suggerimenti?q=rasseg')->assertOk()->assertSee($this->organizer->name);
@@ -150,7 +151,7 @@ it('inherits practical information from the actual date venue and preserves expl
     expect($details['accessibility'])->toBe('yes');
     $this->getJson('/api/v1/events/'.$this->date->event->slug)->assertOk()
         ->assertJsonPath('data.occurrences.0.content_details.transit_notes', 'Tram fermata ospitante');
-    $this->get('/eventi/'.$this->date->event->slug.'/date/'.$this->date->id)->assertOk()
+    $this->get(EventUrl::occurrence($this->date))->assertOk()
         ->assertSee('Prima di andare')->assertSee('Tram fermata ospitante')->assertSee('Consumazione obbligatoria 5 euro');
 });
 

@@ -99,7 +99,7 @@
 
                         @foreach ($dayItems->take(2) as $occurrence)
                             <a
-                                href="{{ route('events.occurrence', ['slug' => $occurrence->event->slug, 'occurrence' => $occurrence->id]) }}"
+                                href="{{ \App\Support\EventUrl::occurrence($occurrence) }}"
                                 data-calendar-preview="saved-preview-{{ $occurrence->getKey() }}" aria-haspopup="dialog"
                                 class="mt-1 hidden text-[0.625rem] leading-tight text-ink-muted hover:text-accent sm:block"
                             >
@@ -127,7 +127,7 @@
                         </h3>
                         @foreach ($items as $occurrence)
                             <article id="saved-{{ $occurrence->getKey() }}" class="scroll-mt-28 grid gap-3 border-2 border-line bg-canvas p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
-                                <a href="{{ route('events.occurrence', ['slug' => $occurrence->event->slug, 'occurrence' => $occurrence->id]) }}" data-calendar-preview="saved-preview-{{ $occurrence->getKey() }}" aria-haspopup="dialog" class="group min-w-0">
+                                <a href="{{ \App\Support\EventUrl::occurrence($occurrence) }}" data-calendar-preview="saved-preview-{{ $occurrence->getKey() }}" aria-haspopup="dialog" class="group min-w-0">
                                     <p class="font-display text-[0.625rem] font-extrabold tracking-[0.14em] text-accent uppercase">
                                         {{ $occurrence->is_all_day ? __('filters.time_of_day.any') : $occurrence->starts_at->format('H:i') }}
                                     </p>

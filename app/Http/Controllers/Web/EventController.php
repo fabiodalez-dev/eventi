@@ -18,6 +18,7 @@ use App\Services\Events\EventPoster;
 use App\Services\Seo\EditorialContent;
 use App\Services\Seo\StructuredData;
 use App\Support\CurrentCity;
+use App\Support\EventUrl;
 use App\Support\Poster;
 use App\Support\TicketTiers;
 use Illuminate\Contracts\View\View;
@@ -60,13 +61,14 @@ final class EventController extends Controller
             ->header('Cache-Control', 'private, no-store')->header('X-Robots-Tag', 'noindex, nofollow');
     }
 
-    public function date(string $slug, EventOccurrence $occurrence): View
+    public function date(string $slug, string $occurrence): View
     {
         $city = $this->city();
         $event = $this->findReadable($city, $slug);
-        abort_unless((int) $occurrence->event_id === (int) $event->id, 404);
+        $date = $event->occurrences()->where('url_number', $occurrence)->firstOrFail();
+        $date->setRelation('event', $event);
 
-        return $this->renderEvent($city, $event, false, $occurrence);
+        return $this->renderEvent($city, $event, false, $date);
     }
 
     private function renderEvent(City $city, Event $event, bool $isPreview = false, ?EventOccurrence $selected = null): View
@@ -95,7 +97,7 @@ final class EventController extends Controller
         $canonicalDate = $selected ?? (! $isSeries ? $dates->first() : null);
         $meta = $this->meta($event, $dates)->withIndexable(! $isPreview && in_array($event->status, [EventStatus::Published, EventStatus::Archived], true));
         if ($canonicalDate !== null) {
-            $meta = $meta->withCanonical(route('events.occurrence', ['slug' => $event->slug, 'occurrence' => $canonicalDate->id]));
+            $meta = $meta->withCanonical(EventUrl::occurrence($canonicalDate));
         }
         $meta = app(EditorialContent::class)->meta($event, $meta);
         if ($selected !== null) {
@@ -104,7 +106,7 @@ final class EventController extends Controller
         $schema = $selected === null && $isSeries
             ? [$this->structuredData->collection($event->title, route('events.show', $event), $dates->map(fn ($date): array => [
                 'name' => $event->title.' · '.$date->business_date->format('d/m/Y'),
-                'url' => route('events.occurrence', ['slug' => $event->slug, 'occurrence' => $date->id]),
+                'url' => EventUrl::occurrence($date),
             ])->all())]
             : $this->structuredData->events($event, $dates);
         if ($selected !== null && isset($schema[0])) {
@@ -112,6 +114,8 @@ final class EventController extends Controller
             $schema[0]['@id'] = $meta->canonical.'#event';
         }
         $atVenue = $this->atSameVenue($city, $event);
+
+        request()->attributes->set('sponsorship_exclude_event', $event->slug);
 
         return view('events.show', [
             'isPreview' => $isPreview,
@@ -147,12 +151,12 @@ final class EventController extends Controller
      * Il file `.ics` di **una** data: chi salva un appuntamento nel proprio
      * calendario salva quella sera, non l'intera rassegna.
      */
-    public function calendar(string $slug, EventOccurrence $occurrence): Response
+    public function calendar(string $slug, string $occurrence): Response
     {
         $city = $this->city();
         $event = $this->findReadable($city, $slug);
 
-        abort_unless((int) $occurrence->event_id === (int) $event->getKey(), 404);
+        $occurrence = $event->occurrences()->where('url_number', $occurrence)->firstOrFail();
 
         $occurrence->setRelation('event', $event);
 
@@ -171,7 +175,7 @@ final class EventController extends Controller
      * un accesso significherebbe che il volantino lo rifà ognuno a modo suo,
      * col rischio che l'orario sul muro diverga da quello sul sito.
      */
-    public function poster(string $slug, EventOccurrence $occurrence, EventPoster $poster): Response
+    public function poster(string $slug, string $occurrence, EventPoster $poster): Response
     {
         $city = $this->city();
         $event = $this->findReadable($city, $slug);
@@ -179,7 +183,7 @@ final class EventController extends Controller
         /* Come per l'ICS: la data deve appartenere a questo evento, altrimenti
            si potrebbe comporre la locandina di un evento accostando lo slug di
            uno e il numero di una data di un altro. */
-        abort_unless((int) $occurrence->event_id === (int) $event->getKey(), 404);
+        $occurrence = $event->occurrences()->where('url_number', $occurrence)->firstOrFail();
 
         $occurrence->setRelation('event', $event);
 

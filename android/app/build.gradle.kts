@@ -17,9 +17,12 @@ kotlin {
 }
 
 android {
+    val sideloadDebug = providers.gradleProperty("sideloadDebug").orNull == "true"
+    val playStore = providers.gradleProperty("playStore").orNull == "true"
     // Exercise the registered Firebase package on an emulator without creating
     // a second Firebase app. Production release builds remain optimized.
     val deviceTests = providers.gradleProperty("deviceTests").orNull == "true"
+    check(!playStore || !deviceTests) { "Play publishing cannot use instrumentation-test packaging" }
     testBuildType = if (deviceTests) "release" else "debug"
     namespace = "it.fabiodalez.incitta"
     compileSdk = 36
@@ -28,8 +31,8 @@ android {
         applicationId = "it.fabiodalez.incitta"
         minSdk = 26
         targetSdk = 36
-        versionCode = 22
-        versionName = "1.9.0"
+        versionCode = 23
+        versionName = "1.9.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
@@ -40,22 +43,39 @@ android {
         )
     }
 
+    if (playStore) {
+        fun signingVariable(name: String): String = providers.environmentVariable(name).orNull
+            ?.takeIf { it.isNotBlank() }
+            ?: error("Missing Play signing environment variable: $name")
+        signingConfigs.create("playUpload") {
+            storeFile = file(signingVariable("INCITTA_UPLOAD_KEYSTORE"))
+            storePassword = signingVariable("INCITTA_UPLOAD_PASSWORD")
+            keyAlias = signingVariable("INCITTA_UPLOAD_ALIAS")
+            keyPassword = signingVariable("INCITTA_UPLOAD_PASSWORD")
+        }
+    }
+
     buildTypes {
         debug {
             isMinifyEnabled = false
-            applicationIdSuffix = ".debug"
-            versionNameSuffix = "-debug"
+            applicationIdSuffix = if (sideloadDebug) "" else ".debug"
+            versionNameSuffix = if (sideloadDebug) "-debug-filtri" else "-debug"
         }
         release {
             isMinifyEnabled = !deviceTests
             isShrinkResources = !deviceTests
-            // Installable local artifact. The Play Store build must replace this
-            // with the owner's private upload key, which is intentionally absent.
-            signingConfig = signingConfigs.getByName("debug")
+            // Preserve sideload updates; Play bundles use a separate private key.
+            signingConfig = signingConfigs.getByName(if (playStore) "playUpload" else "debug")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
+        }
+    }
+
+    tasks.matching { it.name == "bundleRelease" }.configureEach {
+        doFirst {
+            check(playStore) { "Play bundle requires -PplayStore=true and private upload credentials" }
         }
     }
 

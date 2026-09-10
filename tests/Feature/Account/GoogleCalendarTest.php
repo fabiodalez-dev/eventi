@@ -25,7 +25,7 @@ beforeEach(function (): void {
     $this->category = testCategory();
     $this->user = User::factory()->create();
     freezeLocal($this->city, '2026-09-09 12:00');
-    config(['google-calendar.client_id' => 'test-client', 'google-calendar.client_secret' => 'test-secret']);
+    config(['google-calendar.redirect_uri' => null, 'google-calendar.client_id' => 'test-client', 'google-calendar.client_secret' => 'test-secret']);
     Http::preventStrayRequests();
     Queue::fake();
 });

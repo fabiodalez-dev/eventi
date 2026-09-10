@@ -15,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.Event
+import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.BottomAppBar
@@ -59,10 +60,10 @@ fun InCittaApp(viewModel: MainViewModel) {
         val accessibility = androidx.compose.ui.platform.LocalContext.current.getSystemService(android.content.Context.ACCESSIBILITY_SERVICE) as? android.view.accessibility.AccessibilityManager
         val lifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
         var lastBannerImpression by remember { mutableStateOf<Long?>(null) }
-        val eventList = !tonightOpen && organizerSlug == null && state.tab == AppTab.EVENTS && state.selected == null && state.selectedVenue == null
+        val eventList = !tonightOpen && organizerSlug == null && state.tab == AppTab.HOME && state.selected == null && state.selectedVenue == null
         var navigationRevealed by remember(state.tab, state.selected?.slug, state.selectedVenue?.slug, organizerSlug, tonightOpen) { mutableStateOf(false) }
         val threshold = with(LocalDensity.current) { 96.dp.toPx() }
-        val navigationRequired = !eventList && state.selected == null && state.selectedVenue == null
+        val navigationRequired = !tonightOpen && !eventList && state.selected == null && state.selectedVenue == null
         val revealNavigation = remember(state.tab, state.selected?.slug, state.selectedVenue?.slug, organizerSlug, tonightOpen, threshold) { object : NestedScrollConnection {
             val navigation = ScrollNavigation(threshold)
             override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
@@ -87,7 +88,7 @@ fun InCittaApp(viewModel: MainViewModel) {
         val bannerScreen = eventList && bannerAllowed && !imeVisible
         val excludedEvent = state.selected?.slug
 
-        LaunchedEffect(bannerScreen, excludedEvent, state.selectedVenue?.slug, state.activeTag?.slug, state.session?.user?.id, lifecycle) {
+        LaunchedEffect(bannerScreen, state.discoveryFilters, state.eventFilter, excludedEvent, state.selectedVenue?.slug, state.activeTag?.slug, state.session?.user?.id, lifecycle) {
             viewModel.clearSponsoredBanner()
             if (bannerScreen) lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
                 try {
@@ -112,7 +113,7 @@ fun InCittaApp(viewModel: MainViewModel) {
         }
 
         BackHandler(
-            enabled = tonightOpen || organizerSlug != null || state.selected != null || state.selectedVenue != null || state.tab != AppTab.EVENTS,
+            enabled = tonightOpen || organizerSlug != null || state.selected != null || state.selectedVenue != null || state.tab != AppTab.HOME,
             onBack = { if (tonightOpen && state.selected == null && state.selectedVenue == null && state.bookingDate == null) tonightOpen = false else if (organizerSlug != null) organizerSlug = null else viewModel.goBack() },
         )
 
@@ -131,6 +132,7 @@ fun InCittaApp(viewModel: MainViewModel) {
                         contentColor = Paper,
                         modifier = Modifier.navigationBarsPadding(),
                     ) {
+                        NavItem(state.tab, AppTab.HOME, "Home", Icons.Outlined.Home, { tonightOpen = false; organizerSlug = null; viewModel.selectTab(it) })
                         NavItem(state.tab, AppTab.EVENTS, "Eventi", Icons.Outlined.Event, { tonightOpen = false; organizerSlug = null; viewModel.selectTab(it) })
                         NavItem(state.tab, AppTab.MAP, "Mappa", Icons.Outlined.Map, { tonightOpen = false; organizerSlug = null; viewModel.selectTab(it) })
                         NavItem(state.tab, AppTab.SEARCH, "Cerca", Icons.Outlined.Search, { tonightOpen = false; organizerSlug = null; viewModel.selectTab(it) })
@@ -186,7 +188,7 @@ fun InCittaApp(viewModel: MainViewModel) {
                 }
 
                 else -> when (state.tab) {
-                    AppTab.EVENTS -> EventsScreen(
+                    AppTab.HOME -> EventsScreen(
                         state,
                         padding,
                         viewModel::open,
@@ -205,7 +207,7 @@ fun InCittaApp(viewModel: MainViewModel) {
                         onBannerOpen = { banner ->
                             if (banner.validAt()) {
                                 viewModel.bannerMetric(banner, true)
-                                viewModel.openSlug(banner.eventSlug)
+                                banner.occurrenceId?.let(viewModel::openOccurrence) ?: viewModel.openSlug(banner.eventSlug)
                             }
                         },
                     )
@@ -218,7 +220,7 @@ fun InCittaApp(viewModel: MainViewModel) {
                         onOpen = viewModel::open,
                         onDismissPreview = viewModel::dismissMapPreview,
                     )
-                    AppTab.SEARCH -> SearchScreen(
+                    AppTab.EVENTS, AppTab.SEARCH -> SearchScreen(
                         state,
                         padding,
                         viewModel::search,
@@ -246,8 +248,8 @@ fun InCittaApp(viewModel: MainViewModel) {
                         onInterestsSaved = viewModel::interestsChanged,
                         onAppearance = viewModel::setAppearance,
                     )
-                    AppTab.CALENDAR -> CalendarScreen(state, padding, viewModel::open, viewModel::toggleSaved) { viewModel.selectTab(AppTab.EVENTS) }
-                    AppTab.VENUES -> VenuesScreen(state, padding, viewModel::openVenue) { viewModel.selectTab(AppTab.EVENTS) }
+                    AppTab.CALENDAR -> CalendarScreen(state, padding, viewModel::open, viewModel::toggleSaved) { viewModel.selectTab(AppTab.HOME) }
+                    AppTab.VENUES -> VenuesScreen(state, padding, viewModel::openVenue) { viewModel.selectTab(AppTab.HOME) }
                     AppTab.TICKETS -> TicketsScreen(state, padding, viewModel::cancelBooking, viewModel::loadBookings, viewModel::resendBooking) { viewModel.selectTab(AppTab.ACCOUNT) }
                 }
             }
@@ -268,7 +270,7 @@ private fun RowScope.NavItem(
         selected = current == tab,
         onClick = { select(tab) },
         icon = { Icon(icon, contentDescription = null, modifier = Modifier.size(22.dp)) },
-        label = { Text(label.uppercase()) },
+        label = { Text(label.uppercase(), maxLines = 1, fontSize = androidx.compose.ui.unit.TextUnit(10f, androidx.compose.ui.unit.TextUnitType.Sp)) },
         colors = NavigationBarItemDefaults.colors(
             selectedIconColor = Ink,
             selectedTextColor = Acid,

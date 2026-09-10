@@ -2,13 +2,46 @@
 
 ## Identità delle pagine
 
-La pagina `/eventi/{slug}/date/{id}` è la URL canonica stabile di un appuntamento.
+La pagina `/eventi/{slug}/{numero}` è la URL canonica stabile di un appuntamento.
 Il suo JSON-LD usa la stessa URL e `#event` come identificativo. Le card e le
 condivisioni della data puntano a questa pagina. Una scheda con un unico
 appuntamento resta raggiungibile all’URL breve ma dichiara la stessa canonical;
 la sitemap contiene soltanto la pagina della data. Una serie con più date
 storiche o una ricorrenza mantiene la scheda riepilogativa CollectionPage,
 anche quando rimane una sola data futura. Le date conservano i propri Event.
+
+Il numero pubblico parte da 1 per ciascun evento ed è persistito in `url_number`:
+non è l'ID globale, non deriva dalla posizione corrente in una lista e non viene
+riutilizzato dopo una cancellazione. Le date esistenti sono numerate inizialmente
+in ordine cronologico; le nuove ricevono il successivo numero libero. Modificare
+il giorno o l'orario non cambia URL. La modifica del titolo non rigenera lo slug.
+Un contatore per evento, prenotato sotto lock e un vincolo univoco nel database,
+impediscono di assegnare lo stesso numero a import concorrenti.
+
+Esempio: `/eventi/jam-session/1` e `/eventi/jam-session/2` sono due pagine Event;
+`/eventi/jam-session` è il riepilogo della serie. I filtri lavorano su starts_at,
+business_date e sugli altri dati temporali, mai sul numero nell'URL. La mappa
+raggruppa per locale, il pannello mostra le singole date filtrate (fino al limite
+previsto dal pannello) e ogni card collega la propria replica.
+
+Su richiesta esplicita non vengono introdotti redirect 301: i vecchi percorsi
+`/date/{id}` vengono rimossi. La numerazione si applica anche a calendario e PDF;
+ID di API, prenotazioni e identificatori ICS restano invariati.
+
+### Fonti e scelta degli URL
+
+[Search Engine Journal, Matt G. Southern](https://www.searchenginejournal.com/ranking-factors/urls/)
+considera le keyword negli URL un segnale di ranking marginale, non una ragione
+per aggiungere parole o promettere miglioramenti di posizione.
+[Ahrefs](https://ahrefs.com/blog/seo-friendly-urls/) raccomanda URL descrittivi
+e concisi. La scelta titolo/numero privilegia semplicità e identità stabile.
+Il locale resta in titolo SEO/contenuto quando pertinente e soprattutto nel
+campo location dei dati strutturati: non è obbligatorio nel percorso.
+[Google Event](https://developers.google.com/search/docs/appearance/structured-data/event)
+richiede una pagina distinta per ciascun evento; non prescrive una data nel suo URL.
+
+Questa modifica è applicata in locale; i test di regressione sono preparati ma
+eseguiti: URL progressivi, filtri delle repliche e collegamenti API verificati.
 
 ## Organizzatore e luogo
 

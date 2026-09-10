@@ -102,9 +102,10 @@ Route::get('/eventi/{slug}/segnala', [ReportController::class, 'createForEvent']
 Route::post('/eventi/{slug}/segnala', [ReportController::class, 'storeForEvent'])
     ->middleware('throttle:public-forms')
     ->name('events.report.store');
-Route::get('/eventi/{slug}/date/{occurrence}/calendario.ics', [EventController::class, 'calendar'])->name('events.calendar');
-Route::get('/eventi/{slug}/date/{occurrence}', [EventController::class, 'date'])->name('events.occurrence');
-Route::get('/eventi/{slug}/date/{occurrence}/locandina.pdf', [EventController::class, 'poster'])->name('events.poster');
+Route::get('/eventi/{slug}/{occurrence}/calendario.ics', [EventController::class, 'calendar'])->where('occurrence', '[1-9][0-9]*')->name('events.calendar');
+Route::get('/eventi/{slug}/{occurrence}/locandina.pdf', [EventController::class, 'poster'])->where('occurrence', '[1-9][0-9]*')->name('events.poster');
+Route::get('/eventi/{slug}/{occurrence}', [EventController::class, 'date'])
+    ->where('occurrence', '[1-9][0-9]*')->name('events.occurrence');
 Route::get('/eventi/{slug}', [EventController::class, 'show'])->middleware(CachePage::class)->name('events.show');
 
 Route::get('/locali', [VenueController::class, 'index'])->middleware(CachePage::class)->name('venues.index');

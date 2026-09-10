@@ -120,7 +120,7 @@ describe('/eventi.ics', function (): void {
 
         $risposta = $this->get(route('events.calendar', [
             'slug' => $occorrenza->event->slug,
-            'occurrence' => $occorrenza->getKey(),
+            'occurrence' => $occorrenza->url_number,
         ]))->assertOk();
 
         expect(Reader::read($risposta->getContent())->validate(Node::PROFILE_CALDAV))->toBe([]);

@@ -64,6 +64,9 @@ jobs:
       - name: Vulnerabilità delle dipendenze PHP
         run: composer audit --no-interaction
 
+      - name: Confini architetturali
+        run: composer architecture
+
       - name: PHPStan
         run: ./vendor/bin/phpstan analyse --memory-limit=1G --no-progress
 
@@ -161,6 +164,59 @@ jobs:
           path: public/build
           retention-days: 14
           if-no-files-found: error
+
+  browser:
+    needs: [scope, quality]
+    if: needs.scope.outputs.web == 'true'
+    name: Browser desktop e mobile
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      mariadb:
+        image: mariadb:10.11
+        env:
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: eventi_test
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=10s --health-timeout=5s --health-retries=10
+    env:
+      DB_CONNECTION: mariadb
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_DATABASE: eventi_test
+      DB_USERNAME: root
+      DB_PASSWORD: root
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: shivammathur/setup-php@b604ade2a87db23f8871b7182e69ec5e75effb45
+        with:
+          php-version: '8.4'
+          extensions: mbstring, intl, gd, imagick, zip, bcmath, pdo_mysql, exif, sockets
+          coverage: none
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+          cache: npm
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build
+      - name: Prepara ambiente isolato
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+      - run: composer test:browser -- --ci --log-junit storage/logs/browser-junit.xml
+      - name: Referti browser
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: browser-report
+          path: |
+            storage/logs/browser-junit.xml
+            tests/Browser/Screenshots
+          retention-days: 14
 
   lighthouse:
     needs: [scope, quality]
@@ -400,7 +456,7 @@ jobs:
 
   checks:
     name: Controlli richiesti
-    needs: [scope, quality, tests, lighthouse, android]
+    needs: [scope, quality, tests, browser, lighthouse, android]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 2
@@ -414,7 +470,7 @@ jobs:
 
   deploy:
     name: Pubblica il rilascio verificato
-    needs: [checks, quality, tests, lighthouse, android]
+    needs: [checks, quality, tests, browser, lighthouse, android]
     if: always() && needs.checks.result == 'success' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     # The ARM route to production has verified TLS connectivity.
     runs-on: ubuntu-24.04-arm

@@ -69,9 +69,10 @@
                 {{-- La campagna in cima, quando c'è: sopra i risultati e fuori
                      dal contenitore che l'infinite scroll estende, altrimenti
                      ricomparirebbe a ogni pagina caricata. --}}
-                @if ($sponsorship !== null && ! $filters->discovery)
+                @if ($sponsorship !== null && $sponsoredOccurrence !== null && ! $filters->discovery)
                     <x-sponsored-card
                         :sponsorship="$sponsorship"
+                        :occurrence="$sponsoredOccurrence"
                         class="border-b-2 border-line"
                         level="h2"
                     />

@@ -7,7 +7,7 @@
                     @foreach ($items as $item)
                         <li>
                             <a class="block px-2 py-2 text-sm text-ink hover:bg-surface focus:bg-surface focus:outline-2 focus:outline-accent" href="{{ match ($group) {
-                                'events' => route('events.occurrence', ['slug' => $item->event->slug, 'occurrence' => $item->id]),
+                                'events' => \App\Support\EventUrl::occurrence($item),
                                 'venues' => route('venues.show', ['slug' => $item->slug]),
                                 'organizers' => route('organizers.show', ['slug' => $item->slug]),
                                 'tags' => route('events.tag', ['tag' => $item->slug]),

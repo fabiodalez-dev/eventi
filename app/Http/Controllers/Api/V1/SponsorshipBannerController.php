@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\DTOs\EventFilters;
 use App\Enums\OccurrenceStatus;
 use App\Enums\PriceType;
 use App\Http\Controllers\Api\V1\Concerns\InteractsWithApi;
@@ -11,9 +12,11 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\V1\PosterResource;
 use App\Http\Resources\V1\PriceResource;
 use App\Models\User;
+use App\Services\Search\EventFinder;
 use App\Services\Sponsorship\SponsorshipSelector;
 use App\Settings\SponsorshipBannerSettings;
 use App\Support\DateFormatter;
+use App\Support\EventUrl;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Number;
@@ -25,7 +28,7 @@ final class SponsorshipBannerController extends Controller
     public function __invoke(Request $request, SponsorshipSelector $selector, SponsorshipBannerSettings $settings): JsonResponse
     {
         $input = $request->validate(['platform' => 'required|in:web,android', 'exclude_event' => 'nullable|string|max:255',
-            'category' => 'nullable|string|max:255', 'venue' => 'nullable|string|max:255', 'tag' => 'nullable|string|max:255']);
+            'category' => 'nullable|string|max:255', 'venue' => 'nullable|string|max:255', 'tag' => 'nullable|string|max:255', 'date' => 'nullable|string|max:32', 'from' => 'nullable|date_format:Y-m-d', 'to' => 'nullable|date_format:Y-m-d']);
         $enabled = $input['platform'] === 'web' ? $settings->web_enabled : $settings->android_enabled;
         $city = $this->city();
         $user = $request->routeIs('api.*') ? $this->currentUser($request) : $request->user();
@@ -34,7 +37,9 @@ final class SponsorshipBannerController extends Controller
         if ($campaign !== null && $campaign->event !== null) {
             $event = $campaign->event;
             $today = now($city->timezone)->startOfDay()->utc();
-            $date = $event->occurrences()->whereIn('status', [OccurrenceStatus::Scheduled, OccurrenceStatus::SoldOut])
+            $filters = EventFilters::fromArray($input);
+            $date = $filters->activeCount() > 0 ? app(EventFinder::class)->query($city, $filters)->forEvent($event)->promotable()->firstPerEvent(1)->first() : null;
+            $date ??= $event->occurrences()->whereIn('status', [OccurrenceStatus::Scheduled, OccurrenceStatus::SoldOut])
                 ->where('effective_ends_at', '>', $today)->orderBy('starts_at')->first();
             if ($date !== null) {
                 $format = DateFormatter::for($city);
@@ -54,6 +59,7 @@ final class SponsorshipBannerController extends Controller
                 $data = [
                     'id' => (int) $campaign->id,
                     'event_slug' => $event->slug,
+                    'occurrence_id' => (int) $date->id,
                     'title' => $event->title,
                     'when' => $date->is_all_day ? $format->day($date->business_date).' · '.__('events.badge.all_day') : $format->dayAndTime($date->business_date, $date->starts_at),
                     'place' => $date->effectiveVenue()->name ?? ($event->custom_location['name'] ?? ''),
@@ -61,7 +67,7 @@ final class SponsorshipBannerController extends Controller
                     'price' => $priceLabel,
                     'advertiser' => $campaign->advertiser_name,
                     'image' => PosterResource::toArray($event)['thumb'] ?? null,
-                    'url' => route('city.events.show', ['city' => $city->slug, 'slug' => $event->slug]),
+                    'url' => EventUrl::occurrence($date),
                     'expires_at' => $expiry->utc()->toIso8601String(),
                     'metric_token' => hash_hmac('sha256', $campaign->id.'|'.$campaign->placement->value.'|'.now('UTC')->format('Y-m-d'), (string) config('app.key')),
                 ];

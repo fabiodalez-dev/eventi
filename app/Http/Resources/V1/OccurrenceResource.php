@@ -13,6 +13,7 @@ use App\Models\TicketTier;
 use App\Queries\EventOccurrenceQuery;
 use App\Support\Api\ApiContext;
 use App\Support\Api\ApiDate;
+use App\Support\EventUrl;
 use App\Support\MapLinks;
 use App\Support\TicketTiers;
 use DateTimeInterface;
@@ -44,7 +45,8 @@ final class OccurrenceResource
 
         $payload = [
             'occurrence_id' => (int) $occurrence->getKey(),
-            'date_url' => route('events.occurrence', ['slug' => $event->slug, 'occurrence' => $occurrence->id]),
+            'url_number' => (int) $occurrence->url_number,
+            'date_url' => EventUrl::occurrence($occurrence),
             'previous_starts_at' => ApiDate::instant($occurrence->previous_starts_at, $timezone),
             'event_id' => (int) $event->getKey(),
             'event_slug' => (string) $event->slug,
@@ -138,7 +140,7 @@ final class OccurrenceResource
     {
         $event = $occurrence->event;
         $city = $context->city;
-        $parameters = ['city' => $city->slug, 'slug' => $event->slug, 'occurrence' => $occurrence->getKey()];
+        $parameters = ['city' => $city->slug, 'slug' => $event->slug, 'occurrence' => $occurrence->url_number];
 
         $venue = $event->venue;
 

@@ -11,16 +11,21 @@ class SelectedOccurrenceTest {
 
     @Test fun selectsLaterDateWithoutDuplicatingIt() {
         val selected = detail.selectOccurrence(date(2), null)
-        assertEquals(listOf(2L, 1L), selected.occurrences.map { it.occurrenceId })
+        assertEquals(listOf(2L), selected.occurrences.map { it.occurrenceId })
         assertEquals(listOf(1L, 2L), detail.occurrences.map { it.occurrenceId })
     }
 
-    @Test fun usesDateInformationAndActualHostFallback() {
+    @Test fun usesDateInformationAndPreservesOriginalOrganizer() {
         val facts = buildJsonObject { put("transit_notes", "Tram") }
-        val selected = detail.copy(organizer = Organizer(hostFallback = true))
+        val selected = detail.copy(organizer = Organizer(name = "Teatro originale", hostFallback = true))
             .selectOccurrence(date(3).copy(contentDetails = facts), Venue(name = "Altro teatro"))
         assertEquals(facts, selected.contentDetails)
-        assertEquals("Altro teatro", selected.organizer.name)
+        assertEquals("Teatro originale", selected.organizer.name)
+    }
+
+    @Test fun sharesTheSelectedDateUrl() {
+        val selected = detail.selectOccurrence(date(3).copy(dateUrl = "https://eventi.fabiodalez.it/eventi/evento/3"), null)
+        assertEquals("https://eventi.fabiodalez.it/eventi/evento/3", selected.url)
     }
 
     @Test fun preservesExplicitOrganizer() {

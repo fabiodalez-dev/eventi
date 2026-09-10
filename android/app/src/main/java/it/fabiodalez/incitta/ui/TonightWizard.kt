@@ -73,7 +73,8 @@ fun TonightWizard(session: Session?, onBack: () -> Unit, onResults: (Map<String,
             error = requestFailureMessage(e)
         } finally { loading = false; counting = false }
     }
-    LazyColumn(Modifier.fillMaxSize().padding(horizontal = 22.dp), state = listState, verticalArrangement = Arrangement.spacedBy(20.dp)) {
+    Column(Modifier.fillMaxSize().imePadding().padding(horizontal = 22.dp)) {
+    LazyColumn(Modifier.weight(1f).fillMaxWidth(), state = listState, verticalArrangement = Arrangement.spacedBy(20.dp), contentPadding = PaddingValues(bottom = 20.dp)) {
         item {
             TextButton(onClick = { if (step > 1) previous() else onBack() }) { Text(stringResource(R.string.tonight_back)) }
             if (!loading) Text(stringResource(R.string.tonight_steps, if (!hasNeighborhoods && step > 3) step - 1 else step, if (hasNeighborhoods) 5 else 4), color = Acid)
@@ -109,7 +110,7 @@ fun TonightWizard(session: Session?, onBack: () -> Unit, onResults: (Map<String,
                         row.forEach { category ->
                             val checked = category.id in selected
                             val count = payload.counts?.categories?.get(category.id.toString()) ?: 0
-                            Surface(modifier = Modifier.weight(1f), color = Ink, contentColor = Paper, shape = androidx.compose.ui.graphics.RectangleShape,
+                            Surface(modifier = Modifier.weight(1f), color = Ink, contentColor = Paper, shape = ControlShape,
                                 border = androidx.compose.foundation.BorderStroke(2.dp, if (checked) Acid else Rule)) {
                                 Column(Modifier.heightIn(min = 96.dp).toggleable(value = checked && count > 0, enabled = count > 0 && !counting, role = Role.Checkbox, onValueChange = { enabled -> selected = ArrayList(if (enabled) (selected + category.id).distinct() else selected - category.id) }).padding(12.dp)) {
                                     Checkbox(checked && count > 0, enabled = count > 0 && !counting, onCheckedChange = null)
@@ -121,7 +122,9 @@ fun TonightWizard(session: Session?, onBack: () -> Unit, onResults: (Map<String,
                     }
                 }
             }
-            item {
+        }
+    }
+            if (!loading) {
                 Button(onClick = {
                     if (step == 5) {
                         val categories = payload.categories.filter { it.id in selected }
@@ -129,13 +132,12 @@ fun TonightWizard(session: Session?, onBack: () -> Unit, onResults: (Map<String,
                         val summary = listOf(timeSummary, placeSummary, if (hasNeighborhoods) zone else "", budgetSummary, categories.joinToString(", ") { it.name }).filter { it.isNotBlank() }.joinToString(" · ")
                         onResults(filters, summary)
                     } else step = if (step == 2 && !hasNeighborhoods) 4 else step + 1
-                }, enabled = !counting && error == null, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp), shape = androidx.compose.ui.graphics.RectangleShape, colors = ButtonDefaults.buttonColors(containerColor = Acid, contentColor = Ink)) {
+                }, enabled = !counting && error == null, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp), shape = ControlShape, colors = ButtonDefaults.buttonColors(containerColor = Acid, contentColor = Ink)) {
                     Text(stringResource(if (step == 5) R.string.tonight_find else R.string.tonight_next))
                     Text(" · " + if (counting) stringResource(R.string.tonight_count_loading) else if (error != null || payload.counts == null) stringResource(R.string.tonight_count_error) else stringResource(R.string.tonight_count, payload.counts!!.total))
                 }
                 Spacer(Modifier.height(20.dp))
             }
-        }
     }
 }
 
@@ -149,7 +151,7 @@ private fun ChoiceMenu(label: String, value: String, options: List<Pair<String, 
         }
             Column(Modifier.fillMaxWidth().heightIn(max = if (searchable) 360.dp else 620.dp).verticalScroll(androidx.compose.foundation.rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 options.filter { search.isBlank() || it.second.contains(search, ignoreCase = true) }.forEach { (key, title) ->
-                    OutlinedButton(onClick = { onChange(key) }, enabled = key == value || counts == null || (counts[key] ?: 0) > 0, modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp), shape = androidx.compose.ui.graphics.RectangleShape, border = androidx.compose.foundation.BorderStroke(2.dp, if (key == value) Acid else Rule), colors = ButtonDefaults.outlinedButtonColors(contentColor = Paper)) {
+                    OutlinedButton(onClick = { onChange(key) }, enabled = key == value || counts == null || (counts[key] ?: 0) > 0, modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp), shape = ControlShape, border = androidx.compose.foundation.BorderStroke(2.dp, if (key == value) Acid else Rule), colors = ButtonDefaults.outlinedButtonColors(contentColor = Paper)) {
                         RadioButton(selected = key == value, onClick = null)
                         Column(Modifier.weight(1f).padding(start = 12.dp)) {
                             Text(title, style = MaterialTheme.typography.bodyLarge)

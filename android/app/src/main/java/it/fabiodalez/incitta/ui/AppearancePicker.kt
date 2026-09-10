@@ -26,7 +26,7 @@ fun AppearancePicker(appearance: String, saving: Boolean, authenticated: Boolean
                     border = BorderStroke(if (active) 2.dp else 1.dp, if (active) Acid else Rule),
                     contentPadding = PaddingValues(12.dp),
                 ) {
-                    Box(Modifier.size(20.dp).background(if (value == "light") Color(0xFFFAF9F6) else Color(0xFF0B0B0B), RoundedCornerShape(4.dp)))
+                    Box(Modifier.size(20.dp).background(if (value == "light") Color(0xFFFCFCFB) else Color(0xFF0B0B0B), RoundedCornerShape(4.dp)))
                     Spacer(Modifier.width(8.dp))
                     Text(if (active) "$label ✓" else label, color = Paper)
                 }

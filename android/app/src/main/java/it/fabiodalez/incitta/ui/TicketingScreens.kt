@@ -55,18 +55,18 @@ fun ReservationScreen(state: AppUiState, padding: PaddingValues, onReserve: (Lis
                 availability.cancellationClosesAt?.let { Text(stringResource(R.string.ticket_cancel_until, ticketDate(it)), color = Muted) }
                 Text(stringResource(R.string.ticket_booker), style = MaterialTheme.typography.titleLarge)
                 listOf("first_name" to stringResource(R.string.ticket_first_name), "last_name" to stringResource(R.string.ticket_last_name)).forEach { (field, label) ->
-                    OutlinedTextField(booker[field].orEmpty(), { booker = booker + (field to it.take(120)) }, label = { Text(label) }, enabled = !state.bookingBusy, modifier = Modifier.fillMaxWidth(), shape = RectangleShape, singleLine = true)
+                    OutlinedTextField(booker[field].orEmpty(), { booker = booker + (field to it.take(120)) }, label = { Text(label) }, enabled = !state.bookingBusy, modifier = Modifier.fillMaxWidth(), shape = ControlShape, singleLine = true)
                 }
                 availability.bookerFields.forEach { field ->
-                    OutlinedTextField(booker[field.key].orEmpty(), { booker = booker + (field.key to it.take(255)) }, label = { Text(field.label) }, supportingText = { Text(stringResource(if (field.required) R.string.ticket_required else R.string.ticket_optional)) }, enabled = !state.bookingBusy, modifier = Modifier.fillMaxWidth(), shape = RectangleShape, singleLine = true)
+                    OutlinedTextField(booker[field.key].orEmpty(), { booker = booker + (field.key to it.take(255)) }, label = { Text(field.label) }, supportingText = { Text(stringResource(if (field.required) R.string.ticket_required else R.string.ticket_optional)) }, enabled = !state.bookingBusy, modifier = Modifier.fillMaxWidth(), shape = ControlShape, singleLine = true)
                 }
                 Text(stringResource(R.string.ticket_participants), style = MaterialTheme.typography.titleLarge)
                 names.forEachIndexed { index, name ->
-                    OutlinedTextField(name.firstName, { value -> names = names.toMutableList().also { it[index] = name.copy(firstName = value.take(120)) } }, label = { Text(stringResource(R.string.ticket_first_name)) }, enabled = !state.bookingBusy, modifier = Modifier.fillMaxWidth(), shape = RectangleShape, singleLine = true)
-                    OutlinedTextField(name.lastName, { value -> names = names.toMutableList().also { it[index] = name.copy(lastName = value.take(120)) } }, label = { Text(stringResource(R.string.ticket_last_name)) }, enabled = !state.bookingBusy, modifier = Modifier.fillMaxWidth(), shape = RectangleShape, singleLine = true)
+                    OutlinedTextField(name.firstName, { value -> names = names.toMutableList().also { it[index] = name.copy(firstName = value.take(120)) } }, label = { Text(stringResource(R.string.ticket_first_name)) }, enabled = !state.bookingBusy, modifier = Modifier.fillMaxWidth(), shape = ControlShape, singleLine = true)
+                    OutlinedTextField(name.lastName, { value -> names = names.toMutableList().also { it[index] = name.copy(lastName = value.take(120)) } }, label = { Text(stringResource(R.string.ticket_last_name)) }, enabled = !state.bookingBusy, modifier = Modifier.fillMaxWidth(), shape = ControlShape, singleLine = true)
                     if (names.size > 1) TextButton(onClick = { names = names.toMutableList().also { it.removeAt(index) } }, enabled = !state.bookingBusy) { Text(stringResource(R.string.ticket_remove)) }
                 }
-                if (names.size < availability.limitPerAccount) OutlinedButton(onClick = { names = names + AttendeeName() }, enabled = !state.bookingBusy, shape = RectangleShape) { Text(stringResource(R.string.ticket_add)) }
+                if (names.size < availability.limitPerAccount) OutlinedButton(onClick = { names = names + AttendeeName() }, enabled = !state.bookingBusy, shape = ControlShape) { Text(stringResource(R.string.ticket_add)) }
                 if (availability.waitlist) Row {
                     Checkbox(waitlist, { waitlist = it }, enabled = !state.bookingBusy)
                     Text(stringResource(R.string.ticket_waitlist_consent), modifier = Modifier.padding(top = 10.dp))
@@ -77,7 +77,7 @@ fun ReservationScreen(state: AppUiState, padding: PaddingValues, onReserve: (Lis
                 }
                 availability.privacyUrl?.takeIf { it.startsWith("https://") || it.startsWith("http://") }?.let { url -> TextButton(onClick = { uriHandler.openUri(url) }) { Text(stringResource(R.string.ticket_privacy_link)) } }
                 val complete = names.all { it.firstName.isNotBlank() && it.lastName.isNotBlank() } && listOf("first_name", "last_name").all { !booker[it].isNullOrBlank() } && availability.bookerFields.filter { it.required }.all { !booker[it.key].isNullOrBlank() }
-                Button(onClick = { onReserve(names, waitlist, booker) }, enabled = accepted && complete && !state.bookingBusy, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp), shape = RectangleShape) { Text(stringResource(R.string.ticket_confirm)) }
+                Button(onClick = { onReserve(names, waitlist, booker) }, enabled = accepted && complete && !state.bookingBusy, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp), shape = ControlShape) { Text(stringResource(R.string.ticket_confirm)) }
             }
         }
     }
@@ -93,10 +93,10 @@ fun TicketsScreen(state: AppUiState, padding: PaddingValues, onCancel: (Long, Lo
         if (state.session == null) {
             Text(stringResource(R.string.ticket_login))
         } else {
-            OutlinedButton(onClick = onRefresh, enabled = !state.bookingBusy, shape = RectangleShape) { Text(stringResource(R.string.ticket_refresh)) }
+            OutlinedButton(onClick = onRefresh, enabled = !state.bookingBusy, shape = ControlShape) { Text(stringResource(R.string.ticket_refresh)) }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                FilterChip(selected = !cancelledOnly, onClick = { cancelledOnly = false }, label = { Text(stringResource(R.string.ticket_active)) }, shape = RectangleShape)
-                FilterChip(selected = cancelledOnly, onClick = { cancelledOnly = true }, label = { Text(stringResource(R.string.ticket_cancelled)) }, shape = RectangleShape)
+                FilterChip(selected = !cancelledOnly, onClick = { cancelledOnly = false }, label = { Text(stringResource(R.string.ticket_active)) }, shape = ControlShape)
+                FilterChip(selected = cancelledOnly, onClick = { cancelledOnly = true }, label = { Text(stringResource(R.string.ticket_cancelled)) }, shape = ControlShape)
             }
             if (state.bookingBusy) LinearProgressIndicator(Modifier.fillMaxWidth())
             state.bookingError?.let { Text(it) }
@@ -117,7 +117,7 @@ fun TicketsScreen(state: AppUiState, padding: PaddingValues, onCancel: (Long, Lo
                         Text(ticket.attendeeName, style = MaterialTheme.typography.titleLarge)
                         Text("#${ticket.id} · ${ticketStatus(ticket.status)}", color = Muted)
                         if (ticket.qrPayload != null && ticket.status == "valid") {
-                            OutlinedButton(onClick = { expanded = !expanded }, shape = RectangleShape) { Text(stringResource(if (expanded) R.string.ticket_hide_qr else R.string.ticket_show_qr)) }
+                            OutlinedButton(onClick = { expanded = !expanded }, shape = ControlShape) { Text(stringResource(if (expanded) R.string.ticket_hide_qr else R.string.ticket_show_qr)) }
                             if (expanded) {
                                 val bitmap = remember(ticket.qrPayload) { ticketQr(ticket.qrPayload) }
                                 Image(bitmap.asImageBitmap(), stringResource(R.string.ticket_qr_description, ticket.id), modifier = Modifier.background(Paper).padding(12.dp).size(256.dp))
@@ -130,7 +130,7 @@ fun TicketsScreen(state: AppUiState, padding: PaddingValues, onCancel: (Long, Lo
                     }
                 }
                 if (booking.canCancel && booking.tickets.count { it.status in listOf("valid", "waitlisted") } > 1 && booking.tickets.none { it.status == "checked_in" }) {
-                    OutlinedButton(onClick = { cancelTarget = booking.id to null }, enabled = !state.bookingBusy, shape = RectangleShape) { Text(stringResource(R.string.ticket_cancel_all)) }
+                    OutlinedButton(onClick = { cancelTarget = booking.id to null }, enabled = !state.bookingBusy, shape = ControlShape) { Text(stringResource(R.string.ticket_cancel_all)) }
                 }
             }
         }
@@ -138,7 +138,7 @@ fun TicketsScreen(state: AppUiState, padding: PaddingValues, onCancel: (Long, Lo
     cancelTarget?.let { target ->
         AlertDialog(onDismissRequest = { cancelTarget = null }, title = { Text(stringResource(R.string.ticket_cancel_all)) }, text = { Text(stringResource(R.string.ticket_cancel_warning)) },
             confirmButton = { TextButton(onClick = { cancelTarget = null; onCancel(target.first, target.second) }) { Text(stringResource(R.string.ticket_cancel_confirm)) } },
-            dismissButton = { TextButton(onClick = { cancelTarget = null }) { Text(stringResource(R.string.ticket_keep)) } }, shape = RectangleShape)
+            dismissButton = { TextButton(onClick = { cancelTarget = null }) { Text(stringResource(R.string.ticket_keep)) } }, shape = ControlShape)
     }
 }
 

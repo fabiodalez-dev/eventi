@@ -2,45 +2,40 @@
 
 declare(strict_types=1);
 
+namespace Tests\Unit\Support;
+
 use App\Support\SafeUrl;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\TestCase;
 
-/**
- * Cosa può finire in un `href` che arriva dal database.
- *
- * Blade sfugge il contenuto di un attributo — quindi nessuno può chiudere le
- * virgolette e scrivere markup — ma non impedisce che l'indirizzo STESSO sia
- * `javascript:`. Quel valore esegue codice al clic, e nessuna quantità di
- * escaping lo cambia: è un URL che fa ciò che gli URL di quello schema fanno.
- */
-it('lascia passare http e https', function (string $url): void {
-    expect(SafeUrl::href($url))->toBe($url);
-})->with([
-    'https://circolo.example',
-    'http://circolo.example/pagina?x=1#ancora',
-    'HTTPS://MAIUSCOLO.EXAMPLE',
-]);
+final class SafeUrlTest extends TestCase
+{
+    #[DataProvider('safeUrls')]
+    public function test_allows_web_links(string $url): void
+    {
+        self::assertSame($url, SafeUrl::href($url));
+    }
 
-it('rifiuta gli schemi che eseguono qualcosa', function (string $url): void {
-    expect(SafeUrl::href($url))->toBeNull();
-})->with([
-    'javascript:alert(1)',
-    'JaVaScRiPt:alert(1)',
-    "java\tscript:alert(1)",
-    'data:text/html,<script>alert(1)</script>',
-    'vbscript:msgbox(1)',
-    'file:///etc/passwd',
-]);
+    public static function safeUrls(): array
+    {
+        return [['https://circolo.example'], ['http://circolo.example/pagina?x=1#ancora'], ['HTTPS://MAIUSCOLO.EXAMPLE']];
+    }
 
-it('rifiuta cio che non e un indirizzo assoluto', function (mixed $valore): void {
-    /* Qui si tratta sempre di destinazioni esterne: un percorso relativo che
-       arriva dai dati non è una cosa da seguire, e una stringa vuota in un
-       `href` porta alla pagina stessa — peggio di un collegamento assente. */
-    expect(SafeUrl::href($valore))->toBeNull();
-})->with([
-    '/percorso/relativo',
-    'circolo.example',
-    '',
-    '   ',
-    null,
-    123,
-]);
+    #[DataProvider('unsafeUrls')]
+    public function test_rejects_unsafe_and_relative_links(mixed $url): void
+    {
+        self::assertNull(SafeUrl::href($url));
+    }
+
+    public static function unsafeUrls(): array
+    {
+        return [['javascript:alert(1)'], ['JaVaScRiPt:alert(1)'], ["java\tscript:alert(1)"],
+            ['data:text/html,<script>alert(1)</script>'], ['vbscript:msgbox(1)'], ['file:///etc/passwd'],
+            ['/percorso/relativo'], ['circolo.example'], [''], ['   '], [null], [123], [false], [[]]];
+    }
+
+    public function test_trims_surrounding_whitespace_without_changing_the_link(): void
+    {
+        self::assertSame('https://circolo.example/evento?q=1#programma', SafeUrl::href(" \thttps://circolo.example/evento?q=1#programma\n"));
+    }
+}

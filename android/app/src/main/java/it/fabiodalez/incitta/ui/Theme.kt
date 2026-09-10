@@ -27,6 +27,9 @@ val Danger: Color @Composable get() = MaterialTheme.colorScheme.error
 
 private val Archivo = FontFamily(Font(R.font.archivo_semibold, FontWeight.SemiBold))
 
+private val Bricolage = FontFamily(Font(R.font.bricolage_bold, FontWeight.Bold), Font(R.font.bricolage_extrabold, FontWeight.ExtraBold))
+private val Manrope = FontFamily(Font(R.font.manrope_regular, FontWeight.Normal), Font(R.font.manrope_bold, FontWeight.Bold))
+
 private val Colors = darkColorScheme(
     primary = Color(0xFFCCFF00), onPrimary = Color(0xFF0B0B0B),
     background = Color(0xFF0B0B0B), onBackground = Color(0xFFF5F5F0),
@@ -35,14 +38,14 @@ private val Colors = darkColorScheme(
     outlineVariant = Color(0xFF383838), error = Color(0xFFFF5A5F),
 )
 private val LightColors = androidx.compose.material3.lightColorScheme(
-    primary = Color(0xFFB54D23), onPrimary = Color(0xFFFAF9F6),
-    background = Color(0xFFFAF9F6), onBackground = Color(0xFF262624),
-    surface = Color(0xFFFAF9F6), onSurface = Color(0xFF262624),
-    surfaceVariant = Color(0xFFF1F0EC), onSurfaceVariant = Color(0xFF686863),
+    primary = Color(0xFFB54D23), onPrimary = Color(0xFFFCFCFB),
+    background = Color(0xFFFCFCFB), onBackground = Color(0xFF262624),
+    surface = Color(0xFFFCFCFB), onSurface = Color(0xFF262624),
+    surfaceVariant = Color(0xFFF3F3F2), onSurfaceVariant = Color(0xFF686863),
     primaryContainer = Color(0xFFF7E9E1), onPrimaryContainer = Color(0xFF963E1B),
     secondaryContainer = Color(0xFFF7E9E1), onSecondaryContainer = Color(0xFF963E1B),
-    outline = Color(0xFF85847E), outlineVariant = Color(0xFFDEDDD7),
-    error = Color(0xFFB42318), onError = Color(0xFFFAF9F6),
+    outline = Color(0xFF85847E), outlineVariant = Color(0xFFDDDDDA),
+    error = Color(0xFFB42318), onError = Color(0xFFFCFCFB),
 )
 
 private val Typography = androidx.compose.material3.Typography(
@@ -56,6 +59,19 @@ private val Typography = androidx.compose.material3.Typography(
     bodyMedium = TextStyle(fontFamily = FontFamily.SansSerif, fontSize = 14.sp, lineHeight = 20.sp),
     labelLarge = TextStyle(fontFamily = Archivo, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, letterSpacing = 0.7.sp),
     labelMedium = TextStyle(fontFamily = Archivo, fontWeight = FontWeight.SemiBold, fontSize = 11.sp, letterSpacing = 0.8.sp),
+)
+
+private val LightTypography = Typography.copy(
+    displayLarge = Typography.displayLarge.copy(fontFamily = Bricolage, fontWeight = FontWeight.ExtraBold),
+    displayMedium = Typography.displayMedium.copy(fontFamily = Bricolage, fontWeight = FontWeight.ExtraBold),
+    headlineLarge = Typography.headlineLarge.copy(fontFamily = Bricolage, fontWeight = FontWeight.Bold),
+    headlineMedium = Typography.headlineMedium.copy(fontFamily = Bricolage, fontWeight = FontWeight.Bold),
+    titleLarge = Typography.titleLarge.copy(fontFamily = Bricolage, fontWeight = FontWeight.Bold),
+    titleMedium = Typography.titleMedium.copy(fontFamily = Bricolage, fontWeight = FontWeight.Bold),
+    bodyLarge = Typography.bodyLarge.copy(fontFamily = Manrope),
+    bodyMedium = Typography.bodyMedium.copy(fontFamily = Manrope),
+    labelLarge = Typography.labelLarge.copy(fontFamily = Manrope, fontWeight = FontWeight.Bold, letterSpacing = 0.4.sp),
+    labelMedium = Typography.labelMedium.copy(fontFamily = Manrope, fontWeight = FontWeight.Bold, letterSpacing = 0.4.sp),
 )
 
 private val SquareShapes = Shapes(
@@ -76,8 +92,19 @@ fun InCittaTheme(light: Boolean = false, content: @Composable () -> Unit) {
             WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = light
         }
     }
-    MaterialTheme(colorScheme = if (light) LightColors else Colors, typography = Typography, shapes = if (light) Shapes() else SquareShapes, content = content)
+    MaterialTheme(colorScheme = if (light) LightColors else Colors, typography = if (light) LightTypography else Typography, shapes = if (light) CompactShapes else SquareShapes, content = content)
 }
 
 @Composable
-fun eventTitle(text: String): String = if (MaterialTheme.colorScheme.background == Color(0xFFFAF9F6)) text else text.uppercase()
+fun eventTitle(text: String): String = if (MaterialTheme.colorScheme.background == Color(0xFFFCFCFB)) text else text.uppercase()
+
+private val CompactShapes = Shapes(
+    extraSmall = androidx.compose.foundation.shape.RoundedCornerShape(6.dp),
+    small = androidx.compose.foundation.shape.RoundedCornerShape(6.dp),
+    medium = androidx.compose.foundation.shape.RoundedCornerShape(6.dp),
+    large = androidx.compose.foundation.shape.RoundedCornerShape(6.dp),
+    extraLarge = androidx.compose.foundation.shape.RoundedCornerShape(6.dp),
+)
+
+val ControlShape: androidx.compose.ui.graphics.Shape
+    @Composable get() = MaterialTheme.shapes.small

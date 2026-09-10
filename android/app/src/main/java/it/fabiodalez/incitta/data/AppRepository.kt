@@ -17,8 +17,9 @@ class AppRepository(context: Context) {
     private val store = LocalStore(context)
     private val api = ApiClient(store.installationId)
 
-    suspend fun sponsoredBanner(excludeEvent: String?, venue: String? = null, tag: String? = null): SponsoredBanner? =
+    suspend fun sponsoredBanner(excludeEvent: String?, venue: String? = null, tag: String? = null, filters: Map<String, String> = emptyMap()): SponsoredBanner? =
         api.get<ApiEnvelope<SponsoredBanner?>>("sponsorships/banner?platform=android" +
+            filters.filterKeys { it in setOf("category", "date", "from", "to") }.entries.joinToString("") { "&${it.key}=${URLEncoder.encode(it.value, "UTF-8")}" } +
             (excludeEvent?.let { "&exclude_event=" + URLEncoder.encode(it, "UTF-8") } ?: "") +
             (venue?.let { "&venue=" + URLEncoder.encode(it, "UTF-8") } ?: "") +
             (tag?.let { "&tag=" + URLEncoder.encode(it, "UTF-8") } ?: ""), _session.value?.token).data
@@ -116,10 +117,7 @@ class AppRepository(context: Context) {
         ).data
 
     suspend fun mapMarkers(filter: EventFilter = EventFilter.TODAY, filters: Map<String, String>? = null): List<MapMarker> {
-        val suffix = if (filters != null) filters.entries.joinToString("", prefix = "") {
-            val value = if (it.key == "price") when (it.value) { "max10" -> "max:10"; "max20" -> "max:20"; else -> it.value } else it.value
-            "&${it.key.urlEncoded()}=${value.urlEncoded()}"
-        } else when (filter) {
+        val suffix = if (filters != null) "&" + filterQuery(filters, filters["q"].orEmpty()) else when (filter) {
             EventFilter.ALL -> ""
             EventFilter.TODAY -> "&preset=today"
             EventFilter.TOMORROW -> "&preset=tomorrow"
@@ -134,6 +132,9 @@ class AppRepository(context: Context) {
 
     suspend fun detail(slug: String): EventDetail =
         api.get<ApiEnvelope<EventDetail>>("events/${slug.urlEncoded()}", _session.value?.token).data
+
+    suspend fun occurrenceByNumber(slug: String, number: Int): Occurrence =
+        api.get<ApiEnvelope<Occurrence>>("events/${slug.urlEncoded()}/dates/$number", _session.value?.token).data
 
     suspend fun occurrence(id: Long): Occurrence =
         api.get<ApiEnvelope<Occurrence>>("occurrences/$id", _session.value?.token).data
@@ -192,10 +193,7 @@ class AppRepository(context: Context) {
 
     suspend fun filteredOccurrences(filters: Map<String, String>, query: String): List<Occurrence> {
         val token = _session.value?.token
-        val parameters = (filters + mapOf("q" to query, "limit" to "50")).entries.joinToString("&") {
-            val value = if (it.key == "price") when (it.value) { "max10" -> "max:10"; "max20" -> "max:20"; else -> it.value } else it.value
-            "${it.key.urlEncoded()}=${value.urlEncoded()}"
-        }
+        val parameters = filterQuery(filters + ("limit" to "50"), query)
         val result = mutableListOf<Occurrence>()
         val seen = mutableSetOf<String>()
         var cursor: String? = null

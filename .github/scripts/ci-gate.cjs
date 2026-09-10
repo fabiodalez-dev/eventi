@@ -4,7 +4,7 @@ function passed(needs, lighthousePaused = false) {
     if (![web, android].every(value => ['true', 'false'].includes(value))) return false;
     const required = [];
     if (web === 'true') {
-        required.push('quality', 'tests');
+        required.push('quality', 'tests', 'browser');
         if (!(lighthousePaused && needs.lighthouse?.result === 'skipped')) required.push('lighthouse');
     }
     if (android === 'true') required.push('android');

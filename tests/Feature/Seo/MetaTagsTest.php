@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\Venue;
 use App\Services\Media\OpenGraphImage;
+use App\Support\EventUrl;
 use Illuminate\Support\Facades\Storage;
 use Tests\Support\ImageFixtures;
 
@@ -29,10 +30,10 @@ it('dichiara canonical, Open Graph e X su una scheda evento', function (): void 
     $html = $this->get(route('events.show', $event))->assertOk()->getContent();
 
     expect($html)
-        ->toContain('<link rel="canonical" href="'.route('events.occurrence', ['slug' => $event->slug, 'occurrence' => $event->occurrences()->first()->id]).'">')
+        ->toContain('<link rel="canonical" href="'.EventUrl::occurrence($event->occurrences()->first()).'">')
         ->toContain('<meta name="robots" content="index, follow">')
         ->toContain('<meta property="og:title" content="Concerto al circolo a '.$this->city->name.'">')
-        ->toContain('<meta property="og:url" content="'.route('events.occurrence', ['slug' => $event->slug, 'occurrence' => $event->occurrences()->first()->id]).'">')
+        ->toContain('<meta property="og:url" content="'.EventUrl::occurrence($event->occurrences()->first()).'">')
         ->toContain('<meta name="twitter:title" content="Concerto al circolo a '.$this->city->name.'">')
         ->toContain('<meta property="og:description" content="Una serata di musica dal vivo.">')
         ->toContain('<meta name="twitter:description" content="Una serata di musica dal vivo.">');
