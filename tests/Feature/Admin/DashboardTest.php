@@ -11,6 +11,7 @@ use App\Enums\UserRole;
 use App\Enums\VenueStatus;
 use App\Filament\Admin\Widgets\ContentQualityWidget;
 use App\Filament\Admin\Widgets\EditorialQueueWidget;
+use App\Filament\Admin\Widgets\EventsCalendarWidget;
 use App\Filament\Admin\Widgets\PublishingWidget;
 use App\Models\Category;
 use App\Models\City;
@@ -62,6 +63,11 @@ function makeEvent(array $attributes = []): Event
         ...$attributes,
     ]);
 }
+
+it('apre il calendario in vista giorno sui telefoni e in vista mese sugli schermi piu grandi', function (): void {
+    Livewire::test(EventsCalendarWidget::class)
+        ->assertSee("window.matchMedia('(max-width: 639px)').matches ? 'timeGridDay' : 'dayGridMonth'", escape: false);
+});
 
 it('conta le code di lavoro della redazione', function (): void {
     makeEvent(['status' => EventStatus::Pending]);
