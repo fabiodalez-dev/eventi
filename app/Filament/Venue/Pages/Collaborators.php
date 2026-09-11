@@ -155,6 +155,8 @@ class Collaborators extends Page implements HasTable
             // resterebbe un locale senza nessuno che lo gestisce.
             ->visible(fn (User $record): bool => $record->getAttribute('venue_role') !== VenueRole::Owner->value)
             ->action(function (User $record): void {
+                abort_unless(static::canAccess(), 403);
+                abort_if($record->getAttribute('venue_role') === VenueRole::Owner->value, 403);
                 CurrentVenue::get()->members()->detach($record->getKey());
 
                 Notification::make()

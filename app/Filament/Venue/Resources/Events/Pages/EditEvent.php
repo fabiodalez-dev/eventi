@@ -11,6 +11,7 @@ use App\Filament\Venue\Support\EventActions;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
+use Illuminate\Support\Arr;
 
 /**
  * La scheda di un evento già inserito.
@@ -26,11 +27,13 @@ class EditEvent extends EditRecord
 
     protected function mutateFormDataBeforeSave(array $data): array
     {
-        foreach (['status', 'source', 'verification_status', 'editorial_score', 'is_featured', 'featured_until', 'rejection_reason', 'scheduled_publish_at', 'publication_scheduled_by'] as $field) {
-            unset($data[$field]);
-        }
-
-        return $data;
+        // Solo colonne offerte dal modulo: i campi amministrativi e il tenant
+        // non diventano scrivibili aggiungendoli a una richiesta Livewire.
+        return Arr::only($data, [
+            'title', 'description', 'category_id', 'price_type', 'price_min', 'price_max',
+            'ticket_url', 'booking_url', 'external_links', 'facts', 'content_details',
+            'seo', 'organizer_name', 'organizer_url',
+        ]);
     }
 
     /**

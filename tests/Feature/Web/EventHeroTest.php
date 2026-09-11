@@ -2,12 +2,37 @@
 
 declare(strict_types=1);
 
+use App\Models\EventOccurrence;
 use App\Support\EventUrl;
 use App\Support\Poster;
 use Carbon\Carbon;
 
 afterEach(function (): void {
     Carbon::setTestNow();
+});
+
+it('does not link a single date back to itself', function (): void {
+    $city = testCity();
+    freezeLocal($city, '2026-09-07 12:00:00');
+    $date = occurrenceAtLocal($city, testCategory(), '2026-09-10 21:00:00');
+
+    foreach ([route('events.show', $date->event), EventUrl::occurrence($date)] as $url) {
+        $this->get($url)->assertOk()->assertDontSee(__('seo.date_page'));
+    }
+});
+
+it('keeps date links on a series even when only one date is displayed', function (): void {
+    $city = testCity();
+    freezeLocal($city, '2026-09-07 12:00:00');
+    $first = occurrenceAtLocal($city, testCategory(), '2026-09-10 21:00:00');
+    EventOccurrence::factory()->create([
+        'event_id' => $first->event_id,
+        'starts_at' => localInstant($city, '2026-09-11 21:00:00')->utc(),
+        'ends_at' => null,
+    ]);
+    config(['eventi.dates_shown' => 1]);
+
+    $this->get(route('events.show', $first->event))->assertOk()->assertSee(__('seo.date_page'));
 });
 
 it('shows one shared description immediately after saving the date', function (): void {

@@ -7,14 +7,15 @@ use App\Enums\SubmissionStatus;
 use App\Enums\VenueStatus;
 use App\Filament\Admin\Resources\EventSubmissions\Pages\EditEventSubmission;
 use App\Filament\Admin\Resources\EventSubmissions\Pages\ListEventSubmissions;
+use App\Filament\Support\DescriptionEditor;
 use App\Models\Category;
 use App\Models\EventSubmission;
 use App\Models\Venue;
+use App\Support\Description;
 use BackedEnum;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
@@ -55,14 +56,14 @@ class EventSubmissionResource extends Resource
                 TextEntry::make('contact_email')->label('Email di contatto'),
                 TextEntry::make('venue_hint')->label('Luogo indicato'),
                 TextEntry::make('status')->label('Stato')->formatStateUsing(fn (SubmissionStatus $state): string => $state->label()),
-                TextEntry::make('raw_text')->label('Testo originale')->columnSpanFull(),
+                TextEntry::make('raw_text')->label('Testo originale')->formatStateUsing(fn (?string $state) => Description::render($state))->columnSpanFull(),
                 TextEntry::make('notes')->label('Note della revisione')->columnSpanFull(),
             ]),
             Section::make('Evento da pubblicare')->description('Controlla i dati, scegli il locale e la categoria. Crea e pubblica rende subito visibile l’evento nel catalogo. I contatti del proponente restano privati.')
                 ->visible(fn (EventSubmission $record): bool => $record->status === SubmissionStatus::Pending)
                 ->columns(2)->schema([
                     TextInput::make('title')->label('Titolo')->required()->maxLength(255)->columnSpanFull(),
-                    Textarea::make('raw_text')->label('Descrizione pubblica')->rows(6)->maxLength(50000)->columnSpanFull(),
+                    DescriptionEditor::make('raw_text')->label('Descrizione pubblica')->maxLength(50000)->columnSpanFull(),
                     Select::make('venue_id')->label('Locale')->required()->searchable()->options(fn (EventSubmission $record): array => Venue::query()->where('city_id', $record->city_id)->where('status', VenueStatus::Approved)->orderBy('name')->pluck('name', 'id')->all()),
                     Select::make('category_id')->label('Categoria')->required()->searchable()->options(fn (): array => Category::query()->active()->ordered()->pluck('name', 'id')->all()),
                     DateTimePicker::make('starts_at_hint')->label('Inizio')->seconds(false)->required()->timezone(fn (EventSubmission $record): string => $record->city->timezone),

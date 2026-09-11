@@ -129,7 +129,7 @@ it('lets the owner edit the public profile but not collaborators', function (): 
     Livewire::test(Profile::class)
         ->fillForm(['description' => 'Nuova presentazione', 'email' => 'pubblico@example.test', 'website' => 'https://example.test'])
         ->call('save')->assertHasNoFormErrors();
-    expect($this->organizer->fresh()->description)->toBe('Nuova presentazione');
+    expect($this->organizer->fresh()->description)->toBe('<p>Nuova presentazione</p>');
     $member = User::factory()->create();
     $this->organizer->users()->attach($member);
     $this->actingAs($member);

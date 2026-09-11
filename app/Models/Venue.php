@@ -13,6 +13,7 @@ use App\Enums\VenueStatus;
 use App\Enums\VenueType;
 use App\Models\Concerns\HasEditorialContent;
 use App\Models\Concerns\HasImageVariants;
+use App\Models\Concerns\HasSafeEditorContent;
 use Database\Factories\VenueFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -47,6 +48,7 @@ class Venue extends Model implements HasMedia
     use HasFactory;
 
     use HasImageVariants;
+    use HasSafeEditorContent;
     use HasSlug;
     use HasSpatial;
     use InteractsWithMedia;

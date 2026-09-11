@@ -34,7 +34,7 @@
     @endauth
 
     @if (filled($organizer->description))
-        <p class="my-6 max-w-3xl whitespace-pre-line">{{ $organizer->description }}</p>
+        <div class="my-6"><x-description-content :text="$organizer->description" /></div>
     @endif
 
     @if(\App\Support\SafeUrl::href($organizer->website))

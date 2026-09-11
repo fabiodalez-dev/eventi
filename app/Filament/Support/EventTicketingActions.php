@@ -13,7 +13,6 @@ use Carbon\CarbonImmutable;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Infolists\Components\TextEntry;
@@ -59,7 +58,7 @@ final class EventTicketingActions
                     DateTimePicker::make('booking_opens_at')->label('Apertura prenotazioni ('.$timezone.')')->native(false)->locale('it')->displayFormat('d/m/Y H:i')->firstDayOfWeek(1)->seconds(false)->helperText('Vuoto: apertura immediata.'),
                     DateTimePicker::make('booking_closes_at')->label('Chiusura prenotazioni')->native(false)->locale('it')->displayFormat('d/m/Y H:i')->firstDayOfWeek(1)->seconds(false)->after(fn (Get $get): string => $get('booking_opens_at') ?: '1970-01-01')->helperText('Vuoto: inizio evento.'),
                     DateTimePicker::make('cancellation_closes_at')->label('Termine annullamento')->native(false)->locale('it')->displayFormat('d/m/Y H:i')->firstDayOfWeek(1)->seconds(false)->helperText('Vuoto: inizio evento.'),
-                    Textarea::make('booking_instructions')->label('Istruzioni per chi prenota')->maxLength(3000),
+                    DescriptionEditor::make('booking_instructions')->label('Istruzioni per chi prenota')->maxLength(3000),
                     Select::make('account_email_requirement')->label('Email di chi prenota')->options(['required' => 'Obbligatoria — email dell’account'])->default('required')->disabled()->dehydrated(false)->helperText('Già acquisita dall’account: riceve conferma, biglietti e aggiornamenti della prenotazione.'),
                     ...array_map(fn (string $field): Select => Select::make('booking_fields.'.$field)->label(__('ticketing.fields.'.$field))->options(['hidden' => 'Non raccogliere', 'optional' => 'Facoltativo', 'required' => 'Obbligatorio'])->default('hidden'), BookingForm::FIELDS),
                 ])

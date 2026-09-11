@@ -13,6 +13,7 @@ use App\Enums\PriceType;
 use App\Enums\VerificationStatus;
 use App\Models\Concerns\HasEditorialContent;
 use App\Models\Concerns\HasImageVariants;
+use App\Models\Concerns\HasSafeEditorContent;
 use Database\Factories\EventFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -36,6 +37,8 @@ use Spatie\Sluggable\SlugOptions;
 
 class Event extends Model implements HasMedia
 {
+    use HasSafeEditorContent;
+
     protected $with = ['organizer'];
 
     use HasEditorialContent;

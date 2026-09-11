@@ -38,6 +38,24 @@ beforeEach(function (): void {
     Filament::setTenant($this->venue);
 });
 
+it('rifiuta dati manipolati nei campi del profilo', function (string $field, mixed $value): void {
+    Livewire::test(VenueProfile::class)
+        ->fillForm(['address' => 'Via Roma 1', 'municipality' => 'Padova', 'zone' => 'Portello'])
+        ->set('data.'.$field, $value)
+        ->call('save')
+        ->assertHasErrors(['data.'.$field]);
+})->with([
+    'latitudine fuori intervallo' => ['lat', 91],
+    'longitudine fuori intervallo' => ['lng', -181],
+    'capienza frazionaria' => ['capacity', 1.5],
+    'capienza eccessiva' => ['capacity', 1000001],
+    'telefono non telefonico' => ['phone', '<script>evil()</script>'],
+    'email non valida' => ['email', 'not-an-email'],
+    'indirizzo troppo lungo' => ['address', str_repeat('x', 256)],
+    'social eseguibile' => ['socials', [['key' => 'instagram', 'value' => 'javascript:alert(1)']]],
+    'chiave social HTML' => ['socials', [['key' => '<script>', 'value' => 'https://example.com']]],
+]);
+
 it('salva indirizzo, quartiere, orari, contatti, come arrivare, accessibilità e scheda informativa', function (): void {
     $this->actingAs($this->scenario->ownerA);
 

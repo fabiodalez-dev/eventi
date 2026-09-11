@@ -26,6 +26,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class TicketTier extends Model
 {
+    use Concerns\HasSafeEditorContent;
+
     /** @use HasFactory<TicketTierFactory> */
     use HasFactory;
 

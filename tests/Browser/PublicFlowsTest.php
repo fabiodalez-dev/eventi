@@ -46,3 +46,17 @@ it('mostra gli errori del server e permette di correggere una proposta', functio
     expect($submission->title)->toBe('Concerto proposto dal browser')
         ->and($submission->status)->toBe(SubmissionStatus::Pending);
 });
+
+it('permette di scrivere con la toolbar e conserva il grassetto', function (): void {
+    $page = visit('/proponi-evento')
+        ->click('[data-consent-banner] button[value="reject_all"]')
+        ->assertVisible('[data-rich-input][data-ready="true"] [role="toolbar"]')
+        ->fill('title', 'Proposta con editor visuale')
+        ->fill('contact_email', 'editor@example.test')
+        ->click('[data-rich-input] button:has-text("Grassetto")')
+        ->typeSlowly('[data-rich-input] [contenteditable="true"]', 'Musica dal vivo', 0)
+        ->click('form[action$="/proponi-evento"] button[type="submit"]')
+        ->assertSee(__('forms.submission.received'));
+
+    expect(EventSubmission::query()->sole()->raw_text)->toContain('<strong>Musica dal vivo</strong>');
+});

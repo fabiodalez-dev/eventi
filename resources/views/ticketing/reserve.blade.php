@@ -7,7 +7,7 @@
         @if ($availability['open'])
             <p>{{ $availability['remaining'] === null ? __('ticketing.unlimited') : __('ticketing.remaining', ['count' => $availability['remaining']]) }}</p>
             <p class="text-sm text-ink-muted">{{ __('ticketing.limit', ['count' => $availability['limit_per_account']]) }}</p>
-            @if ($date->booking_instructions)<p class="whitespace-pre-line">{{ $date->booking_instructions }}</p>@endif
+            @if ($date->booking_instructions)<x-description-content :text="$date->booking_instructions" />@endif
             <p class="text-sm">{{ __('ticketing.cancellation_until', ['date' => ($date->cancellation_closes_at ?? $date->starts_at)->timezone($date->event->city->timezone)->format('d/m/Y H:i')]) }}</p>
             <form method="POST" action="{{ route('tickets.store', $date) }}" class="flex flex-col gap-5" data-reservation-form data-limit="{{ $availability['limit_per_account'] }}">
                 @csrf

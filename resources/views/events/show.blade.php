@@ -232,7 +232,7 @@
                                 @if($occurrence->effectiveVenue())
                                     <a class="inline-flex min-h-12 items-center underline" href="{{ route('venues.show', $occurrence->effectiveVenue()) }}">{{ $occurrence->effectiveVenue()->name }}</a>
                                 @endif
-                                @if (! ($isPreview ?? false))
+                                @if (! ($isPreview ?? false) && ! $occurrence->is($selectedOccurrence ?? null))
                                     <a class="underline text-accent" href="{{ \App\Support\EventUrl::occurrence($occurrence) }}">{{ __('seo.date_page') }}</a>
                                 @endif
                                 @if ($occurrence->previous_starts_at !== null)
@@ -267,9 +267,12 @@
                                     </span>
 
                                     @if ($occurrence->status !== \App\Enums\OccurrenceStatus::Scheduled)
-                                        <span class="text-sm font-semibold text-live">
-                                            {{ $occurrence->status->label() }}@if (filled($occurrence->status_note)) <span class="font-normal text-ink-muted">{{ $occurrence->status_note }}</span>@endif
-                                        </span>
+                                        <div class="text-sm font-semibold text-live">
+                                            {{ $occurrence->status->label() }}
+                                            @if (filled($occurrence->status_note))
+                                                <div class="font-normal text-ink-muted"><x-description-content :text="$occurrence->status_note" /></div>
+                                            @endif
+                                        </div>
                                     @endif
 
                                     @php

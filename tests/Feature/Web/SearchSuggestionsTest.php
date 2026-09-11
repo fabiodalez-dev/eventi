@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Enums\EventStatus;
 use App\Enums\VenueStatus;
 use App\Models\City;
+use App\Models\Event;
 use App\Models\EventOccurrence;
 use App\Models\Tag;
 use App\Models\Venue;
@@ -19,7 +20,10 @@ beforeEach(function (): void {
 afterEach(fn () => Carbon::setTestNow());
 
 it('starts at three characters and returns an escaped fragment rather than a full page', function (): void {
-    occurrenceAtLocal($this->city, $this->category, '2026-09-06 21:00:00', event: ['title' => 'Concertone <script>alert(1)</script>']);
+    $date = occurrenceAtLocal($this->city, $this->category, '2026-09-06 21:00:00', event: ['title' => 'Concertone']);
+    // Dato storico: bypassa intenzionalmente gli eventi Eloquent per provare
+    // la difesa in uscita anche prima di una bonifica del database.
+    Event::query()->whereKey($date->event_id)->update(['title' => 'Concertone <script>alert(1)</script>']);
     $this->get('/cerca/suggerimenti?q=co')->assertOk()->assertDontSee('Concertone');
     $this->get('/cerca/suggerimenti?q=con')->assertOk()
         ->assertSee('Concertone &lt;script&gt;', false)

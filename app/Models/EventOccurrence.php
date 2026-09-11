@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\OccurrenceStatus;
+use App\Models\Concerns\HasSafeEditorContent;
 use Database\Factories\EventOccurrenceFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -22,6 +23,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 /** @property int|null $venue_id */
 class EventOccurrence extends Model
 {
+    use HasSafeEditorContent;
+
     protected $with = ['venue'];
 
     /** @use HasFactory<EventOccurrenceFactory> */

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Venue\Support;
 
 use App\Enums\PriceType;
+use App\Filament\Support\DescriptionEditor;
 use App\Filament\Support\ExternalLinksField;
 use App\Filament\Support\FactsField;
 use App\Filament\Support\ImageUpload;
@@ -13,7 +14,6 @@ use App\Filament\Support\TicketTiersField;
 use App\Models\Category;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\ToggleButtons;
 use Filament\Schemas\Components\Component;
@@ -106,6 +106,7 @@ final class EventFields
             ->label(__('manage.fields.price_min'))
             ->numeric()
             ->minValue(0)
+            ->maxValue(999999.99)
             ->inputMode('decimal')
             ->visible(fn (Get $get): bool => self::hasAmount($get('price_type')));
     }
@@ -117,16 +118,16 @@ final class EventFields
             ->helperText(__('manage.hints.price_max'))
             ->numeric()
             ->minValue(0)
+            ->maxValue(999999.99)
             ->inputMode('decimal')
             ->visible(fn (Get $get): bool => self::hasAmount($get('price_type')));
     }
 
     public static function description(): Component
     {
-        return Textarea::make('description')
+        return DescriptionEditor::make('description')
             ->label(__('manage.fields.description'))
-            ->placeholder(__('manage.placeholders.description'))
-            ->rows(5);
+            ->placeholder(__('manage.placeholders.description'));
     }
 
     public static function ticketUrl(): Component

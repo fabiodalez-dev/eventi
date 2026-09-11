@@ -42,7 +42,7 @@
         'border-line bg-canvas text-ink-muted hover:border-accent hover:text-accent' => ! $active,
     ]) }}
 >
-    {{ $slot }}
+    <span class="min-w-0 text-center">{{ $slot }}</span>
 
     @if ($count !== null)
         <span class="{{ $active ? 'text-on-accent/70' : 'text-ink-subtle' }}">{{ $count }}</span>

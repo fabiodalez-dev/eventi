@@ -9,6 +9,7 @@ use App\Enums\LineupRole;
 use App\Enums\OccurrenceScope;
 use App\Enums\OccurrenceStatus;
 use App\Enums\TicketTierStatus;
+use App\Filament\Support\DescriptionEditor;
 use App\Filament\Support\EventStatusPresentation;
 use App\Filament\Support\TicketTiersField;
 use App\Models\Booking;
@@ -21,7 +22,6 @@ use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
@@ -105,9 +105,9 @@ class OccurrencesRelationManager extends RelationManager
                     ->helperText(__('admin.hints.occurrence_highlight'))
                     ->maxLength(40),
 
-                Textarea::make('status_note')
+                DescriptionEditor::make('status_note')
                     ->label(__('admin.fields.status_note'))
-                    ->rows(2)
+                    ->maxLength(2000)
                     ->columnSpanFull(),
 
                 /*
@@ -278,9 +278,9 @@ class OccurrencesRelationManager extends RelationManager
                     ->authorize(fn (EventOccurrence $record): bool => auth()->user()?->can('update', $record) ?? false)
                     ->visible(fn (EventOccurrence $record): bool => $record->status !== OccurrenceStatus::Cancelled)
                     ->schema(fn (EventOccurrence $record): array => [
-                        Textarea::make('status_note')
+                        DescriptionEditor::make('status_note')
                             ->label(__('admin.fields.status_note'))
-                            ->rows(2),
+                            ->maxLength(2000),
                         ...self::scopeField($record),
                     ])
                     ->action(function (EventOccurrence $record, array $data): void {

@@ -11,7 +11,6 @@ use App\Support\PracticalIcons;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
 use Illuminate\Support\Facades\Gate;
@@ -24,8 +23,8 @@ final class BeforeGoingFields
         return Section::make('Prima di andare')->description('Seleziona solo informazioni confermate. Le voci lasciate vuote non appaiono sul sito.')->columns(2)->schema([
             Select::make('content_details.membership')->label('Tessera')->options(MembershipRequirement::options())->placeholder('Non specificato')->rules([Rule::enum(MembershipRequirement::class)]),
             Select::make('content_details.accessibility')->label('Accesso in sedia a rotelle')->options(['yes' => 'Accessibile', 'no' => 'Non accessibile'])->placeholder('Non specificato'),
-            Textarea::make('content_details.membership_notes')->label('Dettagli tessera')->placeholder('Tipo di tessera, costo e modalità di rilascio')->maxLength(2000)->rows(2),
-            Textarea::make('content_details.accessibility_notes')->label('Dettagli accessibilità')->placeholder('Percorso di ingresso, accompagnatori, contatto per assistenza')->maxLength(2000)->rows(2),
+            DescriptionEditor::make('content_details.membership_notes')->label('Dettagli tessera')->placeholder('Tipo di tessera, costo e modalità di rilascio')->maxLength(2000),
+            DescriptionEditor::make('content_details.accessibility_notes')->label('Dettagli accessibilità')->placeholder('Percorso di ingresso, accompagnatori, contatto per assistenza')->maxLength(2000),
             Select::make('content_details.feature_ids')->label('Caratteristiche e servizi')->multiple()->searchable()->preload()->options(fn (): array => EventFeature::choices())->columnSpanFull()
                 ->helperText('Cerca per nome: per esempio coppia, bagno, interprete, guardaroba. Il catalogo e le icone si gestiscono in Contenuti → Prima di andare.')
                 ->nestedRecursiveRules([Rule::exists('event_features', 'id')->where('is_active', true)->where('is_system', false)])
@@ -39,7 +38,7 @@ final class BeforeGoingFields
             Repeater::make('content_details.practical_custom')->label('Altre informazioni per questo evento')->defaultItems(0)->maxItems(12)->addActionLabel('Aggiungi una voce libera')->columnSpanFull()->columns(2)->schema([
                 TextInput::make('label')->label('Titolo')->required()->maxLength(120),
                 Select::make('icon')->label('Icona')->options(PracticalIcons::previews())->allowHtml()->searchable()->required()->default('check-circle')->rules([Rule::in(array_keys(PracticalIcons::options()))]),
-                Textarea::make('text')->label('Dettagli')->maxLength(1000)->rows(2)->columnSpanFull(),
+                DescriptionEditor::make('text')->label('Dettagli')->maxLength(1000)->columnSpanFull(),
             ])->helperText('Usa queste voci per indicazioni specifiche di questo evento. Per caratteristiche riutilizzabili usa il catalogo qui sopra.')
                 ->collapseAllAction(fn (Action $action) => $action->button()->icon('heroicon-o-chevron-up'))
                 ->expandAllAction(fn (Action $action) => $action->button()->icon('heroicon-o-chevron-down'))

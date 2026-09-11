@@ -4,6 +4,7 @@ namespace App\Filament\Organizer\Resources\Events;
 
 use App\Enums\EventStatus;
 use App\Enums\OccurrenceStatus;
+use App\Filament\Support\DescriptionEditor;
 use App\Models\Event;
 use App\Models\EventOccurrence;
 use Filament\Actions\Action;
@@ -11,7 +12,6 @@ use Filament\Actions\CreateAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
@@ -32,7 +32,7 @@ class DatesRelationManager extends RelationManager
             Toggle::make('is_all_day')->label('Tutto il giorno'),
             Select::make('venue_id')->label('Locale di questa data')->relationship('venue', 'name', fn ($query) => $query->approved())->searchable()->placeholder('Usa il locale principale'),
             Select::make('status')->label('Stato')->options(OccurrenceStatus::options())->required()->default('scheduled'),
-            Textarea::make('status_note')->label('Avviso al pubblico')->maxLength(2000),
+            DescriptionEditor::make('status_note')->label('Avviso al pubblico')->maxLength(2000),
         ]);
     }
 

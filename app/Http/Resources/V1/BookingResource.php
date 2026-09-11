@@ -6,6 +6,7 @@ namespace App\Http\Resources\V1;
 
 use App\Enums\AdmissionStatus;
 use App\Models\Booking;
+use App\Support\Description;
 
 final class BookingResource
 {
@@ -24,7 +25,7 @@ final class BookingResource
             'address' => $date?->effectiveVenue()?->address,
             'starts_at' => $date?->starts_at?->toIso8601String(),
             'status' => $booking->status->value,
-            'instructions' => $date?->booking_instructions,
+            'instructions' => Description::plain($date?->booking_instructions),
             'cancellation_reason' => $booking->cancellation_reason,
             'booker' => $booking->booker_data,
             'privacy_accepted_at' => $booking->privacy_accepted_at?->toIso8601String(),

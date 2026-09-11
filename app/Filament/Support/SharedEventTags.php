@@ -24,6 +24,7 @@ final class SharedEventTags
             ->helperText(__('tags.help'))
             ->relationship('tags', 'name')
             ->multiple()->searchable()->preload()
+            ->maxItems(50)
             ->live()
             ->getSearchResultsUsing(function (string $search): array {
                 $name = Str::squish(strip_tags($search));

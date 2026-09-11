@@ -15,6 +15,7 @@ use App\Filament\Admin\Resources\Venues\RelationManagers\MembersRelationManager;
 use App\Filament\Admin\Support\VenueModeration;
 use App\Filament\Forms\Components\MapPicker;
 use App\Filament\Support\AccessibilityField;
+use App\Filament\Support\DescriptionEditor;
 use App\Filament\Support\EditorialFields;
 use App\Filament\Support\FactsField;
 use App\Filament\Support\ImageUpload;
@@ -174,9 +175,8 @@ class VenueResource extends Resource
                                             ->rows(2)
                                             ->columnSpanFull(),
 
-                                        Textarea::make('description')
+                                        DescriptionEditor::make('description')
                                             ->label(__('admin.fields.description'))
-                                            ->rows(6)
                                             ->columnSpanFull(),
                                     ]),
 
@@ -418,9 +418,8 @@ class VenueResource extends Resource
                                         Toggle::make('requires_membership')
                                             ->label(__('admin.fields.requires_membership')),
 
-                                        Textarea::make('membership_notes')
-                                            ->label(__('admin.fields.membership_notes'))
-                                            ->rows(2),
+                                        DescriptionEditor::make('membership_notes')
+                                            ->label(__('admin.fields.membership_notes')),
 
                                         Repeater::make('opening_hours')
                                             ->label(__('admin.fields.opening_hours'))

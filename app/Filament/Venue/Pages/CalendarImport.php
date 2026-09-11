@@ -24,6 +24,7 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\View\View;
+use Livewire\Attributes\Locked;
 use Throwable;
 
 /**
@@ -67,6 +68,7 @@ class CalendarImport extends Page implements HasForms
 
     public ?string $previewError = null;
 
+    #[Locked]
     public bool $previewed = false;
 
     public static function getNavigationLabel(): string
@@ -151,6 +153,8 @@ class CalendarImport extends Page implements HasForms
                             }),
 
                         TagsInput::make('exclude_keywords')
+                            ->rules(['nullable', 'array', 'max:100'])
+                            ->nestedRecursiveRules(['string', 'max:100'])
                             ->label(__('manage.calendar.form.exclude'))
                             ->helperText(__('manage.calendar.form.exclude_help'))
                             ->placeholder(__('manage.calendar.form.exclude_placeholder')),
@@ -164,6 +168,7 @@ class CalendarImport extends Page implements HasForms
      */
     public function preview(): void
     {
+        abort_unless(static::canAccess(), 403);
         $data = $this->getForm('form')?->getState() ?? [];
 
         $source = $this->draftSource($data);
@@ -187,6 +192,7 @@ class CalendarImport extends Page implements HasForms
      */
     public function connect(): void
     {
+        abort_unless(static::canAccess(), 403);
         $data = $this->getForm('form')?->getState() ?? [];
 
         if (! $this->previewed) {
