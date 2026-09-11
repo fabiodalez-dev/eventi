@@ -84,7 +84,18 @@ it('l\'intestazione di sezione lega il titolo alla sezione e mostra il rimando',
     expect($html)
         ->toContain('id="sezione-oggi"')
         ->toContain(__('events.sections.today'))
-        ->toContain(__('common.actions.show_all'));
+        ->toContain(__('common.actions.show_all'))
+        ->toContain('flex-wrap')
+        ->toContain('[overflow-wrap:anywhere]')
+        ->not->toContain('class="ui-action shrink-0');
+});
+
+it('spezza anche gli indirizzi lunghi nei contenuti editoriali', function (): void {
+    $html = Blade::render('<x-description-content :text="$text" />', [
+        'text' => 'https://example.test/'.str_repeat('percorso-molto-lungo-', 20),
+    ]);
+
+    expect($html)->toContain('[overflow-wrap:anywhere]');
 });
 
 it('il pulsante è un bottone o un collegamento, con l\'etichetta a filo a sinistra', function (): void {

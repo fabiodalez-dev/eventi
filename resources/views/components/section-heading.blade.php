@@ -27,7 +27,7 @@
     ];
 @endphp
 
-<div {{ $attributes->class(['border-t-2 border-line pt-3 mb-4 flex items-end justify-between gap-4']) }}>
+<div {{ $attributes->class(['border-t-2 border-line pt-3 mb-4 flex flex-wrap items-end justify-between gap-4']) }}>
     <div class="min-w-0">
         <div class="flex items-center gap-2.5">
             <span aria-hidden="true" class="size-2.5 shrink-0 {{ $marks[$tone] ?? $marks['brand'] }}"></span>
@@ -45,7 +45,7 @@
     @if ($href)
         <a
             href="{{ $href }}"
-            class="ui-action shrink-0 inline-flex items-center gap-1 px-1.5 py-1.5 font-display text-eyebrow font-extrabold uppercase text-brand transition hover:bg-brand/10"
+            class="ui-action inline-flex min-w-0 max-w-full items-center gap-1 px-1.5 py-1.5 font-display text-eyebrow font-extrabold [overflow-wrap:anywhere] uppercase text-brand transition hover:bg-brand/10"
         >
             {{ $linkLabel ?? __('common.actions.show_all') }}
             <x-lucide name="arrow-right" class="size-3.5" />

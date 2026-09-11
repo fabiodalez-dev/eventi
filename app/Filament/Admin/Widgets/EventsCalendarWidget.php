@@ -31,6 +31,9 @@ use Illuminate\Support\Collection;
  */
 class EventsCalendarWidget extends CalendarWidget
 {
+    /** @var view-string */
+    protected string $view = 'filament.admin.widgets.events-calendar';
+
     protected bool $eventClickEnabled = true;
 
     /**

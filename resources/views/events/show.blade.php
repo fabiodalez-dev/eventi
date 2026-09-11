@@ -208,8 +208,8 @@
          colonna no. Senza il limite, su uno schermo da 1440 il testo arriva a
          900px — centoventi caratteri per riga, dove l'occhio tornando a capo
          perde la riga giusta — e su un monitor grande peggiora ancora. --}}
-    <div class="mx-auto grid w-full max-w-content gap-8 px-gutter py-[clamp(1.5rem,2.8vw,2.75rem)] lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-        <article class="flex flex-col gap-6">
+    <div class="mx-auto grid w-full max-w-content grid-cols-[minmax(0,1fr)] gap-8 px-gutter py-[clamp(1.5rem,2.8vw,2.75rem)] lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <article class="flex min-w-0 flex-col gap-6">
             @if ($occurrences->isEmpty() && $pastOccurrences->isNotEmpty())
                 <p class="bg-surface px-4 py-3 text-sm font-semibold text-ink-muted">
                     {{ __('events.detail.finished') }}
@@ -444,7 +444,7 @@
              `order` e non un secondo blocco duplicato: il markup resta uno, e
              l'ordine di lettura per chi usa uno screen reader segue quello
              visivo perché a cambiare è la griglia, non il documento. --}}
-        <aside class="flex flex-col gap-6 max-lg:order-first">
+        <aside class="flex min-w-0 flex-col gap-6 max-lg:order-first">
             @if ($poster !== null)
                 <x-event-poster :event="$event" :set="$poster" />
             @endif
