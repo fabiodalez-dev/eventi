@@ -15,6 +15,7 @@
     'required' => false,
     'placeholder' => null,
     'rows' => 5,
+    'rich' => false,
     /* Elenco valore => etichetta per i campi a scelta */
     'options' => null,
     'placeholderOption' => null,
@@ -72,6 +73,9 @@
             @endforeach
         </select>
     @elseif ($type === 'textarea')
+        @if ($rich)
+            <div data-rich-input data-target="{{ $id }}" data-label="{{ $label }}" data-content="{{ (string) \App\Support\Description::render(is_string($current) ? $current : '') }}" hidden></div>
+        @endif
         <textarea
             id="{{ $id }}"
             name="{{ $name }}"

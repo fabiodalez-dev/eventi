@@ -123,11 +123,7 @@
                     <h2 id="descrizione-locale" class="font-display text-[clamp(1.25rem,1.8vw,1.75rem)] leading-none font-extrabold tracking-[-0.03em] uppercase">{{ __('venues.detail.about') }}</h2>
 
                     <div class="flex flex-col gap-3 text-ink-muted">
-                        @foreach (preg_split('/\R{2,}/', (string) $venue->description) ?: [] as $paragraph)
-                            @if (trim($paragraph) !== '')
-                                <p>{{ $paragraph }}</p>
-                            @endif
-                        @endforeach
+                        <x-description-content :text="$venue->description" />
                     </div>
                 </section>
             @endif
@@ -258,7 +254,7 @@
             @if ($venue->requires_membership && filled($venue->membership_notes))
                 <section class="flex flex-col gap-2 bg-canvas p-5 border-2 border-line" aria-labelledby="tessera-locale">
                     <h2 id="tessera-locale" class="font-display text-[clamp(1.25rem,1.8vw,1.75rem)] leading-none font-extrabold tracking-[-0.03em] uppercase">{{ __('venues.detail.membership') }}</h2>
-                    <p class="text-sm text-ink-muted">{{ $venue->membership_notes }}</p>
+                    <div class="text-sm text-ink-muted"><x-description-content :text="$venue->membership_notes" /></div>
                 </section>
             @endif
 

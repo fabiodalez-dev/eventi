@@ -8,6 +8,7 @@ use App\Enums\VenueType;
 use App\Filament\Admin\Support\StructuredFields;
 use App\Filament\Forms\Components\MapPicker;
 use App\Filament\Support\AccessibilityField;
+use App\Filament\Support\DescriptionEditor;
 use App\Filament\Support\EditorialFields;
 use App\Filament\Support\FactsField;
 use App\Filament\Support\ImageUpload;
@@ -33,6 +34,7 @@ use Filament\Schemas\Concerns\InteractsWithSchemas;
 use Filament\Schemas\Contracts\HasSchemas;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Support\Facades\Validator;
 
 /**
  * «Il tuo locale» — i dati della **scheda pubblica** del locale, compilati da
@@ -154,9 +156,8 @@ class VenueProfile extends Page implements HasSchemas
                             ->rows(2)
                             ->columnSpanFull(),
 
-                        Textarea::make('description')
+                        DescriptionEditor::make('description')
                             ->label(__('manage.fields.description'))
-                            ->rows(5)
                             ->columnSpanFull(),
                     ])
                     ->columns(2),
@@ -185,6 +186,7 @@ class VenueProfile extends Page implements HasSchemas
                             ->collection('gallery')
                             ->helperText(__('manage.fields.gallery_help'))
                             ->multiple()
+                            ->maxFiles(30)
                             ->reorderable(),
 
                         /* La copertina prende una riga sua: messa in mezzo
@@ -237,8 +239,8 @@ class VenueProfile extends Page implements HasSchemas
                          * numero non serve: chi gestisce un locale sa dov'e'
                          * la porta, non la sua latitudine.
                          */
-                        Hidden::make('lat'),
-                        Hidden::make('lng'),
+                        Hidden::make('lat')->rules(['nullable', 'numeric', 'between:-90,90']),
+                        Hidden::make('lng')->rules(['nullable', 'numeric', 'between:-180,180']),
 
                         TextInput::make('address')
                             ->label(__('manage.fields.address'))
@@ -260,6 +262,7 @@ class VenueProfile extends Page implements HasSchemas
                 Section::make(__('manage.sections.venue_hours'))
                     ->schema([
                         Repeater::make('opening_hours')
+                            ->maxItems(28)
                             ->hiddenLabel()
                             ->columns(['default' => 1, 'lg' => 2])
                             ->defaultItems(0)
@@ -284,14 +287,16 @@ class VenueProfile extends Page implements HasSchemas
                         TextInput::make('capacity')
                             ->label(__('manage.fields.capacity'))
                             ->helperText(__('manage.hints.capacity'))
-                            ->numeric()
-                            ->minValue(0),
+                            ->integer()
+                            ->minValue(0)
+                            ->maxValue(1000000),
                     ]),
 
                 Section::make(__('manage.sections.venue_contacts'))
                     ->columns(['default' => 1, 'lg' => 2])
                     ->schema([
                         TextInput::make('phone')
+                            ->regex('/^\+?[0-9 ()\/.\-]{5,40}$/')
                             ->label(__('manage.fields.phone'))
                             ->tel()
                             ->maxLength(40),
@@ -308,6 +313,16 @@ class VenueProfile extends Page implements HasSchemas
 
                         KeyValue::make('socials')
                             ->label(__('manage.fields.socials'))
+                            ->rules(['nullable', 'array', 'max:12'])
+                            ->rule(static fn (): \Closure => static function (string $attribute, mixed $value, \Closure $fail): void {
+                                if (Validator::make(['socials' => $value], [
+                                    'socials.*' => ['array:key,value'],
+                                    'socials.*.key' => ['required', 'string', 'max:50', 'regex:/^[\pL\pN _-]+$/u'],
+                                    'socials.*.value' => ['nullable', 'string', 'url:http,https', 'max:2048'],
+                                ])->fails()) {
+                                    $fail('Ogni social deve contenere un indirizzo http:// o https:// valido, lungo al massimo 2048 caratteri.');
+                                }
+                            })
                             ->columnSpanFull(),
                     ]),
 
@@ -331,9 +346,8 @@ class VenueProfile extends Page implements HasSchemas
                         Toggle::make('requires_membership')
                             ->label(__('manage.fields.requires_membership')),
 
-                        Textarea::make('membership_notes')
-                            ->label(__('manage.fields.membership_notes'))
-                            ->rows(2),
+                        DescriptionEditor::make('membership_notes')
+                            ->label(__('manage.fields.membership_notes')),
                     ]),
             ]);
     }

@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Enums\ApplicationStatus;
 use App\Enums\VenueType;
+use App\Models\Concerns\HasSafeEditorContent;
 use Database\Factories\VenueApplicationFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -16,6 +17,8 @@ class VenueApplication extends Model
 {
     /** @use HasFactory<VenueApplicationFactory> */
     use HasFactory;
+
+    use HasSafeEditorContent;
 
     /** @var list<string> */
     protected $fillable = [

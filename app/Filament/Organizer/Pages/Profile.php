@@ -2,9 +2,9 @@
 
 namespace App\Filament\Organizer\Pages;
 
+use App\Filament\Support\DescriptionEditor;
 use App\Models\Organizer;
 use Filament\Facades\Filament;
-use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
@@ -50,7 +50,7 @@ class Profile extends Page implements HasSchemas
     public function form(Schema $schema): Schema
     {
         return $schema->columns(1)->statePath('data')->components([
-            Textarea::make('description')->label('Presentazione')->rows(8)->maxLength(20000),
+            DescriptionEditor::make('description')->label('Presentazione')->maxLength(20000),
             TextInput::make('website')->label('Sito web')->url()->maxLength(2048),
             TextInput::make('email')->label('Email pubblica')->email()->maxLength(255),
         ]);

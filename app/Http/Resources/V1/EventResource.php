@@ -14,6 +14,7 @@ use App\Services\Seo\PublicOffers;
 use App\Services\Seo\StructuredData;
 use App\Support\Api\ApiContext;
 use App\Support\Api\ApiDate;
+use App\Support\Description;
 use App\Support\TicketTiers;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Route;
@@ -66,9 +67,9 @@ final class EventResource
             'slug' => (string) $event->slug,
             'title' => (string) $event->title,
             'subtitle' => $event->subtitle,
-            'description' => $event->description,
+            'description' => Description::plain($event->description),
             'short_description' => $event->short_description,
-            'content_details' => app(EditorialContent::class)->details($event),
+            'content_details' => Description::plainValues(app(EditorialContent::class)->details($event)),
             'poster' => PosterResource::toArray($event),
             'category' => $event->category === null ? null : CategoryResource::summary($event->category),
             'tags' => $event->relationLoaded('tags')
@@ -134,7 +135,7 @@ final class EventResource
             'occurrences' => $occurrences
                 ->map(static fn (EventOccurrence $occurrence): array => [
                     ...OccurrenceResource::toArray($occurrence, $context),
-                    'content_details' => app(EditorialContent::class)->details($event, $occurrence),
+                    'content_details' => Description::plainValues(app(EditorialContent::class)->details($event, $occurrence)),
                     'offers' => app(PublicOffers::class)->for($event, $occurrence),
                 ])
                 ->all(),

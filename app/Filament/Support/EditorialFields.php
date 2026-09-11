@@ -27,18 +27,18 @@ final class EditorialFields
 {
     public static function content(bool $event = false, bool $place = false, bool $taxonomy = false): Section
     {
-        $fields = [Textarea::make('content_details.introduction')->label(__('seo.fields.introduction'))->maxLength(5000)->rows(3)];
+        $fields = [DescriptionEditor::make('content_details.introduction')->label(__('seo.fields.introduction'))->maxLength(5000)];
         if ($taxonomy) {
             $fields[] = Repeater::make('content_details.city_introductions')->label(__('seo.city_introductions'))->defaultItems(0)->columns(1)->schema([
                 Select::make('city_id')->label(__('seo.search_console.city'))->options(City::pluck('name', 'id'))->required()->exists('cities', 'id')->distinct(),
-                Textarea::make('text')->label(__('seo.fields.introduction'))->required()->maxLength(5000),
+                DescriptionEditor::make('text')->label(__('seo.fields.introduction'))->required()->maxLength(5000),
             ]);
         }
         if ($event || $place) {
             $fields[] = Select::make('content_details.parking_type')->label(__('seo.parking_type'))
                 ->options(['free' => __('seo.parking_free'), 'paid' => __('seo.parking_paid'), 'none' => __('seo.parking_none')])->placeholder(__('seo.unspecified'));
             foreach (array_merge(['parking_notes', 'transit_notes', 'entrance_notes'], $event ? [] : ['accessibility_notes']) as $key) {
-                $fields[] = Textarea::make('content_details.'.$key)->label(__('seo.fields.'.$key))->maxLength(2000)->rows(2);
+                $fields[] = DescriptionEditor::make('content_details.'.$key)->label(__('seo.fields.'.$key))->maxLength(2000);
             }
             if (! $event) {
                 $fields[] = Select::make('content_details.accessibility')->label(__('seo.fields.accessibility'))
@@ -64,7 +64,7 @@ final class EditorialFields
                 $fields[] = TextInput::make('organizer_url')->label(__('seo.organizer_url'))->url()->maxLength(2048);
             }
             foreach (['mandatory_costs', 'weather_policy', 'minors_policy', 'cancellation_policy', 'refund_policy', 'public_contact', 'poster_alt', 'poster_caption', 'poster_credit'] as $key) {
-                $fields[] = Textarea::make('content_details.'.$key)->label(__('seo.fields.'.$key))->maxLength(2000)->rows(2);
+                $fields[] = ($key === 'poster_alt' ? Textarea::make('content_details.'.$key)->rows(2) : DescriptionEditor::make('content_details.'.$key))->label(__('seo.fields.'.$key))->maxLength(2000);
             }
             $fields[] = Repeater::make('content_details.agenda')->label(__('seo.agenda'))->defaultItems(0)->maxItems(50)
                 ->columns(1)->schema([
@@ -76,13 +76,13 @@ final class EditorialFields
                         ->options(fn (?Event $record): array => $record?->occurrences()->get()->mapWithKeys(fn ($date): array => [$date->id => $date->starts_at->copy()->timezone($record->city->timezone)->format('d/m/Y H:i')])->all() ?? [])
                         ->rules(fn (?Event $record): array => [Rule::exists('event_occurrences', 'id')->where('event_id', $record?->id)]),
                     TextInput::make('speaker')->label(__('seo.fields.speaker'))->maxLength(180),
-                    Textarea::make('description')->label(__('seo.fields.description'))->maxLength(5000),
+                    DescriptionEditor::make('description')->label(__('seo.fields.description'))->maxLength(5000),
                 ])->collapsible()->itemLabel(fn (array $state): ?string => $state['title'] ?? null);
         }
         $fields[] = Repeater::make('content_details.faqs')->label(__('seo.faqs'))->defaultItems(0)->maxItems(30)
             ->columns(1)->schema([
                 TextInput::make('question')->label(__('seo.question'))->required()->maxLength(250),
-                Textarea::make('answer')->label(__('seo.answer'))->required()->maxLength(5000),
+                DescriptionEditor::make('answer')->label(__('seo.answer'))->required()->maxLength(5000),
             ])->collapsible()->itemLabel(fn (array $state): ?string => $state['question'] ?? null);
 
         return Section::make(__('seo.information'))->description(__('seo.information_help'))->schema($fields)->columns(1)->collapsed();

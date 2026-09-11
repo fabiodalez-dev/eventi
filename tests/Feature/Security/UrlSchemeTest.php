@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\Event;
 use App\Models\Venue;
 
 /**
@@ -25,8 +26,10 @@ beforeEach(function (): void {
 it('non disegna il sito del locale quando lo schema esegue codice', function (): void {
     $venue = Venue::factory()->approved()->create([
         'city_id' => $this->city->getKey(),
-        'website' => 'javascript:alert(document.cookie)',
     ]);
+    // Simula dati storici già presenti prima della validazione in scrittura.
+    Venue::query()->whereKey($venue->id)->update(['website' => 'javascript:alert(document.cookie)']);
+    $venue->refresh();
 
     freezeLocal($this->city, '2026-09-05 12:00:00');
     $occorrenza = occurrenceAtLocal($this->city, $this->category, '2026-09-20 21:00:00', venue: $venue);
@@ -55,7 +58,8 @@ it('disegna il sito del locale quando l indirizzo è normale', function (): void
 it('non disegna i biglietti né la prenotazione con uno schema che esegue codice', function (): void {
     freezeLocal($this->city, '2026-09-05 12:00:00');
 
-    $occorrenza = occurrenceAtLocal($this->city, $this->category, '2026-09-20 21:00:00', event: [
+    $occorrenza = occurrenceAtLocal($this->city, $this->category, '2026-09-20 21:00:00');
+    Event::query()->whereKey($occorrenza->event_id)->update([
         'ticket_url' => 'javascript:alert(1)',
         'booking_url' => 'data:text/html,<script>alert(1)</script>',
     ]);

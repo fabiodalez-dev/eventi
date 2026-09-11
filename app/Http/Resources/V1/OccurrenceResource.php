@@ -13,6 +13,7 @@ use App\Models\TicketTier;
 use App\Queries\EventOccurrenceQuery;
 use App\Support\Api\ApiContext;
 use App\Support\Api\ApiDate;
+use App\Support\Description;
 use App\Support\EventUrl;
 use App\Support\MapLinks;
 use App\Support\TicketTiers;
@@ -63,7 +64,7 @@ final class OccurrenceResource
             'is_all_day' => (bool) $occurrence->is_all_day,
             'business_date' => ApiDate::day($occurrence->business_date),
             'status' => $occurrence->status->value,
-            'status_note' => $occurrence->status_note,
+            'status_note' => Description::plain($occurrence->status_note),
 
             /* L'etichetta di richiamo scritta dal locale («ULTIMI POSTI»):
                testo già pronto da mostrare, non un codice da interpretare. */

@@ -18,6 +18,8 @@ use App\Filament\Venue\Support\RecurrenceForm;
 use App\Models\Category;
 use App\Models\Event;
 use App\Models\EventOccurrence;
+use App\Rules\ExternalLinks;
+use App\Support\EditorContent;
 use App\Support\VenueEventDefaults;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
@@ -33,6 +35,8 @@ use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Components\Wizard\Step;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Locked;
 
 /**
@@ -293,6 +297,25 @@ class CreateEvent extends CreateRecord
     {
         $venue = CurrentVenue::get();
         $event = $this->draft() ?? new Event;
+
+        abort_unless($event->exists
+            ? auth()->user()?->can('update', $event)
+            : auth()->user()?->can('create', [Event::class, $venue]), 403);
+
+        if (array_key_exists('description', $data)) {
+            $data['description'] = EditorContent::clean('description', $data['description']);
+        }
+        $data = Validator::make(['data' => $data], [
+            'data.title' => ['required', 'string', 'max:255'],
+            'data.description' => ['nullable', 'string', 'max:50000'],
+            'data.category_id' => ['required', 'integer', Rule::exists('categories', 'id')->where('is_active', true)],
+            'data.price_type' => ['nullable', Rule::enum(PriceType::class)],
+            'data.price_min' => ['nullable', 'numeric', 'between:0,999999.99'],
+            'data.price_max' => ['nullable', 'numeric', 'between:0,999999.99'],
+            'data.ticket_url' => ['nullable', 'string', 'url:http,https', 'max:255'],
+            'data.booking_url' => ['nullable', 'string', 'url:http,https', 'max:255'],
+            'data.external_links' => ['nullable', 'array', new ExternalLinks],
+        ])->validate()['data'];
 
         foreach (self::COLUMNS as $column) {
             if (array_key_exists($column, $data)) {

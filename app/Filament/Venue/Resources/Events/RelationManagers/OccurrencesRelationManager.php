@@ -80,14 +80,14 @@ class OccurrencesRelationManager extends RelationManager
                 TextInput::make('capacity')
                     ->label(__('manage.fields.occurrence_capacity'))
                     ->helperText(__('manage.hints.occurrence_capacity'))
-                    ->numeric()
-                    ->minValue(0),
+                    ->integer()
+                    ->minValue(0)->maxValue(1000000),
 
                 TextInput::make('capacity_left')
                     ->label(__('manage.fields.occurrence_capacity_left'))
                     ->helperText(__('manage.hints.occurrence_capacity_left'))
-                    ->numeric()
-                    ->minValue(0),
+                    ->integer()
+                    ->minValue(0)->maxValue(1000000),
 
                 TextInput::make('highlight')
                     ->label(__('manage.fields.occurrence_highlight'))
@@ -96,6 +96,7 @@ class OccurrencesRelationManager extends RelationManager
                     ->columnSpanFull(),
 
                 Repeater::make('lineups')
+                    ->maxItems(100)
                     ->label(__('manage.resources.lineup.plural'))
                     ->relationship()
                     ->columns(2)

@@ -10,7 +10,7 @@
                         @svg('heroicon-o-'.$item['icon'], 'size-5 shrink-0 mt-0.5 text-brand', ['aria-hidden' => 'true'])
                         <div class="min-w-0">
                             <p class="m-0 text-base font-semibold">{{ $item['label'] }}</p>
-                            @if (filled($item['text']))<p class="mt-1 text-sm leading-relaxed text-ink-muted whitespace-pre-line break-words">{{ $item['text'] }}</p>@endif
+                            @if (filled($item['text']))<div class="mt-1 text-sm leading-relaxed text-ink-muted"><x-description-content :text="$item['text']" /></div>@endif
                         </div>
                     </li>
                 @endforeach
@@ -28,13 +28,13 @@
     @endif
 @endif
 @if (filled($details['introduction'] ?? null))
-    <p class="max-w-prose whitespace-pre-line">{{ $details['introduction'] }}</p>
+    <x-description-content :text="$details['introduction']" />
 @endif
 @foreach (['parking_notes', 'transit_notes', 'entrance_notes', 'accessibility_notes', 'membership_notes', 'mandatory_costs', 'weather_policy', 'minors_policy', 'cancellation_policy', 'refund_policy', 'public_contact', 'poster_caption', 'poster_credit'] as $field)
     @if (filled($details[$field] ?? null) && (! ($model instanceof \App\Models\Event) || in_array($field, ['poster_caption', 'poster_credit'], true)))
         <section class="py-4 border-b border-line">
             <h3 class="font-bold">{{ __('seo.fields.'.$field) }}</h3>
-            <p class="max-w-prose whitespace-pre-line">{{ $details[$field] }}</p>
+            <x-description-content :text="$details[$field]" />
         </section>
     @endif
 @endforeach
@@ -51,7 +51,7 @@
                     <p class="text-accent">{{ $item['when'] ?? '' }}</p>
                     <h3 class="font-bold">{{ $item['title'] ?? '' }}</h3>
                     <p>{{ $item['speaker'] ?? '' }}</p>
-                    <p class="max-w-prose whitespace-pre-line">{{ $item['description'] ?? '' }}</p>
+                    <x-description-content :text="$item['description'] ?? ''" />
                 </li>
             @endforeach
         </ol>
@@ -66,7 +66,7 @@
         @foreach ($details['faqs'] as $faq)
             <details class="py-4 border-b border-line">
                 <summary class="cursor-pointer min-h-12 font-bold">{{ $faq['question'] ?? '' }}</summary>
-                <p class="max-w-prose whitespace-pre-line">{{ $faq['answer'] ?? '' }}</p>
+                <x-description-content :text="$faq['answer'] ?? ''" />
             </details>
         @endforeach
     </section>

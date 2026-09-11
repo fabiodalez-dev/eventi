@@ -40,6 +40,7 @@
         <x-field
             type="textarea"
             name="message"
+            rich
             :label="__('forms.application.fields.message')"
             :hint="__('forms.application.hints.message')"
         />

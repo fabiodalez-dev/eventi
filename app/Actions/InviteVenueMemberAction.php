@@ -9,6 +9,7 @@ use App\Enums\VenueRole;
 use App\Models\User;
 use App\Models\Venue;
 use App\Notifications\VenueAccessGranted;
+use App\Support\EditorContent;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -36,6 +37,7 @@ final class InviteVenueMemberAction
     public function execute(Venue $venue, string $email, string $name, VenueRole $role): User
     {
         $email = mb_strtolower(trim($email));
+        $name = EditorContent::clean('name', $name);
 
         return DB::transaction(function () use ($venue, $email, $name, $role): User {
             $user = User::query()->where('email', $email)->first();

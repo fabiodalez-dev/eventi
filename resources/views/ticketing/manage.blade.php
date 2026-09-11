@@ -21,7 +21,7 @@
             @foreach (['booking_opens_at' => 'opens_at', 'booking_closes_at' => 'closes_at', 'cancellation_closes_at' => 'cancellation_closes_at'] as $field => $label)
                 <x-field :name="$field" type="datetime-local" :label="__('ticketing.'.$label)" :value="$date->$field?->timezone($date->event->city->timezone)->format('Y-m-d\TH:i')" />
             @endforeach
-            <x-field name="booking_instructions" type="textarea" :label="__('ticketing.instructions')" :value="$date->booking_instructions" class="md:col-span-2" />
+            <x-field name="booking_instructions" type="textarea" rich :label="__('ticketing.instructions')" :value="$date->booking_instructions" class="md:col-span-2" />
             <fieldset class="grid gap-4 md:col-span-2"><legend class="mb-3 font-bold">{{ __('ticketing.form_fields') }}</legend>
                 <p class="text-sm text-ink-muted">{{ __('ticketing.form_hint') }}</p>
                 @foreach (\App\Services\Ticketing\BookingForm::FIELDS as $field)

@@ -16,6 +16,7 @@ use App\Filament\Admin\Resources\Events\RelationManagers\OccurrencesRelationMana
 use App\Filament\Admin\Support\StructuredFields;
 use App\Filament\Forms\Components\MapPicker;
 use App\Filament\Support\BeforeGoingFields;
+use App\Filament\Support\DescriptionEditor;
 use App\Filament\Support\EditorialFields;
 use App\Filament\Support\EventStatusPresentation;
 use App\Filament\Support\EventTicketingActions;
@@ -169,9 +170,8 @@ class EventResource extends Resource
                                             ->rows(2)
                                             ->columnSpanFull(),
 
-                                        Textarea::make('description')
+                                        DescriptionEditor::make('description')
                                             ->label(__('admin.fields.description'))
-                                            ->rows(8)
                                             ->columnSpanFull(),
                                     ]),
 

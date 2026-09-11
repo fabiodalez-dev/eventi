@@ -46,6 +46,7 @@
         <x-field
             type="textarea"
             name="raw_text"
+            rich
             :label="__('forms.submission.fields.raw_text')"
             :hint="__('forms.submission.hints.raw_text')"
         />

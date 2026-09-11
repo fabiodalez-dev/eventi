@@ -1,4 +1,7 @@
 import './appearance';
+if (document.querySelector('[data-rich-input]')) {
+    import('./rich-input').then(({ richInputs }) => richInputs());
+}
 import { sponsorshipBanners } from './sponsorship-banner';
 import './calendar-preview';
 import { placeChoices } from './place-choices';

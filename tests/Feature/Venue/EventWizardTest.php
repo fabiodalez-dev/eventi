@@ -46,6 +46,24 @@ function wizardData(array $overrides = []): array
     ];
 }
 
+it('valida anche le chiamate dirette al salvataggio automatico', function (string $field, mixed $value): void {
+    Livewire::test(CreateEvent::class)
+        ->fillForm(wizardData())
+        ->set('data.'.$field, $value)
+        ->call('saveDraft')
+        ->assertHasErrors(['data.'.$field]);
+
+    expect(Event::query()->where('venue_id', $this->venue->id)->where('title', 'Serata swing')->exists())->toBeFalse();
+})->with([
+    'titolo troppo lungo' => ['title', str_repeat('x', 256)],
+    'categoria inesistente' => ['category_id', 99999999],
+    'tipo prezzo arbitrario' => ['price_type', 'evil'],
+    'prezzo negativo' => ['price_min', -1],
+    'prezzo enorme' => ['price_max', 1000000],
+    'URL eseguibile' => ['ticket_url', 'javascript:alert(1)'],
+    'descrizione troppo lunga' => ['description', str_repeat('x', 50001)],
+]);
+
 it('crea e pubblica un evento con una sola data', function (): void {
     $this->venue->update(['auto_publish' => true]);
 

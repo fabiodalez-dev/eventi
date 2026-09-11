@@ -13,6 +13,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Lineup extends Model
 {
+    use Concerns\HasSafeEditorContent;
+
     /** @use HasFactory<LineupFactory> */
     use HasFactory;
 

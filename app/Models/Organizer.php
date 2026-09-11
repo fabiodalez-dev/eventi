@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasSafeEditorContent;
 use App\Support\ContentVersion;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -13,6 +14,8 @@ use Spatie\Sluggable\SlugOptions;
 
 class Organizer extends Model
 {
+    use HasSafeEditorContent;
+
     /** @param Builder<Organizer> $query */
     public function scopeVisibleInCity(Builder $query, City $city): void
     {

@@ -7,6 +7,7 @@ namespace App\Http\Resources\V1;
 use App\Models\Venue;
 use App\Services\Seo\EditorialContent;
 use App\Support\Api\ApiDate;
+use App\Support\Description;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
@@ -50,9 +51,9 @@ final class VenueResource
             ...self::summary($venue),
             'type' => $venue->type->value,
             'status' => $venue->status->value,
-            'description' => $venue->description,
+            'description' => Description::plain($venue->description),
             'short_description' => $venue->short_description,
-            'content_details' => app(EditorialContent::class)->details($venue),
+            'content_details' => Description::plainValues(app(EditorialContent::class)->details($venue)),
             'address' => (string) $venue->address,
             'address_extra' => $venue->address_extra,
             'postal_code' => $venue->postal_code,
@@ -74,7 +75,7 @@ final class VenueResource
             'accessibility' => (object) $venue->accessibility->toArray(),
             'info' => $venue->info->toArray(),
             'requires_membership' => (bool) $venue->requires_membership,
-            'membership_notes' => $venue->membership_notes,
+            'membership_notes' => Description::plain($venue->membership_notes),
             'cover' => self::cover($venue),
             'updated_at' => ApiDate::attribute($venue, 'updated_at', $timezone),
         ];

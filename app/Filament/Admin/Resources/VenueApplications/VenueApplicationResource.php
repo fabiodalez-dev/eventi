@@ -11,6 +11,7 @@ use App\Filament\Admin\Resources\VenueApplications\Pages\EditVenueApplication;
 use App\Filament\Admin\Resources\VenueApplications\Pages\ListVenueApplications;
 use App\Models\User;
 use App\Models\VenueApplication;
+use App\Support\Description;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
@@ -85,6 +86,7 @@ class VenueApplicationResource extends Resource
                             ->label(__('admin.fields.address'))
                             ->placeholder(__('admin.placeholders.none')),
                         TextEntry::make('message')
+                            ->formatStateUsing(fn (?string $state) => Description::render($state))
                             ->label(__('admin.fields.message'))
                             ->placeholder(__('admin.placeholders.none'))
                             ->columnSpanFull(),

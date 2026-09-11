@@ -4,15 +4,15 @@ namespace App\Filament\Organizer\Resources\Events;
 
 use App\Enums\PriceType;
 use App\Filament\Support\BeforeGoingFields;
+use App\Filament\Support\DescriptionEditor;
 use App\Filament\Support\EditorialFields;
+use App\Filament\Support\ImageUpload;
 use App\Models\Category;
 use App\Models\Event;
 use App\Models\Organizer;
 use Filament\Actions\EditAction;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
-use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -46,8 +46,8 @@ class EventResource extends Resource
     {
         return $schema->columns(1)->components([
             TextInput::make('title')->label('Titolo')->required()->maxLength(255),
-            SpatieMediaLibraryFileUpload::make('poster')->label('Locandina')->collection('poster')->image()->maxSize(10240),
-            Textarea::make('description')->label('Descrizione completa')->required()->rows(8)->maxLength(50000),
+            ImageUpload::make('poster')->label('Locandina')->collection('poster'),
+            DescriptionEditor::make('description')->label('Descrizione completa')->required()->maxLength(50000),
             Select::make('city_id')->label('Città dell’evento')->relationship('city', 'name')->required()->searchable(),
             Select::make('venue_id')->label('Locale principale')->relationship('venue', 'name', fn ($query) => $query->approved())->searchable()->required()->helperText('Le singole date possono svolgersi in altri locali.'),
             Select::make('category_id')->label('Categoria')->options(fn () => Category::query()->active()->pluck('name', 'id'))->required()->searchable(),

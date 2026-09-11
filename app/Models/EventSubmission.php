@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\SubmissionStatus;
+use App\Models\Concerns\HasSafeEditorContent;
 use Database\Factories\EventSubmissionFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -15,6 +16,8 @@ class EventSubmission extends Model
 {
     /** @use HasFactory<EventSubmissionFactory> */
     use HasFactory;
+
+    use HasSafeEditorContent;
 
     /** @var list<string> */
     protected $fillable = [
