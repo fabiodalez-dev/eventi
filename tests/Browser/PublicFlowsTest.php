@@ -60,3 +60,20 @@ it('permette di scrivere con la toolbar e conserva il grassetto', function (): v
 
     expect(EventSubmission::query()->sole()->raw_text)->toContain('<strong>Musica dal vivo</strong>');
 });
+
+it('non allarga la scheda evento quando la descrizione contiene un indirizzo lungo', function (): void {
+    $city = testCity();
+    $category = testCategory();
+    $occurrence = occurrenceAt(
+        $city,
+        $category,
+        now('UTC')->addDay()->format('Y-m-d H:i:s'),
+        event: [
+            'description' => 'Informazioni: https://example.test/'.str_repeat('percorso-molto-lungo-', 20),
+        ],
+    );
+
+    $page = visit('/eventi/'.$occurrence->event->slug.'/1')->on()->mobile();
+
+    expect($page->script('document.documentElement.scrollWidth === window.innerWidth'))->toBeTrue();
+});

@@ -115,7 +115,7 @@
                     @if ($cell['count'] > 0)
                         <a
                             href="{{ route('events.date', ['date' => $iso]) }}"
-                            class="flex items-baseline justify-between gap-1 font-semibold text-ink hover:text-brand"
+                            class="flex min-w-0 flex-col items-start gap-0.5 font-semibold text-ink hover:text-brand sm:flex-row sm:items-baseline sm:justify-between sm:gap-1"
                             aria-label="{{ __('calendar.day.link', ['date' => $long]) }} — {{ trans_choice('calendar.day.count', $cell['count'], ['count' => $cell['count']]) }}"
                         >
                             <span @class(['text-sm', 'text-ink-subtle' => ! $cell['in_month']])>

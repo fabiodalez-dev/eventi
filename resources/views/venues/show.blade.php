@@ -115,8 +115,8 @@
         <x-follow-button :type="\App\Enums\FollowableType::Venue" :id="$venue->getKey()" />
     </header>
 
-    <div class="mt-8 grid gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-        <div class="flex flex-col gap-8">
+    <div class="mt-8 grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <div class="flex min-w-0 flex-col gap-8">
             <x-editorial-content :model="$venue" />
             @if (filled($venue->description))
                 <section aria-labelledby="descrizione-locale" class="flex flex-col gap-3">
@@ -173,7 +173,7 @@
             @endif
         </div>
 
-        <aside class="flex flex-col gap-6">
+        <aside class="flex min-w-0 flex-col gap-6">
             <section class="flex flex-col gap-3 bg-canvas p-5 border-2 border-line" aria-labelledby="dove-locale">
                 <h2 id="dove-locale" class="font-display text-[clamp(1.25rem,1.8vw,1.75rem)] leading-none font-extrabold tracking-[-0.03em] uppercase">{{ __('venues.detail.address') }}</h2>
 
