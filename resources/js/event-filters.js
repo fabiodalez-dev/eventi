@@ -1,3 +1,5 @@
+import { patchFilters, searchableFilters, searchFilterOptions, navigateFilterOptions } from './filter-sidebar.js';
+
 export function wouldEmptyResults(previous, next, push = true) {
     return push && Number(previous) > 0 && next !== undefined && Number(next) === 0;
 }
@@ -35,8 +37,16 @@ async function fadeFilterParts(region, from, to, duration, signal) {
 
 export function eventFilters() {
     if (!document.querySelector('[data-event-browser]')) return;
+    searchableFilters();
+    document.addEventListener('keydown', navigateFilterOptions);
+    document.addEventListener('input', event => {
+        if (event.target.matches('[data-option-search]')) searchFilterOptions(event.target.closest('[data-searchable-filter]'));
+    });
     let pending;
     let revision = 0;
+    /* L'indirizzo senza frammento, per riconoscere i `popstate` che non
+       cambiano pagina. Vedi il gestore in fondo alla funzione. */
+    let percorsoCorrente = location.href.split('#')[0];
     const navigate = async (url, push = true) => {
         pending?.abort();
         pending = new AbortController();
@@ -44,7 +54,7 @@ export function eventFilters() {
         const current = ++revision;
         const region = document.querySelector('[data-event-browser]');
         region.setAttribute('aria-busy', 'true');
-        region.querySelector('aside')?.setAttribute('inert', '');
+
         try {
             const response = await fetch(url, { signal, headers: { 'X-Requested-With': 'fetch' } });
             if (!response.ok) throw new Error('response');
@@ -64,16 +74,34 @@ export function eventFilters() {
                 if (geoStatus) geoStatus.textContent = '';
                 return;
             }
-            next.querySelectorAll('aside details').forEach(details => details.removeAttribute('open'));
+
             // Keep the current content visible until the replacement is ready.
             await fadeFilterParts(region, 1, 0, 120, signal);
             if (revision !== current || signal.aborted) return;
-            const sidebarScroll = region.querySelector('aside')?.scrollTop ?? 0;
-            document.dispatchEvent(new Event('event-browser:before-update'));
-            region.replaceWith(next);
-            const nextSidebar = next.querySelector('aside');
-            if (next.hasAttribute('data-filter-fade') && nextSidebar) nextSidebar.scrollTop = sidebarScroll;
-            next.setAttribute('aria-busy', 'true');
+            let activeRegion = next;
+            if (region.hasAttribute('data-map-browser')) {
+                const sidebar = region.querySelector('aside');
+                const scroll = sidebar.scrollTop;
+                patchFilters(sidebar, next.querySelector('aside'));
+                searchableFilters(sidebar);
+                sidebar.scrollTop = scroll;
+                const shell = region.querySelector('[data-map-shell]');
+                const config = next.querySelector('[data-map-config]');
+                if (shell && config) {
+                    shell.querySelector('[data-map-config]').textContent = config.textContent;
+                    shell.dispatchEvent(new CustomEvent('map:filters', { detail: JSON.parse(config.textContent) }));
+                }
+                region.querySelector('[data-map-results]').replaceWith(next.querySelector('[data-map-results]'));
+                region.dataset.resultCount = next.dataset.resultCount;
+                activeRegion = region;
+            } else {
+                const details = [...region.querySelectorAll('aside details')].map(item => item.open);
+                next.querySelectorAll('aside details').forEach((item, index) => { item.open = details[index] ?? item.open; });
+                document.dispatchEvent(new Event('event-browser:before-update'));
+                region.replaceWith(next);
+                searchableFilters(next);
+            }
+            activeRegion.setAttribute('aria-busy', 'true');
             document.title = page.title;
             for (const selector of ['link[rel="canonical"]', 'meta[name="description"]', 'meta[name="robots"]']) {
                 const previous = document.head.querySelector(selector);
@@ -84,11 +112,10 @@ export function eventFilters() {
                 } else previous?.remove();
             }
             if (push) history.pushState({}, '', response.url);
+            percorsoCorrente = location.href.split('#')[0];
             document.dispatchEvent(new Event('event-browser:updated'));
-            const heading = next.querySelector('h1');
-            heading?.setAttribute('tabindex', '-1');
-            heading?.focus({ preventScroll: true });
-            await fadeFilterParts(next, 0, 1, 200, signal);
+            // Focus remains on the filter the user is operating.
+            await fadeFilterParts(activeRegion, 0, 1, 200, signal);
         } catch (error) {
             if (error.name !== 'AbortError' && current === revision) {
                 region.querySelectorAll('aside form').forEach(form => form.reset());
@@ -129,9 +156,31 @@ export function eventFilters() {
         if (input.name === 'municipality') {
             const zone = form.querySelector('[name="zone"]');
             if (zone) zone.value = '';
+            const venue = form.querySelector('[name="venue"]');
+            if (venue) venue.value = '';
+        }
+        if (input.name === 'zone') {
+            const venue = form.querySelector('[name="venue"]');
+            if (venue) venue.value = '';
         }
         form.requestSubmit();
     });
-    window.addEventListener('popstate', () => void navigate(location.href, false));
+    /*
+     * Indietro e avanti del browser ricaricano l'elenco. Un cambio di **solo
+     * frammento** no.
+     *
+     * Chrome emette `popstate` anche quando si apre un collegamento a un'ancora
+     * della stessa pagina (`#filtri`), e senza questo controllo il gestore
+     * rifaceva la richiesta e sostituiva l'intera regione: il bersaglio
+     * dell'ancora spariva a metà dello scorrimento, l'elenco infinito
+     * ripartiva da capo e si atterrava in mezzo ad altri risultati. Costava
+     * anche una richiesta al server per ogni ancora premuta.
+     */
+    window.addEventListener('popstate', () => {
+        const percorso = location.href.split('#')[0];
+        if (percorso === percorsoCorrente) return;
+        percorsoCorrente = percorso;
+        void navigate(location.href, false);
+    });
     document.addEventListener('event-browser:navigate', event => void navigate(event.detail));
 }

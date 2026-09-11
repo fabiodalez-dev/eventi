@@ -40,8 +40,7 @@ campo location dei dati strutturati: non è obbligatorio nel percorso.
 [Google Event](https://developers.google.com/search/docs/appearance/structured-data/event)
 richiede una pagina distinta per ciascun evento; non prescrive una data nel suo URL.
 
-Questa modifica è applicata in locale; i test di regressione sono preparati ma
-eseguiti: URL progressivi, filtri delle repliche e collegamenti API verificati.
+Questa modifica è inclusa nel rilascio web del 10 settembre 2026 e nel packaging Android 1.9.1 (23). Test di regressione su URL progressivi, filtri delle repliche e collegamenti API eseguiti; stato di distribuzione e limiti nel [referto 1.9.1](RELEASE-1.9.1.md).
 
 ## Organizzatore e luogo
 

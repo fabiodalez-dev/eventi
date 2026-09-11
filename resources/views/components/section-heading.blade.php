@@ -45,7 +45,7 @@
     @if ($href)
         <a
             href="{{ $href }}"
-            class="shrink-0 inline-flex items-center gap-1 px-1.5 py-1.5 font-display text-eyebrow font-extrabold uppercase text-brand transition hover:bg-brand/10"
+            class="ui-action shrink-0 inline-flex items-center gap-1 px-1.5 py-1.5 font-display text-eyebrow font-extrabold uppercase text-brand transition hover:bg-brand/10"
         >
             {{ $linkLabel ?? __('common.actions.show_all') }}
             <x-lucide name="arrow-right" class="size-3.5" />

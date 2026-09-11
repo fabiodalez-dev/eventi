@@ -147,3 +147,8 @@ solo il profilo autenticato. Il sito e l'app Android condividono la preferenza;
 le installazioni precedenti restano compatibili grazie al valore `dark` predefinito.
 I visitatori del sito partono dal tema di sistema, memorizzato per un anno nel
 cookie necessario `incitta_appearance`, e possono cambiarlo da Aspetto.
+
+
+### Tessera dell’evento e alternative geografiche
+
+`GET /api/v1/events`, le relative mappe e facets accettano `membership=required|not_required`. Nel dettaglio `content_details.membership` riporta il requisito dell’evento oppure null. Non viene dedotto dal locale: null non equivale a “non richiesta”. Le facets geografiche consentono il cambio diretto di comune, quartiere e locale ignorando la selezione dello stesso campo e quelle dipendenti, mantenendo gli altri filtri.

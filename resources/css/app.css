@@ -505,6 +505,13 @@
     top: 102px;
 }
 
+/* Lo stacco che un'ancora deve lasciarsi sopra per non finire sotto la testata
+   fissa. Senza, `#filtri` porta il titolo del pannello esattamente dietro la
+   barra, e sembra che il collegamento non abbia fatto niente. */
+@utility scroll-mt-header {
+    scroll-margin-top: 110px;
+}
+
 @utility h-below-header {
     height: calc(100vh - 102px);
 }

@@ -120,8 +120,28 @@
         <meta name="google-site-verification" content="{{ $city->seo['google_verification'] }}">
     @endif
     <meta name="color-scheme" content="dark light">
+
+    {{-- Il colore della barra del browser su Android. Sta **prima** dello
+         script qui sotto, che è quello che lo corregge per chi ha scelto un
+         tema diverso da quello del sistema: un `media="(prefers-color-scheme)"`
+         seguirebbe il sistema operativo e non la scelta fatta qui. --}}
+    <meta name="theme-color" content="{{ auth()->user()?->appearance === 'light' ? '#faf9f6' : '#0b0b0b' }}">
+
+    {{-- Le icone del sito.
+
+         `favicon.ico` è rimasto per anni un file da **zero byte**: i browser
+         lo chiedono da soli a `/favicon.ico` e ricevevano un file vuoto, cioè
+         il mappamondo grigio in ogni scheda e accanto a ogni risultato di
+         ricerca su telefono. `notification-badge.png` è il distintivo
+         monocromatico che Android mette nella barra di stato — è una
+         maschera, del file conta solo la trasparenza. --}}
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    @if (\Illuminate\Support\Facades\Route::has('webmanifest'))
+        <link rel="manifest" href="{{ route('webmanifest') }}">
+    @endif
     {{-- Applied before CSS paints. Guests share cached HTML, never preferences. --}}
-    <script>
+    <script @cspNonce>
         (() => {
             const root = document.documentElement;
             if (root.dataset.themeUser === 'guest') {
@@ -134,6 +154,7 @@
                 document.cookie = 'incitta_appearance=' + root.dataset.theme + '; Path=/; Max-Age=31536000; SameSite=Lax' + (location.protocol === 'https:' ? '; Secure' : '');
             }
             document.querySelector('meta[name="color-scheme"]').content = root.dataset.theme;
+            document.querySelector('meta[name="theme-color"]').content = root.dataset.theme === 'light' ? '#faf9f6' : '#0b0b0b';
         })();
     </script>
 
@@ -175,7 +196,7 @@
     {{-- Anteprima nei social e nelle applicazioni di messaggistica: senza,
          un evento condiviso arriva come un link nudo (§12.2). --}}
     <meta property="og:site_name" content="{{ $app }}">
-    <meta property="og:type" content="website">
+    <meta property="og:type" content="{{ $ogType ?? 'website' }}">
     <meta property="og:locale" content="{{ app()->getLocale() === 'it' ? 'it_IT' : str_replace('-', '_', app()->getLocale()) }}">
     <meta property="og:title" content="{{ filled($title ?? null) ? $title : $app }}">
     <meta property="og:url" content="{{ $canonical ?? url()->current() }}">
@@ -414,7 +435,7 @@
             @if (\Illuminate\Support\Facades\Route::has('submissions.create'))
                 <a
                     href="{{ route('submissions.create') }}"
-                    class="hidden h-[38px] shrink-0 items-center bg-accent px-3.5 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.14em] whitespace-nowrap text-on-accent uppercase transition-colors hover:bg-brand-strong md:inline-flex"
+                    class="ui-action hidden h-[38px] shrink-0 items-center bg-accent px-3.5 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.14em] whitespace-nowrap text-on-accent uppercase transition-colors hover:bg-brand-strong md:inline-flex"
                 >
                     {{ __('ui.header.submit_event') }}
                 </a>

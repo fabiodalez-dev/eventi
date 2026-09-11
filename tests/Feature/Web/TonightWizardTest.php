@@ -74,7 +74,7 @@ it('uses the effective date price rather than a cheaper event default', function
 
 it('shows unknown facts without hiding declared parking or required membership', function (): void {
     $this->venue->update(['requires_membership' => true, 'membership_notes' => 'Tessera annuale', 'content_details' => ['parking_type' => 'none']]);
-    $date = occurrenceAtLocal($this->city, $this->category, '2026-09-10 21:00', venue: $this->venue, event: ['content_details' => []]);
+    $date = occurrenceAtLocal($this->city, $this->category, '2026-09-10 21:00', venue: $this->venue, event: ['content_details' => ['membership' => 'required', 'membership_notes' => 'Tessera annuale']]);
     $facts = collect(app(TonightDiscovery::class)->practical($date))->pluck('value', 'label');
     expect($facts[__('seo.fields.membership_notes')])->toContain('Tessera annuale');
     expect($facts[__('seo.fields.parking_notes')])->toBe(__('seo.parking_none'));

@@ -33,7 +33,7 @@
          * `leading-[1.25]` e non `leading-none`: con due righe, l'interlinea a
          * zero le fa toccare.
          */
-        'inline-flex items-center gap-1.5 border-2 px-2.5 py-1.5 font-display text-[0.6875rem] leading-[1.25] font-extrabold tracking-[0.12em] text-balance uppercase transition-colors',
+        'ui-action inline-flex items-center gap-1.5 border-2 px-2.5 py-1.5 font-display text-[0.6875rem] leading-[1.25] font-extrabold tracking-[0.12em] text-balance uppercase transition-colors',
         'border-accent bg-accent text-on-accent' => $active,
         /* Il fondo lo dichiara il componente e non chi lo usa: quando lo
            dichiarava la pagina, `bg-canvas` finiva per vincere anche sullo

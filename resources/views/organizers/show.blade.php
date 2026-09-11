@@ -1,9 +1,24 @@
-<x-layouts.app :meta="$meta" :structured-data="$structuredData">
-    <p class="text-eyebrow">Organizzatore</p>
+{{--
+    La scheda di un organizzatore.
+
+    I dati strutturati passano da `<x-slot:head>` come in ogni altra pagina:
+    prima arrivavano al layout come attributo `:structured-data`, che non è fra
+    i suoi `@props` — quindi finivano in `$attributes` e non venivano stampati
+    da nessuna parte. Il nodo `Organization` c'era nel controller, era
+    corretto, e non è mai arrivato in pagina.
+--}}
+<x-layouts.app :meta="$meta">
+    <x-slot:head>
+        <x-json-ld :data="$structuredData" />
+    </x-slot:head>
+
+    <p class="text-eyebrow">{{ __('organizers.eyebrow') }}</p>
     <h1 class="text-hero">{{ $organizer->name }}</h1>
+
     <div class="my-6 flex flex-wrap items-center gap-4">
         <x-follow-button :type="\App\Enums\FollowableType::Organizer" :id="$organizer->id" />
     </div>
+
     @auth
         @if($follow = auth()->user()->follows()->where('followable_type', 'organizer')->where('followable_id', $organizer->id)->first())
             <form method="POST" action="{{ route('account.follows.store') }}" class="my-6 space-y-3">
@@ -17,14 +32,25 @@
             </form>
         @endif
     @endauth
-    <p class="my-6 max-w-3xl whitespace-pre-line">{{ $organizer->description }}</p>
-    @if(\App\Support\SafeUrl::href($organizer->website))<a class="underline" href="{{ \App\Support\SafeUrl::href($organizer->website) }}" rel="noopener noreferrer">Sito dell’organizzatore</a>@endif
-    <nav aria-label="Archivio organizzatore" class="my-8 flex flex-wrap gap-4">
-        <a class="min-h-12 border-2 border-line px-4 py-3 {{ !$past ? 'bg-brand text-on-brand' : '' }}" href="{{ route('organizers.show',$organizer) }}">In programma</a>
-        <a class="min-h-12 border-2 border-line px-4 py-3 {{ $past ? 'bg-brand text-on-brand' : '' }}" href="{{ route('organizers.show',[$organizer,'past'=>1]) }}">Archivio</a>
+
+    @if (filled($organizer->description))
+        <p class="my-6 max-w-3xl whitespace-pre-line">{{ $organizer->description }}</p>
+    @endif
+
+    @if(\App\Support\SafeUrl::href($organizer->website))
+        <a class="underline" href="{{ \App\Support\SafeUrl::href($organizer->website) }}" rel="noopener noreferrer">{{ __('organizers.website') }}</a>
+    @endif
+
+    <nav aria-label="{{ __('organizers.archive_label') }}" class="my-8 flex flex-wrap gap-4">
+        <a class="ui-action min-h-12 border-2 border-line px-4 py-3 {{ ! $past ? 'bg-brand text-on-brand' : '' }}" @if (! $past) aria-current="page" @endif href="{{ route('organizers.show', $organizer) }}">{{ __('organizers.upcoming') }}</a>
+        <a class="ui-action min-h-12 border-2 border-line px-4 py-3 {{ $past ? 'bg-brand text-on-brand' : '' }}" @if ($past) aria-current="page" @endif href="{{ route('organizers.show', [$organizer, 'past' => 1]) }}">{{ __('organizers.archive') }}</a>
     </nav>
+
     @if($occurrences->count())
         <x-event-grid :occurrences="$occurrences->getCollection()" :context="$past ? 'past' : 'upcoming'" />
-    @else <p>Nessuna data {{ $past ? 'nell’archivio' : 'in programma' }} per i filtri attuali.</p> @endif
-    {{ $occurrences->links() }}
+    @else
+        <p>{{ $past ? __('organizers.empty_archive') : __('organizers.empty_upcoming') }}</p>
+    @endif
+
+    <x-pagination :paginator="$occurrences" :summary="true" />
 </x-layouts.app>

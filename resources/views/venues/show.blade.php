@@ -147,7 +147,7 @@
                 <x-empty-state :title="__('events.empty.venue_title')" :description="__('events.empty.venue_body')">
                     <a
                         href="{{ route('events.index') }}"
-                        class="bg-brand px-4 py-2.5 font-display text-[0.688rem] leading-none font-extrabold tracking-[0.14em] text-on-brand uppercase transition hover:bg-brand-strong"
+                        class="ui-action bg-brand px-4 py-2.5 font-display text-[0.688rem] leading-none font-extrabold tracking-[0.14em] text-on-brand uppercase transition hover:bg-brand-strong"
                     >
                         {{ __('events.redirects.to_all') }}
                     </a>

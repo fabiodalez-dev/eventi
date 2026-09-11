@@ -8,6 +8,7 @@ use App\Enums\PromotionMode;
 use App\Enums\SponsorshipPlacement;
 use App\Enums\VenueStatus;
 use App\Support\ContentVersion;
+use App\Support\Sponsorship\ActiveGrants;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -24,11 +25,27 @@ class SponsorshipGrant extends Model
 
     protected static function booted(): void
     {
-        static::saved(function (self $grant): void {
-            if ($grant->venue !== null) {
-                ContentVersion::bump($grant->venue->city_id);
+        /*
+         * Ogni scrittura fa invecchiare le pagine della città e l'impronta
+         * delle concessioni attive.
+         *
+         * La cancellazione c'era rimasta fuori: una concessione tolta non
+         * cambiava nessuna chiave, e le pagine che la mostravano restavano in
+         * giro fino alla scadenza naturale.
+         */
+        $invalida = function (self $grant): void {
+            $cityId = $grant->venue?->city_id;
+
+            if ($cityId === null) {
+                return;
             }
-        });
+
+            ContentVersion::bump($cityId);
+            ActiveGrants::forget((int) $cityId);
+        };
+
+        static::saved($invalida);
+        static::deleted($invalida);
     }
 
     protected function casts(): array

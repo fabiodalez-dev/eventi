@@ -26,7 +26,18 @@ it('keeps cached guest HTML private to PHP and never to shared edge caches', fun
     $this->get('/eventi')->assertHeader('X-Page-Cache', 'miss');
     $this->get('/eventi')->assertHeader('X-Page-Cache', 'hit')
         ->assertHeader('X-LiteSpeed-Cache-Control', 'no-cache')
-        ->assertHeader('Cache-Control', 'no-store, private');
+        /*
+         * `private` è la parte che fa il lavoro: nessuna cache condivisa —
+         * LiteSpeed, un CDN, un proxy aziendale — può trattenere un HTML che
+         * porta il token CSRF di una sessione.
+         *
+         * `no-cache` e non `no-store` perché il secondo vieta anche la
+         * back/forward cache del browser, che non è una cache di rete ma il
+         * ripristino della pagina viva: su questo sito il gesto più frequente
+         * è aprire una scheda e tornare indietro, e con `no-store` ogni
+         * ritorno era una richiesta completa. Vedi `PreventSharedResponseCache`.
+         */
+        ->assertHeader('Cache-Control', 'no-cache, private');
 });
 
 it('bypasses personal flash messages and old form input', function (array $session): void {

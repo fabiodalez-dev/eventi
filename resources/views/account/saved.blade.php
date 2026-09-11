@@ -163,7 +163,7 @@
         </div>
     @else
         <x-empty-state class="mt-8" :title="__('account.saved.empty_title')" :description="__('account.saved.empty_body')">
-            <a href="{{ route('events.index') }}" class="bg-brand px-4 py-2.5 text-sm font-semibold text-on-brand transition hover:bg-brand-strong">
+            <a href="{{ route('events.index') }}" class="ui-action bg-brand px-4 py-2.5 text-sm font-semibold text-on-brand transition hover:bg-brand-strong">
                 {{ __('events.title') }}
             </a>
         </x-empty-state>

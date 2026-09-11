@@ -10,8 +10,8 @@ use App\Enums\EventSort;
 use App\Models\City;
 use App\Models\EventOccurrence;
 use App\Queries\EventOccurrenceQuery;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 /**
  * Traduce i filtri di una lista pubblica in chiamate al motore temporale.
@@ -132,6 +132,9 @@ final class EventFinder
         }
 
         $filters->price?->applyTo($query);
+        if ($filters->membership !== null) {
+            $query->membership($filters->membership);
+        }
 
         if ($filters->time !== null) {
             $query->timeOfDay($filters->time);

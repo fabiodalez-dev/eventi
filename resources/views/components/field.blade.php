@@ -7,6 +7,7 @@
 --}}
 @props([
     'name',
+    'searchable' => false,
     'label',
     'type' => 'text',
     'value' => null,
@@ -33,7 +34,7 @@
         .($hasError ? 'border-live' : 'border-line');
 @endphp
 
-<div {{ $attributes->class(['flex flex-col gap-1.5']) }}>
+<div data-filter-key="field-{{ $name }}" @if ($searchable && $options !== null) data-searchable-filter @endif {{ $attributes->class(['flex flex-col gap-1.5']) }}>
     <label for="{{ $id }}" class="text-sm font-semibold text-ink">
         {{ $label }}
         @if ($required)
@@ -47,6 +48,13 @@
     @endif
 
     @if ($options !== null)
+        @if ($searchable)
+            <div data-option-search-ui hidden>
+                <label for="{{ $id }}-search" class="sr-only">{{ __('filters.search_options', ['label' => $label]) }}</label>
+                <input id="{{ $id }}-search" data-option-search type="search" autocomplete="off" placeholder="{{ __('filters.search_options', ['label' => $label]) }}" aria-controls="{{ $id }}" class="{{ $control }}">
+                <p data-option-search-empty role="status" hidden class="text-sm text-ink-muted">{{ __('filters.no_matching_options') }}</p>
+            </div>
+        @endif
         <select
             id="{{ $id }}"
             name="{{ $name }}"

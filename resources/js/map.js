@@ -63,13 +63,17 @@ async function vectorStyle(url) {
     return style;
 }
 
+const startedMaps = new WeakSet();
+
 async function startMap(shell) {
+    if (startedMaps.has(shell)) return;
+    startedMaps.add(shell);
     const mobileMarkers = window.matchMedia('(max-width: 767px)').matches;
     const container = shell.querySelector("[data-map]");
     const configNode = shell.querySelector("[data-map-config]");
     if (!container || !configNode) return;
 
-    const config = JSON.parse(configNode.textContent ?? "{}");
+    let config = JSON.parse(configNode.textContent ?? "{}");
     const searchButton = shell.querySelector("[data-map-search]");
     const sheet = shell.querySelector("[data-map-sheet]");
     const sheetBody = shell.querySelector("[data-map-sheet-body]");
@@ -82,7 +86,9 @@ async function startMap(shell) {
     const isLight = () => document.documentElement.dataset.theme === 'light';
     const colors = () => ({ accent: isLight() ? '#b54d23' : config.fallbackColor, canvas: isLight() ? '#faf9f6' : '#0b0b0b', onAccent: isLight() ? '#faf9f6' : '#0b0b0b' });
     const styleUrl = () => isLight() ? (config.lightStyle ?? config.style) : config.style;
-    const style = await vectorStyle(styleUrl());
+    let style;
+    try { style = await vectorStyle(styleUrl()); } catch (error) { startedMaps.delete(shell); throw error; }
+    config = JSON.parse(configNode.textContent ?? "{}");
     if (!shell.isConnected) return;
     const map = new maplibregl.Map({
         container,
@@ -120,6 +126,21 @@ async function startMap(shell) {
         }), "top-right");
     }
 
+    let userMarker;
+    const updateUserPosition = () => {
+        userMarker?.remove();
+        userMarker = null;
+        if (!Array.isArray(config.userPosition) || !config.userPosition.every(Number.isFinite)) return;
+        const element = document.createElement('div');
+        element.className = 'map-user-location';
+        element.setAttribute('role', 'img');
+        element.setAttribute('aria-label', config.labels.yourPosition);
+        element.title = config.labels.yourPosition;
+        element.innerHTML = '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="3"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>';
+        userMarker = new maplibregl.Marker({ element }).setLngLat(config.userPosition).addTo(map);
+    };
+    updateUserPosition();
+
     let loading = false;
     let settled = false;
     let currentPayload = config.payload ?? { markers: [], categories: [] };
@@ -132,6 +153,7 @@ async function startMap(shell) {
         // loaded marker, even beyond the city boundary or after a resize.
         if (!config.bounds) return;
         const markers = toMarkers(currentPayload);
+        if (Array.isArray(config.userPosition)) markers.push({ lng: config.userPosition[0], lat: config.userPosition[1] });
         const bounds = markers.length ? {
             min_lng: Math.min(...markers.map(marker => marker.lng)),
             max_lng: Math.max(...markers.map(marker => marker.lng)),
@@ -158,13 +180,17 @@ async function startMap(shell) {
     // MapLibre observes the container, including responsive column changes.
     map.on("resize", scheduleFraming);
 
+    let sheetRevision = 0;
+    let filterRevision = 0;
     const closeSheet = () => {
+        sheetRevision++;
         if (sheet) sheet.hidden = true;
         sheetBody?.replaceChildren();
     };
 
     const openSheet = async (venue) => {
         if (!sheet || !sheetBody) return;
+        const requestRevision = ++sheetRevision;
         sheet.hidden = false;
         sheetBody.textContent = config.labels.searching;
 
@@ -173,9 +199,12 @@ async function startMap(shell) {
                 `${config.endpoints.venue.base}${venue}${config.endpoints.venue.query}`,
                 { headers: { "X-Requested-With": "fetch" } },
             );
-            sheetBody.innerHTML = response.ok ? await response.text() : "";
+            const html = response.ok ? await response.text() : "";
+            if (requestRevision !== sheetRevision) return;
+            sheetBody.innerHTML = html;
             if (!response.ok) sheetBody.textContent = config.labels.error;
         } catch {
+            if (requestRevision !== sheetRevision) return;
             sheetBody.textContent = config.labels.error;
         }
 
@@ -204,9 +233,31 @@ async function startMap(shell) {
         if (truncated) truncated.hidden = !payload.truncated;
     };
 
+    const updateFilters = event => {
+        filterRevision++;
+        config = event.detail;
+        updateUserPosition();
+        closeSheet();
+        apply(config.payload ?? { markers: [], categories: [] });
+        scheduleFraming();
+        if (searchButton) searchButton.hidden = true;
+    };
+    shell.addEventListener('map:filters', updateFilters);
+    const visibility = new IntersectionObserver(entries => {
+        if (!entries[0].isIntersecting) closeSheet();
+    });
+    visibility.observe(shell);
+    map.on('remove', () => {
+        visibility.disconnect();
+        userMarker?.remove();
+        shell.removeEventListener('map:filters', updateFilters);
+        startedMaps.delete(shell);
+    });
+
     const load = async () => {
         if (loading) return;
         loading = true;
+        const requestRevision = filterRevision;
         if (searchButton) {
             searchButton.hidden = true;
             searchButton.textContent = config.labels.searching;
@@ -216,7 +267,10 @@ async function startMap(shell) {
             const url = new URL(config.endpoints.markers, window.location.origin);
             url.searchParams.set("bbox", boundingBox(map));
             const response = await fetch(url, { headers: { Accept: "application/json" } });
-            if (response.ok) apply(await response.json());
+            if (response.ok) {
+                const payload = await response.json();
+                if (requestRevision === filterRevision) apply(payload);
+            }
         } catch {
             /* Mantiene i punti precedenti se la rete non risponde. */
         } finally {
@@ -325,7 +379,7 @@ async function startMap(shell) {
 }
 
 async function start() {
-    const shells = document.querySelectorAll("[data-map-shell]");
+    const shells = [...document.querySelectorAll("[data-map-shell]")].filter(shell => !startedMaps.has(shell));
     if (shells.length === 0) return;
     const activate = async (shell) => { await loadLibrary(); await startMap(shell); };
 

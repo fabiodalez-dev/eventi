@@ -25,7 +25,7 @@
 @guest
     <a
         href="{{ route('login') }}"
-        class="ml-auto hidden h-[38px] shrink-0 items-center gap-2 border-2 border-line px-3 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.14em] uppercase transition-colors hover:border-accent hover:text-accent sm:flex"
+        class="ui-action ml-auto hidden h-[38px] shrink-0 items-center gap-2 border-2 border-line px-3 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.14em] uppercase transition-colors hover:border-accent hover:text-accent sm:flex"
     >
         <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square">
             <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><path d="M10 17l5-5-5-5"></path><path d="M15 12H3"></path>

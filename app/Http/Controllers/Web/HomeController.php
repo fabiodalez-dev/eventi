@@ -84,13 +84,46 @@ final class HomeController extends Controller
             'weekend' => $this->hydrate(EventOccurrenceQuery::for($city)->weekend()->get(), $perSection),
         ];
 
-        $visibili = array_filter($sections, static fn (Collection $section): bool => $section->isNotEmpty());
-
         $heroSponsorship = $this->sponsorships->first($city, SponsorshipPlacement::HomeHero);
         $hero = $heroSponsorship !== null
             ? EventOccurrenceQuery::for($city)->forEvent($heroSponsorship->event_id)->promotable()->get()->first()
             : EventOccurrenceQuery::for($city)->today()->promotable()->get()->unique('event_id')->shuffle()->first();
         $hero?->loadMissing(['event.venue', 'event.category', 'event.media']);
+
+        /*
+         * La data in apertura **comprata** non si ripete nelle sezioni.
+         *
+         * L'apertura pesca dalle stesse finestre temporali delle sezioni sotto,
+         * quindi la stessa serata compariva due volte nella prima schermata:
+         * grande in cima e di nuovo come card in «Stasera». Quando quel posto è
+         * stato venduto la ripetizione ha un costo vero — l'inserzionista paga
+         * uno spazio che duplica una riga che avrebbe avuto gratis — e vale la
+         * pena toglierla.
+         *
+         * **Solo in quel caso.** Con un'apertura scelta dalla redazione la
+         * ripetizione non costa niente a nessuno, e toglierla farebbe danno
+         * proprio dove il catalogo è magro: in una città con un evento solo
+         * quella sezione resterebbe vuota e sparirebbe (§8.6), lasciando una
+         * prima schermata più povera di prima per risolvere un problema che lì
+         * non esiste.
+         *
+         * Si toglie la singola occorrenza e non l'evento: le altre date dello
+         * stesso evento sono serate diverse e restano.
+         *
+         * Va fatto **prima** di `$visibili` e di `firstVisible()`, che scelgono
+         * quali sezioni disegnare e quale locandina annunciare in preload: la
+         * seconda deve indicare un'immagine che si vedrà davvero.
+         */
+        if ($hero !== null && $heroSponsorship !== null) {
+            $sections = array_map(
+                static fn (Collection $section): Collection => $section
+                    ->reject(static fn (EventOccurrence $occurrence): bool => $occurrence->getKey() === $hero->getKey())
+                    ->values(),
+                $sections,
+            );
+        }
+
+        $visibili = array_filter($sections, static fn (Collection $section): bool => $section->isNotEmpty());
 
         return view('home', [
             'city' => $city,

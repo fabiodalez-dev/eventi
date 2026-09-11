@@ -29,8 +29,8 @@
                 <p class="my-4 max-w-prose text-ink-muted">{{ __('tonight.empty_help') }}</p>
             @endforelse
             <nav class="flex flex-wrap gap-4" aria-label="{{ __('tonight.edit') }}">
-                <a class="min-h-14 bg-brand px-6 py-4 font-bold text-on-brand" href="{{ route('tonight.wizard', [...\Illuminate\Support\Arr::except($input, ['step']), 'question'=>'municipality']) }}">{{ __('tonight.edit') }}</a>
-                <a class="inline-flex min-h-14 items-center border-2 border-line px-6 py-4" href="{{ route('events.index') }}">{{ __('tonight.all') }}</a>
+                <a class="ui-action min-h-14 bg-brand px-6 py-4 font-bold text-on-brand" href="{{ route('tonight.wizard', [...\Illuminate\Support\Arr::except($input, ['step']), 'question'=>'municipality']) }}">{{ __('tonight.edit') }}</a>
+                <a class="ui-action inline-flex min-h-14 items-center border-2 border-line px-6 py-4" href="{{ route('events.index') }}">{{ __('tonight.all') }}</a>
             </nav>
         @endif
         @auth<a class="mt-6 inline-flex min-h-12 items-center underline" href="{{ route('account.content-preferences') }}">{{ __('tonight.preferences') }}</a>@endauth

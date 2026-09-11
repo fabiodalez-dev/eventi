@@ -44,7 +44,7 @@
 
     <a
         href="{{ route('venues.show', $venue) }}"
-        class="mt-3 flex items-center justify-center border-2 border-line px-4 py-2.5 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.14em] uppercase transition-colors hover:border-accent hover:text-accent"
+        class="ui-action mt-3 flex items-center justify-center border-2 border-line px-4 py-2.5 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.14em] uppercase transition-colors hover:border-accent hover:text-accent"
     >
         {{ __('map.venue_page') }}
     </a>

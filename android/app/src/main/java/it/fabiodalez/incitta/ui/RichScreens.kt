@@ -555,13 +555,15 @@ fun MapScreen(
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("NESSUN APPUNTAMENTO PER QUESTO FILTRO", color = Muted) }
         } else {
             val points = state.mapMarkers.map { MapPoint(it.lat, it.lng, it.title, it) }
+            val coordinates = state.discoveryFilters["near"]?.split(',')?.mapNotNull { it.toDoubleOrNull() }
+            val userPosition = coordinates?.takeIf { it.size == 2 && it[0] in -90.0..90.0 && it[1] in -180.0..180.0 }?.let { LatLng(it[0], it[1]) }
             val mapOpacity by androidx.compose.animation.core.animateFloatAsState(
                 targetValue = if (state.isMapLoading) 0.5f else 1f,
                 animationSpec = androidx.compose.animation.core.tween(180), label = "mapFilters",
             )
             Box(Modifier.fillMaxWidth().weight(1f)) {
                 key(state.mapFilter, state.mapMarkers.map(MapMarker::id)) {
-                    InteractiveMap(points, Modifier.fillMaxSize().graphicsLayer { alpha = mapOpacity }, 11.2) { group ->
+                    InteractiveMap(points, Modifier.fillMaxSize().graphicsLayer { alpha = mapOpacity }, 11.2, userPosition) { group ->
                         onMarker(group.mapNotNull(MapPoint::payload))
                     }
                 }
@@ -641,12 +643,14 @@ private fun InteractiveMap(
     points: List<MapPoint>,
     modifier: Modifier,
     zoom: Double,
+    userPosition: LatLng? = null,
     onMarker: (List<MapPoint>) -> Unit = {},
 ) {
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     val light = androidx.compose.material3.MaterialTheme.colorScheme.background == Color(0xFFFCFCFB)
-    val mapView = remember(points, light) {
+    val positionLabel = androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.map_your_position)
+    val mapView = remember(points, light, userPosition) {
         MapLibre.getInstance(context)
         MapView(context).apply {
             onCreate(null)
@@ -681,6 +685,9 @@ private fun InteractiveMap(
                         markerGroups.clear()
                         groupPositions.clear()
                         groupVenueCounts.clear()
+                        userPosition?.let { position ->
+                            map.addMarker(MarkerOptions().position(position).title(positionLabel).icon(iconFactory.fromBitmap(userLocationBitmap(context.resources.displayMetrics))))
+                        }
                         val cell = cellSize(map.cameraPosition.zoom)
                         val venueGroups = points.groupBy { point ->
                             "%.5f:%.5f".format(Locale.US, point.lat, point.lng)
@@ -713,12 +720,12 @@ private fun InteractiveMap(
                         } else if (group.isNotEmpty()) {
                             onMarker(group)
                         }
-                        true
+                        group.isNotEmpty()
                     }
                     map.addOnCameraIdleListener(::renderMarkers)
                     renderMarkers()
                     this@apply.doOnLayout {
-                        val locations = points.map { LatLng(it.lat, it.lng) }.distinctBy { it.latitude to it.longitude }
+                        val locations = (points.map { LatLng(it.lat, it.lng) } + listOfNotNull(userPosition)).distinctBy { it.latitude to it.longitude }
                         if (locations.size > 1) {
                             map.moveCamera(CameraUpdateFactory.newLatLngBounds(LatLngBounds.Builder().includes(locations).build(), (48 * context.resources.displayMetrics.density).toInt()))
                         } else if (locations.size == 1) {
@@ -747,6 +754,25 @@ private fun InteractiveMap(
         }
     }
     androidx.compose.runtime.key(mapView) { AndroidView(factory = { mapView }, modifier = modifier.background(Ink)) }
+}
+
+private fun userLocationBitmap(metrics: android.util.DisplayMetrics): Bitmap {
+    val size = (48 * metrics.density).toInt()
+    val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+    bitmap.density = metrics.densityDpi
+    val canvas = Canvas(bitmap)
+    canvas.scale(metrics.density, metrics.density)
+    val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+    paint.color = android.graphics.Color.argb(45, 33, 86, 189)
+    canvas.drawCircle(24f, 24f, 23f, paint)
+    paint.color = android.graphics.Color.rgb(247, 249, 255)
+    canvas.drawCircle(24f, 24f, 18f, paint)
+    paint.color = android.graphics.Color.rgb(33, 86, 189)
+    canvas.drawCircle(24f, 24f, 15f, paint)
+    paint.color = android.graphics.Color.rgb(247, 249, 255)
+    canvas.drawCircle(24f, 19f, 4f, paint)
+    canvas.drawRoundRect(17f, 25f, 31f, 33f, 5f, 5f, paint)
+    return bitmap
 }
 
 private fun mapMarkerBitmap(count: Int, metrics: android.util.DisplayMetrics, light: Boolean = false): Bitmap {

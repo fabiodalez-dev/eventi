@@ -7,6 +7,12 @@ funzionalità già completate o distribuite. Prima di ogni intervento verificare
 stato effettivo di Laravel, API, Android e produzione, riutilizzando quanto esiste.
 La roadmap non autorizza da sola deploy, nuovi APK o l'attivazione di servizi a pagamento.
 
+## Consolidamento al 10 settembre 2026
+
+Il checkpoint [1.9.1](RELEASE-1.9.1.md) consolida temi web/Android, URL delle singole date, organizzatore distinto dalla sede, pubblicità contestuale ed esclusione dell’evento corrente, filtri mappa e controlli automatici. Backend chiaro, verifica locali, conversione proposte e programmazione social sono documentati nei rispettivi manuali.
+
+Questi risultati coprono parti di P0, P1 e P2, **non completano interamente quelle fasi**. Restano prioritari upload e verifiche Play, test con account/servizi reali, prestazioni e debito di tipizzazione. I requisiti commerciali e le evoluzioni P3/P4 sotto restano invariati.
+
 ## Obiettivo
 
 Per gli utenti, inCittà deve essere il modo più semplice per scegliere cosa fare.

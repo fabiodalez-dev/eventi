@@ -12,7 +12,11 @@ La release esclude eccezioni HTTP per emulatori. VersionCode deve aumentare dopo
 
 Il kit contiene verifiche statiche, test unitari e screenshot reali. Restano da completare le verifiche runtime 16 KB, privacy, accesso revisori, OAuth pubblico e push reale prima del lancio. Nessun deploy o caricamento è implicito nella generazione del kit.
 
-## Stato Console e automazione — 9 settembre 2026
+## Ultimo checkpoint — 10 settembre 2026
+
+APK e AAB **1.9.1 (23)** firmati e verificati, con percorsi e hash in [RELEASE-1.9.1](RELEASE-1.9.1.md). La release interna **1.8.5 (21)** risulta disponibile ai tester. La nuova bozza non contiene ancora il bundle 23: l’upload automatizzato Chrome è stato rifiutato con `Not allowed`. Generare il bundle non equivale a caricarlo o distribuirlo. Ricontrollare Console prima di intervenire: lo stato può essere cambiato dal proprietario.
+
+## Stato storico Console e automazione — 9 settembre 2026
 
 Creata l'app nell'account sviluppatore `8635202959016191699`, ID app `4973265892338217997`. La Console impone test chiuso con almeno 12 tester per 14 giorni; attualmente zero tester. Non è possibile richiedere produzione prima di soddisfare il requisito.
 

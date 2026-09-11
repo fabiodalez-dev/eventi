@@ -63,6 +63,7 @@ use App\Services\Installer\InstallLock;
 use App\Services\Installer\RequirementsChecker;
 use App\Support\Api\MobileOpenApiDocument;
 use App\Support\Consent;
+use App\Support\Csp;
 use App\Support\CurrentCity;
 use App\Support\CurrentFollows;
 use App\Support\CurrentSaves;
@@ -75,6 +76,7 @@ use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
 use Illuminate\Notifications\Events\NotificationFailed;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Event as EventFacade;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
@@ -97,6 +99,20 @@ class AppServiceProvider extends ServiceProvider
         // Le query geospaziali passano tutte da qui: cambiare motore di
         // database costa questa riga più una implementazione dell'interfaccia.
         $this->app->bind(GeoQueryInterface::class, MariaDbGeoQuery::class);
+
+        /*
+         * Il nonce della CSP: **uno per risposta**, quindi singleton.
+         *
+         * Senza questa riga ogni `app(Csp::class)` costruirebbe un oggetto
+         * nuovo con un numero nuovo, e l'intestazione prometterebbe un valore
+         * che nella pagina non c'è: tutti gli script bloccati, su tutte le
+         * pagine, in una forma che in sviluppo non si nota perché lì la
+         * politica si può spegnere.
+         *
+         * `scoped` e non `singleton`: sotto Octane il secondo sopravviverebbe
+         * fra una richiesta e l'altra, e un nonce riusato non è un nonce.
+         */
+        $this->app->scoped(Csp::class);
 
         /*
          * I testi delle email si possono riscrivere dal pannello.
@@ -174,6 +190,16 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         EventFacade::listen(NotificationFailed::class, RevokeInvalidFcmToken::class);
+
+        /*
+         * `@cspNonce` su un tag `<script>` (§16).
+         *
+         * Una direttiva e non `{{ }}` scritto a mano perché il valore giusto è
+         * «l'attributo intero, oppure niente»: dove la politica non si applica
+         * non deve comparire un `nonce=""` vuoto, che sarebbe un nonce
+         * sbagliato invece di nessun nonce. Vedi `App\Support\Csp`.
+         */
+        Blade::directive('cspNonce', static fn (): string => '<?php echo app(\App\Support\Csp::class)->attribute(); ?>');
 
         /*
          * Limite di frequenza dei moduli pubblici (§14.7): cinque invii l'ora

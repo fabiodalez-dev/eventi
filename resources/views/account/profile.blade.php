@@ -13,7 +13,15 @@
        di chi non ha ancora scelto (D36). Mostrare i campi vuoti a chi non ha
        scelto racconterebbe un silenzio che non c'è. */
     $quiet = \App\DTOs\QuietHours::formFor($user);
+    /* Le lingue davvero disponibili (`config/account.php`). Finché è una sola,
+       il menu non si disegna: una tendina con un'unica voce non è una scelta,
+       è un campo obbligatorio in più da attraversare. Il valore viaggia lo
+       stesso in un campo nascosto, perché la validazione lo pretende — ed è
+       anche ciò che riporta in riga chi aveva salvato una lingua che nel
+       frattempo è stata ritirata. */
     $locales = collect(config('account.locales'))->mapWithKeys(fn (string $code) => [$code => strtoupper($code)])->all();
+    $soloUnaLingua = count($locales) < 2;
+    $linguaScelta = array_key_exists($user->locale, $locales) ? $user->locale : (string) array_key_first($locales);
 @endphp
 
 <x-layouts.app :narrow="true" :meta="$meta">
@@ -62,7 +70,11 @@
                 </div>
 
                 <x-field name="timezone" :label="__('account.profile.timezone')" :value="$user->timezone" :required="true" />
-                <x-field name="locale" :label="__('account.profile.locale')" :value="$user->locale" :options="$locales" :required="true" />
+                @if ($soloUnaLingua)
+                    <input type="hidden" name="locale" value="{{ $linguaScelta }}">
+                @else
+                    <x-field name="locale" :label="__('account.profile.locale')" :value="$linguaScelta" :options="$locales" :required="true" />
+                @endif
             </section>
 
             <section aria-labelledby="preferenze" class="flex flex-col gap-4 bg-surface p-card">
@@ -130,7 +142,7 @@
 
             <a
                 href="{{ route('account.profile.export') }}"
-                class="self-start bg-surface px-4 py-2.5 text-sm font-semibold text-ink border-2 border-line transition hover:border-accent"
+                class="ui-action self-start bg-surface px-4 py-2.5 text-sm font-semibold text-ink border-2 border-line transition hover:border-accent"
             >
                 {{ __('account.profile.export') }}
             </a>

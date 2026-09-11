@@ -1,6 +1,9 @@
 @props(['model', 'occurrence' => null])
 @php($details = app(\App\Services\Seo\EditorialContent::class)->details($model, $occurrence))
 @if($model instanceof \App\Models\Event)
+    @if ($membership = $model->membershipRequirement())
+        <p class="my-4 text-base font-semibold" data-event-membership>{{ $membership->label() }}</p>
+    @endif
     <h2 class="font-display text-xl font-extrabold my-6">{{ __('seo.before_going') }}</h2>
 @endif
 @if (isset($details['minimum_age']))

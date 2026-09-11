@@ -16,8 +16,7 @@ motore temporale in §8). Le deviazioni approvate sono in `docs/DECISIONS.md`.
   `ticketing:demo --force`, mai il seeding generale o il reset del database.
   I contenuti sono verosimili e ambientati a Padova, in continuità con il
   catalogo esistente: evitare titoli «Demo» e nomi di locali da banco di prova.
-- Prima di generare un nuovo APK chiedere conferma. Modificare e verificare
-  il codice Android non autorizza il packaging o la consegna di un APK.
+- Packaging Android: una richiesta esplicita di APK/bundle autorizza generazione e consegna per il lavoro richiesto; non chiedere nuovamente conferma se l’autorizzazione è già presente nella sessione. La sola modifica del codice non implica pubblicazione su Play. Nella sessione del 10 settembre sono stati richiesti test, deploy, APK e bundle, poi il caricamento in Console.
 - Le password degli amministratori remoti non vanno cambiate da test, seeder,
   smoke test o deploy. Il riferimento privato indicato dal proprietario è
   `/Users/fabio/Desktop/inCittà/Accessi-amministratori-inCitta.md`: non copiarlo

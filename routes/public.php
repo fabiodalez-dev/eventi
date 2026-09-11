@@ -22,9 +22,6 @@ use App\Http\Middleware\CachePage;
 use App\Http\Middleware\PersonalizeDiscovery;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/organizzatori', [OrganizerController::class, 'index'])->name('organizers.index');
-Route::get('/organizzatori/{slug}', [OrganizerController::class, 'show'])->name('organizers.show');
-
 /*
 |--------------------------------------------------------------------------
 | Sito pubblico (§11.1)
@@ -107,6 +104,20 @@ Route::get('/eventi/{slug}/{occurrence}/locandina.pdf', [EventController::class,
 Route::get('/eventi/{slug}/{occurrence}', [EventController::class, 'date'])
     ->where('occurrence', '[1-9][0-9]*')->name('events.occurrence');
 Route::get('/eventi/{slug}', [EventController::class, 'show'])->middleware(CachePage::class)->name('events.show');
+
+/*
+ * Gli organizzatori (§11.4). Stanno **qui**, con gli altri elenchi pubblici, e
+ * non in testa al file dove erano finiti prima del blocco di commento che
+ * spiega come funziona questo file: da lassù restavano anche fuori dalla
+ * full-page cache, unico elenco del sito a pagarsi ogni richiesta.
+ *
+ * `CachePage` sa già tenerli fuori quando servono personali: la ricerca libera
+ * (`?q=`) non entra in cache per costruzione, e `past` è nell'elenco dei
+ * parametri ammessi, quindi la scheda e il suo archivio sono due voci distinte
+ * invece della stessa servita a caso.
+ */
+Route::get('/organizzatori', [OrganizerController::class, 'index'])->middleware(CachePage::class)->name('organizers.index');
+Route::get('/organizzatori/{slug}', [OrganizerController::class, 'show'])->middleware(CachePage::class)->name('organizers.show');
 
 Route::get('/locali', [VenueController::class, 'index'])->middleware(CachePage::class)->name('venues.index');
 Route::get('/locali/{slug}/segnala', [ReportController::class, 'createForVenue'])->name('venues.report');

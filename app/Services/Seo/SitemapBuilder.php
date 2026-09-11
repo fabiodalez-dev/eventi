@@ -16,6 +16,7 @@ use App\Queries\EventOccurrenceQuery;
 use App\Services\Search\EventFinder;
 use App\Support\ContentVersion;
 use App\Support\EventUrl;
+use App\Support\Seo\SitemapSection;
 use Carbon\CarbonImmutable;
 use DateTimeInterface;
 use Illuminate\Support\Facades\Cache;
@@ -62,6 +63,21 @@ final class SitemapBuilder
     /**
      * L'indice: una riga per ogni mappa, comprese le pagine successive delle
      * sezioni che non stanno in un file solo.
+     *
+     * **Ogni riga porta la propria `lastmod`**, ed è la ragione per cui
+     * l'indice esiste. Senza, un motore che vuole sapere se è cambiato
+     * qualcosa deve riscaricare tutte e cinque le sezioni per scoprire che
+     * quattro non si muovono da mesi: l'indice costa una richiesta in più e
+     * non ne fa risparmiare nessuna.
+     *
+     * La data è quella **della pagina**, non della sezione: con gli eventi
+     * spezzati su più file, il secondo può essere fermo da settimane mentre il
+     * primo cambia ogni giorno.
+     *
+     * Le sezioni che non sanno quando sono cambiate — i giorni futuri, che
+     * sono un elenco calcolato e non righe con una data — non dichiarano
+     * niente. Una `lastmod` inventata è peggio di una `lastmod` assente: la
+     * prima volta che dice il falso, tutte le altre smettono di valere.
      */
     public function index(City $city): SitemapIndex
     {
@@ -70,15 +86,52 @@ final class SitemapBuilder
             return $index;
         }
 
+        $chunk = config()->integer('seo.sitemap.chunk');
+
         foreach (self::SECTIONS as $section) {
-            $pages = $this->pageCount($city, $section);
+            $urls = $this->urls($city, $section);
+            $pages = (int) ceil(count($urls) / $chunk);
 
             for ($page = 1; $page <= $pages; $page++) {
-                $index->add(route('sitemap.section', ['section' => $section, 'page' => $page]));
+                $entry = SitemapSection::create(route('sitemap.section', ['section' => $section, 'page' => $page]));
+                $modified = $this->latest(array_slice($urls, ($page - 1) * $chunk, $chunk));
+
+                if ($modified !== null) {
+                    $entry->setLastModificationDate($modified);
+                }
+
+                $index->add($entry);
             }
         }
 
         return $index;
+    }
+
+    /**
+     * La data più recente fra quelle dichiarate da un gruppo di indirizzi, o
+     * `null` se nessuno ne dichiara una.
+     *
+     * @param  list<array{loc: string, lastmod?: string|null, changefreq: string, priority: float}>  $entries
+     */
+    private function latest(array $entries): ?CarbonImmutable
+    {
+        $latest = null;
+
+        foreach ($entries as $entry) {
+            $lastmod = $entry['lastmod'] ?? null;
+
+            if (! is_string($lastmod) || $lastmod === '') {
+                continue;
+            }
+
+            $modified = CarbonImmutable::parse($lastmod);
+
+            if ($latest === null || $modified->greaterThan($latest)) {
+                $latest = $modified;
+            }
+        }
+
+        return $latest;
     }
 
     /**
@@ -187,6 +240,7 @@ final class SitemapBuilder
             'map.index' => 0.6,
             'calendar.index' => 0.6,
             'venues.index' => 0.7,
+            'organizers.index' => 0.6,
             'submissions.create' => 0.4,
             'venue-applications.create' => 0.4,
         ];
@@ -204,6 +258,12 @@ final class SitemapBuilder
                 default => null,
             };
             if ($filter !== null && ! $this->hasResults($city, $filter)) {
+                continue;
+            }
+
+            /* Un elenco di organizzatori senza organizzatori è una pagina
+               vuota offerta all'indice (§8.6). */
+            if ($name === 'organizers.index' && ! Organizer::query()->where('is_active', true)->where('city_id', $city->id)->exists()) {
                 continue;
             }
 
@@ -323,6 +383,7 @@ final class SitemapBuilder
             }
             $urls[] = [
                 'loc' => route('events.category', $category),
+                'lastmod' => $this->lastModifiedOrNull($category->getAttribute('updated_at')),
                 'changefreq' => Url::CHANGE_FREQUENCY_DAILY,
                 'priority' => 0.7,
             ];
@@ -334,6 +395,7 @@ final class SitemapBuilder
             }
             $urls[] = [
                 'loc' => route('events.tag', $tag),
+                'lastmod' => $this->lastModifiedOrNull($tag->getAttribute('updated_at')),
                 'changefreq' => Url::CHANGE_FREQUENCY_WEEKLY,
                 'priority' => 0.5,
             ];
@@ -383,5 +445,19 @@ final class SitemapBuilder
     {
         return ($value instanceof DateTimeInterface ? CarbonImmutable::instance($value) : CarbonImmutable::now())
             ->toAtomString();
+    }
+
+    /**
+     * Come sopra, ma senza il ripiego su «adesso».
+     *
+     * Dove la data può mancare davvero — una tassonomia senza `updated_at` —
+     * il ripiego trasformerebbe «non lo so» in «cambiata in questo istante»,
+     * cioè in una dichiarazione falsa ripetuta a ogni richiesta.
+     */
+    private function lastModifiedOrNull(mixed $value): ?string
+    {
+        return $value instanceof DateTimeInterface
+            ? CarbonImmutable::instance($value)->toAtomString()
+            : null;
     }
 }

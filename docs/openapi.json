@@ -2022,6 +2022,20 @@
                             ],
                             "format": "date-time"
                         }
+                    },
+                    {
+                        "name": "membership",
+                        "in": "query",
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "$ref": "#/components/schemas/MembershipRequirement"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ]
+                        }
                     }
                 ],
                 "responses": {
@@ -2369,6 +2383,20 @@
                                 "null"
                             ],
                             "format": "date-time"
+                        }
+                    },
+                    {
+                        "name": "membership",
+                        "in": "query",
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "$ref": "#/components/schemas/MembershipRequirement"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ]
                         }
                     }
                 ],
@@ -2719,6 +2747,20 @@
                             ],
                             "format": "date-time"
                         }
+                    },
+                    {
+                        "name": "membership",
+                        "in": "query",
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "$ref": "#/components/schemas/MembershipRequirement"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ]
+                        }
                     }
                 ],
                 "responses": {
@@ -3065,6 +3107,20 @@
                                 "null"
                             ],
                             "format": "date-time"
+                        }
+                    },
+                    {
+                        "name": "membership",
+                        "in": "query",
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "$ref": "#/components/schemas/MembershipRequirement"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ]
                         }
                     }
                 ],
@@ -4207,6 +4263,20 @@
                                 "null"
                             ],
                             "format": "date-time"
+                        }
+                    },
+                    {
+                        "name": "membership",
+                        "in": "query",
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "$ref": "#/components/schemas/MembershipRequirement"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ]
                         }
                     }
                 ],
@@ -6536,6 +6606,20 @@
                                 "null"
                             ],
                             "format": "date-time"
+                        }
+                    },
+                    {
+                        "name": "membership",
+                        "in": "query",
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "$ref": "#/components/schemas/MembershipRequirement"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ]
                         }
                     }
                 ],
@@ -11710,6 +11794,20 @@
                             ],
                             "format": "date-time"
                         }
+                    },
+                    {
+                        "name": "membership",
+                        "in": "query",
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "$ref": "#/components/schemas/MembershipRequirement"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ]
+                        }
                     }
                 ],
                 "responses": {
@@ -12058,6 +12156,20 @@
                                 "null"
                             ],
                             "format": "date-time"
+                        }
+                    },
+                    {
+                        "name": "membership",
+                        "in": "query",
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "$ref": "#/components/schemas/MembershipRequirement"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ]
                         }
                     }
                 ],

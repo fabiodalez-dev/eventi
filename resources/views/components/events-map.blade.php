@@ -77,6 +77,7 @@
            annullando il centro appena scelto. */
         'bounds' => $initialBounds,
         'fallbackColor' => config('map.fallback_color'),
+        'userPosition' => $filters->hasPosition() ? [$filters->lng, $filters->lat] : null,
         'endpoints' => [
             'markers' => route('map.markers', $filters->toQueryString()),
             /* L'indirizzo della card si compone di una radice e di una coda:
@@ -93,6 +94,7 @@
             'searching' => __('map.searching'),
             'error' => __('common.error'),
             'locate' => __('map.locate'),
+            'yourPosition' => __('map.your_position'),
         ],
         'payload' => $payload,
     ];

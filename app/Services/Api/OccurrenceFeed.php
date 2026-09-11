@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Api;
 
+use App\DTOs\EventFilters;
 use App\Enums\ApiInclude;
 use App\Http\Requests\Api\V1\ApiRequest;
 use App\Http\Requests\Api\V1\EventQueryRequest;
@@ -29,9 +30,9 @@ final class OccurrenceFeed
 {
     public function __construct(private readonly EventFinder $finder) {}
 
-    public function query(City $city, EventQueryRequest $request): EventOccurrenceQuery
+    public function query(City $city, EventQueryRequest $request, ?EventFilters $filters = null): EventOccurrenceQuery
     {
-        $query = $this->finder->query($city, $request->filters());
+        $query = $this->finder->query($city, $filters ?? $request->filters());
 
         $request->price()?->applyTo($query);
 

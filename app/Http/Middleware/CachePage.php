@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
-use App\Models\SponsorshipGrant;
 use App\Services\Cache\FrontendCacheConfiguration;
 use App\Support\Consent;
 use App\Support\ContentVersion;
+use App\Support\Csp;
 use App\Support\CurrentCity;
+use App\Support\Sponsorship\ActiveGrants;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -54,6 +55,17 @@ final class CachePage
      */
     private const CSRF_PLACEHOLDER = '@@csrf-token@@';
 
+    /**
+     * Il segnaposto del nonce della CSP (§16).
+     *
+     * Stesso problema del token CSRF e stessa soluzione: il numero vale per
+     * **una** risposta, e la copia salvata verrà servita ad altre. Congelarlo
+     * nella copia significherebbe mandare a tutti una pagina i cui script
+     * dichiarano un numero che non è quello dell'intestazione — cioè, in
+     * pratica, una pagina senza JavaScript.
+     */
+    private const NONCE_PLACEHOLDER = '@@csp-nonce@@';
+
     public function handle(Request $request, Closure $next): Response
     {
         app(FrontendCacheConfiguration::class)->apply();
@@ -84,7 +96,7 @@ final class CachePage
             try {
                 Cache::store(config('page_cache.store') ?: null)->put(
                     $key,
-                    str_replace(csrf_token(), self::CSRF_PLACEHOLDER, $content),
+                    $this->depersonalise($content),
                     now()->addMinutes(config()->integer('page_cache.ttl_minutes')),
                 );
             } catch (Throwable $exception) {
@@ -130,6 +142,12 @@ final class CachePage
         'municipality',
         'outdoor',
         'page',
+        /*
+         * L'archivio di un organizzatore (`/organizzatori/{slug}?past=1`).
+         * Senza, la scheda e il suo archivio condividerebbero la stessa
+         * chiave: chi arriva per secondo riceverebbe l'elenco dell'altro.
+         */
+        'past',
         'price',
         'radius',
         'sort',
@@ -164,6 +182,30 @@ final class CachePage
      * `QUERY_ALLOWED`, riordinati: due indirizzi che chiedono la stessa cosa
      * scritta in ordine diverso sono la stessa pagina, e devono essere la
      * stessa voce.
+     *
+     * ## Quanto costa comporla, e perché conta
+     *
+     * Questo metodo gira **prima** di andare a vedere se la pagina è già
+     * pronta, quindi lo pagano anche — soprattutto — le richieste che la
+     * trovano. Misurato sul progetto, in locale con il database sulla stessa
+     * macchina:
+     *
+     * ```
+     * query delle concessioni attive : 1,59 ms   <- il 90% del totale
+     * due hash_file                  : 0,06 ms
+     * tre letture di cache           : 0,16 ms
+     * ```
+     *
+     * La `whereHas` sulle concessioni è passata in `App\Support\Sponsorship\ActiveGrants`,
+     * che la tiene per la stessa durata della pagina: una interrogazione al
+     * minuto per città invece di una per richiesta. Il resto è rimasto dov'era
+     * perché costa poco e perché è la parte che deve avere effetto **subito**
+     * — la revisione che scrive il pulsante «svuota la cache» del pannello non
+     * può aspettare un minuto per essere creduta.
+     *
+     * I due `hash_file` restano: sei centesimi di millisecondo, e l'impronta
+     * del contenuto è più solida della data di modifica quando il rilascio
+     * avviene per `rsync`, che le date sa preservarle.
      */
     public function key(Request $request): string
     {
@@ -181,8 +223,8 @@ final class CachePage
                 .Cache::get('frontend_cache_revision', '0')
                 .(is_file(public_path('build/release.json')) ? hash_file('sha256', public_path('build/release.json')) : '')
                 .(is_file(public_path('build/manifest.json')) ? hash_file('sha256', public_path('build/manifest.json')) : '')
-                .Cache::get('consent_scripts_revision', '0').SponsorshipGrant::active()
-                    ->whereHas('venue', fn ($q) => $q->where('city_id', $cityId))->orderBy('id')->pluck('id')->toJson()),
+                .Cache::get('consent_scripts_revision', '0')
+                .ActiveGrants::fingerprint($cityId)),
         );
     }
 
@@ -313,8 +355,33 @@ final class CachePage
         return is_string($content) && $content !== '';
     }
 
+    /**
+     * Toglie dalla copia da salvare i due valori che valgono per **una sola**
+     * risposta: il token CSRF e il nonce della CSP.
+     *
+     * Sono entrambi stringhe casuali lunghe, quindi la sostituzione non può
+     * colpire nient'altro nel documento.
+     */
+    private function depersonalise(string $content): string
+    {
+        $content = str_replace(csrf_token(), self::CSRF_PLACEHOLDER, $content);
+        $nonce = app(Csp::class)->issued();
+
+        return $nonce === null ? $content : str_replace($nonce, self::NONCE_PLACEHOLDER, $content);
+    }
+
+    /**
+     * E li rimette, quelli di **questa** risposta.
+     *
+     * Il nonce lo ha già generato `SecurityHeaders` all'andata, prima ancora
+     * che si arrivasse qui: la pagina servita dalla cache e l'intestazione che
+     * la accompagna dichiarano quindi lo stesso numero.
+     */
     private function restore(string $content): string
     {
-        return str_replace(self::CSRF_PLACEHOLDER, csrf_token(), $content);
+        $content = str_replace(self::CSRF_PLACEHOLDER, csrf_token(), $content);
+        $nonce = app(Csp::class)->issued();
+
+        return $nonce === null ? $content : str_replace(self::NONCE_PLACEHOLDER, $nonce, $content);
     }
 }

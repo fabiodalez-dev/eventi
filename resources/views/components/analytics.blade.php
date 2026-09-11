@@ -18,5 +18,5 @@
     {{-- `defer` perché un contatore non deve mai stare fra chi legge e il
          disegno della pagina. Nessun `async`: con `defer` l'esecuzione avviene
          dopo il parsing, in ordine, e senza rubare tempo al primo disegno. --}}
-    <script defer @foreach ($analytics->attributes() as $name => $value) {{ $name }}="{{ $value }}" @endforeach></script>
+    <script @cspNonce defer @foreach ($analytics->attributes() as $name => $value) {{ $name }}="{{ $value }}" @endforeach></script>
 @endif

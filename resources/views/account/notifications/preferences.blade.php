@@ -28,7 +28,7 @@
             <p class="text-sm text-ink-muted">{{ __('notifications.preferences.lead') }}</p>
         </header>
         @if (auth()->id() === $user->id)
-            <a href="{{ route('account.notifications.interests') }}" class="border-2 border-accent p-4 font-display font-bold text-accent">{{ __('subscriptions.interests') }} →</a>
+            <a href="{{ route('account.notifications.interests') }}" class="ui-action border-2 border-accent p-4 font-display font-bold text-accent">{{ __('subscriptions.interests') }} →</a>
         @endif
 
         @if (session('status'))

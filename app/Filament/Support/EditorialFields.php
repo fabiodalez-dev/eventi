@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Support;
 
 use App\Enums\AttendanceMode;
+use App\Enums\MembershipRequirement;
 use App\Enums\SeoIndexing;
 use App\Enums\VenueStatus;
 use App\Models\City;
@@ -44,6 +45,9 @@ final class EditorialFields
                 ->options(['yes' => __('seo.yes'), 'no' => __('seo.no')])->placeholder(__('seo.unspecified'));
         }
         if ($event) {
+            $fields[] = Select::make('content_details.membership')->label(__('filters.membership.label'))
+                ->options(MembershipRequirement::options())->placeholder(__('filters.membership.unknown'))
+                ->helperText(__('filters.membership.help'))->rules([Rule::enum(MembershipRequirement::class)]);
             $fields[] = Select::make('content_details.organizer_venue_id')->label(__('seo.registered_organizer'))
                 ->options(Venue::query()->approved()->orderBy('name')->pluck('name', 'id'))->searchable()
                 ->rules([Rule::exists('venues', 'id')->where('status', VenueStatus::Approved->value)]);

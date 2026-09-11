@@ -8,6 +8,7 @@ use App\DTOs\EventFilters;
 use App\DTOs\PriceConstraint;
 use App\Enums\ApiEventSort;
 use App\Enums\DatePreset;
+use App\Enums\MembershipRequirement;
 use App\Enums\TimeOfDay;
 use Carbon\CarbonImmutable;
 use Closure;
@@ -39,6 +40,7 @@ class EventQueryRequest extends ApiRequest
             'outdoor' => ['nullable', 'boolean'],
             'accessible' => ['nullable', 'boolean'],
             'family' => ['nullable', 'boolean'],
+            'membership' => ['nullable', Rule::enum(MembershipRequirement::class)],
             'preset' => ['nullable', Rule::in(DatePreset::values())],
             'date' => ['nullable', 'date_format:Y-m-d'],
             'from' => ['nullable', 'date_format:Y-m-d'],
@@ -94,6 +96,7 @@ class EventQueryRequest extends ApiRequest
             outdoor: $this->boolean('outdoor'),
             accessible: $this->boolean('accessible'),
             family: $this->boolean('family'),
+            membership: MembershipRequirement::tryFrom($this->text('membership') ?? ''),
         );
     }
 

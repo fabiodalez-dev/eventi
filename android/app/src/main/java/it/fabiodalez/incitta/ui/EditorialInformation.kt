@@ -37,6 +37,12 @@ fun EditorialInformation(value: JsonElement?) {
     )
     Column(Modifier.padding(horizontal = 22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(stringResource(R.string.editorial_before_going), style = MaterialTheme.typography.titleLarge)
+        val membershipLabel = when (text("membership")) {
+            "required" -> R.string.membership_required
+            "not_required" -> R.string.membership_not_required
+            else -> null
+        }
+        membershipLabel?.let { Text(stringResource(it), style = MaterialTheme.typography.bodyLarge) }
         text("minimum_age")?.let { Text(stringResource(R.string.editorial_minimum_age) + ": " + it) }
         when (text("parking_type")) {
             "free" -> Text(stringResource(R.string.editorial_parking_free))

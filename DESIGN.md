@@ -1,6 +1,6 @@
 ---
 name: "inCittà Mobile"
-description: "Il tabellone urbano degli eventi, scuro, tipografico e immediato."
+description: "Il tabellone urbano degli eventi: scuro nero/lime o chiaro bianco/grafite, tipografico e immediato."
 colors:
   canvas-night: "#0B0B0B"
   canvas-deep: "#060606"
@@ -78,7 +78,9 @@ components:
     padding: "8px 10px"
 ---
 
-# Design System: inCittà Mobile
+# Design System: inCittà — web e Android
+
+Aggiornato all’11 settembre 2026. I token YAML e le sezioni iniziali descrivono il **tema scuro**. Le sezioni «Tema chiaro» e «Backend» definiscono le varianti e prevalgono per quelle superfici. I valori eseguibili sono in `resources/css/appearance.css`, `resources/css/app.css` e nel tema Compose in `android/`.
 
 ## Overview
 
@@ -90,7 +92,7 @@ Su Android il sistema conserva questa identità senza combattere le convenzioni 
 
 **Key Characteristics:**
 
-- Tema scuro predefinito; tema chiaro opzionale con scelta persistente.
+- Primo accesso secondo il sistema; scelta chiaro/scuro persistente.
 - Archivo per ogni ruolo, con titoli molto pesanti e compatti.
 - Griglia modulare, allineamento a sinistra, divisori forti da 2 px.
 - Un solo accento elettrico, usato per azioni e stato corrente.
@@ -199,7 +201,7 @@ Componente tipografico numerato. Categoria in un box da 2 dp, titolo maiuscolo, 
 
 ## Tema chiaro: Bianco e grafite
 
-Il sito pubblico offre Aspetto → Scuro / Chiaro. Alla prima visita il sito rileva il tema di sistema e lo memorizza;
+Il sito pubblico offre un comando a icona che alterna Scuro / Chiaro, senza popup: ultimo elemento a destra su desktop, compatto su mobile. La scelta è presente anche nel profilo e nella pagina Aspetto. Alla prima visita il sito rileva il tema di sistema e lo memorizza;
 la selezione si salva nel profilo per gli autenticati e nel cookie necessario `incitta_appearance` (un anno) per i
 visitatori, con memoria locale di supporto. Il profilo prevale sulle preferenze locali durante gli accessi.
 
@@ -233,3 +235,15 @@ Manrope nei controlli e nelle tabelle, Bricolage Grotesque 700–800 nei titoli,
 fondi neutri quasi bianchi, accento #B54D23 e bordi sottili con raggi 6–8 px.
 La modalità scura è disabilitata nei pannelli, indipendentemente dal sistema
 e dalla preferenza salvata sul sito pubblico. I font sono serviti localmente.
+
+## Coerenza dei controlli e movimento
+
+Nel chiaro tag, prezzi, stati, condivisione e collegamenti calendario/PDF condividono raggio 6 px, bordo neutro sottile e tipografia Manrope. La coerenza non impone la stessa altezza: badge compatti non interattivi, azioni di utilità da 36 px su desktop e almeno 44 px sui puntatori touch. Android conserva target accessibili secondo le convenzioni native.
+
+Le card chiare applicano il fondo hover all’intero contenitore, senza traslare solo il titolo. Il foglio mappa mantiene padding interno; l’elenco sovrapposto alla mappa ha un fondo opaco anche negli spazi vuoti. I cambi di filtro web usano fade out/in da 120/200 ms; Android usa una transizione da 180 ms. Il movimento non ritarda l’accesso ai contenuti e rispetta la riduzione delle animazioni.
+
+Android include localmente Bricolage Grotesque 700/800 per i titoli e Manrope per testo e controlli nel chiaro, con superfici quasi bianche e controlli da 6 dp. «Solo pesi grossi» si riferisce a Bricolage, non a tutto il testo dell’applicazione.
+
+### Coerenza dei controlli nel tema chiaro
+
+I link che svolgono il ruolo visivo di pulsanti usano `ui-action` (inclusa nei componenti `button` e `filter-chip`). Pulsanti, azioni, badge e campi condividono `--radius-control: 6px`; dimensioni e spaziatura restano specifiche del contesto. I link testuali, le righe di elenco e le schede non vanno trasformati in pulsanti. Il controllo di ricerca composto conserva gli angoli esterni condivisi.

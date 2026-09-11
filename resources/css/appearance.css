@@ -206,7 +206,7 @@
     color: var(--canvas);
     border-color: var(--ink);
 }
-:root[data-theme="light"] .home-intro > div:last-child a { border-radius: 8px; }
+:root[data-theme="light"] .home-intro > div:last-child a { border-radius: var(--radius-control); }
 :root[data-theme="light"] .home-opening [data-home-hero] {
     border-radius: 12px;
     min-height: 460px;
@@ -248,7 +248,7 @@
     padding-block: clamp(32px, 4vw, 60px);
 }
 :root[data-theme="light"] .home-tonight h2 { font-size: clamp(28px, 3vw, 42px); }
-:root[data-theme="light"] .home-tonight a { border-radius: 8px; }
+:root[data-theme="light"] .home-tonight a { border-radius: var(--radius-control); }
 :root[data-theme="light"] .event-card {
     background: var(--canvas);
     padding: 26px;
@@ -349,4 +349,22 @@
 }
 @media (pointer: coarse) {
     :root[data-theme="light"] .event-utility-action { min-height: 44px; }
+}
+
+/* Practical information: readable on narrow event and venue sidebars. */
+.venue-directions { display: grid; grid-template-columns: 1fr; gap: 8px; }
+.venue-direction { display: flex; align-items: center; justify-content: center; min-height: 48px; padding: 10px 12px; font-size: 14px; font-weight: 700; line-height: 1.4; text-align: center; }
+:root[data-theme="light"] .venue-direction { border-radius: 6px; }
+[data-searchable-filter] select[data-search-expanded] { min-height: 9rem; }
+[data-searchable-filter] option { padding: 8px; }
+[data-searchable-filter] option[data-keyboard-active] { background: var(--accent); color: var(--on-accent); }
+
+.map-user-location { display: grid; place-items: center; width: 34px; height: 34px; border: 3px solid #f7f9ff; border-radius: 50%; background: #2156bd; color: #f7f9ff; box-shadow: 0 0 0 6px rgb(33 86 189 / 18%); pointer-events: none; }
+.map-user-location svg { width: 22px; height: 22px; }
+
+/* Shared action shape: links used as controls follow the same rule as buttons.
+   Keep layout, padding and native link semantics at the call site. */
+:root[data-theme="light"] { --radius-control: 6px; }
+:root[data-theme="light"] :is(.ui-action, .event-utility-action, .status-badge, .venue-direction, button, summary, input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+    border-radius: var(--radius-control);
 }

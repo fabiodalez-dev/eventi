@@ -8,6 +8,7 @@ use App\Enums\AccessibilityFeature;
 use App\Enums\AttendanceMode;
 use App\Enums\EventStatus;
 use App\Enums\FollowableType;
+use App\Enums\MembershipRequirement;
 use App\Enums\OccurrenceStatus;
 use App\Enums\PriceType;
 use App\Enums\TimeOfDay;
@@ -26,11 +27,11 @@ use Carbon\CarbonImmutable;
 use DateTimeInterface;
 use DateTimeZone;
 use Illuminate\Contracts\Pagination\CursorPaginator;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Database\Query\JoinClause;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection as BaseCollection;
 use Illuminate\Support\Facades\DB;
 
@@ -579,6 +580,18 @@ final class EventOccurrenceQuery
      * All'aperto (§11.3). È un attributo dell'evento, non del locale: lo stesso
      * circolo fa concerti in sala d'inverno e in cortile d'estate.
      */
+    public function membership(MembershipRequirement $requirement): self
+    {
+        // Only the event can declare membership. A venue flag is not an event requirement.
+        $this->query->whereRaw("CASE
+            WHEN JSON_UNQUOTE(JSON_EXTRACT(events.content_details, '$.membership')) IN ('required', 'not_required')
+                THEN JSON_UNQUOTE(JSON_EXTRACT(events.content_details, '$.membership'))
+            WHEN events.price_type = 'membership' THEN 'required'
+            ELSE NULL END = ?", [$requirement->value]);
+
+        return $this;
+    }
+
     public function outdoor(): self
     {
         $this->query->where('events.is_outdoor', true);
@@ -914,6 +927,11 @@ final class EventOccurrenceQuery
      * `$pageName` esiste perché una pagina può ospitare due elenchi paginati:
      * la scheda di un locale ha i prossimi eventi e l'archivio, e devono poter
      * essere sfogliati uno senza trascinarsi l'altro (§11.9).
+     *
+     * Il tipo dichiarato è il paginatore **concreto** e non il contratto:
+     * Eloquent restituisce quello, le viste ne usano già `getCollection()`, e
+     * dichiarare l'interfaccia nascondeva metà dell'oggetto senza astrarre
+     * niente — nessuna implementazione alternativa passa mai di qui.
      *
      * @return LengthAwarePaginator<int, EventOccurrence>
      */

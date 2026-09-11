@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Web;
 
 use App\DTOs\PageMeta;
@@ -8,6 +10,7 @@ use App\Http\Resources\V1\OccurrenceResource;
 use App\Models\Organizer;
 use App\Models\User;
 use App\Queries\EventOccurrenceQuery;
+use App\Services\Seo\StructuredData;
 use App\Support\Api\ApiContext;
 use App\Support\Api\ApiResponse;
 use Illuminate\Contracts\View\View;
@@ -16,21 +19,58 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
-class OrganizerController extends Controller
+/**
+ * Gli organizzatori (§11.4): chi mette in piedi le serate, che non sempre
+ * coincide con il locale che le ospita.
+ *
+ * **L'elenco con una ricerca dentro non entra in un indice.** Ogni `?q=`
+ * diverso è una pagina diversa, e le stringhe possibili sono infinite: senza
+ * la dichiarazione esplicita, ognuna sarebbe `index, follow` con il proprio
+ * canonico, cioè esattamente la coda infinita che `EventListingMeta` e
+ * `VenueController` si prendono la briga di chiudere. La pagina resta
+ * navigabile — è il motore che non deve collezionarla.
+ */
+final class OrganizerController extends Controller
 {
     use Concerns\InteractsWithCity;
 
     public function index(Request $request): View|JsonResponse
     {
         $term = trim((string) ($request->validate(['q' => 'nullable|string|max:120'])['q'] ?? ''));
-        $query = Organizer::query()->visibleInCity($this->city())
+        $city = $this->city();
+        $query = Organizer::query()->visibleInCity($city)
             ->when($term !== '', fn ($q) => $q->where('name', 'like', '%'.addcslashes($term, '%_\\').'%'))->orderBy('name')->orderBy('id');
         $items = $query->paginate(20)->withQueryString();
         if ($request->is('api/*')) {
             return ApiResponse::collection($items->getCollection()->map(fn ($o) => $this->summary($o))->all(), ['has_more' => $items->hasMorePages(), 'page' => $items->currentPage()]);
         }
 
-        return view('organizers.index', ['organizers' => $items, 'term' => $term, 'meta' => new PageMeta(title: 'Organizzatori', heading: 'Organizzatori')]);
+        $meta = new PageMeta(
+            title: __('organizers.title'),
+            heading: __('organizers.title'),
+            description: $term === ''
+                ? __('organizers.meta.index', ['city' => $city->name])
+                : __('organizers.meta.search', ['query' => $term, 'city' => $city->name]),
+            /*
+             * Il canonico è l'elenco nudo: una ricerca e la sua pagina due non
+             * sono due pagine da indicizzare, sono due modi di guardare la
+             * stessa.
+             */
+            canonical: route('organizers.index'),
+            indexable: $term === '',
+        );
+
+        return view('organizers.index', [
+            'organizers' => $items,
+            'term' => $term,
+            'meta' => $meta,
+            'structuredData' => [
+                app(StructuredData::class)->collection($meta->title, $meta->canonical ?? route('organizers.index'),
+                    $items->getCollection()->map(fn (Organizer $organizer): array => [
+                        'name' => $organizer->name, 'url' => route('organizers.show', $organizer),
+                    ])->values()->all()),
+            ],
+        ]);
     }
 
     public function show(Request $request, string $slug): View|JsonResponse
@@ -52,7 +92,13 @@ class OrganizerController extends Controller
         }
 
         return view('organizers.show', ['organizer' => $organizer, 'occurrences' => $dates, 'past' => $past,
-            'meta' => new PageMeta(title: $organizer->name, heading: $organizer->name, description: Str::limit(strip_tags($organizer->description ?? ''), 160), canonical: route('organizers.show', $organizer)),
+            /*
+             * L'archivio canonicalizza sulla scheda: `?past=1` è un modo di
+             * guardare lo stesso soggetto, non un secondo soggetto.
+             */
+            'meta' => new PageMeta(title: $organizer->name, heading: $organizer->name,
+                description: Str::limit(str($organizer->description ?? '')->stripTags()->squish()->value(), 160),
+                canonical: route('organizers.show', $organizer)),
             'structuredData' => [['@context' => 'https://schema.org', '@type' => 'Organization', '@id' => route('organizers.show', $organizer).'#organizer', 'name' => $organizer->name, 'url' => route('organizers.show', $organizer)]]]);
     }
 

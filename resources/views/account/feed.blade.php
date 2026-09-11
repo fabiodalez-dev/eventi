@@ -42,7 +42,7 @@
                 <x-pagination :paginator="$categories" :summary="true" label="Paginazione delle categorie" />
             </section>
         </div>
-        <a class="mt-6 inline-block border-2 border-line px-4 py-3 font-bold" href="{{ route('account.feed') }}#feed-events">Aggiorna il feed</a>
+        <a class="ui-action mt-6 inline-block border-2 border-line px-4 py-3 font-bold" href="{{ route('account.feed') }}#feed-events">Aggiorna il feed</a>
     </details>
 
     @if ($occurrences !== null && $occurrences->total() > 0)

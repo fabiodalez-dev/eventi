@@ -19,7 +19,7 @@
             </p>
 
             <a
-                class="bg-on-brand/15 px-3 py-1 font-semibold underline hover:bg-on-brand/25"
+                class="ui-action bg-on-brand/15 px-3 py-1 font-semibold underline hover:bg-on-brand/25"
                 href="{{ route('impersonate.stop') }}"
             >
                 {{ __('admin.actions.stop_impersonating') }}

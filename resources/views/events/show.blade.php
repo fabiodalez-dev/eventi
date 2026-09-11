@@ -26,6 +26,7 @@
     $shareUrl = $meta->canonical ?? route('events.show', $event);
     $dates = $occurrences->isNotEmpty() ? $occurrences : $pastOccurrences;
     $shown = $dates->take(config('eventi.dates_shown'));
+    $headingOccurrence = $selectedOccurrence ?? $dates->first();
     $lineups = $dates->flatMap(fn ($occurrence) => $occurrence->lineups)->unique('id');
 
     /* I fatti sovrapposti alla locandina: i primi quattro della scheda
@@ -48,7 +49,7 @@
     $ticketUrl = \App\Support\SafeUrl::href($event->ticket_url);
 @endphp
 
-<x-layouts.app :meta="$meta" :preload="$poster" wide>
+<x-layouts.app :meta="$meta" :preload="$poster" og-type="article" wide>
     @if ($isPreview ?? false)
         <p role="status" class="bg-accent text-on-accent p-4 font-bold">{{ __('promotions.preview_notice') }}</p>
     @endif
@@ -67,25 +68,14 @@
     <nav aria-label="{{ __('ui.breadcrumb') }}" class="flex flex-wrap items-center gap-4 border-b-2 border-line px-gutter py-3.5">
         <a
             href="{{ route('events.index') }}"
-            class="inline-flex items-center gap-2 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.16em] uppercase transition-colors hover:text-accent"
+            class="inline-flex items-center gap-2 min-h-10 text-sm font-semibold transition-colors hover:text-accent"
         >
             <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="square"><path d="M19 12H5M11 5l-7 7 7 7"></path></svg>
             {{ __('events.title') }}
         </a>
 
-        <span class="font-display text-[0.625rem] leading-none font-extrabold tracking-[0.16em] text-ink-subtle uppercase">
-            @if ($event->category !== null)
-                <a class="hover:text-accent" href="{{ route('events.category', $event->category) }}">{{ $event->category->name }}</a>
-                <span aria-hidden="true"> / </span>
-            @endif
-            @if ($venue?->zone)
-                {{ $venue->zone }}<span aria-hidden="true"> / </span>
-            @endif
-            {{ $shown->first() !== null ? $formatter->day($shown->first()->business_date) : '' }}
-        </span>
-        @if (($selectedOccurrence ?? null) !== null)
-            <a class="underline min-h-12 inline-flex items-center" href="{{ route('events.show', $event) }}">{{ $event->title }}</a>
-            <span aria-current="page">{{ $selectedOccurrence->starts_at->copy()->timezone($city->timezone)->format('d/m/Y') }}</span>
+        @if ($event->category !== null)
+            <a class="inline-flex min-h-10 items-center text-sm font-semibold text-ink-muted hover:text-accent" href="{{ route('events.category', $event->category) }}">{{ $event->category->name }}</a>
         @endif
     </nav>
 
@@ -116,7 +106,7 @@
                     @if ($event->category !== null)
                         <a
                             href="{{ route('events.category', $event->category) }}"
-                            class="bg-accent px-2.5 py-[7px] font-display text-[0.594rem] leading-none font-extrabold tracking-[0.16em] text-on-accent uppercase"
+                            class="ui-action bg-accent px-2.5 py-[7px] font-display text-[0.594rem] leading-none font-extrabold tracking-[0.16em] text-on-accent uppercase"
                         >
                             {{ $event->category->name }}
                         </a>
@@ -163,6 +153,18 @@
         </div>
 
         <div class="event-heading-panel flex flex-col justify-center gap-[clamp(1rem,1.8vw,1.5rem)] bg-canvas p-[clamp(1.25rem,2.4vw,2.25rem)]">
+            @if ($headingOccurrence !== null)
+                <time data-event-heading-date
+                    datetime="{{ $headingOccurrence->is_all_day ? $formatter->isoDay($headingOccurrence->business_date) : $formatter->iso($headingOccurrence->starts_at) }}"
+                    class="text-[clamp(1rem,1.5vw,1.25rem)] leading-snug font-semibold text-ink-muted"
+                >
+                    @if ($headingOccurrence->is_all_day)
+                        {{ __('dates.day_month_year', ['day' => $formatter->dayNumber($headingOccurrence->business_date), 'month' => $formatter->monthName($headingOccurrence->business_date), 'year' => $headingOccurrence->business_date->format('Y')]) }} · {{ __('events.badge.all_day') }}
+                    @else
+                        {{ __('dates.day_at_time', ['date' => $formatter->instantDate($headingOccurrence->starts_at), 'time' => $formatter->time($headingOccurrence->starts_at)]) }}
+                    @endif
+                </time>
+            @endif
             <h1 class="m-0 font-display text-[clamp(2.125rem,4.4vw,4.75rem)] leading-[0.9] font-extrabold tracking-[-0.045em] uppercase reveal-clip">
                 {{ $event->title }}
             </h1>
@@ -189,7 +191,7 @@
                         href="{{ $ticketUrl }}"
                         target="_blank"
                         rel="noopener nofollow"
-                        class="inline-flex h-[54px] items-center gap-2 bg-accent px-[22px] font-display text-xs leading-none font-extrabold tracking-[0.14em] text-on-accent uppercase transition-colors hover:bg-brand-strong"
+                        class="ui-action inline-flex h-[54px] items-center gap-2 bg-accent px-[22px] font-display text-xs leading-none font-extrabold tracking-[0.14em] text-on-accent uppercase transition-colors hover:bg-brand-strong"
                     >
                         {{ __('events.detail.tickets') }} <x-price-tag :event="$event" as="text" class="text-on-accent" />
                         <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="square"><path d="M7 17 17 7M9 7h8v8"></path></svg>
@@ -450,6 +452,9 @@
                 <h2 id="prezzo-evento" class="font-display text-[clamp(1.25rem,1.8vw,1.75rem)] leading-none font-extrabold tracking-[-0.03em] uppercase">{{ __('events.detail.price') }}</h2>
 
                 <p class="text-card text-ink"><x-price-tag :event="$event" as="text" /></p>
+                @if ($membership = $event->membershipRequirement())
+                    <p class="text-base font-semibold">{{ $membership->label() }}</p>
+                @endif
 
                 @if (filled($event->price_notes))
                     <p class="text-sm text-ink-muted">{{ $event->price_notes }}</p>
@@ -465,7 +470,7 @@
                             href="{{ $ticketUrl }}"
                             rel="noopener noreferrer"
                             target="_blank"
-                            class="bg-brand px-4 py-2 text-center text-sm font-semibold text-on-brand transition hover:bg-brand-strong"
+                            class="ui-action bg-brand px-4 py-2 text-center text-sm font-semibold text-on-brand transition hover:bg-brand-strong"
                         >
                             {{ __('common.actions.buy_tickets') }}
                         </a>
@@ -477,7 +482,7 @@
                             href="{{ $prenotazione }}"
                             rel="noopener noreferrer"
                             target="_blank"
-                            class="bg-surface-sunken px-4 py-2 text-center text-sm font-semibold text-ink border-2 border-line transition hover:border-accent"
+                            class="ui-action bg-surface-sunken px-4 py-2 text-center text-sm font-semibold text-ink border-2 border-line transition hover:border-accent"
                         >
                             {{ __('common.actions.book') }}
                         </a>
@@ -522,7 +527,7 @@
                             href="{{ route('venues.show', $venue) }}"
                         >{{ $venue->name }}</a>
 
-                        <p class="m-0 font-display text-[0.594rem] leading-none font-extrabold tracking-[0.14em] text-ink-subtle uppercase">
+                        <p class="m-0 text-sm leading-relaxed font-semibold text-ink-muted">
                             {{ collect([$venue->type?->label(), $venue->zone ?: $venue->municipality])->filter()->implode(' '.__('common.separator').' ') }}
                         </p>
                     </div>
@@ -546,18 +551,18 @@
                          sapere se c'è ancora spazio scrive o telefona, e
                          cercarli altrove significa perderli. --}}
                     @if (filled($venue->phone) || filled($venue->email) || filled($venue->website))
-                        <div class="flex flex-wrap gap-x-4 gap-y-1 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.12em] uppercase">
+                        <div class="venue-contact-list flex flex-col gap-1 text-base leading-relaxed font-semibold">
                             @if (filled($venue->phone))
-                                <a class="inline-flex min-h-12 items-center hover:text-accent" href="tel:{{ preg_replace('/\s+/', '', $venue->phone) }}">{{ $venue->phone }}</a>
+                                <a class="flex min-h-12 items-center gap-3 hover:text-accent" href="tel:{{ preg_replace('/\s+/', '', $venue->phone) }}"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="size-5 shrink-0"><path d="M22 16.9v3a2 2 0 0 1-2.2 2A19.8 19.8 0 0 1 3.1 5.2 2 2 0 0 1 5.1 3h3l2 5-2 2a16 16 0 0 0 6 6l2-2z"/></svg><span class="min-w-0 [overflow-wrap:anywhere]">{{ $venue->phone }}</span></a>
                             @endif
 
                             @if (filled($venue->email))
-                                <a class="inline-flex min-h-12 items-center break-all hover:text-accent" href="mailto:{{ $venue->email }}">{{ $venue->email }}</a>
+                                <a class="flex min-h-12 items-center gap-3 hover:text-accent" href="mailto:{{ $venue->email }}"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="size-5 shrink-0"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 6 9 7 9-7"/></svg><span class="min-w-0 [overflow-wrap:anywhere]">{{ $venue->email }}</span></a>
                             @endif
 
                             @php $sitoLocale = \App\Support\SafeUrl::href($venue->website); @endphp
                             @if ($sitoLocale !== null)
-                                <a class="inline-flex min-h-12 items-center hover:text-accent" href="{{ $sitoLocale }}" rel="noopener noreferrer" target="_blank">{{ __('venues.detail.website') }}</a>
+                                <a class="flex min-h-12 items-center gap-3 hover:text-accent" href="{{ $sitoLocale }}" rel="noopener noreferrer" target="_blank"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="size-5 shrink-0"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a18 18 0 0 1 0 18 18 18 0 0 1 0-18"/></svg><span class="min-w-0 [overflow-wrap:anywhere]">{{ __('venues.detail.website') }}</span></a>
                             @endif
                         </div>
                     @endif

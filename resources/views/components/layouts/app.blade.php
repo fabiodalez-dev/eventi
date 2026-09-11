@@ -27,6 +27,18 @@
      * contenitore lo vogliono, ed è per questo che è il comportamento
      * predefinito.
      */
+    /*
+     * Il tipo Open Graph della pagina. Per difetto `website`, che è ciò che
+     * sono la prima schermata, gli elenchi e la mappa.
+     *
+     * Le pagine con un **soggetto** — la scheda di un evento — dichiarano
+     * `article`: è la differenza fra «questo è un sito» e «questo è un pezzo
+     * di contenuto pubblicato», e cambia come Facebook, WhatsApp, Telegram e
+     * LinkedIn disegnano l'anteprima di un collegamento condiviso. Per un
+     * aggregatore di eventi quella condivisione è un canale d'ingresso, non un
+     * dettaglio di cortesia.
+     */
+    'ogType' => null,
     'wide' => false,
     /*
      * Una pagina «stretta» è un modulo o un testo: si legge e si compila in
@@ -44,6 +56,7 @@
     'imageWidth' => $meta?->imageWidth,
     'imageHeight' => $meta?->imageHeight,
     'robots' => $meta?->robots(),
+    'ogType' => $ogType,
     'preload' => $preload,
     'wide' => $wide,
     'narrow' => $narrow,
