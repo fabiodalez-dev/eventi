@@ -23,6 +23,7 @@ return [
     'pins' => 'Mappa · un locale|Mappa · :count locali',
     'cluster_hint' => 'I numeri indicano quanti locali ci sono in quella zona.',
     'pin_hint' => 'Tocca il punto per vedere il locale e le date in programma.',
+    'your_position' => 'La tua posizione',
     'locate' => 'Vai alla mia posizione',
     'search_here' => 'Cerca in quest\'area',
     'searching' => 'Cerco…',

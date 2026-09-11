@@ -63,7 +63,7 @@
             <h2 class="text-section">{{ __('subscriptions.ready') }}</h2>
             <p>{{ $preview->isEmpty() ? __('subscriptions.empty') : __('subscriptions.count', ['count' => $preview->count()]) }}</p>
             <div class="flex flex-wrap gap-2">
-                @foreach ($categories->whereIn('slug', $selection['categories'] ?? []) as $category)<span class="border border-line px-3 py-2 text-sm">{{ $category->name }}</span>@endforeach
+                @foreach ($categories->whereIn('slug', $selection['categories'] ?? []) as $category)<span class="ui-tag border border-line px-3 py-2 text-sm">{{ $category->name }}</span>@endforeach
             </div>
             <p class="text-sm text-ink-muted">{{ __('subscriptions.limit', ['count' => config('feeds.max_items')]) }}</p>
             <div class="flex flex-wrap gap-3">

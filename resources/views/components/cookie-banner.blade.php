@@ -98,7 +98,7 @@
                     <li class="flex flex-col gap-0.5">
                         <span class="flex items-center gap-2 text-sm font-semibold text-ink">
                             {{ \App\Enums\ConsentCategory::Necessary->label() }}
-                            <span class="bg-muted-badge px-2 py-0.5 text-eyebrow text-on-muted-badge uppercase">
+                            <span class="ui-tag bg-muted-badge px-2 py-0.5 text-eyebrow text-on-muted-badge uppercase">
                                 {{ __('consent.always_active') }}
                             </span>
                         </span>

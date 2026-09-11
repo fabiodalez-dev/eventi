@@ -48,6 +48,45 @@ body, .fi-body { background: var(--fi-canvas); color: var(--fi-ink); }
     font-variation-settings: 'opsz' 32;
 }
 .fi-header-heading, .fi-logo { font-weight: 800; }
+/* Keep long record titles readable even when the page has many actions. */
+.fi-resource-edit-record-page .fi-header {
+    flex-direction: column;
+    align-items: stretch;
+}
+.fi-resource-edit-record-page .fi-header > div { min-width: 0; }
+.fi-resource-edit-record-page .fi-header.fi-header-has-breadcrumbs .fi-header-actions-ctn {
+    margin-top: 0;
+}
+.fi-resource-edit-record-page .fi-header-actions-ctn > .fi-ac {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+}
+/* Select labels are generated in PHP: do not depend on scanned utilities. */
+.practical-icon-option {
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    min-width: 0;
+    vertical-align: middle;
+}
+.practical-icon-option > .practical-icon-preview {
+    width: 20px;
+    height: 20px;
+    min-width: 20px;
+    max-width: 20px;
+    flex: 0 0 20px;
+    color: #52525b;
+    fill: none;
+    stroke-width: 1.5;
+}
+/* Only icon menus use columns; ordinary selects keep their native layout. */
+[role='listbox'] > ul:has(.practical-icon-option) {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+    gap: .25rem;
+}
+[role='option']:has(.practical-icon-option) { min-height: 44px; }
+.fi-fo-repeater-actions { flex-wrap: wrap; gap: .5rem; }
 .fi-btn { font-weight: 650; letter-spacing: 0; }
 .fi-btn:not(.fi-color):not(.fi-link):not(.fi-icon-btn):not(.fi-dropdown-list-item) {
     border: 1px solid oklch(72% 0.003 80); background: var(--fi-panel);
@@ -82,3 +121,11 @@ body, .fi-body { background: var(--fi-canvas); color: var(--fi-ink); }
     .ec-toolbar { align-items: flex-start; }
     .ec-toolbar > div { max-width: 100%; }
 }
+
+.event-ticketing-links { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 1rem; }
+
+.fi-resource-edit-record-page .fi-tabs { flex-wrap: wrap; overflow: visible; }
+
+.event-ticketing-intro { display: flex; flex-direction: column; align-items: flex-start; gap: 1rem; }
+.event-ticketing-intro > p { margin: 0; line-height: 1.6; }
+.event-ticketing-intro .event-ticketing-links { margin-top: .25rem; }

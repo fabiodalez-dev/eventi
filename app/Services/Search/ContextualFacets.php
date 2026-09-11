@@ -18,9 +18,10 @@ use App\Queries\EventOccurrenceQuery;
 final class ContextualFacets
 {
     /** @param null|\Closure(): EventOccurrenceQuery $factory
+     * @param  null|\Closure(EventFilters): EventOccurrenceQuery  $placeFactory
      * @return array<string, array<string, int>>
      */
-    public function build(City $city, EventFilters $filters, ?\Closure $factory = null): array
+    public function build(City $city, EventFilters $filters, ?\Closure $factory = null, ?\Closure $placeFactory = null): array
     {
         $web = $factory === null;
         $factory ??= fn () => app(EventFinder::class)->query($city, $filters);
@@ -42,6 +43,26 @@ final class ContextualFacets
             foreach (['municipality', 'zone'] as $key) {
                 if (filled($venue->{$key})) {
                     $result[$key][$venue->{$key}] = ($result[$key][$venue->{$key}] ?? 0) + $count;
+                }
+            }
+        }
+        $placeFactory ??= $web ? fn (EventFilters $selection) => app(EventFinder::class)->query($city, $selection) : null;
+        if ($placeFactory !== null) {
+            // A place can be changed directly: ignore its own choice, retaining
+            // upstream geography and every unrelated event constraint.
+            $placeFilters = [
+                'municipality' => $filters->withMunicipality(null)->withZone(null)->withVenue(null),
+                'zone' => $filters->withZone(null)->withVenue(null),
+                'venue' => $filters->withVenue(null),
+            ];
+            foreach ($placeFilters as $group => $selection) {
+                $result[$group] = [];
+                $counts = $placeFactory($selection)->countsByVenue();
+                foreach (Venue::query()->whereIn('id', array_keys($counts))->get(['id', 'slug', 'municipality', 'zone']) as $venue) {
+                    $value = $group === 'venue' ? $venue->slug : $venue->{$group};
+                    if (filled($value)) {
+                        $result[$group][$value] = ($result[$group][$value] ?? 0) + $counts[$venue->id];
+                    }
                 }
             }
         }

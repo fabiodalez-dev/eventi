@@ -101,9 +101,9 @@ final class TonightDiscovery
     public function practical(EventOccurrence $date): array
     {
         $details = app(EditorialContent::class)->details($date->event, $date);
-        $venue = $date->effectiveVenue();
-        if (blank($details['membership_notes'] ?? null) && $venue?->requires_membership) {
-            $details['membership_notes'] = __('seo.yes').(filled($venue->membership_notes) ? ': '.$venue->membership_notes : '');
+        $membership = $date->event->membershipRequirement();
+        if ($membership !== null) {
+            $details['membership_notes'] = $membership->label().(filled($details['membership_notes'] ?? null) ? ': '.$details['membership_notes'] : '');
         }
         if (blank($details['parking_notes'] ?? null) && in_array($details['parking_type'] ?? null, ['free', 'paid', 'none'], true)) {
             $details['parking_notes'] = __('seo.parking_'.$details['parking_type']);

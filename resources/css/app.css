@@ -8,9 +8,7 @@
    Il file è variabile (peso 100-900) e suddiviso per unicode-range: il browser
    scarica il solo sottoinsieme che gli serve. Archivo serve il tema scuro;
    nel chiaro Bricolage distingue i titoli e Manrope serve testo e comandi. */
-@import '@fontsource-variable/archivo/wght.css';
-@import '@fontsource-variable/manrope/wght.css';
-@import '@fontsource-variable/bricolage-grotesque/standard.css';
+@import './fonts.css';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
@@ -503,6 +501,13 @@
 
 @utility top-header {
     top: 102px;
+}
+
+/* Lo stacco che un'ancora deve lasciarsi sopra per non finire sotto la testata
+   fissa. Senza, `#filtri` porta il titolo del pannello esattamente dietro la
+   barra, e sembra che il collegamento non abbia fatto niente. */
+@utility scroll-mt-header {
+    scroll-margin-top: 110px;
 }
 
 @utility h-below-header {

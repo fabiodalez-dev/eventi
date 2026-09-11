@@ -6,6 +6,10 @@ return [
     'advanced' => 'Filtri avanzati',
 
     'title' => 'Filtri',
+    /* Il collegamento che su telefono porta al pannello, che sta sotto ai
+       risultati: senza, l'unico modo di raggiungerlo sarebbe scorrere. */
+    'jump' => 'Filtra i risultati',
+    'panel_label' => 'Filtri e ricerca per posizione',
     'open' => 'Filtra',
     'apply' => 'Mostra i risultati',
     'reset' => 'Azzera i filtri',
@@ -72,6 +76,17 @@ return [
      * — la richiesta della posizione e la frase che dice perché — vive in
      * lang/it/map.php, perché è la stessa in ogni pagina che la offre (§11.7).
      */
+    'search_options' => 'Cerca in :label',
+    'no_matching_options' => 'Nessuna voce corrispondente',
+    'membership' => [
+        'label' => 'Tessera per l’evento',
+        'any' => 'Qualsiasi requisito',
+        'required' => 'Tessera richiesta',
+        'not_required' => 'Tessera non richiesta',
+        'unknown' => 'Tessera: informazione non dichiarata',
+        'help' => 'Vale per questo evento, indipendentemente dal locale. Lascia vuoto se non verificato; specifica tipo, costo e modalità nelle note tessera.',
+    ],
+
     'distance' => [
         'label' => 'Distanza',
         'radius' => 'Entro :km km',

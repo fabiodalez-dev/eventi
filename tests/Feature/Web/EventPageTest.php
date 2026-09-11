@@ -324,3 +324,30 @@ it('centra la mappa sul locale, non sul centro città', function (): void {
            annullando il centro appena scelto. */
         ->and($config['bounds'])->toBeNull();
 });
+
+it('puts the selected date and local start time above the title without repeating it in the breadcrumb', function (): void {
+    $city = testCity();
+    freezeLocal($city, '2026-09-05 12:00:00');
+    $first = occurrenceAtLocal($city, testCategory(), '2026-09-11 20:45:00');
+    $second = EventOccurrence::factory()->create([
+        'event_id' => $first->event_id,
+        'starts_at' => localInstant($city, '2026-09-18 00:30:00')->utc(),
+        'ends_at' => null,
+        'is_all_day' => false,
+    ]);
+    foreach ([[$first, '11 settembre 2026 alle 20:45'], [$second, '18 settembre 2026 alle 00:30']] as [$date, $expected]) {
+        $html = $this->get(EventUrl::occurrence($date))->assertOk()->getContent();
+        $document = new DOMDocument;
+        @$document->loadHTML('<?xml encoding="UTF-8">'.$html);
+        $xpath = new DOMXPath($document);
+        $headingDate = $xpath->query('//time[@data-event-heading-date]')->item(0);
+        expect(trim($headingDate->textContent))->toBe($expected);
+        expect($xpath->query('//time[@data-event-heading-date]/following-sibling::h1')->length)->toBe(1);
+        $breadcrumb = $xpath->query('//nav[@aria-label="Percorso"]')->item(0);
+        expect($breadcrumb->textContent)->not->toContain($first->event->title)->not->toContain('2026');
+    }
+    $first->update(['is_all_day' => true]);
+    $html = $this->get(EventUrl::occurrence($first))->assertOk()->getContent();
+    preg_match('/<time data-event-heading-date.*?<\/time>/s', $html, $matches);
+    expect($matches[0])->toContain('11 settembre 2026')->toContain('Tutto il giorno')->not->toContain('alle 20:45');
+});

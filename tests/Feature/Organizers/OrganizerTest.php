@@ -42,6 +42,25 @@ it('isolates organizer management from unrelated events and suspended profiles',
 it('shows organizer archives and finds organizers in web and API search', function (): void {
     $this->get('/organizzatori')->assertOk()->assertSee('Collettivo Itinerante Padova');
     $this->get('/organizzatori/'.$this->organizer->slug)->assertOk()->assertSee($this->date->event->title);
+
+    /*
+     * Il nodo `Organization` deve **arrivare in pagina**.
+     *
+     * La scheda passava i dati strutturati al layout come `:structured-data`,
+     * che non è fra i suoi `@props`: finivano in `$attributes` e non venivano
+     * stampati da nessuna parte. Il controller era giusto, il nodo era giusto,
+     * e in pagina non c'era niente — un guasto che nessuno vede perché non
+     * rompe nulla di visibile. Adesso c'è una riga che lo vede.
+     */
+    $this->get('/organizzatori/'.$this->organizer->slug)
+        ->assertSee('application/ld+json', false)
+        ->assertSee('"@type":"Organization"', false)
+        ->assertSee(route('organizers.show', $this->organizer).'#organizer', false);
+
+    /* Una ricerca è una pagina infinita: navigabile, non collezionabile. */
+    $this->get('/organizzatori?q=Itinerante')->assertOk()
+        ->assertSee('noindex, follow')
+        ->assertSee('<link rel="canonical" href="'.route('organizers.index').'">', false);
     $this->get('/cerca/suggerimenti?q=Itinerante')->assertOk()->assertSee('Organizzatori')->assertSee($this->organizer->name);
     $this->get('/cerca?q=Itinerante')->assertOk()->assertSee($this->organizer->name);
     $this->getJson('/api/v1/search?q=Itinerante')->assertOk()->assertJsonPath('data.organizers.0.id', $this->organizer->id);
@@ -157,7 +176,7 @@ it('inherits practical information from the actual date venue and preserves expl
 
 it('does not interpret an unknown accessibility value as a negative answer', function (): void {
     $this->date->event->update(['content_details' => ['accessibility' => 'unknown']]);
-    $this->get('/eventi/'.$this->date->event->slug)->assertOk()->assertSee('Non specificato');
+    $this->get('/eventi/'.$this->date->event->slug)->assertOk()->assertDontSee('Non specificato')->assertDontSee('Non accessibile in sedia a rotelle');
 });
 
 it('rejects foreign-city date venues and forged follow subjects', function (): void {

@@ -45,14 +45,14 @@
             <div class="mt-1 flex flex-wrap items-center gap-2">
                 <a
                     href="{{ route('account.register') }}"
-                    class="bg-accent px-3.5 py-2 font-display text-[0.688rem] leading-none font-extrabold tracking-[0.14em] text-on-accent uppercase transition-colors hover:bg-brand-strong"
+                    class="ui-action bg-accent px-3.5 py-2 font-display text-[0.688rem] leading-none font-extrabold tracking-[0.14em] text-on-accent uppercase transition-colors hover:bg-brand-strong"
                 >
                     {{ __('account.prompt.action') }}
                 </a>
 
                 <a
                     href="{{ route('login') }}"
-                    class="border-2 border-line px-3.5 py-2 font-display text-[0.688rem] leading-none font-extrabold tracking-[0.14em] uppercase transition-colors hover:border-accent hover:text-accent"
+                    class="ui-action border-2 border-line px-3.5 py-2 font-display text-[0.688rem] leading-none font-extrabold tracking-[0.14em] uppercase transition-colors hover:border-accent hover:text-accent"
                 >
                     {{ __('account.prompt.login') }}
                 </a>

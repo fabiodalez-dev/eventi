@@ -26,4 +26,11 @@
     <string name="editorial_parking_free">Parcheggio gratuito</string>
     <string name="editorial_parking_paid">Parcheggio a pagamento</string>
     <string name="editorial_parking_none">Parcheggio non disponibile</string>
+    <string name="membership_label">Tessera per l’evento</string>
+    <string name="membership_required">Tessera richiesta</string>
+    <string name="membership_not_required">Tessera non richiesta</string>
+    <string name="membership_unknown">Tessera: informazione non dichiarata</string>
+    <string name="filter_search_options">Cerca in %1$s</string>
+    <string name="filter_search_empty">Nessuna voce corrispondente</string>
+    <string name="map_your_position">La tua posizione</string>
 </resources>

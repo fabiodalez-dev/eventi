@@ -15,8 +15,10 @@ use App\Filament\Admin\Resources\Events\RelationManagers\ActivityRelationManager
 use App\Filament\Admin\Resources\Events\RelationManagers\OccurrencesRelationManager;
 use App\Filament\Admin\Support\StructuredFields;
 use App\Filament\Forms\Components\MapPicker;
+use App\Filament\Support\BeforeGoingFields;
 use App\Filament\Support\EditorialFields;
 use App\Filament\Support\EventStatusPresentation;
+use App\Filament\Support\EventTicketingActions;
 use App\Filament\Support\ExternalLinksField;
 use App\Filament\Support\FactsField;
 use App\Filament\Support\ImageUpload;
@@ -38,11 +40,13 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\ToggleButtons;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Components\Fieldset;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
 use Filament\Support\Enums\IconPosition;
 use Filament\Support\Icons\Heroicon;
@@ -125,8 +129,6 @@ class EventResource extends Resource
                     ->required()
                     ->default(EventStatus::Draft->value)
                     ->columnSpanFull(),
-                EditorialFields::content(true, false),
-                EditorialFields::seo(),
                 /*
                  * **Schede, non dodici riquadri su due colonne.**
                  *
@@ -402,11 +404,13 @@ class EventResource extends Resource
                                             ->live(),
 
                                         TextInput::make('price_min')
+                                            ->visible(fn (Get $get): bool => in_array($get('price_type') instanceof PriceType ? $get('price_type')->value : $get('price_type'), ['ticket', 'membership'], true))
                                             ->label(__('admin.fields.price_min'))
                                             ->numeric()
                                             ->minValue(0),
 
                                         TextInput::make('price_max')
+                                            ->visible(fn (Get $get): bool => in_array($get('price_type') instanceof PriceType ? $get('price_type')->value : $get('price_type'), ['ticket', 'membership'], true))
                                             ->label(__('admin.fields.price_max'))
                                             ->numeric()
                                             ->minValue(0),
@@ -417,13 +421,14 @@ class EventResource extends Resource
                                             ->columnSpan(['default' => 1, 'lg' => 2]),
 
                                         TextInput::make('currency')
+                                            ->visible(fn (Get $get): bool => in_array($get('price_type') instanceof PriceType ? $get('price_type')->value : $get('price_type'), ['ticket', 'membership'], true))
                                             ->label(__('admin.fields.currency'))
                                             ->required()
                                             ->default('EUR')
                                             ->maxLength(3),
 
                                         TextInput::make('ticket_url')
-                                            ->label(__('admin.fields.ticket_url'))
+                                            ->label('Acquisto biglietti su sito esterno')
                                             ->url()
                                             ->maxLength(255)
                                             ->columnSpan(['default' => 1, 'lg' => 2]),
@@ -451,12 +456,21 @@ class EventResource extends Resource
                          * si può dire — `OccurrenceStatus::SoldOut` marca l'intera
                          * serata e non lo sa fare.
                          */
+                                Section::make('Ticketing inCittà')
+                                    ->description(fn (Get $get): string => in_array($get('price_type'), ['free', PriceType::Free], true) ? 'Biglietti gratuiti: prenotazione e QR per l’ingresso.' : 'Prenotazione gratuita con pagamento al locale, all’ingresso.')
+                                    ->visible(fn (Get $get): bool => in_array($get('price_type') instanceof PriceType ? $get('price_type')->value : $get('price_type'), ['free', 'ticket', 'membership'], true))
+                                    ->schema([View::make('filament.events.ticketing-links'), Actions::make(fn (?Event $record): array => EventTicketingActions::forEvent($record))]),
                                 Section::make(__('admin.sections.ticket_tiers'))
+                                    ->visible(fn (Get $get): bool => in_array($get('price_type') instanceof PriceType ? $get('price_type')->value : $get('price_type'), ['ticket', 'membership'], true))
                                     ->schema([
                                         TicketTiersField::make('admin'),
                                     ]),
                             ]),
 
+                        Tab::make('Prima di andare')
+                            ->schema([BeforeGoingFields::make()]),
+                        Tab::make('Contenuti e SEO')
+                            ->schema([EditorialFields::content(true, false), EditorialFields::seo()]),
                         Tab::make(__('admin.form_tabs.extra'))
                             ->schema([
                                 Section::make(__('admin.sections.facts'))
@@ -475,6 +489,7 @@ class EventResource extends Resource
                                 Section::make(__('admin.sections.publication'))
                                     ->columns(['default' => 1, 'lg' => 2])
                                     ->schema([
+                                        View::make('filament.events.publication-status')->columnSpanFull(),
                                         Select::make('source')
                                             ->label(__('admin.fields.source'))
                                             ->options(EventSource::options())
@@ -484,6 +499,7 @@ class EventResource extends Resource
                                         Select::make('verification_status')
                                             ->label(__('admin.fields.verification_status'))
                                             ->options(VerificationStatus::options())
+                                            ->helperText('Confermato dal locale deriva automaticamente dalla verifica del locale. Solo la redazione può impostare Verificato dalla redazione.')
                                             ->required()
                                             ->default(VerificationStatus::Unverified->value),
 

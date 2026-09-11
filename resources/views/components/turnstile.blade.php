@@ -36,6 +36,6 @@
     </div>
 
     @once
-        <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" defer></script>
+        <script @cspNonce src="https://challenges.cloudflare.com/turnstile/v0/api.js" defer></script>
     @endonce
 @endif

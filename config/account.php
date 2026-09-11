@@ -44,11 +44,23 @@ return [
     'verification_link_minutes' => 60,
 
     /*
-     * Le lingue che un profilo può scegliere (§15.2). Sono le cartelle di
-     * `lang/`: `en` e `de` esistono e sono vuote, ma la colonna `users.locale`
-     * le accetta già — cambiare lingua non deve richiedere una migration.
+     * Le lingue che un profilo può scegliere (§15.2).
+     *
+     * **Solo quelle tradotte davvero.** `lang/en` e `lang/de` esistono ma
+     * contengono un `.gitkeep` e nient'altro, e `APP_FALLBACK_LOCALE` punta a
+     * sua volta a `en`: offrirle significava, nel migliore dei casi, un
+     * comando che non fa niente — `user.locale` viene salvato, esposto
+     * nell'API e mandato ai dispositivi, ma nessuno chiama `setLocale()`, e il
+     * sito resta in italiano qualunque cosa si scelga. Nel peggiore, il giorno
+     * in cui qualcuno collega il campo alla lingua dell'applicazione, chi
+     * aveva scelto EN o DE si ritrova le pagine piene di chiavi grezze
+     * (`ui.nav.today`, `events.title`), perché anche il ripiego è vuoto.
+     *
+     * La colonna `users.locale` continua ad accettare qualunque valore:
+     * aggiungere una lingua resta una riga qui, non una migration. Si aggiunge
+     * **dopo** aver riempito la cartella, non prima.
      */
-    'locales' => ['it', 'en', 'de'],
+    'locales' => ['it'],
 
     /*
      * Dominio degli indirizzi anonimizzati alla cancellazione dell'account

@@ -7,6 +7,7 @@ namespace App\DTOs;
 use App\Enums\AccessibilityFeature;
 use App\Enums\DatePreset;
 use App\Enums\EventSort;
+use App\Enums\MembershipRequirement;
 use App\Enums\PriceFilter;
 use App\Enums\TimeOfDay;
 use Carbon\CarbonImmutable;
@@ -53,6 +54,7 @@ final readonly class EventFilters
         public string $q = '',
         public ?int $budget = null,
         public bool $discovery = false,
+        public ?MembershipRequirement $membership = null,
     ) {}
 
     /**
@@ -86,6 +88,7 @@ final readonly class EventFilters
             q: self::text($input['q'] ?? null) ?? '',
             budget: isset($input['budget']) ? (int) $input['budget'] : null,
             discovery: self::flag($input['discovery'] ?? false),
+            membership: self::enum(MembershipRequirement::class, $input['membership'] ?? null),
         );
     }
 
@@ -119,6 +122,7 @@ final readonly class EventFilters
             'q' => $this->q === '' ? null : $this->q,
             'budget' => $this->budget === null ? null : (string) $this->budget,
             'discovery' => $this->discovery ? '1' : null,
+            'membership' => $this->membership?->value,
         ];
 
         return array_filter(
@@ -329,6 +333,7 @@ final readonly class EventFilters
             'q' => $this->q,
             'budget' => $this->budget,
             'discovery' => $this->discovery,
+            'membership' => $this->membership,
             ...$overrides,
         ];
 
@@ -350,7 +355,7 @@ final readonly class EventFilters
      * `date` porta sia i preset sia una data puntuale: `today` e `2026-09-05`
      * abitano lo stesso parametro perché per chi legge sono la stessa domanda.
      *
-     * @template T of DatePreset|PriceFilter|TimeOfDay|EventSort
+     * @template T of DatePreset|PriceFilter|TimeOfDay|EventSort|MembershipRequirement
      *
      * @param  class-string<T>  $enum
      * @return T|null

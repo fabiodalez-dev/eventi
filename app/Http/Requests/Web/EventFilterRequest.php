@@ -7,6 +7,7 @@ namespace App\Http\Requests\Web;
 use App\DTOs\EventFilters;
 use App\Enums\DatePreset;
 use App\Enums\EventSort;
+use App\Enums\MembershipRequirement;
 use App\Enums\PriceFilter;
 use App\Enums\TimeOfDay;
 use Illuminate\Foundation\Http\FormRequest;
@@ -40,6 +41,7 @@ class EventFilterRequest extends FormRequest
             'category' => ['nullable', 'string', 'max:255'],
             'tag' => ['nullable', 'string', 'max:255'],
             'price' => ['nullable', Rule::in(PriceFilter::values())],
+            'membership' => ['nullable', Rule::enum(MembershipRequirement::class)],
             'time' => ['nullable', Rule::in(TimeOfDay::values())],
             'municipality' => ['nullable', 'string', 'max:120'],
             'zone' => ['nullable', 'string', 'max:120'],
@@ -71,7 +73,7 @@ class EventFilterRequest extends FormRequest
             $this->query->remove('date');
         }
 
-        foreach (['price' => PriceFilter::values(), 'time' => TimeOfDay::values(), 'sort' => EventSort::values()] as $key => $allowed) {
+        foreach (['membership' => array_column(MembershipRequirement::cases(), 'value'), 'price' => PriceFilter::values(), 'time' => TimeOfDay::values(), 'sort' => EventSort::values()] as $key => $allowed) {
             $value = $this->query($key);
 
             if (is_string($value) && ! in_array($value, $allowed, true)) {

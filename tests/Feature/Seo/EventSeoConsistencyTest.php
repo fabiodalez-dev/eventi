@@ -105,7 +105,28 @@ it('uses significant event and occurrence changes for sitemap dates', function (
     $this->event->update(['title' => 'Titolo aggiornato']);
     $html = $this->get('/sitemap-eventi-1.xml')->assertOk()->getContent();
     expect($html)->toContain($this->event->updated_at->toAtomString());
-    $this->get('/sitemap.xml')->assertOk()->assertDontSee('<lastmod>', false);
+
+    /*
+     * L'indice porta la data **della sezione**, ed è ciò che gli permette di
+     * far risparmiare una scansione invece di costarne una: senza, un motore
+     * deve riscaricare tutte le sezioni per scoprire quali si sono mosse.
+     *
+     * La riga che prima stava qui pretendeva il contrario — nessun `<lastmod>`
+     * nell'indice — e aveva una buona ragione: il tag di Spatie nasce con
+     * `Carbon::now()` e una proprietà non annullabile, quindi la scelta era fra
+     * «niente» e «tutto cambiato adesso, a ogni richiesta», e niente era
+     * meglio. `App\Support\Seo\SitemapSection` toglie quell'aut-aut, e il
+     * controllo diventa più stretto di prima: la data c'è dove si conosce e
+     * **non** c'è dove si sarebbe dovuta inventare.
+     */
+    $indice = $this->get('/sitemap.xml')->assertOk()->getContent();
+    expect($indice)->toContain('<loc>'.route('sitemap.section', ['section' => 'eventi', 'page' => 1]).'</loc>')
+        ->toContain('<lastmod>'.$this->event->fresh()->updated_at->toAtomString().'</lastmod>');
+
+    /* I giorni futuri sono un elenco calcolato, non righe con una data: la
+       loro sezione non dichiara niente, e deve restare così. */
+    $giorni = str($indice)->after(route('sitemap.section', ['section' => 'giorni', 'page' => 1]))->before('</sitemap>')->value();
+    expect($giorni)->not->toContain('<lastmod>');
 });
 
 it('permits reading search noindex and indexes only bounded useful filters', function (): void {

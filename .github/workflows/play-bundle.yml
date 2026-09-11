@@ -1,0 +1,60 @@
+name: Play bundle
+
+on:
+  push:
+    branches: [main]
+    paths: ['android/**', 'resources/fonts/**', '.github/workflows/play-bundle.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: play-bundle
+  cancel-in-progress: false
+
+jobs:
+  bundle:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: play-internal
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Test e lint senza credenziali
+        working-directory: android
+        run: ./gradlew testReleaseUnitTest lintRelease --no-daemon --no-configuration-cache
+      - name: Compila bundle con firma privata
+        working-directory: android
+        env:
+          UPLOAD_KEY_BASE64: ${{ secrets.PLAY_UPLOAD_KEY_BASE64 }}
+          INCITTA_UPLOAD_PASSWORD: ${{ secrets.PLAY_UPLOAD_PASSWORD }}
+          INCITTA_UPLOAD_ALIAS: incitta-upload
+          FIREBASE_CONFIG: ${{ secrets.ANDROID_GOOGLE_SERVICES_JSON }}
+        run: |
+          set -euo pipefail
+          umask 077
+          test -n "$UPLOAD_KEY_BASE64"
+          test -n "$INCITTA_UPLOAD_PASSWORD"
+          test -n "$FIREBASE_CONFIG"
+          export INCITTA_UPLOAD_KEYSTORE="$RUNNER_TEMP/play-upload.p12"
+          trap 'rm -f "$INCITTA_UPLOAD_KEYSTORE" app/src/release/google-services.json' EXIT
+          printf '%s' "$UPLOAD_KEY_BASE64" | base64 --decode > "$INCITTA_UPLOAD_KEYSTORE"
+          printf '%s' "$FIREBASE_CONFIG" > app/src/release/google-services.json
+          ./gradlew -PplayStore=true bundleRelease --no-daemon --no-configuration-cache
+          sha256sum app/build/outputs/bundle/release/*.aab > app/build/outputs/bundle/release/SHA256SUMS.txt
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: play-bundle-${{ github.sha }}
+          path: |
+            android/app/build/outputs/bundle/release/*.aab
+            android/app/build/outputs/bundle/release/SHA256SUMS.txt
+            android/app/build/outputs/mapping/release/mapping.txt
+          if-no-files-found: error
+          retention-days: 30

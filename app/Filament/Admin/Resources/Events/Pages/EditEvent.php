@@ -8,6 +8,7 @@ use App\Actions\GenerateOccurrencesAction;
 use App\Filament\Admin\Pages\Social;
 use App\Filament\Admin\Resources\Events\EventResource;
 use App\Filament\Admin\Support\EventModeration;
+use App\Filament\Support\PublicationActions;
 use App\Models\Event;
 use App\Models\EventRecurrence;
 use Filament\Actions\Action;
@@ -26,6 +27,8 @@ class EditEvent extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            PublicationActions::schedule(),
+            PublicationActions::cancel(),
             Action::make('pagePreview')->label(__('promotions.preview'))->url(fn () => route('events.preview', $this->getRecord()))->openUrlInNewTab()->color('gray'),
             Action::make('social')->label(__('social.preview'))->url(fn () => Social::getUrl(['event' => $this->getRecord()->getKey()])),
             ...EventModeration::actions(),

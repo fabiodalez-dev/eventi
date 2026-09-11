@@ -64,6 +64,16 @@ CLAUDE.md
 /.lighthouseci
 # Schermate e registri delle prove col browser
 /.playwright-mcp
+# Stessa natura, dalla riga di comando: 283 istantanee e 7 MB che si
+# riscrivono da soli alla prova successiva
+/.playwright-cli
+# Scritti di servizio e i loro risultati: mezzo gigabyte di file di lavoro che
+# non sono il progetto. Questo sito gira su uno spazio da 10 GB gia' esaurito
+# una volta — un repository che se li porta dietro e' un guasto in arrivo.
+/output
+# Stato dello strumento di design. Il documento del progetto e' DESIGN.md:
+# se un giorno questi valori dovranno essere tracciati, e' una riga da togliere.
+/.impeccable
 # Schermate di lavorazione lasciate in radice
 /*.png
 # Archivi di trasferimento: si cancellano nella sessione in cui si usano

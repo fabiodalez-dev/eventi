@@ -43,7 +43,7 @@
                     <a
                         href="{{ $previous }}"
                         rel="prev"
-                        class="bg-surface px-3 py-1.5 text-sm font-semibold text-ink border-2 border-line transition hover:border-accent"
+                        class="ui-action bg-surface px-3 py-1.5 text-sm font-semibold text-ink border-2 border-line transition hover:border-accent"
                     >
                         <span aria-hidden="true">&larr;</span>
                         <span class="sr-only">{{ __('calendar.previous') }}</span>
@@ -56,7 +56,7 @@
                     <a
                         href="{{ $next }}"
                         rel="next"
-                        class="bg-surface px-3 py-1.5 text-sm font-semibold text-ink border-2 border-line transition hover:border-accent"
+                        class="ui-action bg-surface px-3 py-1.5 text-sm font-semibold text-ink border-2 border-line transition hover:border-accent"
                     >
                         <span aria-hidden="true">&rarr;</span>
                         <span class="sr-only">{{ __('calendar.next') }}</span>
@@ -122,7 +122,7 @@
                                 {{ $formatter->dayNumber($cell['date']) }}
                             </span>
 
-                            <span class="bg-brand-soft px-1.5 py-0.5 text-eyebrow text-on-brand-soft" aria-hidden="true">
+                            <span class="ui-tag bg-brand-soft px-1.5 py-0.5 text-eyebrow text-on-brand-soft" aria-hidden="true">
                                 {{ $cell['count'] }}
                             </span>
                         </a>
@@ -170,7 +170,7 @@
                 @if ($next !== null)
                     <a
                         href="{{ $next }}"
-                        class="bg-brand px-4 py-2.5 font-display text-[0.688rem] leading-none font-extrabold tracking-[0.14em] text-on-brand uppercase transition hover:bg-brand-strong"
+                        class="ui-action bg-brand px-4 py-2.5 font-display text-[0.688rem] leading-none font-extrabold tracking-[0.14em] text-on-brand uppercase transition hover:bg-brand-strong"
                     >
                         {{ __('calendar.next') }}
                     </a>
@@ -178,7 +178,7 @@
 
                 <a
                     href="{{ route('events.index') }}"
-                    class="bg-surface px-4 py-2.5 font-display text-[0.688rem] leading-none font-extrabold tracking-[0.14em] text-ink uppercase border-2 border-line transition hover:border-accent"
+                    class="ui-action bg-surface px-4 py-2.5 font-display text-[0.688rem] leading-none font-extrabold tracking-[0.14em] text-ink uppercase border-2 border-line transition hover:border-accent"
                 >
                     {{ __('events.redirects.to_all') }}
                 </a>

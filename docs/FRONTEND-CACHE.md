@@ -17,7 +17,10 @@ che duplichi quello già testato.
   cambia la chiave attraverso il manifest di rilascio. Non si azzerano sessioni o lock.
 - Anche modifiche e rimozioni di locali, categorie e tag invalidano le copie;
   le tassonomie dei filtri si aggiornano immediatamente.
-- HTML con `Cache-Control: private, no-store` e `X-LiteSpeed-Cache-Control: no-cache`.
+- HTML con `Cache-Control: private, no-cache` e `X-LiteSpeed-Cache-Control: no-cache`.
+  Le risposte che dichiarano da sé `no-store` — biglietti e prenotazioni via
+  `TicketingPrivacy`, anteprime, calendari — lo conservano: `PreventSharedResponseCache`
+  riempie i vuoti e non sovrascrive più.
 - Asset Vite versionati: cache pubblica di un anno, immutable, anche su LiteSpeed.
 - Gli header `X-Page-Cache: miss` e `hit` mostrano il funzionamento sui GET pubblici.
   HEAD non riempie la cache. Per controllare: `curl -sD - URL -o /dev/null` due volte.

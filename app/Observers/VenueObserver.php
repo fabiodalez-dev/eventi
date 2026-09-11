@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Observers;
 
+use App\Enums\VerificationStatus;
+use App\Models\Event;
 use App\Models\Venue;
 use App\Support\ContentVersion;
 use App\Support\Redirect\RegistroRedirect;
@@ -27,6 +29,13 @@ class VenueObserver
 {
     public function saved(Venue $venue): void
     {
+        if ($venue->wasChanged('is_verified')) {
+            Event::query()->where('venue_id', $venue->id)
+                ->where('verification_status', '!=', VerificationStatus::EditorialChecked->value)
+                ->update(['verification_status' => $venue->is_verified
+                    ? VerificationStatus::VenueConfirmed->value
+                    : VerificationStatus::Unverified->value]);
+        }
         ContentVersion::bump($venue->city_id);
         if ($venue->wasChanged('city_id') && $venue->getOriginal('city_id') !== null) {
             ContentVersion::bump((int) $venue->getOriginal('city_id'));

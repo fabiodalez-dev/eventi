@@ -60,7 +60,7 @@
                             rel="noopener"
                             class="flex items-center gap-3 rounded-card bg-surface px-3 py-2.5 ring-1 ring-line transition hover:ring-line-strong"
                         >
-                            <span class="flex w-12 shrink-0 flex-col items-center rounded-card bg-brand-soft px-1 py-1 text-on-brand-soft">
+                            <span class="ui-tag flex w-12 shrink-0 flex-col items-center rounded-card bg-brand-soft px-1 py-1 text-on-brand-soft">
                                 <span class="text-eyebrow uppercase">{{ $formatter->weekdayShort($occurrence->business_date) }}</span>
                                 <span class="text-card leading-none">{{ $formatter->dayNumber($occurrence->business_date) }}</span>
                             </span>

@@ -51,12 +51,12 @@
         />
     @endif
 
-    <div class="flex flex-wrap gap-0.5">
+    <div class="venue-directions">
         <a
             href="{{ \App\Support\MapLinks::google($venue) }}"
             rel="noopener noreferrer"
             target="_blank"
-            class="bg-accent px-3.5 py-2 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.14em] text-on-accent uppercase transition-colors hover:bg-brand-strong"
+            class="venue-direction bg-accent text-on-accent hover:bg-brand-strong"
         >
             {{ __('common.actions.directions_google') }}
         </a>
@@ -65,7 +65,7 @@
             href="{{ \App\Support\MapLinks::apple($venue) }}"
             rel="noopener noreferrer"
             target="_blank"
-            class="border-2 border-line px-3.5 py-2 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.14em] uppercase transition-colors hover:border-accent hover:text-accent"
+            class="venue-direction border border-line hover:border-accent hover:text-accent"
         >
             {{ __('common.actions.directions_apple') }}
         </a>
@@ -74,7 +74,7 @@
             href="{{ \App\Support\MapLinks::openStreetMap($venue) }}"
             rel="noopener noreferrer"
             target="_blank"
-            class="border-2 border-line px-3.5 py-2 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.14em] uppercase transition-colors hover:border-accent hover:text-accent"
+            class="venue-direction border border-line hover:border-accent hover:text-accent"
         >
             {{ __('common.actions.directions_osm') }}
         </a>

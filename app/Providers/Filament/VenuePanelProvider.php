@@ -12,6 +12,7 @@ use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
+use Filament\Navigation\NavigationItem;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
@@ -54,6 +55,10 @@ class VenuePanelProvider extends PanelProvider
         return $panel
             ->id('venue')
             ->path('gestione')
+            ->navigationItems([NavigationItem::make('Biglietti e partecipanti')
+                ->icon('heroicon-o-ticket')->url(fn (): string => route('ticketing.manage.index'))
+                ->visible(fn (): bool => auth()->user()?->ownedVenues()->exists() === true),
+            ])
             ->login()
             ->passwordReset()
             ->darkMode(false)

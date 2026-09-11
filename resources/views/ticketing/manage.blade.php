@@ -2,6 +2,7 @@
     <a href="{{ route('ticketing.manage.index') }}" class="text-brand">{{ __('ticketing.manage') }}</a>
     <h1 class="text-hero">{{ $date->event->title }}</h1>
     <p>{{ $date->starts_at->timezone($date->event->city->timezone)->format('d/m/Y H:i') }} · {{ $date->effectiveVenue()?->name }}</p>
+    <p>Biglietti gratuiti o pagamento all’ingresso. La prenotazione su inCittà è gratuita; l’eventuale importo indicato nell’evento si paga al locale.</p>
     @include('ticketing.errors')
     <dl class="flex flex-wrap gap-x-8 gap-y-3 text-sm">
         @foreach (['valid', 'checked_in', 'waitlisted', 'cancelled'] as $status)

@@ -8,6 +8,7 @@ use App\Casts\AsExternalLinks;
 use App\Casts\AsFacts;
 use App\Enums\EventSource;
 use App\Enums\EventStatus;
+use App\Enums\MembershipRequirement;
 use App\Enums\PriceType;
 use App\Enums\VerificationStatus;
 use App\Models\Concerns\HasEditorialContent;
@@ -360,9 +361,15 @@ class Event extends Model implements HasMedia
         $query->whereHas('tags', fn (Builder $tags) => $tags->whereKey($tag instanceof Tag ? $tag->getKey() : $tag));
     }
 
-    /**
-     * @return array<string, string>
-     */
+    public function membershipRequirement(): ?MembershipRequirement
+    {
+        $value = $this->content_details['membership'] ?? null;
+
+        return (is_string($value) ? MembershipRequirement::tryFrom($value) : null)
+            ?? ($this->price_type === PriceType::Membership ? MembershipRequirement::Required : null);
+    }
+
+    /** @return array<string, string> */
     protected function casts(): array
     {
         return [
@@ -382,6 +389,8 @@ class Event extends Model implements HasMedia
             'is_featured' => 'boolean',
             'featured_until' => 'datetime',
             'editorial_score' => 'integer',
+            'scheduled_publish_at' => 'immutable_datetime',
+            'publication_scheduled_by' => 'integer',
             'published_at' => 'datetime',
             'views_count' => 'integer',
             'saves_count' => 'integer',

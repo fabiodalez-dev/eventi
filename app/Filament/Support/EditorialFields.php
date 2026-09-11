@@ -37,11 +37,13 @@ final class EditorialFields
         if ($event || $place) {
             $fields[] = Select::make('content_details.parking_type')->label(__('seo.parking_type'))
                 ->options(['free' => __('seo.parking_free'), 'paid' => __('seo.parking_paid'), 'none' => __('seo.parking_none')])->placeholder(__('seo.unspecified'));
-            foreach (['parking_notes', 'transit_notes', 'entrance_notes', 'accessibility_notes'] as $key) {
+            foreach (array_merge(['parking_notes', 'transit_notes', 'entrance_notes'], $event ? [] : ['accessibility_notes']) as $key) {
                 $fields[] = Textarea::make('content_details.'.$key)->label(__('seo.fields.'.$key))->maxLength(2000)->rows(2);
             }
-            $fields[] = Select::make('content_details.accessibility')->label(__('seo.fields.accessibility'))
-                ->options(['yes' => __('seo.yes'), 'no' => __('seo.no')])->placeholder(__('seo.unspecified'));
+            if (! $event) {
+                $fields[] = Select::make('content_details.accessibility')->label(__('seo.fields.accessibility'))
+                    ->options(['yes' => __('seo.yes'), 'no' => __('seo.no')])->placeholder(__('seo.unspecified'));
+            }
         }
         if ($event) {
             $fields[] = Select::make('content_details.organizer_venue_id')->label(__('seo.registered_organizer'))
@@ -61,7 +63,7 @@ final class EditorialFields
                 $fields[] = TextInput::make('organizer_name')->label(__('seo.organizer_name'))->maxLength(180);
                 $fields[] = TextInput::make('organizer_url')->label(__('seo.organizer_url'))->url()->maxLength(2048);
             }
-            foreach (['membership_notes', 'mandatory_costs', 'weather_policy', 'minors_policy', 'cancellation_policy', 'refund_policy', 'public_contact', 'poster_alt', 'poster_caption', 'poster_credit'] as $key) {
+            foreach (['mandatory_costs', 'weather_policy', 'minors_policy', 'cancellation_policy', 'refund_policy', 'public_contact', 'poster_alt', 'poster_caption', 'poster_credit'] as $key) {
                 $fields[] = Textarea::make('content_details.'.$key)->label(__('seo.fields.'.$key))->maxLength(2000)->rows(2);
             }
             $fields[] = Repeater::make('content_details.agenda')->label(__('seo.agenda'))->defaultItems(0)->maxItems(50)

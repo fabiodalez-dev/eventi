@@ -64,12 +64,12 @@ it('restituisce e aggiorna il profilo minimo', function (): void {
 
     $this->withToken($this->token)->patchJson('/api/v1/me', [
         'name' => 'Giulia Rossi',
-        'locale' => 'en',
+        'locale' => 'it',
         'marketing_opt_in' => true,
     ])
         ->assertOk()
         ->assertJsonPath('data.name', 'Giulia Rossi')
-        ->assertJsonPath('data.locale', 'en')
+        ->assertJsonPath('data.locale', 'it')
         ->assertJsonPath('data.marketing_opt_in', true);
 
     /* Il consenso marketing è una data, non un booleano (§15.9). */
@@ -79,6 +79,12 @@ it('restituisce e aggiorna il profilo minimo', function (): void {
     $this->withToken($this->token)->patchJson('/api/v1/me', ['timezone' => 'Marte/Olympus'])
         ->assertStatus(422)
         ->assertJsonPath('error.code', 'VALIDATION_FAILED');
+});
+
+it('rejects untranslated profile languages without changing the saved locale', function (): void {
+    $this->withToken($this->token)->patchJson('/api/v1/me', ['locale' => 'en'])
+        ->assertStatus(422)->assertJsonPath('error.code', 'VALIDATION_FAILED');
+    expect($this->user->fresh()->locale)->toBe('it');
 });
 
 it('identifies only the authenticated account role without exposing permissions', function (UserRole $role): void {

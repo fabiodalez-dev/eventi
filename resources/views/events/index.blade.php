@@ -8,10 +8,30 @@
     JavaScript aggiunge sopra a una paginazione che funziona da sola. Chi
     naviga senza JavaScript ha una pagina completa, non una versione ridotta.
 
-    **Sotto i 1024px le tre colonne diventano una.** Su un telefono una colonna
-    di filtri larga 232px non è una colonna: è metà schermo occupato da cose
-    che si toccano una volta sola. I filtri restano in cima, la mappa scende in
-    fondo, e i risultati stanno in mezzo dove servono.
+    **Sotto i 1024px le tre colonne diventano una, e l'ordine è quello del
+    documento: risultati, filtri, mappa.**
+
+    Prima l'ordine era quello del desktop — filtri, risultati, mappa — perché
+    era quello del sorgente e nessuno l'aveva scelto per il telefono: a 412px
+    il pannello è alto **1230 pixel**, cioè una schermata e mezza di strumenti
+    prima del titolo della pagina e quasi due prima del primo evento. Chi
+    arriva da una ricerca su `/eventi/oggi` o `/eventi/categoria/musica` ha già
+    filtrato — sta nell'indirizzo — e riceveva il modo di rifarlo al posto di
+    ciò che ha chiesto. Contro il principio §11: il contenuto utile per primo.
+
+    **L'ordine è cambiato nel DOM e non con `order`**, che è la correzione da
+    una riga e quella sbagliata. `order` sposta i pixel e lascia il documento
+    dov'è: la tabulazione da tastiera continuerebbe a entrare nei filtri —
+    adesso disegnati in fondo alla pagina, quindi con il fuoco fuori dallo
+    schermo, che è WCAG 2.4.3 livello A — e uno screen reader leggerebbe le 45
+    pillole prima dell'`<h1>` esattamente come prima. Sistemerebbe la pagina
+    per chi scorre col pollice e la peggiorerebbe per tutti gli altri.
+
+    Sul desktop il posizionamento esplicito di griglia rimette le colonne dove
+    stavano, al pixel. Resta uno scarto fra ordine visivo e ordine di
+    tabulazione, ma nella direzione benigna: sono due regioni indipendenti e
+    nominate, non i campi di un modulo dove la sequenza porta significato, e
+    «prima il contenuto, poi la barra laterale» è il verso giusto dei due.
 --}}
 <x-layouts.app :meta="$meta" :wide="true">
     <div data-event-browser data-result-count="{{ $occurrences->total() }}">
@@ -27,24 +47,7 @@
     </x-slot:head>
 
     <div class="grid items-start gap-0.5 bg-line lg:[grid-template-columns:minmax(232px,268px)_minmax(0,1.32fr)_minmax(0,1fr)]">
-        <aside class="flex flex-col gap-6 overflow-y-auto bg-canvas p-[clamp(1rem,1.6vw,1.375rem)] lg:sticky lg:top-header lg:max-h-below-header">
-            <x-filter-bar
-                :counts="$facetCounts"
-                :filters="$filters"
-                :categories="$categories"
-                :tags="$tags"
-                :municipalities="$municipalities"
-                :zones="$zones"
-                :venues="$venues"
-                :total="$occurrences->total()"
-            />
-
-            {{-- "Vicino a me" (§11.7): la posizione si chiede qui, con la frase
-                 che dice perché, e non all'apertura del sito. --}}
-            <x-near-me :filters="$filters" :counts="$facetCounts" :action="route('events.index')" />
-        </aside>
-
-        <section class="bg-canvas lg:min-h-below-header">
+        <section class="bg-canvas lg:col-start-2 lg:row-start-1 lg:min-h-below-header">
             <div class="catalog-heading-panel flex flex-col gap-4 border-b-2 border-line px-[clamp(1rem,1.8vw,1.625rem)] py-[clamp(1.125rem,2.2vw,1.875rem)]">
                 <div class="flex items-center gap-2.5">
                     <span aria-hidden="true" class="size-2 bg-accent blink-dot"></span>
@@ -60,6 +63,20 @@
                 @if ($meta->description)
                     <p class="m-0 max-w-prose text-[0.813rem] leading-[1.5] text-ink-muted">{{ $meta->description }}</p>
                 @endif
+
+                {{-- Su telefono il pannello sta sotto ai risultati: questo è
+                     ciò che lo tiene a un tocco invece che a una scrollata.
+                     Sul desktop la colonna è già lì accanto e il collegamento
+                     sparisce. È un'ancora, non un comando: funziona anche
+                     senza JavaScript. --}}
+                <a
+                    href="#filtri"
+                    data-filter-jump
+                    class="ui-action inline-flex min-h-12 w-fit items-center gap-2 border-2 border-line px-3.5 font-display text-[0.688rem] leading-none font-extrabold tracking-[0.14em] uppercase transition-colors hover:border-accent hover:text-accent lg:hidden"
+                >
+                    {{ __('filters.jump') }}
+                    <span aria-hidden="true">↓</span>
+                </a>
             </div>
 
             @if ($occurrences->total() > 0)
@@ -110,14 +127,14 @@
                     <div class="flex flex-wrap gap-0.5">
                         <a
                             href="{{ route('events.index') }}"
-                            class="inline-flex h-[46px] items-center bg-accent px-[18px] font-display text-[0.688rem] leading-none font-extrabold tracking-[0.14em] text-on-accent uppercase transition-colors hover:bg-brand-strong"
+                            class="ui-action inline-flex h-[46px] items-center bg-accent px-[18px] font-display text-[0.688rem] leading-none font-extrabold tracking-[0.14em] text-on-accent uppercase transition-colors hover:bg-brand-strong"
                         >
                             {{ __('events.redirects.to_all') }}
                         </a>
 
                         <a
                             href="{{ route('events.weekend') }}"
-                            class="inline-flex h-[46px] items-center border-2 border-line px-[18px] font-display text-[0.688rem] leading-none font-extrabold tracking-[0.14em] uppercase transition-colors hover:border-accent hover:text-accent"
+                            class="ui-action inline-flex h-[46px] items-center border-2 border-line px-[18px] font-display text-[0.688rem] leading-none font-extrabold tracking-[0.14em] uppercase transition-colors hover:border-accent hover:text-accent"
                         >
                             {{ __('events.redirects.to_weekend') }}
                         </a>
@@ -126,9 +143,38 @@
             @endif
         </section>
 
+        {{-- La colonna dei filtri. Nel documento sta **dopo** i risultati e
+             sullo schermo grande torna a sinistra con `col-start-1`: è lo
+             scambio spiegato in testa al file.
+
+             L'`id` è il bersaglio del collegamento «Filtra i risultati», e
+             l'`aria-label` nomina la regione — senza, la navigazione per
+             landmark annunciava un «complementare» e basta, e adesso che non è
+             più il primo blocco della pagina saperlo conta di più. --}}
+        <aside
+            id="filtri"
+            aria-label="{{ __('filters.panel_label') }}"
+            class="scroll-mt-header flex flex-col gap-6 overflow-y-auto bg-canvas p-[clamp(1rem,1.6vw,1.375rem)] lg:sticky lg:top-header lg:col-start-1 lg:row-start-1 lg:max-h-below-header"
+        >
+            <x-filter-bar
+                :counts="$facetCounts"
+                :filters="$filters"
+                :categories="$categories"
+                :tags="$tags"
+                :municipalities="$municipalities"
+                :zones="$zones"
+                :venues="$venues"
+                :total="$occurrences->total()"
+            />
+
+            {{-- "Vicino a me" (§11.7): la posizione si chiede qui, con la frase
+                 che dice perché, e non all'apertura del sito. --}}
+            <x-near-me :filters="$filters" :counts="$facetCounts" :action="route('events.index')" />
+        </aside>
+
         {{-- La terza colonna: gli stessi risultati, visti da sopra. Segue lo
              scorrimento perché serve mentre si guarda l'elenco, non dopo. --}}
-        <section class="flex flex-col bg-canvas lg:sticky lg:top-header lg:h-below-header" aria-label="{{ __('map.label') }}">
+        <section class="flex flex-col bg-canvas lg:col-start-3 lg:row-start-1 lg:sticky lg:top-header lg:h-below-header" aria-label="{{ __('map.label') }}">
             <div class="flex items-center justify-between gap-2.5 border-b-2 border-line px-4 py-3.5">
                 <span class="font-display text-[0.625rem] leading-none font-extrabold tracking-[0.16em] uppercase">
                     {{ trans_choice('map.pins', count($mapPayload['markers']), ['count' => count($mapPayload['markers'])]) }}

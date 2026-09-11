@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\DTOs\EventFilters;
 use App\Enums\ApiErrorCode;
 use App\Exceptions\ApiException;
 use App\Http\Controllers\Api\V1\Concerns\InteractsWithApi;
@@ -50,6 +51,7 @@ final class EventController extends Controller
     {
         return ApiResponse::item(array_map(fn (array $counts): object => (object) $counts, app(ContextualFacets::class)->build(
             $this->city(), $request->filters(), fn () => $this->feed->query($this->city(), $request),
+            fn (EventFilters $filters) => $this->feed->query($this->city(), $request, $filters),
         )));
     }
 

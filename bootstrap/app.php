@@ -3,6 +3,7 @@
 use App\Http\Middleware\Api\AlwaysJson;
 use App\Http\Middleware\InstallerSession;
 use App\Http\Middleware\PreventSharedResponseCache;
+use App\Http\Middleware\SecurityHeaders;
 use App\Support\Api\ApiExceptionRenderer;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -64,6 +65,20 @@ return Application::configure(basePath: dirname(__DIR__))
          * alla pagina d'errore che quella stessa richiesta sta già disegnando.
          */
         $middleware->append(RedirectsMissingPages::class);
+
+        /*
+         * Le intestazioni di sicurezza (§16), da qui e non dal pannello
+         * dell'hosting: vedi `SecurityHeaders`.
+         *
+         * **Globale e in coda**, come il redirector qui sopra e per la stessa
+         * ragione più una. La stessa: da qui passano anche le risposte che non
+         * corrispondono a nessuna rotta — 404, errori — che nel gruppo `web`
+         * non entrerebbero mai. La seconda: in coda significa che sulla via
+         * del ritorno è l'ultimo a guardare la risposta, quindi vede ciò che
+         * controller e middleware di rotta hanno già deciso e si limita a
+         * riempire i vuoti.
+         */
+        $middleware->append(SecurityHeaders::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         /*

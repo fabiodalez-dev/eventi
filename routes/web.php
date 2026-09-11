@@ -12,6 +12,7 @@ use App\Http\Controllers\Web\ReleaseStatusController;
 use App\Http\Controllers\Web\SeoController;
 use App\Http\Controllers\Web\SocialDownloadController;
 use App\Http\Controllers\Web\SponsorshipMetricController;
+use App\Http\Controllers\Web\WebManifestController;
 use App\Http\Controllers\Web\WidgetController;
 use App\Http\Middleware\PersonalizeDiscovery;
 use App\Http\Middleware\RequiresOpsToken;
@@ -121,6 +122,13 @@ Route::get('/sitemap-{section}-{page}.xml', [SeoController::class, 'section'])
     ->name('sitemap.section');
 
 Route::get('/robots.txt', [SeoController::class, 'robots'])->name('robots');
+
+/*
+ * Il manifesto dell'applicazione web (§15.6). Sta con la mappa del sito e il
+ * `robots.txt`, e per la stessa ragione: appartiene al dominio, non a una
+ * città, e vuole indirizzi assoluti che dipendono da dove gira il sito.
+ */
+Route::get('/site.webmanifest', WebManifestController::class)->name('webmanifest');
 
 /*
  * Il widget incorporabile (§11.10) sta fuori dai gruppi del sito pubblico:

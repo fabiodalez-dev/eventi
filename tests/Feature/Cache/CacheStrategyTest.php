@@ -213,6 +213,38 @@ describe('full-page cache dello scheletro', function (): void {
     });
 
     /*
+     * Comporre la chiave non deve interrogare il database.
+     *
+     * Sembra un dettaglio e non lo è: `key()` gira **prima** di andare a
+     * vedere se la pagina è già pronta, quindi il suo costo lo pagano
+     * soprattutto le richieste che la trovano — cioè quelle che questa cache
+     * esiste per rendere veloci. C'era dentro una `whereHas` sulle concessioni
+     * attive che da sola valeva 1,59 ms su 1,81, ed è finita in
+     * `App\Support\Sponsorship\ActiveGrants`.
+     *
+     * La riga qui sotto serve a far fallire il giorno in cui qualcuno la
+     * rimette: una query in più su questo percorso non rompe niente e non si
+     * vede, se non nel conto del server.
+     */
+    it('compone la chiave senza interrogare il database', function (): void {
+        $city = testCity();
+        occurrenceAtLocal($city, testCategory(), '2026-09-12 21:30');
+        freezeLocal($city, '2026-09-12 18:00');
+
+        $middleware = app(CachePage::class);
+        $middleware->key(Request::create('/eventi'));
+
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+
+        for ($i = 0; $i < 5; $i++) {
+            $middleware->key(Request::create('/eventi'));
+        }
+
+        expect(DB::getQueryLog())->toBeEmpty();
+    });
+
+    /*
      * La ricerca libera non entra nella chiave — non e' fra i parametri
      * ammessi — quindi la pagina che la porta non deve essere ne' scritta ne'
      * riletta: senza la guardia su `q`, `/eventi?q=jazz` e `/eventi?q=rock`

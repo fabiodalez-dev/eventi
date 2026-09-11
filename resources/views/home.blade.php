@@ -131,7 +131,7 @@
                     @foreach ($quickFilters as $filtro)
                         <a
                             href="{{ $filtro['url'] }}"
-                            class="flex items-baseline gap-2 bg-canvas px-3.5 py-2.5 font-display text-[0.688rem] leading-none font-extrabold tracking-[0.14em] uppercase transition-colors hover:bg-accent hover:text-on-accent"
+                            class="ui-action flex items-baseline gap-2 bg-canvas px-3.5 py-2.5 font-display text-[0.688rem] leading-none font-extrabold tracking-[0.14em] uppercase transition-colors hover:bg-accent hover:text-on-accent"
                         >
                             {{ $filtro['label'] }}
                             <span class="text-[0.625rem] text-ink-subtle">{{ $filtro['count'] }}</span>
@@ -141,10 +141,10 @@
             @endif
 
             <div class="flex flex-wrap items-center gap-2.5">
-                <a href="{{ route('tonight.wizard') }}" class="inline-flex min-h-[52px] items-center border-2 border-accent px-[22px] py-3 font-display text-xs font-extrabold uppercase tracking-wide text-accent hover:bg-accent hover:text-on-accent">{{ __('tonight.hero_action') }} →</a>
+                <a href="{{ route('tonight.wizard') }}" class="ui-action inline-flex min-h-[52px] items-center border-2 border-accent px-[22px] py-3 font-display text-xs font-extrabold uppercase tracking-wide text-accent hover:bg-accent hover:text-on-accent">{{ __('tonight.hero_action') }} →</a>
                 <a
                     href="{{ route('events.index') }}"
-                    class="inline-flex h-[52px] items-center gap-2 bg-accent px-[22px] font-display text-xs leading-none font-extrabold tracking-[0.14em] text-on-accent uppercase transition-colors hover:bg-brand-strong"
+                    class="ui-action inline-flex h-[52px] items-center gap-2 bg-accent px-[22px] font-display text-xs leading-none font-extrabold tracking-[0.14em] text-on-accent uppercase transition-colors hover:bg-brand-strong"
                 >
                     {{ trans_choice('ui.hero.explore', $stats['upcoming'], ['count' => $stats['upcoming']]) }}
                     <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="square"><path d="M5 12h14M13 5l7 7-7 7"></path></svg>
@@ -153,7 +153,7 @@
                 @if (\Illuminate\Support\Facades\Route::has('map.index'))
                     <a
                         href="{{ route('map.index') }}"
-                        class="inline-flex h-[52px] items-center gap-2 border-2 border-ink px-[22px] font-display text-xs leading-none font-extrabold tracking-[0.14em] uppercase transition-colors hover:bg-ink hover:text-ink-inverted"
+                        class="ui-action inline-flex h-[52px] items-center gap-2 border-2 border-ink px-[22px] font-display text-xs leading-none font-extrabold tracking-[0.14em] uppercase transition-colors hover:bg-ink hover:text-ink-inverted"
                     >
                         <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square"><path d="M12 21s-7-6.1-7-11a7 7 0 1 1 14 0c0 4.9-7 11-7 11z"></path><circle cx="12" cy="10" r="2.4"></circle></svg>
                         {{ __('ui.hero.open_map') }}
@@ -203,7 +203,7 @@
                          è la parola a cambiare, non il rilievo. Una pubblicità
                          che si annuncia in un angolo più discreto
                          dell'evidenza redazionale non si annuncia. --}}
-                    <span class="flex flex-wrap items-baseline gap-x-2 bg-accent px-2.5 py-[7px] font-display text-[0.594rem] leading-none font-extrabold tracking-[0.16em] text-on-accent uppercase">
+                    <span class="ui-tag flex flex-wrap items-baseline gap-x-2 bg-accent px-2.5 py-[7px] font-display text-[0.594rem] leading-none font-extrabold tracking-[0.16em] text-on-accent uppercase">
                         @if ($heroSponsorizzato)
                             {{ __('sponsorships.label') }}
                             <span class="font-normal tracking-[0.1em] normal-case opacity-80">
@@ -215,7 +215,7 @@
                     </span>
 
                     @if ($heroCapienza !== null && $heroCapienza->percentSold() !== null)
-                        <span class="border-2 border-ink px-2.5 py-1.5 font-display text-[0.594rem] leading-none font-extrabold tracking-[0.16em] uppercase animate-[floatY_3.4s_ease-in-out_infinite] [animation-play-state:var(--anim-play)]">
+                        <span class="ui-tag border-2 border-ink px-2.5 py-1.5 font-display text-[0.594rem] leading-none font-extrabold tracking-[0.16em] uppercase animate-[floatY_3.4s_ease-in-out_infinite] [animation-play-state:var(--anim-play)]">
                             {{ __('events.capacity.sold', ['percent' => $heroCapienza->percentSold()]) }}
                         </span>
                     @endif
@@ -301,7 +301,7 @@
     <section class="home-tonight border-y-2 border-line px-6 py-10 sm:px-12">
         <div class="flex flex-col justify-between gap-6 sm:flex-row sm:items-center">
             <div><h2 class="font-display text-3xl font-extrabold">{{ __('tonight.banner_title') }}</h2><p class="mt-3 text-ink-muted">{{ __('tonight.banner_help') }}</p></div>
-            <a class="inline-flex min-h-14 items-center justify-center bg-brand px-8 py-4 font-bold text-on-brand" href="{{ route('tonight.wizard') }}">{{ __('tonight.find') }} →</a>
+            <a class="ui-action inline-flex min-h-14 items-center justify-center bg-brand px-8 py-4 font-bold text-on-brand" href="{{ route('tonight.wizard') }}">{{ __('tonight.find') }} →</a>
         </div>
     </section>
     @foreach ($griglie as $sezione)
@@ -405,7 +405,7 @@
                     <div class="mt-auto p-[18px]">
                         <a
                             href="{{ route('map.index') }}"
-                            class="flex h-[46px] w-full items-center bg-accent px-4 font-display text-[0.688rem] leading-none font-extrabold tracking-[0.14em] text-on-accent uppercase transition-colors hover:bg-brand-strong"
+                            class="ui-action flex h-[46px] w-full items-center bg-accent px-4 font-display text-[0.688rem] leading-none font-extrabold tracking-[0.14em] text-on-accent uppercase transition-colors hover:bg-brand-strong"
                         >
                             {{ __('ui.hero.open_map_full') }}
                         </a>
@@ -443,13 +443,13 @@
             <div class="flex flex-wrap gap-0.5">
                 <a
                     href="{{ route('submissions.create') }}"
-                    class="inline-flex h-[54px] items-center bg-canvas px-6 font-display text-xs leading-none font-extrabold tracking-[0.14em] text-accent uppercase transition-colors hover:bg-ink hover:text-ink-inverted"
+                    class="ui-action inline-flex h-[54px] items-center bg-canvas px-6 font-display text-xs leading-none font-extrabold tracking-[0.14em] text-accent uppercase transition-colors hover:bg-ink hover:text-ink-inverted"
                 >
                     {{ __('events.submit.title') }}
                 </a>
                 <a
                     href="{{ route('venue-applications.create') }}"
-                    class="inline-flex h-[54px] items-center bg-canvas px-6 font-display text-xs leading-none font-extrabold tracking-[0.14em] text-accent uppercase transition-colors hover:bg-ink hover:text-ink-inverted"
+                    class="ui-action inline-flex h-[54px] items-center bg-canvas px-6 font-display text-xs leading-none font-extrabold tracking-[0.14em] text-accent uppercase transition-colors hover:bg-ink hover:text-ink-inverted"
                 >
                     {{ __('venues.claim.title') }}
                 </a>

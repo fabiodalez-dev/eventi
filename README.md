@@ -3,6 +3,12 @@
 Aggregatore editoriale di eventi locali: sito Laravel, pannello redazionale,
 API v1 e app Android nativa.
 
+## Stato e documentazione
+
+Checkpoint del 10 settembre 2026: web distribuito, Android 1.9.1 (23) confezionato; upload Play non completato all’ultimo controllo. [Referto del rilascio](docs/RELEASE-1.9.1.md) con test, artefatti e punti aperti.
+
+Per riprendere il lavoro leggere [PRODUCT](PRODUCT.md), [DESIGN](DESIGN.md), [roadmap](docs/ROADMAP-PRODOTTO.md) e [convenzioni](docs/AGENT-CONVENTIONS.md). [PROGRESS](docs/PROGRESS.md) conserva la cronologia; [TESTING](docs/TESTING.md) descrive i controlli correnti. Lo stato del workspace va verificato separatamente dall’ultimo deploy.
+
 ## Componenti
 
 - `app/`, `routes/`, `resources/`: applicazione Laravel 13 e frontend web.

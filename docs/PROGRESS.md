@@ -2,6 +2,12 @@
 
 Aggiornato dopo ogni checkpoint. I numeri riportati sono misurati, non stimati.
 
+## Checkpoint corrente — aggiornamento documentale 11 settembre 2026
+
+Il riferimento più recente è [RELEASE-1.9.1](RELEASE-1.9.1.md): web distribuito il 10 settembre, APK/AAB 1.9.1 (23) generati, upload Play ancora non completato all’ultimo controllo. Suite PHP: **2.060 test / 8.052 asserzioni**; limiti Larastan massimo, Lighthouse e test Android opt-in riportati nel referto.
+
+Prodotto e design correnti sono in [PRODUCT](../PRODUCT.md) e [DESIGN](../DESIGN.md). Le sezioni seguenti sono **cronologia**: numeri, questioni aperte e “prossimi checkpoint” descrivono la rispettiva data, non lo stato attuale. Le modifiche applicative locali successive al rilascio richiedono una verifica separata.
+
 ---
 
 ## C1 — Fondamenta (F0 + F1 + F4-motore) — ✅ VERIFICATO 2026-08-23

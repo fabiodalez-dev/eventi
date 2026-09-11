@@ -65,6 +65,7 @@ final class SchedulerOverview
     private function explanation(string $name): string
     {
         return match (true) {
+            str_starts_with($name, 'events:publish-due') => 'Pubblica ogni minuto gli eventi programmati arrivati a scadenza. Ricontrolla i permessi del richiedente: senza pubblicazione autonoma autorizzata il locale resta in attesa degli admin. Rifiuti e annullamenti impediscono la pubblicazione.',
             str_starts_with($name, 'social:publish-due') => 'Invia alla coda i post social programmati la cui data è arrivata. Il worker verifica i dati e pubblica sui canali Meta e Telegram abilitati.',
             str_starts_with($name, 'social:daily') => 'Prepara il carosello giornaliero all’orario scelto in Social → Impostazioni, nel fuso della città. Richiede collegamento verificato e automatismo attivo.',
             str_starts_with($name, 'ticketing:promote') => 'Promuove le prenotazioni in lista d’attesa quando si apre la finestra prevista.',

@@ -109,12 +109,9 @@
         $tagOptions[$tag->slug] = $tag->name;
     }
 
-    $selectedOptions = static fn (array $options, ?string $value): array => filled($value)
-        ? [$value => $options[$value] ?? $value]
-        : $options;
 @endphp
 @if ($filters->budget !== null)
-    <a data-filter-link class="inline-flex min-h-12 items-center border-2 border-accent p-3" href="{{ $destination.'?'.http_build_query(\Illuminate\Support\Arr::except($filters->toQueryString(), ['budget'])) }}">{{ __('tonight.up_to', ['amount' => $filters->budget]) }} ×</a>
+    <a data-filter-link class="ui-action inline-flex min-h-12 items-center border-2 border-accent p-3" href="{{ $destination.'?'.http_build_query(\Illuminate\Support\Arr::except($filters->toQueryString(), ['budget'])) }}">{{ __('tonight.up_to', ['amount' => $filters->budget]) }} ×</a>
 @endif
 
 <section data-filter-panel data-filter-empty="{{ __('map.empty_change') }}" data-filter-error="{{ __('tonight.count_error') }}" {{ $attributes->class(['flex flex-col gap-6']) }} aria-label="{{ __('filters.title') }}">
@@ -278,7 +275,7 @@
         </div>
     @endif
 
-    <details class="bg-canvas border-2 border-line">
+    <details data-filter-key="advanced" @if ($filters->membership !== null || $filters->venue !== null || $filters->municipality !== null || $filters->zone !== null || $filters->access !== [] || $filters->from !== null || $filters->to !== null) open @endif class="bg-canvas border-2 border-line">
         <summary class="min-h-12 cursor-pointer list-none px-4 py-3 text-base font-semibold text-ink">
             {{ __('filters.advanced') }} <span aria-hidden="true">⌄</span>
             @if ($active > 0)
@@ -300,7 +297,7 @@
                 <x-field
                     name="date"
                     :label="__('filters.date.label')"
-                    :options="$selectedOptions($dateOptions, $filters->preset?->value ?? $filters->date?->format('Y-m-d'))"
+                    :options="$dateOptions"
                     :placeholder-option="__('filters.date.any')"
                     :value="$filters->preset?->value ?? $filters->date?->format('Y-m-d')"
                 />
@@ -310,8 +307,9 @@
 
                 <x-field
                     name="tag"
+                    :searchable="true"
                     :label="__('filters.tag.label')"
-                    :options="$selectedOptions($tagOptions, $filters->tags[0] ?? null)"
+                    :options="$tagOptions"
                     :placeholder-option="__('filters.tag.any')"
                     :value="$filters->tags[0] ?? null"
                 />
@@ -319,7 +317,7 @@
                 <x-field
                     name="price"
                     :label="__('filters.price.label')"
-                    :options="$selectedOptions($priceOptions, $filters->price?->value)"
+                    :options="$priceOptions"
                     :placeholder-option="__('filters.price.any')"
                     :value="$filters->price?->value"
                 />
@@ -327,15 +325,16 @@
                 <x-field
                     name="time"
                     :label="__('filters.time_of_day.label')"
-                    :options="$selectedOptions($timeOptions, $filters->time?->value)"
+                    :options="$timeOptions"
                     :placeholder-option="__('filters.time_of_day.any')"
                     :value="$filters->time?->value"
                 />
 
                 <x-field
                     name="municipality"
+                    :searchable="true"
                     :label="__('filters.place.municipality')"
-                    :options="$selectedOptions($municipalityOptions, $filters->municipality)"
+                    :options="$municipalityOptions"
                     :placeholder-option="__('filters.place.any')"
                     :value="$filters->municipality"
                 />
@@ -343,8 +342,9 @@
                 @if ($zoneOptions !== [])
                     <x-field
                         name="zone"
+                        :searchable="true"
                         :label="__('filters.place.zone')"
-                        :options="$selectedOptions($zoneOptions, $filters->zone)"
+                        :options="$zoneOptions"
                         :placeholder-option="__('filters.place.any_zone')"
                         :value="$filters->zone"
                     />
@@ -352,11 +352,14 @@
 
                 <x-field
                     name="venue"
+                    :searchable="true"
                     :label="__('filters.place.venue')"
-                    :options="$selectedOptions($venueOptions, $filters->venue)"
+                    :options="$venueOptions"
                     :placeholder-option="__('filters.place.any')"
                     :value="$filters->venue"
                 />
+
+                <x-field name="membership" :label="__('filters.membership.label')" :options="\App\Enums\MembershipRequirement::options()" :placeholder-option="__('filters.membership.any')" :value="$filters->membership?->value" />
 
                 <x-field
                     name="sort"

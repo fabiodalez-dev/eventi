@@ -40,7 +40,13 @@ self.addEventListener("push", (event) => {
             // impilarsi: su un telefono la seconda copia della stessa cosa e'
             // rumore.
             tag: payload.tag || undefined,
-            icon: "/favicon.ico",
+            // Un PNG vero, e non piu' `/favicon.ico`: quel file e' stato per
+            // mesi da zero byte, quindi ogni notifica arrivava con l'icona di
+            // ripiego del sistema. Il distintivo e' la sagoma monocromatica
+            // che Android mette nella barra di stato: del file usa solo la
+            // trasparenza, il colore lo decide lui.
+            icon: "/icon-192.png",
+            badge: "/notification-badge.png",
             data: data,
         }),
     );

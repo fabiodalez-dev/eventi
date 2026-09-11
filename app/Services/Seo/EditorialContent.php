@@ -41,6 +41,11 @@ final class EditorialContent
             $own = array_replace($defaults, array_filter($own, fn ($value): bool => $value !== null && $value !== ''));
         }
 
+        if ($model instanceof Event) {
+            $own['membership'] = $model->membershipRequirement()?->value;
+            $own['practical_items'] = app(BeforeGoing::class)->items($model, $own);
+        }
+
         return $own;
     }
 

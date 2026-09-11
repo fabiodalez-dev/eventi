@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.res.stringResource
+import it.fabiodalez.incitta.R
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalContext
@@ -27,7 +29,7 @@ import kotlin.coroutines.resume
 internal fun SearchFilters(state: AppUiState, query: String = "", apply: (Map<String, String>, String) -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    var expanded by remember(state.discoveryFilters) { mutableStateOf(false) }
+    var expanded by rememberSaveable { mutableStateOf(false) }
     var choices by remember { mutableStateOf(TonightPayload()) }
     var status by remember { mutableStateOf<String?>(null) }
     var locating by remember { mutableStateOf(false) }
@@ -87,7 +89,8 @@ internal fun SearchFilters(state: AppUiState, query: String = "", apply: (Map<St
     fun change(key: String, value: String) {
         if (checking) return
         val next = filters.toMutableMap()
-        if (key == "municipality") next.remove("zone")
+        if (key == "municipality") { next.remove("zone"); next.remove("venue") }
+        if (key == "zone") next.remove("venue")
         if (key == "preset") { next.remove("date"); next.remove("from"); next.remove("to") }
         if (key == "from" || key == "to") { next.remove("preset"); next.remove("date") }
         if (value.isBlank()) next.remove(key) else next[key] = value
@@ -135,9 +138,10 @@ internal fun SearchFilters(state: AppUiState, query: String = "", apply: (Map<St
             Text("Filtri avanzati ${if (expanded) "⌃" else "⌄"}")
         }
         if (expanded) {
+            QuickFilterGroup(stringResource(R.string.membership_label), "membership", listOf("required" to stringResource(R.string.membership_required), "not_required" to stringResource(R.string.membership_not_required)), filters, ::change)
             QuickFilterGroup("Tag", "tags", available("tag", facets?.get("tag").orEmpty().keys.map { it to "#$it" }), filters, ::change)
             QuickFilterGroup("Comune", "municipality", available("municipality", choices.municipalities.map { it to it }), filters, ::change)
-            if (filters["municipality"] == "Padova") QuickFilterGroup("Quartiere", "zone", available("zone", choices.zones.map { it to it }), filters, ::change)
+            QuickFilterGroup("Quartiere", "zone", available("zone", facets?.get("zone").orEmpty().keys.map { it to it }), filters, ::change)
             QuickFilterGroup("Locale", "venue", available("venue", state.venues.mapNotNull { venue -> venue.slug?.let { it to venue.name } }), filters, ::change)
             listOf("from" to "Dal", "to" to "Al").forEach { (key, label) ->
                 OutlinedButton(onClick = {
@@ -176,9 +180,16 @@ internal fun SearchFilters(state: AppUiState, query: String = "", apply: (Map<St
 @Composable
 private fun QuickFilterGroup(label: String, key: String, options: List<Pair<String, String>>, filters: Map<String, String>, change: (String, String) -> Unit) {
     val selected = filters[key].orEmpty().split(',').filter { it.isNotBlank() }
-    val visible = if (selected.isEmpty()) options else selected.map { value -> value to (options.find { it.first == value }?.second ?: value) }
-    if (visible.isEmpty()) return
+    val searchable = key in listOf("municipality", "zone", "venue", "tags")
+    var search by rememberSaveable(key) { mutableStateOf("") }
+    val choices = if (selected.isEmpty() || searchable) options else selected.map { value -> value to (options.find { it.first == value }?.second ?: value) }
+    if (choices.isEmpty()) return
     Text(label, color = Muted)
+    if (searchable) {
+        OutlinedTextField(value = search, onValueChange = { search = it }, label = { Text(stringResource(R.string.filter_search_options, label)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+    }
+    val visible = choices.filter { !searchable || it.second.contains(search, ignoreCase = true) }
+    if (visible.isEmpty()) Text(stringResource(R.string.filter_search_empty), color = Muted)
     PeekTabRow {
         if (key == "preset" && selected.isEmpty() && listOf("date", "from", "to").none { !filters[it].isNullOrBlank() }) {
             FilterLabel("Tutte le date", true) { change(key, "") }

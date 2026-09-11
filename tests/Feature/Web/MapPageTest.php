@@ -298,3 +298,10 @@ describe('vicino a me (§11.7)', function (): void {
         $this->assertDatabaseMissing('settings', ['key' => 'lat']);
     });
 });
+
+it('exposes a separate user pin only when position has been requested', function (): void {
+    testCity();
+    $html = $this->get('/mappa?lat=45.4&lng=11.8&radius=5')->assertOk()->getContent();
+    expect($html)->toContain('"userPosition":[11.8,45.4]')->toContain(__('map.your_position'));
+    $this->get('/mappa')->assertOk()->assertSee('"userPosition":null', false);
+});

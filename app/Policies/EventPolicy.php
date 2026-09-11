@@ -7,6 +7,7 @@ namespace App\Policies;
 use App\Enums\EventStatus;
 use App\Enums\Permission;
 use App\Enums\UserRole;
+use App\Enums\VenueStatus;
 use App\Models\Event;
 use App\Models\Organizer;
 use App\Models\User;
@@ -88,6 +89,11 @@ class EventPolicy
      */
     public function publish(User $user, Event $event): bool
     {
+        if (! $this->isGlobalStaff($user) && (in_array($event->status, [EventStatus::Rejected, EventStatus::Cancelled, EventStatus::Archived], true)
+            || filled($event->rejection_reason)
+            || $event->venue?->status !== VenueStatus::Approved)) {
+            return false;
+        }
         if ($this->canActOnEvent($user, $event, Permission::PublishEvents)) {
             return $this->isGlobalStaff($user) || $event->venue?->auto_publish === true;
         }

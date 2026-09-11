@@ -136,6 +136,28 @@ final class EventListController extends Controller
             $sponsoredOccurrence?->loadMissing(['event.venue', 'event.category', 'event.media', 'venue']);
         }
 
+        /*
+         * La data promossa non si ripete fra i risultati.
+         *
+         * La card sponsorizzata pesca dalla **stessa** interrogazione
+         * dell'elenco, quindi senza questo la serata comprata compariva due
+         * volte nella stessa scorsa di pollice: una in cima a pagamento e una
+         * poche card sotto, gratis. Perde l'inserzionista, che paga uno spazio
+         * che duplica una riga che avrebbe avuto comunque, e perde chi legge,
+         * che vede lo stesso titolo due volte e conta l'elenco per due.
+         *
+         * Si toglie **la singola occorrenza**, non l'evento: un ciclo di dieci
+         * appuntamenti di cui uno è promosso deve continuare a mostrare gli
+         * altri nove: sono date diverse, non doppioni.
+         */
+        if ($sponsoredOccurrence !== null) {
+            $occurrences->setCollection(
+                $occurrences->getCollection()
+                    ->reject(fn ($occurrence): bool => $occurrence->getKey() === $sponsoredOccurrence->getKey())
+                    ->values()
+            );
+        }
+
         return view('events.index', [
             'city' => $city,
             'taxonomy' => $taxonomy,

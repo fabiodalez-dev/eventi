@@ -12,7 +12,7 @@
         @endif
     </header>
 
-    <p class="mt-4"><a class="underline" href="{{ route('organizers.index') }}">Cerchi chi organizza? Scopri gli organizzatori e tutti i loro eventi.</a></p>
+    <p class="mt-4"><a class="underline" href="{{ route('organizers.index') }}">{{ __('organizers.from_venues') }}</a></p>
     <form method="GET" action="{{ route('venues.index') }}" data-venue-filters class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <x-field
             name="q"
@@ -70,7 +70,7 @@
                 <x-empty-state :title="__('venues.empty.list_title')" :description="__('venues.empty.list_body')">
                     <a
                         href="{{ route('venues.index') }}"
-                        class="bg-brand px-4 py-2.5 font-display text-[0.688rem] leading-none font-extrabold tracking-[0.14em] text-on-brand uppercase transition hover:bg-brand-strong"
+                        class="ui-action bg-brand px-4 py-2.5 font-display text-[0.688rem] leading-none font-extrabold tracking-[0.14em] text-on-brand uppercase transition hover:bg-brand-strong"
                     >
                         {{ __('filters.reset') }}
                     </a>

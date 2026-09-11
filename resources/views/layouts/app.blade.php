@@ -120,8 +120,28 @@
         <meta name="google-site-verification" content="{{ $city->seo['google_verification'] }}">
     @endif
     <meta name="color-scheme" content="dark light">
+
+    {{-- Il colore della barra del browser su Android. Sta **prima** dello
+         script qui sotto, che è quello che lo corregge per chi ha scelto un
+         tema diverso da quello del sistema: un `media="(prefers-color-scheme)"`
+         seguirebbe il sistema operativo e non la scelta fatta qui. --}}
+    <meta name="theme-color" content="{{ auth()->user()?->appearance === 'light' ? '#faf9f6' : '#0b0b0b' }}">
+
+    {{-- Le icone del sito.
+
+         `favicon.ico` è rimasto per anni un file da **zero byte**: i browser
+         lo chiedono da soli a `/favicon.ico` e ricevevano un file vuoto, cioè
+         il mappamondo grigio in ogni scheda e accanto a ogni risultato di
+         ricerca su telefono. `notification-badge.png` è il distintivo
+         monocromatico che Android mette nella barra di stato — è una
+         maschera, del file conta solo la trasparenza. --}}
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    @if (\Illuminate\Support\Facades\Route::has('webmanifest'))
+        <link rel="manifest" href="{{ route('webmanifest') }}">
+    @endif
     {{-- Applied before CSS paints. Guests share cached HTML, never preferences. --}}
-    <script>
+    <script @cspNonce>
         (() => {
             const root = document.documentElement;
             if (root.dataset.themeUser === 'guest') {
@@ -134,6 +154,7 @@
                 document.cookie = 'incitta_appearance=' + root.dataset.theme + '; Path=/; Max-Age=31536000; SameSite=Lax' + (location.protocol === 'https:' ? '; Secure' : '');
             }
             document.querySelector('meta[name="color-scheme"]').content = root.dataset.theme;
+            document.querySelector('meta[name="theme-color"]').content = root.dataset.theme === 'light' ? '#faf9f6' : '#0b0b0b';
         })();
     </script>
 
@@ -175,7 +196,7 @@
     {{-- Anteprima nei social e nelle applicazioni di messaggistica: senza,
          un evento condiviso arriva come un link nudo (§12.2). --}}
     <meta property="og:site_name" content="{{ $app }}">
-    <meta property="og:type" content="website">
+    <meta property="og:type" content="{{ $ogType ?? 'website' }}">
     <meta property="og:locale" content="{{ app()->getLocale() === 'it' ? 'it_IT' : str_replace('-', '_', app()->getLocale()) }}">
     <meta property="og:title" content="{{ filled($title ?? null) ? $title : $app }}">
     <meta property="og:url" content="{{ $canonical ?? url()->current() }}">
@@ -204,43 +225,16 @@
         @endif
     @endif
 
-    {{-- **Il carattere si chiede prima dell'immagine, e l'ordine qui conta.**
-
-         Archivo arriva da un `@import` dentro `app.css`: senza questo il
-         browser scarica l'HTML, poi il CSS, e solo dopo averlo letto scopre
-         che gli serve un `.woff2`. Tre viaggi in fila, e nel frattempo i
-         titoli — enormi e in grassetto 800 — restano nel carattere di
-         ripiego.
-
-         **Il `crossorigin` non e' facoltativo**, nemmeno per un file del
-         nostro stesso dominio: i font si scaricano sempre in modalita'
-         anonima, e un preload senza quell'attributo finisce in una cache
-         diversa da quella dove il CSS andra' a cercarlo — il file si scarica
-         due volte e il preload fa perdere tempo invece di guadagnarlo.
-
-         **Perche' prima e non dopo**, che e' la domanda vera. Su banda stretta
-         i due preload competono, e si e' tentati di dare la precedenza
-         all'immagine. L'ho fatto, e la home e' peggiorata di trecento
-         millisecondi: li' l'elemento piu' grande sopra la piega e' TESTO — su
-         un telefono la locandina dell'apertura finisce sotto la piega e non e'
-         nemmeno in gara — e un testo viene ridipinto quando il carattere
-         arriva. Ritardare il font ritarda quel ridisegno, cioe' la misura
-         stessa.
-
-         Le pagine con una locandina a tutto campo vorrebbero l'ordine opposto.
-         Vince la home: e' la pagina da cui si entra.
-    --}}
-    @php
-        /* Forma estesa, non `@php(...)`: quella compatta qui si compilava in un
-           `<?php` senza chiusura, e da lì in giù il resto dell'intestazione
-           finiva dentro PHP grezzo — il blocco che definisce `$lcp`, tre righe
-           più sotto, non veniva mai eseguito e la pagina si spegneva
-           lamentandosi di una variabile che nel sorgente c'era. */
-        $fontLatino = \App\Support\Fonts::latin();
-    @endphp
-    @if ($fontLatino !== null)
-        <link rel="preload" as="font" type="font/woff2" href="{{ $fontLatino }}" crossorigin>
-    @endif
+    {{-- Both themes are resolved before paint, including first-visit system preference.
+         Preload their Latin fonts from the same build URLs used by CSS. --}}
+    @foreach (['bricolage', 'manrope', 'archivo'] as $family)
+        @php
+            $fontLatino = \App\Support\Fonts::latin($family);
+        @endphp
+        @if ($fontLatino !== null)
+            <link rel="preload" as="font" type="font/woff2" href="{{ $fontLatino }}" crossorigin>
+        @endif
+    @endforeach
 
     {{-- Preload dell'immagine più grande sopra la piega (§11.11).
 
@@ -414,7 +408,7 @@
             @if (\Illuminate\Support\Facades\Route::has('submissions.create'))
                 <a
                     href="{{ route('submissions.create') }}"
-                    class="hidden h-[38px] shrink-0 items-center bg-accent px-3.5 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.14em] whitespace-nowrap text-on-accent uppercase transition-colors hover:bg-brand-strong md:inline-flex"
+                    class="ui-action hidden h-[38px] shrink-0 items-center bg-accent px-3.5 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.14em] whitespace-nowrap text-on-accent uppercase transition-colors hover:bg-brand-strong md:inline-flex"
                 >
                     {{ __('ui.header.submit_event') }}
                 </a>
