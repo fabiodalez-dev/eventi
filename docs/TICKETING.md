@@ -198,3 +198,28 @@ dell'APK release richiede prima migrazione e codice aggiornato sul server.
 La variante `inCitta-Android-1.4.0-demo-locale.apk` usa `10.0.2.2:8170` ed è
 destinata esclusivamente all'emulatore con il server locale acceso.
 La firma è quella di sviluppo già usata dal progetto, non una chiave Play Store.
+
+## Gestione da mobile, 11 settembre 2026
+
+La gestione mostra prima gli eventi prossimi e in corso, in ordine cronologico;
+il selettore Passati usa l’ordine inverso. La distinzione usa la fine effettiva
+della data. Ricerca evento/locale e ricerca partecipanti si aggiornano dopo
+300 ms, con invio del modulo disponibile anche senza JavaScript. Filtri e
+ricerca si conservano nella paginazione e rispettano i permessi del gestore.
+
+I quattro contatori sono disposti 2×2 da mobile e su quattro colonne da desktop.
+Il sito abilita `camera=(self)` solo nella pagina autorizzata di gestione della
+data, mantenendo il divieto nelle altre pagine. Lo scanner richiede HTTPS,
+legge il QR con ZXing e interrompe il video dopo la lettura o quando si lascia
+la pagina. La lettura prepara il codice; l’ingresso richiede conferma esplicita.
+Un permesso negato mostra come riattivarlo e resta disponibile la ricerca del
+partecipante.
+
+Salvataggio impostazioni, ingresso, annullamento, reinvio e relativi errori
+ritornano esplicitamente alla prenotazione o alla data. Le richieste di stato
+in background non possono diventare la pagina di ritorno.
+
+I test browser usano una sorgente video sintetica contenente un QR reale:
+verificano decodifica, stop del video, conferma ingresso, permesso negato,
+ricerca e disposizione mobile/desktop. Non equivalgono a una prova su camera
+fisica iPhone o Android.

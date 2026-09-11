@@ -17,6 +17,7 @@ use App\Models\ScheduledNotification;
 use App\Models\User;
 use App\Models\Venue;
 use App\Queries\EventOccurrenceQuery;
+use App\Settings\NewsletterSettings;
 use App\Support\CurrentCity;
 use App\Support\DateFormatter;
 use Carbon\CarbonImmutable;
@@ -312,8 +313,8 @@ final readonly class MessageFactory
         }
 
         $items = $this->items(
-            EventOccurrenceQuery::for($city)->weekend(),
-            config()->integer('notifications.digests.weekend.max_items'),
+            EventOccurrenceQuery::for($city)->weekend()->newsletterFor($user),
+            app(NewsletterSettings::class)->max_items,
             $user,
         );
 

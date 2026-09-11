@@ -84,7 +84,7 @@ final class TicketingController extends Controller
         $booking = $service->cancel($booking, $request->user(), $request->filled('ticket_id') ? $request->integer('ticket_id') : null, $staff, $request->validated('reason'));
 
         return $request->is('api/*') ? response()->json(['data' => BookingResource::toArray($booking)])
-            : back()->with('status', __('ticketing.mail.cancelled'));
+            : redirect()->route($staff ? 'ticketing.manage.show' : 'tickets.show', $staff ? $booking->occurrence : $booking)->with('status', __('ticketing.mail.cancelled'));
     }
 
     public function pdf(Request $request, AdmissionTicket $ticket): Response
@@ -101,11 +101,14 @@ final class TicketingController extends Controller
         $request->user()->notify(new BookingChanged($booking->id, $booking->status->value));
 
         return $request->is('api/*') ? response()->json(['data' => ['message' => __('ticketing.email_queued')]])
-            : back()->with('status', __('ticketing.email_queued'));
+            : redirect()->route('tickets.show', $booking)->with('status', __('ticketing.email_queued'));
     }
 
     public function dashboard(Request $request): View
     {
+        $filters = $request->validate(['period' => ['nullable', 'in:upcoming,past'], 'q' => ['nullable', 'string', 'max:120']]);
+        $period = $filters['period'] ?? 'upcoming';
+        $search = $filters['q'] ?? '';
         $user = $request->user();
         $admin = $user->hasAnyRole([UserRole::Admin->value, UserRole::SuperAdmin->value]);
         abort_unless($admin || $user->ownedVenues()->exists() || $user->managedOrganizers()->exists(), 403);
@@ -113,9 +116,14 @@ final class TicketingController extends Controller
             ->whereIn('venue_id', $user->ownedVenues()->select('venues.id'))
             ->orWhere(fn ($fallback) => $fallback->whereNull('venue_id')->whereHas('event', fn ($event) => $event->whereIn('venue_id', $user->ownedVenues()->select('venues.id'))))
             ->orWhereHas('event', fn ($event) => $event->whereIn('organizer_id', $user->managedOrganizers()->select('organizers.id')))))
-            ->with('event.venue')->orderByDesc('starts_at')->paginate(30);
+            ->when($period === 'past', fn ($q) => $q->whereRaw('COALESCE(effective_ends_at, ends_at, starts_at) < ?', [now()]), fn ($q) => $q->whereRaw('COALESCE(effective_ends_at, ends_at, starts_at) >= ?', [now()]))
+            ->when($search !== '', fn ($q) => $q->where(fn ($q) => $q
+                ->whereHas('event', fn ($event) => $event->where('title', 'like', '%'.$search.'%'))
+                ->orWhereHas('venue', fn ($venue) => $venue->where('name', 'like', '%'.$search.'%'))
+                ->orWhere(fn ($fallback) => $fallback->whereNull('venue_id')->whereHas('event.venue', fn ($venue) => $venue->where('name', 'like', '%'.$search.'%')))))
+            ->with(['event.venue', 'event.city', 'venue'])->orderBy('starts_at', $period === 'past' ? 'desc' : 'asc')->paginate(30)->withQueryString();
 
-        return view('ticketing.dashboard', ['dates' => $dates, 'meta' => $this->meta('manage')]);
+        return view('ticketing.dashboard', ['dates' => $dates, 'period' => $period, 'meta' => $this->meta('manage')]);
     }
 
     public function manage(ManageRequest $request, EventOccurrence $occurrence, TicketingService $service): View
@@ -138,7 +146,7 @@ final class TicketingController extends Controller
         }
         $service->configure($occurrence, $settings, $request->user());
 
-        return back()->with('status', __('ticketing.updated'));
+        return redirect()->route('ticketing.manage.show', $occurrence)->with('status', __('ticketing.updated'));
     }
 
     public function checkIn(CheckInRequest $request, EventOccurrence $occurrence, TicketingService $service): JsonResponse|RedirectResponse
@@ -147,7 +155,7 @@ final class TicketingController extends Controller
         $ticket = $service->checkIn($occurrence, $request->validated('code'), $request->user());
 
         return $request->expectsJson() ? response()->json(['data' => ['id' => $ticket->id, 'attendee_name' => $ticket->attendee_name, 'status' => $ticket->status->value]])
-            : back()->with('status', __('ticketing.checkin_success', ['name' => $ticket->attendee_name]));
+            : redirect()->route('ticketing.manage.show', $occurrence)->with('status', __('ticketing.checkin_success', ['name' => $ticket->attendee_name]));
     }
 
     public function export(Request $request, EventOccurrence $occurrence): StreamedResponse

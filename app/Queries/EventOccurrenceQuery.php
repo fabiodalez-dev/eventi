@@ -734,6 +734,14 @@ final class EventOccurrenceQuery
      * risponde con l'avvio guidato di §15.7, che è un'altra cosa e la decide
      * il controller.
      */
+    public function newsletterFor(User $user): self
+    {
+        $this->query->withoutGlobalScope('content_preferences');
+        $this->query->whereNotIn('events.category_id', app(ContentPreferences::class)->hidden($user));
+
+        return $this->followedBy($user, includeContentPreferences: true, notifyingOnly: true);
+    }
+
     public function followedBy(User $user, bool $includeContentPreferences = false, bool $notifyingOnly = false): self
     {
         $venues = $user->followedIds(FollowableType::Venue, $notifyingOnly);

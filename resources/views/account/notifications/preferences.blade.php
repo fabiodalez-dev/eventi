@@ -31,8 +31,8 @@
             <a href="{{ route('account.notifications.interests') }}" class="ui-action border-2 border-accent p-4 font-display font-bold text-accent">{{ __('subscriptions.interests') }} →</a>
         @endif
 
-        @if (session('status'))
-            <p class="bg-surface px-4 py-3 text-sm font-semibold text-ink">{{ session('status') }}</p>
+        @if ($errors->any())
+            <p role="alert" class="text-sm">{{ $errors->first() }}</p>
         @endif
 
         <form method="POST" action="{{ $action }}" class="flex flex-col gap-6">
@@ -136,6 +136,22 @@
                     {{ __('notifications.push.toggle') }}
                 </label>
 
+                <div class="flex flex-wrap gap-3">
+                    <x-button variant="secondary" data-push-reset>Riattiva / reimposta questo browser</x-button>
+                    <x-button variant="secondary" data-push-test disabled>Mostra notifica di prova</x-button>
+                </div>
+                <p class="text-xs text-ink-subtle">La prova verifica la visualizzazione su questo dispositivo. Gli avvisi automatici rispettano i canali e gli orari salvati qui sopra.</p>
+                <details data-push-help class="text-sm">
+                    <summary class="cursor-pointer py-3 font-semibold">Come reimpostare i permessi</summary>
+                    <ol class="list-decimal space-y-2 pl-5">
+                        <li>Chrome, Edge o Firefox: apri l’icona accanto all’indirizzo del sito, poi Permessi o Impostazioni sito → Notifiche. Scegli Consenti oppure reimposta il permesso.</li>
+                        <li>Safari su Mac: Safari → Impostazioni → Siti web → Notifiche, quindi consenti inCittà.</li>
+                        <li>Su iPhone e iPad: aggiungi inCittà alla schermata Home e aprila da lì. Controlla anche Impostazioni → Notifiche → inCittà.</li>
+                        <li>Torna qui e premi “Riattiva / reimposta questo browser”.</li>
+                    </ol>
+                    <p class="mt-3 text-ink-muted">Per proteggere la tua scelta, il sito non può cancellare un rifiuto imposto dal browser. Il comando rinnova soltanto l’iscrizione di questo browser.</p>
+                </details>
+
                 {{-- Su iPhone le push web arrivano solo a un sito installato
                      sulla schermata Home: senza questa riga il permesso viene
                      concesso e non arriva mai niente. --}}
@@ -146,7 +162,7 @@
                 </p>
             </section>
         @else
-            <p class="text-xs text-ink-subtle">{{ __('notifications.push.signed_out') }}</p>
+            <p class="text-xs text-ink-subtle">{{ auth()->id() === $user->id ? __('notifications.push.unavailable') : __('notifications.push.signed_out') }}</p>
         @endif
 
     </div>

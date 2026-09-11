@@ -4,7 +4,7 @@
     <p>{{ $date->starts_at->timezone($date->event->city->timezone)->format('d/m/Y H:i') }} · {{ $date->effectiveVenue()?->name }}</p>
     <p>Biglietti gratuiti o pagamento all’ingresso. La prenotazione su inCittà è gratuita; l’eventuale importo indicato nell’evento si paga al locale.</p>
     @include('ticketing.errors')
-    <dl class="flex flex-wrap gap-x-8 gap-y-3 text-sm">
+    <dl class="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4" data-ticket-statistics>
         @foreach (['valid', 'checked_in', 'waitlisted', 'cancelled'] as $status)
             <div><dt class="text-ink-muted">{{ __('ticketing.statuses.'.$status) }}</dt><dd class="font-bold">{{ $statistics[$status] ?? 0 }}</dd></div>
         @endforeach
@@ -44,8 +44,10 @@
         </form>
     </section>
     <div class="flex flex-wrap gap-4 items-end"><h2 class="text-2xl font-bold">{{ __('ticketing.participants') }}</h2><x-button variant="secondary" :href="route('ticketing.manage.export', $date)">{{ __('ticketing.export') }}</x-button></div>
-    <form method="GET" class="flex gap-3 items-end"><x-field name="q" :label="__('ticketing.search')" :value="request('q')" /><x-button type="submit">{{ __('ticketing.filter') }}</x-button></form>
-    @foreach ($bookings as $booking)
+    <form method="GET" data-ticket-search class="grid grid-cols-[minmax(0,1fr)_auto] gap-3 items-end"><x-field name="q" :label="__('ticketing.search')" :value="request('q')" /><x-button type="submit">{{ __('ticketing.filter') }}</x-button></form>
+    <p data-search-status role="status" class="text-sm text-ink-muted"></p>
+    <div data-ticket-results class="flex flex-col gap-4">
+    @forelse ($bookings as $booking)
         <section class="border-t border-line pt-4"><p class="text-sm">{{ __('ticketing.booking_number', ['id' => $booking->id]) }} · {{ $booking->user?->email }}</p>
             @if ($booking->booker_data)<details><summary class="cursor-pointer py-3 text-brand">{{ __('ticketing.booker') }}</summary><dl class="grid gap-3 text-sm">
                 @foreach ($booking->booker_data as $field => $value)@if ($value)<div><dt class="text-ink-muted">{{ __('ticketing.fields.'.$field) }}</dt><dd class="whitespace-pre-line">{{ $value }}</dd></div>@endif @endforeach
@@ -61,6 +63,9 @@
                 <details><summary class="cursor-pointer py-3 text-brand">{{ __('ticketing.cancel') }}</summary><form method="POST" action="{{ route('ticketing.manage.cancel', $booking) }}" class="flex flex-col gap-3" data-confirm="{{ __('ticketing.confirm_cancel') }}">@csrf<x-field name="reason" :label="__('ticketing.reason')" /><x-button type="submit" variant="secondary">{{ __('ticketing.cancel') }}</x-button></form></details>
             @endif
         </section>
-    @endforeach
+    @empty
+        <p>Non ci sono partecipanti{{ request('q') ? ' corrispondenti alla ricerca' : ' per questa data' }}.</p>
+    @endforelse
     {{ $bookings->links() }}
+    </div>
 </div></x-layouts.app>

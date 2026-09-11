@@ -9,6 +9,7 @@ use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
+use Filament\Navigation\NavigationItem;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
@@ -24,6 +25,9 @@ class OrganizerPanelProvider extends PanelProvider
     public function panel(Panel $panel): Panel
     {
         return $panel->id('organizer')->path('organizza')->login()->passwordReset()
+            ->navigationItems([NavigationItem::make('Il mio profilo')
+                ->icon('heroicon-o-user-circle')->url(fn (): string => route('account.profile')),
+            ])
             ->darkMode(false)
             ->font('Manrope Variable', provider: LocalFontProvider::class)
             ->viteTheme('resources/css/filament/admin/theme.css')

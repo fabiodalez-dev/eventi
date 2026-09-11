@@ -39,12 +39,25 @@
             @endunless
         </header>
 
+        <nav aria-label="Area personale" class="divide-y divide-line border-y border-line">
+            @foreach ([
+                ['tickets.index', 'heroicon-o-ticket', 'I miei biglietti', 'Prenotazioni, QR e ingressi'],
+                ['account.content-preferences', 'heroicon-o-heart', 'I miei interessi', 'Scegli cosa vedere e ricevere nella newsletter'],
+                ['account.notifications', 'heroicon-o-bell', 'Notifiche e newsletter', 'Canali, orari e ore di silenzio'],
+                ['account.saved', 'heroicon-o-bookmark', 'I miei salvataggi', 'Ritrova gli eventi da non perdere'],
+                ['google-calendar.index', 'heroicon-o-calendar-days', 'Il mio calendario', 'Collega e gestisci Google Calendar'],
+            ] as [$destination, $icon, $label, $description])
+                <a href="{{ route($destination) }}" class="flex min-h-16 items-center gap-3 py-4 hover:text-brand">
+                    <x-dynamic-component :component="$icon" class="size-6 shrink-0" width="24" height="24" aria-hidden="true" />
+                    <span class="min-w-0 flex-1"><span class="block font-semibold">{{ $label }}</span><span class="mt-1 block text-sm text-ink-muted">{{ $description }}</span></span>
+                    <span aria-hidden="true" class="shrink-0">→</span>
+                </a>
+            @endforeach
+        </nav>
         <section aria-labelledby="profile-appearance">
             <h2 id="profile-appearance" class="text-section">Aspetto</h2>
             <x-appearance-picker />
         </section>
-        <x-button :href="route('tickets.index')">{{ __('ticketing.title') }}</x-button>
-        <x-button :href="route('account.content-preferences')" variant="secondary">I miei interessi · scegli cosa vedere</x-button>
         @if(auth()->user()->managedOrganizers()->exists())
             <x-button :href="url('/organizza')" variant="secondary">Gestisci i tuoi organizzatori</x-button>
         @endif
@@ -57,6 +70,7 @@
         @if ($user->ownedVenues()->exists() || $user->hasAnyRole(['admin', 'super_admin']))
             <x-button :href="route('ticketing.manage.index')" variant="secondary">{{ __('ticketing.manage') }}</x-button>
         @endif
+        @if ($errors->any())<p role="alert" class="text-sm">{{ $errors->first() }}</p>@endif
         <form method="POST" action="{{ route('account.profile.update') }}" class="flex flex-col gap-6">
             @csrf
             @method('PATCH')
@@ -69,7 +83,7 @@
                     <p class="text-sm text-ink-muted">{{ $user->email }}</p>
                 </div>
 
-                <x-field name="timezone" :label="__('account.profile.timezone')" :value="$user->timezone" :required="true" />
+                <x-field name="timezone" :label="__('account.profile.timezone')" :value="$user->timezone" :options="array_combine(DateTimeZone::listIdentifiers(), DateTimeZone::listIdentifiers())" :required="true" />
                 @if ($soloUnaLingua)
                     <input type="hidden" name="locale" value="{{ $linguaScelta }}">
                 @else

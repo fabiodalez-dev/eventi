@@ -480,6 +480,9 @@
                 <p class="bg-surface px-gutter py-3 text-sm">Stai esplorando gli eventi secondo i tuoi interessi. <a class="font-bold underline" href="{{ route('account.content-preferences') }}">Modifica o mostra tutto</a></p>
             @endif
         @endauth
+        @if(auth()->check() && ! request()->routeIs('account.profile') && request()->routeIs('account.*', 'tickets.*', 'ticketing.manage.*', 'appearance', 'google-calendar.*', 'verification.notice', 'notifications.preferences'))
+            <a href="{{ route('account.profile') }}" class="mb-6 inline-flex min-h-12 items-center gap-2 font-semibold text-brand" data-profile-back><span aria-hidden="true">←</span> Il mio profilo</a>
+        @endif
         {{ $slot }}
 
         @if (! ($wide ?? false))
