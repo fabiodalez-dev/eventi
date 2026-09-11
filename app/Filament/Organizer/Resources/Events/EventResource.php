@@ -3,6 +3,7 @@
 namespace App\Filament\Organizer\Resources\Events;
 
 use App\Enums\PriceType;
+use App\Filament\Support\BeforeGoingFields;
 use App\Filament\Support\EditorialFields;
 use App\Models\Category;
 use App\Models\Event;
@@ -55,6 +56,7 @@ class EventResource extends Resource
             TextInput::make('price_min')->label('Prezzo da (€)')->numeric()->minValue(0),
             TextInput::make('price_max')->label('Prezzo fino a (€)')->numeric()->minValue(0),
             TextInput::make('ticket_url')->label('Link biglietti')->url()->maxLength(2048),
+            BeforeGoingFields::make(),
             EditorialFields::content(event: true),
         ]);
     }

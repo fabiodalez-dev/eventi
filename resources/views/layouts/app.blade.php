@@ -225,43 +225,16 @@
         @endif
     @endif
 
-    {{-- **Il carattere si chiede prima dell'immagine, e l'ordine qui conta.**
-
-         Archivo arriva da un `@import` dentro `app.css`: senza questo il
-         browser scarica l'HTML, poi il CSS, e solo dopo averlo letto scopre
-         che gli serve un `.woff2`. Tre viaggi in fila, e nel frattempo i
-         titoli — enormi e in grassetto 800 — restano nel carattere di
-         ripiego.
-
-         **Il `crossorigin` non e' facoltativo**, nemmeno per un file del
-         nostro stesso dominio: i font si scaricano sempre in modalita'
-         anonima, e un preload senza quell'attributo finisce in una cache
-         diversa da quella dove il CSS andra' a cercarlo — il file si scarica
-         due volte e il preload fa perdere tempo invece di guadagnarlo.
-
-         **Perche' prima e non dopo**, che e' la domanda vera. Su banda stretta
-         i due preload competono, e si e' tentati di dare la precedenza
-         all'immagine. L'ho fatto, e la home e' peggiorata di trecento
-         millisecondi: li' l'elemento piu' grande sopra la piega e' TESTO — su
-         un telefono la locandina dell'apertura finisce sotto la piega e non e'
-         nemmeno in gara — e un testo viene ridipinto quando il carattere
-         arriva. Ritardare il font ritarda quel ridisegno, cioe' la misura
-         stessa.
-
-         Le pagine con una locandina a tutto campo vorrebbero l'ordine opposto.
-         Vince la home: e' la pagina da cui si entra.
-    --}}
-    @php
-        /* Forma estesa, non `@php(...)`: quella compatta qui si compilava in un
-           `<?php` senza chiusura, e da lì in giù il resto dell'intestazione
-           finiva dentro PHP grezzo — il blocco che definisce `$lcp`, tre righe
-           più sotto, non veniva mai eseguito e la pagina si spegneva
-           lamentandosi di una variabile che nel sorgente c'era. */
-        $fontLatino = \App\Support\Fonts::latin();
-    @endphp
-    @if ($fontLatino !== null)
-        <link rel="preload" as="font" type="font/woff2" href="{{ $fontLatino }}" crossorigin>
-    @endif
+    {{-- Both themes are resolved before paint, including first-visit system preference.
+         Preload their Latin fonts from the same build URLs used by CSS. --}}
+    @foreach (['bricolage', 'manrope', 'archivo'] as $family)
+        @php
+            $fontLatino = \App\Support\Fonts::latin($family);
+        @endphp
+        @if ($fontLatino !== null)
+            <link rel="preload" as="font" type="font/woff2" href="{{ $fontLatino }}" crossorigin>
+        @endif
+    @endforeach
 
     {{-- Preload dell'immagine più grande sopra la piega (§11.11).
 

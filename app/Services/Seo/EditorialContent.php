@@ -43,6 +43,7 @@ final class EditorialContent
 
         if ($model instanceof Event) {
             $own['membership'] = $model->membershipRequirement()?->value;
+            $own['practical_items'] = app(BeforeGoing::class)->items($model, $own);
         }
 
         return $own;

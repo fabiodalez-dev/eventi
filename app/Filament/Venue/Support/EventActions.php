@@ -107,7 +107,7 @@ final class EventActions
             ->requiresConfirmation()
             ->modalDescription(__('manage.actions.publish_confirm'))
             ->authorize(fn (Event $record): bool => self::user()?->can('update', $record) ?? false)
-            ->visible(fn (Event $record): bool => $record->status !== EventStatus::Published)
+            ->visible(fn (Event $record): bool => in_array($record->status, [EventStatus::Draft, EventStatus::Pending, EventStatus::Rejected], true))
             ->disabled(fn (Event $record): bool => ! $record->occurrences()->exists())
             ->action(function (Event $record): void {
                 EventPublication::notify(EventPublication::submit($record));

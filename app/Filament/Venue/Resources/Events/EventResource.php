@@ -6,8 +6,11 @@ namespace App\Filament\Venue\Resources\Events;
 
 use App\Enums\EventSource;
 use App\Enums\EventStatus;
+use App\Enums\PriceType;
+use App\Filament\Support\BeforeGoingFields;
 use App\Filament\Support\EditorialFields;
 use App\Filament\Support\EventStatusPresentation;
+use App\Filament\Support\EventTicketingActions;
 use App\Filament\Venue\Resources\Events\Pages\CreateEvent;
 use App\Filament\Venue\Resources\Events\Pages\EditEvent;
 use App\Filament\Venue\Resources\Events\Pages\ListEvents;
@@ -21,7 +24,10 @@ use App\Queries\VenueDashboardQuery;
 use BackedEnum;
 use Filament\Actions\EditAction;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\Layout\Split;
@@ -119,6 +125,8 @@ class EventResource extends Resource
     {
         return $schema->columns(1)
             ->components([
+                Section::make('Pubblicazione')->schema([View::make('filament.events.publication-status')]),
+                BeforeGoingFields::make(),
                 EditorialFields::content(true, false),
                 EditorialFields::seo(),
                 Section::make(__('manage.sections.what'))
@@ -149,6 +157,9 @@ class EventResource extends Resource
                  * appare sulla card viene ricalcolato da queste righe, quindi
                  * qui non c'è niente da tenere allineato a mano.
                  */
+                Section::make('Ticketing inCittà')
+                    ->description(fn (Get $get): string => in_array($get('price_type'), ['free', PriceType::Free], true) ? 'Biglietti gratuiti: prenotazione e QR per l’ingresso.' : 'Prenotazione gratuita con pagamento al locale, all’ingresso.')
+                    ->visible(fn (Get $get): bool => in_array($get('price_type') instanceof PriceType ? $get('price_type')->value : $get('price_type'), ['free', 'ticket', 'membership'], true))->schema([View::make('filament.events.ticketing-links'), Actions::make(fn (?Event $record): array => EventTicketingActions::forEvent($record))]),
                 Section::make(__('manage.sections.ticket_tiers'))
                     ->collapsed()
                     ->schema([

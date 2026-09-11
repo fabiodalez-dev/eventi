@@ -8,9 +8,7 @@
    Il file è variabile (peso 100-900) e suddiviso per unicode-range: il browser
    scarica il solo sottoinsieme che gli serve. Archivo serve il tema scuro;
    nel chiaro Bricolage distingue i titoli e Manrope serve testo e comandi. */
-@import '@fontsource-variable/archivo/wght.css';
-@import '@fontsource-variable/manrope/wght.css';
-@import '@fontsource-variable/bricolage-grotesque/standard.css';
+@import './fonts.css';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';

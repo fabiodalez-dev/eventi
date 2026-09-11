@@ -284,3 +284,5 @@ Schedule::call(function (): void {
         app(GrantCampaigns::class)->sync($grant);
     });
 })->name('sponsorship-grants:sync')->everyMinute()->withoutOverlapping(10);
+
+Schedule::command('events:publish-due')->everyMinute()->withoutOverlapping(10);

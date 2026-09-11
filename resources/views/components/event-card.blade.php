@@ -110,7 +110,7 @@
         </span>
 
         @if ($category !== null)
-            <span class="border-2 border-line px-2 py-[5px] font-display text-[0.594rem] leading-none font-extrabold tracking-[0.14em] whitespace-nowrap text-ink-muted uppercase transition-colors group-hover:border-accent group-hover:bg-accent group-hover:text-on-accent">
+            <span class="ui-tag border-2 border-line px-2 py-[5px] font-display text-[0.594rem] leading-none font-extrabold tracking-[0.14em] whitespace-nowrap text-ink-muted uppercase transition-colors group-hover:border-accent group-hover:bg-accent group-hover:text-on-accent">
                 {{ $category->name }}
             </span>
         @endif

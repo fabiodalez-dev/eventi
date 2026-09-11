@@ -139,6 +139,7 @@ final class CachePage
         'from',
         'lat',
         'lng',
+        'membership',
         'municipality',
         'outdoor',
         'page',

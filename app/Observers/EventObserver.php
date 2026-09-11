@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Observers;
 
 use App\Enums\EventStatus;
+use App\Enums\PriceType;
+use App\Enums\VerificationStatus;
 use App\Jobs\Media\GenerateOpenGraphImage;
 use App\Models\Event;
 use App\Models\EventOccurrence;
@@ -12,6 +14,7 @@ use App\Services\Media\OpenGraphImage;
 use App\Services\Notifications\NotificationScheduler;
 use App\Support\ContentVersion;
 use App\Support\Redirect\RegistroRedirect;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
@@ -28,6 +31,39 @@ final class EventObserver
      * pluriennale ne ha centinaia.
      */
     private const CHUNK = 200;
+
+    public function saving(Event $event): void
+    {
+        // Confirmation follows the venue; editorial verification remains a staff decision.
+        if ($event->verification_status !== VerificationStatus::EditorialChecked) {
+            $event->verification_status = $event->venue?->is_verified === true
+                ? VerificationStatus::VenueConfirmed : VerificationStatus::Unverified;
+        }
+        if ($event->price_type === PriceType::Free) {
+            $event->price_min = null;
+            $event->price_max = null;
+        }
+        if (in_array($event->status, [EventStatus::Rejected, EventStatus::Cancelled, EventStatus::Archived], true)) {
+            $event->scheduled_publish_at = null;
+            $event->publication_scheduled_by = null;
+        }
+        $user = auth()->user();
+        if ($user && ! $user->can('moderate', $event)) {
+            if ($event->exists && $event->scheduled_publish_at && ! $user->can('publish', $event)
+                && array_diff(array_keys($event->getDirty()), ['status', 'scheduled_publish_at', 'publication_scheduled_by', 'updated_at']) !== []) {
+                $event->publication_scheduled_by = $user->id;
+                $event->status = EventStatus::Pending;
+            }
+            if ($event->isDirty('verification_status') && $event->verification_status === VerificationStatus::EditorialChecked) {
+                throw new AuthorizationException('Verifica riservata alla redazione.');
+            }
+            foreach (['editorial_score', 'is_featured', 'featured_until', 'rejection_reason'] as $field) {
+                if ($event->isDirty($field) && $event->getRawOriginal($field) !== ($event->getAttributes()[$field] ?? null) && ($event->exists || ! in_array($event->getAttributes()[$field] ?? null, [null, false, 0, '0', 'unverified'], true))) {
+                    throw new AuthorizationException('Campo riservato alla redazione.');
+                }
+            }
+        }
+    }
 
     /**
      * I conteggi del calendario mensile stanno in cache per mezz'ora (§12.3),

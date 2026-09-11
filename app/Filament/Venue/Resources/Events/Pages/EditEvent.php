@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Venue\Resources\Events\Pages;
 
+use App\Filament\Support\PublicationActions;
 use App\Filament\Venue\Pages\Social;
 use App\Filament\Venue\Resources\Events\EventResource;
 use App\Filament\Venue\Support\EventActions;
@@ -23,12 +24,23 @@ class EditEvent extends EditRecord
 {
     protected static string $resource = EventResource::class;
 
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        foreach (['status', 'source', 'verification_status', 'editorial_score', 'is_featured', 'featured_until', 'rejection_reason', 'scheduled_publish_at', 'publication_scheduled_by'] as $field) {
+            unset($data[$field]);
+        }
+
+        return $data;
+    }
+
     /**
      * @return array<mixed>
      */
     protected function getHeaderActions(): array
     {
         return [
+            PublicationActions::schedule(),
+            PublicationActions::cancel(),
             Action::make('pagePreview')->label(__('promotions.preview'))->url(fn () => route('events.preview', $this->getRecord()))->openUrlInNewTab()->color('gray'),
             Action::make('social')->label(__('social.preview'))->url(fn () => Social::getUrl(['event' => $this->getRecord()->getKey()])),
             EventActions::viewOnSite(),

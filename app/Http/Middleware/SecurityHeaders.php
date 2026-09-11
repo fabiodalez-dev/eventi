@@ -99,6 +99,7 @@ final class SecurityHeaders
             $direttive = array_filter([
                 config()->string('security.csp'),
                 $csp->appliesTo($request) ? $csp->scriptSrc() : '',
+                config()->string('security.worker_src'),
             ], static fn (string $direttiva): bool => $direttiva !== '');
 
             if ($direttive !== []) {

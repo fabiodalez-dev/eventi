@@ -113,11 +113,11 @@
                     @endif
 
                     @if ($venue?->zone)
-                        <span class="border-2 border-ink px-2.5 py-[5px] font-display text-[0.594rem] leading-none font-extrabold tracking-[0.16em] uppercase">{{ $venue->zone }}</span>
+                        <span class="ui-tag border-2 border-ink px-2.5 py-[5px] font-display text-[0.594rem] leading-none font-extrabold tracking-[0.16em] uppercase">{{ $venue->zone }}</span>
                     @endif
 
                     @if ($event->is_outdoor)
-                        <span class="border-2 border-ink px-2.5 py-[5px] font-display text-[0.594rem] leading-none font-extrabold tracking-[0.16em] uppercase">{{ __('events.badge.outdoor') }}</span>
+                        <span class="ui-tag border-2 border-ink px-2.5 py-[5px] font-display text-[0.594rem] leading-none font-extrabold tracking-[0.16em] uppercase">{{ __('events.badge.outdoor') }}</span>
                     @endif
                 </div>
 
@@ -141,7 +141,7 @@
                     @if ($facts !== [])
                         <div class="flex flex-wrap items-stretch gap-0.5">
                             @foreach ($facts as $fatto)
-                                <span class="flex flex-col gap-1 border-2 border-line bg-[rgba(11,11,11,.72)] px-3 py-2.5">
+                                <span class="ui-tag flex flex-col gap-1 border-2 border-line bg-[rgba(11,11,11,.72)] px-3 py-2.5">
                                     <span class="font-display text-[0.563rem] leading-none font-extrabold tracking-[0.14em] text-ink-subtle uppercase">{{ $fatto['label'] }}</span>
                                     <span class="font-display text-[0.813rem] leading-none font-extrabold tracking-[-0.01em]">{{ $fatto['value'] }}</span>
                                 </span>
@@ -360,11 +360,11 @@
             />
             @endif
 
-            @if ($selectedOccurrence ?? null)
+            <x-event-description :event="$event" />
+            @if (($selectedOccurrence ?? null) && $event->occurrences()->count() > 1)
                 <p><a class="underline text-accent" href="{{ route('events.show', $event) }}">{{ __('seo.all_dates') }}</a></p>
             @endif
             <x-editorial-content :model="$event" :occurrence="$selectedOccurrence ?? null" />
-            <x-event-description :event="$event" class="max-lg:hidden" />
 
             {{-- La scheda tecnica dell'evento: apertura porte, durata, età
                  minima. Coppie etichetta/valore, e nessuna sezione se non ce
@@ -446,15 +446,11 @@
                 <x-event-poster :event="$event" :set="$poster" />
             @endif
 
-            <x-event-description :event="$event" id="descrizione-evento-mobile" class="lg:hidden" />
 
             <section class="flex flex-col gap-3 bg-canvas p-5 border-2 border-line" aria-labelledby="prezzo-evento">
                 <h2 id="prezzo-evento" class="font-display text-[clamp(1.25rem,1.8vw,1.75rem)] leading-none font-extrabold tracking-[-0.03em] uppercase">{{ __('events.detail.price') }}</h2>
 
                 <p class="text-card text-ink"><x-price-tag :event="$event" as="text" /></p>
-                @if ($membership = $event->membershipRequirement())
-                    <p class="text-base font-semibold">{{ $membership->label() }}</p>
-                @endif
 
                 @if (filled($event->price_notes))
                     <p class="text-sm text-ink-muted">{{ $event->price_notes }}</p>
@@ -577,12 +573,6 @@
                 <x-transit-guide
                     :transit="$venue->transit"
                     heading-id="come-arrivare-evento"
-                    class="bg-canvas p-5 border-2 border-line"
-                />
-
-                <x-accessibility-list
-                    :accessibility="$venue->accessibility"
-                    heading-id="accessibilita-evento"
                     class="bg-canvas p-5 border-2 border-line"
                 />
 

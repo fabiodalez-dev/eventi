@@ -36,6 +36,8 @@ final class DuplicateEventAction
             $copy = $event->replicate([
                 'slug',
                 'published_at',
+                'scheduled_publish_at',
+                'publication_scheduled_by',
                 'rejection_reason',
                 'source_ref',
                 'views_count',

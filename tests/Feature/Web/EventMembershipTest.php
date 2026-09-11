@@ -18,10 +18,16 @@ it('filters membership per event without inheriting the venue requirement', func
     $required = occurrenceAtLocal($city, $category, '2026-09-11 21:00', event: ['content_details' => ['membership' => 'required']], venue: $venue);
     $notRequired = occurrenceAtLocal($city, $category, '2026-09-11 22:00', event: ['content_details' => ['membership' => 'not_required']], venue: $venue);
     $unknown = occurrenceAtLocal($city, $category, '2026-09-11 23:00', event: ['price_type' => 'free'], venue: $venue);
+    config()->set('page_cache.enabled', true);
     $finder = app(EventFinder::class);
     expect($finder->query($city, EventFilters::fromArray(['membership' => 'required']))->get()->modelKeys())->toBe([$required->id]);
     expect($finder->query($city, EventFilters::fromArray(['membership' => 'not_required']))->get()->modelKeys())->toBe([$notRequired->id]);
     expect($unknown->event->membershipRequirement())->toBeNull();
+    $requiredPage = $this->get('/eventi?membership=required')->assertOk();
+    $otherPage = $this->get('/eventi?membership=not_required')->assertOk();
+    $requiredPage->assertSee($required->event->title)->assertDontSee($notRequired->event->title);
+    $otherPage->assertSee($notRequired->event->title)->assertDontSee($required->event->title);
+
     foreach (['/eventi/'.$unknown->event->slug, '/eventi/'.$unknown->event->slug.'/1'] as $url) {
         $this->get($url)->assertOk()
             ->assertDontSee(__('filters.membership.unknown'))

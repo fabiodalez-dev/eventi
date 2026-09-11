@@ -35,10 +35,18 @@ final class Fonts
      * nome dei propri file, la pagina deve perdere il preload — non spegnersi.
      * Il font continuerebbe ad arrivare dal CSS come sempre.
      */
-    public static function latin(): ?string
+    public static function latin(string $family = 'archivo'): ?string
     {
+        $files = [
+            'archivo' => 'archivo/files/archivo-latin-wght-normal.woff2',
+            'manrope' => 'manrope/files/manrope-latin-wght-normal.woff2',
+            'bricolage' => 'bricolage-grotesque/files/bricolage-grotesque-latin-standard-normal.woff2',
+        ];
+        if (! isset($files[$family])) {
+            return null;
+        }
         try {
-            return Vite::asset('node_modules/@fontsource-variable/archivo/files/archivo-latin-wght-normal.woff2');
+            return Vite::asset('node_modules/@fontsource-variable/'.$files[$family]);
         } catch (Throwable) {
             return null;
         }

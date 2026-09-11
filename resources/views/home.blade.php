@@ -203,7 +203,7 @@
                          è la parola a cambiare, non il rilievo. Una pubblicità
                          che si annuncia in un angolo più discreto
                          dell'evidenza redazionale non si annuncia. --}}
-                    <span class="flex flex-wrap items-baseline gap-x-2 bg-accent px-2.5 py-[7px] font-display text-[0.594rem] leading-none font-extrabold tracking-[0.16em] text-on-accent uppercase">
+                    <span class="ui-tag flex flex-wrap items-baseline gap-x-2 bg-accent px-2.5 py-[7px] font-display text-[0.594rem] leading-none font-extrabold tracking-[0.16em] text-on-accent uppercase">
                         @if ($heroSponsorizzato)
                             {{ __('sponsorships.label') }}
                             <span class="font-normal tracking-[0.1em] normal-case opacity-80">
@@ -215,7 +215,7 @@
                     </span>
 
                     @if ($heroCapienza !== null && $heroCapienza->percentSold() !== null)
-                        <span class="border-2 border-ink px-2.5 py-1.5 font-display text-[0.594rem] leading-none font-extrabold tracking-[0.16em] uppercase animate-[floatY_3.4s_ease-in-out_infinite] [animation-play-state:var(--anim-play)]">
+                        <span class="ui-tag border-2 border-ink px-2.5 py-1.5 font-display text-[0.594rem] leading-none font-extrabold tracking-[0.16em] uppercase animate-[floatY_3.4s_ease-in-out_infinite] [animation-play-state:var(--anim-play)]">
                             {{ __('events.capacity.sold', ['percent' => $heroCapienza->percentSold()]) }}
                         </span>
                     @endif

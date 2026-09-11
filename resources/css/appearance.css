@@ -56,7 +56,7 @@
     text-transform: none;
     letter-spacing: 0;
 }
-:root[data-theme="light"] :is(button, input:not([type="checkbox"]):not([type="radio"]), select, textarea, summary) { border-radius: 6px; }
+:root[data-theme="light"] :where(button, input:not([type="checkbox"]):not([type="radio"]), select, textarea, summary) { border-radius: 6px; }
 :root[data-theme="light"] :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) { border-color: var(--line-strong); }
 :root[data-theme="light"] .border-2 { border-width: 1px; }
 :root[data-theme="light"] .border-t-2 { border-top-width: 1px; }
@@ -159,10 +159,10 @@
 :root[data-theme="light"] .hero-title-line { display: block; }
 :root[data-theme="light"] .site-header { backdrop-filter: none; }
 :root[data-theme="light"] .site-header [role="search"] {
-    border-radius: 8px;
+    border-radius: 6px;
     background: var(--surface-raised);
 }
-:root[data-theme="light"] .site-header [role="search"] > button { border-radius: 0 7px 7px 0; }
+:root[data-theme="light"] .site-header [role="search"] > button { border-radius: 0 6px 6px 0; }
 :root[data-theme="light"] .site-header nav a { font-size: 12px; font-weight: 650; }
 :root[data-theme="light"] .home-opening {
     background: var(--canvas);
@@ -365,6 +365,25 @@
 /* Shared action shape: links used as controls follow the same rule as buttons.
    Keep layout, padding and native link semantics at the call site. */
 :root[data-theme="light"] { --radius-control: 6px; }
-:root[data-theme="light"] :is(.ui-action, .event-utility-action, .status-badge, .venue-direction, button, summary, input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+:root[data-theme="light"] :where(.ui-action, .ui-tag, .event-utility-action, .status-badge, .venue-direction, button, summary, input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
     border-radius: var(--radius-control);
 }
+
+/* Joined search: the submit button closes the right outer edge. */
+:root[data-theme="light"] .site-header [role="search"] > input { border-radius: 0; }
+/* Map controls share a quiet surface and one outer border. */
+:root[data-theme="light"] .maplibregl-ctrl-group {
+    border: 1px solid var(--line);
+    border-radius: var(--radius-control);
+    background: var(--surface-raised);
+    box-shadow: 0 2px 8px rgb(20 25 30 / 6%);
+}
+:root[data-theme="light"] .maplibregl-ctrl-group button {
+    border-radius: 0;
+    background: var(--surface-raised);
+}
+:root[data-theme="light"] .maplibregl-ctrl-group button + button { border-top: 1px solid var(--line); }
+:root[data-theme="light"] .maplibregl-ctrl-group button:hover,
+:root[data-theme="light"] .maplibregl-ctrl-group button:focus-visible { background: var(--surface); }
+:root[data-theme="light"] .maplibregl-ctrl-group button .maplibregl-ctrl-icon { filter: none !important; opacity: .65; }
+:root[data-theme="light"] .maplibregl-ctrl-group button:focus-visible { outline-offset: -3px; }

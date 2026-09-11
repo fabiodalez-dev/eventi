@@ -27,6 +27,7 @@ it('accompagna ogni pagina pubblica con le intestazioni di base', function (): v
 
     expect($response->headers->get('Permissions-Policy'))->toContain('geolocation=(self)')
         ->and($response->headers->get('Content-Security-Policy'))
+        ->toContain("worker-src 'self' blob:")
         ->toContain("object-src 'none'")
         ->toContain("base-uri 'self'")
         ->toContain("frame-ancestors 'self'");

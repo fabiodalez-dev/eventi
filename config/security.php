@@ -82,6 +82,9 @@ return [
      * `excluded_paths` usa la sintassi di `Request::is()`: `admin*` copre sia
      * `/admin` sia tutto ciò che ci sta sotto.
      */
+    // MapLibre creates blob workers; notifications use the same-origin service worker.
+    'worker_src' => "worker-src 'self' blob:",
+
     'script_src' => [
         'enabled' => env('SECURITY_SCRIPT_SRC', true),
         'excluded_paths' => [

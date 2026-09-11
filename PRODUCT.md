@@ -49,3 +49,11 @@ Obiettivo WCAG 2.2 AA e piena navigazione con TalkBack. Contrasto elevato, aree 
 Il prodotto comprende sito pubblico, pannelli web, API e app Android nativa; le modifiche ai flussi condivisi devono essere considerate su entrambe le interfacce consumer. Non richiedere una seconda autorizzazione per build o deploy già richiesti nella sessione.
 
 La qualità comprende test funzionali, browser e dispositivo, analisi statica e verifiche architetturali. Non equivale a dichiarare ogni controllo verde: livello massimo Larastan, prestazioni Lighthouse e verifiche dei servizi esterni hanno limiti espliciti nel referto del rilascio. Le funzioni future della roadmap non sono presentate come già distribuite.
+
+### Informazioni pratiche dell’evento
+
+«Prima di andare» segue la descrizione e presenta tessera, accessibilità e caratteristiche selezionate con icone. Il catalogo condiviso è gestibile dagli admin come una tassonomia; gli editor selezionano le voci e possono aggiungere informazioni libere specifiche dell’evento. Le condizioni della tessera non si ereditano dal locale. Implementazione, seed e flusso di compilazione: [docs/BEFORE-GOING.md](docs/BEFORE-GOING.md).
+
+### Pubblicazione programmata e ticketing dalla scheda evento
+
+La programmazione degli eventi rispetta moderazione e autorizzazioni correnti del locale, con esecuzione ogni minuto. La scheda Ingresso collega prezzi condizionali, configurazione delle prenotazioni per data e gestione partecipanti. Gli admin abilitano il locale dalla scheda Ticketing; sono supportati biglietti gratuiti o pagamento all’ingresso. Dettagli operativi: [docs/EVENT-PUBLICATION.md](docs/EVENT-PUBLICATION.md).

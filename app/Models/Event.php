@@ -389,6 +389,8 @@ class Event extends Model implements HasMedia
             'is_featured' => 'boolean',
             'featured_until' => 'datetime',
             'editorial_score' => 'integer',
+            'scheduled_publish_at' => 'immutable_datetime',
+            'publication_scheduled_by' => 'integer',
             'published_at' => 'datetime',
             'views_count' => 'integer',
             'saves_count' => 'integer',

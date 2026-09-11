@@ -10,7 +10,7 @@ afterEach(function (): void {
     Carbon::setTestNow();
 });
 
-it('places the mobile description immediately after the poster and before price', function (): void {
+it('shows one shared description immediately after saving the date', function (): void {
     $city = testCity();
     freezeLocal($city, '2026-09-07 12:00:00');
     $item = occurrenceAtLocal($city, testCategory(), '2026-09-10 21:00:00', event: [
@@ -20,11 +20,10 @@ it('places the mobile description immediately after the poster and before price'
     $document = new DOMDocument;
     @$document->loadHTML($html);
     $xpath = new DOMXPath($document);
-    $mobile = $xpath->query('//aside/section[@aria-labelledby="descrizione-evento-mobile"]')->item(0);
-    expect($mobile)->not->toBeNull()
-        ->and($mobile->getAttribute('class'))->toContain('lg:hidden')
-        ->and($mobile->textContent)->toContain('Descrizione completa da leggere subito.');
-    expect($xpath->query('//aside/section[@aria-labelledby="descrizione-evento-mobile"]/following-sibling::section[1]/@aria-labelledby')->item(0)->nodeValue)->toBe('prezzo-evento');
+    $description = $xpath->query('//article/section[@aria-labelledby="descrizione-evento"]');
+    expect($description->length)->toBe(1)
+        ->and($description->item(0)->textContent)->toContain('Descrizione completa da leggere subito.');
+    expect($xpath->query('//article/section[@aria-labelledby="descrizione-evento"]/preceding-sibling::*[1][@aria-labelledby="salva-evento"]')->length)->toBe(1);
 });
 
 it('shows a branded placeholder on event and occurrence pages without a poster', function (): void {

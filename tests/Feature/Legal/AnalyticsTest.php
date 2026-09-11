@@ -146,10 +146,12 @@ describe('configurata e accettata', function (): void {
             ->assertOk()
             ->getContent();
 
-        expect($html)
-            ->toContain('src="https://statistiche.esempio.test/script.js"')
-            ->toContain('data-domain="eventi.fabiodalez.it"')
-            ->toContain('<script defer');
+        $document = new DOMDocument;
+        @$document->loadHTML($html);
+        $script = (new DOMXPath($document))->query('//script[@src="https://statistiche.esempio.test/script.js"]')->item(0);
+        expect($script)->not->toBeNull()
+            ->and($script->getAttribute('data-domain'))->toBe('eventi.fabiodalez.it')
+            ->and($script->hasAttribute('defer'))->toBeTrue();
     });
 
     it('usa `data-website-id` per Umami', function (): void {

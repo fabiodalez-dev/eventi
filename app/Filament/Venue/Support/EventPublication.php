@@ -28,10 +28,12 @@ final class EventPublication
 {
     public static function submit(Event $event): EventStatus
     {
+        Gate::authorize('update', $event);
+        abort_if(in_array($event->status, [EventStatus::Cancelled, EventStatus::Archived], true), 403);
         if (Gate::allows('publish', $event) && app(PublishEventAction::class)->canPublish($event)) {
             app(PublishEventAction::class)->publish($event);
 
-            return EventStatus::Published;
+            return $event->status;
         }
 
         $event->status = EventStatus::Pending;
@@ -42,6 +44,11 @@ final class EventPublication
 
     public static function notify(EventStatus $status): void
     {
+        if ($status === EventStatus::Draft) {
+            Notification::make()->success()->title('Pubblicazione programmata')->send();
+
+            return;
+        }
         Notification::make()
             ->title($status === EventStatus::Published
                 ? __('manage.notifications.published')

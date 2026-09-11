@@ -122,7 +122,7 @@
                                 {{ $formatter->dayNumber($cell['date']) }}
                             </span>
 
-                            <span class="bg-brand-soft px-1.5 py-0.5 text-eyebrow text-on-brand-soft" aria-hidden="true">
+                            <span class="ui-tag bg-brand-soft px-1.5 py-0.5 text-eyebrow text-on-brand-soft" aria-hidden="true">
                                 {{ $cell['count'] }}
                             </span>
                         </a>

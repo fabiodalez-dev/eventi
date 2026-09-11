@@ -48,7 +48,7 @@
              si accende quando serve. --}}
         <span
             aria-hidden="true"
-            class="absolute right-0 bottom-0 bg-accent px-3 py-2 font-display text-[0.594rem] leading-none font-extrabold tracking-[0.14em] text-on-accent uppercase transition-opacity md:opacity-0 md:group-hover:opacity-100 md:group-focus-visible:opacity-100"
+            class="ui-tag absolute right-0 bottom-0 bg-accent px-3 py-2 font-display text-[0.594rem] leading-none font-extrabold tracking-[0.14em] text-on-accent uppercase transition-opacity md:opacity-0 md:group-hover:opacity-100 md:group-focus-visible:opacity-100"
         >
             {{ __('events.poster.open') }}
         </span>

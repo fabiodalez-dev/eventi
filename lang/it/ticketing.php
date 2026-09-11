@@ -36,7 +36,7 @@ return [
     'cancellation_closes_at' => 'Ultimo momento per annullare',
     'time_hint' => 'Orari :timezone. Apertura vuota: subito. Chiusure vuote: inizio evento.',
     'instructions' => 'Istruzioni per chi prenota', 'save' => 'Salva impostazioni',
-    'admin_enable' => 'Abilita biglietteria gratuita per questo locale',
+    'admin_enable' => 'Abilita ticketing inCittà per questo locale',
     'admin_hint' => 'Il proprietario potrà attivare le prenotazioni sulle singole date. Disabilitare blocca nuove prenotazioni, senza cancellare i biglietti emessi.',
     'disabled_hint' => 'La biglietteria deve essere abilitata da un amministratore per questo locale.',
     'export' => 'Scarica partecipanti CSV', 'search' => 'Cerca nome o email', 'filter' => 'Cerca',

@@ -6,6 +6,7 @@ namespace App\Actions;
 
 use App\Enums\EventStatus;
 use App\Models\Event;
+use Illuminate\Support\Facades\Gate;
 use RuntimeException;
 
 /**
@@ -24,10 +25,23 @@ final class PublishEventAction
 {
     public function publish(Event $event): Event
     {
+        if (auth()->user() !== null) {
+            Gate::authorize('publish', $event);
+        }
         if (! $event->occurrences()->exists()) {
             throw new RuntimeException('An event without occurrences cannot be published.');
         }
 
+        if ($event->scheduled_publish_at?->isFuture()) {
+            Gate::authorize('publish', $event);
+            $event->publication_scheduled_by = auth()->id();
+            $event->status = EventStatus::Draft;
+            $event->save();
+
+            return $event;
+        }
+        $event->scheduled_publish_at = null;
+        $event->publication_scheduled_by = null;
         $event->status = EventStatus::Published;
         $event->published_at ??= now();
         $event->rejection_reason = null;
@@ -38,6 +52,8 @@ final class PublishEventAction
 
     public function unpublish(Event $event): Event
     {
+        $event->scheduled_publish_at = null;
+        $event->publication_scheduled_by = null;
         $event->status = EventStatus::Draft;
         $event->save();
 

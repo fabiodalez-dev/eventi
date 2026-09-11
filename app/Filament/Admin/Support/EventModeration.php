@@ -73,7 +73,7 @@ final class EventModeration
     private static function publish(): Action
     {
         return Action::make('publish')
-            ->label(__('admin.actions.publish'))
+            ->label(fn (Event $record): string => $record->scheduled_publish_at?->isFuture() ? 'Approva programmazione' : __('admin.actions.publish'))
             ->icon(Heroicon::OutlinedPaperAirplane)
             ->color('success')
             ->requiresConfirmation()
@@ -94,7 +94,7 @@ final class EventModeration
 
                 $action->publish($record);
 
-                self::notify(__('admin.notifications.published'));
+                self::notify($record->scheduled_publish_at ? 'Programmazione approvata' : __('admin.notifications.published'));
             });
     }
 

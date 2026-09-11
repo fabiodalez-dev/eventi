@@ -465,6 +465,20 @@ class VenueResource extends Resource
                                     ]),
                             ]),
 
+                        Tab::make('Ticketing')
+                            ->schema([
+                                Section::make('Abilitazione ticketing inCittà')
+                                    ->description('Biglietti gratuiti o pagamento all’ingresso. Abilita qui il locale, poi configura posti, limiti e prenotazioni nella scheda di ogni evento, alla voce Ingresso.')
+                                    ->schema([
+                                        Toggle::make('ticketing_enabled')
+                                            ->label(__('ticketing.admin_enable'))
+                                            ->helperText(__('ticketing.admin_hint'))
+                                            ->disabled(fn (): bool => ! auth()->user()?->hasAnyRole(['admin', 'super_admin']))
+                                            ->dehydrated(fn (): bool => auth()->user()?->hasAnyRole(['admin', 'super_admin']) ?? false),
+
+                                    ]),
+                            ]),
+
                         Tab::make(__('admin.form_tabs.moderation'))
                             ->schema([
                                 Section::make(__('admin.sections.moderation'))
@@ -485,12 +499,6 @@ class VenueResource extends Resource
                                         Toggle::make('auto_publish')
                                             ->label(__('admin.fields.auto_publish'))
                                             ->helperText(__('admin.hints.auto_publish')),
-
-                                        Toggle::make('ticketing_enabled')
-                                            ->label(__('ticketing.admin_enable'))
-                                            ->helperText(__('ticketing.admin_hint'))
-                                            ->disabled(fn (): bool => ! auth()->user()?->hasAnyRole(['admin', 'super_admin']))
-                                            ->dehydrated(fn (): bool => auth()->user()?->hasAnyRole(['admin', 'super_admin']) ?? false),
 
                                         Toggle::make('is_nonprofit')
                                             ->label(__('admin.fields.is_nonprofit')),

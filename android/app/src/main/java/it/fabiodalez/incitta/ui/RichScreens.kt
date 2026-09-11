@@ -188,7 +188,6 @@ fun CompleteEventDetailScreen(
                     }
                 }
 
-                EditorialInformation(detail.contentDetails)
                 detail.description?.takeIf(String::isNotBlank)?.let { description ->
                     DetailSection("DESCRIZIONE") {
                         Text(
@@ -200,6 +199,8 @@ fun CompleteEventDetailScreen(
                         )
                     }
                 }
+
+                EditorialInformation(detail.contentDetails)
 
                 if (detail.facts.isNotEmpty() || detail.ageRestriction != null || detail.language != null || detail.isOutdoor) {
                     DetailSection("INFORMAZIONI") {
@@ -258,7 +259,7 @@ fun CompleteEventDetailScreen(
                             ActionButton("INDICAZIONI", Icons.Outlined.Map) { directions(context, venue.lat, venue.lng, venue.name) }
                         }
                     }
-                    AccessibilitySection(venue)
+                    if ((detail.contentDetails as? JsonObject)?.get("practical_items") == null) AccessibilitySection(venue)
                 }
 
                 if (detail.venue == null && detail.customLocation != null && (detail.contentDetails as? JsonObject)?.get("attendance_mode")?.jsonPrimitive?.contentOrNull != "online") {

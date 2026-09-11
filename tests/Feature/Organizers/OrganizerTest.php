@@ -176,7 +176,7 @@ it('inherits practical information from the actual date venue and preserves expl
 
 it('does not interpret an unknown accessibility value as a negative answer', function (): void {
     $this->date->event->update(['content_details' => ['accessibility' => 'unknown']]);
-    $this->get('/eventi/'.$this->date->event->slug)->assertOk()->assertSee('Non specificato');
+    $this->get('/eventi/'.$this->date->event->slug)->assertOk()->assertDontSee('Non specificato')->assertDontSee('Non accessibile in sedia a rotelle');
 });
 
 it('rejects foreign-city date venues and forged follow subjects', function (): void {
