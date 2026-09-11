@@ -290,3 +290,48 @@ it('hides expired QR and allows only the booking owner to resend a summary', fun
     $this->travelTo($this->date->effective_ends_at->copy()->addMinute());
     $this->getJson('/api/v1/me/bookings')->assertJsonPath('data.0.tickets.0.status', 'expired')->assertJsonPath('data.0.tickets.0.qr_payload', null);
 });
+
+it('allows the scanner camera only on authorized checkin pages', function (): void {
+    $this->actingAs($this->user)->get('/gestione-biglietti/'.$this->date->id)->assertForbidden();
+    $this->user->assignRole('admin');
+    $this->get('/gestione-biglietti/'.$this->date->id)->assertOk()
+        ->assertHeader('Permissions-Policy', 'geolocation=(self), microphone=(), payment=(), usb=(), camera=(self)')
+        ->assertSee('data-ticket-scanner', false)->assertSee('data-ticket-statistics', false);
+    expect($this->get('/')->headers->get('Permissions-Policy'))->toContain('camera=()');
+});
+
+it('separates upcoming ongoing and past dates and searches within authorized events', function (): void {
+    $this->user->venues()->attach($this->date->event->venue_id, ['role' => 'owner']);
+    $this->date->event->update(['title' => 'Concerto da trovare']);
+    $past = occurrenceAt($this->date->event->city, $this->date->event->category, '2026-09-01 18:00:00', '2026-09-01 22:00:00');
+    $past->event->update(['venue_id' => $this->date->event->venue_id, 'title' => 'Concerto passato']);
+    $this->actingAs($this->user)->get('/gestione-biglietti')->assertOk()->assertSee('Concerto da trovare')->assertDontSee('Concerto passato');
+    $this->get('/gestione-biglietti?period=past')->assertOk()->assertSee('Concerto passato')->assertDontSee('Concerto da trovare');
+    $this->get('/gestione-biglietti?q=inesistente')->assertOk()->assertSee('Non ci sono eventi')->assertDontSee('Concerto da trovare');
+    $this->get('/gestione-biglietti?q=trovare')->assertOk()->assertSee('Concerto da trovare');
+    $this->get('/gestione-biglietti?period=invalid')->assertRedirect();
+});
+
+it('shows an explicit empty ticket state and a profile return link', function (): void {
+    $this->actingAs($this->user)->get(route('tickets.index'))->assertOk()->assertSee('Non hai ancora biglietti.')->assertSee('data-profile-back', false);
+    foreach (['account.content-preferences', 'account.notifications.interests', 'appearance', 'google-calendar.index'] as $route) {
+        $this->get(route($route))->assertOk()->assertSee('data-profile-back', false);
+    }
+    $this->followingRedirects()->get(route('account.notifications'))->assertOk()->assertSee('data-profile-back', false);
+});
+
+it('returns checkin success and errors to the event even after background requests', function (): void {
+    $this->user->assignRole('admin');
+    $booking = $this->service->reserve($this->user, $this->date, ['Anna'], (string) Str::uuid(), false);
+    $this->travelTo($this->date->starts_at->copy()->subHour());
+    $ticket = $booking->tickets->first();
+    $this->actingAs($this->user)->withSession(['_previous' => ['url' => url('/salvataggi/stato')]])
+        ->post('/gestione-biglietti/'.$this->date->id.'/ingresso', ['code' => $ticket->code])
+        ->assertRedirect(route('ticketing.manage.show', $this->date));
+    $this->withSession(['_previous' => ['url' => url('/salvataggi/stato')]])
+        ->post('/gestione-biglietti/'.$this->date->id.'/ingresso', ['code' => $ticket->code])
+        ->assertRedirect(route('ticketing.manage.show', $this->date))->assertSessionHasErrors();
+    $this->withSession(['_previous' => ['url' => url('/salvataggi/stato')]])
+        ->post('/gestione-biglietti/'.$this->date->id.'/ingresso', ['code' => 'invalid'])
+        ->assertRedirect(route('ticketing.manage.show', $this->date))->assertSessionHasErrors('code');
+});

@@ -27,7 +27,7 @@ return [
     'cancel' => 'Annulla prenotazione', 'cancel_ticket' => 'Annulla questo biglietto',
     'confirm_cancel' => 'Il posto verrà liberato e il QR non sarà più valido. Confermi l’annullamento?',
     'pdf' => 'Scarica PDF', 'show_qr' => 'Mostra QR', 'qr_hint' => 'Mostra questo codice all’ingresso. È personale: non condividerlo.',
-    'empty' => 'I biglietti prenotati appariranno qui. Salvare un evento in agenda non prenota un posto.',
+    'empty' => 'Non hai ancora biglietti. I biglietti prenotati appariranno qui. Salvare un evento in agenda non prenota un posto.',
     'browse' => 'Esplora gli eventi', 'back' => 'Torna ai biglietti', 'participants' => 'Partecipanti',
     'settings' => 'Prenotazioni per questa data', 'enabled' => 'Accetta prenotazioni',
     'capacity' => 'Posti prenotabili', 'capacity_hint' => 'Lascia vuoto per non imporre un limite. Non modifica la capienza fisica del locale.',

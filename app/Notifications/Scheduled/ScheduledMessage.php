@@ -6,8 +6,10 @@ namespace App\Notifications\Scheduled;
 
 use App\DTOs\NotificationMessage;
 use App\Enums\NotificationChannel;
+use App\Jobs\Middleware\RespectNotificationPreferences;
 use App\Models\User;
 use App\Services\Notifications\ChannelSelector;
+use App\Support\Features;
 use App\Support\Notifications\PreferenceLinks;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -62,9 +64,23 @@ final class ScheduledMessage extends Notification implements ShouldQueue
         public readonly NotificationChannel $channel = NotificationChannel::Mail,
     ) {}
 
-    /**
-     * @return array<int, string>
-     */
+    public function shouldSend(object $notifiable, string $channel): bool
+    {
+        if (! $notifiable instanceof User || ! $notifiable->canReceiveNotifications() || $notifiable->trashed()) {
+            return false;
+        }
+        $type = $this->message->type;
+
+        return $type->isEnabledFor($notifiable) && (! $type->isMarketing() || Features::newsletterActive());
+    }
+
+    /** @return array<int, object> */
+    public function middleware(object $notifiable, string $channel): array
+    {
+        return [new RespectNotificationPreferences];
+    }
+
+    /** @return array<int, string> */
     public function via(object $notifiable): array
     {
         /*

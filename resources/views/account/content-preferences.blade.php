@@ -1,7 +1,7 @@
 <x-layouts.app :narrow="true" :meta="$meta">
     <div class="mx-auto flex w-full max-w-2xl flex-col gap-6">
         <h1 class="text-hero text-ink">I miei interessi</h1>
-        <p class="text-ink-muted">Scegli cosa trovare in home, ricerca, mappe e suggerimenti. Le scelte valgono anche nell’app e puoi cambiarle in qualsiasi momento.</p>
+        <p class="text-ink-muted">Scegli cosa trovare in home, ricerca, mappe, suggerimenti e newsletter. Le scelte valgono anche nell’app e puoi cambiarle in qualsiasi momento.</p>
         @if($errors->any())<div role="alert">{{ $errors->first() }}</div>@endif
         <form method="POST" action="{{ route('account.content-preferences.update') }}" class="flex flex-col gap-6">
             @csrf @method('PATCH')
@@ -15,9 +15,9 @@
                 <legend class="mb-3 font-bold">Categorie</legend>
                 @foreach($options as $category)
                     @php($choice = old('choices.'.$category->id, in_array($category->id, $selection['hidden_categories']) ? 'hidden' : (in_array($category->id, $selection['categories']) ? 'interested' : 'neutral')))
-                    <label class="flex flex-wrap items-center justify-between gap-3 py-3">
+                    <label class="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] items-center gap-3 py-3">
                         <span class="font-semibold">{{ $category->name }}</span>
-                        <select name="choices[{{ $category->id }}]" class="min-h-12 max-w-full border-2 border-line bg-canvas px-3 text-ink">
+                        <select name="choices[{{ $category->id }}]" class="min-h-12 w-full min-w-0 border-2 border-line bg-canvas px-2 text-sm text-ink">
                             <option value="neutral" @selected($choice === 'neutral')>Nessuna preferenza</option>
                             <option value="interested" @selected($choice === 'interested')>Mi interessa</option>
                             <option value="hidden" @selected($choice === 'hidden')>Nascondi</option>
@@ -26,7 +26,7 @@
                 @endforeach
             </fieldset>
             <label class="flex items-start gap-3"><input type="checkbox" name="inferred_ads" value="1" class="mt-1" @checked(old('inferred_ads', $selection['inferred_ads']))><span>Usa anche gli eventi salvati di recente per suggerirmi AD pertinenti.<span class="mt-1 block text-sm text-ink-muted">Le scelte esplicite contano di più. Le categorie nascoste non compaiono neppure negli AD. Non usiamo i singoli click per dedurre interessi.</span></span></label>
-            <p class="text-sm text-ink-muted">Notifiche, biglietti e salvataggi restano separati: non cancelliamo nulla. Puoi sempre aprire un evento tramite il suo link diretto.</p>
+            <p class="text-sm text-ink-muted">Le newsletter usano le categorie che ti interessano e ciò che segui. Non includono le categorie nascoste. Biglietti, promemoria e salvataggi restano invariati. Puoi sempre aprire un evento tramite il suo link diretto.</p>
             <x-button type="submit">Salva i miei interessi</x-button>
             <x-button :href="route('home')" variant="secondary">Torna agli eventi</x-button>
         </form>

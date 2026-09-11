@@ -55,9 +55,10 @@ class VenuePanelProvider extends PanelProvider
         return $panel
             ->id('venue')
             ->path('gestione')
-            ->navigationItems([NavigationItem::make('Biglietti e partecipanti')
-                ->icon('heroicon-o-ticket')->url(fn (): string => route('ticketing.manage.index'))
-                ->visible(fn (): bool => auth()->user()?->ownedVenues()->exists() === true),
+            ->navigationItems([NavigationItem::make('Il mio profilo')->icon('heroicon-o-user-circle')->url(fn (): string => route('account.profile')),
+                NavigationItem::make('Biglietti e partecipanti')
+                    ->icon('heroicon-o-ticket')->url(fn (): string => route('ticketing.manage.index'))
+                    ->visible(fn (): bool => auth()->user()?->ownedVenues()->exists() === true),
             ])
             ->login()
             ->passwordReset()

@@ -55,3 +55,33 @@ per l'APK da consegnare eseguire nuovamente `./gradlew assembleRelease`
 senza quella proprietà. Il test Firebase verifica registrazione e revoca reali
 del token sul solo emulatore. I test di prenotazione che richiedono il database
 locale non vengono eseguiti contro la produzione.
+
+## Profilo e newsletter, 11 settembre 2026
+
+La voce **Sistema → Newsletter**, con icona busta nella sidebar, è riservata ai
+superadmin. Permette di attivare/disattivare gli invii, scegliere giorno e ora
+(nel fuso del destinatario), limitare gli eventi e modificare oggetto, titolo,
+introduzione e pulsante. `:count` nell’introduzione indica il numero di eventi.
+I campi di testo vuoti ripristinano l’originale. L’orario vale per le nuove
+programmazioni; gli invii già pianificati conservano il proprio orario.
+
+Il consenso resta individuale e richiede email verificata. La newsletter usa
+le categorie «Mi interessa» e i follow con notifiche attive, escludendo le
+categorie nascoste o escluse dalla modalità «Solo». Senza interessi o eventi
+pertinenti non viene inviata una selezione generica. I testi condividono il
+catalogo esistente «Testi delle email».
+
+Spegnere la newsletter blocca anche le righe programmate e le consegne già
+accodate. Le consegne ricontrollano consenso e preferenze; se la coda arriva
+nelle ore di silenzio, il lavoro viene rimandato alla fine della finestra.
+Annullamenti e spostamenti restano gli avvisi obbligatori dichiarati nel profilo.
+I testi delle push descrivono il canale scelto: non promettono email di ripiego
+quando l’utente ha selezionato esclusivamente push.
+
+Nella sezione notifiche del browser, «Riattiva / reimposta questo browser»
+richiede il permesso dopo il click e rinnova solo l’endpoint corrente. Un
+permesso negato resta sotto il controllo del browser: le istruzioni spiegano
+come modificarlo, poi è possibile riprovare senza ricaricare la pagina.
+«Mostra notifica di prova» verifica la visualizzazione locale tramite service
+worker, non la consegna del trasporto push. Lo stato iniziale distingue
+l’iscrizione di questo browser da quelle degli altri dispositivi dell’account.

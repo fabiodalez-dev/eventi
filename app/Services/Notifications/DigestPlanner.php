@@ -11,6 +11,7 @@ use App\Models\Follow;
 use App\Models\NotificationLog;
 use App\Models\User;
 use App\Models\Venue;
+use App\Settings\NewsletterSettings;
 use App\Support\Features;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
@@ -140,8 +141,8 @@ final class DigestPlanner
             $sendAt = $this->nextWeekday(
                 $now,
                 $timezone,
-                config()->integer('notifications.digests.weekend.weekday'),
-                config()->string('notifications.digests.weekend.time'),
+                app(NewsletterSettings::class)->weekday,
+                app(NewsletterSettings::class)->time,
             );
 
             if ($sendAt->lessThanOrEqualTo($horizon)) {

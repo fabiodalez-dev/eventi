@@ -3,10 +3,9 @@
  * (§15.6, D54).
  *
  * Regola d'ingaggio identica a quella di `app.js`: **nulla qui e' necessario**.
- * Se il browser non sa cosa sia un service worker, o se il permesso non viene
- * concesso, la pagina resta esattamente quella di prima e le notifiche
- * continuano ad arrivare per email — che e' il ripiego previsto da §15.6, non
- * un guasto.
+ * Se il browser non supporta le push o il permesso non viene concesso,
+ * le preferenze rimangono modificabili. Il canale scelto governa l'eventuale
+ * consegna per email: una scelta push-only non viene cambiata di nascosto.
  *
  * Due cose che sembrano dettagli e non lo sono:
  *
@@ -135,91 +134,100 @@ async function disdici() {
         }
     }
 
-    /*
-     * Si avvisa il server anche senza endpoint: e' il caso di chi ha revocato
-     * il permesso dalle impostazioni del browser, dove l'iscrizione da citare
-     * non esiste piu' ma la riga in `devices` si'.
-     */
-    await chiamaServer("DELETE", "/notifiche/push", { endpoint });
+    // Without a local endpoint, do not revoke other browsers of the account.
+    if (endpoint) await chiamaServer("DELETE", "/notifiche/push", { endpoint });
 }
 
 function push() {
-    const sezione = document.querySelector("[data-push]");
-
-    if (!sezione) {
+    const sezione = document.querySelector('[data-push]');
+    if (!sezione) return;
+    const interruttore = sezione.querySelector('[data-push-toggle]');
+    const stato = sezione.querySelector('[data-push-status]');
+    const riprova = sezione.querySelector('[data-push-reset]');
+    const prova = sezione.querySelector('[data-push-test]');
+    const aiuto = sezione.querySelector('[data-push-help]');
+    const chiave = sezione.dataset.push;
+    const supportato = window.isSecureContext && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+    const dillo = (testo) => { stato.textContent = testo || ''; };
+    let occupato = false;
+    const aggiorna = () => {
+        const negato = supportato && Notification.permission === 'denied';
+        interruttore.disabled = occupato || !supportato || negato;
+        riprova.disabled = occupato || !supportato;
+        prova.disabled = occupato || !supportato || !interruttore.checked || Notification.permission !== 'granted';
+        if (negato) { interruttore.checked = false; aiuto.open = true; dillo(sezione.dataset.pushDenied); }
+    };
+    if (!supportato) {
+        interruttore.checked = false;
+        aggiorna();
+        dillo(sezione.dataset.pushUnsupported);
         return;
     }
-
-    const interruttore = sezione.querySelector("[data-push-toggle]");
-    const stato = sezione.querySelector("[data-push-status]");
-    const chiave = sezione.dataset.push;
-
-    const supportato =
-        "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
-
-    const dillo = (testo) => {
-        if (stato) {
-            stato.textContent = testo;
+    const abilita = async (ricrea = false) => {
+        if (occupato) return;
+        occupato = true;
+        aggiorna();
+        try {
+            // The permission request must be the first async operation after the click.
+            const permesso = await Notification.requestPermission();
+            if (permesso !== 'granted') {
+                interruttore.checked = false;
+                aiuto.open = true;
+                dillo(sezione.dataset.pushDenied);
+                return;
+            }
+            if (ricrea) await disdici();
+            await iscrivi(chiave);
+            interruttore.checked = true;
+            aiuto.open = false;
+            dillo(sezione.dataset.pushOn);
+        } catch {
+            interruttore.checked = false;
+            dillo(sezione.dataset.pushFailed);
+        } finally {
+            occupato = false;
+            aggiorna();
         }
     };
-
-    if (!supportato || !interruttore) {
-        dillo(sezione.dataset.pushUnsupported || "");
-
-        if (interruttore instanceof HTMLInputElement) {
-            interruttore.disabled = true;
-            interruttore.checked = false;
-        }
-
-        return;
-    }
-
-    if (Notification.permission === "denied") {
-        dillo(sezione.dataset.pushDenied || "");
-        interruttore.disabled = true;
-        interruttore.checked = false;
-
-        return;
-    }
-
-    /*
-     * Il permesso c'e' gia' e l'interruttore era acceso: si rinnova
-     * l'iscrizione in silenzio, che e' l'unico modo perche' `last_seen_at`
-     * resti la data dell'ultimo accesso.
-     */
-    if (Notification.permission === "granted" && interruttore.checked) {
-        iscrivi(chiave).catch(() => dillo(sezione.dataset.pushFailed || ""));
-    }
-
-    interruttore.addEventListener("change", async () => {
-        interruttore.disabled = true;
-
-        try {
-            if (!interruttore.checked) {
-                await disdici();
-                dillo(sezione.dataset.pushOff || "");
-
-                return;
-            }
-
-            const permesso = await Notification.requestPermission();
-
-            if (permesso !== "granted") {
-                interruttore.checked = false;
-                dillo(sezione.dataset.pushDenied || "");
-
-                return;
-            }
-
-            await iscrivi(chiave);
-            dillo(sezione.dataset.pushOn || "");
-        } catch (errore) {
-            interruttore.checked = false;
-            dillo(sezione.dataset.pushFailed || "");
-        } finally {
-            interruttore.disabled = false;
-        }
+    interruttore.addEventListener('change', async () => {
+        if (interruttore.checked) return abilita();
+        occupato = true;
+        aggiorna();
+        try { await disdici(); dillo(sezione.dataset.pushOff); }
+        catch { dillo(sezione.dataset.pushFailed); }
+        finally { occupato = false; aggiorna(); }
     });
+    riprova.addEventListener('click', () => abilita(true));
+    prova.addEventListener('click', async () => {
+        occupato = true;
+        aggiorna();
+        try {
+            const registrazione = await navigator.serviceWorker.ready;
+            await registrazione.showNotification('inCittà: notifica di prova', {
+                body: 'Le notifiche possono essere mostrate su questo browser.',
+                icon: '/icon-192.png', tag: 'incitta-browser-test', data: { url: location.href },
+            });
+            dillo('Prova richiesta al browser. Se non la vedi, controlla anche le notifiche nelle impostazioni del dispositivo.');
+        } catch { dillo(sezione.dataset.pushFailed); }
+        finally { occupato = false; aggiorna(); }
+    });
+    const attivoSulServer = interruttore.checked;
+    interruttore.checked = false;
+    occupato = true;
+    aggiorna();
+    navigator.serviceWorker.getRegistration(PERCORSO_WORKER)
+        .then(async (registrazione) => {
+            const iscrizione = await registrazione?.pushManager.getSubscription();
+            if (attivoSulServer && iscrizione && Notification.permission === 'granted') {
+                await iscrivi(chiave);
+                interruttore.checked = true;
+                dillo(sezione.dataset.pushOn);
+            } else if (Notification.permission !== 'denied') dillo(sezione.dataset.pushOff);
+        })
+        .catch(() => dillo(sezione.dataset.pushFailed))
+        .finally(() => { occupato = false; aggiorna(); });
+    window.addEventListener('focus', aggiorna);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) aggiorna(); });
 }
 
 push();

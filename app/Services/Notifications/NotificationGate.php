@@ -11,6 +11,7 @@ use App\Enums\NotificationType;
 use App\Models\NotificationLog;
 use App\Models\ScheduledNotification;
 use App\Models\User;
+use App\Support\Features;
 use Carbon\CarbonImmutable;
 
 /**
@@ -55,7 +56,7 @@ final class NotificationGate
             return NotificationDecision::skip(NotificationSkipReason::Unverified);
         }
 
-        if (! $type->isEnabledFor($user)) {
+        if (! $type->isEnabledFor($user) || ($type->isMarketing() && ! Features::newsletterActive())) {
             return NotificationDecision::skip(NotificationSkipReason::PreferenceOff);
         }
 
