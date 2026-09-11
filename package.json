@@ -32,7 +32,7 @@
     "dependencies": {
         "@tiptap/core": "^3.31.3",
         "@tiptap/starter-kit": "^3.31.3",
-        "@zxing/browser": "^0.1.5",
+        "@zxing/browser": "^0.2.1",
         "@zxing/library": "^0.21.3",
         "leaflet": "^1.9.4",
         "maplibre-gl": "^6.8.0"
