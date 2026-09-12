@@ -177,7 +177,7 @@ Barra superiore e navigazione inferiore nere, separate da una regola da 2 dp. Br
 
 ### Event Card
 
-Componente tipografico numerato. Categoria in un box da 2 dp, titolo maiuscolo, luogo e data, prezzo, stato e controllo wishlist. Nelle liste non usa la locandina. L'intera card apre il dettaglio, mentre il segnalibro ha un target indipendente da 48 dp.
+Componente tipografico numerato. Categoria in un box da 2 dp, titolo maiuscolo, luogo e data, prezzo, stato e controllo wishlist. Nell’elenco `/eventi` mostra anche la locandina a colori, intera e senza tagli, su mobile e desktop. Le altre liste mantengono il formato tipografico. L'intera card apre il dettaglio, mentre il segnalibro ha un target indipendente da 48 dp.
 
 ## Do's and Don'ts
 

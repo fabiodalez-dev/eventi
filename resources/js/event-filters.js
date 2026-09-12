@@ -37,6 +37,31 @@ async function fadeFilterParts(region, from, to, duration, signal) {
 
 export function eventFilters() {
     if (!document.querySelector('[data-event-browser]')) return;
+    const desktop = window.matchMedia('(min-width: 1024px)');
+    let mobileFiltersOpen = false;
+    const syncCatalogFilters = () => {
+        const details = document.querySelector('[data-catalog-filters]');
+        if (!details) return;
+        details.open = desktop.matches || mobileFiltersOpen;
+        details.querySelector('summary').hidden = desktop.matches;
+        details.querySelector('[data-filter-close]').hidden = desktop.matches;
+    };
+    document.addEventListener('toggle', event => {
+        if (event.target.matches?.('[data-catalog-filters]') && !desktop.matches) {
+            mobileFiltersOpen = event.target.open;
+        }
+    }, true);
+    document.addEventListener('click', event => {
+        if (!event.target.closest('[data-filter-close]')) return;
+        const details = document.querySelector('[data-catalog-filters]');
+        mobileFiltersOpen = false;
+        details.open = false;
+        details.querySelector('summary').focus({ preventScroll: true });
+        document.querySelector('#filtri').scrollIntoView({ block: 'start' });
+    });
+    desktop.addEventListener('change', syncCatalogFilters);
+    document.addEventListener('event-browser:updated', syncCatalogFilters);
+    syncCatalogFilters();
     searchableFilters();
     document.addEventListener('keydown', navigateFilterOptions);
     document.addEventListener('input', event => {

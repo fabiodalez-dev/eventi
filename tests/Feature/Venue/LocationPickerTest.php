@@ -105,5 +105,11 @@ it('lascia al locale caricare il proprio logo', function (): void {
         ->call('save')
         ->assertHasNoFormErrors();
 
-    expect($scenario->venueA->fresh()->getMedia('logo'))->toHaveCount(1);
+    $media = $scenario->venueA->fresh()->getMedia('logo');
+    expect($media)->toHaveCount(1)
+        ->and($media->first()->disk)->toBe(config('media-library.disk_name'));
+    Storage::disk($media->first()->disk)->assertExists($media->first()->getPathRelativeToRoot());
+    $this->get('/locali/'.$scenario->venueA->slug)->assertOk()
+        ->assertSee($media->first()->getFullUrl('full'), false)
+        ->assertSee('object-contain', false);
 });

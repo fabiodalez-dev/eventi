@@ -47,12 +47,14 @@
     'sizes' => null,
     /* La prima riga di card è sopra la piega: quelle locandine non si rinviano */
     'eager' => false,
+    // Contained logos and posters need a clean margin around the image.
+    'showPlaceholder' => true,
 ])
 
 @php
     $misure = $sizes ?? $set->sizes ?? '100vw';
 
-    $placeholder = $set->placeholder;
+    $placeholder = $showPlaceholder ? $set->placeholder : null;
     $style = $placeholder === null
         ? null
         : 'background-image:url('.$placeholder.');background-size:cover;background-position:center';
