@@ -48,7 +48,13 @@ una sola definizione di "adesso" (scenario G, verificato sotto).
 Il link mobile porta un challenge casuale monouso e a scadenza breve. Solo
 `magic-link/exchange` lo trasforma in un token Sanctum: il bearer definitivo
 non compare mai nell'URL, nei log del browser o nel referrer. Ogni nuovo link
-invalida quelli precedenti dello stesso account.
+invalida quelli precedenti dello stesso account. Il client genera un verifier casuale
+(43–128 caratteri PKCE), conserva il segreto sul dispositivo e invia
+`code_challenge = BASE64URL(SHA256(code_verifier))` nella richiesta `magic-link`.
+Lo scambio richiede `token` e `code_verifier`. Una prova errata non consuma il link;
+un cambio password lo invalida. I vecchi client senza PKCE devono essere aggiornati.
+Il collegamento HTTPS `/app/auth/magic` usa gli Android App Links verificati;
+la pagina di ripiego non riflette il token e imposta `no-store` e `no-referrer`.
 
 ### Account (`/me`, Bearer token; senza token → 401)
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Web;
 
+use App\Enums\SponsorshipStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Sponsorship;
 use App\Services\Sponsorship\RecordSponsorshipMetric;
@@ -38,9 +39,30 @@ final class SponsorshipMetricController extends Controller
      * su due colonne: due metodi identici sarebbero due posti dove correggere
      * lo stesso errore.
      */
-    public function __invoke(Request $request, Sponsorship $sponsorship, string $metric): JsonResponse
+    public function __invoke(Request $request, int $sponsorship, string $metric): JsonResponse
     {
         abort_unless(in_array($metric, ['impressions', 'clicks'], strict: true), 404);
+
+        /*
+         * Il binding implicito risolveva QUALUNQUE riga, comprese le campagne
+         * in bozza e quelle in pausa: misure scritte su qualcosa che nessun
+         * visitatore stava guardando, e che poi qualcuno legge in un rapporto.
+         *
+         * Il filtro e' sullo **stato** e non su `visible()`, che sarebbe la
+         * scelta d'istinto e sarebbe sbagliata: `visible()` pretende anche che
+         * l'evento abbia ancora una data futura, e le pagine pubbliche stanno
+         * in cache fino a un minuto. Una misura che arriva dopo la scadenza
+         * dell'ultima data e' una misura **legittima** di una card che era in
+         * pagina quando la si e' guardata; scartarla vorrebbe dire perdere
+         * impressioni vere per difendersi da una scrittura che il tetto qui
+         * sotto ferma comunque.
+         */
+        $campagna = Sponsorship::query()
+            ->where('status', SponsorshipStatus::Active)
+            ->whereKey($sponsorship)
+            ->first();
+
+        abort_if($campagna === null, 404);
 
         /*
          * Un tetto per chi chiama, non per campagna: senza, una sola persona
@@ -48,7 +70,7 @@ final class SponsorshipMetricController extends Controller
          * quelle cifre finiscono in fattura. Trenta all'ora per indirizzo sono
          * larghi per una persona che naviga e stretti per uno script.
          */
-        $chiave = 'sponsorship-metric:'.$request->ip().':'.$sponsorship->getKey().':'.$metric;
+        $chiave = 'sponsorship-metric:'.$request->ip().':'.$campagna->getKey().':'.$metric;
 
         if (RateLimiter::tooManyAttempts($chiave, maxAttempts: 30)) {
             /* 204 e non 429: al browser non interessa, e un errore in console
@@ -60,7 +82,7 @@ final class SponsorshipMetricController extends Controller
         RateLimiter::hit($chiave, decaySeconds: 3600);
 
         // Total, daily aggregate and click ledger are one atomic operation.
-        app(RecordSponsorshipMetric::class)->record($sponsorship, $metric, $request, 'web');
+        app(RecordSponsorshipMetric::class)->record($campagna, $metric, $request, 'web');
 
         return response()->json(status: 204);
     }

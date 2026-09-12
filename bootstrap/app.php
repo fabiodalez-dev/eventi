@@ -1,13 +1,16 @@
 <?php
 
 use App\Http\Middleware\Api\AlwaysJson;
+use App\Http\Middleware\AuthenticateWebSession;
 use App\Http\Middleware\InstallerSession;
 use App\Http\Middleware\PreventSharedResponseCache;
 use App\Http\Middleware\SecurityHeaders;
 use App\Support\Api\ApiExceptionRenderer;
+use App\Support\SecurityLog;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\Request;
 use Sentry\Laravel\Integration;
 use Spatie\MissingPageRedirector\RedirectsMissingPages;
@@ -46,6 +49,27 @@ return Application::configure(basePath: dirname(__DIR__))
          */
         $middleware->prependToGroup('web', InstallerSession::class);
         $middleware->prependToGroup('web', PreventSharedResponseCache::class);
+
+        /*
+         * Reimpostare la password deve CHIUDERE le sessioni già aperte.
+         *
+         * Senza questo middleware non le chiudeva: chi si era fatto rubare la
+         * password poteva cambiarla e il ladro restava dentro, con il suo
+         * cookie, fino alla scadenza naturale della sessione — cioè la
+         * reimpostazione, che è il gesto con cui una persona riprende il
+         * controllo del proprio account, non riprendeva il controllo di
+         * niente.
+         *
+         * `AuthenticateWebSession` scrive nella sessione l'impronta della
+         * password e la confronta a ogni richiesta: quando l'impronta non
+         * corrisponde più, la sessione cade. È la difesa che Laravel fornisce
+         * proprio per questo — agganciata però al guard `web` e non a quello
+         * predefinito, che è uno stato globale mutabile: vedi la classe.
+         *
+         * Va nel gruppo `web` perché deve valere per tutte le pagine con una
+         * sessione, non per quelle che qualcuno si ricorda di marcare.
+         */
+        $middleware->appendToGroup('web', AuthenticateWebSession::class);
 
         /*
          * Gli indirizzi che non esistono più (tabella `redirects`).
@@ -99,5 +123,13 @@ return Application::configure(basePath: dirname(__DIR__))
          * client dovrebbe conoscere tre forme diverse: quella della
          * validazione, quella delle eccezioni HTTP e quella del 500.
          */
+        $exceptions->render(function (ThrottleRequestsException $exception, Request $request) {
+            if ($request->is('api/v1/auth/*') || $request->routeIs('account.login.*', 'account.magic-link.*', 'account.password.*')) {
+                SecurityLog::blocco();
+            }
+
+            return null;
+        });
+
         $exceptions->render(new ApiExceptionRenderer);
     })->create();

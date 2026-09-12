@@ -132,10 +132,10 @@ data class SaveBody(@kotlinx.serialization.SerialName("occurrence_id") val occur
 data class MergeBody(@kotlinx.serialization.SerialName("occurrence_ids") val occurrenceIds: List<Long>)
 
 @kotlinx.serialization.Serializable
-data class MagicLinkBody(val email: String)
+data class MagicLinkBody(val email: String, @kotlinx.serialization.SerialName("code_challenge") val codeChallenge: String)
 
 @kotlinx.serialization.Serializable
-data class MagicExchangeBody(val token: String, @kotlinx.serialization.SerialName("device_name") val deviceName: String)
+data class MagicExchangeBody(val token: String, @kotlinx.serialization.SerialName("code_verifier") val codeVerifier: String, @kotlinx.serialization.SerialName("device_name") val deviceName: String)
 
 @kotlinx.serialization.Serializable
 data class DeleteAccountBody(val confirmation: String, val password: String)

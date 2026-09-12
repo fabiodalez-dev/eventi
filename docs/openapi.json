@@ -12479,6 +12479,10 @@
             "MagicLinkExchangeRequest": {
                 "type": "object",
                 "properties": {
+                    "code_verifier": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9._~-]{43,128}$"
+                    },
                     "token": {
                         "type": "string",
                         "minLength": 64,
@@ -12493,6 +12497,7 @@
                     }
                 },
                 "required": [
+                    "code_verifier",
                     "token"
                 ],
                 "title": "MagicLinkExchangeRequest"
@@ -12501,6 +12506,10 @@
                 "type": "object",
                 "description": "`POST /v1/auth/magic-link` (§15.2).\n\nCome per la reimpostazione della password, la risposta è sempre la stessa\nche l'indirizzo esista o no: dire «questa email non è registrata» regala a\nchiunque l'elenco degli account.",
                 "properties": {
+                    "code_challenge": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9_-]{43}$"
+                    },
                     "email": {
                         "type": "string",
                         "format": "email",
@@ -12508,6 +12517,7 @@
                     }
                 },
                 "required": [
+                    "code_challenge",
                     "email"
                 ],
                 "title": "MagicLinkRequest"

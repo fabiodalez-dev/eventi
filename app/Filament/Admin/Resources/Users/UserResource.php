@@ -9,13 +9,13 @@ use App\Enums\VenueRole;
 use App\Filament\Admin\Resources\Users\Pages\CreateUser;
 use App\Filament\Admin\Resources\Users\Pages\EditUser;
 use App\Filament\Admin\Resources\Users\Pages\ListUsers;
+use App\Filament\Support\BulkActions;
+use App\Filament\Support\RoleField;
 use App\Models\City;
 use App\Models\User;
 use App\Models\Venue;
 use BackedEnum;
 use Filament\Actions\Action;
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
@@ -32,7 +32,6 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\Hash;
-use Spatie\Permission\Models\Role;
 
 /**
  * §9.2 — gli utenti, i loro ruoli e l'impersonificazione.
@@ -129,14 +128,7 @@ class UserResource extends Resource
                 Section::make(__('admin.sections.roles'))
                     ->description(__('users.roles_help'))
                     ->schema([
-                        Select::make('roles')
-                            ->label(__('users.platform_roles'))
-                            ->relationship('roles', 'name')
-                            ->multiple()
-                            ->preload()
-                            ->getOptionLabelFromRecordUsing(
-                                fn (Role $record): string => self::roleLabel($record->name),
-                            ),
+                        RoleField::make(),
                     ]),
             ]);
     }
@@ -225,9 +217,7 @@ class UserResource extends Resource
                 self::impersonateAction(),
             ])
             ->toolbarActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make(),
-                ]),
+                BulkActions::make(),
             ]);
     }
 

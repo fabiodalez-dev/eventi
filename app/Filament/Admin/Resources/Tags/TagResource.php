@@ -8,12 +8,11 @@ use App\Actions\MergeTagsAction;
 use App\Filament\Admin\Resources\Tags\Pages\CreateTag;
 use App\Filament\Admin\Resources\Tags\Pages\EditTag;
 use App\Filament\Admin\Resources\Tags\Pages\ListTags;
+use App\Filament\Support\BulkActions;
 use App\Filament\Support\EditorialFields;
 use App\Models\Tag;
 use BackedEnum;
 use Filament\Actions\Action;
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TagsInput;
@@ -128,9 +127,7 @@ class TagResource extends Resource
                 self::mergeAction(),
             ])
             ->toolbarActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make(),
-                ]),
+                BulkActions::make(),
             ]);
     }
 

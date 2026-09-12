@@ -43,6 +43,10 @@ final class ImageSanitizer
             return false;
         }
 
+        if (! ImageSafety::allowed($path)) {
+            return false;
+        }
+
         try {
             $image = new Imagick($path);
 

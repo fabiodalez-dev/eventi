@@ -7,6 +7,7 @@ namespace App\Filament\Admin\Resources\Redirects;
 use App\Filament\Admin\Resources\Redirects\Pages\ManageRedirects;
 use App\Models\City;
 use App\Models\Redirect;
+use App\Rules\InternalRedirectTarget;
 use BackedEnum;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -61,7 +62,7 @@ class RedirectResource extends Resource
                 ->maxLength(191)
                 ->helperText(__('redirects.fields.from_help')),
 
-            TextInput::make('to_path')
+            TextInput::make('to_path')->rules([new InternalRedirectTarget])
                 ->label(__('redirects.fields.to'))
                 ->required()
                 ->maxLength(191)

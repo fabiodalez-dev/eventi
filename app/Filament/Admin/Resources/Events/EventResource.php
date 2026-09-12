@@ -16,6 +16,7 @@ use App\Filament\Admin\Resources\Events\RelationManagers\OccurrencesRelationMana
 use App\Filament\Admin\Support\StructuredFields;
 use App\Filament\Forms\Components\MapPicker;
 use App\Filament\Support\BeforeGoingFields;
+use App\Filament\Support\BulkActions;
 use App\Filament\Support\DescriptionEditor;
 use App\Filament\Support\EditorialFields;
 use App\Filament\Support\EventStatusPresentation;
@@ -30,8 +31,6 @@ use App\Models\Event;
 use App\Queries\EditorialDashboardQuery;
 use App\Support\CurrentCity;
 use BackedEnum;
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Repeater;
@@ -648,9 +647,7 @@ class EventResource extends Resource
                 EditAction::make(),
             ])
             ->toolbarActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make(),
-                ]),
+                BulkActions::make(),
             ]);
     }
 

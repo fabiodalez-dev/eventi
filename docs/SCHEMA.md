@@ -559,7 +559,7 @@ Non ancora creata, perché non richiesta in questa fase: `notifications`
 | `devices` | `token_hash` SHA-256 unico e `installation_id` indicizzato; il push token grezzo non viene usato come chiave applicativa |
 | `personal_access_tokens` | `device_id` nullable con FK: collega una sessione revocabile al dispositivo fisico |
 | `event_occurrences` | `deleted_at`: tombstone necessario alla sincronizzazione incrementale mobile |
-| `mobile_auth_challenges` | challenge magic-link hashato, monouso, con `expires_at` e `consumed_at` |
+| `mobile_auth_challenges` | challenge magic-link hashato, monouso, con `expires_at`, `used_at`, prova S256 `code_challenge` e `password_fingerprint` |
 | Telescope | tabelle di osservabilità installate ma provider disattivato per default e dati sensibili nascosti |
 
 ---

@@ -129,6 +129,7 @@ return [
             'unsupported' => 'Formato non riconosciuto. Sono ammessi: :formats.',
             'extension_mismatch' => 'Il file si presenta come «:declared» ma è un «:real»: rinominalo con l\'estensione giusta.',
             'too_small' => 'L\'immagine è troppo piccola: servono almeno :width×:height pixel.',
+            'too_many_pixels' => 'L\'immagine ha troppi pixel: il massimo è :megapixels megapixel. Ridimensionala prima di caricarla.',
         ],
 
         /*

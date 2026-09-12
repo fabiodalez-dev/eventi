@@ -8,6 +8,7 @@ use App\Jobs\Import\ImportSourceJob;
 use App\Models\Event;
 use App\Models\ImportRun;
 use App\Models\ImportSource;
+use App\Services\Import\HostResolver;
 use App\Services\Import\ImportRunner;
 use Carbon\Carbon;
 use Illuminate\Http\Client\ConnectionException;
@@ -30,6 +31,13 @@ use Tests\Support\IcsFixtures;
  *    serate vere.
  */
 beforeEach(function (): void {
+    app()->bind(HostResolver::class, fn () => new class implements HostResolver
+    {
+        public function resolve(string $host): array
+        {
+            return ['93.184.216.34'];
+        }
+    });
     $this->city = testCity();
     $this->category = testCategory();
 

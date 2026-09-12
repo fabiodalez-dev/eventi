@@ -11,6 +11,7 @@ use App\Filament\Admin\Resources\ImportSources\Pages\CreateImportSource;
 use App\Filament\Admin\Resources\ImportSources\Pages\EditImportSource;
 use App\Filament\Admin\Resources\ImportSources\Pages\ListImportSources;
 use App\Filament\Admin\Resources\ImportSources\RelationManagers\RunsRelationManager;
+use App\Filament\Support\BulkActions;
 use App\Filament\Support\ImportPreviewRows;
 use App\Jobs\Import\ImportSourceJob;
 use App\Models\City;
@@ -21,8 +22,6 @@ use App\Services\Import\ImportDriverFactory;
 use App\Services\Import\ImportRunner;
 use BackedEnum;
 use Filament\Actions\Action;
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\KeyValue;
 use Filament\Forms\Components\Select;
@@ -226,9 +225,7 @@ class ImportSourceResource extends Resource
                 EditAction::make(),
             ])
             ->toolbarActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make(),
-                ]),
+                BulkActions::make(),
             ]);
     }
 

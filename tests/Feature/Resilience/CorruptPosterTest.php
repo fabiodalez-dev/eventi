@@ -69,19 +69,13 @@ it('non fa fallire il salvataggio con un JPEG troncato a metà', function (): vo
     $this->getJson('/api/v1/events/'.$this->event->slug)->assertOk();
 });
 
-/**
- * La contro-prova che il test sopra non passa per caso: con la stessa pipeline
- * eseguita **dentro la richiesta**, il file troncato fa saltare tutto. È
- * esattamente ciò che accadrebbe se qualcuno togliesse le conversioni dalla
- * coda, e il gestore vedrebbe un errore invece del proprio evento.
- */
-it('mostra che eseguire la pipeline dentro la richiesta sarebbe un salvataggio perso', function (): void {
+it('rejects a truncated JPEG before decoding even with the synchronous queue', function (): void {
     config()->set('media-library.queue_connection_name', 'sync');
-
     $troncato = substr(ImageFixtures::jpeg(600, 800), 0, 400);
-
-    expect(fn () => $this->event->addMedia(ImageFixtures::upload('mezza-locandina.jpg', $troncato))
-        ->toMediaCollection('poster'))->toThrow(Exception::class);
+    $this->event->addMedia(ImageFixtures::upload('mezza-locandina.jpg', $troncato))->toMediaCollection('poster');
+    expect($this->event->fresh()->getFirstMedia('poster'))->toBeNull();
+    expect(Event::query()->whereKey($this->event->getKey())->exists())->toBeTrue();
+    $this->get('/eventi/'.$this->event->slug)->assertOk();
 });
 
 /**

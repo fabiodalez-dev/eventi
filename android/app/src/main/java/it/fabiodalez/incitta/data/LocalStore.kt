@@ -32,6 +32,17 @@ class LocalStore(private val context: Context) {
     }
     fun setGuestAppearance(value: String) { prefs.edit { putString("guest_appearance", value) } }
 
+    fun writeMagicVerifier(value: String) {
+        prefs.edit { putString("magic_verifier", encrypt(value)); putLong("magic_requested_at", System.currentTimeMillis()) }
+    }
+
+    fun readMagicVerifier(): String? {
+        if (System.currentTimeMillis() - prefs.getLong("magic_requested_at", 0) > 15 * 60 * 1000) return null
+        return prefs.getString("magic_verifier", null)?.let { runCatching { decrypt(it) }.getOrNull() }
+    }
+
+    fun clearMagicVerifier() { prefs.edit { remove("magic_verifier"); remove("magic_requested_at") } }
+
     fun readSession(): Session? {
         val encrypted = prefs.getString(KEY_SESSION, null) ?: return null
         return runCatching {

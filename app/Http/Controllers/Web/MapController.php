@@ -140,7 +140,7 @@ final class MapController extends Controller
         $venue = Venue::query()
             ->inCity($city)
             ->whereKey($id)
-            ->whereIn('status', [VenueStatus::Approved, VenueStatus::Suspended])
+            ->where('status', VenueStatus::Approved)
             ->first();
 
         abort_if($venue === null, 404);

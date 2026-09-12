@@ -15,6 +15,7 @@ use App\Filament\Admin\Resources\Venues\RelationManagers\MembersRelationManager;
 use App\Filament\Admin\Support\VenueModeration;
 use App\Filament\Forms\Components\MapPicker;
 use App\Filament\Support\AccessibilityField;
+use App\Filament\Support\BulkActions;
 use App\Filament\Support\DescriptionEditor;
 use App\Filament\Support\EditorialFields;
 use App\Filament\Support\FactsField;
@@ -29,8 +30,6 @@ use App\Support\WidgetEmbed;
 use BackedEnum;
 use Carbon\CarbonImmutable;
 use Filament\Actions\Action;
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\KeyValue;
 use Filament\Forms\Components\Repeater;
@@ -586,9 +585,7 @@ class VenueResource extends Resource
                 ...VenueModeration::actions(),
             ])
             ->toolbarActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make(),
-                ]),
+                BulkActions::make(),
             ]);
     }
 

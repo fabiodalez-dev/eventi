@@ -10,13 +10,12 @@ use App\Enums\SponsorshipStatus;
 use App\Filament\Admin\Resources\Sponsorships\Pages\CreateSponsorship;
 use App\Filament\Admin\Resources\Sponsorships\Pages\EditSponsorship;
 use App\Filament\Admin\Resources\Sponsorships\Pages\ListSponsorships;
+use App\Filament\Support\BulkActions;
 use App\Models\City;
 use App\Models\Event;
 use App\Models\Sponsorship;
 use BackedEnum;
 use Filament\Actions\Action;
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
@@ -401,9 +400,7 @@ class SponsorshipResource extends Resource
                 self::toggleAction(),
             ])
             ->toolbarActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make(),
-                ]),
+                BulkActions::make(),
             ])
             ->emptyStateHeading(__('sponsorships.admin.empty.title'))
             ->emptyStateDescription(__('sponsorships.admin.empty.body'));

@@ -6,6 +6,7 @@ namespace App\Support\Redirect;
 
 use App\Models\City;
 use App\Models\Redirect;
+use App\Rules\InternalRedirectTarget;
 use App\Support\CurrentCity;
 use Illuminate\Support\Facades\DB;
 use Spatie\MissingPageRedirector\Redirector\Redirector;
@@ -84,6 +85,15 @@ final class RedirectDalDatabase implements Redirector
             return [];
         }
 
+        $destination = $prefisso.$riga->to_path;
+        if ($riga->is_wildcard) {
+            $prefix = strstr($riga->from_path, '*', true);
+            $wildcard = substr($percorsoNudo, strlen($prefix === false ? $riga->from_path : $prefix));
+            $destination = str_replace('{wildcard}', $wildcard, $destination);
+        }
+        if (! InternalRedirectTarget::safe($destination)) {
+            return [];
+        }
         $this->contaIlPassaggio($riga);
 
         /*
@@ -95,7 +105,7 @@ final class RedirectDalDatabase implements Redirector
          */
         $origine = $riga->is_wildcard ? $prefisso.$riga->from_path : $percorso;
 
-        return [$origine => [$prefisso.$riga->to_path, $riga->status]];
+        return [$origine => [$destination, $riga->status]];
     }
 
     /**

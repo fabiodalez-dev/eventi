@@ -101,6 +101,27 @@ final class ImportUrlGuard
         return trim($url);
     }
 
+    /** Resolve immediately before connecting; never fall back to an unverified lookup. */
+    public function resolvedAddress(string $url): ?string
+    {
+        $this->assert($url);
+        $host = $this->host((string) parse_url($url, PHP_URL_HOST));
+        if (filter_var($host, FILTER_VALIDATE_IP) !== false) {
+            return null;
+        }
+        $addresses = $this->resolver->resolve($host);
+        if ($addresses === []) {
+            throw ImportException::unreachable($url, 'DNS senza indirizzi pubblici');
+        }
+        foreach ($addresses as $address) {
+            if ($this->isBlocked($address)) {
+                throw ImportException::privateAddress($address);
+            }
+        }
+
+        return $addresses[0];
+    }
+
     /**
      * La stessa verifica, come domanda invece che come guasto: è ciò che
      * permette al modulo di dirlo **mentre** si scrive l'indirizzo, invece di

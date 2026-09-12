@@ -63,7 +63,11 @@ self.addEventListener("push", (event) => {
 self.addEventListener("notificationclick", (event) => {
     event.notification.close();
 
-    const url = (event.notification.data && event.notification.data.url) || "/";
+    let url = self.location.origin + "/";
+    try {
+        const target = new URL(event.notification.data?.url || "/", self.location.origin);
+        if (target.origin === self.location.origin && !target.username && !target.password) url = target.href;
+    } catch { /* Invalid destinations open the homepage. */ }
 
     event.waitUntil(
         self.clients

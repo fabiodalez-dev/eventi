@@ -2,6 +2,8 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Auth\Login;
+use App\Filament\Auth\RequestPasswordReset;
 use App\Filament\Organizer\Pages\Profile;
 use App\Models\Organizer;
 use Filament\FontProviders\LocalFontProvider;
@@ -24,7 +26,7 @@ class OrganizerPanelProvider extends PanelProvider
 {
     public function panel(Panel $panel): Panel
     {
-        return $panel->id('organizer')->path('organizza')->login()->passwordReset()
+        return $panel->id('organizer')->path('organizza')->login(Login::class)->passwordReset(RequestPasswordReset::class)
             ->navigationItems([NavigationItem::make('Il mio profilo')
                 ->icon('heroicon-o-user-circle')->url(fn (): string => route('account.profile')),
             ])

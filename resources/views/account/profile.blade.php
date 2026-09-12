@@ -71,6 +71,10 @@
             <x-button :href="route('ticketing.manage.index')" variant="secondary">{{ __('ticketing.manage') }}</x-button>
         @endif
         @if ($errors->any())<p role="alert" class="text-sm">{{ $errors->first() }}</p>@endif
+        <form method="POST" action="{{ route('account.logout') }}" data-profile-logout>
+            @csrf
+            <button type="submit" class="min-h-11 border-2 border-line px-4 py-2 font-semibold text-ink hover:border-brand">{{ __('account.nav.logout') }}</button>
+        </form>
         <form method="POST" action="{{ route('account.profile.update') }}" class="flex flex-col gap-6">
             @csrf
             @method('PATCH')

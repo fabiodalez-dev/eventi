@@ -14,20 +14,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Str;
 
-/**
- * `POST /v1/auth/magic-link` (§15.2): l'accesso senza password, che il piano
- * raccomanda come via primaria per un uso saltuario come questo.
- *
- * Il collegamento che parte è **quello del sito**, firmato e a scadenza: apre
- * una sessione nel browser. Non consegna un token dell'API perché un token
- * consegnato attraverso un indirizzo web finirebbe nella cronologia del
- * browser, nel referer e nei log del proxy — cioè in tre posti dove una
- * credenziale non deve stare. Un'app che vuole un token proprio ha la
- * registrazione e l'accesso con password; il collegamento serve a chi la
- * password non ce l'ha.
- *
- * La risposta è sempre la stessa, che l'indirizzo esista o no.
- */
+/** One-use mobile login bound to the requesting installation through S256 PKCE. */
 final class MagicLinkController extends Controller
 {
     public function __invoke(MagicLinkRequest $request): JsonResponse
@@ -45,14 +32,13 @@ final class MagicLinkController extends Controller
 
             MobileAuthChallenge::query()->create([
                 'user_id' => $user->getKey(),
+                'password_fingerprint' => MagicLoginLink::fingerprint($user),
+                'code_challenge' => $request->validated('code_challenge'),
                 'token_hash' => hash('sha256', $rawToken),
                 'expires_at' => CarbonImmutable::now()->addMinutes($minutes),
             ]);
 
-            $template = config('api.auth.magic_link_url');
-            $url = is_string($template) && $template !== ''
-                ? str_replace('{token}', $rawToken, $template)
-                : url('/app/auth/magic?token='.rawurlencode($rawToken));
+            $url = url('/app/auth/magic?token='.rawurlencode($rawToken));
 
             $user->notify(new MagicLoginLink($url));
         }

@@ -47,6 +47,7 @@
                 <data android:scheme="https" android:host="eventi.fabiodalez.it" android:path="/mappa" />
                 <data android:scheme="https" android:host="eventi.fabiodalez.it" android:path="/calendario" />
                 <data android:scheme="https" android:host="eventi.fabiodalez.it" android:path="/biglietti" />
+                <data android:scheme="https" android:host="eventi.fabiodalez.it" android:path="/app/auth/magic" />
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />

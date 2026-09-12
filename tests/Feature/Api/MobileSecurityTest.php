@@ -7,6 +7,7 @@ use App\Models\Device;
 use App\Models\MobileAuthChallenge;
 use App\Models\SavedEvent;
 use App\Models\User;
+use App\Notifications\MagicLoginLink;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -172,18 +173,20 @@ it('consuma una sola volta il challenge del magic link mobile', function (): voi
     MobileAuthChallenge::query()->create([
         'user_id' => $this->owner->getKey(),
         'token_hash' => hash('sha256', $raw),
+        'password_fingerprint' => MagicLoginLink::fingerprint($this->owner),
+        'code_challenge' => rtrim(strtr(base64_encode(hash('sha256', str_repeat('v', 43), true)), '+/', '-_'), '='),
         'expires_at' => now()->addMinutes(15),
     ]);
 
     $this->postJson('/api/v1/auth/magic-link/exchange', [
-        'token' => $raw,
+        'code_verifier' => str_repeat('v', 43), 'token' => $raw,
         'device_name' => 'Pixel 9',
     ])
         ->assertOk()
         ->assertJsonPath('data.token_type', 'Bearer')
         ->assertJsonPath('data.user.id', (int) $this->owner->getKey());
 
-    $this->postJson('/api/v1/auth/magic-link/exchange', ['token' => $raw])
+    $this->postJson('/api/v1/auth/magic-link/exchange', ['code_verifier' => str_repeat('v', 43), 'token' => $raw])
         ->assertBadRequest()
         ->assertJsonPath('error.code', 'INVALID_TOKEN');
 });

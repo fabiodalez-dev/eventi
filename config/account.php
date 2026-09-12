@@ -63,6 +63,18 @@ return [
     'locales' => ['it'],
 
     /*
+     * Quanti dispositivi push puo' tenere iscritti un account.
+     *
+     * Ogni endpoint diverso e' una riga in `devices`, e l'endpoint lo scrive
+     * chi chiama: senza un tetto, un account qualsiasi puo' depositarne a
+     * piacere. Dieci coprono chiunque — telefono, tablet, due computer, un
+     * paio di browser per ognuno — e oltre si ricicla il piu' vecchio invece
+     * di rifiutare, perche' chi ha davvero cambiato dispositivo deve poter
+     * iscrivere quello nuovo.
+     */
+    'max_devices_per_user' => 10,
+
+    /*
      * Dominio degli indirizzi anonimizzati alla cancellazione dell'account
      * (§15.9). `.invalid` è riservato dalla RFC 2606: nessun messaggio potrà
      * mai partire verso un indirizzo così, che è esattamente ciò che serve.
