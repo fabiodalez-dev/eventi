@@ -236,12 +236,12 @@
                                 <div class="h-full origin-left bg-accent animate-[lineGrow_1.2s_cubic-bezier(.2,.8,.2,1)_both]" style="width: {{ $heroCapienza->percentSold() }}%"></div>
                             </div>
                             <div class="flex justify-between gap-3 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.14em] uppercase">
-                                <span>{{ collect([$heroLuogo?->name, $heroLuogo?->zone ?: $heroLuogo?->municipality])->filter()->implode(' '.__('common.separator').' ') }}</span>
+                                <span data-home-venue class="text-[clamp(1rem,1.4vw,1.125rem)] leading-snug tracking-normal normal-case">{{ collect([$heroLuogo?->name, $heroLuogo?->zone ?: $heroLuogo?->municipality])->filter()->implode(' '.__('common.separator').' ') }}</span>
                                 <span class="text-accent">{{ trans_choice('events.capacity.left', $heroCapienza->left, ['count' => $heroCapienza->left]) }}</span>
                             </div>
                         </div>
                     @elseif ($heroLuogo !== null)
-                        <span class="font-display text-[0.625rem] leading-none font-extrabold tracking-[0.14em] uppercase">
+                        <span data-home-venue class="font-display text-[clamp(1rem,1.4vw,1.125rem)] leading-snug font-semibold tracking-normal">
                             {{ collect([$heroLuogo->name, $heroLuogo->zone ?: $heroLuogo->municipality])->filter()->implode(' '.__('common.separator').' ') }}
                         </span>
                     @endif

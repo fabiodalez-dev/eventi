@@ -19,6 +19,7 @@ it('balances mobile shortcuts, actions and statistics', function (string $theme)
     if ($theme === 'inLightMode') {
         expect($page->script('getComputedStyle(document.querySelector(".home-stats > div")).alignItems'))->toBe('center');
     }
+    expect($page->script('parseFloat(getComputedStyle(document.querySelector("[data-home-venue]")).fontSize) >= 16'))->toBeTrue();
     $page->screenshot(filename: 'home-balanced-'.$theme);
     $page->resize(666, 734);
     expect($page->script('() => { const b=[...document.querySelectorAll(".home-shortcuts a")].map(e=>e.getBoundingClientRect()); return b[0].top === b[1].top && b[2].top > b[0].top && b[2].top === b[3].top; }'))->toBeTrue();
