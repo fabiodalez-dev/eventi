@@ -28,12 +28,12 @@ internal data class ContentCategory(val id: Long, val name: String)
 internal data class ContentOptions(val selection: ContentSelection, val options: List<ContentCategory>)
 
 @Composable
-fun ContentPreferencesPanel(session: Session, onSaved: () -> Unit) {
+fun ContentPreferencesPanel(session: Session, standalone: Boolean = false, onSaved: () -> Unit) {
     val context = LocalContext.current
     val api = remember { ApiClient(LocalStore(context).installationId) }
     val json = remember { Json(api.json) { encodeDefaults = true } }
     val scope = rememberCoroutineScope()
-    var expanded by remember(session.user.id) { mutableStateOf(false) }
+    var expanded by remember(session.user.id) { mutableStateOf(standalone) }
     var data by remember(session.user.id) { mutableStateOf<ContentOptions?>(null) }
     var busy by remember(session.user.id) { mutableStateOf(false) }
     var message by remember(session.user.id) { mutableStateOf("") }
@@ -48,7 +48,7 @@ fun ContentPreferencesPanel(session: Session, onSaved: () -> Unit) {
         } finally { busy = false }
     }
     LaunchedEffect(expanded, session.user.id) { if (expanded && data == null) load() }
-    OutlinedButton(onClick = { expanded = !expanded }, shape = ControlShape, modifier = Modifier.fillMaxWidth().padding(top = 16.dp).heightIn(min = 48.dp)) {
+    if (!standalone) OutlinedButton(onClick = { expanded = !expanded }, shape = ControlShape, modifier = Modifier.fillMaxWidth().padding(top = 16.dp).heightIn(min = 48.dp)) {
         Text(if (expanded) "CHIUDI I MIEI INTERESSI" else "I MIEI INTERESSI · COSA VEDERE")
     }
     if (!expanded) return
@@ -75,10 +75,10 @@ fun ContentPreferencesPanel(session: Session, onSaved: () -> Unit) {
             in current.selection.categories -> "interested"
             else -> "neutral"
         }
-        Column(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-            Text(category.name, style = MaterialTheme.typography.titleMedium)
-            Box {
-                OutlinedButton(onClick = { menu = true }, enabled = !busy, shape = ControlShape, modifier = Modifier.heightIn(min = 48.dp), colors = ButtonDefaults.outlinedButtonColors(contentColor = if (value == "interested") Acid else Paper)) {
+        Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(category.name, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+            Box(Modifier.width(156.dp)) {
+                OutlinedButton(onClick = { menu = true }, enabled = !busy, shape = ControlShape, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp), colors = ButtonDefaults.outlinedButtonColors(contentColor = if (value == "interested") Acid else Paper)) {
                     Text(when(value) { "hidden" -> "Nascondi"; "interested" -> "Mi interessa"; else -> "Nessuna preferenza" })
                 }
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {

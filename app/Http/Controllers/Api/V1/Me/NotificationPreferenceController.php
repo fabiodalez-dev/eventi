@@ -41,6 +41,13 @@ final class NotificationPreferenceController extends Controller
         if ($request->has('daily_digest_time')) {
             $user->daily_digest_time = $request->validated('daily_digest_time');
         }
+        if ($request->exists('quiet_hours')) {
+            $user->quiet_hours = $request->validated('quiet_hours');
+        }
+        if ($request->exists('marketing_opt_in')) {
+            $user->marketing_opt_in_at = $request->boolean('marketing_opt_in')
+                ? ($user->marketing_opt_in_at ?? now()) : null;
+        }
         $user->save();
 
         return ApiResponse::item($this->payload($request));

@@ -7,6 +7,10 @@ import kotlinx.serialization.Serializable
 data class NotificationPreferences(
     val delivery: String = "auto",
     val reminders: Boolean = true,
+    @SerialName("reminder_hours") val reminderHours: List<Int> = listOf(24, 3),
+    @SerialName("quiet_hours") val quietHours: kotlinx.serialization.json.JsonElement? = null,
+    @SerialName("quiet_hours_effective") val quietHoursEffective: QuietHours? = null,
+    @SerialName("marketing_opt_in") val marketingOptIn: Boolean = false,
     @SerialName("sold_out") val soldOut: Boolean = true,
     @SerialName("venue_digest") val venueDigest: Boolean = true,
     @SerialName("daily_digest") val dailyDigest: Boolean = false,
@@ -40,3 +44,6 @@ data class PushDeviceBody(
     @SerialName("app_version") val appVersion: String = it.fabiodalez.incitta.BuildConfig.VERSION_NAME,
     val locale: String = "it",
 )
+
+@Serializable
+data class QuietHours(val from: String, val to: String)

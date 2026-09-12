@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="profile_title">IL TUO PROFILO</string>
+    <string name="profile_title">Il mio profilo</string>
     <string name="profile_signed_in">ACCESSO EFFETTUATO COME</string>
     <string name="profile_role">Profilo: %1$s</string>
     <string name="profile_change_account">Esci / cambia account</string>

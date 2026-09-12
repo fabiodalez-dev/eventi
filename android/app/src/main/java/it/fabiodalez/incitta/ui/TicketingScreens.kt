@@ -14,6 +14,8 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalUriHandler
 import it.fabiodalez.incitta.data.AttendeeName
+import it.fabiodalez.incitta.data.BookingPeriod
+import it.fabiodalez.incitta.data.filterBookings
 import androidx.compose.ui.unit.dp
 import it.fabiodalez.incitta.AppUiState
 import it.fabiodalez.incitta.R
@@ -86,7 +88,9 @@ fun ReservationScreen(state: AppUiState, padding: PaddingValues, onReserve: (Lis
 @Composable
 fun TicketsScreen(state: AppUiState, padding: PaddingValues, onCancel: (Long, Long?) -> Unit, onRefresh: () -> Unit, onEmail: (Long) -> Unit, onBack: () -> Unit) {
     var cancelTarget by remember(state.session?.user?.id) { mutableStateOf<Pair<Long, Long?>?>(null) }
-    var cancelledOnly by remember(state.session?.user?.id) { mutableStateOf(false) }
+    var period by remember(state.session?.user?.id) { mutableStateOf(BookingPeriod.UPCOMING) }
+    var query by remember(state.session?.user?.id) { mutableStateOf("") }
+    val visibleBookings = filterBookings(state.bookings, period, query)
     Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(18.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         TextButton(onClick = onBack) { Text(stringResource(R.string.ticket_profile)) }
         Text(stringResource(R.string.ticket_title), style = MaterialTheme.typography.displayMedium)
@@ -94,14 +98,17 @@ fun TicketsScreen(state: AppUiState, padding: PaddingValues, onCancel: (Long, Lo
             Text(stringResource(R.string.ticket_login))
         } else {
             OutlinedButton(onClick = onRefresh, enabled = !state.bookingBusy, shape = ControlShape) { Text(stringResource(R.string.ticket_refresh)) }
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                FilterChip(selected = !cancelledOnly, onClick = { cancelledOnly = false }, label = { Text(stringResource(R.string.ticket_active)) }, shape = ControlShape)
-                FilterChip(selected = cancelledOnly, onClick = { cancelledOnly = true }, label = { Text(stringResource(R.string.ticket_cancelled)) }, shape = ControlShape)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf(BookingPeriod.UPCOMING to "Prossimi", BookingPeriod.PAST to "Passati", BookingPeriod.CANCELLED to "Annullati").forEach { (value, label) ->
+                    FilterChip(selected = period == value, onClick = { period = value }, label = { Text(label) }, modifier = Modifier.weight(1f), shape = ControlShape)
+                }
             }
+            OutlinedTextField(query, { query = it }, label = { Text("Cerca evento, locale o partecipante") }, singleLine = true, modifier = Modifier.fillMaxWidth())
             if (state.bookingBusy) LinearProgressIndicator(Modifier.fillMaxWidth())
             state.bookingError?.let { Text(it) }
             if (!state.bookingBusy && state.bookings.isEmpty() && state.bookingError == null) Text(stringResource(R.string.ticket_empty), color = Muted)
-            state.bookings.filter { (it.status == "cancelled") == cancelledOnly }.forEach { booking ->
+            if (!state.bookingBusy && state.bookings.isNotEmpty() && visibleBookings.isEmpty() && state.bookingError == null) Text("Nessun biglietto corrisponde ai filtri scelti.", color = Muted)
+            visibleBookings.forEach { booking ->
                 HorizontalDivider(thickness = 2.dp, color = Rule)
                 Text("#${booking.id} · ${ticketStatus(booking.status)}", color = Acid)
                 Text(booking.title.uppercase(), style = MaterialTheme.typography.headlineSmall)
@@ -120,7 +127,7 @@ fun TicketsScreen(state: AppUiState, padding: PaddingValues, onCancel: (Long, Lo
                             OutlinedButton(onClick = { expanded = !expanded }, shape = ControlShape) { Text(stringResource(if (expanded) R.string.ticket_hide_qr else R.string.ticket_show_qr)) }
                             if (expanded) {
                                 val bitmap = remember(ticket.qrPayload) { ticketQr(ticket.qrPayload) }
-                                Image(bitmap.asImageBitmap(), stringResource(R.string.ticket_qr_description, ticket.id), modifier = Modifier.background(Paper).padding(12.dp).size(256.dp))
+                                Image(bitmap.asImageBitmap(), stringResource(R.string.ticket_qr_description, ticket.id), modifier = Modifier.background(Paper).padding(12.dp).fillMaxWidth().heightIn(max = 280.dp).aspectRatio(1f))
                                 Text(stringResource(R.string.ticket_qr_hint), color = Muted)
                             }
                         }

@@ -33,7 +33,7 @@
     <string name="ticket_terms">Confermo i nominativi e accetto che siano comunicati al locale per gestire prenotazione e ingresso. Non è un consenso marketing.</string>
     <string name="ticket_confirm">CONFERMA PRENOTAZIONE GRATUITA</string>
     <string name="ticket_login">Accedi dal profilo per consultare i tuoi biglietti.</string>
-    <string name="ticket_empty">I biglietti prenotati appariranno qui. Salvare un evento in agenda non prenota un posto.</string>
+    <string name="ticket_empty">Non hai ancora biglietti. Salvare un evento in agenda non prenota un posto.</string>
     <string name="ticket_waiting">Sei in lista d’attesa: non è ancora un biglietto d’ingresso. Il gruppo sarà confermato quando ci saranno posti per tutti.</string>
     <string name="ticket_show_qr">MOSTRA QR</string>
     <string name="ticket_hide_qr">NASCONDI QR</string>

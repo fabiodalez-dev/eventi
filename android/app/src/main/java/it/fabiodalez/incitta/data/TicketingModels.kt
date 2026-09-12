@@ -28,6 +28,7 @@ data class Booking(
     val venue: String? = null,
     val address: String? = null,
     @SerialName("starts_at") val startsAt: String? = null,
+    @SerialName("ends_at") val endsAt: String? = null,
     val status: String,
     val instructions: String? = null,
     @SerialName("cancellation_reason") val cancellationReason: String? = null,

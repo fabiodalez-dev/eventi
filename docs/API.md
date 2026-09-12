@@ -154,3 +154,11 @@ cookie necessario `incitta_appearance`, e possono cambiarlo da Aspetto.
 `GET /api/v1/events`, le relative mappe e facets accettano `membership=required|not_required`. Nel dettaglio `content_details.membership` riporta il requisito dell’evento oppure null. Non viene dedotto dal locale: null non equivale a “non richiesta”. Le facets geografiche consentono il cambio diretto di comune, quartiere e locale ignorando la selezione dello stesso campo e quelle dipendenti, mantenendo gli altri filtri.
 
 `content_details.practical_items` restituisce le informazioni confermate di «Prima di andare» come elenco di `{label, icon, text}`. Include caratteristiche selezionate dal catalogo, requisiti strutturati e voci libere. Le icone sono identificatori della lista consentita; non contengono SVG o HTML. Android usa la stessa lista e icone native corrispondenti. Dettagli in [BEFORE-GOING.md](BEFORE-GOING.md).
+
+### Allineamento profilo Android (12 settembre 2026)
+
+`PATCH /v1/me/notification-preferences` accetta anche `marketing_opt_in` e `quiet_hours`, con le stesse regole del profilo: `null` ripristina gli orari predefiniti, `{}` disattiva il silenzio, `{from,to}` salva una finestra personalizzata. Il consenso conserva la data originale se già attivo. La risposta continua a distinguere scelta e `quiet_hours_effective`; il motore di invio è condiviso da web e Android.
+
+Il dettaglio locale espone `logo` con lo stesso formato immagine di `cover`, e `is_nonprofit`. Le prenotazioni espongono `ends_at`, basato sulla fine effettiva, per distinguere eventi in corso e passati. `/v1/me` include `management_links` (label, URL, icona): sono collegamenti ai pannelli autorizzati, senza sostituire le policy delle destinazioni. Newsletter compare solo per superadmin.
+
+Il codice Android offre sezioni profilo con ritorno, fuso selezionabile, immagini intere, filtri biglietti e accesso alle impostazioni notifiche di Android. I pannelli amministrativi e lo scanner ingresso si aprono nel browser. La verifica di questo aggiornamento compila il codice ed esegue i test senza generare nuovi APK.

@@ -88,6 +88,8 @@ data class Venue(
     @SerialName("requires_membership") val requiresMembership: Boolean = false,
     @SerialName("membership_notes") val membershipNotes: String? = null,
     @Serializable(with = CoverUrlSerializer::class) val cover: String? = null,
+    @Serializable(with = CoverUrlSerializer::class) val logo: String? = null,
+    @SerialName("is_nonprofit") val isNonprofit: Boolean = false,
     @SerialName("upcoming_occurrences") val upcomingOccurrences: Int? = null,
 )
 
@@ -200,6 +202,8 @@ data class User(
     @SerialName("email_verified") val emailVerified: Boolean = false,
     @SerialName("role_label") val roleLabel: String? = null,
     val appearance: String = "dark",
+    val timezone: String = "Europe/Rome",
+    @SerialName("management_links") val managementLinks: List<ManagementLink> = emptyList(),
 )
 
 @Serializable
@@ -252,3 +256,6 @@ data class Session(
     val user: User,
     val expiresAt: String?,
 )
+
+@Serializable
+data class ManagementLink(val label: String, val url: String, val icon: String)
