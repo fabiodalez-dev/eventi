@@ -28,7 +28,7 @@ internal data class ContentCategory(val id: Long, val name: String)
 internal data class ContentOptions(val selection: ContentSelection, val options: List<ContentCategory>)
 
 @Composable
-fun ContentPreferencesPanel(session: Session, onSaved: () -> Unit, standalone: Boolean = false) {
+fun ContentPreferencesPanel(session: Session, standalone: Boolean = false, onSaved: () -> Unit) {
     val context = LocalContext.current
     val api = remember { ApiClient(LocalStore(context).installationId) }
     val json = remember { Json(api.json) { encodeDefaults = true } }

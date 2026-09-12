@@ -21,13 +21,14 @@ class AdminLoginLiveTest {
         compose.onNodeWithText("EMAIL").performTextInput("admin@incitta.test")
         compose.onNodeWithText("PASSWORD").performTextInput(requireNotNull(password))
         compose.onAllNodes(hasText("ACCEDI") and hasClickAction()).onLast().performScrollTo().performClick()
-        compose.waitUntil(30_000) { compose.onAllNodesWithText("IL TUO PROFILO").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(30_000) { compose.onAllNodesWithText("Il mio profilo").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText("admin@incitta.test").assertExists()
         compose.onNode(hasText("MAPPA") and hasClickAction()).performClick()
         compose.onNodeWithText("OGGI").assertExists()
         compose.onNodeWithText("Errore interno del server.").assertDoesNotExist()
         compose.onNode(hasText("PROFILO") and hasClickAction()).performClick()
-        compose.onNodeWithText("ESCI DA QUESTO DISPOSITIVO").performScrollTo().performClick()
+        compose.onNodeWithText("Account e accesso").performScrollTo().performClick()
+        compose.onNodeWithText("Esci da questo dispositivo").performScrollTo().performClick()
         compose.waitUntil(30_000) { compose.onAllNodesWithText("ENTRA IN CITTÀ").fetchSemanticsNodes().isNotEmpty() }
     }
 }

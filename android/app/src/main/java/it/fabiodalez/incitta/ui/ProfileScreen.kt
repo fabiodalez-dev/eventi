@@ -67,7 +67,7 @@ internal fun ProfileScreen(state: AppUiState, padding: PaddingValues, onTickets:
                     }
                 }
                 "Dati personali" -> ProfileDetails(session, onProfileSaved)
-                "I miei interessi" -> ContentPreferencesPanel(session, onInterestsSaved, standalone = true)
+                "I miei interessi" -> ContentPreferencesPanel(session, standalone = true, onSaved = onInterestsSaved)
                 "Notifiche e newsletter" -> NotificationSettingsPanel(session, standalone = true)
                 "Calendario" -> CalendarSubscriptionPanel(initiallyExpanded = true)
                 "Aspetto" -> AppearancePicker(state.appearance, state.appearanceSaving, true, onAppearance)
