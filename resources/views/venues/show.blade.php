@@ -50,16 +50,18 @@
         />
     @endif
 
-    <header class="mt-6 flex flex-wrap items-start gap-4">
-        <span class="flex size-16 shrink-0 items-center justify-center overflow-hidden bg-brand-soft text-lg font-bold text-on-brand-soft border-2 border-line">
+    <header data-venue-header class="mt-6 grid grid-cols-[64px_minmax(0,1fr)] items-start gap-x-4 gap-y-4 sm:grid-cols-[80px_minmax(0,1fr)] lg:grid-cols-[80px_minmax(0,1fr)_auto]">
+        <span class="flex size-16 items-center justify-center overflow-hidden border-2 border-line bg-canvas text-lg font-bold text-on-brand-soft sm:size-20 [&>picture]:block [&>picture]:size-full">
             @if ($logo !== null)
                 <x-media-image
                     :set="$logo"
                     :alt="__('venues.card.logo_alt', ['venue' => $venue->name])"
                     width="128"
                     height="128"
-                    sizes="64px"
-                    class="size-full object-cover"
+                    sizes="(min-width: 640px) 80px, 64px"
+                    :color="true"
+                    :show-placeholder="false"
+                    class="size-full object-contain p-1"
                 />
             @else
                 <span aria-hidden="true">{{ \Illuminate\Support\Str::of($venue->name)->squish()->explode(' ')->take(2)->map(fn (string $word): string => \Illuminate\Support\Str::upper(mb_substr($word, 0, 1)))->implode('') }}</span>
@@ -67,7 +69,7 @@
         </span>
 
         <div class="flex min-w-0 flex-1 flex-col gap-2">
-            <h1 class="text-balance text-hero text-ink">{{ $venue->name }}</h1>
+            <h1 class="m-0 break-words font-display text-2xl font-extrabold leading-tight tracking-tight text-ink sm:text-3xl lg:text-4xl">{{ $venue->name }}</h1>
 
             <p class="flex flex-wrap items-center gap-2 text-sm text-ink-muted">
                 <span>{{ $venue->type->label() }}</span>
@@ -78,41 +80,29 @@
                     <a class="hover:text-ink hover:underline" href="{{ route('events.index', ['zone' => $venue->zone]) }}">{{ $venue->zone }}</a>
                 @endif
             </p>
-
-            {{-- «Segui questo locale» (§15.7): alimenta il feed personale, non
-                 i promemoria — quelli arrivano per le date che si salvano. --}}
-            <x-follow-button
-                type="venue"
-                :id="$venue->getKey()"
-                :following="app(\App\Support\CurrentFollows::class)->has(\App\Enums\FollowableType::Venue, (int) $venue->getKey())"
-                :hint="true"
-                class="mt-1"
-            />
-
-            <div class="flex flex-wrap gap-2">
-                @if ($venue->is_verified)
-                    <x-badge tone="brand">{{ __('venues.badge.verified') }}</x-badge>
-                @endif
-
-                @if ($venue->is_nonprofit)
-                    <x-badge tone="free">{{ __('venues.badge.nonprofit') }}</x-badge>
-                @endif
-
-                @if ($venue->requires_membership)
-                    <x-badge tone="muted">{{ __('venues.badge.membership') }}</x-badge>
-                @endif
-
-                @if ($accessibility->has(\App\Enums\AccessibilityFeature::StepFreeEntrance))
-                    <x-badge tone="neutral">{{ __('venues.badge.accessible') }}</x-badge>
-                @endif
-            </div>
         </div>
 
-        {{-- «Segui» ora segue. Era spento con una nota — «funzionerà quando
-             arriveranno gli account» — scritta quando gli account non c'erano;
-             nel frattempo sono arrivati, e il feed usa già i follow per
-             scegliere cosa mostrare. Mancava solo il gesto per crearne uno. --}}
-        <x-follow-button :type="\App\Enums\FollowableType::Venue" :id="$venue->getKey()" />
+        <div class="col-span-2 flex flex-wrap gap-2 lg:col-start-2 lg:row-start-2">
+            @if ($venue->is_verified)
+                <x-badge tone="brand">{{ __('venues.badge.verified') }}</x-badge>
+            @endif
+
+            @if ($venue->is_nonprofit)
+                <x-badge tone="free">{{ __('venues.badge.nonprofit') }}</x-badge>
+            @endif
+
+            @if ($venue->requires_membership)
+                <x-badge tone="muted">{{ __('venues.badge.membership') }}</x-badge>
+            @endif
+
+            @if ($accessibility->has(\App\Enums\AccessibilityFeature::StepFreeEntrance))
+                <x-badge tone="neutral">{{ __('venues.badge.accessible') }}</x-badge>
+            @endif
+        </div>
+
+        <div class="col-span-2 flex items-start lg:col-span-1 lg:col-start-3 lg:row-start-1 lg:row-span-2">
+            <x-follow-button :type="\App\Enums\FollowableType::Venue" :id="$venue->getKey()" class="ui-action" />
+        </div>
     </header>
 
     <div class="mt-8 grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">

@@ -9,12 +9,6 @@
     ricalcolasse da sé se un evento è in corso, in sei mesi esisterebbero due
     definizioni diverse e le due risposte divergerebbero sulla stessa pagina.
 
-    **Perché non c'è la locandina** (D46). Nel riferimento adottato la card è
-    tipografica: numero d'ordine, categoria, titolo grande, luogo, ora, prezzo.
-    Non è un'omissione — è ciò che permette alle card di stare in una griglia
-    a due pixel di distanza l'una dall'altra e comportarsi come un tabellone.
-    Le fotografie restano dove pesano: sulla scheda dell'evento e nel riquadro
-    in evidenza della prima schermata.
 --}}
 @props([
     'occurrence',
@@ -22,6 +16,7 @@
     'context' => 'upcoming',
     'href' => null,
     'showVenue' => true,
+    'showPoster' => false,
     /* Il numero d'ordine nella sezione ("01", "02"…). La sezione lo conosce,
        la card no: passarlo è ciò che rende la griglia un elenco numerato. */
     'index' => null,
@@ -40,6 +35,7 @@
     $event = $occurrence->event;
     $venue = $occurrence->effectiveVenue();
     $category = $event->category;
+    $poster = $showPoster ? \App\Support\Poster::imageSet($event) : null;
     $status = $occurrence->status;
 
     $url = $href ?? (\Illuminate\Support\Facades\Route::has('events.show')
@@ -103,6 +99,12 @@
          movimento della card, e sostituisce l'ombra che questo sistema non
          usa. --}}
     <span aria-hidden="true" class="absolute inset-y-0 left-0 w-0 bg-accent transition-[width] duration-300 ease-[cubic-bezier(.76,0,.24,1)] group-hover:w-[7px]"></span>
+
+    @if ($poster !== null)
+        <a href="{{ $url }}" tabindex="-1" aria-hidden="true" data-catalog-poster class="block bg-surface [&>picture]:block">
+            <x-media-image :set="$poster" alt="" width="600" height="450" sizes="(min-width: 1024px) 360px, (min-width: 640px) 50vw, 100vw" :color="true" :show-placeholder="false" class="aspect-[4/3] w-full object-contain" />
+        </a>
+    @endif
 
     <div class="flex items-start justify-between gap-2.5">
         <span class="font-display text-[0.625rem] leading-none font-extrabold tracking-[0.1em] text-ink-subtle transition-colors group-hover:text-accent">

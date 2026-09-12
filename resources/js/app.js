@@ -109,21 +109,8 @@ function infiniteScroll() {
     observer.observe(pagination);
     document.addEventListener('event-browser:before-update', () => observer.disconnect(), { once: true });
 
-    /*
-     * Chi chiede i filtri ha smesso di sfogliare.
-     *
-     * Su telefono il pannello sta sotto ai risultati, e il collegamento che ci
-     * porta è un'ancora: senza questa riga lo scorrimento verso il fondo
-     * attraversa il fondo dell'elenco, sveglia l'osservatore qui sopra, e le
-     * card appena caricate si inseriscono SOPRA il bersaglio spingendolo più
-     * in basso — misurato: il pannello passava da 6.754 a 12.871 pixel mentre
-     * lo scorrimento era in viaggio, e si atterrava in mezzo ad altri
-     * risultati. Un elenco infinito e un'ancora in fondo non possono coesistere.
-     *
-     * Fermarlo è anche la cosa giusta da fare: chi sta andando a stringere i
-     * filtri non vuole altre venti serate di quelle che sta già scartando.
-     * Resta il collegamento «successiva», che funziona da solo.
-     */
+    // Pause automatic pagination while the user is choosing filters.
+    // The ordinary next-page link remains available.
     document.addEventListener('click', event => {
         if (event.target.closest('[data-filter-jump]')) observer.disconnect();
     });
