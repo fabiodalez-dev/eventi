@@ -73,3 +73,24 @@ it('shows venue accessibility once inside practical advice with its source', fun
     $this->get('/eventi/'.$date->event->slug.'/1')->assertOk()
         ->assertSee($label)->assertDontSee('id="accessibilita-evento"', false);
 });
+
+it('adds venue defaults to event advice without duplicates and follows venue updates', function (): void {
+    $city = testCity();
+    freezeLocal($city, '2026-09-11 12:00');
+    $feature = EventFeature::create(['name' => 'Guardaroba custodito', 'icon' => 'check-circle']);
+    $custom = ['label' => 'Ingresso laterale', 'icon' => 'map-pin', 'text' => 'Da via Roma'];
+    $date = occurrenceAtLocal($city, testCategory(), '2026-09-12 21:00', event: ['content_details' => [
+        'feature_ids' => [$feature->id], 'practical_custom' => [$custom, ['label' => 'Porta acqua', 'icon' => 'check-circle']],
+    ]]);
+    $date->event->venue->update(['content_details' => ['accessibility' => 'no', 'feature_ids' => [$feature->id], 'practical_custom' => [$custom]]]);
+    $items = collect(app(EditorialContent::class)->details($date->event)['practical_items']);
+    expect($items->where('label', 'Guardaroba custodito'))->toHaveCount(1)
+        ->and($items->where('label', 'Ingresso laterale'))->toHaveCount(1)
+        ->and($items->pluck('label')->all())->toContain('Non accessibile in sedia a rotelle', 'Porta acqua');
+    $this->get('/eventi/'.$date->event->slug.'/1')->assertOk()->assertSee('Guardaroba custodito')->assertSee('Ingresso laterale')->assertSee('Porta acqua');
+    $this->getJson('/api/v1/events/'.$date->event->slug)->assertOk()->assertJsonPath('data.content_details.accessibility', 'no');
+    $date->event->venue->update(['content_details' => ['accessibility' => 'yes']]);
+    expect(app(EditorialContent::class)->details($date->event)['accessibility'])->toBe('yes');
+    $date->event->update(['content_details' => ['accessibility' => 'no']]);
+    expect(app(EditorialContent::class)->details($date->event)['accessibility'])->toBe('no');
+});

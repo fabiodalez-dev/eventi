@@ -367,6 +367,9 @@ class Event extends Model implements HasMedia
     public function membershipRequirement(): ?MembershipRequirement
     {
         $value = $this->content_details['membership'] ?? null;
+        if (blank($value)) {
+            $value = $this->venue?->getAttribute('content_details')['membership'] ?? null;
+        }
 
         return (is_string($value) ? MembershipRequirement::tryFrom($value) : null)
             ?? ($this->price_type === PriceType::Membership ? MembershipRequirement::Required : null);

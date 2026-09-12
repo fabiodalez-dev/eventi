@@ -11,6 +11,7 @@ use App\Models\City;
 use App\Models\Event;
 use App\Models\EventOccurrence;
 use App\Models\Tag;
+use App\Support\BeforeGoingDefaults;
 use App\Support\CurrentCity;
 use App\Support\SafeUrl;
 use Illuminate\Database\Eloquent\Model;
@@ -35,10 +36,7 @@ final class EditorialContent
             unset($own['city_introductions']);
         }
         if ($model instanceof Event && $model->venue !== null) {
-            $defaults = array_intersect_key($this->details($model->venue), array_flip([
-                'parking_type', 'parking_notes', 'transit_notes', 'entrance_notes', 'accessibility_notes', 'accessibility',
-            ]));
-            $own = array_replace($defaults, array_filter($own, fn ($value): bool => $value !== null && $value !== ''));
+            $own = BeforeGoingDefaults::merge(BeforeGoingDefaults::forVenue($model->venue), $own);
         }
 
         if ($model instanceof Event) {

@@ -8,6 +8,7 @@ use App\Enums\VenueType;
 use App\Filament\Admin\Support\StructuredFields;
 use App\Filament\Forms\Components\MapPicker;
 use App\Filament\Support\AccessibilityField;
+use App\Filament\Support\BeforeGoingFields;
 use App\Filament\Support\DescriptionEditor;
 use App\Filament\Support\EditorialFields;
 use App\Filament\Support\FactsField;
@@ -132,6 +133,7 @@ class VenueProfile extends Page implements HasSchemas
             ->model(CurrentVenue::get())
             ->components([
                 EditorialFields::content(false, true),
+                BeforeGoingFields::make(true),
                 EditorialFields::seo(),
                 Section::make(__('manage.sections.venue_identity'))
                     ->schema([

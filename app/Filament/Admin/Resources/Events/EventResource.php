@@ -28,7 +28,9 @@ use App\Filament\Support\SharedEventTags;
 use App\Filament\Support\TicketTiersField;
 use App\Models\City;
 use App\Models\Event;
+use App\Models\Venue;
 use App\Queries\EditorialDashboardQuery;
+use App\Support\BeforeGoingDefaults;
 use App\Support\CurrentCity;
 use BackedEnum;
 use Filament\Actions\EditAction;
@@ -46,6 +48,7 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
 use Filament\Support\Enums\IconPosition;
@@ -316,7 +319,16 @@ class EventResource extends Resource
                                                     ->orderBy('name'),
                                             )
                                             ->searchable()
-                                            ->preload(),
+                                            ->preload()->live()
+                                            ->afterStateUpdated(function ($state, $old, Get $get, Set $set): void {
+                                                $previous = BeforeGoingDefaults::forVenue(Venue::find($old));
+                                                $next = BeforeGoingDefaults::forVenue(Venue::find($state));
+                                                foreach (BeforeGoingDefaults::FIELDS as $field) {
+                                                    $own = BeforeGoingDefaults::override($field, $get('content_details.'.$field), $previous[$field] ?? null);
+                                                    $merged = BeforeGoingDefaults::merge($next, [$field => $own]);
+                                                    $set('content_details.'.$field, $merged[$field] ?? null);
+                                                }
+                                            }),
 
                                         /*
                                          * **Il luogo che non e' un locale.**
