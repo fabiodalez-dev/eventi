@@ -79,11 +79,11 @@ it('falls back to today when a sponsorship has expired', function (): void {
         ->assertViewHas('heroSponsorship', null);
 });
 
-it('does not promote cancelled, ended or tomorrow events as todays fallback', function (): void {
+it('uses the next available event after todays events have ended', function (): void {
     occurrenceAtLocal($this->city, $this->category, '2026-09-05 18:00:00', occurrence: ['status' => OccurrenceStatus::Cancelled]);
     occurrenceAtLocal($this->city, $this->category, '2026-09-05 10:00:00', '2026-09-05 11:00:00');
-    occurrenceAtLocal($this->city, $this->category, '2026-09-06 18:00:00');
-    $this->get('/')->assertOk()->assertViewHas('hero', null)->assertDontSee('data-home-hero', false);
+    $next = occurrenceAtLocal($this->city, $this->category, '2026-09-06 18:00:00');
+    $this->get('/')->assertOk()->assertViewHas('hero', fn ($hero) => $hero->is($next))->assertSee('data-home-hero', false);
 });
 
 it('skips an invalid high priority campaign before choosing another active sponsorship', function (): void {

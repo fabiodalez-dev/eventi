@@ -21,7 +21,7 @@
      * di piu' gli fa scaricare peso che non serve. Va tenuto insieme alla
      * geometria: se cambia una, va cambiato l'altro.
      */
-    $poster = \App\Support\Poster::imageSet($event)?->withSizes('240px');
+    $poster = \App\Support\Poster::imageSet($event)?->withSizes('100vw');
     $custom = is_array($event->custom_location) ? $event->custom_location : [];
     $shareUrl = $meta->canonical ?? route('events.show', $event);
     $dates = $occurrences->isNotEmpty() ? $occurrences : $pastOccurrences;
@@ -80,12 +80,11 @@
     </nav>
 
     {{-- ------------------------------------------------------------------
-         La locandina intera mantiene il formato verticale; le informazioni
-         restano sotto su mobile e accanto su tablet e desktop.
+         La copertina riempie lo sfondo; la locandina leggibile resta nella scheda.
     ------------------------------------------------------------------- --}}
     <section class="event-detail-hero relative isolate grid gap-0.5 border-b-2 border-line bg-line">
         <div class="photo-panel bg-canvas">
-            <x-event-artwork :event="$event" :eager="true" />
+            <x-event-artwork :event="$event" :eager="true" sizes="100vw" />
         </div>
 
         <div class="event-heading-panel flex flex-col justify-center gap-[clamp(1rem,1.8vw,1.5rem)] bg-canvas p-[clamp(1.25rem,2.4vw,2.25rem)]">
@@ -172,7 +171,7 @@
          colonna no. Senza il limite, su uno schermo da 1440 il testo arriva a
          900px — centoventi caratteri per riga, dove l'occhio tornando a capo
          perde la riga giusta — e su un monitor grande peggiora ancora. --}}
-    <div class="mx-auto grid w-full max-w-content grid-cols-[minmax(0,1fr)] gap-8 px-gutter py-[clamp(1.5rem,2.8vw,2.75rem)] lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+    <div class="event-detail-body mx-auto grid w-full max-w-content grid-cols-[minmax(0,1fr)] gap-8 px-gutter py-[clamp(1.5rem,2.8vw,2.75rem)] lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <article class="flex min-w-0 flex-col gap-6">
             @if ($occurrences->isEmpty() && $pastOccurrences->isNotEmpty())
                 <p class="bg-surface px-4 py-3 text-sm font-semibold text-ink-muted">

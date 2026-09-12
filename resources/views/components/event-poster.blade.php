@@ -25,18 +25,18 @@
     $id = 'locandina-'.$event->getKey();
 @endphp
 
-<figure class="flex flex-col gap-2">
+<figure class="event-poster-original flex flex-col gap-2">
     <button
         type="button"
         data-apre-dialogo="{{ $id }}"
-        class="event-poster-frame group relative block w-full overflow-hidden border-2 border-line bg-canvas transition-colors hover:border-accent"
+        class="group relative block w-full overflow-hidden"
         aria-label="{{ __('events.poster.open') }}"
     >
         <x-media-image
             :set="$set"
             :alt="$titolo"
-            width="800"
-            height="1131"
+            width="{{ $set->width ?? 800 }}"
+            height="{{ $set->height ?? 1131 }}"
             sizes="(min-width: 1024px) 22rem, 100vw"
             :color="true" :show-placeholder="false"
             data-poster-reveal
