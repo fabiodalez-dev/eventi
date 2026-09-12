@@ -177,7 +177,7 @@ Barra superiore e navigazione inferiore nere, separate da una regola da 2 dp. Br
 
 ### Event Card
 
-Componente tipografico numerato. Categoria in un box da 2 dp, titolo maiuscolo, luogo e data, prezzo, stato e controllo wishlist. Nell’elenco `/eventi` mostra anche la locandina a colori, intera e senza tagli, su mobile e desktop. Le altre liste mantengono il formato tipografico. L'intera card apre il dettaglio, mentre il segnalibro ha un target indipendente da 48 dp.
+Componente tipografico numerato. Categoria in un box da 2 dp, titolo maiuscolo, luogo e data, prezzo, stato e controllo wishlist. Ogni elenco mostra la locandina a colori, intera e senza tagli, in un riquadro verticale 3:4 su mobile, desktop e Android. I riquadri della stessa griglia hanno uguali dimensioni; le immagini orizzontali si adattano senza deformazioni. Lo sfondo libero usa la superficie neutra del tema, mai bande nere aggiunte. L'intera card apre il dettaglio, mentre il segnalibro ha un target indipendente da 48 dp.
 
 ## Do's and Don'ts
 
@@ -253,4 +253,4 @@ I link che svolgono il ruolo visivo di pulsanti usano `ui-action` (inclusa nei c
 
 Su mobile i quattro accessi rapidi della home occupano una griglia 2×2. Le azioni seguono l’ordine catalogo, mappa, wizard: quest’ultimo occupa tutta la seconda riga quando lo spazio non permette tre colonne. Nei contatori chiari numero e descrizione sono centrati verticalmente. I filtri della mappa aggiornano marker ed elenco insieme; su mobile, dopo un filtro applicato, il focus e lo scorrimento portano all’elenco.
 
-Da 768 px la testata evento è un unico hero: fotografia a tutta larghezza, overlay scuro e informazioni sovrapposte con colori leggibili in entrambi i temi. Su mobile resta la fotografia sopra le informazioni. Il locale compare sotto il titolo e nelle card fuori dalla pagina del locale.
+La testata evento mostra la locandina intera in formato 3:4: informazioni sotto su mobile e accanto da 768 px, leggibili in entrambi i temi. Il locale compare sotto il titolo e nelle card fuori dalla pagina del locale.

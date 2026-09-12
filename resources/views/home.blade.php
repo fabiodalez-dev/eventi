@@ -34,14 +34,13 @@
        la contiene (§11.11). */
     $heroPoster = $heroOccorrenza === null
         ? null
-        : (\App\Support\Poster::imageSet($heroOccorrenza->event)
-            ?? new \App\Support\Media\ImageSet(src: asset('images/home-event-fallback.jpg'), width: 1024, height: 768))
-            ->withSizes('(min-width: 840px) 50vw, 100vw')
+        : \App\Support\Poster::imageSet($heroOccorrenza->event)
+            ?->withSizes('240px')
             /* 840px, non 1024: le due colonne dell'apertura si affiancano
                quando ci stanno, cioe' a `2 x 420px`. Fra 840 e 1024 la
                dichiarazione diceva schermo intero mentre l'immagine ne
                occupava meta', e il browser scaricava il doppio del necessario. */
-            ->withPreloadMedia('(min-width: 840px)');
+            ?->withPreloadMedia('(min-width: 840px)');
             /* La stessa soglia governa anche l'ANNUNCIO: sotto gli 840px le due
                colonne si impilano e la locandina finisce sotto la piega, dove
                l'elemento piu' grande e' testo. Annunciare come urgente qualcosa
@@ -176,7 +175,7 @@
             <a
                 href="{{ \App\Support\EventUrl::occurrence($heroOccorrenza) }}"
                 @if ($heroSponsorizzato) rel="sponsored" @endif
-                class="photo-panel group relative flex min-h-[clamp(26.25rem,46vw,38.75rem)] flex-col overflow-hidden"
+                class="home-poster-feature group relative flex flex-col overflow-hidden bg-canvas text-ink"
                 data-home-hero
                 @if ($heroSponsorizzato)
                     data-sponsorship="{{ $heroSponsorship->getKey() }}"
@@ -185,18 +184,7 @@
                     data-sponsorship-click="{{ route('sponsorships.metric', ['sponsorship' => $heroSponsorship, 'metric' => 'clicks']) }}"
                 @endif
             >
-                @if ($heroPoster !== null)
-                    <x-media-image
-                        :set="$heroPoster"
-                        alt=""
-                        :width="$heroPoster->width ?? 1200"
-                        :height="$heroPoster->height ?? 1200"
-                        :eager="true"
-                        class="absolute inset-0 size-full object-cover opacity-[0.68] grayscale-photo transition-transform duration-700 ease-out-soft group-hover:scale-[1.03]"
-                    />
-                @endif
-
-                <span aria-hidden="true" class="absolute inset-0 bg-[linear-gradient(180deg,rgba(11,11,11,.25)_0%,rgba(11,11,11,.55)_46%,rgba(11,11,11,.94)_100%)]"></span>
+                <x-event-artwork :event="$heroEvento" :eager="true" />
 
                 <div class="relative flex items-start justify-between gap-3 p-[clamp(1.25rem,2.2vw,2.125rem)]">
                     {{-- L'etichetta occupa lo stesso posto in entrambi i casi:

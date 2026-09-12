@@ -34,7 +34,6 @@
         ? \App\Support\EventUrl::occurrence($occurrence)
         : null;
 
-    $poster = \App\Support\Poster::imageSet($event);
 
     $isScheduled = $status === \App\Enums\OccurrenceStatus::Scheduled;
 
@@ -74,23 +73,7 @@
     ' hover:border-accent' => $url !== null,
     'opacity-75' => ! $isScheduled,
 ]) }}>
-    <div class="relative aspect-[3/4] w-full overflow-hidden poster-placeholder sm:aspect-auto sm:h-full">
-        @if ($poster !== null)
-            <x-media-image
-                :set="$poster"
-                :alt="__('events.card.poster_alt', ['title' => $event->title])"
-                width="800"
-                height="1067"
-                sizes="(min-width: 1024px) 192px, (min-width: 640px) 160px, 104px"
-                :eager="$eager"
-                class="size-full object-cover transition duration-500 ease-out-soft group-hover:scale-[1.03]"
-            />
-        @else
-            <span class="absolute inset-0 flex items-center justify-center p-4 text-center text-eyebrow text-on-brand-soft/70">
-                {{ $event->title }}
-            </span>
-        @endif
-    </div>
+    <x-event-artwork :event="$event" :eager="$eager" />
 
     <div class="flex flex-col justify-center gap-2 py-3 pr-4 sm:gap-2.5 sm:py-5 sm:pl-0 sm:pr-6">
         {{-- I badge stanno accanto al testo, non sopra la locandina: qui c'è

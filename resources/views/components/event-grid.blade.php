@@ -31,7 +31,7 @@
     'context' => 'upcoming',
     'showVenue' => true,
     'level' => 'h3',
-    'showPoster' => false,
+    'showPoster' => true,
     /* La numerazione progressiva delle card. Si spegne dove le card non sono
        un elenco ordinato — i risultati di una ricerca, per esempio, dove il
        numero suggerirebbe una classifica che non c'è. */

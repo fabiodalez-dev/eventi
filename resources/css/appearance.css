@@ -399,17 +399,14 @@
 }
 .home-shortcuts > a { justify-content: center; }
 .map-results { scroll-margin-top: calc(var(--header-height, 80px) + 48px); }
+/* A single portrait slot keeps every row aligned without cropping artwork. */
+.event-poster-frame { display: block; position: relative; width: min(100%, 240px); aspect-ratio: 3 / 4; margin-inline: auto; overflow: hidden; background: var(--color-surface); }
+.event-poster-frame > picture { display: block; width: 100%; height: 100%; }
+.event-poster-frame > picture > img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.home-poster-feature > .event-poster-frame { max-width: 360px; align-self: center; }
+.event-detail-hero { background: var(--color-canvas); align-items: center; }
+.event-detail-hero > .photo-panel { width: min(100%, 360px); justify-self: center; background: var(--color-canvas); color: var(--color-ink); }
+.event-detail-hero .event-heading-panel { min-width: 0; }
 @media (min-width: 768px) {
-    .event-detail-hero { --on-accent: #171717; min-height: 540px; background: #101010; color: #fffaf6; }
-    .event-detail-hero > .photo-panel { position: absolute; inset: 0; min-height: 100%; background: #101010; z-index: -1; }
-    .event-detail-hero > .photo-panel > .relative { justify-content: space-between; }
-    .event-detail-hero > .photo-panel > .relative > div:last-child { display: none; }
-    .event-detail-hero .event-heading-panel { margin-top: 72px; background: transparent !important; max-width: 1100px; padding-block: 48px; }
-    .event-detail-hero .event-heading-panel h1 { color: #fffaf6; }
-    .event-detail-hero .text-ink-muted, .event-detail-hero .text-ink-subtle { color: #eee; }
-    .event-detail-hero .event-heading-panel .text-accent { color: #ffc29e !important; }
-    .event-detail-hero .event-heading-panel :is(.ui-action, .event-utility-action) { background: #fffaf6; color: #171717; border-color: #fffaf6; }
-    .event-detail-hero .event-heading-panel :is(.ui-action, .event-utility-action):hover { background: #ffd3b7; color: #171717; }
-    .event-detail-hero .event-hero-fact { background: rgb(16 16 16 / 80%); }
-    .event-detail-hero .photo-panel img { opacity: .6; }
+    .event-detail-hero { grid-template-columns: minmax(240px, 360px) minmax(0, 1fr); }
 }

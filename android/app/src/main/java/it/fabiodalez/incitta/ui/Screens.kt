@@ -611,7 +611,7 @@ fun EventDetailScreen(
             }
         }
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-            PosterImage(detail.poster?.full ?: detail.poster?.card, Modifier.fillMaxWidth().aspectRatio(4f / 3f))
+            EventArtwork(detail.poster?.full ?: detail.poster?.card)
             Column(Modifier.padding(18.dp)) {
                 MetaLabel(detail.category?.name ?: "EVENTO")
                 Text(eventTitle(detail.title), style = androidx.compose.material3.MaterialTheme.typography.displayMedium)
@@ -701,7 +701,7 @@ private fun FeatureCard(event: Occurrence, saved: Boolean, onOpen: (Occurrence) 
     val secondary = if (light) Muted else Color(0xFF555550)
     Column(Modifier.fillMaxWidth().clickable { onOpen(event) }) {
         Box {
-            PosterImage(event.poster?.full ?: event.poster?.card, Modifier.fillMaxWidth().aspectRatio(16f / 9f), concertFallback = true)
+            EventArtwork(event.poster?.full ?: event.poster?.card)
             Text(event.category?.name?.uppercase() ?: "EVENTO", color = Ink, modifier = Modifier.align(Alignment.TopStart).background(Acid).padding(horizontal = 12.dp, vertical = 8.dp), style = androidx.compose.material3.MaterialTheme.typography.labelMedium)
             SaveButton(saved, Modifier.align(Alignment.TopEnd)) { onSave(event.occurrenceId) }
         }
@@ -750,9 +750,7 @@ private fun SectionTitle(title: String, detail: String) {
 @Composable
 internal fun EventRow(event: Occurrence, saved: Boolean, onOpen: (Occurrence) -> Unit, onSave: (Long) -> Unit) {
     Column(Modifier.fillMaxWidth().clickable { onOpen(event) }) {
-        (event.poster?.card ?: event.poster?.thumb ?: event.poster?.full)?.let { poster ->
-            PosterImage(poster, Modifier.fillMaxWidth().aspectRatio(4f / 3f))
-        }
+        EventArtwork(event.poster?.card ?: event.poster?.full ?: event.poster?.thumb)
         Row(Modifier.fillMaxWidth().padding(18.dp), verticalAlignment = Alignment.Top) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(event.category?.name.orEmpty(), color = Muted, style = MaterialTheme.typography.labelMedium)
@@ -777,7 +775,14 @@ private fun SaveButton(saved: Boolean, modifier: Modifier = Modifier, onClick: (
 }
 
 @Composable
-private fun PosterImage(url: String?, modifier: Modifier, concertFallback: Boolean = false, preserveArtwork: Boolean = true) {
+internal fun EventArtwork(url: String?) {
+    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+        PosterImage(url, Modifier.width(240.dp).height(320.dp))
+    }
+}
+
+@Composable
+internal fun PosterImage(url: String?, modifier: Modifier, concertFallback: Boolean = false, preserveArtwork: Boolean = true) {
     val matrix = remember { ColorMatrix().apply { setToSaturation(0f) } }
     Box(modifier.background(MaterialTheme.colorScheme.surfaceVariant).clipToBounds()) {
         if (url != null || concertFallback) {

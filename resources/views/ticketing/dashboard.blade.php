@@ -13,7 +13,7 @@
     <p data-search-status role="status" class="text-sm text-ink-muted"></p>
     <div data-ticket-results class="flex flex-col gap-4">
     @forelse ($dates as $date)
-        <a href="{{ route('ticketing.manage.show', $date) }}" class="border-t-2 border-line py-4 hover:text-brand"><strong class="text-xl">{{ $date->event->title }}</strong><br>{{ $date->starts_at->timezone($date->event->city->timezone)->format('d/m/Y H:i') }} · {{ $date->effectiveVenue()?->name }}<br><span class="text-sm">{{ $date->booking_enabled ? __('ticketing.enabled') : __('ticketing.settings') }}</span></a>
+        <a href="{{ route('ticketing.manage.show', $date) }}" class="flex items-center gap-4 border-t-2 border-line py-4 hover:text-brand"><x-event-artwork :event="$date->event" class="!w-20 shrink-0" /><span class="min-w-0"><strong class="text-xl">{{ $date->event->title }}</strong><br>{{ $date->starts_at->timezone($date->event->city->timezone)->format('d/m/Y H:i') }} · {{ $date->effectiveVenue()?->name }}<br><span class="text-sm">{{ $date->booking_enabled ? __('ticketing.enabled') : __('ticketing.settings') }}</span></span></a>
     @empty
         <p>Non ci sono eventi {{ $period === 'past' ? 'passati' : 'prossimi o in corso' }}{{ request('q') ? ' corrispondenti alla ricerca' : '' }}.</p>
     @endforelse
