@@ -13,6 +13,7 @@ use App\Models\Event;
 use App\Models\EventOccurrence;
 use App\Models\Follow;
 use App\Models\ImportSource;
+use App\Models\MobileAuthChallenge;
 use App\Models\Organizer;
 use App\Models\Page;
 use App\Models\Redirect;
@@ -55,6 +56,7 @@ use App\Services\Geo\AddressGeocoder;
 use App\Services\Geo\GeoQueryInterface;
 use App\Services\Geo\MariaDbGeoQuery;
 use App\Services\Geo\NominatimGeocoder;
+use App\Services\Http\SafeWebPushFactory;
 use App\Services\Import\DnsHostResolver;
 use App\Services\Import\HostResolver;
 use App\Services\Installer\DatabaseInspector;
@@ -69,8 +71,13 @@ use App\Support\CurrentFollows;
 use App\Support\CurrentSaves;
 use App\Support\DateFormatter;
 use App\Support\Lang\DatabaseOverrideLoader;
+use App\Support\SecurityLog;
 use Dedoc\Scramble\Scramble;
 use Dedoc\Scramble\Support\Generator\OpenApi;
+use Illuminate\Auth\Events\Failed;
+use Illuminate\Auth\Events\Lockout;
+use Illuminate\Auth\Events\Login;
+use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Database\Eloquent\Relations\Relation;
@@ -83,6 +90,8 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Translation\FileLoader;
 use Laravel\Telescope\TelescopeApplicationServiceProvider;
+use Minishlink\WebPush\WebPush;
+use NotificationChannels\WebPush\WebPushChannel;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -189,7 +198,29 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        $this->app->when(WebPushChannel::class)
+            ->needs(WebPush::class)
+            ->give(fn () => (new SafeWebPushFactory($this->app))->make());
+
         EventFacade::listen(NotificationFailed::class, RevokeInvalidFcmToken::class);
+
+        // Session logins emit Login/Failed. API password checks and HTTP throttles log at their own entry points.
+        EventFacade::listen(Login::class, static function (Login $event): void {
+            SecurityLog::scrivi('accesso_riuscito', $event->user instanceof User ? $event->user : null);
+        });
+        EventFacade::listen(Failed::class, static function (Failed $evento): void {
+            SecurityLog::accessoFallito($evento->credentials['email'] ?? null);
+        });
+        EventFacade::listen(Lockout::class, static function (): void {
+            SecurityLog::blocco();
+        });
+        EventFacade::listen(PasswordReset::class, static function (PasswordReset $evento): void {
+            if ($evento->user instanceof User) {
+                $evento->user->tokens()->delete();
+                MobileAuthChallenge::query()->where('user_id', $evento->user->getKey())->delete();
+            }
+            SecurityLog::scrivi('password_reimpostata', $evento->user instanceof User ? $evento->user : null);
+        });
 
         /*
          * `@cspNonce` su un tag `<script>` (§16).
@@ -253,12 +284,50 @@ class AppServiceProvider extends ServiceProvider
          * limite di un IP condiviso; senza l'IP, basterebbe cambiare email a
          * ogni tentativo.
          */
-        RateLimiter::for('api-auth', static function (Request $request): Limit {
+        RateLimiter::for('api-auth', static function (Request $request): array {
             $email = $request->input('email');
+            $indirizzo = $request->ip() ?? 'sconosciuto';
+            $conto = is_string($email) ? mb_strtolower($email) : '';
 
-            return Limit::perMinute(config()->integer('api.rate_limit.auth'))
-                ->by(($request->ip() ?? 'sconosciuto').'|'.(is_string($email) ? mb_strtolower($email) : ''));
+            return [
+                /* La coppia: ferma chi prova molte password su un account da
+                   un indirizzo solo. */
+                Limit::perMinute(config()->integer('api.rate_limit.auth'))->by($indirizzo.'|'.$conto),
+
+                /*
+                 * IL BERSAGLIO, indipendentemente da chi prova.
+                 *
+                 * Il limite sulla coppia vale per la COPPIA: con un pool di
+                 * mille indirizzi — e si affittano a poco — chi attacca
+                 * ottiene mille volte quel tetto sullo stesso account, e il
+                 * conto non se ne accorge. Questa riga conta i tentativi
+                 * subiti dall'account, che è la grandezza che interessa a chi
+                 * quell'account lo possiede.
+                 */
+                Limit::perMinutes(15, config()->integer('api.rate_limit.attempts_per_account'))
+                    ->by('conto:'.$conto),
+            ];
         });
+
+        /*
+         * GLI INDIRIZZI CHE MANDANO UN'EMAIL DOVE DICI TU, contati sul solo
+         * indirizzo di chi chiama: iscrizione, collegamento di accesso,
+         * password dimenticata.
+         *
+         * `api-auth` e `account-auth` contano su indirizzo **più email**, e
+         * chi manda messaggi in serie cambia email a ogni giro: per lui quel
+         * tetto non esiste. Questo lo conta su ciò che non può cambiare a
+         * costo zero, e protegge la cosa che si perde davvero — su hosting
+         * condiviso la reputazione SMTP è del sito, non di chi ne abusa.
+         *
+         * Sta su un limitatore a sé e non dentro gli altri di proposito: un
+         * tetto per indirizzo sull'**accesso** chiuderebbe fuori un ufficio
+         * dietro un solo IP, che è il motivo per cui gli altri due la chiave
+         * la compongono con l'email.
+         */
+        RateLimiter::for('outbound-email', static fn (Request $request): Limit => Limit::perHour(
+            config()->integer('api.rate_limit.outbound_emails_per_hour'),
+        )->by('invii:'.($request->ip() ?? 'sconosciuto')));
 
         /*
          * Accesso, registrazione e collegamento di accesso del **sito** (§16).
@@ -267,11 +336,29 @@ class AppServiceProvider extends ServiceProvider
          * solo account resterebbe dentro il limite di un IP condiviso, e senza
          * l'IP basterebbe cambiare email a ogni tentativo.
          */
-        RateLimiter::for('account-auth', static function (Request $request): Limit {
+        RateLimiter::for('account-auth', static function (Request $request): array {
             $email = $request->input('email');
+            $indirizzo = $request->ip() ?? 'sconosciuto';
+            $conto = is_string($email) ? mb_strtolower($email) : '';
 
-            return Limit::perMinute(config()->integer('api.rate_limit.auth'))
-                ->by(($request->ip() ?? 'sconosciuto').'|'.(is_string($email) ? mb_strtolower($email) : ''));
+            return [
+                /* La coppia: ferma chi prova molte password su un account da
+                   un indirizzo solo. */
+                Limit::perMinute(config()->integer('api.rate_limit.auth'))->by($indirizzo.'|'.$conto),
+
+                /*
+                 * IL BERSAGLIO, indipendentemente da chi prova.
+                 *
+                 * Il limite sulla coppia vale per la COPPIA: con un pool di
+                 * mille indirizzi — e si affittano a poco — chi attacca
+                 * ottiene mille volte quel tetto sullo stesso account, e il
+                 * conto non se ne accorge. Questa riga conta i tentativi
+                 * subiti dall'account, che è la grandezza che interessa a chi
+                 * quell'account lo possiede.
+                 */
+                Limit::perMinutes(15, config()->integer('api.rate_limit.attempts_per_account'))
+                    ->by('conto:'.$conto),
+            ];
         });
 
         // Le colonne morph (`follows.followable_type`, `reports.reportable_type`,

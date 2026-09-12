@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Support;
 
+use App\Services\Import\HostResolver;
 use Illuminate\Support\Facades\Http;
 use Throwable;
 
@@ -92,6 +93,13 @@ final class IcsFixtures
 
     private static function register(): void
     {
+        app()->bind(HostResolver::class, fn () => new class implements HostResolver
+        {
+            public function resolve(string $host): array
+            {
+                return ['93.184.216.34'];
+            }
+        });
         Http::fake([
             self::URL => function () {
                 if (self::$failure !== null) {

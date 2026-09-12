@@ -8,10 +8,13 @@ use App\Enums\DevicePlatform;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Web\Account\StorePushSubscriptionRequest;
 use App\Models\Device;
+use App\Models\User;
+use App\Services\Account\DeviceLimit;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Il browser si iscrive e si disiscrive dalle notifiche push (§15.6, D54).
@@ -43,42 +46,46 @@ final class PushSubscriptionController extends Controller
             return response()->json(['message' => __('notifications.push.unauthenticated')], 401);
         }
 
-        $endpoint = $request->endpoint();
+        DB::transaction(function () use ($user, $request): void {
+            User::query()->whereKey($user->getKey())->lockForUpdate()->firstOrFail();
+            $endpoint = $request->endpoint();
 
-        /*
-         * Lo stesso browser può aver ospitato due persone: l'endpoint è unico
-         * per installazione, non per account. Se resta appeso al precedente,
-         * quello continua a ricevere sullo schermo di chi si è collegato
-         * dopo. Si revoca invece di cancellare, come ovunque qui.
-         */
-        Device::query()
-            ->where('endpoint', $endpoint)
-            ->where('user_id', '!=', $user->getKey())
-            ->whereNull('revoked_at')
-            ->update(['revoked_at' => CarbonImmutable::now()]);
+            /*
+             * Lo stesso browser può aver ospitato due persone: l'endpoint è unico
+             * per installazione, non per account. Se resta appeso al precedente,
+             * quello continua a ricevere sullo schermo di chi si è collegato
+             * dopo. Si revoca invece di cancellare, come ovunque qui.
+             */
+            Device::query()
+                ->where('endpoint', $endpoint)
+                ->where('user_id', '!=', $user->getKey())
+                ->whereNull('revoked_at')
+                ->update(['revoked_at' => CarbonImmutable::now()]);
 
-        /*
-         * La seconda iscrizione dello stesso browser aggiorna la riga invece
-         * di crearne un'altra, come `DeviceController`: §3.14 di `SCHEMA.md`
-         * rinuncia di proposito a un indice unico su una colonna da 512
-         * caratteri e mette la deduplica qui.
-         *
-         * Ed è la stessa scrittura che tiene fresco `last_seen_at`: la pagina
-         * rimanda l'iscrizione a ogni visita di chi ha già dato il permesso,
-         * ed è quel rinnovo a dare un senso alla finestra di trenta giorni di
-         * §15.6 — senza, misurerebbe la data della prima iscrizione.
-         */
-        $device = $user->devices()->firstOrNew(['endpoint' => $endpoint]);
+            /*
+             * La seconda iscrizione dello stesso browser aggiorna la riga invece
+             * di crearne un'altra, come `DeviceController`: §3.14 di `SCHEMA.md`
+             * rinuncia di proposito a un indice unico su una colonna da 512
+             * caratteri e mette la deduplica qui.
+             *
+             * Ed è la stessa scrittura che tiene fresco `last_seen_at`: la pagina
+             * rimanda l'iscrizione a ogni visita di chi ha già dato il permesso,
+             * ed è quel rinnovo a dare un senso alla finestra di trenta giorni di
+             * §15.6 — senza, misurerebbe la data della prima iscrizione.
+             */
+            $device = $user->devices()->firstOrNew(['endpoint' => $endpoint]);
 
-        $device->forceFill([
-            'user_id' => $user->getKey(),
-            'platform' => DevicePlatform::Web,
-            'endpoint' => $endpoint,
-            'keys' => $request->keys(),
-            'locale' => $user->locale,
-            'last_seen_at' => CarbonImmutable::now(),
-            'revoked_at' => null,
-        ])->save();
+            $device->forceFill([
+                'user_id' => $user->getKey(),
+                'platform' => DevicePlatform::Web,
+                'endpoint' => $endpoint,
+                'keys' => $request->keys(),
+                'locale' => $user->locale,
+                'last_seen_at' => CarbonImmutable::now(),
+                'revoked_at' => null,
+            ])->save();
+            app(DeviceLimit::class)->enforce($user, $device);
+        });
 
         return response()->json(['message' => __('notifications.push.enabled')], 201);
     }

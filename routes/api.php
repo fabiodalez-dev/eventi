@@ -154,9 +154,13 @@ Route::prefix('v1')
 
         Route::prefix('auth')->name('auth.')->group(function (): void {
             Route::middleware('throttle:api-auth')->group(function (): void {
-                Route::post('/register', [AuthController::class, 'register'])->name('register');
+                Route::post('/register', [AuthController::class, 'register'])
+                    ->middleware('throttle:outbound-email')
+                    ->name('register');
                 Route::post('/login', [AuthController::class, 'login'])->name('login');
-                Route::post('/password/forgot', [PasswordController::class, 'forgot'])->name('password.forgot');
+                Route::post('/password/forgot', [PasswordController::class, 'forgot'])
+                    ->middleware('throttle:outbound-email')
+                    ->name('password.forgot');
                 Route::post('/password/reset', [PasswordController::class, 'reset'])->name('password.reset');
             });
 
@@ -167,7 +171,9 @@ Route::prefix('v1')
              * prova a entrare.
              */
             Route::middleware('throttle:api-auth')->group(function (): void {
-                Route::post('/magic-link', MagicLinkController::class)->name('magic-link');
+                Route::post('/magic-link', MagicLinkController::class)
+                    ->middleware('throttle:outbound-email')
+                    ->name('magic-link');
                 Route::post('/magic-link/exchange', MagicLinkExchangeController::class)->name('magic-link.exchange');
                 Route::post('/verify-email', EmailVerificationController::class)->name('verify-email');
             });

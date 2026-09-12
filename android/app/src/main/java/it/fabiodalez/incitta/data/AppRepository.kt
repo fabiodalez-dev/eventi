@@ -174,15 +174,19 @@ class AppRepository(context: Context) {
     }
 
     suspend fun requestMagicLink(email: String) {
-        api.post<ApiEnvelope<ApiMessage>, MagicLinkBody>("auth/magic-link", MagicLinkBody(email.trim()))
+        val verifier = MagicLinkProof.createVerifier()
+        store.writeMagicVerifier(verifier)
+        api.post<ApiEnvelope<ApiMessage>, MagicLinkBody>("auth/magic-link", MagicLinkBody(email.trim(), MagicLinkProof.challenge(verifier)))
     }
 
     suspend fun exchangeMagicToken(rawToken: String): User {
-        clearAuthenticatedState()
+        val verifier = store.readMagicVerifier() ?: error("Richiedi un nuovo link da questo dispositivo.")
         val payload = api.post<ApiEnvelope<AuthPayload>, MagicExchangeBody>(
             "auth/magic-link/exchange",
-            MagicExchangeBody(rawToken, deviceName),
+            MagicExchangeBody(rawToken, verifier, deviceName),
         ).data
+        store.clearMagicVerifier()
+        clearAuthenticatedState()
         acceptSession(payload)
         runCatching {
             mergeGuestWishlist()

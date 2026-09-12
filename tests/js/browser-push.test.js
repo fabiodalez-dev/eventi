@@ -80,7 +80,7 @@ test('an unsupported context offers no unusable permission controls', async () =
 
 test('the worker renders incoming push payloads and opens their event link', async () => {
     const listeners = {}, shown = [], opened = [];
-    vm.runInNewContext(readFileSync(new URL('../../public/sw.js', import.meta.url), 'utf8'), { self: { addEventListener: (name, fn) => { listeners[name] = fn; }, registration: { showNotification: async (title, options) => shown.push({ title, options }) }, clients: { matchAll: async () => [], openWindow: async url => opened.push(url) } } });
+    vm.runInNewContext(readFileSync(new URL('../../public/sw.js', import.meta.url), 'utf8'), { URL, self: { location: { origin: 'https://example.test' }, addEventListener: (name, fn) => { listeners[name] = fn; }, registration: { showNotification: async (title, options) => shown.push({ title, options }) }, clients: { matchAll: async () => [], openWindow: async url => opened.push(url) } } });
     let pending;
     listeners.push({ data: { json: () => ({ title: 'Promemoria', body: 'Il tuo evento', data: { url: 'https://example.test/eventi/prova/1' } }) }, waitUntil: promise => { pending = promise; } });
     await pending;

@@ -26,6 +26,7 @@ class MagicLinkRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'code_challenge' => ['required', 'string', 'regex:/^[A-Za-z0-9_-]{43}$/D'],
             'email' => ['required', 'email', 'max:255'],
         ];
     }

@@ -14,7 +14,7 @@ final class MobileAuthChallenge extends Model
     use MassPrunable;
 
     /** @var list<string> */
-    protected $fillable = ['user_id', 'token_hash', 'expires_at', 'used_at'];
+    protected $fillable = ['user_id', 'token_hash', 'code_challenge', 'password_fingerprint', 'expires_at', 'used_at'];
 
     /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo

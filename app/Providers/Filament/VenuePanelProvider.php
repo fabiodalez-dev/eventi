@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Providers\Filament;
 
+use App\Filament\Auth\Login;
+use App\Filament\Auth\RequestPasswordReset;
 use App\Filament\Venue\Pages\Dashboard;
 use App\Models\User;
 use App\Models\Venue;
@@ -60,8 +62,8 @@ class VenuePanelProvider extends PanelProvider
                     ->icon('heroicon-o-ticket')->url(fn (): string => route('ticketing.manage.index'))
                     ->visible(fn (): bool => auth()->user()?->ownedVenues()->exists() === true),
             ])
-            ->login()
-            ->passwordReset()
+            ->login(Login::class)
+            ->passwordReset(RequestPasswordReset::class)
             ->darkMode(false)
             ->font('Manrope Variable', provider: LocalFontProvider::class)
             ->viteTheme('resources/css/filament/admin/theme.css')

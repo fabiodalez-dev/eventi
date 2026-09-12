@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\DB;
+use InvalidArgumentException;
 
 /**
  * Le misure di una campagna in un giorno.
@@ -47,6 +48,23 @@ class SponsorshipDailyStat extends Model
      */
     public static function registra(int $sponsorshipId, string $colonna, ?CarbonImmutable $quando = null): void
     {
+        /*
+         * `$colonna` finisce dentro `DB::raw()` poche righe piu' sotto, ed e'
+         * l'unico punto del progetto in cui una variabile entra nel testo di
+         * una query invece di passare da un segnaposto.
+         *
+         * Oggi non e' sfruttabile perche' **entrambi** i chiamanti la
+         * vincolano prima: `whereIn('metric', [...])` sulla rotta web piu'
+         * l'`abort_unless` nel controller, e l'`in_array` in quello dell'API.
+         * Ma quella sicurezza sta in chi chiama, non in questo metodo: basta
+         * un terzo chiamante scritto in fretta — un comando, un'importazione,
+         * un pannello — e diventa injection. Si chiude qui, dove il costo e'
+         * una riga e non dipende da nessuno.
+         */
+        if (! in_array($colonna, ['impressions', 'clicks'], strict: true)) {
+            throw new InvalidArgumentException('Misura non ammessa: '.$colonna);
+        }
+
         $giorno = ($quando ?? CarbonImmutable::now())->toDateString();
         $adesso = now();
 

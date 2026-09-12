@@ -57,7 +57,7 @@ Route::middleware('guest')->group(function (): void {
 
     Route::get('/accedi/collegamento', [MagicLinkController::class, 'create'])->name('account.magic-link');
     Route::post('/accedi/collegamento', [MagicLinkController::class, 'store'])
-        ->middleware('throttle:account-auth')
+        ->middleware(['throttle:account-auth', 'throttle:outbound-email'])
         ->name('account.magic-link.store');
 
     /*
@@ -75,7 +75,7 @@ Route::middleware('guest')->group(function (): void {
     Route::get('/password-dimenticata', [PasswordResetController::class, 'create'])
         ->name('account.password.request');
     Route::post('/password-dimenticata', [PasswordResetController::class, 'store'])
-        ->middleware('throttle:account-auth')
+        ->middleware(['throttle:account-auth', 'throttle:outbound-email'])
         ->name('account.password.email');
 
     Route::get('/reimposta-password', [PasswordResetController::class, 'edit'])
@@ -182,10 +182,16 @@ Route::middleware('auth')->group(function (): void {
      * rotta e' dietro `auth:sanctum` senza `statefulApi()`, quindi da una
      * pagina a sessione risponde 401. Vedi `PushSubscriptionController`.
      */
+    /*
+     * Un limitatore come su ogni altra scrittura di questo file: era l'unica
+     * senza, e ogni chiamata puo' depositare una riga in `devices`.
+     */
     Route::post('/notifiche/push', [PushSubscriptionController::class, 'store'])
+        ->middleware('throttle:10,1')
         ->name('account.push.store');
 
     Route::delete('/notifiche/push', [PushSubscriptionController::class, 'destroy'])
+        ->middleware('throttle:10,1')
         ->name('account.push.destroy');
 
     Route::get('/email/verifica', [EmailVerificationController::class, 'notice'])->name('verification.notice');

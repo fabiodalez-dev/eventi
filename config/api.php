@@ -46,7 +46,6 @@ return [
 
     'auth' => [
         'token_expiration_days' => (int) env('API_TOKEN_EXPIRATION_DAYS', 90),
-        'magic_link_url' => env('API_MAGIC_LINK_URL'),
     ],
 
     /*
@@ -98,6 +97,34 @@ return [
          * proverà a forzare.
          */
         'auth' => 6,
+
+        /*
+         * Quante richieste l'ora, da un solo indirizzo, verso gli indirizzi
+         * che MANDANO UN'EMAIL A UNA CASELLA SCELTA DA CHI CHIAMA: iscrizione,
+         * collegamento di accesso, password dimenticata.
+         *
+         * È un limite a sé e non il valore di `auth`, perché protegge da una
+         * cosa diversa: non da chi prova mille password, ma da chi manda mille
+         * messaggi. E soprattutto `auth` si conta su indirizzo **più email**,
+         * quindi si azzera cambiando email — che è esattamente il gesto di chi
+         * si iscrive in serie o riempie caselle altrui.
+         *
+         * Ciò che si perde non è un contatore: su hosting condiviso quella è
+         * la reputazione SMTP del sito, e la si brucia in un pomeriggio.
+         *
+         * Dieci l'ora sono larghi per una famiglia dietro un solo indirizzo e
+         * stretti per uno script.
+         */
+        'outbound_emails_per_hour' => 10,
+
+        /*
+         * Tentativi di accesso per ACCOUNT in un quarto d'ora, indipendenti
+         * dall'indirizzo di chi prova. Chiude la forza bruta distribuita: il
+         * limite su indirizzo più email vale per la coppia, quindi un pool di
+         * mille indirizzi ottiene mille volte quel tetto sullo stesso
+         * bersaglio.
+         */
+        'attempts_per_account' => 20,
     ],
 
     /*

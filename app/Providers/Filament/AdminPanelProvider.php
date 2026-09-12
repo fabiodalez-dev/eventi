@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Providers\Filament;
 
 use App\Filament\Admin\Pages\Dashboard;
+use App\Filament\Auth\Login;
+use App\Filament\Auth\RequestPasswordReset;
 use Filament\FontProviders\LocalFontProvider;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -46,14 +48,14 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
-            ->login()
+            ->login(Login::class)
             /*
              * Un amministratore che dimentica la password restava fuori: non
              * c'e' registrazione da rifare e nessuno a cui chiedere, perche'
              * chi potrebbe rimediare e' lui. Il pannello dei locali lo aveva
              * gia'; questo no, e la differenza non era voluta.
              */
-            ->passwordReset()
+            ->passwordReset(RequestPasswordReset::class)
             ->brandName(fn (): string => (string) config('app.name'))
             /*
              * Lo stesso carattere del sito, servito dal nostro dominio: e' gia'

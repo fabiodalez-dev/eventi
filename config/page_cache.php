@@ -7,6 +7,7 @@ declare(strict_types=1);
  * ognuna risponde a quanto in fretta quel contenuto smette di essere vero.
  */
 return [
+    'max_entries' => 500,
 
     /*
      * Lo spegnimento serve allo sviluppo — una modifica a una vista deve

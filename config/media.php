@@ -49,6 +49,26 @@ return [
     'min_height' => 200,
 
     /*
+     * Il tetto alla SUPERFICIE, in pixel.
+     *
+     * Il limite sul peso del file non basta: PNG e WebP comprimono a tinta
+     * unita in modo spettacolare, e un'immagine di 30.000 x 30.000 pixel pesa
+     * poche centinaia di kilobyte — passa i 12 MB di `max_upload_bytes`, passa
+     * la misura minima, passa il controllo dei magic byte. Poi la pipeline la
+     * apre, e ImageMagick alloca quattro byte per pixel: 900 milioni di pixel
+     * sono 3,6 GB di memoria per una locandina.
+     *
+     * Su hosting condiviso l'esito non e' un errore: e' il processo ucciso dal
+     * limite di memoria, e con lui la richiesta di chiunque altro stesse
+     * usando lo stesso contenitore.
+     *
+     * Cinquanta megapixel stanno molto sopra qualunque locandina o fotografia
+     * vera (una reflex da 50 Mpx e' fascia alta) e molto sotto la soglia del
+     * danno.
+     */
+    'max_pixels' => 50_000_000,
+
+    /*
      * Le tre varianti di §12.1, in larghezza. `full` è il tetto: nessuna
      * variante ingrandisce mai un originale più piccolo (`Fit::Max`).
      */

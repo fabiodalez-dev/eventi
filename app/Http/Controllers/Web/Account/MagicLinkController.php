@@ -14,6 +14,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Accesso senza password (§15.2), che il piano raccomanda come opzione
@@ -61,6 +62,16 @@ final class MagicLinkController extends Controller
         $fingerprint = $request->query('fingerprint');
 
         if (! is_string($fingerprint) || ! hash_equals(MagicLoginLink::fingerprint($user), $fingerprint)) {
+            return redirect()->route('account.magic-link')->with('status', __('account.magic.expired'));
+        }
+
+        // Persistent atomic consumption survives cache clearing and simultaneous requests.
+        DB::table('used_web_login_links')->where('expires_at', '<', now())->delete();
+        $inserted = DB::table('used_web_login_links')->insertOrIgnore([
+            'hash' => hash('sha256', $request->fullUrl()),
+            'expires_at' => CarbonImmutable::createFromTimestamp((int) $request->query('expires')),
+        ]);
+        if ($inserted !== 1) {
             return redirect()->route('account.magic-link')->with('status', __('account.magic.expired'));
         }
 

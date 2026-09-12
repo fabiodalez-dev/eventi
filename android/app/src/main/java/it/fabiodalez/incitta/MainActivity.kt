@@ -52,6 +52,8 @@ class MainActivity : ComponentActivity() {
                 val rawParts = uri.pathSegments
                 val parts = if (rawParts.size > 1 && rawParts[1] in setOf("eventi", "locali", "mappa", "calendario")) rawParts.drop(1) else rawParts
                 when {
+                    uri.scheme == "https" && parts == listOf("app", "auth", "magic") ->
+                        uri.getQueryParameter("token")?.takeIf(String::isNotBlank)?.let(viewModel::exchangeMagicToken)
                     parts.firstOrNull() == "il-mio-feed" || parts.firstOrNull() == "notifiche" -> viewModel.selectTab(AppTab.ACCOUNT)
                     parts.firstOrNull() == "locali" && parts.size >= 2 -> viewModel.openVenueSlug(parts[1])
                     parts.firstOrNull() == "mappa" -> viewModel.selectTab(AppTab.MAP)

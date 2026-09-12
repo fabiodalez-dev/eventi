@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Web\Account;
 
+use App\Rules\PublicPushEndpoint;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
@@ -27,12 +28,12 @@ final class StorePushSubscriptionRequest extends FormRequest
     }
 
     /**
-     * @return array<string, array<int, string>>
+     * @return array<string, array<int, mixed>>
      */
     public function rules(): array
     {
         return [
-            'endpoint' => ['required', 'string', 'url:https', 'max:512'],
+            'endpoint' => ['required', 'string', 'url:https', new PublicPushEndpoint, 'max:512'],
             'keys' => ['required', 'array'],
             'keys.p256dh' => ['required', 'string', 'max:255'],
             'keys.auth' => ['required', 'string', 'max:255'],

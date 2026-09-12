@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Rules;
 
 use App\Enums\ImageType;
+use App\Services\Media\ImageSafety;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Http\UploadedFile;
@@ -70,7 +71,7 @@ final class RealImage implements ValidationRule
             return;
         }
 
-        $this->guardDimensions($value, $type, $fail);
+        $this->guardDimensions($value, $fail);
     }
 
     /**
@@ -105,21 +106,22 @@ final class RealImage implements ValidationRule
      * Un'immagine troppo piccola non è una locandina: è una miniatura presa da
      * un messaggio, e ingrandita a 1600 px si sgrana.
      *
-     * HEIC e AVIF non passano da `getimagesize()`: per quelli la misura non si
-     * conosce a questo stadio e il controllo non si fa, invece di rifiutare un
-     * file valido per un'informazione che non abbiamo.
+     * Anche HEIC e AVIF sono misurati prima della decodifica completa,
+     * con limiti sulle risorse del decoder e sui pixel complessivi dei frame.
      *
      * @param  Closure(string, string|null=): PotentiallyTranslatedString  $fail
      */
-    private function guardDimensions(UploadedFile $file, ImageType $type, Closure $fail): void
+    private function guardDimensions(UploadedFile $file, Closure $fail): void
     {
-        if (in_array($type, [ImageType::Heic, ImageType::Avif], true)) {
+        $size = ImageSafety::dimensions($file->getPathname());
+        if ($size === null) {
+            $fail(__('validation.custom.image.invalid'));
+
             return;
         }
+        if (config()->integer('media.max_pixels') < $size[0] * $size[1]) {
+            $fail(__('validation.custom.image.too_many_pixels', ['megapixels' => (int) round(config()->integer('media.max_pixels') / 1_000_000)]));
 
-        $size = @getimagesize($file->getPathname());
-
-        if ($size === false) {
             return;
         }
 
@@ -131,6 +133,9 @@ final class RealImage implements ValidationRule
                 'width' => $minWidth,
                 'height' => $minHeight,
             ]));
+
+            return;
         }
+
     }
 }

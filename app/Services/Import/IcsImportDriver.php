@@ -8,18 +8,19 @@ use App\DTOs\ImportedEventDto;
 use App\DTOs\ImportMapping;
 use App\Exceptions\ImportException;
 use App\Models\ImportSource;
+use App\Services\Http\BoundedStream;
 use Carbon\CarbonImmutable;
 use DateTimeImmutable;
 use DateTimeInterface;
 use DateTimeZone;
 use GuzzleHttp\Exception\TransferException;
+use GuzzleHttp\Handler\CurlHandler;
+use GuzzleHttp\Psr7\Uri;
+use GuzzleHttp\Psr7\UriResolver;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
-use Psr\Http\Message\RequestInterface;
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\UriInterface;
 use Sabre\VObject\Component\VCalendar;
 use Sabre\VObject\Component\VEvent;
 use Sabre\VObject\Property;
@@ -198,7 +199,20 @@ final class IcsImportDriver implements ImportSourceDriver
         $url = $this->guard->assert((string) $source->url);
 
         try {
-            $response = $this->request($source)->get($url);
+            $origin = parse_url($url);
+            for ($hop = 0; ; $hop++) {
+                $response = $this->request($source, $url, parse_url($url, PHP_URL_HOST) === ($origin['host'] ?? null)
+                    && parse_url($url, PHP_URL_SCHEME) === ($origin['scheme'] ?? null)
+                    && parse_url($url, PHP_URL_PORT) === ($origin['port'] ?? null))->get($url);
+                if (! in_array($response->status(), [301, 302, 303, 307, 308], true)) {
+                    break;
+                }
+                if ($hop >= config()->integer('import.max_redirects') || $response->header('Location') === '') {
+                    throw ImportException::httpStatus($response->status());
+                }
+                $url = (string) UriResolver::resolve(new Uri($url), new Uri($response->header('Location')));
+                $response->close();
+            }
         } catch (ConnectionException $exception) {
             throw ImportException::unreachable($url, $exception->getMessage());
         } catch (TransferException $exception) {
@@ -243,6 +257,9 @@ final class IcsImportDriver implements ImportSourceDriver
         }
 
         $stream = $response->toPsrResponse()->getBody();
+        if ($stream->isSeekable()) {
+            $stream->rewind();
+        }
         $body = '';
 
         while (! $stream->eof()) {
@@ -270,26 +287,26 @@ final class IcsImportDriver implements ImportSourceDriver
      * al portatore — che è come i calendari privati di Google e Nextcloud si
      * fanno leggere quando non usano un URL segreto.
      */
-    private function request(ImportSource $source): PendingRequest
+    private function request(ImportSource $source, string $url, bool $sendCredentials = true): PendingRequest
     {
+        $address = $this->guard->resolvedAddress($url);
+        $host = (string) parse_url($url, PHP_URL_HOST);
+        $port = parse_url($url, PHP_URL_PORT) ?: (parse_url($url, PHP_URL_SCHEME) === 'https' ? 443 : 80);
         $request = Http::timeout(config()->integer('import.timeout'))
             ->connectTimeout(config()->integer('import.connect_timeout'))
+            ->setHandler(new CurlHandler)
             ->withUserAgent(config()->string('app.name').' calendar import')
-            ->withHeaders(['Accept' => 'text/calendar, text/plain;q=0.9, */*;q=0.5'])
+            ->withHeaders(['Accept' => 'text/calendar, text/plain;q=0.9'])
             ->withOptions([
-                // La risposta arriva a blocchi: è ciò che permette di fermarsi
-                // a metà di un file troppo grande invece che dopo.
-                'stream' => true,
-                'allow_redirects' => [
-                    'max' => config()->integer('import.max_redirects'),
-                    'strict' => true,
-                    'referer' => false,
-                    'protocols' => ['http', 'https'],
-                    'on_redirect' => function (RequestInterface $from, ResponseInterface $response, UriInterface $to): void {
-                        $this->guard->assert((string) $to);
-                    },
-                ],
+                'stream' => false,
+                'proxy' => '',
+                'allow_redirects' => false,
+                'sink' => new BoundedStream(config()->integer('import.max_bytes')),
+                'curl' => $address === null ? [] : [CURLOPT_RESOLVE => [$host.':'.$port.':'.(str_contains($address, ':') ? '['.$address.']' : $address)]],
             ]);
+        if (! $sendCredentials) {
+            return $request;
+        }
 
         $credentials = $source->credentials;
 

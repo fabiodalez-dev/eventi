@@ -17,6 +17,7 @@ final class MagicLinkExchangeRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'code_verifier' => ['required', 'string', 'regex:/^[A-Za-z0-9._~-]{43,128}$/D'],
             'token' => ['required', 'string', 'size:64'],
             'device_name' => ['nullable', 'string', 'max:120'],
         ];

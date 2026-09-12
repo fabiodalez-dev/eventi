@@ -11,6 +11,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\Me\StoreDeviceRequest;
 use App\Http\Resources\V1\DeviceResource;
 use App\Models\Device;
+use App\Models\User;
+use App\Services\Account\DeviceLimit;
 use App\Support\Api\ApiResponse;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
@@ -65,6 +67,7 @@ final class DeviceController extends Controller
         $tokenHash = $pushToken === null ? null : hash('sha256', $pushToken);
 
         $device = DB::transaction(function () use ($user, $request, $data, $pushToken, $endpoint, $installationId, $tokenHash): Device {
+            User::query()->whereKey($user->getKey())->lockForUpdate()->firstOrFail();
             $device = Device::query()
                 ->where(static function (Builder $query) use ($user, $endpoint, $installationId, $tokenHash): void {
                     if ($tokenHash !== null) {
@@ -105,6 +108,8 @@ final class DeviceController extends Controller
 
             $current = $user->currentAccessToken();
             $current->forceFill(['device_id' => $device->getKey()])->save();
+
+            app(DeviceLimit::class)->enforce($user, $device);
 
             return $device;
         });

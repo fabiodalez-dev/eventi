@@ -7,11 +7,10 @@ namespace App\Filament\Admin\Resources\Cities;
 use App\Filament\Admin\Resources\Cities\Pages\CreateCity;
 use App\Filament\Admin\Resources\Cities\Pages\EditCity;
 use App\Filament\Admin\Resources\Cities\Pages\ListCities;
+use App\Filament\Support\BulkActions;
 use App\Filament\Support\EditorialFields;
 use App\Models\City;
 use BackedEnum;
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
@@ -253,9 +252,7 @@ class CityResource extends Resource
                 EditAction::make(),
             ])
             ->toolbarActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make(),
-                ]),
+                BulkActions::make(),
             ]);
     }
 

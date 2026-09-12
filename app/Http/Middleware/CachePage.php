@@ -94,11 +94,17 @@ final class CachePage
             $content = (string) $response->getContent();
 
             try {
-                Cache::store(config('page_cache.store') ?: null)->put(
-                    $key,
-                    $this->depersonalise($content),
-                    now()->addMinutes(config()->integer('page_cache.ttl_minutes')),
-                );
+                $store = Cache::store(config('page_cache.store') ?: null);
+                Cache::lock('page-cache-index-lock', 10)->block(3, function () use ($store, $key, $content): void {
+                    $keys = $store->get('page-cache-index', []);
+                    $keys = is_array($keys) ? array_values(array_filter($keys, static fn ($item): bool => is_string($item) && $item !== $key)) : [];
+                    $keys[] = $key;
+                    while (count($keys) > config()->integer('page_cache.max_entries')) {
+                        $store->forget(array_shift($keys));
+                    }
+                    $store->put($key, $this->depersonalise($content), now()->addMinutes(config()->integer('page_cache.ttl_minutes')));
+                    $store->forever('page-cache-index', $keys);
+                });
             } catch (Throwable $exception) {
                 report($exception);
             }
@@ -127,14 +133,30 @@ final class CachePage
      * parametri a piacere e generare voci illimitate, e su un disco quasi
      * pieno riempire la cache è un modo per fermare il sito.
      *
+     * ## Il guasto che questo elenco ha già avuto una volta
+     *
+     * Un filtro che cambia i risultati e **non** compare qui produce
+     * avvelenamento della cache: `/eventi?budget=0` e `/eventi` diventano la
+     * stessa voce, quindi il primo anonimo che passa con quel parametro decide
+     * cosa vedono tutti gli altri per un minuto. Era il caso di `budget`,
+     * `discovery`, `days` e — aggiunto ieri da un'altra mano — `membership`.
+     *
+     * L'elenco è pubblico perché `CachePageParametersTest` lo confronta con le
+     * regole di `EventFilterRequest` e `VenueFilterRequest`: il prossimo filtro
+     * che qualcuno aggiunge senza passare da qui fa fallire un test invece di
+     * aprire il buco in silenzio.
+     *
      * @var list<string>
      */
-    private const QUERY_ALLOWED = [
+    public const QUERY_ALLOWED = [
         'access',
         'accessible',
         'archivio',
         'category',
         'date',
+        /* Tre valori ammessi (7, 30, 90): la dimensione è limitata. */
+        'days',
+        'discovery',
         'family',
         'from',
         'lat',
@@ -259,12 +281,73 @@ final class CachePage
                 continue;
             }
 
-            $parametri[$nome] = (string) $valore;
+            /* Il raggio arriva da un menu con pochi valori, ma nella query
+               string è un numero libero: `5`, `5.0` e `5.0000001` sono la
+               stessa richiesta e devono essere la stessa voce, altrimenti
+               bastano le cifre decimali per moltiplicare le chiavi. */
+            $parametri[$nome] = $nome === 'radius' && is_numeric($valore)
+                ? (string) round((float) $valore, 1)
+                : (string) $valore;
         }
 
         ksort($parametri);
 
         return $request->getPathInfo().'?'.http_build_query($parametri);
+    }
+
+    /**
+     * I valori dei filtri hanno una forma e una dimensione plausibili?
+     *
+     * Non è una seconda validazione — quella la fanno le FormRequest, più
+     * tardi e meglio. È il tetto al numero di **chiavi distinte** che una
+     * richiesta può creare: qui non interessa se il valore è giusto, interessa
+     * che non sia uno dei miliardi possibili.
+     */
+    private function hasBoundedFilters(Request $request): bool
+    {
+        foreach (self::QUERY_ALLOWED as $nome) {
+            if (! $request->query->has($nome)) {
+                continue;
+            }
+
+            $valore = $request->query->all()[$nome];
+
+            if (is_array($valore) && count($valore) > 10) {
+                return false;
+            }
+
+            foreach (is_array($valore) ? $valore : [$valore] as $singolo) {
+                if (! is_scalar($singolo) || mb_strlen((string) $singolo) > 120) {
+                    return false;
+                }
+            }
+        }
+
+        /* Cinquanta pagine sono più di quante chiunque ne sfogli, e sono un
+           tetto: senza, `?page=` da solo vale un file per ogni intero. */
+        $pagina = $request->query->all()['page'] ?? null;
+
+        if ($pagina !== null && (! is_string($pagina) || ! preg_match('/^[1-9][0-9]?$/D', $pagina) || (int) $pagina < 1 || (int) $pagina > 50)) {
+            return false;
+        }
+
+        /* Le tre date: se non sono nella forma che il sito produce, la pagina
+           si disegna e non si conserva. */
+        foreach (['from', 'to'] as $nome) {
+            $valore = $request->query->all()[$nome] ?? null;
+
+            if ($valore !== null && (! is_string($valore) || ! $this->isCalendarDay($valore))) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private function isCalendarDay(string $valore): bool
+    {
+        return preg_match('/^\d{4}-\d{2}-\d{2}$/', $valore) === 1
+            && checkdate((int) substr($valore, 5, 2), (int) substr($valore, 8, 2), (int) substr($valore, 0, 4));
     }
 
     /**
@@ -311,6 +394,40 @@ final class CachePage
          * piacere — il buco che l'elenco di `QUERY_ALLOWED` serve a chiudere.
          */
         if ($request->filled('q')) {
+            return false;
+        }
+
+        /*
+         * `budget` resta fuori dalla cache come la ricerca libera, e per
+         * entrambe le sue ragioni.
+         *
+         * Cambia i risultati — arriva dalla procedura «stasera» e stringe le
+         * occorrenze per prezzo — quindi non può mancare dalla chiave: due
+         * budget diversi non sono la stessa pagina. Ma è un intero fra 0 e
+         * 10.000, cioè diecimila chiavi possibili da un parametro solo: in
+         * chiave sarebbe l'unico valore ammesso con cui qualcuno può far
+         * crescere la cache a piacere, che è esattamente il buco che
+         * `QUERY_ALLOWED` esiste per chiudere. Su uno spazio da 10 GB già
+         * esaurito una volta, quel conto va fatto.
+         *
+         * Le pagine con un budget si disegnano quindi ogni volta. Sono quelle
+         * della procedura guidata, che passa già da `PersonalizeDiscovery` e
+         * non è traffico di massa.
+         */
+        if ($request->filled('budget')) {
+            return false;
+        }
+
+        /*
+         * E i valori fuori forma non entrano in cache affatto.
+         *
+         * `canonicalUrl()` compone la chiave dai valori **grezzi** della query
+         * string: gira nel middleware, prima che qualunque FormRequest li
+         * abbia validati. Un `?page=99999999`, un `?from=qualunquecosa` o un
+         * valore da diecimila caratteri sono chiavi legittime per questo
+         * codice, e ognuna è un file in più sul disco.
+         */
+        if (! $this->hasBoundedFilters($request)) {
             return false;
         }
 

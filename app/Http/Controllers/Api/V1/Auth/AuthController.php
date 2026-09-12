@@ -14,6 +14,7 @@ use App\Http\Resources\V1\UserResource;
 use App\Models\User;
 use App\Services\Account\MobileTokenIssuer;
 use App\Support\Api\ApiResponse;
+use App\Support\SecurityLog;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -66,12 +67,14 @@ final class AuthController extends Controller
         /*
          * La stessa risposta per "email inesistente" e "password sbagliata":
          * risposte diverse direbbero a chiunque quali indirizzi sono
-         * registrati. `Hash::check` gira comunque, così il tempo di risposta
-         * non racconta la stessa cosa.
+         * registrati. Si esegue una verifica hash anche quando l’account manca,
+         * evitando il ritorno immediato del controllo cortocircuitato.
          */
         $password = (string) $request->validated('password');
 
-        if (! $user instanceof User || ! Hash::check($password, (string) $user->password)) {
+        $valid = Hash::check($password, $user->password ?? '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2uheWG/igi.');
+        if (! $user instanceof User || ! $valid) {
+            SecurityLog::accessoFallito($request->validated('email'));
             throw new ApiException(ApiErrorCode::InvalidCredentials);
         }
 

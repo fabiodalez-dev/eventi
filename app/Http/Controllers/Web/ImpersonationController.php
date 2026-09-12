@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Support\SecurityLog;
 use Filament\Facades\Filament;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
@@ -44,6 +45,7 @@ class ImpersonationController extends Controller
 
         abort_unless($impersonator->can('impersonate', $user), 403);
 
+        SecurityLog::scrivi('impersonificazione_iniziata', $user, causa: $impersonator);
         session()->put(self::SESSION_KEY, $impersonator->getKey());
 
         // `Auth::login()` rigenera già l'identificatore di sessione
@@ -68,6 +70,7 @@ class ImpersonationController extends Controller
 
         abort_unless($impersonator instanceof User, 403);
 
+        SecurityLog::scrivi('impersonificazione_terminata', Auth::user(), causa: $impersonator);
         Auth::login($impersonator);
 
         return redirect('/admin');

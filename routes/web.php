@@ -33,6 +33,13 @@ use Spatie\Health\Http\Controllers\SimpleHealthCheckController;
  */
 Route::group([], base_path('routes/installer.php'));
 
+Route::get('/app/auth/magic', function () {
+    return response()->view('account.mobile-magic-link')
+        ->header('Cache-Control', 'no-store, private')
+        ->header('Referrer-Policy', 'no-referrer')
+        ->header('X-Robots-Tag', 'noindex, nofollow');
+})->name('app.magic-link');
+
 Route::get('/release-status', ReleaseStatusController::class)->name('ops.release');
 
 /*

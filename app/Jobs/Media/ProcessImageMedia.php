@@ -7,6 +7,7 @@ namespace App\Jobs\Media;
 use App\Enums\ImageType;
 use App\Models\Event;
 use App\Services\Media\BlurhashEncoder;
+use App\Services\Media\ImageSafety;
 use App\Services\Media\ImageSanitizer;
 use Illuminate\Support\Facades\Log;
 use Spatie\Image\Image;
@@ -94,7 +95,7 @@ final class ProcessImageMedia extends PerformConversionsJob
      */
     private function isRealImage(string $path): bool
     {
-        if (ImageType::detect($path) !== null) {
+        if (ImageType::detect($path) !== null && ImageSafety::allowed($path)) {
             return true;
         }
 

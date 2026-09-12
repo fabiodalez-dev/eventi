@@ -65,8 +65,8 @@ it('genera un magic link mobile opaco senza rivelare se l account esiste', funct
 
     $user = User::factory()->create(['email' => 'magic@example.test']);
 
-    $known = $this->postJson('/api/v1/auth/magic-link', ['email' => 'magic@example.test'])->assertOk();
-    $unknown = $this->postJson('/api/v1/auth/magic-link', ['email' => 'mai-vista@example.test'])->assertOk();
+    $known = $this->postJson('/api/v1/auth/magic-link', ['code_challenge' => str_repeat('a', 43), 'email' => 'magic@example.test'])->assertOk();
+    $unknown = $this->postJson('/api/v1/auth/magic-link', ['code_challenge' => str_repeat('a', 43), 'email' => 'mai-vista@example.test'])->assertOk();
 
     expect($known->json('data.message'))->toBe($unknown->json('data.message'))
         ->and(MobileAuthChallenge::query()->count())->toBe(1)
