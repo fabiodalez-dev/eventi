@@ -21,7 +21,7 @@
      * di piu' gli fa scaricare peso che non serve. Va tenuto insieme alla
      * geometria: se cambia una, va cambiato l'altro.
      */
-    $poster = \App\Support\Poster::imageSet($event)?->withSizes('(min-width: 800px) 50vw, 100vw');
+    $poster = \App\Support\Poster::imageSet($event)?->withSizes('240px');
     $custom = is_array($event->custom_location) ? $event->custom_location : [];
     $shareUrl = $meta->canonical ?? route('events.show', $event);
     $dates = $occurrences->isNotEmpty() ? $occurrences : $pastOccurrences;
@@ -80,66 +80,21 @@
     </nav>
 
     {{-- ------------------------------------------------------------------
-         L'apertura: la locandina a sinistra con sopra i dati essenziali, il
-         informazioni sotto su mobile, sovrapposte alla foto da tablet.
+         La locandina intera mantiene il formato verticale; le informazioni
+         restano sotto su mobile e accanto su tablet e desktop.
     ------------------------------------------------------------------- --}}
     <section class="event-detail-hero relative isolate grid gap-0.5 border-b-2 border-line bg-line">
-        <div @class(['photo-panel relative min-h-[clamp(20.625rem,42vw,33.75rem)] overflow-hidden', 'bg-canvas' => $poster !== null, 'bg-surface-sunken' => $poster === null])>
-            @if ($poster !== null)
-                <x-media-image
-                    :set="$poster"
-                    :alt="$event->content_details['poster_alt'] ?? __('events.card.poster_alt', ['title' => $event->title])"
-                    width="1200"
-                    height="1600"
-                    :sizes="$poster->sizes"
-                    :eager="true"
-                    :color="true"
-                    data-poster-reveal
-                    class="poster-reveal absolute inset-0 size-full object-cover opacity-60"
-                />
-                <span aria-hidden="true" class="absolute inset-0 bg-[linear-gradient(120deg,rgba(11,11,11,.85)_0%,rgba(11,11,11,.3)_60%,rgba(11,11,11,.7)_100%)]"></span>
-            @endif
-
-            <div class="relative flex h-full flex-col justify-between gap-6 p-[clamp(1.125rem,2.2vw,2rem)]">
-                <div class="flex flex-wrap gap-1.5">
-                    @if ($event->category !== null)
-                        <a
-                            href="{{ route('events.category', $event->category) }}"
-                            class="ui-action bg-accent px-2.5 py-[7px] font-display text-[0.594rem] leading-none font-extrabold tracking-[0.16em] text-on-accent uppercase"
-                        >
-                            {{ $event->category->name }}
-                        </a>
-                    @endif
-
-                    @if ($venue?->zone)
-                        <span class="ui-tag border-2 border-ink px-2.5 py-[5px] font-display text-[0.594rem] leading-none font-extrabold tracking-[0.16em] uppercase">{{ $venue->zone }}</span>
-                    @endif
-
-                    @if ($event->is_outdoor)
-                        <span class="ui-tag border-2 border-ink px-2.5 py-[5px] font-display text-[0.594rem] leading-none font-extrabold tracking-[0.16em] uppercase">{{ __('events.badge.outdoor') }}</span>
-                    @endif
-                </div>
-
-                @if ($poster === null)
-                    <x-event-hero-placeholder />
-                @endif
-
-                <div class="flex flex-col gap-2.5">
-                    @if ($venue !== null || filled($custom['name'] ?? null))
-                        <a
-                            @if ($venue !== null) href="{{ route('venues.show', $venue) }}" @endif
-                            class="font-display text-[0.625rem] leading-none font-extrabold tracking-[0.18em] text-accent uppercase"
-                        >
-                            {{ collect([$venue?->name ?? $custom['name'] ?? null, $venue?->address ?? $custom['address'] ?? null])->filter()->implode(' '.__('common.separator').' ') }}
-                        </a>
-                    @endif
-
-
-                </div>
-            </div>
+        <div class="photo-panel bg-canvas">
+            <x-event-artwork :event="$event" :eager="true" />
         </div>
 
         <div class="event-heading-panel flex flex-col justify-center gap-[clamp(1rem,1.8vw,1.5rem)] bg-canvas p-[clamp(1.25rem,2.4vw,2.25rem)]">
+            @if ($venue?->zone || $event->is_outdoor)
+                <div class="flex flex-wrap gap-2 text-sm text-ink-muted">
+                    @if ($venue?->zone)<span class="ui-tag border border-line px-2 py-1">{{ $venue->zone }}</span>@endif
+                    @if ($event->is_outdoor)<span class="ui-tag border border-line px-2 py-1">{{ __('events.badge.outdoor') }}</span>@endif
+                </div>
+            @endif
             @if ($headingOccurrence !== null)
                 <time data-event-heading-date
                     datetime="{{ $headingOccurrence->is_all_day ? $formatter->isoDay($headingOccurrence->business_date) : $formatter->iso($headingOccurrence->starts_at) }}"

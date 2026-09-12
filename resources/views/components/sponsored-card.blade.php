@@ -24,7 +24,7 @@
     'context' => 'upcoming',
     'index' => null,
     'level' => 'h3',
-    'showPoster' => false,
+    'showPoster' => true,
 ])
 
 @php

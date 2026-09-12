@@ -29,7 +29,7 @@
     <button
         type="button"
         data-apre-dialogo="{{ $id }}"
-        class="group relative block w-full overflow-hidden border-2 border-line bg-canvas transition-colors hover:border-accent"
+        class="event-poster-frame group relative block w-full overflow-hidden border-2 border-line bg-canvas transition-colors hover:border-accent"
         aria-label="{{ __('events.poster.open') }}"
     >
         <x-media-image
@@ -38,9 +38,9 @@
             width="800"
             height="1131"
             sizes="(min-width: 1024px) 22rem, 100vw"
-            :color="true"
+            :color="true" :show-placeholder="false"
             data-poster-reveal
-            class="poster-reveal w-full"
+            class="poster-reveal"
         />
 
         {{-- L'invito compare al passaggio, ma su un telefono il passaggio non

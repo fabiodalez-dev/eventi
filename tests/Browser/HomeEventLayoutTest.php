@@ -25,12 +25,12 @@ it('balances mobile shortcuts, actions and statistics', function (string $theme)
     expect($page->script('() => { const b=[...document.querySelectorAll(".home-shortcuts a")].map(e=>e.getBoundingClientRect()); return b[0].top === b[1].top && b[2].top > b[0].top && b[2].top === b[3].top; }'))->toBeTrue();
 })->with(['inLightMode', 'inDarkMode']);
 
-it('overlays event information on the poster for tablet and desktop', function (string $theme, int $width): void {
+it('keeps the complete portrait poster beside readable event information', function (string $theme, int $width): void {
     $city = testCity();
     $venue = Venue::factory()->approved()->create(['city_id' => $city->id, 'name' => 'Locale visibile']);
     $date = occurrenceAtLocal($city, testCategory(), now('Europe/Rome')->addDay()->format('Y-m-d').' 21:00', event: ['title' => 'Concerto in evidenza', 'poster' => '/icon-512.png'], venue: $venue);
     $page = visit(EventUrl::occurrence($date))->{$theme}()->resize($width, 900)
         ->click('[data-consent-banner] button[value="reject_all"]')->assertSee('Locale visibile');
-    expect($page->script('() => { const hero=document.querySelector(".event-detail-hero"); const photo=hero.querySelector(".photo-panel").getBoundingClientRect(); const heading=hero.querySelector(".event-heading-panel").getBoundingClientRect(); return photo.width >= heading.width && photo.top <= heading.top && photo.bottom >= heading.bottom && getComputedStyle(hero.querySelector("h1")).color === "rgb(255, 250, 246)" && document.documentElement.scrollWidth <= innerWidth; }'))->toBeTrue();
+    expect($page->script('() => { const hero=document.querySelector(".event-detail-hero"); const frame=hero.querySelector(".event-poster-frame").getBoundingClientRect(); const heading=hero.querySelector(".event-heading-panel").getBoundingClientRect(); const img=hero.querySelector("img"); return Math.abs(frame.width / frame.height - .75) < .01 && frame.right <= heading.left + 2 && getComputedStyle(img).objectFit === "contain" && document.documentElement.scrollWidth <= innerWidth; }'))->toBeTrue();
     $page->screenshot(filename: 'event-hero-'.$theme.'-'.$width);
 })->with(['inLightMode', 'inDarkMode'])->with([804, 1440]);

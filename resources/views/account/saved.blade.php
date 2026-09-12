@@ -127,7 +127,9 @@
                         </h3>
                         @foreach ($items as $occurrence)
                             <article id="saved-{{ $occurrence->getKey() }}" class="scroll-mt-28 grid gap-3 border-2 border-line bg-canvas p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
-                                <a href="{{ \App\Support\EventUrl::occurrence($occurrence) }}" data-calendar-preview="saved-preview-{{ $occurrence->getKey() }}" aria-haspopup="dialog" class="group min-w-0">
+                                <a href="{{ \App\Support\EventUrl::occurrence($occurrence) }}" data-calendar-preview="saved-preview-{{ $occurrence->getKey() }}" aria-haspopup="dialog" class="group flex min-w-0 items-center gap-3">
+                                    <x-event-artwork :event="$occurrence->event" class="!w-20 shrink-0" />
+                                    <div class="min-w-0">
                                     <p class="font-display text-[0.625rem] font-extrabold tracking-[0.14em] text-accent uppercase">
                                         {{ $occurrence->is_all_day ? __('filters.time_of_day.any') : $occurrence->starts_at->format('H:i') }}
                                     </p>
@@ -135,6 +137,7 @@
                                     @if ($occurrence->effectiveVenue() !== null)
                                         <p class="mt-1 text-sm text-ink-muted">{{ $occurrence->effectiveVenue()->name }}</p>
                                     @endif
+                                    </div>
                                 </a>
                                 <a
                                     href="{{ $calendar->googleUrl($occurrence) }}"
