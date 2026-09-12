@@ -34,14 +34,13 @@
        la contiene (§11.11). */
     $heroPoster = $heroOccorrenza === null
         ? null
-        : (\App\Support\Poster::imageSet($heroOccorrenza->event)
-            ?? new \App\Support\Media\ImageSet(src: asset('images/home-event-fallback.jpg'), width: 1024, height: 768))
-            ->withSizes('240px')
+        : \App\Support\Poster::imageSet($heroOccorrenza->event)
+            ?->withSizes('240px')
             /* 840px, non 1024: le due colonne dell'apertura si affiancano
                quando ci stanno, cioe' a `2 x 420px`. Fra 840 e 1024 la
                dichiarazione diceva schermo intero mentre l'immagine ne
                occupava meta', e il browser scaricava il doppio del necessario. */
-            ->withPreloadMedia('(min-width: 840px)');
+            ?->withPreloadMedia('(min-width: 840px)');
             /* La stessa soglia governa anche l'ANNUNCIO: sotto gli 840px le due
                colonne si impilano e la locandina finisce sotto la piega, dove
                l'elemento piu' grande e' testo. Annunciare come urgente qualcosa

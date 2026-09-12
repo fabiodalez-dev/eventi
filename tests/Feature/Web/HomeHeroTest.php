@@ -25,19 +25,18 @@ it('keeps the four counters in two columns until the wide layout', function (): 
         ->assertDontSee('repeat(auto-fit,minmax(min(200px,100%),1fr))');
 });
 
-it('uses the supplied grayscale image for a today event without a poster', function (): void {
+it('reserves a portrait placeholder for a today event without a poster', function (): void {
     $today = occurrenceAtLocal($this->city, $this->category, '2026-09-05 18:00:00');
     occurrenceAtLocal($this->city, $this->category, '2026-09-06 18:00:00');
 
     $response = $this->get('/')->assertOk()
         ->assertViewHas('hero', fn ($hero) => $hero->is($today))
         ->assertViewHas('heroSponsorship', null)
-        ->assertSee('images/home-event-fallback.jpg')
+        ->assertSee(__('events.card.poster_missing'))
         ->assertSee('data-home-hero', false);
 
-    preg_match('#<img[^>]+home-event-fallback\.jpg[^>]*>#s', $response->getContent(), $image);
-    expect($image[0])->toContain('grayscale-photo');
-    expect(is_file(public_path('images/home-event-fallback.jpg')))->toBeTrue();
+    $response->assertDontSee('home-event-fallback.jpg')
+        ->assertSee('event-poster-frame');
 });
 
 it('keeps a real poster instead of the fallback', function (): void {
@@ -56,7 +55,7 @@ it('prioritizes the active hero sponsorship and uses its actual occurrence date'
         ->assertViewHas('hero', fn ($hero) => $hero->is($sponsored))
         ->assertViewHas('heroSponsorship', fn ($selected) => $selected->is($campaign))
         ->assertSee('rel="sponsored"', false)->assertSee('21:45')
-        ->assertSee('images/home-event-fallback.jpg');
+        ->assertSee(__('events.card.poster_missing'));
 });
 
 it('does not drop a sponsored event that has already started but is still ongoing', function (): void {
