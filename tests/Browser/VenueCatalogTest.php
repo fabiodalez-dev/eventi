@@ -31,7 +31,7 @@ it('opens filters above the catalog and displays posters after filtering', funct
         occurrenceAtLocal($city, $category, now('Europe/Rome')->addDay()->format('Y-m-d').' 21:00', event: ['title' => 'Concerto con locandina '.$i, 'poster' => '/icon-192.png']);
     }
     $page = visit('/eventi?page=5')->inLightMode()->on()->{$device}()
-        ->click('[data-consent-banner] button[value="reject_all"]')->assertSee('Concerto con locandina')->assertVisible('[data-catalog-poster] img');
+        ->click('[data-consent-banner] button[value="reject_all"]')->assertSee('Concerto con locandina')->assertVisible('[data-results] article:first-child [data-catalog-poster] img');
     if ($device === 'mobile') {
         expect($page->script('document.querySelector("[data-catalog-filters]").open'))->toBeFalse();
         $page->click('[data-filter-jump]')->assertVisible('[data-filter-panel]');
@@ -44,5 +44,5 @@ it('opens filters above the catalog and displays posters after filtering', funct
         $page->resize(493, 734);
     }
     expect($page->script('document.documentElement.scrollWidth <= innerWidth'))->toBeTrue();
-    $page->assertVisible('[data-catalog-poster] img')->screenshot(filename: 'catalog-posters-'.$device);
+    $page->assertVisible('[data-results] article:first-child [data-catalog-poster] img')->screenshot(filename: 'catalog-posters-'.$device);
 })->with(['desktop', 'mobile']);

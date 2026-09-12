@@ -101,7 +101,7 @@
     <span aria-hidden="true" class="absolute inset-y-0 left-0 w-0 bg-accent transition-[width] duration-300 ease-[cubic-bezier(.76,0,.24,1)] group-hover:w-[7px]"></span>
 
     @if ($poster !== null)
-        <a href="{{ $url }}" tabindex="-1" aria-hidden="true" data-catalog-poster class="block bg-surface [&>picture]:block">
+        <a href="{{ $url }}" @if ($rel !== null) rel="{{ $rel }}" @endif tabindex="-1" aria-hidden="true" data-catalog-poster class="block bg-surface [&>picture]:block">
             <x-media-image :set="$poster" alt="" width="600" height="450" sizes="(min-width: 1024px) 360px, (min-width: 640px) 50vw, 100vw" :color="true" :show-placeholder="false" class="aspect-[4/3] w-full object-contain" />
         </a>
     @endif

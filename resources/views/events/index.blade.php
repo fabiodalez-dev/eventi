@@ -69,6 +69,7 @@
                     <x-sponsored-card
                         :sponsorship="$sponsorship"
                         :occurrence="$sponsoredOccurrence"
+                        :show-poster="true"
                         class="border-b-2 border-line"
                         level="h2"
                     />

@@ -24,6 +24,7 @@
     'context' => 'upcoming',
     'index' => null,
     'level' => 'h3',
+    'showPoster' => false,
 ])
 
 @php
@@ -56,6 +57,7 @@
             :context="$context"
             :index="$index"
             :level="$level"
+            :show-poster="$showPoster"
             rel="sponsored"
             class="flex-auto"
         />
