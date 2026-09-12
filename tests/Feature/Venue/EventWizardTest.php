@@ -217,6 +217,7 @@ it('prefills venue practical defaults and saves only event additions', function 
     $feature = EventFeature::create(['name' => 'Guardaroba disponibile', 'icon' => 'check-circle']);
     $this->venue->update(['content_details' => ['accessibility' => 'no', 'feature_ids' => [$feature->id], 'practical_custom' => [
         ['label' => 'Ingresso laterale', 'icon' => 'map-pin', 'text' => 'Da via Roma'],
+        ['label' => 'Scala interna', 'icon' => 'map-pin'],
     ]]]);
     $page = Livewire::test(CreateEvent::class)
         ->assertFormSet(['content_details.accessibility' => 'no', 'content_details.feature_ids' => [$feature->id]])
@@ -226,6 +227,7 @@ it('prefills venue practical defaults and saves only event additions', function 
     expect($event->content_details['accessibility'] ?? null)->toBeNull()
         ->and($event->content_details['feature_ids'] ?? [])->toBe([]);
     $items = collect(app(EditorialContent::class)->details($event)['practical_items']);
-    expect($items->where('label', 'Ingresso laterale'))->toHaveCount(1)
+    expect($items->where('label', 'Scala interna'))->toHaveCount(1)
+        ->and($items->where('label', 'Ingresso laterale'))->toHaveCount(1)
         ->and($items->where('label', 'Guardaroba disponibile'))->toHaveCount(1);
 });

@@ -57,13 +57,19 @@ final class BeforeGoingDefaults
     private static function comparable(mixed $value): mixed
     {
         if (is_array($value)) {
+            if (array_key_exists('label', $value)) {
+                $value = ['label' => $value['label'], 'icon' => $value['icon'] ?? 'check-circle', 'text' => $value['text'] ?? ''];
+            }
+
             // RichEditor adds paragraph markup even when the text was not edited.
             return array_map(self::comparable(...), $value);
         }
         if (is_string($value)) {
             $html = (string) Description::render($value);
 
-            return $html === '' ? '' : (new Editor)->setContent($html)->getHTML();
+            $html = $html === '' ? '' : (new Editor)->setContent($html)->getHTML();
+
+            return trim(Description::plain($html) ?? '') === '' ? '' : $html;
         }
 
         return $value;
