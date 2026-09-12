@@ -139,7 +139,12 @@ export function eventFilters() {
             if (push) history.pushState({}, '', response.url);
             percorsoCorrente = location.href.split('#')[0];
             document.dispatchEvent(new Event('event-browser:updated'));
-            // Focus remains on the filter the user is operating.
+            if (push && activeRegion.hasAttribute('data-map-browser') && !desktop.matches) {
+                const results = activeRegion.querySelector('[data-map-results]');
+                results.setAttribute('tabindex', '-1');
+                results.focus({ preventScroll: true });
+                results.scrollIntoView({ block: 'start', behavior: 'instant' });
+            }
             await fadeFilterParts(activeRegion, 0, 1, 200, signal);
         } catch (error) {
             if (error.name !== 'AbortError' && current === revision) {

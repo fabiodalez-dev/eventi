@@ -226,7 +226,7 @@
     background: transparent;
     padding: 0;
     flex-direction: row;
-    align-items: baseline;
+    align-items: center;
     gap: 10px;
 }
 :root[data-theme="light"] .home-stats span:first-child {
@@ -387,3 +387,29 @@
 :root[data-theme="light"] .maplibregl-ctrl-group button:focus-visible { background: var(--surface); }
 :root[data-theme="light"] .maplibregl-ctrl-group button .maplibregl-ctrl-icon { filter: none !important; opacity: .65; }
 :root[data-theme="light"] .maplibregl-ctrl-group button:focus-visible { outline-offset: -3px; }
+
+/* Keep mobile actions balanced, including translated or longer labels. */
+.home-intro { container-type: inline-size; }
+.home-actions > a { justify-content: center; min-width: 0; height: auto; min-height: 52px; text-align: center; padding: 12px; }
+.home-actions > a svg { flex-shrink: 0; }
+.home-actions .home-wizard { grid-column: 1 / -1; }
+@container (min-width: 620px) {
+    .home-actions { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .home-actions .home-wizard { grid-column: auto; }
+}
+.home-shortcuts > a { justify-content: center; }
+.map-results { scroll-margin-top: calc(var(--header-height, 80px) + 48px); }
+@media (min-width: 768px) {
+    .event-detail-hero { --on-accent: #171717; min-height: 540px; background: #101010; color: #fffaf6; }
+    .event-detail-hero > .photo-panel { position: absolute; inset: 0; min-height: 100%; background: #101010; z-index: -1; }
+    .event-detail-hero > .photo-panel > .relative { justify-content: space-between; }
+    .event-detail-hero > .photo-panel > .relative > div:last-child { display: none; }
+    .event-detail-hero .event-heading-panel { margin-top: 72px; background: transparent !important; max-width: 1100px; padding-block: 48px; }
+    .event-detail-hero .event-heading-panel h1 { color: #fffaf6; }
+    .event-detail-hero .text-ink-muted, .event-detail-hero .text-ink-subtle { color: #eee; }
+    .event-detail-hero .event-heading-panel .text-accent { color: #ffc29e !important; }
+    .event-detail-hero .event-heading-panel :is(.ui-action, .event-utility-action) { background: #fffaf6; color: #171717; border-color: #fffaf6; }
+    .event-detail-hero .event-heading-panel :is(.ui-action, .event-utility-action):hover { background: #ffd3b7; color: #171717; }
+    .event-detail-hero .event-hero-fact { background: rgb(16 16 16 / 80%); }
+    .event-detail-hero .photo-panel img { opacity: .6; }
+}
