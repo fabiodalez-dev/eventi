@@ -37,13 +37,10 @@ final class EditorialFields
         if ($event || $place) {
             $fields[] = Select::make('content_details.parking_type')->label(__('seo.parking_type'))
                 ->options(['free' => __('seo.parking_free'), 'paid' => __('seo.parking_paid'), 'none' => __('seo.parking_none')])->placeholder(__('seo.unspecified'));
-            foreach (array_merge(['parking_notes', 'transit_notes', 'entrance_notes'], $event ? [] : ['accessibility_notes']) as $key) {
+            foreach (['parking_notes', 'transit_notes', 'entrance_notes'] as $key) {
                 $fields[] = DescriptionEditor::make('content_details.'.$key)->label(__('seo.fields.'.$key))->maxLength(2000);
             }
-            if (! $event) {
-                $fields[] = Select::make('content_details.accessibility')->label(__('seo.fields.accessibility'))
-                    ->options(['yes' => __('seo.yes'), 'no' => __('seo.no')])->placeholder(__('seo.unspecified'));
-            }
+
         }
         if ($event) {
             $fields[] = Select::make('content_details.organizer_venue_id')->label(__('seo.registered_organizer'))

@@ -15,6 +15,7 @@ use App\Filament\Admin\Resources\Venues\RelationManagers\MembersRelationManager;
 use App\Filament\Admin\Support\VenueModeration;
 use App\Filament\Forms\Components\MapPicker;
 use App\Filament\Support\AccessibilityField;
+use App\Filament\Support\BeforeGoingFields;
 use App\Filament\Support\BulkActions;
 use App\Filament\Support\DescriptionEditor;
 use App\Filament\Support\EditorialFields;
@@ -111,6 +112,7 @@ class VenueResource extends Resource
         return $schema->columns(1)
             ->components([
                 EditorialFields::content(false, true),
+                BeforeGoingFields::make(true),
                 EditorialFields::seo(),
                 /*
                  * **Schede, non due colonne di riquadri.**

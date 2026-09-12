@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Enums\AccessibilityFeature;
 use App\Enums\TransitMode;
 use App\Filament\Venue\Pages\VenueProfile;
+use App\Models\EventFeature;
 use Filament\Facades\Filament;
 use Livewire\Livewire;
 use Tests\Support\VenueIsolationScenario;
@@ -145,4 +146,16 @@ it('rifiuta le righe di come arrivare senza mezzo o senza testo', function (): v
         ])
         ->call('save')
         ->assertHasFormErrors(['transit']);
+});
+
+it('saves reusable practical catalogue features and free information for the venue', function (): void {
+    $feature = EventFeature::create(['name' => 'Guardaroba', 'icon' => 'check-circle']);
+    Livewire::test(VenueProfile::class)->fillForm([
+        'content_details.accessibility' => 'no',
+        'content_details.feature_ids' => [$feature->id],
+        'content_details.practical_custom' => [['label' => 'Ingresso', 'icon' => 'map-pin', 'text' => 'Porta laterale']],
+    ])->call('save')->assertHasNoFormErrors();
+    $details = $this->venue->fresh()->content_details;
+    expect($details['accessibility'])->toBe('no')->and($details['feature_ids'])->toBe([$feature->id])
+        ->and(array_values($details['practical_custom'])[0]['label'])->toBe('Ingresso');
 });

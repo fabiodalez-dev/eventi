@@ -13,6 +13,8 @@ use App\Filament\Venue\Resources\Events\Pages\CreateEvent;
 use App\Filament\Venue\Support\EventFields;
 use App\Models\Category;
 use App\Models\Event;
+use App\Models\EventFeature;
+use App\Services\Seo\EditorialContent;
 use Carbon\CarbonImmutable;
 use Filament\Facades\Filament;
 use Livewire\Livewire;
@@ -209,4 +211,21 @@ it('non usa categorie disattivate', function (): void {
     $options = EventFields::categories();
 
     expect($options)->not->toHaveKey($this->scenario->category->getKey());
+});
+
+it('prefills venue practical defaults and saves only event additions', function (): void {
+    $feature = EventFeature::create(['name' => 'Guardaroba disponibile', 'icon' => 'check-circle']);
+    $this->venue->update(['content_details' => ['accessibility' => 'no', 'feature_ids' => [$feature->id], 'practical_custom' => [
+        ['label' => 'Ingresso laterale', 'icon' => 'map-pin', 'text' => 'Da via Roma'],
+    ]]]);
+    $page = Livewire::test(CreateEvent::class)
+        ->assertFormSet(['content_details.accessibility' => 'no', 'content_details.feature_ids' => [$feature->id]])
+        ->fillForm(wizardData())
+        ->call('create')->assertHasNoFormErrors();
+    $event = Event::where('title', 'Serata swing')->sole();
+    expect($event->content_details['accessibility'] ?? null)->toBeNull()
+        ->and($event->content_details['feature_ids'] ?? [])->toBe([]);
+    $items = collect(app(EditorialContent::class)->details($event)['practical_items']);
+    expect($items->where('label', 'Ingresso laterale'))->toHaveCount(1)
+        ->and($items->where('label', 'Guardaroba disponibile'))->toHaveCount(1);
 });

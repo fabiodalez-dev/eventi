@@ -6,10 +6,12 @@ namespace App\Filament\Venue\Resources\Events\Pages;
 
 use App\Enums\EventSource;
 use App\Enums\EventStatus;
+use App\Enums\MembershipRequirement;
 use App\Enums\OccurrenceStatus;
 use App\Enums\PriceType;
 use App\Enums\RecurrenceFrequency;
 use App\Enums\ScheduleShortcut;
+use App\Filament\Support\BeforeGoingFields;
 use App\Filament\Venue\Resources\Events\EventResource;
 use App\Filament\Venue\Support\CurrentVenue;
 use App\Filament\Venue\Support\EventFields;
@@ -19,7 +21,9 @@ use App\Models\Category;
 use App\Models\Event;
 use App\Models\EventOccurrence;
 use App\Rules\ExternalLinks;
+use App\Support\BeforeGoingDefaults;
 use App\Support\EditorContent;
+use App\Support\PracticalIcons;
 use App\Support\VenueEventDefaults;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
@@ -96,6 +100,7 @@ class CreateEvent extends CreateRecord
         'ticket_url',
         'booking_url',
         'external_links',
+        'content_details',
     ];
 
     /**
@@ -178,6 +183,7 @@ class CreateEvent extends CreateRecord
                 ->icon(Heroicon::OutlinedPencilSquare)
                 ->schema([
                     EventFields::description(),
+                    BeforeGoingFields::make(),
                     EventFields::ticketUrl(),
                     EventFields::bookingUrl(),
                     EventFields::externalLinks(),
@@ -305,7 +311,21 @@ class CreateEvent extends CreateRecord
         if (array_key_exists('description', $data)) {
             $data['description'] = EditorContent::clean('description', $data['description']);
         }
+        if (array_key_exists('content_details', $data)) {
+            $data['content_details'] = EditorContent::clean('content_details', $data['content_details']);
+        }
         $data = Validator::make(['data' => $data], [
+            'data.content_details' => ['nullable', 'array:membership,membership_notes,accessibility,accessibility_notes,feature_ids,practical_custom'],
+            'data.content_details.membership' => ['nullable', Rule::enum(MembershipRequirement::class)],
+            'data.content_details.accessibility' => ['nullable', Rule::in(['yes', 'no'])],
+            'data.content_details.membership_notes' => ['nullable', 'string', 'max:2000'],
+            'data.content_details.accessibility_notes' => ['nullable', 'string', 'max:2000'],
+            'data.content_details.feature_ids' => ['nullable', 'array'],
+            'data.content_details.feature_ids.*' => ['integer', Rule::exists('event_features', 'id')->where('is_active', true)->where('is_system', false)],
+            'data.content_details.practical_custom' => ['nullable', 'array', 'max:24'],
+            'data.content_details.practical_custom.*.label' => ['required', 'string', 'max:120'],
+            'data.content_details.practical_custom.*.icon' => ['required', Rule::in(array_keys(PracticalIcons::options()))],
+            'data.content_details.practical_custom.*.text' => ['nullable', 'string', 'max:1000'],
             'data.title' => ['required', 'string', 'max:255'],
             'data.description' => ['nullable', 'string', 'max:50000'],
             'data.category_id' => ['required', 'integer', Rule::exists('categories', 'id')->where('is_active', true)],
@@ -317,9 +337,18 @@ class CreateEvent extends CreateRecord
             'data.external_links' => ['nullable', 'array', new ExternalLinks],
         ])->validate()['data'];
 
+        if (isset($data['content_details'])) {
+            $defaults = BeforeGoingDefaults::forVenue($venue);
+            foreach (BeforeGoingDefaults::FIELDS as $field) {
+                if (array_key_exists($field, $data['content_details'])) {
+                    $data['content_details'][$field] = BeforeGoingDefaults::override($field, $data['content_details'][$field], $defaults[$field] ?? null);
+                }
+            }
+        }
+
         foreach (self::COLUMNS as $column) {
             if (array_key_exists($column, $data)) {
-                $event->{$column} = $data[$column] === '' ? null : $data[$column];
+                $event->setAttribute($column, $data[$column] === '' ? null : $data[$column]);
             }
         }
 
