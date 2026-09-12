@@ -35,7 +35,7 @@
     @foreach ($occurrences as $occurrence)
         <x-event-card
             :occurrence="$occurrence"
-            :show-venue="false"
+            :show-venue="true"
             :index="$loop->iteration"
             level="h3"
             class="border-b-2 border-line px-0 pl-3"

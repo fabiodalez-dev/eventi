@@ -247,3 +247,10 @@ Android include localmente Bricolage Grotesque 700/800 per i titoli e Manrope pe
 ### Coerenza dei controlli nel tema chiaro
 
 I link che svolgono il ruolo visivo di pulsanti usano `ui-action` (inclusa nei componenti `button` e `filter-chip`). Pulsanti, azioni, badge e campi condividono `--radius-control: 6px`; dimensioni e spaziatura restano specifiche del contesto. I link testuali, le righe di elenco e le schede non vanno trasformati in pulsanti. Il controllo di ricerca composto conserva gli angoli esterni condivisi.
+
+
+### Home, mappa e testata evento responsive
+
+Su mobile i quattro accessi rapidi della home occupano una griglia 2×2. Le azioni seguono l’ordine catalogo, mappa, wizard: quest’ultimo occupa tutta la seconda riga quando lo spazio non permette tre colonne. Nei contatori chiari numero e descrizione sono centrati verticalmente. I filtri della mappa aggiornano marker ed elenco insieme; su mobile, dopo un filtro applicato, il focus e lo scorrimento portano all’elenco.
+
+Da 768 px la testata evento è un unico hero: fotografia a tutta larghezza, overlay scuro e informazioni sovrapposte con colori leggibili in entrambi i temi. Su mobile resta la fotografia sopra le informazioni. Il locale compare sotto il titolo e nelle card fuori dalla pagina del locale.

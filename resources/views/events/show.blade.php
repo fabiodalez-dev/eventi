@@ -81,10 +81,9 @@
 
     {{-- ------------------------------------------------------------------
          L'apertura: la locandina a sinistra con sopra i dati essenziali, il
-         titolo e le azioni a destra. È l'unico punto della scheda in cui la
-         fotografia occupa spazio — sotto, il contenuto è tutto testo.
+         informazioni sotto su mobile, sovrapposte alla foto da tablet.
     ------------------------------------------------------------------- --}}
-    <section class="grid gap-0.5 border-b-2 border-line bg-line [grid-template-columns:repeat(auto-fit,minmax(min(400px,100%),1fr))]">
+    <section class="event-detail-hero relative isolate grid gap-0.5 border-b-2 border-line bg-line">
         <div @class(['photo-panel relative min-h-[clamp(20.625rem,42vw,33.75rem)] overflow-hidden', 'bg-canvas' => $poster !== null, 'bg-surface-sunken' => $poster === null])>
             @if ($poster !== null)
                 <x-media-image
@@ -135,19 +134,7 @@
                         </a>
                     @endif
 
-                    {{-- I fatti in evidenza: durata, età minima, porte. Sono le
-                         cose che si cercano prima di decidere, e stanno qui
-                         invece che in fondo alla tabella. --}}
-                    @if ($facts !== [])
-                        <div class="flex flex-wrap items-stretch gap-0.5">
-                            @foreach ($facts as $fatto)
-                                <span class="ui-tag flex flex-col gap-1 border-2 border-line bg-[rgba(11,11,11,.72)] px-3 py-2.5">
-                                    <span class="font-display text-[0.563rem] leading-none font-extrabold tracking-[0.14em] text-ink-subtle uppercase">{{ $fatto['label'] }}</span>
-                                    <span class="font-display text-[0.813rem] leading-none font-extrabold tracking-[-0.01em]">{{ $fatto['value'] }}</span>
-                                </span>
-                            @endforeach
-                        </div>
-                    @endif
+
                 </div>
             </div>
         </div>
@@ -169,8 +156,30 @@
                 {{ $event->title }}
             </h1>
 
+            @if ($venue !== null || filled($custom['name'] ?? null))
+                <p data-event-heading-venue class="m-0 text-lg font-semibold">
+                    @if ($venue !== null)
+                        <a href="{{ route('venues.show', $venue) }}" class="underline underline-offset-4">{{ $venue->name }}</a>
+                    @else
+                        {{ $custom['name'] }}
+                    @endif
+                    @if ($venue?->municipality) <span>· {{ $venue->municipality }}</span> @endif
+                </p>
+            @endif
+
             @if ($event->subtitle)
                 <p class="m-0 max-w-[52ch] text-[clamp(0.875rem,1.1vw,1.031rem)] leading-[1.6] text-pretty text-ink-muted">{{ $event->subtitle }}</p>
+            @endif
+
+            @if ($facts !== [])
+                        <div class="flex flex-wrap items-stretch gap-0.5">
+                            @foreach ($facts as $fatto)
+                                <span class="event-hero-fact ui-tag flex flex-col gap-1 border-2 border-line bg-surface px-3 py-2.5">
+                                    <span class="font-display text-[0.563rem] leading-none font-extrabold tracking-[0.14em] text-ink-subtle uppercase">{{ $fatto['label'] }}</span>
+                                    <span class="font-display text-[0.813rem] leading-none font-extrabold tracking-[-0.01em]">{{ $fatto['value'] }}</span>
+                                </span>
+                            @endforeach
+                        </div>
             @endif
 
             @if ($nextCapacity !== null && $nextCapacity->percentSold() !== null)
@@ -623,7 +632,7 @@
                 :href="route('venues.show', $venue)"
             />
 
-            <x-event-grid :occurrences="$atVenue" :show-venue="false" :balanced="true" />
+            <x-event-grid :occurrences="$atVenue" :show-venue="true" :balanced="true" />
         </section>
     @endif
 

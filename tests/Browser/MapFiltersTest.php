@@ -15,11 +15,15 @@ it('preserves the map and sidebar while updating dependent options, search and h
     $page = visit('/mappa?all_dates=1')->inLightMode()->on()->{$device}()
         ->click('[data-consent-banner] button[value="reject_all"]')
         ->click('[data-filter-key="advanced"] summary');
-    $page->script('window.originalForm = document.querySelector("aside form"); window.originalMap = document.querySelector("[data-map-shell]"); window.originalTown = document.querySelector("[name=municipality]");');
+    $page->script('window.filterUpdates = 0; document.querySelector("[data-map-shell]").addEventListener("map:filters", () => window.filterUpdates++); window.originalForm = document.querySelector("aside form"); window.originalMap = document.querySelector("[data-map-shell]"); window.originalTown = document.querySelector("[name=municipality]");');
     $page->fill('#campo-municipality-search', 'pad');
     expect($page->script('document.querySelector("#campo-municipality-search").value'))->toBe('pad');
     $page->keys('#campo-municipality-search', ['ArrowDown', 'Enter'])
         ->assertPresent('[data-event-browser]:not([aria-busy]) [name="municipality"] option[value="Padova"][selected]');
+    expect($page->script('window.filterUpdates'))->toBe(1);
+    if ($device === 'mobile') {
+        expect($page->script('document.querySelector("[data-map-results]").getBoundingClientRect().top >= 0 && document.querySelector("[data-map-results]").getBoundingClientRect().top < innerHeight / 2'))->toBeTrue();
+    }
     expect($page->script('window.originalForm === document.querySelector("aside form") && window.originalMap === document.querySelector("[data-map-shell]") && window.originalTown === document.querySelector("[name=municipality]")'))->toBeTrue();
     expect($page->script('document.querySelector("aside details").open'))->toBeTrue();
     expect($page->script('document.querySelector("#campo-municipality-search").value'))->toBe('pad');

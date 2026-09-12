@@ -127,7 +127,7 @@
                  tocca dopo il titolo: non sono voci di menu, sono l'elenco di
                  sempre guardato da quattro finestre diverse. --}}
             @if ($quickFilters !== [])
-                <div class="home-shortcuts flex w-fit flex-wrap gap-0.5 bg-line p-0.5">
+                <div class="home-shortcuts grid w-full grid-cols-2 md:w-fit md:grid-cols-4 gap-0.5 bg-line p-0.5">
                     @foreach ($quickFilters as $filtro)
                         <a
                             href="{{ $filtro['url'] }}"
@@ -140,8 +140,7 @@
                 </div>
             @endif
 
-            <div class="flex flex-wrap items-center gap-2.5">
-                <a href="{{ route('tonight.wizard') }}" class="ui-action inline-flex min-h-[52px] items-center border-2 border-accent px-[22px] py-3 font-display text-xs font-extrabold uppercase tracking-wide text-accent hover:bg-accent hover:text-on-accent">{{ __('tonight.hero_action') }} →</a>
+            <div class="home-actions grid grid-cols-2 items-stretch gap-2.5">
                 <a
                     href="{{ route('events.index') }}"
                     class="ui-action inline-flex h-[52px] items-center gap-2 bg-accent px-[22px] font-display text-xs leading-none font-extrabold tracking-[0.14em] text-on-accent uppercase transition-colors hover:bg-brand-strong"
@@ -159,6 +158,7 @@
                         {{ __('ui.hero.open_map') }}
                     </a>
                 @endif
+                <a href="{{ route('tonight.wizard') }}" class="home-wizard ui-action inline-flex min-h-[52px] items-center border-2 border-accent px-[22px] py-3 font-display text-xs font-extrabold uppercase tracking-wide text-accent hover:bg-accent hover:text-on-accent">{{ __('tonight.hero_action') }} →</a>
             </div>
         </div>
 
@@ -236,12 +236,12 @@
                                 <div class="h-full origin-left bg-accent animate-[lineGrow_1.2s_cubic-bezier(.2,.8,.2,1)_both]" style="width: {{ $heroCapienza->percentSold() }}%"></div>
                             </div>
                             <div class="flex justify-between gap-3 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.14em] uppercase">
-                                <span>{{ collect([$heroLuogo?->name, $heroLuogo?->zone ?: $heroLuogo?->municipality])->filter()->implode(' '.__('common.separator').' ') }}</span>
+                                <span data-home-venue class="text-[clamp(1rem,1.4vw,1.125rem)] leading-snug tracking-normal normal-case">{{ collect([$heroLuogo?->name, $heroLuogo?->zone ?: $heroLuogo?->municipality])->filter()->implode(' '.__('common.separator').' ') }}</span>
                                 <span class="text-accent">{{ trans_choice('events.capacity.left', $heroCapienza->left, ['count' => $heroCapienza->left]) }}</span>
                             </div>
                         </div>
                     @elseif ($heroLuogo !== null)
-                        <span class="font-display text-[0.625rem] leading-none font-extrabold tracking-[0.14em] uppercase">
+                        <span data-home-venue class="font-display text-[clamp(1rem,1.4vw,1.125rem)] leading-snug font-semibold tracking-normal">
                             {{ collect([$heroLuogo->name, $heroLuogo->zone ?: $heroLuogo->municipality])->filter()->implode(' '.__('common.separator').' ') }}
                         </span>
                     @endif
