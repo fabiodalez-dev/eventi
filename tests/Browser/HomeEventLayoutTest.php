@@ -25,12 +25,12 @@ it('balances mobile shortcuts, actions and statistics', function (string $theme)
     expect($page->script('() => { const b=[...document.querySelectorAll(".home-shortcuts a")].map(e=>e.getBoundingClientRect()); return b[0].top === b[1].top && b[2].top > b[0].top && b[2].top === b[3].top; }'))->toBeTrue();
 })->with(['inLightMode', 'inDarkMode']);
 
-it('keeps the complete portrait poster beside readable event information', function (string $theme, int $width): void {
+it('fills the hero with its image behind readable event information', function (string $theme, int $width): void {
     $city = testCity();
     $venue = Venue::factory()->approved()->create(['city_id' => $city->id, 'name' => 'Locale visibile']);
-    $date = occurrenceAtLocal($city, testCategory(), now('Europe/Rome')->addDay()->format('Y-m-d').' 21:00', event: ['title' => 'Concerto in evidenza', 'poster' => '/icon-512.png'], venue: $venue);
+    $date = occurrenceAtLocal($city, testCategory(), now('Europe/Rome')->addDay()->format('Y-m-d').' 21:00', event: ['title' => 'Concerto in evidenza', 'poster' => '/images/home-event-fallback.jpg'], venue: $venue);
     $page = visit(EventUrl::occurrence($date))->{$theme}()->resize($width, 900)
         ->click('[data-consent-banner] button[value="reject_all"]')->assertSee('Locale visibile');
-    expect($page->script('() => { const hero=document.querySelector(".event-detail-hero"); const frame=hero.querySelector(".event-poster-frame").getBoundingClientRect(); const heading=hero.querySelector(".event-heading-panel").getBoundingClientRect(); const img=hero.querySelector("img"); return Math.abs(frame.width / frame.height - .75) < .01 && frame.right <= heading.left + 2 && getComputedStyle(img).objectFit === "contain" && document.documentElement.scrollWidth <= innerWidth; }'))->toBeTrue();
+    expect($page->script('() => { const hero=document.querySelector(".event-detail-hero"); const frame=hero.querySelector(".event-poster-frame").getBoundingClientRect(); const heading=hero.querySelector(".event-heading-panel").getBoundingClientRect(); const img=hero.querySelector("img"); return Math.abs(frame.width - hero.getBoundingClientRect().width) < 2 && heading.bottom <= frame.bottom + 2 && heading.left >= frame.left && getComputedStyle(img).objectFit === "cover" && getComputedStyle(hero.querySelector(".event-heading-panel")).backgroundColor === "rgba(0, 0, 0, 0)" && document.documentElement.scrollWidth <= innerWidth; }'))->toBeTrue();
     $page->screenshot(filename: 'event-hero-'.$theme.'-'.$width);
-})->with(['inLightMode', 'inDarkMode'])->with([804, 1440]);
+})->with(['inLightMode', 'inDarkMode'])->with([391, 804, 1440]);

@@ -35,7 +35,7 @@
     $heroPoster = $heroOccorrenza === null
         ? null
         : \App\Support\Poster::imageSet($heroOccorrenza->event)
-            ?->withSizes('240px')
+            ?->withSizes('(min-width: 1024px) 50vw, 100vw')
             /* 840px, non 1024: le due colonne dell'apertura si affiancano
                quando ci stanno, cioe' a `2 x 420px`. Fra 840 e 1024 la
                dichiarazione diceva schermo intero mentre l'immagine ne
@@ -184,7 +184,7 @@
                     data-sponsorship-click="{{ route('sponsorships.metric', ['sponsorship' => $heroSponsorship, 'metric' => 'clicks']) }}"
                 @endif
             >
-                <x-event-artwork :event="$heroEvento" :eager="true" />
+                <x-event-artwork :event="$heroEvento" :eager="true" sizes="(min-width: 1024px) 50vw, 100vw" />
 
                 <div class="relative flex items-start justify-between gap-3 p-[clamp(1.25rem,2.2vw,2.125rem)]">
                     {{-- L'etichetta occupa lo stesso posto in entrambi i casi:
@@ -198,7 +198,7 @@
                                 {{ __('sponsorships.by', ['advertiser' => $heroSponsorship->advertiser_name]) }}
                             </span>
                         @else
-                            {{ __('events.sections.today') }}
+                            {{ $formatter->dayAndTime($heroOccorrenza->business_date, $heroOccorrenza->starts_at) }}
                         @endif
                     </span>
 

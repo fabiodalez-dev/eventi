@@ -88,6 +88,7 @@ final class HomeController extends Controller
         $hero = $heroSponsorship !== null
             ? EventOccurrenceQuery::for($city)->forEvent($heroSponsorship->event_id)->promotable()->get()->first()
             : EventOccurrenceQuery::for($city)->today()->promotable()->get()->unique('event_id')->shuffle()->first();
+        $hero ??= EventOccurrenceQuery::for($city)->upcoming()->promotable()->get()->first();
         $hero?->loadMissing(['event.venue', 'event.category', 'event.media']);
 
         /*

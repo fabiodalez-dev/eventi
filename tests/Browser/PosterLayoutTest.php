@@ -6,7 +6,7 @@ use App\Models\Venue;
 use App\Support\EventUrl;
 use Tests\Support\ImageFixtures;
 
-it('shows complete portrait and landscape artwork in equal portrait slots across listings', function (string $theme, int $width): void {
+it('fills each card edge to edge with aligned portrait covers across listings', function (string $theme, int $width): void {
     config(['filesystems.disks.public.url' => '/storage']);
     if (! is_link(public_path('storage'))) {
         $this->artisan('storage:link')->assertSuccessful();
@@ -26,7 +26,10 @@ it('shows complete portrait and landscape artwork in equal portrait slots across
     foreach (['/', '/eventi', '/mappa?all_dates=1', EventUrl::occurrence($dates[0]), '/locali/'.$venue->slug] as $path) {
         $page = visit($path)->{$theme}()->resize($width, 900);
         $page->script('document.querySelector("[data-consent-banner]")?.remove()');
-        expect($page->script('async () => { const cards=[...document.querySelectorAll(".event-card")]; if (!cards.length) return false; for (const card of cards) { const frame=card.querySelector(".event-poster-frame"); if (!frame) return false; const r=frame.getBoundingClientRect(); if (Math.abs(r.width/r.height-.75)>.01) return false; const img=frame.querySelector("img"); if (img) { await img.decode(); if (!img.naturalWidth || getComputedStyle(img).objectFit!=="contain") return false; } } return document.documentElement.scrollWidth<=innerWidth; }'))->toBeTrue();
+        expect($page->script('async () => { const cards=[...document.querySelectorAll(".event-card")]; if (!cards.length) return false; for (const card of cards) { const frame=card.querySelector(".event-poster-frame"); if (!frame) return false; const r=frame.getBoundingClientRect(); const c=card.getBoundingClientRect(); if(Math.abs(c.width-r.width)>2 || Math.abs(c.left-r.left)>2) return false; if (Math.abs(r.width/r.height-.75)>.01) return false; const img=frame.querySelector("img"); if (img) { await img.decode(); if (!img.naturalWidth || getComputedStyle(img).objectFit!=="cover") return false; } } return document.documentElement.scrollWidth<=innerWidth; }'))->toBeTrue();
+        if ($path === EventUrl::occurrence($dates[0])) {
+            expect($page->script('async () => { const image=document.querySelector(".event-poster-original img"); await image.decode(); const r=image.getBoundingClientRect(); return Math.abs(r.width/r.height-image.naturalWidth/image.naturalHeight)<.01; }'))->toBeTrue();
+        }
         if ($path === '/eventi') {
             expect($page->script('() => { const frames=[...document.querySelectorAll(".event-card .event-poster-frame")].map(e=>e.getBoundingClientRect()); return frames.length>=3 && Math.max(...frames.map(r=>r.height))-Math.min(...frames.map(r=>r.height))<2; }'))->toBeTrue();
             $page->screenshot(filename: 'portrait-posters-'.$theme.'-'.$width);
