@@ -18,7 +18,7 @@ final class ImageSafety
             Imagick::RESOURCETYPE_DISK => 1024 * 1024 * 1024,
             Imagick::RESOURCETYPE_THREAD => 1] as $resource => $limit) {
             $existing = Imagick::getResourceLimit($resource);
-            Imagick::setResourceLimit($resource, $existing > 0 ? min($existing, $limit) : $limit);
+            Imagick::setResourceLimit($resource, min($existing, $limit));
         }
     }
 

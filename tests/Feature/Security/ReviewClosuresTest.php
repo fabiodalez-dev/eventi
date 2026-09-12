@@ -18,6 +18,7 @@ use App\Services\Http\SafeWebPushFactory;
 use App\Services\Import\HostResolver;
 use App\Services\Import\IcsImportDriver;
 use App\Services\Import\ImportUrlGuard;
+use App\Services\Media\ImageSafety;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Filament\Facades\Filament;
 use Filament\Notifications\Notification;
@@ -218,4 +219,18 @@ it('throttles panel login attempts on the account across changing IPs', function
             ->call('authenticate')->assertHasErrors(['data.email']);
     }
     expect(Activity::query()->where('description', 'accesso.limitato')->count())->toBe(1);
+});
+
+it('does not raise a decoder resource limit configured as zero by the host', function (): void {
+    if (! extension_loaded('imagick')) {
+        $this->markTestSkipped('Imagick unavailable');
+    }
+    $previous = Imagick::getResourceLimit(Imagick::RESOURCETYPE_MEMORY);
+    try {
+        Imagick::setResourceLimit(Imagick::RESOURCETYPE_MEMORY, 0);
+        ImageSafety::limitResources();
+        expect(Imagick::getResourceLimit(Imagick::RESOURCETYPE_MEMORY))->toEqual(0);
+    } finally {
+        Imagick::setResourceLimit(Imagick::RESOURCETYPE_MEMORY, $previous);
+    }
 });
