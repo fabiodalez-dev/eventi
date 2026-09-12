@@ -15,7 +15,7 @@ it('shows one follow action and the actual uncropped venue logo', function (stri
     $venue->addMedia(ImageFixtures::upload('logo.png', ImageFixtures::png(600, 240)))->toMediaCollection('logo');
     $page = visit('/locali/'.$venue->slug)->inLightMode()->on()->{$device}()
         ->click('[data-consent-banner] button[value="reject_all"]')->assertVisible('[data-venue-header] img');
-    expect($page->script('async () => { const h=document.querySelector("[data-venue-header]"); const img=h.querySelector("img"); await img.decode(); return img.naturalWidth > 0 && getComputedStyle(img).objectFit === "contain" && h.querySelectorAll("a[href*=intended]").length === 1 && document.documentElement.scrollWidth <= innerWidth; }'))->toBeTrue();
+    expect($page->script('async () => { const h=document.querySelector("[data-venue-header]"); const img=h.querySelector("img"); await img.decode(); return img.naturalWidth > 0 && getComputedStyle(img).objectFit === "contain" && h.querySelectorAll("a[href*=intended]").length === 1 && h.querySelector("a[href*=intended]").getBoundingClientRect().height >= 44 && document.documentElement.scrollWidth <= innerWidth; }'))->toBeTrue();
     $page->screenshot(filename: 'venue-header-'.$device);
     if ($device === 'mobile') {
         $page->resize(666, 734);
