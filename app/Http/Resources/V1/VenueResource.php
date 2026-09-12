@@ -76,15 +76,17 @@ final class VenueResource
             'info' => $venue->info->toArray(),
             'requires_membership' => (bool) $venue->requires_membership,
             'membership_notes' => Description::plain($venue->membership_notes),
-            'cover' => self::cover($venue),
+            'is_nonprofit' => (bool) $venue->is_nonprofit,
+            'logo' => self::image($venue, 'logo'),
+            'cover' => self::image($venue, 'cover'),
             'updated_at' => ApiDate::attribute($venue, 'updated_at', $timezone),
         ];
     }
 
     /** @return array<string, mixed>|null */
-    private static function cover(Venue $venue): ?array
+    private static function image(Venue $venue, string $collection): ?array
     {
-        $media = $venue->getFirstMedia('cover');
+        $media = $venue->getFirstMedia($collection);
 
         if (! $media instanceof Media) {
             return null;

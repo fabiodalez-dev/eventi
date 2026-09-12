@@ -68,6 +68,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -191,7 +193,9 @@ fun SearchScreen(
     onFilters: (Map<String, String>, String, String) -> Unit = { _, _, _ -> },
 ) {
     var query by remember { mutableStateOf("") }
-    LazyColumn(Modifier.fillMaxSize().padding(bottom = padding.calculateBottomPadding())) {
+    val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
+    LazyColumn(Modifier.fillMaxSize().padding(bottom = padding.calculateBottomPadding()), state = listState) {
         item { BrandHeader(compact = true) }
         item {
             Column(Modifier.padding(18.dp)) {
@@ -214,7 +218,7 @@ fun SearchScreen(
                     colors = fieldColors(),
                 )
                 Text(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.search_live_help), color = Muted, modifier = Modifier.padding(top = 10.dp))
-                SearchFilters(state, query) { filters, summary -> onFilters(filters, summary, query) }
+                SearchFilters(state, query, collapsible = true, onCollapse = { scope.launch { listState.scrollToItem(1) } }) { filters, summary -> onFilters(filters, summary, query) }
                 state.activeTag?.let { tag ->
                     Button(
                         onClick = onClearTag,
@@ -272,6 +276,7 @@ fun SavedScreen(
     padding: PaddingValues,
     onOpen: (Occurrence) -> Unit,
     onSave: (Long) -> Unit,
+    onProfile: (() -> Unit)? = null,
 ) {
     val context = LocalContext.current
     var mode by remember { mutableIntStateOf(0) }
@@ -292,6 +297,7 @@ fun SavedScreen(
 
     LaunchedEffect(mode) { listState.scrollToItem(0) }
     LazyColumn(Modifier.fillMaxSize().padding(bottom = padding.calculateBottomPadding()), state = listState) {
+        if (onProfile != null) item { TextButton(onClick = onProfile, modifier = Modifier.padding(horizontal = 18.dp).heightIn(min = 48.dp)) { Text("Il mio profilo") } }
         item { BrandHeader(compact = true) }
         item {
             Column(Modifier.padding(18.dp)) {
@@ -478,50 +484,11 @@ fun AccountScreen(
     onClearAuthError: () -> Unit = {},
     onInterestsSaved: () -> Unit = {},
     onAppearance: (String) -> Unit = {},
+    onSaved: () -> Unit = {},
+    onProfileSaved: () -> Unit = {},
 ) {
     if (state.session != null) {
-        var deletePassword by remember(state.session.user.id) { mutableStateOf("") }
-        var deleteArmed by remember(state.session.user.id) { mutableStateOf(false) }
-        Column(
-            Modifier.fillMaxSize().padding(bottom = padding.calculateBottomPadding()).verticalScroll(rememberScrollState()),
-        ) {
-            BrandHeader(compact = true)
-            Column(Modifier.padding(18.dp)) {
-                Text(stringResource(R.string.profile_title), style = androidx.compose.material3.MaterialTheme.typography.headlineLarge)
-                Spacer(Modifier.height(18.dp))
-                AppearancePicker(state.appearance, state.appearanceSaving, true, onAppearance)
-                Spacer(Modifier.height(24.dp))
-                AccountIdentity(state.session.user, onLogout, enabled = !state.isAuthenticating)
-                Button(onClick = onTickets, modifier = Modifier.fillMaxWidth().padding(top = 18.dp), shape = ControlShape) { Text(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.ticket_title)) }
-                Spacer(Modifier.height(28.dp))
-                ContentPreferencesPanel(state.session, onInterestsSaved)
-                NotificationSettingsPanel(state.session)
-                HorizontalDivider(Modifier.padding(vertical = 24.dp), thickness = 2.dp, color = Rule)
-                Text("I salvataggi appartengono esclusivamente a questo account. Uscendo, quelli sincronizzati non vengono mostrati a un altro utente del dispositivo.")
-                Spacer(Modifier.height(28.dp))
-                OutlinedButton(onClick = onLogout, modifier = Modifier.fillMaxWidth().height(52.dp), shape = ControlShape, border = BorderStroke(2.dp, Paper)) {
-                    Text("ESCI DA QUESTO DISPOSITIVO")
-                }
-                HorizontalDivider(Modifier.padding(vertical = 28.dp), thickness = 2.dp, color = Rule)
-                Text("ZONA CRITICA", color = Danger, style = androidx.compose.material3.MaterialTheme.typography.labelLarge)
-                Text("La cancellazione rimuove account, salvati, follow, dispositivi e notifiche. Non può essere annullata.", color = Muted, modifier = Modifier.padding(top = 8.dp, bottom = 14.dp))
-                if (deleteArmed) {
-                    AuthField(deletePassword, { deletePassword = it }, "PASSWORD CORRENTE", password = true)
-                    Spacer(Modifier.height(10.dp))
-                    Button(
-                        onClick = { onDeleteAccount(deletePassword) },
-                        enabled = deletePassword.isNotBlank() && !state.isAuthenticating,
-                        modifier = Modifier.fillMaxWidth().height(52.dp),
-                        shape = ControlShape,
-                        colors = ButtonDefaults.buttonColors(containerColor = Danger, contentColor = Ink),
-                    ) { Text("CONFERMA CANCELLAZIONE") }
-                } else {
-                    TextButton(onClick = { deleteArmed = true }, modifier = Modifier.fillMaxWidth().height(52.dp)) {
-                        Text("CANCELLA IL MIO ACCOUNT", color = Danger)
-                    }
-                }
-            }
-        }
+        ProfileScreen(state, padding, onTickets, onSaved, onLogout, onDeleteAccount, onInterestsSaved, onAppearance, onProfileSaved)
         return
     }
 
@@ -761,7 +728,7 @@ private fun VenueResultRow(venue: Venue, onOpen: (Venue) -> Unit) {
         Modifier.fillMaxWidth().height(126.dp).clickable { onOpen(venue) },
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        PosterImage(venue.cover, Modifier.width(112.dp).fillMaxHeight())
+        PosterImage(venue.logo ?: venue.cover, Modifier.width(112.dp).fillMaxHeight(), preserveArtwork = venue.logo != null)
         Column(Modifier.weight(1f).padding(14.dp)) {
             Text(venue.type?.replace('_', ' ')?.uppercase() ?: "LOCALE", color = Acid, style = androidx.compose.material3.MaterialTheme.typography.labelMedium)
             Text(venue.name.uppercase(), style = androidx.compose.material3.MaterialTheme.typography.titleLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
@@ -782,20 +749,19 @@ private fun SectionTitle(title: String, detail: String) {
 
 @Composable
 internal fun EventRow(event: Occurrence, saved: Boolean, onOpen: (Occurrence) -> Unit, onSave: (Long) -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().height(190.dp).clickable { onOpen(event) },
-    ) {
-        PosterImage(event.poster?.card ?: event.poster?.thumb, Modifier.width(116.dp).fillMaxHeight())
-        Column(Modifier.weight(1f).padding(14.dp)) {
-            Text("${formatDay(event.startsAt)} · ${if (event.isAllDay) "TUTTO IL GIORNO" else formatClock(event.startsAt)}", color = Acid, style = androidx.compose.material3.MaterialTheme.typography.labelMedium)
-            Text(eventTitle(event.title), style = androidx.compose.material3.MaterialTheme.typography.titleLarge, maxLines = 3, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 5.dp))
-            event.shortDescription?.takeIf(String::isNotBlank)?.let {
-                Text(it, color = Muted, maxLines = 2, overflow = TextOverflow.Ellipsis, style = androidx.compose.material3.MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 5.dp))
-            }
-            Spacer(Modifier.weight(1f))
-            Text(event.venue?.name?.uppercase() ?: "PADOVA", color = Muted, maxLines = 1, overflow = TextOverflow.Ellipsis, style = androidx.compose.material3.MaterialTheme.typography.labelMedium)
+    Column(Modifier.fillMaxWidth().clickable { onOpen(event) }) {
+        (event.poster?.card ?: event.poster?.thumb ?: event.poster?.full)?.let { poster ->
+            PosterImage(poster, Modifier.fillMaxWidth().aspectRatio(4f / 3f))
         }
-        SaveButton(saved, Modifier.align(Alignment.Top)) { onSave(event.occurrenceId) }
+        Row(Modifier.fillMaxWidth().padding(18.dp), verticalAlignment = Alignment.Top) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(event.category?.name.orEmpty(), color = Muted, style = MaterialTheme.typography.labelMedium)
+                Text(eventTitle(event.title), style = MaterialTheme.typography.titleLarge)
+                Text(event.venue?.name ?: "Luogo da verificare", color = Muted)
+                Text("${formatDay(event.startsAt)} · ${if (event.isAllDay) "Tutto il giorno" else formatClock(event.startsAt)}", color = Acid, style = MaterialTheme.typography.labelLarge)
+            }
+            SaveButton(saved) { onSave(event.occurrenceId) }
+        }
     }
     HorizontalDivider(thickness = 1.dp, color = Rule)
 }
@@ -811,17 +777,17 @@ private fun SaveButton(saved: Boolean, modifier: Modifier = Modifier, onClick: (
 }
 
 @Composable
-private fun PosterImage(url: String?, modifier: Modifier, concertFallback: Boolean = false) {
+private fun PosterImage(url: String?, modifier: Modifier, concertFallback: Boolean = false, preserveArtwork: Boolean = true) {
     val matrix = remember { ColorMatrix().apply { setToSaturation(0f) } }
-    Box(modifier.background(Color(0xFF202020)).clipToBounds()) {
+    Box(modifier.background(MaterialTheme.colorScheme.surfaceVariant).clipToBounds()) {
         if (url != null || concertFallback) {
             AsyncImage(
                 model = url ?: it.fabiodalez.incitta.R.drawable.event_concert_placeholder,
                 error = if (concertFallback) androidx.compose.ui.res.painterResource(it.fabiodalez.incitta.R.drawable.event_concert_placeholder) else null,
                 contentDescription = null,
                 modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop,
-                colorFilter = ColorFilter.colorMatrix(matrix),
+                contentScale = if (url != null && preserveArtwork) ContentScale.Fit else ContentScale.Crop,
+                colorFilter = if (url != null && preserveArtwork) null else ColorFilter.colorMatrix(matrix),
             )
         } else {
             Text("IN CITTÀ", color = Acid, modifier = Modifier.align(Alignment.Center), style = androidx.compose.material3.MaterialTheme.typography.titleLarge)

@@ -185,6 +185,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun refreshProfile() { viewModelScope.launch { synchronizeAppearance() } }
+
     suspend fun synchronizeAppearance() {
         if (_state.value.appearanceSaving) return
         try { repository.refreshProfile() }

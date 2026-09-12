@@ -163,6 +163,8 @@ fun InCittaApp(viewModel: MainViewModel) {
                 selectedVenue != null -> Box(Modifier.fillMaxSize().padding(padding)) {
                     VenueDetailScreen(
                         venue = selectedVenue,
+                        session = state.session,
+                        onLogin = { viewModel.selectTab(AppTab.ACCOUNT) },
                         events = state.venueOccurrences,
                         pastEvents = state.venuePastOccurrences,
                         savedIds = state.savedIds,
@@ -234,7 +236,7 @@ fun InCittaApp(viewModel: MainViewModel) {
                         onClearDiscovery = viewModel::clearDiscovery,
                         onFilters = viewModel::updateSearchFilters,
                     )
-                    AppTab.SAVED -> SavedScreen(state, padding, viewModel::open, viewModel::toggleSaved)
+                    AppTab.SAVED -> SavedScreen(state, padding, viewModel::open, viewModel::toggleSaved) { viewModel.selectTab(AppTab.ACCOUNT) }
                     AppTab.ACCOUNT -> AccountScreen(
                         state = state,
                         padding = padding,
@@ -247,6 +249,8 @@ fun InCittaApp(viewModel: MainViewModel) {
                         onClearAuthError = viewModel::clearAuthError,
                         onInterestsSaved = viewModel::interestsChanged,
                         onAppearance = viewModel::setAppearance,
+                        onSaved = { viewModel.selectTab(AppTab.SAVED) },
+                        onProfileSaved = viewModel::refreshProfile,
                     )
                     AppTab.CALENDAR -> CalendarScreen(state, padding, viewModel::open, viewModel::toggleSaved) { viewModel.selectTab(AppTab.HOME) }
                     AppTab.VENUES -> VenuesScreen(state, padding, viewModel::openVenue) { viewModel.selectTab(AppTab.HOME) }

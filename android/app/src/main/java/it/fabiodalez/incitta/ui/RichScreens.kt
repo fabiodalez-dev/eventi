@@ -8,6 +8,7 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -352,6 +353,7 @@ private fun OccurrenceDateBlock(detail: EventDetail, occurrence: Occurrence, sav
     }
 }
 
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 fun VenueDetailScreen(
     venue: Venue,
@@ -361,6 +363,8 @@ fun VenueDetailScreen(
     onBack: () -> Unit,
     onOpenEvent: (Occurrence) -> Unit,
     onSave: (Long) -> Unit,
+    session: it.fabiodalez.incitta.data.Session? = null,
+    onLogin: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val scrollState = rememberScrollState()
@@ -371,9 +375,26 @@ fun VenueDetailScreen(
             Column(Modifier.fillMaxSize().verticalScroll(scrollState)) {
                 RichImage(venue.cover, Modifier.fillMaxWidth().aspectRatio(16f / 10f))
                 Column(Modifier.padding(18.dp)) {
-                    Eyebrow(venue.type?.replace('_', ' ') ?: "LOCALE")
-                    Text(venue.name.uppercase(), style = androidx.compose.material3.MaterialTheme.typography.displayMedium)
-                    Text(address(venue), color = Muted, modifier = Modifier.padding(top = 10.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.Top) {
+                        Box(Modifier.size(72.dp).border(1.dp, Rule).padding(4.dp), contentAlignment = Alignment.Center) {
+                            if (venue.logo != null) AsyncImage(venue.logo, "Logo di ${venue.name}", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
+                            else Text(venue.name.split(" ").filter(String::isNotBlank).take(2).joinToString("") { it.take(1).uppercase() }, color = Acid)
+                        }
+                        Column(Modifier.weight(1f)) {
+                            Text(venue.name, style = androidx.compose.material3.MaterialTheme.typography.headlineMedium)
+                            Text(listOfNotNull(venue.type?.replace('_', ' '), venue.municipality).joinToString(" · "), color = Muted, modifier = Modifier.padding(top = 6.dp))
+                        }
+                    }
+                    Spacer(Modifier.height(14.dp))
+                    androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (venue.isVerified) VenueBadge("Verificato")
+                        if (venue.isNonprofit) VenueBadge("No profit")
+                        if (venue.requiresMembership) VenueBadge("Riservato ai soci")
+                        if (venue.accessibility["step_free_entrance"] == true) VenueBadge("Accessibile")
+                    }
+                    Spacer(Modifier.height(12.dp))
+                    VenueFollowButton(venue.id, session, onLogin)
+                    Text(address(venue), color = Muted, modifier = Modifier.padding(top = 12.dp))
                     venue.description?.let { Text(it, style = androidx.compose.material3.MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 16.dp)) }
                     if (venue.requiresMembership) {
                         Text("TESSERA RICHIESTA", color = Ink, modifier = Modifier.padding(top = 14.dp).background(Acid).padding(10.dp), style = androidx.compose.material3.MaterialTheme.typography.labelLarge)
@@ -1074,4 +1095,9 @@ private fun dial(context: android.content.Context, phone: String) = openUrl(cont
 private fun directions(context: android.content.Context, lat: Double, lng: Double, label: String) {
     val encoded = URLEncoder.encode(label, StandardCharsets.UTF_8.toString())
     openUrl(context, "geo:$lat,$lng?q=$lat,$lng($encoded)")
+}
+
+@Composable
+private fun VenueBadge(label: String) {
+    Text(label, modifier = Modifier.border(1.dp, Rule, ControlShape).padding(horizontal = 10.dp, vertical = 6.dp), color = Muted, style = androidx.compose.material3.MaterialTheme.typography.labelMedium)
 }

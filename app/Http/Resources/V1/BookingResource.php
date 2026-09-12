@@ -24,6 +24,7 @@ final class BookingResource
             'venue' => $date?->effectiveVenue()?->name,
             'address' => $date?->effectiveVenue()?->address,
             'starts_at' => $date?->starts_at?->toIso8601String(),
+            'ends_at' => ($date->effective_ends_at ?? $date->ends_at ?? $date?->starts_at)?->toIso8601String(),
             'status' => $booking->status->value,
             'instructions' => Description::plain($date?->booking_instructions),
             'cancellation_reason' => $booking->cancellation_reason,

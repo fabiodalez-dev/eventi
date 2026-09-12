@@ -29,6 +29,10 @@ class UpdateNotificationPreferencesRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'marketing_opt_in' => ['sometimes', 'boolean'],
+            'quiet_hours' => ['sometimes', 'nullable', 'array:from,to'],
+            'quiet_hours.from' => ['required_with:quiet_hours', 'date_format:H:i'],
+            'quiet_hours.to' => ['required_with:quiet_hours', 'date_format:H:i'],
             'delivery' => ['sometimes', Rule::enum(NotificationDelivery::class)],
             'daily_digest_time' => ['sometimes', 'nullable', 'date_format:H:i'],
             'reminders' => ['sometimes', 'boolean'],

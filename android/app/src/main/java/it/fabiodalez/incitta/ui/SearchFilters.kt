@@ -26,9 +26,10 @@ import kotlinx.coroutines.*
 import kotlin.coroutines.resume
 
 @Composable
-internal fun SearchFilters(state: AppUiState, query: String = "", apply: (Map<String, String>, String) -> Unit) {
+internal fun SearchFilters(state: AppUiState, query: String = "", collapsible: Boolean = false, onCollapse: () -> Unit = {}, apply: (Map<String, String>, String) -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    var panelOpen by rememberSaveable { mutableStateOf(!collapsible) }
     var expanded by rememberSaveable { mutableStateOf(false) }
     var choices by remember { mutableStateOf(TonightPayload()) }
     var status by remember { mutableStateOf<String?>(null) }
@@ -119,6 +120,10 @@ internal fun SearchFilters(state: AppUiState, query: String = "", apply: (Map<St
         if (granted.values.any { it }) locate()
         else status = "Permesso posizione negato. Puoi abilitarlo nelle impostazioni dell’app o scegliere una zona."
     }
+    if (collapsible) OutlinedButton(onClick = { panelOpen = !panelOpen }, modifier = Modifier.fillMaxWidth().padding(top = 12.dp).heightIn(min = 48.dp), shape = ControlShape) {
+        Text(if (panelOpen) "Chiudi i filtri" else "Filtra i risultati")
+    }
+    if (!panelOpen) return
     Column(Modifier.fillMaxWidth().padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (filters.isNotEmpty()) TextButton(onClick = { scope.launch { applyChecked(emptyMap(), "Tutti gli eventi") } }, enabled = !checking) { Text("Azzera i filtri ×") }
         QuickFilterGroup("Quando", "preset", available("date", listOf("today" to "Oggi", "tonight" to "Stasera", "starting_soon" to "Inizia tra poco", "tomorrow" to "Domani", "weekend" to "Weekend", "week" to "Questa settimana")), filters, ::change)
@@ -174,6 +179,7 @@ internal fun SearchFilters(state: AppUiState, query: String = "", apply: (Map<St
         if (checking) Text("Verifico gli eventi disponibili…", color = Muted)
         status?.let { Text(it, color = Muted) }
         if (facets == null && status != null) TextButton(onClick = { status = null; reload++ }) { Text("Riprova") }
+        if (collapsible) Button(onClick = { panelOpen = false; onCollapse() }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp), shape = ControlShape) { Text("Mostra i risultati") }
     }
 }
 
