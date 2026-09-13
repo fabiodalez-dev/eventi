@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Services\Import\FacebookEventImport;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
@@ -40,7 +41,8 @@ final class VerifyDeployment extends Command
                     }
                 }
             }
-            $this->info('Database, migrazioni, rotte e asset verificati.');
+            app(FacebookEventImport::class)->checkRuntime();
+            $this->info('Database, migrazioni, rotte, asset e Chromium verificati.');
 
             return self::SUCCESS;
         } catch (\Throwable $e) {

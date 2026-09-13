@@ -75,9 +75,18 @@ L’installazione deve usare la stessa utenza/cache accessibile dal worker PHP. 
 
 Il test reale conferma il funzionamento per l’evento indicato al momento della prova. Eventi privati, restrizioni di Facebook o cambiamenti del markup possono impedire la lettura: il modulo manuale resta disponibile e l’importazione segnala l’errore.
 
+### Configurazione verificata sul server condiviso
+
+Node 24.13.0, Playwright 1.59.1 e Chromium headless shell 147.0.7727.15 (revisione 1217). Chromium è nella cache dell’utente, non nel repository. Due librerie native (`libatk-bridge-2.0.so.0`, `libatspi.so.0`) da pacchetti AlmaLinux 8 sono state estratte in una directory privata dell’utente, senza modificare il sistema.
+
+Su questo hosting il trasporto a pipe di Chromium non si avvia correttamente. `FACEBOOK_IMPORT_SINGLE_PROCESS=true` usa un processo Chromium temporaneo e una connessione CDP sulla sola interfaccia loopback, con profilo nuovo, porta casuale e chiusura/pulizia a fine richiesta. `FACEBOOK_IMPORT_CHROMIUM_BINARY` indica l’eseguibile. I limiti di URL, frequenza, dimensione e durata restano identici. Su un server normale usare la modalità Playwright standard.
+
+**Al trasferimento del sito questi percorsi e prerequisiti vanno riconfigurati.** Eseguire `php artisan facebook:check` nell’ambiente dell’utenza PHP: avvia il browser e verifica rendering ed esecuzione JavaScript. Esce con codice diverso da zero per binario mancante, librerie mancanti, crash o mancata esecuzione. Anche `deploy:verify` lo esegue prima di dichiarare riuscito il rilascio; la CI esegue una prova reale. Confermare inoltre un’importazione dal modulo, perché l’accesso a Facebook dipende anche dalla rete del server.
+
 ## Test
 
 ```sh
+php artisan facebook:check
 node --test tests/Unit/Facebook/event-parser.test.mjs
 php vendor/bin/pest tests/Feature/Venue/FacebookImportTest.php tests/Feature/Venue/EventWizardTest.php tests/Feature/Venue/EventLocationOverrideTest.php tests/Feature/Import
 php vendor/bin/pest --configuration=phpunit.browser.xml tests/Browser/FacebookImportTest.php

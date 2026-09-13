@@ -1,4 +1,4 @@
-import { chromium } from 'playwright';
+import { openBrowser } from './browser-runtime.mjs';
 import { collectEventNodes, facebookEventId, parseEventNodes } from './event-parser.mjs';
 
 let browser;
@@ -8,9 +8,8 @@ process.once('SIGTERM', stop);
 process.once('SIGINT', stop);
 try {
     const id = facebookEventId(process.argv[2]);
-    const channel = process.env.FACEBOOK_IMPORT_BROWSER_CHANNEL;
-    browser = await chromium.launch({ headless: true, ...(channel ? { channel } : {}) });
-    const context = await browser.newContext({ locale: 'it-IT', timezoneId: 'Europe/Rome', serviceWorkers: 'block' });
+    browser = await openBrowser();
+    const context = browser.context;
     // Fixed public Meta hosts only, including redirects and subresources. No user session.
     await context.route('**/*', async route => {
         const url = new URL(route.request().url());

@@ -103,7 +103,7 @@ tests (pest su MariaDB)   ─┘
 ```
 
 Il deploy parte **solo se lint, analisi statica e test sono verdi**. Gli asset sono
-compilati dal runner: sul server non esiste Node e non viene eseguita alcuna build.
+compilati dal runner. Il server dispone di Node tramite nvm; la build degli asset rimane in CI. L’import Facebook usa Node/Playwright/Chromium: al cambio di server riconfigurare il runtime come descritto in [FACEBOOK-EVENT-IMPORT](FACEBOOK-EVENT-IMPORT.md) e verificare `php artisan facebook:check`.
 
 Deploy manuale (emergenza):
 

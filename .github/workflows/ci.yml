@@ -207,6 +207,8 @@ jobs:
         run: |
           cp .env.example .env
           php artisan key:generate
+      - name: Chromium deve avviarsi ed eseguire JavaScript
+        run: php artisan facebook:check
       - run: composer test:browser -- --ci --log-junit storage/logs/browser-junit.xml
       - name: Referti browser
         if: always()

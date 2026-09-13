@@ -10,6 +10,7 @@ use App\Rules\RealImage;
 use App\Services\Http\BoundedStream;
 use Carbon\CarbonImmutable;
 use GuzzleHttp\Handler\CurlHandler;
+use Illuminate\Contracts\Process\ProcessResult;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Process;
@@ -39,6 +40,26 @@ class FacebookEventImport
         return 'https://www.facebook.com/events/'.$match[1].'/';
     }
 
+    /** @param list<string> $arguments */
+    private function runScript(string $script, array $arguments = []): ProcessResult
+    {
+        return Process::timeout(55)->env([
+            'FACEBOOK_IMPORT_BROWSER_CHANNEL' => config('import.facebook.browser_channel'),
+            'LD_LIBRARY_PATH' => config('import.facebook.library_path'),
+            'FACEBOOK_IMPORT_SINGLE_PROCESS' => config('import.facebook.single_process') ? '1' : '0',
+            'FACEBOOK_IMPORT_CHROMIUM_BINARY' => config('import.facebook.chromium_binary'),
+            'UV_THREADPOOL_SIZE' => '1',
+        ])->run([config()->string('import.facebook.node_binary'), '--v8-pool-size=1', base_path('scripts/facebook/'.$script), ...$arguments]);
+    }
+
+    public function checkRuntime(): void
+    {
+        $result = $this->runScript('check-runtime.mjs');
+        if (! $result->successful() || json_decode($result->output(), true) !== ['chromium' => true, 'javascript' => true]) {
+            throw new RuntimeException('Chromium non operativo: '.$result->errorOutput());
+        }
+    }
+
     /** @return array<string, mixed> */
     public function fetch(string $input): array
     {
@@ -48,10 +69,7 @@ class FacebookEventImport
             throw new RuntimeException('Un’importazione è già in corso. Riprova tra poco.');
         }
         try {
-            $result = Process::timeout(55)->env([
-                'FACEBOOK_IMPORT_BROWSER_CHANNEL' => config('import.facebook.browser_channel'),
-                'LD_LIBRARY_PATH' => config('import.facebook.library_path'),
-            ])->run([config()->string('import.facebook.node_binary'), base_path('scripts/facebook/scrape-event.mjs'), $url]);
+            $result = $this->runScript('scrape-event.mjs', [$url]);
         } finally {
             $lock->release();
         }
