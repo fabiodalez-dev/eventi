@@ -194,6 +194,7 @@ return [
         'event_cancelled' => 'Evento annullato',
         'event_moved' => 'Evento spostato',
         'event_sold_out' => 'Biglietti esauriti',
+        'venue_new_event' => 'Nuovo evento da un locale seguito',
         'venue_digest' => 'Riepilogo settimanale da chi segui',
         'daily_digest' => 'Riepilogo giornaliero',
         'weekend_newsletter' => 'Newsletter del weekend',

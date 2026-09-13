@@ -192,7 +192,7 @@ return [
         'notifications_lead' => 'Gli avvisi di annullamento di una data che hai salvato arrivano sempre: un promemoria per una serata che non c\'è più è peggio di nessun promemoria.',
         'reminders' => 'Promemoria prima degli eventi salvati',
         'sold_out' => 'Avvisami se un evento salvato va esaurito',
-        'venue_digest' => 'Riepilogo settimanale dei locali che seguo',
+        'venue_digest' => 'Nuovi eventi e riepilogo settimanale dei locali che seguo',
         'daily_digest' => 'Riepilogo giornaliero «stasera nei tuoi generi»',
         'quiet_hours' => 'Ore di silenzio',
         'quiet_hours_hint' => 'In queste ore non ti arriva nulla: quello che è previsto aspetta la mattina. Gli avvisi di annullamento fanno eccezione e arrivano comunque.',

@@ -231,7 +231,7 @@ final class OpenGraphImage
 
     private function where(Event $event): string
     {
-        $venue = $event->venue;
+        $venue = $event->locationVenue();
 
         if ($venue !== null) {
             return Str::squish($venue->name.' '.__('common.separator').' '.$venue->municipality);

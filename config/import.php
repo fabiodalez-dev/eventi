@@ -11,6 +11,13 @@ declare(strict_types=1);
  * quello che si legge qui è il valore in vigore quando la sorgente tace.
  */
 return [
+    'facebook' => [
+        'node_binary' => env('FACEBOOK_IMPORT_NODE_BINARY', 'node'),
+        'browser_channel' => env('FACEBOOK_IMPORT_BROWSER_CHANNEL'),
+        'library_path' => env('FACEBOOK_IMPORT_LIBRARY_PATH'),
+        'single_process' => env('FACEBOOK_IMPORT_SINGLE_PROCESS', false),
+        'chromium_binary' => env('FACEBOOK_IMPORT_CHROMIUM_BINARY'),
+    ],
 
     /*
      * Secondi concessi al calendario remoto. `connect` è il tempo per aprire

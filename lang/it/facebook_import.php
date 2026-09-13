@@ -1,0 +1,29 @@
+<?php
+
+declare(strict_types=1);
+
+return [
+    'minute_limit' => 'Attendi un minuto prima di importare un altro link.',
+    'daily_limit' => 'Hai raggiunto il limite di 30 importazioni al giorno.',
+    'photo_failed' => 'La foto non è stata scaricata. Controlla la locandina nel modulo o caricala manualmente.',
+    'loaded' => 'Dati caricati nel modulo',
+    'review' => 'Controlla i dati, aggiungi ciò che manca e prosegui per salvare.',
+    'failed' => 'Importazione non riuscita',
+    'failed_hint' => 'Verifica il link e che l’evento sia pubblico. Il modulo conserva i dati già inseriti.',
+    'url_label' => 'Hai già un evento su Facebook?',
+    'url_hint' => 'Incolla il link e carica i dati disponibili, compresa la foto. Potrai modificarli e completarli prima di salvare.',
+    'load' => 'Carica dal link Facebook',
+    'source' => 'Dati della fonte',
+    'location_warning' => 'Controlla il luogo prima di salvare',
+    'location' => 'Luogo dell’evento',
+    'address' => 'Indirizzo dell’evento',
+    'place_name' => 'Nome del luogo',
+    'latitude' => 'Latitudine',
+    'longitude' => 'Longitudine',
+    'hosts' => 'Organizzatori: :names',
+    'responses' => ':count risposte su Facebook',
+    'location_warning_hint' => 'L’importazione Facebook ha compilato l’indirizzo dell’evento con :address. Al salvataggio sostituirà la sede del locale per questo evento. Puoi modificarlo oppure svuotarlo per usare la sede del locale.',
+    'location_hint' => 'Lascia vuoto l’indirizzo per usare la sede del locale: :address. Un indirizzo diverso vale soltanto per questo evento.',
+    'source_link' => 'Evento Facebook',
+    'external_link' => 'Link dall’evento',
+];

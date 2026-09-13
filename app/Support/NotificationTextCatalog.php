@@ -36,6 +36,7 @@ final class NotificationTextCatalog
         'sold_out' => 'Biglietti esauriti',
         'daily_digest' => 'Riepilogo giornaliero',
         'weekend' => 'Newsletter del fine settimana',
+        'venue_new_event' => 'Nuovo evento da un locale seguito',
         'venue_digest' => 'Novita di un locale seguito',
         'event_published' => 'Evento pubblicato',
         'event_rejected' => 'Evento rifiutato',

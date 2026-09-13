@@ -375,6 +375,12 @@ class Event extends Model implements HasMedia
             ?? ($this->price_type === PriceType::Membership ? MembershipRequirement::Required : null);
     }
 
+    /** The owning venue stays unchanged when the event takes place elsewhere. */
+    public function locationVenue(): ?Venue
+    {
+        return filled($this->custom_location['address'] ?? null) ? null : $this->venue;
+    }
+
     /** @return array<string, string> */
     protected function casts(): array
     {
@@ -385,6 +391,7 @@ class Event extends Model implements HasMedia
             'status' => EventStatus::class,
             'gallery' => 'array',
             'custom_location' => 'array',
+            'source_metadata' => 'array',
             'external_links' => AsExternalLinks::class,
             'facts' => AsFacts::class,
             'seo' => 'array',

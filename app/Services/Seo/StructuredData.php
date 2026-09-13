@@ -52,7 +52,7 @@ final class StructuredData
     {
         $organizer = $this->organizer($event);
         $event = clone $event;
-        $event->setRelation('venue', $occurrence->effectiveVenue());
+        $event->setRelation('venue', $occurrence->locationVenue());
         $url = EventUrl::occurrence($occurrence);
         $poster = Poster::absoluteUrl($event);
         $details = app(EditorialContent::class)->details($event);
@@ -283,7 +283,7 @@ final class StructuredData
      */
     private function location(Event $event): array
     {
-        $venue = $event->venue;
+        $venue = $event->locationVenue();
 
         if ($venue !== null) {
             return [
@@ -300,6 +300,9 @@ final class StructuredData
         return array_filter([
             '@type' => 'Place',
             'name' => is_string($custom['name'] ?? null) ? $custom['name'] : null,
+            'geo' => isset($custom['lat'], $custom['lng']) ? [
+                '@type' => 'GeoCoordinates', 'latitude' => (float) $custom['lat'], 'longitude' => (float) $custom['lng'],
+            ] : null,
             'address' => array_filter([
                 '@type' => 'PostalAddress',
                 'streetAddress' => is_string($custom['address'] ?? null) ? $custom['address'] : null,

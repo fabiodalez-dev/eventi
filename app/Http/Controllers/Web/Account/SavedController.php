@@ -111,7 +111,7 @@ final class SavedController extends Controller
         /** @var list<int> $ids */
         $ids = $saved->pluck('occurrence_id')->map(static fn (mixed $id): int => (int) $id)->values()->all();
 
-        return $this->respond($request, ['saved' => $ids, 'message' => $message], $message);
+        return $this->respond($request, ['saved' => $ids, 'interested_counts' => $this->interestedCounts($ids), 'message' => $message], $message);
     }
 
     public function destroy(Request $request, int $occurrence, RemoveSavedOccurrence $remove): RedirectResponse|JsonResponse
@@ -120,7 +120,7 @@ final class SavedController extends Controller
 
         return $this->respond(
             $request,
-            ['removed' => $removed, 'message' => __('account.save.removed')],
+            ['removed' => $removed, 'interested_counts' => $this->interestedCounts([$occurrence]), 'message' => __('account.save.removed')],
             __('account.save.removed'),
         );
     }
@@ -144,6 +144,16 @@ final class SavedController extends Controller
             'occurrence_ids' => $merged,
             'message' => trans_choice('account.save.merged', count($merged), ['count' => count($merged)]),
         ]);
+    }
+
+    /** @param list<int> $ids
+     * @return array<int, int>
+     */
+    private function interestedCounts(array $ids): array
+    {
+        return EventOccurrence::query()->whereIn('id', $ids)
+            ->withCount('interestedUsers as interested_count')
+            ->get()->mapWithKeys(fn (EventOccurrence $date): array => [(int) $date->id => $date->interestedCount()])->all();
     }
 
     /**

@@ -1,0 +1,17 @@
+{
+  "id": "1078756118449684",
+  "url": "https://www.facebook.com/events/1078756118449684/",
+  "title": "Concerto importato",
+  "description": "Descrizione completa del concerto.\nIngresso €15\nApertura alle 21:00, concerto alle 23:00.\nInformazioni aggiuntive alla fine.",
+  "starts_at": "2026-10-16T19:00:00.000Z",
+  "ends_at": null,
+  "date_label": "Venerdì 16 ottobre 2026 alle ore 21:00 CEST",
+  "cover": {"url": "https://scontent.xx.fbcdn.net/event.jpg", "width": 1200, "height": 628},
+  "venue": {"name": "Locale della fonte", "address": "Via Ticino 5, Padova", "latitude": 45.42, "longitude": 11.87},
+  "hosts": [{"name": "Organizzatore", "url": "https://www.facebook.com/csopedro"}],
+  "responded_count": 35,
+  "external_links": ["https://www.instagram.com/csopedro"],
+  "ticket_url": null,
+  "is_cancelled": false,
+  "is_online": false
+}

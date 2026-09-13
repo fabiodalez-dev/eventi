@@ -30,7 +30,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           fetch-depth: 0
-      - run: node --test .github/scripts/*.test.cjs tests/js/*.test.js
+      - run: node --test .github/scripts/*.test.cjs tests/js/*.test.js tests/Unit/Facebook/*.test.mjs
       - name: Verifica isolamento CI e copie Git
         run: python3 -m unittest discover -s infra/ci -p 'test_*.py'
       - id: scope
@@ -207,6 +207,10 @@ jobs:
         run: |
           cp .env.example .env
           php artisan key:generate
+      - name: Pubblica gli asset del pannello per i test browser
+        run: php artisan filament:assets
+      - name: Chromium deve avviarsi ed eseguire JavaScript
+        run: php artisan facebook:check
       - run: composer test:browser -- --ci --log-junit storage/logs/browser-junit.xml
       - name: Referti browser
         if: always()

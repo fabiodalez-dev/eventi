@@ -136,6 +136,8 @@ class EventResource extends Resource
                         EventFields::description(),
                     ]),
 
+                EventFields::location(),
+
                 Section::make(__('manage.sections.taxonomy'))
                     ->columns(2)
                     ->schema([

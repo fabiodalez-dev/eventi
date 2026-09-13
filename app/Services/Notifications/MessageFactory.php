@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Services\Notifications;
 
 use App\DTOs\NotificationMessage;
+use App\Enums\EventStatus;
+use App\Enums\FollowableType;
 use App\Enums\NotificationSkipReason;
 use App\Enums\NotificationType;
 use App\Enums\OccurrenceStatus;
@@ -20,6 +22,7 @@ use App\Queries\EventOccurrenceQuery;
 use App\Settings\NewsletterSettings;
 use App\Support\CurrentCity;
 use App\Support\DateFormatter;
+use App\Support\EventUrl;
 use Carbon\CarbonImmutable;
 use Filament\Facades\Filament;
 
@@ -55,6 +58,7 @@ final readonly class MessageFactory
             NotificationType::EventCancelled => $this->cancelled($notification),
             NotificationType::EventMoved => $this->moved($notification),
             NotificationType::EventSoldOut => $this->soldOut($notification),
+            NotificationType::VenueNewEvent => $this->venueNewEvent($notification, $user),
             NotificationType::VenueDigest => $this->venueDigest($notification, $user),
             NotificationType::DailyDigest => $this->dailyDigest($user),
             NotificationType::WeekendNewsletter => $this->weekend($user),
@@ -334,6 +338,33 @@ final readonly class MessageFactory
     }
 
     // ------------------------------------------------------------- ai gestori
+
+    private function venueNewEvent(ScheduledNotification $notification, User $user): NotificationMessage|NotificationSkipReason
+    {
+        $event = $this->event($notification);
+        if ($event === null || $event->status !== EventStatus::Published || $event->venue === null
+            || (int) $event->venue_id !== (int) $notification->context('venue_id')) {
+            return NotificationSkipReason::MissingSubject;
+        }
+        if (! $user->follows()->ofType(FollowableType::Venue)->notifying()->where('followable_id', $event->venue_id)->exists()) {
+            return NotificationSkipReason::PreferenceOff;
+        }
+        $occurrence = EventOccurrenceQuery::for($event->city)->forEvent($event)->upcoming()->get()->first();
+        if ($occurrence === null) {
+            return NotificationSkipReason::NothingToSend;
+        }
+
+        return new NotificationMessage(
+            type: NotificationType::VenueNewEvent,
+            subject: __('notifications.venue_new_event.subject', ['venue' => $event->venue->name]),
+            heading: $event->title,
+            lines: [__('notifications.venue_new_event.line', ['venue' => $event->venue->name, 'title' => $event->title])],
+            actionLabel: __('notifications.actions.open_event'),
+            url: EventUrl::occurrence($occurrence),
+            occurrenceId: (int) $occurrence->getKey(),
+            eventId: (int) $event->getKey(),
+        );
+    }
 
     private function eventPublished(ScheduledNotification $notification): NotificationMessage|NotificationSkipReason
     {

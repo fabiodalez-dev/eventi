@@ -10,6 +10,7 @@ use App\Models\SavedEvent;
 use App\Models\User;
 use App\Queries\EventOccurrenceQuery;
 use App\Services\Notifications\NotificationScheduler;
+use App\Support\ContentVersion;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
@@ -95,6 +96,8 @@ final class SaveOccurrences
             ],
             $savable,
         ));
+
+        ContentVersion::bump($city);
 
         $saved = SavedEvent::query()
             ->where('user_id', $user->getKey())

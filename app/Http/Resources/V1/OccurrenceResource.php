@@ -41,11 +41,12 @@ final class OccurrenceResource
     public static function toArray(EventOccurrence $occurrence, ApiContext $context): array
     {
         $event = $occurrence->event;
-        $venue = $occurrence->effectiveVenue();
+        $venue = $occurrence->locationVenue();
         $timezone = $context->timezone;
 
         $payload = [
             'occurrence_id' => (int) $occurrence->getKey(),
+            'interested_count' => $occurrence->interestedCount(),
             'url_number' => (int) $occurrence->url_number,
             'date_url' => EventUrl::occurrence($occurrence),
             'previous_starts_at' => ApiDate::instant($occurrence->previous_starts_at, $timezone),
@@ -74,7 +75,7 @@ final class OccurrenceResource
                locale": è là che il client la trova, non qui duplicata. */
             'capacity' => $occurrence->capacity,
             'capacity_left' => $occurrence->capacity_left,
-            'booking_enabled' => (bool) ($occurrence->booking_enabled && $venue?->ticketing_enabled),
+            'booking_enabled' => (bool) ($occurrence->booking_enabled && $occurrence->effectiveVenue()?->ticketing_enabled),
             'title' => (string) $event->title,
             'subtitle' => $event->subtitle,
             'short_description' => $event->short_description,

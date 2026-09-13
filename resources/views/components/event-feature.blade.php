@@ -26,7 +26,7 @@
     $formatter = app(\App\Support\DateFormatter::class);
 
     $event = $occurrence->event;
-    $venue = $occurrence->effectiveVenue();
+    $venue = $occurrence->locationVenue();
     $category = $event->category;
     $status = $occurrence->status;
 

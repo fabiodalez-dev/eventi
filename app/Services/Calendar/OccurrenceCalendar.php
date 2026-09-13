@@ -93,11 +93,17 @@ final class OccurrenceCalendar
             $entry->description($description);
         }
 
-        $venue = $occurrence->effectiveVenue();
+        $venue = $occurrence->locationVenue();
 
         if ($venue !== null) {
             $entry->address($this->address($occurrence), $venue->name);
             $entry->coordinates((float) $venue->lat, (float) $venue->lng);
+        } else {
+            $custom = $occurrence->event->custom_location ?? [];
+            $entry->address($this->address($occurrence), $custom['name'] ?? '');
+            if (isset($custom['lat'], $custom['lng'])) {
+                $entry->coordinates((float) $custom['lat'], (float) $custom['lng']);
+            }
         }
 
         if ($occurrence->is_all_day) {
@@ -213,7 +219,7 @@ final class OccurrenceCalendar
 
     private function address(EventOccurrence $occurrence): string
     {
-        $venue = $occurrence->effectiveVenue();
+        $venue = $occurrence->locationVenue();
 
         if ($venue === null) {
             $custom = is_array($occurrence->event->custom_location) ? $occurrence->event->custom_location : [];

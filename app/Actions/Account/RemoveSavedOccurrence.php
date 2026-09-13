@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Actions\Account;
 
 use App\Enums\NotificationStatus;
+use App\Models\EventOccurrence;
 use App\Models\ScheduledNotification;
 use App\Models\User;
+use App\Support\ContentVersion;
 
 /**
  * Togliere una data dai salvataggi.
@@ -34,6 +36,11 @@ final class RemoveSavedOccurrence
             ->where('notifiable_id', $occurrenceId)
             ->where('status', NotificationStatus::Pending->value)
             ->update(['status' => NotificationStatus::Cancelled->value]);
+
+        $cityId = EventOccurrence::query()->find($occurrenceId)?->event?->city_id;
+        if ($cityId !== null) {
+            ContentVersion::bump((int) $cityId);
+        }
 
         return true;
     }

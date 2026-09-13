@@ -3,6 +3,9 @@ package it.fabiodalez.incitta.data
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
 
 @Serializable
 data class ApiEnvelope<T>(
@@ -46,6 +49,7 @@ data class Occurrence(
     @SerialName("is_outdoor") val isOutdoor: Boolean = false,
     val url: String? = null,
     @SerialName("is_saved") val isSaved: Boolean = false,
+    @SerialName("interested_count") val interestedCount: Int = 0,
     @SerialName("content_details") val contentDetails: JsonElement? = null,
 )
 
@@ -259,3 +263,10 @@ data class Session(
 
 @Serializable
 data class ManagementLink(val label: String, val url: String, val icon: String)
+
+fun Occurrence.placeName(): String? {
+    venue?.name?.let { return it }
+    val place = customLocation as? JsonObject ?: return null
+    return (place["name"] as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() }
+        ?: (place["address"] as? JsonPrimitive)?.contentOrNull
+}

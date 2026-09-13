@@ -16,6 +16,15 @@ motore temporale in §8). Le deviazioni approvate sono in `docs/DECISIONS.md`.
   `ticketing:demo --force`, mai il seeding generale o il reset del database.
   I contenuti sono verosimili e ambientati a Padova, in continuità con il
   catalogo esistente: evitare titoli «Demo» e nomi di locali da banco di prova.
+- Import Facebook / trasferimento server (2026-09-13): prima di riaprire il
+  sito su un nuovo server reinstallare Node, Playwright, Chromium e le librerie
+  native. Il binario non è in Git: sta nella cache dell’utenza del sito.
+  Riconfigurare `FACEBOOK_IMPORT_NODE_BINARY`, `FACEBOOK_IMPORT_CHROMIUM_BINARY`,
+  `FACEBOOK_IMPORT_LIBRARY_PATH` e `FACEBOOK_IMPORT_SINGLE_PROCESS` per la nuova
+  macchina; non copiare alla cieca percorsi del vecchio hosting. Eseguire
+  `php artisan facebook:check` con l’utenza/ambiente di PHP e una prova reale
+  dal modulo. Il controllo deve fallire se Chromium non parte o non esegue JS;
+  `deploy:verify` lo esegue e blocca il rilascio in caso di errore.
 - Packaging Android: una richiesta esplicita di APK/bundle autorizza generazione e consegna per il lavoro richiesto; non chiedere nuovamente conferma se l’autorizzazione è già presente nella sessione. La sola modifica del codice non implica pubblicazione su Play. Nella sessione del 10 settembre sono stati richiesti test, deploy, APK e bundle, poi il caricamento in Console.
 - Le password degli amministratori remoti non vanno cambiate da test, seeder,
   smoke test o deploy. Il riferimento privato indicato dal proprietario è
