@@ -156,6 +156,7 @@ fun InCittaApp(viewModel: MainViewModel) {
                 }
                 organizerSlug != null -> Box(Modifier.fillMaxSize().padding(padding)) {
                     OrganizerScreen(organizerSlug!!, state.session, state.savedIds,
+                        onLogin = { organizerSlug = null; viewModel.selectTab(AppTab.ACCOUNT) },
                         onBack = { organizerSlug = null }, onOrganizer = { organizerSlug = it },
                         onOpen = { organizerSlug = null; viewModel.open(it) }, onSave = viewModel::toggleSaved)
                 }
@@ -180,6 +181,7 @@ fun InCittaApp(viewModel: MainViewModel) {
                 selected != null -> Box(Modifier.fillMaxSize().padding(padding)) {
                     CompleteEventDetailScreen(
                         detail = selected,
+                        loadWeather = viewModel::eventWeather,
                         related = state.relatedOccurrences,
                         savedIds = state.savedIds,
                         onBack = viewModel::goBack,

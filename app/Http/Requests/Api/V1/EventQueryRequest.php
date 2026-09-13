@@ -6,6 +6,7 @@ namespace App\Http\Requests\Api\V1;
 
 use App\DTOs\EventFilters;
 use App\DTOs\PriceConstraint;
+use App\Enums\AgeGroup;
 use App\Enums\ApiEventSort;
 use App\Enums\DatePreset;
 use App\Enums\MembershipRequirement;
@@ -40,6 +41,10 @@ class EventQueryRequest extends ApiRequest
             'outdoor' => ['nullable', 'boolean'],
             'accessible' => ['nullable', 'boolean'],
             'family' => ['nullable', 'boolean'],
+            'stroller' => ['nullable', 'boolean'],
+            'changing_table' => ['nullable', 'boolean'],
+            'kids_area' => ['nullable', 'boolean'],
+            'age' => ['nullable', Rule::enum(AgeGroup::class)],
             'membership' => ['nullable', Rule::enum(MembershipRequirement::class)],
             'preset' => ['nullable', Rule::in(DatePreset::values())],
             'date' => ['nullable', 'date_format:Y-m-d'],
@@ -96,6 +101,10 @@ class EventQueryRequest extends ApiRequest
             outdoor: $this->boolean('outdoor'),
             accessible: $this->boolean('accessible'),
             family: $this->boolean('family'),
+            stroller: $this->boolean('stroller'),
+            changingTable: $this->boolean('changing_table'),
+            kidsArea: $this->boolean('kids_area'),
+            age: AgeGroup::tryFrom($this->text('age') ?? ''),
             membership: MembershipRequirement::tryFrom($this->text('membership') ?? ''),
         );
     }

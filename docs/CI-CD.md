@@ -139,3 +139,7 @@ reale. Non usare `npm audit fix --force`: propone anche downgrade incompatibili.
 # Pausa temporanea Lighthouse
 
 Su richiesta esplicita del proprietario (8 settembre 2026), `CI_LIGHTHOUSE_PAUSED=true` nelle variabili del repository salta temporaneamente **solo Lighthouse**. Per riattivarlo, eliminare la variabile o impostarla a `false`. Analisi statica, vulnerabilità, test PHP/Android e verifica del deploy restano obbligatori. Il gate accetta soltanto lo stato `skipped` intenzionale di Lighthouse, mai un fallimento o una cancellazione. Le esecuzioni già avviate con il vecchio workflow non cambiano retroattivamente.
+
+## Passaggio al dominio definitivo — reCAPTCHA
+
+Prima dello spostamento, aggiungere il nuovo dominio alla configurazione Google reCAPTCHA del sito e aggiornare `RECAPTCHA_HOSTNAME` sul server. Conservare il dominio attuale durante la transizione. Le chiavi rimangono esclusivamente nella configurazione privata del server. Verificare il modulo contatti da ospite dopo il cambio, quindi rimuovere il vecchio dominio quando non è più utilizzato.

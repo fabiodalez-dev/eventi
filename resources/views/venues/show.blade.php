@@ -161,6 +161,7 @@
                     <x-pagination :paginator="$archive" />
                 </section>
             @endif
+            <x-public-contact :target="$venue" />
             <x-venue-reviews :venue="$venue" :reviews="$reviews" />
         </div>
 

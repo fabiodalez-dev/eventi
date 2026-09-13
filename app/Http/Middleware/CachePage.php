@@ -151,6 +151,10 @@ final class CachePage
     public const QUERY_ALLOWED = [
         'access',
         'accessible',
+        'age',
+        'stroller',
+        'changing_table',
+        'kids_area',
         'archivio',
         'category',
         'date',

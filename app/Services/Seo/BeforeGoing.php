@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Seo;
 
+use App\Enums\AgeGroup;
 use App\Models\Event;
 use App\Models\EventFeature;
 use App\Support\PracticalIcons;
@@ -25,6 +26,15 @@ final class BeforeGoing
             $feature = $catalog->firstWhere('slug', $slug);
             $append($feature['name'] ?? $label, $feature['icon'] ?? $icon, $text);
         };
+        $ages = array_filter(array_map(static fn ($value) => is_string($value) ? AgeGroup::tryFrom($value) : null, is_array($details['age_groups'] ?? null) ? $details['age_groups'] : []));
+        if ($ages !== []) {
+            $append(__('family.title'), 'users', implode(', ', array_map(static fn (AgeGroup $age): string => $age->label(), $ages)));
+        }
+        foreach (['stroller', 'changing_table', 'kids_area'] as $field) {
+            if (in_array($details[$field] ?? null, ['yes', 'no'], true)) {
+                $append(__('family.'.$field).': '.__('family.'.$details[$field]), 'users');
+            }
+        }
         if ($membership = $event->membershipRequirement()) {
             $system('membership-'.$membership->value, $membership->label(), 'identification', (string) ($details['membership_notes'] ?? ''));
         } elseif (filled($details['membership_notes'] ?? null)) {

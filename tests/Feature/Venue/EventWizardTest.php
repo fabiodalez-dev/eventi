@@ -215,19 +215,31 @@ it('non usa categorie disattivate', function (): void {
 
 it('prefills venue practical defaults and saves only event additions', function (): void {
     $feature = EventFeature::create(['name' => 'Guardaroba disponibile', 'icon' => 'check-circle']);
-    $this->venue->update(['content_details' => ['accessibility' => 'no', 'feature_ids' => [$feature->id], 'practical_custom' => [
+    $this->venue->update(['content_details' => ['age_groups' => ['3-5'], 'stroller' => 'yes', 'accessibility' => 'no', 'feature_ids' => [$feature->id], 'practical_custom' => [
         ['label' => 'Ingresso laterale', 'icon' => 'map-pin', 'text' => 'Da via Roma'],
         ['label' => 'Scala interna', 'icon' => 'map-pin'],
     ]]]);
     $page = Livewire::test(CreateEvent::class)
-        ->assertFormSet(['content_details.accessibility' => 'no', 'content_details.feature_ids' => [$feature->id]])
+        ->assertFormSet(['content_details.age_groups' => ['3-5'], 'content_details.stroller' => 'yes', 'content_details.accessibility' => 'no', 'content_details.feature_ids' => [$feature->id]])
         ->fillForm(wizardData())
         ->call('create')->assertHasNoFormErrors();
     $event = Event::where('title', 'Serata swing')->sole();
-    expect($event->content_details['accessibility'] ?? null)->toBeNull()
+    expect($event->content_details['age_groups'] ?? null)->toBeNull()
+        ->and($event->content_details['stroller'] ?? null)->toBeNull()
+        ->and(app(EditorialContent::class)->details($event)['age_groups'])->toBe(['3-5'])
+        ->and($event->content_details['accessibility'] ?? null)->toBeNull()
         ->and($event->content_details['feature_ids'] ?? [])->toBe([]);
     $items = collect(app(EditorialContent::class)->details($event)['practical_items']);
     expect($items->where('label', 'Scala interna'))->toHaveCount(1)
         ->and($items->where('label', 'Ingresso laterale'))->toHaveCount(1)
         ->and($items->where('label', 'Guardaroba disponibile'))->toHaveCount(1);
+});
+
+it('saves explicit family suitability in the venue event wizard', function (): void {
+    Livewire::test(CreateEvent::class)
+        ->fillForm(array_merge(wizardData(), ['content_details.age_groups' => ['6-10'], 'content_details.stroller' => 'no', 'content_details.changing_table' => 'yes', 'content_details.kids_area' => 'yes']))
+        ->call('create')->assertHasNoFormErrors();
+    expect(Event::where('title', 'Serata swing')->sole()->content_details)->toMatchArray([
+        'age_groups' => ['6-10'], 'stroller' => 'no', 'changing_table' => 'yes', 'kids_area' => 'yes',
+    ]);
 });

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Venue\Resources\Events\Pages;
 
+use App\Enums\AgeGroup;
 use App\Enums\EventSource;
 use App\Enums\EventStatus;
 use App\Enums\MembershipRequirement;
@@ -315,7 +316,12 @@ class CreateEvent extends CreateRecord
             $data['content_details'] = EditorContent::clean('content_details', $data['content_details']);
         }
         $data = Validator::make(['data' => $data], [
-            'data.content_details' => ['nullable', 'array:membership,membership_notes,accessibility,accessibility_notes,feature_ids,practical_custom'],
+            'data.content_details' => ['nullable', 'array:membership,membership_notes,accessibility,accessibility_notes,feature_ids,practical_custom,age_groups,stroller,changing_table,kids_area'],
+            'data.content_details.age_groups' => ['nullable', 'array', 'max:6'],
+            'data.content_details.age_groups.*' => [Rule::enum(AgeGroup::class)],
+            'data.content_details.stroller' => ['nullable', Rule::in(['yes', 'no'])],
+            'data.content_details.changing_table' => ['nullable', Rule::in(['yes', 'no'])],
+            'data.content_details.kids_area' => ['nullable', Rule::in(['yes', 'no'])],
             'data.content_details.membership' => ['nullable', Rule::enum(MembershipRequirement::class)],
             'data.content_details.accessibility' => ['nullable', Rule::in(['yes', 'no'])],
             'data.content_details.membership_notes' => ['nullable', 'string', 'max:2000'],

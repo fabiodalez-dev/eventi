@@ -17,6 +17,7 @@ use App\Filament\Forms\Components\MapPicker;
 use App\Filament\Support\AccessibilityField;
 use App\Filament\Support\BeforeGoingFields;
 use App\Filament\Support\BulkActions;
+use App\Filament\Support\ContactFields;
 use App\Filament\Support\DescriptionEditor;
 use App\Filament\Support\EditorialFields;
 use App\Filament\Support\FactsField;
@@ -113,6 +114,7 @@ class VenueResource extends Resource
             ->components([
                 EditorialFields::content(false, true),
                 BeforeGoingFields::make(true),
+                ContactFields::make(),
                 EditorialFields::seo(),
                 /*
                  * **Schede, non due colonne di riquadri.**

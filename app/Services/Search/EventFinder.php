@@ -131,6 +131,15 @@ final class EventFinder
             $query->inCategories(config()->array('eventi.family_categories'));
         }
 
+        foreach (['stroller' => $filters->stroller, 'changing_table' => $filters->changingTable, 'kids_area' => $filters->kidsArea] as $facility => $enabled) {
+            if ($enabled) {
+                $query->familyFacility($facility);
+            }
+        }
+        if ($filters->age !== null) {
+            $query->suitableForAge($filters->age);
+        }
+
         $filters->price?->applyTo($query);
         if ($filters->membership !== null) {
             $query->membership($filters->membership);

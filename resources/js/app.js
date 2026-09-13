@@ -1109,3 +1109,6 @@ if (document.readyState === "loading") {
     start();
 }
 import './ticketing';
+
+import { eventWeather } from "./event-weather";
+eventWeather();

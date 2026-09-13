@@ -85,6 +85,9 @@ final class ContextualFacets
         $result['features']['outdoor'] = $factory()->outdoor()->count();
         $result['features']['accessible'] = $factory()->accessible()->count();
         $result['features']['family'] = $factory()->inCategories(config()->array('eventi.family_categories'))->count();
+        foreach (['stroller', 'changing_table', 'kids_area'] as $facility) {
+            $result['features'][$facility] = $factory()->familyFacility($facility)->count();
+        }
         foreach (AccessibilityFeature::cases() as $value) {
             $result['access'][$value->value] = $factory()->hasAccessibilityFeature($value)->count();
         }

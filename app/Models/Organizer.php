@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ContactMode;
 use App\Models\Concerns\HasSafeEditorContent;
 use App\Support\ContentVersion;
 use Illuminate\Database\Eloquent\Builder;
@@ -12,6 +13,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Spatie\Sluggable\HasSlug;
 use Spatie\Sluggable\SlugOptions;
 
+/** @property ContactMode $contact_mode
+ * @property string|null $contact_email
+ */
 class Organizer extends Model
 {
     use HasSafeEditorContent;
@@ -25,7 +29,9 @@ class Organizer extends Model
 
     use HasSlug;
 
-    protected $fillable = ['city_id', 'owner_id', 'name', 'slug', 'description', 'website', 'email', 'is_active'];
+    protected $attributes = ['contact_mode' => 'disabled'];
+
+    protected $fillable = ['contact_mode', 'contact_email', 'city_id', 'owner_id', 'name', 'slug', 'description', 'website', 'email', 'is_active'];
 
     protected static function booted(): void
     {
@@ -39,7 +45,7 @@ class Organizer extends Model
 
     protected function casts(): array
     {
-        return ['is_active' => 'boolean'];
+        return ['contact_mode' => ContactMode::class, 'is_active' => 'boolean'];
     }
 
     public function getSlugOptions(): SlugOptions

@@ -39,7 +39,7 @@ final class EditorContent
                 $value = array_intersect_key($value, array_flip([
                     'introduction', 'city_introductions', 'parking_type', 'parking_notes', 'transit_notes',
                     'entrance_notes', 'accessibility', 'accessibility_notes', 'membership', 'membership_notes',
-                    'feature_ids', 'practical_custom', 'organizer_venue_id', 'minimum_age', 'attendance_mode',
+                    'age_groups', 'stroller', 'changing_table', 'kids_area', 'feature_ids', 'practical_custom', 'organizer_venue_id', 'minimum_age', 'attendance_mode',
                     'online_url', 'organizer_type', 'mandatory_costs', 'weather_policy', 'minors_policy',
                     'cancellation_policy', 'refund_policy', 'public_contact', 'poster_alt', 'poster_caption',
                     'poster_credit', 'agenda', 'faqs',

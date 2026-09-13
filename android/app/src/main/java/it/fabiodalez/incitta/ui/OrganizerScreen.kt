@@ -24,7 +24,7 @@ internal data class OrganizerFollowState(val following: Boolean = false, val not
 internal data class OrganizerFollowRequest(val id: Long, val notify: Boolean, val type: String)
 
 @Composable
-fun OrganizerScreen(slug: String, session: Session?, savedIds: Set<Long>, onBack: () -> Unit, onOrganizer: (String) -> Unit, onOpen: (Occurrence) -> Unit, onSave: (Long) -> Unit) {
+fun OrganizerScreen(slug: String, session: Session?, savedIds: Set<Long>, onBack: () -> Unit, onOrganizer: (String) -> Unit, onOpen: (Occurrence) -> Unit, onSave: (Long) -> Unit, onLogin: () -> Unit = {}) {
     val context = LocalContext.current
     val api = remember { ApiClient(LocalStore(context).installationId) }
     var organizers by remember(slug) { mutableStateOf<List<Organizer>>(emptyList()) }
@@ -94,6 +94,7 @@ fun OrganizerScreen(slug: String, session: Session?, savedIds: Set<Long>, onBack
             Text(archive?.name ?: "ORGANIZZATORI", style=MaterialTheme.typography.headlineLarge)
             if(slug.isEmpty()) OutlinedTextField(query, { query=it; page=1 }, label={Text("Cerca organizzatore")}, modifier=Modifier.fillMaxWidth(), singleLine=true)
             else {
+                PublicContactSection("organizers", slug, session, onLogin)
                 archive?.description?.let { Text(it, modifier=Modifier.padding(vertical=16.dp)) }
                 if (session == null) Text("Accedi da Profilo per seguire questo organizzatore.")
                 else {

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Organizer\Pages;
 
+use App\Filament\Support\ContactFields;
 use App\Filament\Support\DescriptionEditor;
 use App\Models\Organizer;
 use Filament\Facades\Filament;
@@ -44,7 +45,7 @@ class Profile extends Page implements HasSchemas
 
     public function mount(): void
     {
-        $this->form->fill($this->organizer()->only(['description', 'website', 'email']));
+        $this->form->fill($this->organizer()->only(['description', 'website', 'email', 'contact_mode', 'contact_email']));
     }
 
     public function form(Schema $schema): Schema
@@ -52,6 +53,7 @@ class Profile extends Page implements HasSchemas
         return $schema->columns(1)->statePath('data')->components([
             DescriptionEditor::make('description')->label('Presentazione')->maxLength(20000),
             TextInput::make('website')->label('Sito web')->url()->maxLength(2048),
+            ContactFields::make(),
             TextInput::make('email')->label('Email pubblica')->email()->maxLength(255),
         ]);
     }

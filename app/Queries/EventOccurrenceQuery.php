@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Queries;
 
 use App\Enums\AccessibilityFeature;
+use App\Enums\AgeGroup;
 use App\Enums\AttendanceMode;
 use App\Enums\EventStatus;
 use App\Enums\FollowableType;
@@ -580,6 +581,24 @@ final class EventOccurrenceQuery
      * All'aperto (§11.3). È un attributo dell'evento, non del locale: lo stesso
      * circolo fa concerti in sala d'inverno e in cortile d'estate.
      */
+    public function familyFacility(string $field): self
+    {
+        if (! in_array($field, ['stroller', 'changing_table', 'kids_area'], true)) {
+            return $this;
+        }
+        $this->query->whereRaw("COALESCE(NULLIF(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(events.content_details, '$.$field')), 'null'), ''), JSON_UNQUOTE(JSON_EXTRACT(venues.content_details, '$.$field'))) = 'yes'");
+
+        return $this;
+    }
+
+    public function suitableForAge(AgeGroup $age): self
+    {
+        $ages = "COALESCE(NULLIF(NULLIF(JSON_EXTRACT(events.content_details, '$.age_groups'), 'null'), '[]'), JSON_EXTRACT(venues.content_details, '$.age_groups'))";
+        $this->query->whereRaw("(JSON_CONTAINS($ages, ?) OR JSON_CONTAINS($ages, ?))", [json_encode($age->value), json_encode(AgeGroup::All->value)]);
+
+        return $this;
+    }
+
     public function membership(MembershipRequirement $requirement): self
     {
         // Only the event can declare membership. A venue flag is not an event requirement.

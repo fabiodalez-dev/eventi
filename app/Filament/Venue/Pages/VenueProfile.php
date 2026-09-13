@@ -9,6 +9,7 @@ use App\Filament\Admin\Support\StructuredFields;
 use App\Filament\Forms\Components\MapPicker;
 use App\Filament\Support\AccessibilityField;
 use App\Filament\Support\BeforeGoingFields;
+use App\Filament\Support\ContactFields;
 use App\Filament\Support\DescriptionEditor;
 use App\Filament\Support\EditorialFields;
 use App\Filament\Support\FactsField;
@@ -103,7 +104,7 @@ class VenueProfile extends Page implements HasSchemas
 
         $this->venueForm()->fill([
             ...$venue->only([
-                'content_details', 'seo',
+                'contact_mode', 'contact_email', 'content_details', 'seo',
                 'short_description', 'description', 'address', 'address_extra',
                 'postal_code', 'municipality', 'zone', 'lat', 'lng', 'phone', 'email', 'website',
                 'capacity', 'requires_membership', 'membership_notes',
@@ -134,6 +135,7 @@ class VenueProfile extends Page implements HasSchemas
             ->components([
                 EditorialFields::content(false, true),
                 BeforeGoingFields::make(true),
+                ContactFields::make(),
                 EditorialFields::seo(),
                 Section::make(__('manage.sections.venue_identity'))
                     ->schema([

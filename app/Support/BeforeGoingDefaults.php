@@ -9,7 +9,7 @@ use Tiptap\Editor;
 
 final class BeforeGoingDefaults
 {
-    public const FIELDS = ['membership', 'membership_notes', 'accessibility', 'accessibility_notes', 'feature_ids', 'practical_custom'];
+    public const FIELDS = ['age_groups', 'stroller', 'changing_table', 'kids_area', 'membership', 'membership_notes', 'accessibility', 'accessibility_notes', 'feature_ids', 'practical_custom'];
 
     /** @return array<string, mixed> */
     public static function forVenue(?Venue $venue): array
@@ -29,6 +29,9 @@ final class BeforeGoingDefaults
             $defaults[$field] = is_array($defaults[$field] ?? null) ? $defaults[$field] : [];
             $own[$field] = is_array($own[$field] ?? null) ? $own[$field] : [];
         }
+        if (($own['age_groups'] ?? null) === []) {
+            unset($own['age_groups']);
+        }
         $merged = array_replace($defaults, array_filter($own, fn ($value): bool => $value !== null && $value !== ''));
         $merged['feature_ids'] = array_values(array_unique(array_map('intval', [...($defaults['feature_ids']), ...($own['feature_ids'])])));
         $merged['practical_custom'] = [...array_values($defaults['practical_custom']), ...self::override('practical_custom', $own['practical_custom'], $defaults['practical_custom'])];
@@ -38,6 +41,9 @@ final class BeforeGoingDefaults
 
     public static function override(string $field, mixed $state, mixed $default): mixed
     {
+        if ($field === 'age_groups' && $state === []) {
+            return null;
+        }
         $state = EditorContent::clean($field, $state, 'content_details');
         $default = EditorContent::clean($field, $default, 'content_details');
         if (in_array($field, ['feature_ids', 'practical_custom'], true)) {

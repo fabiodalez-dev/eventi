@@ -40,7 +40,9 @@ use App\Http\Controllers\TicketingController;
 use App\Http\Controllers\Web\Account\ContentPreferencesController;
 use App\Http\Controllers\Web\Account\NotificationInterestsController;
 use App\Http\Controllers\Web\Account\SavedCalendarController;
+use App\Http\Controllers\Web\EventWeatherController;
 use App\Http\Controllers\Web\OrganizerController;
+use App\Http\Controllers\Web\PublicContactController;
 use App\Http\Controllers\Web\TonightController;
 use App\Http\Controllers\Web\VenueReviewController;
 use App\Http\Middleware\Api\CacheJsonResponse;
@@ -84,6 +86,11 @@ Route::prefix('v1')
     ->middleware(ResolveApiCity::class)
     ->name('api.v1.')
     ->group(function (): void {
+
+        Route::get('/{type}/{slug}/contact', [PublicContactController::class, 'show'])->whereIn('type', ['venues', 'organizers']);
+        Route::post('/{type}/{slug}/contact', [PublicContactController::class, 'store'])->whereIn('type', ['venues', 'organizers'])->middleware('throttle:5,60');
+
+        Route::get('/occurrences/{occurrence}/weather', EventWeatherController::class)->whereNumber('occurrence')->name('occurrences.weather');
 
         Route::get('/venues/{slug}/reviews', [VenueReviewController::class, 'index'])->name('venues.reviews');
         Route::post('/venues/{slug}/reviews', [VenueReviewController::class, 'store'])->middleware(['auth:sanctum', 'throttle:10,60']);

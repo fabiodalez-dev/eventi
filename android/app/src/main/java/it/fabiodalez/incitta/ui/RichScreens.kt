@@ -125,6 +125,7 @@ private const val MAP_STYLE = "https://tiles.openfreemap.org/styles/dark"
 @Composable
 fun CompleteEventDetailScreen(
     detail: EventDetail,
+    loadWeather: suspend (Long) -> it.fabiodalez.incitta.data.EventWeather,
     related: List<Occurrence>,
     savedIds: Set<Long>,
     onBack: () -> Unit,
@@ -175,6 +176,7 @@ fun CompleteEventDetailScreen(
 
                 DetailSection("TUTTE LE DATE") {
                     if (detail.occurrences.isEmpty()) Text("Nessuna data futura disponibile.", color = Muted)
+                    detail.occurrences.firstOrNull()?.let { EventWeatherSection(it.occurrenceId, loadWeather) }
                     detail.occurrences.forEachIndexed { index, occurrence ->
                         if (index > 0) HorizontalDivider(Modifier.padding(vertical = 14.dp), color = Rule)
                         OccurrenceDateBlock(detail, occurrence, occurrence.occurrenceId in savedIds, onSave)
@@ -431,6 +433,7 @@ fun VenueDetailScreen(
                         venue.info.forEach { LabeledValue(it.label, it.value) }
                     }
                 }
+                PublicContactSection("venues", venue.slug.orEmpty(), session, onLogin)
                 VenueReviewsSection(venue.slug.orEmpty(), session?.user?.id, onLogin, loadReviews, submitReview, deleteReview)
                 DetailSection("TUTTI GLI EVENTI") {
                     if (events.isEmpty()) Text("Nessun evento futuro in calendario.", color = Muted)

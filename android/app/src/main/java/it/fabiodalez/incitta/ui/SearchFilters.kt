@@ -131,7 +131,7 @@ internal fun SearchFilters(state: AppUiState, query: String = "", collapsible: B
         QuickFilterGroup("Prezzo", "price", available("price", listOf("free" to "Gratis", "donation" to "Offerta libera", "max10" to "Fino a 10 €", "max20" to "Fino a 20 €")), filters, ::change)
         QuickFilterGroup("Fascia oraria", "time_of_day", available("time", listOf("day" to "Di giorno", "evening" to "Di sera", "night" to "Di notte")), filters, ::change)
         Text("Caratteristiche", color = Muted)
-        val features = listOf("outdoor" to "All’aperto", "accessible" to "Accessibile", "family" to "Adatto alle famiglie")
+        val features = listOf("outdoor" to "All’aperto", "accessible" to "Accessibile", "family" to "Adatto alle famiglie", "stroller" to "Passeggino", "changing_table" to "Fasciatoio", "kids_area" to "Area bimbi")
         val activeFeatures = features.filter { filters[it.first] == "1" }
         PeekTabRow {
             features.filter { it in activeFeatures || (facets?.get("features")?.get(it.first) ?: 0) > 0 }.forEach { (key, label) ->
@@ -143,6 +143,7 @@ internal fun SearchFilters(state: AppUiState, query: String = "", collapsible: B
             Text("Filtri avanzati ${if (expanded) "⌃" else "⌄"}")
         }
         if (expanded) {
+            QuickFilterGroup("Adatto a che età", "age", listOf("0-2" to "0–2 anni", "3-5" to "3–5 anni", "6-10" to "6–10 anni", "11-17" to "11–17 anni", "18-plus" to "Dai 18 anni"), filters, ::change)
             QuickFilterGroup(stringResource(R.string.membership_label), "membership", listOf("required" to stringResource(R.string.membership_required), "not_required" to stringResource(R.string.membership_not_required)), filters, ::change)
             QuickFilterGroup("Tag", "tags", available("tag", facets?.get("tag").orEmpty().keys.map { it to "#$it" }), filters, ::change)
             QuickFilterGroup("Comune", "municipality", available("municipality", choices.municipalities.map { it to it }), filters, ::change)

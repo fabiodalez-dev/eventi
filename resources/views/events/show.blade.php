@@ -330,6 +330,9 @@
             @if (($selectedOccurrence ?? null) && $event->occurrences()->count() > 1)
                 <p><a class="underline text-accent" href="{{ route('events.show', $event) }}">{{ __('seo.all_dates') }}</a></p>
             @endif
+            @if ($weatherDate = ($selectedOccurrence ?? $occurrences->first()))
+                <x-event-weather :occurrence="$weatherDate" />
+            @endif
             <x-editorial-content :model="$event" :occurrence="$selectedOccurrence ?? null" />
 
             {{-- La scheda tecnica dell'evento: apertura porte, durata, età

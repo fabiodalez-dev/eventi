@@ -12,6 +12,7 @@ use App\Http\Controllers\Web\FeedController;
 use App\Http\Controllers\Web\HomeController;
 use App\Http\Controllers\Web\MapController;
 use App\Http\Controllers\Web\OrganizerController;
+use App\Http\Controllers\Web\PublicContactController;
 use App\Http\Controllers\Web\ReportController;
 use App\Http\Controllers\Web\SearchController;
 use App\Http\Controllers\Web\SearchSuggestionsController;
@@ -139,3 +140,5 @@ Route::post('/registra-il-tuo-locale', [VenueApplicationController::class, 'stor
 
 Route::post('/locali/{slug}/recensione', [VenueReviewController::class, 'store'])->middleware(['auth', 'throttle:10,60'])->name('venues.review.store');
 Route::delete('/locali/{slug}/recensione', [VenueReviewController::class, 'destroy'])->middleware(['auth', 'throttle:10,60'])->name('venues.review.destroy');
+
+Route::post('/contatta/{type}/{slug}', [PublicContactController::class, 'store'])->whereIn('type', ['venues', 'organizers'])->middleware('throttle:5,60')->name('public.contact');

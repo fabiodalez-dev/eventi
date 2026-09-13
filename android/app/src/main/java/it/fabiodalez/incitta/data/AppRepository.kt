@@ -98,6 +98,8 @@ class AppRepository(context: Context) {
             _session.value?.token,
         ).data
 
+    suspend fun eventWeather(id: Long): EventWeather = api.get<ApiEnvelope<EventWeather>>("occurrences/$id/weather").data
+
     suspend fun venueReviews(slug: String, page: Int = 1): VenueReviewPage =
         api.get<ApiEnvelope<VenueReviewPage>>("venues/${slug.urlEncoded()}/reviews?page=$page", _session.value?.token).data
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Support;
 
+use App\Enums\AgeGroup;
 use App\Enums\MembershipRequirement;
 use App\Filament\Admin\Resources\EventFeatures\EventFeatureResource;
 use App\Filament\Venue\Support\CurrentVenue;
@@ -28,6 +29,8 @@ final class BeforeGoingFields
     public static function make(bool $venue = false): Section
     {
         $fields = [
+            Select::make('content_details.age_groups')->label(__('family.title'))->multiple()->options(AgeGroup::options())->helperText(__('family.guidance'))->nestedRecursiveRules([Rule::enum(AgeGroup::class)])->columnSpanFull(),
+            ...array_map(fn (string $field) => Select::make('content_details.'.$field)->label(__('family.'.$field))->options(['yes' => __('family.yes'), 'no' => __('family.no')])->placeholder(__('family.unknown'))->rules([Rule::in(['yes', 'no'])]), ['stroller', 'changing_table', 'kids_area']),
             Select::make('content_details.membership')->label('Tessera')->options(MembershipRequirement::options())->placeholder('Non specificato')->rules([Rule::enum(MembershipRequirement::class)]),
             Select::make('content_details.accessibility')->label('Accesso in sedia a rotelle')->options(['yes' => 'Accessibile', 'no' => 'Non accessibile'])->placeholder('Non specificato'),
             DescriptionEditor::make('content_details.membership_notes')->label('Dettagli tessera')->placeholder('Tipo di tessera, costo e modalità di rilascio')->maxLength(2000),
