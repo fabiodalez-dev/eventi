@@ -163,6 +163,9 @@ fun InCittaApp(viewModel: MainViewModel) {
                 selectedVenue != null -> Box(Modifier.fillMaxSize().padding(padding)) {
                     VenueDetailScreen(
                         venue = selectedVenue,
+                        loadReviews = { page -> viewModel.venueReviews(requireNotNull(selectedVenue.slug), page) },
+                        submitReview = { rating, body -> viewModel.submitVenueReview(requireNotNull(selectedVenue.slug), rating, body) },
+                        deleteReview = { viewModel.deleteVenueReview(requireNotNull(selectedVenue.slug)) },
                         session = state.session,
                         onLogin = { viewModel.selectTab(AppTab.ACCOUNT) },
                         events = state.venueOccurrences,

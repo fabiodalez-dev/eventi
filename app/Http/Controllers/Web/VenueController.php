@@ -13,6 +13,7 @@ use App\Http\Requests\Web\VenueFilterRequest;
 use App\Models\City;
 use App\Models\Venue;
 use App\Queries\EventOccurrenceQuery;
+use App\Services\Reviews\VenueReviews;
 use App\Services\Search\FilterFacets;
 use App\Services\Seo\StructuredData;
 use Illuminate\Contracts\View\View;
@@ -124,6 +125,7 @@ final class VenueController extends Controller
             'venue' => $venue,
             'occurrences' => $upcoming,
             'archive' => $archive,
+            'reviews' => app(VenueReviews::class)->listing($venue, $request->user(), max(1, $request->integer('recensioni', 1))),
             /* Il calendario e l'RSS di questo solo locale (§11.10): gli
                stessi filtri della lista, con il locale già scelto. */
             'feedFilters' => new EventFilters(venue: $venue->slug),

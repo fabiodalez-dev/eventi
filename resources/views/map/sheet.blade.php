@@ -13,7 +13,7 @@
     quindi ciò che succede lì — una card per data, ognuna un collegamento alla
     propria scheda.
 --}}
-<div class="flex w-full min-w-0 flex-col">
+<div class="flex w-full min-w-0 flex-col gap-4 md:gap-6">
     <div class="flex min-h-12 flex-col gap-1 border-b-2 border-line pr-14 pb-3">
         <h2 class="m-0 font-display text-[1.125rem] leading-none font-extrabold tracking-[-0.02em] uppercase">
             <a href="{{ route('venues.show', $venue) }}" class="hover:text-accent">{{ $venue->name }}</a>

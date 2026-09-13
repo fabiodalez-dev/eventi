@@ -18,6 +18,7 @@ use App\Http\Controllers\Web\SearchSuggestionsController;
 use App\Http\Controllers\Web\TonightController;
 use App\Http\Controllers\Web\VenueApplicationController;
 use App\Http\Controllers\Web\VenueController;
+use App\Http\Controllers\Web\VenueReviewController;
 use App\Http\Middleware\CachePage;
 use App\Http\Middleware\PersonalizeDiscovery;
 use Illuminate\Support\Facades\Route;
@@ -135,3 +136,6 @@ Route::get('/registra-il-tuo-locale', [VenueApplicationController::class, 'creat
 Route::post('/registra-il-tuo-locale', [VenueApplicationController::class, 'store'])
     ->middleware('throttle:public-forms')
     ->name('venue-applications.store');
+
+Route::post('/locali/{slug}/recensione', [VenueReviewController::class, 'store'])->middleware(['auth', 'throttle:10,60'])->name('venues.review.store');
+Route::delete('/locali/{slug}/recensione', [VenueReviewController::class, 'destroy'])->middleware(['auth', 'throttle:10,60'])->name('venues.review.destroy');

@@ -13,7 +13,7 @@
     </header>
 
     <p class="mt-4"><a class="underline" href="{{ route('organizers.index') }}">{{ __('organizers.from_venues') }}</a></p>
-    <form method="GET" action="{{ route('venues.index') }}" data-venue-filters class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <form method="GET" action="{{ route('venues.index') }}" data-venue-filters class="mt-6 grid gap-4 md:gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <x-field
             name="q"
             :label="__('venues.filters.search')"
@@ -58,7 +58,7 @@
             <p class="mt-6 font-display text-xs font-extrabold tracking-[0.14em] text-accent uppercase">
                 {{ trans_choice('venues.count', $venues->total(), ['count' => $venues->total()]) }}
             </p>
-            <div class="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div class="mt-3 grid gap-4 md:gap-6 sm:grid-cols-2 lg:grid-cols-4">
                 @foreach ($venues as $venue)
                     <x-venue-card :venue="$venue" :upcoming="$upcomingCounts[$venue->getKey()] ?? 0" />
                 @endforeach

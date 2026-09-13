@@ -44,7 +44,7 @@
 ])
 
 <div {{ $attributes->class([
-    'grid',
+    'grid gap-4 md:gap-6',
     'grid-cols-1 sm:grid-cols-2 xl:grid-cols-4' => $balanced,
     '[grid-template-columns:repeat(auto-fill,minmax(min(298px,100%),1fr))]' => ! $balanced,
 ]) }}>

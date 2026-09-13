@@ -695,31 +695,17 @@ internal fun FilterLabel(text: String, selected: Boolean = false, onClick: () ->
 
 @Composable
 private fun FeatureCard(event: Occurrence, saved: Boolean, onOpen: (Occurrence) -> Unit, onSave: (Long) -> Unit) {
-    val light = MaterialTheme.colorScheme.background == Color(0xFFFCFCFB)
-    val panel = if (light) MaterialTheme.colorScheme.surfaceVariant else Paper
-    val onPanel = if (light) Paper else Ink
-    val secondary = if (light) Muted else Color(0xFF555550)
-    Column(Modifier.fillMaxWidth().clickable { onOpen(event) }) {
-        Box {
-            EventArtwork(event.poster?.full ?: event.poster?.card)
-            Text(event.category?.name?.uppercase() ?: "EVENTO", color = Ink, modifier = Modifier.align(Alignment.TopStart).background(Acid).padding(horizontal = 12.dp, vertical = 8.dp), style = androidx.compose.material3.MaterialTheme.typography.labelMedium)
-            SaveButton(saved, Modifier.align(Alignment.TopEnd)) { onSave(event.occurrenceId) }
+    Box(Modifier.fillMaxWidth().heightIn(min = 440.dp).clickable { onOpen(event) }) {
+        PosterImage(event.poster?.full ?: event.poster?.card, Modifier.matchParentSize())
+        Box(Modifier.matchParentSize().background(androidx.compose.ui.graphics.Brush.verticalGradient(listOf(Color(0x18171412), Color(0xEB171412)))))
+        Column(Modifier.fillMaxWidth().heightIn(min = 440.dp).padding(24.dp), verticalArrangement = Arrangement.Bottom) {
+            Text("${event.category?.name.orEmpty()} · ${formatDay(event.startsAt)}", color = Color(0xFFEDE7DF))
+            Text(eventTitle(event.title), color = Color(0xFFFAF8F4), style = MaterialTheme.typography.headlineLarge, modifier = Modifier.padding(top = 10.dp))
+            Text(event.venue?.name.orEmpty(), color = Color(0xFFEDE7DF), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 12.dp))
         }
-        Row(Modifier.fillMaxWidth().background(panel).padding(14.dp), verticalAlignment = Alignment.Top) {
-            Column(Modifier.weight(1f)) {
-                Text(formatDay(event.startsAt), color = onPanel, style = androidx.compose.material3.MaterialTheme.typography.labelLarge)
-                Text(eventTitle(event.title), color = onPanel, style = androidx.compose.material3.MaterialTheme.typography.headlineLarge, maxLines = 3, overflow = TextOverflow.Ellipsis)
-                Text(event.venue?.name?.uppercase() ?: "PADOVA", color = secondary, style = androidx.compose.material3.MaterialTheme.typography.labelMedium, modifier = Modifier.padding(top = 8.dp))
-            }
-            Text(
-                if (event.isAllDay) "TUTTO IL GIORNO" else formatClock(event.startsAt),
-                color = onPanel,
-                style = androidx.compose.material3.MaterialTheme.typography.labelLarge,
-                modifier = Modifier.padding(start = 10.dp, top = 4.dp),
-                maxLines = 2,
-            )
-        }
+        SaveButton(saved, Modifier.align(Alignment.TopEnd)) { onSave(event.occurrenceId) }
     }
+    Spacer(Modifier.height(16.dp))
 }
 
 @Composable
@@ -728,7 +714,7 @@ private fun VenueResultRow(venue: Venue, onOpen: (Venue) -> Unit) {
         Modifier.fillMaxWidth().height(126.dp).clickable { onOpen(venue) },
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        PosterImage(venue.logo ?: venue.cover, Modifier.width(112.dp).fillMaxHeight(), preserveArtwork = venue.logo != null)
+        PosterImage(venue.logo ?: venue.cover, Modifier.width(112.dp).fillMaxHeight(), preserveArtwork = venue.logo != null, contain = venue.logo != null)
         Column(Modifier.weight(1f).padding(14.dp)) {
             Text(venue.type?.replace('_', ' ')?.uppercase() ?: "LOCALE", color = Acid, style = androidx.compose.material3.MaterialTheme.typography.labelMedium)
             Text(venue.name.uppercase(), style = androidx.compose.material3.MaterialTheme.typography.titleLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
@@ -736,6 +722,7 @@ private fun VenueResultRow(venue: Venue, onOpen: (Venue) -> Unit) {
         }
     }
     HorizontalDivider(thickness = 1.dp, color = Rule)
+    Spacer(Modifier.height(16.dp))
 }
 
 @Composable
@@ -762,6 +749,7 @@ internal fun EventRow(event: Occurrence, saved: Boolean, onOpen: (Occurrence) ->
         }
     }
     HorizontalDivider(thickness = 1.dp, color = Rule)
+    Spacer(Modifier.height(16.dp))
 }
 
 @Composable
@@ -777,12 +765,12 @@ private fun SaveButton(saved: Boolean, modifier: Modifier = Modifier, onClick: (
 @Composable
 internal fun EventArtwork(url: String?) {
     Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-        PosterImage(url, Modifier.width(240.dp).height(320.dp))
+        PosterImage(url, Modifier.fillMaxWidth().aspectRatio(3f / 4f))
     }
 }
 
 @Composable
-internal fun PosterImage(url: String?, modifier: Modifier, concertFallback: Boolean = false, preserveArtwork: Boolean = true) {
+internal fun PosterImage(url: String?, modifier: Modifier, concertFallback: Boolean = false, preserveArtwork: Boolean = true, contain: Boolean = false) {
     val matrix = remember { ColorMatrix().apply { setToSaturation(0f) } }
     Box(modifier.background(MaterialTheme.colorScheme.surfaceVariant).clipToBounds()) {
         if (url != null || concertFallback) {
@@ -791,7 +779,7 @@ internal fun PosterImage(url: String?, modifier: Modifier, concertFallback: Bool
                 error = if (concertFallback) androidx.compose.ui.res.painterResource(it.fabiodalez.incitta.R.drawable.event_concert_placeholder) else null,
                 contentDescription = null,
                 modifier = Modifier.fillMaxSize(),
-                contentScale = if (url != null && preserveArtwork) ContentScale.Fit else ContentScale.Crop,
+                contentScale = if (contain) ContentScale.Fit else ContentScale.Crop,
                 colorFilter = if (url != null && preserveArtwork) null else ColorFilter.colorMatrix(matrix),
             )
         } else {
