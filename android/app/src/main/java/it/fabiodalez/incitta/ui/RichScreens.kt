@@ -165,6 +165,7 @@ fun CompleteEventDetailScreen(
                         Text(detail.title, color = Color(0xFFFAF8F4), style = MaterialTheme.typography.displayMedium, modifier = Modifier.padding(top = 10.dp))
                         detail.venue?.let { venue -> Text(venue.name, color = Color(0xFFEDE7DF), style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 12.dp).heightIn(min = 48.dp).clickable { onVenue(venue) }) }
                         detail.subtitle?.takeIf(String::isNotBlank)?.let { Text(it, color = Color(0xFFEDE7DF)) }
+                        EventShareActions(detail.title, detail.url ?: "https://eventi.fabiodalez.it/eventi/${detail.slug}", Modifier.padding(top = 16.dp))
                     }
                 }
                 if (posterUrl != null) {

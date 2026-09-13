@@ -17,10 +17,18 @@ export async function eventWeather() {
             if (!data.available) { status.textContent = data.message || section.dataset.failure; continue; }
             section.querySelector('[data-weather-icon]').innerHTML = shapes[data.icon] || shapes.cloud;
             section.querySelector('[data-weather-description]').textContent = data.description;
-            section.querySelector('[data-weather-temperature]').textContent = [data.temperature_min, data.temperature_max].filter(v => v !== null).map(v => `${v}°`).join(' / ');
+            const range = [data.temperature_min, data.temperature_max].filter(Number.isFinite).map(v => `${v}°`).join(' / ');
+            const hasHourly = Number.isFinite(data.temperature_at_start);
+            section.querySelector('[data-weather-temperature]').textContent = hasHourly ? `${data.temperature_at_start}°` : range;
+            const start = section.querySelector('[data-weather-start]');
+            start.hidden = !hasHourly;
+            start.textContent = (data.temperature_estimated ? start.dataset.estimated : start.dataset.forecast).replace(':time', data.start_time || '');
+            const dailyRange = section.querySelector('[data-weather-range]');
+            dailyRange.hidden = !hasHourly || !range;
+            dailyRange.textContent = `${dailyRange.dataset.label}: ${range}`;
             for (const [field, value, unit] of [['rain', data.rain_probability, '%'], ['wind', data.wind_speed, ' km/h']]) {
                 const node = section.querySelector(`[data-weather-${field}]`);
-                node.hidden = value === null;
+                node.hidden = !Number.isFinite(value);
                 node.textContent = `${node.dataset.label}: ${value}${unit}`;
             }
             section.querySelector('[data-weather-indicative]').hidden = !data.indicative;

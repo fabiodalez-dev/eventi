@@ -5,28 +5,33 @@ declare(strict_types=1);
 use App\Enums\ContactMode;
 use App\Mail\PublicContact;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 
-it('shows weather icons family details and submits a member contact form', function (string $device): void {
+it('shows weather icons family details and submits a member contact form', function (string $device, string $theme): void {
     $city = testCity();
     Mail::fake();
-    $this->actingAs(User::factory()->create());
+    $this->actingAs(User::factory()->create(['appearance' => $theme === 'inLightMode' ? 'light' : 'dark']));
     freezeLocal($city, '2026-09-13 12:00');
-    $date = occurrenceAtLocal($city, testCategory(), '2026-09-15 18:00');
+    $date = occurrenceAtLocal($city, testCategory(), '2026-09-15 18:30');
     $venue = $date->event->venue;
     $venue->update(['content_details' => ['age_groups' => ['3-5'], 'stroller' => 'yes'], 'contact_mode' => ContactMode::Members, 'contact_email' => 'contact@example.test']);
-    Http::fake(['api.open-meteo.com/*' => Http::response(['daily' => ['time' => ['2026-09-15'], 'weather_code' => [0], 'temperature_2m_min' => [15], 'temperature_2m_max' => [25], 'precipitation_probability_max' => [5], 'wind_speed_10m_max' => [10]]])]);
-    $page = visit('/eventi/'.$date->event->slug.'/'.$date->url_number)->on()->{$device}()
-        ->click('[data-consent-banner] button[value="reject_all"]')->assertVisible('[data-event-weather]')->assertSee('Sereno')->assertSee('3–5 anni');
+    Http::fake(['api.open-meteo.com/*' => Http::response(['hourly' => ['time' => [CarbonImmutable::parse('2026-09-15 18:00', 'Europe/Rome')->timestamp, CarbonImmutable::parse('2026-09-15 19:00', 'Europe/Rome')->timestamp], 'temperature_2m' => [22, 20]], 'daily' => ['time' => ['2026-09-15'], 'weather_code' => [0], 'temperature_2m_min' => [15], 'temperature_2m_max' => [25], 'precipitation_probability_max' => [5], 'wind_speed_10m_max' => [10]]])]);
+    $page = visit('/eventi/'.$date->event->slug.'/'.$date->url_number)->{$theme}()->on()->{$device}()
+        ->click('[data-consent-banner] button[value="reject_all"]')->assertVisible('[data-event-weather]')->assertSee('Sereno')->assertSee('3–5 anni')->assertSee('Temperatura stimata alle 18:30')->assertSee('21°')->assertDontSee('Open-Meteo · CC BY 4.0');
+    expect($page->script('Array.from(document.querySelectorAll(".share-links--icons > a, .share-links--icons > button:not(.hidden)")).every((el, i, all) => el.querySelector("svg") && el.getBoundingClientRect().width >= 48 && el.getBoundingClientRect().height >= 48 && el.getBoundingClientRect().top === all[0].getBoundingClientRect().top)'))->toBeTrue();
+    expect($page->script('document.documentElement.dataset.theme'))->toBe($theme === 'inLightMode' ? 'light' : 'dark');
     expect($page->script('document.querySelector("[data-weather-icon] circle") !== null'))->toBeTrue();
     expect($page->script('document.documentElement.scrollWidth <= innerWidth'))->toBeTrue();
-    $page->screenshot(filename: 'family-weather-'.$device);
+    $page->screenshot(filename: 'family-weather-'.$device.'-'.$theme);
+    $page->resize(320, 900);
+    expect($page->script('() => { const boxes = [...document.querySelectorAll(".share-links--icons > a, .share-links--icons > button:not(.hidden)")].map(el => el.getBoundingClientRect()); return boxes.length >= 3 && boxes.every(box => box.top === boxes[0].top && box.right <= innerWidth); }'))->toBeTrue();
     $page->navigate('/locali/'.$venue->slug);
     $page->fill('message', 'Vorrei sapere come accedere con un passeggino.')
         ->click('#contatta button[type="submit"]')->assertSee(__('contact.sent'));
     Mail::assertSent(PublicContact::class);
-})->with(['desktop', 'mobile']);
+})->with(['desktop', 'mobile'])->with(['inLightMode', 'inDarkMode']);
 
 it('keeps the whole weather section hidden when the provider fails', function (): void {
     $city = testCity();

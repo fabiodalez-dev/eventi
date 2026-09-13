@@ -152,10 +152,14 @@ function nativeShare() {
 
                 await navigator.clipboard.writeText(payload.url);
 
-                const original = button.textContent;
-                button.textContent = button.dataset.shareCopied ?? original;
+                const label = button.querySelector('[data-share-label]') ?? button;
+                const original = label.textContent;
+                const status = button.parentElement.querySelector('[data-share-status]');
+                label.textContent = button.dataset.shareCopied ?? original;
+                if (status) status.textContent = label.textContent;
                 window.setTimeout(() => {
-                    button.textContent = original;
+                    label.textContent = original;
+                    if (status) status.textContent = "";
                 }, 2000);
             } catch {
                 /* L'utente ha annullato: non è un errore da mostrare. */

@@ -6,6 +6,7 @@ return [
     'failure' => 'Il meteo non è disponibile al momento.',
     'indicative' => 'Previsione indicativa: ricontrolla avvicinandoti alla data.',
     'rain' => 'Probabilità di pioggia', 'wind' => 'Vento', 'day' => 'Previsione della giornata',
+    'at_start' => 'Temperatura prevista alle :time', 'estimated_at_start' => 'Temperatura stimata alle :time', 'range' => 'Min / max',
     'sun' => 'Sereno', 'partly-cloudy' => 'Parzialmente nuvoloso', 'cloud' => 'Nuvoloso',
     'fog' => 'Nebbia', 'rainy' => 'Pioggia', 'snow' => 'Neve', 'storm' => 'Temporali',
 ];

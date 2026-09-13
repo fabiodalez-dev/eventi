@@ -432,3 +432,17 @@
     .event-detail-body { grid-template-columns: minmax(0, 1.55fr) minmax(240px, 1fr); }
     .event-detail-body > aside { order: 0; }
 }
+
+/* The hero's four sharing actions remain on one row, including touch screens. */
+:root .share-links.share-links--icons > .event-utility-action {
+    width: 48px;
+    height: 48px;
+    min-height: 48px;
+    flex: 0 0 48px;
+    padding: 0;
+    align-items: center;
+    justify-content: center;
+}
+:root .share-links.share-links--icons > .event-utility-action:not(.hidden) {
+    display: inline-flex;
+}
