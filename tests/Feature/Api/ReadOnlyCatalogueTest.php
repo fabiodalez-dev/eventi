@@ -186,6 +186,8 @@ it('protegge le scritture API con autenticazione salvo i flussi pubblici dichiar
         ->filter(fn ($route): bool => str_starts_with((string) $route->uri(), 'api/v1/'))
         ->filter(fn ($route): bool => (bool) array_intersect($route->methods(), ['POST', 'PUT', 'PATCH', 'DELETE']))
         ->reject(fn ($route): bool => in_array(explode('/', $route->uri())[2] ?? '', ['auth', 'submissions', 'reports'], true))
+        // Public contact submissions enforce opt-in and CAPTCHA in PublicContactService.
+        ->reject(fn ($route): bool => $route->uri() === 'api/v1/{type}/{slug}/contact' && $route->methods() === ['POST'])
         ->reject(fn ($route): bool => collect($route->gatherMiddleware())->contains(fn ($middleware): bool => is_string($middleware) && ($middleware === 'auth' || str_starts_with($middleware, 'auth:'))))
         ->map(fn ($route): string => $route->uri())->values()->all();
 

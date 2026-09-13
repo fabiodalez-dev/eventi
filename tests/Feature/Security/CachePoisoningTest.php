@@ -61,7 +61,7 @@ it('non lascia divergere i filtri dichiarati dalla chiave della cache', function
 it('distingue le pagine sui filtri che prima si confondevano', function (): void {
     $nuda = $this->middleware->key(Request::create('/eventi'));
 
-    foreach (['discovery=1', 'membership=required', 'days=30'] as $filtro) {
+    foreach (['discovery=1', 'membership=required', 'days=30', 'age=3-5', 'stroller=1', 'changing_table=1', 'kids_area=1'] as $filtro) {
         expect($this->middleware->key(Request::create('/eventi?'.$filtro)))
             ->not->toBe($nuda, "Il filtro «{$filtro}» non entra nella chiave");
     }
