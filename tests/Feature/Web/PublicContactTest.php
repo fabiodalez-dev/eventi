@@ -61,3 +61,11 @@ it('also supports active organizers and hides their private delivery address', f
     $organizer->update(['is_active' => false]);
     $this->postJson($url, ['message' => 'Vorrei informazioni sul programma.'])->assertNotFound();
 });
+
+it('returns web feedback to the contact section after sending', function (): void {
+    $user = User::factory()->create();
+    $this->actingAs($user)->post('/contatta/venues/'.$this->venue->slug, ['message' => 'Vorrei informazioni sul programma.'])
+        ->assertRedirect('/locali/'.$this->venue->slug.'#contatta')->assertSessionHas('status', __('contact.sent'));
+    $this->get('/locali/'.$this->venue->slug)->assertOk()->assertSee(__('contact.sent'));
+    Mail::assertSentCount(1);
+});

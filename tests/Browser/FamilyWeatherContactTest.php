@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Mail;
 
 it('shows weather icons family details and submits a member contact form', function (string $device): void {
     $city = testCity();
+    Mail::fake();
+    $this->actingAs(User::factory()->create());
     freezeLocal($city, '2026-09-13 12:00');
     $date = occurrenceAtLocal($city, testCategory(), '2026-09-15 18:00');
     $venue = $date->event->venue;
@@ -20,9 +22,7 @@ it('shows weather icons family details and submits a member contact form', funct
     expect($page->script('document.querySelector("[data-weather-icon] circle") !== null'))->toBeTrue();
     expect($page->script('document.documentElement.scrollWidth <= innerWidth'))->toBeTrue();
     $page->screenshot(filename: 'family-weather-'.$device);
-    Mail::fake();
-    $this->actingAs(User::factory()->create());
-    $page = visit('/locali/'.$venue->slug)->on()->{$device}()->click('[data-consent-banner] button[value="reject_all"]');
+    $page->navigate('/locali/'.$venue->slug);
     $page->fill('message', 'Vorrei sapere come accedere con un passeggino.')
         ->click('#contatta button[type="submit"]')->assertSee(__('contact.sent'));
     Mail::assertSent(PublicContact::class);
