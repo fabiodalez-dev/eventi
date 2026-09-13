@@ -80,3 +80,30 @@ test('preserves organizer URLs when another fragment omits them', () => {
     const event = parseEventNodes([header,details,{id,event_hosts_that_can_view_guestlist:[{id:'a',name:'Primo',url:'https://www.facebook.com/primo'}],parent_if_exists_or_self:{event_accepted_cohosts:{nodes:[{id:'a',name:'Primo',url:null}]}}}],id);
     assert.equal(event.hosts[0].url,'https://www.facebook.com/primo');
 });
+
+test('selects the largest supplied cover variant without inventing a CDN URL or using blurred previews',()=>{
+    const photo = {
+        full_image:{uri:'https://scontent.xx.fbcdn.net/small.jpg',width:960,height:503},
+        viewer_image:{uri:'https://scontent.xx.fbcdn.net/original.jpg?signature=preserved',width:2048,height:1072},
+        image:{uri:'https://scontent.xx.fbcdn.net/medium.jpg',width:1200,height:628},
+        blurred_image:{uri:'https://scontent.xx.fbcdn.net/blurred.jpg',width:4000,height:2000},
+    };
+    const result=parseEventNodes([header,details,{id,cover_media_renderer:{cover_photo:{photo}}}],id);
+    assert.equal(result.cover.url,photo.viewer_image.uri);
+    assert.equal(result.cover.width,2048);
+});
+
+test('uses a valid cover variant when larger metadata lacks a URL or exceeds the pixel limit',()=>{
+    const photo = {
+        full_image:{uri:'https://scontent.xx.fbcdn.net/photo.jpg',width:960,height:503},
+        viewer_image:{width:2048,height:1072},
+        image:{uri:'https://scontent.xx.fbcdn.net/too-large.jpg',width:10000,height:10000},
+    };
+    const result=parseEventNodes([header,details,{id,cover_media_renderer:{cover_photo:{photo}}}],id);
+    assert.equal(result.cover.url,photo.full_image.uri);
+});
+
+test('keeps a supplied photo URL when Facebook omits optional dimensions',()=>{
+    const minimal={id,name:'Titolo',event_description:{text:'Descrizione'},cover_media_renderer:{cover_photo:{photo:{full_image:{uri:'https://scontent.xx.fbcdn.net/photo.jpg'}}}}};
+    assert.equal(parseEventNodes([minimal],id).cover.url,'https://scontent.xx.fbcdn.net/photo.jpg');
+});

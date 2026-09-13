@@ -42,7 +42,7 @@ final class VerifyDeployment extends Command
                 }
             }
             app(FacebookEventImport::class)->checkRuntime();
-            $this->info('Database, migrazioni, rotte, asset e Chromium verificati.');
+            $this->info('Database, migrazioni, rotte, asset e runtime import HTTP verificati.');
 
             return self::SUCCESS;
         } catch (\Throwable $e) {

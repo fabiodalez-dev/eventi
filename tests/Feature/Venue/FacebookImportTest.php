@@ -24,6 +24,7 @@ beforeEach(function (): void {
     $this->payload = json_decode(file_get_contents(base_path('tests/Fixtures/facebook/event.json')), true);
     $this->mock(HostResolver::class)->shouldReceive('resolve')->andReturn(['93.184.216.34']);
     Http::preventStrayRequests();
+    Http::fake(['https://www.facebook.com/events/*' => Http::response('<html><script type="application/json">{}</script></html>')]);
 });
 
 it('prefills the existing form and photo without creating an event, then saves user edits and original metadata', function (): void {
@@ -67,7 +68,7 @@ it('preserves existing input on extraction failure', function (): void {
 
 it('imports text even when the remote photo is unavailable', function (): void {
     Process::fake(['*' => Process::result(output: json_encode($this->payload))]);
-    Http::fake(['*' => Http::response('', 404)]);
+    Http::fake(['https://scontent.xx.fbcdn.net/*' => Http::response('', 404)]);
     Livewire::test(CreateEvent::class)->fillForm(['facebook_url' => $this->payload['url']])
         ->call('importFacebook')->assertFormSet(['title' => 'Concerto importato'])
         ->assertNotified('Dati caricati nel modulo');
@@ -208,4 +209,22 @@ it('rejects an import without its Facebook title', function (): void {
     Process::fake(['*' => Process::result(output: json_encode($this->payload))]);
     Livewire::test(CreateEvent::class)->fillForm(['title' => 'Titolo manuale', 'facebook_url' => $this->payload['url']])
         ->call('importFacebook')->assertNotified('Importazione non riuscita')->assertFormSet(['title' => 'Titolo manuale']);
+});
+
+it('keeps a Facebook map pin without a street and warns before overriding the venue', function (): void {
+    $this->payload['venue']['address'] = null;
+    $this->payload['venue']['name'] = "Giardini dell'Arena, Padova PD, Italia";
+    $this->payload['cover'] = null;
+    Process::fake(['*' => Process::result(output: json_encode($this->payload))]);
+    $page = Livewire::test(CreateEvent::class)->fillForm(['facebook_url' => $this->payload['url']])
+        ->call('importFacebook')
+        ->assertFormSet(['custom_location.address' => $this->payload['venue']['name'], 'custom_location.lat' => 45.42, 'custom_location.lng' => 11.87])
+        ->assertSee('Controlla il luogo prima di salvare');
+    $page->fillForm(['custom_location.address' => ''])->assertDontSee('Controlla il luogo prima di salvare');
+});
+
+it('does not replace the venue with an unlocated Facebook place name', function (): void {
+    $this->payload['venue']['address'] = null;
+    $this->payload['venue']['latitude'] = null;
+    expect(app(FacebookEventImport::class)->formData($this->payload, 'Europe/Rome'))->not->toHaveKey('custom_location');
 });
