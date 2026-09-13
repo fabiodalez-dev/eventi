@@ -13,7 +13,7 @@
     <string name="notification_both">Email e dispositivo</string>
     <string name="notification_archive">Solo archivio in app</string>
     <string name="notification_daily">Riepilogo giornaliero</string>
-    <string name="notification_weekly">Riepilogo settimanale</string>
+    <string name="notification_weekly">Nuovi eventi e riepilogo dei locali seguiti</string>
     <string name="notification_reminders">Promemoria degli eventi salvati</string>
     <string name="notification_sold_out">Avvisi posti esauriti</string>
     <string name="notification_time">Orario riepilogo (HH:mm)</string>

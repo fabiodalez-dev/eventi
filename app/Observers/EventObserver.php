@@ -32,6 +32,13 @@ final class EventObserver
      */
     private const CHUNK = 200;
 
+    public function created(Event $event): void
+    {
+        if ($event->status === EventStatus::Published) {
+            app(NotificationScheduler::class)->announceToVenueFollowers($event);
+        }
+    }
+
     public function saving(Event $event): void
     {
         // Confirmation follows the venue; editorial verification remains a staff decision.

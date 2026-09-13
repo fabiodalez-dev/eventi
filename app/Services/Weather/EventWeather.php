@@ -23,7 +23,7 @@ final class EventWeather
         if (! config('weather.enabled') || $date->startOfDay()->lessThan($today) || $date->startOfDay()->greaterThan($today->addDays(15)) || ($event->content_details['attendance_mode'] ?? null) === 'online') {
             return $empty;
         }
-        $venue = $occurrence->effectiveVenue();
+        $venue = $occurrence->locationVenue();
         $lat = $venue->lat ?? ($event->custom_location['lat'] ?? null);
         $lng = $venue->lng ?? ($event->custom_location['lng'] ?? null);
         if (! is_numeric($lat) || ! is_numeric($lng) || abs((float) $lat) > 90 || abs((float) $lng) > 180) {

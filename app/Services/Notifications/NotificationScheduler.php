@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Notifications;
 
+use App\Enums\FollowableType;
 use App\Enums\NotificationChannel;
 use App\Enums\NotificationSkipReason;
 use App\Enums\NotificationStatus;
@@ -11,6 +12,7 @@ use App\Enums\NotificationType;
 use App\Enums\OccurrenceStatus;
 use App\Models\Event;
 use App\Models\EventOccurrence;
+use App\Models\Follow;
 use App\Models\SavedEvent;
 use App\Models\ScheduledNotification;
 use App\Models\User;
@@ -261,11 +263,44 @@ final class NotificationScheduler
      */
     public function announceEventPublished(Event $event): int
     {
+        if ($event->getRawOriginal('published_at') === null) {
+            $this->announceToVenueFollowers($event);
+        }
+
         return $this->announceToVenueStaff(
             $event,
             NotificationType::EventPublished,
             fn (int $userId): string => sprintf('event_published:user_%d:event_%d', $userId, (int) $event->getKey()),
         );
+    }
+
+    public function announceToVenueFollowers(Event $event): int
+    {
+        if ($event->venue_id === null) {
+            return 0;
+        }
+
+        $count = 0;
+        Follow::query()->ofType(FollowableType::Venue)->notifying()
+            ->where('followable_id', $event->venue_id)
+            ->chunkById(200, function ($follows) use ($event, &$count): void {
+                $now = CarbonImmutable::now();
+                $rows = [];
+                foreach ($follows as $follow) {
+                    $rows[] = $this->row(
+                        userId: (int) $follow->user_id,
+                        type: NotificationType::VenueNewEvent,
+                        dedupeKey: sprintf('venue_new_event:user_%d:event_%d', $follow->user_id, $event->getKey()),
+                        sendAt: $now,
+                        subject: $event,
+                        payload: ['venue_id' => (int) $event->venue_id],
+                        now: $now,
+                    );
+                }
+                $count += $this->insert($rows);
+            });
+
+        return $count;
     }
 
     /**

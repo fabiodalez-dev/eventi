@@ -2,6 +2,7 @@
 
 package it.fabiodalez.incitta.ui
 
+import it.fabiodalez.incitta.data.placeName
 import android.content.Intent
 import androidx.compose.material3.MaterialTheme
 import android.graphics.Bitmap
@@ -333,8 +334,9 @@ fun CompleteEventDetailScreen(
 @Composable
 private fun OccurrenceDateBlock(detail: EventDetail, occurrence: Occurrence, saved: Boolean, onSave: (Long) -> Unit) {
     val context = LocalContext.current
+    InterestedBadge(occurrence.interestedCount)
     Text(fullDate(occurrence.startsAt), style = androidx.compose.material3.MaterialTheme.typography.titleLarge)
-    occurrence.venue?.name?.let { Text(it, color = Muted) }
+    occurrence.placeName()?.let { Text(it, color = Muted) }
     Text(timeRange(occurrence), color = Acid, style = androidx.compose.material3.MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = 5.dp))
     occurrence.statusNote?.let { Text(it, color = Muted, modifier = Modifier.padding(top = 6.dp)) }
     Row(Modifier.fillMaxWidth().padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {

@@ -9,6 +9,7 @@ use App\Filament\Support\DescriptionEditor;
 use App\Filament\Support\ExternalLinksField;
 use App\Filament\Support\FactsField;
 use App\Filament\Support\ImageUpload;
+use App\Filament\Support\ImportedPosterUpload;
 use App\Filament\Support\SharedEventTags;
 use App\Filament\Support\TicketTiersField;
 use App\Models\Category;
@@ -17,7 +18,9 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\ToggleButtons;
 use Filament\Schemas\Components\Component;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 
 /**
  * I campi dell'evento come li vede un gestore: gli stessi nel wizard e nella
@@ -40,13 +43,33 @@ use Filament\Schemas\Components\Utilities\Get;
  */
 final class EventFields
 {
-    public static function poster(): Component
+    public static function poster(bool $previewTemporary = false): Component
     {
-        return ImageUpload::make('poster_media')
+        return ($previewTemporary
+            ? ImageUpload::configure(ImportedPosterUpload::make('poster_media'))
+            : ImageUpload::make('poster_media'))
             ->label(__('manage.fields.poster'))
             ->helperText(__('manage.hints.poster'))
             ->collection('poster')
             ->imageEditor();
+    }
+
+    public static function location(): Component
+    {
+        return Section::make(__('facebook_import.location'))
+            ->description(__('facebook_import.location_hint', ['address' => CurrentVenue::get()->address]))
+            ->schema([
+                TextInput::make('custom_location.address')->label(__('facebook_import.address'))
+                    ->maxLength(255)->live(onBlur: true)
+                    ->afterStateUpdated(function (Set $set): void {
+                        // Coordinates belong to the old address, never to a manual replacement.
+                        $set('custom_location.lat', null);
+                        $set('custom_location.lng', null);
+                    }),
+                TextInput::make('custom_location.name')->label(__('facebook_import.place_name'))->maxLength(255),
+                TextInput::make('custom_location.lat')->label(__('facebook_import.latitude'))->numeric()->minValue(-90)->maxValue(90),
+                TextInput::make('custom_location.lng')->label(__('facebook_import.longitude'))->numeric()->minValue(-180)->maxValue(180),
+            ]);
     }
 
     public static function title(): Component

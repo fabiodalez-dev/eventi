@@ -29,13 +29,12 @@ final class NativeCalendarController extends Controller
                 $start = CarbonImmutable::parse($start->setTimezone($city->timezone)->format('Y-m-d'), 'UTC');
                 $end = CarbonImmutable::parse($end->subSecond()->setTimezone($city->timezone)->format('Y-m-d'), 'UTC')->addDay();
             }
-            $venue = $item->effectiveVenue();
 
             return [
                 'id' => (int) $item->id,
                 'title' => $item->event->title,
                 'description' => (string) $item->event->short_description,
-                'location' => implode(', ', array_filter([$venue?->name, $venue?->address, $venue?->municipality])),
+                'location' => $item->locationLabel(),
                 'start' => $start->getTimestamp() * 1000,
                 'end' => $end->getTimestamp() * 1000,
                 'allDay' => (bool) $item->is_all_day,

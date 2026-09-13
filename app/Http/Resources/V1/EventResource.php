@@ -60,7 +60,7 @@ final class EventResource
     public static function toArray(Event $event, Collection $occurrences, ApiContext $context): array
     {
         $timezone = $context->timezone;
-        $venue = $event->venue;
+        $venue = $event->locationVenue();
 
         return [
             'id' => (int) $event->getKey(),

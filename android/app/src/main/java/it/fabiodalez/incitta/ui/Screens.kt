@@ -1,5 +1,6 @@
 package it.fabiodalez.incitta.ui
 
+import it.fabiodalez.incitta.data.placeName
 import android.content.Intent
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.foundation.BorderStroke
@@ -376,7 +377,7 @@ fun SavedScreen(
                         Text(event.title, style = MaterialTheme.typography.titleLarge)
                         Text(formatFullDate(event.startsAt), color = Muted)
                         Text(timeRange(event), color = Muted)
-                        event.venue?.name?.let { Text(it) }
+                        event.placeName()?.let { Text(it) }
                         Text(priceText(event.price), color = Acid)
                         Button(onClick = { calendarPreview = emptyList(); onOpen(event) }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
                             Text(stringResource(R.string.saved_preview_open))
@@ -457,7 +458,7 @@ private fun SavedCalendarRow(event: Occurrence, onOpen: () -> Unit, onGoogleCale
     Column(Modifier.fillMaxWidth().clickable(onClick = onOpen).padding(horizontal = 18.dp, vertical = 14.dp)) {
         Text(formatTime(event), color = Acid, style = androidx.compose.material3.MaterialTheme.typography.labelMedium)
         Text(eventTitle(event.title), style = androidx.compose.material3.MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 3.dp))
-        Text(event.venue?.name ?: "Luogo da verificare", color = Muted, modifier = Modifier.padding(top = 4.dp))
+        Text(event.placeName() ?: "Luogo da verificare", color = Muted, modifier = Modifier.padding(top = 4.dp))
         OutlinedButton(
             onClick = onGoogleCalendar,
             modifier = Modifier.fillMaxWidth().padding(top = 10.dp).height(46.dp),
@@ -701,7 +702,7 @@ private fun FeatureCard(event: Occurrence, saved: Boolean, onOpen: (Occurrence) 
         Column(Modifier.fillMaxWidth().heightIn(min = 440.dp).padding(24.dp), verticalArrangement = Arrangement.Bottom) {
             Text("${event.category?.name.orEmpty()} · ${formatDay(event.startsAt)}", color = Color(0xFFEDE7DF))
             Text(eventTitle(event.title), color = Color(0xFFFAF8F4), style = MaterialTheme.typography.headlineLarge, modifier = Modifier.padding(top = 10.dp))
-            Text(event.venue?.name.orEmpty(), color = Color(0xFFEDE7DF), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 12.dp))
+            Text(event.placeName().orEmpty(), color = Color(0xFFEDE7DF), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 12.dp))
         }
         SaveButton(saved, Modifier.align(Alignment.TopEnd)) { onSave(event.occurrenceId) }
     }
@@ -740,9 +741,10 @@ internal fun EventRow(event: Occurrence, saved: Boolean, onOpen: (Occurrence) ->
         EventArtwork(event.poster?.card ?: event.poster?.full ?: event.poster?.thumb)
         Row(Modifier.fillMaxWidth().padding(18.dp), verticalAlignment = Alignment.Top) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                InterestedBadge(event.interestedCount)
                 Text(event.category?.name.orEmpty(), color = Muted, style = MaterialTheme.typography.labelMedium)
                 Text(eventTitle(event.title), style = MaterialTheme.typography.titleLarge)
-                Text(event.venue?.name ?: "Luogo da verificare", color = Muted)
+                Text(event.placeName() ?: "Luogo da verificare", color = Muted)
                 Text("${formatDay(event.startsAt)} · ${if (event.isAllDay) "Tutto il giorno" else formatClock(event.startsAt)}", color = Acid, style = MaterialTheme.typography.labelLarge)
             }
             SaveButton(saved) { onSave(event.occurrenceId) }
@@ -750,6 +752,17 @@ internal fun EventRow(event: Occurrence, saved: Boolean, onOpen: (Occurrence) ->
     }
     HorizontalDivider(thickness = 1.dp, color = Rule)
     Spacer(Modifier.height(16.dp))
+}
+
+@Composable
+internal fun InterestedBadge(count: Int) {
+    if (count <= 0) return
+    Text(
+        text = if (count == 1) "1 persona interessata" else "$count persone interessate",
+        style = MaterialTheme.typography.labelSmall,
+        color = Muted,
+        modifier = Modifier.background(MaterialTheme.colorScheme.surfaceVariant, ControlShape).padding(horizontal = 8.dp, vertical = 4.dp),
+    )
 }
 
 @Composable

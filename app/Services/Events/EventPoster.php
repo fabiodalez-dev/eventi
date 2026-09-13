@@ -60,7 +60,7 @@ final class EventPoster
     public function pdf(EventOccurrence $occurrence): string
     {
         $event = clone $occurrence->event;
-        $event->setRelation('venue', $occurrence->effectiveVenue());
+        $event->setRelation('venue', $occurrence->locationVenue());
 
         return Pdf::loadView('pdf.event-poster', [
             'occurrence' => $occurrence,

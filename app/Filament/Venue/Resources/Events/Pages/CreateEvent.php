@@ -22,6 +22,7 @@ use App\Models\Category;
 use App\Models\Event;
 use App\Models\EventOccurrence;
 use App\Rules\ExternalLinks;
+use App\Services\Import\FacebookEventImport;
 use App\Support\BeforeGoingDefaults;
 use App\Support\EditorContent;
 use App\Support\PracticalIcons;
@@ -29,7 +30,9 @@ use App\Support\VenueEventDefaults;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 use Filament\Actions\Action;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
 use Filament\Resources\Pages\CreateRecord\Concerns\HasWizard;
@@ -40,7 +43,9 @@ use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Components\Wizard\Step;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Locked;
 
@@ -85,6 +90,77 @@ class CreateEvent extends CreateRecord
     #[Locked]
     public ?int $draftId = null;
 
+    /** @var array<string, mixed> */
+    #[Locked]
+    public array $facebookImport = [];
+
+    #[Locked]
+    public int $facebookPhotoRevision = 0;
+
+    private function sourceLabels(string $collection, string $field): string
+    {
+        $rows = $this->facebookImport[$collection] ?? [];
+        if (! is_array($rows)) {
+            return '';
+        }
+        $labels = [];
+        foreach ($rows as $row) {
+            if (is_array($row) && is_string($row[$field] ?? null)) {
+                $labels[] = $row[$field];
+            }
+        }
+
+        return implode(', ', $labels);
+    }
+
+    public function importFacebook(): void
+    {
+        abort_unless(auth()->user()?->can('create', [Event::class, CurrentVenue::get()]), 403);
+        $key = 'facebook-import:'.auth()->id();
+        if (RateLimiter::tooManyAttempts($key, 3)) {
+            Notification::make()->warning()->title(__('facebook_import.minute_limit'))->send();
+
+            return;
+        }
+        $dailyKey = $key.':daily';
+        if (RateLimiter::tooManyAttempts($dailyKey, 30)) {
+            Notification::make()->warning()->title(__('facebook_import.daily_limit'))->send();
+
+            return;
+        }
+        RateLimiter::hit($key, 60);
+        RateLimiter::hit($dailyKey, 86400);
+        $import = app(FacebookEventImport::class);
+        $photo = null;
+        try {
+            $source = $import->fetch((string) ($this->data['facebook_url'] ?? ''));
+            $fields = $import->formData($source, CurrentVenue::timezone());
+            $photo = null;
+            $photoWarning = null;
+            if (! empty($source['cover']['url'])) {
+                try {
+                    $photo = $import->photo($source['cover']['url']);
+                } catch (\Throwable $error) {
+                    report($error);
+                    $photoWarning = __('facebook_import.photo_failed');
+                }
+            }
+            $this->form->fill(array_replace($this->data ?? [], $fields));
+            if ($photo !== null) {
+                $this->data['poster_media'] = [(string) Str::uuid() => $photo];
+                $this->facebookPhotoRevision++;
+            }
+            $this->facebookImport = $source;
+            Notification::make()->success()->title(__('facebook_import.loaded'))
+                ->body($photoWarning ?? __('facebook_import.review'))->send();
+        } catch (\Throwable $error) {
+            $photo?->delete();
+            report($error);
+            Notification::make()->danger()->title(__('facebook_import.failed'))
+                ->body(__('facebook_import.failed_hint'))->send();
+        }
+    }
+
     /**
      * Le colonne dell'evento che il wizard scrive. Tutto il resto — verifica,
      * evidenza, punteggio, provenienza — è della redazione.
@@ -92,6 +168,7 @@ class CreateEvent extends CreateRecord
      * @var array<int, string>
      */
     private const COLUMNS = [
+        'custom_location',
         'title',
         'description',
         'category_id',
@@ -134,8 +211,34 @@ class CreateEvent extends CreateRecord
                 ->description(__('manage.wizard.step_poster_hint'))
                 ->icon(Heroicon::OutlinedPhoto)
                 ->schema([
-                    EventFields::poster(),
+                    TextInput::make('facebook_url')
+                        ->label(__('facebook_import.url_label'))
+                        ->placeholder('https://www.facebook.com/events/…')
+                        ->helperText(__('facebook_import.url_hint'))
+                        ->maxLength(2048)->dehydrated(false),
+                    ActionsComponent::make([
+                        Action::make('importFacebook')->label(__('facebook_import.load'))
+                            ->icon(Heroicon::OutlinedArrowDownTray)
+                            ->action(fn () => $this->importFacebook()),
+                    ]),
+                    TextEntry::make('facebook_import_details')
+                        ->label(__('facebook_import.source'))
+                        ->state(fn (): string => collect([
+                            $this->facebookImport['venue']['name'] ?? null,
+                            $this->facebookImport['venue']['address'] ?? null,
+                            $this->facebookImport['date_label'] ?? null,
+                            $this->sourceLabels('hosts', 'name') !== '' ? __('facebook_import.hosts', ['names' => $this->sourceLabels('hosts', 'name')]) : null,
+                            $this->sourceLabels('categories', 'label'),
+                            isset($this->facebookImport['responded_count']) ? __('facebook_import.responses', ['count' => $this->facebookImport['responded_count']]) : null,
+                        ])->filter()->implode(' · '))
+                        ->visible(fn (): bool => $this->facebookImport !== []),
+                    TextEntry::make('facebook_location_warning')
+                        ->label(__('facebook_import.location_warning'))
+                        ->state(fn (): string => __('facebook_import.location_warning_hint', ['address' => $this->facebookImport['venue']['address'] ?? '']))
+                        ->visible(fn (): bool => filled($this->facebookImport['venue']['address'] ?? null) && ($this->data['custom_location']['address'] ?? null) === $this->facebookImport['venue']['address']),
+                    EventFields::poster(previewTemporary: true)->key('imported-poster'),
                     EventFields::title(),
+                    EventFields::location(),
                 ])
                 ->afterValidation(fn () => $this->saveDraft()),
 
@@ -332,6 +435,11 @@ class CreateEvent extends CreateRecord
             'data.content_details.practical_custom.*.label' => ['required', 'string', 'max:120'],
             'data.content_details.practical_custom.*.icon' => ['required', Rule::in(array_keys(PracticalIcons::options()))],
             'data.content_details.practical_custom.*.text' => ['nullable', 'string', 'max:1000'],
+            'data.custom_location' => ['nullable', 'array:name,address,lat,lng'],
+            'data.custom_location.name' => ['nullable', 'string', 'max:255'],
+            'data.custom_location.address' => ['nullable', 'string', 'max:255'],
+            'data.custom_location.lat' => ['nullable', 'numeric', 'between:-90,90'],
+            'data.custom_location.lng' => ['nullable', 'numeric', 'between:-180,180'],
             'data.title' => ['required', 'string', 'max:255'],
             'data.description' => ['nullable', 'string', 'max:50000'],
             'data.category_id' => ['required', 'integer', Rule::exists('categories', 'id')->where('is_active', true)],
@@ -352,6 +460,15 @@ class CreateEvent extends CreateRecord
             }
         }
 
+        if (array_key_exists('custom_location', $data) && blank($data['custom_location']['address'] ?? null)) {
+            $data['custom_location'] = null;
+        }
+        if (is_array($data['custom_location'] ?? null)) {
+            foreach (['lat', 'lng'] as $coordinate) {
+                $data['custom_location'][$coordinate] = filled($data['custom_location'][$coordinate] ?? null) ? (float) $data['custom_location'][$coordinate] : null;
+            }
+        }
+
         foreach (self::COLUMNS as $column) {
             if (array_key_exists($column, $data)) {
                 $event->setAttribute($column, $data[$column] === '' ? null : $data[$column]);
@@ -364,6 +481,11 @@ class CreateEvent extends CreateRecord
             $event->created_by = auth()->id();
             $event->source = EventSource::Venue;
             $event->status = EventStatus::Draft;
+        }
+
+        if ($this->facebookImport !== []) {
+            $event->source_metadata = ['facebook' => $this->facebookImport];
+            $event->source_ref = 'facebook:'.$this->facebookImport['id'];
         }
 
         $event->save();

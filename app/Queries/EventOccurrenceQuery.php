@@ -1206,6 +1206,7 @@ final class EventOccurrenceQuery
     {
         return EventOccurrence::query()
             ->select('event_occurrences.*')
+            ->withCount('interestedUsers as interested_count')
             ->join('events', 'events.id', '=', 'event_occurrences.event_id')
             ->join('categories', 'categories.id', '=', 'events.category_id')
             ->leftJoin('venues', function (JoinClause $join): void {

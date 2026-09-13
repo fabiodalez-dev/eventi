@@ -463,7 +463,16 @@ async function talkToServer(url, method, token, body) {
             body: method === "DELETE" ? null : JSON.stringify(body),
         });
 
-        return response.ok;
+        if (!response.ok) return false;
+        const result = await response.json();
+        for (const [id, count] of Object.entries(result.interested_counts ?? {})) {
+            document.querySelectorAll('[data-interest-id]').forEach(badge => {
+                if (badge.dataset.interestId !== id) return;
+                badge.hidden = count === 0;
+                badge.querySelector('[data-interest-text]').textContent = `${count} ${count === 1 ? 'persona interessata' : 'persone interessate'}`;
+            });
+        }
+        return result;
     } catch {
         return false;
     }
@@ -561,7 +570,7 @@ function savedHearts() {
                   });
 
             pending.delete(id);
-            if (ok) {
+            if (ok && (wasSaved || ok.saved?.includes(id))) {
                 paintAll(id, !wasSaved);
 
                 return;

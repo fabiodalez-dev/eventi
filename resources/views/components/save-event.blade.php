@@ -29,6 +29,7 @@
         <h2 id="salva-evento" class="sr-only">{{ __('account.save.action') }}</h2>
 
         @if ($single !== null)
+            <x-interested-badge :occurrence="$single" />
             <x-save-heart :occurrence="$single" :saved="isset($saved[$single->getKey()])" variant="label" />
         @else
             <details class="group">
@@ -49,6 +50,7 @@
                                 @endunless
                             </time>
 
+                            <x-interested-badge :occurrence="$occurrence" />
                             <x-save-heart :occurrence="$occurrence" :saved="isset($saved[$occurrence->getKey()])" />
                         </li>
                     @endforeach

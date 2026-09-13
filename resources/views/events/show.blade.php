@@ -7,7 +7,7 @@
 --}}
 @php
     $formatter = app(\App\Support\DateFormatter::class);
-    $venue = isset($selectedOccurrence) && $selectedOccurrence !== null ? $selectedOccurrence->effectiveVenue() : $event->venue;
+    $venue = isset($selectedOccurrence) && $selectedOccurrence !== null ? $selectedOccurrence->locationVenue() : $event->locationVenue();
     $organizerInfo = app(\App\Services\Seo\StructuredData::class)->organizer($event);
     /*
      * Quanto spazio occupa DAVVERO. La fascia di apertura e' una griglia a due
@@ -110,12 +110,12 @@
                 {{ $event->title }}
             </h1>
 
-            @if ($venue !== null || filled($custom['name'] ?? null))
+            @if ($venue !== null || filled($custom['name'] ?? $custom['address'] ?? null))
                 <p data-event-heading-venue class="m-0 text-lg font-semibold">
                     @if ($venue !== null)
                         <a href="{{ route('venues.show', $venue) }}" class="underline underline-offset-4">{{ $venue->name }}</a>
                     @else
-                        {{ $custom['name'] }}
+                        {{ ($custom['name'] ?? null) ?: ($custom['address'] ?? '') }}
                     @endif
                     @if ($venue?->municipality) <span>· {{ $venue->municipality }}</span> @endif
                 </p>
@@ -191,9 +191,10 @@
 
                     <ul class="flex flex-col gap-2">
                         @foreach ($shown as $occurrence)
-                            <li class="flex flex-wrap items-center justify-between gap-3 bg-canvas px-4 py-3 border-2 border-line">
-                                @if($occurrence->effectiveVenue())
-                                    <a class="inline-flex min-h-12 items-center underline" href="{{ route('venues.show', $occurrence->effectiveVenue()) }}">{{ $occurrence->effectiveVenue()->name }}</a>
+                            <li class="event-date-row grid min-w-0 gap-4 bg-canvas p-4 border-2 border-line sm:grid-cols-[minmax(0,1fr)_auto] sm:p-5">
+                                <div class="flex min-w-0 flex-col gap-2">
+                                @if($occurrence->locationVenue())
+                                    <a class="w-fit text-sm text-ink-muted underline underline-offset-4" href="{{ route('venues.show', $occurrence->locationVenue()) }}">{{ $occurrence->locationVenue()->name }}</a>
                                 @endif
                                 @if (! ($isPreview ?? false) && ! $occurrence->is($selectedOccurrence ?? null))
                                     <a class="underline text-accent" href="{{ \App\Support\EventUrl::occurrence($occurrence) }}">{{ __('seo.date_page') }}</a>
@@ -261,13 +262,17 @@
                                     @endif
                                 </div>
 
+                                </div>
+
                                 @if ($occurrences->isNotEmpty() && ! ($isPreview ?? false))
+                                    <div class="flex items-start empty:hidden sm:justify-end">
                                     @if ($booking = $activeBookings->get($occurrence->id))
                                         <x-button :href="route('tickets.show', $booking)" class="min-h-12">{{ __('ticketing.manage_booking') }}</x-button>
                                     @elseif ($occurrence->booking_enabled && $occurrence->effectiveVenue()?->ticketing_enabled)
                                         <x-button :href="route('tickets.create', $occurrence)" class="min-h-12">{{ __('ticketing.reserve') }}</x-button>
                                     @endif
-                                    <div class="flex flex-wrap gap-2">
+                                    </div>
+                                    <div class="flex flex-wrap items-center gap-2 border-t border-line pt-3 sm:col-span-2">
                                         <a
                                             href="{{ route('events.calendar', ['slug' => $event->slug, 'occurrence' => $occurrence->url_number]) }}"
                                             class="event-utility-action bg-surface-sunken px-3 py-2 font-display text-[0.594rem] leading-none font-extrabold tracking-[0.12em] text-ink uppercase border-2 border-line transition hover:border-accent"
@@ -479,6 +484,10 @@
                     @endif
                 </dl>
             </section>
+
+            @if ($venue === null && filled($custom['address'] ?? null))
+                <x-event-location-map :event="$event" />
+            @endif
 
             @if ($venue !== null && ($event->content_details['attendance_mode'] ?? null) !== 'online')
                 <section class="flex flex-col gap-4 border-2 border-line bg-canvas p-5" aria-labelledby="luogo-evento">

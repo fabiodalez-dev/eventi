@@ -30,6 +30,7 @@ enum NotificationType: string
     case EventCancelled = 'event_cancelled';
     case EventMoved = 'event_moved';
     case EventSoldOut = 'event_sold_out';
+    case VenueNewEvent = 'venue_new_event';
     case VenueDigest = 'venue_digest';
     case DailyDigest = 'daily_digest';
     case WeekendNewsletter = 'weekend_newsletter';
@@ -117,7 +118,7 @@ enum NotificationType: string
         return match ($this) {
             self::EventReminder => $preferences->reminders,
             self::EventSoldOut => $preferences->soldOut,
-            self::VenueDigest => $preferences->venueDigest,
+            self::VenueDigest, self::VenueNewEvent => $preferences->venueDigest,
             self::DailyDigest => $preferences->dailyDigest,
             default => true,
         };
@@ -144,7 +145,7 @@ enum NotificationType: string
         $key = match ($this) {
             self::EventReminder => 'reminders',
             self::EventSoldOut => 'sold_out',
-            self::VenueDigest => 'venue_digest',
+            self::VenueDigest, self::VenueNewEvent => 'venue_digest',
             self::DailyDigest => 'daily_digest',
             default => null,
         };

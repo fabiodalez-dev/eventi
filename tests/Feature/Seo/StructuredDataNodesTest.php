@@ -131,9 +131,8 @@ it('descrive il luogo di un evento che non si tiene in un locale registrato', fu
         ->and($location['address']['streetAddress'])->toBe('Prato della Valle, Padova')
         ->and($location['address']['addressLocality'])->toBe($this->city->name)
         ->and($location['address']['addressRegion'])->toBe($this->city->province_code)
-        /* Senza locale non ci sono coordinate certificate: meglio nessuna
-           `geo` di una coppia di numeri inventata. */
-        ->and($location)->not->toHaveKey('geo');
+        ->and($location['geo']['latitude'])->toBe(45.3987)
+        ->and($location['geo']['longitude'])->toBe(11.8760);
 });
 
 it('omette il nome della sede quando non è conosciuto', function (): void {

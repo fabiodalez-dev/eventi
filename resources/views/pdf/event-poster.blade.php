@@ -77,6 +77,8 @@
                 <strong>{{ $event->venue->name }}</strong><br>
                 {{ $event->venue->address }}, {{ $event->venue->municipality }}
             </p>
+        @elseif (filled($event->custom_location['address'] ?? null))
+            <p class="dove"><strong>{{ $event->custom_location['name'] ?? '' }}</strong><br>{{ $event->custom_location['address'] }}</p>
         @endif
 
         @if ($event->is_free)

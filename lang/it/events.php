@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 return [
+    'interested' => '{1} :count persona interessata|[0,*] :count persone interessate',
 
     'title' => 'Eventi',
     'one' => 'evento',

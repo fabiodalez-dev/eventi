@@ -33,7 +33,7 @@
     $formatter = app(\App\Support\DateFormatter::class);
 
     $event = $occurrence->event;
-    $venue = $occurrence->effectiveVenue();
+    $venue = $occurrence->locationVenue();
     $category = $event->category;
     $status = $occurrence->status;
 
@@ -159,6 +159,7 @@
     </div>
 
     <div class="event-card__details flex flex-col gap-3">
+    <x-interested-badge :occurrence="$occurrence" />
     @if ($stateLabel !== null || $highlight !== null || $distanceLabel !== null)
         <div class="flex flex-wrap items-center gap-x-3 gap-y-1 font-display text-[0.594rem] leading-none font-extrabold tracking-[0.14em] uppercase">
             @if ($stateLabel !== null)

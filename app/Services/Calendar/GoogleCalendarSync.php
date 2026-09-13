@@ -115,7 +115,6 @@ final class GoogleCalendarSync
     /** @return array<string, mixed> */
     public function event(EventOccurrence $item, GoogleCalendarConnection $connection, City $city): array
     {
-        $venue = $item->effectiveVenue();
         $start = $item->starts_at->copy()->setTimezone($city->timezone);
         $end = $item->effective_ends_at->copy()->setTimezone($city->timezone);
 
@@ -123,7 +122,7 @@ final class GoogleCalendarSync
             'status' => 'confirmed',
             'summary' => $item->event->title,
             'description' => trim(strip_tags((string) $item->event->short_description))."\n\n".route('events.show', $item->event),
-            'location' => implode(', ', array_filter([$venue?->name, $venue?->address, $venue?->municipality])),
+            'location' => $item->locationLabel(),
             'start' => $item->is_all_day ? ['date' => $start->format('Y-m-d')] : ['dateTime' => $start->toRfc3339String(), 'timeZone' => $city->timezone],
             'end' => $item->is_all_day ? ['date' => $end->subSecond()->addDay()->format('Y-m-d')] : ['dateTime' => $end->toRfc3339String(), 'timeZone' => $city->timezone],
             'extendedProperties' => ['private' => ['incitta_connection' => (string) $connection->id, 'occurrence_id' => (string) $item->id]],

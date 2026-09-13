@@ -80,6 +80,21 @@ class EventOccurrence extends Model
         return $this->venue_id !== null ? $this->venue : $this->event?->venue;
     }
 
+    public function locationVenue(): ?Venue
+    {
+        return $this->venue_id !== null ? $this->venue : $this->event?->locationVenue();
+    }
+
+    public function locationLabel(): string
+    {
+        $venue = $this->locationVenue();
+        $custom = $this->event->custom_location ?? [];
+
+        return implode(', ', array_filter($venue !== null
+            ? [$venue->name, $venue->address, $venue->municipality]
+            : [$custom['name'] ?? null, $custom['address'] ?? null]));
+    }
+
     /** @return BelongsTo<EventRecurrence, $this> */
     public function recurrence(): BelongsTo
     {
@@ -107,6 +122,17 @@ class EventOccurrence extends Model
     public function savedEvents(): HasMany
     {
         return $this->hasMany(SavedEvent::class, 'occurrence_id');
+    }
+
+    public function interestedCount(): int
+    {
+        return (int) ($this->getAttribute('interested_count') ?? $this->interestedUsers()->count());
+    }
+
+    /** @return BelongsToMany<User, $this> */
+    public function interestedUsers(): BelongsToMany
+    {
+        return $this->savedByUsers();
     }
 
     /** @return BelongsToMany<User, $this> */

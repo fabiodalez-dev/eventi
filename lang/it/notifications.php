@@ -11,6 +11,10 @@ declare(strict_types=1);
  * deve aprire una classe PHP per farlo.
  */
 return [
+    'venue_new_event' => [
+        'subject' => 'Nuovo evento da :venue',
+        'line' => ':venue ha pubblicato :title.',
+    ],
 
     'actions' => [
         'open_event' => 'Apri la scheda evento',
@@ -130,6 +134,7 @@ return [
             'event_cancelled' => 'Ricevi questa email perché avevi salvato questa data. Gli annullamenti non si disattivano.',
             'event_moved' => 'Ricevi questa email perché avevi salvato questa data. Gli spostamenti non si disattivano.',
             'event_sold_out' => 'Ricevi questa email perché hai salvato questa data.',
+            'venue_new_event' => 'Ricevi questo avviso perché segui il locale su :product.',
             'venue_digest' => 'Ricevi questo riepilogo perché segui locali, generi o etichette su :product.',
             'daily_digest' => 'Ricevi questo riepilogo perché hai acceso il riassunto giornaliero.',
             'weekend_newsletter' => 'Ricevi questa newsletter perché hai dato il consenso a riceverla.',
