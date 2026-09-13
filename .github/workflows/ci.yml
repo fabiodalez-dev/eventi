@@ -207,6 +207,8 @@ jobs:
         run: |
           cp .env.example .env
           php artisan key:generate
+      - name: Pubblica gli asset del pannello per i test browser
+        run: php artisan filament:assets
       - name: Chromium deve avviarsi ed eseguire JavaScript
         run: php artisan facebook:check
       - run: composer test:browser -- --ci --log-junit storage/logs/browser-junit.xml

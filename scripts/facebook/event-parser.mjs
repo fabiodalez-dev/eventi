@@ -24,6 +24,30 @@ export function collectEventNodes(scripts, id) {
     return nodes;
 }
 
+// Accept only complete, explicit Italian ranges. Never infer an end from duration.
+function endFromLabel(label, start) {
+    if (typeof label !== 'string' || !start) return null;
+    const match = label.match(/^(\d{1,2}) (gen|feb|mar|apr|mag|giu|lug|ago|set|ott|nov|dic) alle ore (\d{2}):(\d{2}) - (?:(\d{1,2}) (gen|feb|mar|apr|mag|giu|lug|ago|set|ott|nov|dic) alle ore )?(\d{2}):(\d{2}) (CEST|CET)$/i);
+    if (!match) return null;
+    const months = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
+    const parts = date => Object.fromEntries(new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'Europe/Rome', year: 'numeric', month: 'numeric', day: 'numeric',
+        hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+    }).formatToParts(date).map(part => [part.type, Number(part.value)]));
+    const first = parts(new Date(start));
+    const startMonth = months.indexOf(match[2].toLowerCase()) + 1;
+    if (first.month !== startMonth || first.day !== +match[1] || first.hour !== +match[3] || first.minute !== +match[4]) return null;
+    const month = match[6] ? months.indexOf(match[6].toLowerCase()) + 1 : startMonth;
+    const day = +(match[5] ?? match[1]);
+    const year = first.year + (month < startMonth ? 1 : 0);
+    const hour = +match[7], minute = +match[8];
+    const offset = match[9].toUpperCase() === 'CEST' ? 2 : 1;
+    const end = new Date(Date.UTC(year, month - 1, day, hour - offset, minute));
+    const actual = parts(end);
+    if (actual.year !== year || actual.month !== month || actual.day !== day || actual.hour !== hour || actual.minute !== minute || end <= new Date(start)) return null;
+    return end.toISOString();
+}
+
 export function parseEventNodes(nodes, id) {
     const event = {};
     const merge = (target, value) => {
@@ -49,16 +73,22 @@ export function parseEventNodes(nodes, id) {
     };
     const place = event.event_place;
     const cover = event.cover_media_renderer?.cover_photo?.photo;
-    const hosts = [...new Map([
+    const hostMap = new Map();
+    for (const host of [
         ...(event.event_hosts_that_can_view_guestlist ?? []),
         ...(event.parent_if_exists_or_self?.event_accepted_cohosts?.nodes ?? []),
-    ].map(host => [host.id ?? host.url ?? host.name, host])).values()];
+    ]) {
+        const key = host.id ?? host.url ?? host.name;
+        hostMap.set(key, merge(hostMap.get(key) ?? {}, host));
+    }
+    const hosts = [...hostMap.values()];
     const links = [...new Set((event.event_description.ranges ?? []).map(range => cleanUrl(range.entity?.external_url ?? range.entity?.url)).filter(Boolean))];
-    const end = instant(event.end_timestamp ?? event.current_end_timestamp);
+    const start = instant(event.current_start_timestamp ?? event.start_timestamp);
+    const end = instant(event.end_timestamp ?? event.current_end_timestamp) ?? endFromLabel(event.day_time_sentence, start);
     return {
         id, url: `https://www.facebook.com/events/${id}/`,
         title: event.name ?? null, description: event.event_description.text,
-        starts_at: instant(event.current_start_timestamp ?? event.start_timestamp), ends_at: end,
+        starts_at: start, ends_at: end,
         date_label: event.day_time_sentence ?? event.start_time_formatted ?? null,
         is_online: event.is_online ?? false, is_cancelled: event.is_canceled ?? false,
         frequency: event.parent_if_exists_or_self?.event_frequency ?? null,

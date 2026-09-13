@@ -54,3 +54,29 @@ test('keeps all organizers from both Facebook host collections without duplicate
     const event=parseEventNodes([header,details,{id,event_hosts_that_can_view_guestlist:[{id:'a',name:'Primo'}],parent_if_exists_or_self:{event_accepted_cohosts:{nodes:[{id:'a',name:'Primo'},{id:'b',name:'Secondo',url:'https://www.facebook.com/secondo'}]}}}],id);
     assert.deepEqual(event.hosts.map(host=>host.name),['Primo','Secondo']);
 });
+
+test('imports the explicit Day Bau Day end present only in the Italian label', () => {
+    const event = parseEventNodes([header, details, {id, start_timestamp:1789801200, day_time_sentence:'19 set alle ore 09:00 - 20 set alle ore 19:00 CEST'}], id);
+    assert.equal(event.ends_at, '2026-09-20T17:00:00.000Z');
+});
+
+test('validates label dates, timezone and start before accepting an end', () => {
+    for (const [start, label, end] of [
+        ['2026-10-16T19:00:00Z', '16 ott alle ore 21:00 - 23:00 CEST', '2026-10-16T21:00:00.000Z'],
+        ['2026-10-24T19:00:00Z', '24 ott alle ore 21:00 - 25 ott alle ore 19:00 CET', '2026-10-25T18:00:00.000Z'],
+        ['2026-12-31T20:00:00Z', '31 dic alle ore 21:00 - 1 gen alle ore 03:00 CET', '2027-01-01T02:00:00.000Z'],
+        ['2026-10-16T19:00:00Z', '16 ott alle ore 21:00 CEST', null],
+        ['2026-10-16T19:00:00Z', '15 ott alle ore 21:00 - 23:00 CEST', null],
+        ['2026-10-16T19:00:00Z', '16 ott alle ore 21:00 - 32 ott alle ore 23:00 CEST', null],
+        ['2026-10-16T19:00:00Z', '16 ott alle ore 21:00 - 20:00 CEST', null],
+        ['2026-10-16T19:00:00Z', '16 ott alle ore 21:00 - 23:00 CET', null],
+    ]) {
+        const event = parseEventNodes([header, details, {id, start_timestamp:Date.parse(start)/1000, day_time_sentence:label}],id);
+        assert.equal(event.ends_at,end,label);
+    }
+});
+
+test('preserves organizer URLs when another fragment omits them', () => {
+    const event = parseEventNodes([header,details,{id,event_hosts_that_can_view_guestlist:[{id:'a',name:'Primo',url:'https://www.facebook.com/primo'}],parent_if_exists_or_self:{event_accepted_cohosts:{nodes:[{id:'a',name:'Primo',url:null}]}}}],id);
+    assert.equal(event.hosts[0].url,'https://www.facebook.com/primo');
+});

@@ -57,7 +57,7 @@ final class EventFields
     public static function location(): Component
     {
         return Section::make(__('facebook_import.location'))
-            ->description(__('facebook_import.location_hint', ['address' => CurrentVenue::get()->address]))
+            ->description(fn (): string => __('facebook_import.location_hint', ['address' => CurrentVenue::get()->address]))
             ->schema([
                 TextInput::make('custom_location.address')->label(__('facebook_import.address'))
                     ->maxLength(255)->live(onBlur: true)
