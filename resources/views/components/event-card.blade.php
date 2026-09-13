@@ -92,6 +92,7 @@
 
 <article {{ $attributes->class([
     'event-card group relative flex h-full min-h-[252px] flex-col gap-[13px] overflow-hidden bg-canvas px-[22px] py-5 pl-[26px] transition-transform duration-300 ease-out-soft',
+    'event-card--no-poster' => ! $showPoster,
     'hover:-translate-y-[3px] hover:bg-accent/[0.055]' => $url !== null,
 ]) }}>
     {{-- La lastra: entra da sinistra al passaggio del puntatore. È l'unico
@@ -105,13 +106,13 @@
         </a>
     @endif
 
-    <div class="flex items-start justify-between gap-2.5">
+    <div class="event-card__category flex items-start justify-between gap-2.5">
         <span class="font-display text-[0.625rem] leading-none font-extrabold tracking-[0.1em] text-ink-subtle transition-colors group-hover:text-accent">
             {{ $index !== null ? str_pad((string) $index, 2, '0', STR_PAD_LEFT) : '' }}
         </span>
 
         @if ($category !== null)
-            <span class="ui-tag border-2 border-line px-2 py-[5px] font-display text-[0.594rem] leading-none font-extrabold tracking-[0.14em] whitespace-nowrap text-ink-muted uppercase transition-colors group-hover:border-accent group-hover:bg-accent group-hover:text-on-accent">
+            <span class="ui-tag border-2 border-line px-2 py-[5px] font-display text-[0.594rem] leading-none font-extrabold tracking-[0.14em] text-right text-ink-muted uppercase transition-colors group-hover:border-accent group-hover:bg-accent group-hover:text-on-accent">
                 {{ $category->name }}
             </span>
         @endif
@@ -127,7 +128,7 @@
         affiancarlo. Restano lo scorrimento del titolo e la lastra laterale,
         che di quel movimento sono la parte leggibile.
     --}}
-    <div class="relative pt-0.5">
+    <div class="event-card__title relative pt-0.5">
         <{{ $level }} class="relative m-0 font-display text-[clamp(1.188rem,1.55vw,1.563rem)] leading-[1.03] font-extrabold tracking-[-0.025em] text-balance text-ink uppercase transition-transform duration-300 ease-[cubic-bezier(.76,0,.24,1)] group-hover:translate-x-[9px]">
             @if ($url !== null)
                 <a
@@ -141,11 +142,14 @@
         </{{ $level }}>
     </div>
 
-    <div class="mb-auto flex flex-col gap-0.5">
+    <div class="event-card__venue">
         @if ($showVenue)
             <span class="text-[0.781rem] leading-[1.35] text-ink-subtle">{{ $venueLine }}</span>
         @endif
 
+    </div>
+
+    <div class="event-card__date">
         <time
             datetime="{{ $occurrence->is_all_day ? $formatter->isoDay($occurrence->business_date) : $formatter->iso($occurrence->starts_at) }}"
             class="font-display text-[0.688rem] leading-[1.3] font-extrabold tracking-[0.1em] text-ink/90 uppercase transition-[letter-spacing] duration-300 group-hover:tracking-[0.14em]"
@@ -154,6 +158,7 @@
         </time>
     </div>
 
+    <div class="event-card__details flex flex-col gap-3">
     @if ($stateLabel !== null || $highlight !== null || $distanceLabel !== null)
         <div class="flex flex-wrap items-center gap-x-3 gap-y-1 font-display text-[0.594rem] leading-none font-extrabold tracking-[0.14em] uppercase">
             @if ($stateLabel !== null)
@@ -186,7 +191,9 @@
         </div>
     @endif
 
-    <div class="flex items-center justify-between gap-2.5 border-t-2 border-line pt-3">
+    </div>
+
+    <div class="event-card__footer flex items-center justify-between gap-2.5 border-t-2 border-line pt-3">
         <span class="font-display text-base leading-none font-extrabold tracking-[-0.01em]">
             <x-price-tag :event="$event" />
         </span>

@@ -15,7 +15,7 @@
 --}}
 @props(['categories'])
 
-<div {{ $attributes->class(['grid [grid-template-columns:repeat(auto-fill,minmax(min(178px,100%),1fr))]']) }}>
+<div {{ $attributes->class(['category-grid grid [grid-template-columns:repeat(auto-fill,minmax(min(178px,100%),1fr))]']) }}>
     @foreach ($categories as $entry)
         @php $category = $entry['category']; @endphp
 
