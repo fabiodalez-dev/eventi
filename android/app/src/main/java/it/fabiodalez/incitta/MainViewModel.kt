@@ -504,6 +504,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         loadMap()
     }
 
+    suspend fun eventWeather(id: Long) = repository.eventWeather(id)
+
     suspend fun venueReviews(slug: String, page: Int) = repository.venueReviews(slug, page)
     suspend fun submitVenueReview(slug: String, rating: Int, body: String) = repository.submitVenueReview(slug, rating, body)
     suspend fun deleteVenueReview(slug: String) = repository.deleteVenueReview(slug)

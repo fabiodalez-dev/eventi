@@ -7,6 +7,7 @@ namespace App\Models;
 use App\Casts\AsAccessibilityProfile;
 use App\Casts\AsFacts;
 use App\Casts\AsTransitGuide;
+use App\Enums\ContactMode;
 use App\Enums\VenuePlan;
 use App\Enums\VenueRole;
 use App\Enums\VenueStatus;
@@ -40,6 +41,9 @@ use Spatie\Sluggable\SlugOptions;
  * latitudine prima — mentre il database riceve `POINT(lng lat)` con SRID 0,
  * perché la conversione la fa `Point::getWktData()`. Verificato in `docs/SCHEMA.md` §3.2.
  */
+/** @property ContactMode $contact_mode
+ * @property string|null $contact_email
+ */
 class Venue extends Model implements HasMedia
 {
     use HasEditorialContent;
@@ -57,7 +61,7 @@ class Venue extends Model implements HasMedia
     use SoftDeletes;
 
     /** @var list<string> */
-    protected $fillable = [
+    protected $fillable = ['contact_mode', 'contact_email',
         'city_id',
         'name',
         'slug',
@@ -299,7 +303,7 @@ class Venue extends Model implements HasMedia
             'type' => VenueType::class,
             'status' => VenueStatus::class,
             'plan' => VenuePlan::class,
-            'location' => Point::class,
+            'contact_mode' => ContactMode::class, 'location' => Point::class,
             'lat' => 'decimal:7',
             'lng' => 'decimal:7',
             'socials' => 'array',

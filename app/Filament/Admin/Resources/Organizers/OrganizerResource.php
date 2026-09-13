@@ -2,6 +2,7 @@
 
 namespace App\Filament\Admin\Resources\Organizers;
 
+use App\Filament\Support\ContactFields;
 use App\Filament\Support\DescriptionEditor;
 use App\Models\Organizer;
 use Filament\Actions\EditAction;
@@ -34,6 +35,7 @@ class OrganizerResource extends Resource
             Select::make('users')->label('Collaboratori: possono gestire tutti gli eventi di questo organizzatore')->relationship('users', 'email')->multiple()->searchable(),
             DescriptionEditor::make('description')->label('Descrizione')->maxLength(20000),
             TextInput::make('website')->label('Sito web')->url()->maxLength(2048),
+            ContactFields::make(),
             TextInput::make('email')->label('Email pubblica')->email()->maxLength(255),
             Toggle::make('is_active')->label('Attivo: profilo pubblico e accesso alla gestione')->default(false),
         ]);

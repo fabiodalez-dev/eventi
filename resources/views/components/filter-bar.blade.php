@@ -275,7 +275,7 @@
         </div>
     @endif
 
-    <details data-filter-key="advanced" @if ($filters->membership !== null || $filters->venue !== null || $filters->municipality !== null || $filters->zone !== null || $filters->access !== [] || $filters->from !== null || $filters->to !== null) open @endif class="bg-canvas border-2 border-line">
+    <details data-filter-key="advanced" @if ($filters->stroller || $filters->changingTable || $filters->kidsArea || $filters->age !== null || $filters->membership !== null || $filters->venue !== null || $filters->municipality !== null || $filters->zone !== null || $filters->access !== [] || $filters->from !== null || $filters->to !== null) open @endif class="bg-canvas border-2 border-line">
         <summary class="min-h-12 cursor-pointer list-none px-4 py-3 text-base font-semibold text-ink">
             {{ __('filters.advanced') }} <span aria-hidden="true">⌄</span>
             @if ($active > 0)
@@ -359,6 +359,10 @@
                     :value="$filters->venue"
                 />
 
+                @foreach (['stroller' => $filters->stroller, 'changing_table' => $filters->changingTable, 'kids_area' => $filters->kidsArea] as $field => $enabled)
+                    <label class="flex min-h-12 items-center gap-3"><input type="checkbox" name="{{ $field }}" value="1" @checked($enabled)>{{ __('family.'.$field) }}</label>
+                @endforeach
+                <x-field name="age" :label="__('family.title')" :options="\App\Enums\AgeGroup::options()" :placeholder-option="__('family.any')" :value="$filters->age?->value" />
                 <x-field name="membership" :label="__('filters.membership.label')" :options="\App\Enums\MembershipRequirement::options()" :placeholder-option="__('filters.membership.any')" :value="$filters->membership?->value" />
 
                 <x-field

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\DTOs;
 
 use App\Enums\AccessibilityFeature;
+use App\Enums\AgeGroup;
 use App\Enums\DatePreset;
 use App\Enums\EventSort;
 use App\Enums\MembershipRequirement;
@@ -55,6 +56,10 @@ final readonly class EventFilters
         public ?int $budget = null,
         public bool $discovery = false,
         public ?MembershipRequirement $membership = null,
+        public ?AgeGroup $age = null,
+        public bool $stroller = false,
+        public bool $changingTable = false,
+        public bool $kidsArea = false,
     ) {}
 
     /**
@@ -89,6 +94,10 @@ final readonly class EventFilters
             budget: isset($input['budget']) ? (int) $input['budget'] : null,
             discovery: self::flag($input['discovery'] ?? false),
             membership: self::enum(MembershipRequirement::class, $input['membership'] ?? null),
+            stroller: self::flag($input['stroller'] ?? null),
+            changingTable: self::flag($input['changing_table'] ?? null),
+            kidsArea: self::flag($input['kids_area'] ?? null),
+            age: self::enum(AgeGroup::class, $input['age'] ?? null),
         );
     }
 
@@ -123,6 +132,10 @@ final readonly class EventFilters
             'budget' => $this->budget === null ? null : (string) $this->budget,
             'discovery' => $this->discovery ? '1' : null,
             'membership' => $this->membership?->value,
+            'age' => $this->age?->value,
+            'stroller' => $this->stroller ? '1' : null,
+            'changing_table' => $this->changingTable ? '1' : null,
+            'kids_area' => $this->kidsArea ? '1' : null,
         ];
 
         return array_filter(
@@ -334,6 +347,10 @@ final readonly class EventFilters
             'budget' => $this->budget,
             'discovery' => $this->discovery,
             'membership' => $this->membership,
+            'age' => $this->age,
+            'stroller' => $this->stroller,
+            'changingTable' => $this->changingTable,
+            'kidsArea' => $this->kidsArea,
             ...$overrides,
         ];
 
@@ -355,7 +372,7 @@ final readonly class EventFilters
      * `date` porta sia i preset sia una data puntuale: `today` e `2026-09-05`
      * abitano lo stesso parametro perché per chi legge sono la stessa domanda.
      *
-     * @template T of DatePreset|PriceFilter|TimeOfDay|EventSort|MembershipRequirement
+     * @template T of AgeGroup|DatePreset|PriceFilter|TimeOfDay|EventSort|MembershipRequirement
      *
      * @param  class-string<T>  $enum
      * @return T|null

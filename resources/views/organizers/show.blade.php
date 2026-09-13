@@ -41,6 +41,8 @@
         <a class="underline" href="{{ \App\Support\SafeUrl::href($organizer->website) }}" rel="noopener noreferrer">{{ __('organizers.website') }}</a>
     @endif
 
+    <x-public-contact :target="$organizer" />
+
     <nav aria-label="{{ __('organizers.archive_label') }}" class="my-8 flex flex-wrap gap-4">
         <a class="ui-action min-h-12 border-2 border-line px-4 py-3 {{ ! $past ? 'bg-brand text-on-brand' : '' }}" @if (! $past) aria-current="page" @endif href="{{ route('organizers.show', $organizer) }}">{{ __('organizers.upcoming') }}</a>
         <a class="ui-action min-h-12 border-2 border-line px-4 py-3 {{ $past ? 'bg-brand text-on-brand' : '' }}" @if ($past) aria-current="page" @endif href="{{ route('organizers.show', [$organizer, 'past' => 1]) }}">{{ __('organizers.archive') }}</a>

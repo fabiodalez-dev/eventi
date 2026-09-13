@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Enums\AccessibilityFeature;
+use App\Enums\ContactMode;
 use App\Enums\TransitMode;
 use App\Filament\Venue\Pages\VenueProfile;
 use App\Models\EventFeature;
@@ -158,4 +159,17 @@ it('saves reusable practical catalogue features and free information for the ven
     $details = $this->venue->fresh()->content_details;
     expect($details['accessibility'])->toBe('no')->and($details['feature_ids'])->toBe([$feature->id])
         ->and(array_values($details['practical_custom'])[0]['label'])->toBe('Ingresso');
+});
+
+it('saves family defaults and contact preferences from the venue backend', function (): void {
+    Livewire::test(VenueProfile::class)->fillForm([
+        'address' => 'Via Roma 1', 'municipality' => 'Padova', 'zone' => 'Portello',
+        'content_details.age_groups' => ['3-5', '6-10'],
+        'content_details.stroller' => 'yes', 'content_details.changing_table' => 'yes', 'content_details.kids_area' => 'no',
+        'contact_mode' => 'members', 'contact_email' => 'private-contact@example.test',
+    ])->call('save')->assertHasNoErrors();
+    $venue = $this->venue->fresh();
+    expect($venue->content_details['age_groups'])->toBe(['3-5', '6-10'])
+        ->and($venue->contact_mode)->toBe(ContactMode::Members)
+        ->and($venue->contact_email)->toBe('private-contact@example.test');
 });

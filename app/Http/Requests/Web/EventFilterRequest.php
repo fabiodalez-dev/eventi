@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests\Web;
 
 use App\DTOs\EventFilters;
+use App\Enums\AgeGroup;
 use App\Enums\DatePreset;
 use App\Enums\EventSort;
 use App\Enums\MembershipRequirement;
@@ -41,6 +42,7 @@ class EventFilterRequest extends FormRequest
             'category' => ['nullable', 'string', 'max:255'],
             'tag' => ['nullable', 'string', 'max:255'],
             'price' => ['nullable', Rule::in(PriceFilter::values())],
+            'age' => ['nullable', Rule::enum(AgeGroup::class)],
             'membership' => ['nullable', Rule::enum(MembershipRequirement::class)],
             'time' => ['nullable', Rule::in(TimeOfDay::values())],
             'municipality' => ['nullable', 'string', 'max:120'],
@@ -53,6 +55,9 @@ class EventFilterRequest extends FormRequest
             'access' => ['nullable', 'string', 'max:255'],
             'outdoor' => ['nullable', 'boolean'],
             'family' => ['nullable', 'boolean'],
+            'stroller' => ['nullable', 'boolean'],
+            'changing_table' => ['nullable', 'boolean'],
+            'kids_area' => ['nullable', 'boolean'],
             'sort' => ['nullable', Rule::in(EventSort::values())],
             'q' => ['nullable', 'string', 'max:120'],
             'budget' => ['nullable', 'integer', 'min:0', 'max:10000'],
@@ -73,7 +78,7 @@ class EventFilterRequest extends FormRequest
             $this->query->remove('date');
         }
 
-        foreach (['membership' => array_column(MembershipRequirement::cases(), 'value'), 'price' => PriceFilter::values(), 'time' => TimeOfDay::values(), 'sort' => EventSort::values()] as $key => $allowed) {
+        foreach (['age' => array_column(AgeGroup::cases(), 'value'), 'membership' => array_column(MembershipRequirement::cases(), 'value'), 'price' => PriceFilter::values(), 'time' => TimeOfDay::values(), 'sort' => EventSort::values()] as $key => $allowed) {
             $value = $this->query($key);
 
             if (is_string($value) && ! in_array($value, $allowed, true)) {
@@ -110,7 +115,7 @@ class EventFilterRequest extends FormRequest
             )));
         }
 
-        foreach (['accessible', 'outdoor', 'family'] as $key) {
+        foreach (['accessible', 'outdoor', 'family', 'stroller', 'changing_table', 'kids_area'] as $key) {
             $value = $this->query($key);
 
             if ($value !== null && ! in_array((string) (is_scalar($value) ? $value : ''), ['0', '1', 'true', 'false'], true)) {
