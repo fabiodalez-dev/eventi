@@ -20,7 +20,7 @@ it('previews the imported photo and editable fields on desktop and mobile', func
     Process::fake(['*' => Process::result(output: $payload)]);
     $this->mock(HostResolver::class)->shouldReceive('resolve')->andReturn(['93.184.216.34']);
     $photo = UploadedFile::fake()->image('poster.jpg', 1200, 628);
-    Http::fake(['https://scontent.xx.fbcdn.net/*' => Http::response(file_get_contents($photo->getPathname()), 200, ['Content-Type' => 'image/jpeg'])]);
+    Http::fake(['https://www.facebook.com/events/*' => Http::response('<html><script type="application/json">{}</script></html>'), 'https://scontent.xx.fbcdn.net/*' => Http::response(file_get_contents($photo->getPathname()), 200, ['Content-Type' => 'image/jpeg'])]);
     $page = visit(EventResource::getUrl('create', panel: 'venue', tenant: $scenario->venueA))->on()->{$device}()
         ->fill('Hai già un evento su Facebook?', 'https://www.facebook.com/events/1078756118449684/')
         ->click('Carica dal link Facebook')

@@ -41,9 +41,9 @@ class FacebookEventImport
     }
 
     /** @param list<string> $arguments */
-    private function runScript(string $script, array $arguments = []): ProcessResult
+    private function runScript(string $script, array $arguments = [], ?string $input = null): ProcessResult
     {
-        return Process::timeout(55)->env([
+        return Process::timeout($script === 'check-runtime.mjs' ? 55 : 15)->input($input)->env([
             'FACEBOOK_IMPORT_BROWSER_CHANNEL' => config('import.facebook.browser_channel'),
             'LD_LIBRARY_PATH' => config('import.facebook.library_path'),
             'FACEBOOK_IMPORT_SINGLE_PROCESS' => config('import.facebook.single_process') ? '1' : '0',
@@ -52,11 +52,15 @@ class FacebookEventImport
         ])->run([config()->string('import.facebook.node_binary'), '--v8-pool-size=1', base_path('scripts/facebook/'.$script), ...$arguments]);
     }
 
-    public function checkRuntime(): void
+    public function checkRuntime(bool $browser = false): void
     {
-        $result = $this->runScript('check-runtime.mjs');
-        if (! $result->successful() || json_decode($result->output(), true) !== ['chromium' => true, 'javascript' => true]) {
-            throw new RuntimeException('Chromium non operativo: '.$result->errorOutput());
+        if (! $browser && (! extension_loaded('curl') || ! class_exists(\DOMDocument::class))) {
+            throw new RuntimeException('Il runtime HTTP richiede le estensioni PHP cURL e DOM.');
+        }
+        $result = $browser ? $this->runScript('check-runtime.mjs') : $this->runScript('parse-scripts.mjs', ['--check']);
+        $expected = $browser ? ['chromium' => true, 'javascript' => true] : ['http_parser' => true];
+        if (! $result->successful() || json_decode($result->output(), true) !== $expected) {
+            throw new RuntimeException(($browser ? 'Chromium' : 'Parser HTTP').' non operativo: '.$result->errorOutput());
         }
     }
 
@@ -69,7 +73,8 @@ class FacebookEventImport
             throw new RuntimeException('Un’importazione è già in corso. Riprova tra poco.');
         }
         try {
-            $result = $this->runScript('scrape-event.mjs', [$url]);
+            $scripts = app(FacebookHttpSource::class)->scripts($url);
+            $result = $this->runScript('parse-scripts.mjs', [$url], json_encode($scripts, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
         } finally {
             $lock->release();
         }
@@ -176,8 +181,10 @@ class FacebookEventImport
 
     public function photo(string $url): TemporaryUploadedFile
     {
-        $host = strtolower((string) parse_url($url, PHP_URL_HOST));
-        if (parse_url($url, PHP_URL_SCHEME) !== 'https' || ! str_ends_with($host, '.fbcdn.net') || parse_url($url, PHP_URL_PORT) !== null) {
+        $parts = parse_url($url);
+        $host = strtolower((string) ($parts['host'] ?? ''));
+        if (strlen($url) > 4096 || ! is_array($parts) || ($parts['scheme'] ?? '') !== 'https'
+            || isset($parts['user']) || isset($parts['pass']) || isset($parts['port']) || ! str_ends_with($host, '.fbcdn.net')) {
             throw new RuntimeException('La foto non proviene dal server immagini di Facebook.');
         }
         $address = $this->guard->resolvedAddress($url);

@@ -29,7 +29,7 @@ Confronto dei repository richiesti:
 | [artine-pton/facebook-events-lite-ppr](https://github.com/artine-pton/facebook-events-lite-ppr) | Il repository contiene README, senza il codice dello scraper descritto. |
 | [LuizinTheHeroSalyer/facebook-events-scraper](https://github.com/LuizinTheHeroSalyer/facebook-events-scraper) | Contiene archivi con eseguibili Windows/Lua; ispezionati gli elenchi, non eseguiti i binari. Non è un parser sorgente integrabile. |
 
-L’implementazione del progetto riprende l’approccio browser e lo rende specifico per l’ID richiesto: legge i frammenti JSON pubblici caricati dalla pagina, unisce soltanto quelli dell’evento selezionato e ignora i suggerimenti. Nessuna dipendenza dai quattro repository viene installata nel sito.
+L’implementazione iniziale usava un browser. Il percorso attuale scarica la pagina via HTTP in PHP e riutilizza il parser Node specifico per l’ID richiesto: legge i frammenti JSON pubblici caricati dalla pagina, unisce soltanto quelli dell’evento selezionato e ignora i suggerimenti. Nessuna dipendenza dai quattro repository viene installata nel sito.
 
 ## Secondo evento verificato
 
@@ -52,8 +52,8 @@ Facebook precompila indirizzo, nome del luogo e coordinate disponibili. Un avvis
 
 - Solo HTTPS e host d’ingresso `facebook.com`, `www.facebook.com`, `m.facebook.com`, `web.facebook.com`. Vietati credenziali nell’URL, porte esplicite, pagine non evento e domini somiglianti.
 - Dal link viene ricavato solo l’ID numerico: la navigazione usa un URL canonico costruito dal server. Query string e parametri di tracciamento non vengono inoltrati.
-- Browser temporaneo senza account, cookie personali o sessioni riutilizzate. Richieste e redirect limitati ai domini Meta necessari; immagini, font e video non vengono caricati dal browser.
-- Tre tentativi al minuto e trenta in 24 ore per account. Una sola estrazione browser contemporanea. Timeout browser 50 secondi e processo 55 secondi; lock rilasciato anche in caso di errore.
+- Download HTTP senza account o cookie, con User-Agent identificativo di inCittà e lingua italiana. Solo l’URL canonico Facebook; nessun redirect o proxy, DNS pubblico controllato e fissato alla connessione cURL. Gli script della pagina non vengono eseguiti: il parser legge soltanto JSON; nessun caricamento di risorse esterne dal documento.
+- Tre tentativi al minuto e trenta in 24 ore per account. Una sola estrazione contemporanea. Download entro 25 secondi e parser entro 15 secondi; lock rilasciato anche in caso di errore.
 - JSON di uscita massimo 1 MiB, dati JSON della pagina massimo 12 MiB; corrispondenza esatta fra ID richiesto e restituito, validazione tipi, date, lunghezze, coordinate e conteggi.
 - Foto solo HTTPS su `*.fbcdn.net`; nessun redirect, DNS pubblico verificato e indirizzo fissato alla connessione cURL. Limite di 12 MiB secondo la configurazione media e massimo 40 milioni di pixel, MIME verificato sui byte. Passaggio anche attraverso `RealImage` e la pipeline immagini esistente.
 - Nessuna shell costruita con input del locale: processo invocato con argomenti separati.
@@ -61,34 +61,33 @@ Facebook precompila indirizzo, nome del luogo e coordinate disponibili. Un avvis
 - Descrizioni salvate attraverso il sanitizzatore del rich editor; gli attributi del record, le relazioni, lo stato di pubblicazione e i vincoli restano quelli del wizard.
 - Fallimenti di lettura non producono record parziali. Dati mancanti non vengono inventati; una fine assente rimane assente e un prezzo non dichiarato non diventa “gratis”.
 
+## Percorso HTTP verificato il 14 settembre 2026
+
+Tutti i dieci eventi della presentazione sono stati letti nuovamente dal server condiviso con PHP/cURL e il parser Node, senza avviare un browser. Titoli, descrizioni integrali, date di inizio e coordinate coincidono con i risultati del browser; tutti gli organizzatori e le foto sono disponibili. La fine esplicita viene recuperata anche per Day Bau Day e Il Tempo di Berta.
+
+La richiesta identifica l’importatore come `inCitta-event-import/1.0 (+https://eventi.fabiodalez.it)` e usa `locale=it_IT`. Le risposte con User-Agent generico o imitazione del browser avevano restituito anteprime o errori: non bastava cambiare linguaggio. La risposta HTTP corretta contiene i frammenti JSON completi. Una sola anteprima OpenGraph rimane un errore, mai una descrizione sostitutiva.
+
+Il download e la verifica MIME/dimensioni delle dieci foto sono stati eseguiti dal servizio applicativo. Le immagini offerte dalla risposta HTTP arrivano fino a 960 pixel di larghezza in questa prova (una a 720), mentre il browser aveva ricevuto varianti più grandi: la risoluzione dipende dalla variante restituita da Facebook.
+
 ## Requisiti per il server
 
-Applicare la nuova migrazione `2026_09_13_220000_add_event_source_metadata` prima di usare il salvataggio di eventi importati.
+L’import richiede PHP con cURL e DOM e Node, indicato da `FACEBOOK_IMPORT_NODE_BINARY`. Il parser usa solo moduli standard di Node: per questo percorso non servono Python, Playwright o Chromium. La migrazione `2026_09_13_220000_add_event_source_metadata` deve essere applicata.
 
-Il processo PHP deve poter avviare Node.js e Playwright, già presente nelle dipendenze npm del progetto. Sul server mantenere disponibili il pacchetto `playwright` e il suo browser Chromium, anche dopo la compilazione degli asset:
+Al trasferimento del sito riconfigurare il percorso Node, verificare le estensioni PHP e la connettività HTTPS verso Facebook e il CDN delle foto. Eseguire `php artisan facebook:check` per i prerequisiti locali e il parser, poi un’importazione reale dal modulo. `deploy:verify` controlla questo runtime HTTP prima di riaprire il sito.
 
-```sh
-npx playwright install --with-deps chromium
-```
+La diagnostica browser resta esplicita: `php artisan facebook:check --browser` avvia davvero Chromium e fallisce se non esegue rendering e JavaScript. Il comando non è necessario per l’import HTTP. La CI continua a testarlo; sul vecchio hosting può fallire con `pthread_create: Resource temporarily unavailable` a causa delle restrizioni di risorse LVE.
 
-L’installazione deve usare la stessa utenza/cache accessibile dal worker PHP. `FACEBOOK_IMPORT_NODE_BINARY` permette di indicare il percorso assoluto di Node. In sviluppo, con Google Chrome installato, è possibile impostare `FACEBOOK_IMPORT_BROWSER_CHANNEL=chrome`. Il valore predefinito usa Chromium di Playwright. `FACEBOOK_IMPORT_LIBRARY_PATH` permette di indicare una directory di librerie native installate per l’utente del sito, senza modificare le librerie di sistema.
+Se occorre usare gli strumenti browser di ricerca, reinstallare Playwright/Chromium e le librerie native sul nuovo server. Il binario è nella cache dell’utente, non in Git. `FACEBOOK_IMPORT_CHROMIUM_BINARY`, `FACEBOOK_IMPORT_LIBRARY_PATH` e `FACEBOOK_IMPORT_SINGLE_PROCESS` riguardano soltanto questi strumenti. Non copiare alla cieca i percorsi dell’hosting precedente.
 
-Il test reale conferma il funzionamento per l’evento indicato al momento della prova. Eventi privati, restrizioni di Facebook o cambiamenti del markup possono impedire la lettura: il modulo manuale resta disponibile e l’importazione segnala l’errore.
-
-### Configurazione verificata sul server condiviso
-
-Node 24.13.0, Playwright 1.59.1 e Chromium headless shell 147.0.7727.15 (revisione 1217). Chromium è nella cache dell’utente, non nel repository. Due librerie native (`libatk-bridge-2.0.so.0`, `libatspi.so.0`) da pacchetti AlmaLinux 8 sono state estratte in una directory privata dell’utente, senza modificare il sistema.
-
-Su questo hosting il trasporto a pipe di Chromium non si avvia correttamente. `FACEBOOK_IMPORT_SINGLE_PROCESS=true` usa un processo Chromium temporaneo e una connessione CDP sulla sola interfaccia loopback, con profilo nuovo, porta casuale e chiusura/pulizia a fine richiesta. `FACEBOOK_IMPORT_CHROMIUM_BINARY` indica l’eseguibile. I limiti di URL, frequenza, dimensione e durata restano identici. Su un server normale usare la modalità Playwright standard.
-
-**Al trasferimento del sito questi percorsi e prerequisiti vanno riconfigurati.** Eseguire `php artisan facebook:check` nell’ambiente dell’utenza PHP: avvia il browser e verifica rendering ed esecuzione JavaScript. Esce con codice diverso da zero per binario mancante, librerie mancanti, crash o mancata esecuzione. Anche `deploy:verify` lo esegue prima di dichiarare riuscito il rilascio; la CI esegue una prova reale. Confermare inoltre un’importazione dal modulo, perché l’accesso a Facebook dipende anche dalla rete del server.
+Eventi privati, restrizioni della sorgente o cambiamenti del formato possono impedire la lettura anche senza browser: il modulo manuale resta disponibile e non vengono inventati dati mancanti.
 
 ## Test
 
 ```sh
 php artisan facebook:check
+php artisan facebook:check --browser # diagnostica facoltativa sul server
 node --test tests/Unit/Facebook/event-parser.test.mjs
-php vendor/bin/pest tests/Feature/Venue/FacebookImportTest.php tests/Feature/Venue/EventWizardTest.php tests/Feature/Venue/EventLocationOverrideTest.php tests/Feature/Import
+php vendor/bin/pest tests/Feature/Venue/FacebookHttpImportTest.php tests/Feature/Venue/FacebookImportTest.php tests/Feature/Venue/EventWizardTest.php tests/Feature/Venue/EventLocationOverrideTest.php tests/Feature/Import
 php vendor/bin/pest --configuration=phpunit.browser.xml tests/Browser/FacebookImportTest.php
 php vendor/bin/phpstan analyse --memory-limit=1G --no-progress
 ```
