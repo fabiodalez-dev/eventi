@@ -28,5 +28,6 @@ export async function eventWeather() {
             section.hidden = false;
             status.hidden = true;
         } catch { status.textContent = section.dataset.failure; }
+        finally { section.dataset.weatherLoaded = "true"; }
     }
 }

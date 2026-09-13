@@ -35,6 +35,7 @@ it('keeps the whole weather section hidden when the provider fails', function ()
     Http::fake(['*' => Http::response([], 503)]);
     $page = visit('/eventi/'.$date->event->slug.'/'.$date->url_number)->on()->mobile()
         ->click('[data-consent-banner] button[value="reject_all"]');
+    $page->assertAttribute('[data-event-weather]', 'data-weather-loaded', 'true');
     expect($page->script('document.querySelector("[data-event-weather]").hidden'))->toBeTrue();
     $page->assertDontSee(__('weather.failure'))->assertNoJavascriptErrors();
 });
