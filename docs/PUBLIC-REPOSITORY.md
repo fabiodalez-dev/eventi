@@ -1,5 +1,17 @@
 # Repository pubblico e CI GitHub
 
+Il 7 settembre 2026 il proprietario ha richiesto il ritorno di **tutte** le CI
+ai runner GitHub. Audit di 37 repository, rami principali e PR aperte: le sole
+migrazioni ancora attive erano Pinakes #417 e FAZ Cookie #274, ora ripristinate
+su runner standard GitHub anche per le release. Le PR e i test restano su
+GitHub; non viene creata alcuna release da questa modifica. Il controller
+`fabio-ci-controller` sul server è fermo e disabilitato all'avvio; non riattivarlo.
+I timer di backup e le copie private GitLab restano operativi.
+
+I repository privati non cambiano visibilità: i loro eventuali job ospitati da
+GitHub consumano la quota dell'account. Il budget a zero resta invariato, senza
+fallback automatico al server. Per eventi pubblico si usano runner standard.
+
 GitHub rimane la fonte principale per codice, PR, issue, discussion, release,
 check, log e artefatti. I job CI usano runner standard GitHub Ubuntu e i tre
 shard Laravel tornano a essere paralleli. Il deploy usa Ubuntu ARM per il
