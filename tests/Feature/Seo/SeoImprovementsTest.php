@@ -19,6 +19,7 @@ it('keeps pagination canonical and strips marketing parameters on taxonomy pages
 
 it('does not invent event end times and does not advertise cancelled tickets as available', function (): void {
     $city = testCity();
+    freezeLocal($city, '2026-09-01 12:00');
     $category = testCategory();
     $date = occurrenceAtLocal($city, $category, '2026-09-12 21:30', event: ['price_type' => PriceType::Free],
         occurrence: ['ends_at' => null, 'status' => OccurrenceStatus::Cancelled]);

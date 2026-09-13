@@ -42,6 +42,7 @@ use App\Http\Controllers\Web\Account\NotificationInterestsController;
 use App\Http\Controllers\Web\Account\SavedCalendarController;
 use App\Http\Controllers\Web\OrganizerController;
 use App\Http\Controllers\Web\TonightController;
+use App\Http\Controllers\Web\VenueReviewController;
 use App\Http\Middleware\Api\CacheJsonResponse;
 use App\Http\Middleware\Api\IdempotentRequest;
 use App\Http\Middleware\Api\ResolveApiCity;
@@ -83,6 +84,10 @@ Route::prefix('v1')
     ->middleware(ResolveApiCity::class)
     ->name('api.v1.')
     ->group(function (): void {
+
+        Route::get('/venues/{slug}/reviews', [VenueReviewController::class, 'index'])->name('venues.reviews');
+        Route::post('/venues/{slug}/reviews', [VenueReviewController::class, 'store'])->middleware(['auth:sanctum', 'throttle:10,60']);
+        Route::delete('/venues/{slug}/reviews', [VenueReviewController::class, 'destroy'])->middleware(['auth:sanctum', 'throttle:10,60']);
 
         // Deliberately outside the JSON cache: switches and short ad leases must stay live.
         Route::get('/sponsorships/banner', SponsorshipBannerController::class)->name('sponsorships.banner');

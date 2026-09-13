@@ -74,7 +74,7 @@
                 :link-label="__('search.all_venues', ['query' => $term])"
             />
 
-            <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div class="grid gap-4 md:gap-6 sm:grid-cols-2 lg:grid-cols-4">
                 @foreach ($venues as $venue)
                     <x-venue-card :venue="$venue" />
                 @endforeach

@@ -161,6 +161,7 @@
                     <x-pagination :paginator="$archive" />
                 </section>
             @endif
+            <x-venue-reviews :venue="$venue" :reviews="$reviews" />
         </div>
 
         <aside class="flex min-w-0 flex-col gap-6">

@@ -70,7 +70,7 @@
                         :sponsorship="$sponsorship"
                         :occurrence="$sponsoredOccurrence"
                         :show-poster="true"
-                        class="border-b-2 border-line"
+                        class="mb-4 border-b-2 border-line md:mb-6"
                         level="h2"
                     />
                 @endif

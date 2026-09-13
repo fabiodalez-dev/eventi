@@ -11,6 +11,7 @@ use App\Models\Follow;
 use App\Models\NotificationLog;
 use App\Models\SavedEvent;
 use App\Models\User;
+use App\Models\VenueReview;
 use App\Support\Api\ApiDate;
 use Illuminate\Notifications\DatabaseNotification;
 
@@ -52,6 +53,7 @@ final class AccountExport
                 'marketing_opt_in_at' => ApiDate::instant($user->marketing_opt_in_at, $timezone),
                 'created_at' => ApiDate::attribute($user, 'created_at', $timezone),
             ],
+            'venue_reviews' => VenueReview::query()->where('user_id', $user->id)->get(['venue_id', 'rating', 'body', 'status', 'created_at', 'updated_at'])->toArray(),
             'saved_events' => $user->savedEvents()
                 ->with('occurrence.event')
                 ->get()

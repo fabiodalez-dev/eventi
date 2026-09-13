@@ -155,24 +155,21 @@ fun CompleteEventDetailScreen(
             }
             Column(Modifier.fillMaxSize().verticalScroll(scrollState)) {
                 val posterUrl = detail.poster?.full ?: detail.poster?.card
-                key(detail.id) {
-                    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        EventPoster(
-                            url = posterUrl,
-                            revealKey = detail.id,
-                            modifier = Modifier.width(240.dp).height(320.dp),
-                            onClick = { posterLightbox = true },
-                        )
+                Box(Modifier.fillMaxWidth().heightIn(min = 440.dp)) {
+                    PosterImage(posterUrl, Modifier.matchParentSize())
+                    Box(Modifier.matchParentSize().background(androidx.compose.ui.graphics.Brush.verticalGradient(listOf(Color(0x18171412), Color(0xEB171412)))))
+                    Column(Modifier.fillMaxWidth().heightIn(min = 440.dp).padding(24.dp), verticalArrangement = Arrangement.Bottom) {
+                        Text(detail.category?.name.orEmpty(), color = Color(0xFFEDE7DF))
+                        detail.occurrences.firstOrNull()?.let { Text("${shortDate(it.startsAt)} · ${clock(it.startsAt)}", color = Color(0xFFEDE7DF), modifier = Modifier.padding(top = 10.dp)) }
+                        Text(detail.title, color = Color(0xFFFAF8F4), style = MaterialTheme.typography.displayMedium, modifier = Modifier.padding(top = 10.dp))
+                        detail.venue?.let { venue -> Text(venue.name, color = Color(0xFFEDE7DF), style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 12.dp).heightIn(min = 48.dp).clickable { onVenue(venue) }) }
+                        detail.subtitle?.takeIf(String::isNotBlank)?.let { Text(it, color = Color(0xFFEDE7DF)) }
                     }
                 }
-                Column(Modifier.padding(18.dp)) {
-                    Eyebrow(detail.category?.name ?: "EVENTO")
-                    Text(detail.title.uppercase(), style = androidx.compose.material3.MaterialTheme.typography.displayMedium)
-                    detail.subtitle?.takeIf(String::isNotBlank)?.let {
-                        Text(it, color = Muted, style = androidx.compose.material3.MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 8.dp))
-                    }
-                    if (detail.verificationStatus != null) {
-                        Text("INFORMAZIONI VERIFICATE", color = Acid, style = androidx.compose.material3.MaterialTheme.typography.labelMedium, modifier = Modifier.padding(top = 12.dp))
+                if (posterUrl != null) {
+                    DetailSection("LOCANDINA") {
+                        EventPoster(posterUrl, detail.id, Modifier.fillMaxWidth(), naturalAspect = true, onClick = { posterLightbox = true })
+                        Text("Tocca per vedere la locandina a schermo intero.", modifier = Modifier.padding(top = 8.dp), style = MaterialTheme.typography.bodySmall)
                     }
                 }
 
@@ -357,6 +354,9 @@ private fun OccurrenceDateBlock(detail: EventDetail, occurrence: Occurrence, sav
 @Composable
 fun VenueDetailScreen(
     venue: Venue,
+    loadReviews: suspend (Int) -> it.fabiodalez.incitta.data.VenueReviewPage,
+    submitReview: suspend (Int, String) -> Unit,
+    deleteReview: suspend () -> Unit,
     events: List<Occurrence>,
     pastEvents: List<Occurrence>,
     savedIds: Set<Long>,
@@ -431,6 +431,7 @@ fun VenueDetailScreen(
                         venue.info.forEach { LabeledValue(it.label, it.value) }
                     }
                 }
+                VenueReviewsSection(venue.slug.orEmpty(), session?.user?.id, onLogin, loadReviews, submitReview, deleteReview)
                 DetailSection("TUTTI GLI EVENTI") {
                     if (events.isEmpty()) Text("Nessun evento futuro in calendario.", color = Muted)
                     events.forEach { event -> CompactEventRow(event, event.occurrenceId in savedIds, onOpenEvent, onSave) }
@@ -889,17 +890,7 @@ private fun DetailSection(title: String, content: @Composable () -> Unit) {
 
 @Composable
 private fun CompactEventRow(event: Occurrence, saved: Boolean, onOpen: (Occurrence) -> Unit, onSave: (Long) -> Unit) {
-    Row(Modifier.fillMaxWidth().height(104.dp).clickable { onOpen(event) }, verticalAlignment = Alignment.CenterVertically) {
-        PosterImage(event.poster?.card ?: event.poster?.full ?: event.poster?.thumb, Modifier.width(72.dp).height(96.dp))
-        Column(Modifier.weight(1f).padding(horizontal = 12.dp, vertical = 12.dp)) {
-            Text("${shortDate(event.startsAt)} · ${if (event.isAllDay) "TUTTO IL GIORNO" else clock(event.startsAt)}", color = Acid, style = androidx.compose.material3.MaterialTheme.typography.labelMedium)
-            Text(event.title.uppercase(), style = androidx.compose.material3.MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
-        }
-        IconButton(onClick = { onSave(event.occurrenceId) }, modifier = Modifier.background(if (saved) Acid else Ink)) {
-            Icon(if (saved) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder, if (saved) "Rimuovi" else "Salva", tint = if (saved) Ink else Paper)
-        }
-    }
-    HorizontalDivider(color = Rule)
+    EventRow(event, saved, onOpen, onSave)
 }
 
 @Composable
@@ -912,7 +903,8 @@ private fun RichImage(url: String?, modifier: Modifier, contentScale: ContentSca
 }
 
 @Composable
-private fun EventPoster(url: String?, revealKey: Any, modifier: Modifier, onClick: () -> Unit) {
+private fun EventPoster(url: String?, revealKey: Any, modifier: Modifier, naturalAspect: Boolean = false, onClick: () -> Unit) {
+    var naturalRatio by remember(url, revealKey) { mutableStateOf(3f / 4f) }
     var loaded by remember(url, revealKey) { mutableStateOf(false) }
     var revealColor by remember(url, revealKey) { mutableStateOf(false) }
     LaunchedEffect(loaded, url, revealKey) {
@@ -927,7 +919,7 @@ private fun EventPoster(url: String?, revealKey: Any, modifier: Modifier, onClic
         label = "poster-color-reveal",
     )
     val matrix = remember(saturation) { ColorMatrix().apply { setToSaturation(saturation) } }
-    Box(modifier.background(MaterialTheme.colorScheme.surfaceVariant).clipToBounds().clickable(enabled = url != null, onClick = onClick)) {
+    Box(modifier.then(if (naturalAspect) Modifier.aspectRatio(naturalRatio) else Modifier).clipToBounds().clickable(enabled = url != null, onClick = onClick)) {
         if (url != null) {
             AsyncImage(
                 model = url,
@@ -935,7 +927,7 @@ private fun EventPoster(url: String?, revealKey: Any, modifier: Modifier, onClic
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Fit,
                 colorFilter = ColorFilter.colorMatrix(matrix),
-                onSuccess = { loaded = true },
+                onSuccess = { loaded = true; val size = it.painter.intrinsicSize; if (size.width > 0 && size.height > 0) naturalRatio = size.width / size.height },
             )
         } else {
             Text("IN CITTÀ", color = Acid, modifier = Modifier.align(Alignment.Center), style = androidx.compose.material3.MaterialTheme.typography.titleLarge)

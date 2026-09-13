@@ -98,6 +98,17 @@ class AppRepository(context: Context) {
             _session.value?.token,
         ).data
 
+    suspend fun venueReviews(slug: String, page: Int = 1): VenueReviewPage =
+        api.get<ApiEnvelope<VenueReviewPage>>("venues/${slug.urlEncoded()}/reviews?page=$page", _session.value?.token).data
+
+    suspend fun submitVenueReview(slug: String, rating: Int, body: String) {
+        api.post<ApiEnvelope<ApiMessage>, VenueReviewBody>("venues/${slug.urlEncoded()}/reviews", VenueReviewBody(rating, body.trim()), requireNotNull(_session.value?.token))
+    }
+
+    suspend fun deleteVenueReview(slug: String) {
+        api.delete<ApiEnvelope<ApiMessage>>("venues/${slug.urlEncoded()}/reviews", requireNotNull(_session.value?.token))
+    }
+
     suspend fun venues(): List<Venue> =
         api.get<ApiEnvelope<List<Venue>>>("venues?city=padova", _session.value?.token).data
 
