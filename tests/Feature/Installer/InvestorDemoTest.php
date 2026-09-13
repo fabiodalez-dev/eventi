@@ -2,6 +2,7 @@
 
 use App\Console\Commands\InvestorDemoCommand;
 use App\Enums\VenueType;
+use App\Models\Category;
 use App\Models\Event;
 use App\Models\Venue;
 use Database\Seeders\CategorySeeder;
@@ -38,10 +39,10 @@ it('rejects missing local venues before writing any event', function () {
 
 it('ships real image files with complete source attribution for all categories', function () {
     $credits = json_decode(file_get_contents(database_path('seeders/investor-media/credits.json')), true);
-    expect($credits)->toHaveCount(14);
+    expect(array_keys($credits))->toContain(...Category::pluck('slug')->all());
     foreach ($credits as $credit) {
         expect(getimagesize(database_path('seeders/investor-media/'.$credit['file'])))->not->toBeFalse()
-            ->and($credit['source'])->toStartWith('https://commons.wikimedia.org/')
+            ->and(parse_url($credit['source'], PHP_URL_HOST))->toBeIn(['commons.wikimedia.org', 'images.unsplash.com'])
             ->and($credit['author'])->not->toBeEmpty()
             ->and($credit['license'])->not->toBeEmpty();
     }

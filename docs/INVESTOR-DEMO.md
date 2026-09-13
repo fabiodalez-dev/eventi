@@ -11,3 +11,26 @@ Per importarlo: `php -d memory_limit=512M artisan events:investor-demo padova`; 
 - Nessuna dipendenza Faker o API esterna durante l'importazione. Le immagini e il catalogo sono versionati; lo script di acquisizione non fa parte del deploy operativo.
 
 Gli eventi sono disponibili anche all'app Android attraverso le API esistenti: non occorre ricompilare l'APK per aggiornare il catalogo.
+
+## Presentazione settembre 2026
+
+`events:presentation-demo padova --dry-run` mostra l’ambito senza scrivere.
+Dopo il backup, `events:presentation-demo padova --new=168 --reservations --allow-production`
+arricchisce tutte le schede pubblicate della città e aggiunge 168 appuntamenti
+nelle due settimane da domani. Non resetta il database e non cambia account,
+password, date o condizioni delle prenotazioni già esistenti.
+
+Il profilo dimostrativo copre informazioni pratiche, famiglie, tessera,
+accessibilità, servizi, attività all’aperto e meteo, prezzi interi/ridotti,
+prenotazioni gratuite o con pagamento all’ingresso, capienza limitata/illimitata,
+lista d’attesa, biglietti nominativi/QR e programmi. La lista d’attesa usa solo
+le identità demo già presenti e non invia notifiche. Tutti gli eventi restano
+marcati `is_demo` per non indicizzarli come annunci reali.
+
+Le descrizioni non mostrano fonti o collegamenti fotografici. La provenienza
+rimane nel file tecnico `credits.json` e nei metadati delle immagini. Le foto
+sono selezionate per categoria e, per disegno e musica acustica, per argomento.
+I poster sostituiti restano nella raccolta `presentation-previous-posters` con
+i relativi file. L’import è ripetibile: conserva identità, nuove date già create
+e prenotazioni, e non aggiunge copie delle stesse foto o degli stessi eventi.
+`--skip-images` permette verifiche dati senza elaborazione fotografica.
