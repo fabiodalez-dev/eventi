@@ -94,3 +94,5 @@ php vendor/bin/phpstan analyse --memory-limit=1G --no-progress
 ```
 
 Le fixture automatiche sono sintetiche: non copiano la descrizione o la foto dell’evento reale. Copertura: identità dell’evento, suggerimenti estranei, URL, dati mancanti, fusi/DST, foto, errori HTTP, DNS privati, redirect, limiti, permessi, metadati bloccati, sanitizzazione, nessun record prima del salvataggio, correzioni manuali e anteprima browser desktop/mobile.
+
+Quando Facebook restituisce un luogo con nome e coordinate ma senza via (per esempio i Giardini dell’Arena), il modulo usa quel nome come riferimento del luogo e conserva il punto sulla mappa. Mostra lo stesso avviso di sostituzione; il locale può precisare o svuotare il campo. Un nome privo sia di indirizzo sia di coordinate non sostituisce la sede.

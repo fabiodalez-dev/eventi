@@ -115,6 +115,19 @@ class FacebookEventImport
         return $data;
     }
 
+    /** @param array<string, mixed> $data */
+    public static function locationAddress(array $data): ?string
+    {
+        $place = $data['venue'] ?? [];
+        if (filled($place['address'] ?? null)) {
+            return $place['address'];
+        }
+
+        // Facebook may identify a park or square only by its name and map pin.
+        return filled($place['name'] ?? null) && isset($place['latitude'], $place['longitude'])
+            ? $place['name'] : null;
+    }
+
     /** @param array<string, mixed> $data
      * @return array<string, mixed>
      */
@@ -135,10 +148,10 @@ class FacebookEventImport
                 $fields[$dateField] = CarbonImmutable::parse($data[$dateField])->setTimezone($timezone)->format('Y-m-d H:i');
             }
         }
-        if (! empty($data['venue']['address'])) {
+        if (($address = self::locationAddress($data)) !== null) {
             $fields['custom_location'] = [
                 'name' => $data['venue']['name'] ?? null,
-                'address' => $data['venue']['address'],
+                'address' => $address,
                 'lat' => $data['venue']['latitude'] ?? null,
                 'lng' => $data['venue']['longitude'] ?? null,
             ];

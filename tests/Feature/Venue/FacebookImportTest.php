@@ -209,3 +209,21 @@ it('rejects an import without its Facebook title', function (): void {
     Livewire::test(CreateEvent::class)->fillForm(['title' => 'Titolo manuale', 'facebook_url' => $this->payload['url']])
         ->call('importFacebook')->assertNotified('Importazione non riuscita')->assertFormSet(['title' => 'Titolo manuale']);
 });
+
+it('keeps a Facebook map pin without a street and warns before overriding the venue', function (): void {
+    $this->payload['venue']['address'] = null;
+    $this->payload['venue']['name'] = "Giardini dell'Arena, Padova PD, Italia";
+    $this->payload['cover'] = null;
+    Process::fake(['*' => Process::result(output: json_encode($this->payload))]);
+    $page = Livewire::test(CreateEvent::class)->fillForm(['facebook_url' => $this->payload['url']])
+        ->call('importFacebook')
+        ->assertFormSet(['custom_location.address' => $this->payload['venue']['name'], 'custom_location.lat' => 45.42, 'custom_location.lng' => 11.87])
+        ->assertSee('Controlla il luogo prima di salvare');
+    $page->fillForm(['custom_location.address' => ''])->assertDontSee('Controlla il luogo prima di salvare');
+});
+
+it('does not replace the venue with an unlocated Facebook place name', function (): void {
+    $this->payload['venue']['address'] = null;
+    $this->payload['venue']['latitude'] = null;
+    expect(app(FacebookEventImport::class)->formData($this->payload, 'Europe/Rome'))->not->toHaveKey('custom_location');
+});

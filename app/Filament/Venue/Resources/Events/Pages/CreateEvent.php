@@ -234,8 +234,8 @@ class CreateEvent extends CreateRecord
                         ->visible(fn (): bool => $this->facebookImport !== []),
                     TextEntry::make('facebook_location_warning')
                         ->label(__('facebook_import.location_warning'))
-                        ->state(fn (): string => __('facebook_import.location_warning_hint', ['address' => $this->facebookImport['venue']['address'] ?? '']))
-                        ->visible(fn (): bool => filled($this->facebookImport['venue']['address'] ?? null) && ($this->data['custom_location']['address'] ?? null) === $this->facebookImport['venue']['address']),
+                        ->state(fn (): string => __('facebook_import.location_warning_hint', ['address' => FacebookEventImport::locationAddress($this->facebookImport) ?? '']))
+                        ->visible(fn (): bool => filled(FacebookEventImport::locationAddress($this->facebookImport)) && ($this->data['custom_location']['address'] ?? null) === FacebookEventImport::locationAddress($this->facebookImport)),
                     EventFields::poster(previewTemporary: true)->key('imported-poster'),
                     EventFields::title(),
                     EventFields::location(),
