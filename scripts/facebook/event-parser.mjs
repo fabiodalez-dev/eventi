@@ -73,6 +73,11 @@ export function parseEventNodes(nodes, id) {
     };
     const place = event.event_place;
     const cover = event.cover_media_renderer?.cover_photo?.photo;
+    const coverArea = candidate => Number.isFinite(candidate?.width) && Number.isFinite(candidate?.height)
+        && candidate.width > 0 && candidate.height > 0 ? candidate.width * candidate.height : 0;
+    const coverImage = [cover?.full_image, cover?.viewer_image, cover?.image]
+        .filter(candidate => candidate && cleanUrl(candidate.uri) && coverArea(candidate) <= 40000000)
+        .sort((a, b) => coverArea(b) - coverArea(a))[0];
     const hostMap = new Map();
     for (const host of [
         ...(event.event_hosts_that_can_view_guestlist ?? []),
@@ -92,7 +97,7 @@ export function parseEventNodes(nodes, id) {
         date_label: event.day_time_sentence ?? event.start_time_formatted ?? null,
         is_online: event.is_online ?? false, is_cancelled: event.is_canceled ?? false,
         frequency: event.parent_if_exists_or_self?.event_frequency ?? null,
-        cover: cover?.full_image ? { ...cover.full_image, url: cleanUrl(cover.full_image.uri), caption: cover.accessibility_caption ?? null } : null,
+        cover: coverImage ? { ...coverImage, url: cleanUrl(coverImage.uri), caption: cover.accessibility_caption ?? null } : null,
         venue: place ? { id: place.id ?? null, name: place.name ?? place.contextual_name, address: event.one_line_address ?? place.address?.full_address ?? null, latitude: place.location?.latitude ?? null, longitude: place.location?.longitude ?? null, url: cleanUrl(place.url) } : null,
         hosts: hosts.map(host => ({ id: host.id, name: host.name, url: cleanUrl(host.url) })),
         ticket_url: cleanUrl(event.event_buy_ticket_url), price_info: event.price_info ?? event.event_price_and_duration_context_row_info ?? null,

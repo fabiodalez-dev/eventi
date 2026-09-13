@@ -32,7 +32,9 @@ it('imports complete Unicode data through HTTP and the real parser without a bro
         ->and($data['venue']['latitude'])->toBe(45.42)
         ->and($data['cover']['url'])->toBe('https://scontent.xx.fbcdn.net/poster.jpg');
     Http::assertSent(fn (Request $request): bool => $request->url() === $this->url.'?locale=it_IT'
-        && $request->hasHeader('User-Agent', 'inCitta-event-import/1.0 (+https://eventi.fabiodalez.it)'));
+        && $request->hasHeader('User-Agent', 'inCitta-event-import/1.0 (+https://eventi.fabiodalez.it)')
+        && $request->hasHeader('DPR', '3')
+        && $request->hasHeader('Accept', 'text/html,application/xhtml+xml'));
     Http::assertSentCount(1);
 });
 

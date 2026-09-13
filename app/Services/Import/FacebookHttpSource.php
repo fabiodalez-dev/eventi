@@ -28,6 +28,7 @@ final class FacebookHttpSource
             'User-Agent' => 'inCitta-event-import/1.0 (+https://eventi.fabiodalez.it)',
             'Accept-Language' => 'it-IT,it;q=0.9',
             'Accept' => 'text/html,application/xhtml+xml',
+            'DPR' => '3',
         ])->setHandler(new CurlHandler)->withOptions([
             'proxy' => '', 'allow_redirects' => false, 'cookies' => false,
             'sink' => new BoundedStream(self::MAX_BYTES),
