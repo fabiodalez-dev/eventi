@@ -2,4 +2,8 @@
     <string name="map_filters_open">Filtra gli eventi sulla mappa ⌄</string>
     <string name="map_filters_close">Torna alla mappa ⌃</string>
     <string name="app_name">inCittà</string>
+    <string name="event_share">Condividi evento</string>
+    <string name="event_share_whatsapp">Condividi su WhatsApp</string>
+    <string name="event_share_telegram">Condividi su Telegram</string>
+    <string name="event_share_email">Condividi via email</string>
 </resources>

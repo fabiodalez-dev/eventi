@@ -8,6 +8,7 @@ use App\Services\Search\EventFinder;
 use App\Services\Seo\EditorialContent;
 use App\Services\Weather\EventWeather;
 use App\Support\BeforeGoingDefaults;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Http;
 
 beforeEach(function (): void {
@@ -63,4 +64,40 @@ it('does not invent forecasts for past distant missing or failed forecasts', fun
     $date = occurrenceAtLocal($this->city, $this->category, '2026-09-15 18:00');
     expect($service->forOccurrence($date)['available'])->toBeFalse();
     $this->getJson('/api/v1/occurrences/999999/weather')->assertNotFound();
+});
+
+it('uses hourly temperatures at the event start without extrapolating missing data', function (string $start, array $hours, array $temperatures, ?float $expected, bool $estimated): void {
+    $timestamp = static fn (string $time): int => CarbonImmutable::parse($time, 'Europe/Rome')->getTimestamp();
+    Http::fake(['api.open-meteo.com/*' => Http::response([
+        'daily' => ['time' => [$timestamp('2026-09-15 00:00')], 'weather_code' => [0], 'temperature_2m_min' => [10], 'temperature_2m_max' => [25]],
+        'hourly' => ['time' => array_map($timestamp, $hours), 'temperature_2m' => $temperatures],
+    ])]);
+    $date = occurrenceAtLocal($this->city, $this->category, '2026-09-15 '.$start);
+    $data = app(EventWeather::class)->forOccurrence($date);
+    expect($data)->toMatchArray(['available' => true, 'temperature_at_start' => $expected, 'temperature_estimated' => $estimated, 'start_time' => $start, 'temperature_min' => 10.0, 'temperature_max' => 25.0]);
+    Http::assertSent(fn ($request): bool => $request['hourly'] === 'temperature_2m' && $request['timeformat'] === 'unixtime');
+})->with([
+    'exact hour' => ['18:00', ['2026-09-15 18:00', '2026-09-15 19:00'], [20, 18], 20.0, false],
+    'half hour' => ['18:30', ['2026-09-15 18:00', '2026-09-15 19:00'], [20, 18], 19.0, true],
+    'midnight boundary' => ['23:30', ['2026-09-15 23:00', '2026-09-16 00:00'], [16, 14], 15.0, true],
+    'zero degrees' => ['18:00', ['2026-09-15 18:00'], [0], 0.0, false],
+    'missing next reading' => ['18:30', ['2026-09-15 18:00', '2026-09-15 19:00'], [20, null], null, false],
+    'gap' => ['18:30', ['2026-09-15 18:00', '2026-09-15 20:00'], [20, 16], null, false],
+    'outside range' => ['20:30', ['2026-09-15 18:00', '2026-09-15 19:00'], [20, 18], null, false],
+    'daily only' => ['18:30', [], [], null, false],
+]);
+
+it('keeps repeated daylight saving hours distinct in the shared forecast cache', function (): void {
+    freezeLocal($this->city, '2026-10-24 12:00');
+    $firstHour = CarbonImmutable::parse('2026-10-25T02:00:00+02:00')->timestamp;
+    Http::fake(['api.open-meteo.com/*' => Http::response([
+        'daily' => ['time' => [CarbonImmutable::parse('2026-10-25T00:00:00+02:00')->timestamp], 'weather_code' => [0]],
+        'hourly' => ['time' => [$firstHour, $firstHour + 3600, $firstHour + 7200], 'temperature_2m' => [12, 10, 8]],
+    ])]);
+    $date = occurrenceAtLocal($this->city, $this->category, '2026-10-25 02:30');
+    $date->starts_at = CarbonImmutable::createFromTimestampUTC($firstHour + 1800);
+    expect(app(EventWeather::class)->forOccurrence($date))->toMatchArray(['start_time' => '02:30', 'temperature_at_start' => 11.0]);
+    $date->starts_at = CarbonImmutable::createFromTimestampUTC($firstHour + 5400);
+    expect(app(EventWeather::class)->forOccurrence($date))->toMatchArray(['start_time' => '02:30', 'temperature_at_start' => 9.0]);
+    Http::assertSentCount(1);
 });

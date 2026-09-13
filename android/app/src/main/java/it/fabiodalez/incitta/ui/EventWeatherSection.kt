@@ -6,7 +6,6 @@ import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 import it.fabiodalez.incitta.data.EventWeather
 import kotlinx.coroutines.CancellationException
@@ -15,7 +14,6 @@ import kotlinx.coroutines.CancellationException
 internal fun EventWeatherSection(id: Long, load: suspend (Long) -> EventWeather) {
     var weather by remember(id) { mutableStateOf<EventWeather?>(null) }
     var failed by remember(id) { mutableStateOf(false) }
-    val uri = LocalUriHandler.current
     LaunchedEffect(id) {
         try { weather = load(id) }
         catch (e: CancellationException) { throw e }
@@ -40,14 +38,20 @@ internal fun EventWeatherSection(id: Long, load: suspend (Long) -> EventWeather)
                 }, data.description, Modifier.size(48.dp), tint = MaterialTheme.colorScheme.primary)
                 Column {
                     Text(data.description, style = MaterialTheme.typography.titleMedium)
-                    Text(listOfNotNull(data.minimum, data.maximum).joinToString(" / ") { "$it°" }, style = MaterialTheme.typography.headlineSmall)
+                    if (data.temperatureAtStart != null) {
+                        Text("Temperatura ${if (data.temperatureEstimated) "stimata" else "prevista"} alle ${data.startTime.orEmpty()}")
+                        Text("${data.temperatureAtStart}°", style = MaterialTheme.typography.headlineSmall)
+                    } else Text(listOfNotNull(data.minimum, data.maximum).joinToString(" / ") { "$it°" }, style = MaterialTheme.typography.headlineSmall)
                 }
+            }
+            if (data.temperatureAtStart != null) {
+                val range = listOfNotNull(data.minimum, data.maximum).joinToString(" / ") { "$it°" }
+                if (range.isNotEmpty()) Text("Min / max: $range")
             }
             Text("Previsione della giornata · ${data.date.orEmpty()}")
             data.rain?.let { Text("Probabilità di pioggia: $it%") }
             data.wind?.let { Text("Vento: $it km/h") }
             if (data.indicative) Text("Previsione indicativa: ricontrolla avvicinandoti alla data.", style = MaterialTheme.typography.bodySmall)
-            TextButton(onClick = { uri.openUri("https://open-meteo.com/") }) { Text("Open-Meteo · CC BY 4.0") }
         }
     }
 }

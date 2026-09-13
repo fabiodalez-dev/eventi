@@ -161,7 +161,7 @@
                     </a>
                 @endif
 
-                <x-share-links :url="$shareUrl" :title="$event->title" />
+                <x-share-links :url="$shareUrl" :title="$event->title" :icons-only="true" />
             </div>
         </div>
     </section>

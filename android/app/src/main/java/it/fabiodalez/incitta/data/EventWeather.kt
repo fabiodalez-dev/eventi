@@ -7,6 +7,9 @@ import kotlinx.serialization.Serializable
 data class EventWeather(
     val available: Boolean = false, val message: String? = null, val date: String? = null,
     val icon: String = "cloud", val description: String = "",
+    @SerialName("temperature_at_start") val temperatureAtStart: Double? = null,
+    @SerialName("temperature_estimated") val temperatureEstimated: Boolean = false,
+    @SerialName("start_time") val startTime: String? = null,
     @SerialName("temperature_min") val minimum: Double? = null,
     @SerialName("temperature_max") val maximum: Double? = null,
     @SerialName("rain_probability") val rain: Double? = null,
