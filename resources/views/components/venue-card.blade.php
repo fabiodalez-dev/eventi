@@ -32,7 +32,7 @@
 @endphp
 
 <article {{ $attributes->class([
-    'group relative flex h-full flex-col overflow-hidden bg-canvas border-2 border-line transition duration-300 ease-out-soft',
+    'venue-card group relative flex h-full flex-col overflow-hidden bg-canvas border-2 border-line transition duration-300 ease-out-soft',
     'hover:-translate-y-0.5 hover:border-accent' => $url !== null,
 ]) }}>
     <div class="relative aspect-[16/9] w-full overflow-hidden poster-placeholder">
@@ -54,8 +54,8 @@
         @endif
     </div>
 
-    <div class="flex flex-1 flex-col gap-1.5 p-card">
-        <div class="flex items-center gap-3">
+    <div class="venue-card__body flex flex-1 flex-col gap-1.5 p-card">
+        <div class="venue-card__heading flex items-start gap-3">
             <span class="flex size-10 shrink-0 items-center justify-center overflow-hidden bg-brand-soft text-sm font-bold text-on-brand-soft border-2 border-line">
                 @if ($logo !== null)
                     <x-media-image
@@ -72,7 +72,7 @@
             </span>
 
             <div class="min-w-0">
-                <{{ $level }} class="text-card text-ink truncate">
+                <{{ $level }} class="text-card text-ink break-words">
                     @if ($url !== null)
                         <a href="{{ $url }}" class="after:absolute after:inset-0 after:content-['']">{{ $venue->name }}</a>
                     @else
@@ -80,7 +80,7 @@
                     @endif
                 </{{ $level }}>
 
-                <p class="truncate text-sm text-ink-subtle">
+                <p class="text-sm text-ink-subtle">
                     {{ $venue->type->label() }}
                     @if ($venue->municipality)
                         <span aria-hidden="true">{{ __('common.separator') }}</span> {{ $venue->municipality }}
@@ -89,11 +89,13 @@
             </div>
         </div>
 
-        @if ($venue->short_description)
-            <p class="line-clamp-title text-sm text-ink-muted">{{ $venue->short_description }}</p>
-        @endif
+        <div class="venue-card__description">
+            @if ($venue->short_description)
+                <p class="text-sm text-ink-muted">{{ $venue->short_description }}</p>
+            @endif
+        </div>
 
-        <div class="mt-auto flex flex-wrap items-center gap-2 pt-2">
+        <div class="venue-card__footer mt-auto flex flex-wrap items-start gap-2 pt-2">
             @if ($upcoming !== null && $upcoming > 0)
                 <x-badge tone="neutral" size="sm">{{ trans_choice('venues.card.upcoming', $upcoming) }}</x-badge>
             @endif

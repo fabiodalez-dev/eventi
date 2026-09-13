@@ -446,3 +446,64 @@
 :root .share-links.share-links--icons > .event-utility-action:not(.hidden) {
     display: inline-flex;
 }
+
+/* Shared tracks align content within each visual row, in either theme.
+   Text remains intrinsic: a long title enlarges its row instead of clipping. */
+.event-card, .venue-card { min-width: 0; overflow-wrap: anywhere; }
+.event-card__category .ui-tag { min-width: 0; line-height: 1.3; }
+.event-card__footer { margin-top: auto; min-height: 61px; align-items: flex-start; }
+.event-card__details:empty { display: none; }
+@supports (grid-template-rows: subgrid) {
+    :root .event-grid > .event-card {
+        display: grid;
+        grid-template-rows: subgrid;
+        grid-row: span 7;
+        row-gap: 13px;
+    }
+    :root .event-grid > .event-card--no-poster { grid-row: span 6; }
+    .event-grid > .event-card > * { min-width: 0; }
+    .event-grid > .event-card > [data-catalog-poster] { align-self: start; }
+    .event-grid .event-card__details:empty { display: flex; }
+    .event-grid .event-card__footer { margin-top: 0; align-self: stretch; }
+    :root .venue-grid > .venue-card {
+        display: grid;
+        grid-template-rows: subgrid;
+        grid-row: span 5;
+        row-gap: 0;
+    }
+    .venue-grid .venue-card__body {
+        display: grid;
+        grid-template-rows: subgrid;
+        grid-row: span 4;
+        row-gap: 10px;
+        grid-template-columns: 40px minmax(0, 1fr);
+        column-gap: 12px;
+    }
+    .venue-grid .venue-card__heading { display: contents; }
+    .venue-grid .venue-card__heading > span { grid-column: 1; grid-row: 1 / span 2; }
+    .venue-grid .venue-card__heading > div { display: contents; }
+    .venue-grid .venue-card__heading :is(h2, h3, h4) { grid-column: 2; grid-row: 1; }
+    .venue-grid .venue-card__heading p { grid-column: 2; grid-row: 2; }
+    .venue-grid .venue-card__description { grid-column: 1 / -1; grid-row: 3; }
+    .venue-grid .venue-card__footer { grid-column: 1 / -1; grid-row: 4; margin-top: 0; }
+}
+
+/* Hero controls must keep foreground and background paired on hover/focus. */
+:root .event-detail-hero .share-links > .event-utility-action {
+    color: #faf8f4;
+    background: #302923;
+    border-color: #9c8f85;
+}
+:root .event-detail-hero .share-links > .event-utility-action:is(:hover, :focus-visible) {
+    color: #302017;
+    background: #ffc197;
+    border-color: #ffc197;
+}
+:root .event-detail-hero .share-links > .event-utility-action:focus-visible {
+    outline: 2px solid #faf8f4;
+    outline-offset: 3px;
+}
+
+@supports (grid-template-rows: subgrid) {
+    .category-grid > a { display: grid; grid-template-rows: subgrid; grid-row: span 2; row-gap: 16px; align-content: start; }
+}
