@@ -29,6 +29,8 @@ class Organizer extends Model
 
     use HasSlug;
 
+    protected $attributes = ['contact_mode' => 'disabled'];
+
     protected $fillable = ['contact_mode', 'contact_email', 'city_id', 'owner_id', 'name', 'slug', 'description', 'website', 'email', 'is_active'];
 
     protected static function booted(): void

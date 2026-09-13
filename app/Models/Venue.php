@@ -61,6 +61,8 @@ class Venue extends Model implements HasMedia
     use SoftDeletes;
 
     /** @var list<string> */
+    protected $attributes = ['contact_mode' => 'disabled'];
+
     protected $fillable = ['contact_mode', 'contact_email',
         'city_id',
         'name',
