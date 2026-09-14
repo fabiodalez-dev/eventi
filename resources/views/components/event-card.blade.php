@@ -17,8 +17,7 @@
     'href' => null,
     'showVenue' => true,
     'showPoster' => true,
-    /* Il numero d'ordine nella sezione ("01", "02"…). La sezione lo conosce,
-       la card no: passarlo è ciò che rende la griglia un elenco numerato. */
+    /* Compatibilità con i chiamanti: l'indice non viene più mostrato. */
     'index' => null,
     'level' => 'h3',
     /* Il valore di `rel` sul collegamento al titolo. Serve a una cosa sola, ma
@@ -101,16 +100,23 @@
     <span aria-hidden="true" class="absolute inset-y-0 left-0 w-0 bg-accent transition-[width] duration-300 ease-[cubic-bezier(.76,0,.24,1)] group-hover:w-[7px]"></span>
 
     @if ($showPoster)
-        <a href="{{ $url }}" @if ($rel !== null) rel="{{ $rel }}" @endif tabindex="-1" aria-hidden="true" data-catalog-poster class="block">
-            <x-event-artwork :event="$event" />
-        </a>
+        <div data-catalog-poster class="relative">
+            <a href="{{ $url }}" @if ($rel !== null) rel="{{ $rel }}" @endif tabindex="-1" aria-hidden="true" class="block">
+                <x-event-artwork :event="$event" />
+            </a>
+            @if ($isScheduled)
+                <x-save-heart :occurrence="$occurrence" :saved="app(\App\Support\CurrentSaves::class)->has((int) $occurrence->getKey())" class="!absolute bottom-3 left-3 z-10 max-w-[calc(100%-1.5rem)]" data-interest-control :hidden="$occurrence->interestedCount() === 0">
+                    <x-lucide name="bookmark" class="size-4" data-save-icon />
+                    <span class="sr-only" data-save-text>{{ __('account.save.action') }}</span>
+                    <x-interested-badge :occurrence="$occurrence" class="!text-inherit text-left" />
+                </x-save-heart>
+            @else
+                <x-interested-badge :occurrence="$occurrence" :overlay="true" class="absolute bottom-3 left-3 z-10" />
+            @endif
+        </div>
     @endif
 
     <div class="event-card__category flex items-start justify-between gap-2.5">
-        <span class="font-display text-[0.625rem] leading-none font-extrabold tracking-[0.1em] text-ink-subtle transition-colors group-hover:text-accent">
-            {{ $index !== null ? str_pad((string) $index, 2, '0', STR_PAD_LEFT) : '' }}
-        </span>
-
         @if ($category !== null)
             <span class="ui-tag border-2 border-line px-2 py-[5px] font-display text-[0.594rem] leading-none font-extrabold tracking-[0.14em] text-right text-ink-muted uppercase transition-colors group-hover:border-accent group-hover:bg-accent group-hover:text-on-accent">
                 {{ $category->name }}
@@ -159,9 +165,9 @@
     </div>
 
     <div class="event-card__details flex flex-col gap-3">
-    <div class="event-card__interest min-h-7">
-        <x-interested-badge :occurrence="$occurrence" />
-    </div>
+    @unless ($showPoster)
+        <x-interested-badge :occurrence="$occurrence" :overlay="true" />
+    @endunless
     @if ($stateLabel !== null || $highlight !== null || $distanceLabel !== null)
         <div class="flex flex-wrap items-center gap-x-3 gap-y-1 font-display text-[0.594rem] leading-none font-extrabold tracking-[0.14em] uppercase">
             @if ($stateLabel !== null)
@@ -198,7 +204,7 @@
 
     <div class="event-card__footer flex items-center justify-between gap-2.5 border-t-2 border-line pt-3">
         <span class="font-display text-base leading-none font-extrabold tracking-[-0.01em]">
-            <x-price-tag :event="$event" />
+            <x-price-tag :event="$event" as="text" :neutral="true" />
         </span>
 
         <div class="flex items-center gap-2">
@@ -213,7 +219,7 @@
                 />
             @endif
 
-            <span aria-hidden="true" class="grid size-[30px] place-items-center text-ink-subtle transition-[transform,color] duration-300 ease-[cubic-bezier(.76,0,.24,1)] group-hover:translate-x-1.5 group-hover:text-accent">
+            <span aria-hidden="true" class="grid size-12 place-items-center text-ink-subtle transition-[transform,color] duration-300 ease-[cubic-bezier(.76,0,.24,1)] group-hover:translate-x-1.5 group-hover:text-accent">
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="square">
                     <path d="M5 12h14M13 5l7 7-7 7"></path>
                 </svg>

@@ -478,8 +478,19 @@ function updateInterestCount(id, count) {
         if (Number(badge.dataset.interestId) !== Number(id)) return;
         badge.dataset.interestCount = String(safeCount);
         badge.hidden = safeCount === 0;
+        const control = badge.closest("[data-interest-control]");
+        if (control) control.hidden = safeCount === 0;
         const template = safeCount === 1 ? badge.dataset.interestSingular : badge.dataset.interestPlural;
         badge.querySelector('[data-interest-text]').textContent = template.replace('__COUNT__', String(safeCount));
+    });
+}
+
+function paintGuestInterests() {
+    const saved = new Set(localSaves());
+    document.querySelectorAll('[data-interest-id]').forEach(badge => {
+        const id = Number(badge.dataset.interestId);
+        const base = Number(badge.dataset.interestBaseCount) || 0;
+        updateInterestCount(id, base + (saved.has(id) ? 1 : 0));
     });
 }
 
@@ -523,6 +534,7 @@ function savedHearts() {
 
     const attach = () => {
     const saves = localSaves();
+    if (!authenticated) paintGuestInterests();
     for (const form of document.querySelectorAll("[data-save]")) {
         if (form.dataset.saveBound) continue;
         form.dataset.saveBound = '1';
@@ -550,9 +562,7 @@ function savedHearts() {
                         : [...current, id],
                 );
                 paintAll(id, !wasSaved);
-                const badge = document.querySelector(`[data-interest-id="${id}"]`);
-                const count = Number.parseInt(badge?.dataset.interestCount ?? "0", 10) || 0;
-                updateInterestCount(id, count + (wasSaved ? -1 : 1));
+                paintGuestInterests();
 
                 /* Solo quando si aggiunge: proporre un account a chi ha appena
                    tolto una data e' chiedere il contrario di quello che ha
@@ -617,6 +627,7 @@ function saveAllDates() {
                 .filter((id) => Number.isInteger(id) && id > 0);
 
             writeLocalSaves([...localSaves(), ...ids]);
+            paintGuestInterests();
 
             for (const heart of document.querySelectorAll("[data-save]")) {
                 if (

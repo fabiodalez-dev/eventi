@@ -2,6 +2,7 @@
     'event',
     /* 'badge' dentro la card, 'text' nella scheda */
     'as' => 'badge',
+    'neutral' => false,
 ])
 
 @php
@@ -44,6 +45,6 @@
     @if ($as === 'badge')
         <x-badge :tone="$tone" {{ $attributes }}>{{ $label }}</x-badge>
     @else
-        <span {{ $attributes->class(['font-semibold', 'text-free' => $tone === 'free']) }}>{{ $label }}</span>
+        <span {{ $attributes->class(['font-semibold', 'text-free' => $tone === 'free' && ! $neutral]) }}>{{ $label }}</span>
     @endif
 @endif

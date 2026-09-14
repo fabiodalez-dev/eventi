@@ -35,9 +35,16 @@ it('aligns every event card track without clipping variable content', function (
                     rows.set(top, [...(rows.get(top) || []), card]);
                     const heading = card.querySelector(".event-card__title");
                     if (heading.scrollHeight > heading.clientHeight + 1) return false;
+                    if (card.querySelector(".event-card__category > span:not(.ui-tag)")) return false;
+                    const footer = card.querySelector(".event-card__footer");
+                    const price = footer.firstElementChild.getBoundingClientRect();
+                    const actions = footer.lastElementChild.getBoundingClientRect();
+                    if (Math.abs((price.top + price.bottom) / 2 - (actions.top + actions.bottom) / 2) > 1) return false;
+                    const badge = card.querySelector("[data-interest-id]");
+                    if (!badge?.closest("[data-catalog-poster]") || !badge.closest("[data-catalog-poster]").querySelector("svg")) return false;
                 }
                 for (const cards of rows.values()) {
-                    for (const slot of ["category", "title", "venue", "date", "details", "interest", "footer"]) {
+                    for (const slot of ["category", "title", "venue", "date", "details", "footer"]) {
                         const tops = cards.map(card => card.querySelector(".event-card__" + slot).getBoundingClientRect().top);
                         if (Math.max(...tops) - Math.min(...tops) > 1) return false;
                     }
@@ -49,7 +56,7 @@ it('aligns every event card track without clipping variable content', function (
             $page->assertSee('Un concerto con un titolo molto lungo')->screenshot(filename: 'aligned-cards-'.$theme.'-'.$width);
         }
     }
-})->with(['inLightMode', 'inDarkMode'])->with([375, 804, 1440]);
+})->with(['inLightMode', 'inDarkMode'])->with([375, 666, 804, 1440]);
 
 it('aligns venue names metadata descriptions and badges in both themes', function (string $theme): void {
     $city = testCity();
@@ -77,10 +84,20 @@ it('keeps every hero sharing icon readable on hover', function (string $theme): 
     $page = visit(EventUrl::occurrence($date))->{$theme}()->resize(1280, 900);
     $page->script('document.querySelector("[data-consent-banner]")?.remove()');
     $page->script('const style=document.createElement("style"); style.textContent=".share-links * { transition: none !important; }"; document.head.append(style)');
+    $foreground = $theme === 'inDarkMode' ? 'rgb(11, 11, 11)' : 'rgb(48, 32, 23)';
+    $background = $theme === 'inDarkMode' ? 'rgb(204, 255, 0)' : 'rgb(255, 193, 151)';
     foreach (['button', 'a:nth-of-type(1)', 'a:nth-of-type(2)', 'a:nth-of-type(3)'] as $target) {
         $selector = '.share-links--icons > '.$target;
         $page->hover($selector);
-        expect($page->script('() => { const el=document.querySelector("'.$selector.'"); const css=getComputedStyle(el); return css.color === "rgb(48, 32, 23)" && css.backgroundColor === "rgb(255, 193, 151)" && getComputedStyle(el.querySelector("svg")).color === css.color; }'))->toBeTrue();
+        expect($page->script('() => { const el=document.querySelector("'.$selector.'"); const css=getComputedStyle(el); return css.color === "'.$foreground.'" && css.backgroundColor === "'.$background.'" && getComputedStyle(el.querySelector("svg")).color === css.color; }'))->toBeTrue();
     }
     $page->screenshot(filename: 'share-hover-'.$theme);
+})->with(['inLightMode', 'inDarkMode']);
+
+it('uses the theme accent in the home photo feature', function (string $theme): void {
+    $city = testCity();
+    occurrenceAtLocal($city, testCategory(), now('Europe/Rome')->addDay()->format('Y-m-d').' 18:00');
+    $page = visit('/')->{$theme}();
+    $accent = $theme === 'inDarkMode' ? 'rgb(204, 255, 0)' : 'rgb(255, 193, 151)';
+    expect($page->script('() => getComputedStyle(document.querySelector(".home-poster-feature .bg-accent")).backgroundColor'))->toBe($accent);
 })->with(['inLightMode', 'inDarkMode']);
