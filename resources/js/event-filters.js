@@ -1,4 +1,4 @@
-import { captureCards, animateCards, transitionResults } from './motion';
+import { captureCards, animateCards, transitionResults } from './motion.js';
 import { patchFilters, searchableFilters, searchFilterOptions, navigateFilterOptions } from './filter-sidebar.js';
 
 export function wouldEmptyResults(previous, next, push = true) {

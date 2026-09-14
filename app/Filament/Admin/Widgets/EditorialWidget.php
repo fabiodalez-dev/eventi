@@ -27,6 +27,9 @@ use Filament\Widgets\StatsOverviewWidget;
  */
 abstract class EditorialWidget extends StatsOverviewWidget
 {
+    // Small counters render with the page, without a second lazy mount request.
+    protected static bool $isLazy = false;
+
     public static function canView(): bool
     {
         return static::resolveCity() instanceof City;
