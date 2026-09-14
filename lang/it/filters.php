@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 return [
+    'loading_results' => 'Aggiornamento risultati…',
     'show_results' => 'Mostra i risultati',
     'advanced' => 'Filtri avanzati',
 

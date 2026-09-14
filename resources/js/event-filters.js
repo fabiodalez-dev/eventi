@@ -1,44 +1,34 @@
+import { captureCards, animateCards, transitionResults } from './motion.js';
 import { patchFilters, searchableFilters, searchFilterOptions, navigateFilterOptions } from './filter-sidebar.js';
 
-export function wouldEmptyResults(previous, next, push = true) {
-    return push && Number(previous) > 0 && next !== undefined && Number(next) === 0;
-}
-
-export function removesFilters(previous, next) {
-    const before = new URL(previous).searchParams;
-    return [...new URL(next).searchParams].every(([key, value]) => {
-        if (!value || ['all_dates', 'sort', 'page'].includes(key)) return true;
-        if (['category', 'tag', 'access'].includes(key)) {
-            return value.split(',').every(item => (before.get(key) ?? '').split(',').includes(item));
-        }
-        return before.get(key) === value;
-    });
-}
+import { wouldEmptyResults, removesFilters } from './filter-query.js';
 
 async function fadeFilterParts(region, from, to, duration, signal) {
     if (!region.hasAttribute('data-filter-fade') || signal.aborted
         || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
-    const animations = [...region.querySelectorAll('[data-filter-transition]')]
-        .filter(element => typeof element.animate === 'function')
-        .map(element => element.animate([{ opacity: from }, { opacity: to }], {
-            duration, easing: 'cubic-bezier(0.25, 1, 0.5, 1)', fill: 'both',
-        }));
-    const cancel = () => animations.forEach(animation => animation.cancel());
-    signal.addEventListener('abort', cancel, { once: true });
-    try {
-        await Promise.allSettled(animations.map(animation => animation.finished));
-    } finally {
-        signal.removeEventListener('abort', cancel);
-        // Never leave an interrupted navigation transparent.
-        cancel();
-    }
+    await transitionResults(region, from, to, duration, signal);
 }
 
 export function eventFilters() {
     if (!document.querySelector('[data-event-browser]')) return;
     const desktop = window.matchMedia('(min-width: 1024px)');
     let mobileFiltersOpen = false;
+    let draft = null;
+    const stage = (url, toggle = false) => {
+        const next = new URL(url);
+        const base = new URL(location.href);
+        draft ??= new URL(location.href);
+        const keys = new Set([...base.searchParams.keys(), ...next.searchParams.keys()]);
+        for (const key of keys) {
+            if (base.searchParams.get(key) === next.searchParams.get(key)) continue;
+            const value = toggle && draft.searchParams.get(key) === next.searchParams.get(key) ? base.searchParams.get(key) : next.searchParams.get(key);
+            value === null ? draft.searchParams.delete(key) : draft.searchParams.set(key, value);
+        }
+        draft.searchParams.delete('page');
+        const details = document.querySelector('[data-catalog-filters]');
+        details?.setAttribute('data-filters-pending', 'true');
+    };
     const syncCatalogFilters = () => {
         const details = document.querySelector('[data-catalog-filters]');
         if (!details) return;
@@ -54,6 +44,12 @@ export function eventFilters() {
     document.addEventListener('click', event => {
         if (!event.target.closest('[data-filter-close]')) return;
         const details = document.querySelector('[data-catalog-filters]');
+        if (draft) {
+            const url = draft.href;
+            draft = null;
+            details.removeAttribute('data-filters-pending');
+            void navigate(url);
+        }
         mobileFiltersOpen = false;
         details.open = false;
         details.querySelector('summary').focus({ preventScroll: true });
@@ -79,6 +75,10 @@ export function eventFilters() {
         const current = ++revision;
         const region = document.querySelector('[data-event-browser]');
         region.setAttribute('aria-busy', 'true');
+        const loadingTimer = window.setTimeout(() => {
+            const indicator = region.querySelector('[data-results-loading]');
+            if (indicator && !signal.aborted) indicator.hidden = false;
+        }, 150);
 
         try {
             const response = await fetch(url, { signal, headers: { 'X-Requested-With': 'fetch' } });
@@ -100,6 +100,8 @@ export function eventFilters() {
                 return;
             }
 
+            const cardState = await captureCards(region);
+            if (revision !== current || signal.aborted) return;
             // Keep the current content visible until the replacement is ready.
             await fadeFilterParts(region, 1, 0, 120, signal);
             if (revision !== current || signal.aborted) return;
@@ -127,6 +129,7 @@ export function eventFilters() {
                 searchableFilters(next);
             }
             activeRegion.setAttribute('aria-busy', 'true');
+            animateCards(cardState, activeRegion);
             document.title = page.title;
             for (const selector of ['link[rel="canonical"]', 'meta[name="description"]', 'meta[name="robots"]']) {
                 const previous = document.head.querySelector(selector);
@@ -154,6 +157,9 @@ export function eventFilters() {
                 if (status) { status.hidden = false; status.textContent = panel.dataset.filterError; }
             }
         } finally {
+            window.clearTimeout(loadingTimer);
+            const indicator = region.querySelector('[data-results-loading]');
+            if (indicator) indicator.hidden = true;
             if (current === revision) {
                 document.querySelector('[data-event-browser]')?.removeAttribute('aria-busy');
                 document.querySelector('[data-event-browser] aside')?.removeAttribute('inert');
@@ -164,6 +170,11 @@ export function eventFilters() {
         const link = event.target.closest('[data-event-browser] [data-filter-panel] a, [data-event-browser] [data-filter-link]');
         if (!link || event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || link.target || link.origin !== location.origin) return;
         event.preventDefault();
+        if (!desktop.matches && link.closest('[data-catalog-filters]')) {
+            stage(link.href, true);
+            link.toggleAttribute('data-draft-selected');
+            return;
+        }
         void navigate(link.href);
     });
     document.addEventListener('submit', event => {
@@ -172,7 +183,11 @@ export function eventFilters() {
         event.preventDefault();
         const url = new URL(form.action);
         url.search = new URLSearchParams(new FormData(form)).toString();
-        void navigate(url.href);
+        if (draft) {
+            stage(url.href);
+            const target = draft.href; draft = null;
+            void navigate(target);
+        } else void navigate(url.href);
     });
     document.addEventListener('change', event => {
         const input = event.target;
@@ -193,7 +208,11 @@ export function eventFilters() {
             const venue = form.querySelector('[name="venue"]');
             if (venue) venue.value = '';
         }
-        form.requestSubmit();
+        if (!desktop.matches && form.closest('[data-catalog-filters]')) {
+            const url = new URL(form.action);
+            url.search = new URLSearchParams(new FormData(form)).toString();
+            stage(url.href);
+        } else form.requestSubmit();
     });
     /*
      * Indietro e avanti del browser ricaricano l'elenco. Un cambio di **solo

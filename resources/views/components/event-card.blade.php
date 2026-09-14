@@ -89,7 +89,7 @@
             : __('common.units.meters', ['value' => \Illuminate\Support\Number::format(round((float) $distance), locale: app()->getLocale())]));
 @endphp
 
-<article {{ $attributes->class([
+<article data-flip-id="occurrence-{{ $occurrence->getKey() }}" data-card-venue="{{ $venue?->getKey() }}" {{ $attributes->class([
     'event-card group relative flex h-full min-h-[252px] flex-col gap-[13px] overflow-hidden bg-canvas px-[22px] py-5 pl-[26px] transition-transform duration-300 ease-out-soft',
     'event-card--no-poster' => ! $showPoster,
     'hover:-translate-y-[3px] hover:bg-accent/[0.055]' => $url !== null,

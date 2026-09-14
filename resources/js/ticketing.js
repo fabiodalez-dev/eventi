@@ -70,6 +70,9 @@ document.querySelectorAll('[data-ticket-search]').forEach((form) => {
     form.addEventListener('change', (event) => {
         if (event.target.matches('select')) { clearTimeout(timer); search(); }
     });
+    // A visitor can type before the module finishes loading after navigation.
+    const initialQuery = new FormData(form).get('q');
+    if (initialQuery && initialQuery !== new URL(location.href).searchParams.get('q')) search();
     // Native submission stays available for recovery and without JavaScript.
 });
 

@@ -232,6 +232,10 @@ it('conta una sorgente fallita anche quando non ha lasciato un messaggio', funct
 });
 
 it('disegna i tre riquadri e dà a ognuno un collegamento alla lista filtrata', function (): void {
+    foreach ([EditorialQueueWidget::class, PublishingWidget::class, ContentQualityWidget::class] as $widget) {
+        expect($widget::isLazy())->toBeFalse();
+    }
+
     makeEvent(['status' => EventStatus::Pending]);
 
     Livewire::test(EditorialQueueWidget::class)

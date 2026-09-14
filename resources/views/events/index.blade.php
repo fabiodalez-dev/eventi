@@ -1,5 +1,5 @@
 <x-layouts.app :meta="$meta" :wide="true">
-    <div data-event-browser data-result-count="{{ $occurrences->total() }}">
+    <div data-event-browser data-filter-fade data-result-count="{{ $occurrences->total() }}">
     @if ($filters->discovery)
         <p class="border-b-2 border-line p-gutter text-ink-muted">{{ __('tonight.filtered') }}</p>
     @endif
@@ -28,6 +28,13 @@
                 <p class="m-0 max-w-prose text-[0.813rem] leading-[1.5] text-ink-muted">{{ $meta->description }}</p>
             @endif
 
+            <div class="catalog-status flex flex-wrap items-center justify-between gap-3" aria-live="polite">
+                <span>{{ trans_choice('filters.active', $filters->activeCount(), ['count' => $filters->activeCount()]) }}</span>
+                @if ($filters->activeCount() > 0)
+                    <a data-filter-link class="underline min-h-12 inline-flex items-center" href="{{ route('events.index') }}">{{ __('filters.reset') }}</a>
+                @endif
+                <span data-results-loading hidden>{{ __('filters.loading_results') }}</span>
+            </div>
         </div>
 
         <aside
@@ -57,7 +64,7 @@
             </details>
         </aside>
 
-        <section class="bg-canvas lg:col-start-2 lg:row-start-2 lg:min-h-below-header">
+        <section data-filter-transition class="bg-canvas lg:col-start-2 lg:row-start-2 lg:min-h-below-header">
             @if ($occurrences->total() > 0)
                 {{-- Il contenitore dei risultati è ciò che l'infinite scroll
                      estende: l'attributo lo dichiara, e senza JavaScript non fa

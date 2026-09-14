@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { wouldEmptyResults, removesFilters } from '../../resources/js/event-filters.js';
+import { wouldEmptyResults, removesFilters } from '../../resources/js/filter-query.js';
 
 test('does not replace a populated search with an empty filter combination', () => {
     assert.equal(wouldEmptyResults('1', '0'), true);
