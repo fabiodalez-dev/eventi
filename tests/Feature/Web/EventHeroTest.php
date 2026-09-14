@@ -35,11 +35,12 @@ it('keeps date links on a series even when only one date is displayed', function
     $this->get(route('events.show', $first->event))->assertOk()->assertSee(__('seo.date_page'));
 });
 
-it('shows one shared description immediately after saving the date', function (): void {
+it('shows saving below the organizer and before the dates', function (): void {
     $city = testCity();
     freezeLocal($city, '2026-09-07 12:00:00');
     $item = occurrenceAtLocal($city, testCategory(), '2026-09-10 21:00:00', event: [
         'poster' => '/storage/poster-test.jpg', 'description' => 'Descrizione completa da leggere subito.',
+        'organizer_name' => 'Teatro Verdi', 'organizer_url' => 'https://www.teatro-verdi.it',
     ]);
     $html = $this->get(route('events.show', $item->event))->assertOk()->getContent();
     $document = new DOMDocument;
@@ -47,8 +48,10 @@ it('shows one shared description immediately after saving the date', function ()
     $xpath = new DOMXPath($document);
     $description = $xpath->query('//article/section[@aria-labelledby="descrizione-evento"]');
     expect($description->length)->toBe(1)
-        ->and($description->item(0)->textContent)->toContain('Descrizione completa da leggere subito.');
-    expect($xpath->query('//article/section[@aria-labelledby="descrizione-evento"]/preceding-sibling::*[1][@aria-labelledby="salva-evento"]')->length)->toBe(1);
+        ->and($description->item(0)->textContent)->toContain('Descrizione completa da leggere subito.')
+        ->and($xpath->query('//section[@aria-labelledby="date-evento"]/section[@aria-labelledby="salva-evento"]')->length)->toBe(1)
+        ->and($xpath->query('//section[@aria-labelledby="date-evento"]/p[contains(., "Organizzato da")]/following-sibling::*[1][@aria-labelledby="salva-evento"]')->length)->toBe(1)
+        ->and($xpath->query('//section[@aria-labelledby="salva-evento"]/following-sibling::h2[@id="date-evento"]')->length)->toBe(1);
 });
 
 it('shows a branded placeholder on event and occurrence pages without a poster', function (): void {

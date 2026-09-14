@@ -333,6 +333,8 @@ function paintHeart(form, saved) {
     button.classList.toggle("bg-surface", !saved);
     button.classList.toggle("text-ink-muted", !saved);
     button.classList.toggle("ring-line", !saved);
+    button.classList.toggle("hover:text-ink", !saved);
+    button.classList.toggle("hover:border-accent", !saved);
 
     if (icon) {
         icon.style.fill = saved ? "currentColor" : "none";
@@ -465,17 +467,33 @@ async function talkToServer(url, method, token, body) {
 
         if (!response.ok) return false;
         const result = await response.json();
-        for (const [id, count] of Object.entries(result.interested_counts ?? {})) {
-            document.querySelectorAll('[data-interest-id]').forEach(badge => {
-                if (badge.dataset.interestId !== id) return;
-                badge.hidden = count === 0;
-                badge.querySelector('[data-interest-text]').textContent = `${count} ${count === 1 ? 'persona interessata' : 'persone interessate'}`;
-            });
-        }
+        for (const [id, count] of Object.entries(result.interested_counts ?? {})) updateInterestCount(id, count);
         return result;
     } catch {
         return false;
     }
+}
+
+function updateInterestCount(id, count) {
+    const safeCount = Math.max(0, Number.parseInt(count, 10) || 0);
+    document.querySelectorAll('[data-interest-id]').forEach(badge => {
+        if (Number(badge.dataset.interestId) !== Number(id)) return;
+        badge.dataset.interestCount = String(safeCount);
+        badge.hidden = safeCount === 0;
+        const control = badge.closest("[data-interest-control]");
+        if (control) control.hidden = safeCount === 0;
+        const template = safeCount === 1 ? badge.dataset.interestSingular : badge.dataset.interestPlural;
+        badge.querySelector('[data-interest-text]').textContent = template.replace('__COUNT__', String(safeCount));
+    });
+}
+
+function paintGuestInterests() {
+    const saved = new Set(localSaves());
+    document.querySelectorAll('[data-interest-id]').forEach(badge => {
+        const id = Number(badge.dataset.interestId);
+        const base = Number(badge.dataset.interestBaseCount) || 0;
+        updateInterestCount(id, base + (saved.has(id) ? 1 : 0));
+    });
 }
 
 let savedHeartsInitialized = false;
@@ -518,6 +536,7 @@ function savedHearts() {
 
     const attach = () => {
     const saves = localSaves();
+    if (!authenticated) paintGuestInterests();
     for (const form of document.querySelectorAll("[data-save]")) {
         if (form.dataset.saveBound) continue;
         form.dataset.saveBound = '1';
@@ -545,6 +564,7 @@ function savedHearts() {
                         : [...current, id],
                 );
                 paintAll(id, !wasSaved);
+                paintGuestInterests();
 
                 /* Solo quando si aggiunge: proporre un account a chi ha appena
                    tolto una data e' chiedere il contrario di quello che ha
@@ -609,6 +629,7 @@ function saveAllDates() {
                 .filter((id) => Number.isInteger(id) && id > 0);
 
             writeLocalSaves([...localSaves(), ...ids]);
+            paintGuestInterests();
 
             for (const heart of document.querySelectorAll("[data-save]")) {
                 if (

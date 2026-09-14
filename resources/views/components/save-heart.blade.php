@@ -16,7 +16,7 @@
 @props([
     'occurrence',
     'saved' => false,
-    /* icon (solo cuore) · label (cuore e testo) */
+    /* icon (solo segnalibro) · label (segnalibro e testo) */
     'variant' => 'icon',
 ])
 
@@ -62,10 +62,14 @@
         {{-- Il cuore di Lucide (D47). Lo script di `app.js` accende e spegne
              il riempimento via style inline: gli attributi del componente
              (stroke, fill) sono lo stato spento, lo style quello acceso. --}}
-        <x-lucide name="heart" class="size-4" data-save-icon @style(['fill: currentColor; stroke: none; stroke-width: 0' => $isSaved]) />
+        @if ($slot->isNotEmpty())
+            {{ $slot }}
+        @else
+        <x-lucide name="bookmark" class="size-4" data-save-icon @style(['fill: currentColor; stroke: none; stroke-width: 0' => $isSaved]) />
 
         <span @class(['sr-only' => $variant === 'icon']) data-save-text>
             {{ $isSaved ? __('account.save.remove') : __('account.save.action') }}
         </span>
+        @endif
     </button>
 </form>
