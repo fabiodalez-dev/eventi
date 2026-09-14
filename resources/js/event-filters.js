@@ -1,4 +1,4 @@
-import { transitionResults } from './motion';
+import { captureCards, animateCards, transitionResults } from './motion';
 import { patchFilters, searchableFilters, searchFilterOptions, navigateFilterOptions } from './filter-sidebar.js';
 
 export function wouldEmptyResults(previous, next, push = true) {
@@ -27,6 +27,21 @@ export function eventFilters() {
     if (!document.querySelector('[data-event-browser]')) return;
     const desktop = window.matchMedia('(min-width: 1024px)');
     let mobileFiltersOpen = false;
+    let draft = null;
+    const stage = (url, toggle = false) => {
+        const next = new URL(url);
+        const base = new URL(location.href);
+        draft ??= new URL(location.href);
+        const keys = new Set([...base.searchParams.keys(), ...next.searchParams.keys()]);
+        for (const key of keys) {
+            if (base.searchParams.get(key) === next.searchParams.get(key)) continue;
+            const value = toggle && draft.searchParams.get(key) === next.searchParams.get(key) ? base.searchParams.get(key) : next.searchParams.get(key);
+            value === null ? draft.searchParams.delete(key) : draft.searchParams.set(key, value);
+        }
+        draft.searchParams.delete('page');
+        const details = document.querySelector('[data-catalog-filters]');
+        details?.setAttribute('data-filters-pending', 'true');
+    };
     const syncCatalogFilters = () => {
         const details = document.querySelector('[data-catalog-filters]');
         if (!details) return;
@@ -42,6 +57,12 @@ export function eventFilters() {
     document.addEventListener('click', event => {
         if (!event.target.closest('[data-filter-close]')) return;
         const details = document.querySelector('[data-catalog-filters]');
+        if (draft) {
+            const url = draft.href;
+            draft = null;
+            details.removeAttribute('data-filters-pending');
+            void navigate(url);
+        }
         mobileFiltersOpen = false;
         details.open = false;
         details.querySelector('summary').focus({ preventScroll: true });
@@ -92,6 +113,8 @@ export function eventFilters() {
                 return;
             }
 
+            const cardState = await captureCards(region);
+            if (revision !== current || signal.aborted) return;
             // Keep the current content visible until the replacement is ready.
             await fadeFilterParts(region, 1, 0, 120, signal);
             if (revision !== current || signal.aborted) return;
@@ -119,6 +142,7 @@ export function eventFilters() {
                 searchableFilters(next);
             }
             activeRegion.setAttribute('aria-busy', 'true');
+            animateCards(cardState, activeRegion);
             document.title = page.title;
             for (const selector of ['link[rel="canonical"]', 'meta[name="description"]', 'meta[name="robots"]']) {
                 const previous = document.head.querySelector(selector);
@@ -159,6 +183,11 @@ export function eventFilters() {
         const link = event.target.closest('[data-event-browser] [data-filter-panel] a, [data-event-browser] [data-filter-link]');
         if (!link || event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || link.target || link.origin !== location.origin) return;
         event.preventDefault();
+        if (!desktop.matches && link.closest('[data-catalog-filters]')) {
+            stage(link.href, true);
+            link.toggleAttribute('data-draft-selected');
+            return;
+        }
         void navigate(link.href);
     });
     document.addEventListener('submit', event => {
@@ -167,7 +196,11 @@ export function eventFilters() {
         event.preventDefault();
         const url = new URL(form.action);
         url.search = new URLSearchParams(new FormData(form)).toString();
-        void navigate(url.href);
+        if (draft) {
+            stage(url.href);
+            const target = draft.href; draft = null;
+            void navigate(target);
+        } else void navigate(url.href);
     });
     document.addEventListener('change', event => {
         const input = event.target;
@@ -188,7 +221,11 @@ export function eventFilters() {
             const venue = form.querySelector('[name="venue"]');
             if (venue) venue.value = '';
         }
-        form.requestSubmit();
+        if (!desktop.matches && form.closest('[data-catalog-filters]')) {
+            const url = new URL(form.action);
+            url.search = new URLSearchParams(new FormData(form)).toString();
+            stage(url.href);
+        } else form.requestSubmit();
     });
     /*
      * Indietro e avanti del browser ricaricano l'elenco. Un cambio di **solo

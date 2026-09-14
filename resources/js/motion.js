@@ -95,3 +95,22 @@ export function startMotion() {
         return () => { controller.abort(); mutations.disconnect(); observer.disconnect(); context.revert(); };
     });
 }
+
+
+let flipModule;
+export async function captureCards(region) {
+    if (reduced() || region.contains(document.activeElement) && document.activeElement.closest('.event-card')) return null;
+    const cards = [...region.querySelectorAll('[data-flip-id]')].filter(card => {
+        const rect = card.getBoundingClientRect();
+        return rect.bottom > 0 && rect.top < innerHeight;
+    }).slice(0, 12);
+    if (!cards.length) return null;
+    flipModule ??= import('gsap/Flip').then(({ Flip }) => { gsap.registerPlugin(Flip); return Flip; });
+    const Flip = await flipModule;
+    return { Flip, state: Flip.getState(cards), ids: new Set(cards.map(card => card.dataset.flipId)) };
+}
+export function animateCards(snapshot, region) {
+    if (!snapshot || reduced()) return;
+    const targets = [...region.querySelectorAll('[data-flip-id]')].filter(card => snapshot.ids.has(card.dataset.flipId));
+    snapshot.Flip.from(snapshot.state, { targets, duration: 0.22, ease: 'power2.out', scale: true, prune: true });
+}

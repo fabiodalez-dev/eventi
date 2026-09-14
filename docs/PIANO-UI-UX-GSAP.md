@@ -91,3 +91,11 @@ Un calendario urbano editoriale, immediato da consultare. Conservare nero/lime e
 ## Ambito
 
 Questa proposta riguarda il web pubblico Blade/JavaScript. L'app Android è nativa: potrà riprendere gerarchia e comportamenti con animazioni Compose, non eseguendo GSAP. Nessun nuovo APK richiesto da questa fase di piano.
+
+## Risultato implementato e misure locali
+
+Completati: motion condiviso GSAP, card e pulsanti con bersagli stabili, home compatta, catalogo desktop orizzontale, riepilogo filtri e caricamento, filtri catalogo mobile differiti, collegamento visivo card/mappa, transizioni native verso il dettaglio e Flip limitato ai risultati comuni visibili. La mappa dedicata conserva i filtri immediati per mantenere il comportamento di esplorazione esistente. Nessuna riscrittura SPA o nuova dipendenza Android.
+
+Misura indicativa del catalogo locale, 14 settembre 2026: TTFB 396 ms, DOM pronto 513 ms, load 526 ms, FCP 576 ms. Una singola navigazione locale non costituisce benchmark del remoto né misura di INP sul campo. Asset gzip: app 13.048 byte, motion incluso GSAP 28.379 byte, map bootstrap 3.706 byte; Flip 9.205 byte caricato su richiesta. MapLibre e immagini lazy restano separati. Questi valori documentano il costo corrente, non un miglioramento percentuale rispetto a una baseline non misurata.
+
+Le transizioni tra pagine dipendono dal supporto del browser; la navigazione standard resta disponibile. Il budget iniziale del modulo motion è fissato a 30 KB gzip, Flip a 10 KB gzip. Validazione prestazioni su hosting e dispositivo reale resta una verifica di rilascio: nessun obiettivo Core Web Vitals dichiarato raggiunto sulla base del solo server locale.
