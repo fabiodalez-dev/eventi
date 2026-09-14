@@ -219,11 +219,19 @@
                 />
             @endif
 
-            <span aria-hidden="true" class="grid size-12 place-items-center text-ink-subtle transition-[transform,color] duration-300 ease-[cubic-bezier(.76,0,.24,1)] group-hover:translate-x-1.5 group-hover:text-accent">
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="square">
-                    <path d="M5 12h14M13 5l7 7-7 7"></path>
-                </svg>
-            </span>
+            @if ($url !== null)
+                <a
+                    href="{{ $url }}"
+                    @if ($rel !== null) rel="{{ $rel }}" @endif
+                    aria-label="{{ __('events.actions.view') }}: {{ $event->title }}"
+                    data-card-arrow
+                    class="relative z-10 grid size-12 place-items-center text-ink-subtle group-hover:text-accent focus-visible:text-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-focus"
+                >
+                    <svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="square">
+                        <path d="M5 12h14M13 5l7 7-7 7"></path>
+                    </svg>
+                </a>
+            @endif
         </div>
     </div>
 </article>

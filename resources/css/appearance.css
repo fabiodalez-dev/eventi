@@ -542,9 +542,12 @@
 .catalog-status { font-size: .8125rem; color: var(--ink-muted); border-top: 1px solid var(--line); padding-top: 12px; }
 .event-card.is-map-selected { box-shadow: inset 0 0 0 2px var(--accent); }
 @media (min-width: 1024px) {
-    [data-event-browser] .event-grid { grid-template-columns: minmax(0, 1fr); }
-    [data-event-browser] .event-card:has([data-catalog-poster]) { display: grid; grid-template-columns: 112px minmax(0,1fr); grid-template-rows: auto; grid-row: auto; padding: 18px; gap: 10px 18px; }
-    [data-event-browser] .event-card > [data-catalog-poster] { grid-column: 1; grid-row: 1 / span 6; margin: 0; align-self: start; }
+    [data-event-browser] .event-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 12px; }
+    [data-event-browser] .event-card:has([data-catalog-poster]) { display: grid; grid-template-columns: clamp(160px,18vw,196px) minmax(0,1fr); grid-template-rows: auto; grid-row: auto; padding: 18px; gap: 10px 18px; }
+    [data-event-browser] .event-card > [data-catalog-poster] { grid-column: 1; grid-row: 1 / span 6; margin: 0; align-self: stretch; min-height: 220px; }
+    [data-event-browser] .event-card > [data-catalog-poster] > a,
+    [data-event-browser] .event-card > [data-catalog-poster] .event-poster-frame { height: 100%; }
+    [data-event-browser] .event-card > [data-catalog-poster] .event-poster-frame { aspect-ratio: auto; }
     [data-event-browser] .event-card:has([data-catalog-poster]) > :not([data-catalog-poster]):not([aria-hidden]) { grid-column: 2; margin-inline: 0; }
     [data-event-browser] [data-interest-control] { position: static !important; max-width: none; margin-top: 8px; }
     [data-event-browser] [data-interest-control] button { padding: 6px; font-size: 10px; width: 100%; }

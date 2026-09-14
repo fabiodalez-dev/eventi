@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Enums\PriceType;
 use App\Models\Tag;
 use App\Models\Venue;
+use App\Support\EventUrl;
 use Carbon\Carbon;
 
 afterEach(function (): void {
@@ -24,6 +25,20 @@ it('elenca solo ciò che deve ancora succedere', function (): void {
         ->assertOk()
         ->assertSee('Serata futura')
         ->assertDontSee('Serata già passata');
+});
+
+it('rende la freccia della card un collegamento accessibile alla data', function (): void {
+    $city = testCity();
+    $category = testCategory();
+
+    freezeLocal($city, '2026-09-05 12:00:00');
+    $occurrence = occurrenceAtLocal($city, $category, '2026-09-08 21:00:00', event: ['title' => 'Concerto accessibile']);
+    $url = EventUrl::occurrence($occurrence);
+
+    $this->get('/eventi')
+        ->assertOk()
+        ->assertSee('href="'.$url.'"', escape: false)
+        ->assertSee('aria-label="'.__('events.actions.view').': Concerto accessibile"', escape: false);
 });
 
 /*
