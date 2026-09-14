@@ -76,10 +76,16 @@ export function startMotion() {
             const card = event.target.closest('.event-card');
             if (!card || card.contains(event.relatedTarget)) return;
             const photo = card.querySelector('[data-catalog-poster] img');
-            const arrow = card.querySelector('.event-card__footer > div > span');
+            const arrow = card.querySelector('[data-card-arrow] svg');
             context.add(() => {
                 if (photo) gsap.to(photo, { scale: entering ? 1.025 : 1, duration: 0.3, ease: 'power2.out', overwrite: 'auto' });
-                if (arrow) gsap.to(arrow, { x: entering ? 3 : 0, duration: 0.18, overwrite: 'auto' });
+                if (arrow) gsap.to(arrow, {
+                    x: entering ? 7 : 0,
+                    scale: entering ? 1.08 : 1,
+                    duration: entering ? 0.24 : 0.18,
+                    ease: 'power2.out',
+                    overwrite: 'auto',
+                });
             });
         };
         document.addEventListener('pointerover', event => hover(event, true), { signal });
