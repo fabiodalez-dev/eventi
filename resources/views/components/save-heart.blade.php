@@ -55,11 +55,13 @@
         data-save-button
         data-save-variant="{{ $variant }}"
         @class([
-            'inline-flex items-center justify-center font-semibold ring-1 transition [&>*]:pointer-events-none',
+            'inline-flex items-center justify-center font-semibold transition [&>*]:pointer-events-none',
+            'ring-1' => $variant !== 'icon',
             'min-h-9 min-w-0 max-w-full gap-1.5 px-2.5 py-1 text-[0.6875rem] leading-none' => $variant === 'count',
             'min-h-12 min-w-12 gap-1.5 px-3 py-1.5 text-xs' => $variant !== 'count',
             'bg-brand text-on-brand ring-brand' => $isSaved,
-            'bg-surface text-ink-muted ring-line hover:text-ink hover:border-accent' => ! $isSaved,
+            'bg-transparent text-ink-muted hover:text-accent' => ! $isSaved && $variant === 'icon',
+            'bg-surface text-ink-muted ring-line hover:text-ink hover:border-accent' => ! $isSaved && $variant !== 'icon',
         ])
     >
         {{-- Il cuore di Lucide (D47). Lo script di `app.js` accende e spegne

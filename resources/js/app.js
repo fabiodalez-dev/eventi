@@ -327,15 +327,18 @@ function paintHeart(form, saved) {
         return;
     }
 
+    const iconOnly = button.dataset.saveVariant === "icon";
     button.setAttribute("aria-pressed", saved ? "true" : "false");
     button.classList.toggle("bg-brand", saved);
     button.classList.toggle("text-on-brand", saved);
     button.classList.toggle("ring-brand", saved);
-    button.classList.toggle("bg-surface", !saved);
+    button.classList.toggle("bg-transparent", !saved && iconOnly);
+    button.classList.toggle("bg-surface", !saved && !iconOnly);
     button.classList.toggle("text-ink-muted", !saved);
-    button.classList.toggle("ring-line", !saved);
-    button.classList.toggle("hover:text-ink", !saved);
-    button.classList.toggle("hover:border-accent", !saved);
+    button.classList.toggle("ring-line", !saved && !iconOnly);
+    button.classList.toggle("hover:text-accent", !saved && iconOnly);
+    button.classList.toggle("hover:text-ink", !saved && !iconOnly);
+    button.classList.toggle("hover:border-accent", !saved && !iconOnly);
 
     if (icon) {
         icon.style.fill = saved ? "currentColor" : "none";
