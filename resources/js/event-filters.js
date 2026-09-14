@@ -1,3 +1,4 @@
+import { transitionResults } from './motion';
 import { patchFilters, searchableFilters, searchFilterOptions, navigateFilterOptions } from './filter-sidebar.js';
 
 export function wouldEmptyResults(previous, next, push = true) {
@@ -19,20 +20,7 @@ async function fadeFilterParts(region, from, to, duration, signal) {
     if (!region.hasAttribute('data-filter-fade') || signal.aborted
         || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
-    const animations = [...region.querySelectorAll('[data-filter-transition]')]
-        .filter(element => typeof element.animate === 'function')
-        .map(element => element.animate([{ opacity: from }, { opacity: to }], {
-            duration, easing: 'cubic-bezier(0.25, 1, 0.5, 1)', fill: 'both',
-        }));
-    const cancel = () => animations.forEach(animation => animation.cancel());
-    signal.addEventListener('abort', cancel, { once: true });
-    try {
-        await Promise.allSettled(animations.map(animation => animation.finished));
-    } finally {
-        signal.removeEventListener('abort', cancel);
-        // Never leave an interrupted navigation transparent.
-        cancel();
-    }
+    await transitionResults(region, from, to, duration, signal);
 }
 
 export function eventFilters() {

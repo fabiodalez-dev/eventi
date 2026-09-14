@@ -1,3 +1,4 @@
+import { startMotion } from './motion';
 import './appearance';
 if (document.querySelector('[data-rich-input]')) {
     import('./rich-input').then(({ richInputs }) => richInputs());
@@ -564,6 +565,7 @@ function savedHearts() {
                         : [...current, id],
                 );
                 paintAll(id, !wasSaved);
+                document.dispatchEvent(new CustomEvent("saved:changed", { detail: { id } }));
                 paintGuestInterests();
 
                 /* Solo quando si aggiunge: proporre un account a chi ha appena
@@ -592,6 +594,7 @@ function savedHearts() {
             pending.delete(id);
             if (ok && (wasSaved || ok.saved?.includes(id))) {
                 paintAll(id, !wasSaved);
+                document.dispatchEvent(new CustomEvent("saved:changed", { detail: { id } }));
 
                 return;
             }
@@ -1048,6 +1051,7 @@ import { liveSearch, continuousTicker } from './live-search';
 import { venueAutocomplete } from './venue-autocomplete';
 
 function start() {
+    startMotion();
     eventFilters();
     document.addEventListener('event-browser:updated', () => {
         infiniteScroll();

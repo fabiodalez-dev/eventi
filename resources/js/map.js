@@ -1,3 +1,4 @@
+import { revealPanel } from './motion';
 /* Mappa pubblica vettoriale. Vie ed etichette restano leggibili a ogni zoom;
  * il foglio di un locale continua a essere disegnato dal server. */
 let maplibregl = null;
@@ -192,6 +193,7 @@ async function startMap(shell) {
         if (!sheet || !sheetBody) return;
         const requestRevision = ++sheetRevision;
         sheet.hidden = false;
+        revealPanel(sheet);
         sheetBody.textContent = config.labels.searching;
 
         try {

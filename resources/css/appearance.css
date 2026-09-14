@@ -510,3 +510,21 @@
 @supports (grid-template-rows: subgrid) {
     .category-grid > a { display: grid; grid-template-rows: subgrid; grid-row: span 2; row-gap: 16px; align-content: start; }
 }
+
+/* Stable interaction targets; motion is confined to photographs and icons. */
+:root .event-card { translate: none; transition-property: background-color, border-color; }
+:root .event-card .event-card__title > :is(h2,h3,h4) { transform: none; translate: none; }
+:root .event-card > span[aria-hidden="true"] { display: none; }
+:root .event-card__footer > div > span { translate: none; transition-property: color; }
+:root :is(.ui-action, [data-save-button]) {
+    transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+:root :is(.ui-action, [data-save-button]):focus-visible { outline: 2px solid var(--focus); outline-offset: 4px; }
+:root .ui-action:active { filter: brightness(.94); }
+@media (max-width: 639px) {
+    :root .home-intro { gap: 20px; }
+    :root .home-opening [data-home-hero] { min-height: 360px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    :root :is(.ui-action, [data-save-button], .event-card) { transition: none; }
+}
