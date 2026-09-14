@@ -56,7 +56,7 @@ it('aligns every event card track without clipping variable content', function (
             $page->assertSee('Un concerto con un titolo molto lungo')->screenshot(filename: 'aligned-cards-'.$theme.'-'.$width);
             if ($width === 1440) {
                 $page->hover('.event-card:first-child');
-                expect($page->script('async () => { await new Promise(resolve => setTimeout(resolve, 280)); const arrow=document.querySelector("[data-card-arrow]"); const icon=arrow.querySelector("svg"); const transform=new DOMMatrix(getComputedStyle(icon).transform); return parseFloat(getComputedStyle(arrow).borderTopWidth)===0 && transform.m41>5 && transform.a>1; }'))->toBeTrue();
+                expect($page->script('async () => { await new Promise(resolve => setTimeout(resolve, 280)); const card=document.querySelector(".event-card"); const arrow=card.querySelector("[data-card-arrow]"); const save=card.querySelector("[data-save-button][data-save-variant=icon]"); const icon=arrow.querySelector("svg"); const transform=new DOMMatrix(getComputedStyle(icon).transform); return parseFloat(getComputedStyle(arrow).borderTopWidth)===0 && getComputedStyle(save).boxShadow==="none" && transform.m41>5 && transform.a>1; }'))->toBeTrue();
             }
         }
     }
