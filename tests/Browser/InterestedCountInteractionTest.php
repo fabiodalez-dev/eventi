@@ -39,7 +39,8 @@ it('toggles a saved event from its photo badge without leaving the catalogue', f
     freezeLocal($city, '2026-09-14 12:00');
     $date = occurrenceAtLocal($city, testCategory(), '2026-09-14 21:00');
     app(SaveOccurrences::class)->one(User::factory()->create(), $date);
-    $page = visit('/eventi')->{$theme}();
+    // Keep the photo badge visible without triggering the scroll-responsive header.
+    $page = visit('/eventi')->{$theme}()->resize(1280, 1600);
     $page->script('localStorage.removeItem("salvataggi"); localStorage.setItem("salvataggi.promemoria-nascosto", "1")');
     $selector = '[data-interest-control][data-save-id="'.$date->id.'"] [data-save-button]';
     $page->refresh()->click('[data-consent-banner] button[value="reject_all"]')
