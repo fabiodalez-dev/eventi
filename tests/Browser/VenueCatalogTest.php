@@ -37,12 +37,14 @@ it('opens filters above the catalog and displays posters after filtering', funct
         $page->click('[data-filter-jump]')->assertVisible('[data-filter-panel]');
         expect($page->script('document.querySelector("#filtri").getBoundingClientRect().top < innerHeight && document.querySelector("#filtri").getBoundingClientRect().top < document.querySelector("[data-results]").getBoundingClientRect().top'))->toBeTrue();
     }
-    $page->click('[data-filter-key="advanced"] > summary')->select('sort', 'relevance')->assertQueryStringHas('sort', 'relevance')->assertVisible('[data-filter-panel]');
+    $page->click('[data-filter-key="advanced"] > summary')->select('sort', 'relevance')->assertVisible('[data-filter-panel]');
     if ($device === 'mobile') {
-        $page->click('[data-filter-close]');
+        $page->assertQueryStringMissing('sort');
+        $page->page()->locator('[data-filter-close]')->click(['timeout' => 10000]);
         expect($page->script('document.querySelector("[data-catalog-filters]").open'))->toBeFalse();
         $page->resize(493, 734);
     }
+    $page->assertQueryStringHas('sort', 'relevance');
     expect($page->script('document.documentElement.scrollWidth <= innerWidth'))->toBeTrue();
     $page->assertVisible('[data-results] article:first-child [data-catalog-poster] img')->screenshot(filename: 'catalog-posters-'.$device);
 })->with(['desktop', 'mobile']);
