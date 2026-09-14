@@ -110,6 +110,8 @@
             alt="{{ $titolo }}"
             width="{{ $set->width ?? 800 }}"
             height="{{ $set->height ?? 1131 }}"
+            loading="lazy"
+            decoding="async"
             class="poster-lightbox-image"
         />
     </div>

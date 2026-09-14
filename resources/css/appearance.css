@@ -549,7 +549,8 @@
     :root .home-opening [data-home-hero] { min-height: 340px; }
 }
 @view-transition { navigation: auto; }
-::view-transition-group(*) { animation-duration: 220ms; animation-timing-function: ease-out; }
+::view-transition-group(*) { animation-duration: 180ms; animation-timing-function: ease-out; }
+::view-transition { pointer-events: none; }
 @media (prefers-reduced-motion: reduce) {
     @view-transition { navigation: none; }
 }
