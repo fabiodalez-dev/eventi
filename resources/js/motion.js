@@ -43,15 +43,15 @@ export function startMotion() {
         const seen = new WeakSet();
         const context = gsap.context(() => {});
         const observer = new IntersectionObserver(entries => {
-            const incoming = entries.filter(entry => entry.isIntersecting).map(entry => entry.target);
+            const incoming = entries.filter(entry => entry.isIntersecting && entry.intersectionRatio >= 0.15).map(entry => entry.target);
             incoming.forEach(card => observer.unobserve(card));
             if (!incoming.length) return;
             context.add(() => gsap.fromTo(incoming, { y: 10, opacity: 0.65 }, {
-                y: 0, opacity: 1, duration: 0.24,
+                y: 0, opacity: 1, duration: 0.36,
                 stagger: { each: 0.035, amount: Math.min(0.12, incoming.length * 0.035) },
                 ease: 'power2.out', clearProps: 'transform,opacity',
             }));
-        }, { threshold: 0.08 });
+        }, { threshold: 0.15, rootMargin: '0px 0px -96px 0px' });
         const scan = () => {
             document.querySelectorAll('.event-card').forEach(card => {
                 if (seen.has(card)) return;
