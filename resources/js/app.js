@@ -1,3 +1,4 @@
+import './page-transitions';
 import { startMotion } from './motion';
 import './appearance';
 if (document.querySelector('[data-rich-input]')) {

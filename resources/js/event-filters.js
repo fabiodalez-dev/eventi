@@ -67,6 +67,10 @@ export function eventFilters() {
         const current = ++revision;
         const region = document.querySelector('[data-event-browser]');
         region.setAttribute('aria-busy', 'true');
+        const loadingTimer = window.setTimeout(() => {
+            const indicator = region.querySelector('[data-results-loading]');
+            if (indicator && !signal.aborted) indicator.hidden = false;
+        }, 150);
 
         try {
             const response = await fetch(url, { signal, headers: { 'X-Requested-With': 'fetch' } });
@@ -142,6 +146,9 @@ export function eventFilters() {
                 if (status) { status.hidden = false; status.textContent = panel.dataset.filterError; }
             }
         } finally {
+            window.clearTimeout(loadingTimer);
+            const indicator = region.querySelector('[data-results-loading]');
+            if (indicator) indicator.hidden = true;
             if (current === revision) {
                 document.querySelector('[data-event-browser]')?.removeAttribute('aria-busy');
                 document.querySelector('[data-event-browser] aside')?.removeAttribute('inert');

@@ -185,12 +185,16 @@ async function startMap(shell) {
     let filterRevision = 0;
     const closeSheet = () => {
         sheetRevision++;
+        document.querySelectorAll('.is-map-selected').forEach(card => card.classList.remove('is-map-selected'));
         if (sheet) sheet.hidden = true;
         sheetBody?.replaceChildren();
     };
 
     const openSheet = async (venue) => {
         if (!sheet || !sheetBody) return;
+        document.querySelectorAll('[data-card-venue]').forEach(card => {
+            card.classList.toggle('is-map-selected', card.dataset.cardVenue === String(venue));
+        });
         const requestRevision = ++sheetRevision;
         sheet.hidden = false;
         revealPanel(sheet);
@@ -373,6 +377,27 @@ async function startMap(shell) {
         ready = false;
         cancelAnimationFrame(frameRequest);
         window.removeEventListener('appearance:change', changeTheme);
+    });
+    const highlightCard = event => {
+        const card = event.target.closest?.('[data-card-venue]');
+        if (!card || !map.getLayer('event-points-halo')) return;
+        map.setPaintProperty('event-points-halo', 'circle-opacity', ['case', ['==', ['get', 'venue'], card.dataset.cardVenue], 0.65, 0.22]);
+    };
+    const clearCardHighlight = event => {
+        const card = event.target.closest?.('[data-card-venue]');
+        if (card && !card.contains(event.relatedTarget) && map.getLayer('event-points-halo')) {
+            map.setPaintProperty('event-points-halo', 'circle-opacity', 0.22);
+        }
+    };
+    document.addEventListener('pointerover', highlightCard);
+    document.addEventListener('focusin', highlightCard);
+    document.addEventListener('pointerout', clearCardHighlight);
+    document.addEventListener('focusout', clearCardHighlight);
+    map.on('remove', () => {
+        document.removeEventListener('pointerover', highlightCard);
+        document.removeEventListener('focusin', highlightCard);
+        document.removeEventListener('pointerout', clearCardHighlight);
+        document.removeEventListener('focusout', clearCardHighlight);
     });
     map.on("moveend", () => {
         if (settled && !automaticFrame && searchButton && !config.static) searchButton.hidden = false;
