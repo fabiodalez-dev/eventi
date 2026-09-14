@@ -16,7 +16,7 @@ use Spatie\Backup\Tasks\Monitor\HealthChecks\MaximumStorageInMegabytes;
 use Spatie\DbDumper\Compressors\GzipCompressor;
 
 /*
- * Il backup di §16: database più storage, conservazione 30 giorni, e la
+ * Il backup di §16: database più storage, conservazione della sola copia più recente, e la
  * notifica di backup fallito — che §16 chiede esplicitamente, perché «un
  * backup che non gira e non avvisa è peggio di nessun backup».
  *
@@ -280,18 +280,9 @@ return [
     'cleanup' => [
         'strategy' => DefaultStrategy::class,
 
-        /*
-         * §16: conservazione **30 giorni**. Tutti i backup dei primi 30 giorni
-         * restano; oltre non resta nulla, perché è quanto il piano chiede e
-         * perché la shared hosting ha un disco condiviso e non elastico.
-         *
-         * I quattro periodi successivi sono a zero di proposito: la strategia
-         * predefinita del pacchetto conserverebbe una copia settimanale per due
-         * mesi, una mensile per quattro e una annuale per due anni — che è una
-         * politica ragionevole, ma non è quella scritta nel piano.
-         */
+        // Richiesta del proprietario: conservare solo il backup più recente.
         'default_strategy' => [
-            'keep_all_backups_for_days' => 30,
+            'keep_all_backups_for_days' => 0,
 
             'keep_daily_backups_for_days' => 0,
 

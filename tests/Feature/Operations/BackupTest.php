@@ -93,10 +93,9 @@ it('mette il database nell\'archivio', function (): void {
 });
 
 /**
- * §16: conservazione **30 giorni**. La prova non è il valore in configurazione
- * ma il comportamento: una copia di 40 giorni fa sparisce, una di 10 resta.
+ * La politica approvata conserva soltanto la copia più recente.
  */
-it('conserva trenta giorni di backup e butta il resto', function (): void {
+it('conserva soltanto il backup più recente', function (): void {
     $now = CarbonImmutable::parse('2026-06-15 12:00:00');
     Carbon\Carbon::setTestNow($now);
 
@@ -108,9 +107,9 @@ it('conserva trenta giorni di backup e butta il resto', function (): void {
 
     $remaining = Storage::disk('local')->allFiles('eventi');
 
-    expect($remaining)->toHaveCount(2)
+    expect($remaining)->toHaveCount(1)
         ->and(collect($remaining)->contains(fn (string $file): bool => str_contains($file, $now->subDays(40)->format('Y-m-d'))))->toBeFalse()
-        ->and(collect($remaining)->contains(fn (string $file): bool => str_contains($file, $now->subDays(10)->format('Y-m-d'))))->toBeTrue();
+        ->and(collect($remaining)->contains(fn (string $file): bool => str_contains($file, $now->subDays(10)->format('Y-m-d'))))->toBeFalse();
 });
 
 /**

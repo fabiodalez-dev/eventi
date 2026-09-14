@@ -10,6 +10,8 @@ motore temporale in §8). Le deviazioni approvate sono in `docs/DECISIONS.md`.
 
 ### Preferenze operative del proprietario (2026-09-05)
 
+- Aggiornamento 2026-09-14: mantenere solo un backup remoto e una copia di rollback del rilascio; non trasferire backup sul computer del proprietario. Ripulire i residui temporanei abbandonati durante la manutenzione. Git conserva il codice, non il database né i caricamenti.
+
 - Il deploy pubblico su `eventi.fabiodalez.it` è autorizzato nel normale flusso
   di implementazione, dopo test e backup. Il proprietario ha autorizzato anche
   gli account e gli eventi demo del ticketing per presentare il sito: usare

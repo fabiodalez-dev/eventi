@@ -159,7 +159,9 @@
     </div>
 
     <div class="event-card__details flex flex-col gap-3">
-    <x-interested-badge :occurrence="$occurrence" />
+    <div class="event-card__interest min-h-7">
+        <x-interested-badge :occurrence="$occurrence" />
+    </div>
     @if ($stateLabel !== null || $highlight !== null || $distanceLabel !== null)
         <div class="flex flex-wrap items-center gap-x-3 gap-y-1 font-display text-[0.594rem] leading-none font-extrabold tracking-[0.14em] uppercase">
             @if ($stateLabel !== null)

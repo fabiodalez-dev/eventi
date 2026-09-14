@@ -537,7 +537,7 @@ ssh fabiodalez.it 'tail -20 ~/eventi/storage/logs/queue.log'
 ## Backup (§16)
 
 Il backup gira **da solo**, dallo scheduler: `backup:run` alle 03:40,
-`backup:clean` alle 04:40 (applica la conservazione di 30 giorni),
+`backup:clean` alle 04:40 (conserva solo la copia più recente, come richiesto il 14 settembre 2026),
 `backup:monitor` alle 09:00. Le copie stanno in
 `/home/fabiodal/eventi/storage/app/private/eventi/`.
 

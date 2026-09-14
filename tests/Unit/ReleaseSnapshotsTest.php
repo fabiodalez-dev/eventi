@@ -57,9 +57,9 @@ it('preserves unrelated files, incomplete snapshots and symbolic links', functio
         ->and(is_file($this->snapshotRoot.'/bootstrap-original/code.tar'))->toBeTrue();
 });
 
-it('retains at least two rollback archives even with an invalid retention value', function () {
+it('retains at least one rollback archive even with an invalid retention value', function () {
     foreach ([1, 2, 3] as $day) {
         ($this->makeSnapshot)($day);
     }
-    expect((new ReleaseSnapshots)->prune($this->snapshotRoot, 0))->toBe(1);
+    expect((new ReleaseSnapshots)->prune($this->snapshotRoot, 0))->toBe(2);
 });
