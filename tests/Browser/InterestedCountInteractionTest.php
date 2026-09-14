@@ -43,11 +43,14 @@ it('toggles a saved event from its photo badge without leaving the catalogue', f
     $page = visit('/eventi')->{$theme}()->resize(1280, 1600);
     $page->script('localStorage.removeItem("salvataggi"); localStorage.setItem("salvataggi.promemoria-nascosto", "1")');
     $selector = '[data-interest-control][data-save-id="'.$date->id.'"] [data-save-button]';
-    $page->refresh()->click('[data-consent-banner] button[value="reject_all"]')
-        ->click($selector)->assertSee('2 persone interessate');
+    $page->refresh()->click('[data-consent-banner] button[value="reject_all"]');
+    // A toggle must not be retried by AwaitableWebpage's one-second action loop.
+    $page->page()->locator($selector)->click(['timeout' => 10_000]);
+    $page->assertSee('2 persone interessate');
     expect($page->script('location.pathname'))->toBe('/eventi');
     expect($page->script('() => [...document.querySelectorAll(\'[data-save-id="'.$date->id.'"] [data-save-button]\')].every(button => button.getAttribute("aria-pressed") === "true")'))->toBeTrue();
-    $page->refresh()->assertSee('2 persone interessate')
-        ->click($selector)->assertSee('1 persona interessata');
+    $page->refresh()->assertSee('2 persone interessate');
+    $page->page()->locator($selector)->click(['timeout' => 10_000]);
+    $page->assertSee('1 persona interessata');
     expect($page->script('location.pathname'))->toBe('/eventi');
 })->with(['inLightMode', 'inDarkMode']);
