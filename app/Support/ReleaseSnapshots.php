@@ -9,7 +9,7 @@ use RuntimeException;
 final class ReleaseSnapshots
 {
     /** Remove only recognized code/build archives; never traverse links or other data. */
-    public function prune(string $root, int $keep = 10): int
+    public function prune(string $root, int $keep = 1): int
     {
         if (! is_dir($root) || is_link($root)) {
             return 0;
@@ -35,7 +35,7 @@ final class ReleaseSnapshots
         rsort($snapshots, SORT_STRING);
 
         $removed = 0;
-        foreach (array_slice($snapshots, max(2, $keep)) as $directory) {
+        foreach (array_slice($snapshots, max(1, $keep)) as $directory) {
             foreach (['build.tar.gz', 'code.tar'] as $file) {
                 if (! unlink($directory.'/'.$file)) {
                     throw new RuntimeException('Impossibile eliminare un vecchio archivio di rilascio: '.$directory);

@@ -296,8 +296,8 @@ class DeployCommand extends Command
 
             return self::FAILURE;
         }
-        // Reserve room before creating the next archive, keeping ten releases in total.
-        app(ReleaseSnapshots::class)->prune(storage_path('app/private/releases'), 9);
+        // Keep one prior release until the new deployment is verified.
+        app(ReleaseSnapshots::class)->prune(storage_path('app/private/releases'), 1);
         $snapshot = storage_path('app/private/releases/'.gmdate('Ymd-His').'-'.substr($sha, 0, 12));
         if (! mkdir($snapshot, 0700, true)) {
             return self::FAILURE;
@@ -305,6 +305,7 @@ class DeployCommand extends Command
         // Backups are taken before changing code or schema. Failure stops deployment.
         foreach ([
             [$this->php(), 'artisan', 'backup:run', '--only-db', '--disable-notifications'],
+            [$this->php(), 'artisan', 'backup:clean', '--disable-notifications'],
             ['git', 'archive', '--format=tar', '--output='.$snapshot.'/code.tar', 'HEAD'],
             ['tar', '-czf', $snapshot.'/build.tar.gz', '-C', public_path(), 'build'],
             [$this->php(), 'artisan', 'down', '--retry=60'],
@@ -502,6 +503,8 @@ class DeployCommand extends Command
         }
 
         $this->info('Rilasciato '.trim((new Process(['git', 'log', '-1', '--format=%h %s'], base_path()))->mustRun()->getOutput()));
+
+        app(ReleaseSnapshots::class)->prune(storage_path('app/private/releases'), 1);
 
         return self::SUCCESS;
     }

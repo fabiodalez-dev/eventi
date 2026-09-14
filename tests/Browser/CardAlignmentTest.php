@@ -2,8 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Models\User;
 use App\Models\Venue;
 use App\Support\EventUrl;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 
 it('aligns every event card track without clipping variable content', function (string $theme, int $width): void {
@@ -16,6 +18,10 @@ it('aligns every event card track without clipping variable content', function (
     foreach (['Jazz', 'Un concerto con un titolo molto lungo per verificare tutte le righe della card', 'Musica in piazza', 'Una serata insieme'] as $i => $title) {
         $dates[] = occurrenceAtLocal($city, $category, '2026-09-13 21:00', event: ['title' => $title, 'price_type' => 'free'], venue: $venue);
     }
+    DB::table('saved_events')->insert([
+        'user_id' => User::factory()->create()->id, 'occurrence_id' => $dates[1]->id,
+        'created_at' => now(), 'updated_at' => now(),
+    ]);
     $dates[1]->update(['highlight' => 'Ingresso dal cortile']);
     foreach (['/', '/eventi', EventUrl::occurrence($dates[0]), '/locali/'.$venue->slug, '/cerca?q=musica'] as $path) {
         $page = visit($path)->{$theme}()->resize($width, 900);
@@ -31,7 +37,7 @@ it('aligns every event card track without clipping variable content', function (
                     if (heading.scrollHeight > heading.clientHeight + 1) return false;
                 }
                 for (const cards of rows.values()) {
-                    for (const slot of ["category", "title", "venue", "date", "details", "footer"]) {
+                    for (const slot of ["category", "title", "venue", "date", "details", "interest", "footer"]) {
                         const tops = cards.map(card => card.querySelector(".event-card__" + slot).getBoundingClientRect().top);
                         if (Math.max(...tops) - Math.min(...tops) > 1) return false;
                     }

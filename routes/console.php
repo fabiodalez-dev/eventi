@@ -153,7 +153,7 @@ Schedule::command('backup:run')
     ->graceTimeInMinutes(120);
 
 /*
- * La pulizia applica la conservazione di 30 giorni (`config/backup.php`).
+ * La pulizia conserva solo il backup più recente (`config/backup.php`).
  * Gira **dopo** il backup del giorno: al contrario, la copia più recente
  * sarebbe quella di ieri e la politica scivolerebbe di un giorno.
  */

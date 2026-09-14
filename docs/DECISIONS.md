@@ -3015,3 +3015,8 @@ Su richiesta viene rimosso il vincolo generale «API di sola lettura»: le
 scritture sono ammesse con autenticazione e policy, salvo i flussi pubblici
 esplicitamente previsti. Agenda e prenotazioni restano due concetti distinti.
 Dettagli, esclusioni e rilascio in [TICKETING.md](TICKETING.md).
+
+
+## 2026-09-14 — Una sola copia remota
+
+Su richiesta del proprietario, la conservazione dei backup passa da 30 giorni alla sola copia più recente. Conservare una sola coppia codice/build per rollback, pulire dopo il deploy e non trasferire backup sul computer del proprietario. Questa decisione sostituisce la precedente retention; Git non include database e file caricati.
