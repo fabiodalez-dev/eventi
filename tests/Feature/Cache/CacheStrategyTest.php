@@ -20,6 +20,20 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Testing\TestResponse;
 use Symfony\Component\HttpFoundation\Cookie;
 
+it('keeps the page cache alive for at least thirty minutes', function (): void {
+    putenv('PAGE_CACHE_TTL_MINUTES=5');
+    $_ENV['PAGE_CACHE_TTL_MINUTES'] = '5';
+
+    try {
+        $configuration = require base_path('config/page_cache.php');
+
+        expect($configuration['ttl_minutes'])->toBe(30);
+    } finally {
+        putenv('PAGE_CACHE_TTL_MINUTES');
+        unset($_ENV['PAGE_CACHE_TTL_MINUTES']);
+    }
+});
+
 /**
  * La tabella di §12.3, riga per riga.
  */
@@ -122,6 +136,38 @@ describe('full-page cache dello scheletro', function (): void {
         $this->get('/eventi')->assertOk()->assertHeader('X-Page-Cache', 'hit');
     });
 
+    it('conserva la pagina compressa e la restituisce identica', function (): void {
+        testCity();
+        Cache::flush();
+
+        $first = $this->get('/')->assertOk()->assertHeader('X-Page-Cache', 'miss')->getContent();
+        $second = $this->get('/')->assertOk()->assertHeader('X-Page-Cache', 'hit')->getContent();
+
+        $key = collect(Cache::get('page-cache-index', []))->first();
+        $cached = Cache::get($key);
+
+        expect($second)->toBe($first)
+            ->and($cached)->toBeString()
+            ->and(str_starts_with((string) $cached, "\x1f\x8b"))->toBeTrue()
+            ->and(strlen((string) $cached))->toBeLessThan((int) (strlen($first) / 4));
+    });
+
+    it('refreshes live homepage windows without expiring the page skeleton', function (): void {
+        $city = testCity();
+        $category = testCategory();
+        occurrenceAtLocal($city, $category, '2026-09-12 21:00', '2026-09-12 23:00');
+
+        freezeLocal($city, '2026-09-12 20:55');
+        $this->get('/')->assertOk()
+            ->assertHeader('X-Page-Cache', 'miss')
+            ->assertSee(__('events.sections.starting_soon'));
+
+        freezeLocal($city, '2026-09-12 21:05');
+        $this->get('/')->assertOk()
+            ->assertHeader('X-Page-Cache', 'hit')
+            ->assertSee(__('events.sections.ongoing'));
+    });
+
     it('smette di servire la copia quando un evento viene pubblicato', function (): void {
         $city = testCity();
         $category = testCategory();
@@ -210,6 +256,20 @@ describe('full-page cache dello scheletro', function (): void {
             ->not->toBe($middleware->key(Request::create('/eventi')))
             ->and($middleware->key(Request::create('/eventi?price=free')))
             ->not->toBe($middleware->key(Request::create('/eventi')));
+    });
+
+    it('separates theme variants without accepting arbitrary cookie values', function (): void {
+        testCity();
+        $middleware = app(CachePage::class);
+
+        $system = $middleware->key(Request::create('/'));
+        $light = $middleware->key(Request::create('/', 'GET', [], ['incitta_appearance' => 'light']));
+        $dark = $middleware->key(Request::create('/', 'GET', [], ['incitta_appearance' => 'dark']));
+        $invalid = $middleware->key(Request::create('/', 'GET', [], ['incitta_appearance' => 'invented']));
+
+        expect($light)->not->toBe($dark)
+            ->and($light)->not->toBe($system)
+            ->and($invalid)->toBe($system);
     });
 
     /*

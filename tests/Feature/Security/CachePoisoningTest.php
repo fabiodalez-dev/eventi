@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Cache;
  *
  * Sbagliare per difetto è avvelenamento: `/eventi?budget=0` e `/eventi`
  * diventano la stessa voce, quindi il primo anonimo che passa con quel
- * parametro decide cosa vedono tutti per un minuto. Sbagliare per eccesso è
+ * parametro decide cosa vedono tutti fino alla scadenza. Sbagliare per eccesso è
  * riempimento del disco: ogni valore distinto è un file, e questo sito gira su
  * uno spazio da 10 GB già esaurito una volta.
  */

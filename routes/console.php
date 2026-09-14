@@ -42,6 +42,12 @@ Schedule::command('queue:work google_calendar --queue=google-calendar --stop-whe
 Schedule::command('social:publish-due')->everyMinute()->withoutOverlapping(5);
 Schedule::command('social:daily')->everyMinute()->withoutOverlapping(30);
 
+/* Rinnova le pagine calde ben prima del TTL minimo di trenta minuti. */
+Schedule::command('page-cache:warm')
+    ->everyFiveMinutes()
+    ->withoutOverlapping(10)
+    ->runInBackground();
+
 Artisan::command('ticketing:demo {--force : Explicitly permit demonstration accounts on the public site}', function (): int {
     if (! app()->environment(['local', 'testing']) && ! $this->option('force')) {
         $this->error('Public demo accounts require explicit --force authorization.');

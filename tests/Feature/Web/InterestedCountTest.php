@@ -26,7 +26,14 @@ it('counts real unique savers per date in cards and detail excluding deleted acc
     $xpath = new DOMXPath($document);
     expect($xpath->query('//*[@data-interest-id="'.$date->id.'"]//*[local-name()="svg"]')->length)->toBe(0)
         ->and($xpath->query('//*[@data-interest-id="'.$date->id.'" and @data-interest-count="2"]')->length)->toBeGreaterThan(0);
-    $this->get('/')->assertOk()->assertSee('2 persone interessate');
+    $home = $this->get('/')->assertOk()->assertSee('2 persone interessate');
+    $homeDocument = new DOMDocument;
+    @$homeDocument->loadHTML($home->getContent());
+    $homeXpath = new DOMXPath($homeDocument);
+    $compact = $homeXpath->query('//*[@data-interest-control]//*[@data-interest-compact and @data-interest-id="'.$date->id.'"]')->item(0);
+    expect($compact)->not->toBeNull()
+        ->and(trim((string) $homeXpath->query('.//*[@data-interest-text]', $compact)->item(0)?->textContent))->toBe('2')
+        ->and(trim((string) $homeXpath->query('.//*[@data-interest-accessible]', $compact)->item(0)?->textContent))->toBe('2 persone interessate');
     $this->actingAs($users->first())->deleteJson(route('account.saved.destroy', $date->id))
         ->assertOk()->assertJsonPath('interested_counts.'.$date->id, 1);
     $this->actingAs($users->first())->postJson(route('account.saved.store'), ['occurrence_id' => $date->id])

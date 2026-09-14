@@ -225,9 +225,13 @@
         @endif
     @endif
 
-    {{-- Both themes are resolved before paint, including first-visit system preference.
-         Preload their Latin fonts from the same build URLs used by CSS. --}}
-    @foreach (['bricolage', 'manrope', 'archivo'] as $family)
+    {{-- Manrope serves both themes. The selected display face is preloaded only
+         when the visitor has made an explicit choice; CSS resolves a first
+         visit after the system preference is known in the browser. --}}
+    @php
+        $selectedAppearance = request()->cookie('incitta_appearance');
+    @endphp
+    @foreach (array_filter(['manrope', $selectedAppearance === 'dark' ? 'archivo' : null, $selectedAppearance === 'light' ? 'bricolage' : null]) as $family)
         @php
             $fontLatino = \App\Support\Fonts::latin($family);
         @endphp

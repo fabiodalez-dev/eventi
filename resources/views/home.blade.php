@@ -273,7 +273,7 @@
          far entrare 84 KB di JavaScript nella pagina, e su una pagina servita
          dalla cache quello script non veniva iniettato affatto — il frammento
          non arrivava mai e le due sezioni non si vedevano (D51). --}}
-    <x-live-now />
+    <!-- page-cache-live-now:start --><x-live-now /><!-- page-cache-live-now:end -->
 
     {{-- La campagna della pagina iniziale, subito dopo la fascia dei numeri:
          sopra la piega non ci va — quello spazio è la data più importante in

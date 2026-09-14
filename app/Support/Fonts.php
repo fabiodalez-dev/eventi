@@ -40,7 +40,7 @@ final class Fonts
         $files = [
             'archivo' => 'archivo/files/archivo-latin-wght-normal.woff2',
             'manrope' => 'manrope/files/manrope-latin-wght-normal.woff2',
-            'bricolage' => 'bricolage-grotesque/files/bricolage-grotesque-latin-standard-normal.woff2',
+            'bricolage' => 'bricolage-grotesque/files/bricolage-grotesque-latin-opsz-normal.woff2',
         ];
         if (! isset($files[$family])) {
             return null;

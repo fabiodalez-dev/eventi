@@ -10,6 +10,7 @@ use App\Support\ContentVersion;
 use App\Support\Csp;
 use App\Support\CurrentCity;
 use App\Support\Sponsorship\ActiveGrants;
+use App\View\Components\LiveNow;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -19,18 +20,17 @@ use Throwable;
 
 /**
  * La full-page cache di §12.3: **scheletro** della pagina iniziale, di
- * "stasera", del weekend, delle categorie e dei locali attivi, per cinque
+ * "stasera", del weekend, delle categorie e dei locali attivi, per almeno trenta
  * minuti, invalidata alla pubblicazione di un evento.
  *
  * ## Perché "scheletro" è la parola importante
  *
  * §12.3 avverte del conflitto: una finestra mobile di tre ore ("inizia tra
  * poco") non può stare dentro una pagina in cache — o la pagina è in cache e
- * la sezione mente, o la sezione è giusta e il TTFB crolla. La soluzione era
- * già stata presa in §11.2: "In corso" e "Inizia tra poco" sono un componente
- * Livewire caricato **dopo** il primo disegno (D25). Quello che finisce qui
- * dentro è tutto il resto, che a cinque minuti di distanza è identico a sé
- * stesso.
+ * la sezione mente, o la sezione è giusta e il TTFB crolla. Per questo la
+ * copia contiene un segnaposto: "In corso" e "Inizia tra poco" vengono
+ * renderizzati di nuovo su ogni risposta, mentre tutto il resto rimane nello
+ * scheletro conservato per almeno trenta minuti.
  *
  * ## Le due cose che una pagina in cache non può portarsi dietro
  *
@@ -66,6 +66,9 @@ final class CachePage
      */
     private const NONCE_PLACEHOLDER = '@@csp-nonce@@';
 
+    /** The time-sensitive homepage fragment is rendered afresh on every hit. */
+    private const LIVE_NOW_PLACEHOLDER = '@@live-now@@';
+
     public function handle(Request $request, Closure $next): Response
     {
         app(FrontendCacheConfiguration::class)->apply();
@@ -83,7 +86,7 @@ final class CachePage
         }
 
         if (is_string($cached)) {
-            return response($this->restore($cached), 200)
+            return response($this->restore($this->decompress($cached)), 200)
                 ->header('Content-Type', 'text/html; charset=utf-8')
                 ->header('X-Page-Cache', 'hit');
         }
@@ -102,7 +105,7 @@ final class CachePage
                     while (count($keys) > config()->integer('page_cache.max_entries')) {
                         $store->forget(array_shift($keys));
                     }
-                    $store->put($key, $this->depersonalise($content), now()->addMinutes(config()->integer('page_cache.ttl_minutes')));
+                    $store->put($key, $this->compress($this->depersonalise($content)), now()->addMinutes(config()->integer('page_cache.ttl_minutes')));
                     $store->forever('page-cache-index', $keys);
                 });
             } catch (Throwable $exception) {
@@ -113,6 +116,26 @@ final class CachePage
         $response->headers->set('X-Page-Cache', 'miss');
 
         return $response;
+    }
+
+    /** Keep file-cache entries small while preserving compatibility with old entries. */
+    private function compress(string $content): string
+    {
+        $compressed = gzencode($content, 6);
+
+        return $compressed === false ? $content : $compressed;
+    }
+
+    /** Entries written before compression are plain HTML and remain readable. */
+    private function decompress(string $cached): string
+    {
+        if (! str_starts_with($cached, "\x1f\x8b")) {
+            return $cached;
+        }
+
+        $content = @gzdecode($cached);
+
+        return $content === false ? $cached : $content;
     }
 
     /**
@@ -138,7 +161,7 @@ final class CachePage
      * Un filtro che cambia i risultati e **non** compare qui produce
      * avvelenamento della cache: `/eventi?budget=0` e `/eventi` diventano la
      * stessa voce, quindi il primo anonimo che passa con quel parametro decide
-     * cosa vedono tutti gli altri per un minuto. Era il caso di `budget`,
+     * cosa vedono tutti gli altri fino alla scadenza. Era il caso di `budget`,
      * `discovery`, `days` e — aggiunto ieri da un'altra mano — `membership`.
      *
      * L'elenco è pubblico perché `CachePageParametersTest` lo confronta con le
@@ -225,10 +248,10 @@ final class CachePage
      *
      * La `whereHas` sulle concessioni è passata in `App\Support\Sponsorship\ActiveGrants`,
      * che la tiene per la stessa durata della pagina: una interrogazione al
-     * minuto per città invece di una per richiesta. Il resto è rimasto dov'era
+     * periodo di validità per città invece di una per richiesta. Il resto è rimasto dov'era
      * perché costa poco e perché è la parte che deve avere effetto **subito**
      * — la revisione che scrive il pulsante «svuota la cache» del pannello non
-     * può aspettare un minuto per essere creduta.
+     * deve essere recepita senza attendere la scadenza della copia.
      *
      * I due `hash_file` restano: sei centesimi di millisecondo, e l'impronta
      * del contenuto è più solida della data di modifica quando il rilascio
@@ -238,13 +261,17 @@ final class CachePage
     {
         $city = app(CurrentCity::class)->get();
         $cityId = $city === null ? 0 : (int) $city->getKey();
+        $appearance = in_array($request->cookie('incitta_appearance'), ['light', 'dark'], true)
+            ? $request->cookie('incitta_appearance')
+            : 'system';
 
         return sprintf(
-            'pagina:%d:%d:%s:%s:%s',
+            'pagina:%d:%d:%s:%s:%s:%s',
             $cityId,
             ContentVersion::for($cityId),
             app()->getLocale(),
             app(Consent::class)->fingerprint(),
+            $appearance,
             sha1($request->getSchemeAndHttpHost().$this->canonicalUrl($request)
                 .now($city->timezone ?? config('app.timezone'))->format('Y-m-d')
                 .Cache::get('frontend_cache_revision', '0')
@@ -486,6 +513,11 @@ final class CachePage
      */
     private function depersonalise(string $content): string
     {
+        $content = preg_replace(
+            '/<!-- page-cache-live-now:start -->.*?<!-- page-cache-live-now:end -->/s',
+            self::LIVE_NOW_PLACEHOLDER,
+            $content,
+        ) ?? $content;
         $content = str_replace(csrf_token(), self::CSRF_PLACEHOLDER, $content);
         $nonce = app(Csp::class)->issued();
 
@@ -501,6 +533,15 @@ final class CachePage
      */
     private function restore(string $content): string
     {
+        if (str_contains($content, self::LIVE_NOW_PLACEHOLDER)) {
+            $component = app(LiveNow::class);
+            $fragment = '<!-- page-cache-live-now:start -->'.view('components.live-now', [
+                'ongoing' => $component->ongoing,
+                'startingSoon' => $component->startingSoon,
+            ])->render().'<!-- page-cache-live-now:end -->';
+            $content = str_replace(self::LIVE_NOW_PLACEHOLDER, $fragment, $content);
+        }
+
         $content = str_replace(self::CSRF_PLACEHOLDER, csrf_token(), $content);
         $nonce = app(Csp::class)->issued();
 

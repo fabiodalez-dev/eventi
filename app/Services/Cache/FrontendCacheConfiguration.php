@@ -20,7 +20,10 @@ class FrontendCacheConfiguration
         }
         config()->set('page_cache.enabled', $settings->enabled);
         config()->set('page_cache.store', $settings->store);
-        config()->set('page_cache.ttl_minutes', $settings->ttl_minutes);
+        // Values saved before the 30-minute floor may still be present in the
+        // settings table during a rolling deploy. They must not shorten the
+        // effective page-cache lifetime while migrations are catching up.
+        config()->set('page_cache.ttl_minutes', max(30, $settings->ttl_minutes));
         config()->set('database.redis.frontend', [
             'host' => ($settings->redis_tls ? 'tls://' : '').$settings->redis_host,
             'port' => $settings->redis_port,

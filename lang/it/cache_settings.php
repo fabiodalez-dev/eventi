@@ -10,7 +10,7 @@ return [
     'store' => 'Dove conservare le copie',
     'file' => 'File sul server (consigliato su questo hosting)',
     'redis' => 'Redis, con ripiego automatico su file',
-    'ttl' => 'Durata delle copie in minuti (da 1 a 5)',
+    'ttl' => 'Durata delle copie in minuti (minimo 30)',
     'redis_title' => 'Redis opzionale',
     'redis_help' => 'Compila solo se il provider ti ha fornito un servizio Redis. La presenza dell’estensione PHP non significa che il servizio sia disponibile. Prima di attivarlo verifichiamo connessione, autenticazione, scrittura e lettura.',
     'host' => 'Indirizzo del server Redis',

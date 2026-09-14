@@ -2,6 +2,26 @@
 // lost connectivity, campaign pauses and the backend switch on already open pages.
 import { sponsorshipContext } from './sponsorship-context.js';
 
+/* Share only concurrent requests. Once settled, the entry is removed so the
+   lease-expiry refresh still asks the backend for current campaign data. */
+const inFlightRequests = new Map();
+
+function requestBanner(endpoint) {
+    if (!inFlightRequests.has(endpoint)) {
+        const request = fetch(endpoint, { cache: 'no-store', headers: { Accept: 'application/json' } })
+            .then((response) => {
+                if (!response.ok) throw new Error('Unavailable');
+
+                return response.json();
+            })
+            .finally(() => inFlightRequests.delete(endpoint));
+
+        inFlightRequests.set(endpoint, request);
+    }
+
+    return inFlightRequests.get(endpoint);
+}
+
 export function sponsorshipBanners() {
     for (const slot of document.querySelectorAll('[data-live-sponsorship]')) {
         let banner = null;
@@ -38,9 +58,7 @@ export function sponsorshipBanners() {
             if (loading || document.hidden) return;
             loading = true;
             try {
-                const response = await fetch(slot.dataset.endpoint, { cache: 'no-store', headers: { Accept: 'application/json' } });
-                if (!response.ok) throw new Error('Unavailable');
-                const { data } = await response.json();
+                const { data } = await requestBanner(slot.dataset.endpoint);
                 clearTimeout(expiry);
                 if (!data || Date.parse(data.expires_at) <= Date.now()) { hide(); return; }
                 if (slot.dataset.excludeEvent && data.event_slug === slot.dataset.excludeEvent) { hide(); return; }

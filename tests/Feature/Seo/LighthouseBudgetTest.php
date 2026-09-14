@@ -36,7 +36,7 @@ it('dichiara le quattro soglie di §11.11 al livello che ferma il lavoro', funct
      * La soglia resta 2500 — quella dei Core Web Vitals — e la misura continua
      * a comparire nel referto. Ma non ferma piu' un rilascio, perche' non e'
      * abbastanza ferma per farlo: 1960, 2560, 2706, 2254 senza che il codice
-     * cambiasse di conseguenza. Con la cache di pagina a un minuto una parte
+     * cambiasse di conseguenza. Con la cache di pagina una parte
      * dei giri cade a freddo e una a caldo, e la mediana salta fra i due
      * gruppi a seconda del carico del runner.
      *

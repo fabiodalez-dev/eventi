@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 use App\Enums\OccurrenceStatus;
 use App\Enums\PriceType;
+use App\Models\Event;
+use App\Models\EventOccurrence;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 afterEach(function (): void {
     Carbon::setTestNow();
@@ -136,4 +139,46 @@ it('offre il salto al contenuto a chi naviga da tastiera', function (): void {
         ->assertOk()
         ->assertSee(__('ui.skip_to_content'))
         ->assertSee('id="contenuto"', escape: false);
+});
+
+it('limits occurrence hydration in the homepage queries', function (): void {
+    $city = testCity();
+    freezeLocal($city, '2026-09-05 12:00:00');
+
+    EventOccurrence::factory()
+        ->count(60)
+        ->for(Event::factory()->for($city)->published())
+        ->create(['starts_at' => now()->addDays(3), 'status' => OccurrenceStatus::Scheduled]);
+
+    $unbounded = [];
+    DB::listen(function ($query) use (&$unbounded): void {
+        if (str_contains($query->sql, 'select `event_occurrences`.*') && ! str_contains($query->sql, ' limit ')) {
+            $unbounded[] = $query->sql;
+        }
+    });
+
+    $this->get('/')->assertOk();
+
+    expect($unbounded)->toBe([]);
+});
+
+it('does not count interested users once per homepage card', function (): void {
+    $city = testCity();
+    freezeLocal($city, '2026-09-05 12:00:00');
+
+    EventOccurrence::factory()
+        ->count(12)
+        ->for(Event::factory()->for($city)->published())
+        ->create(['starts_at' => now()->addDay(), 'status' => OccurrenceStatus::Scheduled]);
+
+    $counts = 0;
+    DB::listen(function ($query) use (&$counts): void {
+        if (str_contains($query->sql, 'saved_events') && str_contains($query->sql, 'count(*) as `aggregate`')) {
+            $counts++;
+        }
+    });
+
+    $this->get('/')->assertOk();
+
+    expect($counts)->toBe(0);
 });

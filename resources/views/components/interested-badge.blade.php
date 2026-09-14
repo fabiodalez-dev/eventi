@@ -1,6 +1,7 @@
-@props(['occurrence', 'overlay' => false])
+@props(['occurrence', 'overlay' => false, 'compact' => false])
 @php($count = $occurrence->interestedCount())
 <span data-interest-id="{{ $occurrence->getKey() }}" data-interest-count="{{ $count }}" data-interest-base-count="{{ $count }}"
+    @if ($compact) data-interest-compact @endif
     data-interest-singular="{{ trans_choice('events.interested', 1, ['count' => '__COUNT__']) }}"
     data-interest-plural="{{ trans_choice('events.interested', 2, ['count' => '__COUNT__']) }}"
     @if ($count === 0) hidden @endif
@@ -9,5 +10,8 @@
     @if ($overlay)
         <x-lucide name="bookmark" class="size-3.5" />
     @endif
-    <span data-interest-text>{{ trans_choice('events.interested', $count, ['count' => $count]) }}</span>
+    <span data-interest-text @if ($compact) aria-hidden="true" @endif>{{ $compact ? $count : trans_choice('events.interested', $count, ['count' => $count]) }}</span>
+    @if ($compact)
+        <span class="sr-only" data-interest-accessible>{{ trans_choice('events.interested', $count, ['count' => $count]) }}</span>
+    @endif
 </span>

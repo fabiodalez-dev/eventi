@@ -521,6 +521,12 @@
 }
 :root :is(.ui-action, [data-save-button]):focus-visible { outline: 2px solid var(--focus); outline-offset: 4px; }
 :root .ui-action:active { filter: brightness(.94); }
+:root [data-save-button][data-save-variant="count"] { font-variant-numeric: tabular-nums; }
+:root [data-save-button][data-save-variant="count"][aria-pressed="false"] { background: var(--canvas); color: var(--ink); }
+:root [data-save-button][data-save-variant="count"][aria-pressed="false"]:hover { background: var(--accent); color: var(--on-accent); }
+@media (pointer: coarse) {
+    :root [data-save-button][data-save-variant="count"] { min-height: 44px; }
+}
 @media (max-width: 639px) {
     :root .home-intro { gap: 20px; }
     :root .home-opening [data-home-hero] { min-height: 360px; }

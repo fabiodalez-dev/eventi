@@ -62,7 +62,7 @@ class CachePerformance extends Page
                     'frontend-file' => __('cache_settings.file'),
                     'frontend-redis' => __('cache_settings.redis'),
                 ])->required()->in(['frontend-file', 'frontend-redis']),
-                TextInput::make('ttl_minutes')->label(__('cache_settings.ttl'))->numeric()->integer()->minValue(1)->maxValue(5)->required(),
+                TextInput::make('ttl_minutes')->label(__('cache_settings.ttl'))->numeric()->integer()->minValue(30)->required(),
             ]),
             Section::make(__('cache_settings.redis_title'))->description(__('cache_settings.redis_help'))->schema([
                 TextInput::make('redis_host')->label(__('cache_settings.host'))->required()->maxLength(253)->regex('/^[a-zA-Z0-9.:-]+$/'),
