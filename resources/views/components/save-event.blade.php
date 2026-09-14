@@ -25,12 +25,12 @@
 @endphp
 
 @if ($occurrences->isNotEmpty())
-    <section aria-labelledby="salva-evento" class="flex flex-col gap-3 bg-surface p-card">
+    <section aria-labelledby="salva-evento" class="flex flex-col items-start gap-2 pt-1">
         <h2 id="salva-evento" class="sr-only">{{ __('account.save.action') }}</h2>
 
         @if ($single !== null)
-            <x-interested-badge :occurrence="$single" />
             <x-save-heart :occurrence="$single" :saved="isset($saved[$single->getKey()])" variant="label" />
+            <x-interested-badge :occurrence="$single" />
         @else
             <details class="group">
                 <summary class="inline-flex cursor-pointer items-center gap-1.5 bg-surface px-3.5 py-2 text-sm font-semibold text-ink border-2 border-line transition hover:border-accent">

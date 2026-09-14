@@ -465,17 +465,22 @@ async function talkToServer(url, method, token, body) {
 
         if (!response.ok) return false;
         const result = await response.json();
-        for (const [id, count] of Object.entries(result.interested_counts ?? {})) {
-            document.querySelectorAll('[data-interest-id]').forEach(badge => {
-                if (badge.dataset.interestId !== id) return;
-                badge.hidden = count === 0;
-                badge.querySelector('[data-interest-text]').textContent = `${count} ${count === 1 ? 'persona interessata' : 'persone interessate'}`;
-            });
-        }
+        for (const [id, count] of Object.entries(result.interested_counts ?? {})) updateInterestCount(id, count);
         return result;
     } catch {
         return false;
     }
+}
+
+function updateInterestCount(id, count) {
+    const safeCount = Math.max(0, Number.parseInt(count, 10) || 0);
+    document.querySelectorAll('[data-interest-id]').forEach(badge => {
+        if (Number(badge.dataset.interestId) !== Number(id)) return;
+        badge.dataset.interestCount = String(safeCount);
+        badge.hidden = safeCount === 0;
+        const template = safeCount === 1 ? badge.dataset.interestSingular : badge.dataset.interestPlural;
+        badge.querySelector('[data-interest-text]').textContent = template.replace('__COUNT__', String(safeCount));
+    });
 }
 
 let savedHeartsInitialized = false;
@@ -545,6 +550,9 @@ function savedHearts() {
                         : [...current, id],
                 );
                 paintAll(id, !wasSaved);
+                const badge = document.querySelector(`[data-interest-id="${id}"]`);
+                const count = Number.parseInt(badge?.dataset.interestCount ?? "0", 10) || 0;
+                updateInterestCount(id, count + (wasSaved ? -1 : 1));
 
                 /* Solo quando si aggiunge: proporre un account a chi ha appena
                    tolto una data e' chiedere il contrario di quello che ha

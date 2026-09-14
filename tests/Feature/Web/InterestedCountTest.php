@@ -20,7 +20,12 @@ it('counts real unique savers per date in cards and detail excluding deleted acc
     $users->last()->delete();
     $loaded = EventOccurrenceQuery::for($city)->forOccurrences([$date->id])->get()->sole();
     expect($loaded->interestedCount())->toBe(2);
-    $this->get(EventUrl::occurrence($date))->assertOk()->assertSee('2 persone interessate');
+    $detail = $this->get(EventUrl::occurrence($date))->assertOk()->assertSee('2 persone interessate');
+    $document = new DOMDocument;
+    @$document->loadHTML($detail->getContent());
+    $xpath = new DOMXPath($document);
+    expect($xpath->query('//*[@data-interest-id="'.$date->id.'"]//*[local-name()="svg"]')->length)->toBe(0)
+        ->and($xpath->query('//*[@data-interest-id="'.$date->id.'" and @data-interest-count="2"]')->length)->toBeGreaterThan(0);
     $this->get('/')->assertOk()->assertSee('2 persone interessate');
     $this->actingAs($users->first())->deleteJson(route('account.saved.destroy', $date->id))
         ->assertOk()->assertJsonPath('interested_counts.'.$date->id, 1);

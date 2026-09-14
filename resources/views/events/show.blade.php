@@ -187,6 +187,14 @@
                             @else {{ $organizerInfo['name'] }} @endif
                         </p>
                     @endif
+                    @if (! ($isPreview ?? false))
+                        <x-save-event
+                            :event="$event"
+                            :occurrences="$occurrences"
+                            :saved="app(\App\Support\CurrentSaves::class)->all()"
+                            :following="app(\App\Support\CurrentFollows::class)->has(\App\Enums\FollowableType::Event, (int) $event->getKey())"
+                        />
+                    @endif
                     <h2 id="date-evento" class="font-display text-[clamp(1.25rem,1.8vw,1.75rem)] leading-none font-extrabold tracking-[-0.03em] uppercase">{{ __('events.detail.all_dates') }}</h2>
 
                     <ul class="flex flex-col gap-2">
@@ -317,18 +325,6 @@
                         </p>
                     @endif
                 </section>
-            @endif
-
-            {{-- Il cuore della scheda (§15.3): una data sola si salva senza
-                 chiedere, più date aprono il selettore, una serie ricorrente
-                 offre anche «segui questo evento». --}}
-            @if (! ($isPreview ?? false))
-            <x-save-event
-                :event="$event"
-                :occurrences="$occurrences"
-                :saved="app(\App\Support\CurrentSaves::class)->all()"
-                :following="app(\App\Support\CurrentFollows::class)->has(\App\Enums\FollowableType::Event, (int) $event->getKey())"
-            />
             @endif
 
             <x-event-description :event="$event" />
