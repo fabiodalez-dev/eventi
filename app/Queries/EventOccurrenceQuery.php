@@ -951,6 +951,17 @@ final class EventOccurrenceQuery
     }
 
     /**
+     * Return only the requested rows, applying the limit in SQL before model
+     * hydration and relationship loading.
+     *
+     * @return Collection<int, EventOccurrence>
+     */
+    public function take(int $limit): Collection
+    {
+        return $this->build()->limit(max(1, $limit))->get();
+    }
+
+    /**
      * `$pageName` esiste perché una pagina può ospitare due elenchi paginati:
      * la scheda di un locale ha i prossimi eventi e l'archivio, e devono poter
      * essere sfogliati uno senza trascinarsi l'altro (§11.9).

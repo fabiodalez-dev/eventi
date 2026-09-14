@@ -32,7 +32,7 @@ use Illuminate\Support\Facades\Cache;
  * dove la CPU è contesa e il database non sta sulla stessa macchina, quel
  * numero peggiora.
  *
- * ## Perché un minuto, e perché va bene
+ * ## Perché la stessa durata della pagina
  *
  * Il valore si tiene per la stessa durata della pagina che contribuisce a
  * indicizzare (`page_cache.ttl_minutes`). Il ritardo con cui una finestra
@@ -42,7 +42,7 @@ use Illuminate\Support\Facades\Cache;
  *
  * La modifica **fatta a mano** invece si vede subito: `dimentica()` la chiama
  * il modello a ogni salvataggio e a ogni cancellazione. È la distinzione che
- * conta — il tempo che passa può aspettare un minuto, una persona che ha
+ * conta — il tempo che passa può aspettare, una persona che ha
  * appena premuto «salva» no.
  */
 final class ActiveGrants

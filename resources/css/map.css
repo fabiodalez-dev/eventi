@@ -1,0 +1,3 @@
+/* MapLibre lives only on the map page; keeping its stylesheet out of app.css
+   removes it from the render path of every other public page. */
+@import 'maplibre-gl/dist/maplibre-gl.css';

@@ -41,6 +41,9 @@ use Illuminate\Support\Facades\Route;
  */
 final class HomeController extends Controller
 {
+    /** Fetch a bounded surplus before deduplicating recurring events. */
+    private const OVERSAMPLE = 6;
+
     public function __construct(
         private readonly StructuredData $structuredData,
         private readonly MapPayload $mapPayload,
@@ -78,17 +81,17 @@ final class HomeController extends Controller
         $perSection = config()->integer('eventi.home_section_size');
 
         $sections = [
-            'tonight' => $this->hydrate(EventOccurrenceQuery::for($city)->tonight()->get(), $perSection),
-            'today' => $this->hydrate(EventOccurrenceQuery::for($city)->today()->timeOfDay(TimeOfDay::Day)->get(), $perSection),
-            'featured' => $this->hydrate(EventOccurrenceQuery::for($city)->upcoming()->featured()->orderByRelevance()->get()->unique('event_id')->values(), $perSection),
-            'weekend' => $this->hydrate(EventOccurrenceQuery::for($city)->weekend()->get(), $perSection),
+            'tonight' => $this->hydrate(EventOccurrenceQuery::for($city)->tonight()->take($perSection), $perSection),
+            'today' => $this->hydrate(EventOccurrenceQuery::for($city)->today()->timeOfDay(TimeOfDay::Day)->take($perSection), $perSection),
+            'featured' => $this->hydrate(EventOccurrenceQuery::for($city)->upcoming()->featured()->orderByRelevance()->take($perSection * self::OVERSAMPLE)->unique('event_id')->values(), $perSection),
+            'weekend' => $this->hydrate(EventOccurrenceQuery::for($city)->weekend()->take($perSection), $perSection),
         ];
 
         $heroSponsorship = $this->sponsorships->first($city, SponsorshipPlacement::HomeHero);
         $hero = $heroSponsorship !== null
-            ? EventOccurrenceQuery::for($city)->forEvent($heroSponsorship->event_id)->promotable()->get()->first()
-            : EventOccurrenceQuery::for($city)->today()->promotable()->get()->unique('event_id')->shuffle()->first();
-        $hero ??= EventOccurrenceQuery::for($city)->upcoming()->promotable()->get()->first();
+            ? EventOccurrenceQuery::for($city)->forEvent($heroSponsorship->event_id)->promotable()->take(1)->first()
+            : EventOccurrenceQuery::for($city)->today()->promotable()->take($perSection * self::OVERSAMPLE)->unique('event_id')->shuffle()->first();
+        $hero ??= EventOccurrenceQuery::for($city)->upcoming()->promotable()->take(1)->first();
         $hero?->loadMissing(['event.venue', 'event.category', 'event.media']);
 
         /*
@@ -176,8 +179,8 @@ final class HomeController extends Controller
      */
     private function firstVisible(City $city, array $sections): ?EventOccurrence
     {
-        $live = EventOccurrenceQuery::for($city)->ongoing()->get()->first()
-            ?? EventOccurrenceQuery::for($city)->startingSoon()->get()->first();
+        $live = EventOccurrenceQuery::for($city)->ongoing()->take(1)->first()
+            ?? EventOccurrenceQuery::for($city)->startingSoon()->take(1)->first();
 
         if ($live !== null) {
             return $this->hydrate(new Collection([$live]), 1)->first();
@@ -222,7 +225,7 @@ final class HomeController extends Controller
                 ->upcoming()
                 ->near((float) $city->center_lat, (float) $city->center_lng, config()->float('eventi.nearby_radius_km', 12.0))
                 ->orderByDistance()
-                ->get()
+                ->take(5 * self::OVERSAMPLE)
                 ->unique('event_id')
                 ->values(),
             5,

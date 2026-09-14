@@ -16,10 +16,10 @@ use Illuminate\Support\Facades\RateLimiter;
  * Le misure di una campagna: quante volte è stata vista, quante aperta.
  *
  * **Perché si contano dal browser e non dal server.** Le pagine pubbliche
- * stanno in cache per un minuto (`page_cache.ttl_minutes`): il server disegna
+ * stanno in cache (`page_cache.ttl_minutes`): il server disegna
  * la card una volta e poi serve la stessa pagina a tutti fino alla scadenza.
  * Un contatore incrementato mentre si disegna conterebbe una visualizzazione
- * al minuto invece che una per visitatore — un numero che sembra una misura e
+ * una volta invece che una per visitatore — un numero che sembra una misura e
  * non lo è.
  *
  * **Il prezzo di questa scelta va detto a chi compra.** Contando dal browser,
@@ -51,7 +51,7 @@ final class SponsorshipMetricController extends Controller
          * Il filtro e' sullo **stato** e non su `visible()`, che sarebbe la
          * scelta d'istinto e sarebbe sbagliata: `visible()` pretende anche che
          * l'evento abbia ancora una data futura, e le pagine pubbliche stanno
-         * in cache fino a un minuto. Una misura che arriva dopo la scadenza
+         * in cache. Una misura che arriva dopo la scadenza
          * dell'ultima data e' una misura **legittima** di una card che era in
          * pagina quando la si e' guardata; scartarla vorrebbe dire perdere
          * impressioni vere per difendersi da una scrittura che il tetto qui

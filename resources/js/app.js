@@ -1,5 +1,4 @@
 import './page-transitions';
-import { startMotion } from './motion';
 import './appearance';
 if (document.querySelector('[data-rich-input]')) {
     import('./rich-input').then(({ richInputs }) => richInputs());
@@ -485,7 +484,12 @@ function updateInterestCount(id, count) {
         const control = badge.closest("[data-interest-control]");
         if (control) control.hidden = safeCount === 0;
         const template = safeCount === 1 ? badge.dataset.interestSingular : badge.dataset.interestPlural;
-        badge.querySelector('[data-interest-text]').textContent = template.replace('__COUNT__', String(safeCount));
+        const accessibleText = template.replace('__COUNT__', String(safeCount));
+        badge.querySelector('[data-interest-text]').textContent = badge.hasAttribute('data-interest-compact')
+            ? String(safeCount)
+            : accessibleText;
+        const accessible = badge.querySelector('[data-interest-accessible]');
+        if (accessible) accessible.textContent = accessibleText;
     });
 }
 
@@ -784,7 +788,7 @@ function consentBanner() {
  * Le misure di una campagna sponsorizzata.
  *
  * **Perché dal browser e non dal server.** Le pagine pubbliche stanno in cache
- * per un minuto: il server disegna la card una volta e poi serve la stessa
+ * per almeno trenta minuti: il server disegna la card una volta e poi serve la stessa
  * pagina a tutti fino alla scadenza. Un contatore incrementato mentre si
  * disegna conterebbe una visualizzazione al minuto invece che una per
  * visitatore.
@@ -1052,7 +1056,9 @@ import { liveSearch, continuousTicker } from './live-search';
 import { venueAutocomplete } from './venue-autocomplete';
 
 function start() {
-    startMotion();
+    /* Motion enhances an already rendered page, so GSAP is loaded after the
+       initial module instead of competing with content on the critical path. */
+    void import('./motion').then(({ startMotion }) => startMotion());
     eventFilters();
     document.addEventListener('event-browser:updated', () => {
         infiniteScroll();
@@ -1147,7 +1153,9 @@ if (document.readyState === "loading") {
 } else {
     start();
 }
-import './ticketing';
+if (document.querySelector('[data-reservation-form], [data-ticket-search], [data-ticket-scanner], form[data-confirm]')) {
+    void import('./ticketing');
+}
 
 import { eventWeather } from "./event-weather";
 eventWeather();

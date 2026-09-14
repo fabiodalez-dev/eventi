@@ -32,13 +32,30 @@ it('saves frontend settings without changing sessions or the default cache', fun
     $store = config('cache.default');
     $session = config('session.driver');
     Livewire::test(CachePerformance::class)->fillForm([
-        'managed' => true, 'enabled' => false, 'store' => 'frontend-file', 'ttl_minutes' => 2,
+        'managed' => true, 'enabled' => false, 'store' => 'frontend-file', 'ttl_minutes' => 45,
     ])->call('save')->assertHasNoFormErrors();
     app(FrontendCacheConfiguration::class)->apply();
     expect(config('page_cache.enabled'))->toBeFalse()
-        ->and(config('page_cache.ttl_minutes'))->toBe(2)
+        ->and(config('page_cache.ttl_minutes'))->toBe(45)
         ->and(config('cache.default'))->toBe($store)
         ->and(config('session.driver'))->toBe($session);
+});
+
+it('does not allow the managed cache lifetime below thirty minutes', function (): void {
+    $settings = app(FrontendCacheSettings::class);
+    $settings->managed = true;
+    $settings->ttl_minutes = 1;
+    $settings->save();
+
+    app(FrontendCacheConfiguration::class)->apply();
+
+    expect(config('page_cache.ttl_minutes'))->toBe(30);
+
+    $this->actingAs($this->admin);
+    Livewire::test(CachePerformance::class)
+        ->fillForm(['ttl_minutes' => 29])
+        ->call('save')
+        ->assertHasFormErrors(['ttl_minutes']);
 });
 
 it('encrypts Redis credentials and never hydrates the existing password into the form', function (): void {

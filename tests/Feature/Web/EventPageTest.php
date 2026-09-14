@@ -34,7 +34,8 @@ it('preserves readable cancelled cards and generous venue contact targets', func
         expect($link->getAttribute('class'))->toContain('min-h-12');
     }
     $date->update(['status' => OccurrenceStatus::Cancelled]);
-    $card = Blade::render('<x-event-card :occurrence="$date" />', ['date' => $date->fresh()]);
+    $cancelled = $date->fresh()->loadCount('interestedUsers as interested_count');
+    $card = Blade::render('<x-event-card :occurrence="$date" />', ['date' => $cancelled]);
     expect($card)->not->toContain('opacity-60')->toContain(__('events.badge.cancelled'));
 });
 

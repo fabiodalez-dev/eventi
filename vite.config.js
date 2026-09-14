@@ -13,6 +13,7 @@ export default defineConfig({
             input: [
                 'resources/css/app.css',
                 'resources/js/app.js',
+                'resources/css/map.css',
                 'resources/js/map.js',
                 'resources/js/calendar.js',
                 // L'interruttore delle notifiche push: un pacchetto suo perche'

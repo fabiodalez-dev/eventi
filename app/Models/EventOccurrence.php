@@ -126,7 +126,20 @@ class EventOccurrence extends Model
 
     public function interestedCount(): int
     {
-        return (int) ($this->getAttribute('interested_count') ?? $this->interestedUsers()->count());
+        $count = $this->getAttribute('interested_count');
+
+        if ($count !== null) {
+            return (int) $count;
+        }
+
+        if (! app()->isProduction()) {
+            throw new \RuntimeException(
+                'interested_count is missing from occurrence '.$this->getKey()
+                .': load it with withCount(\'interestedUsers as interested_count\') instead of counting once per card.'
+            );
+        }
+
+        return 0;
     }
 
     /** @return BelongsToMany<User, $this> */

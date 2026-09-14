@@ -7,7 +7,7 @@ declare(strict_types=1);
  * ognuna risponde a quanto in fretta quel contenuto smette di essere vero.
  */
 return [
-    'max_entries' => 500,
+    'max_entries' => 200,
 
     /*
      * Lo spegnimento serve allo sviluppo — una modifica a una vista deve
@@ -21,12 +21,15 @@ return [
     'store' => env('PAGE_CACHE_STORE') ?: null,
 
     /*
-     * Scheletro della pagina iniziale, "stasera", weekend, categorie, locali
-     * attivi: cinque minuti (§12.3). Non è un compromesso fra freschezza e
-     * velocità — è il tempo entro cui, invalidazione a parte, nulla di ciò che
-     * quelle pagine mostrano può essere cambiato.
+     * Lo scheletro delle pagine pubbliche resta disponibile per almeno trenta
+     * minuti. La freschezza non dipende da una scadenza breve: la chiave porta
+     * ContentVersion e cambia appena viene pubblicato o modificato un contenuto.
+     * Le finestre che cambiano di minuto in minuto hanno una cache separata.
+     *
+     * Il pavimento impedisce a una vecchia variabile d'ambiente di riportare
+     * accidentalmente la produzione al precedente TTL di uno/cinque minuti.
      */
-    'ttl_minutes' => max(1, min(5, (int) env('PAGE_CACHE_TTL_MINUTES', 1))),
+    'ttl_minutes' => max(30, (int) env('PAGE_CACHE_TTL_MINUTES', 30)),
 
     /*
      * "In corso" e "Inizia tra poco": sessanta secondi (§12.3). Sono le due

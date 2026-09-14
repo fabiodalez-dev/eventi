@@ -80,3 +80,39 @@ test('backend off and lease expiry both remove the banner', async t => {
     f.setData(null); f.intervals[0](); await flush();
     assert.equal(f.slot.hidden, true);
 });
+
+test('shares one in-flight backend request across equal slots', async t => {
+    const makeNode = () => ({ hidden: false, addEventListener() {}, getAttribute() { return null; } });
+    const makeSlot = () => {
+        const link = makeNode();
+        const picture = { ...makeNode(), previousElementSibling: makeNode() };
+        const fields = Object.fromEntries(['title', 'when', 'place', 'by'].map(key => [`[data-banner-${key}]`, makeNode()]));
+
+        return {
+            ...makeNode(),
+            hidden: true,
+            dataset: { endpoint: '/shared-banner', metricBase: '/metrics' },
+            querySelector: selector => ({ a: link, img: picture, ...fields })[selector],
+        };
+    };
+    const slots = [makeSlot(), makeSlot()];
+    const calls = [];
+    let resolveRequest;
+    const response = new Promise(resolve => { resolveRequest = resolve; });
+
+    globalThis.document = { hidden: false, querySelectorAll: () => slots, addEventListener() {} };
+    globalThis.window = { location: { pathname: '/' }, addEventListener() {} };
+    globalThis.IntersectionObserver = class { observe() {} unobserve() {} };
+    t.after(() => { delete globalThis.document; delete globalThis.window; delete globalThis.IntersectionObserver; });
+    t.mock.method(globalThis, 'setInterval', () => 1);
+    t.mock.method(globalThis, 'setTimeout', () => 1);
+    t.mock.method(globalThis, 'clearTimeout', () => {});
+    t.mock.method(globalThis, 'fetch', url => { calls.push(url); return response; });
+
+    sponsorshipBanners();
+    assert.equal(calls.length, 1);
+
+    resolveRequest({ ok: true, json: async () => ({ data: null }) });
+    await flush();
+    assert.equal(slots.every(slot => slot.hidden), true);
+});

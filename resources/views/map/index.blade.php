@@ -12,7 +12,7 @@
 --}}
 <x-layouts.app :meta="$meta" :wide="true">
     <x-slot:head>
-        @vite('resources/js/map.js')
+        @vite(['resources/css/map.css', 'resources/js/map.js'])
     </x-slot:head>
 
     {{--

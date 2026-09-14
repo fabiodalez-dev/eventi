@@ -105,10 +105,10 @@
                 <x-event-artwork :event="$event" />
             </a>
             @if ($isScheduled)
-                <x-save-heart :occurrence="$occurrence" :saved="app(\App\Support\CurrentSaves::class)->has((int) $occurrence->getKey())" class="!absolute bottom-3 left-3 z-10 max-w-[calc(100%-1.5rem)]" data-interest-control :hidden="$occurrence->interestedCount() === 0">
-                    <x-lucide name="bookmark" class="size-4" data-save-icon />
+                <x-save-heart :occurrence="$occurrence" :saved="app(\App\Support\CurrentSaves::class)->has((int) $occurrence->getKey())" variant="count" class="!absolute bottom-3 left-3 z-10 max-w-[calc(100%-1.5rem)]" data-interest-control :hidden="$occurrence->interestedCount() === 0">
+                    <x-lucide name="bookmark" class="size-3.5" data-save-icon />
                     <span class="sr-only" data-save-text>{{ __('account.save.action') }}</span>
-                    <x-interested-badge :occurrence="$occurrence" class="!text-inherit text-left" />
+                    <x-interested-badge :occurrence="$occurrence" compact class="!text-[0.6875rem] !leading-none !text-inherit tabular-nums" />
                 </x-save-heart>
             @else
                 <x-interested-badge :occurrence="$occurrence" :overlay="true" class="absolute bottom-3 left-3 z-10" />

@@ -1,8 +1,6 @@
 @import 'tailwindcss';
 @import './appearance.css';
 
-@import 'maplibre-gl/dist/maplibre-gl.css';
-
 /* Font self-hosted (@fontsource): nessuna richiesta a Google Fonts o ad altri
    CDN, che sarebbe un trasferimento di dati verso terzi senza consenso.
    Il file è variabile (peso 100-900) e suddiviso per unicode-range: il browser

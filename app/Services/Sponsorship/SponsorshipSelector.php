@@ -31,9 +31,9 @@ use Illuminate\Support\Facades\Auth;
  *
  * **3. La rotazione.** A parità di priorità le campagne si alternano, e
  * l'alternanza è **deterministica dentro il minuto**. Non è un dettaglio: le
- * pagine pubbliche stanno in cache per un minuto (`page_cache.ttl_minutes`), e
+ * pagine pubbliche stanno in cache (`page_cache.ttl_minutes`), e
  * una rotazione casuale a ogni richiesta produrrebbe una pagina diversa da
- * quella salvata — cioè, in pratica, sempre la stessa per tutto il minuto,
+ * quella salvata — cioè, in pratica, sempre la stessa fino all'invalidazione,
  * scelta a caso. Legandola al minuto la rotazione avviene davvero, e chi
  * ricarica dentro lo stesso minuto vede la stessa pagina che ha visto il
  * visitatore prima di lui.
@@ -59,12 +59,18 @@ final class SponsorshipSelector
     {
         $adesso = $now ?? CarbonImmutable::now('UTC');
 
+        $relations = ['event.venue', 'event.category', 'event.tags'];
+        if (in_array($placement, [SponsorshipPlacement::HomeCard, SponsorshipPlacement::MapSheet], true)) {
+            $relations['event.occurrences'] = static fn ($query) => $query
+                ->withCount('interestedUsers as interested_count');
+        }
+
         /** @var Collection<int, Sponsorship> $candidate */
         $candidate = Sponsorship::query()
             ->visible($adesso)
             ->where('city_id', $city->getKey())
             ->where('placement', $placement)
-            ->with(['event.venue', 'event.category', 'event.tags'])
+            ->with($relations)
             ->orderByDesc('priority')
             ->orderBy('id')
             ->get();

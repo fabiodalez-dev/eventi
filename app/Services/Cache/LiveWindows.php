@@ -85,13 +85,12 @@ final class LiveWindows
                 $query = EventOccurrenceQuery::for($city);
 
                 $occurrences = $window === self::ONGOING
-                    ? $query->ongoing()->get()
-                    : $query->startingSoon()->get();
+                    ? $query->ongoing()->take($limit)
+                    : $query->startingSoon()->take($limit);
 
-                return array_slice(
-                    array_map(static fn (EventOccurrence $occurrence): int => (int) $occurrence->getKey(), $occurrences->all()),
-                    0,
-                    $limit,
+                return array_map(
+                    static fn (EventOccurrence $occurrence): int => (int) $occurrence->getKey(),
+                    $occurrences->all(),
                 );
             },
         );
@@ -116,6 +115,7 @@ final class LiveWindows
 
         $occurrences = EventOccurrence::query()
             ->whereKey($ids)
+            ->withCount('interestedUsers as interested_count')
             ->with(['event.venue', 'event.category', 'event.media'])
             ->get()
             ->keyBy(static fn (EventOccurrence $occurrence): int => (int) $occurrence->getKey());
