@@ -333,6 +333,8 @@ function paintHeart(form, saved) {
     button.classList.toggle("bg-surface", !saved);
     button.classList.toggle("text-ink-muted", !saved);
     button.classList.toggle("ring-line", !saved);
+    button.classList.toggle("hover:text-ink", !saved);
+    button.classList.toggle("hover:border-accent", !saved);
 
     if (icon) {
         icon.style.fill = saved ? "currentColor" : "none";

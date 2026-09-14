@@ -46,6 +46,7 @@ it('toggles a saved event from its photo badge without leaving the catalogue', f
         ->click($selector)->assertSee('2 persone interessate');
     expect($page->script('location.pathname'))->toBe('/eventi');
     expect($page->script('() => [...document.querySelectorAll(\'[data-save-id="'.$date->id.'"] [data-save-button]\')].every(button => button.getAttribute("aria-pressed") === "true")'))->toBeTrue();
-    $page->click($selector)->assertSee('1 persona interessata');
+    $page->refresh()->assertSee('2 persone interessate')
+        ->click($selector)->assertSee('1 persona interessata');
     expect($page->script('location.pathname'))->toBe('/eventi');
 })->with(['inLightMode', 'inDarkMode']);
