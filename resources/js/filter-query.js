@@ -12,4 +12,3 @@ export function removesFilters(previous, next) {
         return before.get(key) === value;
     });
 }
-
