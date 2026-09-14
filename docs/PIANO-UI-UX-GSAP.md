@@ -52,6 +52,17 @@ Un calendario urbano editoriale, immediato da consultare. Conservare nero/lime e
 
 ## Caricamento, accessibilità e architettura
 
+### Transizioni e microinterazioni — integrazione richiesta
+
+- **Ingresso delle card:** piccoli gruppi con opacity 0 → 1 e y 12 → 0, durata 220–280 ms, stagger 35–45 ms e durata totale massima 400 ms. Solo card appena inserite o viste per la prima volta; niente ripetizione quando si risale. Prima schermata subito disponibile, senza aspettare GSAP. Movimento ridotto: comparsa immediata.
+- **Hover dei pulsanti:** riempimento con il colore del tema e freccia spostata di 3 px, 160–200 ms; uscita reversibile dalla posizione corrente. Testo e area cliccabile fermi. Focus da tastiera con contorno netto, touch con pressione breve; nessuna dipendenza dall'hover per capire l'azione.
+- **Pressione e conferma:** scale 0,98 solo su uno strato visivo interno, 80–120 ms; il segnalibro cambia stato una sola volta e l'icona conferma con un impulso contenuto. Nessun blocco dei clic per aspettare la fine dell'animazione.
+- **Aggiornamento risultati:** mantenere il vecchio contenuto durante la richiesta, poi transizione locale di 180–240 ms. GSAP Flip solo sui nodi comuni spostati; fade per entrate e uscite. Totale e filtri si aggiornano insieme, senza animare numeri intermedi.
+- **Pannelli filtri e mappa:** apertura/chiusura 240–300 ms con traslazione breve e sfondo progressivo, focus e scroll gestiti secondo lo stato reale del pannello. Interruzione e inversione ammesse anche a metà transizione.
+- **Navigazione tra pagine:** seconda fase sperimentale per un passaggio breve lista → dettaglio con continuità della foto. Valutare View Transitions come contenitore della navigazione e GSAP per il contenuto interno, mantenendo navigazione standard come fallback. Evitare un'uscita animata che ritardi l'avvio della richiesta o richieda una riscrittura SPA.
+- **Cambio tema:** eventuale transizione cromatica breve, 120–160 ms, senza flash e senza animare contemporaneamente ogni elemento. Palette gestita esclusivamente dai token del tema.
+- **Verifiche specifiche:** hover rapido avanti/indietro, doppio clic, clic durante l'ingresso, filtro cambiato prima della fine del precedente, ritorno dalla cronologia. Nessun contenuto deve restare invisibile dopo interruzione o errore JS.
+
 - Aggiungere GSAP da npm con versione nel lock; Core iniziale, Flip a richiesta sul catalogo. Non caricare l'intero catalogo di plugin.
 - Un modulo motion condiviso con durata breve 160 ms, normale 220 ms, pannelli 280 ms come valori iniziali da misurare.
 - gsap.context() per ogni regione e cleanup prima della sostituzione del DOM; gsap.matchMedia() per breakpoint e prefers-reduced-motion. Annullare tween e listener su navigazione asincrona.
