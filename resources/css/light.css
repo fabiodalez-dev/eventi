@@ -219,10 +219,29 @@
  * pagina, quindi senza contorno sparirebbero. Prendono la superficie
  * incassata, che e' come si stacca un riquadro nel chiaro.
  */
-:root[data-theme="light"] .event-detail-body :is(section, .event-date-row) {
+/*
+ * Solo cio' che ERA un riquadro resta un riquadro.
+ *
+ * Nella scheda di un evento convivono due cose diverse con lo stesso tag: le
+ * sezioni che erano riquadri veri (`border-2 p-5` — prezzo, informazioni
+ * pratiche) e quelle che sono solo raggruppamenti di contenuto sulla pagina,
+ * senza bordo ne' margine interno.
+ *
+ * Applicando il fondo a tutte le `section` ho trasformato in riquadri anche le
+ * seconde, che non avendo margine se lo sono ritrovato appiccicato al testo:
+ * lo stesso errore fatto poco prima con il pannello dei filtri — un colore di
+ * sfondo senza padding non e' mezzo lavoro, e' un riquadro sbagliato. Due
+ * volte lo stesso sbaglio vuol dire che la regola era scritta male, non
+ * distrattamente: diceva «le sezioni» quando intendeva «i riquadri».
+ *
+ * Il bordo nel markup resta il segno di cosa era un riquadro, anche dopo che
+ * qui lo si toglie.
+ */
+:root[data-theme="light"] .event-detail-body :is(section, .event-date-row)[class*="border-2"] {
     border: 0;
     border-radius: 16px;
     background: var(--surface);
+    padding: clamp(16px, 1.6vw, 20px);
 }
 
 :root[data-theme="light"] .event-detail-body .event-utility-action {

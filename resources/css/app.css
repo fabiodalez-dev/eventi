@@ -595,6 +595,83 @@
     aspect-ratio: auto;
 }
 
+/* ---------------------------------------------------------------------------
+   La mappa compare quando è pronta
+
+   Vale per entrambi i temi: non è una scelta di stile, è come si comporta un
+   riquadro che ha bisogno di mezzo secondo per esistere.
+
+   Senza, la sequenza era: il messaggio «mappa non disponibile» — che è il
+   ripiego per chi non ha JavaScript — lampeggiava per centocinquanta
+   millisecondi, poi restava un rettangolo grigio vuoto, poi la mappa scattava
+   dentro di colpo. Tre stati in mezzo secondo, di cui uno diceva il falso.
+
+   Gli stati li mette `map.js` e li toglie quando la mappa smette di disegnare
+   (`idle`), non quando ha finito di leggere lo stile:
+
+   - `loading`  il riquadro è spento: non c'è ancora niente da vedere, e
+                spegnerlo nasconde anche il lampo del ripiego;
+   - `updating` un filtro è cambiato: la mappa c'è già, quindi si attenua
+                invece di sparire — farla sparire a ogni filtro sarebbe peggio
+                del difetto che si voleva togliere.
+
+   Senza JavaScript nessuno dei due attributi compare, il riquadro resta pieno
+   e il messaggio di ripiego fa il suo mestiere.
+--------------------------------------------------------------------------- */
+
+/*
+ * Si attenua il CONTENUTO del riquadro, non il riquadro.
+ *
+ * Spegnere `[data-map]` spegneva anche il suo fondo grigio, e al posto della
+ * mappa restava un buco sulla pagina invece di una superficie in attesa. Qui
+ * il fondo resta, e sopra compaiono canvas e comandi.
+ */
+[data-map] > * {
+    transition: opacity 360ms ease-out;
+}
+
+/*
+ * Entrare in attesa e' istantaneo, uscirne e' una dissolvenza.
+ *
+ * Con la transizione attiva in entrambi i versi, il messaggio di ripiego non
+ * lampeggiava piu': sfumava via in mezzo secondo, cioe' restava a lungo sotto
+ * gli occhi proprio mentre diceva il falso. Peggio del difetto di partenza.
+ */
+[data-map][data-map-state="loading"] > * {
+    opacity: 0;
+    transition: none;
+}
+
+[data-map][data-map-state="updating"] > * {
+    opacity: 0.45;
+}
+
+/*
+ * Il messaggio di ripiego aspetta mezzo secondo prima di farsi vedere.
+ *
+ * E' il messaggio per chi non ha JavaScript, e in quel caso mezzo secondo di
+ * ritardo non toglie niente. Con JavaScript attivo lo script lo rimuove molto
+ * prima, quindi non compare affatto — che e' la cosa giusta, perche' la mappa
+ * sta arrivando e dire «non disponibile» mentre arriva e' semplicemente falso.
+ *
+ * Con `both` il fotogramma iniziale vale anche prima dell'avvio: senza,
+ * comparirebbe per un istante e poi sparirebbe.
+ */
+[data-map-placeholder] {
+    animation: attesa-ripiego-mappa 1ms linear 600ms both;
+}
+
+@keyframes attesa-ripiego-mappa {
+    from { visibility: hidden; }
+    to { visibility: visible; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    [data-map] > * {
+        transition: none;
+    }
+}
+
 #filtri {
     padding-bottom: 28px;
     scrollbar-width: thin;

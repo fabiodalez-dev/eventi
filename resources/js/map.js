@@ -135,6 +135,20 @@ async function startMap(shell) {
     const markerList = shell.querySelector("[data-map-marker-list]");
     const truncated = shell.parentElement?.querySelector("[data-map-truncated]");
 
+    /*
+     * Da qui in poi la mappa e' in arrivo: il riquadro si spegne.
+     *
+     * Si dichiara PRIMA di scaricare lo stile, che e' una richiesta di rete.
+     * Nei primi centocinquanta millisecondi, altrimenti, si vede lampeggiare
+     * il messaggio «mappa non disponibile» — che e' il ripiego per chi non ha
+     * JavaScript, non un messaggio di caricamento — poi un rettangolo grigio
+     * vuoto, e infine la mappa che scatta dentro di colpo. Tre stati in mezzo
+     * secondo, di cui uno dice il falso.
+     *
+     * Con JavaScript spento questo attributo non viene mai messo e il ripiego
+     * resta visibile: e' esattamente il suo mestiere.
+     */
+    container.dataset.mapState = "loading";
     container.querySelector("[data-map-placeholder]")?.remove();
 
     const isLight = () => document.documentElement.dataset.theme === 'light';
@@ -155,6 +169,54 @@ async function startMap(shell) {
         dragRotate: false,
         touchPitch: false,
     });
+
+    let attesaInCorso = false;
+    let reteDiSicurezza = null;
+
+    const mappaPronta = () => {
+        window.clearTimeout(reteDiSicurezza);
+        attesaInCorso = false;
+        delete container.dataset.mapState;
+    };
+
+    const attendi = (stato, evento, tetto) => {
+        container.dataset.mapState = stato;
+        window.clearTimeout(reteDiSicurezza);
+        reteDiSicurezza = window.setTimeout(mappaPronta, tetto);
+        if (attesaInCorso) return;
+        attesaInCorso = true;
+        map.once(evento, mappaPronta);
+    };
+
+    /*
+     * Quando rivelare la mappa: il PRIMO fra «pronta» e un breve tetto.
+     *
+     * I fatti misurati su questo sito, non le definizioni della libreria:
+     *
+     *   canvas creato      ~150ms
+     *   mappa disegnata    ~400ms   (guardata: strade, toponimi, marcatori)
+     *   evento `load`     ~1600ms
+     *   evento `idle`     ~1900ms
+     *
+     * Gli eventi della libreria arrivano quando la mappa e' finita per DAVVERO
+     * — glifi, sorgenti, riquadri ai bordi — e quel di piu' non si vede.
+     * Aspettarli significa tenere un rettangolo grigio per un secondo e mezzo
+     * e poi mostrare la stessa identica immagine che c'era gia'.
+     *
+     * Quindi si rivela al primo dei due: `load` se arriva presto (rete veloce,
+     * riquadri in cache), altrimenti il tetto. Il tetto e' un numero scelto a
+     * mano e va dichiarato per quello che e': 300ms dalla COSTRUZIONE della
+     * mappa, cioe' appena sopra i ~200ms che le servono per disegnarsi. Prima
+     * di questo punto il riquadro e' grigio comunque, perche' lo stile non e'
+     * ancora arrivato e non c'e' nulla da mostrare.
+     *
+     * Su una rete lenta la mappa comparira' ancora incompleta — ma incompleta
+     * e in dissolvenza e' meglio di completa dopo un secondo e mezzo di grigio.
+     */
+    container.dataset.mapState = "loading";
+    reteDiSicurezza = window.setTimeout(mappaPronta, 300);
+    map.once("load", mappaPronta);
+    map.on("remove", () => window.clearTimeout(reteDiSicurezza));
 
     document.addEventListener('event-browser:before-update', () => map.remove(), { once: true });
     map.on("styleimagemissing", (event) => {
@@ -285,6 +347,31 @@ async function startMap(shell) {
         }
     };
 
+    /*
+     * Quando la mappa si puo' mostrare: a `load`, non a `idle`.
+     *
+     * Sembrano equivalenti e non lo sono. `load` e' definito come «il primo
+     * disegno visivamente completo»; `idle` significa «non ho piu'
+     * assolutamente niente da fare», quindi aspetta anche i riquadri ai bordi,
+     * il raggruppamento dei marcatori, le richieste in coda.
+     *
+     * Misurato su questo sito: a 400ms la mappa e' gia' disegnata per intero —
+     * strade, toponimi, marcatori — e `idle` arriva a 1900ms. Rivelare a
+     * `idle` fa aspettare un secondo e mezzo davinti a un rettangolo grigio
+     * vuoto per mostrare esattamente la stessa immagine. Una dissolvenza che
+     * arriva tardi non e' piu' gentile di uno scatto: e' solo piu' lenta.
+     *
+     * Per l'AGGIORNAMENTO dei filtri vale `idle`, che li' e' la domanda giusta
+     * — i marcatori nuovi devono essersi posati — ma con un tetto piu' basso,
+     * perche' la mappa e' gia' sotto gli occhi e tenerla attenuata a lungo si
+     * nota piu' dell'aggiornamento stesso.
+     *
+     * **La rete di sicurezza non e' un dettaglio.** Se i riquadri non arrivano
+     * — niente rete, server della cartografia giu' — l'evento non arriva mai,
+     * e senza tetto il riquadro resterebbe invisibile per sempre: avremmo
+     * sostituito una comparsa brusca con una mappa che non c'e'.
+     */
+
     const apply = (payload) => {
         currentPayload = payload;
         map.getSource("events")?.setData(featureCollection(payload));
@@ -295,6 +382,11 @@ async function startMap(shell) {
     const updateFilters = event => {
         filterRevision++;
         config = event.detail;
+        /* Cambiare filtro rifa' i marcatori e riquadra la mappa: finche' non si
+           e' fermata, il riquadro si attenua invece di mostrare la transizione
+           a meta'. Non si spegne del tutto come all'avvio — qui una mappa c'e'
+           gia', e farla sparire a ogni filtro sarebbe peggio del difetto. */
+        attendi("updating", "idle", 900);
         updateUserPosition();
         closeSheet();
         apply(config.payload ?? { markers: [], categories: [] });
