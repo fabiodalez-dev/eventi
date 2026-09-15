@@ -154,7 +154,13 @@ Schedule::command('backup:run')
      * Che un backup fallisca e' previsto e `backup:monitor` se ne accorge.
      * Che si porti dietro l'applicazione no.
      */
-    ->when(SpazioSufficiente::perIlBackup())
+    /*
+     * L'interruttore generale, spento il 15 settembre 2026 (vedi
+     * `config/backup.php`). Sta PRIMA della prova di spazio perche' quando il
+     * backup e' spento non ha senso nemmeno provare a scrivere un file di
+     * prova da centinaia di megabyte per poi non usarlo.
+     */
+    ->when(fn (): bool => config()->boolean('backup.scheduled') && SpazioSufficiente::perIlBackup())
     ->withoutOverlapping(120)
     ->graceTimeInMinutes(120);
 
@@ -165,6 +171,7 @@ Schedule::command('backup:run')
  */
 Schedule::command('backup:clean')
     ->dailyAt('04:40')
+    ->when(fn (): bool => config()->boolean('backup.scheduled'))
     ->withoutOverlapping()
     ->graceTimeInMinutes(60);
 
@@ -174,8 +181,15 @@ Schedule::command('backup:clean')
  * nello spazio dichiarato. Un comando che non parte affatto non fallisce, e
  * senza questo controllo non avviserebbe nessuno.
  */
+/*
+ * Con il backup programmato spento, questo controllo avviserebbe ogni mattina
+ * che l'ultimo archivio e' vecchio — cioe' esattamente cio' che sappiamo gia'
+ * e abbiamo deciso noi. Un allarme che segnala una scelta consapevole insegna
+ * a ignorare gli allarmi.
+ */
 Schedule::command('backup:monitor')
     ->dailyAt('09:00')
+    ->when(fn (): bool => config()->boolean('backup.scheduled'))
     ->graceTimeInMinutes(60);
 
 /*
