@@ -901,9 +901,13 @@ private fun CompactEventRow(event: Occurrence, saved: Boolean, onOpen: (Occurren
 
 @Composable
 private fun RichImage(url: String?, modifier: Modifier, contentScale: ContentScale = ContentScale.Crop) {
+    /* Il bianco e nero appartiene al tema scuro, dove tutte le fotografie del
+       riferimento sono desaturate. Nel chiaro il colore c'e' da subito, come
+       sul sito. */
     val matrix = remember { ColorMatrix().apply { setToSaturation(0f) } }
-    Box(modifier.background(Color(0xFF202020)).clipToBounds()) {
-        if (url != null) AsyncImage(url, null, Modifier.fillMaxSize(), contentScale = contentScale, colorFilter = ColorFilter.colorMatrix(matrix))
+    val filtro = if (isLightTheme) null else ColorFilter.colorMatrix(matrix)
+    Box(modifier.background(if (isLightTheme) MaterialTheme.colorScheme.surfaceVariant else Color(0xFF202020)).clipToBounds()) {
+        if (url != null) AsyncImage(url, null, Modifier.fillMaxSize(), contentScale = contentScale, colorFilter = filtro)
         else Text("IN CITTÀ", color = Acid, modifier = Modifier.align(Alignment.Center), style = androidx.compose.material3.MaterialTheme.typography.titleLarge)
     }
 }
@@ -919,9 +923,14 @@ private fun EventPoster(url: String?, revealKey: Any, modifier: Modifier, natura
             revealColor = true
         }
     }
+    /* Nello scuro la locandina entra in bianco e nero e riprende colore in un
+       secondo e mezzo: e' la sua entrata in scena. Nel chiaro non c'e' nessuna
+       entrata da fare — il colore e' lo stato normale — e far comparire la
+       locandina grigia per poi colorarla sarebbe un effetto senza motivo. */
+    val chiaro = isLightTheme
     val saturation by animateFloatAsState(
-        targetValue = if (revealColor) 1f else 0f,
-        animationSpec = tween(durationMillis = 1500),
+        targetValue = if (chiaro || revealColor) 1f else 0f,
+        animationSpec = tween(durationMillis = if (chiaro) 0 else 1500),
         label = "poster-color-reveal",
     )
     val matrix = remember(saturation) { ColorMatrix().apply { setToSaturation(saturation) } }

@@ -74,6 +74,7 @@ import kotlinx.coroutines.launch
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
@@ -737,21 +738,49 @@ private fun SectionTitle(title: String, detail: String) {
 
 @Composable
 internal fun EventRow(event: Occurrence, saved: Boolean, onOpen: (Occurrence) -> Unit, onSave: (Long) -> Unit) {
-    Column(Modifier.fillMaxWidth().clickable { onOpen(event) }) {
-        EventArtwork(event.poster?.card ?: event.poster?.full ?: event.poster?.thumb)
-        Row(Modifier.fillMaxWidth().padding(18.dp), verticalAlignment = Alignment.Top) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                InterestedBadge(event.interestedCount)
-                Text(event.category?.name.orEmpty(), color = Muted, style = MaterialTheme.typography.labelMedium)
-                Text(eventTitle(event.title), style = MaterialTheme.typography.titleLarge)
-                Text(event.placeName() ?: "Luogo da verificare", color = Muted)
-                Text("${formatDay(event.startsAt)} · ${if (event.isAllDay) "Tutto il giorno" else formatClock(event.startsAt)}", color = Acid, style = MaterialTheme.typography.labelLarge)
+    /*
+     * Due impianti, lo stesso contenuto.
+     *
+     * Nello scuro la card e' una fascia del tabellone: nessuna cornice, il
+     * fondo della pagina, e a separarla dalla successiva un divisore pieno.
+     * Nel chiaro e' un riquadro staccato su fondo sollevato, con gli angoli
+     * tondi e la locandina ritagliata dentro — e fra una e l'altra c'e' spazio,
+     * non una riga.
+     *
+     * Le due strade differiscono per contenitore e per spaziatura, non per
+     * contenuto: il corpo e' lo stesso composable, cosi' una modifica al
+     * contenuto non puo' applicarsi a un tema solo.
+     */
+    val chiaro = isLightTheme
+    val corpo: @Composable () -> Unit = {
+        Column(Modifier.fillMaxWidth().clickable { onOpen(event) }) {
+            EventArtwork(event.poster?.card ?: event.poster?.full ?: event.poster?.thumb)
+            Row(Modifier.fillMaxWidth().padding(if (chiaro) 14.dp else 18.dp), verticalAlignment = Alignment.Top) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(if (chiaro) 6.dp else 8.dp)) {
+                    InterestedBadge(event.interestedCount)
+                    Text(event.category?.name.orEmpty(), color = Muted, style = MaterialTheme.typography.labelMedium)
+                    Text(eventTitle(event.title), style = MaterialTheme.typography.titleLarge)
+                    Text(event.placeName() ?: "Luogo da verificare", color = Muted)
+                    Text("${formatDay(event.startsAt)} · ${if (event.isAllDay) "Tutto il giorno" else formatClock(event.startsAt)}", color = Acid, style = MaterialTheme.typography.labelLarge)
+                }
+                SaveButton(saved) { onSave(event.occurrenceId) }
             }
-            SaveButton(saved) { onSave(event.occurrenceId) }
         }
     }
-    HorizontalDivider(thickness = 1.dp, color = Rule)
-    Spacer(Modifier.height(16.dp))
+
+    if (chiaro) {
+        androidx.compose.material3.Surface(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            color = CardSurface,
+            contentColor = Paper,
+            shape = CardShape,
+        ) { corpo() }
+        Spacer(Modifier.height(12.dp))
+    } else {
+        corpo()
+        HorizontalDivider(thickness = 1.dp, color = Rule)
+        Spacer(Modifier.height(16.dp))
+    }
 }
 
 @Composable
@@ -767,9 +796,18 @@ internal fun InterestedBadge(count: Int) {
 
 @Composable
 private fun SaveButton(saved: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    /* Nel chiaro il comando e' un disco pieno quando la data e' salvata e la
+       superficie incassata quando non lo e'; nello scuro resta il quadrato
+       pieno del tabellone. */
+    val forma = if (isLightTheme) androidx.compose.foundation.shape.CircleShape else androidx.compose.ui.graphics.RectangleShape
+    val fondo = when {
+        saved -> Acid
+        isLightTheme -> MaterialTheme.colorScheme.surfaceVariant
+        else -> Ink
+    }
     IconButton(
         onClick = onClick,
-        modifier = modifier.size(52.dp).background(if (saved) Acid else Ink).semantics { role = Role.Button },
+        modifier = modifier.size(if (isLightTheme) 44.dp else 52.dp).clip(forma).background(fondo).semantics { role = Role.Button },
     ) {
         Icon(if (saved) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder, if (saved) "Rimuovi dai salvati" else "Salva", tint = if (saved) Ink else Paper)
     }
@@ -777,8 +815,11 @@ private fun SaveButton(saved: Boolean, modifier: Modifier = Modifier, onClick: (
 
 @Composable
 internal fun EventArtwork(url: String?) {
+    /* Nel chiaro la locandina sta DENTRO il riquadro tondo e ne segue gli
+       angoli; nello scuro arriva ai bordi, che e' il taglio del tabellone. */
+    val cornice = if (isLightTheme) Modifier.padding(10.dp).clip(PosterShape) else Modifier
     Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-        PosterImage(url, Modifier.fillMaxWidth().aspectRatio(3f / 4f))
+        PosterImage(url, cornice.fillMaxWidth().aspectRatio(3f / 4f))
     }
 }
 
