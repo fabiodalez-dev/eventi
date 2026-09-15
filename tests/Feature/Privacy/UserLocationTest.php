@@ -85,6 +85,10 @@ function colonneSospettePerLePersone(): array
         }
 
         foreach (Schema::getColumnListing($tabella) as $colonna) {
+            // Explicit six-month opt-in storage; ordinary searches must still leave no coordinates.
+            if ($tabella === 'users' && in_array($colonna, ['remembered_location', 'location_expires_at'], true)) {
+                continue;
+            }
             if (preg_match('/(^|_)(lat|lng|latitude|longitude|location|coords|coordinates|geo|position)($|_)/i', $colonna) === 1) {
                 $sospette[] = $tabella.'.'.$colonna;
             }

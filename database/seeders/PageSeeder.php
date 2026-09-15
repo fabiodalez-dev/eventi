@@ -13,10 +13,8 @@ use Illuminate\Database\Seeder;
  * ## Sono testi veri, non segnaposto
  *
  * Descrivono **questo** sito: le colonne che esistono davvero in `users`, i
- * cookie che il codice imposta davvero, il fatto che le coordinate del "vicino
- * a me" non vengono salvate da nessuna parte (§11.7 e §16), che i promemoria
- * arrivano per email e non come notifiche push (D8), che i pagamenti non
- * esistono ancora ma sono previsti (D9). Una frase che descrive una funzione
+ * cookie che il codice imposta davvero e le scelte previste per posizione,
+ * comunicazioni e prenotazioni. Una frase che descrive una funzione
  * che non c'è è un'informativa falsa, che è peggio di un'informativa assente.
  *
  * ## Idempotente
@@ -218,11 +216,16 @@ class PageSeeder extends Seeder
 
         ## Se usi «vicino a me»
 
-        La posizione te la chiede il browser **solo quando premi il pulsante**, mai all'apertura
-        del sito. Le coordinate servono a una sola cosa — ordinare gli eventi per distanza — e
-        **non vengono mai salvate**: non finiscono in nessuna tabella del database, non entrano
-        in alcun profilo e non restano al termine della ricerca. Viaggiano nell'indirizzo della
-        pagina che stai guardando e spariscono con esso.
+        La posizione viene richiesta dopo il tuo gesto e il permesso del browser o del sistema operativo.
+        Se scegli «Usa e ricorda la mia posizione», conserviamo solo l'ultima posizione approssimata
+        (coordinate arrotondate a due decimali, circa un chilometro), cifrata nel cookie
+        `incitta_location` o nella memoria dell'app e, se accedi, nel tuo account.
+        La conservazione dura sei mesi dall'ultimo aggiornamento, senza cronologia e senza uso pubblicitario.
+        Quando torni alla funzione, se hai già autorizzato la localizzazione e questa è disponibile,
+        aggiorniamo automaticamente la posizione. Altrimenti usiamo quella ricordata; se manca o è scaduta,
+        usiamo il centro città. Puoi cancellarla e interrompere gli aggiornamenti con
+        «Cancella la posizione ricordata». Le copie sugli altri dispositivi si cancellano da ciascun dispositivo.
+        Le normali ricerche per distanza, senza questa scelta, non salvano la posizione nell'account.
 
         ## Se proponi un evento o segnali un errore
 
@@ -500,8 +503,9 @@ class PageSeeder extends Seeder
           altrove non sono la stessa cosa, e la scheda lo dice.
         - **Funzionare in mano, alla fermata dell'autobus.** Il sito nasce per il telefono e
           continua a funzionare anche senza JavaScript.
-        - **Non trattare chi legge come un dato.** Nessuna pubblicità, nessuna profilazione,
-          nessun cookie di terze parti, nessuna posizione conservata.
+        - **Lasciare il controllo a chi legge.** Sponsorizzazioni riconoscibili e preferenze
+          per i consensi. La posizione viene ricordata solo su scelta esplicita, per sei mesi
+          e senza cronologia degli spostamenti.
         - **Restituire quello che raccogliamo.** Il calendario si può sottoscrivere dal proprio
           telefono, leggere come feed e incorporare nel sito del proprio locale.
 

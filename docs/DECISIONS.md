@@ -2,6 +2,18 @@
 
 Ogni decisione: cosa, perché, quando ricontrollare.
 
+## 2026-09-15 — Posizione ricordata facoltativa
+
+Su richiesta del proprietario, deroga alla precedente regola di §16: con scelta esplicita
+si conserva solo l'ultima posizione arrotondata a due decimali, cifrata, per sei mesi
+dall'aggiornamento. Nessuna cronologia o finalità pubblicitaria. Cookie per il web,
+memoria privata cifrata per Android, campo cifrato dell'account per gli iscritti.
+La normale query per distanza continua a non registrare coordinate. Posizione attuale
+autorizzata prima, ultima posizione valida poi, centro città in assenza di entrambe.
+La cancellazione interrompe il rinnovo su quel dispositivo e rimuove la copia dell'account;
+le copie locali degli altri dispositivi vanno cancellate sui rispettivi dispositivi.
+Le posizioni scadute non vengono utilizzate e il processo giornaliero le elimina dal DB.
+
 ---
 
 ## 2026-08-23 — D1. PHP 8.4 invece di 8.3

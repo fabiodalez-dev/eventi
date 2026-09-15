@@ -151,11 +151,10 @@ fun EventsScreen(
                 }
             }
         }
+        item(key = "today-and-nearby") { NearbyPanel(state, onOpen, onSave) }
         if (state.isLoading && state.occurrences.isEmpty()) {
             item { LoadingBlock() }
-        } else if (state.occurrences.isEmpty()) {
-            item { EmptyBlock("NESSUN EVENTO IN CARTELLONE", "Torna più tardi: la città sta ancora preparando la serata.") }
-        } else {
+        } else if (state.occurrences.isNotEmpty()) {
             val featured = state.occurrences.first()
             item {
                 Spacer(Modifier.height(24.dp))

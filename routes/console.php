@@ -8,6 +8,7 @@ use App\Jobs\SyncGoogleCalendar;
 use App\Models\GoogleCalendarConnection;
 use App\Models\MobileAuthChallenge;
 use App\Models\SponsorshipGrant;
+use App\Models\User;
 use App\Services\Calendar\GoogleCalendarClient;
 use App\Services\Sponsorship\GrantCampaigns;
 use App\Services\Ticketing\TicketingService;
@@ -307,3 +308,8 @@ Schedule::call(function (): void {
 })->name('sponsorship-grants:sync')->everyMinute()->withoutOverlapping(10);
 
 Schedule::command('events:publish-due')->everyMinute()->withoutOverlapping(10);
+
+Schedule::call(function (): void {
+    User::withTrashed()->where('location_expires_at', '<=', now())
+        ->update(['remembered_location' => null, 'location_expires_at' => null]);
+})->name('locations:expire')->daily()->withoutOverlapping();

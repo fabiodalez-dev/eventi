@@ -36,6 +36,7 @@ use App\Http\Controllers\Api\V1\SubmissionController;
 use App\Http\Controllers\Api\V1\SyncController;
 use App\Http\Controllers\Api\V1\TaxonomyController;
 use App\Http\Controllers\Api\V1\VenueController;
+use App\Http\Controllers\RememberedLocationController;
 use App\Http\Controllers\TicketingController;
 use App\Http\Controllers\Web\Account\ContentPreferencesController;
 use App\Http\Controllers\Web\Account\NotificationInterestsController;
@@ -53,6 +54,11 @@ use App\Http\Middleware\TicketingPrivacy;
 use Illuminate\Support\Facades\Route;
 
 Route::get('v1/occurrences/{occurrence}/booking', [TicketingController::class, 'availability']);
+Route::middleware('auth:sanctum')->group(function (): void {
+    Route::get('v1/me/location', [RememberedLocationController::class, 'show']);
+    Route::post('v1/me/location', [RememberedLocationController::class, 'store'])->middleware('throttle:30,1');
+    Route::delete('v1/me/location', [RememberedLocationController::class, 'destroy']);
+});
 Route::prefix('v1')->middleware(['auth:sanctum', TicketingPrivacy::class])->group(function (): void {
     Route::get('/me/bookings', [TicketingController::class, 'index']);
     Route::post('/me/bookings/{booking}/email', [TicketingController::class, 'resend'])->middleware('throttle:3,60');

@@ -18,6 +18,7 @@ use App\Models\User;
 use App\Models\Venue;
 use App\Queries\EventOccurrenceQuery;
 use App\Services\Api\OccurrenceFeed;
+use App\Services\RememberedLocation;
 use App\Services\Sponsorship\SponsorshipSelector;
 use App\Support\Api\ApiContext;
 use App\Support\Api\ApiResponse;
@@ -37,6 +38,9 @@ final class HomeController extends Controller
     {
         $city = $this->city();
         $user = $this->currentUser($request);
+        $position = app(RememberedLocation::class)->resolve($request, $user);
+        $filters = $request->filters();
+        $nearbyRadius = in_array($filters->radius, [5.0, 10.0], true) ? $filters->radius : 5.0;
         $size = config()->integer('eventi.home_section_size');
 
         $queries = [
@@ -48,7 +52,7 @@ final class HomeController extends Controller
             'weekend' => EventOccurrenceQuery::for($city)->weekend(),
             'nearby' => EventOccurrenceQuery::for($city)
                 ->upcoming()
-                ->near((float) $city->center_lat, (float) $city->center_lng, config()->float('eventi.nearby_radius_km'))
+                ->near($filters->lat ?? (float) ($position['lat'] ?? $city->center_lat), $filters->lng ?? (float) ($position['lng'] ?? $city->center_lng), $nearbyRadius)
                 ->orderByDistance(),
         ];
 

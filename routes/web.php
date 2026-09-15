@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\RememberedLocationController;
 use App\Http\Controllers\Web\ConsentController;
 use App\Http\Controllers\Web\ContentMetricController;
 use App\Http\Controllers\Web\DeployController;
@@ -33,6 +34,10 @@ use Spatie\Health\Http\Controllers\SimpleHealthCheckController;
  * compreso, e registrato dopo verrebbe risolto come una città inesistente.
  */
 Route::group([], base_path('routes/installer.php'));
+
+Route::get('/posizione-ricordata', [RememberedLocationController::class, 'show'])->name('location.show');
+Route::post('/posizione-ricordata', [RememberedLocationController::class, 'store'])->middleware('throttle:30,1')->name('location.store');
+Route::delete('/posizione-ricordata', [RememberedLocationController::class, 'destroy'])->name('location.destroy');
 
 Route::get('/app/auth/magic', function () {
     return response()->view('account.mobile-magic-link')

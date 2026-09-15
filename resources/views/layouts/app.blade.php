@@ -485,7 +485,7 @@
         pagine larghe, i moduli di «registra il tuo locale» e «proponi un
         evento» sono rimasti fuori squadra.
     --}}
-    <main id="contenuto" class="pt-header">
+    <main id="contenuto" class="pt-header" @if (request()->routeIs('home', 'city.home')) data-home-page @endif>
         @if (! ($wide ?? false))
             {{-- `narrow` per moduli e testi: una riga da 1200 px non si legge
                  e un campo largo 1200 px non si compila. Sotto i 48rem il

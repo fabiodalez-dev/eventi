@@ -64,9 +64,10 @@
     $griglie = collect([
         ['key' => 'tonight', 'title' => __('events.sections.tonight'), 'eyebrow' => __('events.sections.tonight_eyebrow'), 'context' => 'tonight', 'route' => 'events.today'],
         ['key' => 'today', 'title' => __('events.sections.today'), 'eyebrow' => __('events.sections.today_eyebrow'), 'context' => 'today', 'route' => 'events.today'],
+        ['key' => 'nearby'],
         ['key' => 'featured', 'title' => __('events.sections.featured'), 'eyebrow' => __('events.sections.featured_eyebrow'), 'context' => 'upcoming', 'route' => 'events.index'],
         ['key' => 'weekend', 'title' => __('events.sections.weekend'), 'eyebrow' => __('events.sections.weekend_eyebrow'), 'context' => 'upcoming', 'route' => 'events.weekend'],
-    ])->filter(fn (array $s): bool => isset($sections[$s['key']]))->values();
+    ])->filter(fn (array $s): bool => $s['key'] === 'nearby' ? $nearby->isNotEmpty() : isset($sections[$s['key']]))->values();
 
     $numero = 0;
 @endphp
@@ -279,13 +280,17 @@
          sopra la piega non ci va — quello spazio è la data più importante in
          programma, e venderlo cambierebbe cosa il sito dice di sé. --}}
     @if ($cardSponsorship !== null)
-        <x-sponsored-card
-            :sponsorship="$cardSponsorship"
-            class="border-b-2 border-line"
-            level="h2"
-        />
+        <section class="home-recommendation border-b-2 border-line" aria-labelledby="home-recommendation-title">
+            <h2 id="home-recommendation-title" class="font-display text-3xl font-extrabold tracking-tight">{{ __('inCittà consiglia') }}</h2>
+            <x-sponsored-card
+                :sponsorship="$cardSponsorship"
+                class="home-recommendation__event"
+                level="h3"
+            />
+        </section>
     @endif
 
+    <x-home-organize />
     <section class="home-tonight border-y-2 border-line px-6 py-10 sm:px-12">
         <div class="flex flex-col justify-between gap-6 sm:flex-row sm:items-center">
             <div><h2 class="font-display text-3xl font-extrabold">{{ __('tonight.banner_title') }}</h2><p class="mt-3 text-ink-muted">{{ __('tonight.banner_help') }}</p></div>
@@ -294,6 +299,10 @@
     </section>
     @foreach ($griglie as $sezione)
         @php $numero++; @endphp
+        @if ($sezione['key'] === 'nearby')
+            @include('home.nearby')
+            @continue
+        @endif
 
         @if ($sezione['key'] === 'tonight')
             <x-sponsorship-banner :city="$city" />
@@ -344,104 +353,7 @@
         </section>
     @endif
 
-    {{-- ------------------------------------------------------------------
-         Vicino a te: l'elenco a sinistra e la mappa a destra, che si guardano.
-         La posizione non si chiede all'apertura (§11.7): l'elenco è ordinato
-         per centro città finché qualcuno non tocca il pulsante di
-         localizzazione dentro la mappa.
-    ------------------------------------------------------------------- --}}
-    @if ($nearby->isNotEmpty() && \Illuminate\Support\Facades\Route::has('map.index'))
-        @php $numero++; @endphp
 
-        <section class="home-section border-b-2 border-line defer-offscreen" aria-labelledby="sezione-vicino">
-            <div class="flex flex-wrap items-end justify-between gap-4 px-gutter pt-[clamp(1.5rem,2.8vw,2.75rem)] pb-[clamp(1.125rem,2vw,1.625rem)]">
-                <div class="section-head flex flex-col gap-2">
-                    <span class="section-eyebrow font-display text-[0.625rem] leading-none font-extrabold tracking-[0.18em] text-accent uppercase"><span class="section-index">{{ str_pad((string) $numero, 2, '0', STR_PAD_LEFT) }}</span><span class="section-note"><span class="section-dash"> {{ __('common.dash') }} </span>{{ __('events.sections.nearby_eyebrow') }}</span></span>
-                    <h2 id="sezione-vicino" class="m-0 font-display text-[clamp(1.875rem,4vw,4rem)] leading-[0.94] font-extrabold tracking-[-0.04em] uppercase">
-                        {{ __('events.sections.nearby') }}
-                    </h2>
-                </div>
-                <p class="m-0 max-w-[38ch] text-[0.813rem] leading-[1.5] text-ink-muted">
-                    {{ __('events.sections.nearby_lead', ['city' => $city?->name ?? '']) }}
-                </p>
-            </div>
-
-            <div class="home-nearby grid gap-0.5 border-t-2 border-line bg-line [grid-template-columns:repeat(auto-fit,minmax(min(340px,100%),1fr))]">
-                <div class="flex flex-col bg-canvas">
-                    @foreach ($nearby as $occorrenza)
-                        <a
-                            href="{{ \App\Support\EventUrl::occurrence($occorrenza) }}"
-                            class="group flex items-center gap-3.5 border-b-2 border-line px-[clamp(1rem,1.6vw,1.25rem)] py-3.5 transition-colors hover:bg-accent/[0.055]"
-                        >
-                            <span class="min-w-14 font-display text-[0.688rem] leading-none font-extrabold tracking-[0.1em] text-accent uppercase">
-                                {{ $occorrenza->is_all_day ? __('events.badge.all_day') : $formatter->time($occorrenza->starts_at) }}
-                            </span>
-                            <span class="flex min-w-0 flex-auto flex-col gap-1">
-                                <span class="font-display text-[clamp(0.938rem,1.25vw,1.188rem)] leading-[1.1] font-extrabold tracking-[-0.02em] uppercase">{{ $occorrenza->event->title }}</span>
-                                <span class="truncate text-xs leading-[1.4] text-ink-subtle">
-                                    {{ collect([$occorrenza->effectiveVenue()?->name, $occorrenza->effectiveVenue()?->zone ?: $occorrenza->effectiveVenue()?->municipality])->filter()->implode(' '.__('common.separator').' ') }}
-                                </span>
-                            </span>
-                            <span class="font-display text-[0.813rem] leading-none font-extrabold whitespace-nowrap">
-                                <x-price-tag :event="$occorrenza->event" />
-                            </span>
-                        </a>
-                    @endforeach
-
-                    <div class="mt-auto p-[18px]">
-                        <a
-                            href="{{ route('map.index') }}"
-                            class="ui-action flex h-[46px] w-full items-center bg-accent px-4 font-display text-[0.688rem] leading-none font-extrabold tracking-[0.14em] text-on-accent uppercase transition-colors hover:bg-brand-strong"
-                        >
-                            {{ __('ui.hero.open_map_full') }}
-                        </a>
-                    </div>
-                </div>
-
-                <div class="relative min-h-[clamp(25rem,44vw,35rem)] bg-canvas">
-                    <x-events-map
-                        :city="$city"
-                        :filters="$mapFilters"
-                        :payload="$mapPayload"
-                        :show-legend="false"
-                        class="absolute inset-0"
-                        map-class="h-full w-full"
-                    />
-                </div>
-            </div>
-        </section>
-    @endif
-
-    {{-- ------------------------------------------------------------------
-         La chiusura, in negativo: fondo lime, testo nero. È l'unico blocco
-         pieno di colore della pagina, e serve a questo — chiudere.
-    ------------------------------------------------------------------- --}}
-    <section class="home-cta grid items-end gap-[clamp(1.5rem,3vw,3.25rem)] bg-accent px-gutter py-[clamp(2.125rem,5vw,5.375rem)] text-on-accent [grid-template-columns:repeat(auto-fit,minmax(min(360px,100%),1fr))]" aria-label="{{ __('ui.cta.label') }}">
-        <h2 class="m-0 font-display text-[clamp(2.125rem,5.2vw,5.25rem)] leading-[0.9] font-extrabold tracking-[-0.045em] text-on-accent uppercase">
-            {!! nl2br(e(__('ui.cta.title'))) !!}
-        </h2>
-
-        <div class="flex flex-col gap-4">
-            <p class="m-0 max-w-[44ch] text-[clamp(0.938rem,1.2vw,1.125rem)] leading-[1.5] text-on-accent/80">
-                {{ __('ui.cta.lead') }}
-            </p>
-
-            <div class="flex flex-wrap gap-0.5">
-                <a
-                    href="{{ route('submissions.create') }}"
-                    class="ui-action inline-flex h-[54px] items-center bg-canvas px-6 font-display text-xs leading-none font-extrabold tracking-[0.14em] text-accent uppercase transition-colors hover:bg-ink hover:text-ink-inverted"
-                >
-                    {{ __('events.submit.title') }}
-                </a>
-                <a
-                    href="{{ route('venue-applications.create') }}"
-                    class="ui-action inline-flex h-[54px] items-center bg-canvas px-6 font-display text-xs leading-none font-extrabold tracking-[0.14em] text-accent uppercase transition-colors hover:bg-ink hover:text-ink-inverted"
-                >
-                    {{ __('venues.claim.title') }}
-                </a>
-            </div>
-        </div>
-    </section>
     <section class="border-t-2 border-line bg-canvas px-gutter py-12 text-ink" aria-labelledby="calendar-banner-title" data-calendar-banner>
         <div class="flex flex-col items-start gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div class="max-w-prose">

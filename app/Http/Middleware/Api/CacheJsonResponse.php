@@ -27,6 +27,12 @@ final class CacheJsonResponse
     {
         $response = $next($request);
 
+        if ($request->hasAny(['near', 'lat', 'lng'])) {
+            $response->headers->set('Cache-Control', 'private, no-store');
+
+            return $response;
+        }
+
         if (! $request->isMethodCacheable() || $response->getStatusCode() !== 200) {
             return $response;
         }

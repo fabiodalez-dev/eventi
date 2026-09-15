@@ -50,7 +50,9 @@ it('scrive «sponsorizzato» anche nella pagina iniziale', function (): void {
     $this->get('/')
         ->assertOk()
         ->assertSee(__('sponsorships.label'))
-        ->assertSee('Birrificio del Piave');
+        ->assertSee('Birrificio del Piave')
+        ->assertSee('inCittà consiglia')
+        ->assertSee('aria-labelledby="home-recommendation-title"', false);
 });
 
 it('marca il collegamento come sponsorizzato per i motori di ricerca', function (): void {

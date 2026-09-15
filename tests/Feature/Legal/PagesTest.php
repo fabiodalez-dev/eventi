@@ -125,15 +125,15 @@ describe('i testi seminati', function (): void {
             ->and(Page::query()->where('slug', 'privacy')->value('title'))->toBe('Titolo corretto a mano');
     });
 
-    /*
-     * §16 in una riga: «Nessuna coordinata GPS dell'utente viene salvata».
-     * Se un giorno quella promessa smettesse di essere vera, il testo va
-     * riscritto — e questo test è ciò che lo ricorda.
-     */
-    it('promette esplicitamente che le coordinate non vengono salvate', function (): void {
+    it('descrive il ricordo facoltativo della posizione e i suoi limiti', function (): void {
         $body = (string) Page::query()->where('slug', 'privacy')->value('body');
 
-        expect($body)->toContain('non vengono mai salvate');
+        expect($body)->toContain('Se scegli «Usa e ricorda la mia posizione»')
+            ->toContain('sei mesi')
+            ->toContain('senza cronologia e senza uso pubblicitario')
+            ->toContain('Cancella la posizione ricordata')
+            ->toContain('senza questa scelta, non salvano la posizione')
+            ->not->toContain('non vengono mai salvate');
     });
 
     it('dice quali dati raccoglie l\'account, uno per uno', function (string $atteso): void {
@@ -146,6 +146,18 @@ describe('i testi seminati', function (): void {
         'fuso orario' => 'Fuso orario',
         'lingua' => 'lingua',
     ]);
+
+    it('allinea solo la vecchia promessa nella presentazione senza sovrascrivere la redazione', function (): void {
+        $page = Page::query()->where('slug', 'chi-siamo')->firstOrFail();
+        $page->update(['body' => "Nota della redazione.\n\n- **Non trattare chi legge come un dato.** Nessuna pubblicità, nessuna profilazione,\n  nessun cookie di terze parti, nessuna posizione conservata.\n\nContatti personalizzati."]);
+        $migration = require database_path('migrations/2026_09_15_170200_align_about_location_disclosure.php');
+        $migration->up();
+        $body = $page->fresh()->body;
+        expect($body)->toContain('Nota della redazione.', 'Contatti personalizzati.', 'scelta esplicita', 'sei mesi')
+            ->not->toContain('nessuna posizione conservata');
+        $migration->up();
+        expect($page->fresh()->body)->toBe($body);
+    });
 
     it('spiega come cancellare l\'account', function (): void {
         $body = (string) Page::query()->where('slug', 'privacy')->value('body');

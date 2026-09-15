@@ -9,6 +9,7 @@ use App\Enums\EventStatus;
 use App\Enums\SponsorshipPlacement;
 use App\Enums\TimeOfDay;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\HomeRequest;
 use App\Models\Category;
 use App\Models\City;
 use App\Models\Event;
@@ -16,6 +17,7 @@ use App\Models\EventOccurrence;
 use App\Models\Venue;
 use App\Queries\EventOccurrenceQuery;
 use App\Services\Map\MapPayload;
+use App\Services\RememberedLocation;
 use App\Services\Seo\StructuredData;
 use App\Services\Sponsorship\SponsorshipSelector;
 use App\Support\CurrentCity;
@@ -50,9 +52,11 @@ final class HomeController extends Controller
         private readonly SponsorshipSelector $sponsorships,
     ) {}
 
-    public function __invoke(CurrentCity $currentCity): View
+    public function __invoke(CurrentCity $currentCity, HomeRequest $request, RememberedLocation $locations): View
     {
         $city = $currentCity->get();
+        $position = $locations->resolve($request);
+        $nearbyRadius = (int) $request->validated('nearby_radius', 5);
 
         if ($city === null) {
             return view('home', [
@@ -135,7 +139,9 @@ final class HomeController extends Controller
             'lcpOccurrence' => $this->firstVisible($city, $sections),
             // Sponsorizzazione attiva, oppure un evento casuale di oggi.
             'hero' => $hero,
-            'nearby' => $this->nearby($city),
+            'nearby' => $this->nearby($city, $position, $nearbyRadius),
+            'nearbyRadius' => $nearbyRadius,
+            'nearbyPosition' => $position,
             /* La mappa della sezione «vicino a te» mostra tutto ciò che è in
                programma, senza filtri: è una vista d'insieme della città, e
                chi vuole stringere ha la pagina della mappa a un tocco. */
@@ -144,7 +150,7 @@ final class HomeController extends Controller
                accorge. */
             'heroSponsorship' => $heroSponsorship,
             'cardSponsorship' => $this->sponsorships->first($city, SponsorshipPlacement::HomeCard),
-            'mapFilters' => $mapFilters = new EventFilters,
+            'mapFilters' => $mapFilters = new EventFilters(lat: (float) ($position['lat'] ?? $city->center_lat), lng: (float) ($position['lng'] ?? $city->center_lng), radius: $nearbyRadius),
             'mapPayload' => $this->mapPayload->build($city, $mapFilters, null),
             'stats' => $stats = $this->stats($city),
             'statCells' => $this->statCells($stats),
@@ -206,7 +212,11 @@ final class HomeController extends Controller
      *
      * @return Collection<int, EventOccurrence>
      */
-    private function nearby(City $city): Collection
+    /**
+     * @param  array{lat: float, lng: float, saved_at: int, expires_at: int}|null  $position
+     * @return Collection<int, EventOccurrence>
+     */
+    private function nearby(City $city, ?array $position = null, int $radius = 5): Collection
     {
         /*
          * Le colonne si chiamano `center_lat` e `center_lng`, e sono
@@ -223,7 +233,7 @@ final class HomeController extends Controller
         return $this->hydrate(
             EventOccurrenceQuery::for($city)
                 ->upcoming()
-                ->near((float) $city->center_lat, (float) $city->center_lng, config()->float('eventi.nearby_radius_km', 12.0))
+                ->near((float) ($position['lat'] ?? $city->center_lat), (float) ($position['lng'] ?? $city->center_lng), $radius)
                 ->orderByDistance()
                 ->take(5 * self::OVERSAMPLE)
                 ->unique('event_id')
