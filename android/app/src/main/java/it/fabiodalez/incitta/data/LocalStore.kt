@@ -32,6 +32,23 @@ class LocalStore(private val context: Context) {
     }
     fun setGuestAppearance(value: String) { prefs.edit { putString("guest_appearance", value) } }
 
+    fun rememberedPosition(): RememberedPosition? {
+        val raw = prefs.getString("remembered_position", null) ?: return null
+        val position = runCatching { json.decodeFromString<RememberedPosition>(decrypt(raw)) }.getOrNull()
+        if (position?.valid() == true) return position
+        forgetPosition()
+        return null
+    }
+
+    fun rememberPosition(position: RememberedPosition) {
+        prefs.edit { putString("remembered_position", encrypt(json.encodeToString(position))) }
+    }
+
+    fun forgetPosition() { prefs.edit { remove("remembered_position") } }
+
+    fun nearbyRadius(): Int = prefs.getInt("nearby_radius", 5).takeIf { it == 5 || it == 10 } ?: 5
+    fun setNearbyRadius(value: Int) { if (value == 5 || value == 10) prefs.edit { putInt("nearby_radius", value) } }
+
     fun writeMagicVerifier(value: String) {
         prefs.edit { putString("magic_verifier", encrypt(value)); putLong("magic_requested_at", System.currentTimeMillis()) }
     }

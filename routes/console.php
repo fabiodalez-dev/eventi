@@ -307,3 +307,8 @@ Schedule::call(function (): void {
 })->name('sponsorship-grants:sync')->everyMinute()->withoutOverlapping(10);
 
 Schedule::command('events:publish-due')->everyMinute()->withoutOverlapping(10);
+
+Schedule::call(function (): void {
+    \App\Models\User::withTrashed()->where('location_expires_at', '<=', now())
+        ->update(['remembered_location' => null, 'location_expires_at' => null]);
+})->name('locations:expire')->daily()->withoutOverlapping();

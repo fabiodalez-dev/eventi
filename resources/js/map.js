@@ -154,8 +154,11 @@ async function startMap(shell) {
     const isLight = () => document.documentElement.dataset.theme === 'light';
     const colors = () => ({ accent: isLight() ? '#b54d23' : config.fallbackColor, canvas: isLight() ? '#faf9f6' : '#0b0b0b', onAccent: isLight() ? '#faf9f6' : '#0b0b0b' });
     const styleUrl = () => isLight() ? (config.lightStyle ?? config.style) : config.style;
+    const initialStyleUrl = styleUrl();
+    const initialTheme = isLight() ? 'light' : 'dark';
     let style;
-    try { style = await vectorStyle(styleUrl()); } catch (error) { startedMaps.delete(shell); throw error; }
+    try { style = await vectorStyle(initialStyleUrl); } catch (error) { startedMaps.delete(shell); throw error; }
+    container.dataset.mapTheme = initialTheme;
     config = JSON.parse(configNode.textContent ?? "{}");
     if (!shell.isConnected) return;
     const map = new maplibregl.Map({
@@ -509,15 +512,27 @@ async function startMap(shell) {
     });
 
     let themeRevision = 0;
+    let requestedStyleUrl = initialStyleUrl;
     const changeTheme = async () => {
+        const nextUrl = styleUrl();
+        if (requestedStyleUrl === nextUrl) return;
+        requestedStyleUrl = nextUrl;
         const revision = ++themeRevision;
         try {
-            const nextStyle = await vectorStyle(styleUrl());
-            if (revision === themeRevision && shell.isConnected) map.setStyle(nextStyle);
-        } catch { /* Keep the working map if the tile provider is unavailable. */ }
+            const nextStyle = await vectorStyle(nextUrl);
+            if (revision === themeRevision && shell.isConnected) {
+                map.setStyle(nextStyle);
+                container.dataset.mapTheme = isLight() ? 'light' : 'dark';
+            }
+        } catch { if (revision === themeRevision) requestedStyleUrl = null; }
     };
+    const themeObserver = new MutationObserver(changeTheme);
+    themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
     window.addEventListener('appearance:change', changeTheme);
+    // Catch a theme switch while the initial vector style was downloading.
+    changeTheme();
     map.on('remove', () => {
+        themeObserver.disconnect();
         themeRevision++;
         ready = false;
         cancelAnimationFrame(frameRequest);

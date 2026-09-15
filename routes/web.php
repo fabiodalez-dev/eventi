@@ -34,6 +34,10 @@ use Spatie\Health\Http\Controllers\SimpleHealthCheckController;
  */
 Route::group([], base_path('routes/installer.php'));
 
+Route::get('/posizione-ricordata', [\App\Http\Controllers\RememberedLocationController::class, 'show'])->name('location.show');
+Route::post('/posizione-ricordata', [\App\Http\Controllers\RememberedLocationController::class, 'store'])->middleware('throttle:30,1')->name('location.store');
+Route::delete('/posizione-ricordata', [\App\Http\Controllers\RememberedLocationController::class, 'destroy'])->name('location.destroy');
+
 Route::get('/app/auth/magic', function () {
     return response()->view('account.mobile-magic-link')
         ->header('Cache-Control', 'no-store, private')

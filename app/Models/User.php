@@ -66,6 +66,8 @@ class User extends Authenticatable implements FilamentUser, HasTenants, MustVeri
 
     /** @var list<string> */
     protected $hidden = [
+        'remembered_location',
+        'location_expires_at',
         'password',
         'remember_token',
     ];
@@ -390,6 +392,8 @@ class User extends Authenticatable implements FilamentUser, HasTenants, MustVeri
     {
         return [
             'email_verified_at' => 'datetime',
+            'remembered_location' => 'encrypted:array',
+            'location_expires_at' => 'datetime',
             'password' => 'hashed',
             'notification_preferences' => 'array',
             'content_preferences' => 'array',

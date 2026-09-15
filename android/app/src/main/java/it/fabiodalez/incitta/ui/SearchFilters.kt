@@ -216,7 +216,7 @@ private fun QuickFilterGroup(label: String, key: String, options: List<Pair<Stri
 }
 
 @Suppress("MissingPermission", "DEPRECATION")
-private suspend fun deviceLocation(context: Context): Location = suspendCancellableCoroutine { continuation ->
+internal suspend fun deviceLocation(context: Context): Location = suspendCancellableCoroutine { continuation ->
     val manager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
     val fine = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
     val provider = listOf(LocationManager.NETWORK_PROVIDER, LocationManager.GPS_PROVIDER).firstOrNull {

@@ -17,7 +17,7 @@ return [
         'label' => 'Partecipa al progetto',
         /* Va a capo dove sta il ritorno a capo: e' un titolo da manifesto, e
            la spezzatura fa parte del disegno. */
-        'title' => "Non perderti\nniente.",
+        'title' => 'Organizzi eventi?',
         'lead' => 'Organizzi qualcosa in città? Proponi la data e finisce in questo elenco. Gestisci un locale? Prenditi la tua pagina e pubblica da solo, senza passare da nessuno.',
     ],
 

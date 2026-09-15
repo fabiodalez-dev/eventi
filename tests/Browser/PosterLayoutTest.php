@@ -26,6 +26,21 @@ it('fills each card edge to edge with aligned portrait covers across listings', 
     foreach (['/', '/eventi', '/mappa?all_dates=1', EventUrl::occurrence($dates[0]), '/locali/'.$venue->slug] as $path) {
         $page = visit($path)->{$theme}()->resize($width, 900);
         $page->script('document.querySelector("[data-consent-banner]")?.remove()');
+        if ($path === '/') {
+            expect($page->script(<<<'JS'
+                () => {
+                    const frames = [...document.querySelectorAll('[data-home-page] .event-card .event-poster-frame')];
+                    const missing = frames.filter(frame => frame.querySelector('[data-event-hero-placeholder]'));
+                    return missing.length > 0 && frames.every(frame => {
+                        const rect = frame.getBoundingClientRect();
+                        return frame.querySelector('[data-event-hero-placeholder]')
+                            ? rect.height <= 160
+                            : Math.abs(rect.width / rect.height - .75) < .01;
+                    }) && document.documentElement.scrollWidth <= innerWidth;
+                }
+                JS))->toBeTrue();
+            continue;
+        }
         /*
          * La locandina riempie il RIQUADRO DI CONTENUTO della card, non la card.
          *

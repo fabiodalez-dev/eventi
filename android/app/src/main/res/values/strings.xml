@@ -6,4 +6,14 @@
     <string name="event_share_whatsapp">Condividi su WhatsApp</string>
     <string name="event_share_telegram">Condividi su Telegram</string>
     <string name="event_share_email">Condividi via email</string>
+    <string name="home_today">Oggi</string>
+    <string name="location_radius">Distanza da te</string>
+    <string name="location_radius_km">Entro %1$d km</string>
+    <string name="location_title">Vicino a te</string>
+    <string name="location_remember">Usa e ricorda la mia posizione</string>
+    <string name="location_forget">Cancella la posizione ricordata</string>
+    <string name="location_help">Ricordiamo solo l’ultima posizione approssimata per sei mesi, sul dispositivo e nel tuo account se accedi. Nessuna cronologia. Con il permesso già concesso si aggiorna quando torni a questa funzione. Puoi cancellarla qui.</string>
+    <string name="location_unavailable">Posizione attuale non disponibile: uso quella ricordata, se presente, oppure il centro città.</string>
+    <string name="location_failed">Non riesco a sincronizzare la posizione o aggiornare gli eventi. Riprova.</string>
+    <string name="location_saved">Vicino alla tua ultima posizione ricordata.</string>
 </resources>

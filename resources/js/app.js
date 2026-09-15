@@ -1,5 +1,6 @@
 import './page-transitions';
 import './appearance';
+import { rememberedLocation } from './remembered-location';
 if (document.querySelector('[data-rich-input]')) {
     import('./rich-input').then(({ richInputs }) => richInputs());
 }
@@ -199,6 +200,7 @@ function radius(button) {
  * dice prima perché la si chiede: qui c'è solo il gesto.
  */
 function geolocation() {
+    rememberedLocation();
     for (const button of document.querySelectorAll("[data-geolocate]")) {
         if (
             !(button instanceof HTMLElement) ||

@@ -7,7 +7,13 @@ import javax.net.ssl.SSLException
 @PublishedApi
 internal class ApiPayloadException(cause: Throwable) : Exception("La risposta del server non è compatibile con questa versione dell'app. Aggiorna l'app e riprova.", cause)
 
-internal fun requestFailureMessage(error: Throwable): String = when {
+internal fun requestFailureMessage(error: Throwable): String {
+    val message = friendlyRequestFailureMessage(error)
+    if (it.fabiodalez.incitta.BuildConfig.DEBUG) NetworkDiagnostics.record("APPLICATION ERROR ${diagnosticCause(error)}")
+    return if (it.fabiodalez.incitta.BuildConfig.DEBUG) "$message\nDEBUG: ${diagnosticCause(error)}\nApri DEBUG RETE nell’header e condividi il log." else message
+}
+
+private fun friendlyRequestFailureMessage(error: Throwable): String = when {
     error is ApiException && error.status == 401 -> "La sessione è scaduta. Esci dal profilo e accedi di nuovo."
     error is ApiException && error.status == 429 -> "Troppe richieste. Attendi un minuto e riprova."
     error is ApiException && error.status >= 500 -> "Il server è temporaneamente non disponibile. Riprova tra poco."

@@ -1,6 +1,9 @@
 package it.fabiodalez.incitta.ui
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.ui.semantics.Role
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -61,12 +64,7 @@ fun ContentPreferencesPanel(session: Session, standalone: Boolean = false, onSav
     }
     val current = data!!
     fun change(selection: ContentSelection) { data = current.copy(selection = selection) }
-    listOf("all" to "Tutto, tranne ciò che nascondo", "selected" to "Solo le categorie che mi interessano").forEach { (value, label) ->
-        Row(Modifier.fillMaxWidth()) {
-            RadioButton(selected = current.selection.mode == value, enabled = !busy, onClick = { change(current.selection.copy(mode = value)) })
-            Text(label, modifier = Modifier.padding(top = 12.dp))
-        }
-    }
+    ContentModeSelector(current.selection.mode, !busy) { change(current.selection.copy(mode = it)) }
     Text("Le nuove categorie appaiono qui automaticamente. In modalità Solo devi sceglierle per mostrarle; senza selezioni le liste saranno vuote.", color = Muted)
     current.options.forEach { category ->
         val value = when (category.id) {
@@ -107,4 +105,22 @@ fun ContentPreferencesPanel(session: Session, standalone: Boolean = false, onSav
         }
     }, enabled = !busy, shape = ControlShape, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text("SALVA I MIEI INTERESSI") }
     TextButton(onClick = { change(ContentSelection(inferredAds = current.selection.inferredAds)) }, enabled = !busy) { Text("RIPRISTINA TUTTE LE CATEGORIE (POI SALVA)") }
+}
+
+@Composable
+internal fun ContentModeSelector(mode: String, enabled: Boolean, onSelect: (String) -> Unit) {
+    Column(Modifier.selectableGroup()) {
+        listOf("all" to "Tutto, tranne ciò che nascondo", "selected" to "Solo le categorie che mi interessano").forEach { (value, label) ->
+            Row(
+                Modifier.fillMaxWidth().heightIn(min = 48.dp)
+                    .selectable(selected = mode == value, enabled = enabled, role = Role.RadioButton, onClick = { onSelect(value) })
+                    .padding(vertical = 8.dp),
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                RadioButton(selected = mode == value, enabled = enabled, onClick = null)
+                Text(label, modifier = Modifier.weight(1f))
+            }
+        }
+    }
 }
