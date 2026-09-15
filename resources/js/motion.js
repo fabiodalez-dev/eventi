@@ -76,11 +76,25 @@ export function startMotion() {
             const card = event.target.closest('.event-card');
             if (!card || card.contains(event.relatedTarget)) return;
             const photo = card.querySelector('[data-catalog-poster] img');
-            const arrow = card.querySelector('[data-card-arrow] svg');
+            const arrowBox = card.querySelector('[data-card-arrow]');
+            const arrow = arrowBox?.querySelector('svg');
+            /*
+             * Di quanto scivola la freccia lo dichiara il foglio di stile, non
+             * questo script: `--card-arrow-shift` sul contenitore, o niente per
+             * i sette pixel di sempre.
+             *
+             * Serve perché la freccia non ha sempre la stessa forma. Sciolta in
+             * fondo alla card scivolare vuol dire «avanti»; dentro un disco
+             * pieno — come nel tema chiaro — vuol dire soltanto che l'icona non
+             * è più al centro del proprio cerchio. Un tema non si controlla da
+             * qui con un `if`: si lascia dichiarare a chi disegna la forma.
+             */
+            const dichiarato = arrowBox ? getComputedStyle(arrowBox).getPropertyValue('--card-arrow-shift').trim() : '';
+            const scivolo = dichiarato === '' ? 7 : parseFloat(dichiarato) || 0;
             context.add(() => {
                 if (photo) gsap.to(photo, { scale: entering ? 1.025 : 1, duration: 0.3, ease: 'power2.out', overwrite: 'auto' });
                 if (arrow) gsap.to(arrow, {
-                    x: entering ? 7 : 0,
+                    x: entering ? scivolo : 0,
                     scale: entering ? 1.08 : 1,
                     duration: entering ? 0.24 : 0.18,
                     ease: 'power2.out',

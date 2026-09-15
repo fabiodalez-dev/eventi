@@ -85,6 +85,21 @@ return [
     ],
 
     'saved' => [
+        /*
+         * Il pannello che si apre dall'icona in testata. Esiste perché chi
+         * salva senza un account non aveva NESSUN posto dove rivedere le
+         * proprie date: la pagina dei salvataggi chiede l'accesso, e su
+         * schermo largo non c'era nemmeno un collegamento.
+         */
+        'panel_open' => 'Le tue date salvate',
+        'panel_count' => ':count data salvata|:count date salvate',
+        'panel_all' => 'Apri la pagina dei salvataggi',
+        'panel_more' => 'Vedi tutte e :count',
+        'panel_guest_hint' => 'Sono salvate in questo browser. Con un account le ritrovi su ogni dispositivo e ti avviso prima che comincino.',
+        'panel_guest_action' => 'Accedi o crea un account',
+        'panel_close' => 'Chiudi',
+        'panel_loading' => 'Carico le tue date…',
+        'panel_error' => 'Non sono riuscito a caricare le tue date. Riprova, oppure apri la pagina dei salvataggi.',
         'open_event' => 'Apri evento',
         'login_required' => 'Accedi o crea un account per aprire i tuoi Salvati. Dopo l’accesso tornerai qui; gli eventi salvati su questo dispositivo non vengono cancellati.',
         'past_tab' => 'Passati',

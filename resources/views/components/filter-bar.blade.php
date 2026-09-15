@@ -275,171 +275,203 @@
         </div>
     @endif
 
-    <details data-filter-key="advanced" @if ($filters->stroller || $filters->changingTable || $filters->kidsArea || $filters->age !== null || $filters->membership !== null || $filters->venue !== null || $filters->municipality !== null || $filters->zone !== null || $filters->access !== [] || $filters->from !== null || $filters->to !== null) open @endif class="bg-canvas border-2 border-line">
-        <summary class="min-h-12 cursor-pointer list-none px-4 py-3 text-base font-semibold text-ink">
-            {{ __('filters.advanced') }} <span aria-hidden="true">⌄</span>
-            @if ($active > 0)
-                <span class="text-ink-subtle">{{ trans_choice('filters.active', $active, ['count' => $active]) }}</span>
-            @endif
-        </summary>
-
-        <form method="GET" action="{{ $destination }}" class="flex flex-col gap-4 border-t border-line px-4 py-4">
-            @if ($defaultToday)
-                <input type="hidden" name="all_dates" value="1">
-            @endif
-            @foreach (['category' => implode(',', $filters->categories), 'lat' => $filters->lat, 'lng' => $filters->lng, 'q' => $filters->q, 'budget' => $filters->budget, 'discovery' => $filters->discovery ? '1' : null] as $hidden => $value)
-                @if (filled($value))
-                    <input type="hidden" name="{{ $hidden }}" value="{{ $value }}">
-                @endif
-            @endforeach
-
-            <div data-advanced-filter-fields class="grid min-w-0 grid-cols-1 gap-5 [&>div]:min-w-0 [&_label]:text-base [&_select]:min-w-0 [&_select]:text-base [&_input]:min-w-0 [&_input]:text-base">
-                <x-field
-                    name="date"
-                    :label="__('filters.date.label')"
-                    :options="$dateOptions"
-                    :placeholder-option="__('filters.date.any')"
-                    :value="$filters->preset?->value ?? $filters->date?->format('Y-m-d')"
-                />
-
-                <x-field type="date" name="from" :label="__('filters.date.from')" :value="$filters->from?->format('Y-m-d')" />
-                <x-field type="date" name="to" :label="__('filters.date.to')" :value="$filters->to?->format('Y-m-d')" />
-
-                <x-field
-                    name="tag"
-                    :searchable="true"
-                    :label="__('filters.tag.label')"
-                    :options="$tagOptions"
-                    :placeholder-option="__('filters.tag.any')"
-                    :value="$filters->tags[0] ?? null"
-                />
-
-                <x-field
-                    name="price"
-                    :label="__('filters.price.label')"
-                    :options="$priceOptions"
-                    :placeholder-option="__('filters.price.any')"
-                    :value="$filters->price?->value"
-                />
-
-                <x-field
-                    name="time"
-                    :label="__('filters.time_of_day.label')"
-                    :options="$timeOptions"
-                    :placeholder-option="__('filters.time_of_day.any')"
-                    :value="$filters->time?->value"
-                />
-
-                <x-field
-                    name="municipality"
-                    :searchable="true"
-                    :label="__('filters.place.municipality')"
-                    :options="$municipalityOptions"
-                    :placeholder-option="__('filters.place.any')"
-                    :value="$filters->municipality"
-                />
-
-                @if ($zoneOptions !== [])
-                    <x-field
-                        name="zone"
-                        :searchable="true"
-                        :label="__('filters.place.zone')"
-                        :options="$zoneOptions"
-                        :placeholder-option="__('filters.place.any_zone')"
-                        :value="$filters->zone"
-                    />
-                @endif
-
-                <x-field
-                    name="venue"
-                    :searchable="true"
-                    :label="__('filters.place.venue')"
-                    :options="$venueOptions"
-                    :placeholder-option="__('filters.place.any')"
-                    :value="$filters->venue"
-                />
-
-                @foreach (['stroller' => $filters->stroller, 'changing_table' => $filters->changingTable, 'kids_area' => $filters->kidsArea] as $field => $enabled)
-                    <label class="flex min-h-12 items-center gap-3"><input type="checkbox" name="{{ $field }}" value="1" @checked($enabled)>{{ __('family.'.$field) }}</label>
-                @endforeach
-                <x-field name="age" :label="__('family.title')" :options="\App\Enums\AgeGroup::options()" :placeholder-option="__('family.any')" :value="$filters->age?->value" />
-                <x-field name="membership" :label="__('filters.membership.label')" :options="\App\Enums\MembershipRequirement::options()" :placeholder-option="__('filters.membership.any')" :value="$filters->membership?->value" />
-
-                <x-field
-                    name="sort"
-                    :label="__('filters.sort.label')"
-                    :options="array_filter(EventSort::options(), fn ($key) => $key !== EventSort::Distance->value || $filters->hasPosition(), ARRAY_FILTER_USE_KEY)"
-                    :value="$filters->sort?->value ?? EventSort::Time->value"
-                />
-
-                @if ($filters->hasPosition())
-                    <x-field
-                        name="radius"
-                        :label="__('filters.distance.label')"
-                        :options="collect(config('eventi.distance_options'))->filter(fn (int $km): bool => $filters->radius === (float) $km || $available('radius', (string) $km))->mapWithKeys(fn (int $km): array => [$km => __('filters.distance.radius', ['km' => $km])])->all()"
-                        :value="$filters->radius === null ? null : (string) (int) $filters->radius"
-                    />
-                @endif
-            </div>
-
-            <fieldset class="flex min-w-0 flex-col gap-2">
-                <legend class="mb-2 text-sm font-semibold text-ink">{{ __('filters.features.label') }}</legend>
-
-                @foreach (['outdoor' => __('filters.features.outdoor'), 'accessible' => __('filters.features.accessible'), 'family' => __('filters.features.family')] as $flag => $label)
-                    @continue(! $filters->{$flag} && ! $available('features', $flag))
-                    <label class="flex min-h-12 cursor-pointer items-center gap-3 text-base text-ink">
-                        <input
-                            type="checkbox"
-                            name="{{ $flag }}"
-                            value="1"
-                            @checked($filters->{$flag})
-                            class="size-5 shrink-0 rounded border-line text-brand focus:ring-focus"
-                        >
-                        {{ $label }}
-                    </label>
-                @endforeach
-            </fieldset>
-
-            {{-- Le voci di accessibilità: esistono come filtro soltanto
-                 perché `venues.accessibility` è strutturato. Sono in AND, e
-                 il modulo lo dice mostrandole come caselle e non come
-                 alternative. --}}
-            <fieldset class="flex min-w-0 flex-col gap-2">
-                <legend class="mb-2 text-sm font-semibold text-ink">{{ __('filters.accessibility.label') }}</legend>
-
-                @foreach (AccessibilityFeature::cases() as $feature)
-                    @continue(! $filters->hasAccess($feature->value) && ! $available('access', $feature->value))
-                    <label class="flex min-h-12 cursor-pointer items-center gap-3 text-base text-ink">
-                        <input
-                            type="checkbox"
-                            name="access[]"
-                            value="{{ $feature->value }}"
-                            @checked($filters->hasAccess($feature->value))
-                            class="size-5 shrink-0 rounded border-line text-brand focus:ring-focus"
-                        >
-                        {{ $feature->label() }}
-                    </label>
-                @endforeach
-            </fieldset>
-
-            <div class="flex flex-wrap items-center gap-3">
-                <button
-                    type="submit"
-                    class="min-h-12 bg-brand px-4 py-2.5 font-display text-sm leading-tight font-extrabold tracking-wide text-on-brand uppercase transition hover:bg-brand-strong"
-                >
-                    {{ __('filters.apply') }}
-                </button>
-
-                @if ($active > 0)
-                    <a href="{{ $destination }}" class="text-sm font-semibold text-ink-muted underline hover:text-ink">
-                        {{ __('filters.reset') }}
-                    </a>
-                @endif
-
-                @if ($total !== null)
-                    <span class="ml-auto text-sm text-ink-subtle">{{ trans_choice('filters.results', $total, ['count' => $total]) }}</span>
-                @endif
-            </div>
-        </form>
-    </details>
 </section>
+
+{{--
+    I filtri avanzati stanno FUORI dal pannello, non dentro.
+
+    Sono un riquadro con un proprio fondo e un proprio margine interno; il
+    pannello che li conteneva ne ha uno suo. Annidati, i due si sommavano e
+    il contenuto finiva rientrato due volte — un margine dentro un margine,
+    che si vede soprattutto nel tema chiaro dove il pannello ha un fondo
+    proprio e quindi il doppio scalino è visibile.
+
+    Il contenitore esterno è la stessa colonna flessibile con lo stesso
+    `gap`, quindi la distanza fra pannello e filtri avanzati non cambia: si
+    sposta soltanto di che cosa sono figli. Lo script che riallinea i filtri
+    dopo un aggiornamento li accoppia per `data-filter-key`, che questo
+    elemento porta — quindi continua a ritrovarlo dov'è ora.
+--}}
+<details data-filter-key="advanced" @if ($filters->stroller || $filters->changingTable || $filters->kidsArea || $filters->age !== null || $filters->membership !== null || $filters->venue !== null || $filters->municipality !== null || $filters->zone !== null || $filters->access !== [] || $filters->from !== null || $filters->to !== null) open @endif class="bg-canvas border-2 border-line">
+    <summary class="min-h-12 cursor-pointer list-none px-4 py-3 text-base font-semibold text-ink">
+        {{ __('filters.advanced') }} <span aria-hidden="true">⌄</span>
+        @if ($active > 0)
+            <span class="text-ink-subtle">{{ trans_choice('filters.active', $active, ['count' => $active]) }}</span>
+        @endif
+    </summary>
+
+    <form method="GET" action="{{ $destination }}" class="flex flex-col gap-4 border-t border-line px-4 py-4">
+        @if ($defaultToday)
+            <input type="hidden" name="all_dates" value="1">
+        @endif
+        @foreach (['category' => implode(',', $filters->categories), 'lat' => $filters->lat, 'lng' => $filters->lng, 'q' => $filters->q, 'budget' => $filters->budget, 'discovery' => $filters->discovery ? '1' : null] as $hidden => $value)
+            @if (filled($value))
+                <input type="hidden" name="{{ $hidden }}" value="{{ $value }}">
+            @endif
+        @endforeach
+
+        <div data-advanced-filter-fields class="grid min-w-0 grid-cols-1 gap-5 [&>div]:min-w-0 [&_label]:text-base [&_select]:min-w-0 [&_select]:text-base [&_input]:min-w-0 [&_input]:text-base">
+            <x-field
+                name="date"
+                :label="__('filters.date.label')"
+                :options="$dateOptions"
+                :placeholder-option="__('filters.date.any')"
+                :value="$filters->preset?->value ?? $filters->date?->format('Y-m-d')"
+            />
+
+            <x-field type="date" name="from" :label="__('filters.date.from')" :value="$filters->from?->format('Y-m-d')" />
+            <x-field type="date" name="to" :label="__('filters.date.to')" :value="$filters->to?->format('Y-m-d')" />
+
+            <x-field
+                name="tag"
+                :searchable="true"
+                :label="__('filters.tag.label')"
+                :options="$tagOptions"
+                :placeholder-option="__('filters.tag.any')"
+                :value="$filters->tags[0] ?? null"
+            />
+
+            <x-field
+                name="price"
+                :label="__('filters.price.label')"
+                :options="$priceOptions"
+                :placeholder-option="__('filters.price.any')"
+                :value="$filters->price?->value"
+            />
+
+            <x-field
+                name="time"
+                :label="__('filters.time_of_day.label')"
+                :options="$timeOptions"
+                :placeholder-option="__('filters.time_of_day.any')"
+                :value="$filters->time?->value"
+            />
+
+            <x-field
+                name="municipality"
+                :searchable="true"
+                :label="__('filters.place.municipality')"
+                :options="$municipalityOptions"
+                :placeholder-option="__('filters.place.any')"
+                :value="$filters->municipality"
+            />
+
+            @if ($zoneOptions !== [])
+                <x-field
+                    name="zone"
+                    :searchable="true"
+                    :label="__('filters.place.zone')"
+                    :options="$zoneOptions"
+                    :placeholder-option="__('filters.place.any_zone')"
+                    :value="$filters->zone"
+                />
+            @endif
+
+            <x-field
+                name="venue"
+                :searchable="true"
+                :label="__('filters.place.venue')"
+                :options="$venueOptions"
+                :placeholder-option="__('filters.place.any')"
+                :value="$filters->venue"
+            />
+
+            {{-- Le stesse classi delle altre caselle del pannello, più
+                 sotto. Scritte nude, restavano fuori squadra rispetto a
+                 tutto ciò su cui sono incolonnate: un `input[type=checkbox]`
+                 senza reset porta il margine di default del browser — su
+                 WebKit `3px 3px 3px 4px` — e sono quei quattro pixel a
+                 sinistra a spostare la riga. Non è un problema di tema:
+                 succedeva in entrambi. --}}
+            @foreach (['stroller' => $filters->stroller, 'changing_table' => $filters->changingTable, 'kids_area' => $filters->kidsArea] as $field => $enabled)
+                <label class="flex min-h-12 cursor-pointer items-center gap-3 text-base text-ink">
+                    <input
+                        type="checkbox"
+                        name="{{ $field }}"
+                        value="1"
+                        @checked($enabled)
+                        class="size-5 shrink-0 rounded border-line text-brand focus:ring-focus"
+                    >
+                    {{ __('family.'.$field) }}
+                </label>
+            @endforeach
+            <x-field name="age" :label="__('family.title')" :options="\App\Enums\AgeGroup::options()" :placeholder-option="__('family.any')" :value="$filters->age?->value" />
+            <x-field name="membership" :label="__('filters.membership.label')" :options="\App\Enums\MembershipRequirement::options()" :placeholder-option="__('filters.membership.any')" :value="$filters->membership?->value" />
+
+            <x-field
+                name="sort"
+                :label="__('filters.sort.label')"
+                :options="array_filter(EventSort::options(), fn ($key) => $key !== EventSort::Distance->value || $filters->hasPosition(), ARRAY_FILTER_USE_KEY)"
+                :value="$filters->sort?->value ?? EventSort::Time->value"
+            />
+
+            @if ($filters->hasPosition())
+                <x-field
+                    name="radius"
+                    :label="__('filters.distance.label')"
+                    :options="collect(config('eventi.distance_options'))->filter(fn (int $km): bool => $filters->radius === (float) $km || $available('radius', (string) $km))->mapWithKeys(fn (int $km): array => [$km => __('filters.distance.radius', ['km' => $km])])->all()"
+                    :value="$filters->radius === null ? null : (string) (int) $filters->radius"
+                />
+            @endif
+        </div>
+
+        <fieldset class="flex min-w-0 flex-col gap-2">
+            <legend class="mb-2 text-sm font-semibold text-ink">{{ __('filters.features.label') }}</legend>
+
+            @foreach (['outdoor' => __('filters.features.outdoor'), 'accessible' => __('filters.features.accessible'), 'family' => __('filters.features.family')] as $flag => $label)
+                @continue(! $filters->{$flag} && ! $available('features', $flag))
+                <label class="flex min-h-12 cursor-pointer items-center gap-3 text-base text-ink">
+                    <input
+                        type="checkbox"
+                        name="{{ $flag }}"
+                        value="1"
+                        @checked($filters->{$flag})
+                        class="size-5 shrink-0 rounded border-line text-brand focus:ring-focus"
+                    >
+                    {{ $label }}
+                </label>
+            @endforeach
+        </fieldset>
+
+        {{-- Le voci di accessibilità: esistono come filtro soltanto
+             perché `venues.accessibility` è strutturato. Sono in AND, e
+             il modulo lo dice mostrandole come caselle e non come
+             alternative. --}}
+        <fieldset class="flex min-w-0 flex-col gap-2">
+            <legend class="mb-2 text-sm font-semibold text-ink">{{ __('filters.accessibility.label') }}</legend>
+
+            @foreach (AccessibilityFeature::cases() as $feature)
+                @continue(! $filters->hasAccess($feature->value) && ! $available('access', $feature->value))
+                <label class="flex min-h-12 cursor-pointer items-center gap-3 text-base text-ink">
+                    <input
+                        type="checkbox"
+                        name="access[]"
+                        value="{{ $feature->value }}"
+                        @checked($filters->hasAccess($feature->value))
+                        class="size-5 shrink-0 rounded border-line text-brand focus:ring-focus"
+                    >
+                    {{ $feature->label() }}
+                </label>
+            @endforeach
+        </fieldset>
+
+        <div class="flex flex-wrap items-center gap-3">
+            <button
+                type="submit"
+                class="min-h-12 bg-brand px-4 py-2.5 font-display text-sm leading-tight font-extrabold tracking-wide text-on-brand uppercase transition hover:bg-brand-strong"
+            >
+                {{ __('filters.apply') }}
+            </button>
+
+            @if ($active > 0)
+                <a href="{{ $destination }}" class="text-sm font-semibold text-ink-muted underline hover:text-ink">
+                    {{ __('filters.reset') }}
+                </a>
+            @endif
+
+            @if ($total !== null)
+                <span class="ml-auto text-sm text-ink-subtle">{{ trans_choice('filters.results', $total, ['count' => $total]) }}</span>
+            @endif
+        </div>
+    </form>
+</details>

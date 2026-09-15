@@ -47,6 +47,55 @@ function boundingBox(map) {
         .map((value) => value.toFixed(5)).join(",");
 }
 
+const CONFRONTI_NUMERICI = new Set(["<", "<=", ">", ">="]);
+
+/**
+ * Mette al riparo i confronti numerici dello stile su proprietà che possono
+ * non esserci.
+ *
+ * **Il difetto a monte.** Lo stile confronta così:
+ *
+ *     ["<=", ["get", "ref_length"], 6]
+ *
+ * Su una geometria che quella proprietà non ce l'ha, `get` restituisce `null`,
+ * `<=` si aspetta un numero, e MapLibre scrive in console
+ * «Expected value to be of type number, but found null instead. Falling back to
+ * false» — una riga per ogni riquadro di mappa scaricato, quindi decine per
+ * ogni spostamento. Non rompe niente: il ripiego è `false`, ed è anche il
+ * comportamento giusto (senza la sigla di una strada non c'è scudo da
+ * disegnare). Solo che riempie la console e nasconde gli errori veri.
+ *
+ * **La riparazione** aggiunge la condizione che manca, `["has", "ref_length"]`:
+ * se la proprietà non c'è il confronto non viene nemmeno tentato e il risultato
+ * complessivo resta `false`. Identico a prima, in silenzio.
+ *
+ * Si ripara **lo schema, non i tre casi che fanno rumore oggi**: gli stessi
+ * confronti scoperti sono sei nello stile chiaro e quattro nello scuro, e
+ * quali facciano rumore dipende da quali proprietà i riquadri contengono
+ * davvero — cioè da quale città si sta guardando.
+ *
+ * I filtri in forma vecchia (`["<=", "ref_length", 6]`, con il nome della
+ * proprietà al posto di un `get`) non vengono toccati: là MapLibre applica
+ * regole proprie e non segnala nulla.
+ */
+function proteggiConfronti(nodo) {
+    if (!Array.isArray(nodo)) return nodo;
+
+    const protetto = nodo.map(proteggiConfronti);
+
+    if (protetto.length === 3 && CONFRONTI_NUMERICI.has(protetto[0])) {
+        const proprieta = [protetto[1], protetto[2]]
+            .filter(lato => Array.isArray(lato) && lato.length === 2 && lato[0] === "get" && typeof lato[1] === "string")
+            .map(lato => lato[1]);
+
+        if (proprieta.length > 0) {
+            return ["all", ...proprieta.map(nome => ["has", nome]), protetto];
+        }
+    }
+
+    return protetto;
+}
+
 async function vectorStyle(url) {
     const response = await fetch(url, { headers: { Accept: "application/json" } });
     if (!response.ok) throw new Error(`stile mappa non disponibile (${response.status})`);
@@ -58,6 +107,10 @@ async function vectorStyle(url) {
     for (const layer of style.layers ?? []) {
         if (layer.type === "symbol" && layer.layout?.["text-field"] !== undefined) {
             layer.layout["text-font"] = ["Noto Sans Regular"];
+        }
+
+        if (layer.filter !== undefined) {
+            layer.filter = proteggiConfronti(layer.filter);
         }
     }
 

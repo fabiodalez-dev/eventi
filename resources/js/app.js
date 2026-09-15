@@ -10,6 +10,7 @@ import { navigationMovement } from './scroll-navigation';
 import { peekTabs } from './peek-tabs';
 import { tonightCounts } from './tonight-counts';
 import { eventFilters } from './event-filters';
+import { savedPanel } from './saved-panel';
 
 import { sponsorshipContext } from './sponsorship-context';
 
@@ -905,6 +906,73 @@ function dialoghi() {
     }
 }
 
+/**
+ * Quanto spazio si prendono, in fondo alla finestra, i comandi fissi.
+ *
+ * Serve a una cosa sola: far salire la fascia del consenso sopra di loro. È un
+ * avviso che DEVE restare leggibile e cliccabile, e finiva sotto ai comandi
+ * della procedura «stasera» — dove chi arriva sta scegliendo, quindi nemmeno
+ * si accorge di averlo coperto.
+ *
+ * Si misura invece di sommare altezze note: `innerHeight - top` dice lo spazio
+ * davvero occupato dal bordo inferiore, comprese le traslazioni e i margini di
+ * chi galleggia. Un elenco di altezze si scollerebbe dalla realtà al primo
+ * comando nuovo; questo no.
+ *
+ * Il valore lo consuma il solo tema chiaro: nello scuro la fascia resta dove
+ * il markup la mette, e questa funzione non cambia nulla di quello che si vede.
+ */
+function misuraMobilioInFondo() {
+    const candidati = document.querySelectorAll('[data-mobile-navigation], [data-wizard-actions]');
+    let occupato = 0;
+
+    for (const elemento of candidati) {
+        const stile = getComputedStyle(elemento);
+
+        if (stile.position !== 'fixed' || stile.display === 'none' || stile.visibility === 'hidden' || elemento.inert) {
+            continue;
+        }
+
+        const rettangolo = elemento.getBoundingClientRect();
+
+        /* Un rettangolo azzerato (elemento nascosto) darebbe l'intera finestra:
+           `top` vale zero e la sottrazione restituirebbe `innerHeight`. */
+        if (rettangolo.height <= 0) {
+            continue;
+        }
+
+        occupato = Math.max(occupato, window.innerHeight - rettangolo.top);
+    }
+
+    document.documentElement.style.setProperty(
+        '--bottom-furniture',
+        occupato > 0 ? `${Math.round(occupato) + 12}px` : '0px',
+    );
+
+    /*
+     * Quanto copre la fascia del consenso, misurata a parte.
+     *
+     * Serve alla colonna dei filtri, che è incollata alla testata e alta quanto
+     * la finestra: il suo fondo — dove stanno il conteggio dei risultati e i
+     * filtri avanzati — finiva DIETRO alla fascia. Chi guarda vede una colonna
+     * che si interrompe e non ha modo di sapere che sotto continua, perché
+     * anche la barra di scorrimento interna è là sotto.
+     */
+    const consenso = document.querySelector('[data-consent-banner]');
+    let copertura = 0;
+
+    if (consenso) {
+        const stile = getComputedStyle(consenso);
+        const rettangolo = consenso.getBoundingClientRect();
+
+        if (stile.position === 'fixed' && stile.display !== 'none' && rettangolo.height > 0) {
+            copertura = Math.max(0, window.innerHeight - rettangolo.top);
+        }
+    }
+
+    document.documentElement.style.setProperty('--consent-space', `${Math.round(copertura)}px`);
+}
+
 /** Fa entrare le locandine in bianco e nero e restituisce il colore soltanto
  * quando il file è davvero pronto, evitando che la transizione finisca mentre
  * il browser sta ancora scaricando l'immagine. */
@@ -1072,6 +1140,23 @@ function start() {
     });
     peekTabs();
     tonightCounts();
+    /* `localSaves` è la sola lettura del `localStorage` di questo sito: il
+       pannello la riceve invece di rifarne una propria, che al primo cambio di
+       formato direbbe una cosa diversa dal segnalibro. */
+    savedPanel({ dateLocali: localSaves, collegato: accountSettings().authenticated });
+    misuraMobilioInFondo();
+    window.addEventListener('resize', misuraMobilioInFondo, { passive: true });
+    /*
+     * I comandi in fondo si spostano con una transizione da 200ms. Misurarli
+     * nel fotogramma successivo li coglie a metà strada: il valore che ne esce
+     * è di una posizione che non esiste più, e nessuno torna a correggerlo.
+     * Si rimisura quando la transizione è finita davvero, e quando l'elemento
+     * cambia dimensione (l'etichetta del pulsante va a capo su schermo stretto).
+     */
+    for (const mobile of document.querySelectorAll('[data-mobile-navigation], [data-wizard-actions], [data-consent-banner]')) {
+        mobile.addEventListener('transitionend', misuraMobilioInFondo, { passive: true });
+        new ResizeObserver(misuraMobilioInFondo).observe(mobile);
+    }
     const navigation = document.querySelector('[data-scroll-navigation]');
     if (navigation) {
         let previous = Math.max(0, window.scrollY);
@@ -1079,7 +1164,31 @@ function start() {
         const alwaysVisible = navigation.hasAttribute('data-navigation-always') || document.documentElement.scrollHeight <= window.innerHeight + 96;
         let navigationVisible = false;
         const updateNavigationSpace = () => {
-            document.documentElement.style.setProperty('--visible-navigation-height', `${navigationVisible ? navigation.getBoundingClientRect().height : 0}px`);
+            /*
+             * Quanto spazio si prende la barra dal fondo della finestra, non
+             * quanto è alta.
+             *
+             * Sono la stessa cosa finché la barra è incollata al bordo, ed è
+             * per questo che l'altezza bastava. Nel tema chiaro la barra
+             * galleggia a dodici pixel dal fondo: l'altezza dice 68px, lo
+             * spazio occupato è 80px, e tutto ciò che si solleva di quella
+             * misura — la fascia del consenso, i comandi in fondo alla
+             * procedura «stasera» — resta dodici pixel troppo in basso, cioè
+             * sotto ai comandi.
+             *
+             * `innerHeight - top` è la misura giusta in entrambi i casi: con
+             * la barra a filo restituisce esattamente l'altezza di prima.
+             *
+             * L'altezza serve ancora per un controllo: dove la barra è
+             * nascosta (`display: none` da tablet in su) il rettangolo è
+             * azzerato e `top` vale zero, che darebbe l'intera finestra.
+             */
+            const rettangolo = navigation.getBoundingClientRect();
+            const spazio = navigationVisible && rettangolo.height > 0
+                ? Math.max(0, window.innerHeight - rettangolo.top)
+                : 0;
+            document.documentElement.style.setProperty('--visible-navigation-height', `${spazio}px`);
+            requestAnimationFrame(misuraMobilioInFondo);
         };
         const show = visible => {
             navigationVisible = visible;

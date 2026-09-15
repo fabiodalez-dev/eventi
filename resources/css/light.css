@@ -1,0 +1,1580 @@
+/* ---------------------------------------------------------------------------
+   Tema chiaro — restyling «carta e terracotta», secondo impianto
+
+   QUESTO FILE NON TOCCA IL TEMA SCURO. Ogni regola qui dentro porta il
+   prefisso `:root[data-theme="light"]`, che è la stessa condizione con cui il
+   sito decide di essere chiaro. Lo scuro non è preservato per attenzione: è
+   preservato per costruzione, perché nessun selettore di questo file può
+   applicarsi a un documento che non dichiara quel tema. Chi aggiunge una
+   regola qui senza quel prefisso rompe la garanzia, anche se «sembra solo una
+   cosa del chiaro».
+
+   Sta DOPO `appearance.css` di proposito: le due hanno spesso la stessa
+   specificità e in quel caso vince chi arriva dopo. Questo file è il secondo
+   strato, non un sostituto — `appearance.css` continua a fornire i token, le
+   correzioni della mappa, le anteprime del selettore di tema.
+
+   **Da dove viene il disegno.** Dal prototipo «inCittà — tema chiaro»: una
+   navigazione a pillola con la voce attiva piena, una barra di comandi
+   galleggiante in basso sul telefono, card con angoli tondi e locandina 3/4 su
+   fondo appena più chiaro della pagina, titoli di sezione numerati e
+   ridimensionati, e l'apertura divisa fra testo e locandina a filo di finestra.
+
+   **Cosa il prototipo non aveva e qui resta.** Il nastro dei conteggi, la
+   pubblicità dichiarata, i filtri del catalogo, la mappa, la sezione «in corso
+   adesso», il salvataggio, il selettore del tema, il menu dell'account. Il
+   prototipo era un disegno di sei schermate; questo è un sito. Il disegno si
+   applica a ciò che c'è, non si toglie ciò che il disegno non aveva.
+--------------------------------------------------------------------------- */
+
+:root[data-theme="light"] {
+    /* I valori esatti del prototipo, al posto delle approssimazioni OKLCH.
+       La differenza a schermo è di un paio di unità, ma questi sono i numeri
+       che il disegno dichiara e da cui derivano tutti gli accostamenti. */
+    --canvas: #faf9f6;
+    --canvas-deep: #f1f0ec;
+    --surface: #f1f0ec;
+    --surface-raised: #fdfcf9;
+    --surface-sunken: #eae9e3;
+    --line: #deddd7;
+    --line-strong: #c5c3bb;
+    --ink: #262624;
+    --ink-muted: #686863;
+    --ink-subtle: #85847e;
+    --accent-soft: #f7e9e1;
+    --brand-soft: #f7e9e1;
+    --light-hover: #f4f3ef;
+
+    /* Un solo raggio per i comandi, uno per i contenitori. Il prototipo usa
+       10px sui pulsanti e 12-18px sui riquadri: due valori, non otto. */
+    --radius-control: 10px;
+    --radius-panel: 18px;
+    --radius-thumb: 12px;
+}
+
+/* I controlli disegnati dal browser — caselle, scelte singole, cursori, barre
+   di avanzamento — prendono la terracotta invece del blu di sistema. Una
+   casella spuntata blu in mezzo a una pagina terracotta non è una svista
+   piccola: è l'unico punto della pagina che non appartiene al sito. */
+:root[data-theme="light"] :is(
+    input[type="checkbox"],
+    input[type="radio"],
+    input[type="range"],
+    progress
+) {
+    accent-color: var(--brand);
+}
+
+/* ---------------------------------------------------------------------------
+   Niente bordi
+
+   Nel tema scuro il bordo è il sistema: divisori pieni da 2px organizzano la
+   pagina al posto di ombre e angoli tondi, e senza quelli il tabellone non
+   starebbe insieme. Il prototipo chiaro lavora al contrario — separa con le
+   superfici e con lo spazio — e i bordi ereditati, assottigliati a 1px,
+   restavano addosso a riquadri che hanno già un fondo proprio: una riga grigia
+   attorno a una cosa che si distingue già da sola.
+
+   Si tolgono da ciò che è **decorazione**. Restano dove il bordo è l'elemento:
+   i campi di un modulo (un campo senza contorno non si riconosce come campo),
+   i comandi secondari che non hanno riempimento, il filo sotto la testata e
+   quello sopra al piè di pagina — che il prototipo disegna — e il contorno del
+   fuoco, che è come si naviga da tastiera.
+--------------------------------------------------------------------------- */
+
+:root[data-theme="light"] :is(
+    .event-card,
+    .venue-card,
+    .saved-dialog,
+    .saved-row,
+    [data-saved-panel] > div,
+    [data-save-prompt],
+    [data-consent-banner],
+    [data-catalog-filters],
+    [data-filter-panel] > section,
+    [data-filter-panel] > div,
+    details[data-filter-key],
+    .category-grid > a,
+    .home-tonight,
+    .home-cta,
+    [data-calendar-banner]
+) {
+    border: 0;
+}
+
+/* Le pastiglie e le etichette hanno già un fondo: il contorno le raddoppia. */
+:root[data-theme="light"] :is(.ui-tag, .status-badge, [data-filter-chip]) {
+    border: 0;
+}
+
+/* Le pastiglie dei filtri stanno su una superficie più scura della pagina: a
+   distinguerle basta il proprio fondo chiaro, e il contorno diventa una riga
+   in più attorno a qualcosa che già si stacca. Quella accesa si riconosce dal
+   pieno, come la voce attiva del menu. */
+:root[data-theme="light"] [data-filter-panel] a.ui-action {
+    border: 0;
+    border-radius: 999px;
+    background: var(--canvas);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+    padding: 9px 14px;
+}
+
+/* Nello scuro i gruppi di scelte si separano con il trucco del fondo: la
+   griglia prende il colore del divisore e le celle quello della pagina, così lo
+   spazio fra l'una e l'altra è la riga. Qui le celle sono pastiglie staccate, e
+   quel fondo resta un rettangolo grigio sotto di loro che non separa più
+   niente. */
+:root[data-theme="light"] [data-filter-panel] [class~="bg-line"] {
+    background: transparent;
+    padding: 0;
+    gap: 6px;
+}
+
+:root[data-theme="light"] [data-filter-panel] a.ui-action:hover {
+    background: var(--surface-sunken);
+    color: var(--ink);
+}
+
+:root[data-theme="light"] [data-filter-panel] a.ui-action[aria-current="true"] {
+    background: var(--ink);
+    color: var(--ink-inverted);
+}
+
+/* Un comando che ha un riempimento non ha bisogno di un bordo; uno che non ce
+   l'ha sì, altrimenti smette di sembrare un comando. Il secondo caso è
+   l'eccezione dichiarata, non una dimenticanza. */
+:root[data-theme="light"] .ui-action:not(:where([class*="bg-canvas"], [class*="border-2"])) {
+    border: 0;
+}
+
+/* I riquadri che prima erano delimitati dal bordo ora si staccano con la
+   superficie e, dove galleggiano, con un'ombra appena percettibile. */
+:root[data-theme="light"] :is(.saved-dialog, [data-save-prompt], [data-consent-banner]) {
+    border-radius: var(--radius-panel);
+    background: var(--surface-raised);
+    box-shadow: 0 24px 60px rgb(38 38 36 / 18%);
+}
+
+:root[data-theme="light"] :is(.saved-dialog, [data-save-prompt]) > div {
+    border: 0;
+}
+
+/* Le righe del pannello: separate dallo spazio e dal fondo al passaggio, non
+   da una riga grigia. */
+:root[data-theme="light"] .saved-row {
+    border-radius: 14px;
+    padding: 8px;
+    transition: background-color 180ms ease;
+}
+
+:root[data-theme="light"] .saved-row:hover {
+    background: var(--surface);
+}
+
+:root[data-theme="light"] .saved-row__thumb {
+    border-radius: 10px;
+}
+
+:root[data-theme="light"] .saved-dialog [data-saved-dialog-close] {
+    border: 0;
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--ink-muted);
+}
+
+:root[data-theme="light"] .saved-dialog [data-saved-dialog-close]:hover {
+    background: var(--surface-sunken);
+    color: var(--ink);
+}
+
+:root[data-theme="light"] .saved-opener {
+    border: 0;
+    border-radius: var(--radius-control);
+    background: var(--surface);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: 0;
+}
+
+:root[data-theme="light"] .saved-opener:hover {
+    background: var(--accent-soft);
+    color: var(--brand-strong);
+}
+
+/*
+ * I riquadri della scheda di un evento seguono la stessa regola del resto.
+ *
+ * Prezzo, elenco delle date, meteo, informazioni pratiche erano rimasti
+ * bordati mentre home e catalogo avevano gia' smesso: un tema che cambia
+ * regola da una pagina all'altra non e' un tema, e' una somma di decisioni.
+ *
+ * Il bordo non si toglie e basta: quei riquadri stavano sul fondo della
+ * pagina, quindi senza contorno sparirebbero. Prendono la superficie
+ * incassata, che e' come si stacca un riquadro nel chiaro.
+ */
+:root[data-theme="light"] .event-detail-body :is(section, .event-date-row) {
+    border: 0;
+    border-radius: 16px;
+    background: var(--surface);
+}
+
+:root[data-theme="light"] .event-detail-body .event-utility-action {
+    border: 0;
+    background: var(--canvas);
+}
+
+:root[data-theme="light"] .event-detail-body .event-utility-action:hover {
+    background: var(--surface-sunken);
+}
+
+/* I riquadri informativi del catalogo — il pannello dei filtri e «vicino a me»
+   — tornano a essere superfici, non cornici.
+
+   **Il fondo va sempre con il proprio margine interno.** Finché c'era il bordo,
+   lo spazio attorno al contenuto lo dava il contenitore esterno e nessuno se ne
+   accorgeva; togliendo il bordo e mettendo un fondo, quel fondo diventa un
+   riquadro vero e il contenuto si ritrova appiccicato ai suoi lati. Un colore
+   di sfondo senza padding non è mezzo lavoro: è un riquadro sbagliato. */
+:root[data-theme="light"] #filtri > details > div > section {
+    border-radius: 16px;
+    background: var(--surface);
+    padding: clamp(14px, 1.4vw, 18px);
+}
+
+/* ---------------------------------------------------------------------------
+   Testata
+--------------------------------------------------------------------------- */
+
+/* Tinta piena, non vetro smerigliato. Il prototipo la vuole traslucida, e in
+   un mockup con tre riquadri funziona; su questo sito sotto la testata scorrono
+   locandine a tutta larghezza, e attraverso l'86% di opacità si vedono passare
+   — il nome del sito finisce sopra una fotografia. Una barra fissa deve dare
+   un fondo su cui leggere, non un velo. */
+:root[data-theme="light"] .site-header {
+    background: var(--canvas);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border-bottom: 1px solid var(--line);
+}
+
+:root[data-theme="light"] .site-brand-name {
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+}
+
+/* Il punto fermo dopo il nome: è il marchio del prototipo, e costa un
+   pseudo-elemento invece di una modifica al markup che lo scuro pagherebbe. */
+:root[data-theme="light"] .site-brand-name::after {
+    content: ".";
+    color: var(--brand);
+}
+
+:root[data-theme="light"] .site-brand-city {
+    font-family: var(--font-sans);
+    font-size: 0.625rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    color: var(--ink-muted);
+}
+
+/* La navigazione a pillola. La voce attiva è piena, non sottolineata: su un
+   fondo chiaro una sottolineatura di 2px è un dettaglio, un pieno è una
+   posizione. Niente indicatore che scivola — fra una voce e l'altra qui c'è un
+   caricamento di pagina, quindi non ci sarebbe nulla da far scivolare. */
+:root[data-theme="light"] .site-header nav[aria-label] {
+    align-items: center;
+    gap: 2px;
+    padding: 3px;
+    border-radius: 999px;
+    background: var(--surface);
+}
+
+:root[data-theme="light"] .site-header nav[aria-label] a {
+    margin-right: 0;
+    padding: 7px 15px;
+    border-radius: 999px;
+    font-family: var(--font-sans);
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--ink-muted);
+    transition: background-color 180ms ease, color 180ms ease;
+}
+
+:root[data-theme="light"] .site-header nav[aria-label] a:hover {
+    background: var(--surface-raised);
+    color: var(--ink);
+}
+
+:root[data-theme="light"] .site-header nav[aria-label] a[aria-current="page"] {
+    background: var(--ink);
+    color: var(--ink-inverted);
+}
+
+/* La barretta dell'attivo appartiene allo scuro: qui la posizione la dice il
+   pieno, e lasciarla farebbe due segnali per la stessa cosa. */
+:root[data-theme="light"] .site-header nav[aria-label] a[aria-current="page"] > span[aria-hidden="true"] {
+    display: none;
+}
+
+/* La ricerca resta un campo vero, con i suoi suggerimenti: nel prototipo era
+   un'icona che apriva una schermata intera, ma quell'icona non sa cercare. */
+/*
+ * NIENTE `overflow: hidden` QUI.
+ *
+ * Serviva a far seguire al pulsante «Cerca» la curva della pillola, e
+ * funzionava. Però la tendina dei suggerimenti in diretta è un elemento
+ * assoluto DENTRO questo modulo (`top: 100%`): ritagliare il contenitore la
+ * cancella per intero. La ricerca continuava a funzionare — il modulo si
+ * invia, la pagina dei risultati arriva — ma i suggerimenti mentre si scrive
+ * sparivano, e sparivano in silenzio: nessun errore, nessuna console, solo una
+ * funzione che non c'è più.
+ *
+ * La curva del pulsante si ottiene dando al pulsante il proprio raggio.
+ */
+:root[data-theme="light"] .site-header [role="search"] {
+    height: 38px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--surface-raised);
+    padding-left: 14px;
+}
+
+:root[data-theme="light"] .site-header [role="search"]:focus-within {
+    border-color: var(--brand);
+}
+
+:root[data-theme="light"] .site-header [role="search"] > input {
+    border-radius: 0;
+    font-size: 13px;
+}
+
+:root[data-theme="light"] .site-header [role="search"] > button {
+    border-radius: 0;
+    background: var(--brand);
+    color: var(--on-brand);
+    font-family: var(--font-sans);
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: none;
+    padding-inline: 16px;
+}
+
+:root[data-theme="light"] .site-header [role="search"] > button:hover {
+    background: var(--brand-strong);
+}
+
+:root[data-theme="light"] .site-header [data-search-suggestions] {
+    left: 0;
+    right: 0;
+    margin-top: 8px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: var(--surface-raised);
+    box-shadow: 0 18px 40px rgb(38 38 36 / 12%);
+    overflow: hidden;
+}
+
+/* I comandi a destra: stessa altezza, stesso raggio, nessuna maiuscoletta. */
+:root[data-theme="light"] .site-header :is([data-account-menu] > summary, [data-account-menu] + a, .appearance-toggle) {
+    border-radius: var(--radius-control);
+    font-family: var(--font-sans);
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+:root[data-theme="light"] .site-header [data-account-menu] > summary,
+:root[data-theme="light"] .site-header > div > a[href*="accedi"],
+:root[data-theme="light"] .site-header > div > a.ui-action {
+    border-width: 1px;
+    border-color: var(--line);
+    background: var(--surface-raised);
+    font-size: 12.5px;
+}
+
+/* «Aggiungi evento» è l'unica azione piena della testata. */
+:root[data-theme="light"] .site-header a.ui-action[href*="propon"],
+:root[data-theme="light"] .site-header a.ui-action.bg-accent {
+    background: var(--brand);
+    color: var(--on-brand);
+    border: 0;
+    border-radius: var(--radius-control);
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+    padding-inline: 16px;
+}
+
+:root[data-theme="light"] .site-header a.ui-action.bg-accent:hover {
+    background: var(--brand-strong);
+}
+
+:root[data-theme="light"] .site-header [data-account-menu] [role="menu"] {
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: var(--surface-raised);
+    box-shadow: 0 18px 40px rgb(38 38 36 / 12%);
+    overflow: hidden;
+    padding: 4px;
+}
+
+:root[data-theme="light"] .site-header [data-account-menu] [role="menuitem"] {
+    border: 0;
+    border-radius: 8px;
+    font-family: var(--font-sans);
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+:root[data-theme="light"] .site-header [data-account-menu] [role="menuitem"]:hover {
+    background: var(--surface);
+    color: var(--ink);
+}
+
+:root[data-theme="light"] .site-header [data-account-menu] form > button {
+    border-radius: 8px;
+    font-family: var(--font-sans);
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+/* Il nastro dei conteggi: nel chiaro non scorre e non è una fascia colorata —
+   è una riga di contesto sotto la navigazione. */
+:root[data-theme="light"] [data-ticker] {
+    border-top: 1px solid var(--line);
+    background: var(--surface);
+}
+
+:root[data-theme="light"] [data-ticker] span {
+    font-family: var(--font-sans);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: none;
+    color: var(--ink-muted);
+}
+
+/* ---------------------------------------------------------------------------
+   Barra dei comandi in basso (telefono)
+
+   Nel prototipo galleggia sopra il contenuto invece di chiudere la pagina con
+   una riga: è quello che la fa leggere come un comando e non come un piede.
+--------------------------------------------------------------------------- */
+
+:root[data-theme="light"] [data-mobile-navigation] {
+    left: 12px;
+    right: 12px;
+    bottom: calc(12px + env(safe-area-inset-bottom));
+    padding: 7px;
+    border: 0;
+    border-radius: 20px;
+    background: rgb(38 38 36 / 95%);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 14px 34px rgb(38 38 36 / 26%);
+}
+
+:root[data-theme="light"] [data-mobile-navigation] a {
+    min-height: 54px;
+    gap: 4px;
+    border-radius: 14px;
+    font-family: var(--font-sans);
+    font-size: 9.5px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    color: #c9c7c1;
+    transition: background-color 180ms ease, color 180ms ease;
+}
+
+:root[data-theme="light"] [data-mobile-navigation] a svg {
+    width: 19px;
+    height: 19px;
+}
+
+:root[data-theme="light"] [data-mobile-navigation] a:hover {
+    color: var(--ink-inverted);
+}
+
+:root[data-theme="light"] [data-mobile-navigation] a[aria-current="page"] {
+    background: var(--brand);
+    color: var(--ink-inverted);
+    font-weight: 700;
+}
+
+/* Lo spazio che la barra si prende, dichiarato UNA volta.
+
+   **Perché è una variabile e non un numero ripetuto.** La barra prima era
+   incollata al fondo, alta 4rem esatti, e quel 4rem sta scritto a mano in due
+   punti del markup: la spaziatura inferiore di `body` e la posizione della
+   fascia del consenso. Facendola galleggiare l'altezza occupata cambia — 4rem
+   più i dodici pixel di margine sotto e sopra — e ogni punto che quel numero
+   se l'era copiato finisce sotto i comandi. È successo davvero con la fascia
+   del consenso, che è esattamente la cosa che non deve finire coperta. */
+:root[data-theme="light"] {
+    --dock-space: calc(5.5rem + env(safe-area-inset-bottom));
+}
+
+@media (max-width: 1023px) {
+    :root[data-theme="light"] body {
+        padding-bottom: var(--dock-space);
+    }
+
+    /* Sopra a tutto il mobilio fisso, non solo sopra la barra dei comandi:
+       `--bottom-furniture` lo misura `app.js` sugli elementi che ci sono
+       davvero in questa pagina, compresi i comandi della procedura «stasera».
+       Il valore di riserva vale finché lo script non ha misurato. */
+    :root[data-theme="light"] [data-consent-banner] {
+        bottom: max(var(--dock-space), var(--bottom-furniture, 0px));
+        left: 12px;
+        right: 12px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius-panel);
+        overflow: hidden;
+    }
+}
+
+:root[data-theme="light"] [data-consent-banner] {
+    background: var(--surface-raised);
+}
+
+:root[data-theme="light"] [data-consent-banner] button {
+    border-radius: var(--radius-control);
+    font-family: var(--font-sans);
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+/* «Rifiuta» e «Accetta» avevano lo stesso riempimento pieno: due scelte
+   opposte non possono avere lo stesso rilievo. */
+:root[data-theme="light"] [data-consent-banner] button[value="reject_all"] {
+    background: var(--canvas);
+    color: var(--ink);
+    border: 1px solid var(--line-strong);
+}
+
+:root[data-theme="light"] [data-consent-banner] button[value="reject_all"]:hover {
+    background: var(--surface-sunken);
+    color: var(--ink);
+}
+
+/* ---------------------------------------------------------------------------
+   Card di un'occorrenza
+
+   Angoli tondi, fondo appena più chiaro della pagina, locandina 3/4 con la
+   categoria sopra. Il bordo da 2px che nello scuro costruisce il tabellone
+   qui sparisce: la separazione la fa lo spazio.
+--------------------------------------------------------------------------- */
+
+:root[data-theme="light"] .event-grid {
+    gap: clamp(12px, 1.5vw, 22px);
+}
+
+/*
+ * Il catalogo tiene il proprio passo stretto.
+ *
+ * Quel `clamp` sopra vale per le griglie di card verticali, dove lo spazio
+ * fra un riquadro e l'altro cresce con la finestra. Nel catalogo le card sono
+ * righe orizzontali dentro una colonna che ha gia' i suoi margini: `app.css`
+ * ci mette dodici pixel fissi, e la mia regola generica — piu' specifica per
+ * un pelo — glieli portava a diciannove su schermo largo, allentando un elenco
+ * che deve restare compatto.
+ *
+ * Una regola generica non e' innocua solo perche' e' generica: scavalca anche
+ * le eccezioni che qualcuno aveva gia' deciso.
+ */
+@media (min-width: 1024px) {
+    :root[data-theme="light"] [data-event-browser] .event-grid {
+        gap: 12px;
+        padding: 12px;
+    }
+}
+
+:root[data-theme="light"] .event-card,
+:root[data-theme="light"] .event-card:has([data-catalog-poster]) {
+    min-height: 0;
+    padding: 10px;
+    gap: 12px;
+    border: 0;
+    border-radius: var(--radius-panel);
+    background: var(--surface-raised);
+}
+
+:root[data-theme="light"] .event-card:is(:hover, :focus-within) {
+    background: var(--surface);
+}
+
+:root[data-theme="light"] .event-card:has([data-catalog-poster]) > :not([data-catalog-poster]):not([aria-hidden="true"]) {
+    margin-inline: 4px;
+}
+
+:root[data-theme="light"] .event-card > [data-catalog-poster] {
+    margin: 0;
+    border-radius: var(--radius-thumb);
+    overflow: hidden;
+}
+
+:root[data-theme="light"] .event-card .event-poster-frame {
+    aspect-ratio: 3 / 4;
+    border-radius: var(--radius-thumb);
+    background: linear-gradient(140deg, var(--surface-sunken), var(--line));
+}
+
+/* La categoria sale sopra la locandina, come nel prototipo. Sta fuori dal
+   flusso, quindi la griglia allineata con `subgrid` conta una riga in meno:
+   sette diventano sei. Dimenticarlo lascia una riga vuota in fondo a ogni
+   card, che si vede solo quando le card hanno altezze diverse — cioè sempre. */
+:root[data-theme="light"] .event-card:has([data-catalog-poster]) .event-card__category {
+    position: absolute;
+    left: 19px;
+    top: 19px;
+    z-index: 2;
+    margin: 0;
+}
+
+@supports (grid-template-rows: subgrid) {
+    :root[data-theme="light"] .event-grid > .event-card:has([data-catalog-poster]) {
+        grid-row: span 6;
+        row-gap: 10px;
+    }
+}
+
+/* Nel catalogo la card è orizzontale e diventa una griglia: la locandina a
+   sinistra, il testo nella colonna 2. Qui l'etichetta va rimandata a mano
+   sull'area della locandina.
+
+   **Perché serve.** Un elemento assoluto figlio di una griglia non si misura
+   dal bordo della card ma dalla PROPRIA AREA DI GRIGLIA, e la regola del
+   catalogo assegna la colonna 2 a tutto ciò che non è la locandina: `left:
+   19px` finiva a diciannove pixel dall'inizio del testo, cioè sopra il titolo.
+   Il CSS diceva `absolute` ed era vero; sbagliato era il blocco contenitore. */
+:root[data-theme="light"] [data-event-browser] .event-card:has([data-catalog-poster]) .event-card__category {
+    grid-column: 1;
+    grid-row: 1 / span 6;
+    left: 9px;
+    top: 9px;
+}
+
+:root[data-theme="light"] .event-card .event-card__category .ui-tag {
+    border: 0;
+    border-radius: 7px;
+    background: rgb(250 249 246 / 94%);
+    padding: 5px 10px;
+    font-family: var(--font-sans);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: var(--brand-strong);
+}
+
+:root[data-theme="light"] .event-card:hover .event-card__category .ui-tag {
+    background: var(--brand);
+    color: var(--on-brand);
+}
+
+:root[data-theme="light"] .event-card .event-card__title > :is(h2, h3, h4) {
+    font-size: clamp(16.5px, 1.3vw, 19px);
+    font-weight: 700;
+    line-height: 1.18;
+    letter-spacing: -0.02em;
+}
+
+:root[data-theme="light"] .event-card .event-card__venue span {
+    font-size: 12.5px;
+    color: var(--ink-muted);
+}
+
+:root[data-theme="light"] .event-card time {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--brand);
+}
+
+:root[data-theme="light"] .event-card:hover time {
+    letter-spacing: 0;
+}
+
+:root[data-theme="light"] .event-card .event-card__footer {
+    min-height: 0;
+    padding-top: 10px;
+    /* Nel prototipo fra il corpo della card e il prezzo non c'è una riga:
+       c'è dello spazio. */
+    border-top: 0;
+    font-size: 13px;
+}
+
+:root[data-theme="light"] .event-card .event-card__footer > span:first-child {
+    font-family: var(--font-display);
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+
+/* La freccia diventa il disco del prototipo: compare piena al passaggio,
+   invece di essere sempre lì in grigio. */
+:root[data-theme="light"] .event-card [data-card-arrow] {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    color: var(--ink-muted);
+    transition: background-color 200ms ease, color 200ms ease;
+}
+
+:root[data-theme="light"] .event-card:hover [data-card-arrow] {
+    background: var(--brand);
+    color: var(--on-brand);
+}
+
+:root[data-theme="light"] .event-card [data-save-button][data-save-variant="count"] {
+    border-radius: 999px;
+    background: rgb(250 249 246 / 94%);
+    color: var(--ink-muted);
+}
+
+/* ---------------------------------------------------------------------------
+   Le fotografie sono a colori
+
+   Il bianco e nero appartiene al tema scuro: il documento di riferimento ha
+   tutte le fotografie desaturate, e `app.css` lo applica alle anteprime
+   (`grayscale-photo`) e alle locandine, che rientrano in colore solo quando lo
+   script aggiunge `is-color` a file scaricato.
+
+   Nel chiaro il colore c'è da subito, e non solo per gusto: quel ritorno al
+   colore dipende da uno script che gira UNA volta all'avvio della pagina, e
+   ogni locandina che compare dopo — quelle dentro la finestra del calendario,
+   per esempio — resta grigia per sempre perché nessuno passa più a rivelarla.
+   Togliendo il filtro alla radice non c'è niente da rivelare e il difetto non
+   può accadere.
+
+   **Nel tema scuro quel difetto resta e va sistemato a parte**: lì il grigio
+   è voluto per le anteprime, ma la finestra del calendario dovrebbe comunque
+   tornare a colori e non lo fa.
+--------------------------------------------------------------------------- */
+
+:root[data-theme="light"] :is(.poster-reveal, .grayscale-photo) {
+    filter: none;
+    transition: none;
+}
+
+/* ---------------------------------------------------------------------------
+   Card di un locale
+
+   Stessa forma della card di un'occorrenza — riquadro tondo su fondo chiaro —
+   con la fotografia in 16/9 e la sigla del locale in un quadrato terracotta.
+--------------------------------------------------------------------------- */
+
+:root[data-theme="light"] .venue-grid {
+    gap: clamp(12px, 1.5vw, 20px);
+}
+
+:root[data-theme="light"] .venue-card {
+    padding: 14px;
+    border: 0;
+    border-radius: var(--radius-panel);
+    background: var(--surface-raised);
+    overflow: hidden;
+}
+
+:root[data-theme="light"] .venue-card:is(:hover, :focus-within) {
+    background: var(--surface);
+}
+
+:root[data-theme="light"] .venue-card > div:first-child {
+    border-radius: var(--radius-thumb);
+}
+
+:root[data-theme="light"] .venue-card .venue-card__body {
+    padding: 14px 4px 4px;
+}
+
+:root[data-theme="light"] .venue-card .venue-card__heading > span:first-child {
+    width: 44px;
+    height: 44px;
+    border: 0;
+    border-radius: 12px;
+    background: var(--accent-soft);
+    color: var(--brand-strong);
+    font-family: var(--font-sans);
+    font-weight: 700;
+}
+
+:root[data-theme="light"] .venue-card :is(h2, h3, h4) {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    text-transform: none;
+}
+
+:root[data-theme="light"] .venue-card .venue-card__footer .ui-tag,
+:root[data-theme="light"] .venue-card .venue-card__footer > span {
+    border-radius: 999px;
+    font-family: var(--font-sans);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+/* ---------------------------------------------------------------------------
+   Catalogo: la riga orizzontale resta compatta
+
+   La locandina laterale aveva un'altezza minima da 220px pensata per una card
+   senza cornice; dentro un riquadro tondo quella misura lascia sotto al testo
+   una fascia vuota alta quanto il testo stesso.
+--------------------------------------------------------------------------- */
+
+@media (min-width: 1024px) {
+    :root[data-theme="light"] [data-event-browser] .event-card > [data-catalog-poster] {
+        min-height: 168px;
+    }
+}
+
+/*
+ * Il pannello del locale sulla mappa torna alla card verticale.
+ *
+ * **Il difetto.** La card orizzontale — locandina a sinistra, testo a destra —
+ * si accende con `@media (min-width: 1024px)`, cioè guardando la FINESTRA. Ma
+ * il pannello che si apre toccando un segnaposto è largo trecento pixel e sta
+ * dentro lo stesso `[data-event-browser]`: con una finestra da 1440 la regola
+ * si applica lo stesso, la locandina si prende 196px e al testo ne restano
+ * centoventi. Il prezzo non ci sta e, con `overflow-wrap: anywhere` sulla card,
+ * non va a capo fra le parole: si spezza fra le cifre. «15 €» diventa tre
+ * righe, «1», «5», «€».
+ *
+ * È il classico scarto fra larghezza della finestra e larghezza del
+ * contenitore: la media query misura la cosa sbagliata. Qui si corregge
+ * escludendo il pannello per nome; la soluzione generale sarebbe una query di
+ * contenitore sulla griglia, che però cambierebbe anche il tema scuro — dove
+ * lo stesso difetto c'è, identico, e va sistemato a parte.
+ */
+@media (min-width: 1024px) {
+    :root[data-theme="light"] [data-map-sheet] .event-card:has([data-catalog-poster]) {
+        display: flex;
+        grid-template-columns: none;
+        padding: 10px;
+        gap: 12px;
+    }
+
+    :root[data-theme="light"] [data-map-sheet] .event-card > [data-catalog-poster] {
+        grid-column: auto;
+        grid-row: auto;
+        min-height: 0;
+    }
+
+    :root[data-theme="light"] [data-map-sheet] .event-card:has([data-catalog-poster]) > :not([data-catalog-poster]):not([aria-hidden="true"]) {
+        grid-column: auto;
+        margin-inline: 4px;
+    }
+
+    :root[data-theme="light"] [data-map-sheet] .event-card:has([data-catalog-poster]) .event-card__category {
+        grid-column: auto;
+        grid-row: auto;
+        left: 19px;
+        top: 19px;
+    }
+}
+
+/* Il prezzo non si spezza mai fra le cifre, in nessuna larghezza. La card
+   dichiara `overflow-wrap: anywhere` perché un titolo lunghissimo deve poter
+   andare a capo ovunque piuttosto che sfondare la colonna; un importo no — «15
+   €» spezzato è un numero diverso da quello che c'è scritto. */
+:root[data-theme="light"] .event-card__footer > span:first-child {
+    white-space: nowrap;
+    overflow-wrap: normal;
+}
+
+/* ---------------------------------------------------------------------------
+   Apertura della pagina iniziale
+--------------------------------------------------------------------------- */
+
+:root[data-theme="light"] .home-opening {
+    padding: 0;
+    gap: 0;
+    border-bottom: 1px solid var(--line);
+    grid-template-columns: repeat(auto-fit, minmax(min(430px, 100%), 1fr));
+}
+
+:root[data-theme="light"] .home-intro {
+    padding: clamp(28px, 5vw, 76px) clamp(18px, 4vw, 56px);
+    gap: 22px;
+    border: 0;
+}
+
+/* La riga della data resta in maiuscoletto spaziato: è l'unica del chiaro, e
+   nel prototipo è ciò che dichiara «questa pagina parla di oggi». La regola
+   generale di `appearance.css` toglie le maiuscole a tutto ciò che porta
+   `font-display uppercase`, e questa riga va riesentata per nome. */
+:root[data-theme="light"] .home-today {
+    font-family: var(--font-sans);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+}
+
+:root[data-theme="light"] .home-headline {
+    max-width: none;
+    font-size: clamp(2.9rem, 6.4vw, 5.8rem);
+    line-height: 0.88;
+    font-weight: 800;
+    font-variation-settings: "opsz" 96;
+    letter-spacing: -0.055em;
+    text-transform: uppercase;
+}
+
+:root[data-theme="light"] .home-lead {
+    max-width: 44ch;
+    font-size: 15.5px;
+    line-height: 1.6;
+    color: var(--ink-muted);
+}
+
+/* I ritagli rapidi tornano a essere quattro caselle con il numero grande: è
+   l'informazione per cui esistono. Le pillole dicevano solo il nome.
+
+   **Il numero di colonne resta quello del markup** (`grid-cols-2
+   md:grid-cols-4`) e non si ridichiara qui. Ci avevo messo un
+   `repeat(auto-fit, minmax(128px, 1fr))`, che sembra piu' intelligente e
+   invece decide da solo: a 666px di finestra quattro colonne da 128px ci
+   stanno, quindi le quattro caselle finivano tutte su una riga, larghe 150px
+   ciascuna, con dentro un'etichetta e un numero grande. Due righe da due non
+   erano un ripiego per schermi piccoli: erano la disposizione voluta fino a
+   768px. `auto-fit` risponde alla domanda «quante ce ne stanno», che non e'
+   la domanda giusta. */
+:root[data-theme="light"] .home-shortcuts {
+    display: grid;
+    width: 100%;
+    gap: 1px;
+    padding: 0;
+    border: 1px solid var(--line);
+    background: var(--line);
+}
+
+:root[data-theme="light"] .home-shortcuts > a {
+    display: block;
+    padding: 14px 16px;
+    border: 0;
+    border-radius: 0;
+    background: var(--canvas);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: 10.5px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    text-align: left;
+    transition: background-color 180ms ease;
+}
+
+:root[data-theme="light"] .home-shortcuts > a:hover {
+    background: var(--surface);
+    color: var(--ink);
+    border-color: transparent;
+}
+
+:root[data-theme="light"] .home-shortcuts > a > span {
+    display: block;
+    margin-top: 6px;
+    font-family: var(--font-display);
+    font-size: 25px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--brand);
+}
+
+:root[data-theme="light"] .home-actions > a {
+    border-radius: var(--radius-control);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+    min-height: 46px;
+    height: auto;
+}
+
+:root[data-theme="light"] .home-actions > a.bg-accent {
+    background: var(--brand);
+    color: var(--on-brand);
+}
+
+:root[data-theme="light"] .home-actions > a.bg-accent:hover {
+    background: var(--brand-strong);
+}
+
+:root[data-theme="light"] .home-actions > a:not(.bg-accent) {
+    border: 1px solid var(--line-strong);
+    background: var(--canvas);
+    color: var(--ink);
+}
+
+:root[data-theme="light"] .home-actions > a:not(.bg-accent):hover {
+    background: var(--surface);
+    color: var(--ink);
+}
+
+/* La locandina in evidenza arriva ai bordi della finestra: è l'unica
+   fotografia sopra la piega e il prototipo la lascia respirare senza cornice. */
+:root[data-theme="light"] .home-opening [data-home-hero] {
+    border-radius: 0;
+    min-height: min(76vh, 560px);
+}
+
+@media (min-width: 1100px) {
+    :root[data-theme="light"] .home-opening { grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); }
+    :root[data-theme="light"] .home-opening [data-home-hero] { min-height: 100%; }
+}
+
+:root[data-theme="light"] [data-home-hero] h2 {
+    font-size: clamp(1.9rem, 3.4vw, 3rem);
+    line-height: 1.02;
+    letter-spacing: -0.04em;
+    text-transform: none;
+}
+
+:root[data-theme="light"] [data-home-hero] .ui-tag {
+    border-radius: 0;
+    font-family: var(--font-sans);
+    font-size: 10px;
+    letter-spacing: 0.16em;
+}
+
+/* ---------------------------------------------------------------------------
+   Fascia dei numeri
+--------------------------------------------------------------------------- */
+
+:root[data-theme="light"] .home-stats {
+    border-bottom: 1px solid var(--line);
+    padding: 22px clamp(18px, 4vw, 56px);
+    gap: 16px 28px;
+}
+
+:root[data-theme="light"] .home-stats span:first-child {
+    font-family: var(--font-display);
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.035em;
+}
+
+:root[data-theme="light"] .home-stats span:last-child {
+    font-family: var(--font-sans);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--ink-muted);
+}
+
+/* ---------------------------------------------------------------------------
+   Intestazioni di sezione
+
+   Nel prototipo stanno su una riga sola: il numero in terracotta, il titolo,
+   e accanto in grigio la frase che dice di cosa si tratta. Il markup le emette
+   incolonnate (occhiello sopra, titolo sotto) perché è così che le vuole lo
+   scuro; qui il contenitore dell'occhiello diventa `display: contents` e i suoi
+   due pezzi entrano nella stessa riga flessibile del titolo, riordinati.
+
+   `display: contents` toglie all'occhiello il proprio stile: il colore e il
+   corpo dei due pezzi vanno ridichiarati qui sotto, altrimenti ereditano dal
+   contenitore e il numero perde la terracotta.
+--------------------------------------------------------------------------- */
+
+:root[data-theme="light"] .section-head {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px 13px;
+}
+
+:root[data-theme="light"] .section-head > .section-eyebrow {
+    display: contents;
+}
+
+:root[data-theme="light"] :is(.section-index, .section-mark) {
+    order: 1;
+    font-family: var(--font-sans);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    color: var(--brand);
+}
+
+:root[data-theme="light"] .section-head > h2 {
+    order: 2;
+    font-size: clamp(1.5rem, 2.6vw, 2.2rem);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.04em;
+    text-transform: uppercase;
+}
+
+:root[data-theme="light"] .section-note {
+    order: 3;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--ink-muted);
+}
+
+/* Il trattino fra numero e occhiello serve solo allo scuro, dove i due pezzi
+   stanno sulla stessa riga. Qui il titolo li separa già. */
+:root[data-theme="light"] .section-dash {
+    display: none;
+}
+
+/* «Vedi tutti e 12 →»: un collegamento, non un pulsante bordato. */
+:root[data-theme="light"] .section-more {
+    border: 0;
+    padding-bottom: 0;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--brand);
+}
+
+:root[data-theme="light"] .section-more:hover {
+    color: var(--brand-strong);
+}
+
+:root[data-theme="light"] .home-section {
+    border-bottom: 0;
+}
+
+/* Nello scuro le card arrivano al bordo della finestra, ed è voluto: il
+   divisore che disegnano sul proprio bordo costruisce il tabellone. Qui le
+   card sono riquadri staccati, e un riquadro tagliato a metà dal bordo dello
+   schermo si legge come un errore. Rientrano dello stesso margine del resto. */
+:root[data-theme="light"] .home-section .event-grid,
+:root[data-theme="light"] .home-section .category-grid {
+    border-top: 0;
+    padding-inline: clamp(18px, 4vw, 56px);
+    padding-bottom: clamp(20px, 2.6vw, 34px);
+}
+
+/* Il quadratino di stato di «in corso adesso» tiene la misura che aveva:
+   `display: contents` sull'occhiello gli toglie il contenitore flessibile che
+   gli dava l'allineamento, non la propria altezza. */
+:root[data-theme="light"] .section-mark {
+    align-self: center;
+}
+
+/* ---------------------------------------------------------------------------
+   Griglia delle categorie
+--------------------------------------------------------------------------- */
+
+:root[data-theme="light"] .category-grid {
+    grid-template-columns: repeat(auto-fill, minmax(min(190px, 100%), 1fr));
+    gap: 10px;
+}
+
+:root[data-theme="light"] .category-grid > a {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 18px;
+    border: 0;
+    border-radius: 14px;
+    background: var(--surface);
+    color: var(--ink);
+}
+
+:root[data-theme="light"] .category-grid > a:hover {
+    background: var(--surface-sunken);
+    color: var(--ink);
+}
+
+/* Il nome prima, il conteggio dopo: il markup li emette al contrario perché
+   nello scuro il conteggio è l'occhiello in cima alla casella. */
+:root[data-theme="light"] .category-grid > a > span:first-child {
+    order: 2;
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--brand);
+}
+
+:root[data-theme="light"] .category-grid > a > span:last-child {
+    order: 1;
+    font-family: var(--font-display);
+    font-size: 15.5px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    text-transform: none;
+}
+
+/* ---------------------------------------------------------------------------
+   Riquadri di invito: «stasera cosa fai», il calendario, la chiusura
+
+   Nel prototipo sono un pannello chiaro con angoli tondi, non una fascia piena
+   di colore a tutta larghezza. L'arancione resta sui comandi.
+--------------------------------------------------------------------------- */
+
+:root[data-theme="light"] :is(.home-tonight, .home-cta, [data-calendar-banner]) {
+    margin: clamp(22px, 3vw, 40px) clamp(18px, 4vw, 56px);
+    padding: clamp(22px, 3vw, 44px);
+    border: 0;
+    border-radius: 24px;
+    background: var(--surface);
+    color: var(--ink);
+}
+
+:root[data-theme="light"] :is(.home-tonight, .home-cta, [data-calendar-banner]) :is(h2, p) {
+    color: var(--ink);
+    text-transform: none;
+}
+
+:root[data-theme="light"] :is(.home-tonight, .home-cta, [data-calendar-banner]) h2 {
+    font-size: clamp(1.6rem, 2.8vw, 2.4rem);
+    line-height: 1.02;
+    letter-spacing: -0.04em;
+}
+
+:root[data-theme="light"] :is(.home-tonight, .home-cta, [data-calendar-banner]) p {
+    color: var(--ink-muted);
+    font-size: 14.5px;
+    line-height: 1.6;
+}
+
+:root[data-theme="light"] :is(.home-tonight, .home-cta, [data-calendar-banner]) .ui-action,
+:root[data-theme="light"] :is(.home-tonight, .home-cta, [data-calendar-banner]) a[href] {
+    border-radius: var(--radius-control);
+    background: var(--brand);
+    color: var(--on-brand);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+:root[data-theme="light"] :is(.home-tonight, .home-cta, [data-calendar-banner]) .ui-action:hover,
+:root[data-theme="light"] :is(.home-tonight, .home-cta, [data-calendar-banner]) a[href]:hover {
+    background: var(--brand-strong);
+    color: var(--on-brand);
+}
+
+/* La seconda azione della chiusura è secondaria e lo dichiara. */
+:root[data-theme="light"] .home-cta .ui-action + .ui-action {
+    background: var(--canvas);
+    color: var(--ink);
+    border: 1px solid var(--line);
+}
+
+:root[data-theme="light"] .home-cta .ui-action + .ui-action:hover {
+    background: var(--surface-sunken);
+    color: var(--ink);
+}
+
+/* ---------------------------------------------------------------------------
+   «Vicino a te»: elenco e mappa
+--------------------------------------------------------------------------- */
+
+:root[data-theme="light"] .home-nearby {
+    border-top: 0;
+    margin-inline: clamp(18px, 4vw, 56px);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-panel);
+    overflow: hidden;
+    background: var(--line);
+    gap: 1px;
+}
+
+:root[data-theme="light"] .home-nearby a[href] {
+    border-bottom: 1px solid var(--line);
+}
+
+:root[data-theme="light"] .home-nearby a[href] > span:first-child {
+    font-family: var(--font-sans);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: var(--brand);
+}
+
+:root[data-theme="light"] .home-nearby a[href] span.font-display {
+    text-transform: none;
+    letter-spacing: -0.02em;
+}
+
+/* ---------------------------------------------------------------------------
+   Contenitori che restano vuoti
+
+   Un contenitore il cui contenuto è tutto condizionale, quando le condizioni
+   sono false, non sparisce: resta un elemento alto zero. In una colonna con
+   `gap` un elemento alto zero costa comunque una fessura, e due di fila
+   costano due — è lo spazio che si vedeva sotto al prezzo nella scheda di un
+   evento senza biglietteria.
+
+   `:empty` non basta: fra i tag c'è comunque dello spazio bianco, e per il CSS
+   quel nodo di testo è contenuto. Serve `:not(:has(*))`, cioè «nessun figlio
+   ELEMENTO», che è la condizione vera.
+--------------------------------------------------------------------------- */
+
+:root[data-theme="light"] .vuoto-invisibile:not(:has(*)) {
+    display: none;
+}
+
+/* ---------------------------------------------------------------------------
+   Piè di pagina
+--------------------------------------------------------------------------- */
+
+:root[data-theme="light"] body > footer {
+    border-top: 1px solid var(--line);
+    background: var(--surface);
+}
+
+:root[data-theme="light"] body > footer > div:first-child p:first-child {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+}
+
+:root[data-theme="light"] body > footer > div:first-child p:first-child::after {
+    content: ".";
+    color: var(--brand);
+}
+
+:root[data-theme="light"] body > footer h2 {
+    font-family: var(--font-sans);
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    color: var(--ink);
+}
+
+:root[data-theme="light"] body > footer a {
+    font-size: 13.5px;
+    color: var(--ink-muted);
+}
+
+:root[data-theme="light"] body > footer a:hover {
+    color: var(--brand);
+}
+
+/* ---------------------------------------------------------------------------
+   Pubblicità e sezioni dichiarate
+
+   Restano riconoscibili: un riquadro che si annuncia in un angolo più discreto
+   dell'evidenza redazionale non si annuncia. Cambia la forma, non il rilievo.
+--------------------------------------------------------------------------- */
+
+:root[data-theme="light"] [data-sponsorship-placement] {
+    border-radius: var(--radius-panel);
+}
+
+:root[data-theme="light"] .live-now {
+    border-radius: 0;
+}
+
+/* ---------------------------------------------------------------------------
+   Catalogo, filtri e mappa
+
+   Il prototipo mostra i filtri come gruppi apribili con pillole contate, e la
+   mappa in colonna accanto ai risultati. Qui ci sono già entrambi: si adegua
+   la forma.
+--------------------------------------------------------------------------- */
+
+:root[data-theme="light"] [data-catalog-filters],
+:root[data-theme="light"] [data-filter-panel],
+:root[data-theme="light"] details[data-filter-key] {
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+:root[data-theme="light"] details[data-filter-key] {
+    border: 1px solid var(--line);
+    background: var(--surface-raised);
+}
+
+/* Il riassunto del pannello su una riga sola: titolo a sinistra, quanti filtri
+   sono accesi subito dopo, la freccia in fondo. Scritto com'è — un testo, una
+   freccia e un conteggio, tutti in fila nel flusso — a colonna stretta il
+   conteggio andava a capo e la freccia restava appiccicata al titolo invece
+   che al bordo. */
+:root[data-theme="light"] details[data-filter-key] > summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-sans);
+    font-size: 13.5px;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+:root[data-theme="light"] details[data-filter-key] > summary > span[aria-hidden="true"] {
+    order: 3;
+    margin-left: auto;
+    flex: none;
+    font-size: 15px;
+    line-height: 1;
+    color: var(--ink-muted);
+    transition: transform 200ms ease;
+}
+
+:root[data-theme="light"] details[data-filter-key][open] > summary > span[aria-hidden="true"] {
+    transform: rotate(180deg);
+}
+
+:root[data-theme="light"] details[data-filter-key] > summary > span:not([aria-hidden="true"]) {
+    order: 2;
+    flex: none;
+    padding: 4px 9px;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--brand-strong);
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+/* «Azzera i filtri» era un'etichetta da 9,5 px sotto un titolo da 20: a quella
+   misura si legge come una nota a piè di pagina, non come il comando che
+   annulla quello che si sta guardando. */
+:root[data-theme="light"] [data-filter-panel] > div > a[href] {
+    font-family: var(--font-sans);
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+/* L'etichetta di un campo è un'etichetta, non un titolo: pesa meno del valore
+   che sta per introdurre. */
+:root[data-theme="light"] [data-advanced-filter-fields] label:not(:has(input[type="checkbox"])),
+:root[data-theme="light"] [data-advanced-filter-fields] > div > label,
+:root[data-theme="light"] details[data-filter-key] legend {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--ink-muted);
+}
+
+/*
+ * Le righe con la casella tornano sul bordo delle altre voci.
+ *
+ * **Perché erano fuori squadra.** Tre di queste etichette — passeggino,
+ * fasciatoio, area bimbi — sono scritte nude, senza le classi che le sorelle
+ * dentro i `fieldset` hanno (`size-5 shrink-0 rounded border-line`). Un
+ * `input[type="checkbox"]` senza reset porta il margine di default del
+ * browser, che su WebKit è `3px 3px 3px 4px`: sono quei quattro pixel a
+ * sinistra a spostare la riga rispetto alla colonna su cui è incolonnato tutto
+ * il resto. Non è un problema di allineamento verticale, è un margine che
+ * nessuno ha tolto.
+ *
+ * Si corregge qui e non nel markup perché quelle classi sono condivise con il
+ * tema scuro, che non deve muoversi.
+ */
+:root[data-theme="light"] details[data-filter-key] input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    flex: none;
+    margin: 0;
+    border-radius: 5px;
+    accent-color: var(--brand);
+}
+
+:root[data-theme="light"] details[data-filter-key] label:has(input[type="checkbox"]) {
+    align-items: flex-start;
+    gap: 10px;
+    min-height: 0;
+    padding-block: 7px;
+    font-size: 14px;
+    line-height: 1.45;
+    color: var(--ink);
+}
+
+/* La casella e la prima riga del testo condividono la linea di base anche
+   quando l'etichetta va a capo: `items-center` centrava la casella sull'altezza
+   totale, quindi su due righe finiva a metà fra l'una e l'altra. */
+:root[data-theme="light"] details[data-filter-key] label:has(input[type="checkbox"]) > input[type="checkbox"] {
+    margin-top: 2px;
+}
+
+:root[data-theme="light"] details[data-filter-key] :is(select, input:not([type="checkbox"])) {
+    min-height: 44px;
+    border-color: var(--line);
+    background: var(--canvas);
+    font-size: 13.5px;
+}
+
+:root[data-theme="light"] details[data-filter-key] button[type="submit"] {
+    background: var(--brand);
+    color: var(--on-brand);
+    font-family: var(--font-sans);
+    font-size: 13.5px;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+:root[data-theme="light"] details[data-filter-key] button[type="submit"]:hover {
+    background: var(--brand-strong);
+}
+
+/* La freccia della card sta dentro un disco pieno: qui non scivola, cresce.
+   Lo dice il foglio di stile, e `motion.js` lo legge invece di indovinare il
+   tema — vedi il commento accanto al gestore del passaggio del puntatore. */
+:root[data-theme="light"] .event-card [data-card-arrow] {
+    --card-arrow-shift: 0px;
+}
+
+:root[data-theme="light"] .filter-chip,
+:root[data-theme="light"] [data-filter-chip] {
+    border-radius: 999px;
+    font-family: var(--font-sans);
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+:root[data-theme="light"] .maplibregl-map,
+:root[data-theme="light"] [data-map] {
+    border-radius: var(--radius-panel);
+}
+
+/* ---------------------------------------------------------------------------
+   Movimento
+
+   `appearance.css` spegne le tre animazioni `reveal*` nel chiaro, e resta
+   così: sono legate allo scorrimento e nel prototipo il movimento sta altrove
+   — nel passaggio del puntatore sulle card, che `motion.js` fa già con GSAP
+   per entrambi i temi. Qui si aggiunge solo la transizione della testata.
+--------------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+    :root[data-theme="light"] :is(.site-header nav a, [data-mobile-navigation] a, .event-card, .home-shortcuts > a) {
+        transition: none;
+    }
+}

@@ -31,6 +31,37 @@ use Spatie\DbDumper\Compressors\GzipCompressor;
  */
 return [
 
+    /*
+     * L'interruttore del backup **programmato**.
+     *
+     * Spento il 15 settembre 2026 su richiesta esplicita del proprietario,
+     * dopo che il backup notturno ha saturato la quota dell'account e messo
+     * il sito a 500 per la seconda volta in due settimane.
+     *
+     * **Il conto che non torna.** La quota è di 10 GB, l'account ne usa quasi
+     * 9, e un backup completo ne vuole circa due in contemporanea — uno per
+     * l'archivio temporaneo e uno per quello finale, che convivono finché il
+     * primo non viene rimosso. Non è un margine stretto: non c'è.
+     *
+     * **Perché la guardia esistente non è bastata.** `SpazioSufficiente`
+     * prova a scrivere un file della dimensione attesa prima di lasciar
+     * partire il backup, ed è nata proprio dopo l'incidente del 2 settembre.
+     * Ha misurato uno spazio che bastava all'inizio e non alla fine: fra la
+     * prova e la fine della scrittura il backup è cresciuto — 10.650 file,
+     * 1,04 GB — e la quota è finita a metà strada. Una prova puntuale non può
+     * garantire un processo che dura due ore.
+     *
+     * Quando si riaccende, prima va risolto il conto: escludere dal backup
+     * ciò che è rigenerabile (le conversioni delle locandine, le anteprime
+     * social), portarlo fuori dall'account, oppure alzare la quota. Riaccendere
+     * e basta significa rimettere il sito a terra alle 03:40.
+     *
+     * NON governa il backup del **solo database** che `deploy` esegue prima di
+     * ogni pubblicazione: quello pesa meno di due megabyte ed è la rete che
+     * si vuole avere proprio mentre si cambia qualcosa.
+     */
+    'scheduled' => env('BACKUP_SCHEDULED', true),
+
     'backup' => [
         /*
          * Il nome con cui i backup vengono raggruppati sul disco. È anche la

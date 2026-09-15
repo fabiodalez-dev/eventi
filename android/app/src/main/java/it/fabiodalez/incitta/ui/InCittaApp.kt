@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.height
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.WindowInsets
@@ -125,12 +127,32 @@ fun InCittaApp(viewModel: MainViewModel) {
                 androidx.compose.animation.AnimatedVisibility(
                     visible = !imeVisible && (navigationRequired || navigationRevealed || accessibility?.isTouchExplorationEnabled == true),
                     enter = androidx.compose.animation.fadeIn(), exit = androidx.compose.animation.fadeOut(),
-                ) { androidx.compose.foundation.layout.Column {
-                    HorizontalDivider(thickness = 2.dp, color = Paper)
+                ) {
+                    /*
+                     * Due impianti per la stessa barra.
+                     *
+                     * Nello scuro chiude la pagina: un divisore pieno da 2px e
+                     * una fascia a tutta larghezza sul nero — e' il tabellone.
+                     *
+                     * Nel chiaro GALLEGGIA, come sul sito: rientra di dodici
+                     * pixel per lato, ha gli angoli tondi e sta su fondo scuro
+                     * anche a tema chiaro. E' quello che la fa leggere come un
+                     * comando invece che come un piede di pagina, e il motivo
+                     * per cui il colore qui e' scritto esplicito invece di
+                     * venire dal tema: la barra e' scura in ENTRAMBI i temi, e
+                     * chiederlo al tema chiaro darebbe una barra chiara su
+                     * fondo chiaro.
+                     */
+                    val chiaro = isLightTheme
+                    androidx.compose.foundation.layout.Column(
+                        modifier = if (chiaro) Modifier.navigationBarsPadding().padding(horizontal = 12.dp, vertical = 12.dp) else Modifier,
+                    ) {
+                    if (!chiaro) HorizontalDivider(thickness = 2.dp, color = Paper)
                     BottomAppBar(
-                        containerColor = Ink,
-                        contentColor = Paper,
-                        modifier = Modifier.navigationBarsPadding(),
+                        containerColor = if (chiaro) androidx.compose.ui.graphics.Color(0xFF262624) else Ink,
+                        contentColor = if (chiaro) androidx.compose.ui.graphics.Color(0xFFFAF9F6) else Paper,
+                        modifier = if (chiaro) Modifier.clip(androidx.compose.foundation.shape.RoundedCornerShape(20.dp)).height(66.dp) else Modifier.navigationBarsPadding(),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 6.dp),
                     ) {
                         NavItem(state.tab, AppTab.HOME, "Home", Icons.Outlined.Home, { tonightOpen = false; organizerSlug = null; viewModel.selectTab(it) })
                         NavItem(state.tab, AppTab.EVENTS, "Eventi", Icons.Outlined.Event, { tonightOpen = false; organizerSlug = null; viewModel.selectTab(it) })
@@ -275,12 +297,25 @@ private fun RowScope.NavItem(
     icon: ImageVector,
     select: (AppTab) -> Unit,
 ) {
+    /*
+     * Nel chiaro la voce attiva e' una pastiglia terracotta con l'icona chiara
+     * sopra, dentro una barra scura: gli stessi colori del sito, che qui non
+     * possono venire dal tema perche' la barra e' scura mentre il tema e'
+     * chiaro. Nello scuro resta il lime su nero.
+     */
+    val chiaro = isLightTheme
     NavigationBarItem(
         selected = current == tab,
         onClick = { select(tab) },
-        icon = { Icon(icon, contentDescription = null, modifier = Modifier.size(22.dp)) },
-        label = { Text(label.uppercase(), maxLines = 1, fontSize = androidx.compose.ui.unit.TextUnit(10f, androidx.compose.ui.unit.TextUnitType.Sp)) },
-        colors = NavigationBarItemDefaults.colors(
+        icon = { Icon(icon, contentDescription = null, modifier = Modifier.size(if (chiaro) 20.dp else 22.dp)) },
+        label = { Text(label.uppercase(), maxLines = 1, fontSize = androidx.compose.ui.unit.TextUnit(if (chiaro) 9.5f else 10f, androidx.compose.ui.unit.TextUnitType.Sp)) },
+        colors = if (chiaro) NavigationBarItemDefaults.colors(
+            selectedIconColor = androidx.compose.ui.graphics.Color(0xFFFAF9F6),
+            selectedTextColor = androidx.compose.ui.graphics.Color(0xFFFAF9F6),
+            indicatorColor = androidx.compose.ui.graphics.Color(0xFFB54D23),
+            unselectedIconColor = androidx.compose.ui.graphics.Color(0xFFC9C7C1),
+            unselectedTextColor = androidx.compose.ui.graphics.Color(0xFFC9C7C1),
+        ) else NavigationBarItemDefaults.colors(
             selectedIconColor = Ink,
             selectedTextColor = Acid,
             indicatorColor = Acid,

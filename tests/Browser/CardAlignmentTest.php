@@ -56,7 +56,24 @@ it('aligns every event card track without clipping variable content', function (
             $page->assertSee('Un concerto con un titolo molto lungo')->screenshot(filename: 'aligned-cards-'.$theme.'-'.$width);
             if ($width === 1440) {
                 $page->hover('.event-card:first-child');
-                expect($page->script('async () => { await new Promise(resolve => setTimeout(resolve, 280)); const card=document.querySelector(".event-card"); const arrow=card.querySelector("[data-card-arrow]"); const save=card.querySelector("[data-save-button][data-save-variant=icon]"); const icon=arrow.querySelector("svg"); const transform=new DOMMatrix(getComputedStyle(icon).transform); return parseFloat(getComputedStyle(arrow).borderTopWidth)===0 && getComputedStyle(save).boxShadow==="none" && transform.m41>5 && transform.a>1; }'))->toBeTrue();
+                /*
+                 * Al passaggio del puntatore la freccia REAGISCE; come, dipende
+                 * dal tema.
+                 *
+                 * Nello scuro e' sciolta in fondo alla card e scivola a destra:
+                 * li' scivolare vuol dire «avanti». Nel chiaro sta dentro un
+                 * disco pieno, e la stessa traslazione la porterebbe fuori dal
+                 * centro del proprio cerchio — si vede subito, ed e' l'unica
+                 * cosa che si vede. Li' cresce e basta.
+                 *
+                 * Quanto scivola lo dichiara il foglio di stile con
+                 * `--card-arrow-shift`; `motion.js` lo legge invece di sapere
+                 * quale tema e' acceso. L'ingrandimento invece vale in
+                 * entrambi: e' il segnale che il comando ha ricevuto il
+                 * puntatore, e quello non si toglie.
+                 */
+                $scivolamento = $theme === 'inLightMode' ? 'Math.abs(transform.m41)<1' : 'transform.m41>5';
+                expect($page->script('async () => { await new Promise(resolve => setTimeout(resolve, 280)); const card=document.querySelector(".event-card"); const arrow=card.querySelector("[data-card-arrow]"); const save=card.querySelector("[data-save-button][data-save-variant=icon]"); const icon=arrow.querySelector("svg"); const transform=new DOMMatrix(getComputedStyle(icon).transform); return parseFloat(getComputedStyle(arrow).borderTopWidth)===0 && getComputedStyle(save).boxShadow==="none" && '.$scivolamento.' && transform.a>1; }'))->toBeTrue();
             }
         }
     }

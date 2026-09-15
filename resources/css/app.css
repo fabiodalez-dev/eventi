@@ -1,6 +1,12 @@
 @import 'tailwindcss';
 @import './appearance.css';
 
+/* Il secondo strato del tema chiaro. Sta DOPO `appearance.css` perché molte
+   regole hanno la stessa specificità e in quel caso decide l'ordine: questo
+   file ridisegna, l'altro resta la base. Ogni sua riga è prefissata
+   `:root[data-theme="light"]` — il tema scuro non lo vede. */
+@import './light.css';
+
 /* Font self-hosted (@fontsource): nessuna richiesta a Google Fonts o ad altri
    CDN, che sarebbe un trasferimento di dati verso terzi senza consenso.
    Il file è variabile (peso 100-900) e suddiviso per unicode-range: il browser
@@ -524,6 +530,100 @@
     height: 2px;
     border: 0;
     background-color: var(--line);
+}
+
+/* ---------------------------------------------------------------------------
+   La colonna dei filtri scorre, e si vede che scorre
+
+   Vale per ENTRAMBI i temi: il difetto non è di uno dei due.
+
+   La colonna è incollata sotto la testata con un'altezza massima pari alla
+   finestra meno la testata, e quando i filtri avanzati sono aperti il contenuto
+   è più alto — 1445px dentro 798px nel chiaro, 2801px nello scuro. Si raggiunge
+   tutto scorrendo dentro la colonna, ma nessuno lo direbbe, per due motivi che
+   si sommano:
+
+   1. su macOS la barra di scorrimento interna compare solo mentre si trascina,
+      quindi non c'è alcun segno che sotto continui;
+   2. il fondo della colonna finisce DIETRO alla fascia del consenso, che è
+      fissa in basso — e lì sotto sta anche la barra di scorrimento, cioè
+      proprio l'unico indizio.
+
+   Il risultato è una colonna che sembra tagliata a metà. Qui la barra si vede
+   sempre, l'altezza utile toglie anche quello che la fascia copre
+   (`--consent-space`, misurata da `app.js` e pari a zero appena la fascia
+   sparisce), e sotto all'ultimo comando resta un po' di respiro invece del
+   bordo netto che fa pensare al taglio.
+
+   I colori vengono dalle variabili di tema: la stessa regola è chiara nel
+   chiaro e scura nello scuro.
+--------------------------------------------------------------------------- */
+
+/*
+ * LA CAUSA VERA: i figli venivano schiacciati, non traboccavano.
+ *
+ * La colonna è `flex flex-col` con un'altezza massima. In una colonna
+ * flessibile ogni figlio ha `flex-shrink: 1` di default: davanti a un'altezza
+ * insufficiente il browser NON fa traboccare il contenuto — lo comprime. Il
+ * `<details>` dei filtri, alto 1282px, veniva ridotto a 483px.
+ *
+ * Da lì i due sintomi insieme: il contenuto appariva tagliato, e non scorreva.
+ * Non scorreva perché non c'era nulla da scorrere: `scrollHeight` era uguale a
+ * `clientHeight` al pixel — la firma di un contenuto compresso, non di un
+ * contenuto che eccede. `overflow-y: auto` c'era ed era corretto; non aveva
+ * niente da fare.
+ *
+ * `flex-shrink: 0` sui figli restituisce loro l'altezza naturale, il contenuto
+ * eccede davvero e lo scorrimento interno entra in funzione: verificato, da
+ * 533px compressi a 1332px scorrevoli.
+ */
+#filtri > * {
+    flex-shrink: 0;
+}
+
+/* ---------------------------------------------------------------------------
+   Il pannello delle date salvate
+
+   La miniatura è quadrata, mentre la locandina ha il suo 3/4: senza questa
+   riga il riquadro resterebbe alto quanto la proporzione chiede e verrebbe
+   tagliato in cima, mostrando il bordo superiore della locandina invece del
+   soggetto.
+--------------------------------------------------------------------------- */
+
+.saved-row__thumb .event-poster-frame {
+    height: 100%;
+    aspect-ratio: auto;
+}
+
+#filtri {
+    padding-bottom: 28px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--line-strong) transparent;
+    overscroll-behavior: contain;
+}
+
+/* L'altezza massima vale solo dove la colonna è incollata alla testata, come
+   la classe `lg:max-h-below-header` che sostituisce. Sotto quella soglia i
+   filtri sono un pannello che si apre e si chiude, e limitarlo lo
+   trasformerebbe in una finestrella che scorre dentro la pagina. */
+@media (min-width: 1024px) {
+    #filtri {
+        max-height: calc(100dvh - 102px - var(--consent-space, 0px));
+    }
+}
+
+#filtri::-webkit-scrollbar {
+    width: 10px;
+}
+
+#filtri::-webkit-scrollbar-thumb {
+    border: 3px solid var(--canvas);
+    border-radius: 999px;
+    background-color: var(--line-strong);
+}
+
+#filtri::-webkit-scrollbar-track {
+    background: transparent;
 }
 
 /* Le anteprime restano in bianco e nero; hero e locandina nel dettaglio

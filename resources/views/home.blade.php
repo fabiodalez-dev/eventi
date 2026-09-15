@@ -99,7 +99,7 @@
             @if ($city !== null)
                 <div class="flex items-center gap-2.5">
                     <span aria-hidden="true" class="size-2 bg-accent blink-dot"></span>
-                    <span class="font-display text-[0.625rem] leading-none font-extrabold tracking-[0.18em] text-ink-muted uppercase">
+                    <span class="home-today font-display text-[0.625rem] leading-none font-extrabold tracking-[0.18em] text-ink-muted uppercase">
                         {{ $todayLine }}
                     </span>
                 </div>
@@ -299,12 +299,14 @@
             <x-sponsorship-banner :city="$city" />
         @endif
 
-        <section class="border-b-2 border-line defer-offscreen" aria-labelledby="sezione-{{ $sezione['key'] }}">
+        <section class="home-section border-b-2 border-line defer-offscreen" aria-labelledby="sezione-{{ $sezione['key'] }}">
             <div class="flex flex-wrap items-end justify-between gap-5 px-gutter pt-[clamp(1.5rem,2.8vw,2.75rem)] pb-[clamp(1.125rem,2vw,1.625rem)]">
-                <div class="flex flex-col gap-2">
-                    <span class="font-display text-[0.625rem] leading-none font-extrabold tracking-[0.18em] text-accent uppercase">
-                        {{ str_pad((string) $numero, 2, '0', STR_PAD_LEFT) }} {{ __('common.dash') }} {{ $sezione['eyebrow'] }}
-                    </span>
+                {{-- Numero e occhiello sono due elementi distinti, non una riga
+                     sola di testo: nello scuro si leggono come prima («01 —
+                     apre tra poche ore»), nel chiaro il tema li dispone sulla
+                     riga del titolo, il numero prima e la frase dopo. --}}
+                <div class="section-head flex flex-col gap-2">
+                    <span class="section-eyebrow font-display text-[0.625rem] leading-none font-extrabold tracking-[0.18em] text-accent uppercase"><span class="section-index">{{ str_pad((string) $numero, 2, '0', STR_PAD_LEFT) }}</span><span class="section-note"><span class="section-dash"> {{ __('common.dash') }} </span>{{ $sezione['eyebrow'] }}</span></span>
                     <h2 id="sezione-{{ $sezione['key'] }}" class="m-0 font-display text-[clamp(1.875rem,4vw,4rem)] leading-[0.94] font-extrabold tracking-[-0.04em] uppercase reveal-left">
                         {{ $sezione['title'] }}
                     </h2>
@@ -312,7 +314,7 @@
 
                 <a
                     href="{{ route($sezione['route']) }}"
-                    class="inline-flex items-center gap-2 border-b-2 border-accent pb-[5px] font-display text-[0.688rem] leading-none font-extrabold tracking-[0.14em] uppercase transition-colors hover:text-accent"
+                    class="section-more inline-flex items-center gap-2 border-b-2 border-accent pb-[5px] font-display text-[0.688rem] leading-none font-extrabold tracking-[0.14em] uppercase transition-colors hover:text-accent"
                 >
                     {{ trans_choice('events.sections.see_all', $sections[$sezione['key']]->count(), ['count' => $sections[$sezione['key']]->count()]) }}
                     <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="square"><path d="M5 12h14M13 5l7 7-7 7"></path></svg>
@@ -330,11 +332,9 @@
     @if ($categories !== [])
         @php $numero++; @endphp
 
-        <section class="border-b-2 border-line defer-offscreen" aria-labelledby="sezione-categorie">
-            <div class="flex flex-col gap-2 px-gutter pt-[clamp(1.5rem,2.8vw,2.75rem)] pb-[clamp(1.125rem,2vw,1.625rem)]">
-                <span class="font-display text-[0.625rem] leading-none font-extrabold tracking-[0.18em] text-accent uppercase">
-                    {{ str_pad((string) $numero, 2, '0', STR_PAD_LEFT) }} {{ __('common.dash') }} {{ __('events.sections.by_category_eyebrow') }}
-                </span>
+        <section class="home-section border-b-2 border-line defer-offscreen" aria-labelledby="sezione-categorie">
+            <div class="section-head flex flex-col gap-2 px-gutter pt-[clamp(1.5rem,2.8vw,2.75rem)] pb-[clamp(1.125rem,2vw,1.625rem)]">
+                <span class="section-eyebrow font-display text-[0.625rem] leading-none font-extrabold tracking-[0.18em] text-accent uppercase"><span class="section-index">{{ str_pad((string) $numero, 2, '0', STR_PAD_LEFT) }}</span><span class="section-note"><span class="section-dash"> {{ __('common.dash') }} </span>{{ __('events.sections.by_category_eyebrow') }}</span></span>
                 <h2 id="sezione-categorie" class="m-0 font-display text-[clamp(1.875rem,4vw,4rem)] leading-[0.94] font-extrabold tracking-[-0.04em] uppercase reveal-left">
                     {{ __('events.sections.by_category') }}
                 </h2>
@@ -353,12 +353,10 @@
     @if ($nearby->isNotEmpty() && \Illuminate\Support\Facades\Route::has('map.index'))
         @php $numero++; @endphp
 
-        <section class="border-b-2 border-line defer-offscreen" aria-labelledby="sezione-vicino">
+        <section class="home-section border-b-2 border-line defer-offscreen" aria-labelledby="sezione-vicino">
             <div class="flex flex-wrap items-end justify-between gap-4 px-gutter pt-[clamp(1.5rem,2.8vw,2.75rem)] pb-[clamp(1.125rem,2vw,1.625rem)]">
-                <div class="flex flex-col gap-2">
-                    <span class="font-display text-[0.625rem] leading-none font-extrabold tracking-[0.18em] text-accent uppercase">
-                        {{ str_pad((string) $numero, 2, '0', STR_PAD_LEFT) }} {{ __('common.dash') }} {{ __('events.sections.nearby_eyebrow') }}
-                    </span>
+                <div class="section-head flex flex-col gap-2">
+                    <span class="section-eyebrow font-display text-[0.625rem] leading-none font-extrabold tracking-[0.18em] text-accent uppercase"><span class="section-index">{{ str_pad((string) $numero, 2, '0', STR_PAD_LEFT) }}</span><span class="section-note"><span class="section-dash"> {{ __('common.dash') }} </span>{{ __('events.sections.nearby_eyebrow') }}</span></span>
                     <h2 id="sezione-vicino" class="m-0 font-display text-[clamp(1.875rem,4vw,4rem)] leading-[0.94] font-extrabold tracking-[-0.04em] uppercase">
                         {{ __('events.sections.nearby') }}
                     </h2>
@@ -368,7 +366,7 @@
                 </p>
             </div>
 
-            <div class="grid gap-0.5 border-t-2 border-line bg-line [grid-template-columns:repeat(auto-fit,minmax(min(340px,100%),1fr))]">
+            <div class="home-nearby grid gap-0.5 border-t-2 border-line bg-line [grid-template-columns:repeat(auto-fit,minmax(min(340px,100%),1fr))]">
                 <div class="flex flex-col bg-canvas">
                     @foreach ($nearby as $occorrenza)
                         <a
@@ -418,7 +416,7 @@
          La chiusura, in negativo: fondo lime, testo nero. È l'unico blocco
          pieno di colore della pagina, e serve a questo — chiudere.
     ------------------------------------------------------------------- --}}
-    <section class="grid items-end gap-[clamp(1.5rem,3vw,3.25rem)] bg-accent px-gutter py-[clamp(2.125rem,5vw,5.375rem)] text-on-accent [grid-template-columns:repeat(auto-fit,minmax(min(360px,100%),1fr))]" aria-label="{{ __('ui.cta.label') }}">
+    <section class="home-cta grid items-end gap-[clamp(1.5rem,3vw,3.25rem)] bg-accent px-gutter py-[clamp(2.125rem,5vw,5.375rem)] text-on-accent [grid-template-columns:repeat(auto-fit,minmax(min(360px,100%),1fr))]" aria-label="{{ __('ui.cta.label') }}">
         <h2 class="m-0 font-display text-[clamp(2.125rem,5.2vw,5.25rem)] leading-[0.9] font-extrabold tracking-[-0.045em] text-on-accent uppercase">
             {!! nl2br(e(__('ui.cta.title'))) !!}
         </h2>
