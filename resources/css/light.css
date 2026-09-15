@@ -208,6 +208,32 @@
     color: var(--brand-strong);
 }
 
+/*
+ * I riquadri della scheda di un evento seguono la stessa regola del resto.
+ *
+ * Prezzo, elenco delle date, meteo, informazioni pratiche erano rimasti
+ * bordati mentre home e catalogo avevano gia' smesso: un tema che cambia
+ * regola da una pagina all'altra non e' un tema, e' una somma di decisioni.
+ *
+ * Il bordo non si toglie e basta: quei riquadri stavano sul fondo della
+ * pagina, quindi senza contorno sparirebbero. Prendono la superficie
+ * incassata, che e' come si stacca un riquadro nel chiaro.
+ */
+:root[data-theme="light"] .event-detail-body :is(section, .event-date-row) {
+    border: 0;
+    border-radius: 16px;
+    background: var(--surface);
+}
+
+:root[data-theme="light"] .event-detail-body .event-utility-action {
+    border: 0;
+    background: var(--canvas);
+}
+
+:root[data-theme="light"] .event-detail-body .event-utility-action:hover {
+    background: var(--surface-sunken);
+}
+
 /* I riquadri informativi del catalogo — il pannello dei filtri e «vicino a me»
    — tornano a essere superfici, non cornici.
 
