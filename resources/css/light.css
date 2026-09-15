@@ -560,6 +560,26 @@
     gap: clamp(12px, 1.5vw, 22px);
 }
 
+/*
+ * Il catalogo tiene il proprio passo stretto.
+ *
+ * Quel `clamp` sopra vale per le griglie di card verticali, dove lo spazio
+ * fra un riquadro e l'altro cresce con la finestra. Nel catalogo le card sono
+ * righe orizzontali dentro una colonna che ha gia' i suoi margini: `app.css`
+ * ci mette dodici pixel fissi, e la mia regola generica — piu' specifica per
+ * un pelo — glieli portava a diciannove su schermo largo, allentando un elenco
+ * che deve restare compatto.
+ *
+ * Una regola generica non e' innocua solo perche' e' generica: scavalca anche
+ * le eccezioni che qualcuno aveva gia' deciso.
+ */
+@media (min-width: 1024px) {
+    :root[data-theme="light"] [data-event-browser] .event-grid {
+        gap: 12px;
+        padding: 12px;
+    }
+}
+
 :root[data-theme="light"] .event-card,
 :root[data-theme="light"] .event-card:has([data-catalog-poster]) {
     min-height: 0;
@@ -904,11 +924,20 @@
 }
 
 /* I ritagli rapidi tornano a essere quattro caselle con il numero grande: è
-   l'informazione per cui esistono. Le pillole dicevano solo il nome. */
+   l'informazione per cui esistono. Le pillole dicevano solo il nome.
+
+   **Il numero di colonne resta quello del markup** (`grid-cols-2
+   md:grid-cols-4`) e non si ridichiara qui. Ci avevo messo un
+   `repeat(auto-fit, minmax(128px, 1fr))`, che sembra piu' intelligente e
+   invece decide da solo: a 666px di finestra quattro colonne da 128px ci
+   stanno, quindi le quattro caselle finivano tutte su una riga, larghe 150px
+   ciascuna, con dentro un'etichetta e un numero grande. Due righe da due non
+   erano un ripiego per schermi piccoli: erano la disposizione voluta fino a
+   768px. `auto-fit` risponde alla domanda «quante ce ne stanno», che non e'
+   la domanda giusta. */
 :root[data-theme="light"] .home-shortcuts {
     display: grid;
     width: 100%;
-    grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
     gap: 1px;
     padding: 0;
     border: 1px solid var(--line);
