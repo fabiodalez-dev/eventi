@@ -430,7 +430,13 @@
                     <p class="text-sm font-semibold text-ink-muted">{{ __('events.detail.booking_required') }}</p>
                 @endif
 
-                <div class="flex flex-col gap-2">
+                {{-- «vuoto invisibile»: questi due contenitori esistono sempre, ma
+                     il loro contenuto è tutto condizionale. Senza biglietteria,
+                     prenotazione, telefono e note restano due elementi alti
+                     zero — e in una colonna con `gap`, un elemento alto zero
+                     costa lo stesso una fessura. Sotto al prezzo se ne
+                     sommavano due. --}}
+                <div class="vuoto-invisibile flex flex-col gap-2">
                     @if ($ticketUrl !== null)
                         <a
                             href="{{ $ticketUrl }}"
@@ -464,7 +470,7 @@
                     @endif
                 </div>
 
-                <dl class="flex flex-col gap-1 text-sm text-ink-muted">
+                <dl class="vuoto-invisibile flex flex-col gap-1 text-sm text-ink-muted">
                     @if (filled($event->age_restriction))
                         <div class="flex gap-2">
                             <dt class="sr-only">{{ __('events.detail.age') }}</dt>

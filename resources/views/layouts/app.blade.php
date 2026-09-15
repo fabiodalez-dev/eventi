@@ -348,9 +348,9 @@
                  distacco e' di tre pixel — un occhiello attaccato al nome gli
                  appartiene, uno staccato sembra una voce di menu. --}}
             <a href="{{ url('/') }}" class="flex shrink-0 flex-col items-start gap-[3px]" aria-label="{{ __('ui.header.home', ['app' => trim($app.' '.($city?->name ?? ''))]) }}">
-                <span class="font-display text-[1.625rem] leading-none font-extrabold tracking-[-0.05em] text-ink">{{ $app }}</span>
+                <span class="site-brand-name font-display text-[1.625rem] leading-none font-extrabold tracking-[-0.05em] text-ink">{{ $app }}</span>
                 @if ($city !== null)
-                    <span class="font-display text-[0.594rem] leading-none font-extrabold tracking-[0.2em] text-accent uppercase">{{ $city->name }}</span>
+                    <span class="site-brand-city font-display text-[0.594rem] leading-none font-extrabold tracking-[0.2em] text-accent uppercase">{{ $city->name }}</span>
                 @endif
             </a>
 
@@ -417,6 +417,38 @@
                     {{ __('ui.header.submit_event') }}
                 </a>
             @endif
+
+            {{--
+                Le date salvate, accanto al selettore del tema.
+
+                **Compare solo quando c'è qualcosa dentro.** Un'icona che porta
+                a un elenco vuoto occupa spazio in testata su ogni pagina del
+                sito per non dire niente; questa nasce nascosta e si accende al
+                primo salvataggio — lo fa il server per chi è collegato, lo
+                script per chi non lo è, leggendo il proprio browser.
+
+                **È un collegamento, non un pulsante.** Senza JavaScript porta
+                alla pagina dei salvataggi, che per chi non è collegato è la
+                pagina di accesso: la via c'è comunque. Lo script gli toglie il
+                cambio di pagina e apre il pannello al suo posto.
+            --}}
+            <a
+                href="{{ route('account.saved') }}"
+                data-saved-opener
+                data-saved-panel-url="{{ route('account.saved.panel') }}"
+                data-saved-count="{{ $savedCount }}"
+                data-saved-error="{{ __('account.saved.panel_error') }}"
+                @if ($savedCount === 0) hidden @endif
+                aria-haspopup="dialog"
+                aria-label="{{ __('account.saved.panel_open') }}"
+                title="{{ __('account.saved.panel_open') }}"
+                class="saved-opener relative hidden h-[38px] shrink-0 items-center gap-1.5 border-2 border-line px-2.5 font-display text-[0.688rem] leading-none font-extrabold tracking-[0.1em] text-ink-muted transition-colors hover:border-accent hover:text-accent sm:inline-flex"
+            >
+                <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round">
+                    <path d="M6 3h12v18l-6-4-6 4z"></path>
+                </svg>
+                <span data-saved-opener-count>{{ $savedCount }}</span>
+            </a>
 
             <form data-appearance-form action="{{ route('appearance.update') }}" method="POST" class="shrink-0">
                 @csrf
@@ -499,6 +531,50 @@
 
     <p data-appearance-error hidden role="alert" class="fixed inset-x-4 bottom-24 z-[9999] mx-auto max-w-lg border border-line bg-canvas p-4 text-sm text-ink"></p>
     <x-save-prompt />
+
+    {{--
+        Il pannello delle date salvate.
+
+        Un `<dialog>` e non un riquadro costruito a mano: il fuoco che resta
+        dentro, `Esc` che chiude, lo sfondo inerte e il ritorno del fuoco al
+        comando che l'ha aperto sono cose che il browser fa già, e che riscritte
+        a mano si riscrivono a metà.
+
+        Nasce vuoto: il contenuto arriva da `/salvataggi/pannello` quando si
+        apre. Disegnarlo nella pagina avrebbe significato interrogare i
+        salvataggi su OGNI pagina del sito per una finestra che quasi nessuno
+        apre — e per chi non è collegato sarebbe stato impossibile, perché quelle
+        date le conosce solo il suo browser.
+    --}}
+    <dialog
+        data-saved-dialog
+        aria-labelledby="pannello-salvati-titolo"
+        class="saved-dialog m-auto w-[min(34rem,calc(100vw-1.5rem))] border-2 border-line bg-canvas p-0 text-ink backdrop:bg-ink/70"
+    >
+        <div class="flex items-center justify-between gap-3 border-b-2 border-line px-[clamp(1rem,3vw,1.5rem)] py-4">
+            <h2 id="pannello-salvati-titolo" class="m-0 font-display text-[1.125rem] leading-none font-extrabold tracking-[-0.03em] text-ink uppercase">
+                {{ __('account.saved.panel_open') }}
+            </h2>
+
+            <button
+                type="button"
+                data-saved-dialog-close
+                aria-label="{{ __('account.saved.panel_close') }}"
+                class="ui-action grid size-11 shrink-0 place-items-center border-2 border-line text-ink-muted transition-colors hover:border-accent hover:text-accent"
+            >
+                <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="square">
+                    <path d="M5 5l14 14M19 5L5 19"></path>
+                </svg>
+            </button>
+        </div>
+
+        <div
+            data-saved-dialog-body
+            class="max-h-[min(70dvh,34rem)] overflow-y-auto px-[clamp(1rem,3vw,1.5rem)] py-4"
+        >
+            <p class="m-0 py-6 text-center text-sm text-ink-muted">{{ __('account.saved.panel_loading') }}</p>
+        </div>
+    </dialog>
 
     {{-- Il consenso (§16). Sta in fondo al documento e non copre la pagina:
          chi vuole leggere prima di decidere, può. --}}

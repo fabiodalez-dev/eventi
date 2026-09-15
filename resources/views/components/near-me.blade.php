@@ -50,10 +50,20 @@
                 </x-filter-chip>
             @endforeach
 
+            {{-- `basis-full`: sempre su una riga propria.
+
+                 Le pastiglie sopra scelgono un raggio, questo collegamento
+                 toglie la posizione: sono due cose diverse, e in coda alla
+                 stessa riga sembrava la quarta scelta della serie. Dove ci
+                 stava si accodava, dove non ci stava andava a capo — quindi
+                 cambiava significato a seconda della larghezza della colonna.
+
+                 Una riga propria lo separa sempre, invece che quando avanza
+                 poco spazio. --}}
             <a
                 data-filter-link
                 href="{{ $urlFor(null) }}"
-                class="inline-flex min-h-12 items-center text-base font-semibold text-ink underline hover:text-accent"
+                class="inline-flex min-h-12 basis-full items-center text-base font-semibold text-ink underline hover:text-accent"
             >
                 {{ __('map.near.clear') }}
             </a>
@@ -78,14 +88,19 @@
                 {{ __('map.near.allow') }}
             </button>
 
-            <label class="flex items-center gap-2 text-sm text-ink-muted">
+            {{-- Etichetta sopra, menu sotto. Affiancati stavano su una riga
+                 sola finché la colonna era larga; in una barra dei filtri da
+                 248px il menu si stringeva fino a nascondere la voce scelta —
+                 «Entro 5 km» diventava «Entro…». Incolonnati, il menu ha
+                 tutta la larghezza che gli serve a qualunque misura. --}}
+            <label class="flex w-full flex-col items-start gap-1.5 text-sm text-ink-muted">
                 <span>{{ __('map.near.radius_label') }}</span>
 
                 {{-- Il raggio si sceglie **prima** di concedere la posizione:
                      il pulsante lo legge da qui. --}}
                 <select
                     data-geolocate-radius-input
-                    class="border border-line bg-surface px-3 py-1.5 text-sm text-ink focus:border-brand focus:outline-none"
+                    class="w-full max-w-xs min-h-12 border border-line bg-surface px-3 py-1.5 text-sm text-ink focus:border-brand focus:outline-none"
                 >
                     @foreach ($radii as $km)
                         <option value="{{ $km }}" @selected((int) $km === ($current ?? $default))>

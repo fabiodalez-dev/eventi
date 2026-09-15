@@ -43,6 +43,61 @@ final class SavedController extends Controller
             ->header('Cache-Control', 'private, no-store');
     }
 
+    /**
+     * Il contenuto del pannello che si apre dall'icona in testata.
+     *
+     * Risponde a tutti e due i modi in cui questo sito salva una data:
+     *
+     * - chi è collegato ha i salvataggi sul server, e li si legge da lì;
+     * - chi non lo è li tiene nel proprio browser, e li manda nell'indirizzo.
+     *
+     * Nel secondo caso gli identificativi arrivano da fuori, ma la finestra da
+     * cui si leggono è `EventOccurrenceQuery::for($city)`: **solo eventi
+     * pubblicati della città servita**. Un identificativo inventato non trova
+     * niente, e non c'è modo di farsi restituire qualcosa che non sia già
+     * visibile a chiunque. Il tetto sul numero evita che un indirizzo lunghissimo
+     * si trasformi in un'interrogazione lunghissima.
+     */
+    public function panel(Request $request): View
+    {
+        $city = $this->city();
+        $mostrate = 12;
+        $tetto = 60;
+
+        $user = $request->user();
+
+        if ($user !== null) {
+            $query = EventOccurrenceQuery::for($city)->savedBy($user)->ended(false);
+            $totale = $query->count();
+            $occurrences = $query->take($mostrate);
+        } else {
+            $ids = collect(explode(',', $request->string('ids')->toString()))
+                ->map(static fn (string $value): int => (int) trim($value))
+                ->filter(static fn (int $id): bool => $id > 0)
+                ->unique()
+                ->take($tetto)
+                ->values()
+                ->all();
+
+            if ($ids === []) {
+                $occurrences = new Collection;
+                $totale = 0;
+            } else {
+                $query = EventOccurrenceQuery::for($city)->forOccurrences($ids)->ended(false);
+                $totale = $query->count();
+                $occurrences = $query->take($mostrate);
+            }
+        }
+
+        $occurrences->load(['event.city', 'event.venue', 'event.category', 'event.media']);
+
+        return view('account.saved-panel', [
+            'occurrences' => $occurrences,
+            'total' => $totale,
+            'authenticated' => $user !== null,
+        ]);
+    }
+
     public function index(Request $request): View
     {
         $city = $this->city();

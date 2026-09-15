@@ -25,11 +25,11 @@
 --}}
 <div>
     @if ($ongoing->isNotEmpty())
-        <section class="border-b-2 border-line defer-offscreen" aria-labelledby="sezione-ongoing">
-            <div class="flex flex-col gap-2 px-gutter pt-[clamp(1.5rem,2.8vw,2.75rem)] pb-[clamp(1.125rem,2vw,1.625rem)]">
-                <span class="flex items-center gap-2 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.18em] text-accent uppercase">
-                    <span aria-hidden="true" class="size-[7px] shrink-0 rounded-full bg-accent blink-dot"></span>
-                    {{ __('events.sections.ongoing_eyebrow') }}
+        <section class="home-section border-b-2 border-line defer-offscreen" aria-labelledby="sezione-ongoing">
+            <div class="section-head flex flex-col gap-2 px-gutter pt-[clamp(1.5rem,2.8vw,2.75rem)] pb-[clamp(1.125rem,2vw,1.625rem)]">
+                <span class="section-eyebrow flex items-center gap-2 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.18em] text-accent uppercase">
+                    <span aria-hidden="true" class="section-mark size-[7px] shrink-0 rounded-full bg-accent blink-dot"></span>
+                    <span class="section-note">{{ __('events.sections.ongoing_eyebrow') }}</span>
                 </span>
 
                 <h2 id="sezione-ongoing" class="m-0 font-display text-[clamp(1.875rem,4vw,4rem)] leading-[0.94] font-extrabold tracking-[-0.04em] uppercase reveal-left">
@@ -42,11 +42,11 @@
     @endif
 
     @if ($startingSoon->isNotEmpty())
-        <section class="border-b-2 border-line defer-offscreen" aria-labelledby="sezione-starting-soon">
-            <div class="flex flex-col gap-2 px-gutter pt-[clamp(1.5rem,2.8vw,2.75rem)] pb-[clamp(1.125rem,2vw,1.625rem)]">
-                <span class="flex items-center gap-2 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.18em] text-ink-muted uppercase">
-                    <span aria-hidden="true" class="size-[7px] shrink-0 bg-ink"></span>
-                    {{ __('events.sections.starting_soon_eyebrow') }}
+        <section class="home-section border-b-2 border-line defer-offscreen" aria-labelledby="sezione-starting-soon">
+            <div class="section-head flex flex-col gap-2 px-gutter pt-[clamp(1.5rem,2.8vw,2.75rem)] pb-[clamp(1.125rem,2vw,1.625rem)]">
+                <span class="section-eyebrow flex items-center gap-2 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.18em] text-ink-muted uppercase">
+                    <span aria-hidden="true" class="section-mark size-[7px] shrink-0 bg-ink"></span>
+                    <span class="section-note">{{ __('events.sections.starting_soon_eyebrow') }}</span>
                 </span>
 
                 <h2 id="sezione-starting-soon" class="m-0 font-display text-[clamp(1.875rem,4vw,4rem)] leading-[0.94] font-extrabold tracking-[-0.04em] uppercase reveal-left">

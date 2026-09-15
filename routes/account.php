@@ -41,6 +41,25 @@ use Illuminate\Support\Facades\URL;
 | reindirizzamento a mano in un punto lontano da qui.
 */
 
+/*
+ * Il pannello delle date salvate, quello che si apre dall'icona in testata.
+ *
+ * Sta **fuori** da `auth`, e non è una svista: il cuore funziona al primo
+ * click senza registrazione (§15.1) e le date di chi non ha un account vivono
+ * nel `localStorage`. Finché questa rotta non è esistita, chi salvava da
+ * anonimo non aveva alcun posto dove rivedere ciò che aveva salvato — la
+ * pagina `/i-miei-salvataggi` chiede l'accesso, e su schermo largo non c'era
+ * nemmeno un collegamento.
+ *
+ * Da anonimi gli identificativi arrivano dall'indirizzo. Non è un rischio:
+ * `EventOccurrenceQuery::for()` guarda **solo eventi pubblicati della città
+ * servita**, quindi un identificativo inventato non restituisce niente e non
+ * esiste modo di farsi dire qualcosa che non sia già pubblico.
+ */
+Route::get('/salvataggi/pannello', [SavedController::class, 'panel'])
+    ->middleware('throttle:60,1')
+    ->name('account.saved.panel');
+
 Route::get('/aspetto', [AppearanceController::class, 'index'])->name('appearance');
 Route::patch('/aspetto', [AppearanceController::class, 'update'])->middleware(['auth', 'throttle:60,1'])->name('appearance.update');
 
