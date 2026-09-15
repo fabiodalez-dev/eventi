@@ -6,7 +6,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.height
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.padding
@@ -119,14 +121,19 @@ fun InCittaApp(viewModel: MainViewModel) {
             onBack = { if (tonightOpen && state.selected == null && state.selectedVenue == null && state.bookingDate == null) tonightOpen = false else if (organizerSlug != null) organizerSlug = null else viewModel.goBack() },
         )
 
+        // Paint and reserve the system navigation area even when our tabs fade out.
+        // Android 15 forces edge-to-edge: navigationBarColor alone cannot protect it.
+        AppSafeArea {
         Scaffold(
             modifier = Modifier.nestedScroll(revealNavigation),
+            contentWindowInsets = WindowInsets(0, 0, 0, 0),
             containerColor = Ink,
             snackbarHost = { SnackbarHost(snackbar) },
             bottomBar = {
                 androidx.compose.animation.AnimatedVisibility(
                     visible = !imeVisible && (navigationRequired || navigationRevealed || accessibility?.isTouchExplorationEnabled == true),
-                    enter = androidx.compose.animation.fadeIn(), exit = androidx.compose.animation.fadeOut(),
+                    enter = androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(200)),
+                    exit = androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(120)),
                 ) {
                     /*
                      * Due impianti per la stessa barra.
@@ -145,14 +152,15 @@ fun InCittaApp(viewModel: MainViewModel) {
                      */
                     val chiaro = isLightTheme
                     androidx.compose.foundation.layout.Column(
-                        modifier = if (chiaro) Modifier.navigationBarsPadding().padding(horizontal = 12.dp, vertical = 12.dp) else Modifier,
+                        modifier = if (chiaro) Modifier.padding(horizontal = 12.dp, vertical = 8.dp) else Modifier,
                     ) {
                     if (!chiaro) HorizontalDivider(thickness = 2.dp, color = Paper)
                     BottomAppBar(
                         containerColor = if (chiaro) androidx.compose.ui.graphics.Color(0xFF262624) else Ink,
                         contentColor = if (chiaro) androidx.compose.ui.graphics.Color(0xFFFAF9F6) else Paper,
-                        modifier = if (chiaro) Modifier.clip(androidx.compose.foundation.shape.RoundedCornerShape(20.dp)).height(66.dp) else Modifier.navigationBarsPadding(),
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 6.dp),
+                        modifier = (if (chiaro) Modifier.clip(androidx.compose.foundation.shape.RoundedCornerShape(20.dp)) else Modifier).height(56.dp),
+                        windowInsets = WindowInsets(0, 0, 0, 0),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 0.dp),
                     ) {
                         NavItem(state.tab, AppTab.HOME, "Home", Icons.Outlined.Home, { tonightOpen = false; organizerSlug = null; viewModel.selectTab(it) })
                         NavItem(state.tab, AppTab.EVENTS, "Eventi", Icons.Outlined.Event, { tonightOpen = false; organizerSlug = null; viewModel.selectTab(it) })
@@ -286,6 +294,14 @@ fun InCittaApp(viewModel: MainViewModel) {
             }
         }
         if (state.privacyConsent == null) ConsentOverlay(viewModel::setPrivacyConsent)
+        }
+    }
+}
+
+@Composable
+internal fun AppSafeArea(content: @Composable () -> Unit) {
+    Box(Modifier.fillMaxSize().background(Ink).windowInsetsPadding(WindowInsets.safeDrawing)) {
+        content()
     }
 }
 
@@ -307,8 +323,7 @@ private fun RowScope.NavItem(
     NavigationBarItem(
         selected = current == tab,
         onClick = { select(tab) },
-        icon = { Icon(icon, contentDescription = null, modifier = Modifier.size(if (chiaro) 20.dp else 22.dp)) },
-        label = { Text(label.uppercase(), maxLines = 1, fontSize = androidx.compose.ui.unit.TextUnit(if (chiaro) 9.5f else 10f, androidx.compose.ui.unit.TextUnitType.Sp)) },
+        icon = { Icon(icon, contentDescription = label, modifier = Modifier.size(24.dp)) },
         colors = if (chiaro) NavigationBarItemDefaults.colors(
             selectedIconColor = androidx.compose.ui.graphics.Color(0xFFFAF9F6),
             selectedTextColor = androidx.compose.ui.graphics.Color(0xFFFAF9F6),

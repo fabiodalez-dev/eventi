@@ -68,10 +68,17 @@ internal fun SearchFilters(state: AppUiState, query: String = "", collapsible: B
     val latestApply by rememberUpdatedState(apply)
     val latestQuery by rememberUpdatedState(query)
     val latestToken by rememberUpdatedState(state.session?.token)
+    fun applyAndClose(next: Map<String, String>, label: String) {
+        latestApply(next, label)
+        if (collapsible) {
+            panelOpen = false
+            onCollapse()
+        }
+    }
     suspend fun applyChecked(next: Map<String, String>, label: String) {
         if (checking) return
         val previous = latestFilters
-        if (removesSearchFilters(previous, next)) { latestApply(next, label); status = null; return }
+        if (removesSearchFilters(previous, next)) { applyAndClose(next, label); status = null; return }
         checking = true
         val token = latestToken
         val search = latestQuery
@@ -81,7 +88,7 @@ internal fun SearchFilters(state: AppUiState, query: String = "", collapsible: B
             if (latestFilters != previous || latestToken != token || latestQuery != search) return
             if (results.isEmpty()) {
                 status = "Nessun evento con questa combinazione. Ho mantenuto i filtri precedenti: togli un filtro o amplia la zona."
-            } else { status = null; latestApply(next, label) }
+            } else { status = null; applyAndClose(next, label) }
         } catch (error: Exception) {
             if (error is CancellationException) throw error
             status = "Non riesco a verificare questa scelta. I filtri precedenti sono rimasti invariati. Riprova."

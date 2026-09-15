@@ -595,11 +595,147 @@
     aspect-ratio: auto;
 }
 
+/* ---------------------------------------------------------------------------
+   Scheda evento: un ordine pensato per lo schermo stretto
+
+   Vale per entrambi i temi. Sotto i 1024px le due colonne si impilano, e
+   impilandosi portano con sé l'ordine che avevano: prima tutta la colonna
+   laterale — locandina, prezzo, dove, condividi — e poi tutto il resto. Chi
+   legge da telefono si trova il prezzo prima ancora di sapere quando è
+   l'evento, e la descrizione dopo il pulsante «condividi».
+
+   L'ordine qui sotto è quello in cui si legge una scheda: cosa vedi, chi lo
+   organizza, salvala, quando, cos'è; poi quanto costa, dove, condividila; e
+   infine le informazioni di servizio.
+
+   **Perché `display: contents`.** Gli elementi da ordinare stanno in DUE
+   contenitori diversi (`article` e `aside`), e `order` funziona solo fra
+   fratelli. `display: contents` toglie i due contenitori dal disegno e
+   promuove i loro figli a fratelli diretti, che è la sola cosa che permette di
+   intercalarli senza duplicare il markup o riscrivere la pagina per il
+   telefono.
+
+   **Il costo da conoscere**: `display: contents` toglie l'elemento dall'albero
+   di accessibilità, e qui si applica a un `article` e a un `aside`, che sono
+   punti di riferimento per chi naviga con uno screen reader. Le sezioni
+   interne conservano ognuna il proprio `aria-labelledby`, che è ciò su cui si
+   naviga davvero in questa pagina; i due contenitori non avevano un nome
+   proprio. Sopra i 1024px tutto torna com'è.
+--------------------------------------------------------------------------- */
+
+@media (max-width: 1023px) {
+    .event-detail-body {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .event-detail-body > article,
+    .event-detail-body > aside {
+        display: contents;
+    }
+
+    /* Il valore di riserva sta PRIMA e si applica ai figli promossi, non ai
+       due contenitori: dopo `display: contents` i figli diretti di
+       `.event-detail-body` restano `article` e `aside`, che non disegnano
+       nulla. Senza questa riga un elemento non nominato resterebbe a `order:
+       0`, cioe' PRIMO — esattamente il contrario di «in coda». */
+    .event-detail-body > article > *,
+    .event-detail-body > aside > * { order: 12; }
+
+    .event-detail-body .event-poster-original { order: 1; }
+    .event-detail-body .event-detail-loose { order: 2; }
+    .event-detail-body section[aria-labelledby="date-evento"] { order: 4; }
+    .event-detail-body section[aria-labelledby="descrizione-evento"] { order: 5; }
+    .event-detail-body section[aria-labelledby="prezzo-evento"] { order: 6; }
+    .event-detail-body section[aria-labelledby="luogo-evento"] { order: 7; }
+    .event-detail-body section[aria-labelledby="condividi-evento"] { order: 8; }
+    .event-detail-body section[aria-labelledby="prima-di-andare"] { order: 9; }
+    .event-detail-body section[data-event-weather] { order: 10; }
+    .event-detail-body section[aria-labelledby="tag-evento"] { order: 11; }
+
+}
+
+/* ---------------------------------------------------------------------------
+   La mappa compare quando è pronta
+
+   Vale per entrambi i temi: non è una scelta di stile, è come si comporta un
+   riquadro che ha bisogno di mezzo secondo per esistere.
+
+   Senza, la sequenza era: il messaggio «mappa non disponibile» — che è il
+   ripiego per chi non ha JavaScript — lampeggiava per centocinquanta
+   millisecondi, poi restava un rettangolo grigio vuoto, poi la mappa scattava
+   dentro di colpo. Tre stati in mezzo secondo, di cui uno diceva il falso.
+
+   Gli stati li mette `map.js` e li toglie quando la mappa smette di disegnare
+   (`idle`), non quando ha finito di leggere lo stile:
+
+   - `loading`  il riquadro è spento: non c'è ancora niente da vedere, e
+                spegnerlo nasconde anche il lampo del ripiego;
+   - `updating` un filtro è cambiato: la mappa c'è già, quindi si attenua
+                invece di sparire — farla sparire a ogni filtro sarebbe peggio
+                del difetto che si voleva togliere.
+
+   Senza JavaScript nessuno dei due attributi compare, il riquadro resta pieno
+   e il messaggio di ripiego fa il suo mestiere.
+--------------------------------------------------------------------------- */
+
+/*
+ * Si attenua il CONTENUTO del riquadro, non il riquadro.
+ *
+ * Spegnere `[data-map]` spegneva anche il suo fondo grigio, e al posto della
+ * mappa restava un buco sulla pagina invece di una superficie in attesa. Qui
+ * il fondo resta, e sopra compaiono canvas e comandi.
+ */
+[data-map] > * {
+    transition: opacity 360ms ease-out;
+}
+
+/*
+ * Entrare in attesa e' istantaneo, uscirne e' una dissolvenza.
+ *
+ * Con la transizione attiva in entrambi i versi, il messaggio di ripiego non
+ * lampeggiava piu': sfumava via in mezzo secondo, cioe' restava a lungo sotto
+ * gli occhi proprio mentre diceva il falso. Peggio del difetto di partenza.
+ */
+[data-map][data-map-state="loading"] > * {
+    opacity: 0;
+    transition: none;
+}
+
+[data-map][data-map-state="updating"] > * {
+    opacity: 0.45;
+}
+
+/*
+ * Il messaggio di ripiego aspetta mezzo secondo prima di farsi vedere.
+ *
+ * E' il messaggio per chi non ha JavaScript, e in quel caso mezzo secondo di
+ * ritardo non toglie niente. Con JavaScript attivo lo script lo rimuove molto
+ * prima, quindi non compare affatto — che e' la cosa giusta, perche' la mappa
+ * sta arrivando e dire «non disponibile» mentre arriva e' semplicemente falso.
+ *
+ * Con `both` il fotogramma iniziale vale anche prima dell'avvio: senza,
+ * comparirebbe per un istante e poi sparirebbe.
+ */
+[data-map-placeholder] {
+    animation: attesa-ripiego-mappa 1ms linear 600ms both;
+}
+
+@keyframes attesa-ripiego-mappa {
+    from { visibility: hidden; }
+    to { visibility: visible; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    [data-map] > * {
+        transition: none;
+    }
+}
+
 #filtri {
     padding-bottom: 28px;
     scrollbar-width: thin;
     scrollbar-color: var(--line-strong) transparent;
-    overscroll-behavior: contain;
 }
 
 /* L'altezza massima vale solo dove la colonna è incollata alla testata, come
@@ -608,6 +744,7 @@
    trasformerebbe in una finestrella che scorre dentro la pagina. */
 @media (min-width: 1024px) {
     #filtri {
+        overscroll-behavior: contain;
         max-height: calc(100dvh - 102px - var(--consent-space, 0px));
     }
 }

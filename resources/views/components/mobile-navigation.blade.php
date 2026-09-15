@@ -12,7 +12,8 @@
 <nav data-mobile-navigation data-scroll-navigation @if(request()->routeIs('map.*', 'login', 'account.*')) data-navigation-always @endif aria-label="{{ __('ui.nav.label') }}" class="fixed inset-x-0 bottom-0 z-[9000] grid grid-cols-6 border-t-2 border-line bg-canvas pb-[env(safe-area-inset-bottom)] lg:hidden">
     @foreach ($items as $item)
         <a href="{{ $item['url'] }}" @if ($item['active']) aria-current="page" @endif
-           class="flex min-h-16 min-w-0 flex-col items-center justify-center gap-1 px-1 py-2 text-[0.625rem] font-extrabold uppercase tracking-wide focus-visible:outline-2 focus-visible:outline-accent {{ $item['active'] ? 'bg-accent text-on-accent' : 'text-ink-muted hover:text-accent' }}">
+           @if ($item['url'] === route('account.saved')) data-saved-mobile-opener aria-haspopup="dialog" @endif
+           class="flex min-h-16 min-w-0 flex-col items-center justify-center gap-1 px-0.5 py-2 text-[0.75rem] font-extrabold tracking-normal focus-visible:outline-2 focus-visible:outline-accent {{ $item['active'] ? 'bg-accent text-on-accent' : 'text-ink-muted hover:text-accent' }}">
             <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{{ $item['path'] }}" /></svg>
             <span>{{ $item['label'] }}</span>
         </a>

@@ -22,7 +22,7 @@ it('preserves the map and sidebar while updating dependent options, search and h
         ->assertPresent('[data-event-browser]:not([aria-busy]) [name="municipality"] option[value="Padova"][selected]');
     expect($page->script('window.filterUpdates'))->toBe(1);
     if ($device === 'mobile') {
-        expect($page->script('document.querySelector("[data-map-results]").getBoundingClientRect().top >= 0 && document.querySelector("[data-map-results]").getBoundingClientRect().top < innerHeight / 2'))->toBeTrue();
+        expect($page->script('document.querySelector("[data-map-region]").getBoundingClientRect().top >= -1 && document.querySelector("[data-map-region]").getBoundingClientRect().top < innerHeight / 2'))->toBeTrue();
     }
     expect($page->script('window.originalForm === document.querySelector("aside form") && window.originalMap === document.querySelector("[data-map-shell]") && window.originalTown === document.querySelector("[name=municipality]")'))->toBeTrue();
     expect($page->script('document.querySelector("aside details").open'))->toBeTrue();

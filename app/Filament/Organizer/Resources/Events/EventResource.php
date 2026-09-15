@@ -12,9 +12,11 @@ use App\Models\Event;
 use App\Models\Organizer;
 use Filament\Actions\EditAction;
 use Filament\Facades\Filament;
+use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
@@ -56,6 +58,16 @@ class EventResource extends Resource
             TextInput::make('price_min')->label('Prezzo da (€)')->numeric()->minValue(0),
             TextInput::make('price_max')->label('Prezzo fino a (€)')->numeric()->minValue(0),
             TextInput::make('ticket_url')->label('Link biglietti')->url()->maxLength(2048),
+            Section::make(__('facebook_import.first_date'))->visibleOn('create')->columns(2)->schema([
+                DateTimePicker::make('starts_at')->label(__('facebook_import.starts_at'))->seconds(false)->requiredWith('ends_at')->dehydrated(false),
+                DateTimePicker::make('ends_at')->label(__('facebook_import.ends_at'))->seconds(false)->after('starts_at')->dehydrated(false),
+            ]),
+            Section::make(__('facebook_import.location'))->description(__('facebook_import.organizer_location'))->visibleOn('create')->schema([
+                TextInput::make('custom_location.name')->label(__('facebook_import.place_name'))->maxLength(255),
+                TextInput::make('custom_location.address')->label(__('facebook_import.address'))->maxLength(255),
+                TextInput::make('custom_location.lat')->label(__('facebook_import.latitude'))->numeric()->minValue(-90)->maxValue(90),
+                TextInput::make('custom_location.lng')->label(__('facebook_import.longitude'))->numeric()->minValue(-180)->maxValue(180),
+            ]),
             BeforeGoingFields::make(),
             EditorialFields::content(event: true),
         ]);

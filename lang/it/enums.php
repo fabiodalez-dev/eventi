@@ -349,7 +349,7 @@ return [
 
     'consent_category_description' => [
         'necessary' => 'Il cookie di sessione, la protezione dei moduli, il cookie che ricorda questa scelta e le date che metti in agenda senza account, conservate nel tuo browser. Senza, il sito non fa quello che gli chiedi: per questo non si possono disattivare.',
-        'statistics' => 'Il conteggio anonimo delle pagine viste, per capire cosa serve davvero. Nessun cookie, nessun identificativo, nessun profilo: solo quante volte una pagina è stata aperta.',
+        'statistics' => 'Il conteggio aggregato delle pagine viste e dei click su indicazioni, biglietti, contatti, calendario e condivisioni. Nessun cookie aggiuntivo, nessun identificativo del visitatore e nessun profilo personale.',
         'marketing' => 'Ci permette di scegliere gli annunci in base agli eventi che hai salvato, invece di mostrarteli a caso. Senza il tuo consenso restano, ma uguali per tutti.',
     ],
 

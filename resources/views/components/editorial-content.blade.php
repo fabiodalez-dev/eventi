@@ -6,7 +6,12 @@
             <h2 id="prima-di-andare" class="font-display text-xl font-extrabold m-0 mb-2">{{ __('seo.before_going') }}</h2>
             <ul class="list-none m-0 p-0 divide-y divide-line">
                 @foreach ($details['practical_items'] as $item)
-                    <li class="flex items-start gap-3 py-3 first:pt-0">
+                    {{-- `py-3` separa una voce dall'altra, ma sulla prima e
+                         sull'ultima diventa spazio verso il bordo del
+                         contenitore, che ha gia' il proprio margine: sommati,
+                         lasciano un vuoto sopra e sotto l'elenco. La prima era
+                         gia' sistemata, l'ultima no. --}}
+                    <li class="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
                         @svg('heroicon-o-'.$item['icon'], 'size-5 shrink-0 mt-0.5 text-brand', ['aria-hidden' => 'true'])
                         <div class="min-w-0">
                             <p class="m-0 text-base font-semibold">{{ $item['label'] }}</p>

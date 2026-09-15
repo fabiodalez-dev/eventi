@@ -75,6 +75,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
@@ -197,6 +198,15 @@ fun SearchScreen(
     var query by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
+    var revealResults by remember { mutableStateOf(false) }
+    val resultsAlpha by rememberResultsAlpha(state.isSearching, state.searchResults)
+    LaunchedEffect(revealResults, state.isSearching) {
+        if (revealResults && !state.isSearching) {
+            withFrameNanos { }
+            listState.scrollToItem(minOf(2, (listState.layoutInfo.totalItemsCount - 1).coerceAtLeast(0)))
+            revealResults = false
+        }
+    }
     LazyColumn(Modifier.fillMaxSize().padding(bottom = padding.calculateBottomPadding()), state = listState) {
         item { BrandHeader(compact = true) }
         item {
@@ -220,7 +230,7 @@ fun SearchScreen(
                     colors = fieldColors(),
                 )
                 Text(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.search_live_help), color = Muted, modifier = Modifier.padding(top = 10.dp))
-                SearchFilters(state, query, collapsible = true, onCollapse = { scope.launch { listState.scrollToItem(1) } }) { filters, summary -> onFilters(filters, summary, query) }
+                SearchFilters(state, query, collapsible = true, onCollapse = { revealResults = true }) { filters, summary -> onFilters(filters, summary, query) }
                 state.activeTag?.let { tag ->
                     Button(
                         onClick = onClearTag,
@@ -267,7 +277,9 @@ fun SearchScreen(
             )
         }
         items(state.searchResults, key = Occurrence::occurrenceId) { occurrence ->
-            EventRow(occurrence, occurrence.occurrenceId in state.savedIds, onOpen, onSave)
+            Box(Modifier.fillMaxWidth().graphicsLayer { alpha = resultsAlpha }) {
+                EventRow(occurrence, occurrence.occurrenceId in state.savedIds, onOpen, onSave)
+            }
         }
     }
 }
@@ -299,8 +311,8 @@ fun SavedScreen(
 
     LaunchedEffect(mode) { listState.scrollToItem(0) }
     LazyColumn(Modifier.fillMaxSize().padding(bottom = padding.calculateBottomPadding()), state = listState) {
-        if (onProfile != null) item { TextButton(onClick = onProfile, modifier = Modifier.padding(horizontal = 18.dp).heightIn(min = 48.dp)) { Text("Il mio profilo") } }
         item { BrandHeader(compact = true) }
+        if (onProfile != null) item { TextButton(onClick = onProfile, modifier = Modifier.padding(horizontal = 18.dp).heightIn(min = 48.dp)) { Text("Il mio profilo") } }
         item {
             Column(Modifier.padding(18.dp)) {
                 Text("SALVATI", style = androidx.compose.material3.MaterialTheme.typography.displayMedium)
@@ -651,18 +663,22 @@ fun EventDetailScreen(
 }
 
 @Composable
-private fun BrandHeader(compact: Boolean = false) {
+internal fun BrandHeader(compact: Boolean = false, onBack: (() -> Unit)? = null, action: @Composable () -> Unit = {}) {
     Row(
         Modifier.fillMaxWidth().statusBarsPadding().height(if (compact) 64.dp else 74.dp).padding(horizontal = 18.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        if (onBack != null) {
+            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Indietro") }
+        }
         Text("IN", style = androidx.compose.material3.MaterialTheme.typography.headlineLarge, color = Acid)
         Text("CITTÀ", style = androidx.compose.material3.MaterialTheme.typography.headlineLarge)
         Spacer(Modifier.weight(1f))
-        Column(horizontalAlignment = Alignment.End) {
+        if (onBack == null) Column(horizontalAlignment = Alignment.End) {
             Text("PADOVA", style = androidx.compose.material3.MaterialTheme.typography.labelLarge)
             Text("VENETO / IT", color = Muted, fontSize = 10.sp)
         }
+        action()
     }
     HorizontalDivider(thickness = 2.dp, color = Paper)
 }

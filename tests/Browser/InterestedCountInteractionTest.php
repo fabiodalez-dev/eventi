@@ -24,11 +24,11 @@ it('updates the visible interested count when a guest saves and removes a date',
         ->assertSee('Organizzato da')
         ->assertSee('2 persone interessate')
         ->assertMissing('[data-interest-id="'.$date->id.'"] svg')
-        ->click('[data-save-id="'.$date->id.'"] [data-save-button]')
+        ->click('main [data-save-id="'.$date->id.'"] [data-save-button]')
         ->assertSee('3 persone interessate')
         ->refresh()
         ->assertSee('3 persone interessate')
-        ->click('[data-save-id="'.$date->id.'"] [data-save-button]')
+        ->click('main [data-save-id="'.$date->id.'"] [data-save-button]')
         ->assertSee('2 persone interessate');
 
     expect($page->script('() => document.querySelector("[data-interest-id=\\"'.$date->id.'\\"]").previousElementSibling.matches("[data-save]")'))->toBeTrue();

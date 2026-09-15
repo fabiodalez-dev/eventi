@@ -25,7 +25,15 @@
 @endphp
 
 @if ($occurrences->isNotEmpty())
-    <section aria-labelledby="salva-evento" class="flex flex-col items-start gap-2 pt-1">
+    <section aria-labelledby="salva-evento" {{-- Niente `pt-1`: quel margine serviva quando questo blocco stava dentro
+         l'elenco delle date. Ora e' una voce della riga accanto all'attribuzione,
+         e quei quattro pixel bastano a disallineare il pulsante dal testo che
+         gli sta di fianco. --}}
+    {{-- `items-center`: il conteggio degli interessati si centra sul pulsante,
+         che e' piu' largo. Allineati a sinistra come prima, il conteggio
+         risultava spostato di una decina di pixel rispetto al comando a cui si
+         riferisce. --}}
+    class="flex flex-col items-center gap-2">
         <h2 id="salva-evento" class="sr-only">{{ __('account.save.action') }}</h2>
 
         @if ($single !== null)

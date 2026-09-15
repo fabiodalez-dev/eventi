@@ -17,6 +17,7 @@
 @endphp
 
 <x-layouts.app :meta="app(\App\Services\Seo\EditorialContent::class)->meta($venue, $meta)" :preload="$cover">
+    <x-content-analytics :subject="$venue" type="venue" />
     <x-slot:head>
         <x-json-ld :data="$structuredData" />
 

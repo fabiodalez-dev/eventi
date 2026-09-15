@@ -119,7 +119,6 @@ import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
-import kotlin.math.roundToInt
 
 private const val MAP_STYLE = "https://tiles.openfreemap.org/styles/dark"
 
@@ -144,13 +143,13 @@ fun CompleteEventDetailScreen(
     Box(Modifier.fillMaxSize()) {
         Surface(Modifier.fillMaxSize(), color = Ink, contentColor = Paper) {
             Column(Modifier.fillMaxSize().statusBarsPadding()) {
-            DetailBar("IN CITTÀ / EVENTO", onBack) {
+            BrandHeader(compact = true, onBack = onBack) {
                 detail.occurrences.firstOrNull()?.let { occurrence ->
                     IconButton(onClick = { onSave(occurrence.occurrenceId) }) {
                         Icon(
                             if (occurrence.occurrenceId in savedIds) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder,
                             if (occurrence.occurrenceId in savedIds) "Rimuovi dai salvati" else "Salva questa data",
-                            tint = Ink,
+                            tint = Paper,
                         )
                     }
                 }
@@ -176,9 +175,20 @@ fun CompleteEventDetailScreen(
                     }
                 }
 
+                if (detail.organizer.name != null || detail.externalLinks.isNotEmpty()) {
+                    DetailSection("LINK E ORGANIZZATORE") {
+                        detail.organizer.name?.let { name ->
+                            LabeledValue("Organizza", name)
+                            if (detail.organizer.slug != null) SmallLink("TUTTI GLI EVENTI DELL'ORGANIZZATORE") { onOrganizer(detail.organizer.slug) }
+                            else if (detail.organizer.hostFallback && detail.venue != null) SmallLink("TUTTI GLI EVENTI DEL LOCALE") { onVenue(detail.venue) }
+                            else detail.organizer.url?.let { url -> SmallLink("SITO DELL'ORGANIZZATORE") { openUrl(context, url) } }
+                        }
+                        detail.externalLinks.forEach { link -> SmallLink(link.label.uppercase()) { openUrl(context, link.url) } }
+                    }
+                }
+
                 DetailSection("TUTTE LE DATE") {
                     if (detail.occurrences.isEmpty()) Text("Nessuna data futura disponibile.", color = Muted)
-                    detail.occurrences.firstOrNull()?.let { EventWeatherSection(it.occurrenceId, loadWeather) }
                     detail.occurrences.forEachIndexed { index, occurrence ->
                         if (index > 0) HorizontalDivider(Modifier.padding(vertical = 14.dp), color = Rule)
                         OccurrenceDateBlock(detail, occurrence, occurrence.occurrenceId in savedIds, onSave)
@@ -201,8 +211,6 @@ fun CompleteEventDetailScreen(
                         )
                     }
                 }
-
-                EditorialInformation(detail.contentDetails)
 
                 if (detail.facts.isNotEmpty() || detail.ageRestriction != null || detail.language != null || detail.isOutdoor) {
                     DetailSection("INFORMAZIONI") {
@@ -281,23 +289,36 @@ fun CompleteEventDetailScreen(
                     }
                 }
 
+                /*
+                 * Condividi come sezione, non come pulsante in coda.
+                 *
+                 * Nel sito è una sezione fra "dove" e "prima di andare", e l'ordine
+                 * della scheda evento è lo stesso sulle due piattaforme: chi legge
+                 * l'evento sul telefono e poi sul sito ritrova le stesse cose nello
+                 * stesso posto. In coda restava solo la segnalazione di un errore,
+                 * che è un'altra cosa.
+                 */
+                DetailSection("CONDIVIDI") {
+                    ActionButton("CONDIVIDI QUESTO EVENTO", Icons.Outlined.Share) { share(context, detail.title, detail.url ?: "https://eventi.fabiodalez.it/eventi/${detail.slug}") }
+                }
+
+                EditorialInformation(detail.contentDetails)
+
+                /*
+                 * Il meteo è una sezione sua, non una riga dentro "tutte le date".
+                 *
+                 * Lì dentro si leggeva prima delle date a cui si riferisce, e su uno
+                 * schermo stretto era la prima cosa sotto il titolo della sezione.
+                 * `EventWeatherSection` non disegna niente quando la previsione non
+                 * c'è, quindi qui non resta un riquadro vuoto.
+                 */
+                detail.occurrences.firstOrNull()?.let { EventWeatherSection(it.occurrenceId, loadWeather) }
+
                 if (detail.tags.isNotEmpty()) {
                     DetailSection("TAG") {
                         PeekTabRow {
                             detail.tags.forEach { tag -> TagButton(tag) { onTag(tag) } }
                         }
-                    }
-                }
-
-                if (detail.organizer.name != null || detail.externalLinks.isNotEmpty()) {
-                    DetailSection("LINK E ORGANIZZATORE") {
-                        detail.organizer.name?.let { name ->
-                            LabeledValue("Organizza", name)
-                            if (detail.organizer.slug != null) SmallLink("TUTTI GLI EVENTI DELL'ORGANIZZATORE") { onOrganizer(detail.organizer.slug) }
-                            else if (detail.organizer.hostFallback && detail.venue != null) SmallLink("TUTTI GLI EVENTI DEL LOCALE") { onVenue(detail.venue) }
-                            else detail.organizer.url?.let { url -> SmallLink("SITO DELL'ORGANIZZATORE") { openUrl(context, url) } }
-                        }
-                        detail.externalLinks.forEach { link -> SmallLink(link.label.uppercase()) { openUrl(context, link.url) } }
                     }
                 }
 
@@ -308,8 +329,6 @@ fun CompleteEventDetailScreen(
                 }
 
                 Column(Modifier.padding(18.dp)) {
-                    ActionButton("CONDIVIDI", Icons.Outlined.Share) { share(context, detail.title, detail.url ?: "https://eventi.fabiodalez.it/eventi/${detail.slug}") }
-                    Spacer(Modifier.height(10.dp))
                     OutlinedButton(
                         onClick = { openUrl(context, "https://eventi.fabiodalez.it/eventi/${detail.slug}/segnala") },
                         modifier = Modifier.fillMaxWidth().height(50.dp),
@@ -575,7 +594,10 @@ fun MapScreen(
                 EventFilter.FREE -> mapOf("price" to "free")
             }
             Column(Modifier.fillMaxWidth().heightIn(max = 320.dp).verticalScroll(rememberScrollState()).padding(horizontal = 12.dp)) {
-                SearchFilters(state.copy(discoveryFilters = active)) { filters, _ -> onSearchFilters(filters) }
+                SearchFilters(state.copy(discoveryFilters = active)) { filters, _ ->
+                    showMapFilters = false
+                    onSearchFilters(filters)
+                }
             }
         }
         if (state.isMapLoading && state.mapMarkers.isEmpty()) {
@@ -584,12 +606,9 @@ fun MapScreen(
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("NESSUN APPUNTAMENTO PER QUESTO FILTRO", color = Muted) }
         } else {
             val points = state.mapMarkers.map { MapPoint(it.lat, it.lng, it.title, it) }
-            val coordinates = state.discoveryFilters["near"]?.split(',')?.mapNotNull { it.toDoubleOrNull() }
+            val coordinates = state.mapSearchFilters?.get("near")?.split(',')?.mapNotNull { it.toDoubleOrNull() }
             val userPosition = coordinates?.takeIf { it.size == 2 && it[0] in -90.0..90.0 && it[1] in -180.0..180.0 }?.let { LatLng(it[0], it[1]) }
-            val mapOpacity by androidx.compose.animation.core.animateFloatAsState(
-                targetValue = if (state.isMapLoading) 0.5f else 1f,
-                animationSpec = androidx.compose.animation.core.tween(180), label = "mapFilters",
-            )
+            val mapOpacity by rememberResultsAlpha(state.isMapLoading, state.mapMarkers)
             Box(Modifier.fillMaxWidth().weight(1f)) {
                 key(state.mapFilter, state.mapMarkers.map(MapMarker::id)) {
                     InteractiveMap(points, Modifier.fillMaxSize().graphicsLayer { alpha = mapOpacity }, 11.2, userPosition) { group ->
@@ -606,7 +625,6 @@ fun MapScreen(
                     )
                 }
             }
-            Text("NUMERO = LUOGHI · PUNTO = EVENTI DEL LOCALE · © OPENFREEMAP · © OPENSTREETMAP", color = Ink, modifier = Modifier.fillMaxWidth().background(Acid).padding(12.dp), style = androidx.compose.material3.MaterialTheme.typography.labelMedium)
         }
     }
 }
@@ -647,21 +665,22 @@ private fun MapVenuePreview(events: List<Occurrence>, total: Int, onOpen: (Occur
 @Composable
 fun ConsentOverlay(onChoice: (Boolean) -> Unit) {
     val context = LocalContext.current
-    Box(Modifier.fillMaxSize().background(Color(0xDD000000)), contentAlignment = Alignment.BottomCenter) {
-        Column(Modifier.fillMaxWidth().background(Paper).padding(20.dp).padding(bottom = 20.dp)) {
-            Text("DUE PAROLE SU COSA SALVIAMO", color = Ink, style = androidx.compose.material3.MaterialTheme.typography.headlineMedium)
+    val maxHeight = androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp.dp - 48.dp
+    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.scrim.copy(alpha = .85f)), contentAlignment = Alignment.BottomCenter) {
+        Column(Modifier.fillMaxWidth().heightIn(max = maxHeight).background(MaterialTheme.colorScheme.surface).verticalScroll(rememberScrollState()).padding(20.dp).padding(bottom = 20.dp)) {
+            Text("DUE PAROLE SU COSA SALVIAMO", color = Paper, style = MaterialTheme.typography.headlineMedium)
             Text(
                 "L'app conserva sul dispositivo sessione, preferenze e date salvate. Mappe, immagini e link esterni possono inviare dati tecnici ai rispettivi fornitori. Consulta le informative per sapere quali dati sono usati e come modificare la scelta.",
-                color = Color(0xFF353532),
+                color = Muted,
                 modifier = Modifier.padding(top = 12.dp),
             )
             Row(Modifier.fillMaxWidth().padding(top = 14.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = { onChoice(true) }, modifier = Modifier.weight(1f).height(50.dp), shape = ControlShape, colors = ButtonDefaults.buttonColors(containerColor = Acid, contentColor = Ink)) { Text("ACCETTA") }
-                OutlinedButton(onClick = { onChoice(false) }, modifier = Modifier.weight(1f).height(50.dp), shape = ControlShape, border = BorderStroke(2.dp, Ink)) { Text("RIFIUTA", color = Ink) }
+                Button(onClick = { onChoice(true) }, modifier = Modifier.weight(1f).height(50.dp), shape = ControlShape, colors = ButtonDefaults.buttonColors(containerColor = Acid, contentColor = MaterialTheme.colorScheme.onPrimary)) { Text("ACCETTA") }
+                OutlinedButton(onClick = { onChoice(false) }, modifier = Modifier.weight(1f).height(50.dp), shape = ControlShape, border = BorderStroke(2.dp, Rule)) { Text("RIFIUTA", color = Paper) }
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                TextButton(onClick = { openUrl(context, "https://eventi.fabiodalez.it/pagine/privacy") }) { Text("PRIVACY", color = Ink) }
-                TextButton(onClick = { openUrl(context, "https://eventi.fabiodalez.it/pagine/cookie") }) { Text("COOKIE POLICY", color = Ink) }
+                TextButton(onClick = { openUrl(context, "https://eventi.fabiodalez.it/pagine/privacy") }) { Text("PRIVACY", color = Paper) }
+                TextButton(onClick = { openUrl(context, "https://eventi.fabiodalez.it/pagine/cookie") }) { Text("COOKIE POLICY", color = Paper) }
             }
         }
     }
@@ -680,7 +699,7 @@ private fun InteractiveMap(
 ) {
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
-    val light = androidx.compose.material3.MaterialTheme.colorScheme.background == Color(0xFFFCFCFB)
+    val light = isLightTheme
     val positionLabel = androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.map_your_position)
     val mapView = remember(points, light, userPosition) {
         MapLibre.getInstance(context)
@@ -693,7 +712,7 @@ private fun InteractiveMap(
                 map.uiSettings.apply {
                     isCompassEnabled = true
                     isLogoEnabled = false
-                    isAttributionEnabled = false
+                    isAttributionEnabled = true
                     isZoomGesturesEnabled = true
                     isScrollGesturesEnabled = true
                     isRotateGesturesEnabled = false
@@ -705,13 +724,6 @@ private fun InteractiveMap(
                     val groupVenueCounts = mutableMapOf<Long, Int>()
                     val iconFactory = IconFactory.getInstance(context)
 
-                    fun cellSize(currentZoom: Double): Double = when {
-                        currentZoom < 12.5 -> 0.018
-                        currentZoom < 14.5 -> 0.0045
-                        currentZoom < 16.0 -> 0.0008
-                        else -> 0.00004
-                    }
-
                     fun renderMarkers() {
                         map.clear()
                         markerGroups.clear()
@@ -720,15 +732,17 @@ private fun InteractiveMap(
                         userPosition?.let { position ->
                             map.addMarker(MarkerOptions().position(position).title(positionLabel).icon(iconFactory.fromBitmap(userLocationBitmap(context.resources.displayMetrics))))
                         }
-                        val cell = cellSize(map.cameraPosition.zoom)
                         val venueGroups = points.groupBy { point ->
                             "%.5f:%.5f".format(Locale.US, point.lat, point.lng)
-                        }
-                        val spatialGroups = venueGroups.values.groupBy { venueGroup ->
+                        }.values.toList()
+                        val screenPoints = venueGroups.map { venueGroup ->
                             val point = venueGroup.first()
-                            (point.lat / cell).roundToInt() to (point.lng / cell).roundToInt()
+                            val screen = map.projection.toScreenLocation(LatLng(point.lat, point.lng))
+                            screen.x to screen.y
                         }
-                        spatialGroups.values.forEach { venueGroupCluster ->
+                        val spacing = (markerDiameterDp(venueGroups.size) + 4) * context.resources.displayMetrics.density
+                        clusterMapPoints(screenPoints, spacing).forEach { indices ->
+                            val venueGroupCluster = indices.map(venueGroups::get)
                             val group = venueGroupCluster.flatten()
                             val position = LatLng(group.map(MapPoint::lat).average(), group.map(MapPoint::lng).average())
                             val venueCount = venueGroupCluster.size
@@ -807,7 +821,7 @@ private fun userLocationBitmap(metrics: android.util.DisplayMetrics): Bitmap {
     return bitmap
 }
 
-private fun mapMarkerBitmap(count: Int, metrics: android.util.DisplayMetrics, light: Boolean = false): Bitmap {
+internal fun mapMarkerBitmap(count: Int, metrics: android.util.DisplayMetrics, light: Boolean = false): Bitmap {
     val size = markerDiameterDp(count)
     val center = size / 2f
     val pixels = (size * metrics.density).toInt().coerceAtLeast(size)
@@ -837,14 +851,15 @@ private fun mapMarkerBitmap(count: Int, metrics: android.util.DisplayMetrics, li
         paint.strokeWidth = 4f
         paint.color = if (light) android.graphics.Color.rgb(250, 249, 246) else android.graphics.Color.rgb(11, 11, 11)
         canvas.drawCircle(center, center, center - 3f, paint)
-        paint.style = Paint.Style.FILL
-        paint.color = if (light) android.graphics.Color.rgb(250, 249, 246) else android.graphics.Color.rgb(11, 11, 11)
-        paint.textAlign = Paint.Align.CENTER
-        paint.typeface = android.graphics.Typeface.DEFAULT_BOLD
-        paint.textSize = if (count >= 100) 16f else 18f
-        val baseline = center - (paint.ascent() + paint.descent()) / 2f
-        canvas.drawText(if (count > 99) "99+" else count.toString(), center, baseline, paint)
     }
+    // Keep the count visible after a cluster splits into individual venues.
+    paint.style = Paint.Style.FILL
+    paint.color = if (light) android.graphics.Color.rgb(250, 249, 246) else android.graphics.Color.rgb(11, 11, 11)
+    paint.textAlign = Paint.Align.CENTER
+    paint.typeface = android.graphics.Typeface.DEFAULT_BOLD
+    paint.textSize = if (count >= 100) 16f else 18f
+    val baseline = center - (paint.ascent() + paint.descent()) / 2f
+    canvas.drawText(if (count > 99) "99+" else count.toString(), center, baseline, paint)
     return bitmap
 }
 
@@ -885,8 +900,34 @@ private fun ScreenHeader(title: String, subtitle: String, onBack: (() -> Unit)? 
     }
 }
 
+/*
+ * Una sezione della scheda evento, nei due impianti.
+ *
+ * Nello scuro la pagina e' un tabellone: le sezioni stanno tutte sullo stesso
+ * nero e a separarle e' il filo pieno da 2dp sotto il titolo. Nel chiaro sono
+ * riquadri incassati, con lo stesso colore del sito (--surface, #F1F0EC) e lo
+ * stesso raggio da pannello: li' a separare sono lo sfondo e lo spazio, e il
+ * filo nero da 2dp sarebbe una riga di troppo su un fondo gia' chiuso.
+ *
+ * `internal` e non `private` perche' la serve anche EventWeatherSection, che
+ * dal riordino e' una sezione a se'.
+ */
 @Composable
-private fun DetailSection(title: String, content: @Composable () -> Unit) {
+internal fun DetailSection(title: String, content: @Composable () -> Unit) {
+    if (isLightTheme) {
+        Surface(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 6.dp),
+            color = androidx.compose.material3.MaterialTheme.colorScheme.surfaceVariant,
+            shape = CardShape,
+        ) {
+            Column(Modifier.padding(18.dp)) {
+                Text(title, color = Acid, style = androidx.compose.material3.MaterialTheme.typography.labelLarge)
+                Spacer(Modifier.height(12.dp))
+                content()
+            }
+        }
+        return
+    }
     Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 18.dp)) {
         Text(title, color = Acid, style = androidx.compose.material3.MaterialTheme.typography.labelLarge)
         HorizontalDivider(Modifier.padding(top = 8.dp, bottom = 14.dp), thickness = 2.dp, color = Paper)

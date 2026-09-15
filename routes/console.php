@@ -160,7 +160,8 @@ Schedule::command('backup:run')
      * backup e' spento non ha senso nemmeno provare a scrivere un file di
      * prova da centinaia di megabyte per poi non usarlo.
      */
-    ->when(fn (): bool => config()->boolean('backup.scheduled') && SpazioSufficiente::perIlBackup())
+    ->when(fn (): bool => config()->boolean('backup.scheduled'))
+    ->when(SpazioSufficiente::perIlBackup())
     ->withoutOverlapping(120)
     ->graceTimeInMinutes(120);
 

@@ -9,10 +9,12 @@ use App\Enums\LineupRole;
 use App\Enums\OccurrenceScope;
 use App\Enums\OccurrenceStatus;
 use App\Filament\Support\EventStatusPresentation;
+use App\Filament\Support\OccurrenceAnalyticsFields;
 use App\Filament\Venue\Support\CurrentVenue;
 use App\Models\Booking;
 use App\Models\Event;
 use App\Models\EventOccurrence;
+use App\Services\Analytics\OccurrenceAnalytics;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
@@ -123,6 +125,8 @@ class OccurrencesRelationManager extends RelationManager
         $timezone = CurrentVenue::timezone();
 
         return $table
+            ->modifyQueryUsing(fn ($query) => OccurrenceAnalytics::withTotals($query))
+            ->description(__('analytics.occurrence_totals'))
             ->recordTitleAttribute('starts_at')
             ->columns([
                 TextColumn::make('starts_at')
@@ -143,6 +147,7 @@ class OccurrencesRelationManager extends RelationManager
                 TextColumn::make('lineups_count')
                     ->label(__('manage.resources.lineup.plural'))
                     ->counts('lineups'),
+                ...OccurrenceAnalyticsFields::columns(),
             ])
             ->defaultSort('starts_at')
             ->headerActions([
@@ -151,6 +156,7 @@ class OccurrencesRelationManager extends RelationManager
                     ->authorize(fn (): bool => $this->canAddDate()),
             ])
             ->recordActions([
+                OccurrenceAnalyticsFields::action(),
                 Action::make('ticketing')
                     ->label(__('ticketing.manage'))
                     ->visible(fn (EventOccurrence $record): bool => auth()->user()?->can('manage', [Booking::class, $record]) ?? false)

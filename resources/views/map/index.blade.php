@@ -50,7 +50,7 @@
             </div>
         </aside>
 
-        <section data-filter-transition data-map-region aria-label="{{ __('map.label') }}" class="relative isolate order-1 flex flex-col bg-canvas lg:order-2 lg:h-below-header">
+        <section data-filter-transition data-map-region aria-label="{{ __('map.label') }}" class="scroll-mt-header relative isolate order-1 flex flex-col bg-canvas lg:order-2 lg:h-below-header">
             <x-events-map
                 :city="$city"
                 :filters="$filters"

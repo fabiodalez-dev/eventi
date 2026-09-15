@@ -17,11 +17,11 @@ class FilterInteractionTest {
     @get:Rule val compose = createAndroidComposeRule<MainActivity>()
     private var applied: Map<String, String>? = null
 
-    private fun screen(filters: Map<String, String>) {
+    private fun screen(filters: Map<String, String>, collapsible: Boolean = false, onCollapse: () -> Unit = {}) {
         compose.runOnIdle { compose.activity.setContent {
             InCittaTheme {
                 Column(Modifier.verticalScroll(rememberScrollState())) {
-                    SearchFilters(AppUiState(discoveryFilters = filters)) { next, _ -> applied = next }
+                    SearchFilters(AppUiState(discoveryFilters = filters), collapsible = collapsible, onCollapse = onCollapse) { next, _ -> applied = next }
                 }
             }
         }
@@ -48,6 +48,17 @@ class FilterInteractionTest {
         screen(mapOf("preset" to "tomorrow", "near" to "45,11", "radius_km" to "1"))
         compose.onNodeWithText("Azzera i filtri ×").performClick()
         compose.waitUntil(5000) { applied != null }
+        assertEquals(emptyMap<String, String>(), applied)
+    }
+
+    @Test fun applyingAFilterClosesThePanelAndRevealsResults() {
+        var collapsed = false
+        screen(mapOf("price" to "max10"), collapsible = true, onCollapse = { collapsed = true })
+        compose.onNodeWithText("Filtra i risultati").performClick()
+        compose.onNodeWithText("Azzera i filtri ×").performScrollTo().performClick()
+        compose.waitUntil(5000) { applied != null && collapsed }
+        compose.onNodeWithText("Filtra i risultati").assertIsDisplayed()
+        compose.onNodeWithText("Mostra i risultati").assertDoesNotExist()
         assertEquals(emptyMap<String, String>(), applied)
     }
 }
