@@ -208,19 +208,12 @@ class AppRepository(context: Context) {
         return payload.user
     }
 
-    suspend fun filteredOccurrences(filters: Map<String, String>, query: String): List<Occurrence> {
+    suspend fun filteredOccurrencesPage(filters: Map<String, String>, query: String, cursor: String? = null): ApiEnvelope<List<Occurrence>> {
         val token = _session.value?.token
-        val parameters = filterQuery(filters + ("limit" to "50"), query)
-        val result = mutableListOf<Occurrence>()
-        val seen = mutableSetOf<String>()
-        var cursor: String? = null
-        do {
-            val page = api.get<ApiEnvelope<List<Occurrence>>>("events?$parameters" + (cursor?.let { "&cursor=${it.urlEncoded()}" } ?: ""), token)
-            if (_session.value?.token != token) throw kotlinx.coroutines.CancellationException("Session changed")
-            result += page.data
-            cursor = page.meta?.nextCursor?.takeIf { seen.add(it) }
-        } while (cursor != null)
-        return result.distinctBy(Occurrence::occurrenceId)
+        val parameters = filterQuery(mapOf("city" to "padova") + filters + ("limit" to "50"), query)
+        val page = api.get<ApiEnvelope<List<Occurrence>>>("events?$parameters" + (cursor?.let { "&cursor=${it.urlEncoded()}" } ?: ""), token)
+        if (_session.value?.token != token) throw kotlinx.coroutines.CancellationException("Session changed")
+        return page
     }
 
     suspend fun toggleSaved(occurrenceId: Long) = savedMutex.withLock {

@@ -15,7 +15,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun AppearancePicker(appearance: String, saving: Boolean, authenticated: Boolean, onSelect: (String) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("Aspetto", style = MaterialTheme.typography.titleLarge)
+        Text("Tema predefinito", style = MaterialTheme.typography.titleLarge)
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             listOf("dark" to "Scuro", "light" to "Chiaro").forEach { (value, label) ->
                 val active = appearance == value
@@ -33,5 +33,6 @@ fun AppearancePicker(appearance: String, saving: Boolean, authenticated: Boolean
             }
         }
         Text(if (saving) "Salvataggio…" else if (authenticated) "Salvato nel profilo, anche sul sito e sugli altri dispositivi." else "La scelta resta salvata su questo dispositivo.", color = Muted, style = MaterialTheme.typography.bodyMedium)
+        Text("Lo switch nell’header cambia il tema in uso senza modificare questa preferenza.", color = Muted, style = MaterialTheme.typography.bodyMedium)
     }
 }

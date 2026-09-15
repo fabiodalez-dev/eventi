@@ -143,17 +143,6 @@ fun CompleteEventDetailScreen(
     Box(Modifier.fillMaxSize()) {
         Surface(Modifier.fillMaxSize(), color = Ink, contentColor = Paper) {
             Column(Modifier.fillMaxSize().statusBarsPadding()) {
-            BrandHeader(compact = true, onBack = onBack) {
-                detail.occurrences.firstOrNull()?.let { occurrence ->
-                    IconButton(onClick = { onSave(occurrence.occurrenceId) }) {
-                        Icon(
-                            if (occurrence.occurrenceId in savedIds) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder,
-                            if (occurrence.occurrenceId in savedIds) "Rimuovi dai salvati" else "Salva questa data",
-                            tint = Paper,
-                        )
-                    }
-                }
-            }
             Column(Modifier.fillMaxSize().verticalScroll(scrollState)) {
                 val posterUrl = detail.poster?.full ?: detail.poster?.card
                 Box(Modifier.fillMaxWidth().heightIn(min = 440.dp)) {

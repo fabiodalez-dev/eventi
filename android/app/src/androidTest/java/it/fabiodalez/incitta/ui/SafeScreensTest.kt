@@ -2,6 +2,7 @@ package it.fabiodalez.incitta.ui
 
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Column
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.unit.dp
@@ -37,7 +38,10 @@ class SafeScreensTest {
     @Test fun savedHeaderComesBeforeTheProfileLinkWithoutExtraTopPadding() {
         compose.runOnIdle { compose.activity.setContent {
             InCittaTheme { AppSafeArea {
+                Column {
+                BrandHeader(compact = true) { HeaderThemeSwitch("dark", {}) }
                 SavedScreen(AppUiState(), PaddingValues(0.dp), {}, {}, onProfile = {})
+                }
             } }
         } }
         val header = compose.onNodeWithText("CITTÀ").assertIsDisplayed().fetchSemanticsNode()
@@ -48,12 +52,16 @@ class SafeScreensTest {
     @Test fun eventKeepsBrandedHeaderAndBackActionWhileContentScrolls() {
         compose.runOnIdle { compose.activity.setContent {
             InCittaTheme { AppSafeArea {
+                Column {
+                BrandHeader(compact = true, onBack = {}) { HeaderThemeSwitch("dark", {}) }
                 CompleteEventDetailScreen(EventDetail(id = 1, slug = "test", title = "Concerto", description = "Descrizione ".repeat(100)), { error("No weather for this fixture") }, emptyList(), emptySet(), {}, {}, {}, {}, {}, {})
+                }
             } }
         } }
         compose.onNodeWithText("CITTÀ").assertIsDisplayed()
         compose.onNodeWithText("DESCRIZIONE").performScrollTo()
         compose.onNodeWithText("CITTÀ").assertIsDisplayed()
         compose.onNodeWithContentDescription("Indietro").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Passa al tema chiaro").assertIsDisplayed()
     }
 }

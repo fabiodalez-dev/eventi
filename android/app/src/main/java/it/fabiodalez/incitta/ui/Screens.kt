@@ -125,7 +125,6 @@ fun EventsScreen(
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(bottom = padding.calculateBottomPadding()),
     ) {
-        item { BrandHeader() }
         if (state.isOffline) item { StatusStrip("MODALITÀ OFFLINE · ULTIMO AGGIORNAMENTO DISPONIBILE") }
         item { Ticker() }
         item {
@@ -194,6 +193,7 @@ fun SearchScreen(
     onEditDiscovery: () -> Unit = {},
     onClearDiscovery: () -> Unit = {},
     onFilters: (Map<String, String>, String, String) -> Unit = { _, _, _ -> },
+    onLoadMore: () -> Unit = {},
 ) {
     var query by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
@@ -203,12 +203,11 @@ fun SearchScreen(
     LaunchedEffect(revealResults, state.isSearching) {
         if (revealResults && !state.isSearching) {
             withFrameNanos { }
-            listState.scrollToItem(minOf(2, (listState.layoutInfo.totalItemsCount - 1).coerceAtLeast(0)))
+            listState.scrollToItem(minOf(1, (listState.layoutInfo.totalItemsCount - 1).coerceAtLeast(0)))
             revealResults = false
         }
     }
     LazyColumn(Modifier.fillMaxSize().padding(bottom = padding.calculateBottomPadding()), state = listState) {
-        item { BrandHeader(compact = true) }
         item {
             Column(Modifier.padding(18.dp)) {
                 Text(if (state.tab == it.fabiodalez.incitta.AppTab.EVENTS) "EVENTI" else "CERCA", style = androidx.compose.material3.MaterialTheme.typography.displayMedium)
@@ -245,7 +244,7 @@ fun SearchScreen(
             }
         }
         if (state.isSearching) item { LoadingBlock() }
-        if ((query.trim().length >= 3 || state.activeTag != null || state.discoverySummary != null) && !state.isSearching && state.searchResults.isEmpty() && state.searchVenues.isEmpty() && state.searchTags.isEmpty() && state.searchOrganizers.isEmpty()) {
+        if ((query.trim().length >= 3 || state.activeTag != null || state.discoverySummary != null) && !state.isSearching && state.searchError == null && state.searchResults.isEmpty() && state.searchVenues.isEmpty() && state.searchTags.isEmpty() && state.searchOrganizers.isEmpty()) {
             item { EmptyBlock("NESSUN RISULTATO", "Prova un genere, il nome di un locale o una parola più breve.") }
         }
         val venues = when {
@@ -281,6 +280,18 @@ fun SearchScreen(
                 EventRow(occurrence, occurrence.occurrenceId in state.savedIds, onOpen, onSave)
             }
         }
+        state.searchError?.let { error -> item {
+            Column(Modifier.padding(18.dp)) {
+                Text(error, color = Paper)
+                TextButton(onClick = { if (state.searchNextCursor != null) onLoadMore() else onSearch(query) }) { Text("RIPROVA") }
+            }
+        } }
+        if (state.searchNextCursor != null && state.searchError == null) item {
+            OutlinedButton(onClick = onLoadMore, enabled = !state.isLoadingMoreEvents,
+                modifier = Modifier.fillMaxWidth().padding(18.dp).heightIn(min = 48.dp), shape = ControlShape) {
+                Text(if (state.isLoadingMoreEvents) "CARICAMENTO…" else "MOSTRA ALTRI EVENTI")
+            }
+        }
     }
 }
 
@@ -311,7 +322,6 @@ fun SavedScreen(
 
     LaunchedEffect(mode) { listState.scrollToItem(0) }
     LazyColumn(Modifier.fillMaxSize().padding(bottom = padding.calculateBottomPadding()), state = listState) {
-        item { BrandHeader(compact = true) }
         if (onProfile != null) item { TextButton(onClick = onProfile, modifier = Modifier.padding(horizontal = 18.dp).heightIn(min = 48.dp)) { Text("Il mio profilo") } }
         item {
             Column(Modifier.padding(18.dp)) {
@@ -538,9 +548,8 @@ fun AccountScreen(
         Modifier.fillMaxSize().padding(bottom = padding.calculateBottomPadding()).imePadding(),
     ) {
     Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())) {
-        BrandHeader(compact = true)
         Column(Modifier.padding(18.dp)) {
-            AppearancePicker(state.appearance, state.appearanceSaving, false, onAppearance)
+            AppearancePicker(state.defaultAppearance, state.appearanceSaving, false, onAppearance)
             Spacer(Modifier.height(24.dp))
             Text("ENTRA IN CITTÀ", style = androidx.compose.material3.MaterialTheme.typography.displayMedium)
             Text("Sincronizza i tuoi eventi senza perdere quelli salvati come ospite.", color = Muted, modifier = Modifier.padding(top = 8.dp, bottom = 20.dp))
@@ -669,13 +678,13 @@ internal fun BrandHeader(compact: Boolean = false, onBack: (() -> Unit)? = null,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (onBack != null) {
-            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Indietro") }
+            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Indietro", tint = Paper) }
         }
         Text("IN", style = androidx.compose.material3.MaterialTheme.typography.headlineLarge, color = Acid)
-        Text("CITTÀ", style = androidx.compose.material3.MaterialTheme.typography.headlineLarge)
+        Text("CITTÀ", style = androidx.compose.material3.MaterialTheme.typography.headlineLarge, color = Paper)
         Spacer(Modifier.weight(1f))
         if (onBack == null) Column(horizontalAlignment = Alignment.End) {
-            Text("PADOVA", style = androidx.compose.material3.MaterialTheme.typography.labelLarge)
+            Text("PADOVA", style = androidx.compose.material3.MaterialTheme.typography.labelLarge, color = Paper)
             Text("VENETO / IT", color = Muted, fontSize = 10.sp)
         }
         action()

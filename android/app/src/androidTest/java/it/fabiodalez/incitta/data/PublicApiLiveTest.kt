@@ -15,6 +15,14 @@ class PublicApiLiveTest {
         api.get<ApiEnvelope<List<MapMarker>>>("map/occurrences?city=padova&preset=today")
         api.get<ApiEnvelope<SearchResults>>("search?city=padova&q=teatro")
         events.firstOrNull()?.let { api.get<ApiEnvelope<EventDetail>>("events/${it.eventSlug}") }
+        // Events uses cursor pagination, unlike Home and Map. Exercise every page.
+        var cursor: String? = null
+        val seen = mutableSetOf<String>()
+        do {
+            val page = api.get<ApiEnvelope<List<Occurrence>>>("events?city=padova&limit=50&q=" + (cursor?.let { "&cursor=${java.net.URLEncoder.encode(it, "UTF-8")}" } ?: ""))
+            cursor = page.meta?.nextCursor
+            org.junit.Assert.assertTrue("Repeated cursor", cursor == null || seen.add(cursor))
+        } while (cursor != null)
         Unit
     }
 }
