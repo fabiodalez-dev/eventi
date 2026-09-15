@@ -46,7 +46,7 @@ internal fun ProfileScreen(state: AppUiState, padding: PaddingValues, onTickets:
             when (section) {
                 null -> {
                     AccountIdentity(session.user, onLogout, !state.isAuthenticating)
-                    AppearancePicker(state.appearance, state.appearanceSaving, true, onAppearance)
+                    AppearancePicker(state.defaultAppearance, state.appearanceSaving, true, onAppearance)
                     ProfileRow("Dati personali", "Nome e fuso orario", Icons.Outlined.Person) { section = "Dati personali" }
                     ProfileRow("I miei biglietti", "Prossimi, passati e annullati", Icons.Outlined.ConfirmationNumber, onTickets)
                     ProfileRow("I miei interessi", "Scegli quali eventi vedere", Icons.Outlined.FavoriteBorder) { section = "I miei interessi" }

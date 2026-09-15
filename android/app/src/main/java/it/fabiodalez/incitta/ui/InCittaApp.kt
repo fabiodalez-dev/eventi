@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.height
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.WindowInsets
@@ -20,6 +21,8 @@ import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.Event
 import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.DarkMode
+import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.BottomAppBar
@@ -124,6 +127,16 @@ fun InCittaApp(viewModel: MainViewModel) {
         // Paint and reserve the system navigation area even when our tabs fade out.
         // Android 15 forces edge-to-edge: navigationBarColor alone cannot protect it.
         AppSafeArea {
+        androidx.compose.foundation.layout.Column(Modifier.fillMaxSize()) {
+        val headerEvent = state.selected?.takeIf { organizerSlug == null && state.bookingDate == null && state.selectedVenue == null }
+        BrandHeader(compact = true, onBack = if (headerEvent != null) viewModel::goBack else null) {
+            headerEvent?.occurrences?.firstOrNull()?.let { occurrence ->
+                androidx.compose.material3.IconButton(onClick = { viewModel.toggleSaved(occurrence.occurrenceId) }) {
+                    Icon(Icons.Outlined.BookmarkBorder, if (occurrence.occurrenceId in state.savedIds) "Rimuovi dai salvati" else "Salva questa data", tint = if (occurrence.occurrenceId in state.savedIds) Acid else Paper)
+                }
+            }
+            HeaderThemeSwitch(state.appearance, viewModel::toggleQuickAppearance)
+        }
         Scaffold(
             modifier = Modifier.nestedScroll(revealNavigation),
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
@@ -270,6 +283,7 @@ fun InCittaApp(viewModel: MainViewModel) {
                         onEditDiscovery = { tonightOpen = true },
                         onClearDiscovery = viewModel::clearDiscovery,
                         onFilters = viewModel::updateSearchFilters,
+                        onLoadMore = viewModel::loadMoreEvents,
                     )
                     AppTab.SAVED -> SavedScreen(state, padding, viewModel::open, viewModel::toggleSaved) { viewModel.selectTab(AppTab.ACCOUNT) }
                     AppTab.ACCOUNT -> AccountScreen(
@@ -293,14 +307,26 @@ fun InCittaApp(viewModel: MainViewModel) {
                 }
             }
         }
+        }
         if (state.privacyConsent == null) ConsentOverlay(viewModel::setPrivacyConsent)
         }
     }
 }
 
 @Composable
+internal fun HeaderThemeSwitch(appearance: String, onSwitch: () -> Unit) {
+    androidx.compose.material3.IconButton(onClick = onSwitch) {
+        Icon(
+            if (appearance == "light") Icons.Outlined.DarkMode else Icons.Outlined.LightMode,
+            contentDescription = if (appearance == "light") "Passa al tema scuro" else "Passa al tema chiaro",
+            tint = Paper,
+        )
+    }
+}
+
+@Composable
 internal fun AppSafeArea(content: @Composable () -> Unit) {
-    Box(Modifier.fillMaxSize().background(Ink).windowInsetsPadding(WindowInsets.safeDrawing)) {
+    Box(Modifier.fillMaxSize().background(Ink).windowInsetsPadding(WindowInsets.safeDrawing).clipToBounds()) {
         content()
     }
 }

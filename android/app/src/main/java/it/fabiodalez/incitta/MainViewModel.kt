@@ -36,6 +36,7 @@ internal fun navigationTarget(tab: AppTab, authenticated: Boolean): AppTab =
 
 data class AppUiState(
     val appearance: String = "dark",
+    val defaultAppearance: String = "dark",
     val appearanceSaving: Boolean = false,
     val bookings: List<it.fabiodalez.incitta.data.Booking> = emptyList(),
     val bookingDate: Occurrence? = null,
@@ -48,6 +49,9 @@ data class AppUiState(
     val occurrences: List<Occurrence> = emptyList(),
     val eventFilter: EventFilter = EventFilter.ALL,
     val searchResults: List<Occurrence> = emptyList(),
+    val searchNextCursor: String? = null,
+    val searchError: String? = null,
+    val isLoadingMoreEvents: Boolean = false,
     val searchVenues: List<Venue> = emptyList(),
     val searchOrganizers: List<it.fabiodalez.incitta.data.Organizer> = emptyList(),
     val searchTags: List<Tag> = emptyList(),
@@ -92,6 +96,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _state = MutableStateFlow(
         AppUiState(
             appearance = repository.appearance(),
+            defaultAppearance = repository.appearance(),
             occurrences = repository.cachedOccurrences(),
             session = repository.session.value,
             privacyConsent = repository.privacyConsent(),
@@ -145,10 +150,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
     private var searchJob: Job? = null
+    private var moreEventsJob: Job? = null
+    private var currentSearchQuery = ""
     private var refreshJob: Job? = null
     private var mapJob: Job? = null
     private var detailJob: Job? = null
     private var bookingJob: Job? = null
+    private var quickAppearance: String? = null
     private val detailHistory = mutableListOf<DetailSnapshot>()
 
     init {
@@ -157,10 +165,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 .collect { (session, saved) ->
                     val sessionChanged = _state.value.session?.token != session?.token
                     if (sessionChanged) {
+                        quickAppearance = null
                         bookingJob?.cancel()
                         _state.value = _state.value.copy(bookings = emptyList(), bookingDate = null, bookingAvailability = null, bookingBusy = false, bookingError = null)
                     }
-                    _state.value = _state.value.copy(session = session, savedIds = saved, appearance = repository.appearance())
+                    _state.value = _state.value.copy(session = session, savedIds = saved, defaultAppearance = repository.appearance(), appearance = quickAppearance ?: repository.appearance())
                     if (sessionChanged) interestsChanged()
                 }
         }
@@ -169,18 +178,23 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         loadMap()
     }
 
+    fun toggleQuickAppearance() {
+        quickAppearance = if (_state.value.appearance == "light") "dark" else "light"
+        _state.value = _state.value.copy(appearance = quickAppearance!!)
+    }
+
     fun setAppearance(value: String) {
         if (_state.value.appearanceSaving || value !in listOf("dark", "light")) return
-        val previous = _state.value.appearance
+        val previous = _state.value.defaultAppearance
         val token = repository.session.value?.token
-        _state.value = _state.value.copy(appearance = value, appearanceSaving = true)
+        _state.value = _state.value.copy(defaultAppearance = value, appearance = quickAppearance ?: value, appearanceSaving = true)
         viewModelScope.launch {
             try {
                 repository.setAppearance(value)
-                _state.value = _state.value.copy(appearance = repository.appearance(), message = "Aspetto salvato.")
+                _state.value = _state.value.copy(defaultAppearance = repository.appearance(), appearance = quickAppearance ?: repository.appearance(), message = "Tema predefinito salvato.")
             } catch (cancelled: CancellationException) { throw cancelled }
             catch (_: Exception) {
-                if (repository.session.value?.token == token) _state.value = _state.value.copy(appearance = previous, message = "Salvataggio non riuscito. Riprova quando sei online.")
+                if (repository.session.value?.token == token) _state.value = _state.value.copy(defaultAppearance = previous, appearance = quickAppearance ?: previous, message = "Salvataggio non riuscito. Riprova quando sei online.")
             } finally { _state.value = _state.value.copy(appearanceSaving = false) }
         }
     }
@@ -335,6 +349,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun interestsChanged() {
+        moreEventsJob?.cancel()
         discoveryGeneration++
         detailJob?.cancel()
         detailHistory.clear()
@@ -343,20 +358,24 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _state.value = _state.value.copy(occurrences = emptyList(), searchResults = emptyList(), searchOrganizers = emptyList(), searchVenues = emptyList(), searchTags = emptyList(), activeTag = null, mapMarkers = emptyList(), mapPreviewEvents = emptyList(), sponsoredBanner = null, relatedOccurrences = emptyList(), venueOccurrences = emptyList(), venuePastOccurrences = emptyList())
         refresh()
         loadMap()
+        if (_state.value.tab == AppTab.EVENTS || _state.value.tab == AppTab.SEARCH) search(currentSearchQuery)
         viewModelScope.launch { refreshSponsoredBanner(null) }
     }
 
     fun search(query: String) {
         searchJob?.cancel()
+        moreEventsJob?.cancel()
+        currentSearchQuery = query.trim()
+        _state.value = _state.value.copy(searchNextCursor = null, searchError = null, isLoadingMoreEvents = false, message = null)
         if (_state.value.tab == AppTab.EVENTS || _state.value.discoveryFilters.isNotEmpty() || _state.value.discoverySummary != null) {
             val filters = _state.value.discoveryFilters
             // Keep the previous results readable while the next filter loads.
             _state.value = _state.value.copy(isSearching = true)
             searchJob = viewModelScope.launch {
                 delay(280)
-                runCatching { repository.filteredOccurrences(filters, query.trim()) }
-                    .onSuccess { _state.value = _state.value.copy(searchResults = it, isSearching = false) }
-                    .onFailure { if (it !is CancellationException) _state.value = _state.value.copy(isSearching = false, message = userMessage(it)) }
+                runCatching { repository.filteredOccurrencesPage(filters, query.trim()) }
+                    .onSuccess { _state.value = _state.value.copy(searchResults = it.data.distinctBy(Occurrence::occurrenceId), searchNextCursor = it.meta?.nextCursor, isSearching = false) }
+                    .onFailure { if (it !is CancellationException) _state.value = _state.value.copy(isSearching = false, searchError = userMessage(it)) }
             }
             return
         }
@@ -383,6 +402,28 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         _state.value = _state.value.copy(isSearching = false, message = userMessage(it))
                     }
                 }
+        }
+    }
+
+    fun loadMoreEvents() {
+        val cursor = _state.value.searchNextCursor ?: return
+        if (_state.value.isLoadingMoreEvents || _state.value.isSearching) return
+        val filters = _state.value.discoveryFilters
+        val query = currentSearchQuery
+        _state.value = _state.value.copy(isLoadingMoreEvents = true, searchError = null)
+        moreEventsJob = viewModelScope.launch {
+            try {
+                val page = repository.filteredOccurrencesPage(filters, query, cursor)
+                _state.value = _state.value.copy(
+                    searchResults = (_state.value.searchResults + page.data).distinctBy(Occurrence::occurrenceId),
+                    searchNextCursor = page.meta?.nextCursor?.takeUnless { it == cursor },
+                    isLoadingMoreEvents = false,
+                )
+            } catch (cancelled: CancellationException) { throw cancelled }
+            catch (error: Exception) {
+                // A later page must never discard events already displayed. Keep its cursor for retry.
+                _state.value = _state.value.copy(isLoadingMoreEvents = false, searchError = userMessage(error))
+            }
         }
     }
 
@@ -538,6 +579,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun browseTag(tag: Tag) {
         searchJob?.cancel()
+        resetEventPagination()
         _state.value = _state.value.copy(discoveryFilters = emptyMap(), discoverySummary = null)
         viewModelScope.launch {
             val previous = currentSnapshot()
@@ -561,6 +603,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun browseCategory(slug: String) {
         searchJob?.cancel()
+        resetEventPagination()
         _state.value = _state.value.copy(discoveryFilters = emptyMap(), discoverySummary = null)
         viewModelScope.launch {
             val previous = currentSnapshot()
@@ -583,6 +626,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun clearTagFilter() {
+        searchJob?.cancel()
+        resetEventPagination()
         _state.value = _state.value.copy(
             activeTag = null,
             searchResults = emptyList(),
@@ -590,6 +635,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             searchOrganizers = emptyList(), searchVenues = emptyList(),
             message = null,
         )
+    }
+
+    private fun resetEventPagination() {
+        moreEventsJob?.cancel()
+        _state.value = _state.value.copy(searchNextCursor = null, searchError = null, isLoadingMoreEvents = false)
     }
 
     fun goBack() {

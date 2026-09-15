@@ -69,7 +69,6 @@ fun ContentPreferencesPanel(session: Session, standalone: Boolean = false, onSav
     }
     Text("Le nuove categorie appaiono qui automaticamente. In modalità Solo devi sceglierle per mostrarle; senza selezioni le liste saranno vuote.", color = Muted)
     current.options.forEach { category ->
-        var menu by remember(category.id) { mutableStateOf(false) }
         val value = when (category.id) {
             in current.selection.hiddenCategories -> "hidden"
             in current.selection.categories -> "interested"
@@ -78,19 +77,12 @@ fun ContentPreferencesPanel(session: Session, standalone: Boolean = false, onSav
         Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(category.name, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
             Box(Modifier.width(156.dp)) {
-                OutlinedButton(onClick = { menu = true }, enabled = !busy, shape = ControlShape, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp), colors = ButtonDefaults.outlinedButtonColors(contentColor = if (value == "interested") Acid else Paper)) {
-                    Text(when(value) { "hidden" -> "Nascondi"; "interested" -> "Mi interessa"; else -> "Nessuna preferenza" })
-                }
-                DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                    listOf("neutral" to "Nessuna preferenza", "interested" to "Mi interessa", "hidden" to "Nascondi").forEach { (choice, label) ->
-                        DropdownMenuItem(text = { Text(label) }, onClick = {
+                NativeChoicePicker(category.name, value,
+                    listOf("neutral" to "Nessuna preferenza", "interested" to "Mi interessa", "hidden" to "Nascondi"), enabled = !busy) { choice ->
                             change(current.selection.copy(
                                 categories = current.selection.categories - category.id + if (choice == "interested") listOf(category.id) else emptyList(),
                                 hiddenCategories = current.selection.hiddenCategories - category.id + if (choice == "hidden") listOf(category.id) else emptyList(),
                             ))
-                            menu = false
-                        })
-                    }
                 }
             }
         }
