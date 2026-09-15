@@ -39,6 +39,7 @@ it('fills each card edge to edge with aligned portrait covers across listings', 
                     }) && document.documentElement.scrollWidth <= innerWidth;
                 }
                 JS))->toBeTrue();
+
             continue;
         }
         /*

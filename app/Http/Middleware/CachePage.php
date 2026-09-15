@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Middleware;
 
 use App\Services\Cache\FrontendCacheConfiguration;
+use App\Services\RememberedLocation;
 use App\Support\Consent;
 use App\Support\ContentVersion;
 use App\Support\Csp;
@@ -413,7 +414,7 @@ final class CachePage
          * nessuno rileggerà mai — la stessa trappola dell'arrotondamento al
          * quarto d'ora, vista da un'altra parte.
          */
-        if ($request->hasAny(['near', 'lat', 'lng']) || $request->hasCookie(\App\Services\RememberedLocation::COOKIE)) {
+        if ($request->hasAny(['near', 'lat', 'lng']) || $request->hasCookie(RememberedLocation::COOKIE)) {
             return false;
         }
 
