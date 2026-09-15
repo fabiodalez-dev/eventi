@@ -35,7 +35,7 @@ it('keeps date links on a series even when only one date is displayed', function
     $this->get(route('events.show', $first->event))->assertOk()->assertSee(__('seo.date_page'));
 });
 
-it('shows saving below the organizer and before the dates', function (): void {
+it('groups saving with the organizer before the dates', function (): void {
     $city = testCity();
     freezeLocal($city, '2026-09-07 12:00:00');
     $item = occurrenceAtLocal($city, testCategory(), '2026-09-10 21:00:00', event: [
@@ -49,9 +49,9 @@ it('shows saving below the organizer and before the dates', function (): void {
     $description = $xpath->query('//article/section[@aria-labelledby="descrizione-evento"]');
     expect($description->length)->toBe(1)
         ->and($description->item(0)->textContent)->toContain('Descrizione completa da leggere subito.')
-        ->and($xpath->query('//section[@aria-labelledby="date-evento"]/section[@aria-labelledby="salva-evento"]')->length)->toBe(1)
-        ->and($xpath->query('//section[@aria-labelledby="date-evento"]/p[contains(., "Organizzato da")]/following-sibling::*[1][@aria-labelledby="salva-evento"]')->length)->toBe(1)
-        ->and($xpath->query('//section[@aria-labelledby="salva-evento"]/following-sibling::h2[@id="date-evento"]')->length)->toBe(1);
+        ->and($xpath->query('//article//section[@aria-labelledby="salva-evento"]')->length)->toBe(1)
+        ->and($xpath->query('//article//p[contains(., "Organizzato da")]/following-sibling::*[1][@aria-labelledby="salva-evento"]')->length)->toBe(1)
+        ->and($xpath->query('//section[@aria-labelledby="salva-evento"]/parent::div/following-sibling::section[@aria-labelledby="date-evento"]')->length)->toBe(1);
 });
 
 it('shows a branded placeholder on event and occurrence pages without a poster', function (): void {
