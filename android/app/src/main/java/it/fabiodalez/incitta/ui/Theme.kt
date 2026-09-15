@@ -60,9 +60,6 @@ val CardShape: androidx.compose.ui.graphics.Shape
 val PosterShape: androidx.compose.ui.graphics.Shape
     @Composable get() = MaterialTheme.shapes.medium
 
-/** Se i divisori pieni del tabellone vanno disegnati: sono il sistema dello scuro. */
-val showsRules: Boolean
-    @Composable get() = !isLightTheme
 
 private val Archivo = FontFamily(Font(R.font.archivo_semibold, FontWeight.SemiBold))
 
