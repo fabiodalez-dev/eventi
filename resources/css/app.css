@@ -25,11 +25,6 @@
     min-height: 128px;
     padding: 48px 16px 60px;
 }
-:root [data-home-page] .event-grid > .event-card:has(.event-poster-frame > [data-event-hero-placeholder]) {
-    display: flex;
-    height: auto;
-    align-self: start;
-}
 
 .home-recommendation {
     display: grid;
