@@ -65,6 +65,8 @@
      * riempie lo script — il server non li conosce e non deve conoscerli.
      */
     $savedCount = auth()->check() ? auth()->user()->savedOccurrences()->count() : 0;
+    $activeSavedCount = auth()->check() && $city !== null
+        ? \App\Queries\EventOccurrenceQuery::for($city)->savedBy(auth()->user())->ended(false)->count() : 0;
 
     $discoverLinks = $links([
         'events.today' => __('ui.nav.today'),
@@ -436,9 +438,9 @@
                 href="{{ route('account.saved') }}"
                 data-saved-opener
                 data-saved-panel-url="{{ route('account.saved.panel') }}"
-                data-saved-count="{{ $savedCount }}"
+                data-saved-count="{{ $activeSavedCount }}"
                 data-saved-error="{{ __('account.saved.panel_error') }}"
-                @if ($savedCount === 0) hidden @endif
+                @if ($activeSavedCount === 0) hidden @endif
                 aria-haspopup="dialog"
                 aria-label="{{ __('account.saved.panel_open') }}"
                 title="{{ __('account.saved.panel_open') }}"
@@ -447,7 +449,7 @@
                 <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round">
                     <path d="M6 3h12v18l-6-4-6 4z"></path>
                 </svg>
-                <span data-saved-opener-count>{{ $savedCount }}</span>
+                <span data-saved-opener-count>{{ $activeSavedCount }}</span>
             </a>
 
             <form data-appearance-form action="{{ route('appearance.update') }}" method="POST" class="shrink-0">
@@ -540,11 +542,9 @@
         comando che l'ha aperto sono cose che il browser fa già, e che riscritte
         a mano si riscrivono a metà.
 
-        Nasce vuoto: il contenuto arriva da `/salvataggi/pannello` quando si
-        apre. Disegnarlo nella pagina avrebbe significato interrogare i
-        salvataggi su OGNI pagina del sito per una finestra che quasi nessuno
-        apre — e per chi non è collegato sarebbe stato impossibile, perché quelle
-        date le conosce solo il suo browser.
+        Nasce vuoto: il contenuto e il conteggio aggiornato arrivano da
+        `/salvataggi/pannello`. Per chi non è collegato gli identificativi
+        vengono dal browser; il server esclude le date scadute o non pubbliche.
     --}}
     <dialog
         data-saved-dialog

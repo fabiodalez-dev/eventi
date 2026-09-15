@@ -25,6 +25,12 @@ class EventViewDaily extends Model
         'direction_clicks',
         'ticket_clicks',
         'shares',
+        'website_clicks',
+        'phone_clicks',
+        'email_clicks',
+        'calendar_clicks',
+        'poster_clicks',
+        'booking_clicks',
     ];
 
     /** @return BelongsTo<Event, $this> */
@@ -45,6 +51,12 @@ class EventViewDaily extends Model
             'direction_clicks' => 'integer',
             'ticket_clicks' => 'integer',
             'shares' => 'integer',
+            'website_clicks' => 'integer',
+            'phone_clicks' => 'integer',
+            'email_clicks' => 'integer',
+            'calendar_clicks' => 'integer',
+            'poster_clicks' => 'integer',
+            'booking_clicks' => 'integer',
         ];
     }
 }

@@ -35,7 +35,6 @@ export function savedPanel({ dateLocali, collegato }) {
     const corpo = finestra.querySelector('[data-saved-dialog-body]');
     const numero = comando.querySelector('[data-saved-opener-count]');
     const chiusura = finestra.querySelector('[data-saved-dialog-close]');
-    const indirizzoStato = document.querySelector('meta[name="saved-state-url"]')?.content;
 
     /* Il conteggio del server vale come punto di partenza per chi è collegato;
        per chi non lo è il server non sa nulla e si parte dal browser. */
@@ -46,44 +45,9 @@ export function savedPanel({ dateLocali, collegato }) {
         comando.hidden = quante === 0;
     };
 
-    /**
-     * Quante ne sono salvate adesso.
-     *
-     * Per chi è collegato la verità sta sul server, e c'è già un indirizzo che
-     * la dice (lo stesso che lo script usa per riallineare i segnalibri fra una
-     * scheda e l'altra). Contare a mano i click sarebbe più veloce e
-     * sbaglierebbe al primo salvataggio fatto da un'altra scheda.
-     */
-    const ricontrolla = async () => {
-        if (!collegato) {
-            quante = dateLocali().length;
-            mostra();
-
-            return;
-        }
-
-        if (!indirizzoStato) {
-            return;
-        }
-
-        try {
-            const risposta = await fetch(indirizzoStato, { headers: { Accept: 'application/json' }, cache: 'no-store' });
-
-            if (!risposta.ok) return;
-
-            const { ids } = await risposta.json();
-
-            if (!Array.isArray(ids)) return;
-
-            quante = ids.length;
-            mostra();
-        } catch {
-            /* Offline il numero resta l'ultimo confermato: meglio di uno
-               sbagliato e meglio di un'icona che sparisce. */
-        }
-    };
-
+    let revision = 0;
     const carica = async () => {
+        const currentRevision = ++revision;
         const base = comando.dataset.savedPanelUrl;
 
         if (!base) return;
@@ -109,7 +73,14 @@ export function savedPanel({ dateLocali, collegato }) {
              * questo file usa già per lo scorrimento infinito e per l'elenco
              * filtrato, e una sola strada per la stessa cosa vale più di due.
              */
-            const frammento = new DOMParser().parseFromString(await risposta.text(), 'text/html');
+            const html = await risposta.text();
+            if (currentRevision !== revision) return;
+            const frammento = new DOMParser().parseFromString(html, 'text/html');
+            const count = Number.parseInt(risposta.headers.get('X-Saved-Count'), 10);
+            if (Number.isFinite(count)) {
+                quante = count;
+                mostra();
+            }
 
             corpo.replaceChildren(...frammento.body.childNodes);
 
@@ -121,6 +92,7 @@ export function savedPanel({ dateLocali, collegato }) {
              */
             document.dispatchEvent(new CustomEvent('event-browser:updated'));
         } catch {
+            if (currentRevision !== revision) return;
             const avviso = document.createElement('p');
             avviso.className = 'm-0 py-6 text-center text-sm text-ink-muted';
             avviso.setAttribute('role', 'alert');
@@ -129,12 +101,14 @@ export function savedPanel({ dateLocali, collegato }) {
         }
     };
 
-    comando.addEventListener('click', event => {
-        event.preventDefault();
-        corpo.dataset.loading = '1';
-        finestra.showModal();
-        void carica().finally(() => { delete corpo.dataset.loading; });
-    });
+    for (const opener of document.querySelectorAll('[data-saved-opener], [data-saved-mobile-opener]')) {
+        opener.addEventListener('click', event => {
+            event.preventDefault();
+            corpo.dataset.loading = '1';
+            finestra.showModal();
+            void carica().finally(() => { delete corpo.dataset.loading; });
+        });
+    }
 
     chiusura?.addEventListener('click', () => finestra.close());
 
@@ -146,9 +120,12 @@ export function savedPanel({ dateLocali, collegato }) {
     });
 
     document.addEventListener('saved:changed', () => {
-        void ricontrolla();
+        void carica();
     });
 
+    window.addEventListener('focus', () => { void carica(); });
+    window.addEventListener('storage', () => { if (!collegato) void carica(); });
+
     mostra();
-    void ricontrolla();
+    void carica();
 }

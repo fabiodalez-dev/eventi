@@ -350,7 +350,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         searchJob?.cancel()
         if (_state.value.tab == AppTab.EVENTS || _state.value.discoveryFilters.isNotEmpty() || _state.value.discoverySummary != null) {
             val filters = _state.value.discoveryFilters
-            _state.value = _state.value.copy(isSearching = true, searchResults = emptyList())
+            // Keep the previous results readable while the next filter loads.
+            _state.value = _state.value.copy(isSearching = true)
             searchJob = viewModelScope.launch {
                 delay(280)
                 runCatching { repository.filteredOccurrences(filters, query.trim()) }

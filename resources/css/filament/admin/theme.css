@@ -1,6 +1,28 @@
 @import '../../../../vendor/filament/filament/resources/css/theme.css';
 @import '@fontsource-variable/manrope/wght.css';
 @import '@fontsource-variable/bricolage-grotesque/standard.css';
+@source '../../../views/filament/content-analytics.blade.php';
+@source '../../../views/filament/occurrence-analytics.blade.php';
+
+.analytics-legend { display: flex; flex-wrap: wrap; gap: 12px 28px; font-size: .875rem; margin-bottom: 28px; }
+.analytics-legend > span { display: flex; align-items: center; gap: 8px; }
+.analytics-legend strong { font-variant-numeric: tabular-nums; }
+.analytics-key { width: 22px; height: 3px; background: var(--fi-accent); }
+.analytics-key-profile { background: none; border-top: 3px dashed var(--fi-ink); }
+.analytics-plot { display: grid; grid-template-columns: 42px minmax(0, 1fr); gap: 8px; }
+.analytics-plot svg { width: 100%; height: 240px; overflow: visible; }
+.analytics-axis { display: flex; flex-direction: column; justify-content: space-between; padding: 10px 0; font-size: .75rem; color: var(--color-gray-600); text-align: right; }
+.analytics-dates { grid-column: 2; display: flex; justify-content: space-between; font-size: .75rem; color: var(--color-gray-600); }
+.analytics-gridline { stroke: var(--fi-line); vector-effect: non-scaling-stroke; }
+.analytics-line { fill: none; stroke: var(--fi-accent); stroke-width: 2.5; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+.analytics-line-profile { stroke: var(--fi-ink); stroke-dasharray: 6 4; }
+.analytics-point { fill: var(--fi-accent); }
+.analytics-bars { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 40px; }
+.analytics-bar-row > div:first-child { display: flex; justify-content: space-between; gap: 12px; font-size: .875rem; margin-bottom: 9px; }
+.analytics-bar-row strong { font-variant-numeric: tabular-nums; }
+.analytics-bar-track { height: 8px; background: var(--color-gray-100); border-radius: 3px; overflow: hidden; }
+.analytics-bar-track span { display: block; height: 100%; background: var(--fi-accent); border-radius: inherit; }
+@media (max-width: 640px) { .analytics-bars { grid-template-columns: minmax(0, 1fr); gap: 18px; } .analytics-plot svg { height: 190px; } }
 
 /* Shared by all back-office panels, always light like the public light theme. */
 @theme {

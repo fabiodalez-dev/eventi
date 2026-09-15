@@ -14,21 +14,6 @@ export function eventFilters() {
     if (!document.querySelector('[data-event-browser]')) return;
     const desktop = window.matchMedia('(min-width: 1024px)');
     let mobileFiltersOpen = false;
-    let draft = null;
-    const stage = (url, toggle = false) => {
-        const next = new URL(url);
-        const base = new URL(location.href);
-        draft ??= new URL(location.href);
-        const keys = new Set([...base.searchParams.keys(), ...next.searchParams.keys()]);
-        for (const key of keys) {
-            if (base.searchParams.get(key) === next.searchParams.get(key)) continue;
-            const value = toggle && draft.searchParams.get(key) === next.searchParams.get(key) ? base.searchParams.get(key) : next.searchParams.get(key);
-            value === null ? draft.searchParams.delete(key) : draft.searchParams.set(key, value);
-        }
-        draft.searchParams.delete('page');
-        const details = document.querySelector('[data-catalog-filters]');
-        details?.setAttribute('data-filters-pending', 'true');
-    };
     const syncCatalogFilters = () => {
         const details = document.querySelector('[data-catalog-filters]');
         if (!details) return;
@@ -44,12 +29,6 @@ export function eventFilters() {
     document.addEventListener('click', event => {
         if (!event.target.closest('[data-filter-close]')) return;
         const details = document.querySelector('[data-catalog-filters]');
-        if (draft) {
-            const url = draft.href;
-            draft = null;
-            details.removeAttribute('data-filters-pending');
-            void navigate(url);
-        }
         mobileFiltersOpen = false;
         details.open = false;
         details.querySelector('summary').focus({ preventScroll: true });
@@ -141,12 +120,16 @@ export function eventFilters() {
             }
             if (push) history.pushState({}, '', response.url);
             percorsoCorrente = location.href.split('#')[0];
+            if (push && !desktop.matches) mobileFiltersOpen = false;
             document.dispatchEvent(new Event('event-browser:updated'));
-            if (push && activeRegion.hasAttribute('data-map-browser') && !desktop.matches) {
-                const results = activeRegion.querySelector('[data-map-results]');
-                results.setAttribute('tabindex', '-1');
-                results.focus({ preventScroll: true });
-                results.scrollIntoView({ block: 'start', behavior: 'instant' });
+            if (push && !desktop.matches) {
+                const destination = activeRegion.querySelector(activeRegion.hasAttribute('data-map-browser')
+                    ? '[data-map-region]' : '[data-catalog-results]');
+                if (destination) {
+                    destination.setAttribute('tabindex', '-1');
+                    destination.focus({ preventScroll: true });
+                    destination.scrollIntoView({ block: 'start', behavior: 'instant' });
+                }
             }
             await fadeFilterParts(activeRegion, 0, 1, 200, signal);
         } catch (error) {
@@ -170,11 +153,6 @@ export function eventFilters() {
         const link = event.target.closest('[data-event-browser] [data-filter-panel] a, [data-event-browser] [data-filter-link]');
         if (!link || event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || link.target || link.origin !== location.origin) return;
         event.preventDefault();
-        if (!desktop.matches && link.closest('[data-catalog-filters]')) {
-            stage(link.href, true);
-            link.toggleAttribute('data-draft-selected');
-            return;
-        }
         void navigate(link.href);
     });
     document.addEventListener('submit', event => {
@@ -183,11 +161,7 @@ export function eventFilters() {
         event.preventDefault();
         const url = new URL(form.action);
         url.search = new URLSearchParams(new FormData(form)).toString();
-        if (draft) {
-            stage(url.href);
-            const target = draft.href; draft = null;
-            void navigate(target);
-        } else void navigate(url.href);
+        void navigate(url.href);
     });
     document.addEventListener('change', event => {
         const input = event.target;
@@ -208,11 +182,7 @@ export function eventFilters() {
             const venue = form.querySelector('[name="venue"]');
             if (venue) venue.value = '';
         }
-        if (!desktop.matches && form.closest('[data-catalog-filters]')) {
-            const url = new URL(form.action);
-            url.search = new URLSearchParams(new FormData(form)).toString();
-            stage(url.href);
-        } else form.requestSubmit();
+        form.requestSubmit();
     });
     /*
      * Indietro e avanti del browser ricaricano l'elenco. Un cambio di **solo

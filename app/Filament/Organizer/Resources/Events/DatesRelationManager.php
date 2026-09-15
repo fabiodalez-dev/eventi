@@ -5,8 +5,10 @@ namespace App\Filament\Organizer\Resources\Events;
 use App\Enums\EventStatus;
 use App\Enums\OccurrenceStatus;
 use App\Filament\Support\DescriptionEditor;
+use App\Filament\Support\OccurrenceAnalyticsFields;
 use App\Models\Event;
 use App\Models\EventOccurrence;
+use App\Services\Analytics\OccurrenceAnalytics;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Actions\EditAction;
@@ -38,9 +40,12 @@ class DatesRelationManager extends RelationManager
 
     public function table(Table $table): Table
     {
-        return $table->columns([TextColumn::make('starts_at')->label('Data')->dateTime(), TextColumn::make('venue.name')->label('Locale')->placeholder('Locale principale'), TextColumn::make('status')->label('Stato')->badge()])
+        return $table->modifyQueryUsing(fn ($query) => OccurrenceAnalytics::withTotals($query))
+            ->description(__('analytics.occurrence_totals'))
+            ->columns([TextColumn::make('starts_at')->label('Data')->dateTime('d/m/Y H:i', $this->eventRecord()->city->timezone), TextColumn::make('venue.name')->label('Locale')->placeholder('Locale principale'), TextColumn::make('status')->label('Stato')->badge()->formatStateUsing(fn (OccurrenceStatus $state): string => $state->label()), ...OccurrenceAnalyticsFields::columns()])
             ->headerActions([CreateAction::make()->authorize(fn () => auth()->user()?->can('create', [EventOccurrence::class, $this->getOwnerRecord()]))])
             ->recordActions([EditAction::make(),
+                OccurrenceAnalyticsFields::action(),
                 Action::make('tickets')->label('Prenotazioni')->url(fn ($record) => route('ticketing.manage.show', $record)),
                 Action::make('social')->label('Grafica social')->url(fn ($record) => route('social.preview', $record))->openUrlInNewTab(),
                 Action::make('poster')->label('Locandina PDF')->visible(fn () => in_array($this->eventRecord()->status, [EventStatus::Published, EventStatus::Archived], true))->url(fn ($record) => route('events.poster', ['slug' => $this->eventRecord()->slug, 'occurrence' => $record->url_number]))->openUrlInNewTab(),

@@ -31,8 +31,8 @@ android {
         applicationId = "it.fabiodalez.incitta"
         minSdk = 26
         targetSdk = 36
-        versionCode = 29
-        versionName = "1.12.0"
+        versionCode = 31
+        versionName = "1.12.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true

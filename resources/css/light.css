@@ -220,30 +220,42 @@
  * incassata, che e' come si stacca un riquadro nel chiaro.
  */
 /*
- * Solo cio' che ERA un riquadro resta un riquadro.
+ * Le sezioni della scheda sono riquadri. Quelle ANNIDATE no.
  *
- * Nella scheda di un evento convivono due cose diverse con lo stesso tag: le
- * sezioni che erano riquadri veri (`border-2 p-5` — prezzo, informazioni
- * pratiche) e quelle che sono solo raggruppamenti di contenuto sulla pagina,
- * senza bordo ne' margine interno.
- *
- * Applicando il fondo a tutte le `section` ho trasformato in riquadri anche le
- * seconde, che non avendo margine se lo sono ritrovato appiccicato al testo:
- * lo stesso errore fatto poco prima con il pannello dei filtri — un colore di
- * sfondo senza padding non e' mezzo lavoro, e' un riquadro sbagliato. Due
- * volte lo stesso sbaglio vuol dire che la regola era scritta male, non
- * distrattamente: diceva «le sezioni» quando intendeva «i riquadri».
- *
- * Il bordo nel markup resta il segno di cosa era un riquadro, anche dopo che
- * qui lo si toglie.
+ * `salva-evento` sta dentro `date-evento`: applicando il margine interno a
+ * ogni `section`, i due si sommano e il pulsante «Salva questa data» rientra
+ * il doppio degli altri. Non e' un problema di quanto margine, e' un problema
+ * di a chi darlo — un riquadro dentro un riquadro e' un riquadro solo.
  */
-:root[data-theme="light"] .event-detail-body :is(section, .event-date-row)[class*="border-2"] {
+:root[data-theme="light"] .event-detail-body section {
     border: 0;
     border-radius: 16px;
     background: var(--surface);
     padding: clamp(16px, 1.6vw, 20px);
 }
 
+:root[data-theme="light"] .event-detail-body section section,
+:root[data-theme="light"] .event-detail-body .event-detail-loose section {
+    border-radius: 0;
+    background: transparent;
+    padding: 0;
+}
+
+
+/* La riga di una data sta gia' dentro la sezione delle date: il suo margine
+   sarebbe un secondo rientro sullo stesso testo. Niente spazio in coda: il
+   riquadro che la contiene ha gia' il proprio, e sommati lasciavano un vuoto
+   sotto all'ultima riga. */
+:root[data-theme="light"] .event-detail-body .event-date-row {
+    border: 0;
+    background: transparent;
+    padding: 0;
+}
+
+/* Questi comandi stanno DENTRO i riquadri, che sono `--surface`: il loro fondo
+   dev'essere l'altro, altrimenti hanno lo stesso colore di cio' su cui
+   poggiano e smettono di sembrare pulsanti. E' successo: erano a `--surface`
+   come il riquadro. */
 :root[data-theme="light"] .event-detail-body .event-utility-action {
     border: 0;
     background: var(--canvas);
@@ -515,9 +527,9 @@
     gap: 4px;
     border-radius: 14px;
     font-family: var(--font-sans);
-    font-size: 9.5px;
+    font-size: 12px;
     font-weight: 600;
-    letter-spacing: 0.06em;
+    letter-spacing: 0;
     color: #c9c7c1;
     transition: background-color 180ms ease, color 180ms ease;
 }

@@ -99,6 +99,7 @@ it('non tocca la cartella di un backup che sta lavorando adesso', function (): v
 });
 
 it('e appeso al backup notturno, non solo disponibile', function (): void {
+    config()->set('backup.scheduled', true);
     /* Una salvaguardia scritta e non collegata non ha salvato niente. */
     $evento = collect(app(Schedule::class)->events())
         ->first(fn ($e): bool => str_contains((string) $e->command, 'backup:run'));
@@ -110,4 +111,21 @@ it('e appeso al backup notturno, non solo disponibile', function (): void {
 
     expect($filtri)->not->toBeEmpty('senza il filtro, un disco pieno rimette giu il sito')
         ->and($evento->filtersPass(app()))->toBeTrue('con spazio disponibile il backup deve poter partire');
+});
+
+it('skips every scheduled backup task while disabled without probing disk space', function (): void {
+    config()->set('backup.scheduled', false);
+    foreach (['backup:run', 'backup:clean', 'backup:monitor'] as $command) {
+        $event = collect(app(Schedule::class)->events())->first(fn ($event) => str_contains((string) $event->command, $command));
+        expect($event->filtersPass(app()))->toBeFalse();
+    }
+    expect(File::exists(storage_path('app/backup-temp')))->toBeFalse();
+});
+
+it('actually executes the quota guard when scheduled backups are enabled', function (): void {
+    config()->set('backup.scheduled', true);
+    File::partialMock();
+    File::shouldReceive('isDirectory')->once()->with(storage_path('app/backup-temp/temp'))->andThrow(new RuntimeException('quota guard invoked'));
+    $event = collect(app(Schedule::class)->events())->first(fn ($event) => str_contains((string) $event->command, 'backup:run'));
+    expect(fn () => $event->filtersPass(app()))->toThrow(RuntimeException::class, 'quota guard invoked');
 });

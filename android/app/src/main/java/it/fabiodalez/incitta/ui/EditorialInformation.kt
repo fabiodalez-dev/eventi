@@ -1,6 +1,8 @@
 package it.fabiodalez.incitta.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material.icons.Icons
@@ -41,7 +43,32 @@ fun EditorialInformation(value: JsonElement?) {
         "poster_credit" to R.string.editorial_credit,
     )
     val practical = details["practical_items"] as? JsonArray
-    Column(Modifier.padding(horizontal = 22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+
+    /*
+     * Un riquadro vuoto e' peggio di nessun riquadro.
+     *
+     * Nello scuro una colonna senza figli non si vede. Nel chiaro, dove la
+     * sezione ha sfondo e raggio, resterebbe una scatoletta vuota in mezzo
+     * alla scheda: quando "prima di andare" non ha niente da dire si esce
+     * prima di disegnarla.
+     */
+    if (practical?.isEmpty() == true && listOf("introduction", "poster_caption", "poster_credit").none { text(it) != null }) return
+
+    /*
+     * La stessa cornice delle altre sezioni: riquadro incassato nel chiaro
+     * (--surface del sito), niente nello scuro, dove a separare sono i
+     * divisori.
+     */
+    val cornice = if (isLightTheme) {
+        Modifier.fillMaxWidth()
+            .padding(horizontal = 14.dp, vertical = 6.dp)
+            .background(MaterialTheme.colorScheme.surfaceVariant, CardShape)
+            .padding(18.dp)
+    } else {
+        Modifier.padding(horizontal = 22.dp)
+    }
+
+    Column(cornice, verticalArrangement = Arrangement.spacedBy(12.dp)) {
         if (practical != null) {
             if (practical.isNotEmpty()) Text(stringResource(R.string.editorial_before_going), style = MaterialTheme.typography.titleLarge)
             practical.forEach { element ->

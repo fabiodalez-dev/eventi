@@ -3,6 +3,12 @@
 declare(strict_types=1);
 
 return [
+    'action' => 'Importa da Facebook',
+    'organizer_review' => 'Controlla titolo, foto e data. Seleziona città, locale e categoria: l’evento viene salvato come bozza.',
+    'organizer_location' => 'Controlla il luogo letto da Facebook. Lascia vuoto per usare la sede del locale selezionato.',
+    'first_date' => 'Prima data dell’evento',
+    'starts_at' => 'Inizio (ora della città)',
+    'ends_at' => 'Fine (ora della città)',
     'minute_limit' => 'Attendi un minuto prima di importare un altro link.',
     'daily_limit' => 'Hai raggiunto il limite di 30 importazioni al giorno.',
     'photo_failed' => 'La foto non è stata scaricata. Controlla la locandina nel modulo o caricala manualmente.',

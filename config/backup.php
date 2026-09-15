@@ -60,7 +60,7 @@ return [
      * ogni pubblicazione: quello pesa meno di due megabyte ed è la rete che
      * si vuole avere proprio mentre si cambia qualcosa.
      */
-    'scheduled' => env('BACKUP_SCHEDULED', true),
+    'scheduled' => env('BACKUP_SCHEDULED', false),
 
     'backup' => [
         /*

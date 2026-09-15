@@ -8,6 +8,7 @@
     corretto, e non è mai arrivato in pagina.
 --}}
 <x-layouts.app :meta="$meta">
+    <x-content-analytics :subject="$organizer" type="organizer" />
     <x-slot:head>
         <x-json-ld :data="$structuredData" />
     </x-slot:head>

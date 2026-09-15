@@ -11,7 +11,7 @@
         @vite('resources/js/map.js')
     </x-slot:head>
 
-    <div class="grid items-start gap-0.5 bg-line lg:[grid-template-columns:minmax(232px,268px)_minmax(0,1.32fr)_minmax(0,1fr)]">
+    <div class="grid grid-cols-1 items-start gap-0.5 bg-line lg:[grid-template-columns:minmax(232px,268px)_minmax(0,1.32fr)_minmax(0,1fr)]">
         <div class="catalog-heading-panel bg-canvas lg:col-start-2 lg:row-start-1 flex flex-col gap-4 border-b-2 border-line px-[clamp(1rem,1.8vw,1.625rem)] py-[clamp(1.125rem,2.2vw,1.875rem)]">
             <div class="flex items-center gap-2.5">
                 <span aria-hidden="true" class="size-2 bg-accent blink-dot"></span>
@@ -40,7 +40,7 @@
         <aside
             id="filtri"
             aria-label="{{ __('filters.panel_label') }}"
-            class="scroll-mt-header flex flex-col gap-6 overflow-y-auto bg-canvas p-[clamp(1rem,1.6vw,1.375rem)] lg:sticky lg:top-header lg:col-start-1 lg:row-start-1 lg:row-span-2 lg:max-h-below-header"
+            class="scroll-mt-header flex flex-col gap-6 bg-canvas p-[clamp(1rem,1.6vw,1.375rem)] lg:overflow-y-auto lg:sticky lg:top-header lg:col-start-1 lg:row-start-1 lg:row-span-2 lg:max-h-below-header"
         >
             <details data-catalog-filters>
                 <summary data-filter-jump class="ui-action min-h-12 cursor-pointer py-3 font-semibold">{{ __('filters.jump') }}</summary>
@@ -64,7 +64,7 @@
             </details>
         </aside>
 
-        <section data-filter-transition class="bg-canvas lg:col-start-2 lg:row-start-2 lg:min-h-below-header">
+        <section data-catalog-results data-filter-transition class="scroll-mt-header bg-canvas lg:col-start-2 lg:row-start-2 lg:min-h-below-header">
             @if ($occurrences->total() > 0)
                 {{-- Il contenitore dei risultati è ciò che l'infinite scroll
                      estende: l'attributo lo dichiara, e senza JavaScript non fa

@@ -11,6 +11,7 @@ import { peekTabs } from './peek-tabs';
 import { tonightCounts } from './tonight-counts';
 import { eventFilters } from './event-filters';
 import { savedPanel } from './saved-panel';
+import { contentAnalytics } from './content-analytics';
 
 import { sponsorshipContext } from './sponsorship-context';
 
@@ -148,11 +149,13 @@ function nativeShare() {
             try {
                 if (canShare) {
                     await navigator.share(payload);
+                    document.dispatchEvent(new Event('content:shared'));
 
                     return;
                 }
 
                 await navigator.clipboard.writeText(payload.url);
+                document.dispatchEvent(new Event('content:shared'));
 
                 const label = button.querySelector('[data-share-label]') ?? button;
                 const original = label.textContent;
@@ -641,6 +644,7 @@ function saveAllDates() {
                 .filter((id) => Number.isInteger(id) && id > 0);
 
             writeLocalSaves([...localSaves(), ...ids]);
+            document.dispatchEvent(new CustomEvent('saved:changed', { detail: { id: ids[0] } }));
             paintGuestInterests();
 
             for (const heart of document.querySelectorAll("[data-save]")) {
@@ -693,6 +697,7 @@ async function mergeGuestSaves() {
         }
 
         writeLocalSaves([]);
+        document.dispatchEvent(new CustomEvent('saved:changed', { detail: { id: ids[0] } }));
 
         for (const heart of document.querySelectorAll("[data-save]")) {
             paintHeart(heart, true);
@@ -779,6 +784,8 @@ function consentBanner() {
                 return;
             }
 
+            const result = await response.json();
+            document.dispatchEvent(new CustomEvent('consent:changed', { detail: result.choices }));
             banner.remove();
         } catch {
             /* Nessuna rete: l'invio normale resta l'unica strada, e il banner
@@ -1127,6 +1134,7 @@ import { liveSearch, continuousTicker } from './live-search';
 import { venueAutocomplete } from './venue-autocomplete';
 
 function start() {
+    contentAnalytics();
     /* Motion enhances an already rendered page, so GSAP is loaded after the
        initial module instead of competing with content on the critical path. */
     void import('./motion').then(({ startMotion }) => startMotion());

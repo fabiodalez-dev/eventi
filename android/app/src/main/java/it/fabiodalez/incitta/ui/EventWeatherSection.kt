@@ -20,8 +20,16 @@ internal fun EventWeatherSection(id: Long, load: suspend (Long) -> EventWeather)
         catch (_: Exception) { failed = true }
     }
     if (weather?.available != true) return
-    Column(Modifier.fillMaxWidth().padding(vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("METEO PER L’EVENTO", style = MaterialTheme.typography.titleMedium)
+    /*
+     * Il titolo lo mette la sezione, non il contenuto.
+     *
+     * Prima questo blocco viveva dentro "TUTTE LE DATE" e si intestava da
+     * solo; ora che e' una sezione a se' avrebbe due titoli uno sopra
+     * l'altro. L'uscita anticipata qui sopra e' anche cio' che evita un
+     * riquadro vuoto quando la previsione non c'e'.
+     */
+    DetailSection("METEO") {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         val data = weather
         if (data == null) Text(if (failed) "Il meteo non è disponibile al momento." else "Caricamento delle previsioni…")
         else if (!data.available) Text(data.message ?: "Previsioni non ancora disponibili per questa data.")
@@ -53,5 +61,6 @@ internal fun EventWeatherSection(id: Long, load: suspend (Long) -> EventWeather)
             data.wind?.let { Text("Vento: $it km/h") }
             if (data.indicative) Text("Previsione indicativa: ricontrolla avvicinandoti alla data.", style = MaterialTheme.typography.bodySmall)
         }
+    }
     }
 }

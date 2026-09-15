@@ -50,6 +50,9 @@
 @endphp
 
 <x-layouts.app :meta="$meta" :preload="$poster" og-type="article" wide>
+    @if (request()->routeIs('events.show', 'events.occurrence', 'city.events.show', 'city.events.occurrence'))
+        <x-content-analytics :subject="$event" type="event" :occurrence="$selectedOccurrence ?? null" />
+    @endif
     @if ($isPreview ?? false)
         <p role="status" class="bg-accent text-on-accent p-4 font-bold">{{ __('promotions.preview_notice') }}</p>
     @endif
@@ -151,7 +154,7 @@
             <div class="flex flex-wrap items-center gap-2">
                 @if ($ticketUrl !== null)
                     <a
-                        href="{{ $ticketUrl }}"
+                        href="{{ $ticketUrl }}" data-content-metric="ticket_clicks"
                         target="_blank"
                         rel="noopener nofollow"
                         class="ui-action inline-flex h-[54px] items-center gap-2 bg-accent px-[22px] font-display text-xs leading-none font-extrabold tracking-[0.14em] text-on-accent uppercase transition-colors hover:bg-brand-strong"
@@ -179,14 +182,37 @@
                 </p>
             @endif
 
-            @if ($shown->isNotEmpty())
-                <section aria-labelledby="date-evento" class="flex flex-col gap-3">
+            {{-- Chi organizza e il salvataggio stanno FUORI dal riquadro delle
+                 date, sul fondo della pagina: sono attribuzione e azione, non
+                 parte dell'elenco delle date.
+
+                 Sulla stessa riga quando ci stanno — l'attribuzione a
+                 sinistra, l'azione a destra — e impilati quando non ci stanno,
+                 con l'attribuzione per prima. Non serve un punto di rottura:
+                 `flex-wrap` manda a capo quando lo spazio finisce davvero,
+                 che e' la domanda giusta. Vale in entrambi i temi. --}}
+            @if (filled($organizerInfo['name'] ?? null) || ! ($isPreview ?? false))
+                {{-- `items-start` e non `items-center`: il blocco del
+                     salvataggio e' alto due righe — il pulsante e il conteggio
+                     degli interessati sotto — e centrare l'attribuzione
+                     sull'intero blocco la fa scendere sotto la linea del
+                     pulsante. Allineandoli in cima e dando all'attribuzione la
+                     stessa altezza del pulsante (`min-h-12`), i due testi
+                     stanno sulla stessa linea. --}}
+                <div class="event-detail-loose flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
                     @if(filled($organizerInfo['name'] ?? null))
-                        <p>Organizzato da
+                        {{-- NON un contenitore flessibile: in un flex ogni nodo
+                             di testo diventa un elemento a se', e lo spazio
+                             bianco fra «Organizzato da» e il nome del locale
+                             sparisce — le due parole si attaccano. L'altezza
+                             che serve ad allinearsi al pulsante ce l'ha gia',
+                             perche' il collegamento dentro e' alto 48px. --}}
+                        <p class="m-0">Organizzato da
                             @if(filled($organizerInfo['url'] ?? null))<a class="inline-flex min-h-12 items-center underline" href="{{ $organizerInfo['url'] }}">{{ $organizerInfo['name'] }}</a>
                             @else {{ $organizerInfo['name'] }} @endif
                         </p>
                     @endif
+
                     @if (! ($isPreview ?? false))
                         <x-save-event
                             :event="$event"
@@ -195,6 +221,11 @@
                             :following="app(\App\Support\CurrentFollows::class)->has(\App\Enums\FollowableType::Event, (int) $event->getKey())"
                         />
                     @endif
+                </div>
+            @endif
+
+            @if ($shown->isNotEmpty())
+                <section aria-labelledby="date-evento" class="flex flex-col gap-3">
                     <h2 id="date-evento" class="font-display text-[clamp(1.25rem,1.8vw,1.75rem)] leading-none font-extrabold tracking-[-0.03em] uppercase">{{ __('events.detail.all_dates') }}</h2>
 
                     <ul class="flex flex-col gap-2">
@@ -277,12 +308,12 @@
                                     @if ($booking = $activeBookings->get($occurrence->id))
                                         <x-button :href="route('tickets.show', $booking)" class="min-h-12">{{ __('ticketing.manage_booking') }}</x-button>
                                     @elseif ($occurrence->booking_enabled && $occurrence->effectiveVenue()?->ticketing_enabled)
-                                        <x-button :href="route('tickets.create', $occurrence)" class="min-h-12">{{ __('ticketing.reserve') }}</x-button>
+                                        <x-button :href="route('tickets.create', $occurrence)" data-content-metric="booking_clicks" class="min-h-12">{{ __('ticketing.reserve') }}</x-button>
                                     @endif
                                     </div>
                                     <div class="flex flex-wrap items-center gap-2 border-t border-line pt-3 sm:col-span-2">
                                         <a
-                                            href="{{ route('events.calendar', ['slug' => $event->slug, 'occurrence' => $occurrence->url_number]) }}"
+                                            href="{{ route('events.calendar', ['slug' => $event->slug, 'occurrence' => $occurrence->url_number]) }}" data-content-metric="calendar_clicks"
                                             class="event-utility-action bg-surface-sunken px-3 py-2 font-display text-[0.594rem] leading-none font-extrabold tracking-[0.12em] text-ink uppercase border-2 border-line transition hover:border-accent"
                                         >
                                             {{ __('common.actions.add_to_calendar') }}
@@ -297,7 +328,7 @@
                                              sempre aggiornata, invece di un orario stampato a
                                              mano che al primo cambio diventa falso. --}}
                                         <a
-                                            href="{{ route('events.poster', ['slug' => $event->slug, 'occurrence' => $occurrence->url_number]) }}"
+                                            href="{{ route('events.poster', ['slug' => $event->slug, 'occurrence' => $occurrence->url_number]) }}" data-content-metric="poster_clicks"
                                             class="event-utility-action bg-surface-sunken px-3 py-2 font-display text-[0.594rem] leading-none font-extrabold tracking-[0.12em] text-ink uppercase border-2 border-line transition hover:border-accent"
                                         >
                                             {{ __('common.actions.poster') }}
@@ -305,7 +336,7 @@
 
                                         @foreach ($calendar->links($occurrence) as $servizio => $indirizzo)
                                             <a
-                                                href="{{ $indirizzo }}"
+                                                href="{{ $indirizzo }}" data-content-metric="calendar_clicks"
                                                 rel="noopener noreferrer"
                                                 target="_blank"
                                                 class="event-utility-action bg-surface-sunken px-3 py-2 font-display text-[0.594rem] leading-none font-extrabold tracking-[0.12em] text-ink uppercase border-2 border-line transition hover:border-accent"
@@ -439,7 +470,7 @@
                 <div class="vuoto-invisibile flex flex-col gap-2">
                     @if ($ticketUrl !== null)
                         <a
-                            href="{{ $ticketUrl }}"
+                            href="{{ $ticketUrl }}" data-content-metric="ticket_clicks"
                             rel="noopener noreferrer"
                             target="_blank"
                             class="ui-action bg-brand px-4 py-2 text-center text-sm font-semibold text-on-brand transition hover:bg-brand-strong"
@@ -451,7 +482,7 @@
                     @php $prenotazione = \App\Support\SafeUrl::href($event->booking_url); @endphp
                     @if ($prenotazione !== null)
                         <a
-                            href="{{ $prenotazione }}"
+                            href="{{ $prenotazione }}" data-content-metric="booking_clicks"
                             rel="noopener noreferrer"
                             target="_blank"
                             class="ui-action bg-surface-sunken px-4 py-2 text-center text-sm font-semibold text-ink border-2 border-line transition hover:border-accent"

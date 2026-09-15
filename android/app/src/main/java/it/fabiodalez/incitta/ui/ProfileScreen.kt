@@ -46,13 +46,13 @@ internal fun ProfileScreen(state: AppUiState, padding: PaddingValues, onTickets:
             when (section) {
                 null -> {
                     AccountIdentity(session.user, onLogout, !state.isAuthenticating)
+                    AppearancePicker(state.appearance, state.appearanceSaving, true, onAppearance)
                     ProfileRow("Dati personali", "Nome e fuso orario", Icons.Outlined.Person) { section = "Dati personali" }
                     ProfileRow("I miei biglietti", "Prossimi, passati e annullati", Icons.Outlined.ConfirmationNumber, onTickets)
                     ProfileRow("I miei interessi", "Scegli quali eventi vedere", Icons.Outlined.FavoriteBorder) { section = "I miei interessi" }
                     ProfileRow("Notifiche e newsletter", "Canali, orari e permessi del dispositivo", Icons.Outlined.NotificationsNone) { section = "Notifiche e newsletter" }
                     ProfileRow("Eventi salvati", "Ritrova le tue date", Icons.Outlined.BookmarkBorder, onSaved)
                     ProfileRow("Calendario", "Google Calendar e calendario del telefono", Icons.Outlined.CalendarMonth) { section = "Calendario" }
-                    ProfileRow("Aspetto", "Tema chiaro o scuro", Icons.Outlined.Palette) { section = "Aspetto" }
                     ProfileRow("Account e accesso", "Esci o cancella il tuo account", Icons.Outlined.ManageAccounts) { section = "Account e accesso" }
                     if (session.user.managementLinks.isNotEmpty()) {
                         Text("Gestione", style = MaterialTheme.typography.titleLarge)
@@ -70,7 +70,6 @@ internal fun ProfileScreen(state: AppUiState, padding: PaddingValues, onTickets:
                 "I miei interessi" -> ContentPreferencesPanel(session, standalone = true, onSaved = onInterestsSaved)
                 "Notifiche e newsletter" -> NotificationSettingsPanel(session, standalone = true)
                 "Calendario" -> CalendarSubscriptionPanel(initiallyExpanded = true)
-                "Aspetto" -> AppearancePicker(state.appearance, state.appearanceSaving, true, onAppearance)
                 "Account e accesso" -> {
                     Text("I tuoi salvataggi e biglietti restano associati a questo account.", color = Muted)
                     OutlinedButton(onClick = onLogout, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text("Esci da questo dispositivo") }

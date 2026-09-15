@@ -5,6 +5,7 @@ namespace App\Providers\Filament;
 use App\Filament\Auth\Login;
 use App\Filament\Auth\RequestPasswordReset;
 use App\Filament\Organizer\Pages\Profile;
+use App\Filament\Organizer\Pages\Statistics;
 use App\Models\Organizer;
 use Filament\FontProviders\LocalFontProvider;
 use Filament\Http\Middleware\Authenticate;
@@ -35,7 +36,7 @@ class OrganizerPanelProvider extends PanelProvider
             ->viteTheme('resources/css/filament/admin/theme.css')
             ->brandName('inCittà · Organizzatori')->colors(['primary' => Color::hex('#b54d23')])
             ->tenant(Organizer::class, ownershipRelationship: 'organizer')
-            ->pages([Profile::class])
+            ->pages([Profile::class, Statistics::class])
             ->discoverResources(in: app_path('Filament/Organizer/Resources'), for: 'App\\Filament\\Organizer\\Resources')
             ->middleware([
                 EncryptCookies::class,

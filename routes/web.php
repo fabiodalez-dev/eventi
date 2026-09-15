@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Web\ConsentController;
+use App\Http\Controllers\Web\ContentMetricController;
 use App\Http\Controllers\Web\DeployController;
 use App\Http\Controllers\Web\EventController;
 use App\Http\Controllers\Web\ImpersonationController;
@@ -57,6 +58,9 @@ Route::middleware(PersonalizeDiscovery::class)->group(base_path('routes/public.p
  * "accedi".
  */
 Route::group([], base_path('routes/account.php'));
+Route::post('/misure/{type}/{id}', ContentMetricController::class)
+    ->whereIn('type', ['event', 'venue', 'organizer'])->whereNumber('id')
+    ->middleware(['signed:relative', 'throttle:60,1'])->name('content.metrics');
 Route::get('/anteprima-evento/{event}', [EventController::class, 'preview'])->middleware('auth')->name('events.preview');
 Route::group([], base_path('routes/ticketing.php'));
 Route::get('/social/grafiche/{batch}/{index}.jpg', [SocialDownloadController::class, 'image'])->middleware('signed')->whereNumber('index')->name('social.image');

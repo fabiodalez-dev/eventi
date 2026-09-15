@@ -21,6 +21,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 
 /**
  * Le date salvate sul sito (§15.1 e §15.3).
@@ -58,7 +59,7 @@ final class SavedController extends Controller
      * visibile a chiunque. Il tetto sul numero evita che un indirizzo lunghissimo
      * si trasformi in un'interrogazione lunghissima.
      */
-    public function panel(Request $request): View
+    public function panel(Request $request): Response
     {
         $city = $this->city();
         $mostrate = 12;
@@ -85,17 +86,18 @@ final class SavedController extends Controller
             } else {
                 $query = EventOccurrenceQuery::for($city)->forOccurrences($ids)->ended(false);
                 $totale = $query->count();
-                $occurrences = $query->take($mostrate);
+                $occurrences = $query->take($tetto);
             }
         }
 
         $occurrences->load(['event.city', 'event.venue', 'event.category', 'event.media']);
 
-        return view('account.saved-panel', [
+        return response()->view('account.saved-panel', [
             'occurrences' => $occurrences,
             'total' => $totale,
             'authenticated' => $user !== null,
-        ]);
+        ])->header('Cache-Control', 'private, no-store')
+            ->header('X-Saved-Count', (string) $totale);
     }
 
     public function index(Request $request): View
