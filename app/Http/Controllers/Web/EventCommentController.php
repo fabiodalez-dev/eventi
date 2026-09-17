@@ -7,13 +7,18 @@ namespace App\Http\Controllers\Web;
 use App\Actions\Comments\PostComment;
 use App\Actions\Comments\ToggleReaction;
 use App\Enums\EventCommentReactionType;
+use App\Enums\EventCommentStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Web\Concerns\InteractsWithCity;
+use App\Http\Requests\Comments\EventCommentPageRequest;
+use App\Http\Requests\Comments\ReactEventCommentRequest;
 use App\Http\Requests\Comments\StoreEventCommentRequest;
 use App\Models\City;
 use App\Models\Event;
 use App\Models\EventComment;
 use App\Models\User;
+use App\Queries\EventCommentQuery;
+use App\Support\Api\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -38,7 +43,39 @@ class EventCommentController extends Controller
 {
     use InteractsWithCity;
 
-    public function store(StoreEventCommentRequest $request, string $slug, PostComment $azione): RedirectResponse
+    public function index(EventCommentPageRequest $request, string $slug, EventCommentQuery $query): JsonResponse
+    {
+        $event = $this->evento($this->city(), $slug);
+        $user = $request->user('sanctum');
+        $user = $user instanceof User ? $user : null;
+        $data = $query->listing($event, $user, $request->integer('commenti', 1), $request->integer('commento') ?: null, $request->integer('risposte') ?: null);
+        $serialize = function (EventComment $comment) use (&$serialize, $user): array {
+            $hidden = $comment->status === EventCommentStatus::Hidden;
+
+            return [
+                'id' => $comment->id,
+                'author' => $comment->user->name ?? __('comments.anonymous'),
+                'body' => $hidden ? null : $comment->body,
+                'hidden' => $hidden,
+                'created_at' => $comment->created_at?->toIso8601String(),
+                'reactions_count' => $comment->reactions_count,
+                'my_reaction' => $comment->reactions->first()?->type?->value,
+                'can_delete' => $user?->can('delete', $comment) ?? false,
+                'replies_count' => (int) ($comment->getAttribute('replies_count') ?? 0),
+                'replies' => $comment->relationLoaded('replies') ? $comment->replies->map($serialize)->all() : [],
+            ];
+        };
+
+        return ApiResponse::item([
+            'comments' => $data['comments']->map($serialize)->all(),
+            'page' => $data['commentsPage'], 'last_page' => $data['commentsLastPage'],
+            'total' => $data['commentsTotal'], 'thread' => $data['commentThread'],
+            'replies_page' => $data['repliesPage'], 'replies_last_page' => $data['repliesLastPage'],
+            'can_comment' => $user?->hasVerifiedEmail() ?? false,
+        ])->header('Cache-Control', 'private, no-store');
+    }
+
+    public function store(StoreEventCommentRequest $request, string $slug, PostComment $azione): RedirectResponse|JsonResponse
     {
         $city = $this->city();
         $event = $this->evento($city, $slug);
@@ -62,15 +99,16 @@ class EventCommentController extends Controller
                 ->findOrFail($padreId);
         }
 
-        $azione->handle($event, $user, (string) $request->validated('body'), $padre);
+        $comment = $azione->handle($event, $user, (string) $request->validated('body'), $padre);
 
-        return redirect()
-            ->route('events.show', ['slug' => $slug])
-            ->withFragment('commenti')
-            ->with('status', __('comments.submitted'));
+        if ($request->is('api/*')) {
+            return ApiResponse::item(['id' => $comment->id, 'message' => __('comments.submitted')], status: 201)->header('Cache-Control', 'private, no-store');
+        }
+
+        return redirect($comment->permalink())->with('status', __('comments.submitted'));
     }
 
-    public function destroy(Request $request, string $slug, EventComment $comment): RedirectResponse
+    public function destroy(Request $request, string $slug, EventComment $comment): RedirectResponse|JsonResponse
     {
         $city = $this->city();
         $event = $this->evento($city, $slug);
@@ -78,6 +116,10 @@ class EventCommentController extends Controller
 
         Gate::forUser($request->user())->authorize('delete', $comment);
         $comment->delete();
+
+        if ($request->is('api/*')) {
+            return ApiResponse::item(['message' => __('comments.deleted')])->header('Cache-Control', 'private, no-store');
+        }
 
         return redirect()
             ->route('events.show', ['slug' => $slug])
@@ -91,7 +133,7 @@ class EventCommentController extends Controller
      * Chi arriva con JavaScript riceve il conteggio aggiornato e non ricarica
      * la pagina; chi arriva col form torna alla pagina, al punto giusto.
      */
-    public function react(Request $request, string $slug, EventComment $comment, ToggleReaction $azione): RedirectResponse|JsonResponse
+    public function react(ReactEventCommentRequest $request, string $slug, EventComment $comment, ToggleReaction $azione): RedirectResponse|JsonResponse
     {
         $city = $this->city();
         $event = $this->evento($city, $slug);
@@ -100,10 +142,13 @@ class EventCommentController extends Controller
         $user = $request->user();
         abort_unless($user instanceof User, 401);
 
-        $tipo = EventCommentReactionType::tryFrom((string) $request->input('type'));
-        abort_if($tipo === null, 422);
+        $tipo = EventCommentReactionType::from((string) $request->validated('type'));
 
         $esito = $azione->handle($comment, $user, $tipo);
+
+        if ($request->is('api/*')) {
+            return ApiResponse::item(['count' => $esito['conteggio']])->header('Cache-Control', 'private, no-store');
+        }
 
         if ($request->expectsJson()) {
             return response()->json([
@@ -113,9 +158,7 @@ class EventCommentController extends Controller
             ])->header('Cache-Control', 'private, no-store');
         }
 
-        return redirect()
-            ->route('events.show', ['slug' => $slug])
-            ->withFragment('commento-'.$comment->id);
+        return redirect($comment->permalink());
     }
 
     private function evento(City $city, string $slug): Event

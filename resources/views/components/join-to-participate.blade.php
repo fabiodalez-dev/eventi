@@ -36,11 +36,11 @@
     <p class="mt-3 text-ink-muted">{{ __('comments.join.body') }}</p>
 
     <div class="mt-6 flex flex-wrap gap-3">
-        <a href="{{ route('account.register') }}" class="ui-action inline-flex min-h-12 items-center bg-accent px-5 py-3 font-semibold text-on-accent">
+        <a href="{{ route('account.register', ['intended' => request()->fullUrl().'#commenti']) }}" class="ui-action inline-flex min-h-12 items-center bg-accent px-5 py-3 font-semibold text-on-accent">
             {{ __('comments.join.register') }}
         </a>
 
-        <a href="{{ route('login') }}" class="ui-action inline-flex min-h-12 items-center border-2 border-line px-5 py-3 font-semibold hover:border-accent">
+        <a href="{{ route('login', ['intended' => request()->fullUrl().'#commenti']) }}" class="ui-action inline-flex min-h-12 items-center border-2 border-line px-5 py-3 font-semibold hover:border-accent">
             {{ __('comments.join.login') }}
         </a>
     </div>

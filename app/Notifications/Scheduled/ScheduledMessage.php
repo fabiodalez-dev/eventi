@@ -5,8 +5,12 @@ declare(strict_types=1);
 namespace App\Notifications\Scheduled;
 
 use App\DTOs\NotificationMessage;
+use App\Enums\EventCommentStatus;
 use App\Enums\NotificationChannel;
+use App\Enums\NotificationType;
 use App\Jobs\Middleware\RespectNotificationPreferences;
+use App\Models\Event;
+use App\Models\EventComment;
 use App\Models\User;
 use App\Services\Notifications\ChannelSelector;
 use App\Support\Features;
@@ -70,6 +74,19 @@ final class ScheduledMessage extends Notification implements ShouldQueue
             return false;
         }
         $type = $this->message->type;
+        if ($this->message->commentId !== null) {
+            $comment = EventComment::query()->find($this->message->commentId);
+            if ($comment === null || ! Event::query()->readable()->whereKey($comment->event_id)->exists()) {
+                return false;
+            }
+            if ($type === NotificationType::CommentModerated) {
+                if ($comment->user_id !== $notifiable->id || $comment->status !== EventCommentStatus::Hidden) {
+                    return false;
+                }
+            } elseif (! $comment->isPubliclyVisible()) {
+                return false;
+            }
+        }
 
         return $type->isEnabledFor($notifiable) && (! $type->isMarketing() || Features::newsletterActive());
     }

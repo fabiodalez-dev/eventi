@@ -36,6 +36,6 @@ class StoreEventCommentRequest extends FormRequest
 
     protected function getRedirectUrl(): string
     {
-        return route('events.show', ['slug' => $this->route('slug')]).'#commenti';
+        return route('events.show', array_filter(['slug' => $this->route('slug'), 'commento' => $this->integer('parent_id') ?: null])).'#commenti';
     }
 }

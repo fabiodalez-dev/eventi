@@ -77,7 +77,8 @@ return [
      *
      * Vive separata perché ha un nonce dentro — cambia a ogni risposta — e
      * perché non vale ovunque: i pannelli sono Filament, che disegna markup
-     * suo, e non stampano contenuti di sconosciuti. Vedi `App\Support\Csp`.
+     * suo. I contenuti utente nei pannelli vanno comunque escapati e testati
+     * contro XSS. Vedi `App\Support\Csp`.
      *
      * `excluded_paths` usa la sintassi di `Request::is()`: `admin*` copre sia
      * `/admin` sia tutto ciò che ci sta sotto.

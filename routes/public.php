@@ -147,11 +147,11 @@ Route::post('/registra-il-tuo-locale', [VenueApplicationController::class, 'stor
  * più largo, perché reagire è un gesto che si ripete e scrivere no.
  */
 Route::post('/eventi/{slug}/commenti', [EventCommentController::class, 'store'])
-    ->middleware(['auth', 'throttle:10,60'])->name('events.comments.store');
+    ->middleware(['auth', 'verified', 'throttle:10,60'])->name('events.comments.store');
 Route::delete('/eventi/{slug}/commenti/{comment}', [EventCommentController::class, 'destroy'])
     ->middleware(['auth', 'throttle:30,60'])->name('events.comments.destroy');
 Route::post('/eventi/{slug}/commenti/{comment}/reazione', [EventCommentController::class, 'react'])
-    ->middleware(['auth', 'throttle:120,1'])->name('events.comments.react');
+    ->middleware(['auth', 'verified', 'throttle:120,1'])->name('events.comments.react');
 
 Route::post('/locali/{slug}/recensione', [VenueReviewController::class, 'store'])->middleware(['auth', 'throttle:10,60'])->name('venues.review.store');
 Route::delete('/locali/{slug}/recensione', [VenueReviewController::class, 'destroy'])->middleware(['auth', 'throttle:10,60'])->name('venues.review.destroy');

@@ -28,10 +28,9 @@ use Illuminate\Support\Facades\DB;
  *
  * ## Il conteggio
  *
- * `reactions_count` conta le **persone** che hanno reagito, non le reazioni
- * per tipo: cambiare faccina non lo muove, metterla o toglierla sì. È il
- * numero che serve in elenco, e si aggiorna dentro la stessa transazione —
- * altrimenti un errore a metà lascerebbe un contatore che mente.
+ * Il conteggio viene letto dalla relazione: nessuna copia denormalizzata
+ * rimane obsoleta quando un account o una reazione viene cancellata.
+ * Il lock serializza i toggle sullo stesso commento.
  *
  * @return array{stato: 'aggiunta'|'cambiata'|'ritirata', tipo: ?EventCommentReactionType, conteggio: int}
  */
@@ -49,6 +48,7 @@ final class ToggleReaction
              * riga della reazione potrebbe non esistere ancora.
              */
             $bloccato = EventComment::query()->lockForUpdate()->findOrFail($comment->id);
+            abort_unless($bloccato->isPubliclyVisible(), 404);
 
             $esistente = EventCommentReaction::query()
                 ->where('event_comment_id', $bloccato->id)
@@ -66,7 +66,6 @@ final class ToggleReaction
                     'user_id' => $user->id,
                     'type' => $type,
                 ])->save();
-                $bloccato->forceFill(['reactions_count' => $bloccato->reactions_count + 1])->save();
 
                 /*
                  * Solo qui. Cambiare reazione o ritirarla non avvisa nessuno:
@@ -83,7 +82,6 @@ final class ToggleReaction
 
             if ($esistente->type === $type) {
                 $esistente->delete();
-                $bloccato->forceFill(['reactions_count' => max(0, $bloccato->reactions_count - 1)])->save();
 
                 return ['stato' => 'ritirata', 'tipo' => null, 'conteggio' => $bloccato->reactions_count];
             }

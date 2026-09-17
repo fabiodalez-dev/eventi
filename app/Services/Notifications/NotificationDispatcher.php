@@ -45,6 +45,18 @@ final class NotificationDispatcher
         private readonly ChannelSelector $channels,
     ) {}
 
+    public function dispatchOne(int $id): void
+    {
+        DB::transaction(function () use ($id): void {
+            $row = ScheduledNotification::query()->pending()->lockForUpdate()->find($id);
+            if ($row === null) {
+                return;
+            }
+            $summary = ['claimed' => 1, 'sent' => 0, 'skipped' => 0, 'deferred' => 0, 'failed' => 0];
+            $this->process($row, CarbonImmutable::now(), $summary);
+        });
+    }
+
     /**
      * @return array{claimed: int, sent: int, skipped: int, deferred: int, failed: int}
      */
@@ -118,7 +130,7 @@ final class NotificationDispatcher
      */
     private function process(ScheduledNotification $notification, CarbonImmutable $now, array &$summary): void
     {
-        $user = $notification->user;
+        $user = User::query()->lockForUpdate()->find($notification->user_id);
         $decision = $this->gate->decide($notification, $user, $now);
 
         if ($decision->deferTo instanceof CarbonImmutable) {

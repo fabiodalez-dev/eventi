@@ -11,7 +11,7 @@ use App\Enums\NotificationType;
 use App\Models\Event;
 use App\Models\EventComment;
 use App\Models\User;
-use App\Notifications\CommentActivity;
+use App\Notifications\Scheduled\ScheduledMessage;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
@@ -30,6 +30,7 @@ beforeEach(function (): void {
     (new RolesAndPermissionsSeeder)->run();
 
     $this->city = testCity();
+    freezeLocal($this->city, '2026-09-17 12:00');
     $this->event = Event::factory()->for($this->city)->published()->create();
     $this->autore = User::factory()->create();
     $this->altro = User::factory()->create();
@@ -187,7 +188,7 @@ describe('notifiche', function (): void {
 
         app(PostComment::class)->handle($this->event, $this->altro, 'La risposta', $primo);
 
-        Notification::assertSentTo($this->autore, CommentActivity::class);
+        Notification::assertSentTo($this->autore, ScheduledMessage::class);
     });
 
     it('non avvisa chi risponde a sé stesso', function (): void {
@@ -196,7 +197,7 @@ describe('notifiche', function (): void {
 
         app(PostComment::class)->handle($this->event, $this->autore, 'Mi rispondo da solo', $primo);
 
-        Notification::assertNotSentTo($this->autore, CommentActivity::class);
+        Notification::assertNotSentTo($this->autore, ScheduledMessage::class);
     });
 
     it('avvisa per una reazione nuova, ma non quando viene cambiata o ritirata', function (): void {
@@ -208,7 +209,7 @@ describe('notifiche', function (): void {
         $azione->handle($commento, $this->altro, EventCommentReactionType::Love);
         $azione->handle($commento, $this->altro, EventCommentReactionType::Love);
 
-        Notification::assertSentToTimes($this->autore, CommentActivity::class, 1);
+        Notification::assertSentToTimes($this->autore, ScheduledMessage::class, 1);
     });
 
     it('non avvisa chi reagisce al proprio commento', function (): void {

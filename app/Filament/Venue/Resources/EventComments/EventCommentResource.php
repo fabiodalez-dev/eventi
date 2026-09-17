@@ -10,6 +10,7 @@ use App\Filament\Venue\Resources\EventComments\Pages\ListEventComments;
 use App\Filament\Venue\Support\CurrentVenue;
 use App\Models\EventComment;
 use App\Models\User;
+use App\Models\Venue;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Hidden;
@@ -20,6 +21,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 
 /**
  * I commenti agli eventi del proprio locale.
@@ -57,12 +59,18 @@ class EventCommentResource extends Resource
         return __('comments.plural');
     }
 
-    /** @return Builder<EventComment> */
-    public static function getEloquentQuery(): Builder
+    /**
+     * @param  Builder<EventComment>  $query
+     * @return Builder<EventComment>
+     */
+    public static function scopeEloquentQueryToTenant(Builder $query, ?Model $tenant): Builder
     {
-        return EventComment::query()->whereHas(
+        $tenant ??= CurrentVenue::get();
+        abort_unless($tenant instanceof Venue, 403);
+
+        return $query->whereHas(
             'event',
-            fn (Builder $query) => $query->where('venue_id', CurrentVenue::get()->id)
+            fn (Builder $query) => $query->where('venue_id', $tenant->id)
         );
     }
 
@@ -78,7 +86,7 @@ class EventCommentResource extends Resource
                 TextColumn::make('event.title')->label(__('comments.singular'))->searchable()->wrap()->limit(60),
                 TextColumn::make('user.name')->label(__('reviews.user'))->searchable(),
                 TextColumn::make('body')->label(__('comments.body'))->wrap()->limit(140)->searchable(),
-                TextColumn::make('reactions_count')->label(__('comments.reactions.like'))->sortable(),
+                TextColumn::make('reactions_count')->counts('reactions')->label(__('comments.reactions.like'))->sortable(),
                 TextColumn::make('status')->label(__('reviews.status'))->badge()
                     ->formatStateUsing(fn (EventCommentStatus $state): string => $state->label())
                     ->color(fn (EventCommentStatus $state): string => $state === EventCommentStatus::Hidden ? 'danger' : 'success'),

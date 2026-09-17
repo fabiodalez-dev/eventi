@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Web\Account;
 
 use App\DTOs\PageMeta;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Web\Account\AuthEntryRequest;
 use App\Http\Requests\Web\Account\LoginRequest;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
@@ -22,8 +23,10 @@ use Illuminate\Validation\ValidationException;
  */
 final class LoginController extends Controller
 {
-    public function create(): View
+    public function create(AuthEntryRequest $request): View
     {
+        $request->rememberDestination();
+
         return view('account.login', [
             'meta' => new PageMeta(
                 title: __('account.login.title'),

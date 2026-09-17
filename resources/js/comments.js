@@ -10,7 +10,7 @@
  * 3. Le reazioni, che aggiornano il conteggio senza ricaricare la pagina.
  */
 
-function apriIscrizione() {
+function apriIscrizione(evento) {
     const modale = document.getElementById("iscriviti-per-partecipare");
 
     /*
@@ -19,6 +19,7 @@ function apriIscrizione() {
      * modale avrebbe proposto.
      */
     if (modale && typeof modale.showModal === "function") {
+        evento.preventDefault();
         modale.showModal();
         return;
     }
@@ -53,9 +54,8 @@ function preparaRisposte(radice) {
  *
  * L'invio del form viene intercettato e rifatto in `fetch`; la risposta porta
  * il nuovo conteggio e quale reazione è rimasta attiva. Se qualcosa va storto
- * — rete assente, sessione scaduta, 419 — **si lascia partire il form**:
- * l'utente finisce sulla pagina ricaricata, che è il comportamento senza
- * JavaScript, invece di restare davanti a un pulsante che non reagisce.
+ * si rilegge la pagina senza ripetere il POST: una risposta persa potrebbe
+ * nascondere una scrittura riuscita, e ripetere il toggle la annullerebbe.
  */
 function preparaReazioni(radice) {
     radice.querySelectorAll("form[data-reazione]").forEach((form) => {
@@ -72,12 +72,14 @@ function preparaReazioni(radice) {
                 return;
             }
 
+            if (commento.dataset.reagendo === "1") return;
+            commento.dataset.reagendo = "1";
             pulsante.disabled = true;
 
             try {
                 const risposta = await fetch(form.action, {
                     method: "POST",
-                    body: new FormData(form),
+                    body: new URLSearchParams(new FormData(form)),
                     headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" },
                     credentials: "same-origin",
                 });
@@ -87,11 +89,11 @@ function preparaReazioni(radice) {
                 const esito = await risposta.json();
                 aggiornaConteggio(commento, esito);
             } catch {
-                form.dataset.legato = "0";
-                form.submit();
+                window.location.reload();
                 return;
             } finally {
                 pulsante.disabled = false;
+                delete commento.dataset.reagendo;
             }
         });
     });
@@ -109,6 +111,7 @@ function aggiornaConteggio(commento, esito) {
     if (contatore) contatore.textContent = esito.conteggio > 0 ? String(esito.conteggio) : "";
 
     commento.querySelectorAll("form[data-reazione]").forEach((altro) => {
+        if (altro.closest("[data-commento]") !== commento) return;
         const tipo = altro.querySelector("input[name=type]")?.value;
         const pulsante = altro.querySelector("button[type=submit]");
         if (!pulsante) return;
@@ -134,9 +137,19 @@ function avvia() {
     if (!sezione) return;
 
     sezione.querySelectorAll("[data-risposta]").forEach((form) => {
-        form.hidden = true;
+        if (!form.dataset.preparata) {
+            form.hidden = form.dataset.rispostaError !== "1";
+            form.dataset.preparata = "1";
+        }
     });
 
+    sezione.querySelectorAll("[data-conferma-eliminazione]").forEach((form) => {
+        if (form.dataset.legato === "1") return;
+        form.dataset.legato = "1";
+        form.addEventListener("submit", (event) => {
+            if (!window.confirm(form.dataset.confermaEliminazione)) event.preventDefault();
+        });
+    });
     preparaRisposte(sezione);
     preparaReazioni(sezione);
 }

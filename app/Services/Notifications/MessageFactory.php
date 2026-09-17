@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Notifications;
 
 use App\DTOs\NotificationMessage;
+use App\Enums\EventCommentStatus;
 use App\Enums\EventStatus;
 use App\Enums\FollowableType;
 use App\Enums\NotificationSkipReason;
@@ -13,6 +14,7 @@ use App\Enums\OccurrenceStatus;
 use App\Filament\Organizer\Resources\Events\EventResource;
 use App\Models\City;
 use App\Models\Event;
+use App\Models\EventComment;
 use App\Models\EventOccurrence;
 use App\Models\SavedEvent;
 use App\Models\ScheduledNotification;
@@ -25,6 +27,7 @@ use App\Support\DateFormatter;
 use App\Support\EventUrl;
 use Carbon\CarbonImmutable;
 use Filament\Facades\Filament;
+use Illuminate\Support\Str;
 
 /**
  * Da una riga di `scheduled_notifications` al testo da mandare — oppure al
@@ -66,24 +69,48 @@ final readonly class MessageFactory
             NotificationType::EventRejected => $this->eventRejected($notification),
             NotificationType::VenueInactive => $this->venueInactive($notification),
 
-            /*
-             * I commenti non passano di qui.
-             *
-             * Questa fabbrica costruisce i messaggi **programmati**: promemoria,
-             * digest, newsletter, cioè cose che la piattaforma decide di mandare
-             * a un certo momento. Una risposta a un commento è transazionale —
-             * nasce da un gesto di una persona e parte subito — e viaggia con
-             * `App\Notifications\CommentActivity`.
-             *
-             * Se un giorno qualcuno programmasse una notifica di questo tipo,
-             * qui non troverebbe un messaggio: meglio saltarla dichiarandolo
-             * che fabbricarne uno vuoto.
-             */
             NotificationType::CommentReply,
             NotificationType::CommentReaction,
             NotificationType::CommentModerated,
-            NotificationType::EventNewComment => NotificationSkipReason::MissingSubject,
+            NotificationType::EventNewComment => $this->comment($notification),
         };
+    }
+
+    private function comment(ScheduledNotification $notification): NotificationMessage|NotificationSkipReason
+    {
+        $comment = $notification->notifiable;
+        $type = $notification->type();
+        if (! $comment instanceof EventComment || $comment->event === null || $type === null
+            || ! Event::query()->readable()->whereKey($comment->event_id)->exists()) {
+            return NotificationSkipReason::MissingSubject;
+        }
+        if ($type === NotificationType::CommentModerated) {
+            if ($comment->status !== EventCommentStatus::Hidden || $comment->user_id !== $notification->user_id) {
+                return NotificationSkipReason::MissingSubject;
+            }
+        } elseif (! $comment->isPubliclyVisible()) {
+            return NotificationSkipReason::MissingSubject;
+        }
+        $actor = User::query()->find((int) $notification->context('actor_id', 0));
+        if ($type !== NotificationType::CommentModerated && $actor === null) {
+            return NotificationSkipReason::MissingSubject;
+        }
+        if ($type === NotificationType::CommentReaction && ! $comment->reactions()->where('user_id', $actor->id)->exists()) {
+            return NotificationSkipReason::MissingSubject;
+        }
+        $key = match ($type) {
+            NotificationType::CommentReply => 'reply',
+            NotificationType::CommentReaction => 'reaction',
+            NotificationType::CommentModerated => 'moderated',
+            default => 'new',
+        };
+        $title = __('comments.notifications.'.$key, ['name' => $actor->name ?? '']);
+
+        return new NotificationMessage(
+            type: $type, subject: $title, heading: $title,
+            lines: [$type === NotificationType::CommentModerated ? __('comments.hidden_notice') : Str::limit($comment->body, 140)],
+            actionLabel: __('comments.title'), url: $comment->permalink(), eventId: $comment->event_id, commentId: $comment->id,
+        );
     }
 
     // -------------------------------------------------------------- salvataggi

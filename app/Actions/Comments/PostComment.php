@@ -23,15 +23,20 @@ use Illuminate\Support\Facades\DB;
  */
 final class PostComment
 {
-    public function __construct(private readonly NotifyCommentActivity $avvisi) {}
+    public function __construct(private readonly NotifyCommentActivity $avvisi, private readonly CheckCommentContent $content) {}
 
     public function handle(Event $event, User $user, string $body, ?EventComment $inRispostaA = null): EventComment
     {
         return DB::transaction(function () use ($event, $user, $body, $inRispostaA): EventComment {
+            // Serialize account writes so concurrent requests cannot bypass duplicate detection.
+            User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
+            $this->content->handle($body, $user);
             $capostipite = null;
 
             if ($inRispostaA !== null) {
                 /* Se si risponde a una risposta, si risale al primo livello. */
+                $inRispostaA = EventComment::query()->lockForUpdate()->findOrFail($inRispostaA->id);
+                abort_unless($inRispostaA->event_id === $event->id && $inRispostaA->isPubliclyVisible(), 404);
                 $capostipite = $inRispostaA->parent_id ?? $inRispostaA->id;
             }
 
@@ -40,10 +45,10 @@ final class PostComment
                 'event_id' => $event->id,
                 'user_id' => $user->id,
                 'parent_id' => $capostipite,
+                'reply_to_id' => $inRispostaA?->id,
                 'body' => trim($body),
                 'status' => EventCommentStatus::Published,
                 'revision' => 1,
-                'reactions_count' => 0,
             ])->save();
 
             /*

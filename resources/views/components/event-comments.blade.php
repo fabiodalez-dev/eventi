@@ -19,7 +19,7 @@
     vedi `App\Actions\Comments\PostComment`.
 --}}
 
-@props(['event', 'comments', 'page' => 1, 'lastPage' => 1, 'total' => 0])
+@props(['event', 'comments', 'page' => 1, 'lastPage' => 1, 'total' => 0, 'thread' => null, 'repliesPage' => 1, 'repliesLastPage' => 1])
 
 @php
     $utente = auth()->user();
@@ -47,10 +47,23 @@
                         :event="$event"
                         :types="$tipiReazione"
                         :user="$utente"
+                        :thread="$thread"
                     />
                 </li>
             @endforeach
         </ol>
+    @endif
+
+    @if ($thread !== null)
+        <nav class="flex flex-wrap gap-4" aria-label="{{ __('comments.replies', ['count' => 2]) }}">
+            <a class="min-h-12 inline-flex items-center underline" href="{{ route('events.show', ['slug' => $event->slug]) }}#commenti">{{ __('comments.all') }}</a>
+            @if ($repliesPage > 1)
+                <a class="min-h-12 inline-flex items-center underline" href="{{ route('events.show', ['slug' => $event->slug, 'commento' => $thread, 'risposte' => $repliesPage - 1]) }}#commenti">{{ __('comments.previous') }}</a>
+            @endif
+            @if ($repliesPage < $repliesLastPage)
+                <a class="min-h-12 inline-flex items-center underline" href="{{ route('events.show', ['slug' => $event->slug, 'commento' => $thread, 'risposte' => $repliesPage + 1]) }}#commenti">{{ __('comments.more_replies') }}</a>
+            @endif
+        </nav>
     @endif
 
     @if ($lastPage > 1)
@@ -65,6 +78,7 @@
     @endif
 
     @auth
+        @if ($utente->hasVerifiedEmail())
         <form
             action="{{ route('events.comments.store', ['slug' => $event->slug]) }}"
             method="POST"
@@ -91,18 +105,24 @@
                 {{ __('comments.submit') }}
             </button>
         </form>
+        @else
+            <p class="border-t-2 border-line pt-5">{{ __('comments.verify_required') }}</p>
+            <a class="min-h-12 inline-flex items-center underline" href="{{ route('verification.notice', ['intended' => request()->fullUrl().'#commenti']) }}">{{ __('account.verify.title') }}</a>
+        @endif
     @else
         {{-- Niente ospiti: per commentare serve un profilo. Il pulsante apre
              il modale invece di portare via dalla pagina, così chi si iscrive
              non perde l'evento che stava leggendo. --}}
         <div class="border-t-2 border-line pt-5">
-            <button
-                type="button"
-                data-apri-iscrizione
+            <a href="{{ route('login', ['intended' => request()->fullUrl().'#commenti']) }}" data-apri-iscrizione
                 class="ui-action min-h-12 inline-flex items-center bg-accent px-5 py-3 font-semibold text-on-accent"
             >
                 {{ __('comments.join.prompt') }}
-            </button>
+            </a>
         </div>
     @endauth
 </section>
+
+@guest
+    <x-join-to-participate />
+@endguest

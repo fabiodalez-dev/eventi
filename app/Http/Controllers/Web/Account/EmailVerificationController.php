@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Web\Account;
 
 use App\DTOs\PageMeta;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Web\Account\AuthEntryRequest;
 use App\Models\User;
 use App\Services\Account\SignedEmailVerification;
 use Illuminate\Contracts\View\View;
@@ -26,12 +27,13 @@ use Illuminate\Http\Request;
  */
 final class EmailVerificationController extends Controller
 {
-    public function notice(Request $request): View|RedirectResponse
+    public function notice(AuthEntryRequest $request): View|RedirectResponse
     {
+        $request->rememberDestination();
         $user = $request->user();
 
         if ($user instanceof User && $user->hasVerifiedEmail()) {
-            return redirect()->route('account.profile');
+            return redirect()->intended(route('account.profile'));
         }
 
         return view('account.verify', [
@@ -50,6 +52,13 @@ final class EmailVerificationController extends Controller
 
         if ($user === null) {
             return redirect()->route('login')->with('status', __('account.verify.failed'));
+        }
+
+        $currentUser = $request->user();
+        if ($currentUser instanceof User && $currentUser->is($user)) {
+            $currentUser->refresh();
+
+            return redirect()->intended(route('account.profile'))->with('status', __('account.verify.done'));
         }
 
         return redirect()

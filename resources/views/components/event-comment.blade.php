@@ -5,7 +5,7 @@
     che non hanno a loro volta figli: l'annidamento si ferma al primo livello.
 --}}
 
-@props(['comment', 'event', 'types', 'user' => null, 'reply' => false])
+@props(['comment', 'event', 'types', 'user' => null, 'reply' => false, 'thread' => null])
 
 @php
     $mia = $user !== null ? $comment->reactions->firstWhere('user_id', $user->id) : null;
@@ -38,9 +38,10 @@
     @endif
 
     <div class="flex flex-wrap items-center gap-2">
+        @if (! $nascosto)
         @foreach ($types as $tipo)
             @php($attiva = $mia?->type === $tipo)
-            @auth
+            @if ($user?->hasVerifiedEmail())
                 <form
                     action="{{ route('events.comments.react', ['slug' => $event->slug, 'comment' => $comment->id]) }}"
                     method="POST"
@@ -62,17 +63,17 @@
                         <span class="sr-only">{{ $tipo->label() }}</span>
                     </button>
                 </form>
+            @elseif ($user !== null)
+                <a class="ui-action min-h-12 inline-flex items-center px-3" href="{{ route('verification.notice', ['intended' => request()->fullUrl().'#commenti']) }}" aria-label="{{ __('comments.verify_required') }}"><span aria-hidden="true">{{ $tipo->emoji() }}</span></a>
             @else
-                <button
-                    type="button"
-                    data-apri-iscrizione
+                <a href="{{ route('login', ['intended' => request()->fullUrl().'#commenti']) }}" data-apri-iscrizione
                     title="{{ $tipo->label() }}"
                     class="ui-action inline-flex min-h-12 items-center gap-1.5 border-2 border-line px-3 py-1.5 text-sm text-ink-muted transition hover:border-accent hover:text-ink"
                 >
                     <span aria-hidden="true">{{ $tipo->emoji() }}</span>
                     <span class="sr-only">{{ $tipo->label() }}</span>
-                </button>
-            @endauth
+                </a>
+            @endif
         @endforeach
 
         {{-- Il contatore che il JavaScript aggiorna in tempo reale.
@@ -84,23 +85,27 @@
             class="text-sm text-ink-muted"
         >{{ $comment->reactions_count > 0 ? $comment->reactions_count : '' }}</span>
 
-        @if (! $reply && ! $nascosto)
-            @auth
+        @endif
+
+        @if (! $nascosto)
+            @if ($user?->hasVerifiedEmail())
                 <button type="button" data-apri-risposta="{{ $comment->id }}" class="ui-action min-h-12 px-2 text-sm underline">
                     {{ __('comments.reply') }}
                 </button>
+            @elseif ($user !== null)
+                <a class="min-h-12 inline-flex items-center underline" href="{{ route('verification.notice', ['intended' => request()->fullUrl().'#commenti']) }}">{{ __('account.verify.title') }}</a>
             @else
-                <button type="button" data-apri-iscrizione class="ui-action min-h-12 px-2 text-sm underline">
+                <a href="{{ route('login', ['intended' => request()->fullUrl().'#commenti']) }}" data-apri-iscrizione class="ui-action min-h-12 px-2 text-sm underline">
                     {{ __('comments.reply') }}
-                </button>
-            @endauth
+                </a>
+            @endif
         @endif
 
         @if ($puoEliminare)
             <form
                 action="{{ route('events.comments.destroy', ['slug' => $event->slug, 'comment' => $comment->id]) }}"
                 method="POST"
-                onsubmit="return confirm('{{ __('comments.delete_confirm') }}')"
+                data-conferma-eliminazione="{{ __('comments.delete_confirm') }}"
             >
                 @csrf
                 @method('DELETE')
@@ -112,7 +117,7 @@
     </div>
 
     @auth
-        @if (! $reply && ! $nascosto)
+        @if (! $nascosto && $user->hasVerifiedEmail())
             {{-- Il form di risposta nasce chiuso e lo apre il JavaScript.
                  Senza JavaScript resta visibile: meglio un form in più che un
                  pulsante che non fa niente. --}}
@@ -120,14 +125,15 @@
                 action="{{ route('events.comments.store', ['slug' => $event->slug]) }}"
                 method="POST"
                 data-risposta="{{ $comment->id }}"
+                data-risposta-error="{{ (int) old('parent_id') === $comment->id ? '1' : '0' }}"
                 class="flex flex-col gap-2"
-                hidden
             >
                 @csrf
                 <input type="hidden" name="parent_id" value="{{ $comment->id }}">
                 <label class="flex flex-col gap-1.5">
                     <span class="text-sm font-semibold">{{ __('comments.reply_to', ['name' => \Illuminate\Support\Str::before($comment->user->name, ' ')]) }}</span>
-                    <textarea name="body" rows="3" minlength="3" maxlength="2000" required class="w-full border-2 border-line bg-canvas p-3 focus:border-brand focus:outline-none"></textarea>
+                    <textarea name="body" rows="3" minlength="3" maxlength="2000" required class="w-full border-2 border-line bg-canvas p-3 focus:border-brand focus:outline-none">{{ (int) old('parent_id') === $comment->id ? old('body') : '' }}</textarea>
+                    @if ((int) old('parent_id') === $comment->id) @error('body')<p role="alert">{{ $message }}</p>@enderror @endif
                 </label>
                 <button type="submit" class="ui-action min-h-12 self-start bg-accent px-4 py-2 text-sm font-semibold text-on-accent">
                     {{ __('comments.reply_submit') }}
@@ -144,5 +150,8 @@
                 </li>
             @endforeach
         </ol>
+    @endif
+    @if (! $reply && $thread === null && $comment->replies_count > $comment->replies->count())
+        <a class="min-h-12 inline-flex items-center underline" href="{{ $comment->setRelation('event', $event)->permalink() }}">{{ __('comments.thread') }} ({{ $comment->replies_count }})</a>
     @endif
 </article>

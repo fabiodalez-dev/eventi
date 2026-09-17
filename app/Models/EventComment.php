@@ -9,8 +9,11 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
 /**
+ * @property Carbon|null $created_at
+ *
  * Un commento alla scheda di un evento.
  *
  * ## Perché qui non c'è `ContentVersion::bump()`
@@ -42,7 +45,42 @@ class EventComment extends Model
             'revision' => 'integer',
             'reactions_count' => 'integer',
             'moderated_at' => 'datetime',
+            'created_at' => 'datetime',
         ];
+    }
+
+    public function getReactionsCountAttribute(mixed $value): int
+    {
+        return $value === null ? $this->reactions()->count() : (int) $value;
+    }
+
+    /** @return BelongsTo<self, $this> */
+    public function replyTo(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'reply_to_id');
+    }
+
+    public function permalink(): string
+    {
+        return route('events.show', ['slug' => $this->event->slug, 'commento' => $this->id]).'#commento-'.$this->id;
+    }
+
+    /** @param Builder<self> $query */
+    public function scopeVisibleTo(Builder $query, ?User $user): void
+    {
+        $query->whereHas('user')->where(function (Builder $q) use ($user): void {
+            $q->where('status', EventCommentStatus::Published);
+            if ($user !== null) {
+                $q->orWhere('user_id', $user->id);
+            }
+        });
+    }
+
+    public function isPubliclyVisible(): bool
+    {
+        return $this->status === EventCommentStatus::Published
+            && $this->user !== null
+            && ($this->parent_id === null || ($this->parent !== null && $this->parent->status === EventCommentStatus::Published && $this->parent->user !== null));
     }
 
     /** @return BelongsTo<Event, $this> */

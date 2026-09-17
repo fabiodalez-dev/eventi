@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Web\Account;
 use App\Actions\Account\RegisterUser;
 use App\DTOs\PageMeta;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Web\Account\AuthEntryRequest;
 use App\Http\Requests\Web\Account\RegisterRequest;
 use App\Support\Features;
 use Illuminate\Contracts\View\View;
@@ -27,8 +28,10 @@ use Illuminate\Support\Facades\Auth;
  */
 final class RegisterController extends Controller
 {
-    public function create(): View
+    public function create(AuthEntryRequest $request): View
     {
+        $request->rememberDestination();
+
         return view('account.register', [
             'meta' => new PageMeta(
                 title: __('account.register.title'),
@@ -59,7 +62,7 @@ final class RegisterController extends Controller
         $request->session()->regenerate();
 
         return redirect()
-            ->route('account.feed')
+            ->route('verification.notice')
             ->with('status', __('account.register.done'));
     }
 }

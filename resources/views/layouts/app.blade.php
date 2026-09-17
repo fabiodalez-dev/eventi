@@ -650,6 +650,5 @@
         </div>
     </footer>
     <x-mobile-navigation />
-    <x-join-to-participate />
 </body>
 </html>

@@ -30,17 +30,10 @@ class EventCommentPolicy
 {
     use ScopesToVenueMembership;
 
-    /**
-     * Commentare: basta un account.
-     *
-     * Non si chiede l'email verificata. Il progetto non la chiede nemmeno per
-     * le recensioni dei locali, e alzare l'asticella solo qui produrrebbe due
-     * regole diverse per la stessa cosa — con l'effetto pratico di perdere
-     * proprio chi si è appena iscritto per rispondere a qualcuno.
-     */
+    /** Commentare richiede un indirizzo email confermato. */
     public function create(User $user): bool
     {
-        return true;
+        return $user->hasVerifiedEmail();
     }
 
     /**

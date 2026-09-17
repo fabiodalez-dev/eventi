@@ -130,7 +130,7 @@ final readonly class NotificationPreferences
      */
     public static function keys(): array
     {
-        return ['reminders', 'reminder_hours', 'sold_out', 'venue_digest', 'daily_digest', 'delivery'];
+        return ['reminders', 'reminder_hours', 'sold_out', 'venue_digest', 'daily_digest', 'comments', 'delivery'];
     }
 
     /**

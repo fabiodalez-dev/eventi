@@ -548,6 +548,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     suspend fun eventWeather(id: Long) = repository.eventWeather(id)
 
+    private var commentLoginSlug: String? = null
+    fun loginForComments(slug: String) {
+        commentLoginSlug = slug
+        selectTab(AppTab.ACCOUNT)
+    }
+    suspend fun eventComments(slug: String, page: Int, thread: Long?, repliesPage: Int) = repository.eventComments(slug, page, thread, repliesPage)
+    suspend fun postComment(slug: String, body: String, parentId: Long?) = repository.postComment(slug, body, parentId)
+    suspend fun reactComment(slug: String, id: Long, type: String) = repository.reactComment(slug, id, type)
+    suspend fun deleteComment(slug: String, id: Long) = repository.deleteComment(slug, id)
+    suspend fun resendCommentConfirmation() = repository.resendConfirmation()
+
     suspend fun venueReviews(slug: String, page: Int) = repository.venueReviews(slug, page)
     suspend fun submitVenueReview(slug: String, rating: Int, body: String) = repository.submitVenueReview(slug, rating, body)
     suspend fun deleteVenueReview(slug: String) = repository.deleteVenueReview(slug)
@@ -833,6 +844,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         authError = null,
                         message = "Accesso eseguito. I salvati del dispositivo sono stati sincronizzati.",
                     )
+                    commentLoginSlug?.let { slug ->
+                        commentLoginSlug = null
+                        openSlug(slug)
+                    }
                 }
                 .onFailure {
                     if (it is CancellationException) throw it

@@ -12,8 +12,10 @@ use App\Models\User;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
+use Filament\Actions\ViewAction;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Textarea;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
@@ -75,11 +77,11 @@ class EventCommentResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('event.title')->label(__('comments.singular'))->searchable()->wrap()->limit(60),
+                TextColumn::make('event.title')->label(__('comments.moderation.event'))->searchable()->wrap()->limit(60),
                 TextColumn::make('user.name')->label(__('reviews.user'))->searchable(),
-                TextColumn::make('body')->label(__('comments.body'))->wrap()->limit(140)->searchable(),
+                TextColumn::make('body')->label(__('comments.moderation.body'))->wrap()->limit(140)->searchable(),
                 TextColumn::make('parent_id')->label(__('comments.reply'))->formatStateUsing(fn (?int $state): string => $state === null ? '—' : '↳'),
-                TextColumn::make('reactions_count')->label(__('comments.reactions.like'))->sortable(),
+                TextColumn::make('reactions_count')->counts('reactions')->label(__('comments.reactions.like'))->sortable(),
                 TextColumn::make('status')->label(__('reviews.status'))->badge()
                     ->formatStateUsing(fn (EventCommentStatus $state): string => $state->label())
                     ->color(fn (EventCommentStatus $state): string => $state === EventCommentStatus::Hidden ? 'danger' : 'success'),
@@ -93,9 +95,22 @@ class EventCommentResource extends Resource
                 ),
             ])
             ->recordActions([
+                ViewAction::make('dettagli')
+                    ->label(__('comments.moderation.details'))
+                    ->authorize('hide')
+                    ->modalSubmitAction(false)
+                    ->schema([
+                        TextEntry::make('event.title')->label(__('comments.moderation.event')),
+                        TextEntry::make('user.name')->label(__('reviews.user')),
+                        TextEntry::make('body')->label(__('comments.moderation.body')),
+                        TextEntry::make('moderation_note')->label(__('comments.moderation.note'))->placeholder('—'),
+                        TextEntry::make('moderator.name')->label(__('admin.fields.reviewed_by'))->placeholder('—'),
+                        TextEntry::make('moderated_at')->label(__('comments.moderation.date'))->dateTime('d/m/Y H:i')->placeholder('—'),
+                    ]),
                 self::azioneNascondi(),
                 self::azioneRipristina(),
-                DeleteAction::make()->label(__('comments.delete'))->authorize('delete'),
+                DeleteAction::make()->label(__('comments.delete'))->authorize('delete')
+                    ->modalDescription(__('comments.delete_confirm')),
             ]);
     }
 

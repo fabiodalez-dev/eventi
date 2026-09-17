@@ -31,7 +31,7 @@ it('registra dal sito con il nome facoltativo e manda subito la verifica', funct
         'email' => 'giulia@example.test',
         'password' => 'una-password-molto-lunga',
         'password_confirmation' => 'una-password-molto-lunga',
-    ])->assertRedirect(route('account.feed'));
+    ])->assertRedirect(route('verification.notice'));
 
     $user = User::query()->where('email', 'giulia@example.test')->firstOrFail();
 

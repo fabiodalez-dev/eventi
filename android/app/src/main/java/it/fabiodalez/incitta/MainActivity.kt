@@ -27,7 +27,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        it.fabiodalez.incitta.data.NetworkDiagnostics.initialize(applicationContext)
+        getSharedPreferences("network_diagnostics", MODE_PRIVATE).edit().clear().apply()
         enableEdgeToEdge()
         it.fabiodalez.incitta.notifications.PushRegistration.refresh(applicationContext)
         handleIntent(intent)

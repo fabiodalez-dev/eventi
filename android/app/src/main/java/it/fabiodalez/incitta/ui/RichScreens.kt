@@ -135,6 +135,7 @@ fun CompleteEventDetailScreen(
     onOpenEvent: (Occurrence) -> Unit,
     onReserve: (Occurrence) -> Unit,
     onOrganizer: (String) -> Unit = {},
+    comments: @Composable () -> Unit = {},
 ) {
     val context = LocalContext.current
     val scrollState = rememberScrollState()
@@ -287,6 +288,8 @@ fun CompleteEventDetailScreen(
                  * stesso posto. In coda restava solo la segnalazione di un errore,
                  * che è un'altra cosa.
                  */
+                comments()
+
                 DetailSection("CONDIVIDI") {
                     ActionButton("CONDIVIDI QUESTO EVENTO", Icons.Outlined.Share) { share(context, detail.title, detail.url ?: "https://eventi.fabiodalez.it/eventi/${detail.slug}") }
                 }

@@ -439,6 +439,9 @@
                     :page="$commentsPage"
                     :last-page="$commentsLastPage"
                     :total="$commentsTotal"
+                    :thread="$commentThread"
+                    :replies-page="$repliesPage"
+                    :replies-last-page="$repliesLastPage"
                 />
             @endif
         </article>
