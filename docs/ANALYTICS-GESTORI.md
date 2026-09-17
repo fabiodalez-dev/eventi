@@ -95,6 +95,10 @@ WhatsApp/Telegram/email contano l'avvio dal pulsante con JavaScript attivo, non 
 consegna del messaggio. La condivisione di sistema e la copia contano solo dopo il
 completamento senza errore. Gli annullamenti non contano. I link dei servizi
 funzionano anche senza JavaScript; in quel caso l'avvio non viene misurato.
+Gli avvii dei link brevi usano `POST /s/{code}/share` con CSRF e limite di
+60 richieste al minuto. Questo limite e quello dei contatori ordinari hanno
+chiavi distinte dai form, così leggere o condividere non blocca una recensione.
+Le aperture vengono registrate dal redirect GET, senza dipendere da JavaScript.
 Le condivisioni confluiscono una sola volta nei totali evento/replica; i pulsanti
 social non vengono più classificati anche come clic a siti esterni o all'email.
 
