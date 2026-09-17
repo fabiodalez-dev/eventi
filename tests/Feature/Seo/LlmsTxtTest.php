@@ -48,20 +48,38 @@ it('elenca le prossime date con luogo e ora, non il solo indirizzo', function ()
 });
 
 it('non nomina le bozze, come non le nomina la mappa del sito', function (): void {
-    occurrenceAtLocal($this->city, $this->category, '2026-09-12 21:30');
+    /*
+     * I titoli sono fissati a mano di proposito. La factory li compone da una
+     * lista corta, quindi due eventi possono pescare lo stesso: con i titoli
+     * casuali questo test falliva in CI quando la bozza e l'evento pubblicato
+     * si chiamavano allo stesso modo, pur essendo la bozza correttamente
+     * esclusa. Un test che dipende da una collisione non dimostra niente.
+     */
+    occurrenceAtLocal($this->city, $this->category, '2026-09-12 21:30', event: [
+        'title' => 'Serata pubblicata che deve comparire',
+    ]);
 
     $bozza = occurrenceAtLocal($this->city, $this->category, '2026-09-13 21:30', event: [
+        'title' => 'Bozza che non deve comparire',
         'status' => EventStatus::Draft,
         'published_at' => null,
     ])->event;
 
-    expect($this->get('/llms.txt')->getContent())->not->toContain($bozza->title);
+    $testo = $this->get('/llms.txt')->getContent();
+
+    expect($testo)->toContain('Serata pubblicata che deve comparire')
+        ->and($testo)->not->toContain($bozza->title);
 });
 
 it('non nomina i contenuti dimostrativi, che nemmeno la mappa dichiara', function (): void {
-    $vero = occurrenceAtLocal($this->city, $this->category, '2026-09-12 21:30')->event;
+    /* Titoli fissati per la stessa ragione: la factory può ripeterli. */
+    $vero = occurrenceAtLocal($this->city, $this->category, '2026-09-12 21:30', event: [
+        'title' => 'Evento reale del catalogo',
+    ])->event;
 
-    $finto = occurrenceAtLocal($this->city, $this->category, '2026-09-14 21:30')->event;
+    $finto = occurrenceAtLocal($this->city, $this->category, '2026-09-14 21:30', event: [
+        'title' => 'Evento dimostrativo da non dichiarare',
+    ])->event;
     $finto->forceFill(['is_demo' => true])->save();
 
     $testo = $this->get('/llms.txt')->getContent();
