@@ -101,6 +101,8 @@ Non avviare due suite PHP contemporaneamente sullo stesso database di test.
   Richiede un dispositivo/emulatore e verifica testo letterale, accesso ospite,
   conferma email, pubblicazione/eliminazione, reazioni e conservazione della
   risposta rifiutata. `testDebugUnitTest` **non comprende** questi test UI.
+  La CI compila anche i test strumentali con `compileDebugAndroidTestKotlin`;
+  la loro esecuzione richiede il comando su dispositivo indicato sopra.
 
 Lo scanner usa QR con contenuti fissi, compreso quello che ha causato il
 fallimento CI: la decodifica resta quella reale di ZXing su un flusso video

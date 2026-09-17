@@ -453,7 +453,7 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: gradle
-      - run: ./gradlew testDebugUnitTest compileDebugKotlin
+      - run: ./gradlew testDebugUnitTest compileDebugKotlin compileDebugAndroidTestKotlin
         working-directory: android
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
