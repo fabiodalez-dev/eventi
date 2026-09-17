@@ -150,6 +150,13 @@ Route::get('/sitemap-{section}-{page}.xml', [SeoController::class, 'section'])
 Route::get('/robots.txt', [SeoController::class, 'robots'])->name('robots');
 
 /*
+ * `llms.txt` (proposta llmstxt.org): lo stesso indirizzo fisso alla radice,
+ * cercato dagli assistenti che leggono il web. Dice cosa c'è nel sito con
+ * parole, dove la mappa dice solo dove sono le pagine.
+ */
+Route::get('/llms.txt', [SeoController::class, 'llms'])->name('llms');
+
+/*
  * Il manifesto dell'applicazione web (§15.6). Sta con la mappa del sito e il
  * `robots.txt`, e per la stessa ragione: appartiene al dominio, non a una
  * città, e vuole indirizzi assoluti che dipendono da dove gira il sito.

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Services\Seo\LlmsTxtBuilder;
 use App\Services\Seo\SitemapBuilder;
 use App\Support\CurrentCity;
 use Illuminate\Http\Response;
@@ -22,7 +23,10 @@ use Illuminate\Support\Facades\Route;
  */
 final class SeoController extends Controller
 {
-    public function __construct(private readonly SitemapBuilder $sitemap) {}
+    public function __construct(
+        private readonly SitemapBuilder $sitemap,
+        private readonly LlmsTxtBuilder $llms,
+    ) {}
 
     public function index(CurrentCity $currentCity): Response
     {
@@ -77,6 +81,25 @@ final class SeoController extends Controller
         }
 
         return response(implode(PHP_EOL, $lines).PHP_EOL, 200, [
+            'Content-Type' => 'text/plain; charset=utf-8',
+        ]);
+    }
+
+    /**
+     * `llms.txt`: il sommario del sito per chi lo legge per rispondere a una
+     * domanda invece che per compilare un indice.
+     *
+     * Sta alla radice del dominio come `robots.txt`, e per la stessa ragione:
+     * è lì che viene cercato e in nessun altro posto. Risponde 404 quando non
+     * c'è una città, perché un sommario di niente è peggio di un file assente.
+     */
+    public function llms(CurrentCity $currentCity): Response
+    {
+        $city = $currentCity->get();
+
+        abort_if($city === null, 404);
+
+        return response($this->llms->build($city), 200, [
             'Content-Type' => 'text/plain; charset=utf-8',
         ]);
     }
