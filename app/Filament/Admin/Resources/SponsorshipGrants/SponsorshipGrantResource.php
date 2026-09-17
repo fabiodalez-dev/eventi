@@ -8,7 +8,9 @@ use App\Enums\PromotionMode;
 use App\Enums\SponsorshipPlacement;
 use App\Filament\Admin\Resources\Events\RelationManagers\ActivityRelationManager;
 use App\Models\SponsorshipGrant;
+use App\Services\Sponsorship\GrantPayment;
 use Carbon\CarbonImmutable;
+use Carbon\Exceptions\InvalidFormatException;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
@@ -54,25 +56,50 @@ class SponsorshipGrantResource extends Resource
                 Toggle::make('enabled')->label(__('promotions.enabled'))->default(true),
             ]),
             Section::make(__('promotions.period'))->columns(2)->schema([
-                DateTimePicker::make('starts_at')->label(__('promotions.starts'))->timezone('Europe/Rome')->default(now())->required()->seconds(false),
+                DateTimePicker::make('starts_at')->label(__('promotions.starts'))->timezone('Europe/Rome')->default(now())->required()->seconds(false)->live(onBlur: true)
+                    ->afterStateUpdated(fn (Get $get, Set $set) => self::updateEndDate($get, $set)),
                 Select::make('months')->label(__('promotions.months'))->options([1 => '1', 2 => '2', 3 => '3', 6 => '6', 12 => '12'])->dehydrated(false)->live()
-                    ->afterStateUpdated(function ($state, Get $get, Set $set): void {
-                        if ($state && $get('starts_at')) {
-                            $set('ends_at', CarbonImmutable::parse($get('starts_at'), 'Europe/Rome')->addMonthsNoOverflow((int) $state)->format('Y-m-d H:i:s'));
+                    ->placeholder(__('promotions.custom_duration'))
+                    ->afterStateUpdated(fn (Get $get, Set $set) => self::updateEndDate($get, $set)),
+                DateTimePicker::make('ends_at')->label(__('promotions.ends'))->timezone('Europe/Rome')->default(now()->addMonthNoOverflow())->required()->after('starts_at')->seconds(false)->helperText(__('promotions.manual'))->live(onBlur: true)
+                    ->afterStateUpdated(fn (Set $set) => $set('months', null)),
+                Toggle::make('complimentary')->label(__('promotions.complimentary'))->live()
+                    ->helperText(__('promotions.complimentary_payment_hint'))
+                    ->afterStateUpdated(function ($state, Set $set): void {
+                        if ($state) {
+                            foreach (GrantPayment::FIELDS as $field) {
+                                $set($field, null);
+                            }
                         }
                     }),
-                DateTimePicker::make('ends_at')->label(__('promotions.ends'))->timezone('Europe/Rome')->default(now()->addMonthNoOverflow())->required()->after('starts_at')->seconds(false)->helperText(__('promotions.manual')),
-                Toggle::make('complimentary')->label(__('promotions.complimentary'))->live(),
-                TextInput::make('amount_cents')->label(__('promotions.amount'))->numeric()->minValue(0.01)->maxValue(1000000)
+                TextInput::make('amount_cents')->label(__('promotions.amount'))->numeric()->step(0.01)->rules(['decimal:0,2'])->minValue(0.01)->maxValue(1000000)
                     ->formatStateUsing(fn ($state) => $state === null ? null : $state / 100)
                     ->dehydrateStateUsing(fn ($state) => filled($state) ? (int) round((float) $state * 100) : null)
                     ->required(fn (Get $get): bool => ! $get('complimentary'))->visible(fn (Get $get): bool => ! $get('complimentary')),
-                DateTimePicker::make('paid_at')->label(__('promotions.paid'))->timezone('Europe/Rome')->maxDate(now())->seconds(false)->visible(fn (Get $get): bool => ! $get('complimentary')),
-                TextInput::make('payment_method')->label(__('promotions.method'))->maxLength(100),
-                TextInput::make('payment_reference')->label(__('promotions.reference'))->maxLength(255),
+                DateTimePicker::make('paid_at')->label(__('promotions.paid'))->timezone('Europe/Rome')->maxDate(fn () => now())->seconds(false)->visible(fn (Get $get): bool => ! $get('complimentary')),
+                TextInput::make('payment_method')->label(__('promotions.method'))->maxLength(100)->visible(fn (Get $get): bool => ! $get('complimentary')),
+                TextInput::make('payment_reference')->label(__('promotions.reference'))->maxLength(255)->visible(fn (Get $get): bool => ! $get('complimentary')),
                 Textarea::make('notes')->label(__('promotions.notes'))->required(fn (Get $get): bool => (bool) $get('complimentary'))->maxLength(5000)->columnSpanFull(),
             ]),
         ]);
+    }
+
+    private static function updateEndDate(Get $get, Set $set): void
+    {
+        $months = filter_var($get('months'), FILTER_VALIDATE_INT);
+        $start = $get('starts_at');
+        if (! in_array($months, [1, 2, 3, 6, 12], true) || ! is_string($start) || blank($start)) {
+            return;
+        }
+        try {
+            $date = CarbonImmutable::parse($start, config('app.timezone'))->setTimezone('Europe/Rome');
+        } catch (InvalidFormatException) {
+            // Leave validation to the form while a date is incomplete.
+            return;
+        }
+
+        // Get/Set use application time; add calendar months in the displayed timezone.
+        $set('ends_at', $date->addMonthsNoOverflow($months)->setTimezone(config('app.timezone')));
     }
 
     public static function table(Table $table): Table

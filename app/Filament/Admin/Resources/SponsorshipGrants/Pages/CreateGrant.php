@@ -7,6 +7,7 @@ namespace App\Filament\Admin\Resources\SponsorshipGrants\Pages;
 use App\Filament\Admin\Resources\SponsorshipGrants\SponsorshipGrantResource;
 use App\Models\SponsorshipGrant;
 use App\Services\Sponsorship\GrantCampaigns;
+use App\Services\Sponsorship\GrantPayment;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreateGrant extends CreateRecord
@@ -22,7 +23,7 @@ class CreateGrant extends CreateRecord
     {
         $data['created_by'] = auth()->id();
 
-        return $data;
+        return app(GrantPayment::class)->normalize($data);
     }
 
     protected function afterCreate(): void

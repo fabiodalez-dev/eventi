@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Admin\Resources\Events\RelationManagers;
 
+use App\Models\SponsorshipGrant;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -14,10 +15,8 @@ use Spatie\Activitylog\Models\Activity;
  * La cronologia delle modifiche (§9.2), letta da `activity_log`.
  *
  * È **sola lettura**: un registro che si possa correggere non è un registro.
- * Le righe le scrive il trait `LogsActivity` dichiarato sul model, che
- * osserva `status`, `verification_status`, `published_at`,
- * `rejection_reason`, `is_featured` ed `editorial_score` — cioè le decisioni,
- * non i ritocchi al testo.
+ * Le righe le scrive il trait `LogsActivity` del modello: decisioni editoriali
+ * per eventi e locali, modifiche amministrative per le abilitazioni sponsor.
  */
 class ActivityRelationManager extends RelationManager
 {
@@ -34,7 +33,7 @@ class ActivityRelationManager extends RelationManager
             ->columns([
                 TextColumn::make('created_at')
                     ->label(__('admin.fields.activity_date'))
-                    ->dateTime('d/m/Y H:i')
+                    ->dateTime('d/m/Y H:i', 'Europe/Rome')
                     ->sortable(),
 
                 TextColumn::make('event')
@@ -49,11 +48,13 @@ class ActivityRelationManager extends RelationManager
 
                 TextColumn::make('causer.name')
                     ->label(__('admin.fields.activity_causer'))
-                    ->placeholder(__('admin.placeholders.system')),
+                    ->placeholder(fn (Activity $record): string => $record->causer_id === null
+                        ? __('admin.placeholders.system')
+                        : __('admin.activity.unavailable_causer')),
 
-                TextColumn::make('properties')
+                TextColumn::make('changes')
                     ->label(__('admin.fields.activity_changes'))
-                    ->formatStateUsing(fn (Activity $record): string => self::describe($record))
+                    ->state(fn (Activity $record): string => self::describe($record))
                     ->wrap(),
             ])
             ->defaultSort('created_at', 'desc')
@@ -62,20 +63,30 @@ class ActivityRelationManager extends RelationManager
 
     private static function describe(Activity $activity): string
     {
-        /** @var array<string, mixed> $properties */
-        $properties = $activity->properties->toArray();
-
-        /** @var array<string, mixed> $attributes */
-        $attributes = $properties['attributes'] ?? [];
-
+        // Current activitylog stores changes separately; keep older records readable.
+        $changes = $activity->attribute_changes?->toArray() ?: ($activity->properties?->toArray() ?? []);
+        $attributes = $changes['attributes'] ?? [];
+        $old = $changes['old'] ?? [];
         $parts = [];
+        $isGrant = $activity->subject_type === (new SponsorshipGrant)->getMorphClass();
+        $paymentLabels = ['amount_cents' => 'amount', 'paid_at' => 'paid',
+            'payment_method' => 'method', 'payment_reference' => 'reference', 'complimentary' => 'complimentary'];
 
-        foreach ($attributes as $key => $value) {
-            $label = __('admin.fields.'.$key);
-            $parts[] = ($label === 'admin.fields.'.$key ? $key : $label).': '.self::stringify($value);
+        foreach (array_unique([...array_keys($old), ...array_keys($attributes)]) as $key) {
+            $label = $isGrant && isset($paymentLabels[$key]) ? __('promotions.'.$paymentLabels[$key]) : __('admin.fields.'.$key);
+            $label = $label === 'admin.fields.'.$key ? $key : $label;
+            $before = array_key_exists($key, $old) ? self::stringifyAttribute($key, $old[$key], $isGrant).' → ' : '';
+            $parts[] = $label.': '.$before.self::stringifyAttribute($key, $attributes[$key] ?? null, $isGrant);
         }
 
         return implode(' · ', $parts);
+    }
+
+    private static function stringifyAttribute(string $key, mixed $value, bool $isGrant): string
+    {
+        return $isGrant && $key === 'amount_cents' && is_numeric($value)
+            ? number_format(((float) $value) / 100, 2, ',', '.').' €'
+            : self::stringify($value);
     }
 
     private static function stringify(mixed $value): string
