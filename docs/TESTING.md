@@ -108,3 +108,10 @@ Lo scanner usa QR con contenuti fissi, compreso quello che ha causato il
 fallimento CI: la decodifica resta quella reale di ZXing su un flusso video
 simulato. Non sostituirla con un risultato del decoder simulato, né tornare a
 un solo codice casuale che potrebbe non riprodurre il difetto.
+
+Per azioni non idempotenti (toggle dei preferiti, chiusura di un dialogo), usare
+`$page->page()->locator($selector)->click(['timeout' => 5000])` e poi un'asserzione
+sullo stato risultante. Il wrapper `$page->click()` di Pest può ripetere l'azione
+con finestre di un secondo: se il primo clic ha già avuto effetto ma termina
+lentamente, il secondo può annullarlo o cercare un controllo ormai chiuso.
+`ManagementAnalyticsTest` verifica anche il completamento rallentato del clic.
