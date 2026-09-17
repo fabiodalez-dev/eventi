@@ -239,3 +239,50 @@ body, .fi-body { background: var(--fi-canvas); color: var(--fi-ink); }
 .ad-active-filters dl { display: flex; flex-wrap: wrap; gap: 12px 24px; margin-top: 12px; }
 .ad-active-filters dt { color: var(--color-gray-600); font-size: .75rem; }
 .ad-active-filters dd { font-size: .8125rem; font-weight: 600; overflow-wrap: anywhere; }
+
+@source '../../../views/filament/partials/topbar-actions.blade.php';
+
+/* A warm, clearly identified workspace with shortcuts distinct from the page actions. */
+.fi-topbar:has(.itb-context) { background: oklch(95% 0.025 48); border-bottom: 1px solid oklch(84% 0.045 48); box-shadow: none; gap: 20px; padding-block: 10px; }
+.fi-topbar:has(.itb-context) .fi-topbar-start { display: none; }
+.fi-topbar:has(.itb-context) > .fi-icon-btn { order: 0; flex-shrink: 0; }
+.itb-context { min-height: 48px; order: 1; display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1; color: var(--fi-ink); }
+.itb-mark { display: grid; place-items: center; flex: 0 0 42px; height: 42px; border-radius: 10px; background: oklch(52% 0.145 42); color: oklch(99% 0.005 48); }
+.itb-mark .fi-icon { width: 23px; height: 23px; }
+.itb-identity { min-width: 0; }
+.itb-identity small { display: block; color: oklch(40% 0.06 42); font-size: .6875rem; font-weight: 700; }
+.itb-identity strong { display: block; max-width: 25ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .9375rem; font-weight: 800; }
+.itb-actions { order: 2; display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.itb-action { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 48px; padding: 10px 12px; border-radius: 8px; color: oklch(36% 0.07 42); font-size: .8125rem; font-weight: 750; white-space: nowrap; transition: background-color 160ms ease-out; }
+.itb-action > .fi-icon { width: 19px; height: 19px; flex-shrink: 0; }
+.itb-action:hover { background: oklch(90% 0.045 48); }
+.itb-action:focus-visible, .itb-context:focus-visible { outline: 2px solid var(--fi-accent); outline-offset: 3px; }
+.itb-primary { background: oklch(52% 0.145 42); color: oklch(99% 0.005 48); }
+.itb-primary:hover { background: oklch(44% 0.13 42); }
+.itb-more { width: 48px; border: 1px solid oklch(80% 0.04 48); }
+.itb-short-label { display: none; }
+.fi-topbar:has(.itb-context) .fi-topbar-end { order: 3; margin-inline-start: 0; gap: 12px; }
+.fi-topbar:has(.itb-context) .fi-global-search { max-width: 200px; }
+@media (max-width: 1199px) {
+    .fi-topbar:has(.itb-context) { flex-wrap: wrap; column-gap: 12px; row-gap: 8px; }
+    .itb-actions { order: 4; width: 100%; padding-top: 8px; border-top: 1px solid oklch(86% 0.03 48); }
+    .fi-topbar:has(.itb-context) .fi-topbar-end { margin-inline-start: auto; }
+}
+@media (max-width: 639px) {
+    .fi-topbar:has(.itb-context) { padding-inline: 12px; gap: 8px; }
+    .itb-context { gap: 8px; }
+    .itb-mark { display: none; }
+    .itb-identity strong { font-size: .8125rem; max-width: 15ch; }
+    .fi-topbar:has(.itb-context) .fi-global-search { width: 106px; }
+    .fi-topbar:has(.itb-context) .fi-topbar-end { gap: 8px; }
+    .itb-wide-label { display: none; }
+    .itb-short-label { display: inline; }
+    .itb-action { padding-inline: 8px; font-size: .75rem; gap: 5px; }
+    .itb-actions { justify-content: space-between; }
+}
+@media (prefers-reduced-motion: reduce) { .itb-action { transition: none; } }
+@media (max-width: 380px) {
+    .itb-actions { gap: 4px; }
+    .itb-action { padding-inline: 6px; }
+    .itb-action:not(.itb-primary):not(.itb-more) > .fi-icon { display: none; }
+}
