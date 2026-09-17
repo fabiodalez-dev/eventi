@@ -56,7 +56,7 @@ Route::get('/s/{code}', [EventShareController::class, 'open'])
         AuthenticateWebSession::class])
     ->name('event-shares.open');
 Route::post('/s/{code}/share', [EventShareController::class, 'share'])
-    ->where('code', '[A-Za-z0-9]{7}')->middleware('throttle:60,1')->name('event-shares.share');
+    ->where('code', '[A-Za-z0-9]{7}')->middleware('throttle:60,1,event-share-actions')->name('event-shares.share');
 
 /*
  * Le rotte del sito pubblico stanno in routes/public.php e sono registrate due
@@ -75,7 +75,7 @@ Route::middleware(PersonalizeDiscovery::class)->group(base_path('routes/public.p
 Route::group([], base_path('routes/account.php'));
 Route::post('/misure/{type}/{id}', ContentMetricController::class)
     ->whereIn('type', ['event', 'venue', 'organizer'])->whereNumber('id')
-    ->middleware(['signed:relative', 'throttle:60,1'])->name('content.metrics');
+    ->middleware(['signed:relative', 'throttle:60,1,content-metrics'])->name('content.metrics');
 Route::get('/anteprima-evento/{event}', [EventController::class, 'preview'])->middleware('auth')->name('events.preview');
 Route::group([], base_path('routes/ticketing.php'));
 Route::get('/social/grafiche/{batch}/{index}.jpg', [SocialDownloadController::class, 'image'])->middleware('signed')->whereNumber('index')->name('social.image');
