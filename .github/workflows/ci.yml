@@ -201,6 +201,8 @@ jobs:
           cache: npm
       - run: composer install --no-interaction --prefer-dist --no-progress
       - run: npm ci
+      - name: Test JavaScript con le dipendenze reali
+        run: node --test tests/js/integration/*.test.js
       - run: npx playwright install --with-deps chromium
       - run: npm run build
       - name: Prepara ambiente isolato

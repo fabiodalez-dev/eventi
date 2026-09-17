@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { BarcodeFormat, BitMatrix, QRCodeWriter } from '@zxing/library';
-import { createTicketQrReader } from '../../resources/js/ticket-qr-reader.js';
+import { createTicketQrReader } from '../../../resources/js/ticket-qr-reader.js';
 
 const code = 'uM3AHOr4O9FK8OWt26lS4rCMvQGEB4ZUbMF07r6xjNbjhZLROJZvsCQNiM7Zvcbh';
 

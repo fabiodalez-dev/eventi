@@ -95,7 +95,7 @@ Non avviare due suite PHP contemporaneamente sullo stesso database di test.
   I casi dedicati sono `EventCommentXssTest`, `EventCommentsInteractionTest` e
   `ProfileTicketingTest`: XSS anche senza CSP, login dai commenti e ordinario,
   isolamento del dialogo, reazioni e scanner su desktop/mobile.
-- JavaScript: `node --test tests/js/ticket-qr-reader.test.js tests/js/ticket-search.test.js`.
+- JavaScript: `node --test tests/js/integration/ticket-qr-reader.test.js tests/js/ticket-search.test.js`.
   Verifica decodifica reale, rotazione e rifiuto di immagini vuote/danneggiate.
 - Android, dalla directory `android`: `./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=it.fabiodalez.incitta.EventCommentsUiTest`.
   Richiede un dispositivo/emulatore e verifica testo letterale, accesso ospite,
