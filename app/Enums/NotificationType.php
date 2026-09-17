@@ -38,6 +38,18 @@ enum NotificationType: string
     case EventRejected = 'event_rejected';
     case VenueInactive = 'venue_inactive';
 
+    /*
+     * I commenti agli eventi. `CommentReply` e `CommentReaction` nascono da un
+     * gesto altrui su un contenuto proprio; `CommentModerated` dice all'autore
+     * che il suo commento è stato tolto dalla vista, perché altrimenti
+     * continuerebbe a chiedersi perché nessuno risponde. `EventNewComment` va
+     * a chi gestisce il locale o l'organizzatore dell'evento.
+     */
+    case CommentReply = 'comment_reply';
+    case CommentReaction = 'comment_reaction';
+    case CommentModerated = 'comment_moderated';
+    case EventNewComment = 'event_new_comment';
+
     public function label(): string
     {
         return __('enums.notification_type.'.$this->value);
@@ -71,6 +83,12 @@ enum NotificationType: string
     {
         return match ($this) {
             self::VenueDigest, self::DailyDigest, self::WeekendNewsletter, self::EventSoldOut => true,
+            /*
+             * Le reazioni passano dal tetto giornaliero, le risposte no: una
+             * risposta attesa che arriva alle 23 è utile, venti «mi piace»
+             * alle 23 sono un fastidio.
+             */
+            self::CommentReaction => true,
             default => false,
         };
     }
@@ -93,7 +111,7 @@ enum NotificationType: string
     public function isForVenueStaff(): bool
     {
         return match ($this) {
-            self::EventPublished, self::EventRejected, self::VenueInactive => true,
+            self::EventPublished, self::EventRejected, self::VenueInactive, self::EventNewComment => true,
             default => false,
         };
     }
@@ -120,6 +138,7 @@ enum NotificationType: string
             self::EventSoldOut => $preferences->soldOut,
             self::VenueDigest, self::VenueNewEvent => $preferences->venueDigest,
             self::DailyDigest => $preferences->dailyDigest,
+            self::CommentReply, self::CommentReaction => $preferences->comments,
             default => true,
         };
     }
@@ -147,6 +166,7 @@ enum NotificationType: string
             self::EventSoldOut => 'sold_out',
             self::VenueDigest, self::VenueNewEvent => 'venue_digest',
             self::DailyDigest => 'daily_digest',
+            self::CommentReply, self::CommentReaction => 'comments',
             default => null,
         };
 

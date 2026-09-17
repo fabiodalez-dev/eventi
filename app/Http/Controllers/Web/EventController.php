@@ -11,6 +11,7 @@ use App\Http\Controllers\Web\Concerns\InteractsWithCity;
 use App\Models\Booking;
 use App\Models\City;
 use App\Models\Event;
+use App\Models\EventComment;
 use App\Models\EventOccurrence;
 use App\Queries\EventOccurrenceQuery;
 use App\Services\Calendar\OccurrenceCalendar;
@@ -117,7 +118,35 @@ final class EventController extends Controller
 
         request()->attributes->set('sponsorship_exclude_event', $event->slug);
 
+        /*
+         * I commenti della pagina richiesta.
+         *
+         * Caricati qui e resi dal server, non da una chiamata successiva: sono
+         * testo che vale la pena indicizzare — una domanda pratica e la sua
+         * risposta sono esattamente ciò che qualcuno cercherà.
+         *
+         * `with('reactions')` evita una query per commento nel disegnare quale
+         * faccina ha messo chi legge; `replies` porta il solo livello che
+         * esiste.
+         */
+        $paginaCommenti = max(1, (int) request()->integer('commenti', 1));
+        $elencoCommenti = EventComment::query()
+            ->where('event_id', $event->id)
+            ->published()
+            ->topLevel()
+            ->with([
+                'user:id,name',
+                'reactions:id,event_comment_id,user_id,type',
+                'replies' => fn ($q) => $q->published()->with(['user:id,name', 'reactions:id,event_comment_id,user_id,type'])->orderBy('id'),
+            ])
+            ->orderByDesc('id')
+            ->paginate(10, page: $paginaCommenti);
+
         return view('events.show', [
+            'comments' => $elencoCommenti->getCollection(),
+            'commentsPage' => $elencoCommenti->currentPage(),
+            'commentsLastPage' => $elencoCommenti->lastPage(),
+            'commentsTotal' => $elencoCommenti->total(),
             'isPreview' => $isPreview,
             'selectedOccurrence' => $canonicalDate,
             'city' => $city,

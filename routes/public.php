@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Http\Controllers\Api\V1\SponsorshipBannerController;
 use App\Http\Controllers\Web\CalendarController;
 use App\Http\Controllers\Web\CalendarWizardController;
+use App\Http\Controllers\Web\EventCommentController;
 use App\Http\Controllers\Web\EventController;
 use App\Http\Controllers\Web\EventListController;
 use App\Http\Controllers\Web\EventSubmissionController;
@@ -137,6 +138,20 @@ Route::get('/registra-il-tuo-locale', [VenueApplicationController::class, 'creat
 Route::post('/registra-il-tuo-locale', [VenueApplicationController::class, 'store'])
     ->middleware('throttle:public-forms')
     ->name('venue-applications.store');
+
+/*
+ * I commenti a un evento.
+ *
+ * Form normali con redirect, come le recensioni qui sotto: funzionano senza
+ * JavaScript. Il `throttle` sulla scrittura è stretto, quello sulle reazioni
+ * più largo, perché reagire è un gesto che si ripete e scrivere no.
+ */
+Route::post('/eventi/{slug}/commenti', [EventCommentController::class, 'store'])
+    ->middleware(['auth', 'throttle:10,60'])->name('events.comments.store');
+Route::delete('/eventi/{slug}/commenti/{comment}', [EventCommentController::class, 'destroy'])
+    ->middleware(['auth', 'throttle:30,60'])->name('events.comments.destroy');
+Route::post('/eventi/{slug}/commenti/{comment}/reazione', [EventCommentController::class, 'react'])
+    ->middleware(['auth', 'throttle:120,1'])->name('events.comments.react');
 
 Route::post('/locali/{slug}/recensione', [VenueReviewController::class, 'store'])->middleware(['auth', 'throttle:10,60'])->name('venues.review.store');
 Route::delete('/locali/{slug}/recensione', [VenueReviewController::class, 'destroy'])->middleware(['auth', 'throttle:10,60'])->name('venues.review.destroy');

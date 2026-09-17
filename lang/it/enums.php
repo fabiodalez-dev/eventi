@@ -201,6 +201,10 @@ return [
         'event_published' => 'Evento pubblicato',
         'event_rejected' => 'Evento rifiutato',
         'venue_inactive' => 'Locale inattivo',
+        'comment_reply' => 'Risposta a un tuo commento',
+        'comment_reaction' => 'Reazione a un tuo commento',
+        'comment_moderated' => 'Tuo commento nascosto',
+        'event_new_comment' => 'Nuovo commento su un tuo evento',
     ],
 
     'notification_skip_reason' => [

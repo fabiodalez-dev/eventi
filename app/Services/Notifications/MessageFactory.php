@@ -65,6 +65,24 @@ final readonly class MessageFactory
             NotificationType::EventPublished => $this->eventPublished($notification),
             NotificationType::EventRejected => $this->eventRejected($notification),
             NotificationType::VenueInactive => $this->venueInactive($notification),
+
+            /*
+             * I commenti non passano di qui.
+             *
+             * Questa fabbrica costruisce i messaggi **programmati**: promemoria,
+             * digest, newsletter, cioè cose che la piattaforma decide di mandare
+             * a un certo momento. Una risposta a un commento è transazionale —
+             * nasce da un gesto di una persona e parte subito — e viaggia con
+             * `App\Notifications\CommentActivity`.
+             *
+             * Se un giorno qualcuno programmasse una notifica di questo tipo,
+             * qui non troverebbe un messaggio: meglio saltarla dichiarandolo
+             * che fabbricarne uno vuoto.
+             */
+            NotificationType::CommentReply,
+            NotificationType::CommentReaction,
+            NotificationType::CommentModerated,
+            NotificationType::EventNewComment => NotificationSkipReason::MissingSubject,
         };
     }
 

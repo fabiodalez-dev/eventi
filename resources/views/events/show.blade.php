@@ -62,7 +62,7 @@
         {{-- La mappa del locale, più in basso, è lo stesso riquadro MapLibre di
              tutto il sito e senza questo script non si accende: restava un
              rettangolo con la propria frase, e sembrava rotta. --}}
-        @vite('resources/js/map.js')
+        @vite(['resources/js/map.js', 'resources/js/comments.js'])
     </x-slot:head>
 
     {{-- La riga di ritorno: dove sono e da dove vengo. Nel riferimento è una
@@ -427,6 +427,19 @@
                         @endforeach
                     </div>
                 </section>
+            @endif
+
+            {{-- I commenti stanno sotto i tag, dentro la colonna principale:
+                 sono la coda della scheda, non una sezione a larghezza piena
+                 come «altri eventi in questo locale». --}}
+            @if (! ($isPreview ?? false))
+                <x-event-comments
+                    :event="$event"
+                    :comments="$comments"
+                    :page="$commentsPage"
+                    :last-page="$commentsLastPage"
+                    :total="$commentsTotal"
+                />
             @endif
         </article>
 
