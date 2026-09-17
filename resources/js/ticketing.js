@@ -99,11 +99,11 @@ document.querySelectorAll('[data-ticket-scanner]').forEach((form) => {
         stopButton.hidden = false;
         try {
             if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) throw new Error('Camera unavailable');
-            const { BrowserQRCodeReader } = await import('@zxing/browser');
+            const { createTicketQrReader } = await import('./ticket-qr-reader');
             if (current !== generation) return;
             video.hidden = false;
             message.textContent = form.dataset.ready;
-            const reader = new BrowserQRCodeReader();
+            const reader = createTicketQrReader();
             const next = await reader.decodeFromConstraints({ video: { facingMode: 'environment' }, audio: false }, video, (result, error, readerControls) => {
                 if (current !== generation) { readerControls.stop(); return; }
                 if (!result || !/^[a-zA-Z0-9]{64}$/.test(result.getText())) return;

@@ -29,11 +29,12 @@ it('keeps profile preferences aligned and every personal page linked back', func
     $page->click('a[href$="/biglietti"]')->assertSee('Non hai ancora biglietti.')->assertVisible('[data-profile-back]')->screenshot(filename: 'tickets-empty-'.$device);
 })->with(['desktop', 'mobile']);
 
-it('opens the mobile scanner decodes a qr and records admission only after confirmation', function (string $device): void {
+it('opens the mobile scanner decodes a qr and records admission only after confirmation', function (string $device, string $code): void {
     $date = occurrenceAtLocal($this->city, $this->category, now('Europe/Rome')->addHour()->format('Y-m-d H:i'), null, ['booking_enabled' => true, 'booking_capacity' => 5, 'booking_limit' => 5]);
     $date->event->venue->update(['ticketing_enabled' => true]);
     $booking = app(TicketingService::class)->reserve($this->user, $date, ['Anna Rossi'], (string) Str::uuid(), false);
     $ticket = $booking->tickets->first();
+    $ticket->forceFill(['code' => $code])->save();
     $svg = base64_encode((string) QrCode::format('svg')->size(480)->margin(4)->generate($ticket->code));
     $page = visit('/gestione-biglietti/'.$date->id)->inLightMode()->on()->{$device}()
         ->click('[data-consent-banner] button[value="reject_all"]')->screenshot(filename: 'ticket-management-'.$device);
@@ -50,7 +51,13 @@ it('opens the mobile scanner decodes a qr and records admission only after confi
     $page->fill('[data-ticket-search] [name="q"]', 'Anna')->assertSee('Anna Rossi');
     $page->script('(() => { navigator.mediaDevices.getUserMedia = async () => { throw new DOMException("denied", "NotAllowedError"); }; return true; })()');
     $page->click('[data-scan-start]')->assertSee('Accesso alla fotocamera negato.');
-})->with(['desktop', 'mobile']);
+})->with([
+    // This CI fixture used to fail consistently with ZXing's alignment detector.
+    'desktop alignment regression' => ['desktop', 'uM3AHOr4O9FK8OWt26lS4rCMvQGEB4ZUbMF07r6xjNbjhZLROJZvsCQNiM7Zvcbh'],
+    'mobile alignment regression' => ['mobile', 'uM3AHOr4O9FK8OWt26lS4rCMvQGEB4ZUbMF07r6xjNbjhZLROJZvsCQNiM7Zvcbh'],
+    'desktop alternate pattern' => ['desktop', str_repeat('Ab9x', 16)],
+    'mobile alternate pattern' => ['mobile', str_repeat('Ab9x', 16)],
+]);
 
 it('searches upcoming and past events without losing the mobile controls', function (string $device): void {
     occurrenceAtLocal($this->city, $this->category, now('Europe/Rome')->addDay()->format('Y-m-d').' 21:00', event: ['title' => 'Concerto futuro']);

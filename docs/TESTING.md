@@ -81,3 +81,37 @@ Riferimenti: [Pest Arch](https://pestphp.com/docs/arch-testing),
 [Pest Browser](https://pestphp.com/docs/browser-testing),
 [Deptrac](https://deptrac.github.io/deptrac/configuration/),
 [Infection](https://infection.github.io/guide/usage.html).
+
+## Commenti, accesso e scanner biglietti
+
+`php artisan test --parallel` esegue Unit, Feature e Architecture: **non esegue
+Browser né Android**. Riportare separatamente gli esiti dei diversi comandi.
+Non avviare due suite PHP contemporaneamente sullo stesso database di test.
+
+- Backend: `./vendor/bin/pest tests/Feature/Api/EventCommentsTest.php tests/Feature/Web/EventCommentsTest.php tests/Feature/Web/EventCommentsRegressionTest.php tests/Feature/Web/EventCommentSecurityTest.php tests/Feature/Web/CommentContentFilterTest.php tests/Feature/Account/CommentLoginReturnTest.php tests/Feature/Security/UnverifiedAccountTest.php`.
+  Copre autorizzazioni, isolamento dei pannelli, moderazione, contatori,
+  paginazione, dati personali/spam, verifica email e destinazione dopo l'accesso.
+- Browser: dopo `npm run build`, eseguire `./vendor/bin/pest --configuration=phpunit.browser.xml`.
+  I casi dedicati sono `EventCommentXssTest`, `EventCommentsInteractionTest` e
+  `ProfileTicketingTest`: XSS anche senza CSP, login dai commenti e ordinario,
+  isolamento del dialogo, reazioni e scanner su desktop/mobile.
+- JavaScript: `node --test tests/js/integration/ticket-qr-reader.test.js tests/js/ticket-search.test.js`.
+  Verifica decodifica reale, rotazione e rifiuto di immagini vuote/danneggiate.
+- Android, dalla directory `android`: `./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=it.fabiodalez.incitta.EventCommentsUiTest`.
+  Richiede un dispositivo/emulatore e verifica testo letterale, accesso ospite,
+  conferma email, pubblicazione/eliminazione, reazioni e conservazione della
+  risposta rifiutata. `testDebugUnitTest` **non comprende** questi test UI.
+  La CI compila anche i test strumentali con `compileDebugAndroidTestKotlin`;
+  la loro esecuzione richiede il comando su dispositivo indicato sopra.
+
+Lo scanner usa QR con contenuti fissi, compreso quello che ha causato il
+fallimento CI: la decodifica resta quella reale di ZXing su un flusso video
+simulato. Non sostituirla con un risultato del decoder simulato, né tornare a
+un solo codice casuale che potrebbe non riprodurre il difetto.
+
+Per azioni non idempotenti (toggle dei preferiti, chiusura di un dialogo), usare
+`$page->page()->locator($selector)->click(['timeout' => 5000])` e poi un'asserzione
+sullo stato risultante. Il wrapper `$page->click()` di Pest può ripetere l'azione
+con finestre di un secondo: se il primo clic ha già avuto effetto ma termina
+lentamente, il secondo può annullarlo o cercare un controllo ormai chiuso.
+`ManagementAnalyticsTest` verifica anche il completamento rallentato del clic.
