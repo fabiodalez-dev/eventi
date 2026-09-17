@@ -42,11 +42,21 @@ final class EventCommentQuery
 
         }
 
+        /*
+         * Quanti commenti ha l'evento, non quanti ne ha questa pagina.
+         *
+         * In vista conversazione la query dei capostipiti è ristretta a uno
+         * solo (`whereKey`), quindi `$roots->total()` vale 1: l'intestazione
+         * diceva «Commenti (1)» anche su un evento che ne aveva cinquanta.
+         * Il conto vero costa una query in più, e solo su quella vista.
+         */
+        $total = $rootId === null ? $roots->total() : (clone $query)->topLevel()->count();
+
         return [
             'comments' => $roots->getCollection(),
             'commentsPage' => $roots->currentPage(),
             'commentsLastPage' => $roots->lastPage(),
-            'commentsTotal' => $roots->total(),
+            'commentsTotal' => $total,
             'commentThread' => $rootId,
             'repliesPage' => $replyPage,
             'repliesLastPage' => $repliesLastPage,
