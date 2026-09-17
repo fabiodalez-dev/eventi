@@ -23,7 +23,7 @@ it('submits stars and text then requires moderation again after editing', functi
     expect($review->rating)->toBe(4)->and($review->status)->toBe(VenueReviewStatus::Pending);
     $admin = User::factory()->create();
     $admin->assignRole('admin');
-    app(VenueReviews::class)->moderate($review, $admin, 'approved', 1, null);
+    app(VenueReviews::class)->moderate($review, $admin, 'approved', $review->revision, null);
     $page->navigate('/locali/'.$venue->slug)->assertSee(__('reviews.approved'))
         ->assertSee('Un locale accogliente e tranquillo.');
     expect($page->script('document.querySelectorAll("#recensioni article").length'))->toBe(1);
