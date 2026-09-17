@@ -32,6 +32,22 @@ return [
         'ttl_minutes' => 60,
     ],
 
+    'llms' => [
+        /*
+         * Quante date entrano nel sommario. `llms.txt` è un riassunto e non un
+         * archivio: chi vuole tutto ha la mappa del sito, che è lì accanto.
+         * Ottanta righe stanno in una finestra di contesto senza occuparla.
+         */
+        'events' => 80,
+
+        /*
+         * Per quanto resta valido in cache. Come la mappa, e invalidato dalla
+         * stessa versione: alla pubblicazione di un evento il file è già un
+         * altro.
+         */
+        'ttl_minutes' => 60,
+    ],
+
     'robots' => [
         /*
          * Percorsi che non hanno senso in un indice: pannelli, moduli con

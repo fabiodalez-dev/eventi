@@ -312,3 +312,28 @@ it('genera un nodo per ogni data di un ciclo, ognuno con indirizzo e identificat
         ->and($nodes[1]['@id'])->toBe($nodes[1]['url'].'#event')
         ->and($this->structured->events($event, collect()))->toBe([]);
 });
+
+it('dichiara il logo dell’organizzazione, che è uno dei requisiti del pannello di conoscenza', function (): void {
+    $nodo = $this->structured->organization();
+
+    expect($nodo['logo'])->toBe(url('/icon-512.png'))
+        ->and(public_path('icon-512.png'))->toBeFile();
+});
+
+it('non dichiara i profili social finché non sono configurati', function (): void {
+    /*
+     * Un `sameAs` vuoto è peggio di un `sameAs` assente: dichiara una
+     * relazione che non porta da nessuna parte. Le tre voci stanno in
+     * `.env` — `SEO_ORGANIZATION`, `SEO_ORGANIZATION_EMAIL`,
+     * `SEO_ORGANIZATION_SOCIALS` — e finché restano vuote il nodo non le
+     * nomina.
+     */
+    config()->set('seo.organization.same_as', []);
+    config()->set('seo.organization.email', '');
+
+    expect($this->structured->organization())->not->toHaveKeys(['sameAs', 'email']);
+
+    config()->set('seo.organization.same_as', ['https://www.instagram.com/incitta']);
+
+    expect($this->structured->organization()['sameAs'])->toBe(['https://www.instagram.com/incitta']);
+});

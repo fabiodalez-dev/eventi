@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\Venue;
 use App\Services\Media\OpenGraphImage;
 use App\Support\EventUrl;
+use App\Support\Seo\PageTitle;
 use Illuminate\Support\Facades\Storage;
 use Tests\Support\ImageFixtures;
 
@@ -155,4 +156,29 @@ describe('immagini senza salto di layout (§11.11)', function (): void {
             ->toContain('fetchpriority="high"')
             ->toMatch('/rel="preload"[^>]*type="image\/(avif|webp)"/s');
     });
+});
+
+it('serve un titolo che sta nella misura anche quando il nome dell’evento è lunghissimo', function (): void {
+    /*
+     * Il titolo servito, non quello calcolato: qui dentro c'è anche il
+     * suffisso che aggiunge il layout, ed è la parte del conto che
+     * `PageTitle` non può vedere da sola. Se un giorno il separatore
+     * cambiasse, questo test se ne accorgerebbe e il test unitario no.
+     */
+    $event = occurrenceAtLocal($this->city, $this->category, '2026-09-12 21:30', event: [
+        'title' => 'Padova Suona Walt Disney | Gran Concerto di Natale al Piccolo Teatro Don Bosco',
+    ])->event;
+
+    freezeLocal($this->city, '2026-09-01 12:00');
+
+    $html = $this->get(route('events.show', $event))->assertOk()->getContent();
+
+    expect($html)->toMatch('/<title>(.*?)<\/title>/');
+    preg_match('/<title>(.*?)<\/title>/s', (string) $html, $trovato);
+
+    $titolo = html_entity_decode(trim($trovato[1]), ENT_QUOTES, 'UTF-8');
+
+    expect(mb_strlen($titolo))->toBeLessThanOrEqual(PageTitle::LIMIT)
+        ->and($titolo)->toContain(config()->string('app.name'))
+        ->and($titolo)->toStartWith('Padova Suona Walt Disney');
 });
