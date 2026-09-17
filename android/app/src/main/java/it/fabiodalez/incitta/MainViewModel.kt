@@ -209,6 +209,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun selectTab(tab: AppTab) {
+        commentLoginSlug = null
         if (navigationTarget(tab, _state.value.session != null) != tab) {
             selectTab(AppTab.ACCOUNT)
             _state.value = _state.value.copy(message = getApplication<Application>().getString(R.string.saved_login_required))
@@ -550,8 +551,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private var commentLoginSlug: String? = null
     fun loginForComments(slug: String) {
-        commentLoginSlug = slug
         selectTab(AppTab.ACCOUNT)
+        commentLoginSlug = slug
     }
     suspend fun eventComments(slug: String, page: Int, thread: Long?, repliesPage: Int) = repository.eventComments(slug, page, thread, repliesPage)
     suspend fun postComment(slug: String, body: String, parentId: Long?) = repository.postComment(slug, body, parentId)

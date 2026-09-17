@@ -25,7 +25,7 @@ final class LoginController extends Controller
 {
     public function create(AuthEntryRequest $request): View
     {
-        $request->rememberDestination();
+        $request->rememberDestination(freshEntry: true);
 
         return view('account.login', [
             'meta' => new PageMeta(

@@ -33,7 +33,7 @@ final class MagicLinkController extends Controller
 {
     public function create(AuthEntryRequest $request): View
     {
-        $request->rememberDestination();
+        $request->rememberDestination(freshEntry: true);
 
         return view('account.magic-link', [
             'meta' => new PageMeta(

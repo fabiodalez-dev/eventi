@@ -48,7 +48,7 @@ it('returns to the comments after registration', function (): void {
 it('preserves the comment destination when switching to magic link login in the same browser', function (): void {
     $user = User::factory()->create();
     $this->get(route('login', ['intended' => $this->destination]))->assertOk();
-    $this->get(route('account.magic-link'))->assertOk();
+    $this->get(route('account.magic-link', ['intended' => $this->destination]))->assertOk();
     $this->post(route('account.magic-link.store'), ['email' => $user->email])->assertRedirect();
     $this->get(MagicLoginLink::url($user))->assertRedirect($this->destination);
 });
@@ -67,3 +67,28 @@ it('ignores untrusted return URLs', function (string $destination): void {
     'backslash' => 'http://localhost/\\evil.example/path',
     'control characters' => "http://localhost/\r\nLocation: https://evil.example",
 ]);
+
+it('sends a fresh normal login to the feed after abandoning a comments login', function (): void {
+    $user = User::factory()->create();
+    $this->get(route('login', ['intended' => $this->destination]))->assertOk();
+    $this->get(route('login'))->assertOk()->assertSessionMissing('url.intended');
+    $this->post('/accedi', ['email' => $user->email, 'password' => 'password'])
+        ->assertRedirect(route('account.feed'));
+});
+
+it('preserves an explicit return when switching back from registration to password login', function (): void {
+    $user = User::factory()->create();
+    $this->get(route('account.register', ['intended' => $this->destination]))
+        ->assertSee(route('login', ['intended' => $this->destination]));
+    $this->get(route('login', ['intended' => $this->destination]))->assertOk();
+    $this->post('/accedi', ['email' => $user->email, 'password' => 'password'])
+        ->assertRedirect($this->destination);
+});
+
+it('sends a fresh magic login to the feed after abandoning a comments login', function (): void {
+    $user = User::factory()->create();
+    $this->get(route('login', ['intended' => $this->destination]))->assertOk();
+    $this->get(route('account.magic-link'))->assertOk()->assertSessionMissing('url.intended');
+    $this->post(route('account.magic-link.store'), ['email' => $user->email])->assertRedirect();
+    $this->get(MagicLoginLink::url($user))->assertRedirect(route('account.feed'));
+});

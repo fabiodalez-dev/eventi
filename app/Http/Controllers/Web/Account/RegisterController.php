@@ -30,7 +30,7 @@ final class RegisterController extends Controller
 {
     public function create(AuthEntryRequest $request): View
     {
-        $request->rememberDestination();
+        $request->rememberDestination(freshEntry: true);
 
         return view('account.register', [
             'meta' => new PageMeta(

@@ -19,6 +19,6 @@
             </button>
         </form>
 
-        <a class="text-sm font-semibold text-brand hover:underline" href="{{ route('login') }}">{{ __('account.magic.with_password') }}</a>
+        <a class="text-sm font-semibold text-brand hover:underline" href="{{ route('login', ['intended' => session('url.intended')]) }}">{{ __('account.magic.with_password') }}</a>
     </div>
 </x-layouts.app>
