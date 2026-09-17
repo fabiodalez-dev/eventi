@@ -100,6 +100,30 @@ class AppRepository(context: Context) {
 
     suspend fun eventWeather(id: Long): EventWeather = api.get<ApiEnvelope<EventWeather>>("occurrences/$id/weather").data
 
+    suspend fun eventComments(slug: String, page: Int, thread: Long?, repliesPage: Int): EventCommentPage {
+        val token = _session.value?.token
+        val target = thread?.let { "&commento=$it" }.orEmpty()
+        val result = api.get<ApiEnvelope<EventCommentPage>>("events/${slug.urlEncoded()}/comments?commenti=$page&risposte=$repliesPage$target", token).data
+        if (_session.value?.token != token) throw kotlinx.coroutines.CancellationException("Session changed")
+        return result
+    }
+
+    suspend fun postComment(slug: String, body: String, parentId: Long?): Long {
+        return api.post<ApiEnvelope<CommentPosted>, CommentBody>("events/${slug.urlEncoded()}/comments", CommentBody(body.trim(), parentId), requireNotNull(_session.value?.token)).data.id
+    }
+
+    suspend fun reactComment(slug: String, id: Long, type: String) {
+        api.post<ApiEnvelope<kotlinx.serialization.json.JsonObject>, CommentReactionBody>("events/${slug.urlEncoded()}/comments/$id/reaction", CommentReactionBody(type), requireNotNull(_session.value?.token))
+    }
+
+    suspend fun deleteComment(slug: String, id: Long) {
+        api.delete<ApiEnvelope<ApiMessage>>("events/${slug.urlEncoded()}/comments/$id", requireNotNull(_session.value?.token))
+    }
+
+    suspend fun resendConfirmation() {
+        api.post<ApiEnvelope<ApiMessage>, Map<String, String>>("auth/verification/resend", emptyMap(), requireNotNull(_session.value?.token))
+    }
+
     suspend fun venueReviews(slug: String, page: Int = 1): VenueReviewPage =
         api.get<ApiEnvelope<VenueReviewPage>>("venues/${slug.urlEncoded()}/reviews?page=$page", _session.value?.token).data
 

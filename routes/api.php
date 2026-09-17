@@ -41,6 +41,7 @@ use App\Http\Controllers\TicketingController;
 use App\Http\Controllers\Web\Account\ContentPreferencesController;
 use App\Http\Controllers\Web\Account\NotificationInterestsController;
 use App\Http\Controllers\Web\Account\SavedCalendarController;
+use App\Http\Controllers\Web\EventCommentController;
 use App\Http\Controllers\Web\EventWeatherController;
 use App\Http\Controllers\Web\OrganizerController;
 use App\Http\Controllers\Web\PublicContactController;
@@ -97,6 +98,11 @@ Route::prefix('v1')
         Route::post('/{type}/{slug}/contact', [PublicContactController::class, 'store'])->whereIn('type', ['venues', 'organizers'])->middleware('throttle:5,60');
 
         Route::get('/occurrences/{occurrence}/weather', EventWeatherController::class)->whereNumber('occurrence')->name('occurrences.weather');
+
+        Route::get('/events/{slug}/comments', [EventCommentController::class, 'index']);
+        Route::post('/events/{slug}/comments', [EventCommentController::class, 'store'])->middleware(['auth:sanctum', 'verified', 'throttle:10,60']);
+        Route::post('/events/{slug}/comments/{comment}/reaction', [EventCommentController::class, 'react'])->middleware(['auth:sanctum', 'verified', 'throttle:120,1']);
+        Route::delete('/events/{slug}/comments/{comment}', [EventCommentController::class, 'destroy'])->middleware(['auth:sanctum', 'throttle:30,60']);
 
         Route::get('/venues/{slug}/reviews', [VenueReviewController::class, 'index'])->name('venues.reviews');
         Route::post('/venues/{slug}/reviews', [VenueReviewController::class, 'store'])->middleware(['auth:sanctum', 'throttle:10,60']);

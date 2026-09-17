@@ -60,7 +60,7 @@ it('ritrova sul sito esattamente le tre date salvate da anonimo, senza duplicati
         'email' => 'anonima@example.test',
         'password' => 'una-password-molto-lunga',
         'password_confirmation' => 'una-password-molto-lunga',
-    ])->assertRedirect(route('account.feed'));
+    ])->assertRedirect(route('verification.notice'));
 
     $user = User::query()->where('email', 'anonima@example.test')->firstOrFail();
 

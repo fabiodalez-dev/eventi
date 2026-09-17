@@ -38,7 +38,7 @@ final class PreferenceLinks
      */
     public static function unsubscribe(User $user, NotificationType $type): ?string
     {
-        if ($type->isMandatory() || $type->isForVenueStaff()) {
+        if ($type->isMandatory() || $type->isForVenueStaff() || $type === NotificationType::CommentModerated) {
             return null;
         }
 
@@ -57,7 +57,7 @@ final class PreferenceLinks
      */
     public static function unsubscribePost(User $user, NotificationType $type): ?string
     {
-        if ($type->isMandatory() || $type->isForVenueStaff()) {
+        if ($type->isMandatory() || $type->isForVenueStaff() || $type === NotificationType::CommentModerated) {
             return null;
         }
 

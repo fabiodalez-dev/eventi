@@ -36,6 +36,7 @@ final readonly class NotificationMessage
         public array $items = [],
         public ?int $occurrenceId = null,
         public ?int $eventId = null,
+        public ?int $commentId = null,
     ) {}
 
     /**
@@ -54,6 +55,7 @@ final readonly class NotificationMessage
             'items' => $this->items,
             'occurrence_id' => $this->occurrenceId,
             'event_id' => $this->eventId,
+            ...($this->commentId === null ? [] : ['comment_id' => $this->commentId]),
         ];
     }
 }

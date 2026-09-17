@@ -40,6 +40,7 @@ class UpdateProfileRequest extends FormRequest
             'reminders' => ['nullable', 'boolean'],
             'sold_out' => ['nullable', 'boolean'],
             'venue_digest' => ['nullable', 'boolean'],
+            'comments' => ['sometimes', 'boolean'],
             'daily_digest' => ['nullable', 'boolean'],
             'daily_digest_time' => ['nullable', 'date_format:H:i'],
             'quiet_from' => ['nullable', 'date_format:H:i', 'required_with:quiet_to'],
@@ -55,6 +56,7 @@ class UpdateProfileRequest extends FormRequest
             'sold_out' => $this->boolean('sold_out'),
             'venue_digest' => $this->boolean('venue_digest'),
             'daily_digest' => $this->boolean('daily_digest'),
+            'comments' => $this->boolean('comments'),
         ]);
     }
 

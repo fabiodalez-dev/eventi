@@ -36,6 +36,12 @@ final readonly class NotificationPreferences
         public bool $soldOut,
         public bool $venueDigest,
         public bool $dailyDigest,
+        /*
+         * Risposte e reazioni ai propri commenti. Acceso di default: chi
+         * scrive una domanda pubblica si aspetta di sapere quando qualcuno
+         * risponde, ed è la sola notifica che nasce da un gesto suo.
+         */
+        public bool $comments = true,
         public NotificationDelivery $delivery = NotificationDelivery::Auto,
     ) {}
 
@@ -51,6 +57,7 @@ final readonly class NotificationPreferences
             soldOut: true,
             venueDigest: true,
             dailyDigest: false,
+            comments: true,
         );
     }
 
@@ -71,6 +78,7 @@ final readonly class NotificationPreferences
             soldOut: self::boolean($stored, 'sold_out', $defaults->soldOut),
             venueDigest: self::boolean($stored, 'venue_digest', $defaults->venueDigest),
             dailyDigest: self::boolean($stored, 'daily_digest', $defaults->dailyDigest),
+            comments: self::boolean($stored, 'comments', $defaults->comments),
             delivery: NotificationDelivery::tryFrom(is_string($stored['delivery'] ?? null) ? $stored['delivery'] : '') ?? $defaults->delivery,
         );
     }
@@ -93,6 +101,7 @@ final readonly class NotificationPreferences
             soldOut: self::boolean($changes, 'sold_out', $this->soldOut),
             venueDigest: self::boolean($changes, 'venue_digest', $this->venueDigest),
             dailyDigest: self::boolean($changes, 'daily_digest', $this->dailyDigest),
+            comments: self::boolean($changes, 'comments', $this->comments),
             delivery: NotificationDelivery::tryFrom(is_string($changes['delivery'] ?? null) ? $changes['delivery'] : '') ?? $this->delivery,
         );
     }
@@ -108,6 +117,7 @@ final readonly class NotificationPreferences
             'sold_out' => $this->soldOut,
             'venue_digest' => $this->venueDigest,
             'daily_digest' => $this->dailyDigest,
+            'comments' => $this->comments,
             'delivery' => $this->delivery->value,
         ];
     }
@@ -120,7 +130,7 @@ final readonly class NotificationPreferences
      */
     public static function keys(): array
     {
-        return ['reminders', 'reminder_hours', 'sold_out', 'venue_digest', 'daily_digest', 'delivery'];
+        return ['reminders', 'reminder_hours', 'sold_out', 'venue_digest', 'daily_digest', 'comments', 'delivery'];
     }
 
     /**

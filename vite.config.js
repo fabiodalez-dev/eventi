@@ -16,6 +16,7 @@ export default defineConfig({
                 'resources/css/map.css',
                 'resources/js/map.js',
                 'resources/js/calendar.js',
+                'resources/js/comments.js',
                 // L'interruttore delle notifiche push: un pacchetto suo perche'
                 // vive in una pagina sola. Il service worker che serve NON e'
                 // qui — sta in public/sw.js, perche' deve avere un indirizzo

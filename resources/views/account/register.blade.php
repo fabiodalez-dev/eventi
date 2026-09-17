@@ -42,7 +42,7 @@
 
         <p class="text-sm text-ink-subtle">
             {{ __('account.register.have_account') }}
-            <a class="font-semibold text-brand hover:underline" href="{{ route('login') }}">{{ __('account.nav.login') }}</a>
+            <a class="font-semibold text-brand hover:underline" href="{{ route('login', ['intended' => session('url.intended')]) }}">{{ __('account.nav.login') }}</a>
         </p>
     </div>
 </x-layouts.app>

@@ -137,13 +137,6 @@ fun InCittaApp(viewModel: MainViewModel) {
             }
             HeaderThemeSwitch(state.appearance, viewModel::toggleQuickAppearance)
         }
-        if (it.fabiodalez.incitta.BuildConfig.DEBUG) {
-            val context = androidx.compose.ui.platform.LocalContext.current
-            androidx.compose.material3.TextButton(
-                onClick = { it.fabiodalez.incitta.data.NetworkDiagnostics.show(context) },
-                modifier = Modifier.fillMaxWidth(),
-            ) { Text("DEBUG RETE · APRI / CONDIVIDI LOG", color = Paper) }
-        }
         Scaffold(
             modifier = Modifier.nestedScroll(revealNavigation),
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
@@ -241,6 +234,18 @@ fun InCittaApp(viewModel: MainViewModel) {
                         onOpenEvent = viewModel::open,
                         onReserve = viewModel::startReservation,
                         onOrganizer = { organizerSlug = it },
+                        comments = {
+                            EventCommentsSection(
+                                slug = selected.slug,
+                                userId = state.session?.user?.id,
+                                onLogin = { viewModel.loginForComments(selected.slug) },
+                                load = { page, thread, replies -> viewModel.eventComments(selected.slug, page, thread, replies) },
+                                submit = { body, parent -> viewModel.postComment(selected.slug, body, parent) },
+                                react = { id, type -> viewModel.reactComment(selected.slug, id, type) },
+                                delete = { id -> viewModel.deleteComment(selected.slug, id) },
+                                resend = viewModel::resendCommentConfirmation,
+                            )
+                        },
                     )
                 }
 

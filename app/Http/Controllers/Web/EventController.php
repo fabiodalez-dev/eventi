@@ -8,10 +8,12 @@ use App\DTOs\PageMeta;
 use App\Enums\EventStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Web\Concerns\InteractsWithCity;
+use App\Http\Requests\Comments\EventCommentPageRequest;
 use App\Models\Booking;
 use App\Models\City;
 use App\Models\Event;
 use App\Models\EventOccurrence;
+use App\Queries\EventCommentQuery;
 use App\Queries\EventOccurrenceQuery;
 use App\Services\Calendar\OccurrenceCalendar;
 use App\Services\Events\EventPoster;
@@ -43,7 +45,7 @@ final class EventController extends Controller
         private readonly OccurrenceCalendar $calendar,
     ) {}
 
-    public function show(string $slug): View
+    public function show(EventCommentPageRequest $request, string $slug): View
     {
         $city = $this->city();
         $event = $this->findReadable($city, $slug);
@@ -61,7 +63,7 @@ final class EventController extends Controller
             ->header('Cache-Control', 'private, no-store')->header('X-Robots-Tag', 'noindex, nofollow');
     }
 
-    public function date(string $slug, string $occurrence): View
+    public function date(EventCommentPageRequest $request, string $slug, string $occurrence): View
     {
         $city = $this->city();
         $event = $this->findReadable($city, $slug);
@@ -117,7 +119,14 @@ final class EventController extends Controller
 
         request()->attributes->set('sponsorship_exclude_event', $event->slug);
 
+        $commentListing = app(EventCommentQuery::class)->listing(
+            $event, auth()->user(), request()->integer('commenti', 1),
+            request()->filled('commento') ? request()->integer('commento') : null,
+            request()->filled('risposte') ? request()->integer('risposte') : null,
+        );
+
         return view('events.show', [
+            ...$commentListing,
             'isPreview' => $isPreview,
             'selectedOccurrence' => $canonicalDate,
             'city' => $city,
