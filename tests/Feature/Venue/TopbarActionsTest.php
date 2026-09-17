@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Enums\VenueStatus;
 use App\Filament\Shared\TopbarActions;
 use Filament\Facades\Filament;
 use Tests\Support\VenueIsolationScenario;
@@ -40,4 +41,14 @@ it('does not expose another venues shortcuts or shortcuts to unauthenticated use
     expect(app(TopbarActions::class)->context())->toBeNull();
     auth()->logout();
     expect(app(TopbarActions::class)->context())->toBeNull();
+});
+
+it('opens the public site instead of a missing profile for a venue awaiting approval', function (): void {
+    $scenario = VenueIsolationScenario::make();
+    $scenario->venueA->update(['status' => VenueStatus::Pending]);
+    $this->actingAs($scenario->ownerA);
+    Filament::setCurrentPanel('venue');
+    Filament::setTenant($scenario->venueA);
+    $items = collect(app(TopbarActions::class)->context()['items'])->keyBy('key');
+    expect($items['public']['url'])->toBe(url('/'));
 });

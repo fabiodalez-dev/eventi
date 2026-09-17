@@ -20,7 +20,7 @@
         @endforeach
         <x-filament::dropdown placement="bottom-end" teleport>
             <x-slot name="trigger">
-                <button type="button" class="itb-action itb-more" aria-label="{{ __('topbar.more') }}" data-topbar-more>
+                <button type="button" class="itb-action itb-more" x-cloak aria-label="{{ __('topbar.more') }}" data-topbar-more>
                     <x-filament::icon icon="heroicon-o-ellipsis-horizontal" />
                 </button>
             </x-slot>

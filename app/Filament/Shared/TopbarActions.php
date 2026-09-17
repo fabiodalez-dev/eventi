@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Shared;
 
+use App\Enums\VenueStatus;
 use App\Filament\Admin\Pages\EventsCalendar;
 use App\Filament\Admin\Resources\EventComments\EventCommentResource;
 use App\Filament\Venue\Pages\EventShareAnalytics;
@@ -62,7 +63,7 @@ final class TopbarActions
         if ($venuePanel && VenueProfile::canAccess()) {
             $items[] = $this->item('profile', 'building-storefront', VenueProfile::getUrl());
         }
-        $items[] = $this->item('public', 'arrow-top-right-on-square', $venuePanel
+        $items[] = $this->item('public', 'arrow-top-right-on-square', $venuePanel && in_array($tenant->status, [VenueStatus::Approved, VenueStatus::Suspended], true)
             ? route('venues.show', ['slug' => $tenant->slug])
             : url('/'));
 

@@ -521,6 +521,7 @@ return [
     ],
 
     'activity' => [
+        'unavailable_causer' => 'Account non più disponibile',
         'created' => 'Creato',
         'updated' => 'Modificato',
         'deleted' => 'Cancellato',

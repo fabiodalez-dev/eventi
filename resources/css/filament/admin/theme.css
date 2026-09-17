@@ -273,7 +273,7 @@ body, .fi-body { background: var(--fi-canvas); color: var(--fi-ink); }
     .itb-context { gap: 8px; }
     .itb-mark { display: none; }
     .itb-identity strong { font-size: .8125rem; max-width: 15ch; }
-    .fi-topbar:has(.itb-context) .fi-global-search { width: 106px; }
+    .fi-topbar:has(.itb-context) .fi-global-search { width: 120px; }
     .fi-topbar:has(.itb-context) .fi-topbar-end { gap: 8px; }
     .itb-wide-label { display: none; }
     .itb-short-label { display: inline; }
