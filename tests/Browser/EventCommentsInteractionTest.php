@@ -37,6 +37,8 @@ it('offers the guest dialog only on event pages with a working login fallback', 
     $page->click('[data-apri-iscrizione]')->assertVisible('dialog[open]');
     $page->click('dialog button[type="submit"]')->assertMissing('dialog[open]');
     expect($page->script('document.querySelector("[data-apri-iscrizione]").tagName'))->toBe('A');
+    $page->navigate('/')->assertMissing('#iscriviti-per-partecipare');
+    $page->navigate('/accedi')->assertMissing('#iscriviti-per-partecipare');
 });
 
 it('returns a guest to the event comments after login from the dialog', function (): void {
@@ -54,3 +56,18 @@ it('returns a guest to the event comments after login from the dialog', function
     expect($page->script('window.location.pathname'))->toBe('/eventi/'.$event->slug);
     expect($page->script('window.location.hash'))->toBe('#commenti');
 });
+
+it('sends ordinary login to the feed even after abandoning comment login', function (bool $abandoned): void {
+    $city = testCity();
+    $event = Event::factory()->for($city)->published()->create();
+    $user = User::factory()->create();
+    $page = visit(route('events.show', ['slug' => $event->slug]));
+    $page->script('document.querySelector("[data-consent-banner]")?.remove()');
+    if ($abandoned) {
+        $page->click('[data-apri-iscrizione]')->click('#iscriviti-per-partecipare a[href*="accedi"]');
+    }
+    $page->navigate('/accedi')->assertMissing('#iscriviti-per-partecipare')
+        ->fill('email', $user->email)->fill('password', 'password')
+        ->click('form[action$="/accedi"] button[type="submit"]')
+        ->assertPathIs('/il-mio-feed');
+})->with(['direct login' => false, 'abandoned comment login' => true]);
