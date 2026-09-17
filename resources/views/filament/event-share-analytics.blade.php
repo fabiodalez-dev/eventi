@@ -9,6 +9,22 @@
         $bookingRows = collect(['bookings_confirmed', 'bookings_waitlisted', 'bookings_cancelled', 'tickets', 'checkins'])->map(fn ($key) => ['name' => $metricLabel($key), 'value' => $totals[$key]]);
         $communityRows = collect(['saves', 'comments', 'hidden_comments', 'reactions'])->map(fn ($key) => ['name' => $metricLabel($key), 'value' => $totals[$key]]);
     @endphp
+    <section class="ad-active-filters" data-analytics-active-filters aria-label="{{ __('analytics-dashboard.active_filters') }}">
+        <div>
+            <strong>{{ __('analytics-dashboard.active_filters') }}</strong>
+            <dl>
+                @foreach ($data['filter_labels'] as $key => $value)
+                    @if (filled($value) && ! ($this instanceof \App\Filament\Shared\AnalyticsDetailPage && in_array($key, ['event', 'venue', 'organizer'])))
+                        <div><dt>{{ __('analytics-dashboard.'.$key) }}</dt><dd>{{ in_array($key, ['from', 'until']) ? \Carbon\CarbonImmutable::parse($value)->format('d/m/Y') : $value }}</dd></div>
+                    @endif
+                @endforeach
+            </dl>
+        </div>
+        <x-filament::button color="gray" icon="heroicon-o-x-mark" wire:click="resetFilters" wire:loading.attr="disabled" data-analytics-reset-filters>{{ __($this instanceof \App\Filament\Shared\AnalyticsDetailPage ? 'analytics-dashboard.reset_detail' : 'analytics-dashboard.reset') }}</x-filament::button>
+    </section>
+    @if ($this instanceof \App\Filament\Shared\AnalyticsDetailPage)
+        @include('filament.partials.analytics-subject')
+    @endif
     <section class="ad-intro" aria-label="{{ __('analytics-dashboard.scope') }}">
         <p>{{ __('analytics-dashboard.intro') }}</p>
         <div class="ad-periods" role="group" aria-label="{{ __('analytics.period') }}">
@@ -22,7 +38,6 @@
         {{ $this->form }}
         <div class="ad-filter-foot">
             <p>{{ __('analytics-dashboard.channel_scope') }}</p>
-            <x-filament::button color="gray" wire:click="resetFilters" wire:loading.attr="disabled">{{ __('analytics-dashboard.reset') }}</x-filament::button>
         </div>
     </x-filament::section>
     <div wire:loading.delay class="ad-loading" role="status">{{ __('analytics-dashboard.loading') }}</div>
@@ -32,7 +47,7 @@
         @endforeach
     </dl>
     <p class="ad-context">{{ __('analytics-dashboard.context', ['events' => $data['events']->count(), 'venues' => $data['venues']->count(), 'organizers' => $data['organizers']->count()]) }}</p>
-    @if ($this->filters['event'])
+    @if ($this->filters['event'] && ! ($this instanceof \App\Filament\Shared\AnalyticsDetailPage))
         @php $selected = $data['events']->first(); @endphp
         @if ($selected)
             <x-filament::section :heading="$selected['event']" :description="$selected['venue'].' · '.$selected['organizer']">
@@ -56,13 +71,13 @@
             <x-analytics-bars :rows="$interactionRows" name="name" metric="value" :label="__('analytics-dashboard.actions_chart')" />
         </x-filament::section>
         <x-filament::section :heading="__('analytics-dashboard.events_chart')" :description="__('analytics-dashboard.rank_hint')">
-            <x-analytics-bars :rows="$data['events']->sortByDesc('views')->take(8)->values()" name="event" metric="views" :label="__('analytics-dashboard.events_chart')" :secondary="['key' => 'short_clicks', 'label' => __('event-shares.clicks')]" />
+            <x-analytics-bars :link="fn ($row) => $this->detailUrl('event', $row['id'])" :rows="$data['events']->sortByDesc('views')->take(8)->values()" name="event" metric="views" :label="__('analytics-dashboard.events_chart')" :secondary="['key' => 'short_clicks', 'label' => __('event-shares.clicks')]" />
         </x-filament::section>
         <x-filament::section :heading="__('analytics-dashboard.venues_chart')" :description="__('analytics-dashboard.venues_hint')">
-            <x-analytics-bars :rows="$data['venues']->sortByDesc('event_views')->take(8)->values()" name="name" metric="event_views" :label="__('analytics-dashboard.venues_chart')" :secondary="['key' => 'short_clicks', 'label' => __('event-shares.clicks')]" />
+            <x-analytics-bars :link="fn ($row) => $this->detailUrl('venue', $row['id'])" :rows="$data['venues']->sortByDesc('event_views')->take(8)->values()" name="name" metric="event_views" :label="__('analytics-dashboard.venues_chart')" :secondary="['key' => 'short_clicks', 'label' => __('event-shares.clicks')]" />
         </x-filament::section>
         <x-filament::section :heading="__('analytics-dashboard.organizers_chart')" :description="__('analytics-dashboard.rank_hint')">
-            <x-analytics-bars :rows="$data['organizers']->sortByDesc('event_views')->take(8)->values()" name="name" metric="event_views" :label="__('analytics-dashboard.organizers_chart')" />
+            <x-analytics-bars :link="fn ($row) => $this->detailUrl('organizer', $row['id'])" :rows="$data['organizers']->sortByDesc('event_views')->take(8)->values()" name="name" metric="event_views" :label="__('analytics-dashboard.organizers_chart')" />
         </x-filament::section>
         <x-filament::section :heading="__('analytics-dashboard.community_chart')" :description="__('analytics-dashboard.community_hint')">
             <x-analytics-bars :rows="$communityRows" name="name" metric="value" :label="__('analytics-dashboard.community_chart')" />
@@ -96,12 +111,12 @@
                         <tr>
                             @foreach (\App\Services\Analytics\EventAnalyticsExport::displayRow($row) as $column => $value)
                                 <td @class(['ad-number' => is_int($value) || is_float($value)])>
-                                    @if ($column === 'event' && $this->dataset === 'events')
-                                        <button type="button" class="ad-drilldown" wire:click="selectEvent({{ $row['id'] }})">{{ $value }}</button>
+                                    @if ($column === 'event' && filled($row['event_id'] ?? $row['id'] ?? null))
+                                        <a class="ad-drilldown" href="{{ $this->detailUrl('event', $row['event_id'] ?? $row['id']) }}">{{ $value }}</a>
                                     @elseif ($column === 'name' && in_array($this->dataset, ['venues', 'organizers']))
-                                        <a class="ad-drilldown" href="{{ $this->profileAnalyticsUrl($this->dataset === 'venues' ? 'venue' : 'organizer', $row['id']) }}" wire:click.prevent="selectProfile('{{ $this->dataset === 'venues' ? 'venue' : 'organizer' }}', {{ $row['id'] }})">{{ $value }}</a>
+                                        <a class="ad-drilldown" href="{{ $this->detailUrl($this->dataset === 'venues' ? 'venue' : 'organizer', $row['id']) }}">{{ $value }}</a>
                                     @elseif (in_array($column, ['venue', 'organizer']) && filled($row[$column.'_id'] ?? null))
-                                        <a class="ad-drilldown" href="{{ $this->profileAnalyticsUrl($column, $row[$column.'_id']) }}" wire:click.prevent="selectProfile('{{ $column }}', {{ $row[$column.'_id'] }})">{{ $value }}</a>
+                                        <a class="ad-drilldown" href="{{ $this->detailUrl($column, $row[$column.'_id']) }}">{{ $value }}</a>
                                     @else
                                         {{ $value === null ? __('analytics-dashboard.unavailable') : (is_int($value) ? number_format($value, 0, ',', '.') : $value) }}
                                     @endif

@@ -160,15 +160,15 @@ final class EventAnalyticsDashboard
             ->leftJoin('event_occurrences as o', 'o.id', '=', 'l.occurrence_id')
             ->leftJoinSub($linkTotals, 'totals', fn ($join) => $join->on('totals.id', '=', 'l.id'))
             ->whereIn('e.id', clone $ids)->when(filled($filters['channel'] ?? null), fn (Builder $q) => $q->where('l.channel', $filters['channel']))
-            ->orderByDesc('totals.short_clicks')->orderBy('l.id')->get(['l.code', 'e.title', 'o.url_number', 'l.channel', 'totals.short_shares', 'totals.short_clicks'])
-            ->map(fn (stdClass $row): array => ['event' => $row->title, 'occurrence' => $row->url_number,
+            ->orderByDesc('totals.short_clicks')->orderBy('l.id')->get(['e.id as event_id', 'l.code', 'e.title', 'o.url_number', 'l.channel', 'totals.short_shares', 'totals.short_clicks'])
+            ->map(fn (stdClass $row): array => ['event_id' => $row->event_id, 'event' => $row->title, 'occurrence' => $row->url_number,
                 'channel' => __('event-shares.channels.'.$row->channel), 'url' => route('event-shares.open', ['code' => $row->code]),
                 'short_shares' => (int) $row->short_shares, 'short_clicks' => (int) $row->short_clicks]);
         $venues = $this->profiles('venue', $eventRows, $filters);
         $organizers = $this->profiles('organizer', $eventRows, $filters);
         $occurrences = $this->window(DB::table('occurrence_views_daily as d')->join('event_occurrences as o', 'o.id', '=', 'd.occurrence_id')
             ->join('events as e', 'e.id', '=', 'o.event_id')->whereIn('e.id', clone $ids), 'd.date', $filters)
-            ->selectRaw('e.title as event, o.url_number as occurrence, o.starts_at, '.$sum)
+            ->selectRaw('e.id as event_id, e.title as event, o.url_number as occurrence, o.starts_at, '.$sum)
             ->groupBy('e.id', 'e.title', 'o.id', 'o.url_number', 'o.starts_at')->orderByDesc('views')->get()->map(function ($row) use ($metrics): array {
                 $values = (array) $row;
                 foreach ($metrics as $metric) {

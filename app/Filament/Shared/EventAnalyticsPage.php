@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Shared;
 
 use App\Enums\StatsPeriod;
+use App\Filament\Admin\Pages\EventAnalyticsDetail;
 use App\Services\Analytics\EventAnalyticsDashboard;
 use App\Services\Analytics\EventAnalyticsExport;
 use App\Services\Analytics\EventShares;
@@ -92,26 +93,29 @@ abstract class EventAnalyticsPage extends Page
         unset($this->dashboard);
     }
 
-    public function selectEvent(int $id): void
+    public function detailUrl(string $type, int $id): string
     {
-        abort_unless(app(EventAnalyticsDashboard::class)->events()->whereKey($id)->exists(), 403);
-        $this->filters['event'] = $id;
-        $this->updatedFilters();
+        $class = match (Filament::getCurrentPanel()?->getId()) {
+            'admin' => EventAnalyticsDetail::class,
+            'venue' => \App\Filament\Venue\Pages\EventAnalyticsDetail::class,
+            'organizer' => \App\Filament\Organizer\Pages\EventAnalyticsDetail::class,
+            default => abort(403),
+        };
+
+        return $class::getUrl(parameters: ['subjectType' => $type, 'subjectId' => $id,
+            'filters' => array_intersect_key($this->filters, array_flip(['from', 'until', 'channel']))]);
     }
 
-    public function selectProfile(string $type, int $id): void
+    /** @return array<string, mixed> */
+    protected function reportFilters(): array
     {
-        abort_unless(in_array($type, ['venue', 'organizer'], true), 422);
-        $service = app(EventAnalyticsDashboard::class);
-        $query = $type === 'venue' ? $service->venues() : $service->organizers();
-        abort_unless($query->whereKey($id)->exists(), 403);
-        $this->filters[$type] = $id;
-        $this->updatedFilters(null, $type);
+        return $this->filters;
     }
 
-    public function profileAnalyticsUrl(string $type, int $id): string
+    /** @return list<string> */
+    protected function entityFilters(): array
     {
-        return static::getUrl(parameters: ['filters' => array_replace($this->filters, [$type => $id, 'event' => null])]);
+        return ['venue', 'organizer', 'event'];
     }
 
     public function setDataset(string $dataset): void
@@ -130,7 +134,7 @@ abstract class EventAnalyticsPage extends Page
     public function form(Schema $schema): Schema
     {
         $components = [];
-        foreach (['venue', 'organizer', 'event'] as $type) {
+        foreach ($this->entityFilters() as $type) {
             $components[] = Select::make($type)->label(__('analytics-dashboard.'.$type))->placeholder(__('analytics-dashboard.all_'.$type))
                 ->searchable()->live()->options(fn () => $this->options($type))
                 ->getSearchResultsUsing(fn (string $search): array => $this->options($type, $search))
@@ -172,7 +176,7 @@ abstract class EventAnalyticsPage extends Page
     #[Computed]
     public function dashboard(): array
     {
-        return app(EventAnalyticsDashboard::class)->report($this->filters);
+        return app(EventAnalyticsDashboard::class)->report($this->reportFilters());
     }
 
     /** @return LengthAwarePaginator<int, array<string, mixed>> */
@@ -188,6 +192,6 @@ abstract class EventAnalyticsPage extends Page
     public function export(string $format): BinaryFileResponse
     {
         // Rebuild and reauthorize at download time, including forged Livewire IDs.
-        return app(EventAnalyticsExport::class)->download($this->filters, $format, $this->dataset);
+        return app(EventAnalyticsExport::class)->download($this->reportFilters(), $format, $this->dataset);
     }
 }

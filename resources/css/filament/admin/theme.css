@@ -210,3 +210,32 @@ body, .fi-body { background: var(--fi-canvas); color: var(--fi-ink); }
 .ad-loading { color: var(--fi-accent); font-size: .875rem; }
 @media(max-width: 1100px) { .ad-summary { grid-template-columns: repeat(3,minmax(0,1fr)); } }
 @media(max-width: 760px) { .ad-chart-grid { grid-template-columns: minmax(0,1fr); } .ad-summary { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 20px; } .ad-trend svg { height: 190px; } .ad-bar-row > div { gap: 12px; } }
+@source '../../../views/filament/partials/analytics-subject.blade.php';
+.ad-profile-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 24px; }
+.ad-profile-metrics dt { color: var(--color-gray-600); font-size: .75rem; line-height: 1.5; }
+.ad-profile-metrics dd { font-size: 1.375rem; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 6px; }
+.ad-subject-description { margin-top: 24px; font-size: .875rem; line-height: 1.7; }
+.ad-subject-description summary { cursor: pointer; font-weight: 600; }
+.ad-subject-description p { max-width: 80ch; margin-top: 12px; white-space: pre-line; overflow-wrap: anywhere; }
+.ad-event-facts dd { overflow-wrap: anywhere; }
+@source '../../../views/filament/events/venue-event-overview.blade.php';
+.ad-event-overview { display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; min-width: 0; }
+.ad-event-overview > * { min-width: 0; }
+.ad-read-description { margin-top: 24px; white-space: normal; line-height: 1.7; max-width: 80ch; overflow-wrap: anywhere; }
+@source '../../../views/components/description-content.blade.php';
+.ad-read-description a { color: var(--fi-accent); }
+
+/* Keep the event overview, edit and statistics tabs directly accessible on mobile. */
+.fi-page-has-sub-navigation-top .fi-page-sub-navigation-tabs {
+    display: flex;
+}
+
+.fi-page-has-sub-navigation-top .fi-page-sub-navigation-dropdown {
+    display: none;
+}
+
+.ad-active-filters { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px; padding: 20px; border: 1px solid var(--fi-line); border-radius: 12px; background: var(--color-gray-50); }
+.ad-active-filters strong { font-size: .875rem; }
+.ad-active-filters dl { display: flex; flex-wrap: wrap; gap: 12px 24px; margin-top: 12px; }
+.ad-active-filters dt { color: var(--color-gray-600); font-size: .75rem; }
+.ad-active-filters dd { font-size: .8125rem; font-weight: 600; overflow-wrap: anywhere; }

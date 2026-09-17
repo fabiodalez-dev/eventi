@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Filament\Venue\Pages;
 
+use App\Filament\Shared\AnalyticsDetailPage;
 use App\Filament\Venue\Support\CurrentVenue;
 use BackedEnum;
-use Filament\Pages\Dashboard as BaseDashboard;
+use Filament\Facades\Filament;
+use Filament\Panel;
 use Filament\Support\Icons\Heroicon;
 
 /**
@@ -16,8 +18,34 @@ use Filament\Support\Icons\Heroicon;
  * Il titolo porta il nome del locale e non la parola "riepilogo": chi gestisce
  * più di un posto deve capire dov'è appena entrato senza cercarlo.
  */
-class Dashboard extends BaseDashboard
+class Dashboard extends AnalyticsDetailPage
 {
+    protected static ?string $slug = 'dashboard';
+
+    protected static bool $shouldRegisterNavigation = true;
+
+    protected static ?int $navigationSort = -2;
+
+    public static function getRoutePath(Panel $panel): string
+    {
+        return '/';
+    }
+
+    public function mount(?string $subjectType = null, ?int $subjectId = null): void
+    {
+        parent::mount('venue', CurrentVenue::get()->id);
+    }
+
+    public function getBreadcrumbs(): array
+    {
+        return [];
+    }
+
+    protected function getHeaderWidgets(): array
+    {
+        return Filament::getWidgets();
+    }
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedHome;
 
     public static function getNavigationLabel(): string
