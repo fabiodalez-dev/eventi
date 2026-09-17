@@ -37,7 +37,7 @@ final class EventAnalyticsExport
      */
     public static function displayRow(array $row): array
     {
-        return array_diff_key($row, array_flip(['id', 'venue_id', 'organizer_id']));
+        return array_diff_key($row, array_flip(['id', 'event_id', 'venue_id', 'organizer_id']));
     }
 
     /** @param array<string, mixed> $filters */

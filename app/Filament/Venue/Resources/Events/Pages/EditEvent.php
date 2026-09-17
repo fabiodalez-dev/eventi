@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\Filament\Venue\Resources\Events\Pages;
 
+use App\Filament\Shared\EventAnalyticsNavigation;
 use App\Filament\Support\PublicationActions;
 use App\Filament\Venue\Pages\Social;
 use App\Filament\Venue\Resources\Events\EventResource;
 use App\Filament\Venue\Support\EventActions;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
+use Filament\Pages\Enums\SubNavigationPosition;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Support\Arr;
 
@@ -23,6 +25,16 @@ use Illuminate\Support\Arr;
  */
 class EditEvent extends EditRecord
 {
+    public static function getSubNavigationPosition(): SubNavigationPosition
+    {
+        return SubNavigationPosition::Top;
+    }
+
+    public function getSubNavigation(): array
+    {
+        return EventAnalyticsNavigation::items((int) $this->getRecord()->getKey(), false, true);
+    }
+
     protected static string $resource = EventResource::class;
 
     protected function mutateFormDataBeforeSave(array $data): array

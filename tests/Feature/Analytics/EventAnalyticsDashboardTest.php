@@ -3,7 +3,13 @@
 declare(strict_types=1);
 
 use App\Enums\ContentMetric;
+use App\Filament\Admin\Pages\EventAnalyticsDetail;
 use App\Filament\Admin\Pages\EventShareAnalytics;
+use App\Filament\Venue\Pages\Dashboard;
+use App\Filament\Venue\Resources\Events\EventResource;
+use App\Filament\Venue\Resources\Events\Pages\EditEvent;
+use App\Filament\Venue\Resources\Events\Pages\ViewEvent;
+use App\Models\EventOccurrence;
 use App\Models\Organizer;
 use App\Models\Sponsorship;
 use App\Models\SponsorshipGrant;
@@ -65,9 +71,8 @@ it('shows names in every selectable filter and table without technical ID column
         $select = collect($form->getFlatComponents())->first(fn ($component) => $component->getName() === $name);
         expect($select->getOptionLabel())->toBe($label);
     }
-    $page->call('setDataset', 'venues')->assertSee('Circolo Aurora')
-        ->call('selectProfile', 'venue', $this->scenario->venueA->id)
-        ->assertSet('filters.venue', $this->scenario->venueA->id);
+    $page->call('setDataset', 'venues')->assertSee('Circolo Aurora');
+    expect($page->instance()->detailUrl('venue', $this->scenario->venueA->id))->toContain('/venue/'.$this->scenario->venueA->id);
 });
 
 it('isolates tenant event data and withholds other profile totals', function (): void {
@@ -184,9 +189,9 @@ it('paginates long reports in Italian while exporting every row and preserving n
     expect($page->instance()->tableRows())->toHaveCount(20);
     $page->call('nextPage', 'analyticsPage')->assertSee('Mostrati da 21 a 24 di 24 risultati');
     expect($page->instance()->tableRows())->toHaveCount(4);
-    $url = $page->instance()->profileAnalyticsUrl('venue', $this->scenario->venueA->id);
+    $url = $page->instance()->detailUrl('venue', $this->scenario->venueA->id);
     parse_str(parse_url($url, PHP_URL_QUERY), $query);
-    Livewire::withQueryParams($query)->test(EventShareAnalytics::class)->assertSet('filters.venue', (string) $this->scenario->venueA->id)->assertSee('Circolo Aurora');
+    Livewire::withQueryParams($query)->test(EventAnalyticsDetail::class, ['subjectType' => 'venue', 'subjectId' => $this->scenario->venueA->id])->assertSee('Analytics · Circolo Aurora');
     $export = app(EventAnalyticsExport::class)->download($this->filters + ['venue' => $this->scenario->venueA->id], 'csv', 'events');
     $path = $export->getFile()->getPathname();
     try {
@@ -194,4 +199,67 @@ it('paginates long reports in Italian while exporting every row and preserving n
     } finally {
         unlink($path);
     }
+});
+
+it('opens a dedicated analytics page for each subject and pins reports to its route', function (string $type): void {
+    $id = match ($type) {
+        'event' => $this->scenario->publishedEventA->id, 'venue' => $this->scenario->venueA->id, default => $this->organizer->id
+    };
+    $name = match ($type) {
+        'event' => $this->scenario->publishedEventA->title, 'venue' => $this->scenario->venueA->name, default => $this->organizer->name
+    };
+    $url = EventAnalyticsDetail::getUrl(['subjectType' => $type, 'subjectId' => $id]);
+    $this->get($url)->assertOk()->assertSee('Analytics · '.$name)->assertSee('data-analytics-subject="'.$type.'"', false);
+    $page = Livewire::test(EventAnalyticsDetail::class, ['subjectType' => $type, 'subjectId' => $id]);
+    expect($page->instance()->dashboard()['totals']['views'])->toBe(10);
+    $page->set('filters.event', $this->scenario->publishedEventB->id)->set('filters.venue', $this->scenario->venueB->id);
+    expect($page->instance()->dashboard()['totals']['views'])->toBe(10);
+    $page->call('resetFilters');
+    expect($page->instance()->dashboard()['totals']['views'])->toBe(10);
+    $response = $page->instance()->export('csv');
+    $path = $response->getFile()->getPathname();
+    try {
+        expect(file_get_contents($path))->toContain($this->scenario->publishedEventA->title)->not->toContain($this->scenario->publishedEventB->title);
+    } finally {
+        unlink($path);
+    }
+})->with(['event', 'venue', 'organizer']);
+
+it('rejects a foreign event detail and rechecks access after venue membership is removed', function (): void {
+    Filament::setCurrentPanel('venue');
+    Filament::setTenant($this->scenario->venueA);
+    $this->actingAs($this->scenario->ownerA);
+    $class = App\Filament\Venue\Pages\EventAnalyticsDetail::class;
+    $this->get($class::getUrl(['subjectType' => 'event', 'subjectId' => $this->scenario->publishedEventB->id], tenant: $this->scenario->venueA))->assertNotFound();
+    $page = Livewire::test($class, ['subjectType' => 'event', 'subjectId' => $this->scenario->publishedEventA->id]);
+    $this->scenario->ownerA->venues()->detach($this->scenario->venueA);
+    expect(fn () => $page->instance()->export('csv'))->toThrow(HttpException::class);
+});
+
+it('shows the complete tenant report on its dashboard and retains operational widgets', function (): void {
+    Filament::setCurrentPanel('venue');
+    Filament::setTenant($this->scenario->venueA);
+    $this->actingAs($this->scenario->ownerA);
+    $page = Livewire::test(Dashboard::class)->assertSee('Report del profilo')->assertSee('Tutti i dati');
+    expect($page->instance()->dashboard()['totals']['views'])->toBe(10);
+    expect($page->instance()->dashboard()['venues']->pluck('name')->all())->toBe(['Circolo Aurora']);
+    Filament::setCurrentPanel('organizer');
+    Filament::setTenant($this->organizer);
+    Livewire::test(App\Filament\Organizer\Pages\Dashboard::class)->assertSee('Report del profilo')->assertSee('Associazione Musica Aperta');
+});
+
+it('separates viewing an event and all its dates from editing', function (): void {
+    Filament::setCurrentPanel('venue');
+    Filament::setTenant($this->scenario->venueA);
+    $this->actingAs($this->scenario->ownerA);
+    $later = EventOccurrence::factory()->create(['event_id' => $this->scenario->publishedEventA->id, 'starts_at' => '2026-10-11 19:00:00', 'ends_at' => '2026-10-11 21:00:00', 'highlight' => 'Seconda serata speciale']);
+    EventOccurrence::factory()->create(['event_id' => $this->scenario->publishedEventA->id, 'starts_at' => '2026-08-11 19:00:00', 'ends_at' => '2026-08-11 21:00:00', 'status' => 'cancelled', 'highlight' => 'Serata precedente annullata']);
+    $view = Livewire::test(ViewEvent::class, ['record' => $this->scenario->publishedEventA->getRouteKey()]);
+    $view->assertSee('data-event-read-view', false)->assertSee('Seconda serata speciale')->assertSee('11/09/2026')->assertSee('11/10/2026')->assertSee('11/08/2026')->assertSee('Serata precedente annullata')->assertSee('Statistiche');
+    expect($view->instance()->getRelationManagers())->toBeEmpty();
+    $edit = Livewire::test(EditEvent::class, ['record' => $this->scenario->publishedEventA->getRouteKey()]);
+    $edit->assertFormSet(['title' => $this->scenario->publishedEventA->title])->assertSee('Statistiche');
+    $resource = EventResource::class;
+    expect($resource::getUrl('view', ['record' => $later->event]))->not->toBe($resource::getUrl('edit', ['record' => $later->event]));
+    $this->get($resource::getUrl('view', ['record' => $this->scenario->publishedEventB]))->assertNotFound();
 });

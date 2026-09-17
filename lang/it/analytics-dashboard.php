@@ -3,6 +3,19 @@
 declare(strict_types=1);
 
 return [
+    'active_filters' => 'Filtri attivi', 'reset_detail' => 'Reimposta periodo e canale',
+    'view_event' => 'Visualizza', 'all_occurrences' => 'Tutte le serate',
+    'read_event_hint' => 'Scheda in consultazione. Usa Modifica per cambiare i contenuti o intervenire su una singola serata o sulla serie.',
+    'no_occurrences' => 'Nessuna serata inserita.', 'doors' => 'Apertura porte', 'location' => 'Luogo',
+    'capacity' => 'Posti disponibili / capienza', 'lineup' => 'Programma', 'occurrence_notes' => 'Note della serata',
+    'event_tab' => 'Evento', 'statistics_tab' => 'Statistiche',
+    'detail_title' => 'Analytics · :name',
+    'back_overview' => 'Torna a tutti gli analytics',
+    'subject_information' => 'Informazioni',
+    'profile_report' => 'Report del profilo',
+    'profile_report_hint' => 'Misure del profilo nel periodo selezionato. Le statistiche degli eventi sono riportate separatamente qui sotto.',
+    'profile_actions' => 'Attività sul profilo',
+    'address' => 'Indirizzo', 'website' => 'Sito web', 'description' => 'Descrizione',
     'title' => 'Analytics eventi e pubblico', 'scope' => 'Ambito del report',
     'intro' => 'Visite, condivisioni e partecipazione: esplora gli eventi, confronta i locali e scarica i dati del periodo.',
     'filters' => 'Filtra i dati', 'venue' => 'Locale', 'organizer' => 'Organizzatore', 'event' => 'Evento', 'channel' => 'Canale di condivisione',
@@ -21,7 +34,7 @@ return [
     'community_chart' => 'Salvataggi e conversazioni', 'community_hint' => 'Attività creata nel periodo e ancora presente. I commenti nascosti sono un sottoinsieme del totale.',
     'bookings_chart' => 'Prenotazioni, biglietti e ingressi', 'bookings_hint' => 'Stato attuale delle prenotazioni create nel periodo; ingressi per data di check-in.',
     'paid_chart' => 'Visibilità sponsorizzata', 'paid_hint' => 'Esposizioni e clic delle campagne, separati dalle visite organiche.',
-    'tables' => 'Tutti i dati', 'tables_hint' => 'Seleziona una tabella. Clicca sul nome di un evento, locale o organizzatore per restringere il report.',
+    'tables' => 'Tutti i dati', 'tables_hint' => 'Seleziona una tabella. Apri il nome di un evento, locale o organizzatore per consultarne la pagina analytics completa.',
     'datasets' => ['events' => 'Eventi', 'venues' => 'Locali', 'organizers' => 'Organizzatori', 'channels' => 'Canali', 'daily' => 'Giorni', 'links' => 'Link brevi', 'occurrences' => 'Repliche'],
     'csv' => 'CSV della tabella', 'excel' => 'Excel completo', 'export_hint' => 'Gli export includono tutti i risultati filtrati, anche quelli fuori dalla pagina corrente. L’Excel contiene tutti i fogli e il riepilogo dei filtri.',
     'empty_chart' => 'Nessuna attività registrata per questo filtro.', 'empty_table' => 'Nessun dato disponibile per questa selezione. Prova ad ampliare il periodo o rimuovere un filtro.',

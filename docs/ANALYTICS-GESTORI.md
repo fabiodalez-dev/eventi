@@ -139,3 +139,25 @@ biglietti e prenotazioni seguono la creazione. Le statistiche profilo rimangono
 riferite al profilo, anche con filtro evento. Il canale filtra soltanto i link
 brevi. Salvataggi, follower e record moderabili descrivono lo stato ancora
 presente, non uno storico immutabile di cancellazioni o cambi di stato.
+
+## Pagine dedicate e gestione eventi del locale
+
+I nomi aprono pagine autonome `statistiche-condivisioni/event/{id}`,
+`statistiche-condivisioni/venue/{id}` e `statistiche-condivisioni/organizer/{id}`
+nel pannello corrente. Il titolo identifica il soggetto; il periodo e il canale
+si conservano durante la navigazione, mentre eventuali filtri su altri soggetti
+vengono rimossi. Query, azzeramento dei filtri ed export mantengono sempre il
+soggetto della rotta e ne ricontrollano l'autorizzazione. I profili riportano
+anche il proprio riepilogo di visite, azioni, follower e recensioni disponibili.
+
+La dashboard iniziale del locale e dell'organizzatore presenta il rispettivo
+report completo. Il locale conserva inoltre i widget operativi dell'agenda.
+Nella gestione eventi del locale l'elenco apre una scheda di consultazione:
+contenuti e tutte le serate, comprese quelle passate o annullate, senza comandi
+di scrittura. Modifica è una pagina distinta; mantiene le operazioni esistenti
+sulla singola data o sulle date successive della serie. Le tab Evento,
+Modifica e Statistiche permettono di passare fra i tre contesti. Il riepilogo
+legge direttamente la relazione completa, evitando il precaricamento della
+sola prossima data usato nell'elenco eventi.
+
+In cima a ogni report sono visibili i filtri attivi con nomi e date leggibili. «Azzera filtri» rimuove le selezioni e ripristina gli ultimi 30 giorni. Nei dettagli il comando reimposta periodo e canale, mantenendo il soggetto della pagina; il collegamento al riepilogo torna al report generale. I nomi aprono pagine dedicate dall’alto.

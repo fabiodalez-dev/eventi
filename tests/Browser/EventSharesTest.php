@@ -34,7 +34,9 @@ it('copies a short event link and preserves the event page after following it', 
     expect((int) DB::table('event_views_daily')->sum('website_clicks'))->toBe(0);
     $url = $page->script('window.__copiedShare');
     expect(parse_url($url, PHP_URL_PATH))->toMatch('/^\/s\/[A-Za-z0-9]{7}$/');
-    $destination = $page->navigate($url)->assertSee($occurrence->event->title)->assertNoJavascriptErrors();
+    // A redirect visit is counted: retrying navigation would create extra real opens.
+    $page->page()->goto($url);
+    $destination = $page->assertSee($occurrence->event->title)->assertNoJavascriptErrors();
     expect((int) DB::table('event_share_daily')->sum('clicks'))->toBe(1);
     expect($destination->script('location.pathname'))->toBe('/eventi/'.$occurrence->event->slug.'/1');
     expect($destination->script('document.querySelector("link[rel=canonical]").href'))->toContain('/eventi/'.$occurrence->event->slug.'/1');
@@ -63,7 +65,7 @@ it('shows short-link results in venue and admin analytics without overflowing mo
         ->assertPresent('[data-event-share-report]')->assertSee('Circolo Aurora')
         ->assertDontSee('ID locale')->assertDontSee('ID organizzatore');
     expect($page->script('document.querySelectorAll(".ad-chart-grid > section").length'))->toBe(10);
-    $page->page()->locator('a.ad-drilldown')->first()->click(['timeout' => 5000]);
+    $page->page()->locator('a[href*="/venue/'.$scenario->venueA->id.'"]')->first()->click(['timeout' => 5000]);
     $page->assertSee('Circolo Aurora')->assertDontSee($scenario->publishedEventB->title);
     if ($panel === 'admin') {
         $page->resize(1440, 1000);
