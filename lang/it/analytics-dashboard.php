@@ -1,0 +1,43 @@
+<?php
+
+declare(strict_types=1);
+
+return [
+    'title' => 'Analytics eventi e pubblico', 'scope' => 'Ambito del report',
+    'intro' => 'Visite, condivisioni e partecipazione: esplora gli eventi, confronta i locali e scarica i dati del periodo.',
+    'filters' => 'Filtra i dati', 'venue' => 'Locale', 'organizer' => 'Organizzatore', 'event' => 'Evento', 'channel' => 'Canale di condivisione',
+    'all_venue' => 'Tutti i locali autorizzati', 'all_organizer' => 'Tutti gli organizzatori autorizzati', 'all_event' => 'Tutti gli eventi autorizzati',
+    'all_channels' => 'Tutti i canali', 'from' => 'Dal', 'until' => 'Al', 'all' => 'Tutti', 'year' => '365 giorni', 'all_history' => 'Tutto lo storico',
+    'channel_scope' => 'Il canale filtra condivisioni e aperture dei link. Le altre misure restano riferite agli eventi selezionati.',
+    'reset' => 'Azzera filtri', 'loading' => 'Aggiornamento dei dati…',
+    'context' => ':events eventi · :venues locali · :organizers organizzatori nel filtro',
+    'visits_chart' => 'Andamento delle visite', 'shares_chart' => 'Condivisioni e ritorni agli eventi',
+    'chart_day' => 'Aperture delle schede web per giorno. Passaggi ripetuti inclusi.', 'chart_month' => 'Aperture delle schede web aggregate per mese.',
+    'shares_hint' => 'Avvii dai pulsanti e aperture dei link brevi. Non è un tasso di conversione.',
+    'channels_chart' => 'Da quali canali arrivano le aperture', 'channels_hint' => 'Attribuzione al canale di creazione del link, anche se viene inoltrato altrove.',
+    'actions_chart' => 'Cosa fanno sulle schede', 'actions_hint' => 'Clic sui contatti, servizi e informazioni dell’evento.',
+    'events_chart' => 'Eventi più visualizzati', 'venues_chart' => 'Locali e interesse per i loro eventi', 'organizers_chart' => 'Organizzatori e interesse per i loro eventi',
+    'rank_hint' => 'Primi 8 nel periodo. Tutti i risultati sono disponibili nelle tabelle.', 'venues_hint' => 'Visite agli eventi del locale, distinte dalle visite al suo profilo.',
+    'community_chart' => 'Salvataggi e conversazioni', 'community_hint' => 'Attività creata nel periodo e ancora presente. I commenti nascosti sono un sottoinsieme del totale.',
+    'bookings_chart' => 'Prenotazioni, biglietti e ingressi', 'bookings_hint' => 'Stato attuale delle prenotazioni create nel periodo; ingressi per data di check-in.',
+    'paid_chart' => 'Visibilità sponsorizzata', 'paid_hint' => 'Esposizioni e clic delle campagne, separati dalle visite organiche.',
+    'tables' => 'Tutti i dati', 'tables_hint' => 'Seleziona una tabella. Clicca sul nome di un evento, locale o organizzatore per restringere il report.',
+    'datasets' => ['events' => 'Eventi', 'venues' => 'Locali', 'organizers' => 'Organizzatori', 'channels' => 'Canali', 'daily' => 'Giorni', 'links' => 'Link brevi', 'occurrences' => 'Repliche'],
+    'csv' => 'CSV della tabella', 'excel' => 'Excel completo', 'export_hint' => 'Gli export includono tutti i risultati filtrati, anche quelli fuori dalla pagina corrente. L’Excel contiene tutti i fogli e il riepilogo dei filtri.',
+    'empty_chart' => 'Nessuna attività registrata per questo filtro.', 'empty_table' => 'Nessun dato disponibile per questa selezione. Prova ad ampliare il periodo o rimuovere un filtro.',
+    'unavailable' => 'n.d.', 'no_venue' => 'Senza locale', 'no_organizer' => 'Senza organizzatore esplicito', 'profile_prefix' => 'Profilo:',
+    'workbook_summary' => 'Riepilogo e filtri', 'about_data' => 'Come leggere i dati',
+    'definitions' => 'Visite e azioni web sono conteggiate con consenso Statistiche e non rappresentano utenti unici. I salvataggi e follower del periodo sono quelli creati nel periodo e ancora presenti; i follower attuali sono lo stock totale. Commenti e recensioni mostrano lo stato attuale dei record creati nel periodo; la media voti usa soltanto le recensioni approvate. I biglietti sono quelli emessi nel periodo, inclusi quelli successivamente annullati. I check-in seguono la data di ingresso. Il canale non restringe visite, prenotazioni o altri dati non attribuibili a un link. I profili hanno misure proprie, non attribuibili al singolo evento: un filtro evento seleziona i relativi profili senza trasformare le loro visite in visite dell’evento. Le date dei timestamp sono interpretate nel fuso della città. Le repliche mostrano le misure attribuite esplicitamente a una data e non vanno sommate al totale evento.',
+    'not_collected' => 'Non raccogliamo IP, identità dei visitatori, provenienza geografica, dispositivo, consegna dei messaggi o acquisti su siti esterni. Questi dati non sono disponibili. Lo storico precedente all’attivazione dei contatori non è ricostruibile. n.d. indica un dato non disponibile o non autorizzato, non uno zero.',
+    'columns' => [
+        'id' => 'ID', 'event' => 'Evento', 'name' => 'Nome', 'venue_id' => 'ID locale', 'venue' => 'Locale', 'organizer_id' => 'ID organizzatore', 'organizer' => 'Organizzatore',
+        'city' => 'Città', 'category' => 'Categoria', 'status' => 'Stato', 'occurrences' => 'Repliche totali', 'occurrence' => 'N. replica', 'starts_at' => 'Inizio replica (UTC)',
+        'short_shares' => 'Condivisioni con link breve', 'short_clicks' => 'Aperture dei link brevi', 'interactions' => 'Azioni sulle schede',
+        'saves' => 'Salvataggi', 'comments' => 'Commenti totali', 'hidden_comments' => 'Commenti nascosti', 'reactions' => 'Reazioni ai commenti',
+        'bookings_confirmed' => 'Prenotazioni confermate', 'bookings_waitlisted' => 'Prenotazioni in attesa', 'bookings_cancelled' => 'Prenotazioni annullate',
+        'tickets' => 'Biglietti emessi', 'checkins' => 'Ingressi registrati', 'paid_impressions' => 'Esposizioni sponsorizzate', 'paid_clicks' => 'Clic sponsorizzati',
+        'events' => 'Eventi nel filtro', 'event_views' => 'Visite agli eventi', 'event_interactions' => 'Azioni sugli eventi',
+        'followers' => 'Follower attuali', 'new_followers' => 'Nuovi follower nel periodo', 'reviews' => 'Recensioni totali', 'approved_reviews' => 'Recensioni approvate', 'rating' => 'Voto medio approvato',
+        'channel' => 'Canale', 'clicks' => 'Aperture dei link', 'date' => 'Data', 'url' => 'Link breve',
+    ],
+];

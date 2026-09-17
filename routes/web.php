@@ -7,6 +7,7 @@ use App\Http\Controllers\Web\ConsentController;
 use App\Http\Controllers\Web\ContentMetricController;
 use App\Http\Controllers\Web\DeployController;
 use App\Http\Controllers\Web\EventController;
+use App\Http\Controllers\Web\EventShareController;
 use App\Http\Controllers\Web\ImpersonationController;
 use App\Http\Controllers\Web\MetaOAuthController;
 use App\Http\Controllers\Web\PageController;
@@ -16,6 +17,7 @@ use App\Http\Controllers\Web\SocialDownloadController;
 use App\Http\Controllers\Web\SponsorshipMetricController;
 use App\Http\Controllers\Web\WebManifestController;
 use App\Http\Controllers\Web\WidgetController;
+use App\Http\Middleware\AuthenticateWebSession;
 use App\Http\Middleware\PersonalizeDiscovery;
 use App\Http\Middleware\RequiresOpsToken;
 use App\Http\Middleware\ResolveCity;
@@ -48,6 +50,14 @@ Route::get('/app/auth/magic', function () {
 
 Route::get('/release-status', ReleaseStatusController::class)->name('ops.release');
 
+Route::get('/s/{code}', [EventShareController::class, 'open'])
+    ->where('code', '[A-Za-z0-9]{7}')
+    ->withoutMiddleware([StartSession::class, AddQueuedCookiesToResponse::class, ShareErrorsFromSession::class, PreventRequestForgery::class,
+        AuthenticateWebSession::class])
+    ->name('event-shares.open');
+Route::post('/s/{code}/share', [EventShareController::class, 'share'])
+    ->where('code', '[A-Za-z0-9]{7}')->middleware('throttle:60,1,event-share-actions')->name('event-shares.share');
+
 /*
  * Le rotte del sito pubblico stanno in routes/public.php e sono registrate due
  * volte: senza prefisso per la città predefinita e sotto `/{city}` per tutte le
@@ -65,7 +75,7 @@ Route::middleware(PersonalizeDiscovery::class)->group(base_path('routes/public.p
 Route::group([], base_path('routes/account.php'));
 Route::post('/misure/{type}/{id}', ContentMetricController::class)
     ->whereIn('type', ['event', 'venue', 'organizer'])->whereNumber('id')
-    ->middleware(['signed:relative', 'throttle:60,1'])->name('content.metrics');
+    ->middleware(['signed:relative', 'throttle:60,1,content-metrics'])->name('content.metrics');
 Route::get('/anteprima-evento/{event}', [EventController::class, 'preview'])->middleware('auth')->name('events.preview');
 Route::group([], base_path('routes/ticketing.php'));
 Route::get('/social/grafiche/{batch}/{index}.jpg', [SocialDownloadController::class, 'image'])->middleware('signed')->whereNumber('index')->name('social.image');

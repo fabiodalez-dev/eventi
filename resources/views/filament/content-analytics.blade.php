@@ -127,4 +127,5 @@
         <p class="mt-3">{{ __('analytics.coverage') }}</p>
         <p class="mt-3">{{ __('analytics.definitions') }}</p>
     </details>
+    @include('filament.partials.event-share-report', ['rows' => $this->shareRows()])
 </x-filament-panels::page>

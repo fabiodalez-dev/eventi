@@ -164,7 +164,7 @@
                     </a>
                 @endif
 
-                <x-share-links :url="$shareUrl" :title="$event->title" :icons-only="true" />
+                <x-share-links :links="$shareLinks" :url="$shareUrl" :title="$event->title" :icons-only="true" />
             </div>
         </div>
     </section>
@@ -616,7 +616,7 @@
             <section class="flex flex-col gap-3" aria-labelledby="condividi-evento">
                 <h2 id="condividi-evento" class="font-display text-[clamp(1.25rem,1.8vw,1.75rem)] leading-none font-extrabold tracking-[-0.03em] uppercase">{{ __('common.actions.share') }}</h2>
 
-                <x-share-links :url="$shareUrl" :title="$event->title" />
+                <x-share-links :links="$shareLinks" :url="$shareUrl" :title="$event->title" />
 
                 <a
                     href="{{ route('events.report', ['slug' => $event->slug]) }}"

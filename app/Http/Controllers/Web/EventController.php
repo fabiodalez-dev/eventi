@@ -15,6 +15,7 @@ use App\Models\Event;
 use App\Models\EventOccurrence;
 use App\Queries\EventCommentQuery;
 use App\Queries\EventOccurrenceQuery;
+use App\Services\Analytics\EventShares;
 use App\Services\Calendar\OccurrenceCalendar;
 use App\Services\Events\EventPoster;
 use App\Services\Seo\EditorialContent;
@@ -127,6 +128,7 @@ final class EventController extends Controller
 
         return view('events.show', [
             ...$commentListing,
+            'shareLinks' => $isPreview ? [] : app(EventShares::class)->links($event, $canonicalDate),
             'isPreview' => $isPreview,
             'selectedOccurrence' => $canonicalDate,
             'city' => $city,
