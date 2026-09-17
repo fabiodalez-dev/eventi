@@ -8,6 +8,7 @@ use App\Enums\StatsPeriod;
 use App\Models\Event;
 use App\Models\Organizer;
 use App\Models\Venue;
+use App\Services\Analytics\EventShareReport;
 use App\Services\Analytics\ManagementAnalytics;
 use BackedEnum;
 use Filament\Facades\Filament;
@@ -60,6 +61,7 @@ abstract class ContentAnalyticsPage extends Page
     {
         $this->period = (StatsPeriod::tryFrom($period) ?? StatsPeriod::default())->value;
         $this->resetPage();
+        $this->resetPage('sharePage');
     }
 
     public function selectedPeriod(): StatsPeriod
@@ -95,5 +97,11 @@ abstract class ContentAnalyticsPage extends Page
     public function eventPage(): LengthAwarePaginator
     {
         return app(ManagementAnalytics::class)->events($this->selectedPeriod())->paginate(25);
+    }
+
+    /** @return LengthAwarePaginator<int, \stdClass> */
+    public function shareRows(): LengthAwarePaginator
+    {
+        return app(EventShareReport::class)->rows($this->selectedPeriod());
     }
 }

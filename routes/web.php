@@ -7,6 +7,7 @@ use App\Http\Controllers\Web\ConsentController;
 use App\Http\Controllers\Web\ContentMetricController;
 use App\Http\Controllers\Web\DeployController;
 use App\Http\Controllers\Web\EventController;
+use App\Http\Controllers\Web\EventShareController;
 use App\Http\Controllers\Web\ImpersonationController;
 use App\Http\Controllers\Web\MetaOAuthController;
 use App\Http\Controllers\Web\PageController;
@@ -16,6 +17,7 @@ use App\Http\Controllers\Web\SocialDownloadController;
 use App\Http\Controllers\Web\SponsorshipMetricController;
 use App\Http\Controllers\Web\WebManifestController;
 use App\Http\Controllers\Web\WidgetController;
+use App\Http\Middleware\AuthenticateWebSession;
 use App\Http\Middleware\PersonalizeDiscovery;
 use App\Http\Middleware\RequiresOpsToken;
 use App\Http\Middleware\ResolveCity;
@@ -47,6 +49,14 @@ Route::get('/app/auth/magic', function () {
 })->name('app.magic-link');
 
 Route::get('/release-status', ReleaseStatusController::class)->name('ops.release');
+
+Route::get('/s/{code}', [EventShareController::class, 'open'])
+    ->where('code', '[A-Za-z0-9]{7}')
+    ->withoutMiddleware([StartSession::class, AddQueuedCookiesToResponse::class, ShareErrorsFromSession::class, PreventRequestForgery::class,
+        AuthenticateWebSession::class])
+    ->name('event-shares.open');
+Route::post('/s/{code}/share', [EventShareController::class, 'share'])
+    ->where('code', '[A-Za-z0-9]{7}')->middleware('throttle:60,1')->name('event-shares.share');
 
 /*
  * Le rotte del sito pubblico stanno in routes/public.php e sono registrate due

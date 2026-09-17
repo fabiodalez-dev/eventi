@@ -10,6 +10,7 @@
     'url',
     'title',
     'text' => null,
+    'links' => [],
     'iconsOnly' => false,
 ])
 
@@ -23,7 +24,8 @@
         class="hidden event-utility-action bg-surface px-3.5 py-2 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.14em] text-ink uppercase border-2 border-line transition hover:border-accent"
         title="{{ __('common.actions.share') }}"
         data-share
-        data-share-url="{{ $url }}"
+        data-share-url="{{ $links['native']['url'] ?? $url }}"
+        data-share-metric="{{ $links['native']['metric'] ?? '' }}"
         data-share-title="{{ $title }}"
         data-share-text="{{ $message }}"
         data-share-copied="{{ __('common.actions.copied') }}"
@@ -36,7 +38,9 @@
 
     <a
         title="{{ __('common.share.whatsapp') }}"
-        href="https://wa.me/?{{ http_build_query(['text' => $message.' '.$url]) }}"
+        data-share-channel="whatsapp"
+        data-share-metric="{{ $links['whatsapp']['metric'] ?? '' }}"
+        href="https://wa.me/?{{ http_build_query(['text' => $message.' '.($links['whatsapp']['url'] ?? $url)]) }}"
         rel="noopener noreferrer"
         target="_blank"
         class="event-utility-action bg-surface px-3.5 py-2 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.14em] text-ink uppercase border-2 border-line transition hover:border-accent"
@@ -49,7 +53,9 @@
 
     <a
         title="{{ __('common.share.telegram') }}"
-        href="https://t.me/share/url?{{ http_build_query(['url' => $url, 'text' => $message]) }}"
+        data-share-channel="telegram"
+        data-share-metric="{{ $links['telegram']['metric'] ?? '' }}"
+        href="https://t.me/share/url?{{ http_build_query(['url' => $links['telegram']['url'] ?? $url, 'text' => $message]) }}"
         rel="noopener noreferrer"
         target="_blank"
         class="event-utility-action bg-surface px-3.5 py-2 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.14em] text-ink uppercase border-2 border-line transition hover:border-accent"
@@ -62,7 +68,9 @@
 
     <a
         title="{{ __('common.share.email') }}"
-        href="mailto:?{{ http_build_query(['subject' => $title, 'body' => $message."\n\n".$url]) }}"
+        data-share-channel="email"
+        data-share-metric="{{ $links['email']['metric'] ?? '' }}"
+        href="mailto:?{{ http_build_query(['subject' => $title, 'body' => $message."\n\n".($links['email']['url'] ?? $url)]) }}"
         class="event-utility-action bg-surface px-3.5 py-2 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.14em] text-ink uppercase border-2 border-line transition hover:border-accent"
     >
         @if ($iconsOnly)

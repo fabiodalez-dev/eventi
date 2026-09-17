@@ -3,6 +3,8 @@
 @import '@fontsource-variable/bricolage-grotesque/standard.css';
 @source '../../../views/filament/content-analytics.blade.php';
 @source '../../../views/filament/occurrence-analytics.blade.php';
+@source '../../../views/filament/event-share-analytics.blade.php';
+@source '../../../views/filament/partials/event-share-report.blade.php';
 
 .analytics-legend { display: flex; flex-wrap: wrap; gap: 12px 28px; font-size: .875rem; margin-bottom: 28px; }
 .analytics-legend > span { display: flex; align-items: center; gap: 8px; }
