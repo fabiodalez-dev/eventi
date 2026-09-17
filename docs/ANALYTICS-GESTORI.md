@@ -106,3 +106,36 @@ Installazione: migrazione `2026_09_17_150000_create_event_share_links`, build Vi
 invalidazione cache pagine. Nessuna dipendenza esterna né servizio di short URL.
 L'integrazione riguarda i pulsanti web della scheda evento; gli URL API canonici
 restano invariati. Le metriche non ricostruiscono condivisioni precedenti al rilascio.
+
+## Dashboard completo eventi e pubblico
+
+La pagina `statistiche-condivisioni`, nei pannelli admin, locale e organizzatore,
+ora raccoglie le misure disponibili in dieci grafici e sette tabelle: eventi,
+locali, organizzatori, canali, giorni, link brevi e repliche. I filtri ricercabili
+usano nomi, mai ID da memorizzare; accettano combinazioni di locale,
+organizzatore, evento, canale e intervallo personalizzato, oltre ai periodi
+7/30/90/365 giorni e tutto lo storico. I nomi dei locali e degli organizzatori
+sono collegamenti al relativo report filtrato, utilizzabili anche in una nuova
+scheda. La paginazione usa il componente del pannello, tradotto in italiano.
+
+Oltre a visite e condivisioni sono esposte tutte le azioni sulle schede,
+salvataggi, commenti e reazioni, prenotazioni per stato, biglietti e check-in,
+esposizioni/clic sponsorizzati, metriche dei profili, follower e recensioni dei
+locali. Le tabelle conservano i dettagli del periodo anche quando un grafico
+mostra soltanto i primi otto risultati. I dati non autorizzati sono `n.d.`.
+
+CSV esporta l'intera tabella filtrata, non la sola pagina corrente. Excel
+contiene riepilogo e filtri con nomi leggibili, più un foglio per ogni tabella.
+Le celle editoriali sono testo esplicito in XLSX e protette dall'interpretazione
+come formule in CSV. Ogni download ripete l'autorizzazione: il gestore vede
+soltanto i propri eventi, non le metriche globali di un profilo collegato di cui
+non è titolare. Le campagne finanziate da un altro locale restano escluse dal
+report del gestore anche se un evento è stato trasferito.
+
+Le misure hanno basi diverse e non vanno sommate indiscriminatamente: le
+repliche sono un sottoinsieme delle visite evento; i commenti nascosti sono
+inclusi nel totale commenti; gli ingressi seguono `checked_in_at`, mentre
+biglietti e prenotazioni seguono la creazione. Le statistiche profilo rimangono
+riferite al profilo, anche con filtro evento. Il canale filtra soltanto i link
+brevi. Salvataggi, follower e record moderabili descrivono lo stato ancora
+presente, non uno storico immutabile di cancellazioni o cambi di stato.

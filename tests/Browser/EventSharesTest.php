@@ -3,8 +3,9 @@
 declare(strict_types=1);
 
 use App\Filament\Admin\Pages\EventShareAnalytics;
-use App\Filament\Venue\Pages\Statistics;
+use App\Filament\Venue\Pages\EventShareAnalytics as VenueEventShareAnalytics;
 use App\Models\EventShareLink;
+use App\Models\Organizer;
 use App\Services\Analytics\EventShares;
 use Filament\Facades\Filament;
 use Illuminate\Support\Facades\DB;
@@ -48,11 +49,31 @@ it('shows short-link results in venue and admin analytics without overflowing mo
     Filament::setCurrentPanel($panel);
     $this->actingAs($panel === 'admin' ? $scenario->admin : $scenario->ownerA);
     $tenant = $panel === 'admin' ? null : $scenario->venueA;
+    if ($panel === 'organizer') {
+        $tenant = Organizer::create(['name' => 'Collettivo Aurora', 'city_id' => $scenario->city->id, 'owner_id' => $scenario->ownerA->id, 'is_active' => true]);
+        $scenario->publishedEventA->update(['organizer_id' => $tenant->id]);
+    }
     Filament::setTenant($tenant);
-    $url = $panel === 'admin' ? EventShareAnalytics::getUrl(panel: 'admin') : Statistics::getUrl(panel: 'venue', tenant: $tenant);
-    $page = visit($url)->resize(390, 844)->assertSee('Analytics condivisioni')
-        ->assertPresent('[data-event-share-report]')->assertSee('/s/'.$link->code)
-        ->click('7 giorni')->assertSee('Aperture del link')->assertNoJavascriptErrors();
+    $url = match ($panel) {
+        'admin' => EventShareAnalytics::getUrl(panel: 'admin'),
+        'organizer' => App\Filament\Organizer\Pages\EventShareAnalytics::getUrl(panel: 'organizer', tenant: $tenant),
+        default => VenueEventShareAnalytics::getUrl(panel: 'venue', tenant: $tenant),
+    };
+    $page = visit($url)->resize(390, 844)->assertSee('Analytics eventi e pubblico')
+        ->assertPresent('[data-event-share-report]')->assertSee('Circolo Aurora')
+        ->assertDontSee('ID locale')->assertDontSee('ID organizzatore');
+    expect($page->script('document.querySelectorAll(".ad-chart-grid > section").length'))->toBe(10);
+    $page->page()->locator('a.ad-drilldown')->first()->click(['timeout' => 5000]);
+    $page->assertSee('Circolo Aurora')->assertDontSee($scenario->publishedEventB->title);
+    if ($panel === 'admin') {
+        $page->resize(1440, 1000);
+        $page->script('window.scrollTo(0, 0)');
+        $page->screenshot(filename: 'event-analytics-admin-desktop');
+        $page->resize(390, 844);
+    }
+    $page->page()->locator('[data-analytics-dataset="links"]')->click(['timeout' => 5000]);
+    $page->assertSee('/s/'.$link->code)->click('7 giorni')->assertSee('Aperture dei link')->assertNoJavascriptErrors();
+    $page->screenshot(filename: 'event-analytics-'.$panel.'-mobile');
     expect($page->script('document.documentElement.scrollWidth <= innerWidth'))->toBeTrue();
     expect(DB::table('event_share_daily')->sum('clicks'))->toBe('1');
-})->with(['venue', 'admin']);
+})->with(['venue', 'admin', 'organizer']);

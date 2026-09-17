@@ -1,4 +1,5 @@
 <x-filament::section :heading="__('event-shares.title')" :description="__('event-shares.description')">
+    <x-filament::button tag="a" :href="\Filament\Facades\Filament::getCurrentPanel()->getId() === 'venue' ? \App\Filament\Venue\Pages\EventShareAnalytics::getUrl() : \App\Filament\Organizer\Pages\EventShareAnalytics::getUrl()">{{ __('analytics-dashboard.title') }} · {{ __('analytics-dashboard.excel') }}</x-filament::button>
     <div class="overflow-x-auto">
         <table class="w-full text-left text-sm" data-event-share-report>
             <thead><tr>
@@ -21,6 +22,6 @@
             </tbody>
         </table>
     </div>
-    {{ $rows->links() }}
+    <x-filament::pagination :paginator="$rows->onEachSide(1)" />
     <p class="mt-3 text-sm text-gray-500">{{ __('event-shares.notes') }}</p>
 </x-filament::section>
