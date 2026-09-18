@@ -25,13 +25,13 @@ OTP crittografico a sei cifre, hash del codice, telefono cifrato e fingerprint H
 
 Foto decodificate e ricodificate JPEG, SVG escluso, limite 2 MB/4096 px, storage privato e accesso autorizzato a ogni richiesta. Risposte personali `no-store`, avatar Android senza cache persistente. Export e cancellazione includono dati social.
 
-**55 nuovi test** di sicurezza/comportamento in `tests/Feature/Community/CommunitySecurityTest.php`: i cinquanta richiesti più cinque su avatar, retention e backend. Il rapporto definitivo del rilascio riporterà gli esiti dopo l'integrazione con gli aggiornamenti del server.
+**57 nuovi test** di sicurezza/comportamento in `tests/Feature/Community/CommunitySecurityTest.php`: i cinquanta richiesti più sette su avatar, retention, backend e informativa privacy. Il rapporto definitivo del rilascio riporterà gli esiti dopo l'integrazione con gli aggiornamenti del server.
 
 ## Attivazione esterna e dominio
 
-Kapso raggiungibile e credenziale configurata localmente senza inserirla in Git. La creazione del template italiano `incitta_verifica_whatsapp` (AUTHENTICATION, COPY_CODE, durata cinque minuti) è respinta da Meta con codice **10 / 2388185**, «This WhatsApp business account does not have permission to create message template». Non è un errore del codice OTP. L'invio resta disabilitato finché il provider non autorizza il WABA e approva il template.
+Il proprietario ha completato la verifica dell'attività Meta il 18 settembre 2026. Portfolio verificato, account WhatsApp approvato e limite di messaggistica pari a 2.000. Creato e verificato tramite API Kapso il template italiano `incitta_verifica_whatsapp`, ID `1106275741742965`, stato **APPROVED**, categoria AUTHENTICATION, pulsante COPY_CODE e durata cinque minuti. Il precedente rifiuto Meta 10 / 2388185 è risolto. Credenziali esclusivamente nell'ambiente server; l'attivazione usa `WHATSAPP_VERIFICATION_ENABLED=true`.
 
-`fabiodalez.it` aggiunto ai domini autorizzati del portfolio Meta. Questo non equivale alla verifica DNS della proprietà né alla verifica dell'attività. Procedura attività avviata con paese Italia, ferma alla forma giuridica: occorrono dati legali confermati dal proprietario. Nessun documento o dichiarazione inventati. La documentazione Kapso richiede portfolio verificato e limite di messaggistica idoneo per i template di autenticazione.
+`fabiodalez.it` aggiunto ai domini autorizzati del portfolio Meta. L'autorizzazione del dominio e la verifica dell'attività restano distinte dalla verifica DNS della proprietà. Dati e documenti dell'attività sono stati completati dal proprietario.
 
 Memoria permanente del cambio dominio: [DOMINIO-DEFINITIVO.md](DOMINIO-DEFINITIVO.md), richiamato dalle convenzioni vincolanti. Include Meta, Kapso, OAuth, email, Android, push, mappe, pagamenti e deployment.
 

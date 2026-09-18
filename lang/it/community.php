@@ -59,7 +59,7 @@ return [
     'notifications' => ['follow' => 'Hai un nuovo follower', 'comment' => 'Un nuovo commento a un evento', 'open' => 'Apri inCittà per leggere l’aggiornamento.'],
     'whatsapp' => [
         'title' => 'Verifica il tuo numero WhatsApp', 'lead' => 'È gratuito. Con un numero verificato puoi creare il tuo profilo, consigliare eventi e commentare quelli degli altri.',
-        'privacy' => 'Il numero resta privato. Lo usiamo per verificare che sia tuo; non viene mostrato nel profilo e non attiva messaggi promozionali.',
+        'privacy' => 'Il numero resta privato. Per recapitarti il codice lo condividiamo con Kapso e Meta/WhatsApp; non viene mostrato nel profilo e non attiva messaggi promozionali.',
         'badge_help' => 'Il badge conferma il numero WhatsApp. Non certifica l’identità o la qualità dei consigli.',
         'phone' => 'Numero WhatsApp con prefisso internazionale', 'phone_hint' => 'Per esempio +39 333 1234567',
         'send' => 'Ricevi il codice su WhatsApp', 'code' => 'Codice a 6 cifre', 'confirm' => 'Conferma il numero', 'later' => 'Più tardi',
@@ -72,4 +72,18 @@ return [
         'send_failed' => 'Non siamo riusciti a inviare il codice. Riprova più tardi.', 'invalid_code' => 'Il codice non è valido, è scaduto o è già stato usato. Richiedi un nuovo codice.',
     ],
     'moderation' => 'Community e moderazione', 'hide' => 'Nascondi', 'restore' => 'Ripristina', 'suspend' => 'Sospendi', 'unsuspend' => 'Riattiva', 'feature' => 'In evidenza', 'unfeature' => 'Rimuovi dalla selezione',
+    'privacy_providers' => 'Utilizziamo fornitori tecnici per ospitare il sito, consegnare le email e, se richiedi la verifica facoltativa, recapitare il codice WhatsApp tramite Kapso e Meta/WhatsApp. I dati condivisi per questa verifica sono descritti nella sezione dedicata qui sotto.',
+    'privacy_notice' => <<<'MARKDOWN'
+## Community e verifica WhatsApp
+
+La verifica WhatsApp è gratuita e facoltativa. Serve a confermare il controllo del numero e abilita pubblicazione e commenti nella community: non certifica l'identità anagrafica né la partecipazione agli eventi. Per recapitare il codice condividiamo il numero e il messaggio di verifica con **Kapso e Meta/WhatsApp**, che trattano anche i dati tecnici di consegna. Non attiviamo comunicazioni promozionali.
+
+Il numero non compare nel profilo pubblico. Nel nostro database è cifrato e accompagnato da un'impronta crittografica che impedisce di associarlo a più account. Il codice scade dopo cinque minuti e ne conserviamo solo l'impronta. Lo storico delle richieste viene eliminato dopo trenta giorni; gli amministratori consultano numeri mascherati ed esiti, senza leggere i codici. La verifica resta finché non la revochi o cancelli l'account; la revoca elimina numero e richieste dal nostro database e nasconde i contenuti social.
+
+Trattiamo questi dati per fornire la funzione che richiedi e prevenire abusi. Kapso descrive i trasferimenti internazionali, anche verso Stati Uniti e Cile, e le relative clausole contrattuali standard nel proprio [accordo sul trattamento dei dati](https://kapso.com/dpa). I trattamenti dei fornitori seguono anche le rispettive informative: [Kapso](https://kapso.com/privacy) e [WhatsApp](https://www.whatsapp.com/legal/privacy-policy).
+
+Se crei un profilo, conserviamo nome pubblico, nome utente, biografia, foto e città che scegli di indicare. Puoi renderlo pubblico, visibile soltanto agli iscritti o privato; l'indicizzazione nei motori di ricerca richiede una scelta separata. I salvataggi nascono privati. Solo una pubblicazione esplicita rende visibili testo e card della singola data secondo la visibilità del profilo; i locali mostrati sono quelli che selezioni espressamente. Conserviamo inoltre follow, blocchi, commenti, segnalazioni e notifiche necessari al servizio.
+
+Puoi modificare la visibilità o ritirare una pubblicazione: ritirandola si eliminano anche i relativi commenti. Le copie già viste o salvate da terzi e le copie dei motori di ricerca non sono sotto il nostro controllo. Export e cancellazione dell'account comprendono i dati social e di verifica; i registri amministrativi conservano solo gli elementi necessari alla sicurezza e alla moderazione, senza codici OTP né copie dei testi ritirati.
+MARKDOWN,
 ];

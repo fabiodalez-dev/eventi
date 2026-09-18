@@ -67,7 +67,7 @@
             </a>
 
             @foreach(['community.feed' => 'nav', 'community.inbox' => 'inbox'] as $destination => $label)
-            <a role="menuitem" href="{{ route($destination) }}" class="min-h-11 border-b-2 border-line px-3.5 py-3 font-display text-xs font-extrabold hover:bg-accent hover:text-on-accent">{{ __('community.'.$label) }}</a>
+                <a role="menuitem" href="{{ route($destination) }}" class="border-b-2 border-line px-3.5 py-2.5 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.14em] uppercase transition-colors hover:bg-accent hover:text-on-accent">{{ __('community.'.$label) }}</a>
             @endforeach
 
             {{-- Le preferenze delle email vivevano solo dietro un collegamento

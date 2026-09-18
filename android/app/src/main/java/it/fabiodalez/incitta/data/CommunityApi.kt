@@ -27,7 +27,9 @@ internal class CommunityApi(private val api: ApiClient, private val token: Strin
                 if (value is JsonArray) {
                     if (value.isEmpty()) multipart.addFormDataPart("$key[]", "")
                     else value.forEach { multipart.addFormDataPart("$key[]", (it as JsonPrimitive).content) }
-                } else if (value != JsonNull) {
+                } else if (value == JsonNull) {
+                    multipart.addFormDataPart(key, "")
+                } else {
                     val primitive = value as JsonPrimitive
                     multipart.addFormDataPart(key, primitive.booleanOrNull?.let { if (it) "1" else "0" } ?: primitive.content)
                 }

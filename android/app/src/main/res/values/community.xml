@@ -55,7 +55,7 @@
     <string name="community_recommend">Lo consiglio</string>
     <string name="community_attend">Parteciperò</string>
     <string name="community_verify_required">Verifica gratuitamente WhatsApp per pubblicare e commentare.</string>
-    <string name="community_wa_lead">È gratuito. Il numero resta privato e non attiva messaggi promozionali. Il badge conferma il numero, non l’identità della persona.</string>
+    <string name="community_wa_lead">È gratuito. Il numero resta privato; lo condividiamo con Kapso e Meta/WhatsApp solo per recapitarti il codice. Non attiva messaggi promozionali. Il badge conferma il numero, non l’identità della persona.</string>
     <string name="community_wa_phone">Numero WhatsApp, incluso +39 o altro prefisso</string>
     <string name="community_wa_send">Ricevi il codice</string>
     <string name="community_wa_code">Codice a 6 cifre</string>

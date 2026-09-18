@@ -13,6 +13,7 @@ use App\Enums\WhatsappChallengeStatus;
 use App\Filament\Admin\Resources\Users\Pages\ListUsers;
 use App\Models\CommunityComment;
 use App\Models\CommunityPost;
+use App\Models\Page;
 use App\Models\SavedEvent;
 use App\Models\User;
 use App\Models\UserBlock;
@@ -24,6 +25,7 @@ use App\Services\Community\CommunityModeration;
 use App\Services\Community\WhatsappVerification;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
+use Database\Seeders\PageSeeder;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Filament\Facades\Filament;
 use Illuminate\Http\Client\Factory;
@@ -647,4 +649,25 @@ it('55 moderation restrictions can only be restored by staff even after the auth
     $service->restoreRestriction($admin, $id);
     expect(DB::table('community_restrictions')->count())->toBe(0);
     expect(app(Community::class)->publication($author, $post->occurrence_id, ['visibility' => 'public']))->toBeInstanceOf(CommunityPost::class);
+});
+
+it('56 community privacy migration preserves editorial content and does not duplicate the notice', function (): void {
+    $page = Page::factory()->create(['slug' => 'privacy', 'body' => "Testo scritto dalla redazione.\n\nNon chiediamo data di nascita, sesso, numero di telefono, indirizzo di casa.\n\nNon c'è un trasferimento di dati fuori dall'Unione europea nella configurazione attuale del servizio."]);
+    $migration = require database_path('migrations/2026_09_18_110000_update_community_privacy_notice.php');
+    $migration->up();
+    $migration->up();
+    $body = $page->fresh()->body;
+    expect($body)->toContain('Testo scritto dalla redazione.')->toContain('Kapso e Meta/WhatsApp')->toContain('trenta giorni')
+        ->not->toContain('sesso, numero di telefono')->not->toContain("Non c'è un trasferimento");
+    expect(substr_count($body, '## Community e verifica WhatsApp'))->toBe(1);
+    $migration->down();
+    expect($page->fresh()->body)->toBe($body);
+});
+
+it('57 new installations disclose optional WhatsApp processing and private defaults', function (): void {
+    (new PageSeeder)->run();
+    $body = Page::where('slug', 'privacy')->value('body');
+    expect($body)->toContain('gratuita e facoltativa')->toContain('Kapso e Meta/WhatsApp')
+        ->toContain('I salvataggi nascono privati.')->toContain('trenta giorni')
+        ->not->toContain('sesso, numero di telefono')->not->toContain("Non c'è un trasferimento");
 });

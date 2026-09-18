@@ -150,13 +150,6 @@ fun InCittaApp(viewModel: MainViewModel) {
             }
             HeaderThemeSwitch(state.appearance, viewModel::toggleQuickAppearance)
         }
-        if (it.fabiodalez.incitta.BuildConfig.DEBUG) {
-            val context = androidx.compose.ui.platform.LocalContext.current
-            androidx.compose.material3.TextButton(
-                onClick = { it.fabiodalez.incitta.data.NetworkDiagnostics.show(context) },
-                modifier = Modifier.fillMaxWidth(),
-            ) { Text("DEBUG RETE · APRI / CONDIVIDI LOG", color = Paper) }
-        }
         Scaffold(
             modifier = Modifier.nestedScroll(revealNavigation),
             contentWindowInsets = WindowInsets(0, 0, 0, 0),

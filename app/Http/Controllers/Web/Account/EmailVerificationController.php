@@ -57,6 +57,7 @@ final class EmailVerificationController extends Controller
         $request->session()->put('community_onboarding_user', $user->id);
         if ($currentUser instanceof User && $currentUser->is($user)) {
             $currentUser->refresh();
+
             return redirect()->route(config('community.enabled') ? 'community.whatsapp' : 'account.profile')->with('status', __('account.verify.done'));
         }
 

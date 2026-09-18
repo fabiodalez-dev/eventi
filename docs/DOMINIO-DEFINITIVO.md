@@ -2,6 +2,8 @@
 
 Decisione persistente del proprietario: 18 settembre 2026. Il dominio attuale è temporaneo.
 
+La migrazione riguarda tutto il sistema, incluse le integrazioni aggiunte dopo questo documento. Per ogni servizio/API attivo annotare l'esito della verifica, aggiornare i riferimenti al dominio e provare il flusso reale. Controllare anche le restrizioni di origine/referrer delle chiavi API; sostituire le credenziali solo dove richiesto dal provider, mantenendo le chiavi necessarie a decifrare i dati esistenti.
+
 - [ ] Inventariare configurazione runtime, variabili ambiente e pannelli dei provider senza esportare segreti nei documenti.
 - [ ] DNS, HTTPS, dominio canonico, APP_URL, cookie sessione, CORS/Sanctum se utilizzati e redirect 301 del vecchio dominio.
 - [ ] Meta: proprietà/verifica DNS del nuovo dominio, domini autorizzati, App Domains, OAuth redirect URI, privacy policy e termini, eventuali callback di cancellazione dati. La verifica del portfolio è distinta dalla verifica del dominio.

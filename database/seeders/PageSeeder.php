@@ -96,7 +96,7 @@ class PageSeeder extends Seeder
                 'seo_description' => 'Informativa sul trattamento dei dati personali: cosa raccoglie questo sito, perché, per quanto tempo e come cancellare il proprio account.',
                 'sort_order' => 10,
                 'is_published' => true,
-                'body' => $this->unwrap($this->privacy()),
+                'body' => $this->unwrap($this->privacy())."\n".__('community.privacy_notice', [], 'it'),
             ],
             [
                 'slug' => 'cookie',
@@ -203,7 +203,7 @@ class PageSeeder extends Seeder
         - **Le date che salvi e i locali, le categorie e i tag che segui** — sono il servizio,
           non un'analisi del tuo comportamento.
 
-        Non chiediamo data di nascita, sesso, numero di telefono, indirizzo di casa, professione
+        Non chiediamo data di nascita, sesso, indirizzo di casa, professione
         né interessi dichiarati. Non abbiamo un profilo pubblicitario di te perché non abbiamo
         pubblicità.
 
@@ -252,13 +252,11 @@ class PageSeeder extends Seeder
 
         ## Con chi li condividiamo
 
-        Con nessuno, a parte i fornitori tecnici senza i quali il sito non starebbe in piedi: chi
-        ospita il server e chi consegna le email. Agiscono come responsabili del trattamento e
-        non possono usare i dati per proprio conto.
+        Utilizziamo fornitori tecnici per ospitare il sito, consegnare le email e, se richiedi
+        la verifica facoltativa, recapitare il codice WhatsApp tramite Kapso e Meta/WhatsApp.
+        I dati condivisi per questa verifica sono descritti nella sezione dedicata qui sotto.
 
-        **Non vendiamo dati, non li cediamo a inserzionisti e non li usiamo per pubblicità.** Non
-        c'è un trasferimento di dati fuori dall'Unione europea nella configurazione attuale del
-        servizio.
+        **Non vendiamo dati, non li cediamo a inserzionisti e non li usiamo per pubblicità.**
 
         ## Per quanto li conserviamo
 
