@@ -16,9 +16,8 @@ use Illuminate\Http\Request;
 /**
  * Verifica dell'indirizzo (§15.2): obbligatoria **prima di qualunque invio**.
  *
- * Un account non verificato può salvare, non può ricevere — è
- * `User::canReceiveNotifications()` a dirlo, e questa pagina è il solo modo di
- * cambiare quella risposta.
+ * Un account non verificato deve confermare la mail prima di salvare,
+ * seguire persone o chiedere la verifica WhatsApp.
  *
  * La conferma **non pretende una sessione**: chi apre il messaggio dal
  * telefono può non essere collegato lì, e chiedergli di accedere prima di
@@ -55,14 +54,15 @@ final class EmailVerificationController extends Controller
         }
 
         $currentUser = $request->user();
+        $request->session()->put('community_onboarding_user', $user->id);
         if ($currentUser instanceof User && $currentUser->is($user)) {
             $currentUser->refresh();
 
-            return redirect()->intended(route('account.profile'))->with('status', __('account.verify.done'));
+            return redirect()->route(config('community.enabled') ? 'community.whatsapp' : 'account.profile')->with('status', __('account.verify.done'));
         }
 
         return redirect()
-            ->route($request->user() === null ? 'login' : 'account.profile')
+            ->route($request->user()?->id === $user->id ? 'community.whatsapp' : 'login')
             ->with('status', __('account.verify.done'));
     }
 

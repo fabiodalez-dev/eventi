@@ -6,11 +6,13 @@ namespace App\Filament\Admin\Resources\Reports;
 
 use App\Enums\ReportReason;
 use App\Enums\ReportStatus;
+use App\Filament\Admin\Pages\Community;
 use App\Filament\Admin\Resources\Reports\Pages\EditReport;
 use App\Filament\Admin\Resources\Reports\Pages\ListReports;
 use App\Models\Report;
 use App\Queries\EditorialDashboardQuery;
 use BackedEnum;
+use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -149,6 +151,9 @@ class ReportResource extends Resource
             ])
             ->recordActions([
                 EditAction::make(),
+                Action::make('community_subject')->label(__('community.moderate_subject'))
+                    ->visible(fn (Report $record): bool => in_array($record->reportable_type, ['community_profile', 'community_post', 'community_comment'], true))
+                    ->url(fn (): string => Community::getUrl()),
             ]);
     }
 
@@ -164,9 +169,15 @@ class ReportResource extends Resource
             ? $report->reportable_type
             : $label;
 
+        $label = match ($report->reportable_type) {
+            'community_profile' => __('community.subject_profile'),
+            'community_post' => __('community.subject_post'),
+            'community_comment' => __('community.subject_comment'),
+            default => $label,
+        };
         $subject = $report->reportable;
         $title = $subject instanceof Model
-            ? (string) ($subject->getAttribute('title') ?? $subject->getAttribute('name') ?? $subject->getKey())
+            ? (string) ($subject->getAttribute('title') ?? $subject->getAttribute('name') ?? $subject->getAttribute('display_name') ?? mb_substr((string) $subject->getAttribute('body'), 0, 100) ?: $subject->getKey())
             : (string) $report->reportable_id;
 
         return $label.' '.__('common.separator').' '.$title;

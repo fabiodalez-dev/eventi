@@ -24,6 +24,7 @@ import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material.icons.outlined.Map
+import androidx.compose.material.icons.outlined.People
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.HorizontalDivider
@@ -59,9 +60,25 @@ fun InCittaApp(viewModel: MainViewModel) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     InCittaTheme(light = state.appearance == "light") {
         var organizerSlug by remember { mutableStateOf<String?>(null) }
+        var communityRoute by remember { mutableStateOf<String?>(null) }
         var tonightOpen by remember { mutableStateOf(false) }
+        val whatsappCode by it.fabiodalez.incitta.community.WhatsappAutofill.received.collectAsStateWithLifecycle()
         val tonightState = androidx.compose.runtime.saveable.rememberSaveableStateHolder()
-        LaunchedEffect(state.tab) { tonightOpen = false }
+        LaunchedEffect(state.tab) { tonightOpen = false; communityRoute = null }
+        LaunchedEffect(whatsappCode, state.session?.token) {
+            val token = state.session?.token
+            if (token != null && whatsappCode?.request?.validFor(token, System.currentTimeMillis()) == true) {
+                tonightOpen = false; organizerSlug = null; communityRoute = "whatsapp"
+            }
+        }
+        var promptedCommunity by androidx.compose.runtime.saveable.rememberSaveable(state.session?.user?.id) { mutableStateOf(false) }
+        LaunchedEffect(state.session?.user?.emailVerified, state.session?.user?.whatsappPrompted) {
+            val person = state.session?.user
+            if (person?.emailVerified == true && !person.whatsappVerified && !person.whatsappPrompted && !promptedCommunity) {
+                promptedCommunity = true
+                tonightOpen = false; organizerSlug = null; communityRoute = "whatsapp"
+            }
+        }
         val snackbar = remember { SnackbarHostState() }
         val imeVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
         val accessibility = androidx.compose.ui.platform.LocalContext.current.getSystemService(android.content.Context.ACCESSIBILITY_SERVICE) as? android.view.accessibility.AccessibilityManager
@@ -135,6 +152,9 @@ fun InCittaApp(viewModel: MainViewModel) {
                     Icon(Icons.Outlined.BookmarkBorder, if (occurrence.occurrenceId in state.savedIds) "Rimuovi dai salvati" else "Salva questa data", tint = if (occurrence.occurrenceId in state.savedIds) Acid else Paper)
                 }
             }
+            androidx.compose.material3.IconButton(onClick = { tonightOpen = false; organizerSlug = null; communityRoute = "feed" }) {
+                Icon(androidx.compose.material.icons.Icons.Outlined.People, androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.community_title), tint = Paper)
+            }
             HeaderThemeSwitch(state.appearance, viewModel::toggleQuickAppearance)
         }
         Scaffold(
@@ -204,6 +224,9 @@ fun InCittaApp(viewModel: MainViewModel) {
                         onOpen = { organizerSlug = null; viewModel.open(it) }, onSave = viewModel::toggleSaved)
                 }
                 state.bookingDate != null -> ReservationScreen(state, padding, viewModel::reserve, viewModel::goBack) { state.bookingDate?.let(viewModel::startReservation) }
+                communityRoute != null -> androidx.compose.runtime.key(state.session?.token) { CommunityScreen(state.session, padding, state.savedIds, communityRoute!!,
+                    onBack = { communityRoute = null }, onLogin = { communityRoute = null; viewModel.selectTab(AppTab.ACCOUNT) },
+                    onOpen = { communityRoute = null; viewModel.open(it) }, onSave = viewModel::toggleSaved, onProfileSaved = viewModel::refreshProfile) }
                 selectedVenue != null -> Box(Modifier.fillMaxSize().padding(padding)) {
                     VenueDetailScreen(
                         venue = selectedVenue,
@@ -297,7 +320,7 @@ fun InCittaApp(viewModel: MainViewModel) {
                         onFilters = viewModel::updateSearchFilters,
                         onLoadMore = viewModel::loadMoreEvents,
                     )
-                    AppTab.SAVED -> SavedScreen(state, padding, viewModel::open, viewModel::toggleSaved) { viewModel.selectTab(AppTab.ACCOUNT) }
+                    AppTab.SAVED -> SavedScreen(state, padding, viewModel::open, viewModel::toggleSaved, onPrivacy = { communityRoute = "save/$it" }) { viewModel.selectTab(AppTab.ACCOUNT) }
                     AppTab.ACCOUNT -> AccountScreen(
                         state = state,
                         padding = padding,
@@ -312,6 +335,7 @@ fun InCittaApp(viewModel: MainViewModel) {
                         onAppearance = viewModel::setAppearance,
                         onSaved = { viewModel.selectTab(AppTab.SAVED) },
                         onProfileSaved = viewModel::refreshProfile,
+                        onCommunity = { communityRoute = "feed" },
                     )
                     AppTab.CALENDAR -> CalendarScreen(state, padding, viewModel::open, viewModel::toggleSaved) { viewModel.selectTab(AppTab.HOME) }
                     AppTab.VENUES -> VenuesScreen(state, padding, viewModel::openVenue) { viewModel.selectTab(AppTab.HOME) }
