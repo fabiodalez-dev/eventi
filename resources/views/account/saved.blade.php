@@ -161,7 +161,7 @@
         <div class="mt-6" data-results>
             <div class="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
             @foreach($occurrences as $occurrence)
-                <div><x-event-card :occurrence="$occurrence" /><a class="inline-flex min-h-12 items-center py-3 text-sm font-semibold underline" href="{{ route('community.compose', $occurrence->id) }}">{{ __('community.publish') }}</a></div>
+                <div><x-event-card :occurrence="$occurrence" />@if(config('community.enabled'))<a class="inline-flex min-h-12 items-center py-3 text-sm font-semibold underline" href="{{ route('community.compose', $occurrence->id) }}">{{ __('community.publish') }}</a>@endif</div>
             @endforeach
             </div>
         </div>

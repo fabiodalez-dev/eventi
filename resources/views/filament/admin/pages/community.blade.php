@@ -7,16 +7,16 @@
     @foreach($items as $item)
         <article class="space-y-3 py-5" wire:key="{{ $section }}-{{ $item->id }}">
             @if($section === 'restrictions')
-                <p>{{ $item->name }} · {{ __('community.restricted_occurrence', ['id' => $item->occurrence_id]) }}</p>
+                <p><span class="font-bold">{{ $item->name }}</span> · {{ __('community.restricted_occurrence', ['title' => $item->event_title, 'date' => \Illuminate\Support\Carbon::parse($item->starts_at, 'UTC')->timezone($item->timezone)->format('d/m/Y H:i')]) }} <span class="text-sm text-gray-500">({{ __('community.restricted_occurrence_id', ['id' => $item->occurrence_id]) }})</span></p>
                 <x-filament::button color="gray" wire:confirm="{{ __('community.restore_restriction_confirm') }}" wire:click="restoreRestriction({{ $item->id }})">{{ __('community.restore') }}</x-filament::button>
             @elseif($item instanceof \App\Models\CommunityProfile)
                 <p class="font-bold">{{ $item->display_name }} · {{ '@'.$item->handle }}</p><p>{{ $item->bio }}</p><p>{{ __('community.profile_visibility.'.$item->visibility->value) }}</p>
                 <div class="flex flex-wrap gap-4"><x-filament::button color="gray" wire:click="moderate('profile', {{ $item->id }}, {{ $item->featured ? 'false' : 'true' }})">{{ __($item->featured ? 'community.unfeature' : 'community.feature') }}</x-filament::button>
-                <x-filament::button color="warning" wire:click="moderate('user', {{ $item->user_id }}, {{ $item->user->community_suspended_at ? 'true' : 'false' }})">{{ __($item->user->community_suspended_at ? 'community.unsuspend' : 'community.suspend') }}</x-filament::button></div>
+                <x-filament::button color="warning" :wire:confirm="$item->user->community_suspended_at ? null : __('community.suspend_confirm')" wire:click="moderate('user', {{ $item->user_id }}, {{ $item->user->community_suspended_at ? 'true' : 'false' }})">{{ __($item->user->community_suspended_at ? 'community.unsuspend' : 'community.suspend') }}</x-filament::button></div>
             @else
                 <p class="font-bold">{{ $item->user->communityProfile?->display_name ?? __('community.member') }} · #{{ $item->id }}</p><p class="whitespace-pre-line">{{ $item->body }}</p>
                 @if($item instanceof \App\Models\CommunityPost)<p>{{ $item->occurrence->event->title }}</p>@endif
-                <x-filament::button color="gray" wire:click="moderate('{{ $section === 'posts' ? 'post' : 'comment' }}', {{ $item->id }}, {{ $item->status->value === 'published' ? 'false' : 'true' }})">{{ __($item->status->value === 'published' ? 'community.hide' : 'community.restore') }}</x-filament::button>
+                <x-filament::button color="gray" :wire:confirm="$item->status->value === 'published' ? __('community.hide_confirm') : null" wire:click="moderate('{{ $section === 'posts' ? 'post' : 'comment' }}', {{ $item->id }}, {{ $item->status->value === 'published' ? 'false' : 'true' }})">{{ __($item->status->value === 'published' ? 'community.hide' : 'community.restore') }}</x-filament::button>
             @endif
         </article>
     @endforeach

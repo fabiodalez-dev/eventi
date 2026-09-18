@@ -11,6 +11,7 @@ use App\Enums\KapsoOutcome;
 use App\Enums\ProfileVisibility;
 use App\Enums\VenueStatus;
 use App\Enums\WhatsappChallengeStatus;
+use App\Filament\Admin\Pages\Community as CommunityModerationPage;
 use App\Filament\Admin\Resources\Users\Pages\ListUsers;
 use App\Models\CommunityComment;
 use App\Models\CommunityPost;
@@ -877,14 +878,26 @@ it('73 a suspended member cannot revoke their own verification while staff still
 
 it('74 the retention sentence reaches existing privacy pages once and new installations already have it', function (): void {
     $sentence = "conserviamo soltanto l'impronta crittografica del numero WhatsApp";
-    $page = Page::factory()->create(['slug' => 'privacy', 'body' => "Testo scritto dalla redazione.\n\n## Community e verifica WhatsApp\n\nExport e cancellazione dell'account comprendono i dati social e di verifica; i registri amministrativi conservano solo gli elementi necessari alla sicurezza e alla moderazione, senza codici OTP né copie dei testi ritirati.\n\n## Altro\n\nCoda."]);
+    $oldRevoke = 'la revoca elimina numero e richieste dal nostro database e nasconde i contenuti social.';
+    $newRevoke = 'rende inutilizzabili i codici in attesa';
+    $page = Page::factory()->create(['slug' => 'privacy', 'body' => "Testo scritto dalla redazione.\n\n## Community e verifica WhatsApp\n\nLa verifica resta finché non la revochi o cancelli l'account; ".$oldRevoke."\n\nExport e cancellazione dell'account comprendono i dati social e di verifica; i registri amministrativi conservano solo gli elementi necessari alla sicurezza e alla moderazione, senza codici OTP né copie dei testi ritirati.\n\n## Altro\n\nCoda."]);
     $migration = require database_path('migrations/2026_09_18_120000_community_privacy_retention.php');
     $migration->up();
+    $once = $page->fresh()->body;
     $migration->up();
     $body = $page->fresh()->body;
-    expect(substr_count($body, $sentence))->toBe(1)
+    expect($body)->toBe($once)
+        ->and(substr_count($body, $sentence))->toBe(1)
         ->and(strpos($body, $sentence))->toBeGreaterThan(strpos($body, 'copie dei testi ritirati.'))->toBeLessThan(strpos($body, '## Altro'))
-        ->and($body)->toContain('Testo scritto dalla redazione.');
+        ->and($body)->toContain('Testo scritto dalla redazione.')->not->toContain($oldRevoke)
+        ->and(substr_count($body, $newRevoke))->toBe(1)
+        ->and(__('community.privacy_notice'))->toContain($newRevoke)->not->toContain($oldRevoke);
+
+    // Una pagina con la sola frase vecchia (impronta già aggiunta a mano) viene comunque corretta.
+    $page->update(['body' => preg_replace('/la revoca cancella.*?trenta giorni\./u', $oldRevoke, $body)]);
+    $migration->up();
+    expect($page->fresh()->body)->not->toContain($oldRevoke)->toContain($newRevoke)
+        ->and(substr_count($page->fresh()->body, $sentence))->toBe(1);
 
     $page->delete();
     (new PageSeeder)->run();
@@ -910,6 +923,8 @@ it('76 unconfirmed accounts can switch off channels and review preferences but n
     $this->getJson('/api/v1/me/notification-preferences')->assertOk();
     $this->patchJson('/api/v1/me/notification-preferences', ['daily_digest' => false])->assertOk();
     $this->getJson('/api/v1/me/calendar/google')->assertOk();
+    $this->getJson('/api/v1/me/notification-interests')->assertOk();
+    $this->patchJson('/api/v1/me/notification-interests', ['categories' => [], 'venues' => []])->assertOk();
     $this->deleteJson('/api/v1/me/devices/'.$device->id)->assertOk();
     expect($device->fresh()->revoked_at)->not->toBeNull();
     $this->postJson('/api/v1/me/devices', ['platform' => 'web', 'endpoint' => 'https://push.example/nuovo'])
@@ -1186,4 +1201,101 @@ it('88 a verified member without a profile is sent to complete it instead of a c
     $this->postJson('/api/v1/community/posts/'.$post->id.'/comments', ['body' => 'Ci sarò'])
         ->assertUnprocessable()->assertJsonPath('error.fields.body.0', __('community.profile_required'));
     expect(CommunityComment::query()->count())->toBe(0);
+});
+
+it('89 community links disappear from menus and account pages when the feature is switched off', function (): void {
+    $occurrence = occurrenceAt($this->city, $this->category, '2026-09-15 19:00:00');
+    SavedEvent::query()->create(['user_id' => $this->user->id, 'occurrence_id' => $occurrence->id]);
+    $links = ['href="'.route('community.feed').'"', 'href="'.route('community.people').'"', 'href="'.route('community.inbox').'"', 'href="'.route('community.whatsapp').'"', 'href="'.route('community.compose', $occurrence->id).'"'];
+    $pages = fn () => collect(['account.profile', 'account.saved', 'account.feed'])
+        ->map(fn (string $name) => $this->actingAs($this->user)->get(route($name))->assertOk()->getContent())->implode("\n");
+
+    $enabled = $pages();
+    foreach ($links as $link) {
+        expect($enabled)->toContain($link);
+    }
+
+    config(['community.enabled' => false]);
+    $disabled = $pages();
+    foreach ($links as $link) {
+        expect($disabled)->not->toContain($link);
+    }
+    expect($disabled)->toContain('href="'.route('account.saved').'"');
+});
+
+it('90 the export lists who follows the account as well as who it follows', function (): void {
+    $author = communityPerson();
+    $follower = communityPerson();
+    $follower->follow($author);
+    $author->follow(communityPerson());
+
+    $export = app(AccountExport::class)($author);
+    expect($export['community']['followers'])->toHaveCount(1)
+        ->and($export['community']['followers'][0]['user_id'])->toBe($follower->id)
+        ->and($export['community']['followers'][0])->toHaveKey('accepted_at')
+        ->and($export['community']['followings'])->toHaveCount(1);
+});
+
+it('91 each website action confirms what happened while the API answer stays the same', function (): void {
+    $member = communityPerson();
+    $other = communityPerson();
+    $post = communityPost($other, $this->city, $this->category);
+    $comment = app(Community::class)->comment($member, $post, 'Da rimuovere', null);
+    $from = route('community.people');
+    $this->actingAs($member)->from($from);
+
+    $this->post(route('community.follow', $other->id))->assertRedirect($from)->assertSessionHas('status', __('community.followed'));
+    $this->delete(route('community.unfollow', $other->id))->assertSessionHas('status', __('community.unfollowed'));
+    $this->post(route('community.report'), ['type' => 'community_post', 'id' => $post->id, 'reason' => 'spam'])->assertSessionHas('status', __('community.reported'));
+    $this->delete(route('community.comment.delete', $comment->id))->assertSessionHas('status', __('community.comment_deleted'));
+    $this->post(route('community.block', $other->id))->assertRedirect(route('community.followers'))->assertSessionHas('status', __('community.blocked'));
+    $this->delete(route('community.unblock', $other->id))->assertRedirect(route('community.followers'))->assertSessionHas('status', __('community.unblocked'));
+
+    communityLogin($member);
+    $this->postJson('/api/v1/community/people/'.$other->id.'/follow')->assertOk()->assertExactJson(['data' => ['ok' => true]]);
+});
+
+it('92 the moderation page names the event behind a restriction, searches it and asks before suspending or hiding', function (): void {
+    (new RolesAndPermissionsSeeder)->run();
+    Filament::setCurrentPanel(Filament::getPanel('admin'));
+    $admin = User::factory()->create();
+    $admin->assignRole('admin');
+    $author = communityPerson();
+    $author->forceFill(['name' => 'Autrice Ristretta'])->save();
+    $post = communityPost($author, $this->city, $this->category);
+    $other = communityPerson();
+    $other->forceFill(['name' => 'Altro Membro'])->save();
+    $otherOccurrence = occurrenceAt($this->city, $this->category, '2026-09-20 21:00:00');
+    DB::table('community_restrictions')->insert([
+        ['user_id' => $author->id, 'occurrence_id' => $post->occurrence_id, 'created_at' => now(), 'updated_at' => now()],
+        ['user_id' => $other->id, 'occurrence_id' => $otherOccurrence->id, 'created_at' => now(), 'updated_at' => now()],
+    ]);
+    $this->actingAs($admin);
+
+    $date = $post->occurrence->starts_at->timezone($this->city->timezone)->format('d/m/Y H:i');
+    Livewire::test(CommunityModerationPage::class)->set('section', 'restrictions')
+        ->assertSee($post->occurrence->event->title)->assertSee($date)->assertSee('Altro Membro')
+        ->set('search', 'Ristretta')
+        ->assertSee('Autrice Ristretta')->assertSee($post->occurrence->event->title)->assertDontSee('Altro Membro');
+
+    Livewire::test(CommunityModerationPage::class)
+        ->assertSeeHtml('wire:confirm="'.e(__('community.suspend_confirm')).'"')
+        ->set('section', 'posts')->assertSeeHtml('wire:confirm="'.e(__('community.hide_confirm')).'"');
+    $post->update(['status' => CommunityStatus::Hidden]);
+    User::query()->whereKey([$author->id, $other->id])->update(['community_suspended_at' => now()]);
+    Livewire::test(CommunityModerationPage::class)
+        ->assertDontSeeHtml('wire:confirm="'.e(__('community.suspend_confirm')).'"')
+        ->set('section', 'posts')->assertDontSeeHtml('wire:confirm="'.e(__('community.hide_confirm')).'"');
+});
+
+it('93 follow buttons announce a name that starts with the visible text', function (): void {
+    $author = communityPerson();
+    $member = communityPerson();
+    $this->actingAs($member)->get(route('community.people'))->assertOk()
+        ->assertSee('aria-label="'.e(__('community.follow_person', ['name' => $author->communityProfile->display_name])).'"', false);
+    $member->follow($author);
+    $this->actingAs($member)->get(route('community.people'))->assertOk()
+        ->assertSee('aria-label="'.e(__('community.unfollow_person', ['name' => $author->communityProfile->display_name])).'"', false);
+    expect(__('community.follow_person', ['name' => 'X']))->toStartWith(__('community.follow'))
+        ->and(__('community.unfollow_person', ['name' => 'X']))->toStartWith(__('community.following_label'));
 });

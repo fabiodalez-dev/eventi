@@ -72,19 +72,26 @@ class Community extends Page
     protected function getViewData(): array
     {
         abort_unless(static::canAccess(), 403);
+        $search = $this->search !== '' ? '%'.addcslashes(mb_substr($this->search, 0, 80), '%_\\').'%' : null;
         if ($this->section === 'restrictions') {
+            // Titolo e data dicono allo staff quale serata sta sbloccando; l'id resta come riferimento.
             return ['items' => DB::table('community_restrictions')
                 ->join('users', 'users.id', '=', 'community_restrictions.user_id')
-                ->select('community_restrictions.*', 'users.name')->orderByDesc('community_restrictions.id')->paginate(25)];
+                ->join('event_occurrences', 'event_occurrences.id', '=', 'community_restrictions.occurrence_id')
+                ->join('events', 'events.id', '=', 'event_occurrences.event_id')
+                ->join('cities', 'cities.id', '=', 'events.city_id')
+                ->when($search !== null, fn ($query) => $query->where('users.name', 'like', $search))
+                ->select('community_restrictions.*', 'users.name', 'events.title as event_title', 'event_occurrences.starts_at', 'cities.timezone')
+                ->orderByDesc('community_restrictions.id')->paginate(25)];
         }
         $query = match ($this->section) {
             'posts' => CommunityPost::query()->with(['user.communityProfile', 'occurrence.event']),
             'comments' => CommunityComment::query()->with('user.communityProfile'),
             default => CommunityProfile::query()->with('user'),
         };
-        if ($this->search !== '') {
+        if ($search !== null) {
             $field = in_array($this->section, ['posts', 'comments'], true) ? 'body' : 'display_name';
-            $query->where($field, 'like', '%'.addcslashes(mb_substr($this->search, 0, 80), '%_\\').'%');
+            $query->where($field, 'like', $search);
         }
 
         return ['items' => $query->orderByDesc('id')->paginate(25)];

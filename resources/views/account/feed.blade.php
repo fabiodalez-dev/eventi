@@ -1,5 +1,7 @@
 <x-layouts.app :meta="$meta">
-    <a class="mb-6 inline-flex min-h-11 items-center font-semibold underline" href="{{ route('community.feed') }}">{{ __('community.feed') }} →</a>
+    @if(config('community.enabled'))
+        <a class="mb-6 inline-flex min-h-11 items-center font-semibold underline" href="{{ route('community.feed') }}">{{ __('community.feed') }} →</a>
+    @endif
     <x-sponsorship-banner :city="$city" />
     <header id="feed-events" class="flex flex-col gap-2">
         <h1 class="text-hero text-ink">{{ $meta->heading }}</h1>

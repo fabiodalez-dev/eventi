@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Community;
 
 use App\DTOs\PageMeta;
+use App\Enums\PostIntent;
+use App\Enums\ProfileVisibility;
 use App\Enums\VenueStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Community\CommentRequest;
@@ -119,7 +121,7 @@ final class CommunityController extends Controller
         }
 
         return view('community.profile', ['profile' => $profile, 'summary' => CommunityResource::profile($profile, $user, $followingIds), 'posts' => $posts, 'venues' => $venues,
-            'meta' => new PageMeta($profile->display_name, $profile->display_name, $profile->bio, route('community.profile', $profile->handle), indexable: $profile->indexable && $profile->visibility->value === 'public')]);
+            'meta' => new PageMeta($profile->display_name, $profile->display_name, $profile->bio, route('community.profile', $profile->handle), indexable: $profile->indexable && $profile->visibility === ProfileVisibility::Public)]);
     }
 
     public function post(Request $request, CommunityPost $post): View|JsonResponse
@@ -184,19 +186,22 @@ final class CommunityController extends Controller
 
     public function follow(Request $request, User $user): JsonResponse|RedirectResponse
     {
-        $this->community->follow($request->user(), $user, ! $request->isMethod('DELETE'));
+        $follow = ! $request->isMethod('DELETE');
+        $this->community->follow($request->user(), $user, $follow);
 
-        return $this->done($request);
+        return $this->done($request, $follow ? 'community.followed' : 'community.unfollowed');
     }
 
     public function block(Request $request, User $user): JsonResponse|RedirectResponse
     {
-        $this->community->block($request->user(), $user, ! $request->isMethod('DELETE'));
+        $block = ! $request->isMethod('DELETE');
+        $this->community->block($request->user(), $user, $block);
+        $status = $block ? 'community.blocked' : 'community.unblocked';
         if (! $request->expectsJson()) {
-            return redirect()->route('community.followers')->with('status', __('community.updated'));
+            return redirect()->route('community.followers')->with('status', __($status));
         }
 
-        return $this->done($request);
+        return $this->done($request, $status);
     }
 
     public function followers(Request $request): View|JsonResponse
@@ -216,7 +221,7 @@ final class CommunityController extends Controller
         $saved = $request->user()->savedEvents()->where('occurrence_id', $occurrence)->with('occurrence.event')->firstOrFail();
         $post = CommunityPost::query()->where('saved_event_id', $saved->id)->first();
         if ($request->expectsJson()) {
-            return ApiResponse::item(['visibility' => $saved->visibility->value, 'body' => $post?->body, 'intent' => $post?->intent->value ?? 'recommend', 'post_id' => $post?->id]);
+            return ApiResponse::item(['visibility' => $saved->visibility->value, 'body' => $post?->body, 'intent' => $post?->intent->value ?? PostIntent::Recommend->value, 'post_id' => $post?->id]);
         }
 
         return view('community.compose', ['saved' => $saved, 'post' => $post, 'meta' => new PageMeta(__('community.publish'), __('community.publish'), indexable: false)]);
@@ -246,18 +251,19 @@ final class CommunityController extends Controller
     {
         $this->community->deleteComment($request->user(), $comment);
 
-        return $this->done($request);
+        return $this->done($request, 'community.comment_deleted');
     }
 
     public function report(CommunityReportRequest $request): JsonResponse|RedirectResponse
     {
         $this->community->report($request->user(), $request->string('type')->toString(), $request->integer('id'), $request->validated());
 
-        return $this->done($request);
+        return $this->done($request, 'community.reported');
     }
 
-    private function done(Request $request): JsonResponse|RedirectResponse
+    /** Il JSON resta {ok: true}; sul sito il messaggio dice che cosa è successo. */
+    private function done(Request $request, string $status = 'community.updated'): JsonResponse|RedirectResponse
     {
-        return $request->expectsJson() ? ApiResponse::item(['ok' => true]) : back()->with('status', __('community.updated'));
+        return $request->expectsJson() ? ApiResponse::item(['ok' => true]) : back()->with('status', __($status));
     }
 }

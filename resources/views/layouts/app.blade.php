@@ -21,12 +21,18 @@
      * La navigazione si costruisce dalle rotte che esistono davvero: una voce
      * la cui rotta non è ancora registrata semplicemente non compare, invece
      * di portare a un 404. Quando la mappa e il calendario arriveranno,
-     * torneranno nel menu senza che nessuno debba ricordarsene.
+     * torneranno nel menu senza che nessuno debba ricordarsene. Le rotte della
+     * community esistono sempre ma rispondono 404 a funzione spenta: la voce
+     * sparisce insieme alla funzione.
      */
-    $links = function (array $items): array {
+    $communityEnabled = (bool) config('community.enabled');
+    $links = function (array $items) use ($communityEnabled): array {
         $available = [];
 
         foreach ($items as $name => $label) {
+            if (! $communityEnabled && str_starts_with($name, 'community.')) {
+                continue;
+            }
             if (\Illuminate\Support\Facades\Route::has($name)) {
                 $available[] = ['name' => $name, 'url' => route($name), 'label' => $label];
             }

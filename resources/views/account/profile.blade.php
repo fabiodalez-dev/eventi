@@ -50,6 +50,7 @@
                 ['account.saved', 'heroicon-o-bookmark', 'I miei salvataggi', 'Ritrova gli eventi da non perdere'],
                 ['google-calendar.index', 'heroicon-o-calendar-days', 'Il mio calendario', 'Collega e gestisci Google Calendar'],
             ] as [$destination, $icon, $label, $description])
+                @continue(! config('community.enabled') && str_starts_with($destination, 'community.'))
                 <a href="{{ route($destination) }}" class="flex min-h-16 items-center gap-3 py-4 hover:text-brand">
                     <x-dynamic-component :component="$icon" class="size-6 shrink-0" width="24" height="24" aria-hidden="true" />
                     <span class="min-w-0 flex-1"><span class="block font-semibold">{{ $label }}</span><span class="mt-1 block text-sm text-ink-muted">{{ $description }}</span></span>

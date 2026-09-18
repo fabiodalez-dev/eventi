@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Community;
 
 use App\Enums\CommunityStatus;
+use App\Enums\PostIntent;
 use App\Enums\ProfileVisibility;
 use App\Enums\ReportStatus;
 use App\Enums\SavedVisibility;
@@ -142,7 +143,7 @@ final class Community
                 throw ValidationException::withMessages(['visibility' => __('community.profile_required')]);
             }
             $post = CommunityPost::query()->firstOrNew(['saved_event_id' => $saved->id]);
-            $post->fill(['user_id' => $user->id, 'occurrence_id' => $occurrence, 'body' => $data['body'] ?? null, 'intent' => $data['intent'] ?? 'recommend']);
+            $post->fill(['user_id' => $user->id, 'occurrence_id' => $occurrence, 'body' => $data['body'] ?? null, 'intent' => $data['intent'] ?? PostIntent::Recommend->value]);
             if (! $post->exists) {
                 $post->published_at = CarbonImmutable::now();
                 $post->status = CommunityStatus::Published;

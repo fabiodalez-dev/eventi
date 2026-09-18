@@ -17,6 +17,7 @@ use App\Models\UserBlock;
 use App\Models\VenueReview;
 use App\Support\Api\ApiDate;
 use Illuminate\Notifications\DatabaseNotification;
+use Overtrue\LaravelFollow\Followable;
 
 /**
  * Portabilità dei dati (§15.9, `GET /v1/me/export`).
@@ -46,6 +47,9 @@ final class AccountExport
                 'posts' => CommunityPost::query()->where('user_id', $user->id)->get()->toArray(),
                 'comments' => CommunityComment::query()->where('user_id', $user->id)->get()->toArray(),
                 'followings' => $user->followings()->get(['followable_id', 'accepted_at'])->toArray(),
+                // Chi segue l'account: `followers()` restituisce utenti, qui servono le righe della relazione.
+                'followers' => Followable::query()->where('followable_type', $user->getMorphClass())->where('followable_id', $user->id)
+                    ->get(['user_id', 'accepted_at'])->toArray(),
                 'blocks' => UserBlock::query()->where('user_id', $user->id)->pluck('blocked_user_id')->all(),
             ],
             'exported_at' => ApiDate::instant(now(), $timezone),

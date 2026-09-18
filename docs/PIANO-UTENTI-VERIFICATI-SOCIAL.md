@@ -7,7 +7,7 @@ Stato: **implementazione web, API, Android e backend amministrativo completata s
 ## Decisioni approvate e realizzazione
 
 - Sito e Android nativo condividono i servizi Laravel. Conferma email obbligatoria; invito gratuito e facoltativo alla verifica WhatsApp dopo la conferma, rinviabile.
-- Account dimostrativi preesistenti: email confermata dalla migrazione. Il badge WhatsApp richiede la prova del numero; nessun telefono inventato viene certificato in produzione.
+- Account preesistenti: nessuna conferma email scritta dalla migrazione. La prima versione confermava in blocco gli account non confermati; il riempimento è stato tolto e in produzione gli account interessati sono stati rivisti a mano il 18 settembre (dettagli in `docs/DECISIONS.md`). Il badge WhatsApp richiede la prova del numero; nessun telefono inventato viene certificato in produzione.
 - Follow libero con contatori e notifica nel sito/app, senza richieste di amicizia separate. Gli account ordinari possono seguire e leggere, soltanto i verificati pubblicano e commentano.
 - Nome pubblico e handle univoco; bio, foto, città facoltativa, profilo pubblico/solo iscritti/privato e consenso separato all'indicizzazione.
 - Salvataggio privato predefinito, privacy modificabile per singola data. La pubblicazione crea un solo post con testo fino a 500 caratteri, intenzione «Lo consiglio»/«Parteciperò» e card completa del catalogo. Privatizzare o rimuovere il salvataggio ritira post e commenti.
@@ -21,7 +21,7 @@ Stato: **implementazione web, API, Android e backend amministrativo completata s
 
 ## Protezioni e verifica
 
-OTP crittografico a sei cifre, hash del codice, telefono cifrato e fingerprint HMAC separato, unicità del numero, durata cinque minuti, cinque tentativi, cooldown e limiti per utente/telefono/IP/globale. Consumo atomico, invalidazione del codice precedente, audit senza codici, eliminazione dei challenge dopo trenta giorni. Credenziali solo in ambiente server; Telescope esclude le chiamate contenenti OTP.
+OTP crittografico a sei cifre, hash del codice, telefono cifrato e fingerprint HMAC separato, unicità del numero, durata cinque minuti, cinque tentativi, cooldown e limiti per utente/telefono/IP/globale. Consumo atomico, invalidazione del codice precedente solo dopo un invio partito, audit senza codici, eliminazione dei challenge dopo trenta giorni. Credenziali solo in ambiente server; Telescope esclude le chiamate contenenti OTP.
 
 Foto decodificate e ricodificate JPEG, SVG escluso, limite 2 MB/4096 px, storage privato e accesso autorizzato a ogni richiesta. Risposte personali `no-store`, avatar Android senza cache persistente. Export e cancellazione includono dati social.
 
@@ -30,6 +30,24 @@ Foto decodificate e ricodificate JPEG, SVG escluso, limite 2 MB/4096 px, storage
 Android: otto nuovi test JVM su sessione, nonce, formato e scadenza; dodici test strumentali con il parser SDK e Android Keystore reali; tre prove Compose per compilazione senza invio automatico, isolamento della challenge e inserimento manuale. Eseguiti sull'emulatore Android 15 insieme alle tre regressioni SafeScreens: **18/18 superati**. I test non inviano messaggi a numeri reali. Il primo controllo CI aveva individuato un parametro mancante nel test ProfileScreen, corretto e ricompilato.
 
 Il lint della release ha individuato e corretto l'uso di `InputStream.readNBytes` non disponibile sotto API 33: lettura avatar limitata a 2 MB più un byte sentinella, verificata con tre test JVM aggiuntivi (stream illimitato, soglia esatta, letture parziali). Corretti anche i messaggi Compose per reagire alla configurazione linguistica. Suite JVM complessiva: 87 superati, un test preesistente ignorato, zero errori; lintRelease senza errori. APK 1.14.0 (36).
+
+## Correzioni dopo la review della PR #98 (18 settembre 2026)
+
+La review ha prodotto cinque gruppi di correzioni, ciascuno con i propri test in `tests/Feature/Community/CommunitySecurityTest.php` (dal numero 62 in poi). Qui è registrato che cosa è cambiato rispetto alla descrizione precedente e che cosa è rinviato a issue separate.
+
+**Esiti dell'invio WhatsApp.** L'invio del codice ha tre esiti (`App\Enums\KapsoOutcome`). *Consegnato*: Kapso ha accettato il messaggio e ne ha restituito l'identificativo; il codice nuovo sostituisce quelli precedenti. *Incerto*: la connessione è caduta dopo la partenza della richiesta (per esempio un timeout); il codice resta confermabile perché potrebbe essere arrivato, sostituisce i precedenti, conta nei limiti e l'API risponde `delivery: "uncertain"`, mentre il sito avvisa che il messaggio potrebbe non essere arrivato. *Rifiutato*: errore del fornitore, risposta senza identificativo o connessione mai stabilita; la richiesta è segnata come fallita, il codice precedente resta valido e i contatori per IP e globale vengono restituiti. Le richieste fallite non contano nei tetti orario e giornaliero ma contano nell'attesa di sessanta secondi fra un invio e l'altro. L'API aggiunge `delivery: "sent"` negli altri casi, senza togliere né rinominare chiavi.
+
+**Revoca e limiti.** La revoca non cancella più le richieste: segna come usati i codici in attesa, così non azzera i limiti d'invio né lo storico, che resta fino alla pulizia dopo trenta giorni; il numero viene cancellato dall'account. L'informativa è stata corretta di conseguenza, anche nelle pagine già pubblicate, con la migrazione `2026_09_18_120000_community_privacy_retention`. Il controllo sul numero già usato da un altro account consuma il limite per IP prima di rispondere, per non trasformarlo in un modo gratuito di sondare i numeri. Ogni azione della community ha il proprio limite di frequenza, identico fra sito e API. Il tetto per numero conteggiato su più account è rinviato alla issue #101.
+
+**Chiave dell'impronta.** L'impronta del numero usa soltanto `WHATSAPP_PHONE_HASH_KEY`, senza ripiego su `APP_KEY`: senza la chiave la verifica WhatsApp risulta non disponibile. L'installer la genera per le installazioni nuove; per i server esistenti la procedura è nel runbook. Una rotazione della chiave cambierebbe tutte le impronte e riaprirebbe i numeri già usati: il comando di rotazione con riverifica è rinviato alla issue #103.
+
+**Sospensione e cancellazione.** Se un account sospeso viene cancellato restano l'impronta del numero e la data della sospensione, così lo stesso numero non torna con una nuova iscrizione; il numero invece viene cancellato. L'informativa lo dice. Il periodo dopo il quale anche l'impronta trattenuta va eliminata è rinviato alla issue #104. Chi è sospeso non può revocare da sé la verifica, perché libererebbe il numero; lo staff sì.
+
+**Conferma email.** Nessun riempimento di `email_verified_at` nella migrazione (vedi sopra). Chi non ha confermato l'email può comunque spegnere ciò che già riceve e rivedere le preferenze: togliere push, dispositivi e Google Calendar, leggere e modificare preferenze e interessi, dal sito e dall'API; resta bloccato ciò che apre un canale nuovo. Il link di conferma distingue ospite, stesso utente e utente diverso.
+
+**Community.** Chi ha il profilo privato vede i propri post, il loro permalink e può commentarli. L'archivio del profilo mostra solo le date concluse. I contatori di follower e seguiti contano solo relazioni ammesse (email confermata, account né sospeso né cancellato). Nei commenti chi ha un profilo non visibile a chi legge compare come «Utente». Bacheca, persone, post e follower non fanno più una query per riga. Dopo un blocco si può ancora segnalare in entrambe le direzioni. La cancellazione dei commenti segue una sola policy (autore del commento, autore del post, staff). Seguire di nuovo la stessa persona entro un giorno non genera un secondo avviso. Chi è verificato ma non ha un profilo riceve l'invito a crearlo.
+
+**Rifiniture.** Con `COMMUNITY_ENABLED=false` i collegamenti alla community spariscono da menu e pagine dell'account. L'export comprende anche chi segue l'account. Sul sito ogni azione conferma che cosa è successo (seguito, bloccato, commento rimosso, segnalazione inviata). Nel pannello, sospendere e nascondere chiedono conferma e le pubblicazioni bloccate mostrano titolo e data dell'evento e si cercano per nome.
 
 ## Attivazione esterna e dominio
 
@@ -298,7 +316,7 @@ Punti di modifica principali: `app/Models/User.php`, `app/Actions/Account`, `app
 13. Browser desktop/mobile: email → WhatsApp → profilo → salvataggio privato/pubblico → lettura da altro utente → commento/ritiro; tastiera, focus, errori e temi.
 14. Misurare query per pagina, assenza di N+1, indici con dati realistici e stabilità dei cursori con inserimenti simultanei.
 
-Eseguire le suite PHP su un database dedicato `eventi_test_community`, senza alterare i blocchi di sicurezza dei test. Controlli coerenti con `docs/TESTING.md`: Pest mirati, suite di regressione, Pint, Larastan livello 6, Deptrac, build frontend e flussi browser pertinenti. Per Android, test Kotlin e verifiche dell'app secondo il perimetro concordato. Questo turno contiene solo un piano: non sono stati eseguiti test applicativi e non è stata provata la chiave Kapso.
+Eseguire le suite PHP su un database dedicato `eventi_test_community`, senza alterare i blocchi di sicurezza dei test. Controlli coerenti con `docs/TESTING.md`: Pest mirati, suite di regressione, Pint, Larastan livello 6, Deptrac, build frontend e flussi browser pertinenti. Per Android, test Kotlin e verifiche dell'app secondo il perimetro concordato. Stato al 18 settembre 2026: test PHP e Android eseguiti come riportato nella sezione «Protezioni e verifica» in testa al documento; template Kapso creati e approvati tramite API, mentre la consegna reale su un telefono autorizzato resta da provare.
 
 ## 15. Attivazione e operatività
 
