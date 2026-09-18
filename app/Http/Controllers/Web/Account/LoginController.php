@@ -55,6 +55,12 @@ final class LoginController extends Controller
         $user = $request->user();
         $user?->forceFill(['last_active_at' => CarbonImmutable::now()])->save();
 
+        if ($request->session()->get('community_onboarding_user') === $user?->id && config('community.enabled')) {
+            $request->session()->forget('community_onboarding_user');
+
+            return redirect()->route('community.whatsapp');
+        }
+
         return redirect()
             ->intended(route('account.feed'))
             ->with('status', __('account.login.done'));

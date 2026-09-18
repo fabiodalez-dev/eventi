@@ -23,16 +23,22 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Overtrue\LaravelFollow\Traits\Followable;
+use Overtrue\LaravelFollow\Traits\Follower;
 use Spatie\Permission\Traits\HasRoles;
 
 /** @property string $appearance */
 /** @property array{mode?: string, categories?: list<int>, hidden_categories?: list<int>, inferred_ads?: bool}|null $content_preferences */
 class User extends Authenticatable implements FilamentUser, HasTenants, MustVerifyEmail
 {
+    use Followable;
+    use Follower;
+
     /*
      * I token dell'API v1 (§13.4). Sanctum ne emette uno per dispositivo, così
      * chi perde il telefono revoca quello e non tutto il resto.
@@ -69,8 +75,22 @@ class User extends Authenticatable implements FilamentUser, HasTenants, MustVeri
         'remembered_location',
         'location_expires_at',
         'password',
+        'whatsapp_phone',
+        'whatsapp_phone_hash',
         'remember_token',
     ];
+
+    public function isWhatsappVerified(): bool
+    {
+        return $this->hasVerifiedEmail() && $this->whatsapp_verified_at !== null
+            && $this->whatsapp_phone_hash !== null && $this->community_suspended_at === null && ! $this->trashed();
+    }
+
+    /** @return HasOne<CommunityProfile, $this> */
+    public function communityProfile(): HasOne
+    {
+        return $this->hasOne(CommunityProfile::class);
+    }
 
     /** @return BelongsToMany<Venue, $this> */
     public function venues(): BelongsToMany
@@ -392,6 +412,10 @@ class User extends Authenticatable implements FilamentUser, HasTenants, MustVeri
     {
         return [
             'email_verified_at' => 'datetime',
+            'whatsapp_phone' => 'encrypted',
+            'whatsapp_verified_at' => 'immutable_datetime',
+            'whatsapp_prompted_at' => 'immutable_datetime',
+            'community_suspended_at' => 'immutable_datetime',
             'remembered_location' => 'encrypted:array',
             'location_expires_at' => 'datetime',
             'password' => 'hashed',

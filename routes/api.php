@@ -50,6 +50,7 @@ use App\Http\Middleware\Api\CacheJsonResponse;
 use App\Http\Middleware\Api\IdempotentRequest;
 use App\Http\Middleware\Api\ResolveApiCity;
 use App\Http\Middleware\PersonalizeDiscovery;
+use App\Http\Middleware\RequireConfirmedAccount;
 use App\Http\Middleware\TicketingPrivacy;
 use Illuminate\Support\Facades\Route;
 
@@ -215,7 +216,7 @@ Route::prefix('v1')
          * leggibilità: i percorsi non si sovrappongono.
          */
         Route::prefix('me')
-            ->middleware('auth:sanctum')
+            ->middleware(['auth:sanctum', RequireConfirmedAccount::class])
             ->name('me.')
             ->group(function (): void {
                 Route::get('/', [ProfileController::class, 'show'])->name('show');
@@ -277,3 +278,5 @@ Route::prefix('v1')
                 Route::get('/export', ExportController::class)->name('export');
             });
     });
+
+Route::group([], base_path('routes/community-api.php'));

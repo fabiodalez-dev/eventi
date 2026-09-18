@@ -14,6 +14,9 @@ use App\Filament\Support\RoleField;
 use App\Models\City;
 use App\Models\User;
 use App\Models\Venue;
+use App\Models\WhatsappChallenge;
+use App\Services\Community\CommunityModeration;
+use App\Services\Community\WhatsappVerification;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
@@ -125,6 +128,13 @@ class UserResource extends Resource
                             ->default('it'),
                     ]),
 
+                Section::make(__('community.moderation'))->schema([
+                    TextInput::make('community_handle')->label(__('community.handle'))->afterStateHydrated(fn (TextInput $component, ?User $record) => $component->state($record?->communityProfile?->handle))->disabled()->dehydrated(false),
+                    DateTimePicker::make('whatsapp_verified_at')->label(__('community.whatsapp.title'))->disabled()->dehydrated(false),
+                    TextInput::make('whatsapp_masked')->label(__('community.whatsapp.phone'))->afterStateHydrated(fn (TextInput $component, ?User $record) => $component->state($record?->whatsapp_phone ? '••••'.substr($record->whatsapp_phone, -4) : '—'))->disabled()->dehydrated(false),
+                    DateTimePicker::make('community_suspended_at')->label(__('community.suspend'))->disabled()->dehydrated(false),
+                ]),
+
                 Section::make(__('admin.sections.roles'))
                     ->description(__('users.roles_help'))
                     ->schema([
@@ -181,6 +191,9 @@ class UserResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true)
                     ->placeholder(__('admin.placeholders.never')),
 
+                TextColumn::make('whatsapp_verified_at')->label(__('community.whatsapp.title'))->dateTime('d/m/Y H:i')->placeholder(__('admin.placeholders.never'))->sortable(),
+                TextColumn::make('community_suspended_at')->label(__('community.suspend'))->dateTime('d/m/Y H:i')->placeholder('—')->sortable(),
+                TextColumn::make('communityProfile.handle')->label(__('community.handle'))->searchable()->toggleable(),
                 TextColumn::make('last_active_at')
                     ->label(__('admin.fields.last_active_at'))
                     ->toggleable(isToggledHiddenByDefault: true)
@@ -210,11 +223,27 @@ class UserResource extends Resource
                     ->label(__('admin.fields.email_verified_at'))
                     ->nullable(),
 
+                TernaryFilter::make('whatsapp_verified_at')->label(__('community.whatsapp.title'))->nullable(),
+                TernaryFilter::make('community_suspended_at')->label(__('community.suspend'))->nullable(),
                 TrashedFilter::make(),
             ])
             ->recordActions([
                 EditAction::make(),
                 self::impersonateAction(),
+                Action::make('community_suspend')->label(fn (User $record): string => __($record->community_suspended_at ? 'community.unsuspend' : 'community.suspend'))
+                    ->visible(fn (User $record): bool => ! $record->trashed() && auth()->user()?->isEditorialStaff() === true)->requiresConfirmation()
+                    ->action(fn (User $record) => app(CommunityModeration::class)->apply(auth()->user(), 'user', $record->id, $record->community_suspended_at !== null)),
+                Action::make('whatsapp_revoke')->label(__('community.whatsapp.revoke'))->requiresConfirmation()
+                    ->visible(fn (User $record): bool => $record->whatsapp_verified_at !== null && auth()->user()?->hasAnyRole(['admin', 'super_admin']) === true)
+                    ->action(function (User $record): void {
+                        abort_unless(auth()->user()?->hasAnyRole(['admin', 'super_admin']), 403);
+                        app(WhatsappVerification::class)->revoke($record, auth()->user());
+                    }),
+                Action::make('whatsapp_history')->label(__('community.verification_history'))
+                    ->visible(fn (): bool => auth()->user()?->isEditorialStaff() === true)
+                    ->modalContent(fn (User $record) => view('filament.admin.pages.whatsapp-history', ['challenges' => WhatsappChallenge::query()->where('user_id', $record->id)->latest()->limit(30)->get()]))
+                    ->modalSubmitAction(false)->modalCancelActionLabel(__('community.close')),
+
             ])
             ->toolbarActions([
                 BulkActions::make(),

@@ -66,6 +66,10 @@
                 {{ __('account.nav.feed') }}
             </a>
 
+            @foreach(['community.feed' => 'nav', 'community.inbox' => 'inbox'] as $destination => $label)
+            <a role="menuitem" href="{{ route($destination) }}" class="min-h-11 border-b-2 border-line px-3.5 py-3 font-display text-xs font-extrabold hover:bg-accent hover:text-on-accent">{{ __('community.'.$label) }}</a>
+            @endforeach
+
             {{-- Le preferenze delle email vivevano solo dietro un collegamento
                  firmato dentro le email: chi non ne riceveva non poteva
                  iscriversi, perche' per riceverne serviva iscriversi. --}}
