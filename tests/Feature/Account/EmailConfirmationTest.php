@@ -77,7 +77,7 @@ it('does not consume another signed-in users destination when confirming an emai
     $other = User::factory()->unverified()->create();
     $destination = route('events.show', ['slug' => $this->event->slug]).'#commenti';
     $this->actingAs($current)->withSession(['url.intended' => $destination])
-        ->get(VerifyEmailLink::url($other))->assertRedirect(route('login'))->assertSessionHas('url.intended', $destination);
+        ->get(VerifyEmailLink::url($other))->assertRedirect(route('account.profile'))->assertSessionMissing('community_onboarding_user')->assertSessionHas('url.intended', $destination);
     expect($other->fresh()->hasVerifiedEmail())->toBeTrue()->and($current->fresh()->hasVerifiedEmail())->toBeFalse();
 });
 

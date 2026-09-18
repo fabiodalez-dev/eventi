@@ -31,6 +31,7 @@ return [
     'nav' => 'La community', 'catalog_feed' => 'Dai locali e dalle categorie', 'lead' => 'Le persone, i loro consigli, la tua prossima uscita.',
     'member' => 'Utente', 'verified' => 'WhatsApp verificato', 'settings' => 'Il tuo profilo pubblico', 'post' => 'Un evento consigliato',
     'email_required' => 'Conferma il tuo indirizzo email per utilizzare il tuo account.',
+    'suspended' => 'Il tuo account è sospeso dalla community: questa operazione non è disponibile.',
     'verification_required' => 'Verifica gratuitamente il tuo numero WhatsApp per pubblicare e commentare.',
     'profile_required' => 'Completa prima il tuo profilo pubblico.', 'updated' => 'Modifiche salvate.',
     'empty' => 'Qui non ci sono ancora consigli. Scopri le persone da seguire: i loro eventi compariranno nella tua bacheca.',
@@ -85,5 +86,7 @@ Trattiamo questi dati per fornire la funzione che richiedi e prevenire abusi. Ka
 Se crei un profilo, conserviamo nome pubblico, nome utente, biografia, foto e città che scegli di indicare. Puoi renderlo pubblico, visibile soltanto agli iscritti o privato; l'indicizzazione nei motori di ricerca richiede una scelta separata. I salvataggi nascono privati. Solo una pubblicazione esplicita rende visibili testo e card della singola data secondo la visibilità del profilo; i locali mostrati sono quelli che selezioni espressamente. Conserviamo inoltre follow, blocchi, commenti, segnalazioni e notifiche necessari al servizio.
 
 Puoi modificare la visibilità o ritirare una pubblicazione: ritirandola si eliminano anche i relativi commenti. Le copie già viste o salvate da terzi e le copie dei motori di ricerca non sono sotto il nostro controllo. Export e cancellazione dell'account comprendono i dati social e di verifica; i registri amministrativi conservano solo gli elementi necessari alla sicurezza e alla moderazione, senza codici OTP né copie dei testi ritirati.
+
+Se un account viene sospeso per abuso e poi cancellato, conserviamo soltanto l'impronta crittografica del numero WhatsApp e la data della sospensione, per impedire che lo stesso numero venga usato per una nuova iscrizione; il numero invece viene cancellato.
 MARKDOWN,
 ];

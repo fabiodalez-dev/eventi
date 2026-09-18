@@ -54,16 +54,22 @@ final class EmailVerificationController extends Controller
         }
 
         $currentUser = $request->user();
-        $request->session()->put('community_onboarding_user', $user->id);
-        if ($currentUser instanceof User && $currentUser->is($user)) {
+        if ($currentUser === null) {
+            // L'onboarding WhatsApp aspetta il login di questo account, non di chiunque entri dopo.
+            $request->session()->put('community_onboarding_user', $user->id);
+
+            return redirect()->route('login')->with('status', __('account.verify.done'));
+        }
+        if ($currentUser->is($user)) {
             $currentUser->refresh();
 
-            return redirect()->route(config('community.enabled') ? 'community.whatsapp' : 'account.profile')->with('status', __('account.verify.done'));
+            return (config('community.enabled') ? redirect()->route('community.whatsapp') : redirect()->intended(route('account.profile')))
+                ->with('status', __('account.verify.done'));
         }
 
-        return redirect()
-            ->route($request->user()?->id === $user->id ? 'community.whatsapp' : 'login')
-            ->with('status', __('account.verify.done'));
+        // Collegato con un altro account: la conferma vale, ma niente onboarding né
+        // messaggi che parlino a nome dell'account appena confermato.
+        return redirect()->route('account.profile')->with('status', __('account.verify.confirmed'));
     }
 
     public function send(Request $request): RedirectResponse

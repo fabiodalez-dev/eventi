@@ -127,6 +127,8 @@ final class WhatsappVerification
     {
         DB::transaction(function () use ($user, $actor): void {
             $locked = User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
+            // Da sospesi la revoca libererebbe il numero per un altro account: la può fare solo lo staff.
+            abort_if($actor === null && $locked->community_suspended_at !== null, 403, __('community.suspended'));
             $locked->forceFill(['whatsapp_phone' => null, 'whatsapp_phone_hash' => null, 'whatsapp_verified_at' => null])->save();
             // Consumate e non cancellate: le righe tengono vivi i limiti d'invio, e una
             // revoca non deve diventare il modo di azzerarli. La cancellazione resta a DeleteAccount.

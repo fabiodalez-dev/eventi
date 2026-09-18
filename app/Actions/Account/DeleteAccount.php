@@ -56,6 +56,9 @@ final class DeleteAccount
             $user->notifications()->delete();
             $user->tokens()->delete();
 
+            // Chi è stato sospeso per abuso non deve potersi reiscrivere con lo stesso numero
+            // cancellando l'account: resta l'impronta (non il numero) e la sospensione che la motiva.
+            $suspended = $user->community_suspended_at !== null;
             $user->forceFill([
                 'name' => null,
                 'email' => $this->anonymousEmail($user),
@@ -67,7 +70,8 @@ final class DeleteAccount
                 'marketing_opt_in_at' => null,
                 'last_active_at' => null,
                 'email_verified_at' => null,
-                'whatsapp_phone' => null, 'whatsapp_phone_hash' => null, 'whatsapp_verified_at' => null, 'whatsapp_prompted_at' => null, 'community_suspended_at' => null,
+                'whatsapp_phone' => null, 'whatsapp_verified_at' => null, 'whatsapp_prompted_at' => null,
+                ...($suspended ? [] : ['whatsapp_phone_hash' => null, 'community_suspended_at' => null]),
             ])->save();
 
             $user->delete();

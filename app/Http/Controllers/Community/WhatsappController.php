@@ -55,7 +55,8 @@ final class WhatsappController extends Controller
         }
         $request->session()->forget('whatsapp_challenge');
 
-        return redirect()->route('community.settings')->with('status', __('community.whatsapp.done'));
+        // Chi è arrivato qui da un commento torna alla conversazione che voleva raggiungere.
+        return redirect()->intended(route('community.settings'))->with('status', __('community.whatsapp.done'));
     }
 
     public function revoke(Request $request, WhatsappVerification $verification): JsonResponse|RedirectResponse

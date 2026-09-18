@@ -14,6 +14,7 @@ use App\Enums\WhatsappChallengeStatus;
 use App\Filament\Admin\Resources\Users\Pages\ListUsers;
 use App\Models\CommunityComment;
 use App\Models\CommunityPost;
+use App\Models\Device;
 use App\Models\Page;
 use App\Models\SavedEvent;
 use App\Models\User;
@@ -38,6 +39,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
@@ -579,7 +581,7 @@ it('49 marks personalized responses no-store and indexes only an explicit public
 it('50 email verification sends only the same logged-in user to WhatsApp onboarding', function (): void {
     $unverified = User::factory()->unverified()->create();
     $url = URL::temporarySignedRoute('verification.verify', now()->addHour(), ['id' => $unverified->id, 'hash' => sha1($unverified->email)]);
-    $this->actingAs($this->user)->get($url)->assertRedirect(route('login'));
+    $this->actingAs($this->user)->get($url)->assertRedirect(route('account.profile'))->assertSessionMissing('community_onboarding_user');
     expect($unverified->fresh()->hasVerifiedEmail())->toBeTrue()->and($unverified->fresh()->whatsapp_verified_at)->toBeNull();
     $this->actingAs($unverified)->get($url)->assertRedirect(route('community.whatsapp'));
 });
@@ -838,4 +840,123 @@ it('71 refuses to fingerprint numbers or enable verification without a dedicated
 
     expect(fn () => app(WhatsappVerification::class)->fingerprint('+393331234567'))->toThrow(RuntimeException::class)
         ->and(app(KapsoClient::class)->available())->toBeFalse();
+});
+
+it('72 a suspended account keeps its phone fingerprint after deletion so the number cannot sign up again', function (): void {
+    $suspended = communityPerson();
+    $hash = $suspended->whatsapp_phone_hash;
+    $phone = $suspended->whatsapp_phone;
+    $suspended->forceFill(['community_suspended_at' => now()])->save();
+    app(DeleteAccount::class)($suspended);
+
+    $kept = User::withTrashed()->findOrFail($suspended->id);
+    expect($kept->whatsapp_phone_hash)->toBe($hash)->and($kept->community_suspended_at)->not->toBeNull()
+        ->and($kept->whatsapp_phone)->toBeNull()->and($kept->whatsapp_verified_at)->toBeNull()->and($kept->whatsapp_prompted_at)->toBeNull();
+    expect(fn () => app(WhatsappVerification::class)->request($this->user, $phone, '198.51.100.7'))
+        ->toThrow(ValidationException::class, __('community.whatsapp.phone_unavailable'));
+    Http::assertNothingSent();
+
+    $ordinary = communityPerson();
+    app(DeleteAccount::class)($ordinary);
+    $gone = User::withTrashed()->findOrFail($ordinary->id);
+    expect($gone->whatsapp_phone_hash)->toBeNull()->and($gone->community_suspended_at)->toBeNull()->and($gone->whatsapp_phone)->toBeNull();
+});
+
+it('73 a suspended member cannot revoke their own verification while staff still can', function (): void {
+    $suspended = communityPerson();
+    $suspended->forceFill(['community_suspended_at' => now()])->save();
+    communityLogin($suspended);
+    $this->deleteJson('/api/v1/community/whatsapp')->assertForbidden();
+    expect($suspended->fresh()->whatsapp_phone_hash)->not->toBeNull();
+
+    app(WhatsappVerification::class)->revoke($suspended, User::factory()->create());
+    expect($suspended->fresh()->whatsapp_verified_at)->toBeNull()->and($suspended->fresh()->whatsapp_phone_hash)->toBeNull();
+});
+
+it('74 the retention sentence reaches existing privacy pages once and new installations already have it', function (): void {
+    $sentence = "conserviamo soltanto l'impronta crittografica del numero WhatsApp";
+    $page = Page::factory()->create(['slug' => 'privacy', 'body' => "Testo scritto dalla redazione.\n\n## Community e verifica WhatsApp\n\nExport e cancellazione dell'account comprendono i dati social e di verifica; i registri amministrativi conservano solo gli elementi necessari alla sicurezza e alla moderazione, senza codici OTP né copie dei testi ritirati.\n\n## Altro\n\nCoda."]);
+    $migration = require database_path('migrations/2026_09_18_120000_community_privacy_retention.php');
+    $migration->up();
+    $migration->up();
+    $body = $page->fresh()->body;
+    expect(substr_count($body, $sentence))->toBe(1)
+        ->and(strpos($body, $sentence))->toBeGreaterThan(strpos($body, 'copie dei testi ritirati.'))->toBeLessThan(strpos($body, '## Altro'))
+        ->and($body)->toContain('Testo scritto dalla redazione.');
+
+    $page->delete();
+    (new PageSeeder)->run();
+    $migration->up();
+    expect(substr_count((string) Page::where('slug', 'privacy')->value('body'), $sentence))->toBe(1)
+        ->and(__('community.privacy_notice'))->toContain($sentence);
+});
+
+it('75 the community migration leaves unconfirmed accounts unconfirmed', function (): void {
+    $unconfirmed = User::factory()->unverified()->create();
+    // Lo schema è già migrato: si osserva solo cosa farebbe la migrazione ai dati.
+    Schema::spy();
+    (require database_path('migrations/2026_09_18_100000_create_community.php'))->up();
+
+    expect($unconfirmed->fresh()->email_verified_at)->toBeNull();
+});
+
+it('76 unconfirmed accounts can switch off channels and review preferences but not add new channels', function (): void {
+    $unconfirmed = User::factory()->unverified()->create();
+    $device = Device::factory()->create(['user_id' => $unconfirmed->id]);
+    Sanctum::actingAs($unconfirmed);
+    $this->getJson('/api/v1/me/devices')->assertOk();
+    $this->getJson('/api/v1/me/notification-preferences')->assertOk();
+    $this->patchJson('/api/v1/me/notification-preferences', ['daily_digest' => false])->assertOk();
+    $this->getJson('/api/v1/me/calendar/google')->assertOk();
+    $this->deleteJson('/api/v1/me/devices/'.$device->id)->assertOk();
+    expect($device->fresh()->revoked_at)->not->toBeNull();
+    $this->postJson('/api/v1/me/devices', ['platform' => 'web', 'endpoint' => 'https://push.example/nuovo'])
+        ->assertForbidden()->assertJsonPath('error.code', 'EMAIL_VERIFICATION_REQUIRED');
+    $this->postJson('/api/v1/me/calendar/google/manage', [])->assertForbidden()->assertJsonPath('error.code', 'EMAIL_VERIFICATION_REQUIRED');
+
+    $this->actingAs($unconfirmed, 'web');
+    $this->deleteJson(route('account.push.destroy'))->assertOk();
+    $this->get(route('account.notifications.interests'))->assertOk();
+    $this->delete(route('google-calendar.disconnect'))->assertRedirect(route('google-calendar.index'));
+    $this->post(route('google-calendar.connect'))->assertRedirect(route('verification.notice'));
+});
+
+it('77 email confirmation onboards only the confirmed account and honours the destination without community', function (): void {
+    $unverified = User::factory()->unverified()->create();
+    $url = URL::temporarySignedRoute('verification.verify', now()->addHour(), ['id' => $unverified->id, 'hash' => sha1($unverified->email)]);
+    $this->get($url)->assertRedirect(route('login'))->assertSessionHas('community_onboarding_user', $unverified->id);
+
+    $this->actingAs($unverified)->get($url)->assertRedirect(route('community.whatsapp'))->assertSessionHas('status', __('account.verify.done'));
+
+    config(['community.enabled' => false]);
+    $this->actingAs($unverified)->withSession(['url.intended' => url('/eventi')])->get($url)->assertRedirect(url('/eventi'));
+
+    $other = User::factory()->create();
+    $this->actingAs($other)->withSession([])->get($url)->assertRedirect(route('account.profile'))
+        ->assertSessionHas('status', __('account.verify.confirmed'));
+});
+
+it('78 confirming WhatsApp on the website returns to the page that asked for it', function (): void {
+    $challenge = communityChallenge($this->user);
+    $target = url('/bacheca/post/1#commenti');
+    $this->actingAs($this->user)->withSession(['url.intended' => $target])
+        ->post(route('community.whatsapp.confirm'), ['challenge_id' => $challenge->id, 'code' => '123456'])
+        ->assertRedirect($target)->assertSessionHas('status', __('community.whatsapp.done'));
+
+    $other = User::factory()->create();
+    $second = communityChallenge($other, ['phone' => '+393339876543', 'phone_hash' => app(WhatsappVerification::class)->fingerprint('+393339876543')]);
+    $this->actingAs($other)->post(route('community.whatsapp.confirm'), ['challenge_id' => $second->id, 'code' => '123456'])
+        ->assertRedirect(route('community.settings'));
+});
+
+it('79 each community action has its own rate limit shared between website and API', function (): void {
+    communityLogin($this->user);
+    foreach (range(1, 5) as $i) {
+        $this->postJson('/api/v1/community/people/'.communityPerson()->id.'/follow')->assertSuccessful();
+    }
+    $this->postJson('/api/v1/community/whatsapp', ['phone' => '+393331234567'])->assertOk();
+    foreach (range(2, 5) as $i) {
+        $this->postJson('/api/v1/community/whatsapp', ['phone' => '+393331234567'])->assertStatus(422);
+    }
+    $this->actingAs($this->user, 'web')->post(route('community.whatsapp.send'), ['phone' => '+393331234567'])->assertTooManyRequests();
 });
