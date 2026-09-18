@@ -671,3 +671,37 @@ it('57 new installations disclose optional WhatsApp processing and private defau
         ->toContain('I salvataggi nascono privati.')->toContain('trenta giorni')
         ->not->toContain('sesso, numero di telefono')->not->toContain("Non c'è un trasferimento");
 });
+
+it('58 Android one tap uses only the configured template and preserves the hashed OTP challenge', function (): void {
+    config(['community.android_template' => 'approved_android_template']);
+    communityLogin($this->user);
+    $this->getJson('/api/v1/community/whatsapp')->assertOk()->assertJsonPath('data.autofill_available', true);
+    $response = $this->postJson('/api/v1/community/whatsapp', ['phone' => '+393331234567', 'delivery' => 'one_tap', 'template' => 'attacker_template'])->assertOk();
+    $challenge = WhatsappChallenge::findOrFail($response->json('data.challenge_id'));
+    Http::assertSent(fn ($request) => $request['template']['name'] === 'approved_android_template'
+        && Hash::check($request['template']['components'][0]['parameters'][0]['text'], $challenge->code_hash));
+});
+
+it('59 one tap falls back to copy code when the Android template is not configured', function (): void {
+    config(['community.android_template' => '']);
+    communityLogin($this->user);
+    $this->getJson('/api/v1/community/whatsapp')->assertOk()->assertJsonPath('data.autofill_available', false);
+    $this->postJson('/api/v1/community/whatsapp', ['phone' => '+393331234567', 'delivery' => 'one_tap'])->assertOk();
+    Http::assertSent(fn ($request) => $request['template']['name'] === config('community.template'));
+});
+
+it('60 enabling autofill does not change web or older client delivery', function (): void {
+    config(['community.android_template' => 'approved_android_template']);
+    communityLogin($this->user);
+    $this->postJson('/api/v1/community/whatsapp', ['phone' => '+393331234567'])->assertOk();
+    Http::assertSent(fn ($request) => $request['template']['name'] === config('community.template'));
+});
+
+it('61 unknown autofill delivery and unconfirmed accounts cannot trigger provider calls', function (): void {
+    communityLogin($this->user);
+    $this->postJson('/api/v1/community/whatsapp', ['phone' => '+393331234567', 'delivery' => 'custom_template'])->assertUnprocessable();
+    $this->user->forceFill(['email_verified_at' => null])->save();
+    communityLogin($this->user->fresh());
+    $this->postJson('/api/v1/community/whatsapp', ['phone' => '+393331234567', 'delivery' => 'one_tap'])->assertForbidden();
+    Http::assertNothingSent();
+});

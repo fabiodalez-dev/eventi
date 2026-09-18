@@ -19,7 +19,7 @@ internal class CommunityApi(private val api: ApiClient, private val token: Strin
     suspend fun profile(body: JsonObject, avatar: android.net.Uri?, context: android.content.Context): JsonObject {
         if (avatar == null) return change("profile", body)
         return withContext(Dispatchers.IO) {
-            val bytes = context.contentResolver.openInputStream(avatar)?.use { it.readNBytes(2 * 1024 * 1024 + 1) }
+            val bytes = context.contentResolver.openInputStream(avatar)?.use { it.readAvatarBytes() }
                 ?: error(context.getString(it.fabiodalez.incitta.R.string.community_photo_error))
             require(bytes.size <= 2 * 1024 * 1024) { context.getString(it.fabiodalez.incitta.R.string.community_photo_error) }
             val multipart = okhttp3.MultipartBody.Builder().setType(okhttp3.MultipartBody.FORM)
@@ -53,6 +53,22 @@ internal class CommunityApi(private val api: ApiClient, private val token: Strin
     suspend fun readNotifications(): JsonObject = api.post("me/notifications/read-all", buildJsonObject {}, requireNotNull(token))
     suspend fun refreshUser(): User = api.get<ApiEnvelope<User>>("me", requireNotNull(token)).data
     suspend fun resendEmail(): JsonObject = api.post("auth/verification/resend", buildJsonObject {}, requireNotNull(token))
+}
+
+/** Read at most the upload limit plus one sentinel byte, including on Android 8. */
+internal fun java.io.InputStream.readAvatarBytes(): ByteArray {
+    val bytes = ByteArray(2 * 1024 * 1024 + 1)
+    var offset = 0
+    while (offset < bytes.size) {
+        val count = read(bytes, offset, bytes.size - offset)
+        if (count < 0) break
+        if (count == 0) {
+            val next = read()
+            if (next < 0) break
+            bytes[offset++] = next.toByte()
+        } else offset += count
+    }
+    return bytes.copyOf(offset)
 }
 
 internal fun JsonObject.text(key: String, fallback: String = ""): String = (get(key) as? JsonPrimitive)?.contentOrNull ?: fallback

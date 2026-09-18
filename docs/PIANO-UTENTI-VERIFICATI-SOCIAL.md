@@ -25,13 +25,29 @@ OTP crittografico a sei cifre, hash del codice, telefono cifrato e fingerprint H
 
 Foto decodificate e ricodificate JPEG, SVG escluso, limite 2 MB/4096 px, storage privato e accesso autorizzato a ogni richiesta. Risposte personali `no-store`, avatar Android senza cache persistente. Export e cancellazione includono dati social.
 
-**57 nuovi test** di sicurezza/comportamento in `tests/Feature/Community/CommunitySecurityTest.php`: i cinquanta richiesti più sette su avatar, retention, backend e informativa privacy. Il rapporto definitivo del rilascio riporterà gli esiti dopo l'integrazione con gli aggiornamenti del server.
+**61 nuovi test** di sicurezza/comportamento in `tests/Feature/Community/CommunitySecurityTest.php`: i cinquanta richiesti più undici su avatar, retention, backend, informativa privacy e selezione sicura del template Android. Tutti superati: 267 asserzioni. La regressione PHP completa integrata precedente ha superato 2.632 test / 11.264 asserzioni; i successivi cambiamenti sono coperti dalla suite mirata e dalla CI del rilascio.
+
+Android: otto nuovi test JVM su sessione, nonce, formato e scadenza; dodici test strumentali con il parser SDK e Android Keystore reali; tre prove Compose per compilazione senza invio automatico, isolamento della challenge e inserimento manuale. Eseguiti sull'emulatore Android 15 insieme alle tre regressioni SafeScreens: **18/18 superati**. I test non inviano messaggi a numeri reali. Il primo controllo CI aveva individuato un parametro mancante nel test ProfileScreen, corretto e ricompilato.
+
+Il lint della release ha individuato e corretto l'uso di `InputStream.readNBytes` non disponibile sotto API 33: lettura avatar limitata a 2 MB più un byte sentinella, verificata con tre test JVM aggiuntivi (stream illimitato, soglia esatta, letture parziali). Corretti anche i messaggi Compose per reagire alla configurazione linguistica. Suite JVM complessiva: 87 superati, un test preesistente ignorato, zero errori; lintRelease senza errori. APK 1.14.0 (36).
 
 ## Attivazione esterna e dominio
 
 Il proprietario ha completato la verifica dell'attività Meta il 18 settembre 2026. Portfolio verificato, account WhatsApp approvato e limite di messaggistica pari a 2.000. Creato e verificato tramite API Kapso il template italiano `incitta_verifica_whatsapp`, ID `1106275741742965`, stato **APPROVED**, categoria AUTHENTICATION, pulsante COPY_CODE e durata cinque minuti. Il precedente rifiuto Meta 10 / 2388185 è risolto. Credenziali esclusivamente nell'ambiente server; l'attivazione usa `WHATSAPP_VERIFICATION_ENABLED=true`.
 
 `fabiodalez.it` aggiunto ai domini autorizzati del portfolio Meta. L'autorizzazione del dominio e la verifica dell'attività restano distinte dalla verifica DNS della proprietà. Dati e documenti dell'attività sono stati completati dal proprietario.
+
+La verifica separata della proprietà di `fabiodalez.it` è stata avviata, ma non è confermata: Chrome si è disconnesso durante il passaggio. Non presentarla come completata. Il progetto Kapso Eventi è stato escluso dall'uso dei messaggi per miglioramento/addestramento modelli attraverso l'opzione dedicata, salvata e verificata nel pannello.
+
+### Autocompilazione WhatsApp su Android
+
+Integrato l'SDK ufficiale `com.whatsapp.otp:whatsapp-otp-android-sdk:1.0.0`. Prima dell'invio l'app verifica il supporto di WhatsApp/WhatsApp Business e salva un nonce UUID cifrato, legato alla sessione e valido cinque minuti. L'Activity ricevente accetta solo azione, nonce e codice a sei cifre corrispondenti; il codice rimane in memoria, viene associato alla challenge del server e consumato una sola volta. Logout, cambio sessione e reinvio lo invalidano. L'utente tocca il pulsante WhatsApp, trova il campo compilato e conferma nell'app. Nessun accesso alle notifiche di altre app o agli SMS.
+
+Il template italiano `incitta_verifica_android` (ID `1756743655374332`) è **APPROVED**, AUTHENTICATION ONE_TAP, durata cinque minuti; configurato tramite `KAPSO_ANDROID_AUTH_TEMPLATE_NAME` negli ambienti locale e remoto. Le richieste senza `delivery=one_tap`, i client precedenti e i dispositivi senza supporto continuano a usare COPY_CODE. L'assenza del template Android disabilita l'autocompilazione senza impedire la verifica manuale.
+
+I `supported_apps` attuali corrispondono alla firma storica degli APK locali: `it.fabiodalez.incitta` → `Z5ELh4mhkZY`, `it.fabiodalez.incitta.debug` → `PUFKVFAGpse`. Sono hash pubblici, non credenziali. Per la distribuzione Google Play serve aggiungere l'hash del **certificato App signing di Play**, distinto dal certificato di upload. La sessione Google disponibile in Chrome non dà accesso all'account Play del progetto; nessuna chiave o identità alternativa è stata inventata. Senza questa configurazione la versione firmata da Play conserva l'alternativa Copia codice. Nessun caricamento su Play eseguito.
+
+Calcolo dell'hash secondo il [campione ufficiale WhatsApp](https://github.com/WhatsApp/WhatsApp-OTP-Sample-App): SHA-256 della stringa UTF-8 `package_name + " " + certificato_DER_in_esadecimale_minuscolo`, primi nove byte, Base64 senza padding, primi undici caratteri. Non usare l'impronta SHA-256 del solo certificato. Resta da provare la consegna reale e il passaggio da WhatsApp su un telefono autorizzato; emulatore e mock HTTP non attestano quel passaggio esterno.
 
 Memoria permanente del cambio dominio: [DOMINIO-DEFINITIVO.md](DOMINIO-DEFINITIVO.md), richiamato dalle convenzioni vincolanti. Include Meta, Kapso, OAuth, email, Android, push, mappe, pagamenti e deployment.
 

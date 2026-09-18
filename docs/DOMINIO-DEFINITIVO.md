@@ -10,7 +10,7 @@ La migrazione riguarda tutto il sistema, incluse le integrazioni aggiunte dopo q
 - [ ] Kapso/WhatsApp: profilo business e website, eventuali webhook e firme, URL dei template con link. Il template OTP copy-code non contiene URL: numero e credenziali restano validi se resta lo stesso WABA.
 - [ ] Google Calendar: origini autorizzate e callback OAuth del nuovo dominio; aggiornare URL nelle schermate consenso.
 - [ ] Email: mittente, dominio SPF/DKIM/DMARC, link di conferma, recupero password e magic link; mantenere raggiungibili i vecchi link firmati fino a scadenza.
-- [ ] Android: API_BASE_URL, manifest intent-filter, assetlinks.json, impronte SHA256 di debug/release dove previste, deep link notifiche e pagamenti; ricompilare APK/AAB.
+- [ ] Android: API_BASE_URL, manifest intent-filter, assetlinks.json, impronte SHA256 di debug/release dove previste, deep link notifiche e pagamenti; ricompilare APK/AAB. Per WhatsApp ONE_TAP verificare anche package e hash di firma a 11 caratteri nei `supported_apps` del template: il solo dominio non li cambia, una nuova applicationId o firma sì. Usare il certificato effettivo della distribuzione (App signing di Play per Play, non la chiave di upload); conservare Copia codice come alternativa.
 - [ ] Web push: service worker, scope, VAPID e sottoscrizioni; spiegare che le sottoscrizioni sono per origine e richiedono una nuova adesione.
 - [ ] reCAPTCHA/Turnstile se attivati, Maps/geocoding e ogni API con referrer/host consentiti.
 - [ ] Webhook prenotazioni/pagamenti e URL di ritorno, Stripe o altri servizi eventualmente configurati.

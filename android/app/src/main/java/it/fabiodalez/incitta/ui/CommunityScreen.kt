@@ -26,6 +26,8 @@ import java.net.URLEncoder
 internal fun CommunityScreen(session: Session?, padding: PaddingValues, savedIds: Set<Long>, initial: String = "feed",
     onBack: () -> Unit, onLogin: () -> Unit, onOpen: (Occurrence) -> Unit, onSave: (Long) -> Unit, onProfileSaved: () -> Unit) {
     val context = LocalContext.current
+    val savedMessage = stringResource(R.string.community_saved)
+    val errorMessage = stringResource(R.string.community_error)
     val api = remember(session?.token) { CommunityApi(ApiClient(LocalStore(context).installationId), session?.token) }
     val scope = rememberCoroutineScope()
     var user by remember(session?.token) { mutableStateOf(session?.user) }
@@ -47,19 +49,23 @@ internal fun CommunityScreen(session: Session?, padding: PaddingValues, savedIds
     var notificationCursor by remember { mutableStateOf<String?>(null) }
     var report by remember { mutableStateOf<Pair<String, Long>?>(null) }
     var reportNote by remember { mutableStateOf("") }
+    val whatsappCode by it.fabiodalez.incitta.community.WhatsappAutofill.received.collectAsState()
     fun navigate(next: String) { error = null; status = null; stack = stack + next }
     fun back() { if (stack.size > 1) stack = stack.dropLast(1) else onBack() }
     fun mutate(action: suspend () -> Unit) {
         if (busy) return
         scope.launch {
             busy = true; error = null; status = null
-            try { action(); revision++; status = context.getString(R.string.community_saved) }
+            try { action(); revision++; status = savedMessage }
             catch (e: CancellationException) { throw e }
-            catch (e: Exception) { error = e.message ?: context.getString(R.string.community_error) }
+            catch (e: Exception) { error = e.message ?: errorMessage }
             finally { busy = false }
         }
     }
     BackHandler { back() }
+    LaunchedEffect(whatsappCode) {
+        if (session != null && whatsappCode?.request?.validFor(session.token, System.currentTimeMillis()) == true && route != "whatsapp") navigate("whatsapp")
+    }
     LaunchedEffect(session?.token, revision) {
         if (session != null) try { user = api.refreshUser() } catch (e: CancellationException) { throw e } catch (_: Exception) { }
     }
@@ -80,7 +86,7 @@ internal fun CommunityScreen(session: Session?, padding: PaddingValues, savedIds
                 envelope = buildJsonObject {}
             } else envelope = if (route == "inbox") api.notifications(notificationCursor) else api.get(path)
         } catch (e: CancellationException) { throw e }
-        catch (e: Exception) { error = e.message ?: context.getString(R.string.community_error) }
+        catch (e: Exception) { error = e.message ?: errorMessage }
         finally { loading = false }
     }
     val data = envelope.obj("data")
@@ -171,7 +177,20 @@ internal fun CommunityScreen(session: Session?, padding: PaddingValues, savedIds
                 } else { Text(stringResource(R.string.community_verify_required), color = Muted); Button(onClick = { if(session == null) onLogin() else navigate(if(user?.whatsappVerified == true) "settings" else "whatsapp") }) { Text(stringResource(R.string.community_whatsapp)) } }
             }
             route == "whatsapp" -> Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                CommunityWhatsapp(data, busy, { path, body, method -> mutate { api.change(path, body, method); if(path.endsWith("confirm")) { onProfileSaved(); navigate("settings") } } }, { navigate("settings") })
+                CommunityWhatsapp(data, busy, session?.token, { path, body, method -> mutate {
+                    val handshake = if (path == "whatsapp" && method == "POST" && data.flag("autofill_available") && session != null)
+                        it.fabiodalez.incitta.community.WhatsappAutofill.begin(context, session.token) else null
+                    val payload = if (handshake == null) body else buildJsonObject { body.forEach { (key, value) -> put(key, value) }; put("delivery", "one_tap") }
+                    try {
+                        val result = api.change(path, payload, method)
+                        if (handshake != null && session != null) it.fabiodalez.incitta.community.WhatsappAutofill.bind(context, handshake, session.token, result.obj("data").text("challenge_id"))
+                        if(path.endsWith("confirm")) { it.fabiodalez.incitta.community.WhatsappAutofill.clear(context); onProfileSaved(); navigate("settings") }
+                        if(method == "DELETE") it.fabiodalez.incitta.community.WhatsappAutofill.clear(context)
+                    } catch (e: Exception) {
+                        if (handshake != null) it.fabiodalez.incitta.community.WhatsappAutofill.clear(context)
+                        throw e
+                    }
+                } }, { navigate("settings") })
                 if(!data.flag("verified")) TextButton(enabled = !busy, onClick = { mutate { api.change("whatsapp/skip"); onProfileSaved(); navigate("feed") } }) { Text(stringResource(R.string.community_later)) }
             }
             route == "settings" -> {

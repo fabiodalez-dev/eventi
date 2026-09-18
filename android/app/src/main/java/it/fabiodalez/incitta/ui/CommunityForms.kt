@@ -14,10 +14,16 @@ import it.fabiodalez.incitta.data.*
 import kotlinx.serialization.json.*
 
 @Composable
-internal fun CommunityWhatsapp(data: JsonObject, busy: Boolean, change: (String, JsonObject, String) -> Unit, onProfile: () -> Unit) {
+internal fun CommunityWhatsapp(data: JsonObject, busy: Boolean, token: String?, change: (String, JsonObject, String) -> Unit, onProfile: () -> Unit) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val incoming by it.fabiodalez.incitta.community.WhatsappAutofill.received.collectAsState()
     var phone by remember { mutableStateOf("") }
-    var code by remember { mutableStateOf("") }
+    var code by remember(data.text("challenge_id")) { mutableStateOf("") }
+    var autofilled by remember(data.text("challenge_id")) { mutableStateOf(false) }
     var revoke by remember { mutableStateOf(false) }
+    LaunchedEffect(incoming, data.text("challenge_id")) {
+        if (token != null) it.fabiodalez.incitta.community.WhatsappAutofill.take(context, token, data.text("challenge_id"))?.let { code = it; autofilled = true }
+    }
     Text(stringResource(R.string.community_whatsapp), style = MaterialTheme.typography.titleLarge)
     Text(stringResource(R.string.community_wa_lead), color = Muted)
     if(data.flag("verified")) {
@@ -28,9 +34,11 @@ internal fun CommunityWhatsapp(data: JsonObject, busy: Boolean, change: (String,
     else {
         if(data.text("challenge_id").isNotBlank()) {
             Text(stringResource(R.string.community_wa_sent), color = Acid)
+            if(autofilled) Text(stringResource(R.string.community_wa_autofilled), color = Acid)
             OutlinedTextField(code, { code = it.filter(Char::isDigit).take(6) }, label = { Text(stringResource(R.string.community_wa_code)) }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword), singleLine = true, modifier = Modifier.fillMaxWidth())
             Button(enabled = !busy && code.length == 6, onClick = { change("whatsapp/confirm", buildJsonObject { put("challenge_id", data.text("challenge_id")); put("code", code) }, "POST"); code = "" }) { Text(stringResource(R.string.community_wa_confirm)) }
         }
+        if(data.flag("autofill_available")) Text(stringResource(R.string.community_wa_autofill_help), color = Muted, style = MaterialTheme.typography.bodySmall)
         OutlinedTextField(phone, { phone = it.take(30) }, label = { Text(stringResource(R.string.community_wa_phone)) }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone), singleLine = true, modifier = Modifier.fillMaxWidth())
         Button(enabled = !busy && phone.startsWith('+'), onClick = { change("whatsapp", buildJsonObject { put("phone", phone) }, "POST") }) { Text(stringResource(R.string.community_wa_send)) }
     }

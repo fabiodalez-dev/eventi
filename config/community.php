@@ -7,6 +7,7 @@ return [
     'phone_number_id' => env('KAPSO_PHONE_NUMBER_ID', ''),
     'api_version' => env('KAPSO_API_VERSION', 'v24.0'),
     'template' => env('KAPSO_AUTH_TEMPLATE_NAME', 'incitta_verifica_whatsapp'),
+    'android_template' => env('KAPSO_ANDROID_AUTH_TEMPLATE_NAME', ''),
     'language' => env('KAPSO_AUTH_TEMPLATE_LANGUAGE', 'it'),
     'phone_hash_key' => env('WHATSAPP_PHONE_HASH_KEY', env('APP_KEY', '')),
     'code_minutes' => 5,

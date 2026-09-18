@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Community;
 
 use App\DTOs\PageMeta;
 use App\Enums\WhatsappChallengeStatus;
+use App\Enums\WhatsappDelivery;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Community\WhatsappConfirmRequest;
 use App\Http\Requests\Community\WhatsappRequest;
@@ -22,7 +23,7 @@ final class WhatsappController extends Controller
 {
     public function show(Request $request, KapsoClient $client): View|JsonResponse
     {
-        $data = ['available' => $client->available(), 'verified' => $request->user()->isWhatsappVerified(),
+        $data = ['available' => $client->available(), 'autofill_available' => $client->autofillAvailable(), 'verified' => $request->user()->isWhatsappVerified(),
             'challenge_id' => WhatsappChallenge::query()->where('user_id', $request->user()->id)->where('status', WhatsappChallengeStatus::Sent)->whereNull('consumed_at')->where('expires_at', '>', now())->orderByDesc('created_at')->value('id')];
         if ($request->expectsJson()) {
             return ApiResponse::item($data);
@@ -33,7 +34,7 @@ final class WhatsappController extends Controller
 
     public function send(WhatsappRequest $request, WhatsappVerification $verification): JsonResponse|RedirectResponse
     {
-        $challenge = $verification->request($request->user(), $request->string('phone')->toString(), $request->ip() ?? 'unknown');
+        $challenge = $verification->request($request->user(), $request->string('phone')->toString(), $request->ip() ?? 'unknown', $request->enum('delivery', WhatsappDelivery::class) ?? WhatsappDelivery::CopyCode);
         if ($request->expectsJson()) {
             return ApiResponse::item(['challenge_id' => $challenge->id, 'expires_at' => $challenge->expires_at->toIso8601String()]);
         }

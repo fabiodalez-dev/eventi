@@ -62,8 +62,15 @@ fun InCittaApp(viewModel: MainViewModel) {
         var organizerSlug by remember { mutableStateOf<String?>(null) }
         var communityRoute by remember { mutableStateOf<String?>(null) }
         var tonightOpen by remember { mutableStateOf(false) }
+        val whatsappCode by it.fabiodalez.incitta.community.WhatsappAutofill.received.collectAsStateWithLifecycle()
         val tonightState = androidx.compose.runtime.saveable.rememberSaveableStateHolder()
         LaunchedEffect(state.tab) { tonightOpen = false; communityRoute = null }
+        LaunchedEffect(whatsappCode, state.session?.token) {
+            val token = state.session?.token
+            if (token != null && whatsappCode?.request?.validFor(token, System.currentTimeMillis()) == true) {
+                tonightOpen = false; organizerSlug = null; communityRoute = "whatsapp"
+            }
+        }
         var promptedCommunity by androidx.compose.runtime.saveable.rememberSaveable(state.session?.user?.id) { mutableStateOf(false) }
         LaunchedEffect(state.session?.user?.emailVerified, state.session?.user?.whatsappPrompted) {
             val person = state.session?.user

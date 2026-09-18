@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Community;
 
+use App\Enums\WhatsappDelivery;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 
@@ -15,7 +16,12 @@ final class KapsoClient
             && filled(config('community.phone_number_id')) && filled(config('community.template'));
     }
 
-    public function send(string $phone, #[\SensitiveParameter] string $code): bool
+    public function autofillAvailable(): bool
+    {
+        return $this->available() && filled(config('community.android_template'));
+    }
+
+    public function send(string $phone, #[\SensitiveParameter] string $code, WhatsappDelivery $delivery = WhatsappDelivery::CopyCode): bool
     {
         if (! $this->available()) {
             return false;
@@ -25,7 +31,7 @@ final class KapsoClient
                 ->acceptJson()->connectTimeout(3)->timeout(8)
                 ->post('https://api.kapso.ai/meta/whatsapp/'.config('community.api_version').'/'.config('community.phone_number_id').'/messages', [
                     'messaging_product' => 'whatsapp', 'to' => ltrim($phone, '+'), 'type' => 'template',
-                    'template' => ['name' => config('community.template'), 'language' => ['code' => config('community.language')],
+                    'template' => ['name' => $delivery === WhatsappDelivery::OneTap && $this->autofillAvailable() ? config('community.android_template') : config('community.template'), 'language' => ['code' => config('community.language')],
                         'components' => [
                             ['type' => 'body', 'parameters' => [['type' => 'text', 'text' => $code]]],
                             ['type' => 'button', 'sub_type' => 'otp', 'index' => '0', 'parameters' => [['type' => 'text', 'text' => $code]]],

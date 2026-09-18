@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Community;
 
 use App\Enums\WhatsappChallengeStatus;
+use App\Enums\WhatsappDelivery;
 use App\Models\User;
 use App\Models\WhatsappChallenge;
 use Illuminate\Database\QueryException;
@@ -20,7 +21,7 @@ final class WhatsappVerification
 {
     public function __construct(private readonly KapsoClient $client) {}
 
-    public function request(User $user, string $input, string $ip): WhatsappChallenge
+    public function request(User $user, #[\SensitiveParameter] string $input, string $ip, WhatsappDelivery $delivery = WhatsappDelivery::CopyCode): WhatsappChallenge
     {
         abort_unless($user->hasVerifiedEmail(), 403, __('community.email_required'));
         if (! $this->client->available()) {
@@ -60,7 +61,7 @@ final class WhatsappVerification
                 ]);
             });
         });
-        $sent = $this->client->send($phone, $code);
+        $sent = $this->client->send($phone, $code, $delivery);
         $challenge->update(['status' => $sent ? WhatsappChallengeStatus::Sent : WhatsappChallengeStatus::Failed]);
         if (! $sent) {
             throw ValidationException::withMessages(['phone' => __('community.whatsapp.send_failed')]);
