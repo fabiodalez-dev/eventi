@@ -87,9 +87,9 @@ internal fun CommunityProfileEditor(data: JsonObject, busy: Boolean, save: (Json
 
 @Composable
 internal fun CommunityPublicationEditor(data: JsonObject, verified: Boolean, busy: Boolean, verify: () -> Unit, save: (JsonObject) -> Unit) {
-    var public by remember(data) { mutableStateOf(data.text("visibility") == "public") }
-    var body by remember(data) { mutableStateOf(data.text("body")) }
-    var intent by remember(data) { mutableStateOf(data.text("intent", "recommend")) }
+    var public by rememberSaveable(data) { mutableStateOf(data.text("visibility") == "public") }
+    var body by rememberSaveable(data) { mutableStateOf(data.text("body")) }
+    var intent by rememberSaveable(data) { mutableStateOf(data.text("intent", "recommend")) }
     Text(stringResource(R.string.community_save_privacy), style = MaterialTheme.typography.titleLarge)
     Text(stringResource(R.string.community_privacy_help), color = Muted)
     CommunityCheck(stringResource(R.string.community_private_save), !public) { public = false }

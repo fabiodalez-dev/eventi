@@ -249,7 +249,7 @@ internal fun CommunityScreen(session: Session?, padding: PaddingValues, savedIds
                     val item = notification.obj("data")
                     Text(item.text("title"), style = MaterialTheme.typography.titleMedium); Text(item.text("body"), color = Muted)
                     val url = item.text("url")
-                    val native = when { url.contains("/bacheca/post/") -> "post/" + url.substringAfterLast('/').toLongOrNull(); url.endsWith("/persone-che-mi-seguono") -> "followers"; else -> null }
+                    val native = when { url.contains("/bacheca/post/") -> url.substringAfterLast('/').toLongOrNull()?.let { "post/$it" }; url.endsWith("/persone-che-mi-seguono") -> "followers"; else -> null }
                     if (native != null) TextButton(onClick = { navigate(native) }) { Text(stringResource(R.string.community_open)) }
                     HorizontalDivider(color = Rule)
                 }
