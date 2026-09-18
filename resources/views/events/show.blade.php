@@ -442,6 +442,7 @@
                     :thread="$commentThread"
                     :replies-page="$repliesPage"
                     :replies-last-page="$repliesLastPage"
+                    :missing="$commentMissing ?? false"
                 />
             @endif
         </article>

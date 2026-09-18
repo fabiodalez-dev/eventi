@@ -16,6 +16,7 @@ use App\Models\User;
 use App\Notifications\Scheduled\ScheduledMessage;
 use App\Queries\EventCommentQuery;
 use App\Services\Notifications\NotificationDispatcher;
+use App\Support\EventUrl;
 use App\Support\Notifications\PreferenceLinks;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Filament\Facades\Filament;
@@ -122,7 +123,7 @@ it('shows a private moderation placeholder and rejects hidden reactions', functi
     $admin = User::factory()->create();
     $admin->assignRole('admin');
     app(ModerateComment::class)->nascondi($this->comment, $admin, 1, 'Nota');
-    $this->get($this->comment->permalink())->assertNotFound();
+    $this->get($this->comment->permalink())->assertOk()->assertDontSee('Commento di review')->assertSee(__('comments.unavailable'));
     $this->actingAs($this->author)->get($this->comment->permalink())->assertOk()->assertSee(__('comments.hidden_notice'))->assertDontSee('Commento di review');
     $this->actingAs($this->other)->postJson(route('events.comments.react', ['slug' => $this->event->slug, 'comment' => $this->comment->id]), ['type' => 'like'])->assertNotFound();
 });
@@ -228,8 +229,76 @@ it('apre la scheda quando i parametri di pagina sono numeri buoni', function ():
     $this->get(route('events.show', ['slug' => $this->event->slug]).'?commenti=1')->assertOk();
 });
 
-it('risponde 404 a un commento che non esiste', function (): void {
-    $this->get(route('events.show', ['slug' => $this->event->slug]).'?commento=999999')->assertNotFound();
+it('mostra la scheda con un avviso quando il commento del link non esiste', function (): void {
+    /*
+     * Un commento sparito non fa sparire l'evento: la scheda resta, con
+     * l'elenco normale e un avviso al posto della conversazione.
+     */
+    $this->get(route('events.show', ['slug' => $this->event->slug]).'?commento=999999')
+        ->assertOk()
+        ->assertSee(__('comments.unavailable'))
+        ->assertSee('id="commento-999999"', false)
+        ->assertSee('Commento di review');
+});
+
+it('non mostra il commento di un altro evento, ma nemmeno un 404', function (): void {
+    $altro = Event::factory()->for($this->city)->published()->create();
+    $estraneo = app(PostComment::class)->handle($altro, $this->other, 'Commento di un altro evento');
+
+    $this->get(route('events.show', ['slug' => $this->event->slug, 'commento' => $estraneo->id]))
+        ->assertOk()
+        ->assertSee(__('comments.unavailable'))
+        ->assertDontSee('Commento di un altro evento')
+        ->assertSee('Commento di review');
+});
+
+it('tiene aperta la scheda sul permalink di un commento cancellato dall’autore', function (): void {
+    $permalink = $this->comment->permalink();
+    $this->actingAs($this->author)
+        ->delete(route('events.comments.destroy', ['slug' => $this->event->slug, 'comment' => $this->comment->id]))
+        ->assertRedirect();
+    expect(EventComment::query()->find($this->comment->id))->toBeNull();
+
+    $this->get($permalink)->assertOk()->assertSee(__('comments.unavailable'));
+});
+
+it('mostra l’avviso anche sulla pagina di una singola data', function (): void {
+    $data = occurrenceAtLocal($this->city, testCategory(), '2026-09-20 21:00');
+
+    $this->get(EventUrl::occurrence($data).'?commento=999999')
+        ->assertOk()
+        ->assertSee(__('comments.unavailable'));
+});
+
+it('apre la scheda sulla propria risposta sotto un capostipite nascosto', function (): void {
+    /*
+     * La risposta è visibile al suo autore, il capostipite nascosto no:
+     * non c'è conversazione da mostrare, ma nemmeno un 404.
+     */
+    $risposta = app(PostComment::class)->handle($this->event, $this->other, 'La mia risposta', $this->comment);
+    $admin = User::factory()->create();
+    $admin->assignRole('admin');
+    app(ModerateComment::class)->nascondi($this->comment, $admin, 1, 'Nota');
+
+    $this->actingAs($this->other)->get($risposta->permalink())
+        ->assertOk()
+        ->assertSee(__('comments.unavailable'))
+        ->assertDontSee('Commento di review');
+});
+
+it('non rompe l’anteprima del proprietario con un parametro di commento storto', function (): void {
+    $s = VenueIsolationScenario::make();
+
+    $this->actingAs($s->ownerA)->get(route('events.preview', $s->draftEventA).'?commento=abc')->assertOk();
+});
+
+it('sulla scheda web non punta la conversazione al commento che non c’è più', function (): void {
+    $elenco = app(EventCommentQuery::class)->listing($this->event, null, 1, 999999, 3, strict: false);
+
+    expect($elenco['commentMissing'])->toBeTrue()
+        ->and($elenco['commentThread'])->toBeNull()
+        ->and($elenco['repliesPage'])->toBe(1)
+        ->and($elenco['commentsTotal'])->toBe(1);
 });
 
 it('dà il conteggio aggiornato dopo una reazione, che è ciò per cui l’accessor conta a richiesta', function (): void {

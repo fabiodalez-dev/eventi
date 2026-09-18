@@ -11,14 +11,36 @@ use Illuminate\Database\Eloquent\Builder;
 
 final class EventCommentQuery
 {
-    /** @return array<string, mixed> */
-    public function listing(Event $event, ?User $user, int $page, ?int $targetId, ?int $replyPage): array
+    /**
+     * `$strict` decide che cosa succede quando il commento chiesto non si
+     * può mostrare: cancellato dall'autore, nascosto da un moderatore, di un
+     * altro evento, o sotto un capostipite che chi guarda non vede.
+     *
+     * L'API resta severa (404): è un contratto con l'app. La scheda web no —
+     * quei link li genera il sito stesso (notifiche, redirect dopo un
+     * commento, link condivisi) e un commento sparito non deve far sparire
+     * l'evento. In quel caso si mostra l'elenco normale con un avviso.
+     *
+     * @return array<string, mixed>
+     */
+    public function listing(Event $event, ?User $user, int $page, ?int $targetId, ?int $replyPage, bool $strict = true): array
     {
         $query = EventComment::query()->where('event_id', $event->id)->visibleTo($user);
-        $target = $targetId === null ? null : (clone $query)->findOrFail($targetId);
+        $target = match (true) {
+            $targetId === null => null,
+            $strict => (clone $query)->findOrFail($targetId),
+            default => (clone $query)->find($targetId),
+        };
+        $missing = $targetId !== null && $target === null;
         $rootId = $target === null ? null : ($target->parent_id ?? $target->id);
+        /* La risposta si vede ma il suo capostipite no (tipicamente la mia
+           risposta sotto un commento nascosto): senza capostipite non c'è
+           conversazione da aprire. */
+        if (! $strict && $target?->parent_id !== null && ! (clone $query)->topLevel()->whereKey($rootId)->exists()) {
+            [$rootId, $target, $missing] = [null, null, true];
+        }
         $explicitReplyPage = $replyPage !== null;
-        $replyPage = max(1, $replyPage ?? 1);
+        $replyPage = $missing ? 1 : max(1, $replyPage ?? 1);
         if ($target?->parent_id !== null && ! $explicitReplyPage) {
             $position = (clone $query)->where('parent_id', $rootId)->where('id', '<=', $target->id)->count();
             $replyPage = max(1, (int) ceil($position / 20));
@@ -34,7 +56,9 @@ final class EventCommentQuery
             ->paginate(10, page: $rootId === null ? max(1, $page) : 1);
         $repliesLastPage = 1;
         if ($rootId !== null) {
-            abort_if($roots->isEmpty(), 404);
+            /* Solo sul percorso severo: su quello tollerante il capostipite
+               è già stato verificato sopra. */
+            abort_if($strict && $roots->isEmpty(), 404);
             $replies = $hydrate((clone $query)->where('parent_id', $rootId))->orderBy('id')
                 ->paginate(20, page: $replyPage);
             $roots->first()->setRelation('replies', $replies->getCollection());
@@ -60,6 +84,7 @@ final class EventCommentQuery
             'commentThread' => $rootId,
             'repliesPage' => $replyPage,
             'repliesLastPage' => $repliesLastPage,
+            'commentMissing' => $missing,
         ];
     }
 }
