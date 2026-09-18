@@ -64,6 +64,9 @@ it('ritrova sul sito esattamente le tre date salvate da anonimo, senza duplicati
 
     $user = User::query()->where('email', 'anonima@example.test')->firstOrFail();
 
+    $this->actingAs($user)->postJson('/salvataggi/unisci', ['occurrence_ids' => $localStorage])->assertForbidden();
+    $user->markEmailAsVerified();
+
     /*
      * La migrazione la chiede il browser subito dopo l'accesso: è la chiamata
      * che lo script fa trovando qualcosa nel `localStorage`.
@@ -94,6 +97,11 @@ it('ritrova le stesse tre date passando dall API', function (): void {
         'password' => 'una-password-molto-lunga',
         'device_name' => 'Telefono',
     ])->assertCreated()->json('data.token');
+
+    $this->withToken($token)->postJson('/api/v1/me/saved/merge', ['occurrence_ids' => [$this->salvate[0]->id]])->assertForbidden();
+    User::query()->where('email', 'anonima-app@example.test')->firstOrFail()->markEmailAsVerified();
+    // The guard must load the changed user as it would on the next real request.
+    auth()->forgetGuards();
 
     $response = $this->withToken($token)
         ->postJson('/api/v1/me/saved/merge', [

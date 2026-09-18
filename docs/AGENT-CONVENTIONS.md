@@ -175,3 +175,9 @@ Chi esegue i test mentre un altro processo lavora deve usare un database proprio
 mysql -h 127.0.0.1 -P 3307 -u root --skip-password -e "CREATE DATABASE IF NOT EXISTS eventi_test_<nome>"
 DB_DATABASE=eventi_test_<nome> ./vendor/bin/pest
 ```
+
+## Dominio definitivo e integrazioni (decisione del proprietario, 18 settembre 2026)
+
+`eventi.fabiodalez.it` e il portfolio Meta con dominio `fabiodalez.it` sono provvisori. Al passaggio al dominio definitivo aggiornare **tutte** le integrazioni legate all'origine, non soltanto `APP_URL`: seguire [DOMINIO-DEFINITIVO.md](DOMINIO-DEFINITIVO.md). Conservare il vecchio dominio per redirect e scadenza dei link firmati. Non rigenerare APP_KEY o WHATSAPP_PHONE_HASH_KEY durante il cambio di dominio.
+
+Il proprietario ha ribadito che questo controllo riguarda **tutto il sistema**, comprese le API già configurate e quelle aggiunte in futuro: verificare per ciascun provider domini consentiti, restrizioni delle chiavi API, callback, webhook, link e applicazioni client. Il cambio dominio non è completato finché ogni integrazione attiva non è stata aggiornata o verificata come indipendente dal dominio.

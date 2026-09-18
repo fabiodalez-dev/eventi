@@ -18,6 +18,9 @@ final class TelescopeServiceProvider extends TelescopeApplicationServiceProvider
 
         Telescope::filter(static fn (IncomingEntry $entry): bool => ! str_contains((string) ($entry->content['uri'] ?? ''), '/il-mio-calendario/google/callback') && ! str_contains((string) ($entry->content['uri'] ?? ''), '/social/meta/')
             && ! str_contains((string) ($entry->content['uri'] ?? $entry->content['url'] ?? ''), 'graph.facebook.com')
+            && ! str_contains((string) ($entry->content['uri'] ?? $entry->content['url'] ?? ''), 'kapso.ai')
+            && ! str_contains((string) ($entry->content['uri'] ?? ''), 'whatsapp')
+            && ! str_contains((string) ($entry->content['uri'] ?? ''), 'verifica-whatsapp')
             && ! str_contains((string) ($entry->content['uri'] ?? $entry->content['url'] ?? ''), 'api.telegram.org') && ($local
             || $entry->isReportableException()
             || $entry->isFailedRequest()
@@ -30,6 +33,7 @@ final class TelescopeServiceProvider extends TelescopeApplicationServiceProvider
            facilmente di quanto sembri. */
         Telescope::hideRequestParameters([
             '_token',
+            'phone',
             'password',
             'password_confirmation',
             'token',
@@ -50,6 +54,7 @@ final class TelescopeServiceProvider extends TelescopeApplicationServiceProvider
         ]);
 
         Telescope::hideRequestHeaders([
+            'x-api-key',
             'authorization',
             'cookie',
             'x-csrf-token',

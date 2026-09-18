@@ -60,6 +60,16 @@ class LocalStore(private val context: Context) {
 
     fun clearMagicVerifier() { prefs.edit { remove("magic_verifier"); remove("magic_requested_at") } }
 
+    internal fun writeWhatsappRequest(request: WhatsappPendingRequest) {
+        prefs.edit(commit = true) { putString("whatsapp_handshake", encrypt(json.encodeToString(request))) }
+    }
+
+    internal fun readWhatsappRequest(): WhatsappPendingRequest? = prefs.getString("whatsapp_handshake", null)?.let {
+        runCatching { json.decodeFromString<WhatsappPendingRequest>(decrypt(it)) }.getOrNull()
+    }
+
+    internal fun clearWhatsappRequest() { prefs.edit(commit = true) { remove("whatsapp_handshake") } }
+
     fun readSession(): Session? {
         val encrypted = prefs.getString(KEY_SESSION, null) ?: return null
         return runCatching {
@@ -71,6 +81,10 @@ class LocalStore(private val context: Context) {
     }
 
     fun writeSession(session: Session) {
+        if (readSession()?.token != session.token) {
+            clearWhatsappRequest()
+            it.fabiodalez.incitta.community.WhatsappAutofill.discard()
+        }
         if (readSession()?.user?.id != session.user.id) {
             cacheOccurrences(emptyList())
             runCatching { it.fabiodalez.incitta.calendar.NativeCalendar.disconnect(context) }
@@ -80,6 +94,8 @@ class LocalStore(private val context: Context) {
     }
 
     fun clearSession() {
+        clearWhatsappRequest()
+        it.fabiodalez.incitta.community.WhatsappAutofill.discard()
         prefs.edit { remove(KEY_SESSION); remove(KEY_OCCURRENCES) }
         runCatching { it.fabiodalez.incitta.calendar.NativeCalendar.disconnect(context) }
         it.fabiodalez.incitta.notifications.PushRegistration.disable(context)
