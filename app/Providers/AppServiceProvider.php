@@ -42,6 +42,7 @@ use App\Observers\TicketTierObserver;
 use App\Observers\VenueObserver;
 use App\Policies\CategoryPolicy;
 use App\Policies\CityPolicy;
+use App\Policies\CommunityCommentPolicy;
 use App\Policies\EventCommentPolicy;
 use App\Policies\EventOccurrencePolicy;
 use App\Policies\EventPolicy;
@@ -475,5 +476,6 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Page::class, PagePolicy::class);
         Gate::policy(Redirect::class, RedirectPolicy::class);
         Gate::policy(EventComment::class, EventCommentPolicy::class);
+        Gate::policy(CommunityComment::class, CommunityCommentPolicy::class);
     }
 }

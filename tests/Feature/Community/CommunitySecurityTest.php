@@ -16,6 +16,7 @@ use App\Models\CommunityComment;
 use App\Models\CommunityPost;
 use App\Models\Device;
 use App\Models\Page;
+use App\Models\Report;
 use App\Models\SavedEvent;
 use App\Models\User;
 use App\Models\UserBlock;
@@ -35,6 +36,7 @@ use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Promise\Create;
 use Illuminate\Http\Client\Factory;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
@@ -1092,4 +1094,96 @@ it('84 community pages run a constant number of queries whatever the page size',
         $comment(communityPerson($i % 2 === 0 ? 'members' : 'private'));
     }
     expect(communityQueryCount(fn () => $this->getJson('/api/v1/community/posts/'.$post->id)->assertOk()->assertJsonCount(30, 'data.comments')))->toBe($few);
+});
+
+it('85 reports reach across blocks in both directions but never what the reporter could not see', function (): void {
+    $blocker = communityPerson();
+    $blocked = communityPerson();
+    $post = communityPost($blocked, $this->city, $this->category);
+    $comment = app(Community::class)->comment($blocked, $post, 'Commento molesto', null);
+    $own = communityPost($blocker, $this->city, $this->category, '2026-09-16 19:00:00');
+    app(Community::class)->block($blocker, $blocked, true);
+    // Il tetto di 5 segnalazioni l'ora ha il suo test (79): qui conta solo chi può segnalare cosa.
+    $this->withoutMiddleware(ThrottleRequests::class);
+    $report = fn (string $type, int $id) => $this->postJson('/api/v1/community/reports', ['type' => $type, 'id' => $id, 'reason' => 'spam']);
+
+    communityLogin($blocker);
+    $report('community_profile', $blocked->communityProfile->id)->assertOk();
+    $report('community_post', $post->id)->assertOk();
+    $report('community_comment', $comment->id)->assertOk();
+    communityLogin($blocked);
+    $report('community_profile', $blocker->communityProfile->id)->assertOk();
+    $report('community_post', $own->id)->assertOk();
+    expect(Report::query()->count())->toBe(5);
+
+    $post->update(['status' => CommunityStatus::Hidden]);
+    communityLogin($blocker);
+    $report('community_post', $post->id)->assertNotFound();
+    $report('community_comment', $comment->id)->assertNotFound();
+    $private = communityPerson('private');
+    $report('community_profile', $private->communityProfile->id)->assertNotFound();
+    expect(Report::query()->count())->toBe(5);
+});
+
+it('86 comment deletion follows one policy for the service and for can_delete', function (): void {
+    $author = communityPerson();
+    $writer = communityPerson();
+    $stranger = communityPerson();
+    $staff = User::factory()->create();
+    Role::findOrCreate('admin', 'web');
+    $staff->assignRole('admin');
+    $post = communityPost($author, $this->city, $this->category);
+    $first = app(Community::class)->comment($writer, $post, 'Primo', null);
+    $second = app(Community::class)->comment($writer, $post, 'Secondo', null);
+    $canDelete = fn () => collect($this->getJson('/api/v1/community/posts/'.$post->id)->assertOk()->json('data.comments'))->pluck('can_delete', 'id')->all();
+
+    communityLogin($stranger);
+    expect($canDelete())->toBe([$first->id => false, $second->id => false]);
+    $this->deleteJson('/api/v1/community/comments/'.$first->id)->assertForbidden();
+    communityLogin($author);
+    expect($canDelete())->toBe([$first->id => true, $second->id => true]);
+    $this->deleteJson('/api/v1/community/comments/'.$first->id)->assertOk();
+    communityLogin($staff);
+    expect($canDelete())->toBe([$second->id => true]);
+    $this->deleteJson('/api/v1/community/comments/'.$second->id)->assertOk();
+    expect(CommunityComment::query()->count())->toBe(0);
+});
+
+it('87 following again within a day does not notify twice while other followers and later follows do', function (): void {
+    $author = communityPerson();
+    $other = User::factory()->create();
+    communityLogin($this->user);
+    $this->postJson('/api/v1/community/people/'.$author->id.'/follow')->assertOk();
+    $this->deleteJson('/api/v1/community/people/'.$author->id.'/follow')->assertOk();
+    $this->postJson('/api/v1/community/people/'.$author->id.'/follow')->assertOk();
+    expect($author->notifications()->count())->toBe(1)
+        ->and($author->notifications()->first()->data['actor_id'])->toBe($this->user->id);
+
+    communityLogin($other);
+    $this->postJson('/api/v1/community/people/'.$author->id.'/follow')->assertOk();
+    expect($author->notifications()->count())->toBe(2);
+
+    $this->travel(25)->hours();
+    communityLogin($this->user);
+    $this->deleteJson('/api/v1/community/people/'.$author->id.'/follow')->assertOk();
+    $this->postJson('/api/v1/community/people/'.$author->id.'/follow')->assertOk();
+    expect($author->notifications()->count())->toBe(3);
+});
+
+it('88 a verified member without a profile is sent to complete it instead of a comment form', function (): void {
+    $post = communityPost(communityPerson(), $this->city, $this->category);
+    $member = communityPerson();
+    $member->communityProfile()->delete();
+    $member = $member->fresh();
+
+    $this->actingAs($member, 'web')->get('/bacheca/post/'.$post->id)->assertOk()
+        ->assertSee(__('community.profile_required'))->assertSee(route('community.settings'))
+        ->assertDontSee('action="'.route('community.comment', $post).'"', false);
+    $this->actingAs($member, 'web')->from('/bacheca/post/'.$post->id)->post(route('community.comment', $post), ['body' => 'Ci sarò'])
+        ->assertRedirect('/bacheca/post/'.$post->id)->assertSessionHasErrors(['body' => __('community.profile_required')]);
+    communityLogin($member);
+    $this->getJson('/api/v1/community/posts/'.$post->id)->assertOk()->assertJsonPath('data.post.can_comment', false);
+    $this->postJson('/api/v1/community/posts/'.$post->id.'/comments', ['body' => 'Ci sarò'])
+        ->assertUnprocessable()->assertJsonPath('error.fields.body.0', __('community.profile_required'));
+    expect(CommunityComment::query()->count())->toBe(0);
 });

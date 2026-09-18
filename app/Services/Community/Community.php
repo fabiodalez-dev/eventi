@@ -6,11 +6,13 @@ namespace App\Services\Community;
 
 use App\Enums\CommunityStatus;
 use App\Enums\ProfileVisibility;
+use App\Enums\ReportStatus;
 use App\Enums\SavedVisibility;
 use App\Enums\VenueStatus;
 use App\Models\CommunityComment;
 use App\Models\CommunityPost;
 use App\Models\CommunityProfile;
+use App\Models\Report;
 use App\Models\SavedEvent;
 use App\Models\User;
 use App\Models\UserBlock;
@@ -19,6 +21,7 @@ use App\Notifications\CommunityNotification;
 use Carbon\CarbonImmutable;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Overtrue\LaravelFollow\Followable;
 
@@ -68,7 +71,12 @@ final class Community
             abort_unless($this->access->profiles($actor)->where('user_id', $recipient->id)->exists(), 404);
             if (! $actor->isFollowing($recipient)) {
                 $actor->follow($recipient);
-                $recipient->notify(new CommunityNotification('follow', route('community.followers')));
+                // Segui, smetti, segui di nuovo: una notifica al giorno per la stessa persona basta.
+                $recent = $recipient->notifications()->where('type', CommunityNotification::class)->where('data->kind', 'follow')
+                    ->where('data->actor_id', $actor->id)->where('created_at', '>=', CarbonImmutable::now()->subDay())->exists();
+                if (! $recent) {
+                    $recipient->notify(new CommunityNotification('follow', route('community.followers'), $actor->id));
+                }
             }
         });
     }
@@ -152,7 +160,10 @@ final class Community
         return DB::transaction(function () use ($user, $post, $body, $parentId): CommunityComment {
             $locked = User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
             $this->requireVerified($locked);
-            abort_unless($locked->communityProfile()->exists(), 403, __('community.profile_required'));
+            // Il profilo mancante si risolve compilandolo: è un errore del campo, non un divieto.
+            if (! $locked->communityProfile()->exists()) {
+                throw ValidationException::withMessages(['body' => __('community.profile_required')]);
+            }
             abort_unless($this->access->canViewPost($locked, $post), 404);
             $parent = $parentId === null ? null : $this->access->comments($locked, $post)->whereNull('parent_id')->findOrFail($parentId);
             $comment = CommunityComment::query()->create(['community_post_id' => $post->id, 'user_id' => $locked->id, 'body' => $body,
@@ -172,7 +183,35 @@ final class Community
 
     public function deleteComment(User $user, CommunityComment $comment): void
     {
-        abort_unless($comment->user_id === $user->id || $comment->post->user_id === $user->id || $user->isEditorialStaff(), 403);
+        // La regola sta nella policy: la stessa decide anche can_delete nelle risposte.
+        Gate::forUser($user)->authorize('delete', $comment);
         $comment->delete();
+    }
+
+    /**
+     * Una segnalazione deve arrivare anche fra chi si è bloccato: bloccare nasconde,
+     * ma non deve impedire di denunciare. Restano gli altri filtri, quindi si segnala
+     * solo ciò che si potrebbe vedere senza il blocco.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    public function report(User $user, string $type, int $id, array $data): Report
+    {
+        $subject = match ($type) {
+            'community_profile' => $this->access->profiles($user, ignoreBlocks: true)->withoutEagerLoads()->findOrFail($id),
+            'community_post' => CommunityPost::query()->findOrFail($id),
+            'community_comment' => CommunityComment::query()->findOrFail($id),
+            default => abort(422),
+        };
+        if ($subject instanceof CommunityPost) {
+            abort_unless($this->access->canViewPost($user, $subject, ignoreBlocks: true), 404);
+        }
+        if ($subject instanceof CommunityComment) {
+            abort_unless($this->access->canViewPost($user, $subject->post, ignoreBlocks: true)
+                && $this->access->comments($user, $subject->post, ignoreBlocks: true)->whereKey($subject->id)->exists(), 404);
+        }
+
+        return Report::query()->firstOrCreate(['reporter_user_id' => $user->id, 'reportable_type' => $subject->getMorphClass(), 'reportable_id' => $subject->id, 'status' => ReportStatus::Pending],
+            ['reason' => $data['reason'] ?? null, 'note' => $data['note'] ?? null]);
     }
 }

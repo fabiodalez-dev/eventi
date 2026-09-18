@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Community;
 
 use App\DTOs\PageMeta;
-use App\Enums\ReportStatus;
 use App\Enums\VenueStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Community\CommentRequest;
@@ -20,7 +19,6 @@ use App\Models\CommunityComment;
 use App\Models\CommunityPost;
 use App\Models\CommunityProfile;
 use App\Models\EventOccurrence;
-use App\Models\Report;
 use App\Models\User;
 use App\Models\Venue;
 use App\Services\Community\Community;
@@ -140,7 +138,10 @@ final class CommunityController extends Controller
                 'comments' => $comments->getCollection()->map(fn ($c) => CommunityResource::comment($c, $user, $visibleProfileIds))->all(), 'has_more' => $comments->hasMorePages(), 'next_page' => $comments->hasMorePages() ? $comments->currentPage() + 1 : null]);
         }
 
-        return view('community.post', ['post' => $post, 'comments' => $comments, 'visibleProfileIds' => $visibleProfileIds, 'meta' => new PageMeta(__('community.post'), __('community.post'), indexable: false)]);
+        // Stessa regola di can_comment nel JSON: senza profilo il modulo non serve, serve completarlo.
+        $canComment = $user?->isWhatsappVerified() && $user->communityProfile !== null;
+
+        return view('community.post', ['post' => $post, 'comments' => $comments, 'visibleProfileIds' => $visibleProfileIds, 'canComment' => $canComment, 'meta' => new PageMeta(__('community.post'), __('community.post'), indexable: false)]);
     }
 
     public function settings(Request $request): View|JsonResponse
@@ -250,21 +251,7 @@ final class CommunityController extends Controller
 
     public function report(CommunityReportRequest $request): JsonResponse|RedirectResponse
     {
-        $user = $request->user();
-        $subject = match ($request->input('type')) {
-            'community_profile' => $this->access->profiles($user)->findOrFail($request->integer('id')),
-            'community_post' => CommunityPost::query()->findOrFail($request->integer('id')),
-            'community_comment' => CommunityComment::query()->findOrFail($request->integer('id')),
-            default => abort(422),
-        };
-        if ($subject instanceof CommunityPost) {
-            abort_unless($this->access->canViewPost($user, $subject), 404);
-        }
-        if ($subject instanceof CommunityComment) {
-            abort_unless($this->access->canViewPost($user, $subject->post) && $this->access->comments($user, $subject->post)->whereKey($subject->id)->exists(), 404);
-        }
-        Report::query()->firstOrCreate(['reporter_user_id' => $user->id, 'reportable_type' => $subject->getMorphClass(), 'reportable_id' => $subject->id, 'status' => ReportStatus::Pending],
-            ['reason' => $request->input('reason'), 'note' => $request->input('note')]);
+        $this->community->report($request->user(), $request->string('type')->toString(), $request->integer('id'), $request->validated());
 
         return $this->done($request);
     }

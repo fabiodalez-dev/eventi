@@ -68,6 +68,7 @@ final class CommunityResource
             'display_name' => $visible ? $profile->display_name : __('community.member'),
             'handle' => $visible ? $profile->handle : null,
             'created_at' => $comment->created_at->toIso8601String(),
-            'can_delete' => $viewer !== null && ($comment->user_id === $viewer->id || $comment->post->user_id === $viewer->id || $viewer->isEditorialStaff())];
+            // Stessa policy che autorizza la cancellazione: il pulsante non promette ciò che il server rifiuta.
+            'can_delete' => $viewer?->can('delete', $comment) ?? false];
     }
 }

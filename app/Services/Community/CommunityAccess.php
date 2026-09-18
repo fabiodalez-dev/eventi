@@ -27,12 +27,17 @@ final class CommunityAccess
             ->whereNotNull('whatsapp_phone_hash')->whereNull('community_suspended_at');
     }
 
-    /** @return Builder<CommunityProfile> */
-    public function profiles(?User $viewer): Builder
+    /**
+     * $ignoreBlocks serve solo alle segnalazioni: chi blocca (o è bloccato) deve poter
+     * segnalare comunque. Idoneità e visibilità restano: non si segnala ciò che non si vede.
+     *
+     * @return Builder<CommunityProfile>
+     */
+    public function profiles(?User $viewer, bool $ignoreBlocks = false): Builder
     {
         return CommunityProfile::query()->whereIn('user_id', $this->eligibleUsers()->select('id'))
             ->whereIn('visibility', $viewer?->hasVerifiedEmail() ? [ProfileVisibility::Public->value, ProfileVisibility::Members->value] : [ProfileVisibility::Public->value])
-            ->when($viewer !== null, fn ($query) => $this->excludeBlocked($query, $viewer))
+            ->when($viewer !== null && ! $ignoreBlocks, fn ($query) => $this->excludeBlocked($query, $viewer))
             ->with(['user' => $this->withRelationCounts(...), 'city', 'media']);
     }
 
@@ -149,10 +154,11 @@ final class CommunityAccess
     /**
      * Post visibili al viewer. $upcoming: true solo date non concluse, false solo concluse,
      * null tutte (permalink: un post resta raggiungibile anche dopo l'evento).
+     * $ignoreBlocks: vedi profiles().
      *
      * @return Builder<CommunityPost>
      */
-    public function posts(?User $viewer, City $city, ?bool $upcoming = true): Builder
+    public function posts(?User $viewer, City $city, ?bool $upcoming = true, bool $ignoreBlocks = false): Builder
     {
         $dates = EventOccurrenceQuery::archiveFor($city);
         if ($upcoming !== null) {
@@ -162,27 +168,33 @@ final class CommunityAccess
         return CommunityPost::query()->where('status', CommunityStatus::Published)
             ->whereHas('savedEvent', fn ($q) => $q->where('visibility', SavedVisibility::Public->value))
             // Il proprietario vede i propri post anche con profilo privato, finché resta idoneo.
-            ->where(fn ($q) => $q->whereIn('user_id', $this->profiles($viewer)->select('user_id'))
+            ->where(fn ($q) => $q->whereIn('user_id', $this->profiles($viewer, $ignoreBlocks)->select('user_id'))
                 ->when($viewer !== null, fn ($q) => $q->orWhere(fn ($own) => $own->where('user_id', $viewer->id)->whereIn('user_id', $this->eligibleUsers()->select('id')))))
             ->whereIn('occurrence_id', $dates->identifiersQuery())
             ->with(['occurrence' => fn ($q) => $q->withCount('interestedUsers as interested_count'), 'user' => $this->withRelationCounts(...), 'user.communityProfile.media', 'user.communityProfile.city', 'occurrence.event.city', 'occurrence.event.venue', 'occurrence.venue', 'occurrence.event.category', 'occurrence.event.media', 'occurrence.event.tags', 'savedEvent']);
     }
 
-    public function canViewPost(?User $viewer, CommunityPost $post): bool
+    public function canViewPost(?User $viewer, CommunityPost $post, bool $ignoreBlocks = false): bool
     {
         $city = $post->occurrence?->event?->city;
 
-        return $city !== null && $this->posts($viewer, $city, null)->whereKey($post->id)->exists();
+        return $city !== null && $this->posts($viewer, $city, null, $ignoreBlocks)->whereKey($post->id)->exists();
     }
 
-    /** @return Builder<CommunityComment> */
-    public function comments(?User $viewer, CommunityPost $post): Builder
+    /**
+     * $ignoreBlocks: vedi profiles().
+     *
+     * @return Builder<CommunityComment>
+     */
+    public function comments(?User $viewer, CommunityPost $post, bool $ignoreBlocks = false): Builder
     {
+        $blocks = $viewer !== null && ! $ignoreBlocks;
+
         return CommunityComment::query()->where('community_post_id', $post->id)->where('status', CommunityStatus::Published)
             ->whereIn('user_id', $this->eligibleUsers()->select('id'))
-            ->when($viewer !== null, fn ($query) => $this->excludeBlocked($query, $viewer))
+            ->when($blocks, fn ($query) => $this->excludeBlocked($query, $viewer))
             ->where(fn ($q) => $q->whereNull('parent_id')->orWhereHas('parent', fn ($p) => $p->where('status', CommunityStatus::Published)->whereIn('user_id', $this->eligibleUsers()->select('id'))
-                ->when($viewer !== null, fn ($parent) => $this->excludeBlocked($parent, $viewer))))
+                ->when($blocks, fn ($parent) => $this->excludeBlocked($parent, $viewer))))
             ->with(['user.communityProfile.media']);
     }
 }
