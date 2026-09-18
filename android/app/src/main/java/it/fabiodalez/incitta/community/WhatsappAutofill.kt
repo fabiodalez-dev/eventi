@@ -10,7 +10,12 @@ import java.util.UUID
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-internal data class ReceivedWhatsappCode(val request: WhatsappPendingRequest, val code: String)
+/** [seen] turns true once the form has read the code: from then on nobody navigates to the WhatsApp screen for it again. */
+internal data class ReceivedWhatsappCode(val request: WhatsappPendingRequest, val code: String, val seen: Boolean = false)
+
+/** Only a freshly received code, valid for this session and not yet shown in the form, takes the person to the WhatsApp screen. */
+internal fun shouldNavigateToWhatsapp(code: ReceivedWhatsappCode?, token: String?, now: Long): Boolean =
+    token != null && code != null && !code.seen && code.request.validFor(token, now)
 
 /** The code stays in memory. Only an encrypted, expiring handshake is persisted. */
 internal object WhatsappAutofill {
@@ -56,6 +61,7 @@ internal object WhatsappAutofill {
         val value = incoming.value ?: return null
         if (!value.request.validFor(token, System.currentTimeMillis())) { clear(context); return null }
         if (value.request.challengeId != challengeId) return null
+        if (!value.seen) incoming.value = value.copy(seen = true)
         // Readable until confirmation, DELETE, a failed send, a session change or a new begin() clears it:
         // a rotation or a failed confirmation must not lose the code.
         return value.code

@@ -4,7 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.listSaver
+import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -56,7 +56,7 @@ internal fun CommunityProfileEditor(data: JsonObject, busy: Boolean, save: (Json
     var bio by rememberSaveable(profile) { mutableStateOf(profile.text("bio")) }
     var visibility by rememberSaveable(profile) { mutableStateOf(profile.text("visibility", "members")) }
     var indexable by rememberSaveable(profile) { mutableStateOf(profile.flag("indexable")) }
-    var venues by rememberSaveable(data, stateSaver = listSaver<Set<Long>, Long>(save = { it.toList() }, restore = { it.toSet() })) {
+    var venues by rememberSaveable(data, stateSaver = Saver<Set<Long>, ArrayList<Long>>(save = { ArrayList(it) }, restore = { it.toSet() })) {
         mutableStateOf((data["venue_ids"] as? JsonArray)?.mapNotNull { (it as? JsonPrimitive)?.longOrNull }?.toSet() ?: emptySet())
     }
     var avatar by rememberSaveable { mutableStateOf<android.net.Uri?>(null) }

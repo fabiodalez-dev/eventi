@@ -42,8 +42,10 @@ class WhatsappAutofillTest {
     @Test fun validCodeIsBoundToTheServerChallengeAndStaysReadableUntilCleared() {
         WhatsappAutofill.bind(context, request.id, session.token, challenge)
         assertTrue(WhatsappAutofill.receive(context, callback()))
+        assertEquals(false, WhatsappAutofill.received.value?.seen)
         assertEquals("123456", WhatsappAutofill.take(context, session.token, challenge))
         assertEquals("123456", WhatsappAutofill.take(context, session.token, challenge))
+        assertEquals(true, WhatsappAutofill.received.value?.seen)
         assertFalse(WhatsappAutofill.receive(context, callback()))
         WhatsappAutofill.clear(context)
         assertNull(WhatsappAutofill.take(context, session.token, challenge))
@@ -54,6 +56,7 @@ class WhatsappAutofillTest {
         WhatsappAutofill.bind(context, request.id, session.token, challenge)
         assertTrue(WhatsappAutofill.receive(context, callback()))
         assertNull(WhatsappAutofill.take(context, session.token, UUID.randomUUID().toString()))
+        assertEquals(false, WhatsappAutofill.received.value?.seen)
         assertEquals("123456", WhatsappAutofill.take(context, session.token, challenge))
     }
 

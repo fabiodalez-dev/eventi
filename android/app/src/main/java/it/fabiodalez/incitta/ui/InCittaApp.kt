@@ -66,8 +66,7 @@ fun InCittaApp(viewModel: MainViewModel) {
         val tonightState = androidx.compose.runtime.saveable.rememberSaveableStateHolder()
         LaunchedEffect(state.tab) { tonightOpen = false; communityRoute = null }
         LaunchedEffect(whatsappCode, state.session?.token) {
-            val token = state.session?.token
-            if (token != null && whatsappCode?.request?.validFor(token, System.currentTimeMillis()) == true) {
+            if (it.fabiodalez.incitta.community.shouldNavigateToWhatsapp(whatsappCode, state.session?.token, System.currentTimeMillis())) {
                 tonightOpen = false; organizerSlug = null; communityRoute = "whatsapp"
             }
         }

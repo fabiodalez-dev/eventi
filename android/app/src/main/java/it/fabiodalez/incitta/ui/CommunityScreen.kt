@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
@@ -49,6 +50,7 @@ internal fun CommunityScreen(session: Session?, padding: PaddingValues, savedIds
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var status by remember { mutableStateOf<String?>(null) }
+    var notice by remember { mutableStateOf<String?>(null) }
     var envelope by remember(route) { mutableStateOf(buildJsonObject {}) }
     var search by rememberSaveable { mutableStateOf("") }
     var submittedSearch by rememberSaveable { mutableStateOf("") }
@@ -63,13 +65,15 @@ internal fun CommunityScreen(session: Session?, padding: PaddingValues, savedIds
     var blockTarget by remember { mutableStateOf<Pair<Long, Boolean>?>(null) }
     val whatsappCode by it.fabiodalez.incitta.community.WhatsappAutofill.received.collectAsState()
     var successMessage: String? = null
-    fun navigate(next: String) { error = null; status = null; stack = pushRoute(stack, next) }
+    // Not a success: an outcome to double-check, shown without the success colour.
+    var noticeMessage: String? = null
+    fun navigate(next: String) { error = null; status = null; notice = null; stack = pushRoute(stack, next) }
     fun back() { if (stack.size > 1) stack = stack.dropLast(1) else onBack() }
     fun mutate(action: suspend () -> Unit) {
         if (busy) return
         scope.launch {
-            busy = true; error = null; status = null; successMessage = null
-            try { action(); revision++; status = successMessage ?: savedMessage }
+            busy = true; error = null; status = null; notice = null; successMessage = null; noticeMessage = null
+            try { action(); revision++; notice = noticeMessage; status = if (noticeMessage != null) null else successMessage ?: savedMessage }
             catch (e: CancellationException) { throw e }
             catch (e: Exception) {
                 // A 401 means the token is dead: refreshing the profile lets the repository sign out for the same token.
@@ -82,7 +86,7 @@ internal fun CommunityScreen(session: Session?, padding: PaddingValues, savedIds
     BackHandler { back() }
     LaunchedEffect(initial) { if (session != null && stack.last() != initial) navigate(initial) }
     LaunchedEffect(whatsappCode) {
-        if (session != null && whatsappCode?.request?.validFor(session.token, System.currentTimeMillis()) == true && stack.last() != "whatsapp") navigate("whatsapp")
+        if (it.fabiodalez.incitta.community.shouldNavigateToWhatsapp(whatsappCode, session?.token, System.currentTimeMillis()) && stack.last() != "whatsapp") navigate("whatsapp")
     }
     LaunchedEffect(session?.token, revision) {
         if (session != null) try { user = api.refreshUser() } catch (e: CancellationException) { throw e } catch (_: Exception) { }
@@ -126,6 +130,7 @@ internal fun CommunityScreen(session: Session?, padding: PaddingValues, savedIds
         }
         error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         status?.let { Text(it, color = Acid) }
+        notice?.let { Text(it, color = MaterialTheme.colorScheme.onSurface) }
         if (user?.emailVerified == false) {
             Text(stringResource(R.string.community_email), color = Muted)
             OutlinedButton(enabled = !busy, onClick = { mutate { api.resendEmail() } }) { Text(stringResource(R.string.community_email_send)) }
@@ -186,7 +191,7 @@ internal fun CommunityScreen(session: Session?, padding: PaddingValues, savedIds
                         HorizontalDivider(color = Rule)
                         val handle = comment.text("handle")
                         // A hidden author arrives as "Utente" with no handle: it stays plain text, not a dead link.
-                        Box(Modifier.heightIn(min = 48.dp).then(if (handle.isNotBlank()) Modifier.clickable { navigate("profile/$handle") } else Modifier), contentAlignment = Alignment.CenterStart) {
+                        Box(Modifier.heightIn(min = 48.dp).then(if (handle.isNotBlank()) Modifier.clickable(role = Role.Button) { navigate("profile/$handle") } else Modifier), contentAlignment = Alignment.CenterStart) {
                             Text(comment.text("display_name"), style = MaterialTheme.typography.titleSmall)
                         }
                         if (comment.number("parent_id") > 0) Text("${stringResource(R.string.community_reply_to)} #${comment.number("parent_id")}", color = Muted, style = MaterialTheme.typography.labelSmall)
@@ -209,7 +214,7 @@ internal fun CommunityScreen(session: Session?, padding: PaddingValues, savedIds
                     val payload = if (handshake == null) body else buildJsonObject { body.forEach { (key, value) -> put(key, value) }; put("delivery", "one_tap") }
                     try {
                         val result = api.change(path, payload, method)
-                        if (path == "whatsapp" && method == "POST" && whatsappDeliveryUncertain(result.obj("data"))) successMessage = uncertainMessage
+                        if (path == "whatsapp" && method == "POST" && whatsappDeliveryUncertain(result.obj("data"))) noticeMessage = uncertainMessage
                         if (handshake != null && session != null) it.fabiodalez.incitta.community.WhatsappAutofill.bind(context, handshake, session.token, result.obj("data").text("challenge_id"))
                         if(path.endsWith("confirm")) { it.fabiodalez.incitta.community.WhatsappAutofill.clear(context); onProfileSaved(); navigate("settings") }
                         if(method == "DELETE") it.fabiodalez.incitta.community.WhatsappAutofill.clear(context)
@@ -218,7 +223,7 @@ internal fun CommunityScreen(session: Session?, padding: PaddingValues, savedIds
                         throw e
                     }
                 } }, { navigate("settings") })
-                if(!data.flag("verified")) TextButton(enabled = !busy, onClick = { mutate { api.change("whatsapp/skip"); onProfileSaved(); navigate("feed") } }) { Text(stringResource(R.string.community_later)) }
+                if(!data.flag("verified")) TextButton(enabled = !busy, onClick = { mutate { api.change("whatsapp/skip"); it.fabiodalez.incitta.community.WhatsappAutofill.clear(context); onProfileSaved(); navigate("feed") } }) { Text(stringResource(R.string.community_later)) }
             }
             route == "settings" -> {
                 if(!data.flag("verified")) { Text(stringResource(R.string.community_verify_required)); Button(onClick = { navigate("whatsapp") }) { Text(stringResource(R.string.community_whatsapp)) } }
