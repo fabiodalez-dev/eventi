@@ -1208,12 +1208,6 @@ final class EventOccurrenceQuery
         return $digest;
     }
 
-    /** @return Builder<EventOccurrence> */
-    public function identifiersQuery(): Builder
-    {
-        return (clone $this->query)->reorder()->select('event_occurrences.id')->withoutEagerLoads();
-    }
-
     // ----------------------------------------------------------------- interno
 
     /**

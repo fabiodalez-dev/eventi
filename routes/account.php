@@ -19,7 +19,6 @@ use App\Http\Controllers\Web\Account\SavedCalendarController;
 use App\Http\Controllers\Web\Account\SavedController;
 use App\Http\Controllers\Web\GoogleCalendarController;
 use App\Http\Middleware\PersonalizeDiscovery;
-use App\Http\Middleware\RequireConfirmedAccount;
 use App\Http\Middleware\TicketingPrivacy;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
@@ -148,7 +147,7 @@ Route::middleware('signed')->group(function (): void {
         ->name('notifications.unsubscribe.submit');
 });
 
-Route::middleware(['auth', RequireConfirmedAccount::class])->group(function (): void {
+Route::middleware('auth')->group(function (): void {
     Route::prefix('il-mio-calendario/google')->name('google-calendar.')->middleware(TicketingPrivacy::class)->group(function (): void {
         Route::get('/', [GoogleCalendarController::class, 'index'])->name('index');
         Route::get('/da-app/{user}', [GoogleCalendarController::class, 'mobile'])->whereNumber('user')->middleware('signed')->name('mobile');

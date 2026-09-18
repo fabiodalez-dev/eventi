@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use App\Enums\SavedVisibility;
 use Database\Factories\SavedEventFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -41,7 +40,6 @@ class SavedEvent extends Model
     {
         return [
             'reminder_sent_at' => 'array',
-            'visibility' => SavedVisibility::class,
         ];
     }
 }

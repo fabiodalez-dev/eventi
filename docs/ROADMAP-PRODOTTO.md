@@ -107,7 +107,7 @@ Azioni principali:
   tempo definito, conferma, scadenza e passaggio al successivo.
 - Gestire cancellazioni, concorrenza sulle prenotazioni e rinuncia alla lista.
 - Raccolte di eventi condivisibili tramite link e votazioni semplici con scadenza.
-- Chat e gruppi restano rinviati. Il 18 settembre 2026 il proprietario ha autorizzato follow tra persone e pubblicazione volontaria di singole date da parte degli utenti WhatsApp verificati: vedere [piano Community](PIANO-UTENTI-VERIFICATI-SOCIAL.md).
+- Evitare di introdurre subito chat, rubrica sociale o partecipazioni pubbliche.
 
 Criteri di completamento: nessuna sovraprenotazione o promessa dello stesso posto
 a più utenti; condivisione volontaria e raccolte private protette correttamente.

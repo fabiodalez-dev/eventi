@@ -31,8 +31,8 @@ android {
         applicationId = "it.fabiodalez.incitta"
         minSdk = 26
         targetSdk = 36
-        versionCode = 36
-        versionName = "1.14.0"
+        versionCode = 35
+        versionName = "1.13.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
@@ -105,7 +105,6 @@ android.sourceSets.getByName("main").res.srcDir(layout.buildDirectory.dir("gener
 tasks.named("preBuild").configure { dependsOn(generateArchivoFont) }
 
 dependencies {
-    implementation("com.whatsapp.otp:whatsapp-otp-android-sdk:1.0.0")
     implementation(platform("com.google.firebase:firebase-bom:34.18.0"))
     implementation("com.google.firebase:firebase-messaging")
     val composeBom = platform("androidx.compose:compose-bom:2026.06.00")

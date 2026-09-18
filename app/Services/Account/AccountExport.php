@@ -6,14 +6,11 @@ namespace App\Services\Account;
 
 use App\Http\Resources\V1\BookingResource;
 use App\Models\Booking;
-use App\Models\CommunityComment;
-use App\Models\CommunityPost;
 use App\Models\Device;
 use App\Models\Follow;
 use App\Models\NotificationLog;
 use App\Models\SavedEvent;
 use App\Models\User;
-use App\Models\UserBlock;
 use App\Models\VenueReview;
 use App\Support\Api\ApiDate;
 use Illuminate\Notifications\DatabaseNotification;
@@ -38,16 +35,6 @@ final class AccountExport
         $timezone = (string) $user->timezone;
 
         return [
-            'community' => [
-                'profile' => $user->communityProfile?->only(['handle', 'display_name', 'bio', 'visibility', 'indexable']),
-                'venue_ids' => $user->communityProfile?->venues()->pluck('venues.id')->all() ?? [],
-                'whatsapp_phone' => $user->whatsapp_phone,
-                'whatsapp_verified_at' => $user->whatsapp_verified_at?->toIso8601String(),
-                'posts' => CommunityPost::query()->where('user_id', $user->id)->get()->toArray(),
-                'comments' => CommunityComment::query()->where('user_id', $user->id)->get()->toArray(),
-                'followings' => $user->followings()->get(['followable_id', 'accepted_at'])->toArray(),
-                'blocks' => UserBlock::query()->where('user_id', $user->id)->pluck('blocked_user_id')->all(),
-            ],
             'exported_at' => ApiDate::instant(now(), $timezone),
             'bookings' => Booking::query()->where('user_id', $user->id)->with('tickets')->get()
                 ->map(fn ($booking) => BookingResource::toArray($booking))->all(),
@@ -74,7 +61,6 @@ final class AccountExport
                     'occurrence_id' => (int) $saved->occurrence_id,
                     'event_title' => $saved->occurrence?->event->title,
                     'starts_at' => ApiDate::instant($saved->occurrence?->starts_at, $timezone),
-                    'visibility' => $saved->visibility->value,
                     'saved_at' => ApiDate::attribute($saved, 'created_at', $timezone),
                 ])
                 ->all(),

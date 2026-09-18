@@ -43,7 +43,6 @@
         'map.index' => __('ui.nav.map'),
         'calendar.index' => __('ui.nav.calendar'),
         'venues.index' => __('ui.nav.venues'),
-        'community.people' => __('community.nav'),
     ]);
 
     /*
@@ -57,7 +56,6 @@
         'events.index' => __('ui.nav.events'),
         'map.index' => __('ui.nav.map'),
         'venues.index' => __('ui.nav.venues'),
-        'community.people' => __('community.nav'),
         'calendar.index' => __('ui.nav.calendar'),
     ]);
 
@@ -77,7 +75,6 @@
         'map.index' => __('ui.nav.map'),
         'calendar.index' => __('ui.nav.calendar'),
         'venues.index' => __('ui.nav.venues'),
-        'community.people' => __('community.nav'),
     ]);
 
     /*

@@ -43,32 +43,12 @@ class EventComment extends Model
         return [
             'status' => EventCommentStatus::class,
             'revision' => 'integer',
+            'reactions_count' => 'integer',
             'moderated_at' => 'datetime',
             'created_at' => 'datetime',
         ];
     }
 
-    /**
-     * Quante reazioni ha il commento.
-     *
-     * Di norma il valore arriva già contato da `withCount('reactions')` — lo
-     * fanno `EventCommentQuery` per le pagine pubbliche e `->counts()` nelle
-     * tabelle dei pannelli — e allora questo accessor si limita a convertirlo.
-     *
-     * Il conto a richiesta non è un ripiego dimenticato: è la via che usa
-     * `ToggleReaction`, che legge il numero su un modello preso con
-     * `lockForUpdate()` dentro la transazione, subito dopo aver scritto. Lì un
-     * conteggio caricato prima sarebbe quello vecchio, ed è proprio il numero
-     * che torna al browser per aggiornare il contatore.
-     *
-     * Attenzione quando si scrive codice nuovo: fuori da quel caso, leggere
-     * questo attributo su una collezione non contata fa una query per riga
-     * senza dirlo. Il conteggio va chiesto con `withCount`.
-     *
-     * Non c'è un cast dichiarato per questo attributo, e sarebbe inutile
-     * metterlo: un accessor ha la precedenza sui cast, quindi non verrebbe
-     * mai applicato.
-     */
     public function getReactionsCountAttribute(mixed $value): int
     {
         return $value === null ? $this->reactions()->count() : (int) $value;

@@ -15,8 +15,8 @@ it('filters membership per event without inheriting the venue requirement', func
     $category = testCategory();
     freezeLocal($city, '2026-09-11 12:00');
     $venue = Venue::factory()->approved()->create(['city_id' => $city->id, 'requires_membership' => true]);
-    $required = occurrenceAtLocal($city, $category, '2026-09-11 21:00', event: ['title' => 'Concerto riservato ai soci', 'content_details' => ['membership' => 'required']], venue: $venue);
-    $notRequired = occurrenceAtLocal($city, $category, '2026-09-11 22:00', event: ['title' => 'Concerto aperto a tutti', 'content_details' => ['membership' => 'not_required']], venue: $venue);
+    $required = occurrenceAtLocal($city, $category, '2026-09-11 21:00', event: ['content_details' => ['membership' => 'required']], venue: $venue);
+    $notRequired = occurrenceAtLocal($city, $category, '2026-09-11 22:00', event: ['content_details' => ['membership' => 'not_required']], venue: $venue);
     $unknown = occurrenceAtLocal($city, $category, '2026-09-11 23:00', event: ['price_type' => 'free'], venue: $venue);
     config()->set('page_cache.enabled', true);
     $finder = app(EventFinder::class);

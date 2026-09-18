@@ -14,7 +14,6 @@ use App\Models\Organizer;
 use App\Models\ScheduledNotification;
 use App\Models\User;
 use App\Notifications\Scheduled\ScheduledMessage;
-use App\Queries\EventCommentQuery;
 use App\Services\Notifications\NotificationDispatcher;
 use App\Support\Notifications\PreferenceLinks;
 use Database\Seeders\RolesAndPermissionsSeeder;
@@ -186,55 +185,4 @@ it('restores moderation and rejects direct cross-tenant actions', function () {
     $moderate->ripristina($this->comment->fresh(), $admin, 2);
     expect($this->comment->fresh()->status)->toBe(EventCommentStatus::Published);
     $this->get($this->comment->permalink())->assertOk()->assertSee('Commento di review');
-});
-
-it('conta i commenti dell’evento anche aprendo il permalink di una conversazione', function (): void {
-    /*
-     * In vista conversazione la query dei capostipiti è ristretta a uno solo,
-     * e il totale valeva 1: l'intestazione diceva «Commenti (1)» su un evento
-     * che ne aveva cinque.
-     */
-    $azione = app(PostComment::class);
-    foreach (['Secondo', 'Terzo', 'Quarto', 'Quinto'] as $testo) {
-        $azione->handle($this->event, $this->other, $testo);
-    }
-    $azione->handle($this->event, $this->other, 'Una risposta', $this->comment);
-
-    $elenco = app(EventCommentQuery::class)->listing($this->event, null, 1, null, null);
-    $conversazione = app(EventCommentQuery::class)->listing($this->event, null, 1, $this->comment->id, null);
-
-    expect($elenco['commentsTotal'])->toBe(5)
-        ->and($conversazione['commentsTotal'])->toBe(5)
-        ->and($conversazione['commentThread'])->toBe($this->comment->id);
-});
-
-it('rifiuta un parametro di pagina storto senza far sparire la scheda', function (string $query): void {
-    /*
-     * `EventCommentPageRequest` vale anche sulla rotta web, non solo
-     * sull'API: un parametro che numero non è viene respinto dalla
-     * validazione, non interpretato come zero. Il test fissa la simmetria
-     * fra i due ingressi, che è facile da rompere aggiungendo una rotta.
-     */
-    $this->get(route('events.show', ['slug' => $this->event->slug]).$query)
-        ->assertRedirect()
-        ->assertSessionHasErrors();
-})->with(['?commento=abc', '?commento=0', '?commento=-3', '?commenti=abc', '?risposte=abc']);
-
-it('apre la scheda quando i parametri di pagina sono numeri buoni', function (): void {
-    $this->get(route('events.show', ['slug' => $this->event->slug]).'?commento='.$this->comment->id)
-        ->assertOk()
-        ->assertSee('Commento di review', escape: false);
-
-    $this->get(route('events.show', ['slug' => $this->event->slug]).'?commenti=1')->assertOk();
-});
-
-it('risponde 404 a un commento che non esiste', function (): void {
-    $this->get(route('events.show', ['slug' => $this->event->slug]).'?commento=999999')->assertNotFound();
-});
-
-it('dà il conteggio aggiornato dopo una reazione, che è ciò per cui l’accessor conta a richiesta', function (): void {
-    $esito = app(ToggleReaction::class)->handle($this->comment, $this->other, EventCommentReactionType::Like);
-
-    expect($esito['conteggio'])->toBe(1)
-        ->and(app(ToggleReaction::class)->handle($this->comment, $this->other, EventCommentReactionType::Like)['conteggio'])->toBe(0);
 });

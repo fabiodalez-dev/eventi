@@ -39,7 +39,6 @@
         "laravel/scout": "^11.5",
         "laravel/tinker": "^3.0",
         "matanyadaev/laravel-eloquent-spatial": "^4.8",
-        "overtrue/laravel-follow": "^6.0",
         "propaganistas/laravel-phone": "^6.0",
         "pxlrbt/filament-excel": "^4.1",
         "rlanvin/php-rrule": "^3.0",

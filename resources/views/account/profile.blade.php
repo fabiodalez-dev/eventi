@@ -41,9 +41,6 @@
 
         <nav aria-label="Area personale" class="divide-y divide-line border-y border-line">
             @foreach ([
-                ['community.feed', 'heroicon-o-users', __('community.nav'), __('community.lead')],
-                ['community.whatsapp', 'heroicon-o-check-badge', __('community.whatsapp.title'), __('community.whatsapp.lead')],
-                ['community.inbox', 'heroicon-o-bell', __('community.inbox'), __('community.followers')],
                 ['tickets.index', 'heroicon-o-ticket', 'I miei biglietti', 'Prenotazioni, QR e ingressi'],
                 ['account.content-preferences', 'heroicon-o-heart', 'I miei interessi', 'Scegli cosa vedere e ricevere nella newsletter'],
                 ['account.notifications', 'heroicon-o-bell', 'Notifiche e newsletter', 'Canali, orari e ore di silenzio'],

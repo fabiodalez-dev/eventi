@@ -9,7 +9,6 @@ use App\Models\GoogleCalendarConnection;
 use App\Models\MobileAuthChallenge;
 use App\Models\SponsorshipGrant;
 use App\Models\User;
-use App\Models\WhatsappChallenge;
 use App\Services\Calendar\GoogleCalendarClient;
 use App\Services\Sponsorship\GrantCampaigns;
 use App\Services\Ticketing\TicketingService;
@@ -259,9 +258,6 @@ Schedule::command('model:prune', [
 Schedule::command('model:prune', [
     '--model' => MobileAuthChallenge::class,
 ])->daily()->doNotMonitor();
-
-Schedule::command('model:prune', ['--model' => WhatsappChallenge::class])
-    ->daily()->doNotMonitor();
 
 if (class_exists(Telescope::class)) {
     Schedule::command('telescope:prune --hours=48')->daily()->doNotMonitor();
