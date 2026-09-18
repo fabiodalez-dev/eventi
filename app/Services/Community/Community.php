@@ -17,8 +17,10 @@ use App\Models\UserBlock;
 use App\Models\Venue;
 use App\Notifications\CommunityNotification;
 use Carbon\CarbonImmutable;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Overtrue\LaravelFollow\Followable;
 
 final class Community
 {
@@ -85,6 +87,33 @@ final class Community
             $user->unfollow($target);
             $target->unfollow($user);
         });
+    }
+
+    /**
+     * Seguaci e blocchi di un utente, con un numero di query che non cresce con la pagina:
+     * visibilità dei profili e nomi dei bloccati si leggono una volta sola.
+     *
+     * @return array{page: LengthAwarePaginator<int, Followable>, followers: list<array{user_id: int, display_name: string, handle: string|null}>, blocks: list<array{user_id: int, display_name: string}>}
+     */
+    public function followers(User $user, int $perPage = 30): array
+    {
+        /** @var LengthAwarePaginator<int, Followable> $page */
+        $page = Followable::query()->where('followable_type', $user->getMorphClass())->where('followable_id', $user->id)->whereNotNull('accepted_at')
+            ->with('follower.communityProfile')->orderByDesc('id')->paginate($perPage);
+        $visible = $this->access->visibleProfileIds($user, $page->getCollection()->pluck('user_id'));
+        $followers = $page->getCollection()->map(function (Followable $follow) use ($visible): array {
+            $person = $follow->follower;
+            $profile = $person instanceof User ? $person->communityProfile : null;
+
+            return ['user_id' => (int) $follow->user_id, 'display_name' => $profile->display_name ?? __('community.member'),
+                'handle' => $profile !== null && in_array($profile->id, $visible, true) ? $profile->handle : null];
+        })->values()->all();
+        $blockedIds = UserBlock::query()->where('user_id', $user->id)->orderBy('id')->pluck('blocked_user_id')->map(fn ($id) => (int) $id);
+        // Come prima con User::find(): un account cancellato resta anonimo.
+        $names = CommunityProfile::query()->whereIn('user_id', User::query()->whereIn('id', $blockedIds->all())->select('id'))->pluck('display_name', 'user_id');
+        $blocks = $blockedIds->map(fn (int $id): array => ['user_id' => $id, 'display_name' => (string) ($names[$id] ?? __('community.member'))])->values()->all();
+
+        return ['page' => $page, 'followers' => $followers, 'blocks' => $blocks];
     }
 
     /** @param array<string, mixed> $data */

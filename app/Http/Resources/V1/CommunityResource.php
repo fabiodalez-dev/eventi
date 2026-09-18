@@ -13,40 +13,59 @@ use App\Support\Api\ApiContext;
 
 final class CommunityResource
 {
-    /** @return array<string, mixed> */
-    public static function profile(CommunityProfile $profile, ?User $viewer): array
+    /**
+     * @param  list<int>|null  $followingIds  utenti seguiti dal viewer, calcolati una volta per pagina
+     * @return array<string, mixed>
+     */
+    public static function profile(CommunityProfile $profile, ?User $viewer, ?array $followingIds = null): array
     {
+        $counts = app(CommunityAccess::class)->relationCounts($profile->user);
+
         return [
             'id' => $profile->id, 'user_id' => $profile->user_id, 'handle' => $profile->handle,
             'display_name' => $profile->display_name, 'bio' => $profile->bio, 'avatar_url' => $profile->avatarUrl() ?: null,
             'url' => route('community.profile', $profile->handle), 'verified' => $profile->user->isWhatsappVerified(),
             'city' => $profile->city?->name, 'city_id' => $profile->city_id,
             'visibility' => $profile->visibility->value, 'indexable' => $profile->indexable,
-            'followers_count' => $profile->user->followers()->whereNotNull('accepted_at')->count(),
-            'following_count' => $profile->user->followings()->whereNotNull('accepted_at')->count(),
-            'is_following' => $viewer?->isFollowing($profile->user) ?? false, 'is_own' => $viewer?->id === $profile->user_id,
+            'followers_count' => $counts['followers'],
+            'following_count' => $counts['following'],
+            'is_following' => $followingIds !== null ? in_array($profile->user_id, $followingIds, true) : ($viewer?->isFollowing($profile->user) ?? false),
+            'is_own' => $viewer?->id === $profile->user_id,
         ];
     }
 
-    /** @return array<string, mixed> */
-    public static function post(CommunityPost $post, ?User $viewer, ApiContext $context): array
+    /**
+     * @param  list<int>|null  $followingIds
+     * @return array<string, mixed>
+     */
+    public static function post(CommunityPost $post, ?User $viewer, ApiContext $context, ?array $followingIds = null): array
     {
+        // L'autore è già caricato con i conteggi: il profilo lo riusa invece di ricaricarlo.
+        $author = $post->user->communityProfile;
+        $author->setRelation('user', $post->user);
+
         return ['id' => $post->id, 'body' => $post->body, 'intent' => $post->intent->value,
             'published_at' => $post->published_at->toIso8601String(), 'url' => route('community.post', $post),
-            'author' => self::profile($post->user->communityProfile, $viewer),
+            'author' => self::profile($author, $viewer, $followingIds),
             'occurrence' => OccurrenceResource::toArray($post->occurrence, $context),
             'is_own' => $post->user_id === $viewer?->id,
             'can_comment' => $viewer?->isWhatsappVerified() && $viewer->communityProfile !== null];
     }
 
-    /** @return array<string, mixed> */
-    public static function comment(CommunityComment $comment, ?User $viewer): array
+    /**
+     * @param  list<int>|null  $visibleProfileIds  profili visibili al viewer, calcolati una volta per pagina
+     * @return array<string, mixed>
+     */
+    public static function comment(CommunityComment $comment, ?User $viewer, ?array $visibleProfileIds = null): array
     {
         $profile = $comment->user->communityProfile;
-        $visible = $profile !== null && app(CommunityAccess::class)->profiles($viewer)->whereKey($profile->id)->exists();
+        $visible = $profile !== null && ($viewer?->id === $comment->user_id || ($visibleProfileIds !== null
+            ? in_array($profile->id, $visibleProfileIds, true)
+            : app(CommunityAccess::class)->profiles($viewer)->whereKey($profile->id)->exists()));
 
+        // Il nome di un profilo non visibile al viewer (solo membri, privato) non esce nemmeno nei commenti.
         return ['id' => $comment->id, 'parent_id' => $comment->parent_id, 'body' => $comment->body,
-            'display_name' => $profile->display_name ?? __('community.member'),
+            'display_name' => $visible ? $profile->display_name : __('community.member'),
             'handle' => $visible ? $profile->handle : null,
             'created_at' => $comment->created_at->toIso8601String(),
             'can_delete' => $viewer !== null && ($comment->user_id === $viewer->id || $comment->post->user_id === $viewer->id || $viewer->isEditorialStaff())];

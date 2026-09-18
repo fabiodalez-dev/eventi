@@ -960,3 +960,136 @@ it('79 each community action has its own rate limit shared between website and A
     }
     $this->actingAs($this->user, 'web')->post(route('community.whatsapp.send'), ['phone' => '+393331234567'])->assertTooManyRequests();
 });
+
+/** Query eseguite da una richiesta: serve a verificare che non crescano con la pagina. */
+function communityQueryCount(callable $request): int
+{
+    DB::flushQueryLog();
+    DB::enableQueryLog();
+    $request();
+    $count = count(DB::getQueryLog());
+    DB::disableQueryLog();
+
+    return $count;
+}
+
+it('80 the profile archive holds only ended dates while the feed archive holds every date', function (): void {
+    $author = communityPerson();
+    $upcoming = communityPost($author, $this->city, $this->category, '2026-09-15 19:00');
+    $ended = communityPost($author, $this->city, $this->category, '2026-09-05 19:00');
+    $url = '/api/v1/community/people/'.$author->communityProfile->handle;
+    expect(collect($this->getJson($url)->assertOk()->json('data.posts'))->pluck('id')->all())->toBe([$upcoming->id]);
+    expect(collect($this->getJson($url.'?past=1')->assertOk()->json('data.posts'))->pluck('id')->all())->toBe([$ended->id]);
+    communityLogin($this->user);
+    expect(collect($this->getJson('/api/v1/community/feed?scope=discover')->json('data'))->pluck('id')->all())->toBe([$upcoming->id]);
+    expect(collect($this->getJson('/api/v1/community/feed?scope=discover&past=1')->json('data'))->pluck('id')->sort()->values()->all())->toBe(collect([$upcoming->id, $ended->id])->sort()->values()->all());
+    $this->getJson('/api/v1/community/posts/'.$ended->id)->assertOk();
+});
+
+it('81 the owner of a private profile still sees and discusses their own posts while others and suspended owners do not', function (): void {
+    $owner = communityPerson('private');
+    $post = communityPost($owner, $this->city, $this->category);
+    communityLogin($owner);
+    $this->getJson('/api/v1/community/people/'.$owner->communityProfile->handle)->assertOk()->assertJsonCount(1, 'data.posts');
+    $this->getJson('/api/v1/community/feed?scope=discover')->assertOk()->assertJsonPath('data.0.id', $post->id);
+    $this->getJson('/api/v1/community/posts/'.$post->id)->assertOk();
+    $this->postJson('/api/v1/community/posts/'.$post->id.'/comments', ['body' => 'Ci vado anche io'])->assertCreated();
+    communityLogin(communityPerson());
+    $this->getJson('/api/v1/community/posts/'.$post->id)->assertNotFound();
+    $this->getJson('/api/v1/community/feed?scope=discover')->assertOk()->assertJsonCount(0, 'data');
+    $owner->forceFill(['community_suspended_at' => now()])->save();
+    communityLogin($owner->fresh());
+    $this->getJson('/api/v1/community/posts/'.$post->id)->assertNotFound();
+    $this->getJson('/api/v1/community/feed?scope=discover')->assertOk()->assertJsonCount(0, 'data');
+    $this->getJson('/api/v1/community/people/'.$owner->communityProfile->handle)->assertNotFound();
+});
+
+it('82 public counters include only confirmed active followers and eligible followees', function (): void {
+    $author = communityPerson();
+    $this->user->follow($author);
+    $suspended = User::factory()->create(['community_suspended_at' => now()]);
+    $suspended->follow($author);
+    $unconfirmed = User::factory()->create(['email_verified_at' => null]);
+    $unconfirmed->follow($author);
+    $deleted = User::factory()->create();
+    $deleted->follow($author);
+    $deleted->delete();
+    $kept = communityPerson();
+    $gone = communityPerson();
+    $author->follow($kept);
+    $author->follow($gone);
+    $gone->forceFill(['community_suspended_at' => now()])->save();
+
+    $url = '/api/v1/community/people/'.$author->communityProfile->handle;
+    $this->getJson($url)->assertOk()->assertJsonPath('data.profile.followers_count', 1)->assertJsonPath('data.profile.following_count', 1);
+    $people = collect($this->getJson('/api/v1/community/people')->assertOk()->json('data'))->keyBy('user_id');
+    expect($people[$author->id]['followers_count'])->toBe(1)->and($people[$author->id]['following_count'])->toBe(1)
+        ->and($people[$kept->id]['followers_count'])->toBe(1)->and($people[$author->id]['is_following'])->toBeFalse();
+    communityLogin($this->user);
+    $this->getJson($url)->assertJsonPath('data.profile.is_following', true)->assertJsonPath('data.profile.followers_count', 1);
+});
+
+it('83 comment authors are named only when their profile is visible to the viewer or it is their own comment', function (): void {
+    $author = communityPerson();
+    $post = communityPost($author, $this->city, $this->category);
+    $members = communityPerson('members');
+    $members->communityProfile->update(['display_name' => 'Marta Solomembri']);
+    $public = communityPerson();
+    $public->communityProfile->update(['display_name' => 'Paolo Pubblico']);
+    $private = communityPerson('private');
+    $private->communityProfile->update(['display_name' => 'Rita Riservata']);
+    foreach ([$members, $public, $private] as $person) {
+        app(Community::class)->comment($person->fresh(), $post, 'Commento', null);
+    }
+    $names = fn () => collect($this->getJson('/api/v1/community/posts/'.$post->id)->assertOk()->json('data.comments'))->pluck('display_name')->all();
+
+    expect($names())->toBe(['Utente', 'Paolo Pubblico', 'Utente']);
+    $this->get('/bacheca/post/'.$post->id)->assertOk()->assertSee('Paolo Pubblico')->assertDontSee('Marta Solomembri')->assertDontSee('Rita Riservata');
+    communityLogin($this->user);
+    expect($names())->toBe(['Marta Solomembri', 'Paolo Pubblico', 'Utente']);
+    communityLogin($private);
+    expect($names())->toBe(['Marta Solomembri', 'Paolo Pubblico', 'Rita Riservata']);
+    $this->actingAs($private, 'web')->get('/bacheca/post/'.$post->id)->assertOk()->assertSee('Rita Riservata')->assertSee('Marta Solomembri');
+    $this->actingAs($private, 'web')->postJson('/api/v1/community/posts/'.$post->id.'/comments', ['body' => 'Ancora io'])
+        ->assertCreated()->assertJsonPath('data.display_name', 'Rita Riservata');
+});
+
+it('84 community pages run a constant number of queries whatever the page size', function (): void {
+    communityLogin($this->user);
+    $publish = function (int $count): void {
+        foreach (range(1, $count) as $i) {
+            $author = communityPerson($i % 2 === 0 ? 'members' : 'public');
+            $this->user->follow($author);
+            $author->follow($this->user);
+            communityPost($author, $this->city, $this->category);
+        }
+    };
+    $publish(3);
+    $this->getJson('/api/v1/community/feed')->assertOk();
+    $feed = communityQueryCount(fn () => $this->getJson('/api/v1/community/feed')->assertOk()->assertJsonCount(3, 'data'));
+    $people = communityQueryCount(fn () => $this->getJson('/api/v1/community/people')->assertOk()->assertJsonCount(3, 'data'));
+    $followers = communityQueryCount(fn () => $this->getJson('/api/v1/community/followers')->assertOk()->assertJsonCount(3, 'data.followers'));
+    $publish(17);
+    // Trenta seguaci, una pagina piena, di cui alcuni senza profilo community.
+    foreach (range(1, 10) as $i) {
+        User::factory()->create()->follow($this->user);
+    }
+    foreach (range(1, 5) as $i) {
+        UserBlock::query()->create(['user_id' => $this->user->id, 'blocked_user_id' => communityPerson()->id]);
+    }
+    expect(communityQueryCount(fn () => $this->getJson('/api/v1/community/feed')->assertOk()->assertJsonCount(20, 'data')))->toBe($feed)
+        ->and(communityQueryCount(fn () => $this->getJson('/api/v1/community/people')->assertOk()->assertJsonCount(20, 'data')))->toBe($people)
+        ->and(communityQueryCount(fn () => $this->getJson('/api/v1/community/followers')->assertOk()->assertJsonCount(30, 'data.followers')->assertJsonCount(5, 'data.blocks')))->toBe($followers);
+
+    $post = CommunityPost::query()->firstOrFail();
+    $comment = fn (User $person) => CommunityComment::query()->create(['community_post_id' => $post->id, 'user_id' => $person->id, 'body' => 'Ci sarò', 'status' => CommunityStatus::Published]);
+    foreach (range(1, 3) as $i) {
+        $comment(communityPerson($i % 2 === 0 ? 'members' : 'private'));
+    }
+    $this->getJson('/api/v1/community/posts/'.$post->id)->assertOk();
+    $few = communityQueryCount(fn () => $this->getJson('/api/v1/community/posts/'.$post->id)->assertOk()->assertJsonCount(3, 'data.comments'));
+    foreach (range(1, 27) as $i) {
+        $comment(communityPerson($i % 2 === 0 ? 'members' : 'private'));
+    }
+    expect(communityQueryCount(fn () => $this->getJson('/api/v1/community/posts/'.$post->id)->assertOk()->assertJsonCount(30, 'data.comments')))->toBe($few);
+});

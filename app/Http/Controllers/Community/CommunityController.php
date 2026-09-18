@@ -22,7 +22,6 @@ use App\Models\CommunityProfile;
 use App\Models\EventOccurrence;
 use App\Models\Report;
 use App\Models\User;
-use App\Models\UserBlock;
 use App\Models\Venue;
 use App\Services\Community\Community;
 use App\Services\Community\CommunityAccess;
@@ -34,7 +33,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Overtrue\LaravelFollow\Followable;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 final class CommunityController extends Controller
@@ -67,7 +65,8 @@ final class CommunityController extends Controller
     {
         $user = $this->viewer($request);
         $scope = $request->string('scope', 'following')->toString();
-        $query = $this->access->posts($user, $this->city(), ! $request->boolean('past'));
+        // L'archivio del feed mostra tutte le date; senza, solo quelle non concluse.
+        $query = $this->access->posts($user, $this->city(), $request->boolean('past') ? null : true);
         if ($scope === 'following') {
             $query->whereIn('user_id', $user->followings()->whereNotNull('accepted_at')->where('followable_type', 'user')->select('followable_id'));
         }
@@ -79,7 +78,9 @@ final class CommunityController extends Controller
         $posts = $query->orderByDesc('id')->paginate(20)->withQueryString();
         $context = ApiContext::forOccurrences($this->city(), [], $user, $posts->pluck('occurrence_id')->all());
         if ($request->expectsJson()) {
-            return ApiResponse::collection($posts->getCollection()->map(fn ($post) => CommunityResource::post($post, $user, $context))->all(), ['has_more' => $posts->hasMorePages(), 'next_page' => $posts->hasMorePages() ? $posts->currentPage() + 1 : null]);
+            $followingIds = $this->access->followingIds($user, $posts->pluck('user_id'));
+
+            return ApiResponse::collection($posts->getCollection()->map(fn ($post) => CommunityResource::post($post, $user, $context, $followingIds))->all(), ['has_more' => $posts->hasMorePages(), 'next_page' => $posts->hasMorePages() ? $posts->currentPage() + 1 : null]);
         }
 
         return view('community.feed', ['posts' => $posts, 'scope' => $scope, 'meta' => new PageMeta(__('community.feed'), __('community.feed'), indexable: false)]);
@@ -91,11 +92,10 @@ final class CommunityController extends Controller
         $query = $this->access->profiles($user)->when($request->filled('q'), fn ($q) => $q->where(fn ($q) => $q->where('display_name', 'like', '%'.addcslashes($request->string('q')->toString(), '%_\\').'%')->orWhere('handle', 'like', '%'.addcslashes($request->string('q')->toString(), '%_\\').'%')))
             ->when($request->boolean('featured'), fn ($q) => $q->where('featured', true))->orderByDesc('featured')->orderBy('display_name')->orderBy('id');
         $profiles = $query->paginate(20)->withQueryString();
+        $followingIds = $this->access->followingIds($user, $profiles->pluck('user_id'));
         if ($request->expectsJson()) {
-            return ApiResponse::collection($profiles->getCollection()->map(fn ($p) => CommunityResource::profile($p, $user))->all(), ['has_more' => $profiles->hasMorePages(), 'next_page' => $profiles->hasMorePages() ? $profiles->currentPage() + 1 : null]);
+            return ApiResponse::collection($profiles->getCollection()->map(fn ($p) => CommunityResource::profile($p, $user, $followingIds))->all(), ['has_more' => $profiles->hasMorePages(), 'next_page' => $profiles->hasMorePages() ? $profiles->currentPage() + 1 : null]);
         }
-
-        $followingIds = $user?->followings()->where('followable_type', 'user')->whereNotNull('accepted_at')->whereIn('followable_id', $profiles->pluck('user_id'))->pluck('followable_id')->map(fn ($id) => (int) $id)->all() ?? [];
 
         return view('community.people', ['profiles' => $profiles, 'followingIds' => $followingIds, 'meta' => new PageMeta(__('community.people'), __('community.people'), indexable: false)]);
     }
@@ -109,16 +109,18 @@ final class CommunityController extends Controller
         }
         abort_unless($profile !== null, 404);
         $city = $profile->city ?? $this->city();
+        // L'archivio del profilo è fatto solo di date concluse, la vista normale solo di quelle a venire.
         $posts = $this->access->posts($user, $city, ! $request->boolean('past'))->where('user_id', $profile->user_id)->orderByDesc('published_at')->orderByDesc('id')->paginate(20)->withQueryString();
         $venues = $profile->venues()->where('status', VenueStatus::Approved)->with(['city', 'media'])->get();
+        $followingIds = $this->access->followingIds($user, [$profile->user_id]);
         if ($request->expectsJson()) {
             $context = ApiContext::forOccurrences($city, [], $user, $posts->pluck('occurrence_id')->all());
 
-            return ApiResponse::item(['profile' => CommunityResource::profile($profile, $user), 'posts' => $posts->getCollection()->map(fn ($p) => CommunityResource::post($p, $user, $context))->all(),
+            return ApiResponse::item(['profile' => CommunityResource::profile($profile, $user, $followingIds), 'posts' => $posts->getCollection()->map(fn ($p) => CommunityResource::post($p, $user, $context, $followingIds))->all(),
                 'venues' => $venues->map(fn ($v) => VenueResource::summary($v))->all(), 'has_more' => $posts->hasMorePages(), 'next_page' => $posts->hasMorePages() ? $posts->currentPage() + 1 : null]);
         }
 
-        return view('community.profile', ['profile' => $profile, 'summary' => CommunityResource::profile($profile, $user), 'posts' => $posts, 'venues' => $venues,
+        return view('community.profile', ['profile' => $profile, 'summary' => CommunityResource::profile($profile, $user, $followingIds), 'posts' => $posts, 'venues' => $venues,
             'meta' => new PageMeta($profile->display_name, $profile->display_name, $profile->bio, route('community.profile', $profile->handle), indexable: $profile->indexable && $profile->visibility->value === 'public')]);
     }
 
@@ -126,16 +128,19 @@ final class CommunityController extends Controller
     {
         $user = $this->viewer($request);
         abort_unless($this->access->canViewPost($user, $post), 404);
-        $post = $this->access->posts($user, $post->occurrence->event->city)->findOrFail($post->id);
+        $post = $this->access->posts($user, $post->occurrence->event->city, null)->findOrFail($post->id);
         $comments = $this->access->comments($user, $post)->orderBy('created_at')->orderBy('id')->paginate(30)->withQueryString();
+        // Una query per la pagina, non una per commento: visibilità degli autori e post di appartenenza.
+        $visibleProfileIds = $this->access->visibleProfileIds($user, $comments->getCollection()->pluck('user_id'));
+        $comments->getCollection()->each(fn (CommunityComment $comment) => $comment->setRelation('post', $post));
         if ($request->expectsJson()) {
             $context = ApiContext::forOccurrences($post->occurrence->event->city, [], $user, [$post->occurrence_id]);
 
-            return ApiResponse::item(['post' => CommunityResource::post($post, $user, $context),
-                'comments' => $comments->getCollection()->map(fn ($c) => CommunityResource::comment($c, $user))->all(), 'has_more' => $comments->hasMorePages(), 'next_page' => $comments->hasMorePages() ? $comments->currentPage() + 1 : null]);
+            return ApiResponse::item(['post' => CommunityResource::post($post, $user, $context, $this->access->followingIds($user, [$post->user_id])),
+                'comments' => $comments->getCollection()->map(fn ($c) => CommunityResource::comment($c, $user, $visibleProfileIds))->all(), 'has_more' => $comments->hasMorePages(), 'next_page' => $comments->hasMorePages() ? $comments->currentPage() + 1 : null]);
         }
 
-        return view('community.post', ['post' => $post, 'comments' => $comments, 'meta' => new PageMeta(__('community.post'), __('community.post'), indexable: false)]);
+        return view('community.post', ['post' => $post, 'comments' => $comments, 'visibleProfileIds' => $visibleProfileIds, 'meta' => new PageMeta(__('community.post'), __('community.post'), indexable: false)]);
     }
 
     public function settings(Request $request): View|JsonResponse
@@ -195,16 +200,9 @@ final class CommunityController extends Controller
 
     public function followers(Request $request): View|JsonResponse
     {
-        $user = $request->user();
-        $followers = Followable::query()->where('followable_type', 'user')->where('followable_id', $user->id)->whereNotNull('accepted_at')->with('follower.communityProfile')->orderByDesc('id')->paginate(30);
-        $blocks = UserBlock::query()->where('user_id', $user->id)->get()->map(fn ($b) => ['user_id' => $b->blocked_user_id, 'display_name' => User::query()->find($b->blocked_user_id)?->communityProfile->display_name ?? __('community.member')]);
-        $data = ['followers' => $followers->getCollection()->map(function (Followable $follow) use ($user): array {
-            $person = $follow->follower;
-            $profile = $person instanceof User ? $person->communityProfile : null;
-            $visible = $profile !== null && $this->access->profiles($user)->whereKey($profile->id)->exists();
-
-            return ['user_id' => (int) $follow->user_id, 'display_name' => $profile->display_name ?? __('community.member'), 'handle' => $visible ? $profile->handle : null];
-        })->all(), 'blocks' => $blocks->all()];
+        $result = $this->community->followers($request->user());
+        $followers = $result['page'];
+        $data = ['followers' => $result['followers'], 'blocks' => $result['blocks']];
         if ($request->expectsJson()) {
             return ApiResponse::item([...$data, 'has_more' => $followers->hasMorePages(), 'next_page' => $followers->hasMorePages() ? $followers->currentPage() + 1 : null]);
         }

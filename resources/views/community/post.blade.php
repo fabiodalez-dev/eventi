@@ -3,7 +3,7 @@
         @include('community.report', ['subject' => $post])
         <section class="mt-8" aria-labelledby="comments-title"><h2 class="text-section" id="comments-title">{{ __('community.comments') }}</h2>
             @forelse($comments as $comment)
-                @php($data = \App\Http\Resources\V1\CommunityResource::comment($comment, auth()->user()))
+                @php($data = \App\Http\Resources\V1\CommunityResource::comment($comment, auth()->user(), $visibleProfileIds))
                 <article class="border-b border-line py-5 {{ $comment->parent_id ? 'ml-6 border-l pl-4' : '' }}" id="comment-{{ $comment->id }}">
                     <div class="text-sm font-bold">@if($data['handle'])<a class="hover:underline" href="{{ route('community.profile', $data['handle']) }}">{{ $data['display_name'] }}</a>@else{{ $data['display_name'] }}@endif</div>
                     @if($comment->parent_id)<p class="mt-1 text-xs text-ink-muted">{{ __('community.reply_to', ['id' => $comment->parent_id]) }}</p>@endif

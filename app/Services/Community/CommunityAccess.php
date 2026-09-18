@@ -6,6 +6,7 @@ namespace App\Services\Community;
 
 use App\Enums\CommunityStatus;
 use App\Enums\ProfileVisibility;
+use App\Enums\SavedVisibility;
 use App\Models\City;
 use App\Models\CommunityComment;
 use App\Models\CommunityPost;
@@ -14,6 +15,8 @@ use App\Models\User;
 use App\Models\UserBlock;
 use App\Queries\EventOccurrenceQuery;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\Relation;
 
 final class CommunityAccess
 {
@@ -30,11 +33,104 @@ final class CommunityAccess
         return CommunityProfile::query()->whereIn('user_id', $this->eligibleUsers()->select('id'))
             ->whereIn('visibility', $viewer?->hasVerifiedEmail() ? [ProfileVisibility::Public->value, ProfileVisibility::Members->value] : [ProfileVisibility::Public->value])
             ->when($viewer !== null, fn ($query) => $this->excludeBlocked($query, $viewer))
-            ->with(['user', 'city', 'media']);
+            ->with(['user' => $this->withRelationCounts(...), 'city', 'media']);
     }
 
     /**
-     * @template TModel of \Illuminate\Database\Eloquent\Model
+     * Seguaci che contano in pubblico: email confermata, non sospesi, non cancellati.
+     * Non serve WhatsApp: seguire è aperto a ogni account confermato.
+     *
+     * @return Builder<User>
+     */
+    private function countableFollowers(): Builder
+    {
+        return User::query()->whereNotNull('email_verified_at')->whereNull('community_suspended_at');
+    }
+
+    /**
+     * Conteggi di seguaci e seguiti precaricati sull'autore, così una pagina di profili
+     * o di post non fa due query per elemento.
+     *
+     * @param  Relation<*, *, *>  $query
+     */
+    public function withRelationCounts(Relation $query): void
+    {
+        $query->withCount([
+            'followables as community_followers_count' => fn (Builder $q) => $this->followersOf($q),
+            'followings as community_followings_count' => fn (Builder $q) => $this->followingsOf($q),
+        ]);
+    }
+
+    /**
+     * @template TModel of Model
+     *
+     * @param  Builder<TModel>  $query
+     * @return Builder<TModel>
+     */
+    private function followersOf(Builder $query): Builder
+    {
+        return $query->whereNotNull('accepted_at')->whereIn('user_id', $this->countableFollowers()->select('id'));
+    }
+
+    /**
+     * @template TModel of Model
+     *
+     * @param  Builder<TModel>  $query
+     * @return Builder<TModel>
+     */
+    private function followingsOf(Builder $query): Builder
+    {
+        return $query->where('followable_type', (new User)->getMorphClass())->whereNotNull('accepted_at')
+            ->whereIn('followable_id', $this->eligibleUsers()->select('id'));
+    }
+
+    /** @return array{followers: int, following: int} */
+    public function relationCounts(User $user): array
+    {
+        $followers = $user->getAttribute('community_followers_count');
+        $following = $user->getAttribute('community_followings_count');
+
+        return [
+            'followers' => $followers !== null ? (int) $followers : $this->followersOf($user->followables()->getQuery())->count(),
+            'following' => $following !== null ? (int) $following : $this->followingsOf($user->followings()->getQuery())->count(),
+        ];
+    }
+
+    /**
+     * Fra gli utenti indicati, quelli che il viewer segue: una query per pagina.
+     *
+     * @param  iterable<int|string>  $userIds
+     * @return list<int>
+     */
+    public function followingIds(?User $viewer, iterable $userIds): array
+    {
+        $ids = collect($userIds)->map(fn ($id) => (int) $id)->unique()->values();
+        if ($viewer === null || $ids->isEmpty()) {
+            return [];
+        }
+
+        return $viewer->followings()->where('followable_type', (new User)->getMorphClass())->whereNotNull('accepted_at')
+            ->whereIn('followable_id', $ids->all())->pluck('followable_id')->map(fn ($id) => (int) $id)->values()->all();
+    }
+
+    /**
+     * Profili visibili al viewer fra gli autori indicati: una query per pagina di commenti o seguaci.
+     *
+     * @param  iterable<int|string>  $userIds
+     * @return list<int>
+     */
+    public function visibleProfileIds(?User $viewer, iterable $userIds): array
+    {
+        $ids = collect($userIds)->map(fn ($id) => (int) $id)->unique()->values();
+        if ($ids->isEmpty()) {
+            return [];
+        }
+
+        return $this->profiles($viewer)->whereIn('user_id', $ids->all())->withoutEagerLoads()->pluck('id')->map(fn ($id) => (int) $id)->values()->all();
+    }
+
+    /**
+     * @template TModel of Model
      *
      * @param  Builder<TModel>  $query
      */
@@ -50,26 +146,33 @@ final class CommunityAccess
             ->orWhere(fn ($q) => $q->where('user_id', $second->id)->where('blocked_user_id', $first->id))->exists();
     }
 
-    /** @return Builder<CommunityPost> */
-    public function posts(?User $viewer, City $city, bool $upcoming = false): Builder
+    /**
+     * Post visibili al viewer. $upcoming: true solo date non concluse, false solo concluse,
+     * null tutte (permalink: un post resta raggiungibile anche dopo l'evento).
+     *
+     * @return Builder<CommunityPost>
+     */
+    public function posts(?User $viewer, City $city, ?bool $upcoming = true): Builder
     {
         $dates = EventOccurrenceQuery::archiveFor($city);
-        if ($upcoming) {
-            $dates->ended(false);
+        if ($upcoming !== null) {
+            $dates->ended(! $upcoming);
         }
 
         return CommunityPost::query()->where('status', CommunityStatus::Published)
-            ->whereHas('savedEvent', fn ($q) => $q->where('visibility', 'public'))
-            ->whereIn('user_id', $this->profiles($viewer)->select('user_id'))
+            ->whereHas('savedEvent', fn ($q) => $q->where('visibility', SavedVisibility::Public->value))
+            // Il proprietario vede i propri post anche con profilo privato, finché resta idoneo.
+            ->where(fn ($q) => $q->whereIn('user_id', $this->profiles($viewer)->select('user_id'))
+                ->when($viewer !== null, fn ($q) => $q->orWhere(fn ($own) => $own->where('user_id', $viewer->id)->whereIn('user_id', $this->eligibleUsers()->select('id')))))
             ->whereIn('occurrence_id', $dates->identifiersQuery())
-            ->with(['occurrence' => fn ($q) => $q->withCount('interestedUsers as interested_count'), 'user.communityProfile.media', 'occurrence.event.city', 'occurrence.event.venue', 'occurrence.venue', 'occurrence.event.category', 'occurrence.event.media', 'occurrence.event.tags', 'savedEvent']);
+            ->with(['occurrence' => fn ($q) => $q->withCount('interestedUsers as interested_count'), 'user' => $this->withRelationCounts(...), 'user.communityProfile.media', 'user.communityProfile.city', 'occurrence.event.city', 'occurrence.event.venue', 'occurrence.venue', 'occurrence.event.category', 'occurrence.event.media', 'occurrence.event.tags', 'savedEvent']);
     }
 
     public function canViewPost(?User $viewer, CommunityPost $post): bool
     {
         $city = $post->occurrence?->event?->city;
 
-        return $city !== null && $this->posts($viewer, $city)->whereKey($post->id)->exists();
+        return $city !== null && $this->posts($viewer, $city, null)->whereKey($post->id)->exists();
     }
 
     /** @return Builder<CommunityComment> */
