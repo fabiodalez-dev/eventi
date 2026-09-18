@@ -14,6 +14,7 @@ return [
 
     'count' => '{0}Nessun commento|{1}Un commento|[2,*]:count commenti',
     'empty' => 'Non c’è ancora nessun commento. Scrivi tu il primo.',
+    'unavailable' => 'Il commento che cercavi non è più disponibile.',
 
     'verify_required' => 'Conferma il tuo indirizzo email per commentare e lasciare reazioni.',
     'write' => 'Scrivi un commento',

@@ -19,7 +19,7 @@
     vedi `App\Actions\Comments\PostComment`.
 --}}
 
-@props(['event', 'comments', 'page' => 1, 'lastPage' => 1, 'total' => 0, 'thread' => null, 'repliesPage' => 1, 'repliesLastPage' => 1])
+@props(['event', 'comments', 'page' => 1, 'lastPage' => 1, 'total' => 0, 'thread' => null, 'repliesPage' => 1, 'repliesLastPage' => 1, 'missing' => false])
 
 @php
     $utente = auth()->user();
@@ -34,6 +34,12 @@
 
     @if (session('status'))
         <p role="status" class="border-2 border-line bg-surface p-3 text-sm font-semibold">{{ session('status') }}</p>
+    @endif
+
+    {{-- Il commento del link è stato cancellato o nascosto: l'elenco resta,
+         e chi è arrivato dal link sa perché non lo trova. --}}
+    @if ($missing)
+        <p role="status" class="border-2 border-line bg-surface p-3 text-sm font-semibold">{{ __('comments.unavailable') }}</p>
     @endif
 
     @if ($comments->isEmpty())

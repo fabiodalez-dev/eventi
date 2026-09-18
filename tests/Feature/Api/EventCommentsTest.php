@@ -100,3 +100,8 @@ it('paginates native threads and opens the page containing a requested reply', f
         ->assertJsonPath('data.thread', $root->id)->assertJsonPath('data.replies_page', 2)
         ->assertJsonCount(2, 'data.comments.0.replies')->assertJsonPath('data.comments.0.replies.1.id', $reply->id);
 });
+
+it('keeps answering 404 for a comment that does not exist', function () {
+    /* L'API resta severa: solo la scheda web ripiega sull'elenco con un avviso. */
+    $this->getJson($this->url.'?commento=999999')->assertNotFound();
+});

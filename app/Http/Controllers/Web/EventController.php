@@ -131,10 +131,26 @@ final class EventController extends Controller
 
         request()->attributes->set('sponsorship_exclude_event', $event->slug);
 
-        $commentListing = app(EventCommentQuery::class)->listing(
+        /*
+         * L'anteprima non mostra i commenti e non valida i parametri di
+         * pagina: interrogarli servirebbe solo a trasformare un `?commento=`
+         * storto in un 404 dell'anteprima. Sulla scheda pubblica il commento
+         * che non c'è più lascia al suo posto un avviso, non un 404.
+         */
+        $commentListing = $isPreview ? [
+            'comments' => new Collection,
+            'commentsPage' => 1,
+            'commentsLastPage' => 1,
+            'commentsTotal' => 0,
+            'commentThread' => null,
+            'repliesPage' => 1,
+            'repliesLastPage' => 1,
+            'commentMissing' => false,
+        ] : app(EventCommentQuery::class)->listing(
             $event, auth()->user(), request()->integer('commenti', 1),
             request()->filled('commento') ? request()->integer('commento') : null,
             request()->filled('risposte') ? request()->integer('risposte') : null,
+            strict: false,
         );
 
         return view('events.show', [
