@@ -10,7 +10,7 @@
         @auth
             @if($summary['is_own'])<x-button :href="route('community.settings')" variant="secondary">{{ __('community.settings') }}</x-button>
             @else<form method="post" action="{{ route('community.follow', $profile->user_id) }}">@csrf @if($summary['is_following']) @method('DELETE') @endif<x-button type="submit">{{ __($summary['is_following'] ? 'community.unfollow' : 'community.follow') }}</x-button></form>@endif
-        @else<x-button :href="route('login')">{{ __('community.follow') }}</x-button>@endauth
+        @else<x-button :href="route('login', ['intended' => request()->fullUrl()])">{{ __('community.follow') }}</x-button>@endauth
     </header>
     @if($venues->isNotEmpty())<section class="my-8"><h2 class="text-section">{{ __('community.venues') }}</h2><ul class="mt-3 flex flex-wrap gap-3">@foreach($venues as $venue)<li><a class="inline-flex min-h-11 items-center border border-line px-4 hover:underline" href="{{ route('venues.show', $venue) }}">{{ $venue->name }}</a></li>@endforeach</ul></section>@endif
     <div class="my-8 flex flex-wrap gap-5 text-sm font-semibold"><a class="underline" href="{{ route('community.profile', $profile->handle) }}">{{ __('community.upcoming') }}</a><a class="underline" href="{{ route('community.profile', ['handle' => $profile->handle, 'past' => 1]) }}">{{ __('community.archive') }}</a></div>

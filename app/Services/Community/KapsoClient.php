@@ -51,15 +51,17 @@ final class KapsoClient
     }
 
     /**
-     * Host non risolto (6) o connessione rifiutata (7): la richiesta non è mai
-     * partita. Ogni altro errore, timeout compreso, può essere arrivato dopo
-     * che Kapso aveva già accettato il messaggio.
+     * Proxy o host non risolti (5, 6), connessione rifiutata (7), handshake TLS
+     * fallito (35) o certificato non valido (60): la richiesta non è mai partita,
+     * perché il corpo viaggia solo dopo una connessione cifrata riuscita. Ogni
+     * altro errore, timeout compreso, può essere arrivato dopo che Kapso aveva
+     * già accettato il messaggio.
      */
     private function neverLeft(ConnectionException $exception): bool
     {
         $previous = $exception->getPrevious();
         $context = $previous instanceof ConnectException || $previous instanceof RequestException ? $previous->getHandlerContext() : [];
 
-        return in_array($context['errno'] ?? null, [6, 7], true);
+        return in_array($context['errno'] ?? null, [5, 6, 7, 35, 60], true);
     }
 }

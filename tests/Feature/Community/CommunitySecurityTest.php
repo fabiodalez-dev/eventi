@@ -935,6 +935,7 @@ it('76 unconfirmed accounts can switch off channels and review preferences but n
     $this->deleteJson(route('account.push.destroy'))->assertOk();
     $this->get(route('account.notifications.interests'))->assertOk();
     $this->delete(route('google-calendar.disconnect'))->assertRedirect(route('google-calendar.index'));
+    $this->get(route('google-calendar.index'))->assertOk();
     $this->post(route('google-calendar.connect'))->assertRedirect(route('verification.notice'));
 });
 
@@ -1298,4 +1299,79 @@ it('93 follow buttons announce a name that starts with the visible text', functi
         ->assertSee('aria-label="'.e(__('community.unfollow_person', ['name' => $author->communityProfile->display_name])).'"', false);
     expect(__('community.follow_person', ['name' => 'X']))->toStartWith(__('community.follow'))
         ->and(__('community.unfollow_person', ['name' => 'X']))->toStartWith(__('community.following_label'));
+});
+
+it('94 a TLS handshake failure never left either and is a rejection', function (): void {
+    communityLogin($this->user);
+    kapsoReplies(fn ($request) => Create::rejectionFor(new ConnectException('cURL error 35: SSL connect error', $request->toPsrRequest(), null, ['errno' => 35])));
+
+    $this->postJson('/api/v1/community/whatsapp', ['phone' => '+393331234567'])->assertUnprocessable()
+        ->assertJsonPath('error.fields.phone.0', __('community.whatsapp.send_failed'));
+    expect(WhatsappChallenge::firstOrFail()->status)->toBe(WhatsappChallengeStatus::Failed)
+        ->and((int) RateLimiter::attempts('wa-global'))->toBe(0);
+});
+
+it('95 an unexpected client error closes the challenge, gives back the budget and still surfaces', function (): void {
+    $previous = communityChallenge($this->user, ['created_at' => now()->subMinutes(2)]);
+    kapsoReplies(fn () => throw new RuntimeException('client exploded'));
+
+    expect(fn () => app(WhatsappVerification::class)->request($this->user, '+393331234567', '198.51.100.1'))
+        ->toThrow(RuntimeException::class, 'client exploded');
+    $failed = WhatsappChallenge::query()->whereKeyNot($previous->id)->firstOrFail();
+    expect($failed->status)->toBe(WhatsappChallengeStatus::Failed)->and($failed->consumed_at)->not->toBeNull()
+        ->and($previous->fresh()->consumed_at)->toBeNull()
+        ->and((int) RateLimiter::attempts('wa-global'))->toBe(0)->and((int) RateLimiter::attempts(kapsoIpKey('198.51.100.1')))->toBe(0);
+
+    communityLogin($this->user);
+    $this->travel(61)->seconds();
+    $this->postJson('/api/v1/community/whatsapp', ['phone' => '+393331234567'])->assertStatus(500);
+    expect(WhatsappChallenge::query()->where('status', WhatsappChallengeStatus::Failed->value)->count())->toBe(2);
+});
+
+it('96 a post owner moderates the discussion only while verified but can always remove their own comments', function (): void {
+    $author = communityPerson();
+    $writer = communityPerson();
+    $post = communityPost($author, $this->city, $this->category);
+    $others = app(Community::class)->comment($writer, $post, 'Altrui', null);
+    $own = app(Community::class)->comment($author, $post, 'Mio', null);
+    app(WhatsappVerification::class)->revoke($author);
+    $author = $author->fresh();
+
+    expect($author->can('delete', $others))->toBeFalse()->and($author->can('delete', $own))->toBeTrue();
+    communityLogin($author);
+    $this->deleteJson('/api/v1/community/comments/'.$others->id)->assertForbidden();
+    $this->deleteJson('/api/v1/community/comments/'.$own->id)->assertOk();
+
+    $author->forceFill(['community_suspended_at' => now()])->save();
+    expect($author->fresh()->can('delete', $others))->toBeFalse();
+    expect($others->fresh())->not->toBeNull();
+});
+
+it('97 after a revocation the compose page offers only private and saving withdraws the post', function (): void {
+    $author = communityPerson();
+    $post = communityPost($author, $this->city, $this->category);
+    app(WhatsappVerification::class)->revoke($author);
+    $author = $author->fresh();
+
+    $html = $this->actingAs($author)->get(route('community.compose', $post->occurrence_id))->assertOk()->getContent();
+    expect($html)->toMatch('/<input type="radio" name="visibility" value="private"\s+checked/')
+        ->and($html)->toMatch('/value="public"\s+disabled(?!\s+checked)/');
+    $this->actingAs($author)->from(route('community.compose', $post->occurrence_id))
+        ->put(route('community.publish', $post->occurrence_id), ['visibility' => 'private'])->assertSessionHas('status', __('community.updated'));
+    expect($post->fresh())->toBeNull()->and(SavedEvent::query()->where('user_id', $author->id)->value('visibility')->value)->toBe('private');
+});
+
+it('98 a guest following from a profile comes back to it after login', function (): void {
+    $author = communityPerson();
+    $url = route('community.profile', $author->communityProfile->handle);
+    $this->get($url)->assertOk()->assertSee('href="'.e(route('login', ['intended' => $url])).'"', false);
+});
+
+it('99 the verification history shows a failed send as failed even though it is consumed', function (): void {
+    $failed = communityChallenge($this->user, ['status' => WhatsappChallengeStatus::Failed, 'consumed_at' => now()]);
+    $used = communityChallenge($this->user, ['consumed_at' => now()]);
+    expect(view('filament.admin.pages.whatsapp-history', ['challenges' => collect([$failed])])->render())
+        ->toContain(__('community.challenge_status.failed'))->not->toContain(__('community.used'))
+        ->and(view('filament.admin.pages.whatsapp-history', ['challenges' => collect([$used])])->render())
+        ->toContain(__('community.used'));
 });

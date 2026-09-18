@@ -1,6 +1,6 @@
 # Product
 
-Aggiornato all’11 settembre 2026. Stato del rilascio e verifiche in [RELEASE-1.9.1](docs/RELEASE-1.9.1.md); priorità future in [ROADMAP-PRODOTTO](docs/ROADMAP-PRODOTTO.md).
+Aggiornato al 18 settembre 2026. Stato del rilascio e verifiche in [RELEASE-1.9.1](docs/RELEASE-1.9.1.md); priorità future in [ROADMAP-PRODOTTO](docs/ROADMAP-PRODOTTO.md).
 
 ## Register
 

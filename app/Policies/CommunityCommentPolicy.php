@@ -19,10 +19,15 @@ final class CommunityCommentPolicy
         return $user->isEditorialStaff() || ($user->id === $record->user_id && $user->isWhatsappVerified());
     }
 
-    /** Chi scrive il post modera la propria discussione: può togliere anche i commenti altrui. */
+    /**
+     * Chi scrive il post modera la propria discussione: può togliere anche i commenti
+     * altrui, ma solo finché la sua verifica è valida. Revocato o sospeso, conserva
+     * soltanto il diritto di togliere ciò che ha scritto lui.
+     */
     public function delete(User $user, CommunityComment $record): bool
     {
-        return $user->isEditorialStaff() || $user->id === $record->user_id || $user->id === $record->post->user_id;
+        return $user->isEditorialStaff() || $user->id === $record->user_id
+            || ($user->id === $record->post->user_id && $user->isWhatsappVerified());
     }
 
     public function create(User $user): bool

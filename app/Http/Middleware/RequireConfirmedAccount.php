@@ -21,7 +21,7 @@ final class RequireConfirmedAccount
     private const ALLOWED = [
         'account.profile*', 'account.logout', 'verification.*', 'account.verification.*',
         'account.push.destroy', 'account.notifications', 'account.notifications.interests', 'account.notifications.interests.update',
-        'google-calendar.disconnect',
+        'google-calendar.index', 'google-calendar.disconnect',
         'api.v1.me.show', 'api.v1.me.update', 'api.v1.me.destroy', 'api.v1.me.export', 'api.v1.me.sessions.*',
         'api.v1.me.devices.index', 'api.v1.me.devices.destroy', 'api.v1.me.preferences.show', 'api.v1.me.preferences.update',
         'api.v1.me.calendar.google', 'api.v1.me.interests.show', 'api.v1.me.interests.update',

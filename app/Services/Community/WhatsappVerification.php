@@ -68,15 +68,18 @@ final class WhatsappVerification
             });
         });
         // L'invio sta fuori da lock e transazione: Kapso può metterci secondi.
-        $outcome = $this->client->send($phone, $code, $delivery);
+        try {
+            $outcome = $this->client->send($phone, $code, $delivery);
+        } catch (\Throwable $exception) {
+            // Un errore imprevisto (configurazione, bug, eccezione del client) non deve
+            // lasciare una sfida in preparazione che occupa i tetti d'invio: la si chiude
+            // come un rifiuto, poi l'errore risale intatto al gestore delle eccezioni.
+            $this->abandon($challenge, $ipKey);
+            throw $exception;
+        }
         if ($outcome === KapsoOutcome::Rejected) {
             // Niente è partito: il codice precedente resta valido e i contatori tornano indietro.
-            $challenge->update(['status' => WhatsappChallengeStatus::Failed, 'consumed_at' => now()]);
-            foreach ([$ipKey, 'wa-global'] as $key) {
-                if ((int) RateLimiter::attempts($key) > 0) {
-                    RateLimiter::decrement($key, 86400);
-                }
-            }
+            $this->abandon($challenge, $ipKey);
             throw ValidationException::withMessages(['phone' => __('community.whatsapp.send_failed')]);
         }
         // Anche un esito incerto può aver consegnato il codice nuovo: da qui vale solo quello.
@@ -84,6 +87,17 @@ final class WhatsappVerification
         WhatsappChallenge::query()->where('user_id', $user->id)->whereKeyNot($challenge->id)->whereNull('consumed_at')->update(['consumed_at' => now()]);
 
         return new WhatsappSendResult($challenge, $outcome);
+    }
+
+    /** Chiude una sfida il cui codice non è partito e restituisce i contatori d'invio. */
+    private function abandon(WhatsappChallenge $challenge, string $ipKey): void
+    {
+        $challenge->update(['status' => WhatsappChallengeStatus::Failed, 'consumed_at' => now()]);
+        foreach ([$ipKey, 'wa-global'] as $key) {
+            if ((int) RateLimiter::attempts($key) > 0) {
+                RateLimiter::decrement($key, 86400);
+            }
+        }
     }
 
     public function confirm(User $user, string $id, #[\SensitiveParameter] string $code): void
