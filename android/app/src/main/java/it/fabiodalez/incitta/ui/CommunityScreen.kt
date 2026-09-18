@@ -9,7 +9,10 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -24,14 +27,21 @@ import java.net.URLEncoder
 
 @Composable
 internal fun CommunityScreen(session: Session?, padding: PaddingValues, savedIds: Set<Long>, initial: String = "feed",
-    onBack: () -> Unit, onLogin: () -> Unit, onOpen: (Occurrence) -> Unit, onSave: (Long) -> Unit, onProfileSaved: () -> Unit) {
+    onBack: () -> Unit, onLogin: () -> Unit, onOpen: (Occurrence) -> Unit, onSave: (Long) -> Unit, onProfileSaved: () -> Unit,
+    onUnauthorized: () -> Unit = {}) {
     val context = LocalContext.current
     val savedMessage = stringResource(R.string.community_saved)
     val errorMessage = stringResource(R.string.community_error)
+    val uncertainMessage = stringResource(R.string.community_wa_send_uncertain)
+    val blockedMessage = stringResource(R.string.community_blocked)
+    val unblockedMessage = stringResource(R.string.community_unblocked)
+    val commentDeletedMessage = stringResource(R.string.community_comment_deleted)
+    val reportedMessage = stringResource(R.string.community_reported)
+    val readAllMessage = stringResource(R.string.community_read_all_done)
     val api = remember(session?.token) { CommunityApi(ApiClient(LocalStore(context).installationId), session?.token) }
     val scope = rememberCoroutineScope()
     var user by remember(session?.token) { mutableStateOf(session?.user) }
-    var stack by rememberSaveable(session?.token, initial) { mutableStateOf(listOf(if (session == null) "people" else initial)) }
+    var stack by rememberSaveable(session?.token) { mutableStateOf(listOf(if (session == null) "people" else initial)) }
     val route = stack.last()
     var page by remember(route) { mutableIntStateOf(1) }
     var revision by remember { mutableIntStateOf(0) }
@@ -46,31 +56,39 @@ internal fun CommunityScreen(session: Session?, padding: PaddingValues, savedIds
     var discover by rememberSaveable { mutableStateOf(false) }
     var eventOrder by rememberSaveable { mutableStateOf(false) }
     var past by rememberSaveable { mutableStateOf(false) }
-    var notificationCursor by remember { mutableStateOf<String?>(null) }
+    var cursors by remember(route) { mutableStateOf(listOf<String?>(null)) }
     var report by remember { mutableStateOf<Pair<String, Long>?>(null) }
     var reportNote by remember { mutableStateOf("") }
+    var deleteComment by remember { mutableStateOf<Long?>(null) }
+    var blockTarget by remember { mutableStateOf<Pair<Long, Boolean>?>(null) }
     val whatsappCode by it.fabiodalez.incitta.community.WhatsappAutofill.received.collectAsState()
-    fun navigate(next: String) { error = null; status = null; stack = stack + next }
+    var successMessage: String? = null
+    fun navigate(next: String) { error = null; status = null; stack = pushRoute(stack, next) }
     fun back() { if (stack.size > 1) stack = stack.dropLast(1) else onBack() }
     fun mutate(action: suspend () -> Unit) {
         if (busy) return
         scope.launch {
-            busy = true; error = null; status = null
-            try { action(); revision++; status = savedMessage }
+            busy = true; error = null; status = null; successMessage = null
+            try { action(); revision++; status = successMessage ?: savedMessage }
             catch (e: CancellationException) { throw e }
-            catch (e: Exception) { error = e.message ?: errorMessage }
+            catch (e: Exception) {
+                // A 401 means the token is dead: refreshing the profile lets the repository sign out for the same token.
+                if (e is ApiException && e.status == 401) onUnauthorized()
+                error = communityFailureMessage(e).ifBlank { errorMessage }
+            }
             finally { busy = false }
         }
     }
     BackHandler { back() }
+    LaunchedEffect(initial) { if (session != null && stack.last() != initial) navigate(initial) }
     LaunchedEffect(whatsappCode) {
-        if (session != null && whatsappCode?.request?.validFor(session.token, System.currentTimeMillis()) == true && route != "whatsapp") navigate("whatsapp")
+        if (session != null && whatsappCode?.request?.validFor(session.token, System.currentTimeMillis()) == true && stack.last() != "whatsapp") navigate("whatsapp")
     }
     LaunchedEffect(session?.token, revision) {
         if (session != null) try { user = api.refreshUser() } catch (e: CancellationException) { throw e } catch (_: Exception) { }
     }
-    LaunchedEffect(route, page, revision, submittedSearch, featured, discover, eventOrder, past, notificationCursor) {
-        loading = true; error = null; envelope = buildJsonObject {}
+    LaunchedEffect(route, page, revision, submittedSearch, featured, discover, eventOrder, past, cursors) {
+        loading = true; error = null
         try {
             val path = when {
                 route == "feed" -> "feed?page=$page&scope=${if (discover) "discover" else "following"}&sort=${if(eventOrder) "event" else "recent"}&past=${if(past) 1 else 0}"
@@ -84,16 +102,20 @@ internal fun CommunityScreen(session: Session?, padding: PaddingValues, savedIds
             }
             if (user?.emailVerified == false && route !in listOf("people") && !route.startsWith("profile/") && !route.startsWith("post/")) {
                 envelope = buildJsonObject {}
-            } else envelope = if (route == "inbox") api.notifications(notificationCursor) else api.get(path)
+            } else envelope = if (route == "inbox") api.notifications(cursors.last()) else api.get(path)
         } catch (e: CancellationException) { throw e }
-        catch (e: Exception) { error = e.message ?: errorMessage }
+        catch (e: Exception) {
+            // Same as mutate(): a dead token is handed back to the repository instead of retried forever.
+            if (e is ApiException && e.status == 401) onUnauthorized()
+            error = communityFailureMessage(e).ifBlank { errorMessage }
+        }
         finally { loading = false }
     }
     val data = envelope.obj("data")
     Column(Modifier.fillMaxSize().padding(bottom = padding.calculateBottomPadding()).verticalScroll(rememberScrollState()).padding(18.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             TextButton(onClick = { back() }) { Text(stringResource(R.string.community_back)) }
-            TextButton(onClick = { revision++ }) { Text(stringResource(R.string.community_refresh)) }
+            TextButton(onClick = { cursors = listOf(null); revision++ }) { Text(stringResource(R.string.community_refresh)) }
         }
         Text(stringResource(R.string.community_title), style = MaterialTheme.typography.headlineLarge)
         PeekTabRow {
@@ -109,7 +131,7 @@ internal fun CommunityScreen(session: Session?, padding: PaddingValues, savedIds
             OutlinedButton(enabled = !busy, onClick = { mutate { api.resendEmail() } }) { Text(stringResource(R.string.community_email_send)) }
         }
         if (loading) LinearProgressIndicator(Modifier.fillMaxWidth())
-        if (!loading && envelope.isNotEmpty()) when {
+        if (envelope.isNotEmpty()) when {
             route == "feed" -> {
                 CommunityCheck(stringResource(R.string.community_discover), discover) { discover = it; page = 1 }
                 CommunityCheck(stringResource(R.string.community_event_order), eventOrder) { eventOrder = it; page = 1 }
@@ -138,7 +160,7 @@ internal fun CommunityScreen(session: Session?, padding: PaddingValues, savedIds
                 else {
                     Button(enabled = !busy, onClick = { if (session == null) onLogin() else mutate { api.change("people/${profile.number("user_id")}/follow", method = if(profile.flag("is_following")) "DELETE" else "POST") } }) { Text(stringResource(if(profile.flag("is_following")) R.string.community_unfollow else R.string.community_follow)) }
                     if (session != null) {
-                        TextButton(onClick = { mutate { api.change("people/${profile.number("user_id")}/block"); navigate("followers") } }, enabled = !busy) { Text(stringResource(R.string.community_block)) }
+                        TextButton(onClick = { blockTarget = profile.number("user_id") to true }, enabled = !busy) { Text(stringResource(R.string.community_block)) }
                         Text(stringResource(R.string.community_block_help), color = Muted, style = MaterialTheme.typography.bodySmall)
                         TextButton(onClick = { report = "community_profile" to profile.number("id") }) { Text(stringResource(R.string.community_report)) }
                     }
@@ -162,11 +184,15 @@ internal fun CommunityScreen(session: Session?, padding: PaddingValues, savedIds
                 data.rows("comments").forEach { comment ->
                     Column(Modifier.padding(start = if(comment.number("parent_id") > 0) 18.dp else 0.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         HorizontalDivider(color = Rule)
-                        Text(comment.text("display_name"), Modifier.clickable { comment.text("handle").takeIf { it.isNotBlank() }?.let { navigate("profile/$it") } }, style = MaterialTheme.typography.titleSmall)
+                        val handle = comment.text("handle")
+                        // A hidden author arrives as "Utente" with no handle: it stays plain text, not a dead link.
+                        Box(Modifier.heightIn(min = 48.dp).then(if (handle.isNotBlank()) Modifier.clickable { navigate("profile/$handle") } else Modifier), contentAlignment = Alignment.CenterStart) {
+                            Text(comment.text("display_name"), style = MaterialTheme.typography.titleSmall)
+                        }
                         if (comment.number("parent_id") > 0) Text("${stringResource(R.string.community_reply_to)} #${comment.number("parent_id")}", color = Muted, style = MaterialTheme.typography.labelSmall)
                         Text(comment.text("body"))
                         if(post.flag("can_comment") && comment.number("parent_id") == 0L) TextButton(onClick = { replyTo = comment.number("id") }) { Text(stringResource(R.string.community_reply)) }
-                        if(comment.flag("can_delete")) TextButton(enabled = !busy, onClick = { mutate { api.change("comments/${comment.number("id")}", method = "DELETE") } }) { Text(stringResource(R.string.community_delete_comment)) }
+                        if(comment.flag("can_delete")) TextButton(enabled = !busy, onClick = { deleteComment = comment.number("id") }) { Text(stringResource(R.string.community_delete_comment)) }
                         if(session != null) TextButton(onClick = { report = "community_comment" to comment.number("id") }) { Text(stringResource(R.string.community_report)) }
                     }
                 }
@@ -183,6 +209,7 @@ internal fun CommunityScreen(session: Session?, padding: PaddingValues, savedIds
                     val payload = if (handshake == null) body else buildJsonObject { body.forEach { (key, value) -> put(key, value) }; put("delivery", "one_tap") }
                     try {
                         val result = api.change(path, payload, method)
+                        if (path == "whatsapp" && method == "POST" && whatsappDeliveryUncertain(result.obj("data"))) successMessage = uncertainMessage
                         if (handshake != null && session != null) it.fabiodalez.incitta.community.WhatsappAutofill.bind(context, handshake, session.token, result.obj("data").text("challenge_id"))
                         if(path.endsWith("confirm")) { it.fabiodalez.incitta.community.WhatsappAutofill.clear(context); onProfileSaved(); navigate("settings") }
                         if(method == "DELETE") it.fabiodalez.incitta.community.WhatsappAutofill.clear(context)
@@ -204,14 +231,14 @@ internal fun CommunityScreen(session: Session?, padding: PaddingValues, savedIds
                 Text(stringResource(R.string.community_followers), style = MaterialTheme.typography.titleLarge)
                 data.rows("followers").forEach { follower -> Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     TextButton(onClick = { follower.text("handle").takeIf { it.isNotEmpty() }?.let { navigate("profile/$it") } }) { Text(follower.text("display_name")) }
-                    TextButton(enabled = !busy, onClick = { mutate { api.change("people/${follower.number("user_id")}/block") } }) { Text(stringResource(R.string.community_block)) }
+                    TextButton(enabled = !busy, onClick = { blockTarget = follower.number("user_id") to false }) { Text(stringResource(R.string.community_block)) }
                 } }
                 data.rows("blocks").forEach { block -> Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(block.text("display_name")); TextButton(enabled = !busy, onClick = { mutate { api.change("people/${block.number("user_id")}/block", method = "DELETE") } }) { Text(stringResource(R.string.community_unblock)) }
+                    Text(block.text("display_name")); TextButton(enabled = !busy, onClick = { mutate { api.change("people/${block.number("user_id")}/block", method = "DELETE"); successMessage = unblockedMessage } }) { Text(stringResource(R.string.community_unblock)) }
                 } }
             }
             route == "inbox" -> {
-                TextButton(enabled = !busy, onClick = { mutate { api.readNotifications() } }) { Text(stringResource(R.string.community_read_all)) }
+                TextButton(enabled = !busy, onClick = { mutate { api.readNotifications(); cursors = listOf(null); successMessage = readAllMessage } }) { Text(stringResource(R.string.community_read_all)) }
                 if (envelope.rows("data").isEmpty()) Text(stringResource(R.string.community_no_notifications), color = Muted)
                 envelope.rows("data").forEach { notification ->
                     val item = notification.obj("data")
@@ -226,22 +253,41 @@ internal fun CommunityScreen(session: Session?, padding: PaddingValues, savedIds
         val hasMore = envelope.obj("meta").flag("has_more") || data.flag("has_more")
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             if(page > 1 && route != "inbox") OutlinedButton(onClick = { page-- }) { Text(stringResource(R.string.community_previous)) }
-            if(hasMore) OutlinedButton(onClick = { if(route == "inbox") notificationCursor = envelope.obj("meta").text("next_cursor") else page++ }) { Text(stringResource(R.string.community_next)) }
+            if(route == "inbox" && cursors.size > 1) OutlinedButton(onClick = { cursors = cursors.dropLast(1) }) { Text(stringResource(R.string.community_previous)) }
+            if(hasMore) OutlinedButton(onClick = {
+                if(route == "inbox") envelope.obj("meta").text("next_cursor").takeIf { it.isNotBlank() }?.let { cursors = cursors + it } else page++
+            }) { Text(stringResource(R.string.community_next)) }
         }
     }
-    report?.let { target -> AlertDialog(onDismissRequest = { report = null }, title = { Text(stringResource(R.string.community_report)) }, text = {
-        OutlinedTextField(reportNote, { reportNote = it.take(1000) }, label = { Text(stringResource(R.string.community_report_note)) })
-    }, confirmButton = {
-        TextButton(enabled = !busy, onClick = { mutate { api.change("reports", buildJsonObject { put("type", target.first); put("id", target.second); put("reason", "offensive"); put("note", reportNote) }); report = null; reportNote = "" } }) { Text(stringResource(R.string.community_report_offensive)) }
-    }, dismissButton = {
-        TextButton(enabled = !busy, onClick = { mutate { api.change("reports", buildJsonObject { put("type", target.first); put("id", target.second); put("reason", "spam"); put("note", reportNote) }); report = null; reportNote = "" } }) { Text(stringResource(R.string.community_report_spam)) }
-    }) }
+    report?.let { target ->
+        fun send(reason: String) = mutate { api.change("reports", buildJsonObject { put("type", target.first); put("id", target.second); put("reason", reason); put("note", reportNote) }); successMessage = reportedMessage; report = null; reportNote = "" }
+        fun close() { report = null; reportNote = ""; error = null }
+        AlertDialog(onDismissRequest = { close() }, title = { Text(stringResource(R.string.community_report)) }, text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                OutlinedTextField(reportNote, { reportNote = it.take(1000) }, label = { Text(stringResource(R.string.community_report_note)) })
+            }
+        }, confirmButton = {
+            Row {
+                TextButton(enabled = !busy, onClick = { send("offensive") }) { Text(stringResource(R.string.community_report_offensive)) }
+                TextButton(enabled = !busy, onClick = { send("spam") }) { Text(stringResource(R.string.community_report_spam)) }
+            }
+        }, dismissButton = { TextButton(onClick = { close() }) { Text(stringResource(R.string.community_cancel)) } })
+    }
+    deleteComment?.let { id -> AlertDialog(onDismissRequest = { deleteComment = null }, title = { Text(stringResource(R.string.community_delete_comment)) }, text = { Text(stringResource(R.string.community_delete_comment_help)) }, confirmButton = {
+        TextButton(enabled = !busy, onClick = { deleteComment = null; mutate { api.change("comments/$id", method = "DELETE"); successMessage = commentDeletedMessage } }) { Text(stringResource(R.string.community_delete_comment)) }
+    }, dismissButton = { TextButton(onClick = { deleteComment = null }) { Text(stringResource(R.string.community_cancel)) } }) }
+    blockTarget?.let { (id, thenFollowers) -> AlertDialog(onDismissRequest = { blockTarget = null }, title = { Text(stringResource(R.string.community_block)) }, text = { Text(stringResource(R.string.community_block_help)) }, confirmButton = {
+        TextButton(enabled = !busy, onClick = { blockTarget = null; mutate { api.change("people/$id/block"); successMessage = blockedMessage; if (thenFollowers) navigate("followers") } }) { Text(stringResource(R.string.community_block)) }
+    }, dismissButton = { TextButton(onClick = { blockTarget = null }) { Text(stringResource(R.string.community_cancel)) } }) }
 }
 
 @Composable
 private fun CommunityPerson(person: JsonObject, api: CommunityApi, onClick: () -> Unit) {
     Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-        person.text("avatar_url").takeIf { it.isNotBlank() }?.let { AsyncImage(api.avatar(LocalContext.current, it), null, Modifier.size(64.dp)) }
+        // Same convention as RichImage: photos are desaturated in the dark theme, in colour in the light one.
+        val matrix = remember { ColorMatrix().apply { setToSaturation(0f) } }
+        person.text("avatar_url").takeIf { it.isNotBlank() }?.let { AsyncImage(api.avatar(LocalContext.current, it), null, Modifier.size(64.dp), colorFilter = if (isLightTheme) null else ColorFilter.colorMatrix(matrix)) }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
             Text(person.text("display_name"), style = MaterialTheme.typography.titleLarge)
             Text(stringResource(R.string.community_verified), color = Acid, style = MaterialTheme.typography.labelSmall)
@@ -258,11 +304,11 @@ private fun CommunityPostCard(post: JsonObject, api: CommunityApi, saved: Set<Lo
     CommunityPerson(author, api) { onPerson(author.text("handle")) }
     Text(stringResource(if(post.text("intent") == "attend") R.string.community_attend else R.string.community_recommend), color = Acid)
     post.text("body").takeIf { it.isNotBlank() }?.let { Text(it) }
-    val occurrence = remember(post) { api.json.decodeFromJsonElement<Occurrence>(post.getValue("occurrence")) }
-    EventRow(occurrence, occurrence.occurrenceId in saved, onOpen, onSave)
+    val occurrence = remember(post) { post.occurrenceOrNull(api.json) }
+    occurrence?.let { EventRow(it, it.occurrenceId in saved, onOpen, onSave) }
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         TextButton(onClick = { onPost(post.number("id")) }) { Text(stringResource(R.string.community_comments)) }
-        if(post.flag("is_own")) TextButton(onClick = { onPrivacy(occurrence.occurrenceId) }) { Text(stringResource(R.string.community_save_privacy)) }
+        if(post.flag("is_own") && occurrence != null) TextButton(onClick = { onPrivacy(occurrence.occurrenceId) }) { Text(stringResource(R.string.community_save_privacy)) }
     }
 }
 

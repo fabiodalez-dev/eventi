@@ -85,4 +85,11 @@
     <string name="community_city">Città</string>
     <string name="community_no_city">Non indicare una città</string>
     <string name="community_counts">%1$d follower · %2$d seguiti</string>
+    <string name="community_wa_send_uncertain">Il codice potrebbe non essere arrivato. Se non lo ricevi entro un minuto, richiedine un altro.</string>
+    <string name="community_blocked">Persona bloccata.</string>
+    <string name="community_unblocked">Persona sbloccata.</string>
+    <string name="community_comment_deleted">Commento rimosso.</string>
+    <string name="community_reported">Segnalazione inviata. Grazie.</string>
+    <string name="community_read_all_done">Avvisi segnati come letti.</string>
+    <string name="community_delete_comment_help">Il commento verrà rimosso. L’operazione non si può annullare.</string>
 </resources>

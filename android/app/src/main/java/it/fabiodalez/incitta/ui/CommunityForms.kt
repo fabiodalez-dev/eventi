@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -17,12 +18,12 @@ import kotlinx.serialization.json.*
 internal fun CommunityWhatsapp(data: JsonObject, busy: Boolean, token: String?, change: (String, JsonObject, String) -> Unit, onProfile: () -> Unit) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val incoming by it.fabiodalez.incitta.community.WhatsappAutofill.received.collectAsState()
-    var phone by remember { mutableStateOf("") }
-    var code by remember(data.text("challenge_id")) { mutableStateOf("") }
-    var autofilled by remember(data.text("challenge_id")) { mutableStateOf(false) }
+    var phone by rememberSaveable { mutableStateOf("") }
+    var code by rememberSaveable(data.text("challenge_id")) { mutableStateOf("") }
+    var autofilled by rememberSaveable(data.text("challenge_id")) { mutableStateOf(false) }
     var revoke by remember { mutableStateOf(false) }
     LaunchedEffect(incoming, data.text("challenge_id")) {
-        if (token != null) it.fabiodalez.incitta.community.WhatsappAutofill.take(context, token, data.text("challenge_id"))?.let { code = it; autofilled = true }
+        if (!autofilled && token != null) it.fabiodalez.incitta.community.WhatsappAutofill.take(context, token, data.text("challenge_id"))?.let { code = it; autofilled = true }
     }
     Text(stringResource(R.string.community_whatsapp), style = MaterialTheme.typography.titleLarge)
     Text(stringResource(R.string.community_wa_lead), color = Muted)
@@ -36,7 +37,7 @@ internal fun CommunityWhatsapp(data: JsonObject, busy: Boolean, token: String?, 
             Text(stringResource(R.string.community_wa_sent), color = Acid)
             if(autofilled) Text(stringResource(R.string.community_wa_autofilled), color = Acid)
             OutlinedTextField(code, { code = it.filter(Char::isDigit).take(6) }, label = { Text(stringResource(R.string.community_wa_code)) }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword), singleLine = true, modifier = Modifier.fillMaxWidth())
-            Button(enabled = !busy && code.length == 6, onClick = { change("whatsapp/confirm", buildJsonObject { put("challenge_id", data.text("challenge_id")); put("code", code) }, "POST"); code = "" }) { Text(stringResource(R.string.community_wa_confirm)) }
+            Button(enabled = !busy && code.length == 6, onClick = { change("whatsapp/confirm", buildJsonObject { put("challenge_id", data.text("challenge_id")); put("code", code) }, "POST") }) { Text(stringResource(R.string.community_wa_confirm)) }
         }
         if(data.flag("autofill_available")) Text(stringResource(R.string.community_wa_autofill_help), color = Muted, style = MaterialTheme.typography.bodySmall)
         OutlinedTextField(phone, { phone = it.take(30) }, label = { Text(stringResource(R.string.community_wa_phone)) }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone), singleLine = true, modifier = Modifier.fillMaxWidth())
@@ -55,11 +56,13 @@ internal fun CommunityProfileEditor(data: JsonObject, busy: Boolean, save: (Json
     var bio by rememberSaveable(profile) { mutableStateOf(profile.text("bio")) }
     var visibility by rememberSaveable(profile) { mutableStateOf(profile.text("visibility", "members")) }
     var indexable by rememberSaveable(profile) { mutableStateOf(profile.flag("indexable")) }
-    var venues by remember(data) { mutableStateOf((data["venue_ids"] as? JsonArray)?.mapNotNull { (it as? JsonPrimitive)?.longOrNull }?.toSet() ?: emptySet()) }
-    var avatar by remember { mutableStateOf<android.net.Uri?>(null) }
+    var venues by rememberSaveable(data, stateSaver = listSaver<Set<Long>, Long>(save = { it.toList() }, restore = { it.toSet() })) {
+        mutableStateOf((data["venue_ids"] as? JsonArray)?.mapNotNull { (it as? JsonPrimitive)?.longOrNull }?.toSet() ?: emptySet())
+    }
+    var avatar by rememberSaveable { mutableStateOf<android.net.Uri?>(null) }
     val photoPicker = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.GetContent()) { avatar = it }
     var city by rememberSaveable(profile) { mutableLongStateOf(profile.number("city_id")) }
-    var removeAvatar by remember { mutableStateOf(false) }
+    var removeAvatar by rememberSaveable(profile) { mutableStateOf(false) }
     Text(stringResource(R.string.community_profile), style = MaterialTheme.typography.titleLarge)
     OutlinedTextField(name, { name = it.take(80) }, label = { Text(stringResource(R.string.community_name)) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
     OutlinedTextField(handle, { handle = it.lowercase().filter { c -> c in 'a'..'z' || c.isDigit() || c == '_' }.take(40) }, label = { Text(stringResource(R.string.community_handle)) }, modifier = Modifier.fillMaxWidth(), singleLine = true)

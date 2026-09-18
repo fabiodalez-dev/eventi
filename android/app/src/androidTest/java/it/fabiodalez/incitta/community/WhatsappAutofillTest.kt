@@ -39,12 +39,14 @@ class WhatsappAutofillTest {
     private fun callback(id: String? = request.id, code: String? = "123456") = Intent(WhatsappAutofill.ACTION)
         .putExtra("request_id", id).putExtra("code", code)
 
-    @Test fun validCodeIsBoundToTheServerChallengeAndConsumedOnlyOnce() {
+    @Test fun validCodeIsBoundToTheServerChallengeAndStaysReadableUntilCleared() {
         WhatsappAutofill.bind(context, request.id, session.token, challenge)
         assertTrue(WhatsappAutofill.receive(context, callback()))
         assertEquals("123456", WhatsappAutofill.take(context, session.token, challenge))
-        assertNull(WhatsappAutofill.take(context, session.token, challenge))
+        assertEquals("123456", WhatsappAutofill.take(context, session.token, challenge))
         assertFalse(WhatsappAutofill.receive(context, callback()))
+        WhatsappAutofill.clear(context)
+        assertNull(WhatsappAutofill.take(context, session.token, challenge))
         assertNull(store.readWhatsappRequest())
     }
 

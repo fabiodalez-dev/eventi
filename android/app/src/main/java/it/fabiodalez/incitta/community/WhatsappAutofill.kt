@@ -56,7 +56,8 @@ internal object WhatsappAutofill {
         val value = incoming.value ?: return null
         if (!value.request.validFor(token, System.currentTimeMillis())) { clear(context); return null }
         if (value.request.challengeId != challengeId) return null
-        clear(context)
+        // Readable until confirmation, DELETE, a failed send, a session change or a new begin() clears it:
+        // a rotation or a failed confirmation must not lose the code.
         return value.code
     }
 

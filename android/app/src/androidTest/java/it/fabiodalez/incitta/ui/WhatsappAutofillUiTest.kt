@@ -68,7 +68,9 @@ class WhatsappAutofillUiTest {
         compose.runOnIdle {
             assertEquals(challenge, submitted?.get("challenge_id")?.jsonPrimitive?.content)
             assertEquals("123456", submitted?.get("code")?.jsonPrimitive?.content)
-            assertNull(LocalStore(context).readWhatsappRequest())
+            // The form never clears the handshake itself: only a successful confirmation in CommunityScreen does,
+            // so a failed attempt can be retried with the same code.
+            assertEquals(challenge, LocalStore(context).readWhatsappRequest()?.challengeId)
         }
     }
 

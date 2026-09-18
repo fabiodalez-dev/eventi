@@ -72,9 +72,11 @@ fun InCittaApp(viewModel: MainViewModel) {
             }
         }
         var promptedCommunity by androidx.compose.runtime.saveable.rememberSaveable(state.session?.user?.id) { mutableStateOf(false) }
-        LaunchedEffect(state.session?.user?.emailVerified, state.session?.user?.whatsappPrompted) {
+        val userIdle = !tonightOpen && organizerSlug == null && state.selected == null && state.selectedVenue == null && state.bookingDate == null && communityRoute == null
+        // Not marked as prompted while the person is busy: the effect runs again as soon as they are idle.
+        LaunchedEffect(state.session?.user?.emailVerified, state.session?.user?.whatsappPrompted, userIdle) {
             val person = state.session?.user
-            if (person?.emailVerified == true && !person.whatsappVerified && !person.whatsappPrompted && !promptedCommunity) {
+            if (person != null && shouldPromptWhatsapp(person.emailVerified, person.whatsappVerified, person.whatsappPrompted, promptedCommunity, userIdle)) {
                 promptedCommunity = true
                 tonightOpen = false; organizerSlug = null; communityRoute = "whatsapp"
             }
@@ -226,7 +228,8 @@ fun InCittaApp(viewModel: MainViewModel) {
                 state.bookingDate != null -> ReservationScreen(state, padding, viewModel::reserve, viewModel::goBack) { state.bookingDate?.let(viewModel::startReservation) }
                 communityRoute != null -> androidx.compose.runtime.key(state.session?.token) { CommunityScreen(state.session, padding, state.savedIds, communityRoute!!,
                     onBack = { communityRoute = null }, onLogin = { communityRoute = null; viewModel.selectTab(AppTab.ACCOUNT) },
-                    onOpen = { communityRoute = null; viewModel.open(it) }, onSave = viewModel::toggleSaved, onProfileSaved = viewModel::refreshProfile) }
+                    onOpen = { communityRoute = null; viewModel.open(it) }, onSave = viewModel::toggleSaved, onProfileSaved = viewModel::refreshProfile,
+                    onUnauthorized = viewModel::refreshProfile) }
                 selectedVenue != null -> Box(Modifier.fillMaxSize().padding(padding)) {
                     VenueDetailScreen(
                         venue = selectedVenue,
