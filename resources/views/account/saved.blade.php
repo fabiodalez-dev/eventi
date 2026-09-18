@@ -159,11 +159,7 @@
         @endforeach
     @elseif ($occurrences->total() > 0)
         <div class="mt-6" data-results>
-            <div class="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
-            @foreach($occurrences as $occurrence)
-                <div><x-event-card :occurrence="$occurrence" /><a class="inline-flex min-h-12 items-center py-3 text-sm font-semibold underline" href="{{ route('community.compose', $occurrence->id) }}">{{ __('community.publish') }}</a></div>
-            @endforeach
-            </div>
+            <x-event-grid :occurrences="$occurrences->getCollection()" :adaptive="false" />
         </div>
         <div class="mt-8" data-pagination>
             <x-pagination :paginator="$occurrences" :summary="true" />

@@ -300,7 +300,6 @@ fun SavedScreen(
     padding: PaddingValues,
     onOpen: (Occurrence) -> Unit,
     onSave: (Long) -> Unit,
-    onPrivacy: ((Long) -> Unit)? = null,
     onProfile: (() -> Unit)? = null,
 ) {
     val context = LocalContext.current
@@ -348,7 +347,6 @@ fun SavedScreen(
         if (mode != 1) {
             items(items, key = Occurrence::occurrenceId) { occurrence ->
                 EventRow(occurrence, true, onOpen, onSave)
-                if (state.session != null && onPrivacy != null) TextButton(onClick = { onPrivacy(occurrence.occurrenceId) }, modifier = Modifier.padding(horizontal = 18.dp)) { Text(stringResource(R.string.community_save_privacy)) }
             }
         } else {
             item(key = "saved-calendar-grid-$calendarMonth") {
@@ -511,10 +509,9 @@ fun AccountScreen(
     onAppearance: (String) -> Unit = {},
     onSaved: () -> Unit = {},
     onProfileSaved: () -> Unit = {},
-    onCommunity: () -> Unit = {},
 ) {
     if (state.session != null) {
-        ProfileScreen(state, padding, onTickets, onSaved, onLogout, onDeleteAccount, onInterestsSaved, onAppearance, onProfileSaved, onCommunity)
+        ProfileScreen(state, padding, onTickets, onSaved, onLogout, onDeleteAccount, onInterestsSaved, onAppearance, onProfileSaved)
         return
     }
 
