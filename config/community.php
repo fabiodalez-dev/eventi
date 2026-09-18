@@ -9,7 +9,8 @@ return [
     'template' => env('KAPSO_AUTH_TEMPLATE_NAME', 'incitta_verifica_whatsapp'),
     'android_template' => env('KAPSO_ANDROID_AUTH_TEMPLATE_NAME', ''),
     'language' => env('KAPSO_AUTH_TEMPLATE_LANGUAGE', 'it'),
-    'phone_hash_key' => env('WHATSAPP_PHONE_HASH_KEY', env('APP_KEY', '')),
+    // Chiave dedicata, senza ripiego su APP_KEY: vuota, la verifica WhatsApp resta spenta.
+    'phone_hash_key' => env('WHATSAPP_PHONE_HASH_KEY', ''),
     'code_minutes' => 5,
     'max_attempts' => 5,
     'daily_send_limit' => 5,

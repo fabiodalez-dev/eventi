@@ -63,7 +63,7 @@ return [
         'badge_help' => 'Il badge conferma il numero WhatsApp. Non certifica l’identità o la qualità dei consigli.',
         'phone' => 'Numero WhatsApp con prefisso internazionale', 'phone_hint' => 'Per esempio +39 333 1234567',
         'send' => 'Ricevi il codice su WhatsApp', 'code' => 'Codice a 6 cifre', 'confirm' => 'Conferma il numero', 'later' => 'Più tardi',
-        'sent' => 'Codice inviato. Hai 5 minuti per inserirlo.', 'done' => 'Numero verificato. Ora scegli come presentarti.',
+        'sent' => 'Codice inviato. Hai 5 minuti per inserirlo.', 'send_uncertain' => 'Il codice potrebbe non essere arrivato. Se non lo ricevi entro un minuto, richiedine un altro.', 'done' => 'Numero verificato. Ora scegli come presentarti.',
         'active' => 'Il tuo numero WhatsApp è verificato.', 'revoke' => 'Revoca la verifica WhatsApp',
         'revoke_help' => 'Il profilo, i post e i commenti verranno nascosti. Potrai continuare a salvare privatamente e a seguire persone.',
         'revoked' => 'Verifica revocata. I tuoi contenuti pubblici sono nascosti.',

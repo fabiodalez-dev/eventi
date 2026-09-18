@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace App\Services\Community;
 
+use App\Enums\KapsoOutcome;
 use App\Enums\WhatsappDelivery;
+use GuzzleHttp\Exception\ConnectException;
+use GuzzleHttp\Exception\RequestException;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 
@@ -12,8 +15,10 @@ final class KapsoClient
 {
     public function available(): bool
     {
+        // Senza chiave dell'impronta non si può garantire «un numero, un account»: meglio spento.
         return config('community.whatsapp_enabled') && filled(config('community.kapso_key'))
-            && filled(config('community.phone_number_id')) && filled(config('community.template'));
+            && filled(config('community.phone_number_id')) && filled(config('community.template'))
+            && filled(config('community.phone_hash_key'));
     }
 
     public function autofillAvailable(): bool
@@ -21,10 +26,10 @@ final class KapsoClient
         return $this->available() && filled(config('community.android_template'));
     }
 
-    public function send(string $phone, #[\SensitiveParameter] string $code, WhatsappDelivery $delivery = WhatsappDelivery::CopyCode): bool
+    public function send(string $phone, #[\SensitiveParameter] string $code, WhatsappDelivery $delivery = WhatsappDelivery::CopyCode): KapsoOutcome
     {
         if (! $this->available()) {
-            return false;
+            return KapsoOutcome::Rejected;
         }
         try {
             $response = Http::withHeaders(['X-API-Key' => config('community.kapso_key')])
@@ -38,10 +43,23 @@ final class KapsoClient
                         ]],
                 ]);
 
-            return $response->successful() && filled($response->json('messages.0.id'));
-        } catch (ConnectionException) {
-            // Never log an HTTP exception carrying the key, recipient or OTP.
-            return false;
+            return $response->successful() && filled($response->json('messages.0.id')) ? KapsoOutcome::Sent : KapsoOutcome::Rejected;
+        } catch (ConnectionException $exception) {
+            // Mai loggare l'eccezione: porta con sé chiave, destinatario e codice.
+            return $this->neverLeft($exception) ? KapsoOutcome::Rejected : KapsoOutcome::Uncertain;
         }
+    }
+
+    /**
+     * Host non risolto (6) o connessione rifiutata (7): la richiesta non è mai
+     * partita. Ogni altro errore, timeout compreso, può essere arrivato dopo
+     * che Kapso aveva già accettato il messaggio.
+     */
+    private function neverLeft(ConnectionException $exception): bool
+    {
+        $previous = $exception->getPrevious();
+        $context = $previous instanceof ConnectException || $previous instanceof RequestException ? $previous->getHandlerContext() : [];
+
+        return in_array($context['errno'] ?? null, [6, 7], true);
     }
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Community;
 
 use App\DTOs\PageMeta;
+use App\Enums\KapsoOutcome;
 use App\Enums\WhatsappChallengeStatus;
 use App\Enums\WhatsappDelivery;
 use App\Http\Controllers\Controller;
@@ -34,13 +35,16 @@ final class WhatsappController extends Controller
 
     public function send(WhatsappRequest $request, WhatsappVerification $verification): JsonResponse|RedirectResponse
     {
-        $challenge = $verification->request($request->user(), $request->string('phone')->toString(), $request->ip() ?? 'unknown', $request->enum('delivery', WhatsappDelivery::class) ?? WhatsappDelivery::CopyCode);
+        $result = $verification->request($request->user(), $request->string('phone')->toString(), $request->ip() ?? 'unknown', $request->enum('delivery', WhatsappDelivery::class) ?? WhatsappDelivery::CopyCode);
+        $uncertain = $result->outcome === KapsoOutcome::Uncertain;
         if ($request->expectsJson()) {
-            return ApiResponse::item(['challenge_id' => $challenge->id, 'expires_at' => $challenge->expires_at->toIso8601String()]);
+            return ApiResponse::item(['challenge_id' => $result->challenge->id, 'expires_at' => $result->challenge->expires_at->toIso8601String(),
+                'delivery' => $uncertain ? KapsoOutcome::Uncertain->value : KapsoOutcome::Sent->value]);
         }
-        $request->session()->put('whatsapp_challenge', $challenge->id);
+        // Anche con esito incerto il codice può essere arrivato: il modulo di conferma resta aperto.
+        $request->session()->put('whatsapp_challenge', $result->challenge->id);
 
-        return back()->with('status', __('community.whatsapp.sent'));
+        return back()->with('status', __($uncertain ? 'community.whatsapp.send_uncertain' : 'community.whatsapp.sent'));
     }
 
     public function confirm(WhatsappConfirmRequest $request, WhatsappVerification $verification): JsonResponse|RedirectResponse

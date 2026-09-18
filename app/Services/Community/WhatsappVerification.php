@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Community;
 
+use App\DTOs\WhatsappSendResult;
+use App\Enums\KapsoOutcome;
 use App\Enums\WhatsappChallengeStatus;
 use App\Enums\WhatsappDelivery;
 use App\Models\User;
@@ -19,9 +21,11 @@ use Propaganistas\LaravelPhone\PhoneNumber;
 
 final class WhatsappVerification
 {
+    private const IP_DAILY_LIMIT = 10;
+
     public function __construct(private readonly KapsoClient $client) {}
 
-    public function request(User $user, #[\SensitiveParameter] string $input, string $ip, WhatsappDelivery $delivery = WhatsappDelivery::CopyCode): WhatsappChallenge
+    public function request(User $user, #[\SensitiveParameter] string $input, string $ip, WhatsappDelivery $delivery = WhatsappDelivery::CopyCode): WhatsappSendResult
     {
         abort_unless($user->hasVerifiedEmail(), 403, __('community.email_required'));
         if (! $this->client->available()) {
@@ -30,29 +34,31 @@ final class WhatsappVerification
         $phone = (new PhoneNumber($input))->formatE164();
         $fingerprint = $this->fingerprint($phone);
         $code = (string) random_int(100000, 999999);
-        $challenge = Cache::lock('community-whatsapp-requests', 15)->block(3, function () use ($user, $phone, $fingerprint, $code, $ip): WhatsappChallenge {
-            return DB::transaction(function () use ($user, $phone, $fingerprint, $code, $ip): WhatsappChallenge {
+        $ipKey = 'wa-ip:'.hash('sha256', $ip);
+        $challenge = Cache::lock('community-whatsapp-requests', 15)->block(3, function () use ($user, $phone, $fingerprint, $code, $ipKey): WhatsappChallenge {
+            return DB::transaction(function () use ($user, $phone, $fingerprint, $code, $ipKey): WhatsappChallenge {
                 $locked = User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
                 abort_unless($locked->hasVerifiedEmail() && $locked->community_suspended_at === null, 403);
                 $recent = WhatsappChallenge::query()->where(fn ($q) => $q->where('user_id', $user->id)->orWhere('phone_hash', $fingerprint));
-                $keys = ['wa-ip:'.hash('sha256', $ip) => 10, 'wa-global' => config('community.global_daily_send_limit')];
+                // Un invio rifiutato da Kapso non ha raggiunto nessuno: non consuma i tetti
+                // orario e giornaliero, ma resta nel minuto di attesa contro i tentativi a raffica.
+                $delivered = (clone $recent)->where('status', '!=', WhatsappChallengeStatus::Failed->value);
                 if ((clone $recent)->where('created_at', '>', now()->subMinute())->exists()
-                    || (clone $recent)->where('created_at', '>', now()->subHour())->count() >= 3
-                    || (clone $recent)->where('created_at', '>', now()->subDay())->count() >= config('community.daily_send_limit')) {
+                    || (clone $delivered)->where('created_at', '>', now()->subHour())->count() >= 3
+                    || (clone $delivered)->where('created_at', '>', now()->subDay())->count() >= config('community.daily_send_limit')) {
                     throw ValidationException::withMessages(['phone' => __('community.whatsapp.rate_limit')]);
                 }
-                foreach ($keys as $key => $limit) {
-                    if (RateLimiter::tooManyAttempts($key, (int) $limit)) {
-                        throw ValidationException::withMessages(['phone' => __('community.whatsapp.rate_limit')]);
-                    }
+                if (RateLimiter::tooManyAttempts($ipKey, self::IP_DAILY_LIMIT) || RateLimiter::tooManyAttempts('wa-global', (int) config('community.global_daily_send_limit'))) {
+                    throw ValidationException::withMessages(['phone' => __('community.whatsapp.rate_limit')]);
                 }
+                // Il tentativo si conta per IP prima di dire se il numero è libero: altrimenti
+                // la risposta phone_unavailable diventa un oracolo gratuito sui numeri iscritti.
+                RateLimiter::hit($ipKey, 86400);
                 if (User::withTrashed()->where('whatsapp_phone_hash', $fingerprint)->whereKeyNot($user->id)->exists()) {
                     throw ValidationException::withMessages(['phone' => __('community.whatsapp.phone_unavailable')]);
                 }
-                foreach ($keys as $key => $limit) {
-                    RateLimiter::hit($key, 86400);
-                }
-                WhatsappChallenge::query()->where('user_id', $user->id)->whereNull('consumed_at')->update(['consumed_at' => now()]);
+                // Il budget globale paga solo i messaggi che partono davvero.
+                RateLimiter::hit('wa-global', 86400);
 
                 return WhatsappChallenge::query()->create([
                     'id' => (string) Str::uuid(), 'user_id' => $user->id, 'phone' => $phone,
@@ -61,13 +67,23 @@ final class WhatsappVerification
                 ]);
             });
         });
-        $sent = $this->client->send($phone, $code, $delivery);
-        $challenge->update(['status' => $sent ? WhatsappChallengeStatus::Sent : WhatsappChallengeStatus::Failed]);
-        if (! $sent) {
+        // L'invio sta fuori da lock e transazione: Kapso può metterci secondi.
+        $outcome = $this->client->send($phone, $code, $delivery);
+        if ($outcome === KapsoOutcome::Rejected) {
+            // Niente è partito: il codice precedente resta valido e i contatori tornano indietro.
+            $challenge->update(['status' => WhatsappChallengeStatus::Failed, 'consumed_at' => now()]);
+            foreach ([$ipKey, 'wa-global'] as $key) {
+                if ((int) RateLimiter::attempts($key) > 0) {
+                    RateLimiter::decrement($key, 86400);
+                }
+            }
             throw ValidationException::withMessages(['phone' => __('community.whatsapp.send_failed')]);
         }
+        // Anche un esito incerto può aver consegnato il codice nuovo: da qui vale solo quello.
+        $challenge->update(['status' => WhatsappChallengeStatus::Sent]);
+        WhatsappChallenge::query()->where('user_id', $user->id)->whereKeyNot($challenge->id)->whereNull('consumed_at')->update(['consumed_at' => now()]);
 
-        return $challenge;
+        return new WhatsappSendResult($challenge, $outcome);
     }
 
     public function confirm(User $user, string $id, #[\SensitiveParameter] string $code): void
@@ -112,7 +128,9 @@ final class WhatsappVerification
         DB::transaction(function () use ($user, $actor): void {
             $locked = User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
             $locked->forceFill(['whatsapp_phone' => null, 'whatsapp_phone_hash' => null, 'whatsapp_verified_at' => null])->save();
-            WhatsappChallenge::query()->where('user_id', $user->id)->delete();
+            // Consumate e non cancellate: le righe tengono vivi i limiti d'invio, e una
+            // revoca non deve diventare il modo di azzerarli. La cancellazione resta a DeleteAccount.
+            WhatsappChallenge::query()->where('user_id', $user->id)->whereNull('consumed_at')->update(['consumed_at' => now()]);
             activity('community')->causedBy($actor ?? $locked)->performedOn($locked)->event('whatsapp_revoked')->log('whatsapp_revoked');
         });
         $user->refresh();
@@ -120,6 +138,12 @@ final class WhatsappVerification
 
     public function fingerprint(string $phone): string
     {
-        return hash_hmac('sha256', $phone, (string) (config('community.phone_hash_key') ?: config('app.key')));
+        // Nessun ripiego su APP_KEY: ruotarla cambierebbe ogni impronta e riaprirebbe i numeri già usati.
+        $key = (string) config('community.phone_hash_key');
+        if ($key === '') {
+            throw new \RuntimeException('WHATSAPP_PHONE_HASH_KEY is not configured.');
+        }
+
+        return hash_hmac('sha256', $phone, $key);
     }
 }

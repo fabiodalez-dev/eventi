@@ -7,6 +7,7 @@ use App\Actions\Account\RemoveSavedOccurrence;
 use App\Actions\Account\SaveOccurrences;
 use App\Enums\CommunityStatus;
 use App\Enums\EventStatus;
+use App\Enums\KapsoOutcome;
 use App\Enums\ProfileVisibility;
 use App\Enums\VenueStatus;
 use App\Enums\WhatsappChallengeStatus;
@@ -22,12 +23,15 @@ use App\Models\WhatsappChallenge;
 use App\Services\Account\AccountExport;
 use App\Services\Community\Community;
 use App\Services\Community\CommunityModeration;
+use App\Services\Community\KapsoClient;
 use App\Services\Community\WhatsappVerification;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 use Database\Seeders\PageSeeder;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Filament\Facades\Filament;
+use GuzzleHttp\Exception\ConnectException;
+use GuzzleHttp\Promise\Create;
 use Illuminate\Http\Client\Factory;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -37,6 +41,7 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Laravel\Sanctum\Sanctum;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
@@ -704,4 +709,133 @@ it('61 unknown autofill delivery and unconfirmed accounts cannot trigger provide
     communityLogin($this->user->fresh());
     $this->postJson('/api/v1/community/whatsapp', ['phone' => '+393331234567', 'delivery' => 'one_tap'])->assertForbidden();
     Http::assertNothingSent();
+});
+
+function kapsoReplies(mixed $response): void
+{
+    Http::swap(new Factory);
+    Http::preventStrayRequests();
+    Http::fake(['api.kapso.ai/*' => $response]);
+}
+
+function kapsoIpKey(string $ip = '127.0.0.1'): string
+{
+    return 'wa-ip:'.hash('sha256', $ip);
+}
+
+it('62 a rejected delivery keeps the previous code and gives back the send budget', function (): void {
+    communityLogin($this->user);
+    $previous = communityChallenge($this->user, ['created_at' => now()->subMinutes(2)]);
+    kapsoReplies(Http::response(['error' => ['message' => 'provider detail']], 500));
+
+    $this->postJson('/api/v1/community/whatsapp', ['phone' => '+393331234567'])->assertUnprocessable()
+        ->assertJsonPath('error.fields.phone.0', __('community.whatsapp.send_failed'));
+
+    $failed = WhatsappChallenge::query()->whereKeyNot($previous->id)->firstOrFail();
+    expect($failed->status)->toBe(WhatsappChallengeStatus::Failed)->and($failed->consumed_at)->not->toBeNull()
+        ->and($previous->fresh()->consumed_at)->toBeNull()
+        ->and((int) RateLimiter::attempts('wa-global'))->toBe(0)->and((int) RateLimiter::attempts(kapsoIpKey()))->toBe(0);
+    $this->postJson('/api/v1/community/whatsapp/confirm', ['challenge_id' => $previous->id, 'code' => '123456'])->assertOk();
+    expect($this->user->fresh()->isWhatsappVerified())->toBeTrue();
+});
+
+it('63 rejected deliveries count for the cooldown but not for the hourly cap', function (): void {
+    communityChallenge($this->user, ['created_at' => now()->subMinutes(20), 'consumed_at' => now()->subMinutes(10)]);
+    communityChallenge($this->user, ['created_at' => now()->subMinutes(10)]);
+    $verification = app(WhatsappVerification::class);
+    kapsoReplies(Http::response([], 500));
+    expect(fn () => $verification->request($this->user, '+393331234567', '198.51.100.1'))->toThrow(ValidationException::class, __('community.whatsapp.send_failed'));
+
+    kapsoReplies(Http::response(['messages' => [['id' => 'wamid.test']]]));
+    expect(fn () => $verification->request($this->user, '+393331234567', '198.51.100.1'))->toThrow(ValidationException::class, __('community.whatsapp.rate_limit'));
+    Http::assertNothingSent();
+
+    $this->travel(61)->seconds();
+    $result = $verification->request($this->user, '+393331234567', '198.51.100.1');
+    expect($result->outcome)->toBe(KapsoOutcome::Sent)->and($result->challenge->fresh()->status)->toBe(WhatsappChallengeStatus::Sent);
+});
+
+it('64 an uncertain delivery is confirmable, replaces the previous code and stays counted', function (): void {
+    communityLogin($this->user);
+    $previous = communityChallenge($this->user, ['created_at' => now()->subMinutes(2)]);
+    kapsoReplies(Http::failedConnection('cURL error 28: Operation timed out'));
+
+    $response = $this->postJson('/api/v1/community/whatsapp', ['phone' => '+393331234567'])->assertOk()
+        ->assertJsonPath('data.delivery', 'uncertain');
+    $challenge = WhatsappChallenge::findOrFail($response->json('data.challenge_id'));
+    $code = Http::recorded()->first()[0]['template']['components'][0]['parameters'][0]['text'];
+
+    expect($challenge->status)->toBe(WhatsappChallengeStatus::Sent)->and($previous->fresh()->consumed_at)->not->toBeNull()
+        ->and((int) RateLimiter::attempts('wa-global'))->toBe(1)->and((int) RateLimiter::attempts(kapsoIpKey()))->toBe(1);
+    $this->postJson('/api/v1/community/whatsapp/confirm', ['challenge_id' => $challenge->id, 'code' => $code])->assertOk();
+    expect($this->user->fresh()->isWhatsappVerified())->toBeTrue();
+});
+
+it('65 a connection that never left is a rejection, not an uncertain delivery', function (): void {
+    communityLogin($this->user);
+    kapsoReplies(fn ($request) => Create::rejectionFor(new ConnectException('cURL error 7: Failed to connect', $request->toPsrRequest(), null, ['errno' => 7])));
+
+    $this->postJson('/api/v1/community/whatsapp', ['phone' => '+393331234567'])->assertUnprocessable();
+    expect(WhatsappChallenge::firstOrFail()->status)->toBe(WhatsappChallengeStatus::Failed)
+        ->and((int) RateLimiter::attempts('wa-global'))->toBe(0);
+});
+
+it('66 a delivered code consumes the previous one and reports delivery sent', function (): void {
+    communityLogin($this->user);
+    $previous = communityChallenge($this->user, ['created_at' => now()->subMinutes(2)]);
+    $this->postJson('/api/v1/community/whatsapp', ['phone' => '+393331234567'])->assertOk()->assertJsonPath('data.delivery', 'sent');
+    expect($previous->fresh()->consumed_at)->not->toBeNull();
+});
+
+it('67 the website tells the user when delivery is uncertain and keeps the confirmation open', function (): void {
+    kapsoReplies(Http::failedConnection('cURL error 28: Operation timed out'));
+    $this->actingAs($this->user)->from(route('community.whatsapp'))->post(route('community.whatsapp.send'), ['phone' => '+393331234567'])
+        ->assertRedirect(route('community.whatsapp'))
+        ->assertSessionHas('status', __('community.whatsapp.send_uncertain'))
+        ->assertSessionHas('whatsapp_challenge', WhatsappChallenge::query()->value('id'));
+});
+
+it('68 revoking does not reset send limits nor leave a pending code usable', function (): void {
+    communityLogin($this->user);
+    $response = $this->postJson('/api/v1/community/whatsapp', ['phone' => '+393331234567'])->assertOk();
+    $this->deleteJson('/api/v1/community/whatsapp')->assertOk();
+
+    expect(WhatsappChallenge::findOrFail($response->json('data.challenge_id'))->consumed_at)->not->toBeNull();
+    $this->postJson('/api/v1/community/whatsapp', ['phone' => '+393331234567'])->assertUnprocessable()
+        ->assertJsonPath('error.fields.phone.0', __('community.whatsapp.rate_limit'));
+    Http::assertSentCount(1);
+
+    $pending = communityChallenge($this->user, ['created_at' => now()->subMinutes(2)]);
+    $this->deleteJson('/api/v1/community/whatsapp')->assertOk();
+    $this->postJson('/api/v1/community/whatsapp/confirm', ['challenge_id' => $pending->id, 'code' => '123456'])->assertUnprocessable();
+    expect($this->user->fresh()->isWhatsappVerified())->toBeFalse();
+});
+
+it('69 an administrator revocation keeps the challenge history', function (): void {
+    $author = communityPerson();
+    $challenge = communityChallenge($author, ['phone' => $author->whatsapp_phone, 'phone_hash' => $author->whatsapp_phone_hash]);
+    app(WhatsappVerification::class)->revoke($author, User::factory()->create());
+
+    expect($challenge->fresh())->not->toBeNull()->and($challenge->fresh()->consumed_at)->not->toBeNull()
+        ->and($author->fresh()->whatsapp_verified_at)->toBeNull();
+});
+
+it('70 probing numbers owned by others is limited per IP before the uniqueness check', function (): void {
+    $owner = communityPerson();
+    $verification = app(WhatsappVerification::class);
+    foreach (range(1, 10) as $attempt) {
+        expect(fn () => $verification->request($this->user, $owner->whatsapp_phone, '203.0.113.9'))
+            ->toThrow(ValidationException::class, __('community.whatsapp.phone_unavailable'));
+    }
+    expect(fn () => $verification->request($this->user, $owner->whatsapp_phone, '203.0.113.9'))
+        ->toThrow(ValidationException::class, __('community.whatsapp.rate_limit'));
+    expect((int) RateLimiter::attempts('wa-global'))->toBe(0);
+    Http::assertNothingSent();
+});
+
+it('71 refuses to fingerprint numbers or enable verification without a dedicated key', function (): void {
+    config(['community.phone_hash_key' => '', 'app.key' => 'base64:'.base64_encode(random_bytes(32))]);
+
+    expect(fn () => app(WhatsappVerification::class)->fingerprint('+393331234567'))->toThrow(RuntimeException::class)
+        ->and(app(KapsoClient::class)->available())->toBeFalse();
 });

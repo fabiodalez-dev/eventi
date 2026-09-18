@@ -92,7 +92,7 @@ class RunInstallationTask
     }
 
     /**
-     * Le variabili che finiscono nel `.env`: tredici risposte, due valori
+     * Le variabili che finiscono nel `.env`: tredici risposte, tre valori
      * generati, e nient'altro.
      *
      * Le altre ~76 di `.env.example` non compaiono qui e restano al valore del
@@ -144,6 +144,13 @@ class RunInstallationTask
 
             /* Generata, non chiesta: senza, `/stato` risponde 404 a chiunque. */
             'OPS_HEALTH_TOKEN' => 'base64:'.base64_encode(random_bytes(32)),
+
+            /*
+             * Generata anche questa, ma conservata se c'è già: ruotarla
+             * cambierebbe ogni impronta dei numeri WhatsApp, e un numero già
+             * usato tornerebbe libero per un secondo account.
+             */
+            'WHATSAPP_PHONE_HASH_KEY' => (string) config('community.phone_hash_key') ?: base64_encode(random_bytes(32)),
         ];
 
         if ($values['MAIL_MAILER'] === 'smtp') {
