@@ -25,6 +25,7 @@ import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material.icons.outlined.People
+import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.HorizontalDivider
@@ -61,10 +62,40 @@ fun InCittaApp(viewModel: MainViewModel) {
     InCittaTheme(light = state.appearance == "light") {
         var organizerSlug by remember { mutableStateOf<String?>(null) }
         var communityRoute by remember { mutableStateOf<String?>(null) }
+        var carpoolRoute by remember { mutableStateOf<String?>(null) }
+        var returnCarpool by remember { mutableStateOf<String?>(null) }
+        var communityTotal by remember(state.session?.token) { androidx.compose.runtime.mutableIntStateOf(0) }
+        val communityRevision by it.fabiodalez.incitta.data.CommunityUpdates.revision.collectAsStateWithLifecycle()
+        val appContext = androidx.compose.ui.platform.LocalContext.current
+        val appUri = androidx.compose.ui.platform.LocalUriHandler.current
+        fun openDestination(url: String) {
+            val target = it.fabiodalez.incitta.data.CommunityDestination.parse(url, it.fabiodalez.incitta.BuildConfig.API_BASE_URL)
+            if(target != null) {
+                organizerSlug = null
+                if(target.area == "carpool") { communityRoute = null; carpoolRoute = target.route }
+                else { carpoolRoute = null; communityRoute = target.route }
+            } else if(url.startsWith(it.fabiodalez.incitta.BuildConfig.API_BASE_URL.substringBefore("/api/")+"/")) {
+                val uri = android.net.Uri.parse(url)
+                when(uri.pathSegments.firstOrNull()) {
+                    "eventi" -> uri.pathSegments.getOrNull(1)?.let(viewModel::openSlug)
+                    "locali" -> uri.pathSegments.getOrNull(1)?.let(viewModel::openVenueSlug)
+                    "organizzatori" -> organizerSlug = uri.pathSegments.getOrNull(1)
+                    else -> appUri.openUri(url)
+                }
+                carpoolRoute = null; communityRoute = null
+            }
+        }
         var tonightOpen by remember { mutableStateOf(false) }
         val whatsappCode by it.fabiodalez.incitta.community.WhatsappAutofill.received.collectAsStateWithLifecycle()
         val tonightState = androidx.compose.runtime.saveable.rememberSaveableStateHolder()
-        LaunchedEffect(state.tab) { tonightOpen = false; communityRoute = null }
+        LaunchedEffect(state.tab) { tonightOpen = false; communityRoute = null; carpoolRoute = null }
+        LaunchedEffect(state.communityDestination) {
+            state.communityDestination?.let { tonightOpen = false; openDestination(it); viewModel.consumeCommunityDestination(it) }
+        }
+        LaunchedEffect(state.session?.token) {
+            if(state.session == null) { carpoolRoute = null; communityRoute = null; communityTotal = 0 }
+            else returnCarpool?.let { carpoolRoute = it; communityRoute = null; returnCarpool = null }
+        }
         LaunchedEffect(whatsappCode, state.session?.token) {
             if (it.fabiodalez.incitta.community.shouldNavigateToWhatsapp(whatsappCode, state.session?.token, System.currentTimeMillis())) {
                 tonightOpen = false; organizerSlug = null; communityRoute = "whatsapp"
@@ -84,8 +115,21 @@ fun InCittaApp(viewModel: MainViewModel) {
         val imeVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
         val accessibility = androidx.compose.ui.platform.LocalContext.current.getSystemService(android.content.Context.ACCESSIBILITY_SERVICE) as? android.view.accessibility.AccessibilityManager
         val lifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
+        LaunchedEffect(lifecycle, state.session?.token, communityRevision) {
+            val token = state.session?.token ?: return@LaunchedEffect
+            val store = it.fabiodalez.incitta.data.LocalStore(appContext)
+            val cpApi = it.fabiodalez.incitta.data.CarpoolApi(it.fabiodalez.incitta.data.ApiClient(store.installationId), token, store)
+            lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.RESUMED) {
+                while(true) {
+                    try { communityTotal = (cpApi.get("summary")["data"] as? kotlinx.serialization.json.JsonObject)?.get("total")?.let { (it as? kotlinx.serialization.json.JsonPrimitive)?.content?.toIntOrNull() } ?: 0 }
+                    catch(e: kotlinx.coroutines.CancellationException) { throw e }
+                    catch(_: Exception) { }
+                    kotlinx.coroutines.delay(30_000)
+                }
+            }
+        }
         var lastBannerImpression by remember { mutableStateOf<Long?>(null) }
-        val eventList = !tonightOpen && organizerSlug == null && state.tab == AppTab.HOME && state.selected == null && state.selectedVenue == null
+        val eventList = carpoolRoute == null && communityRoute == null && !tonightOpen && organizerSlug == null && state.tab == AppTab.HOME && state.selected == null && state.selectedVenue == null
         var navigationRevealed by remember(state.tab, state.selected?.slug, state.selectedVenue?.slug, organizerSlug, tonightOpen) { mutableStateOf(false) }
         val threshold = with(LocalDensity.current) { 96.dp.toPx() }
         val navigationRequired = !tonightOpen && !eventList && state.selected == null && state.selectedVenue == null
@@ -153,8 +197,13 @@ fun InCittaApp(viewModel: MainViewModel) {
                     Icon(Icons.Outlined.BookmarkBorder, if (occurrence.occurrenceId in state.savedIds) "Rimuovi dai salvati" else "Salva questa data", tint = if (occurrence.occurrenceId in state.savedIds) Acid else Paper)
                 }
             }
-            androidx.compose.material3.IconButton(onClick = { tonightOpen = false; organizerSlug = null; communityRoute = "feed" }) {
+            androidx.compose.material3.IconButton(onClick = { tonightOpen = false; organizerSlug = null; carpoolRoute = null; communityRoute = "feed" }) {
                 Icon(androidx.compose.material.icons.Icons.Outlined.People, androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.community_title), tint = Paper)
+            }
+            androidx.compose.material3.IconButton(onClick = { tonightOpen = false; organizerSlug = null; communityRoute = null; carpoolRoute = "inbox" }) {
+                androidx.compose.material3.BadgedBox(badge = { if(communityTotal > 0) androidx.compose.material3.Badge { Text(if(communityTotal > 99) "99+" else communityTotal.toString()) } }) {
+                    Icon(androidx.compose.material.icons.Icons.Outlined.Notifications, cpText("notice_summary", "count" to communityTotal), tint = Paper)
+                }
             }
             HeaderThemeSwitch(state.appearance, viewModel::toggleQuickAppearance)
         }
@@ -196,12 +245,12 @@ fun InCittaApp(viewModel: MainViewModel) {
                         windowInsets = WindowInsets(0, 0, 0, 0),
                         contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 0.dp),
                     ) {
-                        NavItem(state.tab, AppTab.HOME, "Home", Icons.Outlined.Home, { tonightOpen = false; organizerSlug = null; viewModel.selectTab(it) })
-                        NavItem(state.tab, AppTab.EVENTS, "Eventi", Icons.Outlined.Event, { tonightOpen = false; organizerSlug = null; viewModel.selectTab(it) })
-                        NavItem(state.tab, AppTab.MAP, "Mappa", Icons.Outlined.Map, { tonightOpen = false; organizerSlug = null; viewModel.selectTab(it) })
-                        NavItem(state.tab, AppTab.SEARCH, "Cerca", Icons.Outlined.Search, { tonightOpen = false; organizerSlug = null; viewModel.selectTab(it) })
-                        NavItem(state.tab, AppTab.SAVED, "Salvati", Icons.Outlined.BookmarkBorder, { tonightOpen = false; organizerSlug = null; viewModel.selectTab(it) })
-                        NavItem(if (state.tab == AppTab.TICKETS) AppTab.ACCOUNT else state.tab, AppTab.ACCOUNT, "Profilo", Icons.Outlined.AccountCircle, { tonightOpen = false; organizerSlug = null; viewModel.selectTab(it) })
+                        NavItem(state.tab, AppTab.HOME, "Home", Icons.Outlined.Home, { tonightOpen = false; organizerSlug = null; carpoolRoute = null; communityRoute = null; viewModel.selectTab(it) })
+                        NavItem(state.tab, AppTab.EVENTS, "Eventi", Icons.Outlined.Event, { tonightOpen = false; organizerSlug = null; carpoolRoute = null; communityRoute = null; viewModel.selectTab(it) })
+                        NavItem(state.tab, AppTab.MAP, "Mappa", Icons.Outlined.Map, { tonightOpen = false; organizerSlug = null; carpoolRoute = null; communityRoute = null; viewModel.selectTab(it) })
+                        NavItem(state.tab, AppTab.SEARCH, "Cerca", Icons.Outlined.Search, { tonightOpen = false; organizerSlug = null; carpoolRoute = null; communityRoute = null; viewModel.selectTab(it) })
+                        NavItem(state.tab, AppTab.SAVED, "Salvati", Icons.Outlined.BookmarkBorder, { tonightOpen = false; organizerSlug = null; carpoolRoute = null; communityRoute = null; viewModel.selectTab(it) })
+                        NavItem(if (state.tab == AppTab.TICKETS) AppTab.ACCOUNT else state.tab, AppTab.ACCOUNT, "Profilo", Icons.Outlined.AccountCircle, { tonightOpen = false; organizerSlug = null; carpoolRoute = null; communityRoute = null; viewModel.selectTab(it) })
                     }
                 }
                 }
@@ -211,6 +260,11 @@ fun InCittaApp(viewModel: MainViewModel) {
             val selected = state.selected
 
             when {
+                carpoolRoute != null -> androidx.compose.runtime.key(state.session?.token) { CarpoolScreen(state.session, padding, carpoolRoute!!,
+                    onBack = { carpoolRoute = null },
+                    onLogin = { path -> returnCarpool = path; carpoolRoute = null; viewModel.selectTab(AppTab.ACCOUNT) },
+                    onVerify = { path -> returnCarpool = path; carpoolRoute = null; communityRoute = "whatsapp" },
+                    onDestination = ::openDestination) }
                 tonightOpen && selected == null && selectedVenue == null && state.bookingDate == null -> Box(Modifier.fillMaxSize().padding(padding)) {
                     tonightState.SaveableStateProvider("tonight-${state.session?.user?.id}") {
                     TonightWizard(state.session,
@@ -220,6 +274,7 @@ fun InCittaApp(viewModel: MainViewModel) {
                 }
                 organizerSlug != null -> Box(Modifier.fillMaxSize().padding(padding)) {
                     OrganizerScreen(organizerSlug!!, state.session, state.savedIds,
+                        onVerifyReviews = { organizerSlug = null; communityRoute = "whatsapp" },
                         onLogin = { organizerSlug = null; viewModel.selectTab(AppTab.ACCOUNT) },
                         onBack = { organizerSlug = null }, onOrganizer = { organizerSlug = it },
                         onOpen = { organizerSlug = null; viewModel.open(it) }, onSave = viewModel::toggleSaved)
@@ -227,13 +282,16 @@ fun InCittaApp(viewModel: MainViewModel) {
                 state.bookingDate != null -> ReservationScreen(state, padding, viewModel::reserve, viewModel::goBack) { state.bookingDate?.let(viewModel::startReservation) }
                 communityRoute != null -> androidx.compose.runtime.key(state.session?.token) { CommunityScreen(state.session, padding, state.savedIds, communityRoute!!,
                     onBack = { communityRoute = null }, onLogin = { communityRoute = null; viewModel.selectTab(AppTab.ACCOUNT) },
-                    onOpen = { communityRoute = null; viewModel.open(it) }, onSave = viewModel::toggleSaved, onProfileSaved = viewModel::refreshProfile,
+                    onOpen = { communityRoute = null; viewModel.open(it) }, onSave = viewModel::toggleSaved, onDestination = ::openDestination,
+                    onProfileSaved = { viewModel.refreshProfile(); if(returnCarpool != null) { carpoolRoute = returnCarpool; returnCarpool = null; communityRoute = null } },
                     onUnauthorized = viewModel::refreshProfile) }
                 selectedVenue != null -> Box(Modifier.fillMaxSize().padding(padding)) {
                     VenueDetailScreen(
                         venue = selectedVenue,
+                        onVerifyReviews = { communityRoute = "whatsapp" },
+                        reportReview = { id, body -> viewModel.reportVenueReview(requireNotNull(selectedVenue.slug), id, body) },
                         loadReviews = { page -> viewModel.venueReviews(requireNotNull(selectedVenue.slug), page) },
-                        submitReview = { rating, body -> viewModel.submitVenueReview(requireNotNull(selectedVenue.slug), rating, body) },
+                        submitReview = { rating, body, revision -> viewModel.submitVenueReview(requireNotNull(selectedVenue.slug), rating, body, revision) },
                         deleteReview = { viewModel.deleteVenueReview(requireNotNull(selectedVenue.slug)) },
                         session = state.session,
                         onLogin = { viewModel.selectTab(AppTab.ACCOUNT) },
@@ -259,6 +317,8 @@ fun InCittaApp(viewModel: MainViewModel) {
                         onOpenEvent = viewModel::open,
                         onReserve = viewModel::startReservation,
                         onOrganizer = { organizerSlug = it },
+                        carpoolVerified = state.session?.user?.whatsappVerified == true && state.session?.user?.emailVerified == true,
+                        onCarpool = { id, offer -> carpoolRoute = if(offer) "create/$id" else "occurrences/$id" },
                         comments = {
                             EventCommentsSection(
                                 slug = selected.slug,
@@ -337,7 +397,8 @@ fun InCittaApp(viewModel: MainViewModel) {
                         onAppearance = viewModel::setAppearance,
                         onSaved = { viewModel.selectTab(AppTab.SAVED) },
                         onProfileSaved = viewModel::refreshProfile,
-                        onCommunity = { communityRoute = "feed" },
+                        onCommunity = { carpoolRoute = null; communityRoute = "feed" },
+                        onCarpool = { carpoolRoute = "me" }, onCarpoolMessages = { carpoolRoute = "chats" }, onCommunityInbox = { carpoolRoute = "inbox" }, communityTotal = communityTotal,
                     )
                     AppTab.CALENDAR -> CalendarScreen(state, padding, viewModel::open, viewModel::toggleSaved) { viewModel.selectTab(AppTab.HOME) }
                     AppTab.VENUES -> VenuesScreen(state, padding, viewModel::openVenue) { viewModel.selectTab(AppTab.HOME) }

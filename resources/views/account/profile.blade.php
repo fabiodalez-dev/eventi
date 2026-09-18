@@ -58,6 +58,9 @@
                 </a>
             @endforeach
         </nav>
+        @if(config('carpool.enabled'))
+        <section class="space-y-4 border-y border-line py-6" aria-labelledby="profile-carpool"><h2 id="profile-carpool" class="text-section">{{ __('carpool.title') }}</h2><div class="flex flex-wrap gap-4">@foreach(['carpool.index' => 'mine', 'carpool.chats' => 'messages', 'carpool.requirements' => 'requirements'] as $destination => $label)<x-button variant="secondary" :href="route($destination)">{{ __('carpool.'.$label) }}</x-button>@endforeach</div></section>
+        @endif
         <section aria-labelledby="profile-appearance">
             <h2 id="profile-appearance" class="text-section">Aspetto</h2>
             <x-appearance-picker />

@@ -66,6 +66,11 @@
                 {{ __('account.nav.feed') }}
             </a>
 
+            @if(config('carpool.enabled'))
+            @foreach(['carpool.index' => 'mine', 'carpool.chats' => 'messages'] as $destination => $label)
+                <a role="menuitem" href="{{ route($destination) }}" class="flex min-h-12 items-center justify-between gap-3 border-b-2 border-line px-3.5 py-2.5 font-display text-[0.625rem] font-extrabold tracking-[0.14em] uppercase hover:bg-accent hover:text-on-accent">{{ __('carpool.'.$label) }}<span data-community-count="{{ $label === 'mine' ? 'pending' : 'conversations' }}" hidden></span></a>
+            @endforeach
+            @endif
             @if(config('community.enabled'))
                 @foreach(['community.feed' => 'nav', 'community.inbox' => 'inbox'] as $destination => $label)
                     <a role="menuitem" href="{{ route($destination) }}" class="border-b-2 border-line px-3.5 py-2.5 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.14em] uppercase transition-colors hover:bg-accent hover:text-on-accent">{{ __('community.'.$label) }}</a>

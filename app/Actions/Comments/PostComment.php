@@ -55,7 +55,7 @@ final class PostComment
              * Le notifiche partono **dopo il commit**: se la transazione
              * fallisse, avremmo già avvisato qualcuno di un commento che non
              * esiste. `afterCommit` è la stessa cautela che usa
-             * `VenueReview::booted()` per invalidare la cache.
+             * `CatalogReview::booted()` per invalidare la cache.
              */
             DB::afterCommit(function () use ($commento, $user): void {
                 $commento->loadMissing(['parent.user', 'event.venue', 'event.organizer']);

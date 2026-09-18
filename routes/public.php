@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Http\Controllers\Api\V1\SponsorshipBannerController;
 use App\Http\Controllers\Web\CalendarController;
 use App\Http\Controllers\Web\CalendarWizardController;
+use App\Http\Controllers\Web\CatalogReviewController;
 use App\Http\Controllers\Web\EventCommentController;
 use App\Http\Controllers\Web\EventController;
 use App\Http\Controllers\Web\EventListController;
@@ -20,7 +21,6 @@ use App\Http\Controllers\Web\SearchSuggestionsController;
 use App\Http\Controllers\Web\TonightController;
 use App\Http\Controllers\Web\VenueApplicationController;
 use App\Http\Controllers\Web\VenueController;
-use App\Http\Controllers\Web\VenueReviewController;
 use App\Http\Middleware\CachePage;
 use App\Http\Middleware\PersonalizeDiscovery;
 use Illuminate\Support\Facades\Route;
@@ -96,7 +96,7 @@ Route::get('/calendario/{month}', CalendarController::class)
 
 Route::get('/cerca', SearchController::class)->name('search');
 Route::get('/cerca/suggerimenti', SearchSuggestionsController::class)
-    ->middleware('throttle:120,1,search-suggestions')->name('search.suggestions');
+    ->middleware('throttle:120,1')->name('search.suggestions');
 
 Route::get('/eventi/{slug}/segnala', [ReportController::class, 'createForEvent'])->name('events.report');
 Route::post('/eventi/{slug}/segnala', [ReportController::class, 'storeForEvent'])
@@ -147,13 +147,17 @@ Route::post('/registra-il-tuo-locale', [VenueApplicationController::class, 'stor
  * più largo, perché reagire è un gesto che si ripete e scrivere no.
  */
 Route::post('/eventi/{slug}/commenti', [EventCommentController::class, 'store'])
-    ->middleware(['auth', 'verified', 'throttle:10,60,event-comment'])->name('events.comments.store');
+    ->middleware(['auth', 'verified', 'throttle:10,60'])->name('events.comments.store');
 Route::delete('/eventi/{slug}/commenti/{comment}', [EventCommentController::class, 'destroy'])
-    ->middleware(['auth', 'throttle:30,60,event-comment-delete'])->name('events.comments.destroy');
+    ->middleware(['auth', 'throttle:30,60'])->name('events.comments.destroy');
 Route::post('/eventi/{slug}/commenti/{comment}/reazione', [EventCommentController::class, 'react'])
-    ->middleware(['auth', 'verified', 'throttle:120,1,event-comment-reaction'])->name('events.comments.react');
+    ->middleware(['auth', 'verified', 'throttle:120,1'])->name('events.comments.react');
 
-Route::post('/locali/{slug}/recensione', [VenueReviewController::class, 'store'])->middleware(['auth', 'throttle:10,60,venue-review'])->name('venues.review.store');
-Route::delete('/locali/{slug}/recensione', [VenueReviewController::class, 'destroy'])->middleware(['auth', 'throttle:10,60,venue-review-delete'])->name('venues.review.destroy');
+Route::post('/locali/{slug}/recensione', [CatalogReviewController::class, 'store'])->defaults('type', 'venue')->middleware(['auth', 'throttle:10,60'])->name('venues.review.store');
+Route::post('/organizzatori/{slug}/recensione', [CatalogReviewController::class, 'store'])->defaults('type', 'organizer')->middleware(['auth', 'throttle:10,60'])->name('organizers.review.store');
+Route::delete('/locali/{slug}/recensione', [CatalogReviewController::class, 'destroy'])->defaults('type', 'venue')->middleware(['auth', 'throttle:10,60'])->name('venues.review.destroy');
+Route::delete('/organizzatori/{slug}/recensione', [CatalogReviewController::class, 'destroy'])->defaults('type', 'organizer')->middleware(['auth', 'throttle:10,60'])->name('organizers.review.destroy');
+Route::post('/locali/{slug}/recensioni/{review}/segnala', [CatalogReviewController::class, 'report'])->defaults('type', 'venue')->whereNumber('review')->middleware(['auth', 'throttle:10,60'])->name('venues.review.report');
+Route::post('/organizzatori/{slug}/recensioni/{review}/segnala', [CatalogReviewController::class, 'report'])->defaults('type', 'organizer')->whereNumber('review')->middleware(['auth', 'throttle:10,60'])->name('organizers.review.report');
 
-Route::post('/contatta/{type}/{slug}', [PublicContactController::class, 'store'])->whereIn('type', ['venues', 'organizers'])->middleware('throttle:5,60,public-contact')->name('public.contact');
+Route::post('/contatta/{type}/{slug}', [PublicContactController::class, 'store'])->whereIn('type', ['venues', 'organizers'])->middleware('throttle:5,60')->name('public.contact');

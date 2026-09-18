@@ -7,6 +7,7 @@ namespace App\Providers;
 use App\Listeners\RevokeInvalidFcmToken;
 use App\Models\AdmissionTicket;
 use App\Models\Booking;
+use App\Models\CatalogReview;
 use App\Models\Category;
 use App\Models\City;
 use App\Models\CommunityComment;
@@ -31,7 +32,6 @@ use App\Models\TicketTier;
 use App\Models\User;
 use App\Models\Venue;
 use App\Models\VenueApplication;
-use App\Models\VenueReview;
 use App\Observers\CategoryObserver;
 use App\Observers\CityObserver;
 use App\Observers\EventObserver;
@@ -40,6 +40,7 @@ use App\Observers\TagObserver;
 use App\Observers\TicketingObserver;
 use App\Observers\TicketTierObserver;
 use App\Observers\VenueObserver;
+use App\Policies\CatalogReviewPolicy;
 use App\Policies\CategoryPolicy;
 use App\Policies\CityPolicy;
 use App\Policies\CommunityCommentPolicy;
@@ -59,7 +60,6 @@ use App\Policies\TicketTierPolicy;
 use App\Policies\UserPolicy;
 use App\Policies\VenueApplicationPolicy;
 use App\Policies\VenuePolicy;
-use App\Policies\VenueReviewPolicy;
 use App\Services\Geo\AddressGeocoder;
 use App\Services\Geo\GeoQueryInterface;
 use App\Services\Geo\MariaDbGeoQuery;
@@ -388,6 +388,7 @@ class AppServiceProvider extends ServiceProvider
             'community_post' => CommunityPost::class,
             'community_comment' => CommunityComment::class,
             'event_comment' => EventComment::class,
+            'catalog_review' => CatalogReview::class,
         ]);
 
         // `business_date` ed `effective_ends_at` sono calcolate dall'observer a
@@ -454,9 +455,9 @@ class AppServiceProvider extends ServiceProvider
          */
         Gate::define('viewApiDocs', static fn (?User $user): bool => $user?->isEditorialStaff() === true);
 
-        Gate::policy(VenueReview::class, VenueReviewPolicy::class);
+        Gate::policy(CatalogReview::class, CatalogReviewPolicy::class);
         User::deleting(static function (User $user): void {
-            VenueReview::query()->where('user_id', $user->id)->each(static fn (VenueReview $review) => $review->delete());
+            CatalogReview::query()->where('user_id', $user->id)->each(static fn (CatalogReview $review) => $review->delete());
         });
         Gate::policy(Venue::class, VenuePolicy::class);
         Gate::policy(Event::class, EventPolicy::class);

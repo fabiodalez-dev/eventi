@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ContactMode;
+use App\Models\Concerns\HasCatalogReviews;
 use App\Models\Concerns\HasSafeEditorContent;
 use App\Support\ContentVersion;
 use Illuminate\Database\Eloquent\Builder;
@@ -18,6 +19,7 @@ use Spatie\Sluggable\SlugOptions;
  */
 class Organizer extends Model
 {
+    use HasCatalogReviews;
     use HasSafeEditorContent;
 
     /** @param Builder<Organizer> $query */

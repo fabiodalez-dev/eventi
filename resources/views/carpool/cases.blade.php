@@ -1,0 +1,3 @@
+<x-layouts.app :narrow="true" :meta="$meta"><div class="mx-auto w-full max-w-4xl">@include('carpool.nav')
+<h1 class="text-hero">{{ __('carpool.cases') }}</h1><div class="mt-8 divide-y divide-line">@foreach($cases as $case)<a class="flex min-h-16 items-center justify-between gap-4 py-5" href="{{ route('carpool.case',$case['id']) }}"><span>{{ __('carpool.case',['id'=>$case['id']]) }}</span><span class="text-sm text-ink-muted">{{ __('carpool.CarpoolCaseStatus.'.($case['status'] instanceof \BackedEnum ? $case['status']->value : $case['status'])) }}</span></a>@endforeach</div>@include('carpool.partials.report')
+</div></x-layouts.app>

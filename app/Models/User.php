@@ -28,6 +28,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Musonza\Chat\Traits\Messageable;
 use Overtrue\LaravelFollow\Traits\Followable;
 use Overtrue\LaravelFollow\Traits\Follower;
 use Spatie\Permission\Traits\HasRoles;
@@ -49,6 +50,7 @@ class User extends Authenticatable implements FilamentUser, HasTenants, MustVeri
     use HasFactory;
 
     use HasRoles;
+    use Messageable;
     use Notifiable;
     use SoftDeletes;
 
@@ -91,7 +93,13 @@ class User extends Authenticatable implements FilamentUser, HasTenants, MustVeri
     public function isWhatsappVerified(): bool
     {
         return $this->hasVerifiedEmail() && $this->whatsapp_verified_at !== null
-            && $this->whatsapp_phone_hash !== null && $this->community_suspended_at === null && ! $this->trashed();
+            && $this->whatsapp_phone_hash !== null && $this->community_suspended_at === null && $this->social_suspended_at === null && ! $this->trashed();
+    }
+
+    /** @return HasOne<CarpoolProfile, $this> */
+    public function carpoolProfile(): HasOne
+    {
+        return $this->hasOne(CarpoolProfile::class);
     }
 
     /** @return HasOne<CommunityProfile, $this> */
@@ -424,6 +432,8 @@ class User extends Authenticatable implements FilamentUser, HasTenants, MustVeri
             'whatsapp_verified_at' => 'immutable_datetime',
             'whatsapp_prompted_at' => 'immutable_datetime',
             'community_suspended_at' => 'immutable_datetime',
+            'social_suspended_at' => 'immutable_datetime',
+            'carpool_suspended_at' => 'immutable_datetime',
             'remembered_location' => 'encrypted:array',
             'location_expires_at' => 'datetime',
             'password' => 'hashed',

@@ -274,3 +274,11 @@ function completeThroughAdmin(): void
         'password_confirmation' => 'password-lunga-1',
     ])->assertRedirect(InstallerStep::Run->url());
 }
+
+require_once __DIR__.'/Support/Carpool.php';
+uses()->beforeEach(function (): void {
+    cpSetup($this);
+})->afterEach(function (): void {
+    Carbon::setTestNow();
+    CarbonImmutable::setTestNow();
+})->in('Feature/Carpool');

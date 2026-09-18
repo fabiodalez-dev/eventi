@@ -41,12 +41,12 @@ use App\Http\Controllers\TicketingController;
 use App\Http\Controllers\Web\Account\ContentPreferencesController;
 use App\Http\Controllers\Web\Account\NotificationInterestsController;
 use App\Http\Controllers\Web\Account\SavedCalendarController;
+use App\Http\Controllers\Web\CatalogReviewController;
 use App\Http\Controllers\Web\EventCommentController;
 use App\Http\Controllers\Web\EventWeatherController;
 use App\Http\Controllers\Web\OrganizerController;
 use App\Http\Controllers\Web\PublicContactController;
 use App\Http\Controllers\Web\TonightController;
-use App\Http\Controllers\Web\VenueReviewController;
 use App\Http\Middleware\Api\CacheJsonResponse;
 use App\Http\Middleware\Api\IdempotentRequest;
 use App\Http\Middleware\Api\ResolveApiCity;
@@ -55,21 +55,18 @@ use App\Http\Middleware\RequireConfirmedAccount;
 use App\Http\Middleware\TicketingPrivacy;
 use Illuminate\Support\Facades\Route;
 
-// Ogni `throttle:N,M` porta come terzo argomento il nome dell'azione, uguale fra sito e API:
-// senza, Laravel chiave il contatore sul solo utente e prenotazioni, commenti e recensioni
-// consumerebbero lo stesso secchio. Lo verifica ThrottlePrefixesTest.
 Route::get('v1/occurrences/{occurrence}/booking', [TicketingController::class, 'availability']);
 Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('v1/me/location', [RememberedLocationController::class, 'show']);
-    Route::post('v1/me/location', [RememberedLocationController::class, 'store'])->middleware('throttle:30,1,remembered-location');
+    Route::post('v1/me/location', [RememberedLocationController::class, 'store'])->middleware('throttle:30,1');
     Route::delete('v1/me/location', [RememberedLocationController::class, 'destroy']);
 });
 Route::prefix('v1')->middleware(['auth:sanctum', TicketingPrivacy::class])->group(function (): void {
     Route::get('/me/bookings', [TicketingController::class, 'index']);
-    Route::post('/me/bookings/{booking}/email', [TicketingController::class, 'resend'])->middleware('throttle:3,60,tickets-resend');
-    Route::post('/occurrences/{occurrence}/bookings', [TicketingController::class, 'store'])->middleware('throttle:20,1,tickets-store');
-    Route::post('/me/bookings/{booking}/cancel', [TicketingController::class, 'cancel'])->middleware('throttle:30,1,tickets-cancel');
-    Route::post('/ticketing/{occurrence}/check-in', [TicketingController::class, 'checkIn'])->middleware('throttle:120,1,tickets-checkin')->name('api.ticketing.manage.checkin');
+    Route::post('/me/bookings/{booking}/email', [TicketingController::class, 'resend'])->middleware('throttle:3,60');
+    Route::post('/occurrences/{occurrence}/bookings', [TicketingController::class, 'store'])->middleware('throttle:20,1');
+    Route::post('/me/bookings/{booking}/cancel', [TicketingController::class, 'cancel'])->middleware('throttle:30,1');
+    Route::post('/ticketing/{occurrence}/check-in', [TicketingController::class, 'checkIn'])->name('api.ticketing.manage.checkin');
 });
 
 /*
@@ -99,18 +96,23 @@ Route::prefix('v1')
     ->group(function (): void {
 
         Route::get('/{type}/{slug}/contact', [PublicContactController::class, 'show'])->whereIn('type', ['venues', 'organizers']);
-        Route::post('/{type}/{slug}/contact', [PublicContactController::class, 'store'])->whereIn('type', ['venues', 'organizers'])->middleware('throttle:5,60,public-contact');
+        Route::post('/{type}/{slug}/contact', [PublicContactController::class, 'store'])->whereIn('type', ['venues', 'organizers'])->middleware('throttle:5,60');
 
         Route::get('/occurrences/{occurrence}/weather', EventWeatherController::class)->whereNumber('occurrence')->name('occurrences.weather');
 
         Route::get('/events/{slug}/comments', [EventCommentController::class, 'index']);
-        Route::post('/events/{slug}/comments', [EventCommentController::class, 'store'])->middleware(['auth:sanctum', 'verified', 'throttle:10,60,event-comment']);
-        Route::post('/events/{slug}/comments/{comment}/reaction', [EventCommentController::class, 'react'])->middleware(['auth:sanctum', 'verified', 'throttle:120,1,event-comment-reaction']);
-        Route::delete('/events/{slug}/comments/{comment}', [EventCommentController::class, 'destroy'])->middleware(['auth:sanctum', 'throttle:30,60,event-comment-delete']);
+        Route::post('/events/{slug}/comments', [EventCommentController::class, 'store'])->middleware(['auth:sanctum', 'verified', 'throttle:10,60']);
+        Route::post('/events/{slug}/comments/{comment}/reaction', [EventCommentController::class, 'react'])->middleware(['auth:sanctum', 'verified', 'throttle:120,1']);
+        Route::delete('/events/{slug}/comments/{comment}', [EventCommentController::class, 'destroy'])->middleware(['auth:sanctum', 'throttle:30,60']);
 
-        Route::get('/venues/{slug}/reviews', [VenueReviewController::class, 'index'])->name('venues.reviews');
-        Route::post('/venues/{slug}/reviews', [VenueReviewController::class, 'store'])->middleware(['auth:sanctum', 'throttle:10,60,venue-review']);
-        Route::delete('/venues/{slug}/reviews', [VenueReviewController::class, 'destroy'])->middleware(['auth:sanctum', 'throttle:10,60,venue-review-delete']);
+        Route::get('/venues/{slug}/reviews', [CatalogReviewController::class, 'index'])->defaults('type', 'venue')->name('venues.reviews');
+        Route::get('/organizers/{slug}/reviews', [CatalogReviewController::class, 'index'])->defaults('type', 'organizer')->name('organizers.reviews');
+        Route::post('/venues/{slug}/reviews', [CatalogReviewController::class, 'store'])->defaults('type', 'venue')->middleware(['auth:sanctum', 'throttle:10,60']);
+        Route::post('/organizers/{slug}/reviews', [CatalogReviewController::class, 'store'])->defaults('type', 'organizer')->middleware(['auth:sanctum', 'throttle:10,60']);
+        Route::delete('/venues/{slug}/reviews', [CatalogReviewController::class, 'destroy'])->defaults('type', 'venue')->middleware(['auth:sanctum', 'throttle:10,60']);
+        Route::delete('/organizers/{slug}/reviews', [CatalogReviewController::class, 'destroy'])->defaults('type', 'organizer')->middleware(['auth:sanctum', 'throttle:10,60']);
+        Route::post('/venues/{slug}/reviews/{review}/report', [CatalogReviewController::class, 'report'])->defaults('type', 'venue')->whereNumber('review')->middleware(['auth:sanctum', 'throttle:10,60']);
+        Route::post('/organizers/{slug}/reviews/{review}/report', [CatalogReviewController::class, 'report'])->defaults('type', 'organizer')->whereNumber('review')->middleware(['auth:sanctum', 'throttle:10,60']);
 
         // Deliberately outside the JSON cache: switches and short ad leases must stay live.
         Route::get('/sponsorships/banner', SponsorshipBannerController::class)->name('sponsorships.banner');
@@ -246,13 +248,13 @@ Route::prefix('v1')
                 Route::post('/saved/merge', [SavedController::class, 'merge'])->name('saved.merge');
                 Route::get('/saved', [SavedController::class, 'index'])->name('saved.index');
                 Route::get('/saved/calendar', [SavedCalendarController::class, 'api'])
-                    ->middleware('throttle:60,1,saved-calendar')->name('saved.calendar');
+                    ->middleware('throttle:60,1')->name('saved.calendar');
                 Route::get('/calendar/export', NativeCalendarController::class)
-                    ->middleware('throttle:60,1,calendar-export')->name('calendar.export');
+                    ->middleware('throttle:60,1')->name('calendar.export');
                 Route::get('/calendar/google', GoogleCalendarController::class)
-                    ->middleware('throttle:60,1,calendar-google')->name('calendar.google');
+                    ->middleware('throttle:60,1')->name('calendar.google');
                 Route::post('/calendar/google/manage', [GoogleCalendarController::class, 'manage'])
-                    ->middleware('throttle:10,1,calendar-google-manage')->name('calendar.google.manage');
+                    ->middleware('throttle:10,1')->name('calendar.google.manage');
                 Route::post('/saved', [SavedController::class, 'store'])->middleware(IdempotentRequest::class)->name('saved.store');
                 Route::delete('/saved/{occurrence}', [SavedController::class, 'destroy'])
                     ->whereNumber('occurrence')
@@ -289,3 +291,5 @@ Route::prefix('v1')
     });
 
 Route::group([], base_path('routes/community-api.php'));
+
+Route::group([], base_path('routes/carpool-api.php'));

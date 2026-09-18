@@ -6,6 +6,8 @@ namespace App\Http\Controllers\Community;
 
 use App\DTOs\PageMeta;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Carpool\ReadNoticesRequest;
+use App\Services\Carpool\UnifiedNotifications;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,9 +20,9 @@ final class InboxController extends Controller
             'meta' => new PageMeta(__('community.inbox'), __('community.inbox'), indexable: false)]);
     }
 
-    public function readAll(Request $request): RedirectResponse
+    public function readAll(ReadNoticesRequest $request): RedirectResponse
     {
-        $request->user()->unreadNotifications()->update(['read_at' => now()]);
+        app(UnifiedNotifications::class)->readAll($request->user(), $request->filled('through') ? $request->integer('through') : null);
 
         return back();
     }

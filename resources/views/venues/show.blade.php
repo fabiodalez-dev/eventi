@@ -163,7 +163,7 @@
                 </section>
             @endif
             <x-public-contact :target="$venue" />
-            <x-venue-reviews :venue="$venue" :reviews="$reviews" />
+            <x-catalog-reviews :subject="$venue" :reviews="$reviews" />
         </div>
 
         <aside class="flex min-w-0 flex-col gap-6">

@@ -20,6 +20,6 @@ final class CommunityNotification extends Notification
     /** @return array<string, mixed> */
     public function toArray(object $notifiable): array
     {
-        return ['title' => __('community.notifications.'.$this->kind), 'body' => __('community.notifications.open'), 'url' => $this->url, 'kind' => $this->kind, 'actor_id' => $this->actorId];
+        return ['category' => 'social', 'path' => parse_url($this->url, PHP_URL_PATH), 'title' => __('community.notifications.'.$this->kind), 'body' => __('community.notifications.open'), 'url' => $this->url, 'kind' => $this->kind, 'actor_id' => $this->actorId];
     }
 }

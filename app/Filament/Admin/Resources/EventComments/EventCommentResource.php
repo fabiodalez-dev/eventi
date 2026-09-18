@@ -34,7 +34,7 @@ use Filament\Tables\Table;
  *
  * ## Il badge conta i nascosti, non i nuovi
  *
- * Su `VenueReviews` il badge conta le recensioni in attesa, perché lì c'è una
+ * Su `CatalogReviews` il badge conta le recensioni in attesa, perché lì c'è una
  * coda da smaltire. I commenti si pubblicano subito: una coda non esiste, e un
  * badge che contasse i commenti nuovi sarebbe un numero che cresce sempre e
  * che nessuno può azzerare. Contare i nascosti invece indica lavoro vero —

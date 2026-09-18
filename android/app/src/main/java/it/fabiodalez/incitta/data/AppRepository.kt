@@ -127,10 +127,13 @@ class AppRepository(context: Context) {
     suspend fun venueReviews(slug: String, page: Int = 1): VenueReviewPage =
         api.get<ApiEnvelope<VenueReviewPage>>("venues/${slug.urlEncoded()}/reviews?page=$page", _session.value?.token).data
 
-    suspend fun submitVenueReview(slug: String, rating: Int, body: String) {
-        api.post<ApiEnvelope<ApiMessage>, VenueReviewBody>("venues/${slug.urlEncoded()}/reviews", VenueReviewBody(rating, body.trim()), requireNotNull(_session.value?.token))
+    suspend fun submitVenueReview(slug: String, rating: Int?, body: String, revision: Int) {
+        api.post<ApiEnvelope<ApiMessage>, VenueReviewBody>("venues/${slug.urlEncoded()}/reviews", VenueReviewBody(rating, body.trim().ifBlank { null }, revision), requireNotNull(_session.value?.token))
     }
 
+    suspend fun reportVenueReview(slug: String, id: Long, body: String) {
+        api.post<ApiEnvelope<kotlinx.serialization.json.JsonObject>, kotlinx.serialization.json.JsonObject>("venues/${slug.urlEncoded()}/reviews/$id/report", kotlinx.serialization.json.buildJsonObject { put("body", kotlinx.serialization.json.JsonPrimitive(body)) }, requireNotNull(_session.value?.token))
+    }
     suspend fun deleteVenueReview(slug: String) {
         api.delete<ApiEnvelope<ApiMessage>>("venues/${slug.urlEncoded()}/reviews", requireNotNull(_session.value?.token))
     }

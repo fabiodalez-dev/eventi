@@ -22,7 +22,7 @@ use function Pest\Laravel\post;
 /**
  * I commenti agli eventi.
  *
- * Il modello è `tests/Feature/Web/VenueReviewsTest.php`: stesso ordine —
+ * Il modello è `tests/Feature/Web/CatalogReviewsTest.php`: stesso ordine —
  * validazione, visibilità, permessi, blocco ottimistico, pannelli.
  */
 beforeEach(function (): void {

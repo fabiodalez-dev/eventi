@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Models\UserBlock;
 use App\Models\WhatsappChallenge;
 use App\Services\Calendar\GoogleCalendarSync;
+use App\Services\Carpool\CarpoolAccount;
 use App\Services\Ticketing\TicketingService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -75,6 +76,7 @@ final class DeleteAccount
             ])->save();
 
             $user->delete();
+            app(CarpoolAccount::class)->erase($user);
         }));
     }
 

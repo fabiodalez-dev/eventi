@@ -52,6 +52,14 @@ enum Permission: string
     case ViewScheduledNotifications = 'notifications.view';
     case ManageScheduledNotifications = 'notifications.manage';
 
+    case ManageCommunity = 'community.manage';
+    case ManageCarpool = 'carpool.manage';
+    case ManageCommunityCases = 'community_cases.manage';
+    case ReadCommunityMessages = 'community_messages.read';
+    case ReadCommunitySecurity = 'community_security.read';
+    case ExportCommunityEvidence = 'community_evidence.export';
+    case ManageCommunityRetention = 'community_retention.manage';
+
     case ManageUsers = 'users.manage';
     case ImpersonateUsers = 'users.impersonate';
 

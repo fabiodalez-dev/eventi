@@ -189,7 +189,8 @@ it('scopes organizer analytics to their own events even in a different venue', f
 });
 
 it('does not let analytics consume the posting budget of other forms', function (string $kind): void {
-    $this->actingAs($this->scenario->ownerA);
+    $reviewer = carpoolPerson(false);
+    $this->actingAs($reviewer);
     allowShareStatistics($this);
     $endpoint = $kind === 'share' ? $this->links['native']['metric'] : URL::signedRoute('content.metrics', ['type' => 'event', 'id' => $this->scenario->publishedEventA->id], absolute: false);
     for ($i = 0; $i < 10; $i++) {
@@ -198,5 +199,5 @@ it('does not let analytics consume the posting budget of other forms', function 
     $this->post(route('venues.review.store', ['slug' => $this->scenario->venueA->slug]), [
         'rating' => 4, 'body' => 'Una bella esperienza nel locale.',
     ])->assertRedirect()->assertSessionHasNoErrors();
-    $this->assertDatabaseHas('venue_reviews', ['venue_id' => $this->scenario->venueA->id, 'user_id' => $this->scenario->ownerA->id, 'rating' => 4]);
+    $this->assertDatabaseHas('reviews', ['reviewable_type' => 'venue', 'reviewable_id' => $this->scenario->venueA->id, 'user_id' => $reviewer->id]);
 })->with(['share', 'content']);

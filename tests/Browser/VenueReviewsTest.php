@@ -2,18 +2,17 @@
 
 declare(strict_types=1);
 
-use App\Enums\VenueReviewStatus;
-use App\Models\User;
+use App\Enums\CatalogReviewStatus;
+use App\Models\CatalogReview;
 use App\Models\Venue;
-use App\Models\VenueReview;
-use App\Services\Reviews\VenueReviews;
+use App\Services\Reviews\CatalogReviews;
 use Database\Seeders\RolesAndPermissionsSeeder;
 
 it('submits stars and text then requires moderation again after editing', function (string $device, bool $busyBrowser): void {
     $city = testCity();
     (new RolesAndPermissionsSeeder)->run();
     $venue = Venue::factory()->approved()->create(['city_id' => $city->id]);
-    $user = User::factory()->create();
+    $user = carpoolPerson(false);
     $this->actingAs($user);
     $page = visit('/locali/'.$venue->slug)->on()->{$device}()
         ->click('[data-consent-banner] button[value="reject_all"]')
@@ -22,12 +21,12 @@ it('submits stars and text then requires moderation again after editing', functi
     // same form repeatedly. One Playwright action must produce one revision.
     $page->page()->locator('#recensioni form:first-of-type button[type="submit"]')->click(['timeout' => 5000]);
     $page->assertSee(__('reviews.pending'));
-    $review = VenueReview::query()->sole();
+    $review = CatalogReview::query()->sole();
     expect($review->revision)->toBe(1);
-    expect($review->rating)->toBe(4)->and($review->status)->toBe(VenueReviewStatus::Pending);
-    $admin = User::factory()->create();
+    expect($review->rating)->toBe(4)->and($review->status)->toBe(CatalogReviewStatus::Pending);
+    $admin = carpoolPerson(false);
     $admin->assignRole('admin');
-    app(VenueReviews::class)->moderate($review, $admin, 'approved', $review->revision, null);
+    app(CatalogReviews::class)->moderate($review, $admin, 'approved', $review->revision, null);
     $page->navigate('/locali/'.$venue->slug)->assertSee(__('reviews.approved'))
         ->assertSee('Un locale accogliente e tranquillo.');
     expect($page->script('document.querySelectorAll("#recensioni article").length'))->toBe(1);

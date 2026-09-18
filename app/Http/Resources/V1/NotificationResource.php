@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Resources\V1;
 
+use App\Services\Carpool\UnifiedNotifications;
 use App\Support\Api\ApiDate;
 use Illuminate\Notifications\DatabaseNotification;
 
@@ -29,7 +30,7 @@ final class NotificationResource
         return [
             'id' => (string) $notification->getKey(),
             'type' => (string) $notification->type,
-            'data' => $notification->data,
+            'data' => app(UnifiedNotifications::class)->destination($notification->data),
             'read' => $notification->read_at !== null,
             'read_at' => ApiDate::instant($notification->read_at, $timezone),
             'created_at' => ApiDate::attribute($notification, 'created_at', $timezone),

@@ -317,3 +317,7 @@ Schedule::call(function (): void {
     User::withTrashed()->where('location_expires_at', '<=', now())
         ->update(['remembered_location' => null, 'location_expires_at' => null]);
 })->name('locations:expire')->daily()->withoutOverlapping();
+
+Schedule::command('carpool:maintain')->everyMinute()->withoutOverlapping(5);
+
+Schedule::command('carpool:purge')->dailyAt('03:40')->withoutOverlapping(60);

@@ -4,8 +4,10 @@ Decisione del proprietario, 7 settembre 2026: Firebase Cloud Messaging per
 Android, configurato dal browser Chrome. Niente Analytics o Gemini attivati.
 Il dominio pubblico cambierà in futuro: non è un'identità stabile del prodotto.
 
-- Firebase deve restare nello stesso progetto al cambio dominio; il package
-  Android esistente e le chiavi di firma non vanno cambiati.
+- Se il dominio passa anche a un nuovo account Firebase, trasferire il progetto
+  oppure crearne uno nuovo e sostituire sia la credenziale server sia
+  `google-services.json`. Il package Android esistente e le chiavi di firma non
+  vanno cambiati solo per il cambio dominio.
 - `APP_URL` governa i collegamenti generati da Laravel. `apiBaseUrl` governa
   l'endpoint della build Android. Nessun segreto Firebase nei repository.
 - I link già distribuiti (`.ics`, email, QR e vecchie app) richiedono redirect

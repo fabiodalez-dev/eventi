@@ -1,11 +1,13 @@
 package it.fabiodalez.incitta.data
 
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.*
 import org.junit.Test
 
 class VenueReviewsTest {
-    private val json = Json { ignoreUnknownKeys = true }
+    private val json = Json { ignoreUnknownKeys = true; explicitNulls = false }
 
     @Test fun `empty public reviews accept null average and no personal review`() {
         val page = json.decodeFromString<ApiEnvelope<VenueReviewPage>>("""{"data":{"count":0,"average":null,"reviews":[],"page":1,"last_page":1,"my_review":null}}""").data
@@ -21,5 +23,14 @@ class VenueReviewsTest {
         assertEquals(5, page.reviews.single().rating)
         assertEquals("rejected", page.myReview?.status)
         assertEquals("Rimuovi i dati personali.", page.myReview?.moderationNote)
+    }
+
+    @Test fun `review updates carry their optimistic revision and omit an empty comment`() {
+        val payload = json.encodeToString(VenueReviewBody(rating = 4, body = null, revision = 3))
+        val objectPayload = json.parseToJsonElement(payload).jsonObject
+
+        assertEquals("4", objectPayload.getValue("rating").jsonPrimitive.content)
+        assertEquals("3", objectPayload.getValue("revision").jsonPrimitive.content)
+        assertFalse(objectPayload.containsKey("body"))
     }
 }
