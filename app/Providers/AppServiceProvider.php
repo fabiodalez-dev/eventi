@@ -9,6 +9,9 @@ use App\Models\AdmissionTicket;
 use App\Models\Booking;
 use App\Models\Category;
 use App\Models\City;
+use App\Models\CommunityComment;
+use App\Models\CommunityPost;
+use App\Models\CommunityProfile;
 use App\Models\Event;
 use App\Models\EventComment;
 use App\Models\EventOccurrence;
@@ -39,6 +42,7 @@ use App\Observers\TicketTierObserver;
 use App\Observers\VenueObserver;
 use App\Policies\CategoryPolicy;
 use App\Policies\CityPolicy;
+use App\Policies\CommunityCommentPolicy;
 use App\Policies\EventCommentPolicy;
 use App\Policies\EventOccurrencePolicy;
 use App\Policies\EventPolicy;
@@ -380,6 +384,9 @@ class AppServiceProvider extends ServiceProvider
             'event' => Event::class,
             'event_occurrence' => EventOccurrence::class,
             'user' => User::class,
+            'community_profile' => CommunityProfile::class,
+            'community_post' => CommunityPost::class,
+            'community_comment' => CommunityComment::class,
             'event_comment' => EventComment::class,
         ]);
 
@@ -469,5 +476,6 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Page::class, PagePolicy::class);
         Gate::policy(Redirect::class, RedirectPolicy::class);
         Gate::policy(EventComment::class, EventCommentPolicy::class);
+        Gate::policy(CommunityComment::class, CommunityCommentPolicy::class);
     }
 }

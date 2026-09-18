@@ -669,6 +669,36 @@ Spegnere la newsletter toglie il consenso dai moduli e svuota la
 programmazione del giovedi, ma **non revoca i consensi gia dati**: sono un atto
 delle persone, non una funzione del sistema.
 
+## Community e verifica WhatsApp
+
+`COMMUNITY_ENABLED=false` spegne la community: le pagine rispondono 404 e i
+collegamenti spariscono da menu e area personale. La verifica WhatsApp ha un
+interruttore suo, `WHATSAPP_VERIFICATION_ENABLED`, e **si accende per ultimo**.
+
+Checklist, nell'ordine:
+
+1. **`WHATSAPP_PHONE_HASH_KEY` prima di tutto.** Senza, la verifica risulta
+   «non disponibile» anche con l'interruttore acceso. L'installer la genera
+   sulle installazioni nuove; altrimenti:
+   `php -r 'echo base64_encode(random_bytes(32)), PHP_EOL;'`.
+   **Attenzione ai server con verifiche già fatte** prima di questa chiave: le
+   impronte sono state calcolate con `APP_KEY`. Per non riaprire quei numeri la
+   chiave dedicata va impostata al valore esatto di `APP_KEY` (prefisso
+   `base64:` compreso), oppure quegli utenti vanno fatti riverificare.
+2. **Mai ruotarla** senza una riverifica: ogni impronta cambierebbe e i numeri
+   già usati tornerebbero liberi (rotazione guidata: issue #103).
+3. `KAPSO_API_KEY`, `KAPSO_PHONE_NUMBER_ID` e i nomi dei template approvati.
+4. `WHATSAPP_VERIFICATION_ENABLED=true`, poi `php artisan config:cache`.
+5. Una prova con un numero di test autorizzato, controllando che nei log non
+   compaiano chiave, destinatario o codice.
+
+**Leggere lo storico dei tentativi** (pannello, utente → Storico tentativi
+WhatsApp): *Inviato* vuol dire che Kapso ha accettato il messaggio oppure che
+la connessione è caduta dopo la partenza — in quel caso l'app ha ricevuto
+`delivery: "uncertain"` e il codice resta valido. *Invio fallito* vuol dire che
+il messaggio non è partito: il codice precedente dell'utente resta valido e il
+tentativo non consuma i limiti orari e giornalieri.
+
 ## Tracciamento degli errori (Sentry)
 
 `SENTRY_LARAVEL_DSN` vuoto in `.env` significa **spento**: il pacchetto non si

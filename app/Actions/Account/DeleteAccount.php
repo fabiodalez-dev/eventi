@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace App\Actions\Account;
 
 use App\Enums\NotificationStatus;
+use App\Models\CommunityComment;
 use App\Models\ScheduledNotification;
 use App\Models\User;
+use App\Models\UserBlock;
+use App\Models\WhatsappChallenge;
 use App\Services\Calendar\GoogleCalendarSync;
 use App\Services\Ticketing\TicketingService;
 use Illuminate\Support\Facades\DB;
@@ -41,12 +44,21 @@ final class DeleteAccount
                 ->where('status', NotificationStatus::Pending->value)
                 ->update(['status' => NotificationStatus::Cancelled->value]);
 
+            CommunityComment::query()->where('user_id', $user->id)->delete();
+            $user->communityProfile?->delete();
+            WhatsappChallenge::query()->where('user_id', $user->id)->delete();
+            UserBlock::query()->where('user_id', $user->id)->orWhere('blocked_user_id', $user->id)->delete();
+            DB::table('followables')->where('user_id', $user->id)->orWhere(fn ($q) => $q->where('followable_type', 'user')->where('followable_id', $user->id))->delete();
+            DB::table('community_restrictions')->where('user_id', $user->id)->delete();
             $user->savedEvents()->delete();
             $user->follows()->delete();
             $user->devices()->delete();
             $user->notifications()->delete();
             $user->tokens()->delete();
 
+            // Chi è stato sospeso per abuso non deve potersi reiscrivere con lo stesso numero
+            // cancellando l'account: resta l'impronta (non il numero) e la sospensione che la motiva.
+            $suspended = $user->community_suspended_at !== null;
             $user->forceFill([
                 'name' => null,
                 'email' => $this->anonymousEmail($user),
@@ -58,6 +70,8 @@ final class DeleteAccount
                 'marketing_opt_in_at' => null,
                 'last_active_at' => null,
                 'email_verified_at' => null,
+                'whatsapp_phone' => null, 'whatsapp_verified_at' => null, 'whatsapp_prompted_at' => null,
+                ...($suspended ? [] : ['whatsapp_phone_hash' => null, 'community_suspended_at' => null]),
             ])->save();
 
             $user->delete();

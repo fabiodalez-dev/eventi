@@ -16,9 +16,8 @@ use Illuminate\Http\Request;
 /**
  * Verifica dell'indirizzo (§15.2): obbligatoria **prima di qualunque invio**.
  *
- * Un account non verificato può salvare, non può ricevere — è
- * `User::canReceiveNotifications()` a dirlo, e questa pagina è il solo modo di
- * cambiare quella risposta.
+ * Un account non verificato deve confermare la mail prima di salvare,
+ * seguire persone o chiedere la verifica WhatsApp.
  *
  * La conferma **non pretende una sessione**: chi apre il messaggio dal
  * telefono può non essere collegato lì, e chiedergli di accedere prima di
@@ -55,15 +54,22 @@ final class EmailVerificationController extends Controller
         }
 
         $currentUser = $request->user();
-        if ($currentUser instanceof User && $currentUser->is($user)) {
+        if ($currentUser === null) {
+            // L'onboarding WhatsApp aspetta il login di questo account, non di chiunque entri dopo.
+            $request->session()->put('community_onboarding_user', $user->id);
+
+            return redirect()->route('login')->with('status', __('account.verify.done'));
+        }
+        if ($currentUser->is($user)) {
             $currentUser->refresh();
 
-            return redirect()->intended(route('account.profile'))->with('status', __('account.verify.done'));
+            return (config('community.enabled') ? redirect()->route('community.whatsapp') : redirect()->intended(route('account.profile')))
+                ->with('status', __('account.verify.done'));
         }
 
-        return redirect()
-            ->route($request->user() === null ? 'login' : 'account.profile')
-            ->with('status', __('account.verify.done'));
+        // Collegato con un altro account: la conferma vale, ma niente onboarding né
+        // messaggi che parlino a nome dell'account appena confermato.
+        return redirect()->route('account.profile')->with('status', __('account.verify.confirmed'));
     }
 
     public function send(Request $request): RedirectResponse

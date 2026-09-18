@@ -41,12 +41,16 @@
 
         <nav aria-label="Area personale" class="divide-y divide-line border-y border-line">
             @foreach ([
+                ['community.feed', 'heroicon-o-users', __('community.nav'), __('community.lead')],
+                ['community.whatsapp', 'heroicon-o-check-badge', __('community.whatsapp.title'), __('community.whatsapp.lead')],
+                ['community.inbox', 'heroicon-o-bell', __('community.inbox'), __('community.followers')],
                 ['tickets.index', 'heroicon-o-ticket', 'I miei biglietti', 'Prenotazioni, QR e ingressi'],
                 ['account.content-preferences', 'heroicon-o-heart', 'I miei interessi', 'Scegli cosa vedere e ricevere nella newsletter'],
                 ['account.notifications', 'heroicon-o-bell', 'Notifiche e newsletter', 'Canali, orari e ore di silenzio'],
                 ['account.saved', 'heroicon-o-bookmark', 'I miei salvataggi', 'Ritrova gli eventi da non perdere'],
                 ['google-calendar.index', 'heroicon-o-calendar-days', 'Il mio calendario', 'Collega e gestisci Google Calendar'],
             ] as [$destination, $icon, $label, $description])
+                @continue(! config('community.enabled') && str_starts_with($destination, 'community.'))
                 <a href="{{ route($destination) }}" class="flex min-h-16 items-center gap-3 py-4 hover:text-brand">
                     <x-dynamic-component :component="$icon" class="size-6 shrink-0" width="24" height="24" aria-hidden="true" />
                     <span class="min-w-0 flex-1"><span class="block font-semibold">{{ $label }}</span><span class="mt-1 block text-sm text-ink-muted">{{ $description }}</span></span>

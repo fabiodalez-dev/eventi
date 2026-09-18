@@ -1,6 +1,6 @@
 # Product
 
-Aggiornato all’11 settembre 2026. Stato del rilascio e verifiche in [RELEASE-1.9.1](docs/RELEASE-1.9.1.md); priorità future in [ROADMAP-PRODOTTO](docs/ROADMAP-PRODOTTO.md).
+Aggiornato al 18 settembre 2026. Stato del rilascio e verifiche in [RELEASE-1.9.1](docs/RELEASE-1.9.1.md); priorità future in [ROADMAP-PRODOTTO](docs/ROADMAP-PRODOTTO.md).
 
 ## Register
 
@@ -57,3 +57,8 @@ La qualità comprende test funzionali, browser e dispositivo, analisi statica e 
 ### Pubblicazione programmata e ticketing dalla scheda evento
 
 La programmazione degli eventi rispetta moderazione e autorizzazioni correnti del locale, con esecuzione ogni minuto. La scheda Ingresso collega prezzi condizionali, configurazione delle prenotazioni per data e gestione partecipanti. Gli admin abilitano il locale dalla scheda Ticketing; sono supportati biglietti gratuiti o pagamento all’ingresso. Dettagli operativi: [docs/EVENT-PUBLICATION.md](docs/EVENT-PUBLICATION.md).
+
+
+## Community dedicata agli eventi (18 settembre 2026)
+
+I profili pubblici e i loro consigli si leggono anche senza account; quelli riservati agli iscritti richiedono l'email confermata, che serve comunque per seguire le persone. La verifica WhatsApp gratuita permette di avere un profilo, pubblicare singole date salvate e commentare i consigli. I salvataggi restano privati finché la persona sceglie di pubblicarli. Follow libero, feed paginato, discovery e selezione redazionale: l'obiettivo resta trovare eventi, non trattenere l'utente in un social infinito. Specifica e decisioni in [PIANO-UTENTI-VERIFICATI-SOCIAL](docs/PIANO-UTENTI-VERIFICATI-SOCIAL.md).

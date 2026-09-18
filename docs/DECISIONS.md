@@ -3032,3 +3032,14 @@ Dettagli, esclusioni e rilascio in [TICKETING.md](TICKETING.md).
 ## 2026-09-14 — Una sola copia remota
 
 Su richiesta del proprietario, la conservazione dei backup passa da 30 giorni alla sola copia più recente. Conservare una sola coppia codice/build per rollback, pulire dopo il deploy e non trasferire backup sul computer del proprietario. Questa decisione sostituisce la precedente retention; Git non include database e file caricati.
+
+
+## 18 settembre 2026 — Community e verifica delle persone
+
+Follow libero, email obbligatoria e verifica WhatsApp facoltativa gratuita per pubblicare/commentare. Salvataggi privati per impostazione iniziale, una data per post, privacy modificabile, blocchi, segnalazioni e backend di moderazione. Implementazione web/API/Android distinta dal Social Studio redazionale. Reverb non necessario in questa fase. La decisione sostituisce il precedente rinvio delle partecipazioni pubbliche. Dettagli in [PIANO-UTENTI-VERIFICATI-SOCIAL.md](PIANO-UTENTI-VERIFICATI-SOCIAL.md). Al dominio definitivo aggiornare tutte le integrazioni secondo [DOMINIO-DEFINITIVO.md](DOMINIO-DEFINITIVO.md).
+
+
+## 18 settembre 2026 — Nessuna conferma d'ufficio degli account esistenti
+
+La migrazione della community (`2026_09_18_100000_create_community`) nella prima versione segnava come confermati tutti gli account senza email confermata, sul presupposto che fossero tutti di prova. Il riempimento è stato tolto dalla migrazione: la conferma dell'indirizzo è il requisito per salvare, seguire e chiedere la verifica WhatsApp, e deve restare una prova data dalla persona, non un valore scritto da uno script. In produzione la migrazione era già stata eseguita: il 18/09 i 40 account interessati sono stati rivisti a mano, 37 riportati a non confermati e 3 account della redazione lasciati confermati. Le installazioni nuove e gli ambienti di test non toccano più `email_verified_at`.
+**Ricontrollo:** non necessario.

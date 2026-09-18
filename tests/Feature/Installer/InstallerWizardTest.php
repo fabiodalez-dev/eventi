@@ -164,7 +164,8 @@ it('esegue la checklist un’operazione per volta e crea città e amministratore
         ->and($this->sandbox->envValue('APP_DEBUG'))->toBe('false')
         ->and($this->sandbox->envValue('CITY_DEFAULT_SLUG'))->toBe('padova')
         ->and($this->sandbox->envValue('OPS_ALERT_EMAIL'))->toBe('admin@example.test')
-        ->and($this->sandbox->envValue('OPS_HEALTH_TOKEN'))->toStartWith('base64:');
+        ->and($this->sandbox->envValue('OPS_HEALTH_TOKEN'))->toStartWith('base64:')
+        ->and((string) $this->sandbox->envValue('WHATSAPP_PHONE_HASH_KEY'))->not->toBeEmpty();
 
     /* migrazioni, verifica delle tabelle, dati di base, città e amministratore */
     $this->post('/installazione/esecuzione');

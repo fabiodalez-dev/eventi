@@ -195,6 +195,7 @@ return [
         'resend' => 'Mandami di nuovo l\'email',
         'sent' => 'Ti ho mandato una nuova email di conferma.',
         'done' => 'Indirizzo confermato: ora puoi commentare, lasciare reazioni e ricevere promemoria.',
+        'confirmed' => 'L\'indirizzo è stato confermato.',
         'failed' => 'Il collegamento di conferma non è valido o è scaduto.',
         'pending' => 'Indirizzo da confermare',
     ],
