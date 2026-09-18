@@ -42,7 +42,8 @@ it('returns to the comments after registration', function (): void {
         'password_confirmation' => 'una-password-molto-lunga',
     ])->assertRedirect(route('verification.notice'))->assertSessionHas('url.intended', $this->destination);
     $user = User::query()->where('email', 'commenter@example.test')->firstOrFail();
-    $this->get(VerifyEmailLink::url($user))->assertRedirect($this->destination);
+    $this->get(VerifyEmailLink::url($user))->assertRedirect(route('community.whatsapp'))->assertSessionHas('url.intended', $this->destination);
+    $this->post(route('community.whatsapp.skip'))->assertRedirect($this->destination);
 });
 
 it('preserves the comment destination when switching to magic link login in the same browser', function (): void {

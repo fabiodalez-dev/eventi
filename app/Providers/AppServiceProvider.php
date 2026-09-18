@@ -9,6 +9,9 @@ use App\Models\AdmissionTicket;
 use App\Models\Booking;
 use App\Models\Category;
 use App\Models\City;
+use App\Models\CommunityComment;
+use App\Models\CommunityPost;
+use App\Models\CommunityProfile;
 use App\Models\Event;
 use App\Models\EventComment;
 use App\Models\EventOccurrence;
@@ -380,6 +383,9 @@ class AppServiceProvider extends ServiceProvider
             'event' => Event::class,
             'event_occurrence' => EventOccurrence::class,
             'user' => User::class,
+            'community_profile' => CommunityProfile::class,
+            'community_post' => CommunityPost::class,
+            'community_comment' => CommunityComment::class,
             'event_comment' => EventComment::class,
         ]);
 
