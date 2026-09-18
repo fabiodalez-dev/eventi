@@ -27,7 +27,7 @@
         </form>
 
         <div class="flex flex-col gap-1 text-sm text-ink-subtle">
-            <a class="font-semibold text-brand hover:underline" href="{{ route('account.magic-link') }}">{{ __('account.magic.title') }}</a>
+            <a class="font-semibold text-brand hover:underline" href="{{ route('account.magic-link', ['intended' => session('url.intended')]) }}">{{ __('account.magic.title') }}</a>
 
             {{-- Chi arriva qui con una password che non funziona deve trovare
                  la via d'uscita nello stesso punto in cui si e' arenato, non
@@ -36,7 +36,7 @@
 
             <p>
                 {{ __('account.login.no_account') }}
-                <a class="font-semibold text-brand hover:underline" href="{{ route('account.register') }}">{{ __('account.nav.register') }}</a>
+                <a class="font-semibold text-brand hover:underline" href="{{ route('account.register', ['intended' => session('url.intended')]) }}">{{ __('account.nav.register') }}</a>
             </p>
         </div>
     </div>

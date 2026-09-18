@@ -13,6 +13,7 @@ use App\Models\CommunityComment;
 use App\Models\CommunityPost;
 use App\Models\CommunityProfile;
 use App\Models\Event;
+use App\Models\EventComment;
 use App\Models\EventOccurrence;
 use App\Models\Follow;
 use App\Models\ImportSource;
@@ -41,6 +42,7 @@ use App\Observers\TicketTierObserver;
 use App\Observers\VenueObserver;
 use App\Policies\CategoryPolicy;
 use App\Policies\CityPolicy;
+use App\Policies\EventCommentPolicy;
 use App\Policies\EventOccurrencePolicy;
 use App\Policies\EventPolicy;
 use App\Policies\FollowPolicy;
@@ -384,6 +386,7 @@ class AppServiceProvider extends ServiceProvider
             'community_profile' => CommunityProfile::class,
             'community_post' => CommunityPost::class,
             'community_comment' => CommunityComment::class,
+            'event_comment' => EventComment::class,
         ]);
 
         // `business_date` ed `effective_ends_at` sono calcolate dall'observer a
@@ -471,5 +474,6 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(User::class, UserPolicy::class);
         Gate::policy(Page::class, PagePolicy::class);
         Gate::policy(Redirect::class, RedirectPolicy::class);
+        Gate::policy(EventComment::class, EventCommentPolicy::class);
     }
 }

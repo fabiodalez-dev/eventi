@@ -31,8 +31,8 @@ android {
         applicationId = "it.fabiodalez.incitta"
         minSdk = 26
         targetSdk = 36
-        versionCode = 34
-        versionName = "1.12.5"
+        versionCode = 35
+        versionName = "1.13.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
@@ -59,7 +59,7 @@ android {
         debug {
             isMinifyEnabled = false
             applicationIdSuffix = if (sideloadDebug) "" else ".debug"
-            versionNameSuffix = if (sideloadDebug) "-debug-rete" else "-debug"
+            versionNameSuffix = "-debug"
         }
         release {
             isMinifyEnabled = !deviceTests

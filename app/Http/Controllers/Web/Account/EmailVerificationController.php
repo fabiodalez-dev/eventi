@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Web\Account;
 
 use App\DTOs\PageMeta;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Web\Account\AuthEntryRequest;
 use App\Models\User;
 use App\Services\Account\SignedEmailVerification;
 use Illuminate\Contracts\View\View;
@@ -25,12 +26,13 @@ use Illuminate\Http\Request;
  */
 final class EmailVerificationController extends Controller
 {
-    public function notice(Request $request): View|RedirectResponse
+    public function notice(AuthEntryRequest $request): View|RedirectResponse
     {
+        $request->rememberDestination();
         $user = $request->user();
 
         if ($user instanceof User && $user->hasVerifiedEmail()) {
-            return redirect()->route('account.profile');
+            return redirect()->intended(route('account.profile'));
         }
 
         return view('account.verify', [
@@ -51,7 +53,12 @@ final class EmailVerificationController extends Controller
             return redirect()->route('login')->with('status', __('account.verify.failed'));
         }
 
+        $currentUser = $request->user();
         $request->session()->put('community_onboarding_user', $user->id);
+        if ($currentUser instanceof User && $currentUser->is($user)) {
+            $currentUser->refresh();
+            return redirect()->route(config('community.enabled') ? 'community.whatsapp' : 'account.profile')->with('status', __('account.verify.done'));
+        }
 
         return redirect()
             ->route($request->user()?->id === $user->id ? 'community.whatsapp' : 'login')

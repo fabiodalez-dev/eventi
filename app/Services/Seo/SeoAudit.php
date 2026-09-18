@@ -7,6 +7,7 @@ namespace App\Services\Seo;
 use App\Enums\PriceType;
 use App\Models\Event;
 use App\Support\Poster;
+use App\Support\Seo\PageTitle;
 
 final class SeoAudit
 {
@@ -30,6 +31,18 @@ final class SeoAudit
                 }
                 if ($event->price_type === PriceType::Unknown) {
                     $issues[] = __('seo.audit.price');
+                }
+
+                /*
+                 * Il titolo viene accorciato da solo quando non sta nella
+                 * misura di un risultato di ricerca, ma il taglio è cieco:
+                 * tiene le prime parole. Se la parte che conta sta in fondo,
+                 * un titolo corto scritto a mano fa meglio — e questo è il
+                 * solo posto in cui un editore può accorgersene senza andare
+                 * a contare i caratteri a una a una.
+                 */
+                if (str_contains(PageTitle::forEvent($event->title, $event->city->name), '…')) {
+                    $issues[] = __('seo.audit.title_shortened');
                 }
 
                 if (app(StructuredData::class)->organizer($event) === []) {

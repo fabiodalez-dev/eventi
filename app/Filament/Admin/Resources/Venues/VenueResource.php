@@ -7,6 +7,7 @@ namespace App\Filament\Admin\Resources\Venues;
 use App\Enums\VenuePlan;
 use App\Enums\VenueStatus;
 use App\Enums\VenueType;
+use App\Filament\Admin\Resources\Events\RelationManagers\ActivityRelationManager;
 use App\Filament\Admin\Resources\Venues\Pages\CreateVenue;
 use App\Filament\Admin\Resources\Venues\Pages\EditVenue;
 use App\Filament\Admin\Resources\Venues\Pages\ListVenues;
@@ -599,6 +600,7 @@ class VenueResource extends Resource
     public static function getRelations(): array
     {
         return [
+            ActivityRelationManager::class,
             MembersRelationManager::class,
             EventsRelationManager::class,
         ];

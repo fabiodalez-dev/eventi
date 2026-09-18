@@ -7,6 +7,7 @@ namespace App\Actions\Account;
 use App\Enums\UserRole;
 use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Auth\Events\Registered;
 use Illuminate\Support\Facades\Hash;
 
 /**
@@ -56,7 +57,7 @@ final class RegisterUser
          * memoria non li conosce finché non li rilegge.
          */
         $user->refresh();
-        $user->sendEmailVerificationNotification();
+        event(new Registered($user));
 
         return $user;
     }

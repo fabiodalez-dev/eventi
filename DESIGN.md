@@ -254,3 +254,7 @@ I link che svolgono il ruolo visivo di pulsanti usano `ui-action` (inclusa nei c
 Su mobile i quattro accessi rapidi della home occupano una griglia 2×2. Le azioni seguono l’ordine catalogo, mappa, wizard: quest’ultimo occupa tutta la seconda riga quando lo spazio non permette tre colonne. Nei contatori chiari numero e descrizione sono centrati verticalmente. I filtri della mappa aggiornano marker ed elenco insieme; su mobile, dopo un filtro applicato, il focus e lo scorrimento portano all’elenco.
 
 La testata evento usa la copertina come sfondo a tutta larghezza, con overlay scuro e informazioni sovrapposte leggibili in entrambi i temi. La home mantiene lo stesso trattamento fotografico e sceglie il prossimo evento disponibile quando non restano eventi di oggi. Il locale compare sotto il titolo e nelle card fuori dalla pagina del locale.
+
+### Barra operativa dei pannelli
+
+La barra superiore di amministrazione e locali usa una superficie terracotta chiara e un pulsante pieno per «Nuovo evento». Il colore distingue il contesto di lavoro senza cambiare il tema chiaro dei contenuti. Nome del locale e ruolo del pannello sono sempre riconoscibili. Le azioni rapide seguono le autorizzazioni esistenti; ricerca e menu utente rimangono disponibili. Su tablet e telefono le scorciatoie occupano una riga dedicata, con aree di tocco di almeno 48 px e menu «Altre azioni» per le operazioni secondarie.

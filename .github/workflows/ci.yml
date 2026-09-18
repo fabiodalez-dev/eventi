@@ -201,6 +201,8 @@ jobs:
           cache: npm
       - run: composer install --no-interaction --prefer-dist --no-progress
       - run: npm ci
+      - name: Test JavaScript con le dipendenze reali
+        run: node --test tests/js/integration/*.test.js
       - run: npx playwright install --with-deps chromium
       - run: npm run build
       - name: Prepara ambiente isolato
@@ -451,7 +453,7 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: gradle
-      - run: ./gradlew testDebugUnitTest compileDebugKotlin
+      - run: ./gradlew testDebugUnitTest compileDebugKotlin compileDebugAndroidTestKotlin
         working-directory: android
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()

@@ -13,9 +13,11 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 
+private val sharedHttpClient = OkHttpClient.Builder().build()
+
 internal class ApiClient(
     @PublishedApi internal val installationId: String,
-    @PublishedApi internal val client: OkHttpClient = NetworkDiagnostics.client(),
+    @PublishedApi internal val client: OkHttpClient = sharedHttpClient,
 ) {
     @PublishedApi internal val json = Json {
         ignoreUnknownKeys = true

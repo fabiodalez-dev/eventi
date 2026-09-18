@@ -185,11 +185,16 @@ return [
     ],
 
     'verify' => [
+        'step' => 'Un ultimo passo',
+        'instructions' => 'Apri la mail che abbiamo inviato a questo indirizzo e premi il pulsante di conferma.',
+        'benefits' => 'Dopo la conferma puoi commentare, lasciare reazioni e ricevere promemoria. Nel frattempo puoi già salvare gli eventi.',
+        'help' => 'Non trovi la mail? Controlla anche la cartella spam oppure richiedi un nuovo collegamento.',
+        'explore' => 'Esplora gli eventi',
         'title' => 'Conferma il tuo indirizzo',
-        'lead' => 'Ti ho mandato un\'email a :email. Finché non la confermi puoi salvare le date, ma non posso mandarti promemoria.',
+        'lead' => 'Ti ho mandato un\'email a :email. Apri il collegamento per confermare il tuo indirizzo: potrai commentare, lasciare reazioni e ricevere promemoria. Puoi già salvare le date.',
         'resend' => 'Mandami di nuovo l\'email',
         'sent' => 'Ti ho mandato una nuova email di conferma.',
-        'done' => 'Indirizzo confermato: da adesso posso avvisarti prima degli eventi che salvi.',
+        'done' => 'Indirizzo confermato: ora puoi commentare, lasciare reazioni e ricevere promemoria.',
         'failed' => 'Il collegamento di conferma non è valido o è scaduto.',
         'pending' => 'Indirizzo da confermare',
     ],
@@ -228,7 +233,7 @@ return [
     'mail' => [
         'verify' => [
             'subject' => 'Conferma il tuo indirizzo su :product',
-            'intro' => 'Confermando l\'indirizzo potrò avvisarti prima degli eventi che salvi.',
+            'intro' => 'Conferma il tuo indirizzo per commentare gli eventi, lasciare reazioni e ricevere promemoria.',
             'action' => 'Conferma l\'indirizzo',
             'expires' => 'Il collegamento scade fra :minutes minuti.',
             'ignore' => 'Se non ti sei registrato tu, puoi ignorare questo messaggio.',

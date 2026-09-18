@@ -43,9 +43,9 @@ use Livewire\Livewire;
  *
  * `/admin`, `/gestione` e `/organizza` sono Filament, che disegna markup suo e
  * inietta script propri: una politica stretta lì andrebbe verificata schermata
- * per schermata, e non porterebbe quasi niente — sono pagine dietro
- * autenticazione che non stampano contenuti di sconosciuti. La superficie
- * vera è il sito pubblico, ed è lì che la difesa si mette.
+ * per schermata. I pannelli mostrano anche contenuti degli utenti: lì
+ * l’escaping resta indispensabile e viene verificato dai test XSS senza
+ * affidarsi alla CSP del sito pubblico.
  */
 final class Csp
 {

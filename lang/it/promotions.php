@@ -1,6 +1,8 @@
 <?php
 
 return [
+    'custom_duration' => 'Scadenza personalizzata',
+    'complimentary_payment_hint' => 'La concessione gratuita richiede una motivazione. I dati di pagamento vengono rimossi da questa abilitazione al salvataggio; i valori precedenti restano nella cronologia.',
     'create_title' => 'Nuova abilitazione',
     'revoked' => 'Revocata', 'expired' => 'Scaduta', 'scheduled' => 'Programmata',
     'awaiting_payment' => 'Pagamento da registrare', 'running' => 'Attiva', 'inactive' => 'Non attiva',

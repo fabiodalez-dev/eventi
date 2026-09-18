@@ -66,6 +66,7 @@ class AdminPanelProvider extends PanelProvider
                 ->icon('heroicon-o-user-circle')->url(fn (): string => route('account.profile')),
             ])
             ->darkMode(false)
+            ->renderHook(PanelsRenderHook::TOPBAR_END, fn () => view('filament.partials.topbar-actions'))
             /*
              * Il foglio che porta qui dentro l'identita' del sito — titoli Bricolage,
              * superfici chiare e bordi sottili — senza portarne l'intensita':

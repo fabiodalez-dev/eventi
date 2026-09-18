@@ -52,6 +52,14 @@ class User extends Authenticatable implements FilamentUser, HasTenants, MustVeri
     use Notifiable;
     use SoftDeletes;
 
+    protected static function booted(): void
+    {
+        static::deleting(function (User $user): void {
+            EventCommentReaction::query()->where('user_id', $user->id)->delete();
+            EventComment::query()->where('user_id', $user->id)->delete();
+        });
+    }
+
     /** @var list<string> */
     protected $fillable = [
         'city_id',

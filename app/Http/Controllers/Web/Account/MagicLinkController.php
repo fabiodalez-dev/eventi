@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Web\Account;
 
 use App\DTOs\PageMeta;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Web\Account\AuthEntryRequest;
 use App\Http\Requests\Web\Account\MagicLinkRequest;
 use App\Models\User;
 use App\Notifications\MagicLoginLink;
@@ -30,8 +31,10 @@ use Illuminate\Support\Facades\DB;
  */
 final class MagicLinkController extends Controller
 {
-    public function create(): View
+    public function create(AuthEntryRequest $request): View
     {
+        $request->rememberDestination(freshEntry: true);
+
         return view('account.magic-link', [
             'meta' => new PageMeta(
                 title: __('account.magic.title'),
@@ -80,6 +83,6 @@ final class MagicLinkController extends Controller
 
         $user->forceFill(['last_active_at' => CarbonImmutable::now()])->save();
 
-        return redirect()->route('account.feed')->with('status', __('account.login.done'));
+        return redirect()->intended(route('account.feed'))->with('status', __('account.login.done'));
     }
 }

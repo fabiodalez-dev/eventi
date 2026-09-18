@@ -257,6 +257,14 @@ final class StructuredData
             'name' => config()->string('app.name'),
             'legalName' => config()->string('seo.organization.legal_name'),
             'url' => url('/'),
+            /*
+             * Il logo è uno dei cinque requisiti che i motori guardano per
+             * costruire un pannello di conoscenza, e senza di esso il nodo
+             * resta un nome con un indirizzo. È l'icona da 512 pixel che serve
+             * già l'installazione dell'applicazione web: un logo solo, in un
+             * posto solo.
+             */
+            'logo' => url('/icon-512.png'),
             'email' => config()->string('seo.organization.email'),
             'sameAs' => $sameAs,
         ], static fn (mixed $value): bool => filled($value));

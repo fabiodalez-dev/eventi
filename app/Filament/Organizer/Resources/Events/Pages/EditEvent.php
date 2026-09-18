@@ -4,14 +4,26 @@ namespace App\Filament\Organizer\Resources\Events\Pages;
 
 use App\Enums\EventStatus;
 use App\Filament\Organizer\Resources\Events\EventResource;
+use App\Filament\Shared\EventAnalyticsNavigation;
 use App\Models\Event;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
+use Filament\Pages\Enums\SubNavigationPosition;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Support\Facades\Gate;
 
 class EditEvent extends EditRecord
 {
+    public static function getSubNavigationPosition(): SubNavigationPosition
+    {
+        return SubNavigationPosition::Top;
+    }
+
+    public function getSubNavigation(): array
+    {
+        return EventAnalyticsNavigation::items((int) $this->getRecord()->getKey(), false);
+    }
+
     protected static string $resource = EventResource::class;
 
     protected function mutateFormDataBeforeSave(array $data): array

@@ -27,6 +27,7 @@ return [
         'excluded' => 'Escluso dall’indice: contenuto demo o impostazione editoriale.',
         'description' => 'Manca una descrizione.', 'image' => 'Manca la locandina.',
         'location' => 'Manca il luogo.', 'price' => 'Prezzo non specificato.',
+        'title_shortened' => 'Titolo troppo lungo per il risultato di ricerca: viene accorciato in automatico. Scrivine uno corto in «Titolo per i motori» se la parte tagliata conta.',
         'complete' => 'I dati essenziali controllati sono presenti. Verifica comunque la correttezza delle informazioni.',
     ],
     'settings' => 'Anteprima su Google',
@@ -56,4 +57,17 @@ return [
     ],
     'event_title' => ':event a :city',
     'home_title' => 'Eventi a :city: oggi, weekend, concerti e cose da fare',
+
+    /*
+     * `llms.txt`: il sommario del sito scritto per chi legge il web per
+     * rispondere a una domanda. La frase di apertura è l'unica occasione per
+     * dire che cosa questo sito sa, quindi dice il luogo, la materia e il
+     * fatto che ogni scheda porta i dati pratici.
+     */
+    'llms' => [
+        'summary' => 'Che cosa si fa a :city: eventi, concerti, mostre, teatro, sagre e vita dei locali, aggiornati ogni giorno. Ogni scheda riporta data, orario, luogo, prezzo e come arrivare.',
+        'pages' => 'Pagine principali',
+        'categories' => 'Categorie',
+        'events' => 'Prossimi eventi',
+    ],
 ];

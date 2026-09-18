@@ -33,12 +33,19 @@ class VerifyEmailLink extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
+        $url = self::url($notifiable);
+
         return (new MailMessage)
             ->subject(__('account.mail.verify.subject', ['product' => config()->string('app.name')]))
             ->line(__('account.mail.verify.intro'))
-            ->action(__('account.mail.verify.action'), self::url($notifiable))
+            ->action(__('account.mail.verify.action'), $url)
             ->line(__('account.mail.verify.expires', ['minutes' => config()->integer('account.verification_link_minutes')]))
-            ->line(__('account.mail.verify.ignore'));
+            ->line(__('account.mail.verify.ignore'))
+            ->view(['mail.verify-email', 'mail.verify-email-text'], [
+                'verificationUrl' => $url,
+                'minutes' => config()->integer('account.verification_link_minutes'),
+                'product' => config()->string('app.name'),
+            ]);
     }
 
     /**

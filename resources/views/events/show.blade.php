@@ -62,7 +62,7 @@
         {{-- La mappa del locale, più in basso, è lo stesso riquadro MapLibre di
              tutto il sito e senza questo script non si accende: restava un
              rettangolo con la propria frase, e sembrava rotta. --}}
-        @vite('resources/js/map.js')
+        @vite(['resources/js/map.js', 'resources/js/comments.js'])
     </x-slot:head>
 
     {{-- La riga di ritorno: dove sono e da dove vengo. Nel riferimento è una
@@ -164,7 +164,7 @@
                     </a>
                 @endif
 
-                <x-share-links :url="$shareUrl" :title="$event->title" :icons-only="true" />
+                <x-share-links :links="$shareLinks" :url="$shareUrl" :title="$event->title" :icons-only="true" />
             </div>
         </div>
     </section>
@@ -428,6 +428,22 @@
                     </div>
                 </section>
             @endif
+
+            {{-- I commenti stanno sotto i tag, dentro la colonna principale:
+                 sono la coda della scheda, non una sezione a larghezza piena
+                 come «altri eventi in questo locale». --}}
+            @if (! ($isPreview ?? false))
+                <x-event-comments
+                    :event="$event"
+                    :comments="$comments"
+                    :page="$commentsPage"
+                    :last-page="$commentsLastPage"
+                    :total="$commentsTotal"
+                    :thread="$commentThread"
+                    :replies-page="$repliesPage"
+                    :replies-last-page="$repliesLastPage"
+                />
+            @endif
         </article>
 
         {{-- **Su telefono la locandina viene prima del testo.**
@@ -600,7 +616,7 @@
             <section class="flex flex-col gap-3" aria-labelledby="condividi-evento">
                 <h2 id="condividi-evento" class="font-display text-[clamp(1.25rem,1.8vw,1.75rem)] leading-none font-extrabold tracking-[-0.03em] uppercase">{{ __('common.actions.share') }}</h2>
 
-                <x-share-links :url="$shareUrl" :title="$event->title" />
+                <x-share-links :links="$shareLinks" :url="$shareUrl" :title="$event->title" />
 
                 <a
                     href="{{ route('events.report', ['slug' => $event->slug]) }}"

@@ -4,9 +4,9 @@ export function contentAnalytics() {
     if (!context) return;
     let allowed = context.dataset.allowed === '1';
     let viewed = false;
-    const send = metric => {
+    const send = (metric, endpoint = context.dataset.url) => {
         if (!allowed) return;
-        void fetch(context.dataset.url, {
+        void fetch(endpoint, {
             method: 'POST', keepalive: true, credentials: 'same-origin',
             headers: { 'Content-Type': 'application/json', Accept: 'application/json',
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '' },
@@ -21,10 +21,14 @@ export function contentAnalytics() {
         allowed = event.detail?.statistics === true;
         view();
     });
-    document.addEventListener('content:shared', () => send('shares'));
+    document.addEventListener('content:shared', event => send('shares', event.detail?.metric || context.dataset.url));
     document.addEventListener('click', event => {
         const link = event.target.closest('a');
         if (!link || !link.closest('main')) return;
+        if (link.hasAttribute('data-share-channel')) {
+            send('shares', link.dataset.shareMetric || context.dataset.url);
+            return;
+        }
         const explicit = link.dataset.contentMetric;
         const url = new URL(link.href, location.href);
         let metric = explicit;

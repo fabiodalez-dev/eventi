@@ -14,6 +14,7 @@ use App\Filament\Support\EventTicketingActions;
 use App\Filament\Venue\Resources\Events\Pages\CreateEvent;
 use App\Filament\Venue\Resources\Events\Pages\EditEvent;
 use App\Filament\Venue\Resources\Events\Pages\ListEvents;
+use App\Filament\Venue\Resources\Events\Pages\ViewEvent;
 use App\Filament\Venue\Resources\Events\RelationManagers\OccurrencesRelationManager;
 use App\Filament\Venue\Support\CurrentVenue;
 use App\Filament\Venue\Support\EventActions;
@@ -23,6 +24,7 @@ use App\Queries\EventOccurrenceQuery;
 use App\Queries\VenueDashboardQuery;
 use BackedEnum;
 use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Components\Section;
@@ -237,6 +239,7 @@ class EventResource extends Resource
                         ->grow(false),
                 ])->from('md'),
             ])
+            ->recordUrl(fn (Event $record): string => static::getUrl('view', ['record' => $record]))
             ->defaultSort('next_starts_at', 'asc')
             ->filters([
                 SelectFilter::make('status')
@@ -244,6 +247,7 @@ class EventResource extends Resource
                     ->options(EventStatus::options()),
             ])
             ->recordActions([
+                ViewAction::make()->label(__('analytics-dashboard.view_event')),
                 EditAction::make()->label(__('manage.actions.edit')),
                 // Il gesto della sera stessa, a portata di pollice: segnare
                 // esaurita la prossima data senza aprire il modulo.
@@ -301,6 +305,7 @@ class EventResource extends Resource
         return [
             'index' => ListEvents::route('/'),
             'create' => CreateEvent::route('/nuovo'),
+            'view' => ViewEvent::route('/{record}'),
             'edit' => EditEvent::route('/{record}/modifica'),
         ];
     }

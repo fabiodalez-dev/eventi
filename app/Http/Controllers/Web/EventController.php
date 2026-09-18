@@ -8,11 +8,14 @@ use App\DTOs\PageMeta;
 use App\Enums\EventStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Web\Concerns\InteractsWithCity;
+use App\Http\Requests\Comments\EventCommentPageRequest;
 use App\Models\Booking;
 use App\Models\City;
 use App\Models\Event;
 use App\Models\EventOccurrence;
+use App\Queries\EventCommentQuery;
 use App\Queries\EventOccurrenceQuery;
+use App\Services\Analytics\EventShares;
 use App\Services\Calendar\OccurrenceCalendar;
 use App\Services\Events\EventPoster;
 use App\Services\Seo\EditorialContent;
@@ -20,6 +23,7 @@ use App\Services\Seo\StructuredData;
 use App\Support\CurrentCity;
 use App\Support\EventUrl;
 use App\Support\Poster;
+use App\Support\Seo\PageTitle;
 use App\Support\TicketTiers;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
@@ -43,7 +47,7 @@ final class EventController extends Controller
         private readonly OccurrenceCalendar $calendar,
     ) {}
 
-    public function show(string $slug): View
+    public function show(EventCommentPageRequest $request, string $slug): View
     {
         $city = $this->city();
         $event = $this->findReadable($city, $slug);
@@ -61,7 +65,7 @@ final class EventController extends Controller
             ->header('Cache-Control', 'private, no-store')->header('X-Robots-Tag', 'noindex, nofollow');
     }
 
-    public function date(string $slug, string $occurrence): View
+    public function date(EventCommentPageRequest $request, string $slug, string $occurrence): View
     {
         $city = $this->city();
         $event = $this->findReadable($city, $slug);
@@ -99,10 +103,20 @@ final class EventController extends Controller
         if ($canonicalDate !== null) {
             $meta = $meta->withCanonical(EventUrl::occurrence($canonicalDate));
         }
-        $meta = app(EditorialContent::class)->meta($event, $meta);
         if ($selected !== null) {
-            $meta = $meta->withTitle(__('seo.date_title', ['title' => $meta->title, 'date' => $selected->starts_at->copy()->timezone($city->timezone)->format('d/m/Y')]));
+            /*
+             * La data entra prima del passaggio editoriale, non dopo: un
+             * titolo scritto a mano in `seo.title` deve arrivare intero alla
+             * pagina, non con una data appesa in coda che lo porta oltre la
+             * misura che un motore mostra.
+             */
+            $meta = $meta->withTitle(PageTitle::forEvent(
+                $event->title,
+                $city->name,
+                $selected->starts_at->copy()->timezone($city->timezone)->format('d/m/Y'),
+            ));
         }
+        $meta = app(EditorialContent::class)->meta($event, $meta);
         $schema = $selected === null && $isSeries
             ? [$this->structuredData->collection($event->title, route('events.show', $event), $dates->map(fn ($date): array => [
                 'name' => $event->title.' · '.$date->business_date->format('d/m/Y'),
@@ -117,7 +131,15 @@ final class EventController extends Controller
 
         request()->attributes->set('sponsorship_exclude_event', $event->slug);
 
+        $commentListing = app(EventCommentQuery::class)->listing(
+            $event, auth()->user(), request()->integer('commenti', 1),
+            request()->filled('commento') ? request()->integer('commento') : null,
+            request()->filled('risposte') ? request()->integer('risposte') : null,
+        );
+
         return view('events.show', [
+            ...$commentListing,
+            'shareLinks' => $isPreview ? [] : app(EventShares::class)->links($event, $canonicalDate),
             'isPreview' => $isPreview,
             'selectedOccurrence' => $canonicalDate,
             'city' => $city,
@@ -223,7 +245,7 @@ final class EventController extends Controller
         $social = Poster::social($event);
 
         return new PageMeta(
-            title: __('seo.event_title', ['event' => $event->title, 'city' => $event->city->name]),
+            title: PageTitle::forEvent($event->title, $event->city->name),
             heading: $event->title,
             description: $description === '' ? null : $description,
             canonical: route('events.show', $event),

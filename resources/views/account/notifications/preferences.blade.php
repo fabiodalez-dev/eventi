@@ -56,6 +56,10 @@
                     <input type="checkbox" name="sold_out" value="1" class="size-4 rounded border-line" @checked($preferences->soldOut)>
                     {{ __('account.profile.sold_out') }}
                 </label>
+<label class="flex items-center gap-2.5 text-sm text-ink">
+                    <input type="checkbox" name="comments" value="1" class="size-4 rounded border-line" @checked($preferences->comments)>
+                    {{ __('comments.preference') }}
+                </label>
 
                 <label class="flex items-center gap-2.5 text-sm text-ink">
                     <input type="checkbox" name="venue_digest" value="1" class="size-4 rounded border-line" @checked($preferences->venueDigest)>

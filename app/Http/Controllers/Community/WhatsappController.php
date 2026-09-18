@@ -71,6 +71,6 @@ final class WhatsappController extends Controller
             return ApiResponse::item(['prompted' => true]);
         }
 
-        return redirect()->route('account.feed');
+        return redirect()->intended(route('account.feed'));
     }
 }

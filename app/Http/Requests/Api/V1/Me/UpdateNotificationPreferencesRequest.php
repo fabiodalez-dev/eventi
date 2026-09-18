@@ -40,6 +40,7 @@ class UpdateNotificationPreferencesRequest extends FormRequest
             'reminder_hours.*' => ['integer', 'between:1,168'],
             'sold_out' => ['sometimes', 'boolean'],
             'venue_digest' => ['sometimes', 'boolean'],
+            'comments' => ['sometimes', 'boolean'],
             'daily_digest' => ['sometimes', 'boolean'],
         ];
     }
