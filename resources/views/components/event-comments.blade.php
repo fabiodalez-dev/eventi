@@ -37,9 +37,11 @@
     @endif
 
     {{-- Il commento del link è stato cancellato o nascosto: l'elenco resta,
-         e chi è arrivato dal link sa perché non lo trova. --}}
+         e chi è arrivato dal link sa perché non lo trova. L'id è quello
+         dell'ancora del permalink (`#commento-N`), così il browser scende
+         fin qui invece di restare in cima alla scheda. --}}
     @if ($missing)
-        <p role="status" class="border-2 border-line bg-surface p-3 text-sm font-semibold">{{ __('comments.unavailable') }}</p>
+        <p id="commento-{{ request()->integer('commento') }}" role="status" class="scroll-mt-28 border-2 border-line bg-surface p-3 text-sm font-semibold">{{ __('comments.unavailable') }}</p>
     @endif
 
     @if ($comments->isEmpty())
@@ -75,10 +77,10 @@
     @if ($lastPage > 1)
         <nav class="flex gap-4" aria-label="{{ __('comments.title') }}">
             @if ($page > 1)
-                <a class="min-h-12 inline-flex items-center underline" href="{{ request()->fullUrlWithQuery(['commenti' => $page - 1]) }}#commenti">{{ __('comments.previous') }}</a>
+                <a class="min-h-12 inline-flex items-center underline" href="{{ request()->fullUrlWithQuery(['commenti' => $page - 1, 'commento' => null]) }}#commenti">{{ __('comments.previous') }}</a>
             @endif
             @if ($page < $lastPage)
-                <a class="min-h-12 inline-flex items-center underline" href="{{ request()->fullUrlWithQuery(['commenti' => $page + 1]) }}#commenti">{{ __('comments.next') }}</a>
+                <a class="min-h-12 inline-flex items-center underline" href="{{ request()->fullUrlWithQuery(['commenti' => $page + 1, 'commento' => null]) }}#commenti">{{ __('comments.next') }}</a>
             @endif
         </nav>
     @endif

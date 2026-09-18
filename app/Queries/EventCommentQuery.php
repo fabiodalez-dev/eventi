@@ -36,7 +36,7 @@ final class EventCommentQuery
         /* La risposta si vede ma il suo capostipite no (tipicamente la mia
            risposta sotto un commento nascosto): senza capostipite non c'è
            conversazione da aprire. */
-        if (! $strict && $rootId !== null && ! (clone $query)->topLevel()->whereKey($rootId)->exists()) {
+        if (! $strict && $target?->parent_id !== null && ! (clone $query)->topLevel()->whereKey($rootId)->exists()) {
             [$rootId, $target, $missing] = [null, null, true];
         }
         $explicitReplyPage = $replyPage !== null;

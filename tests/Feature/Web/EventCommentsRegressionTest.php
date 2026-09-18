@@ -237,6 +237,7 @@ it('mostra la scheda con un avviso quando il commento del link non esiste', func
     $this->get(route('events.show', ['slug' => $this->event->slug]).'?commento=999999')
         ->assertOk()
         ->assertSee(__('comments.unavailable'))
+        ->assertSee('id="commento-999999"', false)
         ->assertSee('Commento di review');
 });
 
