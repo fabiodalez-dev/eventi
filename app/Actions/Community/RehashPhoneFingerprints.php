@@ -58,14 +58,17 @@ final class RehashPhoneFingerprints
         $mismatchedUsers = [];
 
         $rows = User::withTrashed()->whereNotNull('whatsapp_phone_hash')->orderBy('id')->lockForUpdate()
-            ->get(['id', 'whatsapp_phone', 'whatsapp_phone_hash', 'community_suspended_at']);
+            ->get(['id', 'whatsapp_phone', 'whatsapp_phone_hash', 'community_suspended_at', 'deleted_at']);
         foreach ($rows as $user) {
             $stored = (string) $user->whatsapp_phone_hash;
             $phone = $this->phone(fn (): mixed => $user->whatsapp_phone);
             if ($phone === null) {
-                // Senza numero l'impronta non si ricalcola: è quella di un sospeso cancellato,
-                // oppure un numero illeggibile. Nel secondo caso non è un'orfana: non torna.
-                if ($user->getRawOriginal('whatsapp_phone') === null) {
+                // Senza numero l'impronta non si ricalcola. È un'orfana solo se l'account è
+                // sospeso e cancellato, l'unico caso in cui DeleteAccount la trattiene: un
+                // numero illeggibile, o mancante su un account attivo, è un'anomalia e non torna.
+                if ($user->getRawOriginal('whatsapp_phone') === null
+                    && $user->trashed()
+                    && $user->community_suspended_at !== null) {
                     $users['orphan']++;
                     $orphans[] = (int) $user->id;
                     $orphanHashes[$stored] = true;
@@ -92,9 +95,11 @@ final class RehashPhoneFingerprints
 
         // Due account sulla stessa impronta nuova, o un'impronta nuova uguale a quella di
         // un'orfana: l'indice unico fallirebbe a metà, o un numero bandito tornerebbe in uso.
+        // Con --release-orphans le orfane se ne vanno prima delle altre scritture, e con
+        // loro la collisione: quel numero torna libero, che è ciò che si è chiesto.
         $colliding = [];
         foreach ($byFingerprint as $fingerprint => $ids) {
-            if (count($ids) > 1 || isset($orphanHashes[$fingerprint])) {
+            if (count($ids) > 1 || (! $releaseOrphans && isset($orphanHashes[$fingerprint]))) {
                 array_push($colliding, ...$ids);
             }
         }
@@ -122,13 +127,14 @@ final class RehashPhoneFingerprints
         }
 
         // Scritture dirette: niente eventi dei modelli e nessun updated_at che cambia per una chiave.
-        foreach ($userWrites as $id => $fingerprint) {
-            DB::table('users')->where('id', $id)->update(['whatsapp_phone_hash' => $fingerprint]);
-        }
         // L'impronta di un'orfana non potrà mai più coincidere: tenerla ingannerebbe soltanto.
         // La data della sospensione resta, a documentare perché l'account era stato chiuso.
+        // Va tolta per prima: un'impronta nuova uguale alla sua violerebbe l'indice unico.
         if ($orphans !== []) {
             DB::table('users')->whereIn('id', $orphans)->update(['whatsapp_phone_hash' => null]);
+        }
+        foreach ($userWrites as $id => $fingerprint) {
+            DB::table('users')->where('id', $id)->update(['whatsapp_phone_hash' => $fingerprint]);
         }
         foreach ($challengeWrites as $id => $fingerprint) {
             DB::table('whatsapp_challenges')->where('id', $id)->update(['phone_hash' => $fingerprint]);

@@ -730,28 +730,47 @@ La chiave nuova è quella già in configurazione; la vecchia il comando la legge
 **solo** dall'ambiente del processo, mai da un'opzione (finirebbe in `ps`) né
 da `.env` (dove `config:cache` la congelerebbe e resterebbe lì dimenticata).
 
+Tutti i passi si eseguono **sul server**, in una sessione `ssh fabiodalez.it`,
+dentro `~/eventi`, con lo stesso `PHP` del resto del runbook:
+
+```bash
+cd ~/eventi
+PHP=/opt/cpanel/ea-php84/root/usr/bin/php
+```
+
 1. **Backup del database**, come nella sezione «Backup».
-2. `php artisan down`: pochi secondi, ma fra la chiave nuova in configurazione
+2. `$PHP artisan down`: pochi secondi, ma fra la chiave nuova in configurazione
    e il ricalcolo lo stesso numero potrebbe finire su un secondo account.
 3. Scrivi la chiave **nuova** in `.env` al posto di `WHATSAPP_PHONE_HASH_KEY`
    e tieni la vecchia a portata di mano.
-4. `php artisan config:cache`.
-5. La prova, che classifica e non scrive:
+4. `$PHP artisan config:cache`.
+5. Fai leggere la chiave vecchia alla shell, senza che compaia a schermo né
+   nella cronologia (vale qualunque sia la configurazione della shell: la
+   chiave non sta mai sulla riga di comando):
 
    ```bash
-    WHATSAPP_PHONE_HASH_PREVIOUS_KEY='<vecchia>' php artisan community:rehash-phones --dry-run
+   read -rs OLDKEY
    ```
 
-   Lo spazio iniziale tiene la riga fuori dalla cronologia della shell se
-   `HISTCONTROL` contiene `ignorespace` (`echo $HISTCONTROL` per saperlo);
-   altrimenti `history -d` sulla riga subito dopo.
-6. Lo stesso comando senza `--dry-run`:
+   Incolla la chiave vecchia e premi Invio; non si vede nulla, è normale.
+6. La prova, che classifica e non scrive:
 
    ```bash
-    WHATSAPP_PHONE_HASH_PREVIOUS_KEY='<vecchia>' php artisan community:rehash-phones
+   WHATSAPP_PHONE_HASH_PREVIOUS_KEY="$OLDKEY" $PHP artisan community:rehash-phones --dry-run
    ```
 
-7. `php artisan up`.
+7. Lo stesso comando senza `--dry-run`:
+
+   ```bash
+   WHATSAPP_PHONE_HASH_PREVIOUS_KEY="$OLDKEY" $PHP artisan community:rehash-phones
+   ```
+
+8. Togli la chiave vecchia dalla shell e riapri il sito:
+
+   ```bash
+   unset OLDKEY
+   $PHP artisan up
+   ```
 
 **Come leggere il resoconto.** *Già con la chiave nuova*: niente da fare, ed è
 ciò che mostra una seconda esecuzione. *Da ricalcolare*: impronte della chiave

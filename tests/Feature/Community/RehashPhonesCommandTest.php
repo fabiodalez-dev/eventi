@@ -160,6 +160,41 @@ it('refuses orphans unless asked to release them, keeping the suspension date', 
         ->and(DB::table('users')->where('id', $user->id)->value('whatsapp_phone_hash'))->toBe(PhoneFingerprint::of('+393331111111', 'new'));
 });
 
+it('treats a missing number on an account that is not suspended and deleted as a mismatch', function (): void {
+    // Un account attivo con l'impronta ma senza numero non è un'orfana: --release-orphans non deve toccarlo.
+    $broken = rehashUser('+393331111111', 'old');
+    DB::table('users')->where('id', $broken->id)->update(['whatsapp_phone' => null]);
+    rehashUser('+393332222222', 'old');
+    $before = storedFingerprints();
+
+    foreach (['community:rehash-phones', 'community:rehash-phones --release-orphans'] as $command) {
+        $this->artisan($command)
+            ->expectsOutputToContain('non corrispondono')
+            ->expectsOutputToContain('Utenti: '.$broken->id)
+            ->expectsOutputToContain('Nulla è stato scritto')
+            ->assertExitCode(1);
+        expect(storedFingerprints())->toBe($before);
+    }
+});
+
+it('lets --release-orphans resolve a collision with an orphan fingerprint', function (): void {
+    // L'orfana è già con la chiave nuova; un account attivo con lo stesso numero è ancora con la vecchia.
+    $orphan = rehashOrphan('+393331111111', 'new');
+    $user = rehashUser('+393331111111', 'old');
+    $before = storedFingerprints();
+
+    $this->artisan('community:rehash-phones')
+        ->expectsOutputToContain('stessa impronta')
+        ->assertExitCode(1);
+    expect(storedFingerprints())->toBe($before);
+
+    $this->artisan('community:rehash-phones --release-orphans')
+        ->expectsOutputToContain('Impronte orfane eliminate: 1')
+        ->assertExitCode(0);
+    expect(DB::table('users')->where('id', $orphan->id)->value('whatsapp_phone_hash'))->toBeNull()
+        ->and(DB::table('users')->where('id', $user->id)->value('whatsapp_phone_hash'))->toBe(PhoneFingerprint::of('+393331111111', 'new'));
+});
+
 it('refuses to run without two distinct keys', function (?string $previous, string $current): void {
     putenv($previous === null ? 'WHATSAPP_PHONE_HASH_PREVIOUS_KEY' : 'WHATSAPP_PHONE_HASH_PREVIOUS_KEY='.$previous);
     config(['community.phone_hash_key' => $current]);

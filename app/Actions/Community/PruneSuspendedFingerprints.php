@@ -26,7 +26,7 @@ final class PruneSuspendedFingerprints
 {
     public function __invoke(bool $dryRun = false): int
     {
-        $cutoff = now()->subMonths(config()->integer('community.suspended_fingerprint_retention_months'));
+        $cutoff = now()->subMonthsNoOverflow(config()->integer('community.suspended_fingerprint_retention_months'));
 
         $ids = User::onlyTrashed()
             ->whereNotNull('whatsapp_phone_hash')
