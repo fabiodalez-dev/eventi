@@ -1375,3 +1375,82 @@ it('99 the verification history shows a failed send as failed even though it is 
         ->and(view('filament.admin.pages.whatsapp-history', ['challenges' => collect([$used])])->render())
         ->toContain(__('community.used'));
 });
+
+it('100 a stranger cannot lock the owner out of their own number', function (): void {
+    $verification = app(WhatsappVerification::class);
+    $stranger = User::factory()->create();
+    // L'estraneo usa tutto il proprio budget giornaliero sul numero altrui.
+    foreach (range(1, 5) as $attempt) {
+        $verification->request($stranger, '+393331234567', '198.51.100.7');
+        $this->travel(21)->minutes();
+    }
+    expect(fn () => $verification->request($stranger, '+393331234567', '198.51.100.7'))
+        ->toThrow(ValidationException::class, __('community.whatsapp.rate_limit'));
+    Http::assertSentCount(5);
+
+    // Il titolare ha ancora tutto il proprio budget, orario e giornaliero.
+    foreach (range(1, 3) as $attempt) {
+        expect($verification->request($this->user, '+393331234567', '198.51.100.8')->outcome)->toBe(KapsoOutcome::Sent);
+        $this->travel(2)->minutes();
+    }
+    expect(fn () => $verification->request($this->user, '+393331234567', '198.51.100.8'))
+        ->toThrow(ValidationException::class, __('community.whatsapp.rate_limit'));
+    $this->travel(1)->hour();
+    foreach (range(4, 5) as $attempt) {
+        expect($verification->request($this->user, '+393331234567', '198.51.100.8')->outcome)->toBe(KapsoOutcome::Sent);
+        $this->travel(2)->minutes();
+    }
+    $this->travel(1)->hour();
+    expect(fn () => $verification->request($this->user, '+393331234567', '198.51.100.8'))
+        ->toThrow(ValidationException::class, __('community.whatsapp.rate_limit'));
+    Http::assertSentCount(10);
+});
+
+it('101 failed foreign sends only count for the cooldown on the number', function (): void {
+    config(['community.number_foreign_daily_limit' => 2]);
+    $verification = app(WhatsappVerification::class);
+    kapsoReplies(Http::response([], 500));
+    expect(fn () => $verification->request(User::factory()->create(), '+393331234567', '198.51.100.7'))
+        ->toThrow(ValidationException::class, __('community.whatsapp.send_failed'));
+
+    kapsoReplies(Http::response(['messages' => [['id' => 'wamid.test']]]));
+    $this->travel(30)->seconds();
+    expect(fn () => $verification->request($this->user, '+393331234567', '198.51.100.8'))
+        ->toThrow(ValidationException::class, __('community.whatsapp.rate_limit'));
+    $this->travel(31)->seconds();
+    expect($verification->request($this->user, '+393331234567', '198.51.100.8')->outcome)->toBe(KapsoOutcome::Sent);
+
+    // L'account con il solo invio fallito non occupa uno dei posti concessi al numero.
+    $this->travel(2)->minutes();
+    expect($verification->request(User::factory()->create(), '+393331234567', '198.51.100.9')->outcome)->toBe(KapsoOutcome::Sent);
+    Http::assertSentCount(2);
+});
+
+it('102 the per-account daily cap holds whatever number is asked', function (): void {
+    foreach ([20, 16, 12, 8, 4] as $i => $hours) {
+        communityChallenge($this->user, ['phone' => '+39333765432'.$i, 'phone_hash' => app(WhatsappVerification::class)->fingerprint('+39333765432'.$i), 'created_at' => now()->subHours($hours)]);
+    }
+    expect(fn () => app(WhatsappVerification::class)->request($this->user, '+393331234567', '198.51.100.8'))
+        ->toThrow(ValidationException::class, __('community.whatsapp.rate_limit'));
+    Http::assertNothingSent();
+});
+
+it('103 a number accepts codes for at most three accounts a day and the cap comes from configuration', function (): void {
+    $verification = app(WhatsappVerification::class);
+    foreach (range(1, 3) as $account) {
+        $verification->request(User::factory()->create(), '+393331234567', '198.51.100.'.$account);
+        $this->travel(2)->minutes();
+    }
+    expect(fn () => $verification->request($this->user, '+393331234567', '198.51.100.9'))
+        ->toThrow(ValidationException::class, __('community.whatsapp.rate_limit'));
+    Http::assertSentCount(3);
+
+    // Passate le 24 ore i posti si liberano; con la soglia a 1 basta un altro account a occuparlo.
+    $this->travel(1)->day();
+    config(['community.number_foreign_daily_limit' => 1]);
+    $verification->request(User::factory()->create(), '+393331234567', '198.51.100.7');
+    $this->travel(2)->minutes();
+    expect(fn () => $verification->request($this->user, '+393331234567', '198.51.100.9'))
+        ->toThrow(ValidationException::class, __('community.whatsapp.rate_limit'));
+    Http::assertSentCount(4);
+});

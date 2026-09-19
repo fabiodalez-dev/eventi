@@ -58,11 +58,11 @@ use Illuminate\Support\Facades\URL;
  * esiste modo di farsi dire qualcosa che non sia già pubblico.
  */
 Route::get('/salvataggi/pannello', [SavedController::class, 'panel'])
-    ->middleware('throttle:60,1')
+    ->middleware('throttle:60,1,saved-panel')
     ->name('account.saved.panel');
 
 Route::get('/aspetto', [AppearanceController::class, 'index'])->name('appearance');
-Route::patch('/aspetto', [AppearanceController::class, 'update'])->middleware(['auth', 'throttle:60,1'])->name('appearance.update');
+Route::patch('/aspetto', [AppearanceController::class, 'update'])->middleware(['auth', 'throttle:60,1,appearance'])->name('appearance.update');
 
 Route::middleware('guest')->group(function (): void {
     Route::get('/registrati', [RegisterController::class, 'create'])->name('account.register');
@@ -152,10 +152,10 @@ Route::middleware(['auth', RequireConfirmedAccount::class])->group(function (): 
     Route::prefix('il-mio-calendario/google')->name('google-calendar.')->middleware(TicketingPrivacy::class)->group(function (): void {
         Route::get('/', [GoogleCalendarController::class, 'index'])->name('index');
         Route::get('/da-app/{user}', [GoogleCalendarController::class, 'mobile'])->whereNumber('user')->middleware('signed')->name('mobile');
-        Route::post('/collega', [GoogleCalendarController::class, 'connect'])->middleware('throttle:10,1')->name('connect');
-        Route::get('/callback', [GoogleCalendarController::class, 'callback'])->middleware('throttle:30,1')->name('callback');
-        Route::patch('/', [GoogleCalendarController::class, 'update'])->middleware('throttle:10,1')->name('update');
-        Route::delete('/', [GoogleCalendarController::class, 'disconnect'])->middleware('throttle:10,1')->name('disconnect');
+        Route::post('/collega', [GoogleCalendarController::class, 'connect'])->middleware('throttle:10,1,calendar-google-manage')->name('connect');
+        Route::get('/callback', [GoogleCalendarController::class, 'callback'])->middleware('throttle:30,1,calendar-google-callback')->name('callback');
+        Route::patch('/', [GoogleCalendarController::class, 'update'])->middleware('throttle:10,1,calendar-google-manage')->name('update');
+        Route::delete('/', [GoogleCalendarController::class, 'disconnect'])->middleware('throttle:10,1,calendar-google-manage')->name('disconnect');
     });
     Route::get('/profilo/interessi', [ContentPreferencesController::class, 'index'])->name('account.content-preferences');
     Route::patch('/profilo/interessi', [ContentPreferencesController::class, 'update'])->name('account.content-preferences.update');
@@ -207,11 +207,11 @@ Route::middleware(['auth', RequireConfirmedAccount::class])->group(function (): 
      * senza, e ogni chiamata puo' depositare una riga in `devices`.
      */
     Route::post('/notifiche/push', [PushSubscriptionController::class, 'store'])
-        ->middleware('throttle:10,1')
+        ->middleware('throttle:10,1,push-subscription')
         ->name('account.push.store');
 
     Route::delete('/notifiche/push', [PushSubscriptionController::class, 'destroy'])
-        ->middleware('throttle:10,1')
+        ->middleware('throttle:10,1,push-subscription')
         ->name('account.push.destroy');
 
     Route::get('/email/verifica', [EmailVerificationController::class, 'notice'])->name('verification.notice');
@@ -229,7 +229,7 @@ Route::middleware(['auth', RequireConfirmedAccount::class])->group(function (): 
     Route::get('/i-miei-salvataggi', [SavedController::class, 'index'])->name('account.saved');
     Route::get('/salvataggi/stato', [SavedController::class, 'state'])->name('account.saved.state');
     Route::get('/i-miei-salvataggi/calendario.ics', [SavedCalendarController::class, 'download'])
-        ->middleware('throttle:60,1')->name('account.saved.calendar');
+        ->middleware('throttle:60,1,saved-calendar')->name('account.saved.calendar');
 
     /*
      * `salvataggi/unisci` prima di `salvataggi/{occurrence}`: dichiarata dopo,

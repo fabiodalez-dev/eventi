@@ -38,7 +38,7 @@ use Spatie\Health\Http\Controllers\SimpleHealthCheckController;
 Route::group([], base_path('routes/installer.php'));
 
 Route::get('/posizione-ricordata', [RememberedLocationController::class, 'show'])->name('location.show');
-Route::post('/posizione-ricordata', [RememberedLocationController::class, 'store'])->middleware('throttle:30,1')->name('location.store');
+Route::post('/posizione-ricordata', [RememberedLocationController::class, 'store'])->middleware('throttle:30,1,remembered-location')->name('location.store');
 Route::delete('/posizione-ricordata', [RememberedLocationController::class, 'destroy'])->name('location.destroy');
 
 Route::get('/app/auth/magic', function () {
@@ -81,7 +81,7 @@ Route::get('/anteprima-evento/{event}', [EventController::class, 'preview'])->mi
 Route::group([], base_path('routes/ticketing.php'));
 Route::get('/social/grafiche/{batch}/{index}.jpg', [SocialDownloadController::class, 'image'])->middleware('signed')->whereNumber('index')->name('social.image');
 Route::get('/social/download/{batch}', [SocialDownloadController::class, 'zip'])->middleware('auth')->name('social.zip');
-Route::get('/social/anteprima/{occurrence}', [SocialDownloadController::class, 'preview'])->middleware(['auth', 'throttle:120,1'])->name('social.preview');
+Route::get('/social/anteprima/{occurrence}', [SocialDownloadController::class, 'preview'])->middleware(['auth', 'throttle:120,1,social-preview'])->name('social.preview');
 
 /*
  * Lo stato del sistema (§16: monitoring su endpoint **protetto** per l'uptime
@@ -121,7 +121,7 @@ Route::middleware(RequiresOpsToken::class)
          * ma senza tetto potrebbe provarne molti.
          */
         Route::post('/rilascio', DeployController::class)
-            ->middleware('throttle:6,1')
+            ->middleware('throttle:6,1,ops-deploy')
             ->name('ops.deploy');
     });
 
@@ -251,7 +251,7 @@ Route::post('/sponsorizzazioni/{sponsorship}/{metric}', SponsorshipMetricControl
     ->middleware('throttle:sponsorship-metrics')
     ->name('sponsorships.metric');
 
-Route::middleware(['auth', 'throttle:20,1'])->prefix('social/meta')->name('social.meta.')->group(function (): void {
+Route::middleware(['auth', 'throttle:20,1,social-meta'])->prefix('social/meta')->name('social.meta.')->group(function (): void {
     Route::get('/collega', [MetaOAuthController::class, 'connect'])->name('connect');
     Route::get('/callback', [MetaOAuthController::class, 'callback'])->name('callback');
     Route::get('/pagine', [MetaOAuthController::class, 'pages'])->name('pages');
