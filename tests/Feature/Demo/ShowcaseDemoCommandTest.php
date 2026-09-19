@@ -5,7 +5,9 @@ declare(strict_types=1);
 use App\Console\Commands\InvestorDemoCommand;
 use App\Console\Commands\ShowcaseDemoCommand;
 use App\Enums\EventStatus;
+use App\Enums\VenueReviewStatus;
 use App\Enums\VenueType;
+use App\Enums\VerificationStatus;
 use App\Models\Category;
 use App\Models\CommunityComment;
 use App\Models\CommunityPost;
@@ -22,6 +24,7 @@ use App\Models\UserBlock;
 use App\Models\Venue;
 use App\Models\VenueReview;
 use App\Services\Notifications\DigestPlanner;
+use App\Services\Reviews\VenueReviews;
 use Carbon\CarbonImmutable;
 use Database\Seeders\CategorySeeder;
 use Database\Seeders\EventFeatureSeeder;
@@ -76,7 +79,7 @@ beforeEach(function (): void {
     // Due date del catalogo investitori nella settimana della vetrina: i post oltre la seconda si saltano.
     $category = Category::query()->where('slug', 'cinema')->firstOrFail();
     foreach ([0, 1] as $i) {
-        $event = Event::factory()->create(['city_id' => $this->city->id, 'category_id' => $category->id, 'venue_id' => Venue::query()->first()->id,
+        $event = Event::factory()->create(['city_id' => $this->city->id, 'category_id' => $category->id, 'venue_id' => Venue::query()->first()->id, 'is_demo' => true,
             'status' => EventStatus::Published, 'published_at' => now(), 'source_ref' => InvestorDemoCommand::PREFIX.'000'.$i]);
         EventOccurrence::factory()->create(['event_id' => $event->id, 'starts_at' => CarbonImmutable::parse('2026-09-2'.(2 + $i).' 18:00', 'Europe/Rome')->utc(), 'ends_at' => null, 'doors_at' => null]);
     }
@@ -95,7 +98,11 @@ it('prints the plan without writing on dry run', function (): void {
 });
 
 it('creates the next week of events and a complete verified community', function (): void {
-    $this->artisan('demo:showcase')->assertSuccessful();
+    // Locali tutti verificati e catalogo investitori già «confermato dal locale»: gli eventi demo devono restare non verificati.
+    Venue::query()->update(['is_verified' => true]);
+    Event::query()->where('source_ref', 'like', InvestorDemoCommand::PREFIX.'%')->update(['verification_status' => VerificationStatus::VenueConfirmed->value]);
+
+    $this->artisan('demo:showcase')->expectsOutputToContain('Eventi demo riportati a «non verificato»')->assertSuccessful();
 
     $events = Event::query()->where('source_ref', 'like', ShowcaseDemoCommand::PREFIX.'%')->with('occurrences', 'media')->get();
     $days = $events->flatMap->occurrences->map(fn ($date) => CarbonImmutable::parse($date->starts_at)->timezone('Europe/Rome')->format('Y-m-d'))->unique()->sort()->values()->all();
@@ -103,6 +110,7 @@ it('creates the next week of events and a complete verified community', function
         ->and($events->pluck('title')->unique())->toHaveCount(25)
         ->and($events->every(fn (Event $event) => $event->is_demo && $event->hasMedia('poster') && $event->occurrences->count() === 1
             && $event->status === EventStatus::Published && ! str_contains((string) $event->description, '<')))->toBeTrue()
+        ->and(Event::query()->where('is_demo', true)->where('verification_status', '!=', VerificationStatus::Unverified->value)->count())->toBe(0)
         ->and($days)->toBe(['2026-09-21', '2026-09-22', '2026-09-23', '2026-09-24', '2026-09-25', '2026-09-26', '2026-09-27'])
         ->and($events->where('price_type.value', 'free')->count())->toBeGreaterThan(5)
         ->and($events->where('price_type.value', 'ticket')->count())->toBeGreaterThan(5)
@@ -134,9 +142,19 @@ it('creates the next week of events and a complete verified community', function
         ->and(SavedEvent::query()->whereIn('user_id', showcaseUserIds())->where('visibility', 'private')->count())->toBeGreaterThan(10)
         ->and(CommunityComment::query()->whereIn('user_id', showcaseUserIds())->whereNotNull('parent_id')->count())->toBe(7)
         ->and(EventComment::query()->whereIn('user_id', showcaseUserIds())->whereNotNull('parent_id')->count())->toBe(10);
+
+    // Le recensioni di persone inventate su locali veri non si pubblicano: aspettano la redazione.
+    $reviews = VenueReview::query()->whereIn('user_id', showcaseUserIds())->get();
+    expect($reviews)->toHaveCount(6)
+        ->and($reviews->every(fn (VenueReview $review) => $review->status === VenueReviewStatus::Pending && $review->moderated_at === null))->toBeTrue()
+        ->and(app(VenueReviews::class)->listing(Venue::query()->findOrFail($reviews->first()->venue_id), null)['count'])->toBe(0);
 });
 
-it('never sends or plans a message for the demo people', function (): void {
+it('never sends or plans a message for the demo people, nor to real followers of the venues', function (): void {
+    // Una persona vera che segue con avviso ogni locale della città: gli eventi demo non le annunciano niente.
+    $follower = User::factory()->create();
+    Venue::query()->each(fn (Venue $venue) => $follower->follows()->create(['followable_type' => 'venue', 'followable_id' => $venue->id, 'notify' => true]));
+
     $this->artisan('demo:showcase')->assertSuccessful();
     app(DigestPlanner::class)->plan();
 
@@ -144,6 +162,7 @@ it('never sends or plans a message for the demo people', function (): void {
     Mail::assertNothingSent();
     $people = User::query()->whereIn('id', showcaseUserIds())->get();
     expect(ScheduledNotification::query()->whereIn('user_id', showcaseUserIds())->count())->toBe(0)
+        ->and(ScheduledNotification::query()->ofType('venue_new_event')->count())->toBe(0)
         ->and($people->contains(fn (User $user) => $user->canReceiveNotifications()))->toBeFalse()
         ->and($people->contains(fn (User $user) => $user->devices()->exists() || $user->routeNotificationForFcm() !== [] || $user->routeNotificationForWebPush()->isNotEmpty()))->toBeFalse()
         ->and($people->every(fn (User $user) => ! $user->notificationPreferences()->reminders && ! $user->notificationPreferences()->venueDigest && ! $user->notificationPreferences()->dailyDigest))->toBeTrue()
@@ -178,12 +197,15 @@ it('purges exactly the demo data and nothing else', function (): void {
     $venues = Venue::query()->count();
     $this->artisan('demo:showcase')->assertSuccessful();
 
-    // Una persona vera che segue una persona demo: la relazione sparisce con lei.
+    // Una persona vera che segue una persona demo e salva una data demo: quelle righe spariscono, e il resoconto lo dice.
     $demo = User::query()->whereIn('id', showcaseUserIds())->first();
     $real->follow($demo);
     SavedEvent::query()->create(['user_id' => $real->id, 'occurrence_id' => EventOccurrence::query()->whereIn('event_id', $investor)->value('id')]);
+    SavedEvent::query()->create(['user_id' => $real->id, 'occurrence_id' => EventOccurrence::query()->whereIn('event_id', Event::query()->where('source_ref', 'like', ShowcaseDemoCommand::PREFIX.'%')->select('id'))->value('id')]);
 
-    $this->artisan('demo:showcase', ['--purge' => true])->assertSuccessful();
+    $this->artisan('demo:showcase', ['--purge' => true, '--dry-run' => true])->expectsOutputToContain('Con loro spariranno righe di altri utenti: 1 salvataggi, 1 relazioni.')->assertSuccessful();
+    expect(showcaseCounts()['users'])->toBe(18);
+    $this->artisan('demo:showcase', ['--purge' => true])->expectsOutputToContain('Con loro sono sparite righe di altri utenti: 1 salvataggi, 1 relazioni.')->assertSuccessful();
 
     expect(showcaseCounts())->each->toBe(0)
         ->and(DB::table('followables')->count())->toBe(0)
@@ -192,9 +214,48 @@ it('purges exactly the demo data and nothing else', function (): void {
         ->and(SavedEvent::query()->where('user_id', $real->id)->count())->toBe(1)
         ->and(Venue::query()->count())->toBe($venues);
 
-    // Dopo la pulizia il catalogo si può ricreare da capo.
+    // Dopo la pulizia il catalogo si può ricreare da capo, e una pulizia senza righe altrui lo dice.
     $this->artisan('demo:showcase')->assertSuccessful();
     expect(showcaseCounts()['users'])->toBe(18)->and(showcaseCounts()['events'])->toBe(25);
+    $this->artisan('demo:showcase', ['--purge' => true])->expectsOutputToContain('Nessuna riga di altri utenti è stata toccata.')->assertSuccessful();
+});
+
+it('starts this week when run on a Monday, and --week pins a Monday until the next purge', function (): void {
+    $showcaseDays = fn (): array => EventOccurrence::query()->whereIn('event_id', Event::query()->where('source_ref', 'like', ShowcaseDemoCommand::PREFIX.'%')->select('id'))->get()
+        ->map(fn ($date) => CarbonImmutable::parse($date->starts_at)->timezone('Europe/Rome')->format('Y-m-d'))->unique()->sort()->values()->all();
+
+    // Lunedì 21 alle 9: la settimana che comincia oggi, non quella dopo.
+    $this->travelTo(CarbonImmutable::parse('2026-09-21 09:00', 'Europe/Rome'));
+    $this->artisan('demo:showcase')->assertSuccessful();
+    expect($showcaseDays()[0])->toBe('2026-09-21')->and($showcaseDays()[6])->toBe('2026-09-27');
+
+    // La settimana non si sposta finché la vetrina è in piedi.
+    expect(fn () => $this->artisan('demo:showcase', ['--week' => '2026-09-28'])->run())->toThrow(RuntimeException::class, 'già sulla settimana del 21/09/2026');
+    $this->artisan('demo:showcase', ['--purge' => true])->assertSuccessful();
+
+    expect(fn () => $this->artisan('demo:showcase', ['--week' => '2026-09-29'])->run())->toThrow(RuntimeException::class, 'vuole un lunedì');
+    expect(fn () => $this->artisan('demo:showcase', ['--week' => '28/09/2026'])->run())->toThrow(RuntimeException::class, 'vuole un lunedì');
+    $this->artisan('demo:showcase', ['--week' => '2026-09-28'])->assertSuccessful();
+    expect($showcaseDays()[0])->toBe('2026-09-28')->and($showcaseDays()[6])->toBe('2026-10-04');
+});
+
+it('keeps relations and reviews on the same venues across runs, whatever the redazione approves in between', function (): void {
+    $this->artisan('demo:showcase')->assertSuccessful();
+    $reviewed = fn (): array => VenueReview::query()->whereIn('user_id', showcaseUserIds())->orderBy('user_id')->pluck('venue_id', 'user_id')->all();
+    $followed = fn (): array => Follow::query()->whereIn('user_id', showcaseUserIds())->where('followable_type', 'venue')->orderBy('id')->pluck('followable_id')->sort()->values()->all();
+    $before = ['reviews' => $reviewed(), 'follows' => $followed()];
+    $eventVenues = EventOccurrence::query()->whereIn('event_id', Event::query()->where('source_ref', 'like', ShowcaseDemoCommand::PREFIX.'%')->select('id'))->pluck('venue_id')->unique()->all();
+    expect(array_diff($before['follows'], $eventVenues))->toBe([])->and(array_diff($before['reviews'], $eventVenues))->toBe([]);
+
+    // Nuovi locali approvati con id più bassi non esistono, ma anche uno nuovo prende posto nell'elenco: non deve spostare niente.
+    foreach (VenueType::cases() as $type) {
+        Venue::factory()->create(['city_id' => $this->city->id, 'type' => $type, 'status' => 'approved']);
+    }
+    VenueReview::query()->whereIn('user_id', showcaseUserIds())->first()->delete();
+    Follow::query()->whereIn('user_id', showcaseUserIds())->where('followable_type', 'venue')->first()->delete();
+    $this->artisan('demo:showcase')->assertSuccessful();
+
+    expect($reviewed())->toBe($before['reviews'])->and($followed())->toBe($before['follows']);
 });
 
 it('renders the public pages with the seeded data', function (): void {

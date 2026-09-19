@@ -30,7 +30,8 @@ class VenueObserver
     public function saved(Venue $venue): void
     {
         if ($venue->wasChanged('is_verified')) {
-            Event::query()->where('venue_id', $venue->id)
+            // Gli eventi dimostrativi restano «non verificati» qualunque cosa faccia il locale (EventObserver::saving).
+            Event::query()->where('venue_id', $venue->id)->where('is_demo', false)
                 ->where('verification_status', '!=', VerificationStatus::EditorialChecked->value)
                 ->update(['verification_status' => $venue->is_verified
                     ? VerificationStatus::VenueConfirmed->value

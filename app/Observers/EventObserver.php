@@ -41,8 +41,13 @@ final class EventObserver
 
     public function saving(Event $event): void
     {
-        // Confirmation follows the venue; editorial verification remains a staff decision.
-        if ($event->verification_status !== VerificationStatus::EditorialChecked) {
+        // Un evento dimostrativo non è confermato da nessuno: il locale non lo
+        // ha scritto e la redazione non lo ha verificato. Senza questa riga un
+        // locale verificato gli darebbe il badge «confermato dal locale».
+        if ($event->isDemo()) {
+            $event->verification_status = VerificationStatus::Unverified;
+        } elseif ($event->verification_status !== VerificationStatus::EditorialChecked) {
+            // Confirmation follows the venue; editorial verification remains a staff decision.
             $event->verification_status = $event->venue?->is_verified === true
                 ? VerificationStatus::VenueConfirmed : VerificationStatus::Unverified;
         }

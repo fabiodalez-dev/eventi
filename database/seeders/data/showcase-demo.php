@@ -210,13 +210,19 @@ return [
         [22, 13, 'Il coro è quello che ha cantato in Santa Sofia a Natale? Erano bravissimi.', [], [[6, 'love']]],
     ],
 
-    /* [persona, posizione del locale fra gli approvati della città, voto, testo] */
+    /*
+     * [persona, evento, voto, testo]. Il locale recensito è quello dell'evento
+     * indicato (indice in `events`): è una chiave stabile fra un'esecuzione e
+     * l'altra, mentre una posizione fra i locali approvati della città slitta
+     * appena la redazione ne approva uno nuovo. Le recensioni nascono in
+     * attesa di moderazione, non pubblicate.
+     */
     'venue_reviews' => [
-        [5, 0, 5, 'Personale gentile e programmazione curata. Ci torno volentieri.'],
-        [12, 1, 4, 'Buona acustica e palco ben visibile anche dal fondo. Un po’ affollato nelle serate grandi.'],
-        [3, 2, 5, 'Rastrelliera per le bici davanti all’ingresso e rassegne che non si trovano altrove.'],
-        [13, 3, 4, 'Posto accogliente, ideale per un pomeriggio tranquillo. Bagni accessibili.'],
-        [2, 4, 5, 'Spazio pensato anche per le famiglie: fasciatoio e posto per i passeggini.'],
-        [14, 5, 4, 'Serate ben organizzate, prezzi onesti.'],
+        [5, 9, 5, 'Personale gentile e programmazione curata. Ci torno volentieri.'],
+        [12, 18, 4, 'Buona acustica e palco ben visibile anche dal fondo. Un po’ affollato nelle serate grandi.'],
+        [3, 0, 5, 'Rastrelliera per le bici davanti all’ingresso e rassegne che non si trovano altrove.'],
+        [13, 1, 4, 'Posto accogliente, ideale per un pomeriggio tranquillo. Bagni accessibili.'],
+        [2, 6, 5, 'Spazio pensato anche per le famiglie: fasciatoio e posto per i passeggini.'],
+        [14, 10, 4, 'Serate ben organizzate, prezzi onesti.'],
     ],
 ];

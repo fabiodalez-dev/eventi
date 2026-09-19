@@ -10,6 +10,7 @@ use App\Enums\PostIntent;
 use App\Enums\ProfileVisibility;
 use App\Enums\SavedVisibility;
 use App\Enums\VenueReviewStatus;
+use App\Enums\VerificationStatus;
 use App\Models\Category;
 use App\Models\City;
 use App\Models\CommunityComment;
@@ -32,6 +33,7 @@ use App\Notifications\CommunityNotification;
 use App\Services\Community\WhatsappVerification;
 use App\Support\ContentVersion;
 use Carbon\CarbonImmutable;
+use Carbon\Exceptions\InvalidFormatException;
 use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -58,10 +60,22 @@ use Illuminate\Support\Str;
  * Nessuna scrittura passa dalle Action che notificano (PostComment,
  * Community::comment, Community::follow): avviserebbero lo staff reale dei
  * locali. Le righe si scrivono direttamente, con gli stessi valori che quelle
- * Action produrrebbero.
+ * Action produrrebbero. Gli eventi `is_demo` non annunciano nulla neanche da
+ * soli: `NotificationScheduler` li ignora, i riepiloghi e i caroselli social
+ * li escludono (`EventOccurrenceQuery::excludingDemo()`), e restano «non
+ * verificati» anche nei locali verificati (`EventObserver::saving`).
  *
- * `--purge` rimuove esattamente le persone del catalogo (con tutto ciò che
- * dipende da loro) e gli eventi con il prefisso: niente altro.
+ * Gli eventi stanno in locali veri, come quelli di `events:investor-demo`,
+ * con l'avviso «non confermato dal locale» nella scheda. Le recensioni no:
+ * un voto a cinque stelle di una persona inesistente su un'attività vera è
+ * una recensione falsa, e resta **in attesa di moderazione** — si vede nel
+ * pannello, non nella scheda pubblica del locale.
+ *
+ * `--purge` rimuove le persone del catalogo (con tutto ciò che dipende da
+ * loro) e gli eventi con il prefisso. Le chiavi esterne in cascata portano via
+ * anche ciò che altri utenti hanno agganciato lì — un salvataggio su una data
+ * demo, una risposta a un commento demo — e il resoconto lo conta, voce per
+ * voce, invece di negarlo.
  */
 final class ShowcaseDemoCommand extends Command
 {
@@ -69,7 +83,7 @@ final class ShowcaseDemoCommand extends Command
 
     public const EMAIL_DOMAIN = 'demo.incitta.invalid';
 
-    protected $signature = 'demo:showcase {city=padova} {--dry-run} {--allow-production} {--purge : Rimuove tutto ciò che questo comando ha creato}';
+    protected $signature = 'demo:showcase {city=padova} {--dry-run} {--allow-production} {--purge : Rimuove tutto ciò che questo comando ha creato} {--week= : Lunedì della settimana della vetrina (AAAA-MM-GG); di norma il primo lunedì da oggi compreso}';
 
     protected $description = 'Popola la città con una settimana dimostrativa: 25 eventi, persone verificate, post, commenti, reazioni e recensioni';
 
@@ -111,7 +125,7 @@ final class ShowcaseDemoCommand extends Command
                 ['Commenti ai post', count($catalog['post_comments'])],
                 ['Commenti agli eventi (con risposte)', array_sum(array_map(fn (array $c): int => 1 + count($c[3]), $catalog['event_comments']))],
                 ['Reazioni ai commenti', array_sum(array_map(fn (array $c): int => count($c[4]), $catalog['event_comments']))],
-                ['Recensioni dei locali', count($catalog['venue_reviews'])],
+                ['Recensioni dei locali (in attesa di moderazione)', count($catalog['venue_reviews'])],
             ]);
             $this->line('Prova a vuoto: nessuna scrittura.');
 
@@ -126,14 +140,16 @@ final class ShowcaseDemoCommand extends Command
 
         return Cache::lock('showcase-demo:'.$city->id, 3600)->block(5, function () use ($city, $catalog, $categories, $credits, $venues, $week): int {
             $events = $this->seedEvents($city, $catalog['events'], $categories, $credits, $venues, $week);
+            $this->keepDemoEventsUnverified($city);
+            $eventVenues = $this->venuesOf($events);
             $people = $this->seedPeople($city, $catalog['people']);
-            $this->seedFollows($city, $people, $venues);
+            $this->seedFollows($city, $people, $eventVenues);
             $this->seedBlocks($people);
             $posts = $this->seedPosts($city, $week, $catalog['posts'], $people, $events);
             $this->seedPrivateSaves($people, $events);
             $this->seedPostComments($catalog['post_comments'], $people, $posts);
             $this->seedEventComments($catalog['event_comments'], $people, $events);
-            $this->seedVenueReviews($catalog['venue_reviews'], $people, $venues);
+            $this->seedVenueReviews($catalog['venue_reviews'], $people, $events);
             $this->seedRides($city, $people, $events);
             ContentVersion::bump($city);
 
@@ -178,21 +194,84 @@ final class ShowcaseDemoCommand extends Command
     }
 
     /**
-     * Il lunedì della settimana prossima nel fuso della città. Se il catalogo
-     * è già stato importato si riparte dalla sua settimana: una seconda
-     * esecuzione completa quella, non ne apre un'altra.
+     * Il lunedì della settimana della vetrina, nel fuso della città.
+     *
+     * Se il catalogo è già stato importato si riparte dalla sua settimana:
+     * una seconda esecuzione completa quella, non ne apre un'altra. Altrimenti
+     * vale `--week`, oppure il primo lunedì da oggi **compreso**: chi lancia
+     * il comando di lunedì mattina vuole la settimana che sta cominciando,
+     * non aspettare sette giorni senza niente in cartellone. Il catalogo è
+     * scritto sui giorni della settimana («Lunedì d'essai», «Venerdì
+     * elettronico») e non si può far scivolare di un giorno.
      */
     private function weekStart(City $city): CarbonImmutable
     {
         $first = EventOccurrence::query()
             ->whereIn('event_id', Event::withTrashed()->where('city_id', $city->id)->where('source_ref', 'like', self::PREFIX.'%')->select('id'))
             ->orderBy('starts_at')->value('starts_at');
+        $requested = $this->requestedWeek($city);
 
         if ($first !== null) {
-            return CarbonImmutable::parse($first)->timezone($city->timezone)->startOfWeek(CarbonImmutable::MONDAY);
+            $existing = CarbonImmutable::parse($first)->timezone($city->timezone)->startOfWeek(CarbonImmutable::MONDAY);
+            if ($requested !== null && ! $requested->equalTo($existing)) {
+                throw new \RuntimeException(sprintf('La vetrina è già sulla settimana del %s: per spostarla serve prima --purge.', $existing->format('d/m/Y')));
+            }
+
+            return $existing;
         }
 
-        return CarbonImmutable::now($city->timezone)->next(CarbonImmutable::MONDAY)->startOfDay();
+        $today = CarbonImmutable::now($city->timezone)->startOfDay();
+
+        return $requested ?? ($today->isMonday() ? $today : $today->next(CarbonImmutable::MONDAY));
+    }
+
+    private function requestedWeek(City $city): ?CarbonImmutable
+    {
+        $option = $this->option('week');
+        if (! is_string($option) || $option === '') {
+            return null;
+        }
+        try {
+            $week = CarbonImmutable::createFromFormat('Y-m-d', $option, $city->timezone)->startOfDay();
+        } catch (InvalidFormatException) {
+            $week = null;
+        }
+        if ($week === null || $week->format('Y-m-d') !== $option || ! $week->isMonday()) {
+            throw new \RuntimeException('--week vuole un lunedì nel formato AAAA-MM-GG.');
+        }
+
+        return $week;
+    }
+
+    /**
+     * Gli eventi dimostrativi della città non sono confermati da nessuno.
+     * `EventObserver::saving` lo garantisce per quelli nuovi; questo passaggio
+     * riallinea quelli già in archivio — il catalogo investitori nei locali
+     * verificati aveva preso il badge «confermato dal locale».
+     */
+    private function keepDemoEventsUnverified(City $city): void
+    {
+        $demo = Event::query()->where('city_id', $city->id)->where('is_demo', true);
+        $fixed = (clone $demo)->where('verification_status', '!=', VerificationStatus::Unverified->value)
+            ->update(['verification_status' => VerificationStatus::Unverified->value]);
+        $this->report['Eventi demo riportati a «non verificato»'] = [$fixed, $demo->count()];
+    }
+
+    /**
+     * I locali degli eventi della vetrina, nell'ordine del catalogo e senza
+     * ripetizioni. Sono la chiave stabile per relazioni e recensioni: il
+     * locale di un evento non cambia fra un'esecuzione e l'altra, mentre una
+     * posizione fra «tutti gli approvati» slitta appena la redazione ne
+     * approva uno nuovo.
+     *
+     * @param  array<int, EventOccurrence>  $events
+     * @return Collection<int, Venue>
+     */
+    private function venuesOf(array $events): Collection
+    {
+        $ids = array_values(array_unique(array_map(fn (EventOccurrence $occurrence): int => (int) $occurrence->venue_id, $events)));
+
+        return Venue::query()->whereIn('id', $ids)->get()->sortBy(fn (Venue $venue): int => (int) array_search((int) $venue->id, $ids, true))->values();
     }
 
     /**
@@ -342,7 +421,8 @@ final class ShowcaseDemoCommand extends Command
     /**
      * Persone che seguono persone (vicini di elenco reciproci, più qualche
      * relazione a senso unico) e persone che seguono locali e organizzatori.
-     * I locali seguiti non notificano: `notify` resta spento.
+     * I locali seguiti sono quelli degli eventi della vetrina (`venuesOf()`),
+     * e non notificano: `notify` resta spento.
      *
      * @param  array<int, User>  $people
      * @param  Collection<int, Venue>  $venues
@@ -579,24 +659,28 @@ final class ShowcaseDemoCommand extends Command
     }
 
     /**
+     * Recensioni al locale dell'evento indicato, **in attesa di moderazione**:
+     * mostrano la coda nel pannello senza pubblicare un voto inventato sulla
+     * scheda di un'attività vera. Approvarle è una scelta della redazione.
+     *
      * @param  list<array{0: int, 1: int, 2: int, 3: string}>  $rows
      * @param  array<int, User>  $people
-     * @param  Collection<int, Venue>  $venues
+     * @param  array<int, EventOccurrence>  $events
      */
-    private function seedVenueReviews(array $rows, array $people, Collection $venues): void
+    private function seedVenueReviews(array $rows, array $people, array $events): void
     {
         $created = 0;
-        foreach ($rows as [$person, $position, $rating, $body]) {
+        foreach ($rows as [$person, $eventIndex, $rating, $body]) {
             $user = $people[$person] ?? null;
-            $venue = $venues[$position % $venues->count()];
-            if ($user === null || VenueReview::query()->where('venue_id', $venue->id)->where('user_id', $user->id)->exists()) {
+            $venueId = isset($events[$eventIndex]) ? (int) $events[$eventIndex]->venue_id : null;
+            if ($user === null || $venueId === null || VenueReview::query()->where('venue_id', $venueId)->where('user_id', $user->id)->exists()) {
                 continue;
             }
-            (new VenueReview)->forceFill(['venue_id' => $venue->id, 'user_id' => $user->id, 'rating' => $rating, 'body' => $body,
-                'status' => VenueReviewStatus::Approved, 'revision' => 1, 'moderated_at' => now()])->save();
+            (new VenueReview)->forceFill(['venue_id' => $venueId, 'user_id' => $user->id, 'rating' => $rating, 'body' => $body,
+                'status' => VenueReviewStatus::Pending, 'revision' => 1])->save();
             $created++;
         }
-        $this->report['Recensioni dei locali'] = [$created, VenueReview::query()->whereIn('user_id', array_map(fn (User $u): int => $u->id, $people))->count()];
+        $this->report['Recensioni dei locali (in attesa di moderazione)'] = [$created, VenueReview::query()->whereIn('user_id', array_map(fn (User $u): int => $u->id, $people))->count()];
     }
 
     /**
@@ -640,15 +724,17 @@ final class ShowcaseDemoCommand extends Command
     {
         $users = User::withTrashed()->whereIn('email', self::emails($catalog))->get();
         $events = Event::withTrashed()->where('city_id', $city->id)->where('is_demo', true)->where('source_ref', 'like', self::PREFIX.'%')->get();
+        $ids = $users->pluck('id')->map(fn ($id): int => (int) $id)->all();
+        $others = $this->rowsOfOthers($ids, $events->pluck('id')->map(fn ($id): int => (int) $id)->all());
         $this->info(sprintf('Da rimuovere: %d persone demo e %d eventi della vetrina.', $users->count(), $events->count()));
+        $this->line($this->describeOthers($others));
         if ($this->option('dry-run')) {
             $this->line('Prova a vuoto: nessuna scrittura.');
 
             return self::SUCCESS;
         }
 
-        return Cache::lock('showcase-demo:'.$city->id, 3600)->block(5, function () use ($users, $events, $city): int {
-            $ids = $users->pluck('id')->all();
+        return Cache::lock('showcase-demo:'.$city->id, 3600)->block(5, function () use ($users, $events, $city, $ids, $others): int {
             $morph = (new User)->getMorphClass();
             DB::transaction(function () use ($ids, $morph, $users): void {
                 // Le chiavi polimorfiche non hanno cascata: le righe che puntano alle persone demo si tolgono a mano.
@@ -670,9 +756,63 @@ final class ShowcaseDemoCommand extends Command
             // Uno per uno: così la libreria media cancella anche i file delle locandine.
             $events->each(fn (Event $event) => $event->forceDelete());
             ContentVersion::bump($city);
-            $this->info(sprintf('Rimossi %d persone e %d eventi. Nient’altro è stato toccato.', count($ids), $events->count()));
+            $this->info(sprintf('Rimossi %d persone e %d eventi. %s', count($ids), $events->count(), $this->describeOthers($others, done: true)));
 
             return self::SUCCESS;
         });
+    }
+
+    /**
+     * Le righe di **altri** utenti che la cancellazione porta via in cascata:
+     * chi ha salvato una data demo, risposto a un commento demo, seguito una
+     * persona demo o segnalato un suo contenuto. Si contano prima, perché dopo
+     * non c'è più niente da contare.
+     *
+     * @param  list<int>  $userIds
+     * @param  list<int>  $eventIds
+     * @return array<string, int>
+     */
+    private function rowsOfOthers(array $userIds, array $eventIds): array
+    {
+        $occurrences = EventOccurrence::query()->whereIn('event_id', $eventIds)->select('id');
+        $demoPosts = CommunityPost::query()->where(fn (Builder $q) => $q->whereIn('user_id', $userIds)->orWhereIn('occurrence_id', $occurrences))->select('id');
+        $demoPostComments = CommunityComment::query()->whereIn('user_id', $userIds)->select('id');
+        $demoEventComments = EventComment::query()->where(fn (Builder $q) => $q->whereIn('user_id', $userIds)->orWhereIn('event_id', $eventIds))->select('id');
+        $subjects = [
+            'community_post' => CommunityPost::query()->whereIn('user_id', $userIds)->select('id'),
+            'community_comment' => CommunityComment::query()->whereIn('user_id', $userIds)->select('id'),
+            'community_profile' => CommunityProfile::query()->whereIn('user_id', $userIds)->select('id'),
+            'event_comment' => EventComment::query()->whereIn('user_id', $userIds)->select('id'),
+        ];
+        // Le segnalazioni anonime hanno `reporter_user_id` nullo: un NOT IN da solo le perderebbe.
+        $reports = Report::query()->where(fn (Builder $q) => $q->whereNull('reporter_user_id')->orWhereNotIn('reporter_user_id', $userIds))->where(function (Builder $q) use ($subjects, $userIds): void {
+            foreach ($subjects as $type => $subjectIds) {
+                $q->orWhere(fn (Builder $r) => $r->where('reportable_type', $type)->whereIn('reportable_id', $subjectIds));
+            }
+            $q->orWhere(fn (Builder $r) => $r->where('reportable_type', 'user')->whereIn('reportable_id', $userIds));
+        });
+
+        return array_filter([
+            'salvataggi' => SavedEvent::query()->whereNotIn('user_id', $userIds)->whereIn('occurrence_id', $occurrences)->count(),
+            'post' => CommunityPost::query()->whereNotIn('user_id', $userIds)->whereIn('occurrence_id', $occurrences)->count(),
+            'commenti ai post' => CommunityComment::query()->whereNotIn('user_id', $userIds)
+                ->where(fn (Builder $q) => $q->whereIn('community_post_id', $demoPosts)->orWhereIn('parent_id', $demoPostComments))->count(),
+            'commenti agli eventi' => EventComment::query()->whereNotIn('user_id', $userIds)
+                ->where(fn (Builder $q) => $q->whereIn('event_id', $eventIds)->orWhereIn('parent_id', $demoEventComments))->count(),
+            'reazioni' => EventCommentReaction::query()->whereNotIn('user_id', $userIds)->whereIn('event_comment_id', $demoEventComments)->count(),
+            'relazioni' => DB::table('followables')->where('followable_type', (new User)->getMorphClass())->whereIn('followable_id', $userIds)->whereNotIn('user_id', $userIds)->count(),
+            'segnalazioni' => $reports->count(),
+        ]);
+    }
+
+    /** @param array<string, int> $others */
+    private function describeOthers(array $others, bool $done = false): string
+    {
+        if ($others === []) {
+            return $done ? 'Nessuna riga di altri utenti è stata toccata.' : 'Nessuna riga di altri utenti verrà toccata.';
+        }
+        $list = implode(', ', array_map(fn (string $label, int $count): string => "{$count} {$label}", array_keys($others), $others));
+
+        return ($done ? 'Con loro sono sparite righe di altri utenti: ' : 'Con loro spariranno righe di altri utenti: ').$list.'.';
     }
 }
