@@ -175,8 +175,8 @@ final class CachePage
     public const QUERY_ALLOWED = [
         'access',
         'accessible',
-        'all_dates',
         'age',
+        'all_dates',
         'stroller',
         'changing_table',
         'kids_area',
@@ -299,6 +299,18 @@ final class CachePage
 
         foreach (self::QUERY_ALLOWED as $nome) {
             if (! $request->query->has($nome)) {
+                continue;
+            }
+
+            /* `all_dates` è un interruttore: la mappa guarda solo se è acceso
+               (`$request->boolean()`). `?all_dates=1`, `=true`, `=on` sono la
+               stessa pagina, e `=zzz` è la pagina senza il parametro: ridotto a
+               «1 oppure niente», un valore qualsiasi non apre una voce nuova. */
+            if ($nome === 'all_dates') {
+                if ($request->boolean('all_dates')) {
+                    $parametri[$nome] = '1';
+                }
+
                 continue;
             }
 

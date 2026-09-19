@@ -140,7 +140,7 @@
     </div>
 
     @if ($filters->tags !== [])
-        <div class="flex flex-col gap-1.5" aria-label="{{ __('filters.tag.label') }}">
+        <div class="flex flex-wrap gap-1.5 lg:flex-col" aria-label="{{ __('filters.tag.label') }}">
             @foreach ($filters->tags as $activeTag)
                 <x-filter-chip
                     :href="$url($filters->withTags(array_values(array_diff($filters->tags, [$activeTag]))))"
@@ -156,7 +156,7 @@
     <div class="flex flex-col gap-[9px]">
         <span class="font-display text-[0.594rem] leading-none font-extrabold tracking-[0.16em] text-ink-subtle uppercase">{{ __('filters.date.label') }}</span>
 
-        <div class="flex flex-col gap-1.5">
+        <div class="flex flex-wrap gap-1.5 lg:flex-col">
             @if ($filters->hasDateWindow() && $filters->preset === null)
                 <x-filter-chip :href="$anyDateUrl" :active="true" :count="$total">
                     {{ $filters->date?->format('d/m/Y') ?? ($filters->from?->format('d/m/Y').' – '.$filters->to?->format('d/m/Y')) }}
@@ -193,7 +193,7 @@
         <div class="flex flex-col gap-[9px]">
             <span class="font-display text-[0.594rem] leading-none font-extrabold tracking-[0.16em] text-ink-subtle uppercase">{{ __('filters.category.label') }}</span>
 
-            <div class="flex flex-col gap-1.5">
+            <div class="flex flex-wrap gap-1.5 lg:flex-col">
                 @foreach ($categories as $category)
                     @continue($filters->categories !== [] && ! $filters->hasCategory($category->slug))
                     <x-filter-chip
@@ -212,7 +212,7 @@
     <div class="flex flex-col gap-[9px]">
         <span class="font-display text-[0.594rem] leading-none font-extrabold tracking-[0.16em] text-ink-subtle uppercase">{{ __('filters.price.label') }}</span>
 
-        <div class="flex flex-col gap-1.5">
+        <div class="flex flex-wrap gap-1.5 lg:flex-col">
             @foreach ($prices as $price)
                 @continue($filters->price !== null && $filters->price !== $price)
                 <x-filter-chip
@@ -231,7 +231,7 @@
     <div class="flex flex-col gap-[9px]">
         <span class="font-display text-[0.594rem] leading-none font-extrabold tracking-[0.16em] text-ink-subtle uppercase">{{ __('filters.time.label') }}</span>
 
-        <div class="flex flex-col gap-1.5">
+        <div class="flex flex-wrap gap-1.5 lg:flex-col">
             @foreach (TimeOfDay::cases() as $band)
                 @continue($filters->time !== $band && ! $available('time', $band->value))
                 @continue($filters->time !== null && $filters->time !== $band)
@@ -251,7 +251,7 @@
     <div class="flex flex-col gap-[9px]">
         <span class="font-display text-[0.594rem] leading-none font-extrabold tracking-[0.16em] text-ink-subtle uppercase">{{ __('filters.features.label') }}</span>
 
-        <div class="flex flex-col gap-1.5">
+        <div class="flex flex-wrap gap-1.5 lg:flex-col">
             @php($hasFeature = $filters->outdoor || $filters->accessible || $filters->family)
             @if ($filters->outdoor || ((! $hasFeature || $counts !== null) && $available('features', 'outdoor')))
             <x-filter-chip :href="$url($filters->withOutdoor(! $filters->outdoor))" :active="$filters->outdoor" :count="$count('features', 'outdoor')">

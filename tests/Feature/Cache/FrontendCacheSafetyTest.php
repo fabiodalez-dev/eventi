@@ -132,6 +132,26 @@ it('caches map pages separately for all dates and price filters', function (): v
     $this->get('/mappa?price=free')->assertHeader('X-Page-Cache', 'hit');
 });
 
+it('reduces all_dates to on or absent so spellings and garbage share one entry', function (): void {
+    $city = app(CurrentCity::class)->get();
+    occurrenceAtLocal($city, testCategory(), '2026-09-13 21:30');
+    $middleware = app(CachePage::class);
+    $acceso = $middleware->key(Request::create('/mappa?all_dates=1'));
+    $spento = $middleware->key(Request::create('/mappa'));
+
+    expect($middleware->key(Request::create('/mappa?all_dates=true')))->toBe($acceso)
+        ->and($middleware->key(Request::create('/mappa?all_dates=on')))->toBe($acceso)
+        ->and($middleware->key(Request::create('/mappa?all_dates=zzz')))->toBe($spento)
+        ->and($middleware->key(Request::create('/mappa?all_dates=0')))->toBe($spento)
+        ->and($acceso)->not->toBe($spento);
+
+    /* Le varianti scritte a mano leggono la voce già salvata invece di aprirne una. */
+    $this->get('/mappa?all_dates=1')->assertHeader('X-Page-Cache', 'miss')->assertSee('data-result-count="2"', false);
+    $this->get('/mappa?all_dates=true')->assertOk()->assertHeader('X-Page-Cache', 'hit')->assertSee('data-result-count="2"', false);
+    $this->get('/mappa')->assertHeader('X-Page-Cache', 'miss')->assertSee('data-result-count="1"', false);
+    $this->get('/mappa?all_dates=zzz')->assertOk()->assertHeader('X-Page-Cache', 'hit')->assertSee('data-result-count="1"', false);
+});
+
 it('bypasses map page caching for dynamic requests', function (string $url, array $headers) {
     $this->get('/mappa')->assertHeader('X-Page-Cache', 'miss');
     $this->get($url, $headers)->assertOk()->assertHeaderMissing('X-Page-Cache');

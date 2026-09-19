@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Middleware\CachePage;
 use App\Http\Requests\Web\EventFilterRequest;
+use App\Http\Requests\Web\MapBoundsRequest;
 use App\Http\Requests\Web\VenueFilterRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -42,12 +43,14 @@ it('non lascia divergere i filtri dichiarati dalla chiave della cache', function
     $filtri = array_merge(
         array_keys((new EventFilterRequest)->rules()),
         array_keys((new VenueFilterRequest)->rules()),
+        array_keys((new MapBoundsRequest)->rules()),
     );
 
-    /* I due che restano fuori di proposito, e che rendono la pagina NON
+    /* Quelli che restano fuori di proposito, e che rendono la pagina NON
        conservabile invece di entrare in chiave: la ricerca libera perché ogni
-       ricerca è diversa, il budget perché è un intero su diecimila valori. */
-    $fuoriDiProposito = ['q', 'budget'];
+       ricerca è diversa, il budget perché è un intero su diecimila valori, il
+       `bbox` della mappa perché cambia a ogni spostamento, come `lat` e `lng`. */
+    $fuoriDiProposito = ['q', 'budget', 'bbox'];
 
     $mancanti = array_values(array_diff(
         array_unique($filtri),

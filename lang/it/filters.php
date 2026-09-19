@@ -15,6 +15,7 @@ return [
     'open' => 'Filtra',
     'apply' => 'Mostra i risultati',
     'reset' => 'Azzera i filtri',
+    'remove' => 'Rimuovi il filtro',
     'active' => ':count filtro attivo|:count filtri attivi',
     'results' => ':count risultato|:count risultati',
 

@@ -1279,15 +1279,22 @@ html:has(.poster-lightbox[open]) { overflow: hidden; }
 .map-results { background-color: var(--canvas); }
 
 
-/* Shared sidebar rows keep long labels and their counts aligned on both pages. */
-#filtri [data-filter-chip] {
-    width: 100%;
-    min-width: 0;
-    justify-content: flex-start;
-    text-align: left;
-}
+/* Shared sidebar rows keep long labels and their counts aligned on both pages.
 
-#filtri [data-filter-chip] > span:first-child {
-    flex: 1;
-    text-align: left;
+   Solo da 1024px, dove la colonna è una barra laterale: sotto, i filtri stanno
+   sotto ai risultati a tutta larghezza, e una riga intera per chip
+   trasformava il pannello in una lista lunghissima. Lì i chip tornano a
+   disporsi uno accanto all'altro e ad andare a capo (`flex-wrap` nei gruppi). */
+@media (min-width: 1024px) {
+    #filtri [data-filter-chip] {
+        width: 100%;
+        min-width: 0;
+        justify-content: flex-start;
+        text-align: left;
+    }
+
+    #filtri [data-filter-chip] > span:first-child {
+        flex: 1;
+        text-align: left;
+    }
 }

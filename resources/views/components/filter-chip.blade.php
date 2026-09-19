@@ -50,6 +50,9 @@
     @endif
 
     @if ($active && $removable)
+        {{-- La × si vede e basta: a chi usa uno screen reader va detto a
+             parole che attivare il chip toglie il filtro, non lo riaccende. --}}
         <span aria-hidden="true" class="shrink-0 text-sm leading-none">&times;</span>
+        <span class="sr-only">{{ __('filters.remove') }}</span>
     @endif
 </a>

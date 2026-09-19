@@ -66,8 +66,12 @@ final class ContextualFacets
                 }
             }
         }
-        foreach (app(FilterFacets::class)->tags() as $tag) {
-            $result['tag'][$tag->slug] = $factory()->withTags([$tag->slug])->count();
+        /* I chip di un'etichetta attiva vengono disegnati anche quando non è
+           fra le 24 più usate (un link da una scheda, un indirizzo condiviso):
+           contare solo quelle popolari li lasciava a 0 pur avendo risultati. */
+        $tagSlugs = array_unique([...app(FilterFacets::class)->tags()->pluck('slug')->all(), ...$filters->tags]);
+        foreach ($tagSlugs as $slug) {
+            $result['tag'][$slug] = $factory()->withTags([$slug])->count();
         }
         foreach (DatePreset::cases() as $value) {
             $query = $factory();

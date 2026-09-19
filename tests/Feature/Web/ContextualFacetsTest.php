@@ -1,6 +1,7 @@
 <?php
 
 use App\DTOs\EventFilters;
+use App\Models\Tag;
 use App\Models\User;
 use App\Models\Venue;
 use App\Services\Search\ContextualFacets;
@@ -130,3 +131,22 @@ it('shows the full map total beyond its twelve fallback cards', function () {
         ->assertViewHas('occurrences', fn ($items) => $items->count() === 12)
         ->assertSee('data-result-count="14"', false);
 });
+
+it('counts an active tag chip even when the tag is outside the popular ones', function (string $path) {
+    /* Le 24 etichette più usate riempiono l'elenco dei suggerimenti: quella
+       rara entra solo perché è stata scelta, e il suo chip deve contare. */
+    for ($i = 1; $i <= 24; $i++) {
+        Tag::factory()->popular()->create(['name' => 'Popolare '.$i, 'slug' => 'popolare-'.$i, 'usage_count' => 100 + $i]);
+    }
+    $raro = Tag::factory()->approved()->create(['name' => 'Raro', 'slug' => 'raro', 'usage_count' => 1]);
+    $this->date->event->tags()->attach($raro);
+
+    $html = $this->get($path.'?tag=raro')->assertOk()->getContent();
+    $dom = new DOMDocument;
+    @$dom->loadHTML('<?xml encoding="UTF-8">'.$html);
+    $count = (new DOMXPath($dom))
+        ->query('//aside[@id="filtri"]//a[@aria-current="true"][span[normalize-space(.)="#Raro" or normalize-space(.)="#raro"]]/span[@data-filter-count]')
+        ->item(0)?->textContent ?? 'missing';
+
+    expect($count)->toBe('1');
+})->with(['/eventi', '/mappa']);

@@ -29,7 +29,25 @@ final class MapBoundsRequest extends EventFilterRequest
         return [
             ...parent::rules(),
             'bbox' => ['nullable', 'string', 'max:100'],
+            /* «Tutte le date» invece di oggi: la legge `MapController`, e
+               dichiararla qui tiene allineati regole e `CachePage::QUERY_ALLOWED`. */
+            'all_dates' => ['nullable', 'boolean'],
         ];
+    }
+
+    /**
+     * Un `all_dates` illeggibile vale «spento», come gli altri interruttori
+     * della lista: un link storpiato mostra la mappa di oggi, non un errore.
+     */
+    protected function prepareForValidation(): void
+    {
+        parent::prepareForValidation();
+
+        $value = $this->query('all_dates');
+
+        if ($value !== null && ! in_array((string) (is_scalar($value) ? $value : ''), ['0', '1', 'true', 'false'], true)) {
+            $this->query->remove('all_dates');
+        }
     }
 
     /**
