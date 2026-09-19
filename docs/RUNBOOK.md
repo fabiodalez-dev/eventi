@@ -699,6 +699,14 @@ la connessione è caduta dopo la partenza — in quel caso l'app ha ricevuto
 il messaggio non è partito: il codice precedente dell'utente resta valido e il
 tentativo non consuma i limiti orari e giornalieri.
 
+**Limiti d'invio.** Ogni account ha i suoi (tre codici l'ora, cinque al giorno)
+e le richieste fatte da un altro account sul suo numero non li consumano: un
+estraneo non può più chiudere fuori il titolare. Il numero ha un tetto proprio,
+`number_foreign_daily_limit` in `config/community.php` (3): nelle ultime 24 ore
+ne ricevono il codice al massimo tre account, ciascuno entro i propri limiti.
+Se un utente segnala «troppi codici» senza averne chiesti, nello storico dei
+tentativi di quel numero compaiono gli altri account.
+
 ## Tracciamento degli errori (Sentry)
 
 `SENTRY_LARAVEL_DSN` vuoto in `.env` significa **spento**: il pacchetto non si

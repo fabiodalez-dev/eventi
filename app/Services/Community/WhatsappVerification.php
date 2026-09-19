@@ -39,13 +39,25 @@ final class WhatsappVerification
             return DB::transaction(function () use ($user, $phone, $fingerprint, $code, $ipKey): WhatsappChallenge {
                 $locked = User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
                 abort_unless($locked->hasVerifiedEmail() && $locked->community_suspended_at === null, 403);
-                $recent = WhatsappChallenge::query()->where(fn ($q) => $q->where('user_id', $user->id)->orWhere('phone_hash', $fingerprint));
+                // Due conti separati: quello dell'account e quello del numero. Con un conto solo
+                // (utente OPPURE numero) un estraneo poteva esaurire il budget del titolare
+                // chiedendo cinque codici sul suo numero; così le sue richieste non toccano i
+                // tetti del titolare, ma il numero conserva un tetto proprio contro l'invio massivo.
+                $own = WhatsappChallenge::query()->where('user_id', $user->id);
+                $onNumber = WhatsappChallenge::query()->where('phone_hash', $fingerprint);
                 // Un invio rifiutato da Kapso non ha raggiunto nessuno: non consuma i tetti
                 // orario e giornaliero, ma resta nel minuto di attesa contro i tentativi a raffica.
-                $delivered = (clone $recent)->where('status', '!=', WhatsappChallengeStatus::Failed->value);
-                if ((clone $recent)->where('created_at', '>', now()->subMinute())->exists()
-                    || (clone $delivered)->where('created_at', '>', now()->subHour())->count() >= 3
-                    || (clone $delivered)->where('created_at', '>', now()->subDay())->count() >= config('community.daily_send_limit')) {
+                $ownDelivered = (clone $own)->where('status', '!=', WhatsappChallengeStatus::Failed->value);
+                // Si contano gli ACCOUNT diversi dal richiedente, non i loro invii: un tetto sugli
+                // invii lo riempirebbe un estraneo da solo, e il titolare (che il sistema non sa
+                // distinguere da lui) resterebbe di nuovo chiuso fuori. Così servono più account
+                // per bloccarlo, e il numero riceve al massimo i codici di tre account al giorno.
+                $foreignDelivered = (clone $onNumber)->where('user_id', '!=', $user->id)->where('status', '!=', WhatsappChallengeStatus::Failed->value);
+                if ((clone $own)->where('created_at', '>', now()->subMinute())->exists()
+                    || (clone $onNumber)->where('created_at', '>', now()->subMinute())->exists()
+                    || (clone $ownDelivered)->where('created_at', '>', now()->subHour())->count() >= (int) config('community.hourly_send_limit')
+                    || (clone $ownDelivered)->where('created_at', '>', now()->subDay())->count() >= (int) config('community.daily_send_limit')
+                    || (clone $foreignDelivered)->where('created_at', '>', now()->subDay())->distinct()->count('user_id') >= (int) config('community.number_foreign_daily_limit')) {
                     throw ValidationException::withMessages(['phone' => __('community.whatsapp.rate_limit')]);
                 }
                 if (RateLimiter::tooManyAttempts($ipKey, self::IP_DAILY_LIMIT) || RateLimiter::tooManyAttempts('wa-global', (int) config('community.global_daily_send_limit'))) {

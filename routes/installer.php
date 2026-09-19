@@ -42,7 +42,7 @@ Route::middleware([InstallerGate::class, InstallerStepOrder::class])
         Route::get(InstallerStep::Database->value, [InstallerController::class, 'database'])
             ->name('installer.'.InstallerStep::Database->value);
         Route::post(InstallerStep::Database->value, [InstallerController::class, 'storeDatabase'])
-            ->middleware('throttle:10,1');
+            ->middleware('throttle:10,1,installer-database');
 
         Route::get(InstallerStep::Application->value, [InstallerController::class, 'application'])
             ->name('installer.'.InstallerStep::Application->value);
