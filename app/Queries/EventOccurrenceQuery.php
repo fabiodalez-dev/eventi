@@ -407,6 +407,19 @@ final class EventOccurrenceQuery
         return $this;
     }
 
+    /**
+     * Senza gli eventi dimostrativi (`is_demo`). Sul sito restano visibili,
+     * dichiarati fittizi nella scheda; ma nessuno di loro deve arrivare a casa
+     * di qualcuno — riepiloghi, newsletter, caroselli social automatici — dove
+     * l'avviso non c'è e l'appuntamento sembra vero.
+     */
+    public function excludingDemo(): self
+    {
+        $this->query->where('events.is_demo', false);
+
+        return $this;
+    }
+
     /** Only dates that can still be proposed as a concrete outing. */
     public function availableForDiscovery(): self
     {

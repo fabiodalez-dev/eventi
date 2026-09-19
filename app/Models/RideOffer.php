@@ -7,6 +7,7 @@ namespace App\Models;
 use App\Enums\RideAccessibility;
 use App\Enums\RideLeg;
 use App\Enums\RideStatus;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -32,6 +33,30 @@ class RideOffer extends Model
     public function requests(): HasMany
     {
         return $this->hasMany(RideRequest::class, 'ride_offer_id');
+    }
+
+    /**
+     * Passaggio verso un evento dimostrativo (`is_demo`), come quelli della
+     * vetrina: resta visibile negli elenchi e nella scheda, ma nessuno può
+     * chiedere un posto né riceverlo come proposta per una ricerca. Il
+     * conducente di prova non risponderebbe mai, e la manutenzione
+     * avviserebbe davvero la persona vera della richiesta scaduta.
+     */
+    public function isDemo(): bool
+    {
+        return (bool) $this->occurrence?->event?->getAttribute('is_demo');
+    }
+
+    /**
+     * Solo i passaggi verso eventi veri: la stessa regola di `isDemo()` in una
+     * query, anche per le date e gli eventi cestinati.
+     *
+     * @param  Builder<self>  $query
+     */
+    public function scopeReal(Builder $query): void
+    {
+        $query->whereNotIn('occurrence_id', EventOccurrence::withTrashed()
+            ->whereIn('event_id', Event::withTrashed()->where('is_demo', true)->select('id'))->select('id'));
     }
 
     /** @return array<string, string> */

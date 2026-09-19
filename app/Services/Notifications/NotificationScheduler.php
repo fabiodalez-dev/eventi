@@ -36,6 +36,11 @@ use Illuminate\Support\Facades\DB;
  * livello di database (§7.10) ed è, senza Redis e senza lock distribuito (D5),
  * la sola garanzia reale contro il doppio invio. Chiedere due volte la stessa
  * cosa non è un errore — semplicemente non aggiunge nulla.
+ *
+ * Gli eventi dimostrativi (`is_demo`, creati da `events:investor-demo` e
+ * `demo:showcase`) non annunciano nulla a nessuno: né a chi segue il locale,
+ * né allo staff del locale, che non li ha scritti. Restano solo i promemoria
+ * di chi ha salvato la data di sua iniziativa: quella è la sua agenda.
  */
 final class NotificationScheduler
 {
@@ -276,7 +281,7 @@ final class NotificationScheduler
 
     public function announceToVenueFollowers(Event $event): int
     {
-        if ($event->venue_id === null) {
+        if ($event->venue_id === null || $event->isDemo()) {
             return 0;
         }
 
@@ -324,6 +329,10 @@ final class NotificationScheduler
      */
     private function announceToVenueStaff(Event $event, NotificationType $type, callable $dedupeKey): int
     {
+        if ($event->isDemo()) {
+            return 0;
+        }
+
         $venue = $event->venue;
 
         $now = CarbonImmutable::now();

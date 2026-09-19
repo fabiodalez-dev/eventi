@@ -34,4 +34,13 @@ trait HasEditorialContent
         $this->mergeFillable(['content_details', 'seo', 'is_demo']);
         $this->mergeCasts(['content_details' => 'array', 'seo' => 'array', 'is_demo' => 'boolean']);
     }
+
+    /**
+     * Contenuto dimostrativo: visibile sul sito con il suo avviso, ma fuori da
+     * tutto ciò che parte da solo verso le persone (avvisi, riepiloghi, social).
+     */
+    public function isDemo(): bool
+    {
+        return (bool) $this->getAttribute('is_demo');
+    }
 }

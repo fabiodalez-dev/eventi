@@ -61,7 +61,8 @@ final class RideDiscovery
 
     public function matches(RideSearch $search, RideOffer $offer): bool
     {
-        return $search->active && $search->user_id !== $offer->driver_id && $offer->status === RideStatus::Open
+        // I passaggi dimostrativi non diventano mai proposte né avvisi per chi cerca davvero.
+        return $search->active && $search->user_id !== $offer->driver_id && $offer->status === RideStatus::Open && ! $offer->isDemo()
             && $search->occurrence_id === $offer->occurrence_id && $search->leg === $offer->leg
             && $offer->departure_at->betweenIncluded($search->earliest_at, $search->latest_at)
             && ($search->accessibility === RideAccessibility::NotSpecified || $search->accessibility === $offer->accessibility)

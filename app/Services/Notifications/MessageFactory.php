@@ -298,6 +298,7 @@ final readonly class MessageFactory
             : CarbonImmutable::now()->subDays(config()->integer('notifications.digests.venue.window_days'));
 
         $query = EventOccurrenceQuery::for($city)
+            ->excludingDemo()
             ->followedBy($user, notifyingOnly: true)
             ->upcoming()
             ->updatedSince($window);
@@ -334,7 +335,7 @@ final readonly class MessageFactory
             return NotificationSkipReason::NothingToSend;
         }
 
-        $query = EventOccurrenceQuery::for($city)->tonight()->followedBy($user, notifyingOnly: true);
+        $query = EventOccurrenceQuery::for($city)->excludingDemo()->tonight()->followedBy($user, notifyingOnly: true);
 
         $items = $this->items($query, config()->integer('notifications.digests.daily.max_items'), $user);
 
@@ -362,7 +363,7 @@ final readonly class MessageFactory
         }
 
         $items = $this->items(
-            EventOccurrenceQuery::for($city)->weekend()->newsletterFor($user),
+            EventOccurrenceQuery::for($city)->excludingDemo()->weekend()->newsletterFor($user),
             app(NewsletterSettings::class)->max_items,
             $user,
         );

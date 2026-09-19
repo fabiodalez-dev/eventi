@@ -176,6 +176,8 @@ final class CarpoolService
         abort_unless(config('carpool.new_rides'), 409, __('carpool.errors.closed'));
         $offer = RideOffer::whereKey($data['offer_id'])->lockForUpdate()->firstOrFail();
         abort_unless($this->access->canViewOffer($user, $offer), 404);
+        // Un passaggio dimostrativo si guarda soltanto: nessuno risponderebbe alla richiesta.
+        abort_if($offer->isDemo(), 409, __('carpool.errors.demo'));
         abort_unless($offer->driver_id !== $user->id && ! $this->access->blocked($user, $offer->driver), 403);
         $this->access->requireEligible($offer->driver, false);
         abort_unless($offer->status === RideStatus::Open && $this->clock->operational($offer), 409, __('carpool.errors.closed'));
