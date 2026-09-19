@@ -17,41 +17,70 @@ return new class extends Migration
      */
     public function up(): void
     {
-        $table = Schema::hasTable('venue_reviews') ? 'venue_reviews' : 'reviews';
-        // Rinominare la tabella non rinomina indici e vincoli: i nomi restano
-        // quelli nati con `venue_reviews`, prima e dopo il cambio di nome.
-        if (in_array('venue_reviews_venue_id_foreign', array_column(Schema::getForeignKeys($table), 'name'), true)) {
-            Schema::table($table, fn (Blueprint $t) => $t->dropForeign('venue_reviews_venue_id_foreign'));
-        }
-        if (Schema::hasIndex($table, 'venue_reviews_venue_id_user_id_unique')) {
-            Schema::table($table, fn (Blueprint $t) => $t->dropUnique('venue_reviews_venue_id_user_id_unique'));
-        }
-        if (Schema::hasIndex($table, 'venue_reviews_venue_id_status_created_at_index')) {
-            Schema::table($table, fn (Blueprint $t) => $t->dropIndex('venue_reviews_venue_id_status_created_at_index'));
-        }
-        if (Schema::hasColumn($table, 'venue_id')) {
-            Schema::table($table, fn (Blueprint $t) => $t->renameColumn('venue_id', 'reviewable_id'));
-        }
-        if (Schema::hasColumn($table, 'body')) {
-            Schema::table($table, fn (Blueprint $t) => $t->renameColumn('body', 'review'));
-        }
-        if ($table === 'venue_reviews') {
+        // Il cambio di nome della tabella è l'ultimo dei passi su `venue_reviews`:
+        // se la tabella ha ancora il vecchio nome, vincoli, indici e colonne
+        // possono essere in qualunque punto e ognuno si controlla da sé. Rinominare
+        // la tabella non rinomina indici e vincoli, che restano `venue_reviews_*`.
+        if (Schema::hasTable('venue_reviews')) {
+            if (in_array('venue_reviews_venue_id_foreign', array_column(Schema::getForeignKeys('venue_reviews'), 'name'), true)) {
+                Schema::table('venue_reviews', function (Blueprint $table): void {
+                    $table->dropForeign(['venue_id']);
+                });
+            }
+            if (Schema::hasIndex('venue_reviews', 'venue_reviews_venue_id_user_id_unique')) {
+                Schema::table('venue_reviews', function (Blueprint $table): void {
+                    $table->dropUnique(['venue_id', 'user_id']);
+                });
+            }
+            if (Schema::hasIndex('venue_reviews', 'venue_reviews_venue_id_status_created_at_index')) {
+                Schema::table('venue_reviews', function (Blueprint $table): void {
+                    $table->dropIndex(['venue_id', 'status', 'created_at']);
+                });
+            }
+            if (Schema::hasColumn('venue_reviews', 'venue_id')) {
+                Schema::table('venue_reviews', function (Blueprint $table): void {
+                    $table->renameColumn('venue_id', 'reviewable_id');
+                });
+            }
+            if (Schema::hasColumn('venue_reviews', 'body')) {
+                Schema::table('venue_reviews', function (Blueprint $table): void {
+                    $table->renameColumn('body', 'review');
+                });
+            }
             Schema::rename('venue_reviews', 'reviews');
         }
-        foreach (['reviewable_type' => fn (Blueprint $t) => $t->string('reviewable_type', 40)->default('venue'),
-            'department' => fn (Blueprint $t) => $t->string('department')->default('default'),
-            'recommend' => fn (Blueprint $t) => $t->boolean('recommend')->default(false),
-            'approved' => fn (Blueprint $t) => $t->boolean('approved')->default(false)] as $column => $definition) {
-            if (! Schema::hasColumn('reviews', $column)) {
-                Schema::table('reviews', $definition);
-            }
+        if (! Schema::hasColumn('reviews', 'reviewable_type')) {
+            Schema::table('reviews', function (Blueprint $table): void {
+                $table->string('reviewable_type', 40)->default('venue');
+            });
         }
-        Schema::table('reviews', fn (Blueprint $t) => $t->text('review')->nullable()->change());
+        if (! Schema::hasColumn('reviews', 'department')) {
+            Schema::table('reviews', function (Blueprint $table): void {
+                $table->string('department')->default('default');
+            });
+        }
+        if (! Schema::hasColumn('reviews', 'recommend')) {
+            Schema::table('reviews', function (Blueprint $table): void {
+                $table->boolean('recommend')->default(false);
+            });
+        }
+        if (! Schema::hasColumn('reviews', 'approved')) {
+            Schema::table('reviews', function (Blueprint $table): void {
+                $table->boolean('approved')->default(false);
+            });
+        }
+        Schema::table('reviews', function (Blueprint $table): void {
+            $table->text('review')->nullable()->change();
+        });
         if (! Schema::hasIndex('reviews', ['reviewable_type', 'reviewable_id', 'user_id'], 'unique')) {
-            Schema::table('reviews', fn (Blueprint $t) => $t->unique(['reviewable_type', 'reviewable_id', 'user_id']));
+            Schema::table('reviews', function (Blueprint $table): void {
+                $table->unique(['reviewable_type', 'reviewable_id', 'user_id']);
+            });
         }
         if (! Schema::hasIndex('reviews', ['reviewable_type', 'reviewable_id', 'approved'])) {
-            Schema::table('reviews', fn (Blueprint $t) => $t->index(['reviewable_type', 'reviewable_id', 'approved']));
+            Schema::table('reviews', function (Blueprint $table): void {
+                $table->index(['reviewable_type', 'reviewable_id', 'approved']);
+            });
         }
         if (! Schema::hasTable('ratings')) {
             Schema::create('ratings', function (Blueprint $table): void {
@@ -71,7 +100,9 @@ return new class extends Migration
                     'created_at' => $row->created_at, 'updated_at' => $row->updated_at])->all());
             });
             DB::table('reviews')->where('status', 'approved')->update(['approved' => true]);
-            Schema::table('reviews', fn (Blueprint $t) => $t->dropColumn('rating'));
+            Schema::table('reviews', function (Blueprint $table): void {
+                $table->dropColumn('rating');
+            });
         }
     }
 
