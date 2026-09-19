@@ -10,6 +10,7 @@ use App\Http\Resources\V1\OccurrenceResource;
 use App\Models\Organizer;
 use App\Models\User;
 use App\Queries\EventOccurrenceQuery;
+use App\Services\Reviews\CatalogReviews;
 use App\Services\Seo\StructuredData;
 use App\Support\Api\ApiContext;
 use App\Support\Api\ApiResponse;
@@ -91,7 +92,7 @@ final class OrganizerController extends Controller
                 'has_more' => $dates->hasMorePages(), 'page' => $dates->currentPage()]);
         }
 
-        return view('organizers.show', ['organizer' => $organizer, 'occurrences' => $dates, 'past' => $past,
+        return view('organizers.show', ['reviews' => app(CatalogReviews::class)->listing($organizer, $request->user(), max(1, $request->integer('recensioni', 1))), 'organizer' => $organizer, 'occurrences' => $dates, 'past' => $past,
             /*
              * L'archivio canonicalizza sulla scheda: `?past=1` è un modo di
              * guardare lo stesso soggetto, non un secondo soggetto.

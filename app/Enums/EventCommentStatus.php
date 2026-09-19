@@ -7,7 +7,7 @@ namespace App\Enums;
 /**
  * Due stati, non tre.
  *
- * `VenueReviewStatus` ne ha tre perché le recensioni si approvano prima di
+ * `CatalogReviewStatus` ne ha tre perché le recensioni si approvano prima di
  * pubblicarle. I commenti si pubblicano subito, quindi «in attesa» non esiste:
  * o si leggono, o qualcuno li ha tolti dalla vista.
  *

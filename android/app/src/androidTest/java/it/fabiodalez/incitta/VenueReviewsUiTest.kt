@@ -26,7 +26,7 @@ class VenueReviewsUiTest {
                     Column(Modifier.verticalScroll(rememberScrollState())) {
                         VenueReviewsSection("locale", 1, {},
                             load = { VenueReviewPage(myReview = own) },
-                            submit = { stars, text -> own = OwnVenueReview(stars, text, "pending") },
+                            submit = { stars, text, revision -> own = OwnVenueReview(stars, text, "pending", revision = revision + 1) },
                             delete = { own = null })
                     }
                 }
@@ -47,7 +47,7 @@ class VenueReviewsUiTest {
         compose.runOnIdle {
             compose.activity.setContent {
                 InCittaTheme {
-                    VenueReviewsSection("locale", null, {}, { VenueReviewPage() }, { _, _ -> error("Guest submitted") }, {})
+                    VenueReviewsSection("locale", null, {}, { VenueReviewPage() }, { _, _, _ -> error("Guest submitted") }, {})
                 }
             }
         }

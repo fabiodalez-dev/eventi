@@ -418,6 +418,7 @@
                  pannelli, che prima non esistevano da nessuna parte. Chi
                  amministra il sito doveva ricordarsi `/admin` e scriverlo a
                  mano. --}}
+            <x-community-bell />
             <x-account-menu :saved-count="$savedCount" />
 
             @if (\Illuminate\Support\Facades\Route::has('submissions.create'))

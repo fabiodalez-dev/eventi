@@ -41,12 +41,12 @@ use App\Http\Controllers\TicketingController;
 use App\Http\Controllers\Web\Account\ContentPreferencesController;
 use App\Http\Controllers\Web\Account\NotificationInterestsController;
 use App\Http\Controllers\Web\Account\SavedCalendarController;
+use App\Http\Controllers\Web\CatalogReviewController;
 use App\Http\Controllers\Web\EventCommentController;
 use App\Http\Controllers\Web\EventWeatherController;
 use App\Http\Controllers\Web\OrganizerController;
 use App\Http\Controllers\Web\PublicContactController;
 use App\Http\Controllers\Web\TonightController;
-use App\Http\Controllers\Web\VenueReviewController;
 use App\Http\Middleware\Api\CacheJsonResponse;
 use App\Http\Middleware\Api\IdempotentRequest;
 use App\Http\Middleware\Api\ResolveApiCity;
@@ -108,9 +108,14 @@ Route::prefix('v1')
         Route::post('/events/{slug}/comments/{comment}/reaction', [EventCommentController::class, 'react'])->middleware(['auth:sanctum', 'verified', 'throttle:120,1,event-comment-reaction']);
         Route::delete('/events/{slug}/comments/{comment}', [EventCommentController::class, 'destroy'])->middleware(['auth:sanctum', 'throttle:30,60,event-comment-delete']);
 
-        Route::get('/venues/{slug}/reviews', [VenueReviewController::class, 'index'])->name('venues.reviews');
-        Route::post('/venues/{slug}/reviews', [VenueReviewController::class, 'store'])->middleware(['auth:sanctum', 'throttle:10,60,venue-review']);
-        Route::delete('/venues/{slug}/reviews', [VenueReviewController::class, 'destroy'])->middleware(['auth:sanctum', 'throttle:10,60,venue-review-delete']);
+        Route::get('/venues/{slug}/reviews', [CatalogReviewController::class, 'index'])->defaults('type', 'venue')->name('venues.reviews');
+        Route::get('/organizers/{slug}/reviews', [CatalogReviewController::class, 'index'])->defaults('type', 'organizer')->name('organizers.reviews');
+        Route::post('/venues/{slug}/reviews', [CatalogReviewController::class, 'store'])->defaults('type', 'venue')->middleware(['auth:sanctum', 'throttle:10,60,catalog-review-store']);
+        Route::post('/organizers/{slug}/reviews', [CatalogReviewController::class, 'store'])->defaults('type', 'organizer')->middleware(['auth:sanctum', 'throttle:10,60,catalog-review-store']);
+        Route::delete('/venues/{slug}/reviews', [CatalogReviewController::class, 'destroy'])->defaults('type', 'venue')->middleware(['auth:sanctum', 'throttle:10,60,catalog-review-destroy']);
+        Route::delete('/organizers/{slug}/reviews', [CatalogReviewController::class, 'destroy'])->defaults('type', 'organizer')->middleware(['auth:sanctum', 'throttle:10,60,catalog-review-destroy']);
+        Route::post('/venues/{slug}/reviews/{review}/report', [CatalogReviewController::class, 'report'])->defaults('type', 'venue')->whereNumber('review')->middleware(['auth:sanctum', 'throttle:10,60,catalog-review-report']);
+        Route::post('/organizers/{slug}/reviews/{review}/report', [CatalogReviewController::class, 'report'])->defaults('type', 'organizer')->whereNumber('review')->middleware(['auth:sanctum', 'throttle:10,60,catalog-review-report']);
 
         // Deliberately outside the JSON cache: switches and short ad leases must stay live.
         Route::get('/sponsorships/banner', SponsorshipBannerController::class)->name('sponsorships.banner');
@@ -289,3 +294,5 @@ Route::prefix('v1')
     });
 
 Route::group([], base_path('routes/community-api.php'));
+
+Route::group([], base_path('routes/carpool-api.php'));

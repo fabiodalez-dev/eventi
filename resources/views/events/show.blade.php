@@ -305,6 +305,7 @@
 
                                 @if ($occurrences->isNotEmpty() && ! ($isPreview ?? false))
                                     <div class="flex items-start empty:hidden sm:justify-end">
+                                    <x-carpool-actions :occurrence="$occurrence" />
                                     @if ($booking = $activeBookings->get($occurrence->id))
                                         <x-button :href="route('tickets.show', $booking)" class="min-h-12">{{ __('ticketing.manage_booking') }}</x-button>
                                     @elseif ($occurrence->booking_enabled && $occurrence->effectiveVenue()?->ticketing_enabled)

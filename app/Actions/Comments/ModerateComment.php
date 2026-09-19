@@ -16,7 +16,7 @@ use Illuminate\Validation\ValidationException;
  *
  * ## Il numero di revisione, e perché non è un vezzo
  *
- * È lo stesso meccanismo di `VenueReviews::moderate()`. Chi apre il pannello
+ * È lo stesso meccanismo di `CatalogReviews::moderate()`. Chi apre il pannello
  * vede lo stato in quel momento; se nel frattempo un altro moderatore agisce,
  * la sua decisione verrebbe sovrascritta in silenzio da chi preme per secondo.
  * Passando la revisione letta, il secondo scrive solo se nulla è cambiato — e

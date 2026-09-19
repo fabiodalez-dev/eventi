@@ -19,16 +19,17 @@ class InCittaMessagingService : FirebaseMessagingService() {
     override fun onMessageReceived(message: RemoteMessage) {
         val session = LocalStore(this).readSession() ?: return
         if (!PushRegistration.enabled(this) || message.data["user_id"] != session.user.id.toString()) return
+        it.fabiodalez.incitta.data.CommunityUpdates.changed()
         if (!NotificationManagerCompat.from(this).areNotificationsEnabled()) return
         val manager = getSystemService(NotificationManager::class.java)
-        manager.createNotificationChannel(NotificationChannel("eventi", getString(R.string.notification_channel), NotificationManager.IMPORTANCE_DEFAULT))
+        manager.createNotificationChannel(NotificationChannel("eventi", getString(R.string.notification_channel), NotificationManager.IMPORTANCE_DEFAULT).apply { setShowBadge(true) })
         val target = Intent(this, MainActivity::class.java).apply {
             action = Intent.ACTION_VIEW
             data = Uri.parse(message.data["url"] ?: "")
             putExtra("notification_user_id", session.user.id)
             flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
         }
-        val id = (message.messageId ?: message.data.toString()).hashCode()
+        val id = (message.data["notification_id"] ?: message.messageId ?: message.data.toString()).hashCode()
         val pending = PendingIntent.getActivity(this, id, target, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         val notification = NotificationCompat.Builder(this, "eventi")
             .setSmallIcon(R.drawable.ic_notification)
@@ -36,7 +37,7 @@ class InCittaMessagingService : FirebaseMessagingService() {
             .setContentText(message.data["body"].orEmpty())
             .setStyle(NotificationCompat.BigTextStyle().bigText(message.data["body"].orEmpty()))
             .setContentIntent(pending).setAutoCancel(true)
-            .setVisibility(NotificationCompat.VISIBILITY_PRIVATE).build()
+            .setNumber(1).setVisibility(NotificationCompat.VISIBILITY_PRIVATE).build()
         try { manager.notify(id, notification) } catch (_: SecurityException) { }
     }
 }

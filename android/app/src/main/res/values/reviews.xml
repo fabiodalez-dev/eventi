@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="reviews_venue_title">Recensioni del locale</string>
+    <string name="reviews_organizer_title">Recensioni dell’organizzatore</string>
+    <string name="reviews_empty">Non ci sono ancora recensioni approvate.</string>
+    <string name="reviews_count">%1$d contributi approvati</string>
+    <string name="reviews_average">%1$s su 5</string>
+    <string name="reviews_write">La tua recensione</string>
+    <string name="reviews_body">Racconta la tua esperienza</string>
+    <string name="reviews_guidance">Puoi lasciare un voto, un commento o entrambi. Il testo deve avere da 10 a 3.000 caratteri. I contributi sono pubblici con il tuo nome dopo l’approvazione degli amministratori; ogni modifica richiede una nuova approvazione.</string>
+    <string name="reviews_verify_hint">Per commentare o votare, verifica gratuitamente email e WhatsApp.</string>
+    <string name="reviews_verify">Completa la verifica</string>
+    <string name="reviews_closed">Al momento non puoi recensire questa scheda. Chi la gestisce non può recensirla.</string>
+    <string name="reviews_login">Accedi per lasciare una recensione</string>
+    <string name="reviews_no_rating">Solo un commento, senza voto</string>
+    <string name="reviews_approved">Approvata</string>
+    <string name="reviews_rejected">Non approvata</string>
+    <string name="reviews_pending">In attesa di approvazione</string>
+    <string name="reviews_submit">Invia per approvazione</string>
+    <string name="reviews_submitted">Recensione inviata per approvazione.</string>
+    <string name="reviews_delete">Elimina la mia recensione</string>
+    <string name="reviews_deleted">Recensione eliminata.</string>
+    <string name="reviews_previous">Precedenti</string>
+    <string name="reviews_next">Altre recensioni</string>
+    <string name="reviews_report">Segnala questa recensione</string>
+    <string name="reviews_report_reason">Spiega il problema agli amministratori</string>
+    <string name="reviews_send_report">Invia segnalazione</string>
+    <string name="reviews_reported">Segnalazione inviata. Puoi seguirla in Assistenza.</string>
+    <string name="reviews_cancel">Annulla</string>
+    <string name="reviews_retry">Riprova</string>
+</resources>

@@ -524,8 +524,8 @@ it('44 hides replies when their parent is hidden or its author loses verificatio
 });
 
 it('45 moderation cannot be bypassed by making a post private then republishing', function (): void {
+    (new RolesAndPermissionsSeeder)->run();
     $admin = User::factory()->create();
-    Role::findOrCreate('admin', 'web');
     $admin->assignRole('admin');
     $author = communityPerson();
     $post = communityPost($author, $this->city, $this->category);
@@ -646,7 +646,7 @@ it('54 administrators can inspect verification history suspend and revoke withou
 });
 
 it('55 moderation restrictions can only be restored by staff even after the author withdraws a post', function (): void {
-    Role::findOrCreate('admin', 'web');
+    (new RolesAndPermissionsSeeder)->run();
     $admin = User::factory()->create();
     $admin->assignRole('admin');
     $author = communityPerson();

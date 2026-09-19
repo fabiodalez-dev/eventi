@@ -1,0 +1,19 @@
+<x-layouts.app :narrow="true" :meta="$meta"><div class="mx-auto w-full max-w-4xl">@include('carpool.nav')
+<p class="mb-3 text-sm font-semibold text-accent">{{ __('carpool.free') }}</p><h1 class="text-hero">{{ __('carpool.title') }}</h1><p class="mt-4 text-lg">{{ $event_title }}</p><p class="mt-2 text-sm text-ink-muted">{{ $event_date }}</p>
+@if(!$access['eligible']) @include('carpool.partials.gate')
+@else
+<div class="my-7 flex flex-wrap gap-3"><x-button :href="route('carpool.create', $occurrence_id)">{{ __('carpool.offer') }}</x-button><a href="#ride-search" class="inline-flex min-h-12 items-center px-3 text-sm underline">{{ __('carpool.search_create') }}</a></div>
+<form method="get" class="my-8 grid gap-4 border-y border-line py-5 sm:grid-cols-2 lg:grid-cols-4">
+<label class="space-y-2"><span class="text-sm">{{ __('carpool.zone') }}</span><input name="zone" maxlength="120" value="{{ request('zone') }}" class="min-h-12 w-full border border-line bg-canvas px-3"></label>
+<label class="space-y-2"><span class="text-sm">{{ __('carpool.seats') }}</span><input type="number" name="seats" min="1" max="8" value="{{ request('seats', 1) }}" class="min-h-12 w-full border border-line bg-canvas px-3"></label>
+<label class="space-y-2"><span class="text-sm">{{ __('carpool.accessibility') }}</span><select name="accessibility" class="min-h-12 w-full border border-line bg-canvas px-3">@foreach(\App\Enums\RideAccessibility::cases() as $option)<option value="{{ $option->value }}" @selected(request('accessibility') === $option->value)>{{ $option->label() }}</option>@endforeach</select></label>
+<label class="space-y-2"><span class="text-sm">{{ __('carpool.sort') }}</span><select name="sort" class="min-h-12 w-full border border-line bg-canvas px-3"><option value="departure">{{ __('carpool.sort_departure') }}</option><option value="recent" @selected(request('sort') === 'recent')>{{ __('carpool.sort_recent') }}</option></select></label>
+<label class="space-y-2"><span class="text-sm">{{ __('carpool.seek') }}</span><select name="leg" class="min-h-12 w-full border border-line bg-canvas px-3"><option value="">{{ __('carpool.all') }}</option>@foreach(\App\Enums\RideLeg::cases() as $leg)<option value="{{ $leg->value }}" @selected(request('leg') === $leg->value)>{{ $leg->label() }}</option>@endforeach</select></label><x-button type="submit" variant="secondary">{{ __('carpool.filter') }}</x-button>
+</form>
+@forelse($offers as $offer) @include('carpool.partials.offer-row') @empty <p class="py-7 text-ink-muted">{{ __('carpool.empty_offers') }}</p> @endforelse
+@if($has_more)<a class="my-5 inline-flex min-h-12 items-center underline" href="{{ request()->fullUrlWithQuery(['page' => $page + 1]) }}">{{ __('pagination.next') }}</a>@endif
+@if(count($wanted))<h2 class="mt-10 text-section">{{ __('carpool.wanted') }}</h2>@foreach($wanted as $search)<div class="border-b border-line py-5"><p class="font-semibold">{{ $search['name'] }} · {{ $search['zone'] }}</p><p class="mt-2 text-sm">{{ $search['leg_label'] }} · {{ __('carpool.requested_seats', ['count' => $search['seats']]) }}</p><form method="post" action="{{ route('carpool.discovery', 'suggest') }}" class="mt-3 flex flex-wrap gap-3">@include('carpool.partials.key')<input type="hidden" name="search_id" value="{{ $search['id'] }}"><label class="text-sm">{{ __('carpool.admin.rides') }}<select required name="offer_id" class="ml-3 min-h-12 border border-line bg-canvas px-3">@foreach($my_offers as $own)@if($own['is_own'])<option value="{{ $own['id'] }}">{{ $own['zone'] }} · {{ $own['departure_label'] }}</option>@endif @endforeach</select></label><x-button type="submit" variant="secondary">{{ __('carpool.suggest') }}</x-button></form></div>@endforeach @endif
+@include('carpool.partials.pages', ['page_key' => 'wanted_page', 'page' => $wanted_page, 'has_more' => $wanted_has_more])
+@include('carpool.partials.search-form')
+@endif
+</div></x-layouts.app>

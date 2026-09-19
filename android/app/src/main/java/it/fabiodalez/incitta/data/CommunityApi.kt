@@ -56,7 +56,7 @@ internal class CommunityApi(private val api: ApiClient, private val token: Strin
     suspend fun change(path: String, body: JsonObject = buildJsonObject {}, method: String = "POST"): JsonObject =
         api.execute("community/$path", method, body.toString(), requireNotNull(token))
     suspend fun notifications(cursor: String? = null): JsonObject = api.get("me/notifications?limit=30" + (cursor?.let { "&cursor=" + java.net.URLEncoder.encode(it, "UTF-8") } ?: ""), requireNotNull(token))
-    suspend fun readNotifications(): JsonObject = api.post("me/notifications/read-all", buildJsonObject {}, requireNotNull(token))
+    suspend fun readNotifications(through: Long): JsonObject = api.post("me/notifications/read-all", buildJsonObject { put("through", through) }, requireNotNull(token))
     suspend fun refreshUser(): User = api.get<ApiEnvelope<User>>("me", requireNotNull(token)).data
     suspend fun resendEmail(): JsonObject = api.post("auth/verification/resend", buildJsonObject {}, requireNotNull(token))
 }

@@ -15,7 +15,7 @@
            @if ($item['url'] === route('account.saved')) data-saved-mobile-opener aria-haspopup="dialog" @endif
            class="flex min-h-16 min-w-0 flex-col items-center justify-center gap-1 px-0.5 py-2 text-[0.75rem] font-extrabold tracking-normal focus-visible:outline-2 focus-visible:outline-accent {{ $item['active'] ? 'bg-accent text-on-accent' : 'text-ink-muted hover:text-accent' }}">
             <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{{ $item['path'] }}" /></svg>
-            <span>{{ $item['label'] }}</span>
+            <span class="relative">{{ $item['label'] }}@if(auth()->check() && $item['url'] === route('account.profile'))<span data-community-count="total" hidden class="absolute -right-3 -top-2 min-w-4 rounded-full bg-accent px-1 text-[10px] text-on-accent"></span>@endif</span>
         </a>
     @endforeach
 </nav>

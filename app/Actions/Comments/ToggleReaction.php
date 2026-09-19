@@ -59,7 +59,7 @@ final class ToggleReaction
                 /*
                  * `forceFill` e non `create`: i modelli di questo progetto
                  * dichiarano `$guarded = ['*']`, cioè nessun campo passa per
-                 * mass assignment. È la stessa forma di `VenueReviews::submit`.
+                 * mass assignment. È la stessa forma di `CatalogReviews::submit`.
                  */
                 (new EventCommentReaction)->forceFill([
                     'event_comment_id' => $bloccato->id,

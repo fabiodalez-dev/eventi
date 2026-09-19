@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Filament\Admin\Pages;
 
+use App\Enums\Permission;
 use App\Models\CommunityComment;
 use App\Models\CommunityPost;
 use App\Models\CommunityProfile;
+use App\Services\Carpool\CommunitySafety;
 use App\Services\Community\CommunityModeration;
 use BackedEnum;
 use Filament\Pages\Page;
@@ -26,6 +28,8 @@ class Community extends Page
 
     public string $search = '';
 
+    public string $reason = '';
+
     public static function getNavigationLabel(): string
     {
         return __('community.moderation');
@@ -43,7 +47,7 @@ class Community extends Page
 
     public static function canAccess(): bool
     {
-        return auth()->user()?->isEditorialStaff() ?? false;
+        return auth()->user() && app(CommunitySafety::class)->staff(auth()->user(), Permission::ManageCommunity);
     }
 
     public function updatedSection(): void
@@ -59,13 +63,17 @@ class Community extends Page
     public function moderate(string $kind, int $id, bool $enabled): void
     {
         abort_unless(static::canAccess(), 403);
-        app(CommunityModeration::class)->apply(auth()->user(), $kind, $id, $enabled);
+        $this->validate(['reason' => ['required', 'string', 'min:5', 'max:1000']]);
+        app(CommunityModeration::class)->apply(auth()->user(), $kind, $id, $enabled, $this->reason);
+        $this->reason = '';
     }
 
     public function restoreRestriction(int $id): void
     {
         abort_unless(static::canAccess(), 403);
-        app(CommunityModeration::class)->restoreRestriction(auth()->user(), $id);
+        $this->validate(['reason' => ['required', 'string', 'min:5', 'max:1000']]);
+        app(CommunityModeration::class)->restoreRestriction(auth()->user(), $id, $this->reason);
+        $this->reason = '';
     }
 
     /** @return array<string, mixed> */

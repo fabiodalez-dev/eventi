@@ -1,4 +1,5 @@
 <x-filament-panels::page>
+    <label>{{ __('carpool.admin.reason') }}<textarea wire:model="reason" minlength="5" maxlength="1000" class="block w-full rounded-lg border border-gray-300 bg-white p-3 text-gray-950"></textarea>@error('reason')<span class="text-danger-600">{{ $message }}</span>@enderror</label>
     <div class="flex flex-wrap gap-4">
         <label>{{ __('community.nav') }}<select wire:model.live="section" class="rounded-lg border border-gray-300 bg-white p-3 text-gray-950"><option value="profiles">{{ __('community.people') }}</option><option value="posts">{{ __('community.feed') }}</option><option value="comments">{{ __('community.comments') }}</option><option value="restrictions">{{ __('community.restrictions') }}</option></select></label>
         <label>{{ __('community.search') }}<input type="search" wire:model.live.debounce.400ms="search" maxlength="80" class="rounded-lg border border-gray-300 bg-white p-3 text-gray-950"></label>

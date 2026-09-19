@@ -74,6 +74,7 @@ Route::middleware(PersonalizeDiscovery::class)->group(base_path('routes/public.p
  */
 Route::group([], base_path('routes/account.php'));
 Route::group([], base_path('routes/community.php'));
+Route::group([], base_path('routes/carpool.php'));
 Route::post('/misure/{type}/{id}', ContentMetricController::class)
     ->whereIn('type', ['event', 'venue', 'organizer'])->whereNumber('id')
     ->middleware(['signed:relative', 'throttle:60,1,content-metrics'])->name('content.metrics');

@@ -6,6 +6,7 @@ namespace App\Services\Account;
 
 use App\Http\Resources\V1\BookingResource;
 use App\Models\Booking;
+use App\Models\CatalogReview;
 use App\Models\CommunityComment;
 use App\Models\CommunityPost;
 use App\Models\Device;
@@ -14,7 +15,7 @@ use App\Models\NotificationLog;
 use App\Models\SavedEvent;
 use App\Models\User;
 use App\Models\UserBlock;
-use App\Models\VenueReview;
+use App\Services\Carpool\CarpoolAccount;
 use App\Support\Api\ApiDate;
 use Illuminate\Notifications\DatabaseNotification;
 use Overtrue\LaravelFollow\Followable;
@@ -39,6 +40,7 @@ final class AccountExport
         $timezone = (string) $user->timezone;
 
         return [
+            'carpool' => app(CarpoolAccount::class)->export($user),
             'community' => [
                 'profile' => $user->communityProfile?->only(['handle', 'display_name', 'bio', 'visibility', 'indexable']),
                 'venue_ids' => $user->communityProfile?->venues()->pluck('venues.id')->all() ?? [],
@@ -70,7 +72,7 @@ final class AccountExport
                 'marketing_opt_in_at' => ApiDate::instant($user->marketing_opt_in_at, $timezone),
                 'created_at' => ApiDate::attribute($user, 'created_at', $timezone),
             ],
-            'venue_reviews' => VenueReview::query()->where('user_id', $user->id)->get(['venue_id', 'rating', 'body', 'status', 'created_at', 'updated_at'])->toArray(),
+            'catalog_reviews' => CatalogReview::where('user_id', $user->id)->with('ratings')->get()->map(fn (CatalogReview $review): array => [...$review->only(['reviewable_type', 'reviewable_id', 'status', 'created_at', 'updated_at']), 'rating' => $review->rating, 'body' => $review->body])->all(),
             'saved_events' => $user->savedEvents()
                 ->with('occurrence.event')
                 ->get()

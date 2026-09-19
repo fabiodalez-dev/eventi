@@ -52,6 +52,12 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https" android:host="eventi.fabiodalez.it" android:pathPrefix="/locali/" />
+                <data android:scheme="https" android:host="eventi.fabiodalez.it" android:pathPrefix="/passaggi" />
+                <data android:scheme="https" android:host="eventi.fabiodalez.it" android:pathPrefix="/bacheca" />
+                <data android:scheme="https" android:host="eventi.fabiodalez.it" android:pathPrefix="/persone" />
+                <data android:scheme="https" android:host="eventi.fabiodalez.it" android:pathPrefix="/avvisi" />
+                <data android:scheme="https" android:host="eventi.fabiodalez.it" android:pathPrefix="/verifica-whatsapp" />
+                <data android:scheme="https" android:host="eventi.fabiodalez.it" android:pathPrefix="/organizzatori" />
                 <data android:scheme="https" android:host="eventi.fabiodalez.it" android:path="/mappa" />
                 <data android:scheme="https" android:host="eventi.fabiodalez.it" android:path="/calendario" />
                 <data android:scheme="https" android:host="eventi.fabiodalez.it" android:path="/biglietti" />

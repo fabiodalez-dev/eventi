@@ -13,12 +13,12 @@ La migrazione riguarda tutto il sistema, incluse le integrazioni aggiunte dopo q
 - [ ] Kapso/WhatsApp: profilo business e website, eventuali webhook e firme, URL dei template con link. Il template OTP copy-code non contiene URL: numero e credenziali restano validi se resta lo stesso WABA.
 - [ ] Google Calendar: origini autorizzate e callback OAuth del nuovo dominio; aggiornare URL nelle schermate consenso.
 - [ ] Email: mittente, dominio SPF/DKIM/DMARC, link di conferma, recupero password e magic link; mantenere raggiungibili i vecchi link firmati fino a scadenza.
-- [ ] Android: API_BASE_URL, manifest intent-filter, assetlinks.json, impronte SHA256 di debug/release dove previste, deep link notifiche e pagamenti; ricompilare APK/AAB. Per WhatsApp ONE_TAP verificare anche package e hash di firma a 11 caratteri nei `supported_apps` del template: il solo dominio non li cambia, una nuova applicationId o firma sì. Usare il certificato effettivo della distribuzione (App signing di Play per Play, non la chiave di upload); conservare Copia codice come alternativa.
-- [ ] Web push: service worker, scope, VAPID e sottoscrizioni; spiegare che le sottoscrizioni sono per origine e richiedono una nuova adesione.
+- [ ] Android: nel nuovo Firebase account/progetto se previsto ricreare client, `google-services.json`, credenziale server e permessi FCM; aggiornare API_BASE_URL, manifest intent-filter, assetlinks.json, impronte SHA256 di debug/release dove previste, deep link delle notifiche social, carpool, chat, recensioni e pagamenti; ricompilare APK/AAB. Per WhatsApp ONE_TAP verificare anche package e hash di firma a 11 caratteri nei `supported_apps` del template: il solo dominio non li cambia, una nuova applicationId o firma sì. Usare il certificato effettivo della distribuzione (App signing di Play per Play, non la chiave di upload); conservare Copia codice come alternativa.
+- [ ] Web push: nel nuovo account rigenerare/ricollegare service worker, scope, VAPID e credenziali; spiegare che le sottoscrizioni sono per origine e richiedono una nuova adesione.
 - [ ] reCAPTCHA/Turnstile se attivati, Maps/geocoding e ogni API con referrer/host consentiti.
 - [ ] Webhook prenotazioni/pagamenti e URL di ritorno, Stripe o altri servizi eventualmente configurati.
 - [ ] Storage/CDN, URL immagini, sitemap, robots, Open Graph, feed RSS/ICS, widget incorporati e URL dei calendari.
-- [ ] Monitoraggio: Sentry, Telescope/Pulse protetti, healthcheck, deploy hooks, cron, backup e GitHub environments.
+- [ ] Monitoraggio: ricollegare nel nuovo account Sentry, analytics, healthcheck, deploy hooks, cron, backup, storage/CDN e GitHub environments; ruotare le credenziali senza spegnere il rollback.
 - [ ] Cerca il dominio precedente nel repository, DB di configurazione e provider; non riscrivere indiscriminatamente dati storici o firme.
 - [ ] Smoke test anonimo/iscritto/verificato/admin; verifica email reale, WhatsApp autorizzato, OAuth Calendar e App Links su dispositivo.
 

@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Services\Analytics;
 
 use App\Enums\BookingStatus;
+use App\Enums\CatalogReviewStatus;
 use App\Enums\ContentMetric;
 use App\Enums\EventCommentStatus;
-use App\Enums\VenueReviewStatus;
 use App\Models\City;
 use App\Models\Event;
 use App\Models\Organizer;
@@ -232,10 +232,11 @@ final class EventAnalyticsDashboard
         $followers = DB::table('follows as a')->join($table.' as e', 'e.id', '=', 'a.followable_id')->where('a.followable_type', $type)->whereIn('e.id', clone $profileIds);
         $currentFollowers = (clone $followers)->selectRaw('e.id, COUNT(*) as total')->groupBy('e.id')->get()->keyBy('id');
         $newFollowers = $this->window($followers, 'a.created_at', $filters, true)->selectRaw('e.id, COUNT(*) as total')->groupBy('e.id')->get()->keyBy('id');
-        $reviews = $type === 'venue' ? $this->window(DB::table('venue_reviews as a')->join('venues as e', 'e.id', '=', 'a.venue_id')
+        $reviews = $this->window(DB::table('reviews as a')->join($table.' as e', 'e.id', '=', 'a.reviewable_id')->where('a.reviewable_type', $type)
+            ->leftJoin('ratings as r', fn ($join) => $join->on('r.review_id', '=', 'a.id')->where('r.key', 'overall'))
             ->whereIn('e.id', clone $profileIds), 'a.created_at', $filters, true)
-            ->selectRaw('e.id, COUNT(*) as reviews, SUM(a.status = ?) as approved_reviews, AVG(CASE WHEN a.status = ? THEN a.rating END) as rating', [VenueReviewStatus::Approved->value, VenueReviewStatus::Approved->value])
-            ->groupBy('e.id')->get()->keyBy('id') : collect();
+            ->selectRaw('e.id, COUNT(*) as reviews, SUM(a.status = ?) as approved_reviews, AVG(CASE WHEN a.status = ? THEN r.value END) as rating', [CatalogReviewStatus::Approved->value, CatalogReviewStatus::Approved->value])
+            ->groupBy('e.id')->get()->keyBy('id');
         // A venue manager must not receive an organizer's profile totals across other venues.
         $ownProfile = Filament::getCurrentPanel()?->getId() === 'admin' || ($type === 'venue' && Filament::getTenant() instanceof Venue) || ($type === 'organizer' && Filament::getTenant() instanceof Organizer);
 

@@ -75,7 +75,10 @@ final class ApiExceptionRenderer
         }
 
         if ($exception instanceof HttpExceptionInterface) {
-            return $this->fromStatus($exception->getStatusCode());
+            $message = request()->is('api/v1/carpool/*') && in_array($exception->getMessage(), __('carpool.errors'), true)
+                ? $exception->getMessage() : null;
+
+            return $this->fromStatus($exception->getStatusCode(), $message);
         }
 
         return ApiResponse::error(ApiErrorCode::ServerError, $this->serverMessage($exception));
@@ -93,7 +96,7 @@ final class ApiExceptionRenderer
      * delle classi del progetto. I messaggi nostri viaggiano invece con
      * `ApiException`, che è gestita prima di arrivare qui.
      */
-    private function fromStatus(int $status): JsonResponse
+    private function fromStatus(int $status, ?string $message = null): JsonResponse
     {
         $code = match (true) {
             $status === 401 => ApiErrorCode::Unauthenticated,
@@ -106,7 +109,7 @@ final class ApiExceptionRenderer
             default => ApiErrorCode::InvalidRequest,
         };
 
-        return ApiResponse::error($code, null, [], $status);
+        return ApiResponse::error($code, $message, [], $status);
     }
 
     /**

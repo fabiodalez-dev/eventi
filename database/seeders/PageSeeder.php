@@ -96,7 +96,7 @@ class PageSeeder extends Seeder
                 'seo_description' => 'Informativa sul trattamento dei dati personali: cosa raccoglie questo sito, perché, per quanto tempo e come cancellare il proprio account.',
                 'sort_order' => 10,
                 'is_published' => true,
-                'body' => $this->unwrap($this->privacy())."\n".__('community.privacy_notice', [], 'it'),
+                'body' => $this->unwrap($this->privacy())."\n".__('community.privacy_notice', [], 'it')."\n\n".file_get_contents(resource_path('legal/carpool/privacy-2026-09-18.it.md')),
             ],
             [
                 'slug' => 'cookie',
@@ -114,7 +114,7 @@ class PageSeeder extends Seeder
                 'seo_description' => 'Termini e condizioni d’uso: chi può pubblicare eventi, responsabilità sui contenuti, diritti sulle locandine e sugli aggiornamenti del servizio.',
                 'sort_order' => 30,
                 'is_published' => true,
-                'body' => $this->unwrap($this->terms()),
+                'body' => $this->unwrap($this->terms())."\n\n".__('carpool.terms_addendum'),
             ],
             [
                 'slug' => 'chi-siamo',

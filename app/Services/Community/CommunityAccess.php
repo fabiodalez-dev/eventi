@@ -24,7 +24,7 @@ final class CommunityAccess
     public function eligibleUsers(): Builder
     {
         return User::query()->whereNotNull('email_verified_at')->whereNotNull('whatsapp_verified_at')
-            ->whereNotNull('whatsapp_phone_hash')->whereNull('community_suspended_at');
+            ->whereNotNull('whatsapp_phone_hash')->whereNull('community_suspended_at')->whereNull('social_suspended_at');
     }
 
     /**

@@ -9,7 +9,9 @@ use App\Exceptions\ApiException;
 use App\Http\Controllers\Api\V1\Concerns\InteractsWithMe;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\Me\MeQueryRequest;
+use App\Http\Requests\Carpool\ReadNoticesRequest;
 use App\Http\Resources\V1\NotificationResource;
+use App\Services\Carpool\UnifiedNotifications;
 use App\Support\Api\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -39,7 +41,7 @@ final class NotificationController extends Controller
         return ApiResponse::page(
             $paginator,
             static fn (DatabaseNotification $notification): array => NotificationResource::toArray($notification, $timezone),
-            ['unread_count' => $user->unreadNotifications()->count()],
+            ['unread_count' => $user->unreadNotifications()->count(), 'watermark' => app(UnifiedNotifications::class)->watermark($user)],
         );
     }
 
@@ -57,14 +59,14 @@ final class NotificationController extends Controller
         return ApiResponse::item(NotificationResource::toArray($row->refresh(), (string) $user->timezone));
     }
 
-    public function readAll(Request $request): JsonResponse
+    public function readAll(ReadNoticesRequest $request): JsonResponse
     {
         $user = $this->user($request);
-        $updated = $user->unreadNotifications()->update(['read_at' => now()]);
+        $updated = app(UnifiedNotifications::class)->readAll($user, $request->filled('through') ? $request->integer('through') : null);
 
         return ApiResponse::item([
             'updated' => $updated,
-            'unread_count' => 0,
+            'unread_count' => $user->unreadNotifications()->count(),
             'message' => __('account.api.notifications_read'),
         ]);
     }

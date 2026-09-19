@@ -1,0 +1,272 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cp_chat_settings" formatted="false">Opzioni della conversazione</string>
+    <string name="cp_open_details" formatted="false">Dettagli del passaggio</string>
+    <string name="cp_confirm_withdraw" formatted="false">Rinunciare al passaggio? Il conducente riceverà un avviso.</string>
+    <string name="cp_archive_chat" formatted="false">Archivia questa conversazione</string>
+    <string name="cp_archived_chats" formatted="false">Conversazioni archiviate</string>
+    <string name="cp_active_chats" formatted="false">Conversazioni attive</string>
+    <string name="cp_terms_addendum" formatted="false">## Passaggi gratuiti tra utenti
+
+Il car pooling è riservato ad account con email e WhatsApp verificati e dichiarazione di maggiore età. Si applicano le [regole dei passaggi gratuiti](/passaggi/regole), da accettare prima di offrire o richiedere un passaggio. Conferma del viaggio, voto e recensione del conducente sono volontari.</string>
+    <string name="cp_title" formatted="false">Andiamo insieme</string>
+    <string name="cp_subtitle" formatted="false">Un passaggio gratuito, verso lo stesso evento.</string>
+    <string name="cp_offer" formatted="false">Offro passaggio</string>
+    <string name="cp_seek" formatted="false">Cerco passaggio</string>
+    <string name="cp_mine" formatted="false">I miei passaggi</string>
+    <string name="cp_messages" formatted="false">Messaggi</string>
+    <string name="cp_map" formatted="false">Indicazioni sulla zona</string>
+    <string name="cp_free" formatted="false">Sempre gratuito</string>
+    <string name="cp_verified" formatted="false">Email e WhatsApp verificati</string>
+    <string name="cp_back" formatted="false">Indietro</string>
+    <string name="cp_save" formatted="false">Salva</string>
+    <string name="cp_create" formatted="false">Pubblica il passaggio</string>
+    <string name="cp_draft" formatted="false">Salva bozza</string>
+    <string name="cp_publish" formatted="false">Pubblica</string>
+    <string name="cp_update" formatted="false">Aggiorna</string>
+    <string name="cp_close" formatted="false">Chiudi alle nuove richieste</string>
+    <string name="cp_reopen" formatted="false">Riapri le richieste</string>
+    <string name="cp_cancel" formatted="false">Annulla passaggio</string>
+    <string name="cp_request" formatted="false">Richiedi i posti</string>
+    <string name="cp_accept" formatted="false">Accetta</string>
+    <string name="cp_decline" formatted="false">Rifiuta</string>
+    <string name="cp_withdraw" formatted="false">Rinuncia</string>
+    <string name="cp_reduce" formatted="false">Riduci i posti</string>
+    <string name="cp_confirm_cancel" formatted="false">Annullare il passaggio? Le persone coinvolte riceveranno un avviso.</string>
+    <string name="cp_zone" formatted="false">Da quale zona?</string>
+    <string name="cp_return_zone" formatted="false">Zona di destinazione del ritorno</string>
+    <string name="cp_departure" formatted="false">Data e ora di partenza</string>
+    <string name="cp_seats" formatted="false">Posti passeggeri</string>
+    <string name="cp_available" formatted="false">:count posti disponibili</string>
+    <string name="cp_requested_seats" formatted="false">:count posti richiesti</string>
+    <string name="cp_seat_help" formatted="false">Escludi il tuo posto se guidi. Se richiedi, includi anche te.</string>
+    <string name="cp_note" formatted="false">Un messaggio o una nota pratica (facoltativo)</string>
+    <string name="cp_stops" formatted="false">Tappe intermedie (facoltative, fino a 3)</string>
+    <string name="cp_stop" formatted="false">Zona o punto pubblico</string>
+    <string name="cp_stop_select" formatted="false">Dove sali o scendi?</string>
+    <string name="cp_origin" formatted="false">Partenza / destinazione principale</string>
+    <string name="cp_accessibility" formatted="false">Accessibilità</string>
+    <string name="cp_accessibility_note" formatted="false">Dettagli pratici di accessibilità (facoltativi)</string>
+    <string name="cp_accessibility_help" formatted="false">Indicazioni dichiarate dal conducente. Concordate spazi e modalità in chat, senza dati sanitari.</string>
+    <string name="cp_accessibility_disclaimer" formatted="false">Una sedia pieghevole trasportata nel bagagliaio non equivale a viaggiare restando sulla sedia.</string>
+    <string name="cp_companions" formatted="false">Dichiaro che anche i miei accompagnatori hanno almeno 18 anni e sono informati delle regole del passaggio.</string>
+    <string name="cp_driver_declaration" formatted="false">Dichiaro di avere patente valida, copertura assicurativa richiesta, mezzo idoneo e posti sufficienti. Il passaggio è gratuito.</string>
+    <string name="cp_adult" formatted="false">Dichiaro di avere almeno 18 anni</string>
+    <string name="cp_adult_status" formatted="false">Maggiore età dichiarata</string>
+    <string name="cp_adult_revoke" formatted="false">Rettifica la dichiarazione di età</string>
+    <string name="cp_adult_revoke_help" formatted="false">La rettifica disabilita i nuovi passaggi e annulla gli accordi futuri coinvolti.</string>
+    <string name="cp_terms_accept" formatted="false">Accetto le regole dei passaggi gratuiti</string>
+    <string name="cp_terms" formatted="false">Regole dei passaggi</string>
+    <string name="cp_requirements" formatted="false">Verifiche e requisiti</string>
+    <string name="cp_enable" formatted="false">Attiva i passaggi gratuiti</string>
+    <string name="cp_login" formatted="false">Accedi o crea un account</string>
+    <string name="cp_email" formatted="false">Conferma la tua email</string>
+    <string name="cp_whatsapp" formatted="false">Verifica gratis WhatsApp</string>
+    <string name="cp_suspended" formatted="false">Il tuo accesso ai passaggi è sospeso. Puoi contattare l’assistenza.</string>
+    <string name="cp_onboarding" formatted="false">Per offrire o richiedere un passaggio servono email e WhatsApp verificati e una dichiarazione di maggiore età.</string>
+    <string name="cp_offered" formatted="false">Offro</string>
+    <string name="cp_requested" formatted="false">Cerco</string>
+    <string name="cp_history" formatted="false">Storico</string>
+    <string name="cp_searches" formatted="false">Ricerche e avvisi</string>
+    <string name="cp_pending" formatted="false">Da gestire</string>
+    <string name="cp_empty_offers" formatted="false">Nessun passaggio disponibile con questi criteri. Attiva un avviso oppure pubblica una richiesta.</string>
+    <string name="cp_empty_mine" formatted="false">I passaggi che offri o richiedi compariranno qui. Parti dalla data di un evento.</string>
+    <string name="cp_empty_messages" formatted="false">La chat si apre quando il conducente accetta la richiesta.</string>
+    <string name="cp_filter" formatted="false">Filtra</string>
+    <string name="cp_all" formatted="false">Tutti</string>
+    <string name="cp_sort" formatted="false">Ordina</string>
+    <string name="cp_sort_departure" formatted="false">Ora di partenza</string>
+    <string name="cp_sort_recent" formatted="false">Più recenti</string>
+    <string name="cp_event" formatted="false">Vai all’evento</string>
+    <string name="cp_open_chat" formatted="false">Apri la chat</string>
+    <string name="cp_chat_context" formatted="false">Concordate qui il punto di incontro e i dettagli del passaggio.</string>
+    <string name="cp_chat_readonly" formatted="false">Questa conversazione è in sola lettura.</string>
+    <string name="cp_chat_hidden" formatted="false">Conversazione non disponibile. Puoi contattare l’assistenza.</string>
+    <string name="cp_send" formatted="false">Invia</string>
+    <string name="cp_message" formatted="false">Messaggio</string>
+    <string name="cp_older" formatted="false">Messaggi precedenti</string>
+    <string name="cp_muted" formatted="false">Silenzia i push di questa chat</string>
+    <string name="cp_archive" formatted="false">Archivia per me</string>
+    <string name="cp_refresh" formatted="false">Aggiorna</string>
+    <string name="cp_saved" formatted="false">Operazione completata.</string>
+    <string name="cp_retry" formatted="false">Riprova</string>
+    <string name="cp_notice_summary" formatted="false">:count avvisi da leggere</string>
+    <string name="cp_read_all" formatted="false">Segna gli avvisi come letti</string>
+    <string name="cp_push" formatted="false">Ricevi notifiche push dei passaggi</string>
+    <string name="cp_request_help" formatted="false">I posti saranno confermati solo dopo l’accettazione del conducente.</string>
+    <string name="cp_group_help" formatted="false">Il totale comprende te e gli eventuali accompagnatori, che possono non avere un account.</string>
+    <string name="cp_search_create" formatted="false">Avvisami quando c’è un passaggio</string>
+    <string name="cp_search_public" formatted="false">Mostra anche un annuncio “Cerco passaggio” agli utenti verificati</string>
+    <string name="cp_earliest" formatted="false">Partenza non prima di</string>
+    <string name="cp_latest" formatted="false">Partenza entro</string>
+    <string name="cp_suggest" formatted="false">Proponi la tua offerta</string>
+    <string name="cp_wanted" formatted="false">Persone che cercano un passaggio</string>
+    <string name="cp_search_stop" formatted="false">Disattiva la ricerca</string>
+    <string name="cp_search_start" formatted="false">Riattiva la ricerca</string>
+    <string name="cp_template" formatted="false">Salva come modello</string>
+    <string name="cp_templates" formatted="false">I tuoi modelli</string>
+    <string name="cp_template_name" formatted="false">Nome del modello</string>
+    <string name="cp_repeat" formatted="false">Ripeti per un’altra data</string>
+    <string name="cp_delete" formatted="false">Elimina</string>
+    <string name="cp_report" formatted="false">Segnala un problema</string>
+    <string name="cp_reason" formatted="false">Motivo</string>
+    <string name="cp_details" formatted="false">Descrivi il problema</string>
+    <string name="cp_support" formatted="false">Assistenza</string>
+    <string name="cp_cases" formatted="false">Le tue segnalazioni</string>
+    <string name="cp_case" formatted="false">Segnalazione :id</string>
+    <string name="cp_reply" formatted="false">Rispondi</string>
+    <string name="cp_feedback" formatted="false">Com’è andato il passaggio?</string>
+    <string name="cp_feedback_help" formatted="false">Il feedback è privato e viene visto dallo staff. Una segnalazione urgente può essere inviata subito.</string>
+    <string name="cp_reasons_money" formatted="false">Richiesta di denaro</string>
+    <string name="cp_reasons_safety" formatted="false">Sicurezza</string>
+    <string name="cp_reasons_harassment" formatted="false">Molestie o comportamento scorretto</string>
+    <string name="cp_reasons_no_show" formatted="false">Mancata presentazione</string>
+    <string name="cp_reasons_accessibility" formatted="false">Accessibilità diversa da quella dichiarata</string>
+    <string name="cp_reasons_other" formatted="false">Altro</string>
+    <string name="cp_rideleg_outbound" formatted="false">Verso l’evento</string>
+    <string name="cp_rideleg_return" formatted="false">Ritorno</string>
+    <string name="cp_ridestatus_draft" formatted="false">Bozza</string>
+    <string name="cp_ridestatus_open" formatted="false">Aperta</string>
+    <string name="cp_ridestatus_closed" formatted="false">Chiusa alle nuove richieste</string>
+    <string name="cp_ridestatus_cancelled" formatted="false">Annullata</string>
+    <string name="cp_ridestatus_completed" formatted="false">Conclusa</string>
+    <string name="cp_riderequeststatus_pending" formatted="false">In attesa di conferma</string>
+    <string name="cp_riderequeststatus_accepted" formatted="false">Confermato</string>
+    <string name="cp_riderequeststatus_declined" formatted="false">Non accettato</string>
+    <string name="cp_riderequeststatus_withdrawn" formatted="false">Ritirato</string>
+    <string name="cp_riderequeststatus_expired" formatted="false">Scaduto</string>
+    <string name="cp_riderequeststatus_cancelled" formatted="false">Annullato</string>
+    <string name="cp_rideaccessibility_not_specified" formatted="false">Da concordare</string>
+    <string name="cp_rideaccessibility_folding_chair" formatted="false">Posso trasportare una sedia pieghevole</string>
+    <string name="cp_rideaccessibility_wheelchair_space" formatted="false">Posto attrezzato per viaggiare sulla sedia</string>
+    <string name="cp_ridefeedbackkind_travelled" formatted="false">Ho viaggiato</string>
+    <string name="cp_ridefeedbackkind_withdrew" formatted="false">Ho rinunciato</string>
+    <string name="cp_ridefeedbackkind_no_show" formatted="false">La persona non si è presentata</string>
+    <string name="cp_ridefeedbackkind_problem" formatted="false">C’è stato un problema</string>
+    <string name="cp_carpoolcasestatus_open" formatted="false">Nuovo</string>
+    <string name="cp_carpoolcasestatus_assigned" formatted="false">Assegnato</string>
+    <string name="cp_carpoolcasestatus_waiting" formatted="false">In attesa</string>
+    <string name="cp_carpoolcasestatus_resolved" formatted="false">Risolto</string>
+    <string name="cp_reviews_title" formatted="false">Recensioni dei passaggi</string>
+    <string name="cp_reviews_confirm" formatted="false">Conferma il passaggio</string>
+    <string name="cp_reviews_confirm_label" formatted="false">Confermo di aver viaggiato con questo conducente</string>
+    <string name="cp_reviews_optional" formatted="false">È facoltativo: puoi confermare il viaggio e, se vuoi, condividere la tua esperienza.</string>
+    <string name="cp_reviews_rating" formatted="false">Il tuo voto da 1 a 5</string>
+    <string name="cp_reviews_body" formatted="false">Racconta la tua esperienza (facoltativo)</string>
+    <string name="cp_reviews_save" formatted="false">Pubblica recensione</string>
+    <string name="cp_reviews_remove" formatted="false">Rimuovi la tua recensione</string>
+    <string name="cp_reviews_remove_confirm" formatted="false">Rimuovere il voto e la recensione?</string>
+    <string name="cp_reviews_verified_only" formatted="false">Voto e testo saranno visibili solo agli utenti con email e WhatsApp verificati. Non inserire recapiti o informazioni private.</string>
+    <string name="cp_reviews_summary" formatted="false">:average su 5 · :count recensioni</string>
+    <string name="cp_reviews_none" formatted="false">Non ci sono ancora recensioni per questo conducente.</string>
+    <string name="cp_reviews_period" formatted="false">Viaggi degli ultimi 12 mesi. La conferma è una dichiarazione del passeggero; voto e recensione sono volontari.</string>
+    <string name="cp_reviews_confirmed" formatted="false">Viaggio confermato dal passeggero</string>
+    <string name="cp_reviews_hidden" formatted="false">La recensione è stata oscurata dalla moderazione. Puoi contattare l’assistenza.</string>
+    <string name="cp_reviews_open" formatted="false">Leggi le recensioni</string>
+    <string name="cp_reviews_moderation" formatted="false">Recensioni conducenti</string>
+    <string name="cp_reviews_hide" formatted="false">Oscura recensione</string>
+    <string name="cp_reviews_restore" formatted="false">Ripubblica recensione</string>
+    <string name="cp_reviews_report" formatted="false">Segnala recensione</string>
+    <string name="cp_errors_review_trip" formatted="false">Puoi recensire solo un passaggio accettato, dopo la partenza prevista e se il viaggio non è stato annullato prima.</string>
+    <string name="cp_errors_review_confirm" formatted="false">Conferma prima di aver effettuato il passaggio.</string>
+    <string name="cp_errors_eligibility" formatted="false">Completa le verifiche e i requisiti per usare i passaggi.</string>
+    <string name="cp_errors_impersonation" formatted="false">Questa operazione non è consentita durante l’impersonificazione.</string>
+    <string name="cp_errors_terms" formatted="false">Leggi e accetta la versione aggiornata delle regole.</string>
+    <string name="cp_errors_closed" formatted="false">Questa operazione non è più disponibile. Aggiorna il riepilogo.</string>
+    <string name="cp_errors_departure" formatted="false">Scegli una partenza futura coerente con la data e la tratta dell’evento.</string>
+    <string name="cp_errors_limit" formatted="false">Hai raggiunto il limite. Gestisci prima le richieste o le bozze esistenti.</string>
+    <string name="cp_errors_retry" formatted="false">Questa richiesta è già stata usata con dati diversi. Aggiorna la pagina.</string>
+    <string name="cp_errors_changed" formatted="false">Le condizioni sono cambiate. Controlla il riepilogo aggiornato.</string>
+    <string name="cp_errors_capacity" formatted="false">I posti disponibili non sono sufficienti.</string>
+    <string name="cp_errors_agreement" formatted="false">Ci sono persone confermate: annulla e ripubblica per cambiare le condizioni.</string>
+    <string name="cp_errors_duplicate" formatted="false">Hai già una richiesta attiva per questo passaggio.</string>
+    <string name="cp_errors_occupied" formatted="false">Hai già un passaggio o un’offerta per questa data e tratta.</string>
+    <string name="cp_errors_stop" formatted="false">La tappa scelta non appartiene al passaggio.</string>
+    <string name="cp_errors_departed" formatted="false">La partenza prevista è già trascorsa. Per un problema contatta l’assistenza.</string>
+    <string name="cp_errors_reduction" formatted="false">Indica un numero inferiore di posti, includendo sempre il tuo.</string>
+    <string name="cp_errors_chat_closed" formatted="false">Non puoi inviare messaggi in questa conversazione.</string>
+    <string name="cp_errors_generic" formatted="false">Non è stato possibile completare l’operazione. Riprova.</string>
+    <string name="cp_errors_case" formatted="false">Non puoi accedere a questa segnalazione.</string>
+    <string name="cp_notifications_catalog_review_moderated" formatted="false">La tua recensione è stata esaminata</string>
+    <string name="cp_notifications_review" formatted="false">Hai ricevuto una recensione per un passaggio</string>
+    <string name="cp_notifications_review_moderated" formatted="false">Aggiornamento sulla tua recensione</string>
+    <string name="cp_notifications_open" formatted="false">Apri inCittà per vedere lo stato aggiornato.</string>
+    <string name="cp_notifications_requested" formatted="false">Qualcuno ha richiesto un passaggio</string>
+    <string name="cp_notifications_accepted" formatted="false">La tua richiesta di passaggio è stata accettata</string>
+    <string name="cp_notifications_declined" formatted="false">La richiesta di passaggio non è stata accettata</string>
+    <string name="cp_notifications_withdrawn" formatted="false">Una richiesta di passaggio è stata ritirata</string>
+    <string name="cp_notifications_expired" formatted="false">Una richiesta di passaggio è scaduta</string>
+    <string name="cp_notifications_cancelled" formatted="false">Un passaggio è stato annullato</string>
+    <string name="cp_notifications_reduced" formatted="false">È cambiato il numero di posti richiesti</string>
+    <string name="cp_notifications_message" formatted="false">Hai un nuovo messaggio</string>
+    <string name="cp_notifications_match" formatted="false">C’è un passaggio per la tua ricerca</string>
+    <string name="cp_notifications_suggestion" formatted="false">Ti è stato proposto un passaggio</string>
+    <string name="cp_notifications_reminder" formatted="false">Il tuo passaggio si avvicina</string>
+    <string name="cp_notifications_pending" formatted="false">Hai richieste di passaggio da gestire</string>
+    <string name="cp_notifications_support" formatted="false">L’assistenza ha aggiornato la tua segnalazione</string>
+    <string name="cp_notifications_moderation" formatted="false">Aggiornamento sui tuoi accessi alla community</string>
+    <string name="cp_admin_feedback" formatted="false">Feedback privati</string>
+    <string name="cp_admin_reviews" formatted="false">Recensioni conducenti</string>
+    <string name="cp_admin_section" formatted="false">Sezione</string>
+    <string name="cp_admin_status" formatted="false">Stato</string>
+    <string name="cp_admin_all" formatted="false">Tutti</string>
+    <string name="cp_admin_case" formatted="false">Caso</string>
+    <string name="cp_admin_note" formatted="false">Aggiungi nota interna</string>
+    <string name="cp_admin_reason_hint" formatted="false">La motivazione accompagna la prossima azione. Le risposte vanno solo al destinatario selezionato; le note restano interne.</string>
+    <string name="cp_admin_social_reference" formatted="false">Contenuto social: :type #:id</string>
+    <string name="cp_admin_ride_reference" formatted="false">Passaggio #:id</string>
+    <string name="cp_admin_choose_recipient" formatted="false">Scegli una persona</string>
+    <string name="cp_admin_reply" formatted="false">Invia risposta</string>
+    <string name="cp_admin_freeze_chat" formatted="false">Oscura conversazione</string>
+    <string name="cp_admin_unfreeze_chat" formatted="false">Rimuovi oscuramento</string>
+    <string name="cp_admin_hold_hint" formatted="false">Conservazione eccezionale limitata a questo caso: motivare la necessità e riesaminarla entro 90 giorni. Scadenza:</string>
+    <string name="cp_admin_password" formatted="false">Conferma la password del tuo account</string>
+    <string name="cp_admin_access_logged" formatted="false">Accesso riservato al caso, con motivazione e registrazione. Non condividere dati non pertinenti.</string>
+    <string name="cp_admin_evidence" formatted="false">Evidenze del caso</string>
+    <string name="cp_admin_to_staff" formatted="false">All’assistenza</string>
+    <string name="cp_admin_capacity_summary" formatted="false">:capacity posti offerti · :count richieste complessive</string>
+    <string name="cp_admin_cancel_confirm" formatted="false">Annullare il passaggio e avvisare le persone coinvolte?</string>
+    <string name="cp_admin_cancel_ride" formatted="false">Annulla passaggio</string>
+    <string name="cp_admin_email_verified" formatted="false">Email verificata</string>
+    <string name="cp_admin_whatsapp_verified" formatted="false">WhatsApp verificato</string>
+    <string name="cp_admin_suspend_social" formatted="false">Sospendi social</string>
+    <string name="cp_admin_restore_social" formatted="false">Ripristina social</string>
+    <string name="cp_admin_suspend_carpool" formatted="false">Sospendi passaggi</string>
+    <string name="cp_admin_restore_carpool" formatted="false">Ripristina passaggi</string>
+    <string name="cp_admin_suspend_global" formatted="false">Sospendi tutta la community</string>
+    <string name="cp_admin_restore_global" formatted="false">Ripristina tutta la community</string>
+    <string name="cp_admin_system" formatted="false">Sistema</string>
+    <string name="cp_admin_delivery_summary" formatted="false">Utente #:user · :attempts tentativi</string>
+    <string name="cp_admin_retry" formatted="false">Riprova consegna fallita</string>
+    <string name="cp_admin_unassigned" formatted="false">Non assegnato</string>
+    <string name="cp_admin_open_case" formatted="false">Apri caso</string>
+    <string name="cp_admin_title" formatted="false">Community e passaggi</string>
+    <string name="cp_admin_dashboard" formatted="false">Riepilogo</string>
+    <string name="cp_admin_users" formatted="false">Utenti e requisiti</string>
+    <string name="cp_admin_rides" formatted="false">Passaggi</string>
+    <string name="cp_admin_cases" formatted="false">Segnalazioni e assistenza</string>
+    <string name="cp_admin_audit" formatted="false">Registro sicurezza</string>
+    <string name="cp_admin_deliveries" formatted="false">Consegne notifiche</string>
+    <string name="cp_admin_search" formatted="false">Cerca per nome, zona o azione</string>
+    <string name="cp_admin_reason" formatted="false">Motivazione obbligatoria</string>
+    <string name="cp_admin_assign" formatted="false">Assegna a me</string>
+    <string name="cp_admin_resolve" formatted="false">Risolvi</string>
+    <string name="cp_admin_reopen" formatted="false">Riapri</string>
+    <string name="cp_admin_internal" formatted="false">Nota interna</string>
+    <string name="cp_admin_recipient" formatted="false">ID del destinatario</string>
+    <string name="cp_admin_inspect" formatted="false">Consulta evidenze</string>
+    <string name="cp_admin_export" formatted="false">Esporta evidenze</string>
+    <string name="cp_admin_hold" formatted="false">Preserva le evidenze per 90 giorni</string>
+    <string name="cp_admin_release" formatted="false">Rilascia la preservazione</string>
+    <string name="cp_admin_restrict" formatted="false">Sospendi</string>
+    <string name="cp_admin_restore" formatted="false">Ripristina</string>
+    <string name="cp_admin_social" formatted="false">Solo social</string>
+    <string name="cp_admin_carpool" formatted="false">Solo passaggi</string>
+    <string name="cp_admin_global" formatted="false">Tutta la community</string>
+    <string name="cp_admin_freeze" formatted="false">Oscura la chat</string>
+    <string name="cp_admin_permissions" formatted="false">Gestione e sicurezza community</string>
+    <string name="cp_admin_template" formatted="false">Modello di risposta</string>
+    <string name="cp_admin_templates_received" formatted="false">Abbiamo ricevuto la segnalazione e stiamo esaminando il caso.</string>
+    <string name="cp_admin_templates_details" formatted="false">Per esaminare il caso ci servono ulteriori dettagli sui fatti.</string>
+    <string name="cp_admin_templates_closed" formatted="false">La verifica del caso è conclusa. Puoi rispondere se hai nuovi elementi.</string>
+</resources>

@@ -56,4 +56,5 @@
     @endif
 
     <x-pagination :paginator="$occurrences" :summary="true" />
+<x-catalog-reviews :subject="$organizer" :reviews="$reviews" />
 </x-layouts.app>

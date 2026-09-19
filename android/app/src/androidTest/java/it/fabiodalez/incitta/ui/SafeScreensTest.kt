@@ -25,7 +25,13 @@ class SafeScreensTest {
         var selected = ""
         compose.runOnIdle { compose.activity.setContent {
             InCittaTheme { AppSafeArea {
-                ProfileScreen(AppUiState(session = Session("ui-only", User(1, "Giulia", "giulia@example.test"), null)), PaddingValues(0.dp), {}, {}, {}, {}, {}, { selected = it }, {}, onCommunity = {})
+                ProfileScreen(
+                    state = AppUiState(session = Session("ui-only", User(1, "Giulia", "giulia@example.test"), null)),
+                    padding = PaddingValues(0.dp),
+                    onTickets = {}, onSaved = {}, onLogout = {}, onDeleteAccount = {}, onInterestsSaved = {},
+                    onAppearance = { selected = it }, onProfileSaved = {}, onCommunity = {}, onCarpool = {},
+                    onCarpoolMessages = {}, onCommunityInbox = {}, communityTotal = 0,
+                )
             } }
         } }
         val title = compose.onNodeWithText("Il mio profilo").assertIsDisplayed().fetchSemanticsNode()

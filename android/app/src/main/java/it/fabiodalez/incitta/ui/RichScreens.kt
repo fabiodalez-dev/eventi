@@ -54,6 +54,7 @@ import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -135,10 +136,14 @@ fun CompleteEventDetailScreen(
     onOpenEvent: (Occurrence) -> Unit,
     onReserve: (Occurrence) -> Unit,
     onOrganizer: (String) -> Unit = {},
+    carpoolVerified: Boolean = false,
+    onCarpool: (Long, Boolean) -> Unit = { _, _ -> },
     comments: @Composable () -> Unit = {},
 ) {
     val context = LocalContext.current
     val scrollState = rememberScrollState()
+    var carpoolPrompt by remember(detail.id) { mutableStateOf<Pair<Long,Boolean>?>(null) }
+    carpoolPrompt?.let { (id, offer) -> AlertDialog(onDismissRequest={carpoolPrompt=null}, title={Text(cpText("free"))}, text={Text(cpText("onboarding"))}, confirmButton={CpButton("requirements"){carpoolPrompt=null;onCarpool(id,offer)}}, dismissButton={CpButton("back"){carpoolPrompt=null}}) }
     var posterLightbox by remember(detail.id) { mutableStateOf(false) }
     LaunchedEffect(detail.id) { scrollState.scrollTo(0) }
     Box(Modifier.fillMaxSize()) {
@@ -182,6 +187,11 @@ fun CompleteEventDetailScreen(
                     detail.occurrences.forEachIndexed { index, occurrence ->
                         if (index > 0) HorizontalDivider(Modifier.padding(vertical = 14.dp), color = Rule)
                         OccurrenceDateBlock(detail, occurrence, occurrence.occurrenceId in savedIds, onSave)
+                        Text(cpText("subtitle"), modifier=Modifier.padding(top=12.dp), style=MaterialTheme.typography.bodySmall)
+                        androidx.compose.foundation.layout.FlowRow(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+                            CpButton("seek") {if(carpoolVerified) onCarpool(occurrence.occurrenceId,false) else carpoolPrompt=occurrence.occurrenceId to false}
+                            CpButton("offer") {if(carpoolVerified) onCarpool(occurrence.occurrenceId,true) else carpoolPrompt=occurrence.occurrenceId to true}
+                        }
                         if (occurrence.bookingEnabled) {
                             Button(onClick = { onReserve(occurrence) }, modifier = Modifier.fillMaxWidth().padding(top = 10.dp), shape = ControlShape) {
                                 Text(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.ticket_reserve))
@@ -371,8 +381,10 @@ private fun OccurrenceDateBlock(detail: EventDetail, occurrence: Occurrence, sav
 fun VenueDetailScreen(
     venue: Venue,
     loadReviews: suspend (Int) -> it.fabiodalez.incitta.data.VenueReviewPage,
-    submitReview: suspend (Int, String) -> Unit,
+    submitReview: suspend (Int?, String, Int) -> Unit,
     deleteReview: suspend () -> Unit,
+    onVerifyReviews: () -> Unit = {},
+    reportReview: suspend (Long, String) -> Unit = { _, _ -> },
     events: List<Occurrence>,
     pastEvents: List<Occurrence>,
     savedIds: Set<Long>,
@@ -448,7 +460,7 @@ fun VenueDetailScreen(
                     }
                 }
                 PublicContactSection("venues", venue.slug.orEmpty(), session, onLogin)
-                VenueReviewsSection(venue.slug.orEmpty(), session?.user?.id, onLogin, loadReviews, submitReview, deleteReview)
+                VenueReviewsSection(venue.slug.orEmpty(), session?.user?.id, onLogin, loadReviews, submitReview, deleteReview, onVerify = onVerifyReviews, report = reportReview)
                 DetailSection("TUTTI GLI EVENTI") {
                     if (events.isEmpty()) Text("Nessun evento futuro in calendario.", color = Muted)
                     events.forEach { event -> CompactEventRow(event, event.occurrenceId in savedIds, onOpenEvent, onSave) }

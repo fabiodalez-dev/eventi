@@ -63,6 +63,9 @@ class RolesAndPermissionsSeeder extends Seeder
         ]);
 
         $this->assign(UserRole::Moderator, [
+            PermissionEnum::ManageCommunity,
+            PermissionEnum::ManageCarpool,
+            PermissionEnum::ManageCommunityCases,
             PermissionEnum::ViewVenues,
             PermissionEnum::ModerateVenues,
             PermissionEnum::ViewEvents,

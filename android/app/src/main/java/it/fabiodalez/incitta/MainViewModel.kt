@@ -35,6 +35,7 @@ internal fun navigationTarget(tab: AppTab, authenticated: Boolean): AppTab =
     if (tab == AppTab.SAVED && !authenticated) AppTab.ACCOUNT else tab
 
 data class AppUiState(
+    val communityDestination: String? = null,
     val appearance: String = "dark",
     val defaultAppearance: String = "dark",
     val appearanceSaving: Boolean = false,
@@ -103,6 +104,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         ),
     )
     val state: StateFlow<AppUiState> = _state.asStateFlow()
+    fun openCommunityDestination(url: String) {
+        _state.value = _state.value.copy(communityDestination = url)
+    }
+    fun consumeCommunityDestination(url: String) {
+        if(_state.value.communityDestination == url) _state.value = _state.value.copy(communityDestination = null)
+    }
     private val bannerImpressions = mutableSetOf<Long>()
     private var discoveryGeneration = 0
 
@@ -561,7 +568,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     suspend fun resendCommentConfirmation() = repository.resendConfirmation()
 
     suspend fun venueReviews(slug: String, page: Int) = repository.venueReviews(slug, page)
-    suspend fun submitVenueReview(slug: String, rating: Int, body: String) = repository.submitVenueReview(slug, rating, body)
+    suspend fun submitVenueReview(slug: String, rating: Int?, body: String, revision: Int) = repository.submitVenueReview(slug, rating, body, revision)
+    suspend fun reportVenueReview(slug: String, id: Long, body: String) = repository.reportVenueReview(slug, id, body)
     suspend fun deleteVenueReview(slug: String) = repository.deleteVenueReview(slug)
 
     fun openVenue(venue: Venue) {
@@ -757,7 +765,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun logout() {
         viewModelScope.launch {
             repository.logout()
-            _state.value = _state.value.copy(savedOccurrences = emptyList(), message = "Sessione chiusa")
+            _state.value = _state.value.copy(savedOccurrences = emptyList(), communityDestination = null, message = "Sessione chiusa")
         }
     }
 
@@ -769,6 +777,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     _state.value = _state.value.copy(
                         isAuthenticating = false,
                         savedOccurrences = emptyList(),
+                        communityDestination = null,
                         message = "Account cancellato e dati personali rimossi.",
                     )
                 }

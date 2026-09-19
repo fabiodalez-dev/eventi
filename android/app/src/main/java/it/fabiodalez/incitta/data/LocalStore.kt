@@ -70,6 +70,12 @@ class LocalStore(private val context: Context) {
 
     internal fun clearWhatsappRequest() { prefs.edit(commit = true) { remove("whatsapp_handshake") } }
 
+    internal fun writeCarpoolPending(command: CarpoolPending) { writeCarpoolPendings((readCarpoolPendings().filterNot { it.key == command.key } + command).takeLast(30)) }
+    private fun writeCarpoolPendings(commands: List<CarpoolPending>) { prefs.edit(commit = true) { putString("carpool_pending", encrypt(json.encodeToString(commands))) } }
+    internal fun removeCarpoolPending(key: String) { writeCarpoolPendings(readCarpoolPendings().filterNot { it.key == key }) }
+    internal fun readCarpoolPendings(): List<CarpoolPending> = prefs.getString("carpool_pending", null)?.let { runCatching { json.decodeFromString<List<CarpoolPending>>(decrypt(it)) }.getOrNull() }.orEmpty()
+    internal fun clearCarpoolPending() { prefs.edit(commit = true) { remove("carpool_pending") } }
+
     fun readSession(): Session? {
         val encrypted = prefs.getString(KEY_SESSION, null) ?: return null
         return runCatching {
@@ -83,6 +89,7 @@ class LocalStore(private val context: Context) {
     fun writeSession(session: Session) {
         if (readSession()?.token != session.token) {
             clearWhatsappRequest()
+            clearCarpoolPending()
             it.fabiodalez.incitta.community.WhatsappAutofill.discard()
         }
         if (readSession()?.user?.id != session.user.id) {
@@ -95,6 +102,7 @@ class LocalStore(private val context: Context) {
 
     fun clearSession() {
         clearWhatsappRequest()
+        clearCarpoolPending()
         it.fabiodalez.incitta.community.WhatsappAutofill.discard()
         prefs.edit { remove(KEY_SESSION); remove(KEY_OCCURRENCES) }
         runCatching { it.fabiodalez.incitta.calendar.NativeCalendar.disconnect(context) }

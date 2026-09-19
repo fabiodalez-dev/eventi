@@ -29,7 +29,7 @@ import java.net.URLEncoder
 @Composable
 internal fun CommunityScreen(session: Session?, padding: PaddingValues, savedIds: Set<Long>, initial: String = "feed",
     onBack: () -> Unit, onLogin: () -> Unit, onOpen: (Occurrence) -> Unit, onSave: (Long) -> Unit, onProfileSaved: () -> Unit,
-    onUnauthorized: () -> Unit = {}) {
+    onUnauthorized: () -> Unit = {}, onDestination: (String) -> Unit = {}) {
     val context = LocalContext.current
     val savedMessage = stringResource(R.string.community_saved)
     val errorMessage = stringResource(R.string.community_error)
@@ -243,7 +243,7 @@ internal fun CommunityScreen(session: Session?, padding: PaddingValues, savedIds
                 } }
             }
             route == "inbox" -> {
-                TextButton(enabled = !busy, onClick = { mutate { api.readNotifications(); cursors = listOf(null); successMessage = readAllMessage } }) { Text(stringResource(R.string.community_read_all)) }
+                TextButton(enabled = !busy, onClick = { mutate { api.readNotifications(envelope.obj("meta").number("watermark")); CommunityUpdates.changed(); cursors = listOf(null); successMessage = readAllMessage } }) { Text(stringResource(R.string.community_read_all)) }
                 if (envelope.rows("data").isEmpty()) Text(stringResource(R.string.community_no_notifications), color = Muted)
                 envelope.rows("data").forEach { notification ->
                     val item = notification.obj("data")
@@ -251,6 +251,7 @@ internal fun CommunityScreen(session: Session?, padding: PaddingValues, savedIds
                     val url = item.text("url")
                     val native = when { url.contains("/bacheca/post/") -> url.substringAfterLast('/').toLongOrNull()?.let { "post/$it" }; url.endsWith("/persone-che-mi-seguono") -> "followers"; else -> null }
                     if (native != null) TextButton(onClick = { navigate(native) }) { Text(stringResource(R.string.community_open)) }
+                    else if (url.isNotBlank()) TextButton(onClick = { onDestination(url) }) { Text(stringResource(R.string.community_open)) }
                     HorizontalDivider(color = Rule)
                 }
             }

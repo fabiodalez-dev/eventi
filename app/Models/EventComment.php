@@ -18,7 +18,7 @@ use Illuminate\Support\Carbon;
  *
  * ## Perché qui non c'è `ContentVersion::bump()`
  *
- * `VenueReview::booted()` lo chiama a ogni salvataggio, e lì è giusto: le
+ * `CatalogReview::booted()` lo chiama a ogni salvataggio, e lì è giusto: le
  * recensioni cambiano di rado e la scheda del locale sta nella full-page
  * cache.
  *
