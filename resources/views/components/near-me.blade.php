@@ -42,10 +42,10 @@
             {{ __('map.near.active', ['km' => $current ?? $default]) }}
         </p>
 
-        <div class="mt-3 flex flex-wrap items-center gap-2">
+        <div class="mt-3 flex flex-wrap items-center gap-2 lg:flex-col lg:items-stretch">
             @foreach ($radii as $km)
                 @continue($current !== (int) $km && $counts !== null && ($counts['radius'][(string) $km] ?? 0) === 0)
-                <x-filter-chip data-filter-link :href="$urlFor($current === (int) $km ? null : (int) $km)" :active="$current === (int) $km">
+                <x-filter-chip data-filter-link :href="$urlFor($current === (int) $km ? null : (int) $km)" :active="$current === (int) $km" :count="$counts === null ? null : ($counts['radius'][(string) $km] ?? 0)">
                     {{ __('map.near.radius', ['km' => $km]) }}
                 </x-filter-chip>
             @endforeach

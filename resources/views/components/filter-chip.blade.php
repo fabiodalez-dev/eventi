@@ -19,6 +19,7 @@
 ])
 
 <a
+    data-filter-chip
     href="{{ $href }}"
     @if ($active) aria-current="true" @endif
     {{ $attributes->class([
@@ -45,10 +46,13 @@
     <span class="min-w-0 text-center">{{ $slot }}</span>
 
     @if ($count !== null)
-        <span class="{{ $active ? 'text-on-accent/70' : 'text-ink-subtle' }}">{{ $count }}</span>
+        <span data-filter-count class="shrink-0 tabular-nums tracking-normal {{ $active ? 'text-on-accent/70' : 'text-ink-subtle' }}">{{ $count }}</span>
     @endif
 
     @if ($active && $removable)
+        {{-- La × si vede e basta: a chi usa uno screen reader va detto a
+             parole che attivare il chip toglie il filtro, non lo riaccende. --}}
         <span aria-hidden="true" class="shrink-0 text-sm leading-none">&times;</span>
+        <span class="sr-only">{{ __('filters.remove') }}</span>
     @endif
 </a>

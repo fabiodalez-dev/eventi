@@ -273,7 +273,7 @@
    accorgeva; togliendo il bordo e mettendo un fondo, quel fondo diventa un
    riquadro vero e il contenuto si ritrova appiccicato ai suoi lati. Un colore
    di sfondo senza padding non è mezzo lavoro: è un riquadro sbagliato. */
-:root[data-theme="light"] #filtri > details > div > section {
+:root[data-theme="light"] #filtri :is([data-filter-panel], section[aria-labelledby="vicino-a-me"]) {
     border-radius: 16px;
     background: var(--surface);
     padding: clamp(14px, 1.4vw, 18px);

@@ -176,6 +176,7 @@ final class CachePage
         'access',
         'accessible',
         'age',
+        'all_dates',
         'stroller',
         'changing_table',
         'kids_area',
@@ -301,6 +302,18 @@ final class CachePage
                 continue;
             }
 
+            /* `all_dates` è un interruttore: la mappa guarda solo se è acceso
+               (`$request->boolean()`). `?all_dates=1`, `=true`, `=on` sono la
+               stessa pagina, e `=zzz` è la pagina senza il parametro: ridotto a
+               «1 oppure niente», un valore qualsiasi non apre una voce nuova. */
+            if ($nome === 'all_dates') {
+                if ($request->boolean('all_dates')) {
+                    $parametri[$nome] = '1';
+                }
+
+                continue;
+            }
+
             $valore = $request->query->all()[$nome];
 
             if (is_array($valore)) {
@@ -412,9 +425,10 @@ final class CachePage
          * string: sono indirizzi diversi a ogni metro percorso, quindi chiavi
          * diverse a ogni richiesta. Salvarli riempirebbe la cache di voci che
          * nessuno rileggerà mai — la stessa trappola dell'arrotondamento al
-         * quarto d'ora, vista da un'altra parte.
+         * quarto d'ora, vista da un'altra parte. Anche il rettangolo `bbox`
+         * della mappa cambia a ogni spostamento e resta fuori dalla cache.
          */
-        if ($request->hasAny(['near', 'lat', 'lng']) || $request->hasCookie(RememberedLocation::COOKIE)) {
+        if ($request->hasAny(['near', 'lat', 'lng', 'bbox']) || $request->hasCookie(RememberedLocation::COOKIE)) {
             return false;
         }
 

@@ -1,6 +1,7 @@
 <?php
 
 use App\DTOs\EventFilters;
+use App\Models\Tag;
 use App\Models\User;
 use App\Models\Venue;
 use App\Services\Search\ContextualFacets;
@@ -104,3 +105,48 @@ it('never limits available categories to the first page', function () {
     config(['eventi.per_page' => 1]);
     $this->get('/eventi')->assertOk()->assertViewHas('facetCounts', fn ($counts) => ($counts['category']['cinema'] ?? 0) === 1 && ($counts['category']['dj-set'] ?? 0) === 1);
 });
+
+it('renders contextual chip counts and refreshes them after filtering on both pages', function (string $path) {
+    $countFor = function (string $url, string $label): string {
+        $html = $this->get($url)->assertOk()->getContent();
+        $dom = new DOMDocument;
+        @$dom->loadHTML('<?xml encoding="UTF-8">'.$html);
+        $xpath = new DOMXPath($dom);
+
+        return $xpath->query('//aside[@id="filtri"]//a[span[normalize-space(.)="'.$label.'"]]/span[@data-filter-count]')->item(0)?->textContent ?? 'missing';
+    };
+
+    expect($countFor($path.'?all_dates=1', 'Fino a 20 €'))->toBe('2')
+        ->and($countFor($path.'?all_dates=1&category=cinema', 'Fino a 20 €'))->toBe('1')
+        ->and($countFor($path.'?date=today&category=cinema', 'Cinema'))->toBe('0');
+})->with(['/eventi', '/mappa']);
+
+it('shows the full map total beyond its twelve fallback cards', function () {
+    for ($i = 0; $i < 12; $i++) {
+        occurrenceAtLocal($this->city, $this->dj, '2026-09-10 22:00', venue: $this->venue);
+    }
+
+    $this->get('/mappa?all_dates=1')->assertOk()
+        ->assertViewHas('total', 14)
+        ->assertViewHas('occurrences', fn ($items) => $items->count() === 12)
+        ->assertSee('data-result-count="14"', false);
+});
+
+it('counts an active tag chip even when the tag is outside the popular ones', function (string $path) {
+    /* Le 24 etichette più usate riempiono l'elenco dei suggerimenti: quella
+       rara entra solo perché è stata scelta, e il suo chip deve contare. */
+    for ($i = 1; $i <= 24; $i++) {
+        Tag::factory()->popular()->create(['name' => 'Popolare '.$i, 'slug' => 'popolare-'.$i, 'usage_count' => 100 + $i]);
+    }
+    $raro = Tag::factory()->approved()->create(['name' => 'Raro', 'slug' => 'raro', 'usage_count' => 1]);
+    $this->date->event->tags()->attach($raro);
+
+    $html = $this->get($path.'?tag=raro')->assertOk()->getContent();
+    $dom = new DOMDocument;
+    @$dom->loadHTML('<?xml encoding="UTF-8">'.$html);
+    $count = (new DOMXPath($dom))
+        ->query('//aside[@id="filtri"]//a[@aria-current="true"][span[normalize-space(.)="#Raro" or normalize-space(.)="#raro"]]/span[@data-filter-count]')
+        ->item(0)?->textContent ?? 'missing';
+
+    expect($count)->toBe('1');
+})->with(['/eventi', '/mappa']);

@@ -62,6 +62,7 @@
 
     $prices = [PriceFilter::Free, PriceFilter::Donation, PriceFilter::Max10, PriceFilter::Max20];
 
+    $count = static fn (string $group, string $value): ?int => $counts === null ? null : ($counts[$group][$value] ?? 0);
     $available = static fn (string $group, string $value): bool => $counts === null || ($counts[$group][$value] ?? 0) > 0;
     $categories = collect($categories)->filter(fn ($value) => $filters->hasCategory($value->slug) || $available('category', $value->slug));
     $tags = collect($tags)->filter(fn ($value) => $filters->hasTag($value->slug) || $available('tag', $value->slug));
@@ -139,12 +140,12 @@
     </div>
 
     @if ($filters->tags !== [])
-        <div class="flex flex-wrap gap-1.5" aria-label="{{ __('filters.tag.label') }}">
+        <div class="flex flex-wrap gap-1.5 lg:flex-col" aria-label="{{ __('filters.tag.label') }}">
             @foreach ($filters->tags as $activeTag)
                 <x-filter-chip
                     :href="$url($filters->withTags(array_values(array_diff($filters->tags, [$activeTag]))))"
                     :active="true"
-                    :aria-label="__('filters.reset').' #'.($tagOptions[$activeTag] ?? $activeTag)"
+                    :count="$count('tag', $activeTag)"
                 >
                     #{{ $tagOptions[$activeTag] ?? $activeTag }}
                 </x-filter-chip>
@@ -155,9 +156,9 @@
     <div class="flex flex-col gap-[9px]">
         <span class="font-display text-[0.594rem] leading-none font-extrabold tracking-[0.16em] text-ink-subtle uppercase">{{ __('filters.date.label') }}</span>
 
-        <div class="grid grid-cols-2 gap-0.5 bg-line p-0.5">
+        <div class="flex flex-wrap gap-1.5 lg:flex-col">
             @if ($filters->hasDateWindow() && $filters->preset === null)
-                <x-filter-chip :href="$anyDateUrl" :active="true" class="col-span-2 justify-center">
+                <x-filter-chip :href="$anyDateUrl" :active="true" :count="$total">
                     {{ $filters->date?->format('d/m/Y') ?? ($filters->from?->format('d/m/Y').' – '.$filters->to?->format('d/m/Y')) }}
                 </x-filter-chip>
             @endif
@@ -166,7 +167,8 @@
                 :href="$anyDateUrl"
                 :active="true"
                 :removable="false"
-                class="justify-center border-0 py-2.5"
+                :count="$total"
+
             >
                 {{ __('filters.date.any') }}
             </x-filter-chip>
@@ -178,7 +180,8 @@
                 <x-filter-chip
                     :href="$filters->preset === $preset ? $anyDateUrl : $url($filters->withPreset($preset))"
                     :active="$filters->preset === $preset"
-                    class="justify-center border-0 py-2.5"
+                    :count="$count('date', $preset->value)"
+
                 >
                     {{ $preset->label() }}
                 </x-filter-chip>
@@ -190,12 +193,13 @@
         <div class="flex flex-col gap-[9px]">
             <span class="font-display text-[0.594rem] leading-none font-extrabold tracking-[0.16em] text-ink-subtle uppercase">{{ __('filters.category.label') }}</span>
 
-            <div class="flex flex-wrap gap-1.5">
+            <div class="flex flex-wrap gap-1.5 lg:flex-col">
                 @foreach ($categories as $category)
                     @continue($filters->categories !== [] && ! $filters->hasCategory($category->slug))
                     <x-filter-chip
                         :href="$url($filters->toggleCategory($category->slug))"
                         :active="$filters->hasCategory($category->slug)"
+                        :count="$count('category', $category->slug)"
                     >
                         {{ $category->name }}
                     </x-filter-chip>
@@ -208,12 +212,13 @@
     <div class="flex flex-col gap-[9px]">
         <span class="font-display text-[0.594rem] leading-none font-extrabold tracking-[0.16em] text-ink-subtle uppercase">{{ __('filters.price.label') }}</span>
 
-        <div class="flex flex-wrap gap-1.5">
+        <div class="flex flex-wrap gap-1.5 lg:flex-col">
             @foreach ($prices as $price)
                 @continue($filters->price !== null && $filters->price !== $price)
                 <x-filter-chip
                     :href="$url($filters->price === $price ? $filters->withPrice(null) : $filters->withPrice($price))"
                     :active="$filters->price === $price"
+                    :count="$count('price', $price->value)"
                 >
                     {{ $price->label() }}
                 </x-filter-chip>
@@ -226,13 +231,14 @@
     <div class="flex flex-col gap-[9px]">
         <span class="font-display text-[0.594rem] leading-none font-extrabold tracking-[0.16em] text-ink-subtle uppercase">{{ __('filters.time.label') }}</span>
 
-        <div class="flex flex-wrap gap-1.5">
+        <div class="flex flex-wrap gap-1.5 lg:flex-col">
             @foreach (TimeOfDay::cases() as $band)
                 @continue($filters->time !== $band && ! $available('time', $band->value))
                 @continue($filters->time !== null && $filters->time !== $band)
                 <x-filter-chip
                     :href="$url($filters->time === $band ? $filters->withTime(null) : $filters->withTime($band))"
                     :active="$filters->time === $band"
+                    :count="$count('time', $band->value)"
                 >
                     {{ $band->label() }}
                 </x-filter-chip>
@@ -245,22 +251,22 @@
     <div class="flex flex-col gap-[9px]">
         <span class="font-display text-[0.594rem] leading-none font-extrabold tracking-[0.16em] text-ink-subtle uppercase">{{ __('filters.features.label') }}</span>
 
-        <div class="flex flex-wrap gap-1.5">
+        <div class="flex flex-wrap gap-1.5 lg:flex-col">
             @php($hasFeature = $filters->outdoor || $filters->accessible || $filters->family)
             @if ($filters->outdoor || ((! $hasFeature || $counts !== null) && $available('features', 'outdoor')))
-            <x-filter-chip :href="$url($filters->withOutdoor(! $filters->outdoor))" :active="$filters->outdoor">
+            <x-filter-chip :href="$url($filters->withOutdoor(! $filters->outdoor))" :active="$filters->outdoor" :count="$count('features', 'outdoor')">
                 {{ __('filters.features.outdoor') }}
             </x-filter-chip>
             @endif
 
             @if ($filters->accessible || ((! $hasFeature || $counts !== null) && $available('features', 'accessible')))
-            <x-filter-chip :href="$url($filters->withAccessible(! $filters->accessible))" :active="$filters->accessible">
+            <x-filter-chip :href="$url($filters->withAccessible(! $filters->accessible))" :active="$filters->accessible" :count="$count('features', 'accessible')">
                 {{ __('filters.features.accessible') }}
             </x-filter-chip>
             @endif
 
             @if ($filters->family || ((! $hasFeature || $counts !== null) && $available('features', 'family')))
-            <x-filter-chip :href="$url($filters->withFamily(! $filters->family))" :active="$filters->family">
+            <x-filter-chip :href="$url($filters->withFamily(! $filters->family))" :active="$filters->family" :count="$count('features', 'family')">
                 {{ __('filters.features.family') }}
             </x-filter-chip>
             @endif
