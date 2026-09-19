@@ -1490,3 +1490,36 @@ it('104 the retention period reaches existing privacy pages once, right after th
     $migration->up();
     expect(substr_count((string) Page::where('slug', 'privacy')->value('body'), $sentence))->toBe(1);
 });
+
+it('105 people search treats percent and underscore as letters rather than wildcards', function (): void {
+    $anna = communityPerson();
+    $anna->communityProfile->update(['display_name' => 'Anna']);
+    communityPerson()->communityProfile->update(['display_name' => 'Bea']);
+    $this->getJson('/api/v1/community/people?q=%25')->assertOk()->assertJsonCount(0, 'data');
+    // Come jolly «a_n» troverebbe «Anna»; come lettere non trova nessuno.
+    $this->getJson('/api/v1/community/people?q=a_n')->assertOk()->assertJsonCount(0, 'data');
+    $this->getJson('/api/v1/community/people?q=Ann')->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.user_id', $anna->id);
+});
+
+it('106 the community service builds feed and people listings on its own, without the controller', function (): void {
+    $community = app(Community::class);
+    $followed = communityPerson();
+    $stranger = communityPerson();
+    $followedPost = communityPost($followed, $this->city, $this->category, '2026-09-20 19:00');
+    $strangerPost = communityPost($stranger, $this->city, $this->category, '2026-09-12 19:00');
+    $ended = communityPost($followed, $this->city, $this->category, '2026-09-05 19:00');
+    $this->user->follow($followed);
+    $viewer = $this->user->fresh();
+
+    expect($community->feed($viewer, $this->city)->pluck('id')->all())->toBe([$followedPost->id]);
+    expect($community->feed($viewer, $this->city, 'discover', 'event')->pluck('id')->all())->toBe([$strangerPost->id, $followedPost->id]);
+    expect($community->feed($viewer, $this->city, 'discover', 'event', past: true)->pluck('id')->all())->toBe([$ended->id, $strangerPost->id, $followedPost->id]);
+    expect($community->feed($viewer, $this->city, 'discover', perPage: 1)->hasMorePages())->toBeTrue();
+
+    $followed->communityProfile->forceFill(['display_name' => 'Zeno', 'featured' => true])->save();
+    $stranger->communityProfile->update(['display_name' => 'Anna']);
+    expect($community->people(null)->pluck('user_id')->all())->toBe([$followed->id, $stranger->id]);
+    expect($community->people(null, 'ann')->pluck('user_id')->all())->toBe([$stranger->id]);
+    expect($community->people(null, '')->total())->toBe(2);
+    expect($community->people(null, featured: true)->pluck('user_id')->all())->toBe([$followed->id]);
+});
