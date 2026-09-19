@@ -263,6 +263,9 @@ Schedule::command('model:prune', [
 Schedule::command('model:prune', ['--model' => WhatsappChallenge::class])
     ->daily()->doNotMonitor();
 
+// Le impronte trattenute per i sospesi cancellati scadono dopo il periodo dell'informativa (issue #104).
+Schedule::command('community:prune-fingerprints')->daily();
+
 if (class_exists(Telescope::class)) {
     Schedule::command('telescope:prune --hours=48')->daily()->doNotMonitor();
 }

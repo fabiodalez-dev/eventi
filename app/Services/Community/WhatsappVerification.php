@@ -10,6 +10,7 @@ use App\Enums\WhatsappChallengeStatus;
 use App\Enums\WhatsappDelivery;
 use App\Models\User;
 use App\Models\WhatsappChallenge;
+use App\Support\PhoneFingerprint;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -172,6 +173,6 @@ final class WhatsappVerification
             throw new \RuntimeException('WHATSAPP_PHONE_HASH_KEY is not configured.');
         }
 
-        return hash_hmac('sha256', $phone, $key);
+        return PhoneFingerprint::of($phone, $key);
     }
 }
