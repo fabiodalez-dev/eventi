@@ -375,7 +375,19 @@ class User extends Authenticatable implements FilamentUser, HasTenants, MustVeri
      */
     public function canReceiveNotifications(): bool
     {
-        return $this->hasVerifiedEmail();
+        return $this->hasVerifiedEmail() && ! $this->hasUndeliverableEmail();
+    }
+
+    /**
+     * `.invalid` è riservato dalla RFC 2606: nessun indirizzo di quel dominio
+     * è consegnabile. Lo usano gli account anonimizzati e le persone
+     * dimostrative (`demo:showcase`), che hanno l'email confermata perché la
+     * community la richiede ma non devono mai entrare in un invio: né email,
+     * né push, né digest.
+     */
+    public function hasUndeliverableEmail(): bool
+    {
+        return str_ends_with(strtolower((string) $this->email), '.invalid');
     }
 
     /**
