@@ -141,6 +141,11 @@ Due voci, aggiunte alle cinque preesistenti dell'account (che non sono state toc
 Il worker si spegne a coda vuota e viene rilanciato ogni minuto: è il sostituto di un
 demone supervisord, non disponibile sulla shared hosting.
 
+Il resto passa dallo scheduler (`routes/console.php`), fra cui ogni notte le
+pulizie: `model:prune` sulle richieste WhatsApp oltre i trenta giorni e
+`community:prune-fingerprints` sulle impronte dei sospesi cancellati oltre i
+24 mesi.
+
 ## Quando l'integrazione continua fallisce e in locale è tutto verde
 
 Tre differenze fra le due macchine, e ognuna ha già nascosto un difetto vero.
@@ -685,8 +690,8 @@ Checklist, nell'ordine:
    impronte sono state calcolate con `APP_KEY`. Per non riaprire quei numeri la
    chiave dedicata va impostata al valore esatto di `APP_KEY` (prefisso
    `base64:` compreso), oppure quegli utenti vanno fatti riverificare.
-2. **Mai ruotarla** senza una riverifica: ogni impronta cambierebbe e i numeri
-   già usati tornerebbero liberi (rotazione guidata: issue #103).
+2. **Mai cambiarla a mano**: ogni impronta cambierebbe e i numeri già usati
+   tornerebbero liberi. Per ruotarla c'è la procedura qui sotto.
 3. `KAPSO_API_KEY`, `KAPSO_PHONE_NUMBER_ID` e i nomi dei template approvati.
 4. `WHATSAPP_VERIFICATION_ENABLED=true`, poi `php artisan config:cache`.
 5. Una prova con un numero di test autorizzato, controllando che nei log non
@@ -706,6 +711,59 @@ estraneo non può più chiudere fuori il titolare. Il numero ha un tetto proprio
 ne ricevono il codice al massimo tre account, ciascuno entro i propri limiti.
 Se un utente segnala «troppi codici» senza averne chiesti, nello storico dei
 tentativi di quel numero compaiono gli altri account.
+
+**Impronte dei sospesi cancellati.** Chi è sospeso e cancella l'account lascia
+l'impronta del numero e la data della sospensione, per non reiscriversi con lo
+stesso numero. Dopo 24 mesi dalla sospensione
+(`suspended_fingerprint_retention_months`) le elimina
+`community:prune-fingerprints`, ogni notte; l'informativa lo dichiara. Per
+vedere quante se ne andrebbero adesso, senza toccare nulla:
+
+```bash
+ssh fabiodalez.it 'cd ~/eventi && /opt/cpanel/ea-php84/root/usr/bin/php artisan community:prune-fingerprints --dry-run'
+```
+
+### Ruotare WHATSAPP_PHONE_HASH_KEY
+
+Le impronte si ricalcolano dai numeri cifrati con `community:rehash-phones`.
+La chiave nuova è quella già in configurazione; la vecchia il comando la legge
+**solo** dall'ambiente del processo, mai da un'opzione (finirebbe in `ps`) né
+da `.env` (dove `config:cache` la congelerebbe e resterebbe lì dimenticata).
+
+1. **Backup del database**, come nella sezione «Backup».
+2. `php artisan down`: pochi secondi, ma fra la chiave nuova in configurazione
+   e il ricalcolo lo stesso numero potrebbe finire su un secondo account.
+3. Scrivi la chiave **nuova** in `.env` al posto di `WHATSAPP_PHONE_HASH_KEY`
+   e tieni la vecchia a portata di mano.
+4. `php artisan config:cache`.
+5. La prova, che classifica e non scrive:
+
+   ```bash
+    WHATSAPP_PHONE_HASH_PREVIOUS_KEY='<vecchia>' php artisan community:rehash-phones --dry-run
+   ```
+
+   Lo spazio iniziale tiene la riga fuori dalla cronologia della shell se
+   `HISTCONTROL` contiene `ignorespace` (`echo $HISTCONTROL` per saperlo);
+   altrimenti `history -d` sulla riga subito dopo.
+6. Lo stesso comando senza `--dry-run`:
+
+   ```bash
+    WHATSAPP_PHONE_HASH_PREVIOUS_KEY='<vecchia>' php artisan community:rehash-phones
+   ```
+
+7. `php artisan up`.
+
+**Come leggere il resoconto.** *Già con la chiave nuova*: niente da fare, ed è
+ciò che mostra una seconda esecuzione. *Da ricalcolare*: impronte della chiave
+vecchia, riscritte con la nuova. *Non riconosciute*: non tornano con nessuna
+delle due chiavi; quasi sempre la chiave vecchia passata è sbagliata, e il
+comando esce con errore **senza aver scritto nulla** (elenca gli id delle
+righe, mai numeri o impronte). *Orfane*: impronte di account sospesi e
+cancellati, che per scelta non conservano il numero e quindi non si possono
+ricalcolare; il comando si ferma finché non lo si rilancia con
+`--release-orphans`, che le elimina — **quei numeri banditi tornano
+utilizzabili**, e il resoconto dice quanti sono. La data della sospensione
+resta. Finita la rotazione la chiave vecchia non serve più da nessuna parte.
 
 ## Tracciamento degli errori (Sentry)
 

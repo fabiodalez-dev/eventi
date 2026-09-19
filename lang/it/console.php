@@ -46,4 +46,42 @@ return [
         'done' => 'Riepiloghi settimanali: :venue_digest. Giornalieri: :daily_digest. Weekend: :weekend. Locali inattivi: :inactive. Righe di archivio rimosse: :purged.',
     ],
 
+    'community_rehash' => [
+        'description' => 'Ricalcola le impronte dei numeri WhatsApp con la chiave nuova dopo una rotazione di WHATSAPP_PHONE_HASH_KEY.',
+        'option_dry_run' => 'Classifica e riporta soltanto: non scrive nulla',
+        'option_release_orphans' => 'Elimina le impronte che non si possono ricalcolare (account sospesi e cancellati): quei numeri tornano utilizzabili',
+        'missing_new_key' => 'WHATSAPP_PHONE_HASH_KEY non è configurata: scrivi la chiave nuova in .env e lancia config:cache.',
+        'missing_old_key' => 'Manca la chiave vecchia: passala solo nell\'ambiente del comando, come :variable=\'...\' davanti a php artisan.',
+        'same_keys' => 'La chiave vecchia e quella nuova coincidono: non c\'è nulla da ricalcolare.',
+        'busy' => 'Un\'altra operazione sulla verifica WhatsApp tiene il lock: riprova fra qualche secondo.',
+        'class' => 'Classe',
+        'users' => 'Utenti',
+        'challenges' => 'Richieste',
+        'classes' => [
+            'already' => 'già con la chiave nuova',
+            'rehash' => 'da ricalcolare',
+            'mismatch' => 'non riconosciute',
+            'orphan' => 'orfane (sospesi cancellati)',
+        ],
+        'mismatch' => 'Alcune impronte non corrispondono né alla chiave nuova né alla vecchia: la chiave vecchia è probabilmente sbagliata.',
+        'collision' => 'Con la chiave nuova più account avrebbero la stessa impronta.',
+        'orphans' => 'Ci sono :count impronte orfane, di account sospesi e cancellati senza più il numero: non si possono ricalcolare. Rilancia con --release-orphans per eliminarle, sapendo che quei numeri tornano utilizzabili.',
+        'users_ids' => 'Utenti: :ids',
+        'challenges_ids' => 'Richieste: :ids',
+        'nothing_written' => 'Nulla è stato scritto.',
+        'would_release' => 'Con --release-orphans verrebbero eliminate :count impronte orfane: quei numeri tornerebbero utilizzabili.',
+        'released' => 'Impronte orfane eliminate: :count. Quei numeri di account sospesi e cancellati sono di nuovo utilizzabili.',
+        'dry_run' => 'Prova: da ricalcolare :users utenti e :challenges richieste. Nulla è stato scritto.',
+        'done' => 'Impronte ricalcolate: :users utenti e :challenges richieste. La chiave vecchia non serve più.',
+        'nothing_to_do' => 'Tutte le impronte sono già con la chiave nuova: nulla da scrivere.',
+    ],
+
+    'community_prune_fingerprints' => [
+        'description' => 'Elimina le impronte dei numeri trattenute per gli account sospesi e cancellati oltre il periodo di conservazione.',
+        'option_dry_run' => 'Conta soltanto: non elimina nulla',
+        'empty' => 'Nessuna impronta con una sospensione più vecchia di :months mesi.',
+        'would_remove' => 'Da eliminare: :count impronte (sospensione più vecchia di :months mesi). Nulla è stato modificato.',
+        'done' => 'Impronte eliminate: :count (sospensione più vecchia di :months mesi).',
+    ],
+
 ];

@@ -678,7 +678,7 @@ it('57 new installations disclose optional WhatsApp processing and private defau
     (new PageSeeder)->run();
     $body = Page::where('slug', 'privacy')->value('body');
     expect($body)->toContain('gratuita e facoltativa')->toContain('Kapso e Meta/WhatsApp')
-        ->toContain('I salvataggi nascono privati.')->toContain('trenta giorni')
+        ->toContain('I salvataggi nascono privati.')->toContain('trenta giorni')->toContain('ventiquattro mesi')
         ->not->toContain('sesso, numero di telefono')->not->toContain("Non c'è un trasferimento");
 });
 
@@ -1453,4 +1453,40 @@ it('103 a number accepts codes for at most three accounts a day and the cap come
     expect(fn () => $verification->request($this->user, '+393331234567', '198.51.100.9'))
         ->toThrow(ValidationException::class, __('community.whatsapp.rate_limit'));
     Http::assertSentCount(4);
+});
+
+it('104 the retention period reaches existing privacy pages once, right after the retained fingerprint', function (): void {
+    $sentence = "L'impronta e la data della sospensione vengono eliminate automaticamente dopo ventiquattro mesi dalla sospensione.";
+    $anchor = 'il numero invece viene cancellato.';
+    $retention = "Se un account viene sospeso per abuso e poi cancellato, conserviamo soltanto l'impronta crittografica del numero WhatsApp e la data della sospensione, per impedire che lo stesso numero venga usato per una nuova iscrizione; ".$anchor;
+    $page = Page::factory()->create(['slug' => 'privacy', 'body' => "Testo scritto dalla redazione.\n\n## Community e verifica WhatsApp\n\nParagrafo della redazione.\n\n".$retention."\n\n## Altro\n\nCoda."]);
+    $other = Page::factory()->create(['slug' => 'termini', 'body' => $retention]);
+    $migration = require database_path('migrations/2026_09_19_100000_community_fingerprint_retention_period.php');
+    $migration->up();
+    $once = $page->fresh()->body;
+    $migration->up();
+    $body = $page->fresh()->body;
+    expect($body)->toBe($once)
+        ->and(substr_count($body, $sentence))->toBe(1)
+        ->and($body)->toContain($anchor.' '.$sentence."\n\n## Altro")
+        ->and($body)->toContain('Testo scritto dalla redazione.')->toContain('Paragrafo della redazione.')
+        ->and($other->fresh()->body)->toBe($retention)
+        ->and(__('community.privacy_notice'))->toContain($anchor.' '.$sentence);
+
+    // Senza la sezione community la pagina resta com'è; con la frase riscritta dalla redazione, in coda.
+    $page->update(['body' => 'Informativa senza community.']);
+    $migration->up();
+    expect($page->fresh()->body)->toBe('Informativa senza community.');
+    $page->update(['body' => "## Community e verifica WhatsApp\n\nTesto riscritto."]);
+    $migration->up();
+    expect($page->fresh()->body)->toBe("## Community e verifica WhatsApp\n\nTesto riscritto.\n\n".$sentence."\n");
+
+    $migration->down();
+    expect($page->fresh()->body)->toContain($sentence);
+
+    // Installazione nuova: la frase arriva dal seeder, e la migrazione non la duplica.
+    $page->delete();
+    (new PageSeeder)->run();
+    $migration->up();
+    expect(substr_count((string) Page::where('slug', 'privacy')->value('body'), $sentence))->toBe(1);
 });

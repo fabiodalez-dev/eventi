@@ -92,6 +92,6 @@ Se crei un profilo, conserviamo nome pubblico, nome utente, biografia, foto e ci
 
 Puoi modificare la visibilità o ritirare una pubblicazione: ritirandola si eliminano anche i relativi commenti. Le copie già viste o salvate da terzi e le copie dei motori di ricerca non sono sotto il nostro controllo. Export e cancellazione dell'account comprendono i dati social e di verifica; i registri amministrativi conservano solo gli elementi necessari alla sicurezza e alla moderazione, senza codici OTP né copie dei testi ritirati.
 
-Se un account viene sospeso per abuso e poi cancellato, conserviamo soltanto l'impronta crittografica del numero WhatsApp e la data della sospensione, per impedire che lo stesso numero venga usato per una nuova iscrizione; il numero invece viene cancellato.
+Se un account viene sospeso per abuso e poi cancellato, conserviamo soltanto l'impronta crittografica del numero WhatsApp e la data della sospensione, per impedire che lo stesso numero venga usato per una nuova iscrizione; il numero invece viene cancellato. L'impronta e la data della sospensione vengono eliminate automaticamente dopo ventiquattro mesi dalla sospensione.
 MARKDOWN,
 ];

@@ -20,5 +20,9 @@ return [
     // stesso numero: raggiunta la soglia il numero non accetta un account in più. Con 3 un
     // numero riceve i codici di al massimo tre account, ciascuno entro il proprio tetto.
     'number_foreign_daily_limit' => 3,
+    // Mesi, dalla data della sospensione, dopo i quali un account sospeso e cancellato perde
+    // anche l'impronta del numero: il bando scade e il numero torna utilizzabile. Lo dichiara
+    // l'informativa, quindi resta una costante e non una variabile d'ambiente.
+    'suspended_fingerprint_retention_months' => 24,
     'global_daily_send_limit' => (int) env('WHATSAPP_DAILY_SEND_LIMIT', 500),
 ];
