@@ -10,6 +10,7 @@ use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Exception\RequestException;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 final class KapsoClient
 {
@@ -39,11 +40,20 @@ final class KapsoClient
                     'template' => ['name' => $delivery === WhatsappDelivery::OneTap && $this->autofillAvailable() ? config('community.android_template') : config('community.template'), 'language' => ['code' => config('community.language')],
                         'components' => [
                             ['type' => 'body', 'parameters' => [['type' => 'text', 'text' => $code]]],
-                            ['type' => 'button', 'sub_type' => 'otp', 'index' => '0', 'parameters' => [['type' => 'text', 'text' => $code]]],
+                            // Il pulsante «Copia codice» dei template di autenticazione è un URL con il codice
+                            // in coda: Meta accetta solo `url` qui, e rifiuta `otp` con un 400 (19/09/2026).
+                            ['type' => 'button', 'sub_type' => 'url', 'index' => '0', 'parameters' => [['type' => 'text', 'text' => $code]]],
                         ]],
                 ]);
 
-            return $response->successful() && filled($response->json('messages.0.id')) ? KapsoOutcome::Sent : KapsoOutcome::Rejected;
+            if ($response->successful() && filled($response->json('messages.0.id'))) {
+                return KapsoOutcome::Sent;
+            }
+            // Solo codice ed esito di Meta: né destinatario, né codice, né chiave finiscono nel log.
+            Log::warning('Kapso ha rifiutato il codice WhatsApp', ['status' => $response->status(),
+                'code' => $response->json('error.code'), 'message' => mb_substr((string) $response->json('error.message'), 0, 300)]);
+
+            return KapsoOutcome::Rejected;
         } catch (ConnectionException $exception) {
             // Mai loggare l'eccezione: porta con sé chiave, destinatario e codice.
             return $this->neverLeft($exception) ? KapsoOutcome::Rejected : KapsoOutcome::Uncertain;
