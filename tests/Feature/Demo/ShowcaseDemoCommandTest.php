@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 use App\Console\Commands\InvestorDemoCommand;
 use App\Console\Commands\ShowcaseDemoCommand;
+use App\Enums\CatalogReviewStatus;
 use App\Enums\EventStatus;
-use App\Enums\VenueReviewStatus;
 use App\Enums\VenueType;
 use App\Enums\VerificationStatus;
+use App\Models\CatalogReview;
 use App\Models\Category;
 use App\Models\CommunityComment;
 use App\Models\CommunityPost;
@@ -22,9 +23,8 @@ use App\Models\ScheduledNotification;
 use App\Models\User;
 use App\Models\UserBlock;
 use App\Models\Venue;
-use App\Models\VenueReview;
 use App\Services\Notifications\DigestPlanner;
-use App\Services\Reviews\VenueReviews;
+use App\Services\Reviews\CatalogReviews;
 use Carbon\CarbonImmutable;
 use Database\Seeders\CategorySeeder;
 use Database\Seeders\EventFeatureSeeder;
@@ -58,8 +58,13 @@ function showcaseCounts(): array
         'catalog_follows' => Follow::query()->whereIn('user_id', $ids)->count(),
         'saved' => SavedEvent::query()->whereIn('user_id', $ids)->count(),
         'blocks' => UserBlock::query()->whereIn('user_id', $ids)->count(),
-        'reviews' => VenueReview::query()->whereIn('user_id', $ids)->count(),
+        'reviews' => CatalogReview::query()->whereIn('user_id', $ids)->count(),
         'notifications' => DB::table('notifications')->whereIn('notifiable_id', $ids)->where('notifiable_type', 'user')->count(),
+        'carpool_profiles' => DB::table('carpool_profiles')->whereIn('user_id', $ids)->count(),
+        'ride_offers' => DB::table('ride_offers')->whereIn('driver_id', $ids)->count(),
+        'ride_requests' => DB::table('ride_requests')->whereIn('user_id', $ids)->count(),
+        'ride_occupancies' => DB::table('ride_occupancies')->whereIn('user_id', $ids)->count(),
+        'ride_chats' => DB::table('ride_chat_preferences')->whereIn('user_id', $ids)->count(),
     ];
 }
 
@@ -123,6 +128,7 @@ it('creates the next week of events and a complete verified community', function
         'posts' => 33, // 31 sugli eventi della settimana, 2 sulle date investitori disponibili
         'post_comments' => 24, 'event_comments' => 20, 'reactions' => 17,
         'people_follows' => 63, 'blocks' => 1, 'reviews' => 6,
+        'carpool_profiles' => 18, 'ride_offers' => 13, 'ride_requests' => 27,
     ]);
 
     $people = User::query()->whereIn('id', showcaseUserIds())->with('communityProfile')->get();
@@ -144,10 +150,11 @@ it('creates the next week of events and a complete verified community', function
         ->and(EventComment::query()->whereIn('user_id', showcaseUserIds())->whereNotNull('parent_id')->count())->toBe(10);
 
     // Le recensioni di persone inventate su locali veri non si pubblicano: aspettano la redazione.
-    $reviews = VenueReview::query()->whereIn('user_id', showcaseUserIds())->get();
+    $reviews = CatalogReview::query()->whereIn('user_id', showcaseUserIds())->with('ratings')->get();
     expect($reviews)->toHaveCount(6)
-        ->and($reviews->every(fn (VenueReview $review) => $review->status === VenueReviewStatus::Pending && $review->moderated_at === null))->toBeTrue()
-        ->and(app(VenueReviews::class)->listing(Venue::query()->findOrFail($reviews->first()->venue_id), null)['count'])->toBe(0);
+        ->and($reviews->every(fn (CatalogReview $review) => $review->status === CatalogReviewStatus::Pending && ! $review->approved && $review->moderated_at === null
+            && $review->reviewable_type === 'venue' && $review->rating >= 4))->toBeTrue()
+        ->and(app(CatalogReviews::class)->listing(Venue::query()->findOrFail($reviews->first()->reviewable_id), null)['count'])->toBe(0);
 });
 
 it('never sends or plans a message for the demo people, nor to real followers of the venues', function (): void {
@@ -241,7 +248,7 @@ it('starts this week when run on a Monday, and --week pins a Monday until the ne
 
 it('keeps relations and reviews on the same venues across runs, whatever the redazione approves in between', function (): void {
     $this->artisan('demo:showcase')->assertSuccessful();
-    $reviewed = fn (): array => VenueReview::query()->whereIn('user_id', showcaseUserIds())->orderBy('user_id')->pluck('venue_id', 'user_id')->all();
+    $reviewed = fn (): array => CatalogReview::query()->whereIn('user_id', showcaseUserIds())->orderBy('user_id')->pluck('reviewable_id', 'user_id')->all();
     $followed = fn (): array => Follow::query()->whereIn('user_id', showcaseUserIds())->where('followable_type', 'venue')->orderBy('id')->pluck('followable_id')->sort()->values()->all();
     $before = ['reviews' => $reviewed(), 'follows' => $followed()];
     $eventVenues = EventOccurrence::query()->whereIn('event_id', Event::query()->where('source_ref', 'like', ShowcaseDemoCommand::PREFIX.'%')->select('id'))->pluck('venue_id')->unique()->all();
@@ -251,7 +258,7 @@ it('keeps relations and reviews on the same venues across runs, whatever the red
     foreach (VenueType::cases() as $type) {
         Venue::factory()->create(['city_id' => $this->city->id, 'type' => $type, 'status' => 'approved']);
     }
-    VenueReview::query()->whereIn('user_id', showcaseUserIds())->first()->delete();
+    CatalogReview::query()->whereIn('user_id', showcaseUserIds())->first()->delete();
     Follow::query()->whereIn('user_id', showcaseUserIds())->where('followable_type', 'venue')->first()->delete();
     $this->artisan('demo:showcase')->assertSuccessful();
 

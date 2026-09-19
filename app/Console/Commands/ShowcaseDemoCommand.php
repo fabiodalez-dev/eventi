@@ -4,13 +4,16 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Console\Commands\Showcase\ShowcaseRides;
+use App\Enums\CatalogReviewStatus;
 use App\Enums\CommunityStatus;
 use App\Enums\EventCommentStatus;
 use App\Enums\PostIntent;
 use App\Enums\ProfileVisibility;
 use App\Enums\SavedVisibility;
-use App\Enums\VenueReviewStatus;
 use App\Enums\VerificationStatus;
+use App\Models\CatalogRating;
+use App\Models\CatalogReview;
 use App\Models\Category;
 use App\Models\City;
 use App\Models\CommunityComment;
@@ -28,7 +31,6 @@ use App\Models\SavedEvent;
 use App\Models\User;
 use App\Models\UserBlock;
 use App\Models\Venue;
-use App\Models\VenueReview;
 use App\Notifications\CommunityNotification;
 use App\Services\Community\WhatsappVerification;
 use App\Support\ContentVersion;
@@ -46,8 +48,8 @@ use Illuminate\Support\Str;
 /**
  * Popola una città con una settimana dimostrativa completa: eventi della
  * settimana prossima, persone con WhatsApp verificato, profili, relazioni,
- * post, commenti, reazioni e recensioni. Serve a mostrare le funzioni nuove,
- * non a simulare traffico reale.
+ * post, commenti, reazioni, recensioni e passaggi in auto verso gli eventi.
+ * Serve a mostrare le funzioni nuove, non a simulare traffico reale.
  *
  * Stesso modello di sicurezza di `events:investor-demo`: fuori da local e
  * testing serve `--allow-production`, un lock impedisce due esecuzioni
@@ -71,11 +73,16 @@ use Illuminate\Support\Str;
  * una recensione falsa, e resta **in attesa di moderazione** — si vede nel
  * pannello, non nella scheda pubblica del locale.
  *
+ * I passaggi hanno la loro classe, `ShowcaseRides`, con lo stesso principio:
+ * righe scritte direttamente, ma con i vincoli del servizio, così la
+ * manutenzione dei passaggi le tratta come vere e non le annulla.
+ *
  * `--purge` rimuove le persone del catalogo (con tutto ciò che dipende da
- * loro) e gli eventi con il prefisso. Le chiavi esterne in cascata portano via
- * anche ciò che altri utenti hanno agganciato lì — un salvataggio su una data
- * demo, una risposta a un commento demo — e il resoconto lo conta, voce per
- * voce, invece di negarlo.
+ * loro, passaggi compresi) e gli eventi con il prefisso. Le chiavi esterne
+ * in cascata portano via anche ciò che altri utenti hanno agganciato lì — un
+ * salvataggio su una data demo, una risposta a un commento demo, una
+ * richiesta di posto a un conducente demo — e il resoconto lo conta, voce
+ * per voce, invece di negarlo.
  */
 final class ShowcaseDemoCommand extends Command
 {
@@ -83,9 +90,16 @@ final class ShowcaseDemoCommand extends Command
 
     public const EMAIL_DOMAIN = 'demo.incitta.invalid';
 
+    /**
+     * Preferenze delle persone demo: niente promemoria né riepiloghi, e ogni
+     * avviso resta in app. `delivery = database` fa chiudere a
+     * `CommunityDelivery` le righe della coda senza inviarle.
+     */
+    private const QUIET_PREFERENCES = ['reminders' => false, 'sold_out' => false, 'venue_digest' => false, 'daily_digest' => false, 'comments' => false, 'delivery' => 'database'];
+
     protected $signature = 'demo:showcase {city=padova} {--dry-run} {--allow-production} {--purge : Rimuove tutto ciò che questo comando ha creato} {--week= : Lunedì della settimana della vetrina (AAAA-MM-GG); di norma il primo lunedì da oggi compreso}';
 
-    protected $description = 'Popola la città con una settimana dimostrativa: 25 eventi, persone verificate, post, commenti, reazioni e recensioni';
+    protected $description = 'Popola la città con una settimana dimostrativa: 25 eventi, persone verificate, post, commenti, reazioni, recensioni e passaggi';
 
     /** @var array<string, array{0: int, 1: int|string}> */
     private array $report = [];
@@ -126,6 +140,11 @@ final class ShowcaseDemoCommand extends Command
                 ['Commenti agli eventi (con risposte)', array_sum(array_map(fn (array $c): int => 1 + count($c[3]), $catalog['event_comments']))],
                 ['Reazioni ai commenti', array_sum(array_map(fn (array $c): int => count($c[4]), $catalog['event_comments']))],
                 ['Recensioni dei locali (in attesa di moderazione)', count($catalog['venue_reviews'])],
+                ['Passaggi offerti (conducenti diversi)', count($catalog['rides']).' ('.count(array_unique(array_column($catalog['rides'], 0))).')'],
+                ['Richieste di passaggio (accettate, in attesa, rifiutate o ritirate)', count($catalog['ride_requests']).' ('.implode(', ', array_map(
+                    fn (string $status): int => count(array_filter($catalog['ride_requests'], fn (array $r): bool => $r[3] === $status)), ['accepted', 'pending', 'declined', 'withdrawn'])).')'],
+                ['Messaggi nelle chat dei passaggi', count($catalog['ride_messages'])],
+                ['Recensioni ai conducenti (su date investitori concluse)', min(count($catalog['ride_reviews']), app(ShowcaseRides::class)->pastDates($this->allInvestorOccurrences($city), count($catalog['ride_reviews']))->count())],
             ]);
             $this->line('Prova a vuoto: nessuna scrittura.');
 
@@ -150,7 +169,7 @@ final class ShowcaseDemoCommand extends Command
             $this->seedPostComments($catalog['post_comments'], $people, $posts);
             $this->seedEventComments($catalog['event_comments'], $people, $events);
             $this->seedVenueReviews($catalog['venue_reviews'], $people, $events);
-            $this->seedRides($city, $people, $events);
+            $this->seedRides($city, $catalog, $people, $events);
             ContentVersion::bump($city);
 
             $this->table(['Elemento', 'Creati ora', 'Totale demo'], array_map(
@@ -164,11 +183,11 @@ final class ShowcaseDemoCommand extends Command
     }
 
     /**
-     * @return array{events: list<array<string, mixed>>, people: list<array{handle: string, name: string, bio: string, visibility: string, featured: bool}>, posts: list<array{0: int, 1: int|string, 2: string, 3: string}>, post_comments: list<array{0: int, 1: int, 2: string, 3: int|null}>, event_comments: list<array{0: int, 1: int, 2: string, 3: list<array{0: int, 1: string}>, 4: list<array{0: int, 1: string}>}>, venue_reviews: list<array{0: int, 1: int, 2: int, 3: string}>}
+     * @return array{events: list<array<string, mixed>>, people: list<array{handle: string, name: string, bio: string, visibility: string, featured: bool}>, posts: list<array{0: int, 1: int|string, 2: string, 3: string}>, post_comments: list<array{0: int, 1: int, 2: string, 3: int|null}>, event_comments: list<array{0: int, 1: int, 2: string, 3: list<array{0: int, 1: string}>, 4: list<array{0: int, 1: string}>}>, venue_reviews: list<array{0: int, 1: int, 2: int, 3: string}>, rides: list<array{0: int, 1: int, 2: string, 3: string, 4: string, 5: int, 6: array<string, mixed>}>, ride_requests: list<array{0: int, 1: int, 2: int, 3: string, 4: string|null}>, ride_messages: list<array{0: int, 1: string, 2: string}>, ride_reviews: list<array{0: int, 1: int, 2: string, 3: int, 4: string}>}
      */
     public static function catalog(): array
     {
-        /** @var array{events: list<array<string, mixed>>, people: list<array{handle: string, name: string, bio: string, visibility: string, featured: bool}>, posts: list<array{0: int, 1: int|string, 2: string, 3: string}>, post_comments: list<array{0: int, 1: int, 2: string, 3: int|null}>, event_comments: list<array{0: int, 1: int, 2: string, 3: list<array{0: int, 1: string}>, 4: list<array{0: int, 1: string}>}>, venue_reviews: list<array{0: int, 1: int, 2: int, 3: string}>} $catalog */
+        /** @var array{events: list<array<string, mixed>>, people: list<array{handle: string, name: string, bio: string, visibility: string, featured: bool}>, posts: list<array{0: int, 1: int|string, 2: string, 3: string}>, post_comments: list<array{0: int, 1: int, 2: string, 3: int|null}>, event_comments: list<array{0: int, 1: int, 2: string, 3: list<array{0: int, 1: string}>, 4: list<array{0: int, 1: string}>}>, venue_reviews: list<array{0: int, 1: int, 2: int, 3: string}>, rides: list<array{0: int, 1: int, 2: string, 3: string, 4: string, 5: int, 6: array<string, mixed>}>, ride_requests: list<array{0: int, 1: int, 2: int, 3: string, 4: string|null}>, ride_messages: list<array{0: int, 1: string, 2: string}>, ride_reviews: list<array{0: int, 1: int, 2: string, 3: int, 4: string}>} $catalog */
         $catalog = require database_path('seeders/data/showcase-demo.php');
 
         return $catalog;
@@ -293,6 +312,7 @@ final class ShowcaseDemoCommand extends Command
         if ($venues->isEmpty()) {
             throw new \RuntimeException('Nessun locale approvato nella città.');
         }
+        ShowcaseRides::validate($catalog);
         foreach ($catalog['events'] as $row) {
             if (! isset($categories[$row['category']], $credits[$row['category']]) || ! is_file(database_path('seeders/investor-media/'.$credits[$row['category']]['file']))) {
                 throw new \RuntimeException('Categoria o fotografia mancante: '.$row['title']);
@@ -393,7 +413,7 @@ final class ShowcaseDemoCommand extends Command
                     'name' => $row['name'], 'first_name' => $first, 'last_name' => $last, 'email' => $email,
                     // Casuale e mai comunicata: l'account non è utilizzabile per entrare.
                     'password' => Str::random(64), 'city_id' => $city->id, 'timezone' => $city->timezone, 'locale' => 'it',
-                    'notification_preferences' => ['reminders' => false, 'sold_out' => false, 'venue_digest' => false, 'daily_digest' => false, 'comments' => false],
+                    'notification_preferences' => self::QUIET_PREFERENCES,
                 ]);
                 $phone = self::phone($index);
                 $verifiedAt = CarbonImmutable::now()->subDays(20 - $index % 15);
@@ -402,6 +422,10 @@ final class ShowcaseDemoCommand extends Command
                     'whatsapp_verified_at' => $verifiedAt, 'whatsapp_prompted_at' => $verifiedAt, 'last_active_at' => now()->subHours($index),
                 ])->save();
                 $created++;
+            }
+            // Anche gli account creati da una versione precedente: solo avvisi in app, mai push né email.
+            if (array_intersect_key($user->notification_preferences ?? [], self::QUIET_PREFERENCES) !== self::QUIET_PREFERENCES) {
+                $user->forceFill(['notification_preferences' => [...($user->notification_preferences ?? []), ...self::QUIET_PREFERENCES]])->save();
             }
             if (! $user->communityProfile()->exists()) {
                 $profile = new CommunityProfile(['handle' => $row['handle'], 'display_name' => $row['name'], 'bio' => $row['bio'].' Profilo dimostrativo.',
@@ -673,36 +697,53 @@ final class ShowcaseDemoCommand extends Command
         foreach ($rows as [$person, $eventIndex, $rating, $body]) {
             $user = $people[$person] ?? null;
             $venueId = isset($events[$eventIndex]) ? (int) $events[$eventIndex]->venue_id : null;
-            if ($user === null || $venueId === null || VenueReview::query()->where('venue_id', $venueId)->where('user_id', $user->id)->exists()) {
+            if ($user === null || $venueId === null || CatalogReview::query()->where('reviewable_type', 'venue')->where('reviewable_id', $venueId)->where('user_id', $user->id)->exists()) {
                 continue;
             }
-            (new VenueReview)->forceFill(['venue_id' => $venueId, 'user_id' => $user->id, 'rating' => $rating, 'body' => $body,
-                'status' => VenueReviewStatus::Pending, 'revision' => 1])->save();
+            // Come `CatalogReviews::submit()`: la recensione non approvata e il voto nella tabella dei voti.
+            DB::transaction(function () use ($venueId, $user, $rating, $body): void {
+                $review = new CatalogReview;
+                $review->forceFill(['reviewable_type' => 'venue', 'reviewable_id' => $venueId, 'user_id' => $user->id, 'review' => $body,
+                    'department' => 'default', 'recommend' => false, 'approved' => false, 'status' => CatalogReviewStatus::Pending, 'revision' => 1])->save();
+                (new CatalogRating)->forceFill(['review_id' => $review->id, 'key' => 'overall', 'value' => $rating])->save();
+            });
             $created++;
         }
-        $this->report['Recensioni dei locali (in attesa di moderazione)'] = [$created, VenueReview::query()->whereIn('user_id', array_map(fn (User $u): int => $u->id, $people))->count()];
+        $this->report['Recensioni dei locali (in attesa di moderazione)'] = [$created, CatalogReview::query()->whereIn('user_id', array_map(fn (User $u): int => $u->id, $people))->count()];
     }
 
     /**
-     * Punto di estensione per il car pooling (PR #94, non ancora su main).
+     * I passaggi: offerte verso gli eventi della settimana, richieste, chat e
+     * recensioni di viaggi conclusi (vedi `ShowcaseRides`).
      *
-     * Quando tabelle e modelli dei passaggi arriveranno, qui si creano offerte
-     * di passaggio verso gli eventi della settimana ($events), richieste e
-     * recensioni fra le persone demo ($people). Le righe dovranno dipendere
-     * dagli utenti con chiavi esterne in cascata, così `--purge` le porta via
-     * senza modifiche; altrimenti vanno aggiunte a `purge()`.
-     *
+     * @param  array{rides: list<array{0: int, 1: int, 2: string, 3: string, 4: string, 5: int, 6: array<string, mixed>}>, ride_requests: list<array{0: int, 1: int, 2: int, 3: string, 4: string|null}>, ride_messages: list<array{0: int, 1: string, 2: string}>, ride_reviews: list<array{0: int, 1: int, 2: string, 3: int, 4: string}>}  $catalog
      * @param  array<int, User>  $people
      * @param  array<int, EventOccurrence>  $events
      */
-    private function seedRides(City $city, array $people, array $events): void
+    private function seedRides(City $city, array $catalog, array $people, array $events): void
     {
-        if (! Schema::hasTable('rides') || ! class_exists('App\\Models\\Ride')) {
+        if (! Schema::hasTable('ride_offers')) {
             $this->report['Passaggi (car pooling)'] = [0, 'non disponibile'];
 
             return;
         }
-        $this->report['Passaggi (car pooling)'] = [0, 'da implementare'];
+        $rides = app(ShowcaseRides::class);
+        $past = $rides->pastDates($this->allInvestorOccurrences($city), count($catalog['ride_reviews']));
+        foreach ($rides->seed($city, $catalog, $people, $events, $past) as $label => $row) {
+            $this->report[$label] = $row;
+        }
+    }
+
+    /**
+     * Tutte le date del catalogo investitori, passate comprese: le recensioni
+     * dei passaggi vogliono viaggi già fatti.
+     *
+     * @return Builder<EventOccurrence>
+     */
+    private function allInvestorOccurrences(City $city): Builder
+    {
+        return EventOccurrence::query()
+            ->whereIn('event_id', Event::query()->where('city_id', $city->id)->where('status', 'published')->where('source_ref', 'like', InvestorDemoCommand::PREFIX.'%')->select('id'));
     }
 
     /**
@@ -711,10 +752,16 @@ final class ShowcaseDemoCommand extends Command
      */
     private function notify(User $recipient, string $kind, string $url, ?int $actorId = null): int
     {
+        $id = (string) Str::uuid();
         $recipient->notifications()->create([
-            'id' => (string) Str::uuid(), 'type' => CommunityNotification::class,
+            'id' => $id, 'type' => CommunityNotification::class,
             'data' => (new CommunityNotification($kind, $url, $actorId))->toArray($recipient), 'read_at' => null,
         ]);
+        // L'avviso in app entra anche nella coda push (`UnifiedNotifications::archived`): si chiude
+        // subito come consegnato, così `carpool:maintain` non lo prende mai in carico.
+        if (Schema::hasTable('community_delivery_outbox')) {
+            DB::table('community_delivery_outbox')->where('notification_id', $id)->whereNull('delivered_at')->update(['delivered_at' => now(), 'updated_at' => now()]);
+        }
 
         return 1;
     }
@@ -725,7 +772,8 @@ final class ShowcaseDemoCommand extends Command
         $users = User::withTrashed()->whereIn('email', self::emails($catalog))->get();
         $events = Event::withTrashed()->where('city_id', $city->id)->where('is_demo', true)->where('source_ref', 'like', self::PREFIX.'%')->get();
         $ids = $users->pluck('id')->map(fn ($id): int => (int) $id)->all();
-        $others = $this->rowsOfOthers($ids, $events->pluck('id')->map(fn ($id): int => (int) $id)->all());
+        $eventIds = $events->pluck('id')->map(fn ($id): int => (int) $id)->all();
+        $others = $this->rowsOfOthers($ids, $eventIds);
         $this->info(sprintf('Da rimuovere: %d persone demo e %d eventi della vetrina.', $users->count(), $events->count()));
         $this->line($this->describeOthers($others));
         if ($this->option('dry-run')) {
@@ -734,9 +782,13 @@ final class ShowcaseDemoCommand extends Command
             return self::SUCCESS;
         }
 
-        return Cache::lock('showcase-demo:'.$city->id, 3600)->block(5, function () use ($users, $events, $city, $ids, $others): int {
+        return Cache::lock('showcase-demo:'.$city->id, 3600)->block(5, function () use ($users, $events, $city, $ids, $eventIds, $others): int {
             $morph = (new User)->getMorphClass();
-            DB::transaction(function () use ($ids, $morph, $users): void {
+            DB::transaction(function () use ($ids, $eventIds, $morph, $users): void {
+                // Prima i passaggi: le loro chiavi esterne non vanno in cascata e fermerebbero persone ed eventi.
+                if (Schema::hasTable('ride_offers')) {
+                    app(ShowcaseRides::class)->purge($ids, $eventIds);
+                }
                 // Le chiavi polimorfiche non hanno cascata: le righe che puntano alle persone demo si tolgono a mano.
                 $subjects = [
                     'community_post' => CommunityPost::query()->whereIn('user_id', $ids)->pluck('id')->all(),
@@ -750,7 +802,7 @@ final class ShowcaseDemoCommand extends Command
                 }
                 DB::table('followables')->where('followable_type', $morph)->whereIn('followable_id', $ids)->delete();
                 DB::table('notifications')->where('notifiable_type', $morph)->whereIn('notifiable_id', $ids)->delete();
-                // Il resto (profili, post, commenti, relazioni, blocchi, salvataggi, reazioni, recensioni) va in cascata.
+                // Il resto (profili, post, commenti, relazioni, blocchi, salvataggi, reazioni, recensioni dei locali) va in cascata.
                 $users->each(fn (User $user) => $user->forceDelete());
             });
             // Uno per uno: così la libreria media cancella anche i file delle locandine.
@@ -802,6 +854,7 @@ final class ShowcaseDemoCommand extends Command
             'reazioni' => EventCommentReaction::query()->whereNotIn('user_id', $userIds)->whereIn('event_comment_id', $demoEventComments)->count(),
             'relazioni' => DB::table('followables')->where('followable_type', (new User)->getMorphClass())->whereIn('followable_id', $userIds)->whereNotIn('user_id', $userIds)->count(),
             'segnalazioni' => $reports->count(),
+            ...(Schema::hasTable('ride_offers') ? app(ShowcaseRides::class)->others($userIds, $eventIds) : []),
         ]);
     }
 

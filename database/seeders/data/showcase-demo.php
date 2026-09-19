@@ -225,4 +225,97 @@ return [
         [2, 6, 5, 'Spazio pensato anche per le famiglie: fasciatoio e posto per i passeggini.'],
         [14, 10, 4, 'Serate ben organizzate, prezzi onesti.'],
     ],
+
+    /*
+     * Passaggi offerti verso gli eventi della settimana.
+     * [conducente, evento, tratta, zona di partenza, ora locale, posti, dettagli].
+     * La tratta è `outbound` (andata) o `return` (ritorno); un ritorno con
+     * un'ora precedente all'inizio dell'evento vale per il giorno dopo (03:15
+     * dopo una serata del venerdì è sabato notte). Dettagli facoltativi:
+     * note, stops, accessibility, accessibility_note. Ogni conducente ha una
+     * sola offerta per data e tratta, come impone il servizio.
+     */
+    'rides' => [
+        [1, 2, 'outbound', 'Arcella, piazzale Azzurri d’Italia', '20:50', 3, ['note' => 'Porto il basso: nel bagagliaio resta posto per un altro strumento piccolo.']],
+        [1, 2, 'return', 'Arcella, piazzale Azzurri d’Italia', '23:45', 3, ['note' => 'Riparto a fine jam, verso mezzanotte meno un quarto.']],
+        [7, 12, 'outbound', 'Stazione di Padova, lato via Tommaseo', '21:40', 4, ['note' => 'Suono il secondo set: arrivo presto e resto fino alla fine.', 'stops' => ['Piazzale Stanga']]],
+        [7, 12, 'return', 'Stazione di Padova, lato via Tommaseo', '03:15', 4, ['note' => 'Ritorno dopo la chiusura, lungo la strada per l’Arcella.', 'stops' => ['Arcella', 'Pontevigodarzere']]],
+        [5, 9, 'outbound', 'Guizza, capolinea del tram', '19:00', 3, ['note' => 'Ho prenotato alla stessa cena: chi viene anche lui è il benvenuto.']],
+        [5, 21, 'outbound', 'Guizza, capolinea del tram', '10:30', 3, ['note' => 'Mercato e degustazione, poi pranzo: rientro nel primo pomeriggio.']],
+        [13, 7, 'outbound', 'Sacra Famiglia, sagrato della chiesa', '20:10', 3, ['note' => 'Guido piano e parto puntuale.', 'accessibility' => 'folding_chair', 'accessibility_note' => 'Nel bagagliaio entra una sedia a rotelle pieghevole.']],
+        [13, 22, 'outbound', 'Sacra Famiglia, sagrato della chiesa', '16:20', 3, ['accessibility' => 'folding_chair', 'accessibility_note' => 'Nel bagagliaio entra una sedia a rotelle pieghevole.']],
+        [13, 22, 'return', 'Sacra Famiglia, sagrato della chiesa', '19:15', 3, []],
+        [2, 4, 'outbound', 'Mandria, via Romana Aponense', '20:20', 3, ['note' => 'Posso passare dal Bassanello, basta dirmelo.', 'stops' => ['Bassanello']]],
+        [2, 13, 'outbound', 'Mandria, via Romana Aponense', '20:15', 3, []],
+        [12, 18, 'outbound', 'Chiesanuova, piazza della chiesa', '20:20', 3, ['note' => 'Ho il banchetto della webzine da montare: parto un po’ prima.']],
+        [12, 18, 'return', 'Chiesanuova, piazza della chiesa', '00:30', 3, []],
+    ],
+
+    /*
+     * Richieste di posto: [passaggio, persona, posti, stato, nota o null].
+     * Lo stato è accepted, pending, declined o withdrawn. I posti accettati
+     * non superano mai quelli offerti e ognuno lascia almeno un posto libero,
+     * così tutte le offerte restano cercabili. Chi chiede più di un posto
+     * dichiara maggiorenni i compagni di viaggio, come nel servizio.
+     */
+    'ride_requests' => [
+        [0, 12, 1, 'accepted', null],
+        [0, 3, 1, 'accepted', 'Se serve porto io l’amplificatore piccolo.'],
+        [0, 17, 1, 'pending', 'Prima volta alla jam: vengo solo ad ascoltare.'],
+        [1, 12, 1, 'accepted', null],
+        [1, 17, 1, 'pending', null],
+        [2, 1, 2, 'accepted', 'Siamo in due, con mio cugino.'],
+        [2, 0, 1, 'accepted', null],
+        [2, 14, 1, 'declined', null],
+        [3, 1, 2, 'accepted', null],
+        [3, 0, 1, 'pending', null],
+        [4, 14, 1, 'accepted', 'Ho la prenotazione per le 19:30 anch’io.'],
+        [4, 11, 1, 'withdrawn', null],
+        [5, 6, 1, 'accepted', null],
+        [5, 10, 1, 'pending', 'Se possibile scendo prima, all’ingresso del mercato.'],
+        [6, 1, 1, 'accepted', null],
+        [6, 12, 1, 'accepted', null],
+        [7, 6, 1, 'accepted', null],
+        [7, 9, 1, 'withdrawn', null],
+        [8, 6, 1, 'pending', null],
+        [9, 4, 1, 'accepted', null],
+        [9, 6, 1, 'accepted', null],
+        [10, 4, 2, 'accepted', 'Vengo con un’amica.'],
+        [10, 6, 1, 'pending', null],
+        [11, 1, 1, 'accepted', null],
+        [11, 17, 1, 'pending', null],
+        [12, 1, 1, 'accepted', null],
+        [12, 16, 1, 'declined', null],
+    ],
+
+    /*
+     * Messaggi nella chat di un passaggio accettato: [richiesta, chi scrive, testo].
+     * Chi scrive è `driver` o `passenger`.
+     */
+    'ride_messages' => [
+        [0, 'passenger', 'Ciao Marco! Ci troviamo al piazzale alle 20:50?'],
+        [0, 'driver', 'Sì, sono con una Panda grigia davanti all’edicola. A dopo!'],
+        [5, 'passenger', 'Ciao Andrea, siamo in due: va bene se portiamo una custodia di chitarra?'],
+        [5, 'driver', 'Nessun problema, nel bagagliaio ci sono solo le borse dei dischi.'],
+        [14, 'passenger', 'Buongiorno Paolo, se piove il passaggio vale lo stesso?'],
+        [14, 'driver', 'Certo: il concerto si sposta nella sala interna. Alle 20:10 davanti alla chiesa.'],
+        [19, 'driver', 'Ciao Sara, passo dal Bassanello alle 20:30: ti va bene lì?'],
+        [19, 'passenger', 'Perfetto, ti aspetto alla fermata del tram. Grazie!'],
+    ],
+
+    /*
+     * Viaggi già conclusi con la recensione del passeggero al conducente:
+     * [conducente, passeggero, zona di partenza, voto, testo]. Il servizio
+     * accetta recensioni solo dopo la partenza, quindi ognuno si appoggia a
+     * una data **già passata** del catalogo investitori, dalla più vecchia in
+     * avanti; senza date passate le recensioni si saltano e il resoconto lo dice.
+     */
+    'ride_reviews' => [
+        [5, 14, 'Guizza, capolinea del tram', 5, 'Puntuale, macchina pulita e chiacchiere piacevoli. La benzina l’abbiamo divisa senza problemi.'],
+        [7, 0, 'Stazione di Padova, lato via Tommaseo', 5, 'Andrea mi ha presa in stazione e riportata a casa dopo il concerto. Gentilissimo.'],
+        [13, 6, 'Sacra Famiglia, sagrato della chiesa', 5, 'Guida tranquilla e tante storie sulla città lungo la strada.'],
+        [1, 12, 'Arcella, piazzale Azzurri d’Italia', 4, 'Tutto bene: dieci minuti di ritardo, avvisati per tempo.'],
+        [2, 4, 'Mandria, via Romana Aponense', 5, 'Precisa e cordiale, si parte all’ora detta.'],
+        [12, 3, 'Chiesanuova, piazza della chiesa', 4, 'Viaggio piacevole e musica scelta bene.'],
+    ],
 ];
