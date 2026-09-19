@@ -5,6 +5,8 @@
 @if(count($offer['stops']))<ol class="list-inside list-decimal space-y-2">@foreach($offer['stops'] as $stop)<li>{{ $stop }}</li>@endforeach</ol>@endif</div>
 <div>
 @if(!$access['eligible']) @include('carpool.partials.gate')
+@elseif($offer['demo'] && !$offer['is_own'])
+<p class="border border-line p-5 text-sm" role="note"><span class="block font-semibold">{{ __('carpool.demo_label') }}</span>{{ __('carpool.demo_notice') }}</p>
 @elseif($offer['can_request'] && !count($requests))
 <form method="post" action="{{ route('carpool.action', 'request') }}" class="space-y-5" x-data="{ seats: 1 }">@include('carpool.partials.key')<input type="hidden" name="offer_id" value="{{ $offer['id'] }}"><input type="hidden" name="revision" value="{{ $offer['revision'] }}">
 <label class="block space-y-2"><span class="font-semibold">{{ __('carpool.seats') }}</span><input required type="number" name="seats" min="1" max="{{ $offer['available'] }}" value="1" x-model="seats" class="min-h-12 w-full border border-line bg-canvas px-4"></label><p class="text-sm text-ink-muted">{{ __('carpool.group_help') }}</p>

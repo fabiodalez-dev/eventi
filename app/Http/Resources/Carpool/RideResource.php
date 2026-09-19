@@ -23,6 +23,8 @@ final class RideResource
         $date = $offer->occurrence;
         $available = $offer->getAttribute('occupied_seats') !== null ? max(0, $offer->capacity - (int) $offer->getAttribute('occupied_seats')) : app(CarpoolService::class)->available($offer);
         $own = $viewer->id === $offer->driver_id;
+        // Il passaggio dimostrativo si mostra come gli altri, senza l'azione di richiesta: l'app legge `demo`.
+        $demo = $offer->isDemo();
 
         return ['id' => $offer->id, 'occurrence_id' => $offer->occurrence_id, 'is_own' => $own,
             'event_title' => $offer->snapshot['title'], 'event_url' => $date?->event ? route('events.occurrence', ['slug' => $date->event->slug, 'occurrence' => $date->url_number]) : null,
@@ -38,7 +40,8 @@ final class RideResource
             'status' => $offer->status->value, 'status_label' => $offer->status->label(), 'note' => $offer->note,
             'accessibility' => $offer->accessibility->value, 'accessibility_label' => $offer->accessibility->label(),
             'accessibility_note' => $offer->accessibility_note, 'stops' => $offer->stops ?? [],
-            'can_request' => ! $own && $offer->status === RideStatus::Open && $available > 0 && app(CarpoolQuery::class)->operational($offer),
+            'demo' => $demo,
+            'can_request' => ! $own && ! $demo && $offer->status === RideStatus::Open && $available > 0 && app(CarpoolQuery::class)->operational($offer),
             'url' => route('carpool.offer', $offer), 'map_url' => 'https://www.google.com/maps/search/?api=1&query='.rawurlencode($offer->zone)];
     }
 

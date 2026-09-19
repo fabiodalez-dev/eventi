@@ -423,8 +423,9 @@ final class ShowcaseRides
 
     /**
      * Le righe di **altri** utenti che `purge()` porta via: passaggi offerti
-     * e ricerche sulle date della vetrina, richieste di posto ai conducenti
-     * demo, segnalazioni su quei passaggi.
+     * e ricerche sulle date della vetrina, richieste di posto, le chat di quei
+     * viaggi con i messaggi scritti da loro, i feedback privati, le
+     * segnalazioni e i messaggi scambiati con l'assistenza su quei casi.
      *
      * @param  list<int>  $userIds
      * @param  list<int>  $eventIds
@@ -435,13 +436,54 @@ final class ShowcaseRides
         $dates = $this->dates($eventIds);
         $offers = $this->offers($userIds, $dates);
         $requests = $this->requests($userIds, $offers);
+        $conversations = RideConversation::query()->whereIn('ride_request_id', $requests)->pluck('conversation_id')->all();
+        $cases = $this->cases($userIds, $offers, $requests)->pluck('id')->all();
+        $morph = (new User)->getMorphClass();
+        // Le partecipazioni delle persone vere a quelle chat: dicono quali conversazioni e quali messaggi sono loro.
+        $participations = DB::table('chat_participation')->whereIn('conversation_id', $conversations)
+            ->where('messageable_type', $morph)->whereNotIn('messageable_id', $userIds);
 
         return [
             'passaggi offerti' => RideOffer::query()->whereIn('id', $offers)->whereNotIn('driver_id', $userIds)->count(),
             'richieste di passaggio' => RideRequest::query()->whereIn('id', $requests)->whereNotIn('user_id', $userIds)->count(),
             'ricerche di passaggio' => RideSearch::query()->whereIn('occurrence_id', $dates)->whereNotIn('user_id', $userIds)->count(),
+            'chat dei passaggi' => (clone $participations)->distinct()->count('conversation_id'),
+            'messaggi in chat' => DB::table('chat_messages')->whereIn('participation_id', (clone $participations)->select('id'))->count(),
+            'feedback sui passaggi' => DB::table('ride_feedback')->whereIn('ride_request_id', $requests)->whereNotIn('user_id', $userIds)->count(),
             'segnalazioni sui passaggi' => $this->cases($userIds, $offers, $requests)->whereNotIn('reporter_id', $userIds)->count(),
+            'messaggi delle segnalazioni' => DB::table('carpool_case_messages')->where(fn ($q) => $q->whereIn('carpool_case_id', $cases)->orWhereIn('recipient_id', $userIds))
+                ->whereNotIn('author_id', $userIds)->count(),
         ];
+    }
+
+    /**
+     * Ciò che di vivo hanno le persone vere sulle date della vetrina: passaggi
+     * che devono ancora partire e posti già accettati su viaggi futuri. Un
+     * `--purge` li cancellerebbe in silenzio, e chi li aspetta resterebbe a
+     * piedi: il comando si ferma e li elenca, a meno di `--force-real`.
+     *
+     * @param  list<int>  $userIds
+     * @param  list<int>  $eventIds
+     * @return list<string>
+     */
+    public function liveRowsOfOthers(array $userIds, array $eventIds): array
+    {
+        $offers = $this->offers($userIds, $this->dates($eventIds));
+        $now = CarbonImmutable::now();
+        $live = [RideStatus::Draft, RideStatus::Open, RideStatus::Closed];
+        $lines = [];
+        foreach (RideOffer::query()->whereIn('id', $offers)->whereNotIn('driver_id', $userIds)->whereIn('status', $live)
+            ->where('departure_at', '>', $now)->with(['driver', 'occurrence.event.city'])->orderBy('departure_at')->orderBy('id')->get() as $offer) {
+            $lines[] = sprintf('passaggio #%d di %s (utente #%d), %s, partenza %s, %s', $offer->id, $offer->driver->name ?? '?', $offer->driver_id,
+                $offer->leg->label(), $this->local($offer), $offer->status->label());
+        }
+        foreach (RideRequest::query()->whereIn('ride_offer_id', $offers)->whereNotIn('user_id', $userIds)->where('status', RideRequestStatus::Accepted)
+            ->whereHas('offer', fn ($q) => $q->where('departure_at', '>', $now))->with(['user', 'offer.occurrence.event.city'])->orderBy('id')->get() as $request) {
+            $lines[] = sprintf('richiesta accettata #%d di %s (utente #%d), %d posti sul passaggio #%d, partenza %s', $request->id, $request->user->name ?? '?',
+                $request->user_id, $request->seats, $request->ride_offer_id, $this->local($request->offer));
+        }
+
+        return $lines;
     }
 
     /**
@@ -536,6 +578,12 @@ final class ShowcaseRides
         }
 
         return $departure->utc();
+    }
+
+    /** La partenza all'ora della città dell'evento, come la vede chi guida. */
+    private function local(RideOffer $offer): string
+    {
+        return $offer->departure_at->setTimezone($offer->occurrence->event->city->timezone ?? config('app.timezone'))->format('d/m/Y H:i');
     }
 
     private function occupied(User $user, EventOccurrence $date, RideLeg $leg): bool

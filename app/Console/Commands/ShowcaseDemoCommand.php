@@ -82,7 +82,10 @@ use Illuminate\Support\Str;
  * in cascata portano via anche ciò che altri utenti hanno agganciato lì — un
  * salvataggio su una data demo, una risposta a un commento demo, una
  * richiesta di posto a un conducente demo — e il resoconto lo conta, voce
- * per voce, invece di negarlo.
+ * per voce, invece di negarlo. Se però una persona vera ha un passaggio
+ * ancora da fare su una data della vetrina, offerto o con un posto
+ * accettato, `--purge` si ferma e lo elenca: cancellarlo lascerebbe
+ * qualcuno a piedi. Solo `--force-real` lo porta via lo stesso.
  */
 final class ShowcaseDemoCommand extends Command
 {
@@ -97,7 +100,7 @@ final class ShowcaseDemoCommand extends Command
      */
     private const QUIET_PREFERENCES = ['reminders' => false, 'sold_out' => false, 'venue_digest' => false, 'daily_digest' => false, 'comments' => false, 'delivery' => 'database'];
 
-    protected $signature = 'demo:showcase {city=padova} {--dry-run} {--allow-production} {--purge : Rimuove tutto ciò che questo comando ha creato} {--week= : Lunedì della settimana della vetrina (AAAA-MM-GG); di norma il primo lunedì da oggi compreso}';
+    protected $signature = 'demo:showcase {city=padova} {--dry-run} {--allow-production} {--purge : Rimuove tutto ciò che questo comando ha creato} {--force-real : Con --purge, rimuove anche i passaggi futuri e i posti accettati delle persone vere sulle date della vetrina} {--week= : Lunedì della settimana della vetrina (AAAA-MM-GG); di norma il primo lunedì da oggi compreso}';
 
     protected $description = 'Popola la città con una settimana dimostrativa: 25 eventi, persone verificate, post, commenti, reazioni, recensioni e passaggi';
 
@@ -776,6 +779,19 @@ final class ShowcaseDemoCommand extends Command
         $others = $this->rowsOfOthers($ids, $eventIds);
         $this->info(sprintf('Da rimuovere: %d persone demo e %d eventi della vetrina.', $users->count(), $events->count()));
         $this->line($this->describeOthers($others));
+        $live = Schema::hasTable('ride_offers') ? app(ShowcaseRides::class)->liveRowsOfOthers($ids, $eventIds) : [];
+        if ($live !== []) {
+            $this->warn('Sulle date della vetrina ci sono passaggi di persone vere ancora da fare:');
+            foreach ($live as $line) {
+                $this->line('  - '.$line);
+            }
+            if (! $this->option('force-real') && ! $this->option('dry-run')) {
+                $this->error('Rimozione annullata: nessuna scrittura. Per cancellarli comunque serve --force-real.');
+
+                return self::FAILURE;
+            }
+            $this->warn($this->option('force-real') ? 'Con --force-real verranno cancellati anche questi.' : 'Senza --force-real la rimozione verrebbe rifiutata.');
+        }
         if ($this->option('dry-run')) {
             $this->line('Prova a vuoto: nessuna scrittura.');
 

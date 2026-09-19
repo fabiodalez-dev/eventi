@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 use App\Console\Commands\InvestorDemoCommand;
 use App\Console\Commands\ShowcaseDemoCommand;
+use App\Enums\CarpoolCaseStatus;
 use App\Enums\EventStatus;
 use App\Enums\RideRequestStatus;
 use App\Enums\RideStatus;
 use App\Enums\VenueType;
+use App\Models\CarpoolCase;
 use App\Models\Category;
 use App\Models\Event;
 use App\Models\EventOccurrence;
@@ -15,6 +17,7 @@ use App\Models\RideConversation;
 use App\Models\RideOffer;
 use App\Models\RideRequest;
 use App\Models\RideReview;
+use App\Models\RideSearch;
 use App\Models\User;
 use App\Models\Venue;
 use App\Services\Carpool\CarpoolAccess;
@@ -29,6 +32,9 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
+use Laravel\Sanctum\Sanctum;
+use Musonza\Chat\Models\Conversation;
+use Musonza\Chat\Models\Message;
 
 /** @return list<int> */
 function showcaseRideUserIds(): array
@@ -212,24 +218,95 @@ it('is idempotent across runs and leaves a cancelled ride alone', function (): v
     expect($count())->toBe($before);
 });
 
+it('shows demo rides to real people but refuses their seat requests, without writing anything', function (): void {
+    $this->artisan('demo:showcase')->assertSuccessful();
+    $real = carpoolPerson();
+    $offer = RideOffer::query()->where('zone', 'Guizza, capolinea del tram')->orderBy('id')->firstOrFail();
+    $count = fn (): array => [RideRequest::query()->count(), DB::table('ride_occupancies')->count(), DB::table('community_delivery_outbox')->count(),
+        DB::table('notifications')->count(), DB::table('carpool_audits')->where('actor_id', $real->id)->count()];
+    $before = $count();
+
+    cpAction($this, $real, 'request', ['offer_id' => $offer->id, 'revision' => $offer->revision, 'seats' => 1])
+        ->assertStatus(409)->assertSee('passaggio dimostrativo', false);
+    expect($count())->toBe($before)
+        ->and(RideRequest::query()->where('user_id', $real->id)->exists())->toBeFalse();
+
+    // Resta visibile: nella query della pagina dei passaggi, nell'elenco della data e nella sua scheda.
+    expect(app(RideDiscovery::class)->offers($real, $offer->occurrence, [])->pluck('id')->all())->toContain($offer->id);
+    $this->actingAs($real)->get(route('carpool.dates', $offer->occurrence_id))->assertOk()
+        ->assertSee('Guizza, capolinea del tram', false)->assertSee('Passaggio dimostrativo')->assertSee('Guarda il passaggio');
+    $this->actingAs($real)->get(route('carpool.offer', $offer))->assertOk()
+        ->assertSee('non si possono richiedere posti', false)->assertDontSee(route('carpool.action', 'request'), false);
+
+    // L'app riceve `demo` e nessuna azione di richiesta.
+    Sanctum::actingAs($real->fresh());
+    $this->getJson('/api/v1/carpool/offers/'.$offer->id)->assertOk()
+        ->assertJsonPath('data.offer.demo', true)->assertJsonPath('data.offer.can_request', false);
+    $listed = collect($this->getJson('/api/v1/carpool/occurrences/'.$offer->occurrence_id)->assertOk()->json('data.offers'));
+    expect($listed->pluck('id')->all())->toContain($offer->id)
+        ->and($listed->every(fn (array $row) => $row['demo'] === true && $row['can_request'] === false))->toBeTrue();
+});
+
+it('never matches a real ride search with the demo rides, so no alert reaches a real person', function (): void {
+    $this->artisan('demo:showcase')->assertSuccessful();
+    $real = carpoolPerson();
+    $offer = RideOffer::query()->where('zone', 'Guizza, capolinea del tram')->orderBy('id')->firstOrFail();
+    $window = fn (int $minutes): string => $offer->departure_at->addMinutes($minutes)->utc()->format('Y-m-d\TH:i:s\Z');
+
+    cpDiscovery($this, $real, 'search', ['occurrence_id' => $offer->occurrence_id, 'leg' => $offer->leg->value, 'seats' => 1, 'accessibility' => 'not_specified',
+        'earliest_at' => $window(-5), 'latest_at' => $window(5), 'is_public' => true, 'alerts_enabled' => true])->assertOk();
+    $search = RideSearch::query()->where('user_id', $real->id)->firstOrFail();
+    expect(app(RideDiscovery::class)->matches($search, $offer))->toBeFalse();
+
+    $this->artisan('carpool:maintain')->assertSuccessful();
+    expect(DB::table('community_delivery_outbox')->where('user_id', $real->id)->count())->toBe(0)
+        ->and(DB::table('community_delivery_outbox')->where('dedupe_key', 'like', 'match:%')->count())->toBe(0)
+        ->and(DB::table('notifications')->where('notifiable_id', $real->id)->count())->toBe(0);
+});
+
 it('purges every ride and says which rows of real people went with them', function (): void {
     $investor = showcaseInvestorDate('0200', '2026-09-22 18:00');
     $this->artisan('demo:showcase')->assertSuccessful();
     $real = carpoolPerson();
+    $passenger = carpoolPerson();
     $offer = RideOffer::query()->where('zone', 'Guizza, capolinea del tram')->orderBy('id')->firstOrFail();
 
-    // Una persona vera chiede un posto a un conducente demo e offre un passaggio a un evento della vetrina.
-    cpAction($this, $real, 'request', ['offer_id' => $offer->id, 'revision' => $offer->revision, 'seats' => 1])->assertOk();
+    // Una persona vera offre un passaggio a un evento della vetrina, e un'altra ha già avuto una richiesta
+    // sul suo passaggio, ora chiusa: righe storiche, non viaggi da fare.
     cpAction($this, $real, 'offer', ['occurrence_id' => $offer->occurrence_id, 'leg' => 'return', 'zone' => 'Portello', 'departure_at' => '2026-09-24T22:30',
         'capacity' => 2, 'accessibility' => 'not_specified', 'driver_declaration' => true])->assertOk();
+    $own = RideOffer::query()->where('driver_id', $real->id)->firstOrFail();
     // Il suo passaggio verso un evento che non è della vetrina resta dov'è.
     cpAction($this, $real, 'offer', ['occurrence_id' => $investor->id, 'leg' => 'outbound', 'zone' => 'Portello', 'departure_at' => '2026-09-22T17:30',
         'capacity' => 2, 'accessibility' => 'not_specified', 'driver_declaration' => true])->assertOk();
+    $request = RideRequest::query()->create(['ride_offer_id' => $own->id, 'user_id' => $passenger->id, 'seats' => 1, 'offer_revision' => 1,
+        'status' => RideRequestStatus::Withdrawn, 'closed_at' => now(), 'close_reason' => 'passenger_withdrew']);
+    DB::table('ride_feedback')->insert(['ride_request_id' => $request->id, 'user_id' => $passenger->id, 'kind' => 'positive', 'created_at' => now(), 'updated_at' => now()]);
+    // Una chat con un messaggio della persona vera e un caso con la risposta dell'assistenza.
+    $conversation = Conversation::query()->create(['direct_message' => false, 'data' => ['purpose' => 'event_ride']]);
+    $real->joinConversation($conversation);
+    $passenger->joinConversation($conversation);
+    RideConversation::query()->create(['ride_request_id' => $request->id, 'conversation_id' => $conversation->id]);
+    $participation = DB::table('chat_participation')->where('conversation_id', $conversation->id)->where('messageable_id', $passenger->id)->value('id');
+    (new Message)->forceFill(['body' => 'Ciao!', 'conversation_id' => $conversation->id, 'participation_id' => $participation, 'type' => 'text'])->save();
+    $case = CarpoolCase::query()->create(['reporter_id' => $passenger->id, 'ride_offer_id' => $own->id, 'reason' => 'safety', 'body' => 'Una domanda sul viaggio.', 'status' => CarpoolCaseStatus::Open]);
+    $case->messages()->create(['author_id' => $passenger->id, 'body' => 'Aggiungo un dettaglio.', 'internal' => false]);
 
+    $summary = '1 passaggi offerti, 1 richieste di passaggio, 1 chat dei passaggi, 1 messaggi in chat, 1 feedback sui passaggi, 1 segnalazioni sui passaggi, 1 messaggi delle segnalazioni.';
+    // Il passaggio vero deve ancora partire: senza --force-real la rimozione si ferma e dice perché.
     $this->artisan('demo:showcase', ['--purge' => true, '--dry-run' => true])
-        ->expectsOutputToContain('Con loro spariranno righe di altri utenti: 1 passaggi offerti, 1 richieste di passaggio.')->assertSuccessful();
+        ->expectsOutputToContain('Con loro spariranno righe di altri utenti: '.$summary)
+        ->expectsOutputToContain('passaggio #'.$own->id.' di '.$real->name)
+        ->expectsOutputToContain('Senza --force-real la rimozione verrebbe rifiutata.')->assertSuccessful();
     $this->artisan('demo:showcase', ['--purge' => true])
-        ->expectsOutputToContain('Con loro sono sparite righe di altri utenti: 1 passaggi offerti, 1 richieste di passaggio.')->assertSuccessful();
+        ->expectsOutputToContain('passaggio #'.$own->id.' di '.$real->name.' (utente #'.$real->id.'), Ritorno, partenza 24/09/2026 22:30')
+        ->expectsOutputToContain('Rimozione annullata')->assertFailed();
+    expect(RideOffer::query()->whereKey($own->id)->exists())->toBeTrue()
+        ->and(showcaseRideUserIds())->not->toBe([]);
+
+    $this->artisan('demo:showcase', ['--purge' => true, '--force-real' => true])
+        ->expectsOutputToContain('Con --force-real verranno cancellati anche questi.')
+        ->expectsOutputToContain('Con loro sono sparite righe di altri utenti: '.$summary)->assertSuccessful();
 
     expect(showcaseRideUserIds())->toBe([])
         ->and(RideOffer::query()->pluck('occurrence_id')->all())->toBe([$investor->id])
@@ -238,10 +315,29 @@ it('purges every ride and says which rows of real people went with them', functi
         ->and(RideConversation::query()->count())->toBe(0)
         ->and(DB::table('chat_conversations')->count())->toBe(0)
         ->and(DB::table('chat_messages')->count())->toBe(0)
-        ->and(DB::table('carpool_profiles')->pluck('user_id')->all())->toBe([$real->id])
-        ->and(DB::table('community_delivery_outbox')->where('user_id', '!=', $real->id)->count())->toBe(0);
+        ->and(DB::table('ride_feedback')->count())->toBe(0)
+        ->and(DB::table('carpool_cases')->count())->toBe(0)
+        ->and(DB::table('carpool_case_messages')->count())->toBe(0)
+        ->and(DB::table('carpool_profiles')->pluck('user_id')->sort()->values()->all())->toBe([$real->id, $passenger->id])
+        ->and(DB::table('community_delivery_outbox')->whereNotIn('user_id', [$real->id, $passenger->id])->count())->toBe(0);
 
     // La vetrina si ricrea da capo con tutti i suoi passaggi.
     $this->artisan('demo:showcase')->assertSuccessful();
     expect(RideOffer::query()->whereIn('driver_id', showcaseRideUserIds())->count())->toBe(count(ShowcaseDemoCommand::catalog()['rides']));
+});
+
+it('purges without --force-real when the real rides on the showcase dates are already concluded', function (): void {
+    $this->artisan('demo:showcase')->assertSuccessful();
+    $real = carpoolPerson();
+    $offer = RideOffer::query()->where('zone', 'Guizza, capolinea del tram')->orderBy('id')->firstOrFail();
+    cpAction($this, $real, 'offer', ['occurrence_id' => $offer->occurrence_id, 'leg' => 'return', 'zone' => 'Portello', 'departure_at' => '2026-09-24T22:30',
+        'capacity' => 2, 'accessibility' => 'not_specified', 'driver_declaration' => true])->assertOk();
+    // Annullato dal conducente: non è più un viaggio da fare.
+    $own = RideOffer::query()->where('driver_id', $real->id)->firstOrFail();
+    cpAction($this, $real, 'cancel', ['offer_id' => $own->id])->assertOk();
+
+    $this->artisan('demo:showcase', ['--purge' => true])
+        ->doesntExpectOutputToContain('Rimozione annullata')
+        ->expectsOutputToContain('Con loro sono sparite righe di altri utenti: 1 passaggi offerti.')->assertSuccessful();
+    expect(RideOffer::query()->count())->toBe(0)->and(showcaseRideUserIds())->toBe([]);
 });

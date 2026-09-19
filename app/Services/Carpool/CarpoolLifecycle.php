@@ -87,7 +87,7 @@ final class CarpoolLifecycle
         RideSearch::where('latest_at', '<=', now())->update(['active' => false]);
         RideSearch::where('active', true)->where('alerts_enabled', true)->with('user')->chunkById(100, function ($searches): void {
             foreach ($searches as $search) {
-                foreach (RideOffer::where('occurrence_id', $search->occurrence_id)->where('leg', $search->leg)->where('status', RideStatus::Open)->get() as $offer) {
+                foreach (RideOffer::real()->where('occurrence_id', $search->occurrence_id)->where('leg', $search->leg)->where('status', RideStatus::Open)->get() as $offer) {
                     if (app(RideDiscovery::class)->matches($search, $offer)) {
                         DB::transaction(fn () => app(CommunityNotices::class)->send($search->user, 'carpool', 'match', 'offer', $offer->id, 'match:'.$search->id.':'.$offer->id, searchId: $search->id));
                     }

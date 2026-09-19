@@ -1,6 +1,6 @@
 <article class="grid gap-5 border-b border-line py-7 sm:grid-cols-[1fr_auto]">
     <div class="min-w-0">
-        <div class="mb-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-ink-muted"><span>{{ $offer['leg_label'] }}</span><span>{{ $offer['departure_label'] }}</span></div>
+        <div class="mb-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-ink-muted"><span>{{ $offer['leg_label'] }}</span><span>{{ $offer['departure_label'] }}</span>@if($offer['demo'])<span class="font-semibold text-ink">{{ __('carpool.demo_label') }}</span>@endif</div>
         <h2 class="font-display text-2xl font-bold"><a href="{{ $offer['url'] }}">{{ $offer['zone'] }}</a></h2>
         <p class="mt-2 text-sm">{{ $offer['driver']['name'] }} @if($offer['driver']['verified'])<span class="text-ink-muted">· {{ __('carpool.verified') }}</span>@endif</p>
 
@@ -12,6 +12,6 @@
     </div>
     <div class="flex flex-wrap items-center justify-between gap-4 sm:flex-col sm:items-end sm:justify-start">
         <span class="font-semibold">{{ __('carpool.available', ['count' => $offer['available']]) }}</span>
-        <x-button variant="secondary" :href="$offer['url']">{{ $offer['is_own'] ? __('carpool.pending') : __('carpool.seek') }}</x-button>
+        <x-button variant="secondary" :href="$offer['url']">{{ $offer['is_own'] ? __('carpool.pending') : ($offer['demo'] ? __('carpool.demo_view') : __('carpool.seek')) }}</x-button>
     </div>
 </article>
