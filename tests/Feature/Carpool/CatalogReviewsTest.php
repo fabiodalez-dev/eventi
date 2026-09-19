@@ -151,3 +151,16 @@ it('renders organizer reviews safely and offers verification to an ordinary memb
     $this->reviews->moderate($review, cpStaff(), 'approved', 1, null);
     $this->actingAs(User::factory()->create())->get('/organizzatori/'.$this->organizer->slug)->assertOk()->assertSee(__('reviews.verify'))->assertSee('&lt;script&gt;', false)->assertDontSee('<script>alert(1)</script>', false);
 });
+
+it('keeps the v1 venue reviews payload readable by the installed app', function (array $data): void {
+    Sanctum::actingAs($this->passenger);
+    $this->postJson(catalogUrl($this, 'venue'), $data)->assertOk();
+    $this->reviews->moderate(CatalogReview::sole(), cpStaff(), 'approved', 1, null);
+    Sanctum::actingAs($this->passenger->fresh());
+    $json = $this->getJson(catalogUrl($this, 'venue'))->assertOk()->json('data');
+    // L'app già pubblicata dichiara `rating: Int` e `body: String` non nulli.
+    foreach ([$json['reviews'][0], $json['my_review']] as $review) {
+        expect($review['rating'])->toBeInt()->and($review['body'])->toBeString();
+    }
+    expect($json['reviews'][0]['rating'])->toBe($data['rating'] ?? 0)->and($json['reviews'][0]['body'])->toBe($data['body'] ?? '');
+})->with([[['rating' => 4]], [['body' => 'Un locale accogliente e ben organizzato.']]]);

@@ -29,7 +29,9 @@ class CatalogReviewController extends Controller
         $subject = $this->subject($request, $slug);
         $user = $request->user('sanctum');
 
-        return ApiResponse::item(app(CatalogReviews::class)->listing($subject, $user instanceof User ? $user : null, $request->integer('page', 1)))
+        $reviews = app(CatalogReviews::class);
+
+        return ApiResponse::item($reviews->apiListing($reviews->listing($subject, $user instanceof User ? $user : null, $request->integer('page', 1))))
             ->header('Cache-Control', 'private, no-store');
     }
 

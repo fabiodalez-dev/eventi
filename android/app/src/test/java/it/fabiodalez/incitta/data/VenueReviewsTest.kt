@@ -33,4 +33,14 @@ class VenueReviewsTest {
         assertEquals("3", objectPayload.getValue("revision").jsonPrimitive.content)
         assertFalse(objectPayload.containsKey("body"))
     }
+
+    @Test fun `v1 placeholders for a missing vote or comment read as absent`() {
+        val page = json.decodeFromString<VenueReviewPage>("""{"count":2,"reviews":[{"id":1,"author":"Anna","rating":0,"body":"Locale accogliente.","date":"2026-09-13"},{"id":2,"author":"Luca","rating":4,"body":""}],"my_review":{"rating":0,"body":"Solo un commento.","status":"pending"}}""")
+        assertNull(page.reviews[0].givenRating)
+        assertEquals("Locale accogliente.", page.reviews[0].givenBody)
+        assertEquals(4, page.reviews[1].givenRating)
+        assertNull(page.reviews[1].givenBody)
+        assertNull(page.myReview?.givenRating)
+        assertEquals("Solo un commento.", page.myReview?.givenBody)
+    }
 }

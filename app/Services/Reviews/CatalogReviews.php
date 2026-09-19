@@ -60,6 +60,25 @@ final class CatalogReviews
             'my_review' => $own === null ? null : ['rating' => $own->rating, 'body' => $own->body, 'moderation_note' => $own->moderation_note, 'revision' => $own->revision, 'status' => $own->status->value]];
     }
 
+    /**
+     * Forma dell'API v1. L'app già installata dichiara voto e testo non nulli:
+     * un solo `null` farebbe fallire la lettura dell'intera lista. Qui l'assenza
+     * si scrive 0 e stringa vuota, che la nuova app tratta come «non dato».
+     *
+     * @param  array<string, mixed>  $listing
+     * @return array<string, mixed>
+     */
+    public function apiListing(array $listing): array
+    {
+        $compatible = fn (array $review): array => ['rating' => $review['rating'] ?? 0, 'body' => $review['body'] ?? ''] + $review;
+        $listing['reviews'] = array_map($compatible, $listing['reviews']);
+        if (is_array($listing['my_review'])) {
+            $listing['my_review'] = $compatible($listing['my_review']);
+        }
+
+        return $listing;
+    }
+
     public function submit(Venue|Organizer $subject, User $user, ?int $rating, ?string $body, ?int $revision = null): CatalogReview
     {
         return DB::transaction(function () use ($subject, $user, $rating, $body, $revision): CatalogReview {

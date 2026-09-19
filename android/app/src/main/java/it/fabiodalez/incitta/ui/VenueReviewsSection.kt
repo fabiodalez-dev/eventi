@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
@@ -13,6 +14,8 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import it.fabiodalez.incitta.R
 import it.fabiodalez.incitta.data.VenueReviewPage
+import it.fabiodalez.incitta.data.givenBody
+import it.fabiodalez.incitta.data.givenRating
 import it.fabiodalez.incitta.data.requestFailureMessage
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
@@ -30,13 +33,14 @@ internal fun VenueReviewsSection(
     title: String = stringResource(R.string.reviews_venue_title),
 ) {
     var data by remember(venue, userId) { mutableStateOf<VenueReviewPage?>(null) }
-    var rating by remember(venue, userId) { mutableIntStateOf(0) }
-    var body by remember(venue, userId) { mutableStateOf("") }
+    // La bozza sopravvive a rotazione e ricreazione dell'attività.
+    var rating by rememberSaveable(venue, userId) { mutableIntStateOf(0) }
+    var body by rememberSaveable(venue, userId) { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var message by remember { mutableStateOf<String?>(null) }
     var reporting by remember(venue, userId) { mutableStateOf<Long?>(null) }
-    var reportBody by remember(reporting) { mutableStateOf("") }
+    var reportBody by rememberSaveable(reporting) { mutableStateOf("") }
     val scope = rememberCoroutineScope()
     val submittedMessage = stringResource(R.string.reviews_submitted)
     val deletedMessage = stringResource(R.string.reviews_deleted)
@@ -47,7 +51,7 @@ internal fun VenueReviewsSection(
         val result = load(page)
         if (currentIdentity != identity) return
         data = result
-        if (fill) { rating = result.myReview?.rating ?: 0; body = result.myReview?.body.orEmpty() }
+        if (fill) { rating = result.myReview?.givenRating ?: 0; body = result.myReview?.givenBody.orEmpty() }
     }
     fun run(action: suspend () -> Unit) {
         if (busy) return
@@ -74,8 +78,8 @@ internal fun VenueReviewsSection(
             reviews.reviews.forEach { review ->
                 Column(Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outlineVariant).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(review.author, style = MaterialTheme.typography.titleMedium)
-                    review.rating?.let { Text("${"★".repeat(it.coerceIn(0, 5))}${"☆".repeat(5 - it.coerceIn(0, 5))}", modifier = Modifier.semanticsRating(it)) }
-                    review.body?.let { Text(it) }
+                    review.givenRating?.let { Text("${"★".repeat(it.coerceIn(0, 5))}${"☆".repeat(5 - it.coerceIn(0, 5))}", modifier = Modifier.semanticsRating(it)) }
+                    review.givenBody?.let { Text(it) }
                     review.date?.let { Text(it, style = MaterialTheme.typography.labelSmall) }
                     if(reviews.verified) TextButton(onClick = { reporting = review.id }) { Text(stringResource(R.string.reviews_report)) }
                 }
