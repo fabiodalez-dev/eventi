@@ -6,7 +6,9 @@ import androidx.core.content.IntentCompat
 
 /**
  * Who sent the one-tap code. WhatsApp attaches a PendingIntent under [EXTRA_CREATOR]; its creatorPackage
- * is filled in by the system and a third app cannot forge it (documented WhatsApp OTP check).
+ * is filled in by the system and a third app cannot forge it. Meta documents `_ci_` only on the outgoing request; the check on the
+ * reply mirrors Meta's WhatsApp-OTP-Sample-App (`RequestIdUtil.validateAndClearRequestId`). A
+ * PendingIntent can be relayed, so the request-id check that follows stays the real guard.
  */
 internal object WhatsappSender {
     const val EXTRA_CREATOR = "_ci_"

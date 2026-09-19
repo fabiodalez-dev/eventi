@@ -72,7 +72,7 @@ Calcolo dell'hash secondo il [campione ufficiale WhatsApp](https://github.com/Wh
 1. Collegare il telefono e lanciare `adb logcat -s WhatsappOtp`.
 2. Con **WhatsApp** installato: chiedere il codice dalla community, toccare il pulsante nel messaggio, verificare che il campo si compili e che nel logcat **non** compaia `one-tap intent from untrusted sender`.
 3. Ripetere con **WhatsApp Business** (da solo sul telefono, poi insieme a WhatsApp).
-4. Solo se tutte le prove sono pulite: `ENFORCE = true`, aggiornare il test `enforcementStaysOffUntilTheRealDeviceTest` in `WhatsappSenderTest.kt` e chiudere la issue #106 con quel commit.
+4. Solo se tutte le prove sono pulite: `ENFORCE = true`, aggiornare il test `enforcementStaysOffUntilTheRealDeviceTest` in `WhatsappSenderTest.kt`, passare `sender = "com.whatsapp"` nei test strumentali `WhatsappAutofillTest` e `WhatsappAutofillUiTest` (oggi costruiscono intent senza `_ci_` e con il blocco attivo fallirebbero) e chiudere la issue #106 con quel commit.
 
 Memoria permanente del cambio dominio: [DOMINIO-DEFINITIVO.md](DOMINIO-DEFINITIVO.md), richiamato dalle convenzioni vincolanti. Include Meta, Kapso, OAuth, email, Android, push, mappe, pagamenti e deployment.
 
