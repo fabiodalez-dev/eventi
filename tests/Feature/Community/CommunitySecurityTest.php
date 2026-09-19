@@ -49,6 +49,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Laravel\Sanctum\Sanctum;
 use Livewire\Livewire;
+use Spatie\Permission\Models\Role;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 function communityPerson(string $visibility = 'public'): User

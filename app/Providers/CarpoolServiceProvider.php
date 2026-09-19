@@ -25,9 +25,21 @@ final class CarpoolServiceProvider extends ServiceProvider
     {
         DatabaseNotification::created(fn ($notification) => app(UnifiedNotifications::class)->archived($notification));
         Report::created(fn ($report) => app(CommunitySafety::class)->importReport($report));
-        RateLimiter::for('carpool-write', fn (Request $r) => [Limit::perMinute(20)->by('cp:'.$r->user()?->id.':'.(in_array($r->route('action'), ['withdraw', 'cancel', 'revoke-adult'], true) ? 'safety' : 'write')), Limit::perMinute(120)->by('cp-ip:'.$r->ip())]);
-        RateLimiter::for('carpool-chat', fn (Request $r) => Limit::perMinute($r->route('action') === 'send' ? 30 : 120)->by('cp-chat:'.$r->user()?->id.':'.$r->route('action')));
-        RateLimiter::for('carpool-report', fn (Request $r) => Limit::perHour(20)->by('cp-report:'.$r->user()?->id));
+        // Ogni azione ha il proprio contatore, condiviso fra sito e API come in routes/community.php:
+        // un solo secchio per tutte le scritture farebbe esaurire il ritiro di un'offerta a chi ha
+        // appena cercato dieci passaggi.
+        $user = static fn (Request $r): string => (string) ($r->user()->id ?? $r->ip());
+        $action = static fn (Request $r): string => (string) ($r->route('action') ?? 'default');
+        foreach (['carpool-action' => 20, 'carpool-discovery' => 20, 'carpool-review' => 20] as $name => $perMinute) {
+            RateLimiter::for($name, static fn (Request $r): array => [
+                Limit::perMinute($perMinute)->by($name.':'.$user($r).':'.$action($r)),
+                Limit::perMinute(120)->by($name.'-ip:'.$r->ip()),
+            ]);
+        }
+        RateLimiter::for('carpool-chat', static fn (Request $r): Limit => Limit::perMinute($action($r) === 'send' ? 30 : 120)->by('carpool-chat:'.$user($r).':'.$action($r)));
+        RateLimiter::for('carpool-report', static fn (Request $r): Limit => Limit::perHour(20)->by('carpool-report:'.$user($r)));
+        RateLimiter::for('carpool-case-reply', static fn (Request $r): Limit => Limit::perHour(20)->by('carpool-case-reply:'.$user($r)));
+        RateLimiter::for('carpool-evidence', static fn (Request $r): Limit => Limit::perHour(20)->by('carpool-evidence:'.$user($r)));
         User::updated(function (User $user): void {
             if ($user->wasChanged(['email_verified_at', 'whatsapp_verified_at', 'whatsapp_phone_hash', 'carpool_suspended_at', 'community_suspended_at', 'deleted_at'])) {
                 app(CarpoolLifecycle::class)->reconcileUser($user->id);

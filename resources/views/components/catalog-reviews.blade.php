@@ -31,7 +31,7 @@
             <h3 class="text-xl font-semibold">{{ __('reviews.write') }}</h3>
             @if ($own)<p class="my-3 font-semibold" role="status">{{ __('reviews.'.$own['status']) }}</p>@if ($own['moderation_note'])<p class="mb-3 whitespace-pre-line">{{ $own['moderation_note'] }}</p>@endif @endif
             @if ($reviews['can_review'])
-                <form action="{{ route($reviewRoute.'.review.store', ['slug' => $subject->slug]) }}" method="POST" class="mt-4 flex flex-col gap-4">
+                <form action="{{ route($reviewRoute.'.review.store', ['slug' => $subject->slug]) }}" method="POST" class="mt-4 flex flex-col gap-4" data-review-form>
                     @csrf
                     <input type="hidden" name="revision" value="{{ $own['revision'] ?? 0 }}">
                     @error('revision')<p role="alert" class="text-alert">{{ $message }}</p>@enderror

@@ -153,11 +153,11 @@ Route::delete('/eventi/{slug}/commenti/{comment}', [EventCommentController::clas
 Route::post('/eventi/{slug}/commenti/{comment}/reazione', [EventCommentController::class, 'react'])
     ->middleware(['auth', 'verified', 'throttle:120,1'])->name('events.comments.react');
 
-Route::post('/locali/{slug}/recensione', [CatalogReviewController::class, 'store'])->defaults('type', 'venue')->middleware(['auth', 'throttle:10,60'])->name('venues.review.store');
-Route::post('/organizzatori/{slug}/recensione', [CatalogReviewController::class, 'store'])->defaults('type', 'organizer')->middleware(['auth', 'throttle:10,60'])->name('organizers.review.store');
-Route::delete('/locali/{slug}/recensione', [CatalogReviewController::class, 'destroy'])->defaults('type', 'venue')->middleware(['auth', 'throttle:10,60'])->name('venues.review.destroy');
-Route::delete('/organizzatori/{slug}/recensione', [CatalogReviewController::class, 'destroy'])->defaults('type', 'organizer')->middleware(['auth', 'throttle:10,60'])->name('organizers.review.destroy');
-Route::post('/locali/{slug}/recensioni/{review}/segnala', [CatalogReviewController::class, 'report'])->defaults('type', 'venue')->whereNumber('review')->middleware(['auth', 'throttle:10,60'])->name('venues.review.report');
-Route::post('/organizzatori/{slug}/recensioni/{review}/segnala', [CatalogReviewController::class, 'report'])->defaults('type', 'organizer')->whereNumber('review')->middleware(['auth', 'throttle:10,60'])->name('organizers.review.report');
+Route::post('/locali/{slug}/recensione', [CatalogReviewController::class, 'store'])->defaults('type', 'venue')->middleware(['auth', 'throttle:10,60,catalog-review-store'])->name('venues.review.store');
+Route::post('/organizzatori/{slug}/recensione', [CatalogReviewController::class, 'store'])->defaults('type', 'organizer')->middleware(['auth', 'throttle:10,60,catalog-review-store'])->name('organizers.review.store');
+Route::delete('/locali/{slug}/recensione', [CatalogReviewController::class, 'destroy'])->defaults('type', 'venue')->middleware(['auth', 'throttle:10,60,catalog-review-destroy'])->name('venues.review.destroy');
+Route::delete('/organizzatori/{slug}/recensione', [CatalogReviewController::class, 'destroy'])->defaults('type', 'organizer')->middleware(['auth', 'throttle:10,60,catalog-review-destroy'])->name('organizers.review.destroy');
+Route::post('/locali/{slug}/recensioni/{review}/segnala', [CatalogReviewController::class, 'report'])->defaults('type', 'venue')->whereNumber('review')->middleware(['auth', 'throttle:10,60,catalog-review-report'])->name('venues.review.report');
+Route::post('/organizzatori/{slug}/recensioni/{review}/segnala', [CatalogReviewController::class, 'report'])->defaults('type', 'organizer')->whereNumber('review')->middleware(['auth', 'throttle:10,60,catalog-review-report'])->name('organizers.review.report');
 
 Route::post('/contatta/{type}/{slug}', [PublicContactController::class, 'store'])->whereIn('type', ['venues', 'organizers'])->middleware('throttle:5,60')->name('public.contact');

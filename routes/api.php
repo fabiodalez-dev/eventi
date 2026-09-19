@@ -107,12 +107,12 @@ Route::prefix('v1')
 
         Route::get('/venues/{slug}/reviews', [CatalogReviewController::class, 'index'])->defaults('type', 'venue')->name('venues.reviews');
         Route::get('/organizers/{slug}/reviews', [CatalogReviewController::class, 'index'])->defaults('type', 'organizer')->name('organizers.reviews');
-        Route::post('/venues/{slug}/reviews', [CatalogReviewController::class, 'store'])->defaults('type', 'venue')->middleware(['auth:sanctum', 'throttle:10,60']);
-        Route::post('/organizers/{slug}/reviews', [CatalogReviewController::class, 'store'])->defaults('type', 'organizer')->middleware(['auth:sanctum', 'throttle:10,60']);
-        Route::delete('/venues/{slug}/reviews', [CatalogReviewController::class, 'destroy'])->defaults('type', 'venue')->middleware(['auth:sanctum', 'throttle:10,60']);
-        Route::delete('/organizers/{slug}/reviews', [CatalogReviewController::class, 'destroy'])->defaults('type', 'organizer')->middleware(['auth:sanctum', 'throttle:10,60']);
-        Route::post('/venues/{slug}/reviews/{review}/report', [CatalogReviewController::class, 'report'])->defaults('type', 'venue')->whereNumber('review')->middleware(['auth:sanctum', 'throttle:10,60']);
-        Route::post('/organizers/{slug}/reviews/{review}/report', [CatalogReviewController::class, 'report'])->defaults('type', 'organizer')->whereNumber('review')->middleware(['auth:sanctum', 'throttle:10,60']);
+        Route::post('/venues/{slug}/reviews', [CatalogReviewController::class, 'store'])->defaults('type', 'venue')->middleware(['auth:sanctum', 'throttle:10,60,catalog-review-store']);
+        Route::post('/organizers/{slug}/reviews', [CatalogReviewController::class, 'store'])->defaults('type', 'organizer')->middleware(['auth:sanctum', 'throttle:10,60,catalog-review-store']);
+        Route::delete('/venues/{slug}/reviews', [CatalogReviewController::class, 'destroy'])->defaults('type', 'venue')->middleware(['auth:sanctum', 'throttle:10,60,catalog-review-destroy']);
+        Route::delete('/organizers/{slug}/reviews', [CatalogReviewController::class, 'destroy'])->defaults('type', 'organizer')->middleware(['auth:sanctum', 'throttle:10,60,catalog-review-destroy']);
+        Route::post('/venues/{slug}/reviews/{review}/report', [CatalogReviewController::class, 'report'])->defaults('type', 'venue')->whereNumber('review')->middleware(['auth:sanctum', 'throttle:10,60,catalog-review-report']);
+        Route::post('/organizers/{slug}/reviews/{review}/report', [CatalogReviewController::class, 'report'])->defaults('type', 'organizer')->whereNumber('review')->middleware(['auth:sanctum', 'throttle:10,60,catalog-review-report']);
 
         // Deliberately outside the JSON cache: switches and short ad leases must stay live.
         Route::get('/sponsorships/banner', SponsorshipBannerController::class)->name('sponsorships.banner');

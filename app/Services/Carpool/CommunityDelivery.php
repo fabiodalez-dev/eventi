@@ -89,6 +89,10 @@ final class CommunityDelivery
 
                 return $post !== null && app(CommunityAccess::class)->canViewPost($user, $post);
             }
+            // Gli avvisi di nuovi follower portano all'elenco personale, visibile solo a chi è verificato.
+            if ($path === '/persone-che-mi-seguono') {
+                return $user->isWhatsappVerified();
+            }
             if (preg_match('~^/persone/([a-z0-9_]+)$~', $path, $matches)) {
                 return app(CommunityAccess::class)->profiles($user)->where('handle', $matches[1])->exists();
             }

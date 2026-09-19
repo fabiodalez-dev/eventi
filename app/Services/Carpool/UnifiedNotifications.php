@@ -46,7 +46,7 @@ final class UnifiedNotifications
         if (in_array($data['category'] ?? null, ['carpool', 'chat', 'social'], true) && isset($data['entity'], $data['entity_id'])) {
             $data['url'] = app(CommunityNotices::class)->destination($data['entity'], (int) $data['entity_id']);
         }
-        if (($data['category'] ?? null) === 'social' && isset($data['path']) && preg_match('~^/(persone/[a-z0-9_]+|bacheca/post/[0-9]+)$~', $data['path'])) {
+        if (($data['category'] ?? null) === 'social' && isset($data['path']) && preg_match('~^/(persone/[a-z0-9_]+|bacheca/post/[0-9]+|persone-che-mi-seguono)$~', $data['path'])) {
             $data['url'] = url($data['path']);
         }
 

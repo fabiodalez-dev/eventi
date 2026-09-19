@@ -11,6 +11,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // Una ripresa dopo un'esecuzione già completata non deve tentare di rinominare di nuovo.
+        if (Schema::hasTable('reviews') && ! Schema::hasTable('venue_reviews')) {
+            return;
+        }
         Schema::table('venue_reviews', function (Blueprint $table): void {
             $table->dropForeign(['venue_id']);
             $table->dropUnique(['venue_id', 'user_id']);
@@ -65,6 +69,7 @@ return new class extends Migration
         });
         Schema::rename('reviews', 'venue_reviews');
         Schema::table('venue_reviews', function (Blueprint $table): void {
+            $table->text('body')->nullable(false)->change();
             $table->foreign('venue_id')->references('id')->on('venues')->cascadeOnDelete();
             $table->unique(['venue_id', 'user_id']);
             $table->index(['venue_id', 'status', 'created_at']);

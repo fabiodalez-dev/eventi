@@ -38,7 +38,9 @@ internal fun VenueReviewsSection(
     var reporting by remember(venue, userId) { mutableStateOf<Long?>(null) }
     var reportBody by remember(reporting) { mutableStateOf("") }
     val scope = rememberCoroutineScope()
-    val context = androidx.compose.ui.platform.LocalContext.current
+    val submittedMessage = stringResource(R.string.reviews_submitted)
+    val deletedMessage = stringResource(R.string.reviews_deleted)
+    val reportedMessage = stringResource(R.string.reviews_reported)
     val currentIdentity by rememberUpdatedState(venue to userId)
     val identity = venue to userId
     suspend fun refresh(page: Int, fill: Boolean = false) {
@@ -100,12 +102,12 @@ internal fun VenueReviewsSection(
                     OutlinedTextField(value = body, onValueChange = { if (it.length <= 3000) body = it }, enabled = !busy,
                         label = { Text(stringResource(R.string.reviews_body)) }, minLines = 4, modifier = Modifier.fillMaxWidth(), supportingText = { Text("${body.length}/3000") })
                     Text(stringResource(R.string.reviews_guidance), style = MaterialTheme.typography.bodySmall)
-                    Button(enabled = !busy && (rating in 1..5 || body.trim().length >= 10) && (body.isBlank() || body.trim().length in 10..3000), onClick = { run { submit(rating.takeIf { it > 0 }, body, reviews.myReview?.revision ?: 0); refresh(1, true); message = context.getString(R.string.reviews_submitted) } }) { Text(stringResource(R.string.reviews_submit)) }
+                    Button(enabled = !busy && (rating in 1..5 || body.trim().length >= 10) && (body.isBlank() || body.trim().length in 10..3000), onClick = { run { submit(rating.takeIf { it > 0 }, body, reviews.myReview?.revision ?: 0); refresh(1, true); message = submittedMessage } }) { Text(stringResource(R.string.reviews_submit)) }
                 } else if (!reviews.verified) {
                     Text(stringResource(R.string.reviews_verify_hint))
                     Button(onClick = onVerify) { Text(stringResource(R.string.reviews_verify)) }
                 } else Text(stringResource(R.string.reviews_closed))
-                if (reviews.myReview != null) TextButton(enabled = !busy, onClick = { run { delete(); refresh(1, true); message = context.getString(R.string.reviews_deleted) } }) { Text(stringResource(R.string.reviews_delete)) }
+                if (reviews.myReview != null) TextButton(enabled = !busy, onClick = { run { delete(); refresh(1, true); message = deletedMessage } }) { Text(stringResource(R.string.reviews_delete)) }
             } else Button(onClick = onLogin) { Text(stringResource(R.string.reviews_login)) }
         }
         if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
@@ -114,7 +116,7 @@ internal fun VenueReviewsSection(
     }
     reporting?.let { id -> AlertDialog(onDismissRequest = { if(!busy) reporting = null }, title = { Text(stringResource(R.string.reviews_report)) },
         text = { Column { OutlinedTextField(reportBody, { if(it.length <= 3000) reportBody = it }, label = { Text(stringResource(R.string.reviews_report_reason)) }); error?.let { Text(it, color=MaterialTheme.colorScheme.error) } } },
-        confirmButton = { TextButton(enabled = !busy && reportBody.trim().length >= 10, onClick = { run { report(id, reportBody.trim()); reporting = null; message = context.getString(R.string.reviews_reported) } }) { Text(stringResource(R.string.reviews_send_report)) } },
+        confirmButton = { TextButton(enabled = !busy && reportBody.trim().length >= 10, onClick = { run { report(id, reportBody.trim()); reporting = null; message = reportedMessage } }) { Text(stringResource(R.string.reviews_send_report)) } },
         dismissButton = { TextButton(enabled = !busy, onClick = { reporting = null }) { Text(stringResource(R.string.reviews_cancel)) } }) }
 }
 

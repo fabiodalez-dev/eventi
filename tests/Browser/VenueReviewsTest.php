@@ -16,10 +16,10 @@ it('submits stars and text then requires moderation again after editing', functi
     $this->actingAs($user);
     $page = visit('/locali/'.$venue->slug)->on()->{$device}()
         ->click('[data-consent-banner] button[value="reject_all"]')
-        ->click('input[name="rating"][value="4"]')->fill('body', 'Un locale accogliente e tranquillo.');
+        ->click('input[name="rating"][value="4"]')->fill('[data-review-form] textarea[name="body"]', 'Un locale accogliente e tranquillo.');
     // Pest retries click actions after one second, potentially submitting the
     // same form repeatedly. One Playwright action must produce one revision.
-    $page->page()->locator('#recensioni form:first-of-type button[type="submit"]')->click(['timeout' => 5000]);
+    $page->page()->locator('[data-review-form] button[type="submit"]')->click(['timeout' => 5000]);
     $page->assertSee(__('reviews.pending'));
     $review = CatalogReview::query()->sole();
     expect($review->revision)->toBe(1);
@@ -31,10 +31,10 @@ it('submits stars and text then requires moderation again after editing', functi
         ->assertSee('Un locale accogliente e tranquillo.');
     expect($page->script('document.querySelectorAll("#recensioni article").length'))->toBe(1);
     if ($busyBrowser) {
-        $page->script('document.querySelector("#recensioni form:first-of-type button[type=submit]").addEventListener("click", () => { const until = performance.now() + 1200; while (performance.now() < until) {} });');
+        $page->script('document.querySelector("[data-review-form] button[type=submit]").addEventListener("click", () => { const until = performance.now() + 1200; while (performance.now() < until) {} });');
     }
-    $page->fill('body', 'Aggiorno la mia esperienza nel locale.');
-    $page->page()->locator('#recensioni form:first-of-type button[type="submit"]')->click(['timeout' => 5000]);
+    $page->fill('[data-review-form] textarea[name="body"]', 'Aggiorno la mia esperienza nel locale.');
+    $page->page()->locator('[data-review-form] button[type="submit"]')->click(['timeout' => 5000]);
     $page->assertSee(__('reviews.pending'));
     expect($review->fresh()->revision)->toBe(3);
     expect($page->script('document.querySelectorAll("#recensioni article").length'))->toBe(0);
