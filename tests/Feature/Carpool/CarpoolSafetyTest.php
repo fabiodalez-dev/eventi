@@ -1,6 +1,7 @@
 <?php
 
 use App\Actions\Account\DeleteAccount;
+use App\Enums\CarpoolCaseStatus;
 use App\Enums\Permission;
 use App\Models\CarpoolAudit;
 use App\Models\RideConversation;
@@ -136,9 +137,29 @@ it('preserves only the documented case scope and expires its hold', function ():
     app(CommunitySafety::class)->manage($admin, $case, 'hold', 'Richiesta documentata di preservazione', ['revision' => 1]);
     app(CarpoolRetention::class)->purge();
     expect($audit->fresh()->context)->not->toBeNull();
+    // Una pratica ancora aperta trattiene le prove anche senza blocco esplicito.
     $case->refresh()->update(['hold_until' => now()->subSecond()]);
     app(CarpoolRetention::class)->purge();
+    expect($audit->fresh()->context)->not->toBeNull();
+    $case->update(['status' => CarpoolCaseStatus::Resolved, 'closed_at' => now()]);
+    app(CarpoolRetention::class)->purge();
     expect($audit->fresh()->context)->toBeNull();
+});
+
+it('keeps the transcript and request note of a case still under review without a manual hold', function (): void {
+    $ride = cpAccepted($this);
+    $ride->forceFill(['note' => 'Nota per il conducente'])->save();
+    $chat = RideConversation::firstOrFail();
+    app(RideChat::class)->send($this->driver, $chat, 'Un messaggio da esaminare', (string) Str::uuid());
+    $case = cpCase($this, $ride);
+    expect($case->closed_at)->toBeNull()->and($case->hold_until)->toBeNull();
+    $chat->update(['read_only_at' => now()->subDays(91)]);
+    $ride->forceFill(['closed_at' => now()->subDays(91)])->save();
+    app(CarpoolRetention::class)->purge();
+    expect(DB::table('chat_messages')->count())->toBe(1)->and($chat->fresh()->purged_at)->toBeNull()->and($ride->fresh()->note)->toBe('Nota per il conducente');
+    $case->update(['status' => CarpoolCaseStatus::Resolved, 'closed_at' => now()]);
+    app(CarpoolRetention::class)->purge();
+    expect(DB::table('chat_messages')->count())->toBe(0)->and($chat->fresh()->purged_at)->not->toBeNull()->and($ride->fresh()->note)->toBeNull();
 });
 
 it('makes expired chat inaccessible even when the scheduled purge has not run', function (): void {

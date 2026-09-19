@@ -29,16 +29,27 @@ final class CarpoolRetention
         return $closed->addDays(config()->integer('carpool.message_retention_days'))->isFuture();
     }
 
+    /**
+     * Pratiche che trattengono le prove: quelle con un blocco esplicito e
+     * quelle ancora aperte, che senza trascrizione non si potrebbero istruire.
+     *
+     * @return Builder<CarpoolCase>
+     */
+    private function holdingCases(): Builder
+    {
+        return CarpoolCase::where(fn ($q) => $q->whereNull('closed_at')->orWhere('hold_until', '>', now()));
+    }
+
     public function heldRequest(RideRequest $request): bool
     {
-        return CarpoolCase::where('hold_until', '>', now())->where(fn ($q) => $q->where('ride_request_id', $request->id)
+        return $this->holdingCases()->where(fn ($q) => $q->where('ride_request_id', $request->id)
             ->orWhere(fn ($q) => $q->whereNull('ride_request_id')->where('ride_offer_id', $request->ride_offer_id)))->exists();
     }
 
     /** @return Builder<CarpoolAudit> */
     private function unheldAudits(): Builder
     {
-        $held = CarpoolCase::where('hold_until', '>', now())->get();
+        $held = $this->holdingCases()->get();
         $cases = $held->pluck('id');
         $offers = $held->pluck('ride_offer_id')->filter();
         $requests = $held->pluck('ride_request_id')->filter()->merge(RideRequest::whereIn('ride_offer_id', $held->whereNull('ride_request_id')->pluck('ride_offer_id')->filter())->pluck('id'))->unique();
