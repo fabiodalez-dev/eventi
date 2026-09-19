@@ -30,7 +30,7 @@ function badges() {
                 node.hidden = value === 0;
                 node.setAttribute('aria-label', String(value));
             });
-            const link = source.closest('a');
+            const link = source.closest('a, summary');
             if (link) link.setAttribute('aria-label', `${source.dataset.label}: ${data.total}`);
         } catch { /* The existing links and counters remain usable during temporary network loss. */ }
         finally { busy = false; if (!document.hidden) timer = setTimeout(refresh, 30000); }
@@ -126,8 +126,44 @@ function chat() {
     refresh();
 }
 
+/*
+ * La tendina della campanella. È un `<details>`: apertura, chiusura e tastiera
+ * le fa il browser. Qui si aggiunge solo ciò che il tag non sa fare: caricare
+ * gli ultimi avvisi all'apertura, chiudersi con Esc o con un clic fuori.
+ */
+function inboxMenu() {
+    const menu = document.querySelector('[data-inbox-menu]');
+    const body = menu?.querySelector('[data-inbox-menu-body]');
+    if (!menu || !body) return;
+    const through = menu.querySelector('[data-inbox-through]');
+    let generation = 0;
+    const load = async () => {
+        const own = ++generation;
+        try {
+            const response = await fetch(menu.dataset.inboxUrl, { credentials: 'same-origin', cache: 'no-store', headers: { 'X-Requested-With': 'fetch' } });
+            if (!response.ok) throw new Error(String(response.status));
+            const html = await response.text();
+            if (own !== generation) return;
+            if (through) through.value = response.headers.get('X-Inbox-Watermark') || '';
+            body.replaceChildren(...new DOMParser().parseFromString(html, 'text/html').body.childNodes);
+        } catch {
+            if (own !== generation) return;
+            const notice = document.createElement('p');
+            notice.className = 'px-4 py-6 text-sm text-ink-muted';
+            notice.setAttribute('role', 'alert');
+            notice.textContent = menu.dataset.inboxError || '';
+            body.replaceChildren(notice);
+        }
+    };
+    menu.addEventListener('toggle', () => { if (menu.open) load(); });
+    document.addEventListener('click', event => { if (menu.open && !menu.contains(event.target)) menu.open = false; });
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && menu.open) { menu.open = false; menu.querySelector('summary')?.focus(); }
+    });
+}
+
 export function carpool() {
-    badges(); chat();
+    badges(); chat(); inboxMenu();
     document.querySelectorAll('[data-ride-template]').forEach(select => select.addEventListener('change', () => {
         if (!select.value) return;
         const fields = JSON.parse(select.value), form = select.closest('form');

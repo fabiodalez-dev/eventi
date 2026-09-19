@@ -36,6 +36,7 @@ Route::middleware(CommunityPrivacy::class)->group(function (): void {
         Route::delete('/bacheca/commenti/{comment}', [CommunityController::class, 'deleteComment'])->whereNumber('comment')->middleware('throttle:20,1,community-comment-delete')->name('community.comment.delete');
         Route::post('/bacheca/segnala', [CommunityController::class, 'report'])->middleware('throttle:5,60,community-report')->name('community.report');
         Route::get('/avvisi', [InboxController::class, 'index'])->name('community.inbox');
+        Route::get('/avvisi/ultimi', [InboxController::class, 'latest'])->middleware('throttle:60,1,community-inbox-latest')->name('community.inbox.latest');
         Route::post('/avvisi/letti', [InboxController::class, 'readAll'])->name('community.inbox.read');
     });
 });
