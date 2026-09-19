@@ -205,3 +205,21 @@ it('deduplicates post-trip feedback and never exposes it as a public rating', fu
     expect(RideFeedback::count())->toBe(1);
     $this->getJson('/api/v1/carpool/requests/'.$ride->id)->assertOk()->assertJsonMissingPath('data.ride.feedback');
 });
+
+it('keeps carpool maintenance and the delivery outbox running after an event is trashed', function (): void {
+    $offer = cpOffer($this);
+    $ride = cpRequest($this, $offer);
+    $pending = cpRequest($this, $offer, carpoolPerson());
+    cpAction($this, $this->driver, 'accept', ['request_id' => $ride->id])->assertOk();
+    // Dopo la partenza l'offerta non si annulla più: la riconciliazione deve
+    // leggere l'orario della città anche con l'evento nel cestino.
+    freezeLocal($this->city, '2026-10-10 20:00');
+    $this->date->event->delete();
+    expect(DB::table('community_delivery_outbox')->whereNull('delivered_at')->count())->toBeGreaterThan(0);
+    $this->artisan('carpool:maintain')->assertSuccessful();
+    expect($pending->fresh()->status->value)->toBe('expired')
+        ->and(DB::table('community_delivery_outbox')->whereNull('delivered_at')->where('attempts', 0)->count())->toBe(0);
+    freezeLocal($this->city, '2026-10-11 20:00');
+    app(CarpoolLifecycle::class)->reconcileDate($this->date->id);
+    expect($offer->fresh()->status->value)->toBe('completed');
+});

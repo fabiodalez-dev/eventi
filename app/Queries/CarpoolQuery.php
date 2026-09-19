@@ -41,7 +41,11 @@ final class CarpoolQuery
 
     public function now(EventOccurrence $date): CarbonImmutable
     {
-        return EventOccurrenceQuery::archiveFor($date->event->city)->now()->utc();
+        // Senza evento (o senza città) non c'è un orologio locale da consultare:
+        // l'istante assoluto resta lo stesso, basta non dereferenziare il vuoto.
+        $city = $date->event?->city;
+
+        return $city !== null ? EventOccurrenceQuery::archiveFor($city)->now()->utc() : CarbonImmutable::now()->utc();
     }
 
     public function future(RideOffer $offer): bool
@@ -59,7 +63,7 @@ final class CarpoolQuery
     /** @return array<string, int|string|null> */
     public function snapshot(EventOccurrence $date): array
     {
-        return ['event_id' => $date->event_id, 'title' => $date->event->title,
+        return ['event_id' => $date->event_id, 'title' => $date->event?->title,
             'starts_at' => $date->starts_at->toIso8601String(), 'ends_at' => $date->effective_ends_at->toIso8601String(),
             'venue_id' => $date->locationVenue()?->id, 'location' => $date->locationLabel()];
     }

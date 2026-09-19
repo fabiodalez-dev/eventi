@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Queries\CarpoolQuery;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Throwable;
 
 final class CarpoolLifecycle
 {
@@ -40,7 +41,10 @@ final class CarpoolLifecycle
             return;
         }
         DB::transaction(function () use ($dateId): void {
-            $date = EventOccurrence::withTrashed()->whereKey($dateId)->lockForUpdate()->first();
+            // L'evento può essere stato cestinato: senza withTrashed la relazione
+            // resterebbe vuota e ogni calcolo sull'orario della città fallirebbe.
+            $date = EventOccurrence::withTrashed()->with(['event' => fn ($query) => $query->withTrashed()])
+                ->whereKey($dateId)->lockForUpdate()->first();
             if (! $date) {
                 return;
             }
@@ -72,7 +76,12 @@ final class CarpoolLifecycle
         RideOffer::whereIn('status', [RideStatus::Open, RideStatus::Closed])->select('occurrence_id')->distinct()->orderBy('occurrence_id')
             ->chunkById(100, function ($rows): void {
                 foreach ($rows as $row) {
-                    $this->reconcileDate($row->occurrence_id);
+                    // Una data guasta non deve fermare le altre né gli avvisi che seguono.
+                    try {
+                        $this->reconcileDate($row->occurrence_id);
+                    } catch (Throwable $e) {
+                        report($e);
+                    }
                 }
             }, 'occurrence_id');
         RideSearch::where('latest_at', '<=', now())->update(['active' => false]);

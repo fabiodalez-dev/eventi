@@ -7,6 +7,7 @@ namespace App\Console\Commands;
 use App\Services\Carpool\CarpoolLifecycle;
 use App\Services\Carpool\CommunityDelivery;
 use Illuminate\Console\Command;
+use Throwable;
 
 final class CarpoolMaintain extends Command
 {
@@ -16,9 +17,18 @@ final class CarpoolMaintain extends Command
 
     public function handle(CarpoolLifecycle $lifecycle, CommunityDelivery $delivery): int
     {
-        $lifecycle->tick();
-        $delivery->deliver();
+        // La coda porta anche le notifiche della community: un errore nella
+        // riconciliazione dei passaggi non deve bloccarne la consegna.
+        $status = self::SUCCESS;
+        try {
+            $lifecycle->tick();
+        } catch (Throwable $e) {
+            report($e);
+            $status = self::FAILURE;
+        } finally {
+            $delivery->deliver();
+        }
 
-        return self::SUCCESS;
+        return $status;
     }
 }
