@@ -140,17 +140,17 @@ export function carpool() {
     document.querySelectorAll('form[data-confirm]').forEach(form => form.addEventListener('submit', event => {
         if (!window.confirm(form.dataset.confirm)) event.preventDefault();
     }));
-    document.querySelectorAll('[data-carpool-gate]').forEach(link => link.addEventListener('click', event => {
-        const dialog = document.getElementById(link.dataset.carpoolGate);
+    document.querySelectorAll('[data-carpool-gate]').forEach(control => control.addEventListener('click', event => {
+        const dialog = document.getElementById(control.dataset.carpoolGate);
         if (!dialog?.showModal) return;
         event.preventDefault();
-        const destination = new URL(link.href, location.origin);
+        const destination = new URL(control.dataset.carpoolDestination || control.href, location.origin);
         if (destination.origin === location.origin && /^\/passaggi\/date\/[1-9][0-9]*(\/offri)?$/.test(destination.pathname)) {
             dialog.querySelectorAll('[data-carpool-intent]').forEach(anchor => { const url = new URL(anchor.href); url.searchParams.set('intended', destination.href); anchor.href = url.href; });
             const field = dialog.querySelector('[name=return_to]'); if (field) field.value = destination.pathname;
         }
         dialog.showModal();
-        dialog.addEventListener('close', () => link.focus(), { once: true });
+        dialog.addEventListener('close', () => control.focus(), { once: true });
     }));
 }
 carpool();

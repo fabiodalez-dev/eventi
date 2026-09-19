@@ -230,7 +230,8 @@
 
                     <ul class="flex flex-col gap-2">
                         @foreach ($shown as $occurrence)
-                            <li class="event-date-row grid min-w-0 gap-4 bg-canvas p-4 border-2 border-line sm:grid-cols-[minmax(0,1fr)_auto] sm:p-5">
+                            <li class="flex min-w-0 flex-col gap-3">
+                            <div class="event-date-row grid min-w-0 gap-4 bg-canvas p-4 border-2 border-line sm:grid-cols-[minmax(0,1fr)_auto] sm:p-5">
                                 <div class="flex min-w-0 flex-col gap-2">
                                 @if($occurrence->locationVenue())
                                     <a class="w-fit text-sm text-ink-muted underline underline-offset-4" href="{{ route('venues.show', $occurrence->locationVenue()) }}">{{ $occurrence->locationVenue()->name }}</a>
@@ -241,10 +242,10 @@
                                 @if ($occurrence->previous_starts_at !== null)
                                     <p>{{ __('seo.rescheduled', ['date' => $formatter->iso($occurrence->previous_starts_at)]) }}</p>
                                 @endif
-                                <div class="flex min-w-0 flex-col gap-1">
+                                <div class="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
                                     <time
                                         datetime="{{ $occurrence->is_all_day ? $formatter->isoDay($occurrence->business_date) : $formatter->iso($occurrence->starts_at) }}"
-                                        class="font-semibold text-ink"
+                                        class="shrink-0 font-semibold text-ink"
                                     >
                                         {{ $formatter->weekdayDate($occurrence->business_date) }}
                                     </time>
@@ -305,7 +306,6 @@
 
                                 @if ($occurrences->isNotEmpty() && ! ($isPreview ?? false))
                                     <div class="flex items-start empty:hidden sm:justify-end">
-                                    <x-carpool-actions :occurrence="$occurrence" />
                                     @if ($booking = $activeBookings->get($occurrence->id))
                                         <x-button :href="route('tickets.show', $booking)" class="min-h-12">{{ __('ticketing.manage_booking') }}</x-button>
                                     @elseif ($occurrence->booking_enabled && $occurrence->effectiveVenue()?->ticketing_enabled)
@@ -347,6 +347,10 @@
                                         @endforeach
                                     </div>
                                 @endif
+                            </div>
+                            @if ($occurrences->isNotEmpty() && ! ($isPreview ?? false))
+                                <x-carpool-actions :occurrence="$occurrence" />
+                            @endif
                             </li>
                         @endforeach
                     </ul>

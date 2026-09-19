@@ -4,6 +4,7 @@
     @if(config('community.enabled'))
     <a href="{{ route('community.inbox') }}" class="inline-flex min-h-12 items-center gap-2">{{ __('community.inbox') }} <span data-community-count="unread" hidden></span></a>
     @endif
+    <a href="{{ route('carpool.terms') }}" class="inline-flex min-h-12 items-center">{{ __('carpool.rules') }}</a>
     <a href="{{ route('carpool.cases') }}" class="inline-flex min-h-12 items-center">{{ __('carpool.support') }}</a>
 </nav>
 @if(session('status'))<p role="status" class="mb-6 border border-line p-4">{{ session('status') }}</p>@endif

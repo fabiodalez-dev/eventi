@@ -2,7 +2,8 @@
     Il pulsante del sistema (D47). Tre varianti:
 
     - `primary`: campitura piena d'accento, il gesto principale della pagina;
-    - `secondary`: bordo, nessuna campitura — le azioni di contorno;
+    - `secondary`: superficie separata e bordo — le azioni di contorno restano
+      distinguibili anche quando poggiano su un pannello chiaro;
     - `ghost`: solo testo d'accento, per le azioni minori in linea.
 
     L'etichetta sta a filo a sinistra: un pulsante più largo del proprio testo
@@ -25,7 +26,7 @@
 @php
     $variants = [
         'primary' => 'bg-brand text-on-brand hover:bg-brand-strong active:bg-brand-strong',
-        'secondary' => 'border border-line text-ink hover:bg-ink/8 active:bg-ink/15',
+        'secondary' => 'border-2 border-line bg-surface text-ink hover:border-accent hover:bg-canvas active:bg-ink/15',
         'ghost' => 'text-brand px-1.5 hover:bg-brand/10 active:bg-brand/20',
     ];
 
