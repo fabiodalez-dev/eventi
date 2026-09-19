@@ -15,7 +15,8 @@ use Illuminate\Contracts\Cache\LockTimeoutException;
  *
  * La chiave nuova è quella che l'applicazione usa già, dalla configurazione.
  * La vecchia arriva **solo** dall'ambiente del processo
- * (`WHATSAPP_PHONE_HASH_PREVIOUS_KEY=... php artisan ...`): non un'opzione,
+ * (`read -rs OLDKEY`, poi `WHATSAPP_PHONE_HASH_PREVIOUS_KEY="$OLDKEY" php artisan ...`,
+ * così nella cronologia resta solo il nome della variabile): non un'opzione,
  * che finirebbe nella cronologia della shell e in `ps`, e non `.env`, dove
  * `config:cache` la congelerebbe e resterebbe dimenticata dopo la rotazione.
  *

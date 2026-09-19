@@ -51,7 +51,7 @@ return [
         'option_dry_run' => 'Classifica e riporta soltanto: non scrive nulla',
         'option_release_orphans' => 'Elimina le impronte che non si possono ricalcolare (account sospesi e cancellati): quei numeri tornano utilizzabili',
         'missing_new_key' => 'WHATSAPP_PHONE_HASH_KEY non è configurata: scrivi la chiave nuova in .env e lancia config:cache.',
-        'missing_old_key' => 'Manca la chiave vecchia: passala solo nell\'ambiente del comando, come :variable=\'...\' davanti a php artisan.',
+        'missing_old_key' => 'Manca la chiave vecchia: leggila senza eco con read -rs OLDKEY e passala solo nell\'ambiente del comando, come :variable="$OLDKEY" davanti a php artisan (procedura in docs/RUNBOOK.md).',
         'same_keys' => 'La chiave vecchia e quella nuova coincidono: non c\'è nulla da ricalcolare.',
         'busy' => 'Un\'altra operazione sulla verifica WhatsApp tiene il lock: riprova fra qualche secondo.',
         'class' => 'Classe',
