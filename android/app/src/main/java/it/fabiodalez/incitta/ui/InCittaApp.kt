@@ -40,6 +40,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.res.stringResource
+import kotlinx.coroutines.launch
+import it.fabiodalez.incitta.R
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -102,14 +108,34 @@ fun InCittaApp(viewModel: MainViewModel) {
             }
         }
         var promptedCommunity by androidx.compose.runtime.saveable.rememberSaveable(state.session?.user?.id) { mutableStateOf(false) }
-        val userIdle = !tonightOpen && organizerSlug == null && state.selected == null && state.selectedVenue == null && state.bookingDate == null && communityRoute == null
-        // Not marked as prompted while the person is busy: the effect runs again as soon as they are idle.
-        LaunchedEffect(state.session?.user?.emailVerified, state.session?.user?.whatsappPrompted, userIdle) {
+        var whatsappInvite by remember { mutableStateOf(false) }
+        val eventOpen = state.selected != null && communityRoute == null && state.bookingDate == null
+        LaunchedEffect(state.session?.user?.emailVerified, state.session?.user?.whatsappPrompted, eventOpen) {
             val person = state.session?.user
-            if (person != null && shouldPromptWhatsapp(person.emailVerified, person.whatsappVerified, person.whatsappPrompted, promptedCommunity, userIdle)) {
+            if (person != null && shouldPromptWhatsapp(person.emailVerified, person.whatsappVerified, person.whatsappPrompted, promptedCommunity, eventOpen)) {
                 promptedCommunity = true
-                tonightOpen = false; organizerSlug = null; communityRoute = "whatsapp"
+                whatsappInvite = true
             }
+        }
+        if (whatsappInvite) {
+            val inviteScope = rememberCoroutineScope()
+            val inviteToken = state.session?.token
+            // Either answer closes the invitation for good: the server records it as already shown.
+            val closeInvite: (Boolean) -> Unit = { verify ->
+                whatsappInvite = false
+                inviteScope.launch {
+                    runCatching { it.fabiodalez.incitta.data.CommunityApi(it.fabiodalez.incitta.data.ApiClient(it.fabiodalez.incitta.data.LocalStore(appContext).installationId), inviteToken).change("whatsapp/skip") }
+                    viewModel.refreshProfile()
+                }
+                if (verify) { tonightOpen = false; organizerSlug = null; communityRoute = "whatsapp" }
+            }
+            AlertDialog(
+                onDismissRequest = { closeInvite(false) },
+                title = { Text(stringResource(R.string.community_whatsapp_invite_title)) },
+                text = { Text(stringResource(R.string.community_whatsapp_invite_body)) },
+                confirmButton = { TextButton(onClick = { closeInvite(true) }) { Text(stringResource(R.string.community_whatsapp_invite_verify)) } },
+                dismissButton = { TextButton(onClick = { closeInvite(false) }) { Text(stringResource(R.string.community_whatsapp_invite_skip)) } },
+            )
         }
         val snackbar = remember { SnackbarHostState() }
         val imeVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0

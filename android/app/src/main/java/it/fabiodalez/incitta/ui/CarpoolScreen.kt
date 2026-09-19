@@ -59,7 +59,7 @@ internal fun CarpoolScreen(session: Session?, padding: PaddingValues, initialRou
         }
     }
     Column(Modifier.fillMaxSize().padding(padding)) {
-        Row(Modifier.fillMaxWidth().padding(horizontal=12.dp),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=androidx.compose.ui.Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().padding(start=12.dp,end=12.dp,top=16.dp),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=androidx.compose.ui.Alignment.CenterVertically) {
             CpButton("back") {back()}; Text(cpText("title"),style=MaterialTheme.typography.titleLarge)
         }
         Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal=12.dp),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
@@ -159,7 +159,7 @@ internal fun CarpoolScreen(session: Session?, padding: PaddingValues, initialRou
                         row.rows("chats").forEach {chat-> Text(chat.obj("offer").text("event_title"));Text(chat.obj("offer").text("zone")+" · "+chat.obj("ride").obj("requester").text("name"));if(chat.number("unread")>0)Text(cpText("notice_summary","count" to chat.number("unread")));CpButton("open_chat",chat.flag("readable")){navigate("chats/${chat.number("id")}")};HorizontalDivider()};CpPaging(row,route,::navigate)
                     }
                     "cases" -> {
-                        if(parts.size==1) {Text(cpText("cases"),style=MaterialTheme.typography.headlineMedium);row.rows("cases").forEach {case->OutlinedButton(onClick={navigate("cases/${case.number("id")}")}) {Text(cpText("case","id" to case.number("id"))+" · "+cpText("CarpoolCaseStatus.${case.text("status")}"))}};CpPaging(row,route,::navigate)}
+                        if(parts.size==1) {Text(cpText("cases"),style=MaterialTheme.typography.headlineMedium);if(row.rows("cases").isEmpty()) Text(cpText("empty_cases"));row.rows("cases").forEach {case->OutlinedButton(onClick={navigate("cases/${case.number("id")}")}) {Text(cpText("case","id" to case.number("id"))+" · "+cpText("CarpoolCaseStatus.${case.text("status")}"))}};CpPaging(row,route,::navigate)}
                         else {Text(cpText("case","id" to row.number("case_id")),style=MaterialTheme.typography.headlineMedium);Text(row.text("case_status"));Text(row.text("body"));row.rows("messages").forEach {Text(it.text("body"));Text(it.text("created_at"),style=MaterialTheme.typography.labelSmall);HorizontalDivider()};if(row.rows("messages").size==50) CpButton("older"){navigate("cases/${row.number("case_id")}?before=${row.rows("messages").first().number("id")}")};var reply by remember {mutableStateOf("")};CpField("reply",reply,2000,{reply=it},true);CpButton("send",!busy && reply.trim().length>=10){mutate("cases/${row.number("case_id")}",cpData("body" to reply),true);reply=""}}
                     }
                     "drivers" -> {Text(row.text("driver_name"),style=MaterialTheme.typography.headlineMedium);Text(cpText("reviews.period"));val summary=row.obj("summary");if(summary.number("count")>0)Text(cpText("reviews.summary","average" to summary.text("average"),"count" to summary.number("count"))) else Text(cpText("reviews.none"));row.rows("reviews").forEach {review->Text(review.text("name"),style=MaterialTheme.typography.titleMedium);Text("★ "+review.text("rating")+" / 5");Text(review.text("body"));CpReport(cpData("review_id" to review.number("id")),busy){mutate("reports",it)};HorizontalDivider()};CpPaging(row,route,::navigate)}
@@ -182,7 +182,7 @@ internal fun CpGate(access: JsonObject, busy: Boolean, onVerify: () -> Unit, onL
         "login"->CpButton("login",action=onLogin)
         "email","whatsapp"->CpButton(if(access.text("reason")=="email")"email" else "whatsapp",action=onVerify)
         "suspended"->{Text(cpText("suspended"));CpButton("support",action=onSupport)}
-        else->{var adult by remember{mutableStateOf(false)};var terms by remember{mutableStateOf(false)};CpCheck("adult",adult){adult=it};CpCheck("terms_accept",terms){terms=it};CpButton("terms",action=onTerms);CpButton("enable",adult&&terms&&!busy){onEnable(cpData("adult" to adult,"terms" to terms,"version" to access.text("terms_version")))}}
+        else->{var adult by remember{mutableStateOf(false)};var terms by remember{mutableStateOf(false)};CpCheck("adult",adult){adult=it};CpCheck("terms_accept",terms){terms=it};CpButton("terms",action=onTerms);CpPrimaryButton("enable",adult&&terms&&!busy){onEnable(cpData("adult" to adult,"terms" to terms,"version" to access.text("terms_version")))}}
     }
 }
 

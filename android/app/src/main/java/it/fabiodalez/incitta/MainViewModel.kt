@@ -163,7 +163,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private var mapJob: Job? = null
     private var detailJob: Job? = null
     private var bookingJob: Job? = null
-    private var quickAppearance: String? = null
     private val detailHistory = mutableListOf<DetailSnapshot>()
 
     init {
@@ -172,11 +171,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 .collect { (session, saved) ->
                     val sessionChanged = _state.value.session?.token != session?.token
                     if (sessionChanged) {
-                        quickAppearance = null
                         bookingJob?.cancel()
                         _state.value = _state.value.copy(bookings = emptyList(), bookingDate = null, bookingAvailability = null, bookingBusy = false, bookingError = null)
                     }
-                    _state.value = _state.value.copy(session = session, savedIds = saved, defaultAppearance = repository.appearance(), appearance = quickAppearance ?: repository.appearance())
+                    _state.value = _state.value.copy(session = session, savedIds = saved, defaultAppearance = repository.appearance(), appearance = repository.appearance())
                     if (sessionChanged) interestsChanged()
                 }
         }
@@ -185,23 +183,25 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         loadMap()
     }
 
-    fun toggleQuickAppearance() {
-        quickAppearance = if (_state.value.appearance == "light") "dark" else "light"
-        _state.value = _state.value.copy(appearance = quickAppearance!!)
-    }
+    /**
+     * The header switch saves the choice like the website does. A session-only override used to
+     * mask the profile: after one tap, changing the theme in the profile no longer showed, and the
+     * tap itself was forgotten at the next launch.
+     */
+    fun toggleQuickAppearance() = setAppearance(if (_state.value.appearance == "light") "dark" else "light", announce = false)
 
-    fun setAppearance(value: String) {
+    fun setAppearance(value: String, announce: Boolean = true) {
         if (_state.value.appearanceSaving || value !in listOf("dark", "light")) return
         val previous = _state.value.defaultAppearance
         val token = repository.session.value?.token
-        _state.value = _state.value.copy(defaultAppearance = value, appearance = quickAppearance ?: value, appearanceSaving = true)
+        _state.value = _state.value.copy(defaultAppearance = value, appearance = value, appearanceSaving = true)
         viewModelScope.launch {
             try {
                 repository.setAppearance(value)
-                _state.value = _state.value.copy(defaultAppearance = repository.appearance(), appearance = quickAppearance ?: repository.appearance(), message = "Tema predefinito salvato.")
+                _state.value = _state.value.copy(defaultAppearance = repository.appearance(), appearance = repository.appearance(), message = if (announce) "Tema predefinito salvato." else _state.value.message)
             } catch (cancelled: CancellationException) { throw cancelled }
             catch (_: Exception) {
-                if (repository.session.value?.token == token) _state.value = _state.value.copy(defaultAppearance = previous, appearance = quickAppearance ?: previous, message = "Salvataggio non riuscito. Riprova quando sei online.")
+                if (repository.session.value?.token == token) _state.value = _state.value.copy(defaultAppearance = previous, appearance = previous, message = "Salvataggio non riuscito. Riprova quando sei online.")
             } finally { _state.value = _state.value.copy(appearanceSaving = false) }
         }
     }

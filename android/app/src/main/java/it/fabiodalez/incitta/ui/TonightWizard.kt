@@ -74,7 +74,7 @@ fun TonightWizard(session: Session?, onBack: () -> Unit, onResults: (Map<String,
         } finally { loading = false; counting = false }
     }
     Column(Modifier.fillMaxSize().imePadding().padding(horizontal = 22.dp)) {
-    LazyColumn(Modifier.weight(1f).fillMaxWidth(), state = listState, verticalArrangement = Arrangement.spacedBy(20.dp), contentPadding = PaddingValues(bottom = 20.dp)) {
+    LazyColumn(Modifier.weight(1f).fillMaxWidth(), state = listState, verticalArrangement = Arrangement.spacedBy(20.dp), contentPadding = PaddingValues(top = 16.dp, bottom = 20.dp)) {
         item {
             TextButton(onClick = { if (step > 1) previous() else onBack() }) { Text(stringResource(R.string.tonight_back)) }
             if (!loading) Text(stringResource(R.string.tonight_steps, if (!hasNeighborhoods && step > 3) step - 1 else step, if (hasNeighborhoods) 5 else 4), color = Acid)

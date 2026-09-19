@@ -74,6 +74,7 @@ private val carpoolStrings = mapOf(
     "searches" to R.string.cp_searches,
     "pending" to R.string.cp_pending,
     "empty_offers" to R.string.cp_empty_offers,
+    "empty_cases" to R.string.cp_empty_cases,
     "empty_mine" to R.string.cp_empty_mine,
     "empty_messages" to R.string.cp_empty_messages,
     "filter" to R.string.cp_filter,

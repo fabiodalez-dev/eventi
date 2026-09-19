@@ -187,15 +187,16 @@ fun CompleteEventDetailScreen(
                     detail.occurrences.forEachIndexed { index, occurrence ->
                         if (index > 0) HorizontalDivider(Modifier.padding(vertical = 14.dp), color = Rule)
                         OccurrenceDateBlock(detail, occurrence, occurrence.occurrenceId in savedIds, onSave)
-                        Text(cpText("subtitle"), modifier=Modifier.padding(top=12.dp), style=MaterialTheme.typography.bodySmall)
-                        androidx.compose.foundation.layout.FlowRow(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-                            CpButton("seek") {if(carpoolVerified) onCarpool(occurrence.occurrenceId,false) else carpoolPrompt=occurrence.occurrenceId to false}
-                            CpButton("offer") {if(carpoolVerified) onCarpool(occurrence.occurrenceId,true) else carpoolPrompt=occurrence.occurrenceId to true}
-                        }
                         if (occurrence.bookingEnabled) {
                             Button(onClick = { onReserve(occurrence) }, modifier = Modifier.fillMaxWidth().padding(top = 10.dp), shape = ControlShape) {
                                 Text(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.ticket_reserve))
                             }
+                        }
+                        // Prima l'azione principale dell'evento, poi i passaggi per arrivarci.
+                        Text(cpText("subtitle"), modifier=Modifier.padding(top=16.dp), style=MaterialTheme.typography.bodySmall)
+                        androidx.compose.foundation.layout.FlowRow(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+                            CpButton("seek") {if(carpoolVerified) onCarpool(occurrence.occurrenceId,false) else carpoolPrompt=occurrence.occurrenceId to false}
+                            CpButton("offer") {if(carpoolVerified) onCarpool(occurrence.occurrenceId,true) else carpoolPrompt=occurrence.occurrenceId to true}
                         }
                     }
                 }

@@ -112,6 +112,7 @@ Il car pooling è riservato ad account con email e WhatsApp verificati e dichiar
     <string name="cp_reason" formatted="false">Motivo</string>
     <string name="cp_details" formatted="false">Descrivi il problema</string>
     <string name="cp_support" formatted="false">Assistenza</string>
+    <string name="cp_empty_cases" formatted="false">Non hai segnalazioni. Se qualcosa va storto in un passaggio, puoi segnalarlo dalla pagina del passaggio o dalla chat: qui troverai le risposte dell’assistenza.</string>
     <string name="cp_cases" formatted="false">Le tue segnalazioni</string>
     <string name="cp_case" formatted="false">Segnalazione :id</string>
     <string name="cp_reply" formatted="false">Rispondi</string>

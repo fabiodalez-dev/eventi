@@ -79,6 +79,10 @@
     <string name="community_no_comments">Nessun commento.</string>
     <string name="community_open">Apri</string>
     <string name="community_later">Più tardi</string>
+    <string name="community_whatsapp_invite_title">Verifica WhatsApp, se vuoi</string>
+    <string name="community_whatsapp_invite_body">È facoltativa e gratuita: serve solo per commentare, pubblicare consigli e usare i passaggi. Puoi farla quando vuoi dal tuo profilo.</string>
+    <string name="community_whatsapp_invite_verify">Verifica ora</string>
+    <string name="community_whatsapp_invite_skip">Non ora</string>
     <string name="community_photo">Scegli foto profilo</string>
     <string name="community_photo_selected">Foto selezionata: cambia</string>
     <string name="community_photo_error">Scegli una foto JPG, PNG o WebP fino a 2 MB.</string>

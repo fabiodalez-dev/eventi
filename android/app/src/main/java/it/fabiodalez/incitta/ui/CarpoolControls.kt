@@ -17,6 +17,11 @@ import it.fabiodalez.incitta.data.*
 internal fun CpButton(key: String, enabled: Boolean = true, action: () -> Unit) {
     OutlinedButton(onClick=action, enabled=enabled, modifier=Modifier.heightIn(min=48.dp)) { Text(cpText(key)) }
 }
+/** The main action of a screen: filled once it can be used, so it is clear when the form is complete. */
+@Composable
+internal fun CpPrimaryButton(key: String, enabled: Boolean = true, action: () -> Unit) {
+    androidx.compose.material3.Button(onClick=action, enabled=enabled, modifier=Modifier.heightIn(min=48.dp)) { Text(cpText(key)) }
+}
 @Composable
 internal fun CpField(key: String, value: String, limit: Int, onChange: (String) -> Unit, multiline: Boolean = false) {
     OutlinedTextField(value, { if(it.length <= limit) onChange(it) }, label={Text(cpText(key))}, singleLine=!multiline, minLines=if(multiline) 3 else 1, modifier=Modifier.fillMaxWidth())
