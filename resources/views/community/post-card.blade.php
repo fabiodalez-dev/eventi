@@ -7,7 +7,8 @@
     </div>
     @if($post->body)<p class="mb-5 whitespace-pre-line break-words leading-relaxed">{{ $post->body }}</p>@endif
     <x-event-card :occurrence="$post->occurrence" />
-    <div class="flex flex-wrap items-center justify-between gap-3 py-4 text-sm">
+    {{-- Stessi margini interni della card evento (pl 26px, pr 22px): altrimenti «Commenti» sporge a sinistra del testo della card. --}}
+    <div class="flex flex-wrap items-center justify-between gap-3 py-4 pr-[22px] pl-[26px] text-sm">
         <a class="min-h-11 content-center font-semibold underline" href="{{ route('community.post', $post) }}">{{ __('community.comments') }}</a>
         @if(auth()->id() === $post->user_id)<a class="min-h-11 content-center underline" href="{{ route('community.compose', $post->occurrence_id) }}">{{ __('community.publish') }}</a>@endif
     </div>

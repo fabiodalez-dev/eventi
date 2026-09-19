@@ -1,4 +1,4 @@
-<x-layouts.app :narrow="true" :meta="$meta"><div class="mx-auto w-full max-w-4xl">@include('carpool.nav')
+<x-layouts.app :meta="$meta">@include('carpool.nav')<div class="w-full max-w-3xl">
 @include('carpool.partials.offer-context')
 <div data-ride-chat data-url="{{ route('carpool.chat',$chat_id) }}" data-send="{{ route('carpool.chat.action',[$chat_id,'send']) }}" data-preferences="{{ route('carpool.chat.action',[$chat_id,'preferences']) }}" data-readonly="{{ __('carpool.chat_readonly') }}" data-error="{{ __('carpool.errors.generic') }}">
 <h2 class="text-section">{{ $ride['is_driver'] ? $ride['requester']['name'] : $offer['driver']['name'] }}</h2><p class="mt-3 text-sm text-ink-muted">{{ __('carpool.chat_context') }}</p>

@@ -1,4 +1,4 @@
-<x-layouts.app :narrow="true" :meta="$meta"><div class="mx-auto w-full max-w-4xl">@include('carpool.nav')
+<x-layouts.app :meta="$meta">@include('carpool.nav')<div class="w-full max-w-3xl">
 <h1 class="text-hero">{{ __('carpool.mine') }}</h1>
 @if(!$access['eligible'])<a class="my-5 inline-flex min-h-12 items-center underline" href="{{ route('carpool.requirements') }}">{{ __('carpool.requirements') }}</a>@endif
 @php($selectedTab = request('tab', 'offered'))

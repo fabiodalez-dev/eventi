@@ -11,6 +11,7 @@ use App\Enums\KapsoOutcome;
 use App\Enums\ProfileVisibility;
 use App\Enums\VenueStatus;
 use App\Enums\WhatsappChallengeStatus;
+use App\Enums\WhatsappDelivery;
 use App\Filament\Admin\Pages\Community as CommunityModerationPage;
 use App\Filament\Admin\Resources\Users\Pages\ListUsers;
 use App\Models\CommunityComment;
@@ -1523,3 +1524,11 @@ it('106 the community service builds feed and people listings on its own, withou
     expect($community->people(null, '')->total())->toBe(2);
     expect($community->people(null, featured: true)->pluck('user_id')->all())->toBe([$followed->id]);
 });
+
+it('sends the authentication template button as a url parameter, the only sub type Meta accepts', function (string $delivery): void {
+    config(['community.android_template' => 'android-template']);
+    app(KapsoClient::class)->send('+393331234567', '123456', WhatsappDelivery::from($delivery));
+
+    Http::assertSent(fn ($request) => $request['template']['components'][1]['sub_type'] === 'url'
+        && $request['template']['components'][1]['parameters'][0]['text'] === '123456');
+})->with(array_map(fn ($case) => $case->value, WhatsappDelivery::cases()));

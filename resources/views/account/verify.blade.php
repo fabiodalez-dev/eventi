@@ -1,5 +1,5 @@
 <x-layouts.app :narrow="true" :meta="$meta">
-    <section class="mx-auto flex w-full max-w-lg flex-col gap-6 py-4" aria-labelledby="verification-title">
+    <section class="flex w-full flex-col gap-6" aria-labelledby="verification-title">
         <div class="flex items-center gap-3 text-sm font-semibold text-brand">
             <svg class="size-6 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 6 9 7 9-7"/></svg>
             <span>{{ __('account.verify.step') }}</span>

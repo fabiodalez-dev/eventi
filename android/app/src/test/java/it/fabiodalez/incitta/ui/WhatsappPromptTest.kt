@@ -6,18 +6,18 @@ import org.junit.Test
 
 class WhatsappPromptTest {
     @Test fun idleVerifiedEmailWithoutWhatsappIsPrompted() {
-        assertTrue(shouldPromptWhatsapp(emailVerified = true, whatsappVerified = false, whatsappPrompted = false, alreadyPrompted = false, userIdle = true))
+        assertTrue(shouldPromptWhatsapp(emailVerified = true, whatsappVerified = false, whatsappPrompted = false, alreadyPrompted = false, eventOpen = true))
     }
 
     @Test fun busyPersonIsNotInterrupted() {
-        assertFalse(shouldPromptWhatsapp(emailVerified = true, whatsappVerified = false, whatsappPrompted = false, alreadyPrompted = false, userIdle = false))
+        assertFalse(shouldPromptWhatsapp(emailVerified = true, whatsappVerified = false, whatsappPrompted = false, alreadyPrompted = false, eventOpen = false))
     }
 
     @Test fun anyBlockingConditionSuppressesThePrompt() {
-        assertFalse(shouldPromptWhatsapp(emailVerified = false, whatsappVerified = false, whatsappPrompted = false, alreadyPrompted = false, userIdle = true))
-        assertFalse(shouldPromptWhatsapp(emailVerified = true, whatsappVerified = true, whatsappPrompted = false, alreadyPrompted = false, userIdle = true))
-        assertFalse(shouldPromptWhatsapp(emailVerified = true, whatsappVerified = false, whatsappPrompted = true, alreadyPrompted = false, userIdle = true))
-        assertFalse(shouldPromptWhatsapp(emailVerified = true, whatsappVerified = false, whatsappPrompted = false, alreadyPrompted = true, userIdle = true))
+        assertFalse(shouldPromptWhatsapp(emailVerified = false, whatsappVerified = false, whatsappPrompted = false, alreadyPrompted = false, eventOpen = true))
+        assertFalse(shouldPromptWhatsapp(emailVerified = true, whatsappVerified = true, whatsappPrompted = false, alreadyPrompted = false, eventOpen = true))
+        assertFalse(shouldPromptWhatsapp(emailVerified = true, whatsappVerified = false, whatsappPrompted = true, alreadyPrompted = false, eventOpen = true))
+        assertFalse(shouldPromptWhatsapp(emailVerified = true, whatsappVerified = false, whatsappPrompted = false, alreadyPrompted = true, eventOpen = true))
     }
 
     @Test fun onlyOneCombinationOfAllThirtyTwoPrompts() {

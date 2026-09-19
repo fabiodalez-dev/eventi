@@ -1,5 +1,5 @@
-<x-layouts.app :narrow="true" :meta="$meta">
-    <div class="mx-auto max-w-2xl">@include('community.nav')<h1 class="text-hero">{{ $meta->heading }}</h1>
+<x-layouts.app :meta="$meta">
+    @include('community.nav')<div class="max-w-3xl"><h1 class="text-hero">{{ $meta->heading }}</h1>
         @unless($verified)<p class="my-6 text-ink-muted">{{ __('community.verification_required') }}</p><x-button :href="route('community.whatsapp')">{{ __('community.whatsapp.title') }}</x-button>
         @else
         <form method="post" enctype="multipart/form-data" action="{{ route('community.settings.update') }}" class="mt-8 space-y-6">@csrf

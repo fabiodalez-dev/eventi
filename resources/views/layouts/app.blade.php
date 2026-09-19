@@ -506,10 +506,17 @@
                  attaccarlo al nastro della testata lo fa sembrare parte di
                  quello. Le pagine larghe hanno le proprie sezioni con i propri
                  margini e non ne hanno bisogno. --}}
+            {{-- Le pagine di servizio (community, passaggi, account) hanno
+                 tutte lo stesso respiro sopra, larghe o strette che siano:
+                 passando da «Persone» a «Il mio profilo» la barra delle
+                 schede non deve saltare di 45 px. --}}
+            @php($servicePage = request()->routeIs('community.*', 'carpool.*', 'account.*', 'tickets.*', 'appearance', 'google-calendar.*', 'verification.notice', 'notifications.preferences'))
             <div @class([
                 'mx-auto w-full px-gutter',
-                'max-w-3xl pt-[clamp(2.5rem,6vw,5rem)] pb-16' => $narrow ?? false,
-                'max-w-content py-8' => ! ($narrow ?? false),
+                'max-w-3xl' => $narrow ?? false,
+                'max-w-content' => ! ($narrow ?? false),
+                'pt-[clamp(2.5rem,6vw,5rem)] pb-16' => ($narrow ?? false) || $servicePage,
+                'py-8' => ! ($narrow ?? false) && ! $servicePage,
             ])>
         @endif
         {{-- Conferma dell'ultima azione (una proposta inviata, una segnalazione

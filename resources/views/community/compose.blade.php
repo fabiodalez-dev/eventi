@@ -1,5 +1,5 @@
-<x-layouts.app :narrow="true" :meta="$meta">
-    <div class="mx-auto max-w-2xl">@include('community.nav')<h1 class="text-hero">{{ $meta->heading }}</h1><h2 class="mt-5 font-display text-xl font-bold">{{ $saved->occurrence->event->title }}</h2><p class="mt-2 text-sm text-ink-muted">{{ $saved->occurrence->starts_at->timezone(app(\App\Support\CurrentCity::class)->timezone())->format('d/m/Y H:i') }}</p>
+<x-layouts.app :meta="$meta">
+    @include('community.nav')<div class="max-w-3xl"><h1 class="text-hero">{{ $meta->heading }}</h1><h2 class="mt-5 font-display text-xl font-bold">{{ $saved->occurrence->event->title }}</h2><p class="mt-2 text-sm text-ink-muted">{{ $saved->occurrence->starts_at->timezone(app(\App\Support\CurrentCity::class)->timezone())->format('d/m/Y H:i') }}</p>
     <p class="my-6 text-ink-muted">{{ __('community.privacy_help') }}</p>
     <form method="post" action="{{ route('community.publish', $saved->occurrence_id) }}" class="space-y-6">@csrf @method('PUT')
         {{-- Senza verifica valida l'unica scelta possibile è privata: un pubblico rimasto spuntato ma disabilitato non verrebbe inviato, e il salvataggio fallirebbe invece di ritirare il post. --}}

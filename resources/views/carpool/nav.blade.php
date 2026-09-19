@@ -1,11 +1,9 @@
-<nav aria-label="{{ __('carpool.title') }}" class="mb-8 flex flex-wrap gap-x-6 gap-y-2 border-b border-line pb-4 text-sm font-semibold">
-    <a href="{{ route('carpool.index') }}" class="inline-flex min-h-12 items-center gap-2">{{ __('carpool.mine') }} <span data-community-count="pending" hidden></span></a>
-    <a href="{{ route('carpool.chats') }}" class="inline-flex min-h-12 items-center gap-2">{{ __('carpool.messages') }} <span data-community-count="conversations" hidden></span></a>
-    @if(config('community.enabled'))
-    <a href="{{ route('community.inbox') }}" class="inline-flex min-h-12 items-center gap-2">{{ __('community.inbox') }} <span data-community-count="unread" hidden></span></a>
-    @endif
-    <a href="{{ route('carpool.terms') }}" class="inline-flex min-h-12 items-center">{{ __('carpool.rules') }}</a>
-    <a href="{{ route('carpool.cases') }}" class="inline-flex min-h-12 items-center">{{ __('carpool.support') }}</a>
-</nav>
-@if(session('status'))<p role="status" class="mb-6 border border-line p-4">{{ session('status') }}</p>@endif
-@if($errors->any())<div role="alert" class="mb-6 border border-line p-4"><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
+{{-- Le stesse schede della community (x-section-tabs): la conferma dell'ultima azione la mostra già il layout. --}}
+<x-section-tabs :label="__('carpool.title')" :items="array_values(array_filter([
+    ['href' => route('carpool.index'), 'label' => __('carpool.mine'), 'active' => request()->routeIs('carpool.index', 'carpool.offer', 'carpool.request'), 'count' => 'pending'],
+    ['href' => route('carpool.chats'), 'label' => __('carpool.messages'), 'active' => request()->routeIs('carpool.chats', 'carpool.chat'), 'count' => 'conversations'],
+    config('community.enabled') ? ['href' => route('community.inbox'), 'label' => __('community.tabs.inbox'), 'active' => request()->routeIs('community.inbox'), 'count' => 'unread'] : null,
+    ['href' => route('carpool.requirements'), 'label' => __('carpool.requirements'), 'active' => request()->routeIs('carpool.requirements')],
+    ['href' => route('carpool.terms'), 'label' => __('carpool.rules'), 'active' => request()->routeIs('carpool.terms')],
+    ['href' => route('carpool.cases'), 'label' => __('carpool.support'), 'active' => request()->routeIs('carpool.cases', 'carpool.case')],
+]))" />

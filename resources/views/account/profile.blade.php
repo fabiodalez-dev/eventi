@@ -25,7 +25,7 @@
 @endphp
 
 <x-layouts.app :narrow="true" :meta="$meta">
-    <div class="mx-auto flex w-full max-w-2xl flex-col gap-8">
+    <div class="flex w-full flex-col gap-8">
         <header class="flex flex-col gap-2">
             <h1 class="text-hero text-ink">{{ $meta->heading }}</h1>
             <p class="text-sm text-ink-muted">{{ __('account.profile.lead') }}</p>
@@ -59,7 +59,16 @@
             @endforeach
         </nav>
         @if(config('carpool.enabled'))
-        <section class="space-y-4 border-y border-line py-6" aria-labelledby="profile-carpool"><h2 id="profile-carpool" class="text-section">{{ __('carpool.title') }}</h2><div class="flex flex-wrap gap-4">@foreach(['carpool.index' => 'mine', 'carpool.chats' => 'messages', 'carpool.requirements' => 'requirements'] as $destination => $label)<x-button variant="secondary" :href="route($destination)">{{ __('carpool.'.$label) }}</x-button>@endforeach</div></section>
+        <section class="space-y-4 border-y border-line py-6" aria-labelledby="profile-carpool"><h2 id="profile-carpool" class="text-section">{{ __('carpool.title') }}</h2>
+            {{-- Chi non ha i requisiti lo scopre qui, prima di arrivare al modulo di un passaggio: il pulsante porta al passo che manca. --}}
+            @php($carpoolAccess = app(\App\Services\Carpool\CarpoolAccess::class)->state(auth()->user()))
+            @unless($carpoolAccess['eligible'])
+                @php($carpoolStep = match ($carpoolAccess['reason']) { 'email' => route('verification.notice'), 'whatsapp' => config('community.enabled') ? route('community.whatsapp') : route('carpool.requirements'), 'suspended' => route('carpool.cases'), default => route('carpool.requirements') })
+                <div role="status" class="flex flex-col gap-3 border-l-4 border-accent bg-surface p-4 sm:flex-row sm:items-center sm:justify-between" data-carpool-requirements-warning="{{ $carpoolAccess['reason'] }}">
+                    <p class="text-sm"><strong class="block font-semibold">{{ __('carpool.profile_blocked.title') }}</strong><span class="mt-1 block text-ink-muted">{{ __('carpool.profile_blocked.'.$carpoolAccess['reason']) }}</span></p>
+                    <x-button :href="$carpoolStep">{{ __($carpoolAccess['reason'] === 'suspended' ? 'carpool.support' : 'carpool.profile_blocked.action') }}</x-button>
+                </div>
+            @endunless<div class="flex flex-wrap gap-4">@foreach(['carpool.index' => 'mine', 'carpool.chats' => 'messages', 'carpool.requirements' => 'requirements'] as $destination => $label)<x-button variant="secondary" :href="route($destination)">{{ __('carpool.'.$label) }}</x-button>@endforeach</div></section>
         @endif
         <section aria-labelledby="profile-appearance">
             <h2 id="profile-appearance" class="text-section">Aspetto</h2>

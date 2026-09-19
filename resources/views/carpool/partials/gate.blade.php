@@ -1,6 +1,6 @@
 @php($rideReturn = $returnTo ?? url()->current())
 <div class="max-w-xl space-y-5 py-8">
-    <h2 class="text-section">{{ __('carpool.requirements') }}</h2>
+    @unless($hideHeading ?? false)<h2 class="text-section">{{ __('carpool.requirements') }}</h2>@endunless
     <p class="text-ink-muted">{{ __('carpool.onboarding') }}</p>
     @switch($access['reason'])
         @case('login') <x-button :href="route('login', ['intended' => $rideReturn])" data-carpool-intent>{{ __('carpool.login') }}</x-button> @break

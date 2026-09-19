@@ -61,6 +61,7 @@ return [
     'reply' => 'Rispondi', 'reply_to' => 'Risposta al commento #:id', 'delete_comment' => 'Rimuovi commento',
     'report' => 'Segnala', 'report_reason' => 'Motivo della segnalazione', 'report_note' => 'Ulteriori dettagli (facoltativi)',
     'inbox' => 'I tuoi avvisi', 'read_all' => 'Segna tutti come letti', 'no_notifications' => 'Nessun nuovo avviso.', 'new' => 'Nuovo',
+    'inbox_latest' => 'Ultimi avvisi', 'inbox_all' => 'Tutti gli avvisi', 'inbox_loading' => 'Carico gli avvisi…', 'inbox_error' => 'Non riesco a caricare gli avvisi. Aprili dalla pagina completa.', 'inbox_open' => 'Apri gli avvisi',
     'notifications' => ['follow' => 'Hai un nuovo follower', 'comment' => 'Un nuovo commento a un evento', 'open' => 'Apri inCittà per leggere l’aggiornamento.'],
     'whatsapp' => [
         'title' => 'Verifica il tuo numero WhatsApp', 'lead' => 'È gratuito. Con un numero verificato puoi creare il tuo profilo, consigliare eventi e commentare quelli degli altri.',

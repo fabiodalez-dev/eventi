@@ -1,6 +1,6 @@
-<x-layouts.app :narrow="true" :meta="$meta">
-    <div class="mx-auto max-w-xl">
-        @include('community.nav')
+<x-layouts.app :meta="$meta">
+    @include('community.nav')
+    <div class="max-w-3xl">
         <h1 class="text-hero">{{ $meta->heading }}</h1>
         <p class="mt-5 leading-relaxed text-ink-muted">{{ __('community.whatsapp.lead') }}</p>
         <p class="mt-4 text-sm leading-relaxed text-ink-muted">{{ __('community.whatsapp.privacy') }}</p>
