@@ -48,7 +48,7 @@ return [
     'cases' => 'Le tue segnalazioni', 'case' => 'Segnalazione :id', 'reply' => 'Rispondi', 'feedback' => 'Com’è andato il passaggio?',
     'feedback_help' => 'Il feedback è privato e viene visto dallo staff. Una segnalazione urgente può essere inviata subito.',
     'reasons' => ['money' => 'Richiesta di denaro', 'safety' => 'Sicurezza', 'harassment' => 'Molestie o comportamento scorretto', 'no_show' => 'Mancata presentazione', 'accessibility' => 'Accessibilità diversa da quella dichiarata', 'other' => 'Altro'],
-    'RideLeg' => ['outbound' => 'Verso l’evento', 'return' => 'Ritorno'],
+    'RideLeg' => ['outbound' => 'Andata', 'return' => 'Ritorno'],
     'RideStatus' => ['draft' => 'Bozza', 'open' => 'Aperta', 'closed' => 'Chiusa alle nuove richieste', 'cancelled' => 'Annullata', 'completed' => 'Conclusa'],
     'RideRequestStatus' => ['pending' => 'In attesa di conferma', 'accepted' => 'Confermato', 'declined' => 'Non accettato', 'withdrawn' => 'Ritirato', 'expired' => 'Scaduto', 'cancelled' => 'Annullato'],
     'RideAccessibility' => ['not_specified' => 'Da concordare', 'folding_chair' => 'Posso trasportare una sedia pieghevole', 'wheelchair_space' => 'Posto attrezzato per viaggiare sulla sedia'],
