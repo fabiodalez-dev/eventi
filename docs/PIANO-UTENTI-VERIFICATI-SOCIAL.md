@@ -67,6 +67,13 @@ I `supported_apps` attuali corrispondono alla firma storica degli APK locali: `i
 
 Calcolo dell'hash secondo il [campione ufficiale WhatsApp](https://github.com/WhatsApp/WhatsApp-OTP-Sample-App): SHA-256 della stringa UTF-8 `package_name + " " + certificato_DER_in_esadecimale_minuscolo`, primi nove byte, Base64 senza padding, primi undici caratteri. Non usare l'impronta SHA-256 del solo certificato. Resta da provare la consegna reale e il passaggio da WhatsApp su un telefono autorizzato; emulatore e mock HTTP non attestano quel passaggio esterno.
 
+**Controllo del mittente (issue #106).** L'Activity che riceve il codice è esportata, come prevede l'SDK, e l'SDK controlla solo il nonce. Ora l'app legge anche il PendingIntent `_ci_` allegato da WhatsApp e ne verifica il `creatorPackage`, che il sistema compila e un'altra app non può falsificare: sono accettati `com.whatsapp` e `com.whatsapp.w4b` (`WhatsappSender.kt`). Per ora il controllo è **solo in registro** (`WhatsappSender.ENFORCE = false`): un mittente diverso viene annotato nel logcat delle build debug con il solo nome del pacchetto (mai codice, nonce, numero o token) e il flusso prosegue come prima. Renderlo obbligatorio senza prova rischierebbe di spegnere in silenzio l'autocompilazione. Prova su dispositivo reale, con la build debug (hash `PUFKVFAGpse`, già registrato):
+
+1. Collegare il telefono e lanciare `adb logcat -s WhatsappOtp`.
+2. Con **WhatsApp** installato: chiedere il codice dalla community, toccare il pulsante nel messaggio, verificare che il campo si compili e che nel logcat **non** compaia `one-tap intent from untrusted sender`.
+3. Ripetere con **WhatsApp Business** (da solo sul telefono, poi insieme a WhatsApp).
+4. Solo se tutte le prove sono pulite: `ENFORCE = true`, aggiornare il test `enforcementStaysOffUntilTheRealDeviceTest` in `WhatsappSenderTest.kt` e chiudere la issue #106 con quel commit.
+
 Memoria permanente del cambio dominio: [DOMINIO-DEFINITIVO.md](DOMINIO-DEFINITIVO.md), richiamato dalle convenzioni vincolanti. Include Meta, Kapso, OAuth, email, Android, push, mappe, pagamenti e deployment.
 
 Il proprietario ha precisato che il trasferimento avverrà anche su un nuovo account: tutte le integrazioni andranno ricollegate e collaudate lì. Non limitarsi a sostituire gli URL e non presumere che credenziali, risorse, firme o verifiche del vecchio account restino applicabili.

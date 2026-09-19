@@ -1,9 +1,12 @@
 package it.fabiodalez.incitta.community
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import com.whatsapp.otp.android.sdk.WhatsAppOtpHandler
 import com.whatsapp.otp.android.sdk.WhatsAppOtpIncomingIntentHandler
+import it.fabiodalez.incitta.BuildConfig
 import it.fabiodalez.incitta.data.LocalStore
 import it.fabiodalez.incitta.data.WhatsappPendingRequest
 import java.util.UUID
@@ -20,6 +23,7 @@ internal fun shouldNavigateToWhatsapp(code: ReceivedWhatsappCode?, token: String
 /** The code stays in memory. Only an encrypted, expiring handshake is persisted. */
 internal object WhatsappAutofill {
     const val ACTION = "com.whatsapp.otp.OTP_RETRIEVED"
+    private const val TAG = "WhatsappOtp"
     private val incoming = MutableStateFlow<ReceivedWhatsappCode?>(null)
     val received = incoming.asStateFlow()
 
@@ -45,8 +49,13 @@ internal object WhatsappAutofill {
         incoming.value?.takeIf { it.request.id == id }?.let { incoming.value = it.copy(request = bound) }
     }
 
-    fun receive(context: Context, intent: Intent): Boolean {
+    /** [sender] is a test seam: in the app it is always the creator package of the intent's `_ci_` PendingIntent. */
+    fun receive(context: Context, intent: Intent, sender: String? = WhatsappSender.of(intent)): Boolean {
         if (intent.action != ACTION) return false
+        if (!WhatsappSender.trusted(sender)) {
+            if (BuildConfig.DEBUG) logUntrusted(sender)
+            if (!WhatsappSender.accepts(sender)) return false
+        }
         val store = LocalStore(context)
         val session = store.readSession() ?: return false
         val pending = store.readWhatsappRequest() ?: return false
@@ -55,6 +64,12 @@ internal object WhatsappAutofill {
         if (!pending.accepts(intent.getStringExtra("request_id"), session.token, code, System.currentTimeMillis())) return false
         incoming.value = ReceivedWhatsappCode(pending, code)
         return true
+    }
+
+    /** Package name only: never the code, the request id, the phone or the token. Timber is only a transitive dependency and no tree is planted, so it would log nothing. */
+    @SuppressLint("LogNotTimber")
+    private fun logUntrusted(sender: String?) {
+        Log.w(TAG, "one-tap intent from untrusted sender: " + (sender ?: "<none>"))
     }
 
     fun take(context: Context, token: String, challengeId: String): String? {
