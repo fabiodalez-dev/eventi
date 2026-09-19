@@ -29,7 +29,7 @@
     </div>
     @if(!$rideAccess['eligible'])
     <dialog id="ride-gate-{{ $occurrence->id }}" class="fixed inset-0 m-auto max-h-[90dvh] w-[min(92vw,36rem)] overflow-y-auto border border-line bg-canvas p-6 text-ink backdrop:bg-black/50">
-        <form method="dialog" class="flex justify-end"><button type="submit" class="min-h-12 px-3" aria-label="{{ __('common.actions.close') }}">×</button></form>
+        <form method="dialog" class="flex justify-end"><button type="submit" class="ui-action flex min-h-12 min-w-12 items-center justify-center border-2 border-line bg-surface px-3 text-ink transition hover:border-accent hover:bg-canvas" aria-label="{{ __('common.actions.close') }}">×</button></form>
         @include('carpool.partials.gate', ['access' => $rideAccess, 'returnTo' => route('carpool.dates', $occurrence)])
     </dialog>
     @endif

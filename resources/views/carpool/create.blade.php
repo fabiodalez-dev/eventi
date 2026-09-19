@@ -8,6 +8,6 @@
 <fieldset class="flex flex-wrap gap-5">@foreach(\App\Enums\RideLeg::cases() as $leg)<label class="flex min-h-12 items-center gap-3"><input type="radio" name="leg" value="{{ $leg->value }}" @checked(old('leg', 'outbound') === $leg->value)>{{ $leg->label() }}</label>@endforeach</fieldset>
 @include('carpool.partials.offer-fields')
 <label class="flex items-start gap-3"><input required type="checkbox" name="driver_declaration" value="1" class="mt-1.5 size-5 shrink-0"><span class="text-sm">{{ __('carpool.driver_declaration') }}</span></label>
-<div class="flex flex-wrap gap-3"><x-button type="submit">{{ __('carpool.create') }}</x-button><button type="submit" name="draft" value="1" class="ui-action min-h-12 border border-line px-5 font-semibold">{{ __('carpool.draft') }}</button></div>
+<div class="flex flex-wrap gap-3"><x-button type="submit">{{ __('carpool.create') }}</x-button><x-button type="submit" variant="secondary" name="draft" value="1">{{ __('carpool.draft') }}</x-button></div>
 </form>@endif
 </div></x-layouts.app>
