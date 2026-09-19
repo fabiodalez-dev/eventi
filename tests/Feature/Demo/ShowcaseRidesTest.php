@@ -113,7 +113,13 @@ it('offers rides that an eligible viewer finds with the same query as the rides 
     $this->actingAs($viewer)->get(route('carpool.dates', $jam->occurrence_id))->assertOk()
         ->assertSee('Arcella, piazzale Azzurri', false)->assertSee('Marco Zanon');
     $event = EventOccurrence::query()->findOrFail($jam->occurrence_id)->event;
-    $this->get(route('events.show', ['slug' => $event->slug]))->assertOk()->assertSee(route('carpool.dates', $jam->occurrence_id), false);
+    $this->actingAs($viewer)->get(route('events.show', ['slug' => $event->slug]))->assertOk()
+        ->assertSee('<form action="'.route('carpool.dates', $jam->occurrence_id).'" method="GET">', false)
+        ->assertSee('<button type="submit"', false);
+    auth()->logout();
+    $this->get(route('events.show', ['slug' => $event->slug]))->assertOk()
+        ->assertSee('data-carpool-destination="'.route('carpool.dates', $jam->occurrence_id).'"', false)
+        ->assertSee('<button type="button"', false);
 });
 
 it('keeps seats, occupancies and chats consistent with the service rules', function (): void {
