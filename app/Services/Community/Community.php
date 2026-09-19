@@ -10,9 +10,11 @@ use App\Enums\ProfileVisibility;
 use App\Enums\ReportStatus;
 use App\Enums\SavedVisibility;
 use App\Enums\VenueStatus;
+use App\Models\City;
 use App\Models\CommunityComment;
 use App\Models\CommunityPost;
 use App\Models\CommunityProfile;
+use App\Models\EventOccurrence;
 use App\Models\Report;
 use App\Models\SavedEvent;
 use App\Models\User;
@@ -96,6 +98,46 @@ final class Community
             $user->unfollow($target);
             $target->unfollow($user);
         });
+    }
+
+    /**
+     * Bacheca di chi guarda: con scope «following» solo le persone seguite con richiesta accettata,
+     * altrimenti tutta la community visibile. L'archivio del feed mostra tutte le date; senza, solo quelle non concluse.
+     *
+     * @return LengthAwarePaginator<int, CommunityPost>
+     */
+    public function feed(User $viewer, City $city, string $scope = 'following', string $sort = 'recent', bool $past = false, int $perPage = 20): LengthAwarePaginator
+    {
+        $query = $this->access->posts($viewer, $city, $past ? null : true);
+        if ($scope === 'following') {
+            $query->whereIn('user_id', $viewer->followings()->whereNotNull('accepted_at')->where('followable_type', 'user')->select('followable_id'));
+        }
+        if ($sort === 'event') {
+            $query->orderBy(EventOccurrence::query()->select('starts_at')->whereColumn('id', 'community_posts.occurrence_id'));
+        } else {
+            $query->orderByDesc('published_at');
+        }
+
+        return $query->orderByDesc('id')->paginate($perPage);
+    }
+
+    /**
+     * Elenco delle persone visibili a chi guarda, con ricerca per nome o handle: % e _ valgono come lettere, non come jolly.
+     *
+     * @return LengthAwarePaginator<int, CommunityProfile>
+     */
+    public function people(?User $viewer, ?string $q = null, bool $featured = false, int $perPage = 20): LengthAwarePaginator
+    {
+        $query = $this->access->profiles($viewer);
+        if ($q !== null && $q !== '') {
+            $term = '%'.addcslashes($q, '%_\\').'%';
+            $query->where(fn ($inner) => $inner->where('display_name', 'like', $term)->orWhere('handle', 'like', $term));
+        }
+        if ($featured) {
+            $query->where('featured', true);
+        }
+
+        return $query->orderByDesc('featured')->orderBy('display_name')->orderBy('id')->paginate($perPage);
     }
 
     /**

@@ -20,7 +20,6 @@ use App\Models\City;
 use App\Models\CommunityComment;
 use App\Models\CommunityPost;
 use App\Models\CommunityProfile;
-use App\Models\EventOccurrence;
 use App\Models\User;
 use App\Models\Venue;
 use App\Services\Community\Community;
@@ -63,19 +62,10 @@ final class CommunityController extends Controller
 
     public function feed(CommunityQueryRequest $request): View|JsonResponse
     {
-        $user = $this->viewer($request);
+        // La rotta è protetta da auth sia sul sito sia sull'API: il 401 non scatta mai, rende solo onesto il tipo.
+        $user = $this->viewer($request) ?? abort(401);
         $scope = $request->string('scope', 'following')->toString();
-        // L'archivio del feed mostra tutte le date; senza, solo quelle non concluse.
-        $query = $this->access->posts($user, $this->city(), $request->boolean('past') ? null : true);
-        if ($scope === 'following') {
-            $query->whereIn('user_id', $user->followings()->whereNotNull('accepted_at')->where('followable_type', 'user')->select('followable_id'));
-        }
-        if ($request->string('sort')->toString() === 'event') {
-            $query->orderBy(EventOccurrence::query()->select('starts_at')->whereColumn('id', 'community_posts.occurrence_id'));
-        } else {
-            $query->orderByDesc('published_at');
-        }
-        $posts = $query->orderByDesc('id')->paginate(20)->withQueryString();
+        $posts = $this->community->feed($user, $this->city(), $scope, $request->string('sort')->toString(), $request->boolean('past'))->withQueryString();
         $context = ApiContext::forOccurrences($this->city(), [], $user, $posts->pluck('occurrence_id')->all());
         if ($request->expectsJson()) {
             $followingIds = $this->access->followingIds($user, $posts->pluck('user_id'));
@@ -89,9 +79,7 @@ final class CommunityController extends Controller
     public function people(CommunityQueryRequest $request): View|JsonResponse
     {
         $user = $this->viewer($request);
-        $query = $this->access->profiles($user)->when($request->filled('q'), fn ($q) => $q->where(fn ($q) => $q->where('display_name', 'like', '%'.addcslashes($request->string('q')->toString(), '%_\\').'%')->orWhere('handle', 'like', '%'.addcslashes($request->string('q')->toString(), '%_\\').'%')))
-            ->when($request->boolean('featured'), fn ($q) => $q->where('featured', true))->orderByDesc('featured')->orderBy('display_name')->orderBy('id');
-        $profiles = $query->paginate(20)->withQueryString();
+        $profiles = $this->community->people($user, $request->filled('q') ? $request->string('q')->toString() : null, $request->boolean('featured'))->withQueryString();
         $followingIds = $this->access->followingIds($user, $profiles->pluck('user_id'));
         if ($request->expectsJson()) {
             return ApiResponse::collection($profiles->getCollection()->map(fn ($p) => CommunityResource::profile($p, $user, $followingIds))->all(), ['has_more' => $profiles->hasMorePages(), 'next_page' => $profiles->hasMorePages() ? $profiles->currentPage() + 1 : null]);
