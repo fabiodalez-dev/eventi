@@ -152,6 +152,15 @@ it('reduces all_dates to on or absent so spellings and garbage share one entry',
     $this->get('/mappa?all_dates=zzz')->assertOk()->assertHeader('X-Page-Cache', 'hit')->assertSee('data-result-count="1"', false);
 });
 
+it('reads all_dates=on as on, so the first spelling cannot store today under the all-dates entry', function (): void {
+    $city = app(CurrentCity::class)->get();
+    occurrenceAtLocal($city, testCategory(), '2026-09-13 21:30');
+
+    /* Prima `on`: deve mostrare tutte le date, perché la sua voce di cache è quella di `1`. */
+    $this->get('/mappa?all_dates=on')->assertOk()->assertHeader('X-Page-Cache', 'miss')->assertSee('data-result-count="2"', false);
+    $this->get('/mappa?all_dates=1')->assertOk()->assertHeader('X-Page-Cache', 'hit')->assertSee('data-result-count="2"', false);
+});
+
 it('bypasses map page caching for dynamic requests', function (string $url, array $headers) {
     $this->get('/mappa')->assertHeader('X-Page-Cache', 'miss');
     $this->get($url, $headers)->assertOk()->assertHeaderMissing('X-Page-Cache');

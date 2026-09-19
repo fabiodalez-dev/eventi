@@ -38,6 +38,11 @@ final class MapBoundsRequest extends EventFilterRequest
     /**
      * Un `all_dates` illeggibile vale «spento», come gli altri interruttori
      * della lista: un link storpiato mostra la mappa di oggi, non un errore.
+     *
+     * Il valore leggibile diventa `1` o `0` con la stessa regola di
+     * `Request::boolean()`, che è quella della chiave di cache: se qui `on`
+     * valesse «spento» e là «acceso», la mappa di oggi finirebbe salvata sotto
+     * la chiave di tutte le date.
      */
     protected function prepareForValidation(): void
     {
@@ -45,9 +50,19 @@ final class MapBoundsRequest extends EventFilterRequest
 
         $value = $this->query('all_dates');
 
-        if ($value !== null && ! in_array((string) (is_scalar($value) ? $value : ''), ['0', '1', 'true', 'false'], true)) {
-            $this->query->remove('all_dates');
+        if ($value === null) {
+            return;
         }
+
+        $flag = is_scalar($value) ? filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) : null;
+
+        if ($flag === null) {
+            $this->query->remove('all_dates');
+
+            return;
+        }
+
+        $this->query->set('all_dates', $flag ? '1' : '0');
     }
 
     /**
