@@ -9,7 +9,7 @@
     <div class="mt-4 grid gap-2 sm:grid-cols-2">
         @if ($rideAccess['eligible'])
             <form action="{{ route('carpool.dates', $occurrence) }}" method="GET">
-                <button type="submit" class="ui-action flex min-h-12 w-full items-center justify-center border border-line px-4 py-2 text-center font-display text-sm font-extrabold leading-tight text-ink transition hover:bg-ink/8 active:bg-ink/15">
+                <button type="submit" class="ui-action flex min-h-12 w-full items-center justify-center border-2 border-line bg-surface px-4 py-2 text-center font-display text-sm font-extrabold leading-tight text-ink transition hover:border-accent hover:bg-canvas active:bg-ink/15">
                     {{ __('carpool.seek') }}
                 </button>
             </form>
@@ -19,7 +19,7 @@
                 </button>
             </form>
         @else
-            <button type="button" class="ui-action flex min-h-12 w-full items-center justify-center border border-line px-4 py-2 text-center font-display text-sm font-extrabold leading-tight text-ink transition hover:bg-ink/8 active:bg-ink/15" data-carpool-gate="ride-gate-{{ $occurrence->id }}" data-carpool-destination="{{ route('carpool.dates', $occurrence) }}" aria-haspopup="dialog">
+            <button type="button" class="ui-action flex min-h-12 w-full items-center justify-center border-2 border-line bg-surface px-4 py-2 text-center font-display text-sm font-extrabold leading-tight text-ink transition hover:border-accent hover:bg-canvas active:bg-ink/15" data-carpool-gate="ride-gate-{{ $occurrence->id }}" data-carpool-destination="{{ route('carpool.dates', $occurrence) }}" aria-haspopup="dialog">
                 {{ __('carpool.seek') }}
             </button>
             <button type="button" class="ui-action flex min-h-12 w-full items-center justify-center bg-brand px-4 py-2 text-center font-display text-sm font-extrabold leading-tight text-on-brand transition hover:bg-brand-strong active:bg-brand-strong" data-carpool-gate="ride-gate-{{ $occurrence->id }}" data-carpool-destination="{{ route('carpool.create', $occurrence) }}" aria-haspopup="dialog">
