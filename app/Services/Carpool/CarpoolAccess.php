@@ -15,9 +15,15 @@ use App\Services\Community\CommunityAccess;
 
 final class CarpoolAccess
 {
+    private function isAdministrator(User $user): bool
+    {
+        return $user->hasAnyRole(['admin', 'super_admin']);
+    }
+
     public function contacts(User $user): bool
     {
-        return $user->hasVerifiedEmail() && $user->whatsapp_verified_at !== null && $user->whatsapp_phone_hash !== null
+        return $user->hasVerifiedEmail()
+            && ($this->isAdministrator($user) || ($user->whatsapp_verified_at !== null && $user->whatsapp_phone_hash !== null))
             && $user->community_suspended_at === null && $user->carpool_suspended_at === null && ! $user->trashed();
     }
 

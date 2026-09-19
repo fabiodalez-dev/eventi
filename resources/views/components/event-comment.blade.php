@@ -46,6 +46,7 @@
                     action="{{ route('events.comments.react', ['slug' => $event->slug, 'comment' => $comment->id]) }}"
                     method="POST"
                     data-reazione
+                    class="flex items-center"
                 >
                     @csrf
                     <input type="hidden" name="type" value="{{ $tipo->value }}">
@@ -54,9 +55,9 @@
                         aria-pressed="{{ $attiva ? 'true' : 'false' }}"
                         title="{{ $tipo->label() }}"
                         @class([
-                            'ui-action inline-flex min-h-12 items-center gap-1.5 border-2 px-3 py-1.5 text-sm transition',
-                            'border-accent text-accent' => $attiva,
-                            'border-line text-ink-muted hover:border-accent hover:text-ink' => ! $attiva,
+                            'ui-action inline-flex min-h-12 items-center justify-center px-2 py-1 text-lg leading-none transition',
+                            'text-accent' => $attiva,
+                            'text-ink-muted hover:text-accent' => ! $attiva,
                         ])
                     >
                         <span aria-hidden="true">{{ $tipo->emoji() }}</span>
@@ -64,11 +65,11 @@
                     </button>
                 </form>
             @elseif ($user !== null)
-                <a class="ui-action min-h-12 inline-flex items-center px-3" href="{{ route('verification.notice', ['intended' => request()->fullUrl().'#commenti']) }}" aria-label="{{ __('comments.verify_required') }}"><span aria-hidden="true">{{ $tipo->emoji() }}</span></a>
+                <a class="ui-action inline-flex min-h-12 items-center justify-center px-2 text-lg leading-none text-ink-muted transition hover:text-accent" href="{{ route('verification.notice', ['intended' => request()->fullUrl().'#commenti']) }}" aria-label="{{ __('comments.verify_required') }}"><span aria-hidden="true">{{ $tipo->emoji() }}</span></a>
             @else
                 <a href="{{ route('login', ['intended' => request()->fullUrl().'#commenti']) }}" data-apri-iscrizione
                     title="{{ $tipo->label() }}"
-                    class="ui-action inline-flex min-h-12 items-center gap-1.5 border-2 border-line px-3 py-1.5 text-sm text-ink-muted transition hover:border-accent hover:text-ink"
+                    class="ui-action inline-flex min-h-12 items-center justify-center px-2 text-lg leading-none text-ink-muted transition hover:text-accent"
                 >
                     <span aria-hidden="true">{{ $tipo->emoji() }}</span>
                     <span class="sr-only">{{ $tipo->label() }}</span>
@@ -82,20 +83,20 @@
         <span
             data-conteggio-reazioni
             aria-live="polite"
-            class="text-sm text-ink-muted"
+            class="inline-flex min-h-12 items-center text-sm text-ink-muted"
         >{{ $comment->reactions_count > 0 ? $comment->reactions_count : '' }}</span>
 
         @endif
 
         @if (! $nascosto)
             @if ($user?->hasVerifiedEmail())
-                <button type="button" data-apri-risposta="{{ $comment->id }}" class="ui-action min-h-12 px-2 text-sm underline">
+                <button type="button" data-apri-risposta="{{ $comment->id }}" class="ui-action inline-flex min-h-12 items-center px-2 text-sm underline">
                     {{ __('comments.reply') }}
                 </button>
             @elseif ($user !== null)
-                <a class="min-h-12 inline-flex items-center underline" href="{{ route('verification.notice', ['intended' => request()->fullUrl().'#commenti']) }}">{{ __('account.verify.title') }}</a>
+                <a class="inline-flex min-h-12 items-center underline" href="{{ route('verification.notice', ['intended' => request()->fullUrl().'#commenti']) }}">{{ __('account.verify.title') }}</a>
             @else
-                <a href="{{ route('login', ['intended' => request()->fullUrl().'#commenti']) }}" data-apri-iscrizione class="ui-action min-h-12 px-2 text-sm underline">
+                <a href="{{ route('login', ['intended' => request()->fullUrl().'#commenti']) }}" data-apri-iscrizione class="ui-action inline-flex min-h-12 items-center px-2 text-sm underline">
                     {{ __('comments.reply') }}
                 </a>
             @endif
@@ -109,7 +110,7 @@
             >
                 @csrf
                 @method('DELETE')
-                <button type="submit" class="ui-action min-h-12 px-2 text-sm text-ink-muted underline hover:text-alert">
+                <button type="submit" class="ui-action inline-flex min-h-12 items-center px-2 text-sm text-ink-muted underline hover:text-alert">
                     {{ __('comments.delete') }}
                 </button>
             </form>

@@ -7,6 +7,7 @@ use App\Enums\RideStatus;
 use App\Models\CarpoolProfile;
 use App\Models\RideConversation;
 use App\Models\RideOffer;
+use App\Services\Carpool\CarpoolAccess;
 use App\Services\Carpool\CarpoolService;
 use App\Services\Carpool\CarpoolTerms;
 use Illuminate\Support\Facades\DB;
@@ -28,6 +29,16 @@ it('requires both contacts and adulthood', function (string $missing): void {
         'capacity' => 2, 'accessibility' => 'not_specified', 'driver_declaration' => true])->assertForbidden();
     expect(RideOffer::count())->toBe(0);
 })->with(['email_verified_at', 'whatsapp_verified_at', 'whatsapp_phone_hash', 'adult']);
+
+it('does not require WhatsApp verification from an administrator, while retaining the adult and terms requirements', function (): void {
+    $admin = cpStaff();
+    $admin->forceFill(['whatsapp_verified_at' => null, 'whatsapp_phone_hash' => null])->save();
+
+    expect(app(CarpoolAccess::class)->state($admin->fresh()))->toMatchArray(['eligible' => true, 'reason' => null]);
+
+    cpAction($this, $admin, 'offer', ['occurrence_id' => $this->date->id, 'leg' => 'outbound', 'zone' => 'Centro', 'departure_at' => '2026-10-10T18:00:00Z',
+        'capacity' => 2, 'accessibility' => 'not_specified', 'driver_declaration' => true])->assertOk();
+});
 
 it('records separate explicit adult and legal acceptance with server metadata', function (): void {
     $user = carpoolPerson(false);
