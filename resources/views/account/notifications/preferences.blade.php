@@ -22,7 +22,7 @@
         </x-slot:head>
     @endif
 
-    <div class="mx-auto flex w-full max-w-xl flex-col gap-8">
+    <div class="flex w-full flex-col gap-8">
         <header class="flex flex-col gap-2">
             <h1 class="text-hero text-ink">{{ $meta->heading }}</h1>
             <p class="text-sm text-ink-muted">{{ __('notifications.preferences.lead') }}</p>

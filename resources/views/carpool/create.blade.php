@@ -1,4 +1,4 @@
-<x-layouts.app :narrow="true" :meta="$meta"><div class="mx-auto w-full max-w-4xl">@include('carpool.nav')
+<x-layouts.app :meta="$meta">@include('carpool.nav')<div class="w-full max-w-3xl">
 <p class="mb-3 text-sm font-semibold text-accent">{{ __('carpool.free') }}</p><h1 class="text-hero">{{ __('carpool.offer') }}</h1><p class="mt-4 mb-8 text-ink-muted">{{ $event_title }} · {{ $event_date }}</p>
 @if(!$access['eligible']) @include('carpool.partials.gate')
 @else

@@ -1,5 +1,5 @@
-<x-layouts.app :narrow="true" :meta="$meta">
-    <div class="mx-auto max-w-2xl">@include('community.nav')<h1 class="sr-only">{{ $meta->heading }}</h1>@include('community.post-card')
+<x-layouts.app :meta="$meta">
+    @include('community.nav')<div class="max-w-3xl"><h1 class="sr-only">{{ $meta->heading }}</h1>@include('community.post-card')
         @include('community.report', ['subject' => $post])
         <section class="mt-8" aria-labelledby="comments-title"><h2 class="text-section" id="comments-title">{{ __('community.comments') }}</h2>
             @forelse($comments as $comment)

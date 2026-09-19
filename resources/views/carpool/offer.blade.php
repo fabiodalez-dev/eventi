@@ -1,4 +1,4 @@
-<x-layouts.app :narrow="true" :meta="$meta"><div class="mx-auto w-full max-w-4xl">@include('carpool.nav')
+<x-layouts.app :meta="$meta">@include('carpool.nav')<div class="w-full max-w-3xl">
 @include('carpool.partials.offer-context')
 <div class="grid gap-10 lg:grid-cols-[1fr_20rem]">
 <div class="space-y-5"><h2 class="text-section">{{ $offer['driver']['name'] }}</h2><p class="font-semibold">{{ __('carpool.available', ['count' => $offer['available']]) }}</p><p>{{ $offer['accessibility_label'] }}</p>@if($offer['accessibility_note'])<p>{{ $offer['accessibility_note'] }}</p>@endif<p class="text-sm text-ink-muted">{{ __('carpool.accessibility_help') }}</p>@if($offer['note'])<p class="whitespace-pre-line break-words">{{ $offer['note'] }}</p>@endif

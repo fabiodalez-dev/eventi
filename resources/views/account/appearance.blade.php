@@ -1,5 +1,5 @@
 <x-layouts.app :narrow="true" :meta="$meta">
-    <section class="mx-auto max-w-2xl py-6" aria-labelledby="appearance-heading">
+    <section aria-labelledby="appearance-heading">
         <h1 id="appearance-heading" class="text-hero">Aspetto</h1>
         <p class="mt-3 text-ink-muted">Scegli la luce giusta per i tuoi eventi.</p>
         <x-appearance-picker />

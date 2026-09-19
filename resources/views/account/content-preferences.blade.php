@@ -1,5 +1,5 @@
 <x-layouts.app :narrow="true" :meta="$meta">
-    <div class="mx-auto flex w-full max-w-2xl flex-col gap-6">
+    <div class="flex w-full flex-col gap-6">
         <h1 class="text-hero text-ink">I miei interessi</h1>
         <p class="text-ink-muted">Scegli cosa trovare in home, ricerca, mappe, suggerimenti e newsletter. Le scelte valgono anche nell’app e puoi cambiarle in qualsiasi momento.</p>
         @if($errors->any())<div role="alert">{{ $errors->first() }}</div>@endif

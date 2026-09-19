@@ -1,4 +1,4 @@
-<x-layouts.app :narrow="true" :meta="$meta"><div class="mx-auto w-full max-w-4xl">@include('carpool.nav')
+<x-layouts.app :meta="$meta">@include('carpool.nav')<div class="w-full max-w-3xl">
 @include('carpool.partials.offer-context')
 @include('carpool.partials.request-row')
 @if(!$ride['is_driver'] && $ride['status'] === 'accepted' && $ride['can_withdraw'] && $ride['seats'] > 1)

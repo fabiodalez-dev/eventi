@@ -1,4 +1,4 @@
-<x-layouts.app :meta="$meta" :narrow="true"><div class="mx-auto max-w-4xl">@include('carpool.nav')
+<x-layouts.app :meta="$meta">@include('carpool.nav')<div class="w-full max-w-3xl">
 <h1 class="text-hero">{{ __('carpool.reviews.title') }}</h1><p class="mt-4 text-xl font-bold">{{ $driver_name }}</p>
 @if($summary['count'])<p class="my-4 text-lg">{{ __('carpool.reviews.summary', ['average' => number_format($summary['average'], 1, ',', ''), 'count' => $summary['count']]) }}</p>@endif
 <p class="my-4 text-sm text-ink-muted">{{ __('carpool.reviews.period') }}</p>
