@@ -2,7 +2,7 @@
 
 Data: 18 settembre 2026. Branch: `fix/verified-users-social`, creato dal commit `9f03f53`.
 
-Stato: **implementazione web, API, Android e backend amministrativo completata sul branch; validazione e integrazione con main in corso**. Le decisioni qui sotto recepiscono le risposte del proprietario. Le sezioni architetturali successive conservano il ragionamento iniziale; in caso di differenza prevale questo registro di implementazione.
+Stato: **implementazione web, API, Android e backend amministrativo in main e pubblicata il 18 settembre 2026**. Prima integrata con PR #93 (`08018ea`), poi annullata con #95 perché entrata senza review, e reintegrata dopo review completa e correzioni con #98 (server, `59ff0ef`) e #99 (Android, `27f16ef`). Le decisioni qui sotto recepiscono le risposte del proprietario. Le sezioni architetturali successive conservano il ragionamento iniziale; in caso di differenza prevale questo registro di implementazione.
 
 ## Decisioni approvate e realizzazione
 
@@ -55,7 +55,7 @@ Il proprietario ha completato la verifica dell'attività Meta il 18 settembre 20
 
 `fabiodalez.it` aggiunto ai domini autorizzati del portfolio Meta. L'autorizzazione del dominio e la verifica dell'attività restano distinte dalla verifica DNS della proprietà. Dati e documenti dell'attività sono stati completati dal proprietario.
 
-La verifica separata della proprietà di `fabiodalez.it` è stata avviata, ma non è confermata: Chrome si è disconnesso durante il passaggio. Non presentarla come completata. Il progetto Kapso Eventi è stato escluso dall'uso dei messaggi per miglioramento/addestramento modelli attraverso l'opzione dedicata, salvata e verificata nel pannello.
+La verifica separata della proprietà di `fabiodalez.it` è completata: Meta mostra **Verified**, risorsa `950522017480727`, dopo il caricamento del file HTML fornito da Meta nella radice del dominio e il controllo della sua raggiungibilità HTTPS. Il progetto Kapso Eventi è stato escluso dall'uso dei messaggi per miglioramento/addestramento modelli attraverso l'opzione dedicata, salvata e verificata nel pannello.
 
 ### Autocompilazione WhatsApp su Android
 
@@ -68,6 +68,16 @@ I `supported_apps` attuali corrispondono alla firma storica degli APK locali: `i
 Calcolo dell'hash secondo il [campione ufficiale WhatsApp](https://github.com/WhatsApp/WhatsApp-OTP-Sample-App): SHA-256 della stringa UTF-8 `package_name + " " + certificato_DER_in_esadecimale_minuscolo`, primi nove byte, Base64 senza padding, primi undici caratteri. Non usare l'impronta SHA-256 del solo certificato. Resta da provare la consegna reale e il passaggio da WhatsApp su un telefono autorizzato; emulatore e mock HTTP non attestano quel passaggio esterno.
 
 Memoria permanente del cambio dominio: [DOMINIO-DEFINITIVO.md](DOMINIO-DEFINITIVO.md), richiamato dalle convenzioni vincolanti. Include Meta, Kapso, OAuth, email, Android, push, mappe, pagamenti e deployment.
+
+Il proprietario ha precisato che il trasferimento avverrà anche su un nuovo account: tutte le integrazioni andranno ricollegate e collaudate lì. Non limitarsi a sostituire gli URL e non presumere che credenziali, risorse, firme o verifiche del vecchio account restino applicabili.
+
+### Collaudo del rilascio
+
+Dati del primo rilascio (#93); il rilascio corrente è quello di #98 e #99, con le correzioni della review. CI sul commit main: **2.628 test PHP / 11.233 asserzioni**, **95 test browser desktop/mobile / 749 asserzioni**, compilazione e test Android, Pint/PHPStan e controlli architetturali superati. La prova API Android facoltativa è stata poi attivata contro l'API locale: tre test superati, compreso quello escluso nella normale suite, per 88 casi JVM/API distinti complessivamente esercitati. Confermati anche i 18 test strumentali su Android 15.
+
+Rilascio verificato via HTTPS e SHA esatto, `deploy:verify` superato. Schema social e configurazione COPY_CODE/ONE_TAP presenti, informativa aggiornata, nessun account QA trasferito, salvataggi preesistenti ancora privati. Backup database e copia di rollback creati prima del rilascio e conservati sul server.
+
+La pipeline separata Play bundle ha superato test release e lint, poi si è fermata per assenza di `PLAY_UPLOAD_KEY_BASE64`, `PLAY_UPLOAD_PASSWORD` e `ANDROID_GOOGLE_SERVICES_JSON` nell'ambiente CI. L'APK locale è compilato; nessuna pubblicazione Play effettuata. Restano necessarie la configurazione del certificato App signing di Play e una prova WhatsApp completa su un numero/dispositivo autorizzato.
 
 ## 1. Obiettivo e requisiti acquisiti
 

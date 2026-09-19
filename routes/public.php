@@ -78,7 +78,7 @@ Route::get('/feed.rss', [FeedController::class, 'rss'])->name('feeds.rss');
  * inferiore sono tre indirizzi distinti: il primo si può condividere, gli
  * altri due li rilegge la mappa a ogni spostamento.
  */
-Route::get('/mappa', [MapController::class, 'index'])->name('map.index');
+Route::get('/mappa', [MapController::class, 'index'])->middleware(CachePage::class)->name('map.index');
 Route::get('/mappa/marcatori', [MapController::class, 'markers'])->name('map.markers');
 Route::get('/mappa/locale/{venue}', [MapController::class, 'venue'])
     ->whereNumber('venue')

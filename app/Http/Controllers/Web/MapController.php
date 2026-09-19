@@ -74,6 +74,7 @@ final class MapController extends Controller
         return view('map.index', [
             'city' => $city,
             'filters' => $filters,
+            'total' => $this->finder->query($city, $filters)->count(),
             'facetCounts' => app(ContextualFacets::class)->build($city, $filters),
             'payload' => $this->payload->build($city, $filters, $request->bounds()),
             'occurrences' => $this->finder->take($city, $filters, self::FALLBACK_SIZE),

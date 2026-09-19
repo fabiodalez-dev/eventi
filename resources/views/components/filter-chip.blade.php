@@ -19,6 +19,7 @@
 ])
 
 <a
+    data-filter-chip
     href="{{ $href }}"
     @if ($active) aria-current="true" @endif
     {{ $attributes->class([
@@ -45,7 +46,7 @@
     <span class="min-w-0 text-center">{{ $slot }}</span>
 
     @if ($count !== null)
-        <span class="{{ $active ? 'text-on-accent/70' : 'text-ink-subtle' }}">{{ $count }}</span>
+        <span data-filter-count class="shrink-0 tabular-nums tracking-normal {{ $active ? 'text-on-accent/70' : 'text-ink-subtle' }}">{{ $count }}</span>
     @endif
 
     @if ($active && $removable)

@@ -11,7 +11,7 @@
         @vite('resources/js/map.js')
     </x-slot:head>
 
-    <div class="grid grid-cols-1 items-start gap-0.5 bg-line lg:[grid-template-columns:minmax(232px,268px)_minmax(0,1.32fr)_minmax(0,1fr)]">
+    <div class="grid grid-cols-1 items-start gap-0.5 bg-line lg:[grid-template-columns:minmax(240px,300px)_minmax(0,1.32fr)_minmax(0,1fr)]">
         <div class="catalog-heading-panel bg-canvas lg:col-start-2 lg:row-start-1 flex flex-col gap-4 border-b-2 border-line px-[clamp(1rem,1.8vw,1.625rem)] py-[clamp(1.125rem,2.2vw,1.875rem)]">
             <div class="flex items-center gap-2.5">
                 <span aria-hidden="true" class="size-2 bg-accent blink-dot"></span>

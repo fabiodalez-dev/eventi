@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Middleware\CachePage;
 use App\Models\Category;
+use App\Models\User;
 use App\Models\Venue;
 use App\Services\Search\FilterFacets;
 use App\Support\CurrentCity;
@@ -117,4 +118,32 @@ it('uses Laravel failover when the primary frontend store is unavailable', funct
     config()->set('page_cache.store', 'frontend-test');
     $this->get('/eventi')->assertOk()->assertHeader('X-Page-Cache', 'miss');
     $this->get('/eventi')->assertOk()->assertHeader('X-Page-Cache', 'hit');
+});
+
+it('caches map pages separately for all dates and price filters', function (): void {
+    $city = app(CurrentCity::class)->get();
+    occurrenceAtLocal($city, testCategory(), '2026-09-13 21:30');
+
+    $this->get('/mappa')->assertOk()->assertHeader('X-Page-Cache', 'miss')->assertSee('data-result-count="1"', false);
+    $this->get('/mappa')->assertHeader('X-Page-Cache', 'hit')->assertSee('data-result-count="1"', false);
+    $this->get('/mappa?all_dates=1')->assertHeader('X-Page-Cache', 'miss')->assertSee('data-result-count="2"', false);
+    $this->get('/mappa?all_dates=1')->assertHeader('X-Page-Cache', 'hit')->assertSee('data-result-count="2"', false);
+    $this->get('/mappa?price=free')->assertHeader('X-Page-Cache', 'miss');
+    $this->get('/mappa?price=free')->assertHeader('X-Page-Cache', 'hit');
+});
+
+it('bypasses map page caching for dynamic requests', function (string $url, array $headers) {
+    $this->get('/mappa')->assertHeader('X-Page-Cache', 'miss');
+    $this->get($url, $headers)->assertOk()->assertHeaderMissing('X-Page-Cache');
+})->with([
+    'bounds' => ['/mappa?bbox=11,45,12,46', []],
+    'position' => ['/mappa?lat=45.4&lng=11.8', []],
+    'search' => ['/mappa?q=concerto', []],
+    'ajax' => ['/mappa', ['X-Requested-With' => 'XMLHttpRequest']],
+    'markers' => ['/mappa/marcatori', []],
+]);
+
+it('does not serve cached map pages to authenticated visitors', function () {
+    $this->get('/mappa')->assertHeader('X-Page-Cache', 'miss');
+    $this->actingAs(User::factory()->create())->get('/mappa')->assertOk()->assertHeaderMissing('X-Page-Cache');
 });

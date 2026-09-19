@@ -26,8 +26,8 @@
         <p class="m-0 text-[0.813rem] leading-[1.5] text-ink-muted">{{ $meta->description }}</p>
     </header>
 
-    <div data-event-browser data-map-browser data-filter-fade data-result-count="{{ $occurrences->count() }}" class="relative isolate grid items-start gap-0.5 bg-line lg:[grid-template-columns:minmax(240px,300px)_minmax(0,1fr)]">
-        <aside class="order-2 flex flex-col gap-6 overflow-y-auto bg-canvas p-[clamp(1rem,1.6vw,1.375rem)] lg:order-1 lg:sticky lg:top-header lg:max-h-below-header">
+    <div data-event-browser data-map-browser data-filter-fade data-result-count="{{ $total }}" class="relative isolate grid items-start gap-0.5 bg-line lg:[grid-template-columns:minmax(240px,300px)_minmax(0,1fr)]">
+        <aside id="filtri" aria-label="{{ __('filters.panel_label') }}" class="scroll-mt-header order-2 flex flex-col gap-6 lg:overflow-y-auto bg-canvas p-[clamp(1rem,1.6vw,1.375rem)] lg:order-1 lg:sticky lg:top-header lg:max-h-below-header">
             <header class="hidden flex-col gap-2 lg:flex">
                 <h1 class="m-0 font-display text-[clamp(1.5rem,2.4vw,2.25rem)] leading-[0.96] font-extrabold tracking-[-0.04em] text-balance uppercase">{{ $meta->heading }}</h1>
                 <p class="m-0 text-[0.813rem] leading-[1.5] text-ink-muted">{{ $meta->description }}</p>
@@ -36,6 +36,7 @@
             <div class="flex flex-col gap-6">
                 <x-filter-bar
                     :counts="$facetCounts"
+                    :total="$total"
                     :filters="$filters"
                     :categories="$categories"
                     :tags="$tags"

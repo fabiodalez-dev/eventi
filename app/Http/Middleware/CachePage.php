@@ -175,6 +175,7 @@ final class CachePage
     public const QUERY_ALLOWED = [
         'access',
         'accessible',
+        'all_dates',
         'age',
         'stroller',
         'changing_table',
@@ -412,9 +413,10 @@ final class CachePage
          * string: sono indirizzi diversi a ogni metro percorso, quindi chiavi
          * diverse a ogni richiesta. Salvarli riempirebbe la cache di voci che
          * nessuno rileggerà mai — la stessa trappola dell'arrotondamento al
-         * quarto d'ora, vista da un'altra parte.
+         * quarto d'ora, vista da un'altra parte. Anche il rettangolo `bbox`
+         * della mappa cambia a ogni spostamento e resta fuori dalla cache.
          */
-        if ($request->hasAny(['near', 'lat', 'lng']) || $request->hasCookie(RememberedLocation::COOKIE)) {
+        if ($request->hasAny(['near', 'lat', 'lng', 'bbox']) || $request->hasCookie(RememberedLocation::COOKIE)) {
             return false;
         }
 
