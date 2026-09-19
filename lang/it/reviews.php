@@ -6,6 +6,7 @@ return [
     'verification_required' => 'Per commentare o votare, verifica gratuitamente email e WhatsApp.',
     'verify' => 'Completa la verifica', 'no_rating' => 'Solo un commento, senza voto',
     'report' => 'Segnala questa recensione', 'report_reason' => 'Spiega il problema agli amministratori', 'report_send' => 'Invia segnalazione',
+    'reported' => 'Segnalazione inviata agli amministratori. Grazie per l’aiuto.',
     'title' => 'Recensioni del locale', 'singular' => 'Recensione', 'plural' => 'Recensioni di locali e organizzatori',
     'empty' => 'Non ci sono ancora recensioni approvate per questa scheda.',
     'count' => ':count recensioni approvate', 'average' => ':rating su 5',

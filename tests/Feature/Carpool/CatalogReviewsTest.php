@@ -164,3 +164,17 @@ it('keeps the v1 venue reviews payload readable by the installed app', function 
     }
     expect($json['reviews'][0]['rating'])->toBe($data['rating'] ?? 0)->and($json['reviews'][0]['body'])->toBe($data['body'] ?? '');
 })->with([[['rating' => 4]], [['body' => 'Un locale accogliente e ben organizzato.']]]);
+
+it('sends web reporters to the case only while the carpool area exists', function (bool $carpool): void {
+    config(['carpool.enabled' => $carpool]);
+    $review = $this->reviews->submit($this->organizer, $this->passenger, 2, 'Testo da far esaminare agli amministratori.');
+    $this->reviews->moderate($review, cpStaff(), 'approved', 1, null);
+    $response = $this->actingAs($this->driver)->post(route('organizers.review.report', ['slug' => $this->organizer->slug, 'review' => $review->id]), ['body' => 'Vorrei segnalare questo testo.']);
+    $case = CarpoolCase::sole();
+    if ($carpool) {
+        $response->assertRedirect(route('carpool.case', $case->id));
+    } else {
+        $response->assertRedirect(route('organizers.show', ['slug' => $this->organizer->slug]).'#recensioni')->assertSessionHas('status', __('reviews.reported'));
+        $this->get(route('carpool.case', $case->id))->assertNotFound();
+    }
+})->with([true, false]);

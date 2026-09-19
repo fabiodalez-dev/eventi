@@ -59,7 +59,13 @@ class CatalogReviewController extends Controller
         $review = CatalogReview::whereMorphedTo('reviewable', $subject)->findOrFail($review);
         $case = app(CatalogReviews::class)->report($request->user(), $review, $request->validated('body'));
 
-        return $request->expectsJson() ? ApiResponse::item(['case_id' => $case->id]) : redirect()->route('carpool.case', $case->id);
+        if ($request->expectsJson()) {
+            return ApiResponse::item(['case_id' => $case->id]);
+        }
+
+        // La pratica si segue nell'area Assistenza dei passaggi, che esiste
+        // solo a car pooling acceso: altrimenti si torna alla scheda.
+        return config('carpool.enabled') ? redirect()->route('carpool.case', $case->id) : $this->result($request, $subject, __('reviews.reported'));
     }
 
     private function subject(Request $request, string $slug): Venue|Organizer
