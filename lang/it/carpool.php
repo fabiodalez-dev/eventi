@@ -32,7 +32,7 @@ return [
     'offered' => 'Offro', 'requested' => 'Cerco', 'history' => 'Storico', 'searches' => 'Ricerche e avvisi', 'pending' => 'Da gestire',
     'empty_offers' => 'Nessun passaggio disponibile con questi criteri. Attiva un avviso oppure pubblica una richiesta.',
     'empty_mine' => 'I passaggi che offri o richiedi compariranno qui. Parti dalla data di un evento.',
-    'empty_messages' => 'La chat si apre quando il conducente accetta la richiesta.', 'filter' => 'Filtra', 'all' => 'Tutti',
+    'empty_messages' => 'La chat si apre quando il conducente accetta la richiesta.', 'filter' => 'Filtra', 'all' => 'Tutti', 'rules' => 'Regole',
     'sort' => 'Ordina', 'sort_departure' => 'Ora di partenza', 'sort_recent' => 'Più recenti', 'event' => 'Vai all’evento',
     'open_chat' => 'Apri la chat', 'chat_context' => 'Concordate qui il punto di incontro e i dettagli del passaggio.',
     'chat_readonly' => 'Questa conversazione è in sola lettura.', 'chat_hidden' => 'Conversazione non disponibile. Puoi contattare l’assistenza.',
