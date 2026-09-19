@@ -118,12 +118,17 @@ class DatabaseInspector
                 continue;
             }
 
-            if (preg_match_all('/Schema::create\(\s*[\'"]([a-z0-9_]+)[\'"]/i', $contents, $matches) === 0) {
-                continue;
+            $up = preg_split('/\bpublic\s+function\s+down\s*\(/i', $contents, 2)[0];
+
+            preg_match_all('/Schema::create\(\s*[\'"]([a-z0-9_]+)[\'"]/i', $up, $creates);
+            foreach ($creates[1] as $table) {
+                $tables[$table] = true;
             }
 
-            foreach ($matches[1] as $table) {
-                $tables[$table] = true;
+            preg_match_all('/Schema::rename\(\s*[\'"]([a-z0-9_]+)[\'"]\s*,\s*[\'"]([a-z0-9_]+)[\'"]/i', $up, $renames, PREG_SET_ORDER);
+            foreach ($renames as $rename) {
+                unset($tables[$rename[1]]);
+                $tables[$rename[2]] = true;
             }
         }
 

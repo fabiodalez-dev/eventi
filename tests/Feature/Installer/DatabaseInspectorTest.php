@@ -96,8 +96,8 @@ it('scrive il dettaglio tecnico nel log e non nel messaggio', function (): void 
 it('deriva le tabelle attese dai file di migrazione', function (): void {
     $expected = inspector()->expectedTables();
 
-    expect($expected)->toContain('cities', 'venues', 'events', 'event_occurrences', 'users', 'pages')
-        ->and($expected)->not->toContain('migrations');
+    expect($expected)->toContain('cities', 'venues', 'events', 'event_occurrences', 'users', 'pages', 'reviews')
+        ->and($expected)->not->toContain('migrations', 'venue_reviews');
 });
 
 it('non trova tabelle mancanti su un database migrato', function (): void {
