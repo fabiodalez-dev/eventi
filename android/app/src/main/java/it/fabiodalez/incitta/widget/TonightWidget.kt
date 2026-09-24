@@ -228,7 +228,7 @@ internal object TonightWidgetStore {
             val current = read(context)
             if (!tonightWidgetShouldRefresh(current, System.currentTimeMillis(), powerSave)) return@withLock false
             val items = try {
-                AppRepository(context).tonightOccurrences(TONIGHT_WIDGET_LIMIT)
+                AppRepository(context).tonightOccurrences(TONIGHT_WIDGET_CACHE)
             } catch (error: CancellationException) {
                 throw error
             } catch (_: Exception) {

@@ -39,24 +39,36 @@ final class VenueMonthlyReport
      */
     public function forMonth(Venue $venue, CarbonImmutable $monthStart): array
     {
-        $from = $monthStart->startOfMonth();
+        $from = $this->localMonth($venue, $monthStart);
         $until = $from->endOfMonth();
-        $totals = $this->totals($venue, $from, $until);
-        $previousStart = $from->subMonthNoOverflow()->startOfMonth();
-        $previous = $this->totals($venue, $previousStart, $previousStart->endOfMonth());
+        $totals = $this->totals($venue, $from);
+        $previous = $this->totals($venue, $from->subMonthNoOverflow()->startOfMonth());
 
         return ['from' => $from, 'until' => $until, 'label' => $from->locale('it')->isoFormat('MMMM YYYY'),
             'totals' => $totals, 'previous' => $previous, 'empty' => array_sum($totals) === 0];
     }
 
     /**
+     * Il primo istante del mese **nel fuso del locale**.
+     *
+     * Costruito dalla data di calendario e non convertendo un istante UTC: il
+     * 30 settembre alle 23:59 UTC è già il primo ottobre a Roma, e un
+     * `endOfDay()` applicato dopo la conversione allungava il rapporto di
+     * settembre fino a tutto il primo ottobre — e quello di agosto fino al
+     * primo settembre, cioè dentro il mese che il confronto doveva misurare.
+     */
+    private function localMonth(Venue $venue, CarbonImmutable $month): CarbonImmutable
+    {
+        return CarbonImmutable::parse($month->format('Y-m-01 00:00:00'), $venue->city->timezone);
+    }
+
+    /**
      * @return array<string, int>
      */
-    public function totals(Venue $venue, CarbonImmutable $from, CarbonImmutable $until): array
+    public function totals(Venue $venue, CarbonImmutable $monthStart): array
     {
-        $timezone = $venue->city->timezone;
-        $localFrom = $from->setTimezone($timezone)->startOfDay();
-        $localUntil = $until->setTimezone($timezone)->endOfDay();
+        $localFrom = $this->localMonth($venue, $monthStart);
+        $localUntil = $localFrom->endOfMonth()->endOfDay();
         $dates = [$localFrom->toDateString(), $localUntil->toDateString()];
         $instants = [$localFrom->utc(), $localUntil->utc()];
         $events = Event::query()->where('venue_id', $venue->getKey())->select('events.id');
@@ -71,6 +83,12 @@ final class VenueMonthlyReport
                 ->whereBetween('created_at', $instants)->count(),
             'new_followers' => Follow::query()->where('followable_type', 'venue')->where('followable_id', $venue->getKey())
                 ->whereBetween('created_at', $instants)->count(),
+            /* Le prenotazioni si contano per quando sono **arrivate**, ed è ciò
+               che dice l'etichetta: una nata in lista d'attesa a luglio e
+               confermata ad agosto resta di luglio. Contarle per la data di
+               conferma richiederebbe di registrarla, che oggi non avviene, e
+               un numero che cambia mese a posteriori non si può confrontare
+               con quello mandato il mese prima. */
             'bookings' => Booking::query()->whereIn('occurrence_id', clone $occurrences)
                 ->where('status', BookingStatus::Confirmed)->whereBetween('created_at', $instants)->count(),
             // Le presenze si contano quando sono avvenute, non quando il posto è stato prenotato.

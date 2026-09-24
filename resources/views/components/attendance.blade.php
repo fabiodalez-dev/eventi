@@ -17,7 +17,16 @@
     $access = app(\App\Services\Community\CommunityAccess::class);
     $attendees = $access->attendees($occurrence, $viewer)->limit(12)->get();
     $total = $access->attendees($occurrence, $viewer)->count();
-    $going = $viewer !== null && $attendees->contains('id', $viewer->getKey());
+    /*
+        La propria partecipazione si legge dal proprio salvataggio, non dai
+        primi dodici nomi: dal tredicesimo in poi il pulsante direbbe «ci
+        vado» a chi ci va già, e premendolo non si toglierebbe dall'elenco.
+    */
+    $going = $viewer !== null && \App\Models\SavedEvent::query()
+        ->where('user_id', $viewer->getKey())
+        ->where('occurrence_id', $occurrence->getKey())
+        ->where('visibility', \App\Enums\SavedVisibility::Public)
+        ->exists();
     $verified = $viewer?->isWhatsappVerified() ?? false;
 @endphp
 

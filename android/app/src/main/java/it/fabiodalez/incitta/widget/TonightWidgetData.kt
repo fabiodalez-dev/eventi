@@ -24,6 +24,19 @@ import kotlinx.serialization.Serializable
 /** Tre date: oltre, in due righe di widget non si leggono più. */
 internal const val TONIGHT_WIDGET_LIMIT = 3
 
+/**
+ * Quante date chiedere e tenere da parte, che è un'altra cosa da quante se ne
+ * mostrano.
+ *
+ * Chiederne tre e mostrarne tre sembra la stessa cosa e non lo è: se fra quelle
+ * tre ce n'è una annullata, una ripetuta o una già finita, il widget resta
+ * mezzo vuoto mentre la quarta serata della città è ancora valida. E fra un
+ * aggiornamento e l'altro passano dodici ore, durante le quali le date scadono
+ * una a una: con tre sole in cache il widget si svuota da solo prima del giro
+ * successivo.
+ */
+internal const val TONIGHT_WIDGET_CACHE = 10
+
 /** Due aggiornamenti al giorno. Una bacheca della sera non cambia ogni ora. */
 internal const val TONIGHT_WIDGET_INTERVAL_MILLIS = 12L * 60 * 60 * 1000
 
@@ -104,7 +117,7 @@ internal fun tonightWidgetTime(occurrence: Occurrence): String =
 private fun instantOrNull(value: String?): Long? =
     value?.let { runCatching { OffsetDateTime.parse(it).toInstant().toEpochMilli() }.getOrNull() }
 
-internal fun tonightWidgetEntries(items: List<Occurrence>, limit: Int = TONIGHT_WIDGET_LIMIT): List<TonightWidgetEntry> =
+internal fun tonightWidgetEntries(items: List<Occurrence>, limit: Int = TONIGHT_WIDGET_CACHE): List<TonightWidgetEntry> =
     items.asSequence()
         // Mandare qualcuno a una serata annullata è peggio di un widget vuoto.
         .filter { it.status != "cancelled" }
@@ -120,7 +133,11 @@ internal fun tonightWidgetEntries(items: List<Occurrence>, limit: Int = TONIGHT_
                 url = tonightWidgetUrl(occurrence),
                 expiresAt = instantOrNull(occurrence.effectiveEndsAt)
                     ?: instantOrNull(occurrence.endsAt)
-                    ?: start?.plus(ASSUMED_LENGTH_MILLIS)
+                    /* Una data di tutto il giorno comincia a mezzanotte: con le
+                       tre ore presunte scadrebbe alle tre del mattino e il
+                       widget la toglierebbe prima ancora che venga sera, che è
+                       l'unico momento in cui serviva. Vale fino a fine giornata. */
+                    ?: start?.let { if (occurrence.isAllDay) endOfDay(it) else it + ASSUMED_LENGTH_MILLIS }
                     ?: Long.MAX_VALUE,
             )
         }
@@ -133,8 +150,16 @@ internal fun tonightWidgetEntries(items: List<Occurrence>, limit: Int = TONIGHT_
  * filtro il widget mostrerebbe fino a mezzogiorno il programma di ieri sera,
  * con l'aria di essere aggiornato.
  */
-internal fun tonightWidgetVisible(snapshot: TonightWidgetSnapshot, now: Long): List<TonightWidgetEntry> =
-    snapshot.entries.filter { it.expiresAt > now }
+internal fun tonightWidgetVisible(
+    snapshot: TonightWidgetSnapshot,
+    now: Long,
+    limit: Int = TONIGHT_WIDGET_LIMIT,
+): List<TonightWidgetEntry> = snapshot.entries.filter { it.expiresAt > now }.take(limit)
+
+/** La fine della giornata di quell'istante, nel fuso della città. */
+private fun endOfDay(instant: Long): Long =
+    java.time.Instant.ofEpochMilli(instant).atZone(ROME).toLocalDate()
+        .plusDays(1).atStartOfDay(ROME).toInstant().toEpochMilli() - 1
 
 /**
  * Se rifare il giro di rete.

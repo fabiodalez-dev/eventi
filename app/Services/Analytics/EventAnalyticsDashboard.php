@@ -93,17 +93,30 @@ final class EventAnalyticsDashboard
         $sum = implode(', ', array_map(fn ($column) => 'SUM(d.'.$column.') as '.$column, $metrics));
         $content = $this->window(DB::table('event_views_daily as d')->join('events as e', 'e.id', '=', 'd.event_id')
             ->whereIn('e.id', clone $ids), 'd.date', $filters);
+        $tenant = Filament::getTenant();
+        $venueId = Filament::getCurrentPanel()?->getId() === 'venue' && $tenant instanceof Venue ? $tenant->getKey() : null;
+        /* `leftJoin` e non `join`: i link della scheda del locale e i canali
+           personalizzati che puntano al locale non hanno un evento sotto, e un
+           join interno li scartava sempre. Il risultato si vedeva nella stessa
+           pagina: la tabella dei link stampabili mostrava i loro clic, il
+           grafico dei canali li ignorava, e scegliere uno di quei canali nel
+           filtro dava tutti zeri. */
         $short = $this->window(DB::table('event_share_daily as d')->join('event_share_links as l', 'l.id', '=', 'd.share_link_id')
-            ->join('events as e', 'e.id', '=', 'l.event_id')->whereIn('e.id', clone $ids)
+            ->leftJoin('events as e', 'e.id', '=', 'l.event_id')
+            ->where(function (Builder $query) use ($ids, $venueId): void {
+                $query->whereIn('e.id', clone $ids);
+                if ($venueId !== null) {
+                    $query->orWhere('l.venue_id', $venueId);
+                }
+            })
             ->when(filled($filters['channel'] ?? null), fn (Builder $q) => $q->where('l.channel', $filters['channel'])), 'd.date', $filters);
         $contentByEvent = (clone $content)->selectRaw('e.id, '.$sum)->groupBy('e.id')->get()->keyBy('id');
         $shortByEvent = (clone $short)->selectRaw('e.id, SUM(d.shares) as short_shares, SUM(d.clicks) as short_clicks')
             ->groupBy('e.id')->get()->keyBy('id');
         $activity = $this->activity($ids, $filters);
         $campaigns = Sponsorship::withTrashed()->whereIn('event_id', clone $ids);
-        $tenant = Filament::getTenant();
-        if (Filament::getCurrentPanel()?->getId() === 'venue' && $tenant instanceof Venue) {
-            $campaigns->where(fn ($q) => $q->whereNull('sponsorship_grant_id')->orWhereHas('grant', fn ($g) => $g->where('venue_id', $tenant->id)));
+        if ($venueId !== null) {
+            $campaigns->where(fn ($q) => $q->whereNull('sponsorship_grant_id')->orWhereHas('grant', fn ($g) => $g->where('venue_id', $venueId)));
         }
         $paid = $this->window(DB::table('sponsorship_daily_stats as d')->join('sponsorships as s', 's.id', '=', 'd.sponsorship_id')
             ->join('events as e', 'e.id', '=', 's.event_id')->whereIn('s.id', $campaigns->select('sponsorships.id')), 'd.day', $filters)
@@ -135,6 +148,16 @@ final class EventAnalyticsDashboard
         $totals = [];
         foreach ([...$metrics, 'short_shares', 'short_clicks', 'interactions', ...array_keys($activity), 'paid_impressions', 'paid_clicks'] as $metric) {
             $totals[$metric] = (int) $eventRows->sum($metric);
+        }
+        /* I totali si sommano dalle righe, che sono per evento: i link della
+           scheda del locale non stanno in nessuna riga — non sono di un evento —
+           e senza questo pezzo il totale della pagina sarebbe più basso della
+           somma dei link che la pagina stessa elenca. */
+        if ($venueId !== null) {
+            $dellaScheda = (clone $short)->whereNull('l.event_id')
+                ->selectRaw('SUM(d.shares) as short_shares, SUM(d.clicks) as short_clicks')->first();
+            $totals['short_shares'] += (int) ($dellaScheda->short_shares ?? 0);
+            $totals['short_clicks'] += (int) ($dellaScheda->short_clicks ?? 0);
         }
         $channels = collect(app(EventShares::class)->channels())->map(function (string $channel) use ($short): array {
             $data = (clone $short)->where('l.channel', $channel)->selectRaw('SUM(d.shares) as shares, SUM(d.clicks) as clicks')->first();

@@ -101,7 +101,15 @@ final class TicketingService
             $already = AdmissionTicket::query()->whereHas('booking', fn ($q) => $q->where('occurrence_id', $date->id)->where('user_id', $user->id))
                 ->where('status', '!=', AdmissionStatus::Cancelled)->count();
             $this->ensure($already + count($names) <= $date->booking_limit, 'account_limit');
-            $hasQueue = Booking::query()->where('occurrence_id', $date->id)->where('status', BookingStatus::Waitlisted)->exists();
+            /* La coda spinge in lista d'attesa solo finché la coda può davvero
+               avanzare. A ridosso dell'inizio `promotable()` ferma le promozioni:
+               senza questa condizione il posto rimasto libero non sarebbe
+               prenotabile da nessuno — la coda non lo prende più e chi prova a
+               prenotarlo viene mandato in coda a sua volta — mentre la pagina
+               continua a dichiararlo disponibile. In quelle ore il posto è di
+               chi si presenta, che è esattamente ciò che `promotable()` dice. */
+            $hasQueue = $this->promotable($date)
+                && Booking::query()->where('occurrence_id', $date->id)->where('status', BookingStatus::Waitlisted)->exists();
             $full = $hasQueue || ($date->booking_capacity !== null && $this->occupied($date) + count($names) > $date->booking_capacity);
             $this->ensure(! $full || ($waitlist && $date->booking_waitlist), 'full');
             $booking = Booking::query()->create([
@@ -169,6 +177,14 @@ final class TicketingService
             $this->ensure($ticket->status !== AdmissionStatus::CheckedIn, 'already_used');
             $this->ensure($ticket->status === AdmissionStatus::Valid, 'invalid_qr');
             $ticket->update(['status' => AdmissionStatus::CheckedIn, 'checked_in_at' => now(), 'checked_in_by' => $actor->id]);
+            /* Presentarsi alla porta è la conferma più forte che esista, e chiude
+               la finestra. Senza, `expirePromotions()` — che gira ogni minuto —
+               poteva annullare fra sessanta secondi una prenotazione il cui
+               biglietto era già passato al controllo: la persona è dentro e il
+               sistema dice che non ha un posto. Entrambi i percorsi bloccano
+               prima la data, quindi qui non serve un ordine di lock nuovo. */
+            Booking::query()->whereKey($ticket->booking_id)->whereNotNull('promotion_expires_at')
+                ->update(['promotion_expires_at' => null]);
             $this->audit($ticket->booking, 'checked_in:'.$ticket->id, $actor);
 
             return $ticket;
@@ -301,15 +317,22 @@ final class TicketingService
     public function expirePromotions(): int
     {
         $expired = 0;
+        /* Chi è già entrato non si annulla, doppia rete oltre al check-in che
+           chiude la finestra: togliere dall'annullamento il solo biglietto
+           lascerebbe la prenotazione annullata attorno a un ingresso avvenuto,
+           che è uno stato che nessuno saprebbe leggere. */
+        $checkedIn = fn ($query) => $query->where('status', AdmissionStatus::CheckedIn);
         $dates = Booking::query()->where('status', BookingStatus::Confirmed)
             ->whereNotNull('promotion_expires_at')->where('promotion_expires_at', '<=', now())
+            ->whereDoesntHave('tickets', $checkedIn)
             ->select('occurrence_id')->distinct()->orderBy('occurrence_id')->pluck('occurrence_id');
 
         foreach ($dates as $id) {
-            DB::transaction(function () use ($id, &$expired): void {
+            DB::transaction(function () use ($id, $checkedIn, &$expired): void {
                 $date = EventOccurrence::withTrashed()->lockForUpdate()->find($id);
                 $bookings = Booking::query()->where('occurrence_id', $id)->where('status', BookingStatus::Confirmed)
-                    ->whereNotNull('promotion_expires_at')->where('promotion_expires_at', '<=', now())->lockForUpdate()->get();
+                    ->whereNotNull('promotion_expires_at')->where('promotion_expires_at', '<=', now())
+                    ->whereDoesntHave('tickets', $checkedIn)->lockForUpdate()->get();
                 foreach ($bookings as $booking) {
                     $booking->tickets()->where('status', '!=', AdmissionStatus::Cancelled)
                         ->update(['status' => AdmissionStatus::Cancelled->value, 'cancelled_at' => now()]);

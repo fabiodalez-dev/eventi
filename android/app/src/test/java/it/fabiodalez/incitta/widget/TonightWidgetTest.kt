@@ -57,8 +57,46 @@ class TonightWidgetTest {
     }
 
     @Test fun nonSuperaIlNumeroDiRigheChiesto() {
-        val entries = tonightWidgetEntries((1L..10L).map { occurrence(it) })
-        assertEquals(TONIGHT_WIDGET_LIMIT, entries.size)
+        val snapshot = TonightWidgetSnapshot(tonightWidgetEntries((1L..20L).map { occurrence(it) }), loaded = true)
+        assertEquals(TONIGHT_WIDGET_LIMIT, tonightWidgetVisible(snapshot, millis("2026-09-24T20:00:00+02:00")).size)
+    }
+
+    /*
+     * La cache tiene più date di quante se ne mostrano, ed è voluto.
+     *
+     * Chiederne tre e mostrarne tre sembra la stessa cosa: se però fra quelle
+     * tre ce n'è una annullata o già finita, il widget resta mezzo vuoto mentre
+     * la quarta serata della città è ancora valida. E fra un aggiornamento e
+     * l'altro passano dodici ore, durante le quali le date scadono una a una.
+     */
+    @Test fun tieneDaParteDateInPiuDiQuanteNeMostra() {
+        val entries = tonightWidgetEntries((1L..20L).map { occurrence(it) })
+        assertEquals(TONIGHT_WIDGET_CACHE, entries.size)
+    }
+
+    @Test fun leDateScaduteNonSvuotanoIlWidgetSeCeNeSonoAltre() {
+        val passate = (1L..3L).map { occurrence(it, startsAt = "2026-09-24T09:00:00+02:00", endsAt = "2026-09-24T10:00:00+02:00") }
+        val future = (4L..8L).map { occurrence(it) }
+        val snapshot = TonightWidgetSnapshot(tonightWidgetEntries(passate + future), loaded = true)
+
+        val visibili = tonightWidgetVisible(snapshot, millis("2026-09-24T20:00:00+02:00"))
+
+        assertEquals(TONIGHT_WIDGET_LIMIT, visibili.size)
+        assertEquals(listOf(4L, 5L, 6L), visibili.map { it.occurrenceId })
+    }
+
+    /*
+     * Una data di tutto il giorno comincia a mezzanotte: con la durata presunta
+     * di tre ore scadeva alle tre del mattino, e il widget la toglieva prima
+     * ancora che venisse sera — cioè prima dell'unico momento in cui serviva.
+     */
+    @Test fun laDataDiTuttoIlGiornoValeFinoASera() {
+        val entry = tonightWidgetEntries(
+            listOf(occurrence(1, startsAt = "2026-09-24T00:00:00+02:00", endsAt = null, allDay = true)),
+        ).single()
+
+        assertTrue(entry.expiresAt > millis("2026-09-24T22:00:00+02:00"))
+        assertTrue(entry.expiresAt < millis("2026-09-25T00:00:01+02:00"))
     }
 
     @Test fun laStessaDataRipetutaOccupaUnaRigaSola() {

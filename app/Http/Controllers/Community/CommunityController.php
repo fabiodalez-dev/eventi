@@ -9,6 +9,7 @@ use App\Enums\PostIntent;
 use App\Enums\ProfileVisibility;
 use App\Enums\VenueStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Community\AttendanceRequest;
 use App\Http\Requests\Community\CommentRequest;
 use App\Http\Requests\Community\CommunityQueryRequest;
 use App\Http\Requests\Community\CommunityReportRequest;
@@ -231,9 +232,9 @@ final class CommunityController extends Controller
      * pagina di pubblicazione con testo e intento resta dov'è, per chi vuole
      * dire qualcosa in più.
      */
-    public function attendance(Request $request, EventOccurrence $occurrence): JsonResponse|RedirectResponse
+    public function attendance(AttendanceRequest $request, EventOccurrence $occurrence): JsonResponse|RedirectResponse
     {
-        $public = $this->community->attendance($request->user(), $occurrence, $request->boolean('going'));
+        $public = $this->community->attendance($request->user(), $occurrence, $request->going());
 
         if ($request->expectsJson()) {
             return ApiResponse::item(['going' => $public,

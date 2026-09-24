@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Community;
 
+use App\Enums\ProfileVisibility;
 use App\Models\CommunityProfile;
 use App\Models\EventOccurrence;
 use App\Models\EventPoll;
@@ -145,20 +146,34 @@ final class EventPolls
     public function outcome(EventPoll $poll, ?User $viewer): array
     {
         $poll->loadMissing(['options.occurrence.event', 'options.votes.user.communityProfile']);
-        $options = $poll->options->map(function (EventPollOption $option) use ($viewer): array {
-            $voters = $option->votes->map(fn (EventPollVote $vote): string => $this->name($vote->user, $viewer))->values()->all();
+        /* Una data cancellata dopo la creazione del sondaggio lascia l'opzione
+           senza occorrenza: la chiave esterna cancella a cascata solo alla
+           cancellazione vera, e queste si cancellano in modo reversibile. Chi
+           disegna la pagina legge `business_date` e senza questo filtro la
+           pagina si rompe — succede quando l'organizzatore ritira una delle
+           date proposte, che non è un caso di laboratorio. */
+        $options = $poll->options
+            ->filter(fn (EventPollOption $option): bool => $option->occurrence instanceof EventOccurrence)
+            ->map(function (EventPollOption $option) use ($viewer): array {
+                $voters = $option->votes->map(fn (EventPollVote $vote): string => $this->name($vote->user, $viewer))->values()->all();
 
-            return ['option' => $option, 'voters' => $voters, 'count' => count($voters)];
-        })->sortByDesc('count')->values()->all();
+                return ['option' => $option, 'voters' => $voters, 'count' => count($voters)];
+            })->sortByDesc('count')->values()->all();
 
         return ['options' => $options, 'open' => $poll->isOpen(),
             'participants' => $poll->votes->pluck('user_id')->unique()->count()];
     }
 
     /**
-     * Il nome con cui una persona compare nell'esito: quello pubblico se ce
-     * l'ha, altrimenti il nome generico. Il sondaggio non è il posto dove
-     * scoprire l'identità di qualcuno che non l'ha resa pubblica.
+     * Il nome con cui una persona compare nell'esito.
+     *
+     * Vale la stessa regola del resto della community (`CommunityAccess::profiles`):
+     * il nome pubblico a chiunque, quello riservato agli iscritti solo a chi ha
+     * un indirizzo verificato, e niente per chi ha chiuso il profilo. Il
+     * controllo sulla visibilità mancava, e il nome usciva per ogni profilo
+     * esistente: un sondaggio fra amici non è il posto dove si scopre
+     * l'identità di chi non l'ha resa pubblica, e chi ha chiuso il profilo lo
+     * ha fatto apposta.
      */
     private function name(?User $user, ?User $viewer): string
     {
@@ -173,7 +188,14 @@ final class EventPolls
         // Il profilo può non esserci: chi vota non deve per forza avere un profilo pubblico.
         $profile = $user->communityProfile;
 
-        return $profile instanceof CommunityProfile ? $profile->display_name : __('community.member');
+        if (! $profile instanceof CommunityProfile) {
+            return __('community.member');
+        }
+
+        $visibile = $profile->visibility === ProfileVisibility::Public
+            || ($profile->visibility === ProfileVisibility::Members && $viewer?->hasVerifiedEmail() === true);
+
+        return $visibile ? $profile->display_name : __('community.member');
     }
 
     /**

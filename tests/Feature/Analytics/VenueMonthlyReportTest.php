@@ -48,8 +48,13 @@ function septemberActivity(Venue $venue, int $views = 40): void
 {
     $occurrence = occurrenceAtLocal(test()->city, test()->category, '2026-09-12 21:00', '2026-09-12 23:00', venue: $venue);
     EventViewDaily::query()->create(['event_id' => $occurrence->event_id, 'date' => '2026-09-12', 'views' => $views]);
-    SavedEvent::query()->create(['user_id' => User::factory()->create()->getKey(),
-        'occurrence_id' => $occurrence->getKey(), 'created_at' => CarbonImmutable::parse('2026-09-12 12:00', 'Europe/Rome')]);
+    /* `created_at` non e' fra i campi riempibili: passarlo a `create()` lo fa
+       ignorare in silenzio e il salvataggio prende l'istante congelato, che in
+       questi test e' il primo ottobre. Finche' la finestra del rapporto
+       sconfinava nel mese seguente il test passava lo stesso — per il motivo
+       sbagliato — e smetteva di proteggere proprio il confine del mese. */
+    SavedEvent::query()->create(['user_id' => User::factory()->create()->getKey(), 'occurrence_id' => $occurrence->getKey()])
+        ->forceFill(['created_at' => CarbonImmutable::parse('2026-09-12 12:00', 'Europe/Rome')])->save();
 }
 
 it('conta solo ciò che appartiene al locale e mai i numeri di un altro', function (): void {
@@ -119,4 +124,55 @@ it('confronta con il mese precedente solo quando esiste un termine di paragone',
     $report = app(VenueMonthlyReport::class)->forMonth($venue, CarbonImmutable::parse('2026-09-01'));
 
     expect($report['totals']['views'])->toBe(40)->and($report['previous']['views'])->toBe(20);
+});
+
+/**
+ * Il mese finisce quando finisce nel fuso del locale.
+ *
+ * Il primo ottobre a Roma comincia due ore prima di quanto dica l'orologio
+ * UTC: costruendo la fine del mese da un istante UTC e allungandola a fine
+ * giornata, il rapporto di settembre si prendeva anche tutto il primo ottobre,
+ * e il confronto con agosto tutto il primo settembre — cioè dentro il mese che
+ * doveva servire da paragone.
+ */
+it('non sconfina nel mese seguente per via del fuso', function (): void {
+    $venue = reportVenue();
+    septemberActivity($venue, views: 40);
+
+    $ottobre = occurrenceAtLocal($this->city, $this->category, '2026-10-01 21:00', '2026-10-01 23:00', venue: $venue);
+    EventViewDaily::query()->create(['event_id' => $ottobre->event_id, 'date' => '2026-10-01', 'views' => 500]);
+
+    $report = app(VenueMonthlyReport::class)->forMonth($venue, CarbonImmutable::parse('2026-09-01'));
+
+    expect($report['totals']['views'])->toBe(40);
+});
+
+/**
+ * Un secondo lancio non rimanda niente.
+ *
+ * È il caso normale, non quello raro: il comando si rilancia a mano quando il
+ * primo sembra andato storto, e senza registro chi aveva già ricevuto il
+ * rapporto lo riceve due volte. Una email di troppo in un rapporto mensile è
+ * la ragione per cui la gente spegne le notifiche.
+ */
+it('non rimanda il rapporto a chi lo ha già ricevuto', function (): void {
+    $venue = reportVenue();
+    $owner = reportOwner($venue, ['email_verified_at' => now()]);
+    septemberActivity($venue);
+
+    $this->artisan('venues:monthly-report', ['--month' => '2026-09'])->assertSuccessful();
+    $this->artisan('venues:monthly-report', ['--month' => '2026-09'])->assertSuccessful();
+
+    Notification::assertSentToTimes($owner, VenueMonthlyReportNotification::class, 1);
+});
+
+it('la prova generale non consuma il turno di nessuno', function (): void {
+    $venue = reportVenue();
+    $owner = reportOwner($venue, ['email_verified_at' => now()]);
+    septemberActivity($venue);
+
+    $this->artisan('venues:monthly-report', ['--month' => '2026-09', '--dry-run' => true])->assertSuccessful();
+    $this->artisan('venues:monthly-report', ['--month' => '2026-09'])->assertSuccessful();
+
+    Notification::assertSentToTimes($owner, VenueMonthlyReportNotification::class, 1);
 });

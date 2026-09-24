@@ -203,9 +203,15 @@ final class Community
                 throw ValidationException::withMessages(['attendance' => __('community.profile_required')]);
             }
 
-            // Dire «ci vado» salva anche la data: chiedere due gesti per una
-            // cosa sola sarebbe un modo per farne fare zero.
-            $saved ??= app(SaveOccurrences::class)->one($locked, $occurrence);
+            /* Dire «ci vado» salva anche la data: chiedere due gesti per una
+               cosa sola sarebbe un modo per farne fare zero.
+
+               Il controllo passa di qui **anche quando la data è già salvata**.
+               Altrimenti chi l'aveva salvata quando era futura potrebbe
+               renderla pubblica dopo che è passata o è stata annullata, mentre
+               alla stessa data, alla stessa ora, chi non l'aveva salvata si
+               sentirebbe rispondere di no. */
+            $saved = app(SaveOccurrences::class)->one($locked, $occurrence);
 
             if ($saved === null) {
                 throw ValidationException::withMessages(['attendance' => __('community.attendance_unavailable')]);

@@ -37,7 +37,12 @@ class ReturnRatesWidget extends EditorialWidget
      */
     protected function getStats(): array
     {
-        $metrics = app(ReturnMetrics::class)->summary();
+        $city = static::resolveCity();
+        abort_if($city === null, 404);
+        // Gli altri riquadri di questa dashboard leggono la città risolta per il
+        // pannello: questi numeri devono avere lo stesso confine, o si finisce a
+        // confrontare una città con tutte le altre nella stessa schermata.
+        $metrics = app(ReturnMetrics::class)->summary($city);
 
         return [
             Stat::make(__('admin.dashboard.returning'), $metrics['returning']['rate'].'%')

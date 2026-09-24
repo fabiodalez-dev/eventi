@@ -8,9 +8,12 @@ use App\Enums\AdmissionStatus;
 use App\Enums\BookingStatus;
 use App\Models\AdmissionTicket;
 use App\Models\Booking;
-use App\Models\SavedEvent;
+use App\Models\City;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Query\Builder;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use stdClass;
 
 /**
  * I numeri di ritorno: quante persone tornano, quante arrivano a prenotare,
@@ -26,68 +29,141 @@ use Illuminate\Support\Facades\DB;
  * persona da un passaggio di un motore di ricerca, e che per di più si contano
  * dal browser.
  *
+ * **Cosa vuol dire «tornata».** Il conto parte da chi ha fatto la **prima**
+ * azione in assoluto dentro la settimana osservata, e guarda se quella stessa
+ * persona ne ha fatta un'altra entro sette giorni **dalla sua**. Non dal
+ * calendario: confrontare due settimane fisse conta come tornato chi ha agito
+ * tredici giorni fa e oggi, e non conta chi ha agito sei giorni fa e ieri —
+ * cioè esattamente al contrario di quello che la parola promette.
+ *
+ * **Tutto è ristretto a una città**, quella della dashboard che lo mostra:
+ * accanto ci sono numeri di quella città, e due ambiti diversi nella stessa
+ * schermata si confrontano senza che nessuno se ne accorga.
+ *
  * Nessuna di queste misure è una persona reale certificata: sono account. È
  * scritto accanto al numero, perché un numero di cui non si dichiara il limite
  * viene letto come esatto.
  */
 final class ReturnMetrics
 {
+    private const ATTENDANCE_DAYS = 30;
+
     /**
      * @return array{returning: array{rate: float, base: int, returned: int}, booked: int, bookings: int, check_ins: int, attendance: ?float, window_days: int}
      */
-    public function summary(int $windowDays = 7): array
+    public function summary(City $city, int $windowDays = 7): array
     {
         $now = CarbonImmutable::now();
-        $recent = [$now->subDays($windowDays), $now];
-        $earlier = [$now->subDays($windowDays * 2), $now->subDays($windowDays)];
+        /* Mezzo aperto a destra: con due estremi inclusi un'azione esattamente
+           sul confine finirebbe in entrambe le finestre e si conterebbe due volte. */
+        $from = $now->subDays($windowDays * 2);
+        $until = $now->subDays($windowDays);
 
-        $before = $this->actors($earlier[0], $earlier[1]);
-        $after = $this->actors($recent[0], $recent[1]);
-        $returned = count(array_intersect($before, $after));
+        $arrivate = DB::query()->fromSub($this->actions($city), 'azioni')
+            ->select('user_id')->selectRaw('MIN(created_at) as prima')
+            ->groupBy('user_id')
+            ->havingRaw('MIN(created_at) >= ? and MIN(created_at) < ?', [$from, $until])
+            ->get();
 
         $bookings = Booking::query()->where('status', '!=', BookingStatus::Cancelled)
-            ->whereBetween('created_at', [$now->subDays(30), $now]);
-        $checkIns = AdmissionTicket::query()->where('status', AdmissionStatus::CheckedIn)
-            ->whereBetween('checked_in_at', [$now->subDays(30), $now])->count();
-        $bookingsCount = (clone $bookings)->count();
+            ->whereIn('occurrence_id', $this->occurrences($city))
+            ->whereBetween('created_at', [$now->subDays(self::ATTENDANCE_DAYS), $now]);
+        $presenze = $this->attendance($city, $now);
 
         return [
-            'returning' => [
-                'base' => count($before),
-                'returned' => $returned,
-                'rate' => count($before) === 0 ? 0.0 : round($returned / count($before) * 100, 1),
-            ],
+            'returning' => $this->returning($city, $arrivate, $windowDays),
             'booked' => (clone $bookings)->distinct()->count('user_id'),
-            'bookings' => $bookingsCount,
-            'check_ins' => $checkIns,
-            // Le presenze si confrontano con i posti confermati, non con le prenotazioni
-            // fatte nello stesso periodo: una serata prenotata a settembre si vive a ottobre.
-            'attendance' => $bookingsCount === 0 ? null : round($checkIns / max($this->seats($now), 1) * 100, 1),
+            'bookings' => (clone $bookings)->count(),
+            'check_ins' => $presenze['check_ins'],
+            'attendance' => $presenze['rate'],
             'window_days' => $windowDays,
         ];
     }
 
     /**
-     * Gli account che hanno compiuto almeno un gesto deliberato nella finestra.
+     * Di chi è arrivato nella settimana osservata, chi è tornato entro sette
+     * giorni dalla propria prima volta.
      *
-     * @return list<int>
+     * @param  Collection<int, stdClass>  $arrivate
+     * @return array{rate: float, base: int, returned: int}
      */
-    private function actors(CarbonImmutable $from, CarbonImmutable $until): array
+    private function returning(City $city, Collection $arrivate, int $windowDays): array
     {
-        $saved = SavedEvent::query()->whereBetween('created_at', [$from, $until])->distinct()->pluck('user_id');
-        $booked = Booking::query()->whereBetween('created_at', [$from, $until])->distinct()->pluck('user_id');
+        $base = $arrivate->count();
 
-        return $saved->concat($booked)->unique()->map(intval(...))->values()->all();
+        if ($base === 0) {
+            return ['base' => 0, 'returned' => 0, 'rate' => 0.0];
+        }
+
+        $prime = $arrivate->mapWithKeys(fn (stdClass $riga): array => [
+            (int) $riga->user_id => CarbonImmutable::parse((string) $riga->prima),
+        ]);
+
+        /* Una seconda interrogazione e non una per persona: la dashboard si
+           apre spesso, e una query dentro un ciclo è il modo più semplice di
+           rendere lenta una pagina che nessuno sospetterà. */
+        $tornate = DB::query()->fromSub($this->actions($city), 'azioni')
+            ->whereIn('user_id', $prime->keys()->all())
+            ->get()
+            ->filter(function (stdClass $riga) use ($prime, $windowDays): bool {
+                $prima = $prime->get((int) $riga->user_id);
+                $quando = CarbonImmutable::parse((string) $riga->created_at);
+
+                return $prima !== null && $quando->gt($prima) && $quando->lte($prima->addDays($windowDays));
+            })
+            ->pluck('user_id')->unique()->count();
+
+        return ['base' => $base, 'returned' => $tornate, 'rate' => round($tornate / $base * 100, 1)];
     }
 
-    /** I posti confermati per serate già cominciate nell'ultimo mese: il denominatore onesto delle presenze. */
-    private function seats(CarbonImmutable $now): int
+    /**
+     * Presenze e posti sulla **stessa coorte**.
+     *
+     * Contarli separatamente — gli ingressi per data di check-in, i posti per
+     * data della serata — produceva percentuali oltre il cento: il check-in
+     * può avvenire prima dell'inizio, e in quel momento l'ingresso stava nel
+     * numeratore mentre il posto non era ancora nel denominatore.
+     *
+     * @return array{check_ins: int, rate: ?float}
+     */
+    private function attendance(City $city, CarbonImmutable $now): array
     {
-        return (int) AdmissionTicket::query()
+        $serate = $this->occurrences($city)
+            ->whereBetween('event_occurrences.starts_at', [$now->subDays(self::ATTENDANCE_DAYS), $now]);
+
+        $biglietti = AdmissionTicket::query()
             ->whereIn('status', [AdmissionStatus::Valid, AdmissionStatus::CheckedIn])
             ->whereIn('booking_id', Booking::query()->where('status', BookingStatus::Confirmed)
-                ->whereIn('occurrence_id', DB::table('event_occurrences')
-                    ->whereBetween('starts_at', [$now->subDays(30), $now])->select('id'))->select('id'))
-            ->count();
+                ->whereIn('occurrence_id', $serate)->select('id'));
+
+        $posti = (clone $biglietti)->count();
+        $ingressi = (clone $biglietti)->where('status', AdmissionStatus::CheckedIn)->count();
+
+        /* Il tasso esiste quando esistono i posti, non quando esistono
+           prenotazioni recenti: una serata di stasera i cui posti sono stati
+           presi due mesi fa ha presenze vere e nessuna prenotazione nel mese. */
+        return ['check_ins' => $ingressi, 'rate' => $posti === 0 ? null : round($ingressi / $posti * 100, 1)];
+    }
+
+    /** Le serate della città: è da qui che ogni numero prende il proprio confine. */
+    private function occurrences(City $city): Builder
+    {
+        return DB::table('event_occurrences')
+            ->join('events', 'events.id', '=', 'event_occurrences.event_id')
+            ->where('events.city_id', $city->getKey())
+            ->select('event_occurrences.id');
+    }
+
+    /** Ogni gesto deliberato della città: un salvataggio o una prenotazione. */
+    private function actions(City $city): Builder
+    {
+        return DB::table('saved_events')
+            ->whereIn('occurrence_id', $this->occurrences($city))
+            ->select('user_id', 'created_at')
+            ->unionAll(
+                DB::table('bookings')
+                    ->whereIn('occurrence_id', $this->occurrences($city))
+                    ->select('user_id', 'created_at'),
+            );
     }
 }
