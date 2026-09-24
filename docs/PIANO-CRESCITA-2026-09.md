@@ -12,7 +12,8 @@ Tutti gli otto blocchi sono stati realizzati nella stessa giornata, ognuno con i
 - Il blocco 6 era stato scritto come «lista d'attesa da completare» ed è diventato molto più piccolo di così: la coda funzionava già, mancavano la finestra di conferma e la posizione mostrata a chi aspetta.
 - Il blocco 7 è quasi tutto «mostrare ciò che c'era»: galleria e caratteristiche del locale erano compilabili e invisibili.
 - Il biglietto nel portafoglio resta spento finché non esistono le credenziali dell'emittente Google: il server dichiara la funzione assente e l'app non disegna il pulsante. Servono quattro variabili d'ambiente e due passaggi amministrativi, descritti nel blocco 8.
-- Non verificato su dispositivo reale: il widget Android è coperto dai test della sua logica, non dalla prova su un telefono.
+- **Il widget è stato provato su un emulatore, e non funzionava.** Restava su «Cerco le date di stasera…» all'infinito, riavvio compreso, mentre i quattordici test della sua logica passavano tutti: il difetto non era nella logica ma nel posto in cui girava, cioè il giro di rete dentro la sessione che disegna il widget, che viene interrotta se il server tarda e non lascia traccia da nessuna parte. Ora la rete sta in un lavoro pianificato che ridisegna quando ha finito, e un tentativo fallito lo dice invece di restare su «cerco». Verificato il 24/09: elenco delle serate vere, tocco che apre la data giusta dentro l'app, tema chiaro e scuro.
+- Resta non verificato sul **telefono di qualcun altro**: quanto un produttore rispetti davvero le dodici ore fra un aggiornamento e l'altro lo decide lui, e non si vede su un emulatore.
 
 ## Quadro d'insieme
 
