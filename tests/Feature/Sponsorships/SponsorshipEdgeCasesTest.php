@@ -37,10 +37,11 @@ beforeEach(function (): void {
 
 function campagnaDiProva(array $attributi = []): Sponsorship
 {
+    /* La sera dell'evento si conta da adesso e non si scrive per esteso: una campagna si vede solo finché l'evento sotto regge ancora, quindi una data fissa fa fallire il file intero il giorno in cui passa, senza che nulla sia cambiato nel codice. */
     $occorrenza = occurrenceAtLocal(
         test()->citta,
         $attributi['categoria'] ?? test()->categoria,
-        '2026-09-20 21:00:00',
+        CarbonImmutable::now(test()->citta->timezone)->addDays(10)->format('Y-m-d 21:00:00'),
     );
 
     unset($attributi['categoria']);
