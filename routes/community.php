@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Community\CommunityController;
 use App\Http\Controllers\Community\InboxController;
+use App\Http\Controllers\Community\PollController;
 use App\Http\Controllers\Community\WhatsappController;
 use App\Http\Middleware\CommunityPrivacy;
 use Illuminate\Support\Facades\Route;
@@ -36,6 +37,17 @@ Route::middleware(CommunityPrivacy::class)->group(function (): void {
         Route::post('/bacheca/post/{post}/commenti', [CommunityController::class, 'comment'])->whereNumber('post')->middleware('throttle:10,1,community-comment')->name('community.comment');
         Route::delete('/bacheca/commenti/{comment}', [CommunityController::class, 'deleteComment'])->whereNumber('comment')->middleware('throttle:20,1,community-comment-delete')->name('community.comment.delete');
         Route::post('/bacheca/segnala', [CommunityController::class, 'report'])->middleware('throttle:5,60,community-report')->name('community.report');
+        /*
+         * I sondaggi vivono di link: nessun elenco, nessuna pagina che li
+         * raccolga. Il codice nell'indirizzo è l'unica chiave, e per questo la
+         * rotta di voto passa comunque dall'accesso.
+         */
+        Route::post('/sondaggi', [PollController::class, 'store'])->middleware('throttle:10,60,polls-create')->name('polls.store');
+        Route::get('/sondaggi/{poll:token}', [PollController::class, 'show'])->name('polls.show');
+        Route::post('/sondaggi/{poll:token}/voti/{option}', [PollController::class, 'vote'])->whereNumber('option')->middleware('throttle:60,1,polls-vote')->name('polls.vote');
+        Route::post('/sondaggi/{poll:token}/chiusura', [PollController::class, 'close'])->name('polls.close');
+        Route::post('/sondaggi/{poll:token}/uscita', [PollController::class, 'leave'])->name('polls.leave');
+
         Route::get('/avvisi', [InboxController::class, 'index'])->name('community.inbox');
         Route::get('/avvisi/ultimi', [InboxController::class, 'latest'])->middleware('throttle:60,1,community-inbox-latest')->name('community.inbox.latest');
         Route::post('/avvisi/letti', [InboxController::class, 'readAll'])->name('community.inbox.read');

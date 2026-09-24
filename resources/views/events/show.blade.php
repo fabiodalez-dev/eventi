@@ -434,6 +434,10 @@
                 </section>
             @endif
 
+            @if (! ($isPreview ?? false) && config('community.enabled') && $occurrences->isNotEmpty())
+                <x-poll-form :event="$event" :occurrences="$occurrences" />
+            @endif
+
             {{-- «Chi ci va» riguarda una data precisa, quindi compare solo
                  sulla pagina di quella data: sulla scheda della serie non
                  saprebbe a quale appuntamento riferirsi. --}}
