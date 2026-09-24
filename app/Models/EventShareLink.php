@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class EventShareLink extends Model
 {
     /** @var list<string> */
-    protected $fillable = ['code', 'target_key', 'event_id', 'occurrence_id', 'channel'];
+    protected $fillable = ['code', 'target_key', 'event_id', 'venue_id', 'occurrence_id', 'channel'];
 
     /** @return BelongsTo<Event, $this> */
     public function event(): BelongsTo
@@ -22,5 +22,11 @@ class EventShareLink extends Model
     public function occurrence(): BelongsTo
     {
         return $this->belongsTo(EventOccurrence::class);
+    }
+
+    /** Il bersaglio alternativo all'evento: la scheda del locale. @return BelongsTo<Venue, $this> */
+    public function venue(): BelongsTo
+    {
+        return $this->belongsTo(Venue::class);
     }
 }

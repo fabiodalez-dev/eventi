@@ -1,28 +1,34 @@
 @props(['model', 'occurrence' => null])
-@php($details = app(\App\Services\Seo\EditorialContent::class)->details($model, $occurrence))
-@if ($model instanceof \App\Models\Event)
-    @if (! empty($details['practical_items']))
-        <section class="my-6" aria-labelledby="prima-di-andare">
-            <h2 id="prima-di-andare" class="font-display text-xl font-extrabold m-0 mb-2">{{ __('seo.before_going') }}</h2>
-            <ul class="list-none m-0 p-0 divide-y divide-line">
-                @foreach ($details['practical_items'] as $item)
-                    {{-- `py-3` separa una voce dall'altra, ma sulla prima e
-                         sull'ultima diventa spazio verso il bordo del
-                         contenitore, che ha gia' il proprio margine: sommati,
-                         lasciano un vuoto sopra e sotto l'elenco. La prima era
-                         gia' sistemata, l'ultima no. --}}
-                    <li class="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
-                        @svg('heroicon-o-'.$item['icon'], 'size-5 shrink-0 mt-0.5 text-brand', ['aria-hidden' => 'true'])
-                        <div class="min-w-0">
-                            <p class="m-0 text-base font-semibold">{{ $item['label'] }}</p>
-                            @if (filled($item['text']))<div class="mt-1 text-sm leading-relaxed text-ink-muted"><x-description-content :text="$item['text']" /></div>@endif
-                        </div>
-                    </li>
-                @endforeach
-            </ul>
-        </section>
-    @endif
-@else
+@php
+    $details = app(\App\Services\Seo\EditorialContent::class)->details($model, $occurrence);
+    /* «Prima di andare» raccoglie in un elenco solo le stesse note che piu'
+       sotto comparirebbero una per una. Dove c'e', l'elenco piatto sparisce:
+       da quando lo costruisce anche il locale, stamparli entrambi vorrebbe
+       dire ripetere due volte le stesse cose nella stessa pagina. */
+    $pratiche = $details['practical_items'] ?? [];
+    $riassunto = $pratiche !== [] || $model instanceof \App\Models\Event;
+@endphp
+@if ($pratiche !== [])
+    <section class="my-6" aria-labelledby="prima-di-andare">
+        <h2 id="prima-di-andare" class="font-display text-xl font-extrabold m-0 mb-2">{{ __('seo.before_going') }}</h2>
+        <ul class="list-none m-0 p-0 divide-y divide-line">
+            @foreach ($pratiche as $item)
+                {{-- `py-3` separa una voce dall'altra, ma sulla prima e
+                     sull'ultima diventa spazio verso il bordo del
+                     contenitore, che ha gia' il proprio margine: sommati,
+                     lasciano un vuoto sopra e sotto l'elenco. La prima era
+                     gia' sistemata, l'ultima no. --}}
+                <li class="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
+                    @svg('heroicon-o-'.$item['icon'], 'size-5 shrink-0 mt-0.5 text-brand', ['aria-hidden' => 'true'])
+                    <div class="min-w-0">
+                        <p class="m-0 text-base font-semibold">{{ $item['label'] }}</p>
+                        @if (filled($item['text']))<div class="mt-1 text-sm leading-relaxed text-ink-muted"><x-description-content :text="$item['text']" /></div>@endif
+                    </div>
+                </li>
+            @endforeach
+        </ul>
+    </section>
+@elseif (! ($model instanceof \App\Models\Event))
     @if (isset($details['minimum_age']))<p>{{ __('seo.minimum_age') }}: {{ $details['minimum_age'] }}</p>@endif
     @if (in_array($details['parking_type'] ?? null, ['free', 'paid', 'none'], true))<p>{{ __('seo.parking_type') }}: {{ __('seo.parking_'.$details['parking_type']) }}</p>@endif
 @endif
@@ -36,14 +42,14 @@
     <x-description-content :text="$details['introduction']" />
 @endif
 @foreach (['parking_notes', 'transit_notes', 'entrance_notes', 'accessibility_notes', 'membership_notes', 'mandatory_costs', 'weather_policy', 'minors_policy', 'cancellation_policy', 'refund_policy', 'public_contact', 'poster_caption', 'poster_credit'] as $field)
-    @if (filled($details[$field] ?? null) && (! ($model instanceof \App\Models\Event) || in_array($field, ['poster_caption', 'poster_credit'], true)))
+    @if (filled($details[$field] ?? null) && (! $riassunto || in_array($field, ['poster_caption', 'poster_credit'], true)))
         <section class="py-4 border-b border-line">
             <h3 class="font-bold">{{ __('seo.fields.'.$field) }}</h3>
             <x-description-content :text="$details[$field]" />
         </section>
     @endif
 @endforeach
-@if ($model instanceof \App\Models\Venue && in_array($details['accessibility'] ?? null, ['yes', 'no'], true))
+@if ($model instanceof \App\Models\Venue && ! $riassunto && in_array($details['accessibility'] ?? null, ['yes', 'no'], true))
     <p>{{ __('seo.fields.accessibility') }}: {{ match($details['accessibility'] ?? null) { 'yes' => __('seo.yes'), 'no' => __('seo.no'), default => __('seo.unspecified') } }}</p>
 @endif
 @if (! empty($details['agenda']))

@@ -90,6 +90,63 @@
             <x-analytics-bars :rows="$data['events']->where('paid_impressions', '>', 0)->sortByDesc('paid_impressions')->take(5)->values()" name="event" metric="paid_impressions" :label="__('analytics-dashboard.paid_chart')" :secondary="['key' => 'paid_clicks', 'label' => $metricLabel('paid_clicks')]" />
         </x-filament::section>
     </div>
+    @if ($this->canManageChannels())
+        {{-- I canali del locale e i loro QR. Stanno qui e non in una pagina
+             propria perche' un canale senza il suo conteggio accanto e' solo
+             un indirizzo in piu' da ricordare. --}}
+        <x-filament::section :heading="__('event-shares.custom.title')" :description="__('event-shares.custom.lead')">
+            <form wire:submit.prevent="addChannel" class="flex flex-wrap items-end gap-3">
+                <label class="flex min-w-48 flex-1 flex-col gap-1 text-sm">
+                    <span>{{ __('event-shares.custom.label') }}</span>
+                    <x-filament::input.wrapper>
+                        <x-filament::input type="text" wire:model="channelLabel" maxlength="38" :placeholder="__('event-shares.custom.placeholder')" />
+                    </x-filament::input.wrapper>
+                </label>
+                <label class="flex min-w-48 flex-1 flex-col gap-1 text-sm">
+                    <span>{{ __('event-shares.custom.event') }}</span>
+                    <x-filament::input.wrapper>
+                        <x-filament::input.select wire:model="channelEvent">
+                            <option value="">{{ __('event-shares.custom.venue_target') }}</option>
+                            @foreach ($this->channelEvents() as $id => $title)<option value="{{ $id }}">{{ $title }}</option>@endforeach
+                        </x-filament::input.select>
+                    </x-filament::input.wrapper>
+                </label>
+                <x-filament::button type="submit" wire:loading.attr="disabled">{{ __('event-shares.custom.create') }}</x-filament::button>
+            </form>
+            <div class="ad-table-scroll" tabindex="0" role="region" aria-label="{{ __('event-shares.custom.title') }}">
+                <table class="ad-table" data-share-channels>
+                    <caption class="sr-only">{{ __('event-shares.custom.title') }}</caption>
+                    <thead><tr>
+                        <th scope="col">{{ __('event-shares.channel') }}</th>
+                        <th scope="col">{{ __('event-shares.custom.target') }}</th>
+                        <th scope="col">{{ __('event-shares.link') }}</th>
+                        <th scope="col">{{ __('event-shares.shares') }}</th>
+                        <th scope="col">{{ __('event-shares.clicks') }}</th>
+                        <th scope="col">{{ __('event-shares.custom.qr') }}</th>
+                    </tr></thead>
+                    <tbody>
+                        @forelse ($this->printableLinks as $row)
+                            <tr>
+                                <td>{{ $row['channel'] }}</td>
+                                <td>{{ $row['target'] }}</td>
+                                <td><a class="ad-drilldown" href="{{ $row['url'] }}" rel="noopener noreferrer" target="_blank">{{ $row['url'] }}</a></td>
+                                <td class="ad-number">{{ number_format($row['shares'], 0, ',', '.') }}</td>
+                                <td class="ad-number">{{ number_format($row['clicks'], 0, ',', '.') }}</td>
+                                <td>
+                                    <span class="flex items-center gap-3">
+                                        <img src="{{ $row['qr'] }}" alt="{{ __('event-shares.custom.qr_alt', ['channel' => $row['channel']]) }}" width="72" height="72" loading="lazy" decoding="async">
+                                        <a class="ad-drilldown" href="{{ $row['download'] }}" download>{{ __('event-shares.custom.download') }}</a>
+                                    </span>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="6">{{ __('event-shares.custom.empty') }}</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </x-filament::section>
+    @endif
     <x-filament::section :heading="__('analytics-dashboard.tables')" :description="__('analytics-dashboard.tables_hint')">
         <div class="ad-table-toolbar">
             <div class="ad-datasets" role="group" aria-label="{{ __('analytics-dashboard.tables') }}">

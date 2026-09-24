@@ -11,6 +11,7 @@ use App\Models\City;
 use App\Models\Event;
 use App\Models\EventOccurrence;
 use App\Models\Tag;
+use App\Models\Venue;
 use App\Support\BeforeGoingDefaults;
 use App\Support\CurrentCity;
 use App\Support\SafeUrl;
@@ -42,6 +43,24 @@ final class EditorialContent
         if ($model instanceof Event) {
             $own['membership'] = $model->membershipRequirement()?->value;
             $own['practical_items'] = app(BeforeGoing::class)->items($model, $own);
+        } elseif ($model instanceof Venue) {
+            /*
+             * Le stesse voci pratiche, per il locale che le ha compilate.
+             *
+             * Caratteristiche, servizi, fasce d'età e note erano campi che un
+             * locale riempiva e nessuna pagina stampava: il codice che le
+             * disegna girava solo per gli eventi. `BeforeGoing` parte da un
+             * evento, e qui un evento non c'è: un evento non salvato che porta
+             * soltanto il `content_details` del locale evita di riscrivere
+             * quelle regole una seconda volta, con il rischio che le due copie
+             * divergano al primo campo nuovo.
+             *
+             * Il locale resta volutamente scollegato dall'evento fittizio:
+             * `items()` chiuderebbe l'elenco con i servizi del locale, che la
+             * scheda elenca già nella colonna a fianco.
+             */
+            $own['practical_items'] = app(BeforeGoing::class)
+                ->items((new Event)->forceFill(['content_details' => $own]), $own);
         }
 
         return $own;

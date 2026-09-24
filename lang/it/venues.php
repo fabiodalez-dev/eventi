@@ -34,6 +34,10 @@ return [
         'accessibility' => 'Accessibilità',
         'membership' => 'Tesseramento',
         'capacity' => 'Capienza: :count persone',
+        'gallery' => 'Le foto del locale',
+        /* Le foto di un locale non hanno un testo alternativo scritto da
+           nessuno: numerarle dice almeno a che punto dell'elenco si e'. */
+        'gallery_alt' => 'Foto :number di :venue',
         'upcoming_events' => 'Prossimi eventi',
         'past_events' => 'Eventi passati',
         'map_title' => 'Posizione di :venue',

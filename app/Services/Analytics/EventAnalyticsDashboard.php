@@ -74,7 +74,7 @@ final class EventAnalyticsDashboard
             'venue' => ['nullable', 'integer', 'min:1'],
             'organizer' => ['nullable', 'integer', 'min:1'],
             'event' => ['nullable', 'integer', 'min:1'],
-            'channel' => ['nullable', 'in:'.implode(',', EventShares::CHANNELS)],
+            'channel' => ['nullable', 'in:'.implode(',', app(EventShares::class)->channels())],
         ])->validate();
         $events = $this->events();
         $filterLabels = $filters;
@@ -86,7 +86,7 @@ final class EventAnalyticsDashboard
             }
         }
         if (filled($filters['channel'] ?? null)) {
-            $filterLabels['channel'] = __('event-shares.channels.'.$filters['channel']);
+            $filterLabels['channel'] = EventShares::channelLabel($filters['channel']);
         }
         $ids = (clone $events)->select('events.id');
         $metrics = array_column(ContentMetric::cases(), 'value');
@@ -136,10 +136,10 @@ final class EventAnalyticsDashboard
         foreach ([...$metrics, 'short_shares', 'short_clicks', 'interactions', ...array_keys($activity), 'paid_impressions', 'paid_clicks'] as $metric) {
             $totals[$metric] = (int) $eventRows->sum($metric);
         }
-        $channels = collect(EventShares::CHANNELS)->map(function (string $channel) use ($short): array {
+        $channels = collect(app(EventShares::class)->channels())->map(function (string $channel) use ($short): array {
             $data = (clone $short)->where('l.channel', $channel)->selectRaw('SUM(d.shares) as shares, SUM(d.clicks) as clicks')->first();
 
-            return ['channel' => __('event-shares.channels.'.$channel), 'shares' => (int) ($data->shares ?? 0), 'clicks' => (int) ($data->clicks ?? 0)];
+            return ['channel' => EventShares::channelLabel($channel), 'shares' => (int) ($data->shares ?? 0), 'clicks' => (int) ($data->clicks ?? 0)];
         });
         $dailyContent = (clone $content)->selectRaw('d.date, '.$sum)->groupBy('d.date')->get()->keyBy('date');
         $dailyShort = (clone $short)->selectRaw('d.date, SUM(d.shares) as short_shares, SUM(d.clicks) as short_clicks')->groupBy('d.date')->get()->keyBy('date');
@@ -162,7 +162,7 @@ final class EventAnalyticsDashboard
             ->whereIn('e.id', clone $ids)->when(filled($filters['channel'] ?? null), fn (Builder $q) => $q->where('l.channel', $filters['channel']))
             ->orderByDesc('totals.short_clicks')->orderBy('l.id')->get(['e.id as event_id', 'l.code', 'e.title', 'o.url_number', 'l.channel', 'totals.short_shares', 'totals.short_clicks'])
             ->map(fn (stdClass $row): array => ['event_id' => $row->event_id, 'event' => $row->title, 'occurrence' => $row->url_number,
-                'channel' => __('event-shares.channels.'.$row->channel), 'url' => route('event-shares.open', ['code' => $row->code]),
+                'channel' => EventShares::channelLabel($row->channel), 'url' => route('event-shares.open', ['code' => $row->code]),
                 'short_shares' => (int) $row->short_shares, 'short_clicks' => (int) $row->short_clicks]);
         $venues = $this->profiles('venue', $eventRows, $filters);
         $organizers = $this->profiles('organizer', $eventRows, $filters);
