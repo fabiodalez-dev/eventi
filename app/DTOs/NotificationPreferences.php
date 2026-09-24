@@ -45,6 +45,12 @@ final readonly class NotificationPreferences
          * @var list<int> $tonightDays giorni ISO (1 = lunedì) in cui parte
          */
         public bool $tonight = false,
+        /*
+         * Il rapporto mensile a chi gestisce un locale: acceso di default,
+         * perché è un resoconto su ciò che si è pubblicato, non una proposta.
+         * Spegnibile, perché nessuno deve ricevere una mail che non vuole.
+         */
+        public bool $venueReport = true,
         public array $tonightDays = [5, 6],
         public string $tonightTime = '18:00',
         /*
@@ -69,6 +75,7 @@ final readonly class NotificationPreferences
             venueDigest: true,
             dailyDigest: false,
             tonight: false,
+            venueReport: true,
             tonightDays: self::configuredDays(),
             tonightTime: self::configuredTime(),
             comments: true,
@@ -93,6 +100,7 @@ final readonly class NotificationPreferences
             venueDigest: self::boolean($stored, 'venue_digest', $defaults->venueDigest),
             dailyDigest: self::boolean($stored, 'daily_digest', $defaults->dailyDigest),
             tonight: self::boolean($stored, 'tonight', $defaults->tonight),
+            venueReport: self::boolean($stored, 'venue_report', $defaults->venueReport),
             tonightDays: self::days($stored['tonight_days'] ?? null, $defaults->tonightDays),
             tonightTime: self::time($stored['tonight_time'] ?? null, $defaults->tonightTime),
             comments: self::boolean($stored, 'comments', $defaults->comments),
@@ -119,6 +127,7 @@ final readonly class NotificationPreferences
             venueDigest: self::boolean($changes, 'venue_digest', $this->venueDigest),
             dailyDigest: self::boolean($changes, 'daily_digest', $this->dailyDigest),
             tonight: self::boolean($changes, 'tonight', $this->tonight),
+            venueReport: self::boolean($changes, 'venue_report', $this->venueReport),
             tonightDays: self::days($changes['tonight_days'] ?? null, $this->tonightDays),
             tonightTime: self::time($changes['tonight_time'] ?? null, $this->tonightTime),
             comments: self::boolean($changes, 'comments', $this->comments),
@@ -138,6 +147,7 @@ final readonly class NotificationPreferences
             'venue_digest' => $this->venueDigest,
             'daily_digest' => $this->dailyDigest,
             'tonight' => $this->tonight,
+            'venue_report' => $this->venueReport,
             'tonight_days' => $this->tonightDays,
             'tonight_time' => $this->tonightTime,
             'comments' => $this->comments,
@@ -153,7 +163,7 @@ final readonly class NotificationPreferences
      */
     public static function keys(): array
     {
-        return ['reminders', 'reminder_hours', 'sold_out', 'venue_digest', 'daily_digest', 'tonight', 'tonight_days', 'tonight_time', 'comments', 'delivery'];
+        return ['reminders', 'reminder_hours', 'sold_out', 'venue_digest', 'daily_digest', 'tonight', 'tonight_days', 'tonight_time', 'venue_report', 'comments', 'delivery'];
     }
 
     /** @return list<int> */

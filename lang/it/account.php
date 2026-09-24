@@ -220,6 +220,7 @@ return [
         'tonight_time' => 'A che ora',
         'tonight_days' => 'In quali giorni',
         'weekdays' => [1 => 'Lunedì', 2 => 'Martedì', 3 => 'Mercoledì', 4 => 'Giovedì', 5 => 'Venerdì', 6 => 'Sabato', 7 => 'Domenica'],
+        'venue_report' => 'Rapporto mensile dei locali che gestisco',
         'quiet_hours' => 'Ore di silenzio',
         'quiet_hours_hint' => 'In queste ore non ti arriva nulla: quello che è previsto aspetta la mattina. Gli avvisi di annullamento fanno eccezione e arrivano comunque.',
         'quiet_from' => 'Dalle',

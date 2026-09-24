@@ -146,6 +146,13 @@
                     :value="$user->daily_digest_time"
                 />
 
+                @if ($user->venues()->exists())
+                    <label class="flex items-center gap-2.5 text-sm text-ink">
+                        <input type="checkbox" name="venue_report" value="1" class="size-4 rounded border-line" @checked($preferences->venueReport)>
+                        {{ __('account.profile.venue_report') }}
+                    </label>
+                @endif
+
                 {{--
                     La proposta della sera: l'interruttore da solo non basta,
                     perché «quando» fa parte della proposta quanto «cosa». Ora

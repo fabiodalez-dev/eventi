@@ -198,6 +198,7 @@ return [
         'venue_digest' => 'Riepilogo settimanale da chi segui',
         'daily_digest' => 'Riepilogo giornaliero',
         'tonight_nearby' => 'Proposta della sera',
+        'venue_monthly_report' => 'Rapporto mensile del locale',
         'weekend_newsletter' => 'Newsletter del weekend',
         'event_published' => 'Evento pubblicato',
         'event_rejected' => 'Evento rifiutato',

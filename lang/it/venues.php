@@ -98,4 +98,22 @@ return [
         'empty' => 'Nessuna data in programma al momento.',
     ],
 
+    'report' => [
+        'subject' => ':locale — il mese di :mese su inCittà',
+        'greeting' => 'Ciao, ecco come è andato :locale.',
+        'window' => 'Numeri di :mese, confrontati con il mese precedente.',
+        'metrics' => [
+            'views' => 'Schede evento aperte',
+            'profile_views' => 'Visite alla pagina del locale',
+            'saves' => 'Date salvate dalle persone',
+            'new_followers' => 'Nuove persone che ti seguono',
+            'bookings' => 'Prenotazioni confermate',
+            'check_ins' => 'Ingressi registrati',
+        ],
+        'change' => '(:segno:valore% rispetto a :prima)',
+        'method' => 'Le aperture si contano dal browser di chi visita: chi blocca gli script non viene contato, quindi sono stime al ribasso. Gli ingressi sono conteggi esatti, registrati alla porta. Una visualizzazione non è una persona e una prenotazione non è un incasso.',
+        'action' => 'Apri il pannello del locale',
+        'unsubscribe' => 'Puoi spegnere questo rapporto dalle preferenze di notifica del tuo profilo.',
+    ],
+
 ];

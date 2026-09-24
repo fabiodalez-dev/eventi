@@ -32,6 +32,7 @@ enum NotificationType: string
     case EventSoldOut = 'event_sold_out';
     case VenueNewEvent = 'venue_new_event';
     case VenueDigest = 'venue_digest';
+    case VenueMonthlyReport = 'venue_monthly_report';
     case DailyDigest = 'daily_digest';
     case TonightNearby = 'tonight_nearby';
     case WeekendNewsletter = 'weekend_newsletter';
@@ -140,6 +141,7 @@ enum NotificationType: string
             self::VenueDigest, self::VenueNewEvent => $preferences->venueDigest,
             self::DailyDigest => $preferences->dailyDigest,
             self::TonightNearby => $preferences->tonight,
+            self::VenueMonthlyReport => $preferences->venueReport,
             self::CommentReply, self::CommentReaction => $preferences->comments,
             default => true,
         };
@@ -169,6 +171,7 @@ enum NotificationType: string
             self::VenueDigest, self::VenueNewEvent => 'venue_digest',
             self::DailyDigest => 'daily_digest',
             self::TonightNearby => 'tonight',
+            self::VenueMonthlyReport => 'venue_report',
             self::CommentReply, self::CommentReaction => 'comments',
             default => null,
         };

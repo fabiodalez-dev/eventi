@@ -314,6 +314,16 @@ Schedule::call(function (): void {
     });
 })->name('sponsorship-grants:sync')->everyMinute()->withoutOverlapping(10);
 
+/*
+ * Il rapporto del mese arriva il primo del mese, di mattina: chi gestisce un
+ * locale legge la posta prima di aprire, e un rapporto che arriva la sera di
+ * domenica viene letto lunedì comunque, ma con un giorno di ritardo.
+ */
+Schedule::command('venues:monthly-report')
+    ->monthlyOn(1, '08:00')
+    ->withoutOverlapping()
+    ->graceTimeInMinutes(120);
+
 Schedule::command('events:publish-due')->everyMinute()->withoutOverlapping(10);
 
 Schedule::call(function (): void {

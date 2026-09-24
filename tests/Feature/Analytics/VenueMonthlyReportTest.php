@@ -1,0 +1,122 @@
+<?php
+
+declare(strict_types=1);
+
+use App\Models\EventViewDaily;
+use App\Models\SavedEvent;
+use App\Models\User;
+use App\Models\Venue;
+use App\Notifications\VenueMonthlyReport as VenueMonthlyReportNotification;
+use App\Services\Analytics\VenueMonthlyReport;
+use Carbon\Carbon;
+use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\Notification;
+
+/**
+ * Il rapporto mensile ai referenti dei locali.
+ *
+ * Tre cose lo distinguono da un riepilogo qualunque, e sono quelle protette
+ * qui: non esce dal perimetro del locale, non parte quando non ha niente da
+ * dire, e rispetta l'interruttore prima di spedire invece che dopo.
+ */
+beforeEach(function (): void {
+    $this->city = testCity();
+    $this->category = testCategory();
+    freezeLocal($this->city, '2026-10-01 08:00');
+    Notification::fake();
+});
+
+afterEach(function (): void {
+    Carbon::setTestNow();
+});
+
+function reportVenue(string $name = 'Circolo Aurora'): Venue
+{
+    return Venue::factory()->approved()->create(['city_id' => test()->city->getKey(), 'name' => $name]);
+}
+
+function reportOwner(Venue $venue, array $attributes = []): User
+{
+    $owner = User::factory()->create($attributes);
+    $venue->members()->attach($owner, ['role' => 'owner']);
+
+    return $owner;
+}
+
+/** Una data del mese di settembre con qualche apertura e un salvataggio. */
+function septemberActivity(Venue $venue, int $views = 40): void
+{
+    $occurrence = occurrenceAtLocal(test()->city, test()->category, '2026-09-12 21:00', '2026-09-12 23:00', venue: $venue);
+    EventViewDaily::query()->create(['event_id' => $occurrence->event_id, 'date' => '2026-09-12', 'views' => $views]);
+    SavedEvent::query()->create(['user_id' => User::factory()->create()->getKey(),
+        'occurrence_id' => $occurrence->getKey(), 'created_at' => CarbonImmutable::parse('2026-09-12 12:00', 'Europe/Rome')]);
+}
+
+it('conta solo ciò che appartiene al locale e mai i numeri di un altro', function (): void {
+    $mine = reportVenue();
+    $other = reportVenue('Teatro Belzoni');
+    septemberActivity($mine, views: 40);
+    septemberActivity($other, views: 900);
+
+    $report = app(VenueMonthlyReport::class)->forMonth($mine, CarbonImmutable::parse('2026-09-01'));
+
+    expect($report['totals']['views'])->toBe(40)
+        ->and($report['totals']['saves'])->toBe(1)
+        ->and($report['label'])->toBe('settembre 2026')
+        ->and($report['empty'])->toBeFalse();
+});
+
+it('non manda niente a un locale senza attività nel mese', function (): void {
+    $venue = reportVenue();
+    reportOwner($venue);
+
+    $this->artisan('venues:monthly-report')->assertSuccessful();
+
+    Notification::assertNothingSent();
+});
+
+it('manda il rapporto ai referenti, e non ai collaboratori', function (): void {
+    $venue = reportVenue();
+    $owner = reportOwner($venue);
+    $editor = User::factory()->create();
+    $venue->members()->attach($editor, ['role' => 'editor']);
+    septemberActivity($venue);
+
+    $this->artisan('venues:monthly-report')->assertSuccessful();
+
+    Notification::assertSentTo($owner, VenueMonthlyReportNotification::class);
+    Notification::assertNotSentTo($editor, VenueMonthlyReportNotification::class);
+});
+
+it('rispetta chi ha spento il rapporto e chi non può ricevere email', function (): void {
+    $venue = reportVenue();
+    $off = reportOwner($venue, ['notification_preferences' => ['venue_report' => false]]);
+    $unverified = reportOwner($venue, ['email_verified_at' => null]);
+    septemberActivity($venue);
+
+    $this->artisan('venues:monthly-report')->assertSuccessful();
+
+    Notification::assertNotSentTo($off, VenueMonthlyReportNotification::class);
+    Notification::assertNotSentTo($unverified, VenueMonthlyReportNotification::class);
+});
+
+it('non spedisce nulla in prova generale', function (): void {
+    $venue = reportVenue();
+    reportOwner($venue);
+    septemberActivity($venue);
+
+    $this->artisan('venues:monthly-report', ['--dry-run' => true])->assertSuccessful();
+
+    Notification::assertNothingSent();
+});
+
+it('confronta con il mese precedente solo quando esiste un termine di paragone', function (): void {
+    $venue = reportVenue();
+    $occurrence = occurrenceAtLocal($this->city, $this->category, '2026-08-10 21:00', '2026-08-10 23:00', venue: $venue);
+    EventViewDaily::query()->create(['event_id' => $occurrence->event_id, 'date' => '2026-08-10', 'views' => 20]);
+    septemberActivity($venue, views: 40);
+
+    $report = app(VenueMonthlyReport::class)->forMonth($venue, CarbonImmutable::parse('2026-09-01'));
+
+    expect($report['totals']['views'])->toBe(40)->and($report['previous']['views'])->toBe(20);
+});

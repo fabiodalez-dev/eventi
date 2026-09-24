@@ -43,6 +43,7 @@ class UpdateNotificationPreferencesRequest extends FormRequest
             'comments' => ['sometimes', 'boolean'],
             'daily_digest' => ['sometimes', 'boolean'],
             'tonight' => ['sometimes', 'boolean'],
+            'venue_report' => ['sometimes', 'boolean'],
             'tonight_days' => ['sometimes', 'array', 'max:7'],
             'tonight_days.*' => ['integer', 'between:1,7'],
             'tonight_time' => ['sometimes', 'date_format:H:i'],
