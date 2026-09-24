@@ -8,7 +8,7 @@ test di integrazione e consumato dall'app Android in `android/` contro dati real
 | Voce | Valore |
 |---|---|
 | Base | `/api/v1` |
-| Documentazione | `/docs/api` (Scramble) · JSON versionato in `docs/openapi.json` — OpenAPI **3.1.0**, **143 operazioni** |
+| Documentazione | `/docs/api` (Scramble) · JSON versionato in `docs/openapi.json` — OpenAPI **3.1.0**, **149 operazioni** |
 | Autenticazione | Bearer token (Sanctum) per `/me`, `auth/logout` e scritture ticketing; policy aggiuntive per il locale |
 | Formato risposte | `{data, meta{next_cursor, has_more}}` · errori `{error{code, message, fields}}` |
 | Paginazione | catalogo a cursore (`limit` 1–50); cursore illeggibile → **400**. Biglietti: `page`, 30 prenotazioni, `meta.next_page` nullable |
@@ -209,3 +209,14 @@ L'export automatico Scramble non è stato sostituito durante questa review:
 la rigenerazione segnala `GEN001 Scope is not initialized for route` sul
 controller della singola occorrenza. Questa sezione descrive le aggiunte
 verificate dai test; il JSON storico richiede una revisione separata del generatore.
+
+## Gestione nativa Android 1.17
+
+Tutte le rotte seguenti richiedono Bearer e restituiscono `Cache-Control: private, no-store`:
+
+- `GET /management/dates?period=upcoming|past&page=1`: solo date gestite o assegnate allo staff; `meta.next_page` per paginazione.
+- `GET /management/dates/{id}`: staff limitato a identità della data e permessi; dettagli, elenco staff e statistiche solo ai gestori.
+- `POST /management/dates/{id}/staff`: `email`, `remove` opzionale; autorizzazione di gestione della singola data.
+- `PATCH /management/dates/{id}/details`: `practical_details` e `cost_breakdown`; oggetti vuoti rimuovono le eccezioni, zero è distinto da assenza. Nessun campo estraneo ammesso.
+- `GET /management/campaigns?page=1` e `GET /management/campaigns/{id}`: campagne autorizzate del locale e rapporti aggregati, con soglie di riservatezza.
+- `POST /ticketing/{id}/check-in`: `code` di 64 caratteri e `request_key` UUID persistente per recuperare una risposta persa. Una lettura in attesa non autorizza l’ingresso.

@@ -29,7 +29,7 @@ import java.time.ZoneId
 @Composable
 internal fun ProfileScreen(state: AppUiState, padding: PaddingValues, onTickets: () -> Unit, onSaved: () -> Unit,
     onLogout: () -> Unit, onDeleteAccount: (String) -> Unit, onInterestsSaved: () -> Unit,
-    onAppearance: (String) -> Unit, onProfileSaved: () -> Unit, onCommunity: () -> Unit, onCarpool: () -> Unit, onCarpoolMessages: () -> Unit, onCommunityInbox: () -> Unit, communityTotal: Int) {
+    onAppearance: (String) -> Unit, onProfileSaved: () -> Unit, onCommunity: () -> Unit, onCarpool: () -> Unit, onCarpoolMessages: () -> Unit, onCommunityInbox: () -> Unit, communityTotal: Int, onManagement: () -> Unit = {}) {
     val session = state.session ?: return
     val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
     var section by rememberSaveable(session.user.id) { mutableStateOf<String?>(null) }
@@ -52,6 +52,7 @@ internal fun ProfileScreen(state: AppUiState, padding: PaddingValues, onTickets:
                     ProfileRow(cpText("messages"), cpText("chat_context"), Icons.Outlined.People, onCarpoolMessages)
                     ProfileRow(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.community_inbox), cpText("notice_summary", "count" to communityTotal), Icons.Outlined.People, onCommunityInbox)
                     ProfileRow("Dati personali", "Nome e fuso orario", Icons.Outlined.Person) { section = "Dati personali" }
+                    ProfileRow(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.management_title), androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.management_subtitle), Icons.Outlined.ManageAccounts, onManagement)
                     ProfileRow("I miei biglietti", "Prossimi, passati e annullati", Icons.Outlined.ConfirmationNumber, onTickets)
                     ProfileRow("I miei interessi", "Scegli quali eventi vedere", Icons.Outlined.FavoriteBorder) { section = "I miei interessi" }
                     ProfileRow("Notifiche e newsletter", "Canali, orari e permessi del dispositivo", Icons.Outlined.NotificationsNone) { section = "Notifiche e newsletter" }

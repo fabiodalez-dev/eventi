@@ -30,7 +30,7 @@ import androidx.glance.layout.width
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
-import androidx.glance.unit.ColorProvider
+import androidx.glance.color.ColorProvider
 import it.fabiodalez.incitta.MainActivity
 import it.fabiodalez.incitta.R
 import it.fabiodalez.incitta.data.AppRepository
@@ -67,10 +67,14 @@ import kotlinx.serialization.json.Json
  * Glance disegna con RemoteViews: chiaro e scuro li risolve il sistema al
  * momento del disegno, quindi la coppia sta in `values`/`values-night`.
  */
-private val PaperOnInk = ColorProvider(R.color.widget_text)
-private val MutedInk = ColorProvider(R.color.widget_muted)
-private val AcidInk = ColorProvider(R.color.widget_accent)
-private val Surface = ColorProvider(R.color.widget_surface)
+private fun widgetColor(context: Context, @androidx.annotation.ColorRes resource: Int): androidx.glance.unit.ColorProvider {
+    fun themed(night: Int): androidx.compose.ui.graphics.Color {
+        val configuration = android.content.res.Configuration(context.resources.configuration)
+        configuration.uiMode = (configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK.inv()) or night
+        return androidx.compose.ui.graphics.Color(context.createConfigurationContext(configuration).getColor(resource))
+    }
+    return ColorProvider(day = themed(android.content.res.Configuration.UI_MODE_NIGHT_NO), night = themed(android.content.res.Configuration.UI_MODE_NIGHT_YES))
+}
 
 class TonightWidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = TonightWidget()
@@ -117,6 +121,10 @@ internal class TonightWidget : GlanceAppWidget() {
 
 @Composable
 private fun TonightWidgetBody(context: Context, state: TonightWidgetState, entries: List<TonightWidgetEntry>) {
+    val PaperOnInk = widgetColor(context, R.color.widget_text)
+    val MutedInk = widgetColor(context, R.color.widget_muted)
+    val AcidInk = widgetColor(context, R.color.widget_accent)
+    val Surface = widgetColor(context, R.color.widget_surface)
     Column(
         modifier = GlanceModifier
             .fillMaxSize()
@@ -156,6 +164,9 @@ private fun TonightWidgetBody(context: Context, state: TonightWidgetState, entri
 
 @Composable
 private fun TonightWidgetRow(context: Context, entry: TonightWidgetEntry) {
+    val PaperOnInk = widgetColor(context, R.color.widget_text)
+    val MutedInk = widgetColor(context, R.color.widget_muted)
+    val AcidInk = widgetColor(context, R.color.widget_accent)
     Row(
         modifier = GlanceModifier
             .fillMaxWidth()

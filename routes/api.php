@@ -25,6 +25,7 @@ use App\Http\Controllers\Api\V1\Me\NotificationPreferenceController;
 use App\Http\Controllers\Api\V1\Me\ProfileController;
 use App\Http\Controllers\Api\V1\Me\SavedController;
 use App\Http\Controllers\Api\V1\Me\SessionController;
+use App\Http\Controllers\Api\V1\MobileManagementController;
 use App\Http\Controllers\Api\V1\OccurrenceController;
 use App\Http\Controllers\Api\V1\PageController;
 use App\Http\Controllers\Api\V1\ReportController;
@@ -69,6 +70,14 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::delete('v1/me/location', [RememberedLocationController::class, 'destroy']);
 });
 Route::prefix('v1')->middleware(['auth:sanctum', TicketingPrivacy::class])->group(function (): void {
+    Route::prefix('management')->controller(MobileManagementController::class)->group(function (): void {
+        Route::get('/dates', 'index');
+        Route::get('/dates/{occurrence}', 'show');
+        Route::post('/dates/{occurrence}/staff', 'staff')->middleware('throttle:30,1,ticketing-staff');
+        Route::patch('/dates/{occurrence}/details', 'details')->middleware('throttle:30,1,ticketing-details');
+        Route::get('/campaigns', 'campaigns');
+        Route::get('/campaigns/{campaign}', 'economics')->whereNumber('campaign');
+    });
     Route::get('/me/bookings', [TicketingController::class, 'index']);
     Route::post('/me/bookings/{booking}/email', [TicketingController::class, 'resend'])->middleware('throttle:3,60,tickets-resend');
     Route::post('/occurrences/{occurrence}/bookings', [TicketingController::class, 'store'])->middleware('throttle:20,1,tickets-store');

@@ -31,8 +31,8 @@ android {
         applicationId = "it.fabiodalez.incitta"
         minSdk = 26
         targetSdk = 36
-        versionCode = 38
-        versionName = "1.16.0"
+        versionCode = 39
+        versionName = "1.17.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
@@ -136,6 +136,7 @@ dependencies {
     implementation("io.coil-kt.coil3:coil-network-okhttp:3.3.0")
     implementation("org.maplibre.gl:android-sdk-opengl:13.6.0")
     implementation("com.google.zxing:core:3.5.3")
+    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")

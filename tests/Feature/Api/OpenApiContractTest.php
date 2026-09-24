@@ -52,6 +52,16 @@ it('espone un contratto OpenAPI utilizzabile da un generatore Android', function
         }
     };
 
+    foreach ($document['paths'] as $path => $methods) {
+        if (! str_starts_with($path, '/management/')) {
+            continue;
+        }
+        foreach ($methods as $operation) {
+            expect($operation['security'])->toBe([['http' => []]])
+                ->and($operation['responses'])->not->toHaveKey('304');
+        }
+    }
+
     $inspect($document);
 });
 

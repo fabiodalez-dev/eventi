@@ -124,3 +124,11 @@ dichiara esplicitamente entrambe le colonne, mantenendo aggiornamento e
 compatibilità con lo schema precedente. Analisi globale, a cache ricostruita:
 **zero errori**. Il rilascio segue la CI della PR #116 e la pipeline di `main`,
 con backup remoto e verifica del commit effettivamente pubblicato.
+
+### Estensione Android richiesta dopo la review
+
+La versione **1.17.0 (39)** aggiunge l’area nativa Gestione eventi: staff,
+scanner QR, coda cifrata persistente, informazioni/costi della data e rapporti
+economici. Non è necessario aprire i pannelli web per queste funzioni. Il
+collaudo dei due ruoli su emulatore è riuscito; restano le prove dei produttori
+reali per calendario/widget. Dettagli e artefatti in `docs/RELEASE-1.17.0.md`.
