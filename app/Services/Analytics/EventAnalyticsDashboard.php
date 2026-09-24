@@ -157,13 +157,15 @@ final class EventAnalyticsDashboard
         }
         /* I totali si sommano dalle righe, che sono per evento: i link della
            scheda del locale non stanno in nessuna riga — non sono di un evento —
-           e senza questo pezzo il totale della pagina sarebbe più basso della
-           somma dei link che la pagina stessa elenca. */
+           e senza questo pezzo la pagina direbbe meno clic di quanti ne ha
+           davvero raccolti quel locale. */
+        $scheda = ['short_shares' => 0, 'short_clicks' => 0];
         if ($venueId !== null && blank($filters['event'] ?? null) && blank($filters['organizer'] ?? null)) {
             $dellaScheda = (clone $short)->whereNull('l.event_id')
                 ->selectRaw('SUM(d.shares) as short_shares, SUM(d.clicks) as short_clicks')->first();
-            $totals['short_shares'] += (int) ($dellaScheda->short_shares ?? 0);
-            $totals['short_clicks'] += (int) ($dellaScheda->short_clicks ?? 0);
+            $scheda = ['short_shares' => (int) ($dellaScheda->short_shares ?? 0), 'short_clicks' => (int) ($dellaScheda->short_clicks ?? 0)];
+            $totals['short_shares'] += $scheda['short_shares'];
+            $totals['short_clicks'] += $scheda['short_clicks'];
         }
         $channels = collect(app(EventShares::class)->channels())->map(function (string $channel) use ($short): array {
             $data = (clone $short)->where('l.channel', $channel)->selectRaw('SUM(d.shares) as shares, SUM(d.clicks) as clicks')->first();
@@ -193,7 +195,20 @@ final class EventAnalyticsDashboard
             ->map(fn (stdClass $row): array => ['event_id' => $row->event_id, 'event' => $row->title, 'occurrence' => $row->url_number,
                 'channel' => EventShares::channelLabel($row->channel), 'url' => route('event-shares.open', ['code' => $row->code]),
                 'short_shares' => (int) $row->short_shares, 'short_clicks' => (int) $row->short_clicks]);
-        $venues = $this->profiles('venue', $eventRows, $filters);
+        /* Gli stessi clic vanno anche nella riga del locale, che li somma
+           dagli eventi e quindi non li vedrebbe: il totale in cima alla pagina
+           e la barra del locale piu' sotto leggono lo stesso numero, e due
+           numeri diversi per la stessa cosa nella stessa schermata valgono meno
+           di nessun numero. */
+        $venues = $this->profiles('venue', $eventRows, $filters)
+            ->map(function (array $riga) use ($venueId, $scheda): array {
+                if ((int) $riga['id'] === (int) $venueId) {
+                    $riga['short_shares'] += $scheda['short_shares'];
+                    $riga['short_clicks'] += $scheda['short_clicks'];
+                }
+
+                return $riga;
+            });
         $organizers = $this->profiles('organizer', $eventRows, $filters);
         $occurrences = $this->window(DB::table('occurrence_views_daily as d')->join('event_occurrences as o', 'o.id', '=', 'd.occurrence_id')
             ->join('events as e', 'e.id', '=', 'o.event_id')->whereIn('e.id', clone $ids), 'd.date', $filters)

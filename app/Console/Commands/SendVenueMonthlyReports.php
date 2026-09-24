@@ -50,8 +50,6 @@ class SendVenueMonthlyReports extends Command
         $already = 0;
         $failed = 0;
 
-        $this->recoverStaleClaims();
-
         Venue::query()->where('status', VenueStatus::Approved)->with('city')->orderBy('id')
             ->chunkById(100, function ($venues) use ($reports, $month, &$sent, &$skipped, &$already, &$failed): void {
                 foreach ($venues as $venue) {
@@ -90,12 +88,11 @@ class SendVenueMonthlyReports extends Command
 
                         try {
                             $owner->notify(new VenueMonthlyReportNotification($venue, $report['label'], $report['totals'], $report['previous']));
-                            $this->markSent($venue, $owner, $month);
                         } catch (Throwable $errore) {
-                            /* La presa in carico si restituisce: un invio non
-                               riuscito deve poter essere ritentato, altrimenti
-                               il registro proteggerebbe dai doppioni
-                               trasformando ogni guasto in un rapporto perso.
+                            /* Niente e' partito: la presa in carico si
+                               restituisce, altrimenti il registro proteggerebbe
+                               dai doppioni trasformando ogni guasto in un
+                               rapporto perso.
 
                                E il ciclo continua. Un indirizzo che rimbalza
                                fermava tutti i rapporti dopo di lui, e il comando
@@ -105,6 +102,19 @@ class SendVenueMonthlyReports extends Command
                             $failed++;
                             $this->warn(sprintf('  non spedito a %s: %s', $owner->email, $errore->getMessage()));
                             report($errore);
+
+                            continue;
+                        }
+
+                        /* Da qui in poi l'email e' partita davvero, e un guasto
+                           nella registrazione e' un'altra cosa da un guasto
+                           nella consegna: restituire la presa in carico qui
+                           manderebbe il rapporto una seconda volta. La riga
+                           resta presa, e chi sorveglia il comando legge che va
+                           riconciliata a mano. */
+                        if (! $this->markSent($venue, $owner, $month)) {
+                            $failed++;
+                            $this->warn(sprintf('  consegnato a %s ma non registrato: la riga del mese va chiusa a mano', $owner->email));
 
                             continue;
                         }
@@ -125,27 +135,23 @@ class SendVenueMonthlyReports extends Command
     }
 
     /**
-     * Le prese in carico rimaste a meta'.
+     * Prende in carico l'invio, o dice che qualcuno l'ha gia preso.
      *
-     * Se il processo muore fra la presa in carico e l'invio, la riga resta
-     * senza `sent_at` e il vincolo unico impedirebbe per sempre di ritentare.
-     * Un'ora e' abbondante per qualunque invio sincrono: oltre, quella riga
-     * appartiene a un processo che non esiste piu'.
+     * Due modi di riuscire, ed entrambi atomici. La riga nuova la scrive uno
+     * solo, per il vincolo unico. Quella rimasta a meta' — il processo morto
+     * fra la presa in carico e l'invio — la riprende chi arriva per primo:
+     * decide il numero di righe toccate dall'aggiornamento, non una lettura
+     * seguita da una scrittura. Un'ora e' abbondante per un invio sincrono;
+     * oltre, quella riga appartiene a un processo che non esiste piu'.
+     *
+     * Il recupero sta qui e non in un passaggio a parte proprio perche' cosi'
+     * non tocca niente quando non si spedisce: in prova generale `claim()` non
+     * viene nemmeno chiamata, e il registro resta come l'ha lasciato l'ultimo
+     * invio vero.
      */
-    private function recoverStaleClaims(): void
-    {
-        $orfane = DB::table('venue_monthly_reports')->whereNull('sent_at')
-            ->where('claimed_at', '<', now()->subHour())->delete();
-
-        if ($orfane > 0) {
-            $this->warn(sprintf('Prese in carico rimaste a meta e liberate: %d.', $orfane));
-        }
-    }
-
-    /** Prende in carico l'invio, o dice che qualcuno l'ha gia preso. */
     private function claim(Venue $venue, User $owner, CarbonImmutable $month): bool
     {
-        return DB::table('venue_monthly_reports')->insertOrIgnore([[
+        $nuova = DB::table('venue_monthly_reports')->insertOrIgnore([[
             'venue_id' => $venue->getKey(),
             'user_id' => $owner->getKey(),
             'month' => $month->format('Y-m-01'),
@@ -154,12 +160,37 @@ class SendVenueMonthlyReports extends Command
             'created_at' => now(),
             'updated_at' => now(),
         ]]) > 0;
+
+        if ($nuova) {
+            return true;
+        }
+
+        $ripresa = $this->rowFor($venue, $owner, $month)->whereNull('sent_at')
+            ->where('claimed_at', '<', now()->subHour())
+            ->update(['claimed_at' => now(), 'updated_at' => now()]) > 0;
+
+        if ($ripresa) {
+            $this->warn(sprintf('  presa in carico rimasta a meta e ripresa: %s', $owner->email));
+        }
+
+        return $ripresa;
     }
 
-    /** L'invio avvenuto: da qui in poi quella riga non si tocca piu'. */
-    private function markSent(Venue $venue, User $owner, CarbonImmutable $month): void
+    /**
+     * L'invio avvenuto: da qui in poi quella riga non si tocca piu'.
+     *
+     * Dice se ci e' riuscita, perche' chi chiama ha gia' spedito e deve
+     * distinguere «non consegnato» da «consegnato e non registrato».
+     */
+    private function markSent(Venue $venue, User $owner, CarbonImmutable $month): bool
     {
-        $this->rowFor($venue, $owner, $month)->update(['sent_at' => now(), 'updated_at' => now()]);
+        try {
+            return $this->rowFor($venue, $owner, $month)->update(['sent_at' => now(), 'updated_at' => now()]) > 0;
+        } catch (Throwable $errore) {
+            report($errore);
+
+            return false;
+        }
     }
 
     private function release(Venue $venue, User $owner, CarbonImmutable $month): void

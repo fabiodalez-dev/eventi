@@ -10,7 +10,11 @@ use App\Notifications\VenueMonthlyReport as VenueMonthlyReportNotification;
 use App\Services\Analytics\VenueMonthlyReport;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
+use Illuminate\Notifications\ChannelManager;
+use Illuminate\Notifications\Events\NotificationSent;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 
 /**
@@ -220,4 +224,62 @@ it('non ritenta una presa in carico appena fatta da un altro processo', function
     $this->artisan('venues:monthly-report', ['--month' => '2026-09'])->assertSuccessful();
 
     Notification::assertNothingSent();
+});
+
+/**
+ * La prova generale non scrive nel registro.
+ *
+ * Il recupero delle prese in carico interrotte stava in un passaggio a sé, in
+ * testa al comando, e girava anche con `--dry-run`: una prova a vuoto
+ * cancellava righe vere. Adesso il recupero è dentro la presa in carico, che
+ * in prova generale non viene mai chiamata.
+ */
+it('non tocca il registro in prova generale, nemmeno le prese in carico vecchie', function (): void {
+    $venue = reportVenue();
+    $owner = reportOwner($venue, ['email_verified_at' => now()]);
+    septemberActivity($venue);
+
+    $interrotta = CarbonImmutable::now()->subDay();
+    DB::table('venue_monthly_reports')->insert([
+        'venue_id' => $venue->getKey(), 'user_id' => $owner->getKey(), 'month' => '2026-09-01',
+        'claimed_at' => $interrotta, 'sent_at' => null, 'created_at' => $interrotta, 'updated_at' => $interrotta,
+    ]);
+
+    $this->artisan('venues:monthly-report', ['--month' => '2026-09', '--dry-run' => true])->assertSuccessful();
+
+    $riga = DB::table('venue_monthly_reports')->first();
+    expect($riga)->not->toBeNull()
+        ->and(CarbonImmutable::parse($riga->claimed_at)->equalTo($interrotta))->toBeTrue()
+        ->and($riga->sent_at)->toBeNull();
+});
+
+/**
+ * Consegnato e non registrato non è consegnato e basta.
+ *
+ * Se l'email parte e la scrittura di `sent_at` non riesce, restituire la presa
+ * in carico manderebbe lo stesso rapporto una seconda volta: il registro
+ * smetterebbe di essere una protezione dai doppioni proprio nel momento in cui
+ * serve. Il comando lo conta come guasto e lo dice, invece di liberare il
+ * turno.
+ */
+it('conta come guasto un rapporto consegnato e non registrato', function (): void {
+    $venue = reportVenue();
+    $owner = reportOwner($venue, ['email_verified_at' => now()]);
+    septemberActivity($venue);
+
+    Notification::swap(new ChannelManager(app()));
+    Mail::fake();
+    $consegnate = 0;
+    Event::listen(NotificationSent::class, function () use (&$consegnate): void {
+        $consegnate++;
+        // La registrazione non trova più la riga: è il guasto che si vuole provare.
+        DB::table('venue_monthly_reports')->delete();
+    });
+
+    $this->artisan('venues:monthly-report', ['--month' => '2026-09'])
+        ->expectsOutputToContain('consegnato a '.$owner->email)
+        ->assertExitCode(1);
+
+    // L'email è partita davvero: è questo a rendere il guasto un doppione in attesa.
+    expect($consegnate)->toBe(1);
 });

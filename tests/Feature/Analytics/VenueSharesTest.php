@@ -162,3 +162,30 @@ it('lascia i canali e i QR al referente e non al collaboratore', function (): vo
     $collaboratore->set('channelLabel', 'Di nascosto')->call('addChannel');
     expect(EventShareLink::where('channel', 'c-di-nascosto')->exists())->toBeFalse();
 });
+
+/**
+ * Un clic sulla scheda del locale non appartiene a nessun evento.
+ *
+ * Il totale in cima alla pagina lo contava già; la riga del locale, che si
+ * somma dagli eventi, no. Due numeri diversi per la stessa cosa nella stessa
+ * schermata — e il grafico dei locali legge proprio quel conteggio.
+ */
+it('conta il clic sulla scheda del locale nel totale e nella riga del locale', function (): void {
+    $this->shares->venueLinks($this->venue);
+    $link = EventShareLink::where('venue_id', $this->venue->id)->whereNull('event_id')->firstOrFail();
+    $this->shares->record($link, false);
+
+    $this->actingAs($this->scenario->ownerA);
+    Filament::setCurrentPanel('venue');
+    Filament::setTenant($this->venue);
+
+    $report = app(EventAnalyticsDashboard::class)->report(['from' => '2026-09-01', 'until' => '2026-09-10']);
+    $riga = collect($report['venues'])->firstWhere('id', $this->venue->id);
+
+    expect($report['totals']['short_clicks'])->toBe(1)
+        ->and($riga)->not->toBeNull()
+        ->and($riga['short_clicks'])->toBe($report['totals']['short_clicks']);
+
+    Filament::setTenant(null);
+    Filament::setCurrentPanel(null);
+});
