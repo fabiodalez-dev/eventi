@@ -62,6 +62,35 @@ class AppRepository(context: Context) {
         api.post<ApiEnvelope<kotlinx.serialization.json.JsonObject>, CancelBookingBody>("me/bookings/$id/email", CancelBookingBody(), requireNotNull(_session.value?.token))
     }
 
+    /**
+     * Le date di stasera, dalla stessa porta da cui passa la schermata
+     * «stasera»: `preset=tonight` sull'elenco eventi, filtri e città inclusi.
+     *
+     * Il widget della schermata iniziale legge di qui e non da una via propria.
+     * Due vie divergono, e la seconda diverge in silenzio: nessuno apre un
+     * widget per controllare se dice la stessa cosa dell'app.
+     */
+    suspend fun tonightOccurrences(limit: Int = 3): List<Occurrence> =
+        filteredOccurrencesPage(mapOf("preset" to "tonight"), "").data.take(limit)
+
+    /**
+     * Se il server dichiara di saper emettere un pass per il portafoglio.
+     *
+     * Finché le credenziali dell'emittente non ci sono la risposta è falsa e
+     * il pulsante non compare: un interruttore che il server ignora è peggio
+     * di nessun interruttore, come già vale per le chiavi VAPID del push.
+     */
+    suspend fun walletAvailable(): Boolean =
+        api.get<ApiEnvelope<WalletFeature>>("wallet").data.googleWallet
+
+    /** L'indirizzo «salva nel portafoglio» per un singolo biglietto valido. */
+    suspend fun walletPass(ticketId: Long): String =
+        api.post<ApiEnvelope<WalletPass>, Map<String, String>>(
+            "me/tickets/$ticketId/wallet",
+            emptyMap(),
+            requireNotNull(_session.value?.token),
+        ).data.saveUrl
+
     suspend fun occurrences(filter: EventFilter = EventFilter.ALL): List<Occurrence> {
         val token = _session.value?.token
         val suffix = when (filter) {

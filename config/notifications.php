@@ -114,6 +114,19 @@ return [
             'time' => '16:00',
             'max_items' => 8,
         ],
+        /*
+         * La spinta della sera. Poche proposte, e solo se sono almeno due:
+         * un messaggio con una riga sola non vale l'interruzione che costa.
+         * `radius_km` vale per chi ha una posizione approssimata salvata; per
+         * tutti gli altri il raggio non esiste e vale la città di riferimento.
+         */
+        'tonight' => [
+            'time' => '18:00',
+            'weekdays' => [5, 6],
+            'max_items' => 3,
+            'min_items' => 2,
+            'radius_km' => 15.0,
+        ],
     ],
 
     /*

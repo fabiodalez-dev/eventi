@@ -31,8 +31,8 @@ android {
         applicationId = "it.fabiodalez.incitta"
         minSdk = 26
         targetSdk = 36
-        versionCode = 37
-        versionName = "1.15.0"
+        versionCode = 39
+        versionName = "1.17.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
@@ -121,6 +121,13 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.10.0")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.10.0")
     implementation("androidx.navigation:navigation-compose:2.9.5")
+    // Il widget della schermata iniziale: Compose per RemoteViews, niente XML a mano.
+    implementation("androidx.glance:glance-appwidget:1.2.0")
+    /* Dichiarato e non lasciato arrivare da Glance: il widget ci pianifica
+       sopra il proprio giro di rete, e una dipendenza usata di proposito non
+       deve sparire il giorno in cui Glance cambia le sue. */
+    implementation("androidx.work:work-runtime-ktx:2.7.1")
+    implementation("androidx.glance:glance-material3:1.2.0")
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
@@ -129,6 +136,7 @@ dependencies {
     implementation("io.coil-kt.coil3:coil-network-okhttp:3.3.0")
     implementation("org.maplibre.gl:android-sdk-opengl:13.6.0")
     implementation("com.google.zxing:core:3.5.3")
+    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")

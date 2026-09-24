@@ -57,9 +57,11 @@ final class FeedController extends Controller
 
         $context = ApiContext::forOccurrences($city, $includes, $user, $this->occurrences->ids($items));
 
+        $reasons = $this->feed->reasons($user, $items);
+
         return ApiResponse::page(
             $paginator,
-            static fn (EventOccurrence $occurrence): array => OccurrenceResource::toArray($occurrence, $context),
+            static fn (EventOccurrence $occurrence): array => [...OccurrenceResource::toArray($occurrence, $context), 'recommendation_reasons' => $reasons[$occurrence->id] ?? []],
             ['onboarding' => null],
         );
     }

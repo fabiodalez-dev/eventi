@@ -15,7 +15,7 @@ final class BeforeGoingDefaults
     public static function forVenue(?Venue $venue): array
     {
         return array_intersect_key($venue?->getAttribute('content_details') ?? [], array_flip([
-            ...self::FIELDS, 'parking_type', 'parking_notes', 'transit_notes', 'entrance_notes',
+            ...self::FIELDS, 'parking_type', 'parking_notes', 'transit_notes', 'entrance_notes', 'food_notes', 'start_notes',
         ]));
     }
 

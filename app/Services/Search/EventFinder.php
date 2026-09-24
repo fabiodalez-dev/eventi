@@ -6,6 +6,7 @@ namespace App\Services\Search;
 
 use App\DTOs\EventFilters;
 use App\Enums\AccessibilityFeature;
+use App\Enums\DatePreset;
 use App\Enums\EventSort;
 use App\Models\City;
 use App\Models\EventOccurrence;
@@ -34,7 +35,9 @@ final class EventFinder
         $this->applyTaxonomy($query, $filters);
         $this->applyPlace($query, $filters);
         $this->applyFeatures($query, $filters);
-        $this->applyOrdering($query, $filters);
+        if ($filters->preset !== DatePreset::LastHours) {
+            $this->applyOrdering($query, $filters);
+        }
         if ($filters->budget !== null) {
             $query->discoveryBudget($filters->budget);
         }

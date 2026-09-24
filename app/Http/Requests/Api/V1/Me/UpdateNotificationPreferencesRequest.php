@@ -42,6 +42,12 @@ class UpdateNotificationPreferencesRequest extends FormRequest
             'venue_digest' => ['sometimes', 'boolean'],
             'comments' => ['sometimes', 'boolean'],
             'daily_digest' => ['sometimes', 'boolean'],
+            'tonight' => ['sometimes', 'boolean'],
+            'venue_report' => ['sometimes', 'boolean'],
+            /* `[]` non vale «nessun giorno»: verrebbe sostituito dai giorni predefiniti, e la spinta partirebbe in giorni che nessuno ha scelto. */
+            'tonight_days' => ['required_if_accepted:tonight', 'sometimes', 'array', 'min:1', 'max:7'],
+            'tonight_days.*' => ['integer', 'between:1,7'],
+            'tonight_time' => ['sometimes', 'date_format:H:i'],
         ];
     }
 }

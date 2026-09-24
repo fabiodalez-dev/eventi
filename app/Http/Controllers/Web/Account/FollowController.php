@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Web\Account;
 use App\Actions\Account\FollowSubject;
 use App\Actions\Account\UnfollowSubject;
 use App\Enums\FollowableType;
+use App\Enums\FollowNotificationMode;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Web\Concerns\InteractsWithAccount;
 use App\Http\Requests\Web\Account\StoreFollowRequest;
@@ -39,7 +40,7 @@ final class FollowController extends Controller
         abort_unless($type->modelClass()::query()->whereKey($id)->exists(), 404);
         abort_if($type === FollowableType::Organizer && ! Organizer::query()->whereKey($id)->where('is_active', true)->exists(), 404);
 
-        $follow($this->accountUser($request), $type, $id, $request->boolean('notify', $type !== FollowableType::Organizer));
+        $follow($this->accountUser($request), $type, $id, $request->boolean('notify', $type !== FollowableType::Organizer), $request->has('notification_mode') ? FollowNotificationMode::from($request->validated('notification_mode')) : null);
 
         return $this->respond($request, __('account.follow.stored'));
     }

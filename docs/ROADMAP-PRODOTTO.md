@@ -13,6 +13,12 @@ Il checkpoint [1.9.1](RELEASE-1.9.1.md) consolida temi web/Android, URL delle si
 
 Questi risultati coprono parti di P0, P1 e P2, **non completano interamente quelle fasi**. Restano prioritari upload e verifiche Play, test con account/servizi reali, prestazioni e debito di tipizzazione. I requisiti commerciali e le evoluzioni P3/P4 sotto restano invariati.
 
+## Blocchi approvati il 24 settembre 2026
+
+Fabio ha approvato otto blocchi di lavoro, descritti in dettaglio nel [piano di crescita](PIANO-CRESCITA-2026-09.md): spinta della sera, rapporto mensile al locale, QR e canali liberi nei link tracciati, «ci vado» con elenco di chi partecipa, sondaggi fra amici su più date, conferma a tempo e posizione nella lista d'attesa, pagina del locale più ricca, widget Android e biglietto nel wallet. Le tabelle di valutazione qui sotto restano valide come giudizio; le righe toccate da questa decisione riportano ora lo stato approvato.
+
+Tre verifiche fatte sul codice il 24 settembre 2026 correggono altrettante impressioni che le tabelle potevano lasciare: la lista d'attesa del ticketing **è già implementata e collaudata** (coda in ordine di arrivo, promozione per gruppi interi, comando periodico, email dedicate) e le manca solo una finestra di conferma con la posizione mostrata a chi aspetta; la galleria fotografica del locale **si carica ma non è mostrata da nessuna pagina**, insieme a caratteristiche, fasce d'età e note pratiche del locale; i pulsanti di condivisione della pagina del locale **non passano dai link tracciati**, che oggi esistono solo per gli eventi e solo su quattro canali fissi.
+
 ## Obiettivo
 
 Per gli utenti, inCittà deve essere il modo più semplice per scegliere cosa fare.
@@ -134,7 +140,7 @@ implementare automaticamente ogni proposta. “Rimandata” richiede una nuova d
 
 | # | Proposta | Priorità e valutazione |
 |---|---|---|
-| 1 | Dashboard analytics | P2. Centrale: separare visibilità, interesse, prenotazioni e presenze. |
+| 1 | Dashboard analytics | P2. Centrale: separare visibilità, interesse, prenotazioni e presenze. **Dal 24/09/2026** se ne ricava anche il rapporto mensile via email al locale. |
 | 2 | ROI per evento | P2, limitatamente ai dati misurabili. Nel ticketing gratuito usare costo per prenotazione/presenza, senza inventare ricavi. |
 | 3 | Analytics pubblico | P2/P4. Preferenze aggregate, senza esporre profili individuali né raccogliere dati inutili. |
 | 4 | Benchmark locale | P4. Solo con campioni sufficienti e comparabili per categoria, periodo e investimento. |
@@ -152,10 +158,10 @@ implementare automaticamente ogni proposta. “Rimandata” richiede una nuova d
 | 16 | Follower | P1. Locali e organizzatori, con preferenze di notifica distinte dal semplice follow. |
 | 17 | Automazioni marketing | P4. Prima suggerimenti confermabili; regole sulla capienza solo se dichiarata. |
 | 18 | AI Content Studio | Template social da consolidare; assistenza AI rimandata. Mai inventare prezzi, orari o accessibilità. |
-| 19 | QR/link tracciati | P2. Alto valore, attribuzione comprensibile e limiti dichiarati. |
+| 19 | QR/link tracciati | **Approvato 24/09/2026.** I link esistono per gli eventi su quattro canali fissi; mancano QR, canali liberi e tracciamento sulla pagina del locale. |
 | 20 | Affiliazioni/creator | Nessuna commissione automatica nel modello approvato. Link identificativi per partner possibili in P2. |
 | 21 | Check-in QR | P0/P2. Affidabilità, doppio ingresso, ruoli staff e comportamento senza rete. |
-| 22 | Lista d'attesa | P3. Assegnazione temporanea del posto, scadenza e avanzamento ordinato. |
+| 22 | Lista d'attesa | **Approvata 24/09/2026.** Avanzamento ordinato già in produzione; da aggiungere l'assegnazione temporanea con scadenza. |
 | 23 | Upsell | Rimandato. Inventario, pacchetti e condizioni commerciali esulano dal ticketing gratuito essenziale. |
 | 24 | Profilo premium/verificato | PRO ammesso per locali paganti o autorizzati gratuitamente dagli admin. La verifica identità resta separata dal piano e dal pagamento. |
 | 25 | Raccomandazioni B2B | P4 e oltre. Prima evidenze aggregate; suggerimenti predittivi solo se motivabili. |
@@ -175,14 +181,14 @@ implementare automaticamente ogni proposta. “Rimandata” richiede una nuova d
 | 9 | Alert intelligenti | P0/P1. Prima spostamenti e annullamenti; quasi esaurito solo con posti residui conosciuti. |
 | 10 | Last minute | P1. Prossime ore e disponibilità reali, utile anche senza sconti. |
 | 11 | Drop esclusivi | Rimandati. Richiedono vantaggi reali; non nascondere informazioni essenziali per forzare l'installazione. |
-| 12 | Waitlist | P3. Stesso sistema gestore, regole chiare e possibilità di rinunciare. |
+| 12 | Waitlist | **Approvata 24/09/2026.** Il sistema esiste già e funziona; restano finestra di conferma, posizione in coda e rinuncia raccontata. |
 | 13 | Prezzo finale trasparente | P1. Ingresso, consumazione obbligatoria, tessera e altri costi distinti. |
-| 14 | Chi ci va? | Rimandato. Partecipazione privata inizialmente; condivisione solo esplicita. |
-| 15 | Gruppi | P3. Raccolte condivise leggere, senza costruire subito un social network. |
-| 16 | Sondaggio evento | P3. Alto valore: poche proposte, voto e scadenza. |
+| 14 | Chi ci va? | **Approvato 24/09/2026.** Resta privato per difetto: si riusa la visibilità per singola data già esistente, con elenco visibile ai soli verificati. |
+| 15 | Gruppi | **Approvato 24/09/2026** nella sola forma del sondaggio fra più amici. Chat e gruppi persistenti restano fuori. |
+| 16 | Sondaggio evento | **Approvato 24/09/2026**, da due a dieci partecipanti compreso chi propone, invito per link, voto riservato a chi ha un account e scadenza obbligatoria. |
 | 17 | Matching gusti gruppo | Dopo P3. Prima vincoli comuni e regole semplici, senza necessità di AI. |
 | 18 | Calendario personale | P0. Collegamenti, aggiornamenti, annullamenti e revoca affidabili. |
-| 19 | Wallet biglietti | P0. Accesso rapido, ticket scaricati consultabili senza rete e gestione chiara degli annullamenti. |
+| 19 | Wallet biglietti | **Approvato 24/09/2026.** Nel progetto non esiste oggi alcun pass per portafoglio digitale: è lavoro nuovo, compresa la registrazione presso il fornitore. |
 | 20 | Loyalty/punti | Rimandati. Servono vantaggi finanziati e controlli contro gli abusi. |
 | 21 | Badge/livelli | Bassa priorità. Non premiare click, spam o attività prive di valore. |
 | 22 | Recensioni verificate | Dopo P3. Presenza verificata, distinzione evento/locale/organizzazione e moderazione. |

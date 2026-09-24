@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Actions\Account;
 
 use App\Enums\FollowableType;
+use App\Enums\FollowNotificationMode;
 use App\Models\Event;
 use App\Models\Follow;
 use App\Models\User;
@@ -24,12 +25,13 @@ final class FollowSubject
 {
     public function __construct(private readonly SaveOccurrences $save) {}
 
-    public function __invoke(User $user, FollowableType $type, int $id, bool $notify = true): Follow
+    public function __invoke(User $user, FollowableType $type, int $id, bool $notify = true, ?FollowNotificationMode $mode = null): Follow
     {
+        $mode ??= $notify ? FollowNotificationMode::All : FollowNotificationMode::None;
         /** @var Follow $follow */
         $follow = $user->follows()->updateOrCreate(
             ['followable_type' => $type->value, 'followable_id' => $id],
-            ['notify' => $notify],
+            ['notify' => $mode !== FollowNotificationMode::None, 'notification_mode' => $mode],
         );
 
         if ($type === FollowableType::Event) {

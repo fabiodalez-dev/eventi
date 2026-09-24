@@ -22,6 +22,16 @@
     <p>Visualizzazioni e clic delle campagne, anche concluse. Filtra per periodo o cerca un evento.</p>
     {{ $this->form }}
     @php $report = $this->report(); @endphp
+    @if ($report['economics'] !== null)
+        <x-filament::section :heading="__('decision.spend')">
+            <p class="sponsor-note">{{ __('decision.cost_definition') }}</p>
+            <dl>
+                @foreach (['spend_cents' => 'spend', 'per_booking_cents' => 'cost_per_booking', 'per_attendance_cents' => 'cost_per_attendance'] as $key => $label)
+                    <div><dt>{{ __('decision.'.$label) }}</dt><dd>{{ $report['economics'][$key] === null ? __('decision.not_available') : number_format($report['economics'][$key] / 100, 2, ',', '.').' '.$report['economics']['currency'] }}</dd></div>
+                @endforeach
+            </dl>
+        </x-filament::section>
+    @endif
     <div class="sponsor-stats">
         <x-filament::section heading="Visualizzazioni"><strong class="text-2xl">{{ number_format($report['impressions'], 0, ',', '.') }}</strong></x-filament::section>
         <x-filament::section heading="Clic registrati"><strong class="text-2xl">{{ number_format($report['clicks'], 0, ',', '.') }}</strong></x-filament::section>

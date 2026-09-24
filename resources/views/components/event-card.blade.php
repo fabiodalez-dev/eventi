@@ -204,7 +204,7 @@
 
     <div class="event-card__footer flex items-center justify-between gap-2.5 border-t-2 border-line pt-3">
         <span class="font-display text-base leading-none font-extrabold tracking-[-0.01em]">
-            <x-price-tag :event="$event" as="text" :neutral="true" />
+            <x-price-tag :event="$event" :occurrence="$occurrence" as="text" :neutral="true" />
         </span>
 
         <div class="flex items-center gap-2">

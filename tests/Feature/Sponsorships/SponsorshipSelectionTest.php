@@ -22,8 +22,18 @@ beforeEach(function (): void {
     $this->selettore = app(SponsorshipSelector::class);
 });
 
+/**
+ * Una sera ancora da venire, contata da oggi.
+ *
+ * Le date erano scritte per esteso, e una campagna si vede solo se l'evento sotto regge ancora: il giorno in cui quelle date sono passate i test hanno cominciato a fallire tutti insieme, senza che nulla fosse cambiato nel codice. Contarle da adesso è ciò che la selezione verifica davvero — «l'evento è ancora davanti», non «è il venti settembre».
+ */
+function seraDaVenire(int $fraGiorni = 1): string
+{
+    return CarbonImmutable::now(test()->city->timezone)->addDays($fraGiorni)->format('Y-m-d 21:00:00');
+}
+
 it('mostra una campagna attiva dentro la propria finestra', function (): void {
-    $occorrenza = occurrenceAtLocal($this->city, $this->category, '2026-09-20 21:00:00');
+    $occorrenza = occurrenceAtLocal($this->city, $this->category, seraDaVenire());
 
     $campagna = Sponsorship::factory()->create([
         'city_id' => $this->city->getKey(),
@@ -38,7 +48,7 @@ it('mostra una campagna attiva dentro la propria finestra', function (): void {
 });
 
 it('non mostra una campagna non ancora cominciata', function (): void {
-    $occorrenza = occurrenceAtLocal($this->city, $this->category, '2026-09-20 21:00:00');
+    $occorrenza = occurrenceAtLocal($this->city, $this->category, seraDaVenire());
 
     Sponsorship::factory()->future()->create([
         'city_id' => $this->city->getKey(),
@@ -49,7 +59,7 @@ it('non mostra una campagna non ancora cominciata', function (): void {
 });
 
 it('non mostra una campagna finita', function (): void {
-    $occorrenza = occurrenceAtLocal($this->city, $this->category, '2026-09-20 21:00:00');
+    $occorrenza = occurrenceAtLocal($this->city, $this->category, seraDaVenire());
 
     Sponsorship::factory()->expired()->create([
         'city_id' => $this->city->getKey(),
@@ -60,7 +70,7 @@ it('non mostra una campagna finita', function (): void {
 });
 
 it('non mostra una bozza né una campagna sospesa', function (): void {
-    $occorrenza = occurrenceAtLocal($this->city, $this->category, '2026-09-20 21:00:00');
+    $occorrenza = occurrenceAtLocal($this->city, $this->category, seraDaVenire());
 
     Sponsorship::factory()->draft()->create([
         'city_id' => $this->city->getKey(),
@@ -81,7 +91,7 @@ it('non mostra una bozza né una campagna sospesa', function (): void {
  * in vetrina una serata annullata.
  */
 it('non mostra una campagna il cui evento non è più pubblicato', function (): void {
-    $occorrenza = occurrenceAtLocal($this->city, $this->category, '2026-09-20 21:00:00');
+    $occorrenza = occurrenceAtLocal($this->city, $this->category, seraDaVenire());
 
     Sponsorship::factory()->create([
         'city_id' => $this->city->getKey(),
@@ -97,7 +107,7 @@ it('non mostra una campagna il cui evento non è più pubblicato', function (): 
 
 it('non mostra la campagna di un altra città', function (): void {
     $altra = testCity(['name' => 'Vicenza', 'slug' => 'vicenza']);
-    $occorrenza = occurrenceAtLocal($altra, $this->category, '2026-09-20 21:00:00');
+    $occorrenza = occurrenceAtLocal($altra, $this->category, seraDaVenire());
 
     Sponsorship::factory()->create([
         'city_id' => $altra->getKey(),
@@ -108,7 +118,7 @@ it('non mostra la campagna di un altra città', function (): void {
 });
 
 it('non mescola le collocazioni', function (): void {
-    $occorrenza = occurrenceAtLocal($this->city, $this->category, '2026-09-20 21:00:00');
+    $occorrenza = occurrenceAtLocal($this->city, $this->category, seraDaVenire());
 
     Sponsorship::factory()->placement(SponsorshipPlacement::HomeHero)->create([
         'city_id' => $this->city->getKey(),
@@ -124,7 +134,7 @@ it('non mescola le collocazioni', function (): void {
  */
 it('non supera mai il tetto della collocazione, quante che siano le campagne', function (): void {
     foreach (range(1, 5) as $indice) {
-        $occorrenza = occurrenceAtLocal($this->city, $this->category, '2026-09-2'.$indice.' 21:00:00');
+        $occorrenza = occurrenceAtLocal($this->city, $this->category, seraDaVenire($indice));
 
         Sponsorship::factory()->create([
             'city_id' => $this->city->getKey(),
@@ -137,8 +147,8 @@ it('non supera mai il tetto della collocazione, quante che siano le campagne', f
 });
 
 it('mette davanti chi ha la priorità più alta', function (): void {
-    $bassa = occurrenceAtLocal($this->city, $this->category, '2026-09-20 21:00:00');
-    $alta = occurrenceAtLocal($this->city, $this->category, '2026-09-21 21:00:00');
+    $bassa = occurrenceAtLocal($this->city, $this->category, seraDaVenire());
+    $alta = occurrenceAtLocal($this->city, $this->category, seraDaVenire(2));
 
     Sponsorship::factory()->create([
         'city_id' => $this->city->getKey(),
@@ -162,8 +172,8 @@ it('mette davanti chi ha la priorità più alta', function (): void {
  * si verifica confrontando due minuti diversi.
  */
 it('alterna le campagne di pari priorità di minuto in minuto', function (): void {
-    foreach ([20, 21] as $giorno) {
-        $occorrenza = occurrenceAtLocal($this->city, $this->category, "2026-09-{$giorno} 21:00:00");
+    foreach ([1, 2] as $giorno) {
+        $occorrenza = occurrenceAtLocal($this->city, $this->category, seraDaVenire($giorno));
 
         Sponsorship::factory()->create([
             'city_id' => $this->city->getKey(),
@@ -182,8 +192,8 @@ it('alterna le campagne di pari priorità di minuto in minuto', function (): voi
 });
 
 it('mostra la stessa campagna a chi ricarica dentro lo stesso minuto', function (): void {
-    foreach ([20, 21] as $giorno) {
-        $occorrenza = occurrenceAtLocal($this->city, $this->category, "2026-09-{$giorno} 21:00:00");
+    foreach ([1, 2] as $giorno) {
+        $occorrenza = occurrenceAtLocal($this->city, $this->category, seraDaVenire($giorno));
 
         Sponsorship::factory()->create([
             'city_id' => $this->city->getKey(),

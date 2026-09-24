@@ -159,7 +159,7 @@
                         rel="noopener nofollow"
                         class="ui-action inline-flex h-[54px] items-center gap-2 bg-accent px-[22px] font-display text-xs leading-none font-extrabold tracking-[0.14em] text-on-accent uppercase transition-colors hover:bg-brand-strong"
                     >
-                        {{ __('events.detail.tickets') }} <x-price-tag :event="$event" as="text" class="text-on-accent" />
+                        {{ __('events.detail.tickets') }} <x-price-tag :event="$event" :occurrence="$selectedOccurrence ?? null" as="text" class="text-on-accent" />
                         <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="square"><path d="M7 17 17 7M9 7h8v8"></path></svg>
                     </a>
                 @endif
@@ -434,6 +434,17 @@
                 </section>
             @endif
 
+            @if (! ($isPreview ?? false) && config('community.enabled') && $occurrences->isNotEmpty())
+                <x-poll-form :event="$event" :occurrences="$occurrences" />
+            @endif
+
+            {{-- «Chi ci va» riguarda una data precisa, quindi compare solo
+                 sulla pagina di quella data: sulla scheda della serie non
+                 saprebbe a quale appuntamento riferirsi. --}}
+            @if (! ($isPreview ?? false) && ($selectedOccurrence ?? null) && config('community.enabled'))
+                <x-attendance :occurrence="$selectedOccurrence" />
+            @endif
+
             {{-- I commenti stanno sotto i tag, dentro la colonna principale:
                  sono la coda della scheda, non una sezione a larghezza piena
                  come «altri eventi in questo locale». --}}
@@ -473,7 +484,7 @@
             <section class="flex flex-col gap-3 bg-canvas p-5 border-2 border-line" aria-labelledby="prezzo-evento">
                 <h2 id="prezzo-evento" class="font-display text-[clamp(1.25rem,1.8vw,1.75rem)] leading-none font-extrabold tracking-[-0.03em] uppercase">{{ __('events.detail.price') }}</h2>
 
-                <p class="text-card text-ink"><x-price-tag :event="$event" as="text" /></p>
+                <p class="text-card text-ink"><x-price-tag :event="$event" :occurrence="$selectedOccurrence ?? null" as="text" /></p>
 
                 @if (filled($event->price_notes))
                     <p class="text-sm text-ink-muted">{{ $event->price_notes }}</p>

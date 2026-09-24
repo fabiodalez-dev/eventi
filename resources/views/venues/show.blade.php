@@ -14,6 +14,7 @@
     $accessibility = $venue->accessibility;
     $hours = is_array($venue->opening_hours) ? $venue->opening_hours : [];
     $days = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+    $gallery = $venue->getMedia('gallery')->map(fn ($media) => \App\Support\Media\ImageSet::fromMedia($media))->all();
 @endphp
 
 <x-layouts.app :meta="app(\App\Services\Seo\EditorialContent::class)->meta($venue, $meta)" :preload="$cover">
@@ -103,6 +104,7 @@
 
         <div class="col-span-2 flex items-start [&>a]:inline-flex [&>a]:min-h-12 [&>a]:items-center [&_button]:min-h-12 lg:col-span-1 lg:col-start-3 lg:row-start-1 lg:row-span-2">
             <x-follow-button :type="\App\Enums\FollowableType::Venue" :id="$venue->getKey()" class="ui-action" />
+                <x-follow-preferences :venue="$venue" />
         </div>
     </header>
 
@@ -116,6 +118,34 @@
                     <div class="flex flex-col gap-3 text-ink-muted">
                         <x-description-content :text="$venue->description" />
                     </div>
+                </section>
+            @endif
+
+            {{-- La galleria del locale: fino a trenta foto che si potevano
+                 caricare da sempre e che nessuna pagina mostrava. Una griglia
+                 e non un carosello, perche' un carosello nasconde tutto tranne
+                 una foto e chiede un gesto per ognuna delle altre: qui le
+                 fotografie sono il contorno della scheda, non il suo centro.
+                 A 390 px restano due colonne — una sola farebbe scorrere la
+                 pagina per mezzo minuto prima di arrivare alle date. --}}
+            @if ($gallery !== [])
+                <section aria-labelledby="galleria-locale" class="flex flex-col gap-3">
+                    <h2 id="galleria-locale" class="font-display text-[clamp(1.25rem,1.8vw,1.75rem)] leading-none font-extrabold tracking-[-0.03em] uppercase">{{ __('venues.detail.gallery') }}</h2>
+
+                    <ul class="m-0 grid list-none grid-cols-2 gap-2 p-0 sm:grid-cols-3">
+                        @foreach ($gallery as $index => $immagine)
+                            <li class="m-0">
+                                <x-media-image
+                                    :set="$immagine"
+                                    :alt="__('venues.detail.gallery_alt', ['venue' => $venue->name, 'number' => $index + 1])"
+                                    width="800"
+                                    height="600"
+                                    sizes="(min-width: 1024px) 15rem, (min-width: 640px) 30vw, 45vw"
+                                    class="aspect-[4/3] w-full object-cover"
+                                />
+                            </li>
+                        @endforeach
+                    </ul>
                 </section>
             @endif
 
@@ -259,7 +289,7 @@
             <section class="flex flex-col gap-3" aria-labelledby="condividi-locale">
                 <h2 id="condividi-locale" class="font-display text-[clamp(1.25rem,1.8vw,1.75rem)] leading-none font-extrabold tracking-[-0.03em] uppercase">{{ __('common.actions.share') }}</h2>
 
-                <x-share-links :url="route('venues.show', $venue)" :title="$venue->name" />
+                <x-share-links :url="route('venues.show', $venue)" :title="$venue->name" :links="$shareLinks" />
 
                 <a
                     href="{{ route('venues.report', ['slug' => $venue->slug]) }}"

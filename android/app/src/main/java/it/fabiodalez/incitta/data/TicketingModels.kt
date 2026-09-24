@@ -62,3 +62,16 @@ data class BookingFormField(val key: String, val label: String, val required: Bo
 
 @Serializable
 data class CancelBookingBody(@SerialName("ticket_id") val ticketId: Long? = null)
+
+/*
+ * Il biglietto nel portafoglio digitale.
+ *
+ * L'app non costruisce il pass: chiede al server se sa farlo e, in caso, si
+ * fa dare l'indirizzo già firmato. Così la chiave dell'emittente resta dove
+ * deve stare, e un'app vecchia non mostra mai un pulsante che non funziona.
+ */
+@Serializable
+data class WalletFeature(@SerialName("google_wallet") val googleWallet: Boolean = false)
+
+@Serializable
+data class WalletPass(@SerialName("save_url") val saveUrl: String)

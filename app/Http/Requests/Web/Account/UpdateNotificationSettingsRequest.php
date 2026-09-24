@@ -45,6 +45,12 @@ class UpdateNotificationSettingsRequest extends FormRequest
             'comments' => ['sometimes', 'boolean'],
             'daily_digest' => ['nullable', 'boolean'],
             'daily_digest_time' => ['nullable', 'date_format:H:i'],
+            'tonight' => ['nullable', 'boolean'],
+            'venue_report' => ['nullable', 'boolean'],
+            'tonight_time' => ['nullable', 'date_format:H:i'],
+            /* Le caselle dei giorni non arrivano affatto quando si toglie l'ultima spunta: senza `required_if_accepted` la richiesta sarebbe valida, il salvataggio confermato e i giorni di prima resterebbero al loro posto. */
+            'tonight_days' => ['required_if_accepted:tonight', 'nullable', 'array', 'min:1', 'max:7'],
+            'tonight_days.*' => ['integer', 'between:1,7'],
             'quiet_from' => ['nullable', 'date_format:H:i', 'required_with:quiet_to'],
             'quiet_to' => ['nullable', 'date_format:H:i', 'required_with:quiet_from'],
             'quiet_off' => ['nullable', 'boolean'],
@@ -60,6 +66,10 @@ class UpdateNotificationSettingsRequest extends FormRequest
             'sold_out' => $this->boolean('sold_out'),
             'venue_digest' => $this->boolean('venue_digest'),
             'daily_digest' => $this->boolean('daily_digest'),
+            'tonight' => $this->boolean('tonight'),
+            'venue_report' => $this->boolean('venue_report'),
+            'tonight_days' => $this->validated('tonight_days', $this->route('user')->notificationPreferences()->tonightDays),
+            'tonight_time' => $this->validated('tonight_time') ?: $this->route('user')->notificationPreferences()->tonightTime,
             'comments' => $this->boolean('comments'),
         ]);
     }

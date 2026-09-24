@@ -220,6 +220,10 @@ fun CalendarSubscriptionPanel(initiallyExpanded: Boolean = false) {
             TextButton(onClick = { localOptions = !localOptions }) { Text(stringResource(R.string.calendar_local_options)) }
             if (localOptions) {
             Text(stringResource(R.string.calendar_local_help), color = Muted)
+            OutlinedButton(enabled = !busy, onClick = { confirmQuery = "saved_only=1&days=90" }, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.calendar_sync_saved))
+            }
+            if (savedSelection.getQueryParameter("saved_only") == "1") Text(stringResource(R.string.calendar_saved_active), color = Muted)
             OutlinedButton(enabled = valid, onClick = {
                 confirmQuery = url.encodedQuery.orEmpty()
             }, modifier = Modifier.fillMaxWidth()) { Text(if (busy) "Aggiornamento…" else if (connected) "Aggiorna calendario sul telefono" else "Collega al calendario del telefono") }

@@ -6,6 +6,7 @@ namespace App\Services\Notifications;
 
 use App\Enums\EventStatus;
 use App\Enums\FollowableType;
+use App\Enums\FollowNotificationMode;
 use App\Enums\NotificationType;
 use App\Models\Follow;
 use App\Models\NotificationLog;
@@ -46,6 +47,7 @@ final class DigestPlanner
         $planned = [
             NotificationType::VenueDigest->value => 0,
             NotificationType::DailyDigest->value => 0,
+            NotificationType::TonightNearby->value => 0,
             NotificationType::WeekendNewsletter->value => 0,
             NotificationType::VenueInactive->value => 0,
         ];
@@ -125,6 +127,25 @@ final class DigestPlanner
                     userId: $userId,
                     type: NotificationType::DailyDigest,
                     dedupeKey: sprintf('daily_digest:user_%d:%s', $userId, $sendAt->setTimezone($timezone)->format('Y-m-d')),
+                    sendAt: $sendAt,
+                );
+            }
+        }
+
+        /*
+         * La spinta della sera parte solo nei giorni scelti, all'ora scelta, e
+         * solo per chi l'ha accesa. Il contenuto — quante date, e dove — lo
+         * decide `MessageFactory` al momento dell'invio: qui si fissa soltanto
+         * il momento, come per gli altri riepiloghi.
+         */
+        if ($preferences->tonight) {
+            $sendAt = $this->nextTonight($now, $timezone, $preferences->tonightDays, $preferences->tonightTime);
+
+            if ($sendAt !== null && $sendAt->lessThanOrEqualTo($horizon)) {
+                $planned[NotificationType::TonightNearby->value] += (int) $this->scheduler->queue(
+                    userId: $userId,
+                    type: NotificationType::TonightNearby,
+                    dedupeKey: sprintf('tonight_nearby:user_%d:%s', $userId, $sendAt->setTimezone($timezone)->format('Y-m-d')),
                     sendAt: $sendAt,
                 );
             }
@@ -211,7 +232,7 @@ final class DigestPlanner
             FollowableType::feedSources(),
         );
 
-        foreach (Follow::query()->notifying()->whereIn('followable_type', $sources)->distinct()->pluck('user_id') as $id) {
+        foreach (Follow::query()->notifying()->where('notification_mode', FollowNotificationMode::All)->whereIn('followable_type', $sources)->distinct()->pluck('user_id') as $id) {
             $ids[(int) $id] = true;
         }
 
@@ -258,6 +279,33 @@ final class DigestPlanner
         }
 
         return $target->utc();
+    }
+
+    /**
+     * Il prossimo giorno utile fra quelli scelti, all'ora scelta, nel fuso di
+     * chi riceve. Guarda una settimana avanti: oltre, il pianificatore
+     * ripasserà comunque prima che il momento arrivi.
+     *
+     * @param  list<int>  $days  giorni ISO (1 = lunedì)
+     */
+    private function nextTonight(CarbonImmutable $now, string $timezone, array $days, string $time): ?CarbonImmutable
+    {
+        if ($days === []) {
+            return null;
+        }
+
+        [$hour, $minute] = $this->clock($time);
+        $local = $now->setTimezone($timezone);
+
+        for ($offset = 0; $offset <= 7; $offset++) {
+            $candidate = $local->addDays($offset)->setTime($hour, $minute);
+
+            if (in_array((int) $candidate->isoWeekday(), $days, true) && $candidate->greaterThan($local)) {
+                return $candidate->utc();
+            }
+        }
+
+        return null;
     }
 
     /**

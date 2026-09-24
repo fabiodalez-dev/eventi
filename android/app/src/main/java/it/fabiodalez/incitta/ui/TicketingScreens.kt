@@ -18,6 +18,7 @@ import it.fabiodalez.incitta.data.BookingPeriod
 import it.fabiodalez.incitta.data.filterBookings
 import androidx.compose.ui.unit.dp
 import it.fabiodalez.incitta.AppUiState
+import it.fabiodalez.incitta.offersWalletPass
 import it.fabiodalez.incitta.R
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.MultiFormatWriter
@@ -86,11 +87,22 @@ fun ReservationScreen(state: AppUiState, padding: PaddingValues, onReserve: (Lis
 }
 
 @Composable
-fun TicketsScreen(state: AppUiState, padding: PaddingValues, onCancel: (Long, Long?) -> Unit, onRefresh: () -> Unit, onEmail: (Long) -> Unit, onBack: () -> Unit) {
+fun TicketsScreen(state: AppUiState, padding: PaddingValues, onCancel: (Long, Long?) -> Unit, onRefresh: () -> Unit, onEmail: (Long) -> Unit, onWallet: (Long) -> Unit, onWalletOpened: () -> Unit, onBack: () -> Unit) {
     var cancelTarget by remember(state.session?.user?.id) { mutableStateOf<Pair<Long, Long?>?>(null) }
     var period by remember(state.session?.user?.id) { mutableStateOf(BookingPeriod.UPCOMING) }
     var query by remember(state.session?.user?.id) { mutableStateOf("") }
     val visibleBookings = filterBookings(state.bookings, period, query)
+    val uriHandler = LocalUriHandler.current
+    /*
+     * Il link del pass si apre una volta e poi si butta: senza il consumo,
+     * ogni ricomposizione della schermata riaprirebbe Google Wallet.
+     */
+    LaunchedEffect(state.walletLink) {
+        state.walletLink?.let { link ->
+            uriHandler.openUri(link)
+            onWalletOpened()
+        }
+    }
     Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(18.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         TextButton(onClick = onBack) { Text(stringResource(R.string.ticket_profile)) }
         Text(stringResource(R.string.ticket_title), style = MaterialTheme.typography.displayMedium)
@@ -130,6 +142,16 @@ fun TicketsScreen(state: AppUiState, padding: PaddingValues, onCancel: (Long, Lo
                                 Image(bitmap.asImageBitmap(), stringResource(R.string.ticket_qr_description, ticket.id), modifier = Modifier.background(Paper).padding(12.dp).fillMaxWidth().heightIn(max = 280.dp).aspectRatio(1f))
                                 Text(stringResource(R.string.ticket_qr_hint), color = Muted)
                             }
+                        }
+                        /*
+                         * Compare solo quando il server dichiara di saper
+                         * emettere il pass: senza credenziali dell'emittente il
+                         * pulsante non esiste, invece di esistere e non
+                         * funzionare.
+                         */
+                        if (state.offersWalletPass(ticket)) {
+                            OutlinedButton(onClick = { onWallet(ticket.id) }, enabled = !state.bookingBusy, shape = ControlShape) { Text(stringResource(R.string.ticket_wallet_add)) }
+                            Text(stringResource(R.string.ticket_wallet_hint), color = Muted)
                         }
                         if (booking.canCancel && ticket.status in listOf("valid", "waitlisted")) {
                             TextButton(onClick = { cancelTarget = booking.id to ticket.id }, enabled = !state.bookingBusy) { Text(stringResource(R.string.ticket_cancel_one)) }

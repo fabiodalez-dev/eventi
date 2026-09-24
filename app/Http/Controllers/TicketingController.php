@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Actions\Account\AssignCheckinStaff;
 use App\DTOs\PageMeta;
 use App\Enums\EventStatus;
 use App\Enums\UserRole;
@@ -11,6 +12,7 @@ use App\Http\Requests\Ticketing\CancelRequest;
 use App\Http\Requests\Ticketing\CheckInRequest;
 use App\Http\Requests\Ticketing\ManageRequest;
 use App\Http\Requests\Ticketing\ReserveRequest;
+use App\Http\Requests\Ticketing\StaffRequest;
 use App\Http\Resources\V1\BookingResource;
 use App\Models\AdmissionTicket;
 use App\Models\Booking;
@@ -87,6 +89,19 @@ final class TicketingController extends Controller
             : redirect()->route($staff ? 'ticketing.manage.show' : 'tickets.show', $staff ? $booking->occurrence : $booking)->with('status', __('ticketing.mail.cancelled'));
     }
 
+    /**
+     * «Confermo il posto» di chi è stato promosso dalla lista d'attesa.
+     * Senza questo gesto il posto scade e torna a chi è in coda.
+     */
+    public function confirmPromotion(Request $request, Booking $booking, TicketingService $service): JsonResponse|RedirectResponse
+    {
+        Gate::authorize('view', $booking);
+        $booking = $service->confirmPromotion($booking, $request->user());
+
+        return $request->is('api/*') ? response()->json(['data' => BookingResource::toArray($booking)])
+            : back()->with('status', __('ticketing.promotion_confirmed'));
+    }
+
     public function pdf(Request $request, AdmissionTicket $ticket): Response
     {
         Gate::authorize('view', $ticket->booking);
@@ -111,9 +126,10 @@ final class TicketingController extends Controller
         $search = $filters['q'] ?? '';
         $user = $request->user();
         $admin = $user->hasAnyRole([UserRole::Admin->value, UserRole::SuperAdmin->value]);
-        abort_unless($admin || $user->ownedVenues()->exists() || $user->managedOrganizers()->exists(), 403);
+        abort_unless($admin || $user->ownedVenues()->exists() || $user->managedOrganizers()->exists() || EventOccurrence::whereHas('checkinStaff', fn ($q) => $q->whereKey($user->id))->exists(), 403);
         $dates = EventOccurrence::query()->when(! $admin, fn ($query) => $query->where(fn ($allowed) => $allowed
-            ->whereIn('venue_id', $user->ownedVenues()->select('venues.id'))
+            ->whereHas('checkinStaff', fn ($q) => $q->whereKey($user->id))
+            ->orWhereIn('venue_id', $user->ownedVenues()->select('venues.id'))
             ->orWhere(fn ($fallback) => $fallback->whereNull('venue_id')->whereHas('event', fn ($event) => $event->whereIn('venue_id', $user->ownedVenues()->select('venues.id'))))
             ->orWhereHas('event', fn ($event) => $event->whereIn('organizer_id', $user->managedOrganizers()->select('organizers.id')))))
             ->when($period === 'past', fn ($q) => $q->whereRaw('COALESCE(effective_ends_at, ends_at, starts_at) < ?', [now()]), fn ($q) => $q->whereRaw('COALESCE(effective_ends_at, ends_at, starts_at) >= ?', [now()]))
@@ -151,11 +167,25 @@ final class TicketingController extends Controller
 
     public function checkIn(CheckInRequest $request, EventOccurrence $occurrence, TicketingService $service): JsonResponse|RedirectResponse
     {
-        Gate::authorize('manage', [Booking::class, $occurrence]);
-        $ticket = $service->checkIn($occurrence, $request->validated('code'), $request->user());
+        Gate::authorize('checkIn', [Booking::class, $occurrence]);
+        $ticket = $service->checkIn($occurrence, $request->validated('code'), $request->user(), $request->validated('request_key'));
 
         return $request->expectsJson() ? response()->json(['data' => ['id' => $ticket->id, 'attendee_name' => $ticket->attendee_name, 'status' => $ticket->status->value]])
-            : redirect()->route('ticketing.manage.show', $occurrence)->with('status', __('ticketing.checkin_success', ['name' => $ticket->attendee_name]));
+            : redirect()->route($request->user()->can('manage', [Booking::class, $occurrence]) ? 'ticketing.manage.show' : 'ticketing.manage.scanner', $occurrence)->with('status', __('ticketing.checkin_success', ['name' => $ticket->attendee_name]));
+    }
+
+    public function scanner(EventOccurrence $occurrence): View
+    {
+        Gate::authorize('checkIn', [Booking::class, $occurrence]);
+
+        return view('ticketing.scanner', ['date' => $occurrence, 'meta' => $this->meta('checkin')]);
+    }
+
+    public function staff(StaffRequest $request, EventOccurrence $occurrence, AssignCheckinStaff $assign): RedirectResponse
+    {
+        $assign($occurrence, $request->validated('email'), $request->boolean('remove'), $request->user());
+
+        return redirect()->route('ticketing.manage.show', $occurrence)->with('status', __('decision.staff_saved'));
     }
 
     public function export(Request $request, EventOccurrence $occurrence): StreamedResponse

@@ -73,7 +73,7 @@ it('aligns every event card track without clipping variable content', function (
                  * puntatore, e quello non si toglie.
                  */
                 $scivolamento = $theme === 'inLightMode' ? 'Math.abs(transform.m41)<1' : 'transform.m41>5';
-                expect($page->script('async () => { await new Promise(resolve => setTimeout(resolve, 280)); const card=document.querySelector(".event-card"); const arrow=card.querySelector("[data-card-arrow]"); const save=card.querySelector("[data-save-button][data-save-variant=icon]"); const icon=arrow.querySelector("svg"); const transform=new DOMMatrix(getComputedStyle(icon).transform); return parseFloat(getComputedStyle(arrow).borderTopWidth)===0 && getComputedStyle(save).boxShadow==="none" && '.$scivolamento.' && transform.a>1; }'))->toBeTrue();
+                expect($page->script('async () => { const deadline = performance.now() + 3000; do { await new Promise(resolve => setTimeout(resolve, 50)); const card=document.querySelector(".event-card"); const arrow=card.querySelector("[data-card-arrow]"); const save=card.querySelector("[data-save-button][data-save-variant=icon]"); const icon=arrow.querySelector("svg"); const transform=new DOMMatrix(getComputedStyle(icon).transform); if (parseFloat(getComputedStyle(arrow).borderTopWidth)===0 && getComputedStyle(save).boxShadow==="none" && '.$scivolamento.' && transform.a>1) return true; } while (performance.now() < deadline); return false; }'))->toBeTrue();
             }
         }
     }

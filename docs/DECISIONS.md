@@ -2,6 +2,30 @@
 
 Ogni decisione: cosa, perché, quando ricontrollare.
 
+## 2026-09-24 — Posizione ricordata precisa
+
+Su richiesta del proprietario, la posizione ricordata non è più arrotondata a due decimali:
+si conserva con le coordinate che il dispositivo comunica, alla stessa precisione dei locali
+(sette decimali), sia nella colonna cifrata sia nelle due colonne interrogabili aggiunte lo
+stesso giorno. Il motivo è la distanza: il raggio della proposta della sera e la ricerca
+«vicino a me» confrontano la posizione con quella di un locale, e uno scarto fino a un
+chilometro sbaglia proprio la domanda a cui quelle funzioni rispondono — se una serata è a
+piedi o no. Tutto il resto della decisione del 15/09 resta in vigore: consenso esplicito,
+nessuna cronologia, nessuna finalità pubblicitaria, sei mesi dall'ultimo aggiornamento,
+cancellazione che rimuove insieme la copia cifrata e quelle interrogabili, processo giornaliero
+che elimina le scadute. L'informativa pubblica è stata corretta con lo stesso rilascio
+(`2026_09_24_140000_update_location_precision_notice`): diceva «arrotondate a due decimali».
+
+Cosa cambia in concreto rispetto al 15/09: chi legge il database vede la posizione esatta di
+chi ha dato il consenso, dove prima vedeva un'area di circa un chilometro. La protezione non è
+più nel dato ma nel patto, ed è per questo che le tre parti del patto — una sola posizione,
+sei mesi, cancellazione completa — hanno ora un test ciascuna in `tests/Feature/Privacy/UserLocationTest.php`.
+
+**Ricontrollo:** se un giorno la posizione servisse a qualcosa che non è il calcolo di una
+distanza, questa decisione va riaperta: la precisione è giustificata da quell'uso e da nessun altro.
+
+---
+
 ## 2026-09-15 — Posizione ricordata facoltativa
 
 Su richiesta del proprietario, deroga alla precedente regola di §16: con scelta esplicita

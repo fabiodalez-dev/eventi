@@ -34,6 +34,10 @@ return [
         'accessibility' => 'Accessibilità',
         'membership' => 'Tesseramento',
         'capacity' => 'Capienza: :count persone',
+        'gallery' => 'Le foto del locale',
+        /* Le foto di un locale non hanno un testo alternativo scritto da
+           nessuno: numerarle dice almeno a che punto dell'elenco si e'. */
+        'gallery_alt' => 'Foto :number di :venue',
         'upcoming_events' => 'Prossimi eventi',
         'past_events' => 'Eventi passati',
         'map_title' => 'Posizione di :venue',
@@ -96,6 +100,24 @@ return [
         'powered_by' => 'Eventi da :app',
         'all_events' => 'Tutti gli eventi',
         'empty' => 'Nessuna data in programma al momento.',
+    ],
+
+    'report' => [
+        'subject' => ':locale — il mese di :mese su inCittà',
+        'greeting' => 'Ciao, ecco come è andato :locale.',
+        'window' => 'Numeri di :mese, confrontati con il mese precedente.',
+        'metrics' => [
+            'views' => 'Schede evento aperte',
+            'profile_views' => 'Visite alla pagina del locale',
+            'saves' => 'Date salvate dalle persone',
+            'new_followers' => 'Nuove persone che ti seguono',
+            'bookings' => 'Prenotazioni ricevute nel mese',
+            'check_ins' => 'Ingressi registrati',
+        ],
+        'change' => '(:segno:valore% rispetto a :prima)',
+        'method' => 'Le aperture si contano dal browser di chi visita: chi blocca gli script non viene contato, quindi sono stime al ribasso. Gli ingressi sono conteggi esatti, registrati alla porta. Le prenotazioni sono quelle arrivate dentro il mese e ancora confermate oggi: una prenotazione nata in lista d\'attesa a luglio e confermata ad agosto resta contata a luglio, quando è arrivata. Una visualizzazione non è una persona e una prenotazione non è un incasso.',
+        'action' => 'Apri il pannello del locale',
+        'unsubscribe' => 'Puoi spegnere questo rapporto dalle preferenze di notifica del tuo profilo.',
     ],
 
 ];

@@ -6,6 +6,7 @@ namespace App\Filament\Shared;
 
 use App\Models\SponsorshipClick;
 use App\Models\SponsorshipDailyStat;
+use App\Services\Sponsorship\CampaignEconomics;
 use App\Services\Sponsorship\SponsorshipReport;
 use BackedEnum;
 use Carbon\CarbonImmutable;
@@ -68,7 +69,7 @@ abstract class SponsorshipAnalyticsPage extends Page
             abort_unless((clone $campaigns)->whereKey($this->filters['campaign'])->exists(), 403);
             $campaigns->whereKey($this->filters['campaign']);
         }
-        $ids = $campaigns->select('sponsorships.id');
+        $ids = (clone $campaigns)->select('sponsorships.id');
         $from = CarbonImmutable::now()->subDays($days - 1)->startOfDay();
         $daily = SponsorshipDailyStat::whereIn('sponsorship_id', clone $ids)->where('day', '>=', $from->toDateString())
             ->selectRaw('day, SUM(impressions) as impressions, SUM(clicks) as clicks')->groupBy('day')->orderBy('day')->get()->keyBy(fn ($row) => $row->day->toDateString());
@@ -79,6 +80,7 @@ abstract class SponsorshipAnalyticsPage extends Page
         }
 
         return [
+            'economics' => filled($this->filters['campaign'] ?? null) ? app(CampaignEconomics::class)->for((clone $campaigns)->firstOrFail()) : null,
             'series' => $series, 'impressions' => $series->sum('impressions'), 'clicks' => $series->sum('clicks'),
             'records' => SponsorshipClick::whereIn('sponsorship_id', clone $ids)->where('clicked_at', '>=', $from)
                 ->with(['sponsorship.event.venue'])->orderByDesc('clicked_at')->orderByDesc('id')->paginate(25),

@@ -11,7 +11,7 @@
                 @forelse ($rows as $row)
                     <tr class="border-t border-gray-200 dark:border-gray-700">
                         <td class="p-3">{{ $row->title }}@if ($row->url_number !== null)<span class="block text-xs">{{ __('event-shares.occurrence', ['number' => $row->url_number, 'date' => \Carbon\CarbonImmutable::parse($row->starts_at, 'UTC')->timezone($row->timezone)->format('d/m/Y H:i')]) }}</span>@endif</td>
-                        <td class="p-3">{{ __('event-shares.channels.'.$row->channel) }}</td>
+                        <td class="p-3">{{ \App\Services\Analytics\EventShares::channelLabel($row->channel) }}</td>
                         <td class="p-3"><code>{{ route('event-shares.open', ['code' => $row->code]) }}</code></td>
                         <td class="p-3">{{ number_format($row->shares, 0, ',', '.') }}</td>
                         <td class="p-3">{{ number_format($row->clicks, 0, ',', '.') }}</td>

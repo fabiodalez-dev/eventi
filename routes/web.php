@@ -55,6 +55,11 @@ Route::get('/s/{code}', [EventShareController::class, 'open'])
     ->withoutMiddleware([StartSession::class, AddQueuedCookiesToResponse::class, ShareErrorsFromSession::class, PreventRequestForgery::class,
         AuthenticateWebSession::class])
     ->name('event-shares.open');
+Route::get('/s/{code}/qr.svg', [EventShareController::class, 'qr'])
+    ->where('code', '[A-Za-z0-9]{7}')
+    ->withoutMiddleware([StartSession::class, AddQueuedCookiesToResponse::class, ShareErrorsFromSession::class, PreventRequestForgery::class,
+        AuthenticateWebSession::class])
+    ->name('event-shares.qr');
 Route::post('/s/{code}/share', [EventShareController::class, 'share'])
     ->where('code', '[A-Za-z0-9]{7}')->middleware('throttle:60,1,event-share-actions')->name('event-shares.share');
 

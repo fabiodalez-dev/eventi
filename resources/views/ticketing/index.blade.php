@@ -11,7 +11,17 @@
                 <p class="text-sm text-ink-muted">{{ $data['address'] }}</p>
                 <form method="POST" action="{{ route('tickets.resend', $booking) }}" class="mt-3">@csrf<x-button type="submit" variant="ghost">{{ __('ticketing.resend') }}</x-button></form>
                 @if ($data['instructions'])<p class="mt-3 whitespace-pre-line">{{ $data['instructions'] }}</p>@endif
-                @if ($booking->status === \App\Enums\BookingStatus::Waitlisted)<p class="mt-4 text-sm">{{ __('ticketing.waiting_hint') }}</p>@endif
+                @if ($booking->status === \App\Enums\BookingStatus::Waitlisted)
+                    <p class="mt-4 text-sm">{{ __('ticketing.waiting_hint') }}</p>
+                    <p class="mt-2 text-sm text-ink-muted">{{ __('ticketing.queue_position', ['position' => $data['queue_position']]) }}</p>
+                @endif
+                @if ($booking->promotion_expires_at !== null && $booking->status === \App\Enums\BookingStatus::Confirmed)
+                    {{-- Il posto c'è ma non è ancora suo: finché non conferma resta di chi è in coda. --}}
+                    <div role="status" class="mt-4 flex flex-col gap-3 border-l-4 border-accent bg-surface p-4 sm:flex-row sm:items-center sm:justify-between">
+                        <p class="text-sm">{{ __('ticketing.promotion_pending', ['scadenza' => $booking->promotion_expires_at->timezone(auth()->user()->timezone)->format('d/m/Y H:i')]) }}</p>
+                        <form method="POST" action="{{ route('tickets.confirm', $booking) }}">@csrf<x-button type="submit">{{ __('ticketing.promotion_confirm') }}</x-button></form>
+                    </div>
+                @endif
                 @foreach ($booking->tickets as $ticket)
                     <div class="mt-5 border border-line p-4">
                         <h3 class="font-bold">{{ $ticket->attendee_name }}</h3>

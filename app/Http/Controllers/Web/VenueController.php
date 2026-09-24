@@ -13,6 +13,7 @@ use App\Http\Requests\Web\VenueFilterRequest;
 use App\Models\City;
 use App\Models\Venue;
 use App\Queries\EventOccurrenceQuery;
+use App\Services\Analytics\EventShares;
 use App\Services\Reviews\CatalogReviews;
 use App\Services\Search\FilterFacets;
 use App\Services\Seo\StructuredData;
@@ -129,6 +130,10 @@ final class VenueController extends Controller
             /* Il calendario e l'RSS di questo solo locale (§11.10): gli
                stessi filtri della lista, con il locale già scelto. */
             'feedFilters' => new EventFilters(venue: $venue->slug),
+            /* I pulsanti di condivisione della scheda erano gli unici del sito
+               a non passare da un link tracciato: il locale li vedeva sulla
+               pagina e non nei propri numeri. */
+            'shareLinks' => app(EventShares::class)->venueLinks($venue),
             'meta' => $this->meta($venue),
             'structuredData' => [
                 $this->structuredData->venue($venue),

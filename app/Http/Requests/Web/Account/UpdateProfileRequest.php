@@ -43,6 +43,12 @@ class UpdateProfileRequest extends FormRequest
             'comments' => ['sometimes', 'boolean'],
             'daily_digest' => ['nullable', 'boolean'],
             'daily_digest_time' => ['nullable', 'date_format:H:i'],
+            'tonight' => ['nullable', 'boolean'],
+            'venue_report' => ['nullable', 'boolean'],
+            'tonight_time' => ['nullable', 'date_format:H:i'],
+            /* Come nelle preferenze: un elenco di giorni vuoto, o assente perché nessuna casella è spuntata, non deve passare per una conferma. */
+            'tonight_days' => ['required_if_accepted:tonight', 'nullable', 'array', 'min:1', 'max:7'],
+            'tonight_days.*' => ['integer', 'between:1,7'],
             'quiet_from' => ['nullable', 'date_format:H:i', 'required_with:quiet_to'],
             'quiet_to' => ['nullable', 'date_format:H:i', 'required_with:quiet_from'],
             'quiet_off' => ['nullable', 'boolean'],
@@ -56,6 +62,10 @@ class UpdateProfileRequest extends FormRequest
             'sold_out' => $this->boolean('sold_out'),
             'venue_digest' => $this->boolean('venue_digest'),
             'daily_digest' => $this->boolean('daily_digest'),
+            'tonight' => $this->boolean('tonight'),
+            'venue_report' => $this->boolean('venue_report'),
+            'tonight_days' => $this->validated('tonight_days', $this->user()->notificationPreferences()->tonightDays),
+            'tonight_time' => $this->validated('tonight_time') ?: $this->user()->notificationPreferences()->tonightTime,
             'comments' => $this->boolean('comments'),
         ]);
     }

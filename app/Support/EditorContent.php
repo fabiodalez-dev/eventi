@@ -15,7 +15,7 @@ final class EditorContent
         'address', 'address_extra', 'municipality', 'zone', 'postal_code', 'phone', 'email',
         'website', 'organizer_url', 'ticket_url', 'booking_url', 'booking_phone', 'price_notes',
         'age_restriction', 'membership_notes', 'status_note', 'booking_instructions',
-        'content_details', 'seo', 'external_links', 'facts', 'custom_location', 'socials',
+        'practical_details', 'content_details', 'seo', 'external_links', 'facts', 'custom_location', 'socials',
         'opening_hours', 'transit', 'accessibility', 'info', 'default_event_settings',
         'raw_text', 'message', 'venue_name', 'venue_hint', 'contact_name', 'contact_role', 'contact_phone', 'contact_email',
     ];
@@ -37,7 +37,7 @@ final class EditorContent
         if (is_array($value)) {
             if ($field === 'content_details') {
                 $value = array_intersect_key($value, array_flip([
-                    'introduction', 'city_introductions', 'parking_type', 'parking_notes', 'transit_notes',
+                    'food_notes', 'start_notes', 'introduction', 'city_introductions', 'parking_type', 'parking_notes', 'transit_notes',
                     'entrance_notes', 'accessibility', 'accessibility_notes', 'membership', 'membership_notes',
                     'age_groups', 'stroller', 'changing_table', 'kids_area', 'feature_ids', 'practical_custom', 'organizer_venue_id', 'minimum_age', 'attendance_mode',
                     'online_url', 'organizer_type', 'mandatory_costs', 'weather_policy', 'minors_policy',

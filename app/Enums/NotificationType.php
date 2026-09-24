@@ -30,9 +30,12 @@ enum NotificationType: string
     case EventCancelled = 'event_cancelled';
     case EventMoved = 'event_moved';
     case EventSoldOut = 'event_sold_out';
+    case EventAlmostFull = 'event_almost_full';
     case VenueNewEvent = 'venue_new_event';
     case VenueDigest = 'venue_digest';
+    case VenueMonthlyReport = 'venue_monthly_report';
     case DailyDigest = 'daily_digest';
+    case TonightNearby = 'tonight_nearby';
     case WeekendNewsletter = 'weekend_newsletter';
     case EventPublished = 'event_published';
     case EventRejected = 'event_rejected';
@@ -82,7 +85,7 @@ enum NotificationType: string
     public function countsTowardDailyCap(): bool
     {
         return match ($this) {
-            self::VenueDigest, self::DailyDigest, self::WeekendNewsletter, self::EventSoldOut => true,
+            self::VenueDigest, self::DailyDigest, self::TonightNearby, self::WeekendNewsletter, self::EventSoldOut, self::EventAlmostFull => true,
             /*
              * Le reazioni passano dal tetto giornaliero, le risposte no: una
              * risposta attesa che arriva alle 23 è utile, venti «mi piace»
@@ -135,9 +138,11 @@ enum NotificationType: string
 
         return match ($this) {
             self::EventReminder => $preferences->reminders,
-            self::EventSoldOut => $preferences->soldOut,
+            self::EventSoldOut, self::EventAlmostFull => $preferences->soldOut,
             self::VenueDigest, self::VenueNewEvent => $preferences->venueDigest,
             self::DailyDigest => $preferences->dailyDigest,
+            self::TonightNearby => $preferences->tonight,
+            self::VenueMonthlyReport => $preferences->venueReport,
             self::CommentReply, self::CommentReaction => $preferences->comments,
             default => true,
         };
@@ -163,9 +168,11 @@ enum NotificationType: string
 
         $key = match ($this) {
             self::EventReminder => 'reminders',
-            self::EventSoldOut => 'sold_out',
+            self::EventSoldOut, self::EventAlmostFull => 'sold_out',
             self::VenueDigest, self::VenueNewEvent => 'venue_digest',
             self::DailyDigest => 'daily_digest',
+            self::TonightNearby => 'tonight',
+            self::VenueMonthlyReport => 'venue_report',
             self::CommentReply, self::CommentReaction => 'comments',
             default => null,
         };

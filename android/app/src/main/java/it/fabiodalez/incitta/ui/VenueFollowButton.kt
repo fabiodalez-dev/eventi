@@ -5,6 +5,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import it.fabiodalez.incitta.R
 import androidx.compose.ui.unit.dp
 import it.fabiodalez.incitta.data.*
 import kotlinx.coroutines.CancellationException
@@ -40,6 +42,25 @@ internal fun VenueFollowButton(id: Long?, session: Session?, onLogin: () -> Unit
         }
     }, enabled = !busy, modifier = Modifier.heightIn(min = 48.dp)) {
         Text(when { busy -> "Aggiornamento…"; follow?.following == true -> "Non seguire più"; else -> "Segui questo locale" })
+    }
+    if (follow?.following == true && session != null) {
+        Text(stringResource(R.string.follow_notifications), style = MaterialTheme.typography.labelLarge)
+        listOf("all" to R.string.follow_all, "new_only" to R.string.follow_new, "none" to R.string.follow_none).forEach { (mode, label) ->
+            OutlinedButton(enabled = !busy, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp), onClick = {
+                scope.launch {
+                    busy = true
+                    try {
+                        api.post<ApiEnvelope<kotlinx.serialization.json.JsonObject>, OrganizerFollowRequest>("me/follows", OrganizerFollowRequest(id, mode != "none", "venue", mode), session.token, idempotent = true)
+                        follow = api.get<ApiEnvelope<OrganizerFollowState>>("me/follows/venue/$id", session.token).data
+                        error = null
+                    } catch (e: Exception) { if (e is CancellationException) throw e; error = requestFailureMessage(e) }
+                    finally { busy = false }
+                }
+            }) {
+                RadioButton(selected = (if (follow?.notify == true) follow?.notification_mode else "none") == mode, onClick = null)
+                Text(stringResource(label))
+            }
+        }
     }
     error?.let { Text(it, color = Muted) }
 }

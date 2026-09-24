@@ -7,6 +7,7 @@ namespace App\Models;
 use App\DTOs\NotificationPreferences;
 use App\Enums\DevicePlatform;
 use App\Enums\FollowableType;
+use App\Enums\FollowNotificationMode;
 use App\Enums\UserRole;
 use App\Enums\VenueRole;
 use App\Enums\VenueStatus;
@@ -84,6 +85,8 @@ class User extends Authenticatable implements FilamentUser, HasTenants, MustVeri
     protected $hidden = [
         'remembered_location',
         'location_expires_at',
+        'location_lat',
+        'location_lng',
         'password',
         'whatsapp_phone',
         'whatsapp_phone_hash',
@@ -331,7 +334,7 @@ class User extends Authenticatable implements FilamentUser, HasTenants, MustVeri
         /** @var list<int> $ids */
         $ids = $this->follows()
             ->where('followable_type', $type->value)
-            ->when($notifyingOnly, fn ($query) => $query->where('notify', true))
+            ->when($notifyingOnly, fn ($query) => $query->where('notify', true)->where('notification_mode', FollowNotificationMode::All))
             ->pluck('followable_id')
             ->map(static fn (mixed $id): int => (int) $id)
             ->all();
@@ -448,6 +451,8 @@ class User extends Authenticatable implements FilamentUser, HasTenants, MustVeri
             'carpool_suspended_at' => 'immutable_datetime',
             'remembered_location' => 'encrypted:array',
             'location_expires_at' => 'datetime',
+            'location_lat' => 'float',
+            'location_lng' => 'float',
             'password' => 'hashed',
             'notification_preferences' => 'array',
             'content_preferences' => 'array',

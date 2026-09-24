@@ -1,0 +1,12 @@
+<resources>
+    <!--
+        La tavolozza dell'app nelle quattro tinte che servono a un widget.
+        Sta in risorse e non in costanti Kotlin perché Glance disegna con
+        RemoteViews: il chiaro e lo scuro li sceglie il sistema al momento del
+        disegno, fuori dalla composizione, quindi serve `values-night`.
+    -->
+    <color name="widget_surface">#FDFCF9</color>
+    <color name="widget_text">#262624</color>
+    <color name="widget_muted">#686863</color>
+    <color name="widget_accent">#B54D23</color>
+</resources>

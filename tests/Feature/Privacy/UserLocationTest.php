@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\User;
 use App\Models\Venue;
+use App\Services\RememberedLocation;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
@@ -85,8 +86,9 @@ function colonneSospettePerLePersone(): array
         }
 
         foreach (Schema::getColumnListing($tabella) as $colonna) {
-            // Explicit six-month opt-in storage; ordinary searches must still leave no coordinates.
-            if ($tabella === 'users' && in_array($colonna, ['remembered_location', 'location_expires_at'], true)) {
+            /* Explicit six-month opt-in storage; ordinary searches must still leave no coordinates.
+               `location_lat` e `location_lng` sono lo stesso valore della colonna cifrata, in chiaro perché una colonna cifrata non si può interrogare in SQL e il raggio della proposta serale dovrebbe altrimenti decifrare ogni utente a ogni invio. Dal 24/09/2026 sono precise (`docs/DECISIONS.md`): quello che le tiene innocue non è più l'approssimazione ma il resto del patto — consenso esplicito, nessuna cronologia, sei mesi, cancellazione che porta via tutto — e sono quelle quattro cose che i test qui sotto sorvegliano. */
+            if ($tabella === 'users' && in_array($colonna, ['remembered_location', 'location_expires_at', 'location_lat', 'location_lng'], true)) {
                 continue;
             }
             if (preg_match('/(^|_)(lat|lng|latitude|longitude|location|coords|coordinates|geo|position)($|_)/i', $colonna) === 1) {
@@ -100,6 +102,58 @@ function colonneSospettePerLePersone(): array
 
 it('non ha in nessuna tabella delle persone una colonna dove mettere la posizione', function (): void {
     expect(colonneSospettePerLePersone())->toBe([]);
+});
+
+/**
+ * Cosa protegge l'eccezione delle due colonne interrogabili, ora che sono precise.
+ *
+ * Finché erano arrotondate a un chilometro, il tipo della colonna era la garanzia: nessuno poteva conservare un indirizzo in un campo che non lo conteneva. Dal 24/09/2026 quella garanzia non c'è più, e resta solo il patto scritto nell'informativa — si conserva l'ultima posizione e nient'altro, per sei mesi, e la cancellazione porta via tutto insieme.
+ *
+ * Un patto di cui nessun test verifica le tre parti è una frase in una pagina. Queste sono le tre parti.
+ */
+it('tiene una sola posizione, senza cronologia, e la cancella tutta insieme', function (): void {
+    $user = User::factory()->create();
+
+    app(RememberedLocation::class)->save(45.4067331, 11.8768142, $user);
+    $user->refresh();
+
+    // Precisa quanto le coordinate dei locali: è con quelle che viene confrontata.
+    expect((float) $user->location_lat)->toBe(45.4067331)
+        ->and((float) $user->location_lng)->toBe(11.8768142)
+        ->and($user->remembered_location['lat'])->toBe(45.4067331)
+        // Nel futuro, e non oltre sei mesi: `diffInDays` su una data futura è
+        // negativo, quindi da solo avrebbe accettato anche una scadenza fra anni.
+        ->and($user->location_expires_at?->isFuture())->toBeTrue()
+        ->and($user->location_expires_at?->lessThanOrEqualTo(now()->addMonthsNoOverflow(6)))->toBeTrue();
+
+    // Una posizione nuova sostituisce la precedente: nessuna riga in più da nessuna parte.
+    $prima = contenutoDelDatabase();
+    app(RememberedLocation::class)->save(45.5000000, 11.9000000, $user->fresh());
+    expect(contenutoDelDatabase())->not->toContain('45.4067331')
+        ->and(mb_substr_count(contenutoDelDatabase(), '45.5000000'))
+        ->toBe(mb_substr_count($prima, '45.4067331'));
+
+    // E la cancellazione non ne lascia metà.
+    app(RememberedLocation::class)->forget($user->fresh());
+    $user->refresh();
+
+    expect($user->location_lat)->toBeNull()->and($user->location_lng)->toBeNull()
+        ->and($user->remembered_location)->toBeNull()->and($user->location_expires_at)->toBeNull();
+});
+
+/**
+ * Le quattro colonne della posizione non escono mai da sole.
+ *
+ * Sono nascoste alla serializzazione del modello: senza, basterebbe un `toJson()` da qualunque punto — una risposta API, un payload di notifica, un registro — perché la posizione precisa di qualcuno finisse dove nessuno la stava cercando.
+ */
+it('non lascia uscire le colonne della posizione da una serializzazione', function (): void {
+    $user = User::factory()->create();
+    app(RememberedLocation::class)->save(45.4067331, 11.8768142, $user);
+
+    $json = $user->fresh()->toJson();
+
+    expect($json)->not->toContain('location_lat')->not->toContain('location_lng')
+        ->not->toContain('remembered_location')->not->toContain('45.4067331');
 });
 
 it('non scrive niente da nessuna parte quando il sito viene percorso con una posizione', function (): void {

@@ -37,18 +37,27 @@ final class RememberedLocation
     public function save(float $lat, float $lng, ?User $user, ?int $observedAt = null): array
     {
         $observed = $observedAt === null ? now() : CarbonImmutable::createFromTimestamp($observedAt);
-        $position = ['lat' => round($lat, 2), 'lng' => round($lng, 2),
+        $position = ['lat' => $lat, 'lng' => $lng,
             'saved_at' => $observed->timestamp, 'expires_at' => $observed->addMonthsNoOverflow(6)->timestamp];
         if ($this->valid($user?->remembered_location) && $user->remembered_location['saved_at'] > $position['saved_at']) {
             return $user->remembered_location;
         }
-        $user?->forceFill(['remembered_location' => $position, 'location_expires_at' => CarbonImmutable::createFromTimestamp($position['expires_at'])])->save();
+        /* Le due colonne in chiaro tengono lo stesso valore della colonna cifrata:
+           servono a filtrare per distanza in SQL, cosa che la colonna cifrata non
+           permette. Sono precise per scelta del proprietario del 24/09/2026, che
+           ha sostituito l'arrotondamento a due decimali del 15/09: un raggio
+           calcolato su una posizione spostata fino a un chilometro sbaglia proprio
+           dove serve, cioè nel decidere se una serata è a piedi o no. Il resto del
+           patto resta: consenso esplicito, nessuna cronologia, sei mesi, e la
+           cancellazione porta via tutto insieme. */
+        $user?->forceFill(['remembered_location' => $position, 'location_expires_at' => CarbonImmutable::createFromTimestamp($position['expires_at']),
+            'location_lat' => $position['lat'], 'location_lng' => $position['lng']])->save();
 
         return $position;
     }
 
     public function forget(?User $user): void
     {
-        $user?->forceFill(['remembered_location' => null, 'location_expires_at' => null])->save();
+        $user?->forceFill(['remembered_location' => null, 'location_expires_at' => null, 'location_lat' => null, 'location_lng' => null])->save();
     }
 }

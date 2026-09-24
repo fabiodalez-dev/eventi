@@ -42,8 +42,20 @@ class BookingChanged extends Notification implements ShouldQueue
         $mail = (new MailMessage)->subject(__('ticketing.mail.'.$this->kind))
             ->line(__('ticketing.mail.'.$this->kind))
             ->line($booking?->occurrence?->event->title ?? __('ticketing.title'))
-            ->line(__('ticketing.mail.current_status'))
-            ->action(__('ticketing.title'), route('tickets.index'));
+            ->line(__('ticketing.mail.current_status'));
+
+        /* Una promozione senza scadenza scritta è una scadenza che nessuno
+           rispetta. La condizione guarda il dato e non il tipo di messaggio:
+           il riepilogo richiesto a mano parte come «confermata», e legandosi
+           al tipo diceva che il posto è confermato senza dire che va ancora
+           confermato entro un'ora precisa. */
+        if ($booking?->promotion_expires_at !== null) {
+            $mail->line(__('ticketing.mail.promotion_deadline', [
+                'scadenza' => $booking->promotion_expires_at->timezone($booking->occurrence?->event?->city->timezone ?? config('app.timezone'))->format('d/m/Y H:i'),
+            ]));
+        }
+
+        $mail->action(__('ticketing.title'), route('tickets.index'));
         // Render at send-time: cancelled, waiting and expired QR must never be attached.
         if ($booking && in_array($this->kind, ['confirmed', 'promoted', 'changed'], true)) {
             foreach ($booking->tickets as $ticket) {

@@ -179,6 +179,7 @@ final class MobileOpenApiDocument
     private function documentOperation(Operation $operation, string $path, array $schemas): void
     {
         $liveAvailability = $path === 'occurrences/{occurrence}/booking';
+        $management = str_starts_with($path, 'management/');
         foreach ($operation->responses ?? [] as $response) {
             if (! $response instanceof Response) {
                 continue;
@@ -196,7 +197,7 @@ final class MobileOpenApiDocument
                 $response->addHeader('X-RateLimit-Limit', new Header(schema: Schema::fromType(new IntegerType)));
                 $response->addHeader('X-RateLimit-Remaining', new Header(schema: Schema::fromType(new IntegerType)));
 
-                if (! str_starts_with($path, 'me/') && ! $liveAvailability) {
+                if (! str_starts_with($path, 'me/') && ! $liveAvailability && ! $management) {
                     $response->addHeader('ETag', new Header(schema: Schema::fromType(new StringType)));
                     $response->addHeader('Cache-Control', new Header(schema: Schema::fromType(new StringType)));
                 }
@@ -204,12 +205,18 @@ final class MobileOpenApiDocument
         }
 
         $this->addErrorResponse($operation, 429, 'Troppe richieste.', $schemas['error']);
+        if ($management) {
+            $operation->security = [new SecurityRequirement(['http' => []])];
+            $this->addErrorResponse($operation, 401, 'Accesso richiesto.', $schemas['error']);
+            $this->addErrorResponse($operation, 403, 'Operazione non autorizzata.', $schemas['error']);
+            $this->addErrorResponse($operation, 404, 'Elemento non disponibile.', $schemas['error']);
+        }
 
-        if ($operation->method === 'get' && ! str_starts_with($path, 'me/') && ! $liveAvailability) {
+        if ($operation->method === 'get' && ! str_starts_with($path, 'me/') && ! $liveAvailability && ! $management) {
             $this->addEmptyResponse($operation, 304, 'Contenuto non modificato.');
         }
 
-        if ($operation->method === 'get' && ! str_starts_with($path, 'auth/') && ! str_starts_with($path, 'me/')) {
+        if ($operation->method === 'get' && ! str_starts_with($path, 'auth/') && ! str_starts_with($path, 'me/') && ! $management) {
             $operation->security = [new SecurityRequirement([]), new SecurityRequirement(['http' => []])];
         }
     }

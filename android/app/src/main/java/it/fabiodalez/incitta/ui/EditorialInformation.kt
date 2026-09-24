@@ -43,6 +43,7 @@ fun EditorialInformation(value: JsonElement?) {
         "poster_credit" to R.string.editorial_credit,
     )
     val practical = details["practical_items"] as? JsonArray
+    val costs = details["declared_costs"] as? JsonObject
 
     /*
      * Un riquadro vuoto e' peggio di nessun riquadro.
@@ -52,7 +53,7 @@ fun EditorialInformation(value: JsonElement?) {
      * alla scheda: quando "prima di andare" non ha niente da dire si esce
      * prima di disegnarla.
      */
-    if (practical?.isEmpty() == true && listOf("introduction", "poster_caption", "poster_credit").none { text(it) != null }) return
+    if (costs == null && practical?.isEmpty() == true && listOf("introduction", "poster_caption", "poster_credit").none { text(it) != null }) return
 
     /*
      * La stessa cornice delle altre sezioni: riquadro incassato nel chiaro
@@ -97,6 +98,21 @@ fun EditorialInformation(value: JsonElement?) {
             "paid" -> Text(stringResource(R.string.editorial_parking_paid))
             "none" -> Text(stringResource(R.string.editorial_parking_none))
         }
+        }
+        if (costs != null) {
+            Text(stringResource(R.string.declared_costs), style = MaterialTheme.typography.titleLarge)
+            fun money(cents: Int) = java.text.NumberFormat.getCurrencyInstance(java.util.Locale.ITALY).apply {
+                currency = java.util.Currency.getInstance((costs["currency"] as? JsonPrimitive)?.contentOrNull ?: "EUR")
+            }.format(cents / 100.0)
+            (costs["items"] as? JsonArray)?.forEach { element ->
+                val item = element as? JsonObject ?: return@forEach
+                val label = (item["label"] as? JsonPrimitive)?.contentOrNull ?: return@forEach
+                val cents = (item["cents"] as? JsonPrimitive)?.intOrNull ?: return@forEach
+                Text("$label: ${money(cents)}")
+            }
+            val total = (costs["total_cents"] as? JsonPrimitive)?.intOrNull
+            total?.let { Text(stringResource(R.string.declared_total, money(it)), style = MaterialTheme.typography.titleMedium) }
+            if ((costs["complete"] as? JsonPrimitive)?.booleanOrNull != true) Text(stringResource(R.string.declared_partial), color = Muted)
         }
         text("attendance_mode")?.takeIf { it != "offline" }?.let {
             Text(stringResource(if (it == "online") R.string.editorial_online else R.string.editorial_mixed))

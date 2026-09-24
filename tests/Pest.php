@@ -14,6 +14,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Testing\TestResponse;
 use Laravel\Pennant\Feature;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 uses(TestCase::class, RefreshDatabase::class)->in('Feature', 'Browser');
@@ -32,6 +33,9 @@ uses(TestCase::class, RefreshDatabase::class)->in('Feature', 'Browser');
  */
 uses()->beforeEach(function (): void {
     Feature::flushCache();
+    // Livewire keeps asset-injection flags across applications in the same worker.
+    // Start each test with the state of a fresh HTTP process.
+    Livewire::flushState();
 })->in('Feature', 'Browser');
 
 /**

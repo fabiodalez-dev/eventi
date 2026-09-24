@@ -22,8 +22,10 @@ it('previews the imported photo and editable fields on desktop and mobile', func
     $photo = UploadedFile::fake()->image('poster.jpg', 1200, 628);
     Http::fake(['https://www.facebook.com/events/*' => Http::response('<html><script type="application/json">{}</script></html>'), 'https://scontent.xx.fbcdn.net/*' => Http::response(file_get_contents($photo->getPathname()), 200, ['Content-Type' => 'image/jpeg'])]);
     $page = visit(EventResource::getUrl('create', panel: 'venue', tenant: $scenario->venueA))->on()->{$device}()
-        ->fill('Hai già un evento su Facebook?', 'https://www.facebook.com/events/1078756118449684/')
-        ->click('Carica dal link Facebook')
+        ->fill('Hai già un evento su Facebook?', 'https://www.facebook.com/events/1078756118449684/');
+    // Wait for lazy textarea components before morphing the entire import form.
+    expect($page->script('async () => { const deadline = performance.now() + 5000; do { const fields = [...document.querySelectorAll("textarea[x-model=state]")]; if (fields.every(field => field._x_dataStack?.some(data => Object.prototype.hasOwnProperty.call(data, "state")))) return true; await new Promise(resolve => setTimeout(resolve, 50)); } while (performance.now() < deadline); return false; }'))->toBeTrue();
+    $page->click('Carica dal link Facebook')
         ->assertSee('Dati caricati nel modulo')
         ->assertSee('Locale della fonte');
     $page->assertVisible('.filepond--image-preview');

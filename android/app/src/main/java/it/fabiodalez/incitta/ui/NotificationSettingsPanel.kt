@@ -94,6 +94,19 @@ fun NotificationSettingsPanel(session: Session, standalone: Boolean = false) {
             NotificationToggle(stringResource(R.string.notification_reminders), prefs.reminders, !busy) { preferences = prefs.copy(reminders = it) }
             NotificationToggle(stringResource(R.string.notification_sold_out), prefs.soldOut, !busy) { preferences = prefs.copy(soldOut = it) }
             NotificationTime(stringResource(R.string.notification_time), prefs.dailyDigestTime?.take(5) ?: "17:00", !busy) { preferences = prefs.copy(dailyDigestTime = it) }
+            // La proposta della sera porta con sé quando arriva: un interruttore senza
+            // giorni e ora lascerebbe la persona a indovinare che cosa ha acceso.
+            NotificationToggle(stringResource(R.string.notification_tonight), prefs.tonight, !busy) { preferences = prefs.copy(tonight = it) }
+            if (prefs.tonight) {
+                Text(stringResource(R.string.notification_tonight_hint), style = MaterialTheme.typography.bodySmall)
+                NotificationTime(stringResource(R.string.notification_tonight_time), prefs.tonightTime.take(5), !busy) { preferences = prefs.copy(tonightTime = it) }
+                Text(stringResource(R.string.notification_tonight_days), style = MaterialTheme.typography.titleMedium)
+                listOf(1 to "Lunedì", 2 to "Martedì", 3 to "Mercoledì", 4 to "Giovedì", 5 to "Venerdì", 6 to "Sabato", 7 to "Domenica").forEach { (number, label) ->
+                    NotificationToggle(label, number in prefs.tonightDays, !busy) { checked ->
+                        preferences = prefs.copy(tonightDays = if (checked) (prefs.tonightDays + number).distinct().sorted() else prefs.tonightDays - number)
+                    }
+                }
+            }
             if (prefs.reminders) {
                 Text("Quando ricordarti gli eventi", style = MaterialTheme.typography.titleMedium)
                 (listOf(24, 3, 1) + prefs.reminderHours).distinct().sortedDescending().forEach { hours ->

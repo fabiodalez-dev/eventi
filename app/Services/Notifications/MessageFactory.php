@@ -22,6 +22,7 @@ use App\Models\User;
 use App\Models\Venue;
 use App\Queries\EventOccurrenceQuery;
 use App\Settings\NewsletterSettings;
+use App\Support\Capacity;
 use App\Support\CurrentCity;
 use App\Support\DateFormatter;
 use App\Support\EventUrl;
@@ -60,14 +61,19 @@ final readonly class MessageFactory
             NotificationType::EventReminder => $this->reminder($notification, $user),
             NotificationType::EventCancelled => $this->cancelled($notification),
             NotificationType::EventMoved => $this->moved($notification),
+            NotificationType::EventAlmostFull => $this->almostFull($notification, $user),
             NotificationType::EventSoldOut => $this->soldOut($notification),
             NotificationType::VenueNewEvent => $this->venueNewEvent($notification, $user),
             NotificationType::VenueDigest => $this->venueDigest($notification, $user),
             NotificationType::DailyDigest => $this->dailyDigest($user),
+            NotificationType::TonightNearby => $this->tonightNearby($user),
             NotificationType::WeekendNewsletter => $this->weekend($user),
             NotificationType::EventPublished => $this->eventPublished($notification),
             NotificationType::EventRejected => $this->eventRejected($notification),
             NotificationType::VenueInactive => $this->venueInactive($notification),
+
+            /* Il rapporto mensile al locale non passa da qui: lo compone il comando che lo spedisce, che ha già i numeri del mese. In coda non ci finisce mai, e se ci finisse non ci sarebbe niente da ricostruire. */
+            NotificationType::VenueMonthlyReport => NotificationSkipReason::OutOfBand,
 
             NotificationType::CommentReply,
             NotificationType::CommentReaction,
@@ -244,6 +250,31 @@ final readonly class MessageFactory
         );
     }
 
+    private function almostFull(ScheduledNotification $notification, User $user): NotificationMessage|NotificationSkipReason
+    {
+        $date = $this->occurrence($notification);
+        if ($date === null || $this->hasStarted($date) || ! in_array($date->status, [OccurrenceStatus::Scheduled, OccurrenceStatus::Moved], true)) {
+            return NotificationSkipReason::OccurrencePast;
+        }
+        if (! EventOccurrenceQuery::for($date->event->city)->forEvent($date->event)->upcoming()->get()->contains('id', $date->id)
+            || ! $date->savedEvents()->where('user_id', $user->id)->exists()) {
+            return NotificationSkipReason::NothingToSend;
+        }
+        $capacity = Capacity::for($date);
+        if (! $capacity?->isAlmostFull()) {
+            return NotificationSkipReason::NothingToSend;
+        }
+
+        return new NotificationMessage(
+            type: NotificationType::EventAlmostFull,
+            subject: __('decision.near_full_subject', ['title' => $date->event->title]),
+            heading: __('decision.near_full_subject', ['title' => $date->event->title]),
+            lines: [__('decision.near_full_line', ['count' => $capacity->left]), __('decision.near_full_why')],
+            actionLabel: __('notifications.actions.open_event'),
+            url: EventUrl::occurrence($date), occurrenceId: (int) $date->id, eventId: (int) $date->event_id,
+        );
+    }
+
     private function soldOut(ScheduledNotification $notification): NotificationMessage|NotificationSkipReason
     {
         $occurrence = $this->occurrence($notification);
@@ -352,6 +383,80 @@ final readonly class MessageFactory
             url: route('events.today'),
             items: $items,
         );
+    }
+
+    /**
+     * La spinta della sera: poche date che cominciano stasera, vicine a dove
+     * la persona si trova di solito.
+     *
+     * «Vicino» qui ha un significato preciso e dichiarato: il raggio parte
+     * dalle coordinate che la persona ha acconsentito a salvare,
+     * tenute in chiaro accanto a quelle cifrate. Chi non le ha (o le ha lasciate
+     * scadere) riceve comunque la serata della sua città: meglio una proposta
+     * cittadina che nessuna proposta.
+     *
+     * Sotto il numero minimo di date non parte niente. Un messaggio che
+     * interrompe per dire «c'è una cosa» non vale l'interruzione.
+     */
+    private function tonightNearby(User $user): NotificationMessage|NotificationSkipReason
+    {
+        $city = $user->city ?? $this->city();
+
+        if (! $city instanceof City) {
+            return NotificationSkipReason::NothingToSend;
+        }
+
+        $max = config()->integer('notifications.digests.tonight.max_items');
+        $min = config()->integer('notifications.digests.tonight.min_items');
+        $position = $this->coarsePosition($user);
+        $items = [];
+
+        if ($position !== null) {
+            $items = $this->items(EventOccurrenceQuery::for($city)->excludingDemo()->tonight()
+                ->near($position['lat'], $position['lng'], config()->float('notifications.digests.tonight.radius_km')),
+                $max, $user);
+        }
+
+        /* Il raggio non toglie il vincolo della città: chi ha salvato la posizione lontano dalla propria città di riferimento — in viaggio, o abitando fra due città — non troverebbe mai niente dentro il raggio, e smetterebbe di ricevere la proposta senza che nessuno se ne accorga.
+           La ricaduta sulla città scatta solo quando il raggio non trova proprio nulla, che è il segno che la posizione non serve a questa città. Una data sola dentro il raggio è un'altra cosa: è una sera tranquilla vicino a casa, e sotto il minimo non parte niente come è sempre stato. */
+        $vicino = $items !== [];
+
+        if (! $vicino) {
+            $items = $this->items(EventOccurrenceQuery::for($city)->excludingDemo()->tonight(), $max, $user);
+        }
+
+        if (count($items) < $min) {
+            return NotificationSkipReason::NothingToSend;
+        }
+
+        return new NotificationMessage(
+            type: NotificationType::TonightNearby,
+            subject: __('notifications.tonight_nearby.subject'),
+            heading: __('notifications.tonight_nearby.heading'),
+            lines: [__($vicino ? 'notifications.tonight_nearby.line_near' : 'notifications.tonight_nearby.line_city',
+                ['count' => count($items), 'city' => $city->name])],
+            actionLabel: __('notifications.actions.open_tonight'),
+            url: route('events.today'),
+            items: $items,
+        );
+    }
+
+    /**
+     * Le coordinate approssimate di chi riceve, se esistono e non sono scadute.
+     *
+     * @return array{lat: float, lng: float}|null
+     */
+    private function coarsePosition(User $user): ?array
+    {
+        if ($user->location_lat === null || $user->location_lng === null) {
+            return null;
+        }
+
+        if ($user->location_expires_at !== null && $user->location_expires_at->isPast()) {
+            return null;
+        }
+
+        return ['lat' => (float) $user->location_lat, 'lng' => (float) $user->location_lng];
     }
 
     private function weekend(User $user): NotificationMessage|NotificationSkipReason

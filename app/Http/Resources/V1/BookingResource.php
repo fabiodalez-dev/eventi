@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Http\Resources\V1;
 
 use App\Enums\AdmissionStatus;
+use App\Enums\BookingStatus;
 use App\Models\Booking;
+use App\Services\Ticketing\TicketingService;
 use App\Support\Description;
 
 final class BookingResource
@@ -31,6 +33,11 @@ final class BookingResource
             'booker' => $booking->booker_data,
             'privacy_accepted_at' => $booking->privacy_accepted_at?->toIso8601String(),
             'can_cancel' => $date && now()->lt($date->cancellation_closes_at ?? $date->starts_at),
+            // La posizione in coda e la scadenza della conferma: due cose che
+            // chi aspetta vuole sapere e che prima non erano scritte da nessuna parte.
+            'queue_position' => $booking->status === BookingStatus::Waitlisted
+                ? app(TicketingService::class)->queuePosition($booking) : null,
+            'promotion_expires_at' => $booking->promotion_expires_at?->toIso8601String(),
             'tickets' => $booking->tickets->map(fn ($ticket) => [
                 'id' => $ticket->id, 'attendee_name' => $ticket->attendee_name,
                 'first_name' => $ticket->first_name, 'last_name' => $ticket->last_name,

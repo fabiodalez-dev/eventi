@@ -17,6 +17,10 @@
     <string name="notification_reminders">Promemoria degli eventi salvati</string>
     <string name="notification_sold_out">Avvisi posti esauriti</string>
     <string name="notification_time">Orario riepilogo (HH:mm)</string>
+    <string name="notification_tonight">Proposta della sera: poche date che cominciano stasera</string>
+    <string name="notification_tonight_hint">Arriva solo nei giorni scelti. Con la posizione approssimata salvata le proposte partono da lì, altrimenti dalla tua città.</string>
+    <string name="notification_tonight_time">Ora della proposta (HH:mm)</string>
+    <string name="notification_tonight_days">Giorni</string>
     <string name="notification_categories">Categorie</string>
     <string name="notification_venues">Locali</string>
     <string name="notification_save">SALVA PREFERENZE</string>

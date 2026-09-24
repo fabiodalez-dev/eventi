@@ -10,6 +10,7 @@ use App\Enums\OccurrenceScope;
 use App\Enums\OccurrenceStatus;
 use App\Filament\Support\EventStatusPresentation;
 use App\Filament\Support\OccurrenceAnalyticsFields;
+use App\Filament\Support\OccurrenceDecisionFields;
 use App\Filament\Venue\Support\CurrentVenue;
 use App\Models\Booking;
 use App\Models\Event;
@@ -61,6 +62,7 @@ class OccurrencesRelationManager extends RelationManager
 
         return $schema->columns(1)
             ->components([
+                ...OccurrenceDecisionFields::make(),
                 DateTimePicker::make('starts_at')
                     ->label(__('manage.fields.starts_at'))
                     ->seconds(false)

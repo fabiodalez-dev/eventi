@@ -5,10 +5,11 @@
     <x-sponsorship-banner :city="$city" />
     <header id="feed-events" class="flex flex-col gap-2">
         <h1 class="text-hero text-ink">{{ $meta->heading }}</h1>
-        <p class="text-sm text-ink-muted">{{ __('account.feed.lead') }}</p>
+        <p class="text-sm text-ink-muted">{{ __('decision.feed_rules') }}</p>
+        <a class="inline-flex min-h-12 items-center underline" href="{{ route('events.index') }}">{{ __('decision.show_all') }}</a>
     </header>
 
-    <details id="feed-interests" class="mt-6 border-y-2 border-line py-4" open>
+    <details id="feed-interests" class="mt-6 border-y-2 border-line py-4" @if (! $hasFollows) open @endif>
         <summary class="cursor-pointer font-display text-lg font-extrabold">{{ $hasFollows ? 'Gestisci locali e categorie seguiti' : __('account.feed.onboarding_title') }}</summary>
         <p class="mt-3 text-sm text-ink-muted">Puoi aggiungere o rimuovere tutte le fonti che vuoi. Usa «Segui», poi aggiorna il feed per vedere i nuovi eventi.</p>
         <div class="mt-5 grid gap-8 lg:grid-cols-2">
@@ -25,6 +26,7 @@
                         <li class="flex flex-wrap items-center justify-between gap-3 border-b border-line py-3">
                             <a class="min-w-0 break-words font-semibold" href="{{ route('venues.show', $venue) }}">{{ $venue->name }}</a>
                             <x-follow-button type="venue" :id="$venue->getKey()" />
+                            <x-follow-preferences :venue="$venue" />
                         </li>
                     @empty
                         <li class="py-4 text-ink-muted">Nessun locale trovato. Prova un altro nome.</li>
@@ -51,7 +53,11 @@
     @if ($occurrences !== null && $occurrences->total() > 0)
         {{-- Explicit pagination: do not opt this feed into infinite scroll. --}}
         <div class="mt-6" data-feed-results>
-            <x-event-grid :occurrences="$occurrences->getCollection()" :adaptive="false" />
+            <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            @foreach ($occurrences as $date)
+                <div><p class="mb-2 text-sm text-ink-muted">{{ implode(' · ', $reasons[$date->id] ?? []) }}</p><x-event-card :occurrence="$date" /></div>
+            @endforeach
+            </div>
         </div>
         <div class="mt-8" data-feed-pagination>
             <x-pagination :paginator="$occurrences" :summary="true" label="Paginazione degli eventi del feed" />

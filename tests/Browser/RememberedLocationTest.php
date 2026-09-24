@@ -2,7 +2,7 @@
 
 use App\Models\Venue;
 
-it('remembers and forgets the approximate location through the real home controls', function (string $theme): void {
+it('remembers and forgets the location through the real home controls', function (string $theme): void {
     $city = testCity();
     freezeLocal($city, '2026-09-15 12:00');
     $venue = Venue::factory()->approved()->at(45.41, 11.88)->create(['city_id' => $city->id]);
@@ -21,8 +21,9 @@ it('remembers and forgets the approximate location through the real home control
             getCurrentPosition: success => success({ coords: { latitude: 45.406733, longitude: 11.876814 } })
         } });
         JS);
-    $page->click('[data-location-use]')->assertAttribute('[data-remembered-location]', 'data-position', '45.41,11.88');
-    expect($page->script('document.querySelector("[data-remembered-location]").dataset.position'))->toBe('45.41,11.88');
+    /* Le coordinate arrivano com'è dal dispositivo: dal 24/09/2026 non sono più arrotondate a due decimali (`docs/DECISIONS.md`), perché servono a calcolare una distanza. */
+    $page->click('[data-location-use]')->assertAttribute('[data-remembered-location]', 'data-position', '45.406733,11.876814');
+    expect($page->script('document.querySelector("[data-remembered-location]").dataset.position'))->toBe('45.406733,11.876814');
     expect($page->script('document.cookie.includes("incitta_location")'))->toBeFalse();
     $page->script('document.querySelector("[data-consent-banner]")?.remove()');
     $page->click('[data-location-forget]')->assertAttribute('[data-remembered-location]', 'data-position', '');

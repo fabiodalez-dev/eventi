@@ -11,6 +11,7 @@ use App\Enums\OccurrenceStatus;
 use App\Enums\TicketTierStatus;
 use App\Filament\Support\DescriptionEditor;
 use App\Filament\Support\EventStatusPresentation;
+use App\Filament\Support\OccurrenceDecisionFields;
 use App\Filament\Support\TicketTiersField;
 use App\Models\Booking;
 use App\Models\EventOccurrence;
@@ -59,6 +60,7 @@ class OccurrencesRelationManager extends RelationManager
     {
         return $schema->columns(1)
             ->components([
+                ...OccurrenceDecisionFields::make(),
                 Select::make('venue_id')->label('Locale di questa data')->relationship('venue', 'name', fn ($query) => $query->approved())->searchable()->placeholder('Usa il locale principale'),
                 DateTimePicker::make('starts_at')
                     ->label(__('admin.fields.starts_at'))

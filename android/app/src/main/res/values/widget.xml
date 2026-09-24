@@ -1,0 +1,9 @@
+<resources>
+    <string name="widget_tonight_label">Stasera in città</string>
+    <string name="widget_tonight_title">STASERA IN CITTÀ</string>
+    <string name="widget_tonight_description">Le prime date di stasera, con ora e luogo. Si aggiorna due volte al giorno.</string>
+    <string name="widget_tonight_loading">Cerco le date di stasera…</string>
+    <string name="widget_tonight_unreachable">Non sono riuscito ad aggiornare. Ci riprovo più tardi.</string>
+    <string name="widget_tonight_empty">Stasera non c’è nulla in programma. Tocca per guardare gli altri giorni.</string>
+    <string name="widget_tonight_all_day">Tutto il giorno</string>
+</resources>

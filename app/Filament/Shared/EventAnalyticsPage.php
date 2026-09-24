@@ -6,6 +6,8 @@ namespace App\Filament\Shared;
 
 use App\Enums\StatsPeriod;
 use App\Filament\Admin\Pages\EventAnalyticsDetail;
+use App\Models\Event;
+use App\Models\Venue;
 use App\Services\Analytics\EventAnalyticsDashboard;
 use App\Services\Analytics\EventAnalyticsExport;
 use App\Services\Analytics\EventShares;
@@ -16,11 +18,13 @@ use Carbon\CarbonImmutable;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
+use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Url;
 use Livewire\WithPagination;
@@ -40,6 +44,11 @@ abstract class EventAnalyticsPage extends Page
     public string $period = 'month';
 
     public string $dataset = 'events';
+
+    /** Il modulo dei canali propri: due campi, non una risorsa. */
+    public ?string $channelLabel = null;
+
+    public ?int $channelEvent = null;
 
     /** @var array<string, mixed> */
     #[Url]
@@ -148,7 +157,7 @@ abstract class EventAnalyticsPage extends Page
                 });
         }
         $components[] = Select::make('channel')->label(__('event-shares.channel'))->placeholder(__('analytics-dashboard.all_channels'))
-            ->options(collect(EventShares::CHANNELS)->mapWithKeys(fn ($channel) => [$channel => __('event-shares.channels.'.$channel)])->all())->live();
+            ->options(collect(app(EventShares::class)->channels())->mapWithKeys(fn ($channel) => [$channel => EventShares::channelLabel($channel)])->all())->live();
         $components[] = DatePicker::make('from')->label(__('analytics-dashboard.from'))->native()->live();
         $components[] = DatePicker::make('until')->label(__('analytics-dashboard.until'))->native()->required()->live();
 
@@ -187,6 +196,66 @@ abstract class EventAnalyticsPage extends Page
         $page = $this->getPage('analyticsPage');
 
         return new LengthAwarePaginator($rows->forPage($page, 20)->values(), $rows->count(), 20, $page, ['pageName' => 'analyticsPage']);
+    }
+
+    /**
+     * I canali propri e i QR li governa il referente del locale, come ogni
+     * altra modifica alla scheda (`VenuePolicy::update` pretende `requireOwner`):
+     * un collaboratore pubblica le date, non apre canali che poi restano nei
+     * conteggi. Nel pannello della redazione e in quello dell'organizzatore la
+     * sezione non compare: il bersaglio è un locale, e lì non ce n'è uno solo.
+     */
+    public function canManageChannels(): bool
+    {
+        $tenant = Filament::getTenant();
+
+        return $tenant instanceof Venue && auth()->user()?->can('update', $tenant) === true;
+    }
+
+    /** @return list<array<string, mixed>> */
+    #[Computed]
+    public function printableLinks(): array
+    {
+        $tenant = Filament::getTenant();
+
+        return $this->canManageChannels() && $tenant instanceof Venue
+            ? app(EventShares::class)->printableLinks($tenant)
+            : [];
+    }
+
+    /** @return array<int, string> */
+    public function channelEvents(): array
+    {
+        return $this->canManageChannels() ? $this->options('event') : [];
+    }
+
+    public function addChannel(): void
+    {
+        abort_unless($this->canManageChannels(), 403);
+        $venue = Filament::getTenant();
+        abort_unless($venue instanceof Venue, 403);
+        $shares = app(EventShares::class);
+        if (Str::of((string) $this->channelLabel)->slug()->length() < 2) {
+            Notification::make()->danger()->title(__('event-shares.custom.invalid'))->send();
+
+            return;
+        }
+        if ($shares->customLinks($venue)->count() >= EventShares::MAX_CUSTOM) {
+            Notification::make()->warning()->title(__('event-shares.custom.limit', ['count' => EventShares::MAX_CUSTOM]))->send();
+
+            return;
+        }
+        // L'evento passa dalla stessa lista del filtro, che è già ristretta a
+        // chi guarda: un identificativo inventato non trova nulla.
+        $event = filled($this->channelEvent)
+            ? Event::query()->whereKey($this->channelEvent)->whereIn('id', app(EventAnalyticsDashboard::class)->events()->select('events.id'))->first()
+            : null;
+        abort_if(filled($this->channelEvent) && $event === null, 403);
+        $link = $shares->addChannel($venue, (string) $this->channelLabel, $event);
+        $this->channelLabel = null;
+        $this->channelEvent = null;
+        unset($this->printableLinks);
+        Notification::make()->success()->title(__('event-shares.custom.created', ['channel' => EventShares::channelLabel($link->channel)]))->send();
     }
 
     public function export(string $format): BinaryFileResponse

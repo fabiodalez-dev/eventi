@@ -100,6 +100,13 @@ return [
         'line' => ':count date che cominciano stasera.',
     ],
 
+    'tonight_nearby' => [
+        'subject' => 'Stasera vicino a te',
+        'heading' => 'Stasera',
+        'line_near' => ':count date che cominciano stasera, vicino a dove ti trovi di solito.',
+        'line_city' => ':count date che cominciano stasera a :city.',
+    ],
+
     'weekend' => [
         'subject' => 'Questo weekend',
         'heading' => 'Il tuo weekend',
@@ -137,6 +144,7 @@ return [
             'venue_new_event' => 'Ricevi questo avviso perché segui il locale su :product.',
             'venue_digest' => 'Ricevi questo riepilogo perché segui locali, generi o etichette su :product.',
             'daily_digest' => 'Ricevi questo riepilogo perché hai acceso il riassunto giornaliero.',
+            'tonight_nearby' => 'Ricevi questo avviso perché hai acceso la proposta della sera.',
             'weekend_newsletter' => 'Ricevi questa newsletter perché hai dato il consenso a riceverla.',
             'event_published' => 'Ricevi questa email perché gestisci il locale a cui appartiene questo evento.',
             'event_rejected' => 'Ricevi questa email perché gestisci il locale a cui appartiene questo evento.',

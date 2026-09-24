@@ -1,3 +1,5 @@
+import { CheckinQueue } from './checkin-queue';
+
 document.querySelectorAll('[data-reservation-form]').forEach((form) => {
     const list = form.querySelector('[data-attendees]');
     const add = form.querySelector('[data-add-attendee]');
@@ -126,4 +128,54 @@ document.querySelectorAll('[data-ticket-scanner]').forEach((form) => {
     stopButton.addEventListener('click', stop);
     window.addEventListener('pagehide', stop);
     document.addEventListener('visibilitychange', () => { if (document.hidden) stop(); });
+});
+
+
+document.querySelectorAll('[data-checkin-queue]').forEach((form) => {
+    const results = form.querySelector('[data-checkin-results]');
+    const retry = form.querySelector('[data-checkin-retry]');
+    const queue = new CheckinQueue(async (entry) => {
+        const response = await fetch(form.action, {
+            method: 'POST', credentials: 'same-origin', signal: AbortSignal.timeout(15000),
+            headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRF-TOKEN': form.querySelector('[name="_token"]').value },
+            body: JSON.stringify({ code: entry.code, request_key: entry.requestKey }),
+        });
+        if (response.status >= 500) throw new Error('Temporary failure');
+        const payload = await response.json();
+        if (response.ok) document.querySelector('[data-ticket-search]')?.dispatchEvent(new Event('input'));
+        return {
+            accepted: response.ok,
+            message: response.ok ? form.dataset.success.replace(':name', payload.data.attendee_name)
+                : (Object.values(payload.errors || {}).flat()[0] || payload.message || form.dataset.error),
+        };
+    });
+    const render = () => {
+        results.replaceChildren(...queue.entries.map((entry, index) => {
+            const li = document.createElement('li');
+            li.dataset.state = entry.state;
+            li.textContent = `${index + 1}. ${entry.state === 'pending' ? form.dataset.pending : entry.message}`;
+            return li;
+        }));
+        retry.hidden = !queue.entries.some((entry) => entry.state === 'pending');
+    };
+    const flush = () => queue.flush(render);
+    form.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const input = form.querySelector('[name="code"]');
+        const code = input.value.trim();
+        if (!/^[a-zA-Z0-9]{64}$/.test(code)) return;
+        queue.add(code);
+        input.value = '';
+        render();
+        flush();
+        input.focus();
+    });
+    retry.addEventListener('click', flush);
+    window.addEventListener('online', flush);
+    window.addEventListener('beforeunload', (event) => {
+        if (queue.entries.some((entry) => entry.state === 'pending')) {
+            event.preventDefault();
+            event.returnValue = '';
+        }
+    });
 });

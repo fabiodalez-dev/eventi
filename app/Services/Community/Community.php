@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Community;
 
+use App\Actions\Account\SaveOccurrences;
 use App\Enums\CommunityStatus;
 use App\Enums\PostIntent;
 use App\Enums\ProfileVisibility;
@@ -165,6 +166,65 @@ final class Community
         $blocks = $blockedIds->map(fn (int $id): array => ['user_id' => $id, 'display_name' => (string) ($names[$id] ?? __('community.member'))])->values()->all();
 
         return ['page' => $page, 'followers' => $followers, 'blocks' => $blocks];
+    }
+
+    /**
+     * «Ci vado»: dichiarare in pubblico che si va a una data, o tornare indietro.
+     *
+     * Riusa la visibilità del singolo salvataggio invece di introdurre un
+     * secondo concetto di partecipazione. Due stati che dicono quasi la stessa
+     * cosa divergono al primo cambiamento, e a quel punto una persona
+     * risulterebbe presente in un elenco e assente nell'altro.
+     *
+     * Tornare privati cancella anche l'eventuale trafiletto in bacheca, nella
+     * stessa transazione: chi si toglie dall'elenco non deve restare in
+     * bacheca ad aspettare un lavoro differito.
+     */
+    public function attendance(User $user, EventOccurrence $occurrence, bool $public): bool
+    {
+        return DB::transaction(function () use ($user, $occurrence, $public): bool {
+            $locked = User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
+            $saved = SavedEvent::query()->where('user_id', $user->id)
+                ->where('occurrence_id', $occurrence->getKey())->lockForUpdate()->first();
+
+            if (! $public) {
+                if ($saved !== null) {
+                    $saved->forceFill(['visibility' => SavedVisibility::Private])->save();
+                    CommunityPost::query()->where('saved_event_id', $saved->id)->delete();
+                }
+
+                return false;
+            }
+
+            $this->requireVerified($locked);
+            abort_if(DB::table('community_restrictions')->where('user_id', $user->id)->where('occurrence_id', $occurrence->getKey())->exists(), 403);
+
+            if (! $locked->communityProfile()->exists()) {
+                throw ValidationException::withMessages(['attendance' => __('community.profile_required')]);
+            }
+
+            /* Dire «ci vado» salva anche la data: chiedere due gesti per una
+               cosa sola sarebbe un modo per farne fare zero.
+
+               Il controllo passa di qui **anche quando la data è già salvata**.
+               Altrimenti chi l'aveva salvata quando era futura potrebbe
+               renderla pubblica dopo che è passata o è stata annullata, mentre
+               alla stessa data, alla stessa ora, chi non l'aveva salvata si
+               sentirebbe rispondere di no. */
+            $saved = app(SaveOccurrences::class)->one($locked, $occurrence);
+
+            if ($saved === null) {
+                throw ValidationException::withMessages(['attendance' => __('community.attendance_unavailable')]);
+            }
+
+            $saved->forceFill(['visibility' => SavedVisibility::Public])->save();
+            // Il registro punta alla data, non al salvataggio: la mappa morph
+            // del progetto conosce le occorrenze, e il salvataggio è un dettaglio interno.
+            activity('community')->causedBy($locked)->performedOn($occurrence)
+                ->withProperties(['saved_event_id' => $saved->id])->event('attendance_public')->log('attendance_public');
+
+            return true;
+        });
     }
 
     /** @param array<string, mixed> $data */

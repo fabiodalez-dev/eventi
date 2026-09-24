@@ -23,6 +23,9 @@ use Laravel\Telescope\Telescope;
 use Spatie\ScheduleMonitor\Models\MonitoredScheduledTaskLogItem;
 
 Artisan::command('ticketing:promote', function (): void {
+    // Prima si liberano i posti promossi e mai confermati, poi si promuove:
+    // nell'ordine inverso la coda avanzerebbe un minuto dopo, e per niente.
+    app(TicketingService::class)->expirePromotions();
     app(TicketingService::class)->promoteWaitingLists();
 })->purpose('Promote waiting bookings when their reservation window is open');
 
@@ -314,11 +317,21 @@ Schedule::call(function (): void {
     });
 })->name('sponsorship-grants:sync')->everyMinute()->withoutOverlapping(10);
 
+/*
+ * Il rapporto del mese arriva il primo del mese, di mattina: chi gestisce un
+ * locale legge la posta prima di aprire, e un rapporto che arriva la sera di
+ * domenica viene letto lunedì comunque, ma con un giorno di ritardo.
+ */
+Schedule::command('venues:monthly-report')
+    ->monthlyOn(1, '08:00')
+    ->withoutOverlapping()
+    ->graceTimeInMinutes(120);
+
 Schedule::command('events:publish-due')->everyMinute()->withoutOverlapping(10);
 
 Schedule::call(function (): void {
     User::withTrashed()->where('location_expires_at', '<=', now())
-        ->update(['remembered_location' => null, 'location_expires_at' => null]);
+        ->update(['remembered_location' => null, 'location_expires_at' => null, 'location_lat' => null, 'location_lng' => null]);
 })->name('locations:expire')->daily()->withoutOverlapping();
 
 Schedule::command('carpool:maintain')->everyMinute()->withoutOverlapping(5);

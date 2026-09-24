@@ -36,12 +36,22 @@
         </form>
     </details>@endif
     <section class="border-t-2 border-line pt-5"><h2 class="text-2xl font-bold">{{ __('ticketing.checkin') }}</h2>
-        <form method="POST" action="{{ route('ticketing.manage.checkin', $date) }}" class="mt-4 flex flex-col gap-4" data-ticket-scanner data-fallback="{{ __('ticketing.scanner_fallback') }}" data-ready="{{ __('ticketing.scanner_ready') }}">@csrf
-            <div class="flex gap-3"><x-button variant="secondary" data-scan-start>{{ __('ticketing.scan') }}</x-button><x-button variant="secondary" data-scan-stop hidden>{{ __('ticketing.stop_scan') }}</x-button></div>
-            <video hidden muted playsinline class="w-full max-w-md" aria-label="{{ __('ticketing.scan') }}"></video><p data-scan-message role="status"></p>
-            <x-field name="code" :label="__('ticketing.code')" :required="true" autocomplete="off" />
-            <x-button type="submit" class="min-h-12">{{ __('ticketing.checkin') }}</x-button>
+        @include('ticketing.scanner-form')
+    </section>
+    <section class="border-t border-line pt-5">
+        <h2 class="text-2xl font-bold">{{ __('decision.staff') }}</h2>
+        <p class="my-3 text-sm text-ink-muted">{{ __('decision.staff_hint') }}</p>
+        <a class="inline-flex min-h-12 items-center underline" href="{{ route('ticketing.manage.scanner', $date) }}">{{ __('decision.staff_scanner') }}</a>
+        <form method="POST" action="{{ route('ticketing.manage.staff', $date) }}" class="my-4 flex flex-wrap items-end gap-3">@csrf
+            <x-field name="email" type="email" :label="__('decision.staff_email')" :required="true" />
+            <x-button type="submit">{{ __('decision.staff_add') }}</x-button>
         </form>
+        @foreach ($date->checkinStaff as $staff)
+            <form method="POST" action="{{ route('ticketing.manage.staff', $date) }}" class="flex flex-wrap items-center gap-3 py-2">@csrf
+                <span>{{ $staff->email }}</span><input type="hidden" name="email" value="{{ $staff->email }}"><input type="hidden" name="remove" value="1">
+                <x-button type="submit" variant="secondary">{{ __('decision.staff_remove') }}</x-button>
+            </form>
+        @endforeach
     </section>
     <div class="flex flex-wrap gap-4 items-end"><h2 class="text-2xl font-bold">{{ __('ticketing.participants') }}</h2><x-button variant="secondary" :href="route('ticketing.manage.export', $date)">{{ __('ticketing.export') }}</x-button></div>
     <form method="GET" data-ticket-search class="grid grid-cols-[minmax(0,1fr)_auto] gap-3 items-end"><x-field name="q" :label="__('ticketing.search')" :value="request('q')" /><x-button type="submit">{{ __('ticketing.filter') }}</x-button></form>

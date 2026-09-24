@@ -13,6 +13,8 @@ use App\Models\TicketTier;
 use App\Queries\EventOccurrenceQuery;
 use App\Support\Api\ApiContext;
 use App\Support\Api\ApiDate;
+use App\Support\Capacity;
+use App\Support\DeclaredCosts;
 use App\Support\Description;
 use App\Support\EventUrl;
 use App\Support\MapLinks;
@@ -44,6 +46,7 @@ final class OccurrenceResource
         $venue = $occurrence->locationVenue();
         $timezone = $context->timezone;
 
+        $availability = Capacity::for($occurrence);
         $payload = [
             'occurrence_id' => (int) $occurrence->getKey(),
             'interested_count' => $occurrence->interestedCount(),
@@ -74,7 +77,8 @@ final class OccurrenceResource
             /* Capienza e posti rimasti. `capacity` nullo significa "quella del
                locale": è là che il client la trova, non qui duplicata. */
             'capacity' => $occurrence->capacity,
-            'capacity_left' => $occurrence->capacity_left,
+            'capacity_left' => $availability?->left,
+            'availability' => $availability === null ? null : ['remaining' => $availability->left, 'total' => $availability->total],
             'booking_enabled' => (bool) ($occurrence->booking_enabled && $occurrence->effectiveVenue()?->ticketing_enabled),
             'title' => (string) $event->title,
             'subtitle' => $event->subtitle,
@@ -89,6 +93,7 @@ final class OccurrenceResource
             'category' => $event->category === null ? null : CategoryResource::summary($event->category),
             'tags' => self::tags($occurrence, $context),
             'price' => PriceResource::toArray($event, $occurrence),
+            'declared_costs' => DeclaredCosts::for($occurrence),
             'is_outdoor' => (bool) $event->is_outdoor,
             'sponsored' => EventResource::sponsored($event),
             'url' => EventResource::webUrl($event, $context),

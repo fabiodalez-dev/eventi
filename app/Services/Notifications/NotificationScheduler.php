@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Notifications;
 
+use App\Enums\EventStatus;
 use App\Enums\FollowableType;
 use App\Enums\NotificationChannel;
 use App\Enums\NotificationSkipReason;
@@ -17,6 +18,7 @@ use App\Models\SavedEvent;
 use App\Models\ScheduledNotification;
 use App\Models\User;
 use App\Models\Venue;
+use App\Support\Capacity;
 use Carbon\CarbonImmutable;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Collection;
@@ -237,6 +239,22 @@ final class NotificationScheduler
      * Biglietti esauriti (§15.4): immediato, ma con interruttore — chi non lo
      * vuole non lo riceve, e il tetto giornaliero lo conta.
      */
+    public function announceAlmostFull(EventOccurrence $occurrence): int
+    {
+        if (! $this->isFuture($occurrence) || ! in_array($occurrence->status, [OccurrenceStatus::Scheduled, OccurrenceStatus::Moved], true) || $occurrence->event?->isDemo()
+            || $occurrence->event?->status !== EventStatus::Published
+            || ! Capacity::for($occurrence)?->isAlmostFull()) {
+            return 0;
+        }
+        $count = 0;
+        foreach ($this->savers($occurrence) as $userId) {
+            $count += (int) $this->queue($userId, NotificationType::EventAlmostFull,
+                sprintf('almost_full:user_%d:occ_%d', $userId, $occurrence->id), CarbonImmutable::now(), $occurrence);
+        }
+
+        return $count;
+    }
+
     public function announceSoldOut(EventOccurrence $occurrence): int
     {
         $savers = $this->savers($occurrence);

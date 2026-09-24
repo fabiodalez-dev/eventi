@@ -6,6 +6,7 @@ namespace App\Services\Api;
 
 use App\DTOs\EventFilters;
 use App\Enums\ApiInclude;
+use App\Enums\DatePreset;
 use App\Http\Requests\Api\V1\ApiRequest;
 use App\Http\Requests\Api\V1\EventQueryRequest;
 use App\Models\City;
@@ -48,7 +49,9 @@ final class OccurrenceFeed
             $query->updatedSince($since);
         }
 
-        $request->sort()?->applyTo($query);
+        if (($filters ?? $request->filters())->preset !== DatePreset::LastHours) {
+            $request->sort()?->applyTo($query);
+        }
 
         return $query;
     }

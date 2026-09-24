@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Models\Booking;
 use Closure;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -21,7 +22,7 @@ class TicketingPrivacy
             $booking = $request->route('booking');
             if ($request->routeIs('ticketing.manage.*')) {
                 $target = $date ?? $booking?->occurrence;
-                $response->setTargetUrl($target ? route('ticketing.manage.show', $target) : route('ticketing.manage.index'));
+                $response->setTargetUrl($target ? route($request->user()?->can('manage', [Booking::class, $target]) ? 'ticketing.manage.show' : 'ticketing.manage.scanner', $target) : route('ticketing.manage.index'));
             } elseif ($request->routeIs('tickets.*')) {
                 $response->setTargetUrl($date ? route('tickets.create', $date) : ($booking ? route('tickets.show', $booking) : route('tickets.index')));
             }
@@ -30,7 +31,7 @@ class TicketingPrivacy
         $response->headers->set('Referrer-Policy', 'no-referrer');
         $response->headers->set('X-Robots-Tag', 'noindex, nofollow');
 
-        if ($request->routeIs('ticketing.manage.show')) {
+        if ($request->routeIs('ticketing.manage.show', 'ticketing.manage.scanner')) {
             $policy = config()->string('security.permissions_policy');
             $policy = preg_replace('/(?:^|,\s*)camera=\([^)]*\)/', '', $policy);
             $response->headers->set('Permissions-Policy', trim((string) $policy, ', ').', camera=(self)');

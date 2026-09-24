@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests\Api\V1\Me;
 
 use App\Enums\FollowableType;
+use App\Enums\FollowNotificationMode;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -28,6 +29,7 @@ class StoreFollowRequest extends FormRequest
             'type' => ['required', Rule::enum(FollowableType::class)],
             'id' => ['required', 'integer', 'min:1'],
             'notify' => ['sometimes', 'boolean'],
+            'notification_mode' => ['sometimes', 'nullable', Rule::enum(FollowNotificationMode::class)],
         ];
     }
 

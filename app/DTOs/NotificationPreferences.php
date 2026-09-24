@@ -29,6 +29,7 @@ final readonly class NotificationPreferences
 {
     /**
      * @param  list<int>  $reminderHours  quante ore prima parte ciascun promemoria
+     * @param  list<int>  $tonightDays  giorni ISO (1 = lunedì) in cui parte la spinta della sera
      */
     private function __construct(
         public bool $reminders,
@@ -36,6 +37,21 @@ final readonly class NotificationPreferences
         public bool $soldOut,
         public bool $venueDigest,
         public bool $dailyDigest,
+        /*
+         * La spinta della sera: spenta finché non la si accende. È una
+         * notifica che parte di nostra iniziativa e interrompe una persona
+         * che non ha chiesto niente — accenderla per difetto sarebbe
+         * decidere al posto suo.
+         */
+        public bool $tonight = false,
+        /*
+         * Il rapporto mensile a chi gestisce un locale: acceso di default,
+         * perché è un resoconto su ciò che si è pubblicato, non una proposta.
+         * Spegnibile, perché nessuno deve ricevere una mail che non vuole.
+         */
+        public bool $venueReport = true,
+        public array $tonightDays = [5, 6],
+        public string $tonightTime = '18:00',
         /*
          * Risposte e reazioni ai propri commenti. Acceso di default: chi
          * scrive una domanda pubblica si aspetta di sapere quando qualcuno
@@ -57,6 +73,10 @@ final readonly class NotificationPreferences
             soldOut: true,
             venueDigest: true,
             dailyDigest: false,
+            tonight: false,
+            venueReport: true,
+            tonightDays: self::configuredDays(),
+            tonightTime: self::configuredTime(),
             comments: true,
         );
     }
@@ -78,6 +98,10 @@ final readonly class NotificationPreferences
             soldOut: self::boolean($stored, 'sold_out', $defaults->soldOut),
             venueDigest: self::boolean($stored, 'venue_digest', $defaults->venueDigest),
             dailyDigest: self::boolean($stored, 'daily_digest', $defaults->dailyDigest),
+            tonight: self::boolean($stored, 'tonight', $defaults->tonight),
+            venueReport: self::boolean($stored, 'venue_report', $defaults->venueReport),
+            tonightDays: self::days($stored['tonight_days'] ?? null, $defaults->tonightDays),
+            tonightTime: self::time($stored['tonight_time'] ?? null, $defaults->tonightTime),
             comments: self::boolean($stored, 'comments', $defaults->comments),
             delivery: NotificationDelivery::tryFrom(is_string($stored['delivery'] ?? null) ? $stored['delivery'] : '') ?? $defaults->delivery,
         );
@@ -101,6 +125,10 @@ final readonly class NotificationPreferences
             soldOut: self::boolean($changes, 'sold_out', $this->soldOut),
             venueDigest: self::boolean($changes, 'venue_digest', $this->venueDigest),
             dailyDigest: self::boolean($changes, 'daily_digest', $this->dailyDigest),
+            tonight: self::boolean($changes, 'tonight', $this->tonight),
+            venueReport: self::boolean($changes, 'venue_report', $this->venueReport),
+            tonightDays: self::days($changes['tonight_days'] ?? null, $this->tonightDays),
+            tonightTime: self::time($changes['tonight_time'] ?? null, $this->tonightTime),
             comments: self::boolean($changes, 'comments', $this->comments),
             delivery: NotificationDelivery::tryFrom(is_string($changes['delivery'] ?? null) ? $changes['delivery'] : '') ?? $this->delivery,
         );
@@ -117,6 +145,10 @@ final readonly class NotificationPreferences
             'sold_out' => $this->soldOut,
             'venue_digest' => $this->venueDigest,
             'daily_digest' => $this->dailyDigest,
+            'tonight' => $this->tonight,
+            'venue_report' => $this->venueReport,
+            'tonight_days' => $this->tonightDays,
+            'tonight_time' => $this->tonightTime,
             'comments' => $this->comments,
             'delivery' => $this->delivery->value,
         ];
@@ -130,7 +162,56 @@ final readonly class NotificationPreferences
      */
     public static function keys(): array
     {
-        return ['reminders', 'reminder_hours', 'sold_out', 'venue_digest', 'daily_digest', 'comments', 'delivery'];
+        return ['reminders', 'reminder_hours', 'sold_out', 'venue_digest', 'daily_digest', 'tonight', 'tonight_days', 'tonight_time', 'venue_report', 'comments', 'delivery'];
+    }
+
+    /** @return list<int> */
+    private static function configuredDays(): array
+    {
+        $days = config('notifications.digests.tonight.weekdays', [5, 6]);
+
+        return self::days(is_array($days) ? $days : null, [5, 6]);
+    }
+
+    private static function configuredTime(): string
+    {
+        $time = config('notifications.digests.tonight.time', '18:00');
+
+        return self::time(is_string($time) ? $time : null, '18:00');
+    }
+
+    /**
+     * I giorni in cui parte la spinta della sera, come numeri ISO ordinati e
+     * senza ripetizioni. Un elenco vuoto ricade sul predefinito invece di
+     * significare «mai»: per non ricevere niente c'è l'interruttore, e due
+     * modi diversi di spegnere la stessa cosa finiscono per contraddirsi.
+     *
+     * @param  list<int>  $fallback
+     * @return list<int>
+     */
+    private static function days(mixed $value, array $fallback): array
+    {
+        if (! is_array($value)) {
+            return $fallback;
+        }
+
+        $days = [];
+
+        foreach ($value as $day) {
+            if (is_numeric($day) && (int) $day >= 1 && (int) $day <= 7) {
+                $days[] = (int) $day;
+            }
+        }
+
+        $days = array_values(array_unique($days));
+        sort($days);
+
+        return $days === [] ? $fallback : $days;
+    }
+
+    private static function time(mixed $value, string $fallback): string
+    {
+        return is_string($value) && preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $value) === 1 ? $value : $fallback;
     }
 
     /**

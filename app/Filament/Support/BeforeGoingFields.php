@@ -17,6 +17,7 @@ use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
@@ -54,6 +55,9 @@ final class BeforeGoingFields
                 ->expandAllAction(fn (Action $action) => $action->button()->icon('heroicon-o-chevron-down'))
                 ->collapsible()->itemLabel(fn (array $state): ?string => $state['label'] ?? null),
         ];
+        foreach (['food_notes', 'start_notes'] as $field) {
+            $fields[] = Textarea::make('content_details.'.$field)->label(__('decision.'.$field))->maxLength(2000);
+        }
         if (! $venue) {
             foreach ($fields as $field) {
                 $key = substr($field->getName(), strlen('content_details.'));
