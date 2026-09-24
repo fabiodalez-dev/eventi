@@ -85,8 +85,9 @@ function colonneSospettePerLePersone(): array
         }
 
         foreach (Schema::getColumnListing($tabella) as $colonna) {
-            // Explicit six-month opt-in storage; ordinary searches must still leave no coordinates.
-            if ($tabella === 'users' && in_array($colonna, ['remembered_location', 'location_expires_at'], true)) {
+            /* Explicit six-month opt-in storage; ordinary searches must still leave no coordinates.
+               `location_lat` e `location_lng` sono lo stesso valore della colonna cifrata, arrotondato a due decimali — circa un chilometro — perché una colonna cifrata non si può interrogare in SQL e la proposta serale «vicino a te» dovrebbe altrimenti decifrare ogni utente a ogni invio. Che restino approssimate lo verifica il test qui sotto. */
+            if ($tabella === 'users' && in_array($colonna, ['remembered_location', 'location_expires_at', 'location_lat', 'location_lng'], true)) {
                 continue;
             }
             if (preg_match('/(^|_)(lat|lng|latitude|longitude|location|coords|coordinates|geo|position)($|_)/i', $colonna) === 1) {
@@ -100,6 +101,22 @@ function colonneSospettePerLePersone(): array
 
 it('non ha in nessuna tabella delle persone una colonna dove mettere la posizione', function (): void {
     expect(colonneSospettePerLePersone())->toBe([]);
+});
+
+/**
+ * L'eccezione delle due colonne interrogabili vale finché restano approssimate.
+ *
+ * Senza questo controllo l'eccezione qui sopra diventerebbe il posto dove chiunque può conservare la posizione esatta: basterebbe cambiare il tipo della colonna e nessun test se ne accorgerebbe. Due decimali sono circa un chilometro, e un chilometro non è l'indirizzo di nessuno.
+ */
+it('tiene approssimate le due colonne interrogabili della posizione', function (): void {
+    $scale = collect(DB::select(
+        'SELECT COLUMN_NAME, NUMERIC_SCALE, DATA_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME IN (?, ?)',
+        [DB::connection()->getDatabaseName(), 'users', 'location_lat', 'location_lng'],
+    ))->mapWithKeys(fn (object $riga): array => [(string) $riga->COLUMN_NAME => [(string) $riga->DATA_TYPE, (int) $riga->NUMERIC_SCALE]]);
+
+    expect($scale)->toHaveCount(2)
+        ->and($scale['location_lat'])->toBe(['decimal', 2])
+        ->and($scale['location_lng'])->toBe(['decimal', 2]);
 });
 
 it('non scrive niente da nessuna parte quando il sito viene percorso con una posizione', function (): void {

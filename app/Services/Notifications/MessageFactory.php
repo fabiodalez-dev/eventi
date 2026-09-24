@@ -70,6 +70,9 @@ final readonly class MessageFactory
             NotificationType::EventRejected => $this->eventRejected($notification),
             NotificationType::VenueInactive => $this->venueInactive($notification),
 
+            /* Il rapporto mensile al locale non passa da qui: lo compone il comando che lo spedisce, che ha già i numeri del mese. In coda non ci finisce mai, e se ci finisse non ci sarebbe niente da ricostruire. */
+            NotificationType::VenueMonthlyReport => NotificationSkipReason::OutOfBand,
+
             NotificationType::CommentReply,
             NotificationType::CommentReaction,
             NotificationType::CommentModerated,

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Actions\Account\SaveOccurrences;
 use App\Enums\ProfileVisibility;
 use App\Enums\SavedVisibility;
 use App\Models\SavedEvent;
@@ -9,7 +10,11 @@ use App\Models\User;
 use App\Models\UserBlock;
 use App\Services\Community\Community;
 use App\Services\Community\CommunityAccess;
+use App\Support\EventUrl;
 use Carbon\Carbon;
+use Illuminate\Validation\ValidationException;
+use Laravel\Sanctum\Sanctum;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 /**
  * «Ci vado»: la sola dichiarazione pubblica su una singola data.
@@ -56,7 +61,7 @@ it('salva la data e la rende pubblica in un gesto solo, e torna indietro cancell
 
 it('non espone chi ha solo salvato la data', function (): void {
     $user = attendee('marco');
-    app(\App\Actions\Account\SaveOccurrences::class)->one($user, $this->occurrence);
+    app(SaveOccurrences::class)->one($user, $this->occurrence);
 
     expect(app(CommunityAccess::class)->attendees($this->occurrence, null)->count())->toBe(0);
 });
@@ -64,12 +69,12 @@ it('non espone chi ha solo salvato la data', function (): void {
 it('pretende il numero verificato e un profilo pubblico prima di esporre qualcuno', function (): void {
     $withoutWhatsapp = User::factory()->create();
     expect(fn () => app(Community::class)->attendance($withoutWhatsapp, $this->occurrence, true))
-        ->toThrow(Symfony\Component\HttpKernel\Exception\HttpException::class);
+        ->toThrow(HttpException::class);
 
     $withoutProfile = User::factory()->create();
     $withoutProfile->forceFill(['whatsapp_verified_at' => now(), 'whatsapp_phone_hash' => hash('sha256', 'np')])->save();
     expect(fn () => app(Community::class)->attendance($withoutProfile->fresh(), $this->occurrence, true))
-        ->toThrow(Illuminate\Validation\ValidationException::class);
+        ->toThrow(ValidationException::class);
 
     expect(app(CommunityAccess::class)->attendees($this->occurrence, null)->count())->toBe(0);
 });
@@ -113,7 +118,7 @@ it('accetta il gesto dal sito e dall app, e risponde con il numero aggiornato', 
     $this->actingAs($user)->post(route('community.attendance', $this->occurrence), ['going' => 1])->assertRedirect();
     expect(app(CommunityAccess::class)->attendees($this->occurrence, null)->count())->toBe(1);
 
-    Laravel\Sanctum\Sanctum::actingAs($user->fresh());
+    Sanctum::actingAs($user->fresh());
     $this->postJson('/api/v1/community/saved/'.$this->occurrence->getKey().'/attendance', ['going' => false])
         ->assertOk()->assertJsonPath('data.going', false)->assertJsonPath('data.count', 0);
 });
@@ -122,7 +127,7 @@ it('mostra il numero a tutti e i nomi solo a chi è verificato', function (): vo
     $user = attendee('nadia');
     app(Community::class)->attendance($user, $this->occurrence, true);
 
-    $url = \App\Support\EventUrl::occurrence($this->occurrence->fresh());
+    $url = EventUrl::occurrence($this->occurrence->fresh());
 
     $this->get($url)->assertOk()->assertSee(__('community.attendance.count_one'))->assertDontSee('Nadia');
     $this->actingAs(attendee('chi_legge'))->get($url)->assertOk()->assertSee('Nadia');

@@ -29,6 +29,7 @@ final readonly class NotificationPreferences
 {
     /**
      * @param  list<int>  $reminderHours  quante ore prima parte ciascun promemoria
+     * @param  list<int>  $tonightDays  giorni ISO (1 = lunedì) in cui parte la spinta della sera
      */
     private function __construct(
         public bool $reminders,
@@ -41,8 +42,6 @@ final readonly class NotificationPreferences
          * notifica che parte di nostra iniziativa e interrompe una persona
          * che non ha chiesto niente — accenderla per difetto sarebbe
          * decidere al posto suo.
-         *
-         * @var list<int> $tonightDays giorni ISO (1 = lunedì) in cui parte
          */
         public bool $tonight = false,
         /*

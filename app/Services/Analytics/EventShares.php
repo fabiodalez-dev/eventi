@@ -181,19 +181,23 @@ final class EventShares
                 ->orWhere(fn ($custom) => $custom->where('channel', 'like', self::CUSTOM_PREFIX.'%')
                     ->whereIn('event_id', Event::query()->where('venue_id', $venue->getKey())->select('id'))))
             ->orderBy('id')->get();
+        /* Una mappa di interi e non la riga del database: un codice appena creato non ha ancora nessuna riga in `event_share_daily`, e leggerne le colonne sarebbe un errore a tempo di esecuzione al primo QR stampato prima che qualcuno lo inquadri. */
         $totals = DB::table('event_share_daily')->whereIn('share_link_id', $links->modelKeys())
             ->selectRaw('share_link_id, SUM(shares) as shares, SUM(clicks) as clicks')
-            ->groupBy('share_link_id')->get()->keyBy('share_link_id');
+            ->groupBy('share_link_id')->get()
+            ->mapWithKeys(fn (object $riga): array => [
+                (int) $riga->share_link_id => ['shares' => (int) $riga->shares, 'clicks' => (int) $riga->clicks],
+            ])->all();
 
         return $links->map(fn (EventShareLink $link): array => [
             'code' => $link->code,
             'channel' => self::channelLabel($link->channel),
-            'target' => $link->event?->title ?? $venue->name,
+            'target' => $link->event_id === null ? $venue->name : $link->event->title,
             'url' => route('event-shares.open', ['code' => $link->code]),
             'qr' => route('event-shares.qr', ['code' => $link->code]),
             'download' => route('event-shares.qr', ['code' => $link->code, 'scarica' => 1]),
-            'shares' => (int) ($totals->get($link->getKey())?->shares ?? 0),
-            'clicks' => (int) ($totals->get($link->getKey())?->clicks ?? 0),
+            'shares' => $totals[$link->getKey()]['shares'] ?? 0,
+            'clicks' => $totals[$link->getKey()]['clicks'] ?? 0,
         ])->all();
     }
 

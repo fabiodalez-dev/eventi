@@ -6,7 +6,6 @@ namespace App\Console\Commands;
 
 use App\Enums\NotificationType;
 use App\Enums\VenueStatus;
-use App\Models\User;
 use App\Models\Venue;
 use App\Notifications\VenueMonthlyReport as VenueMonthlyReportNotification;
 use App\Services\Analytics\VenueMonthlyReport;
@@ -57,7 +56,7 @@ class SendVenueMonthlyReports extends Command
                     }
 
                     foreach ($venue->owners as $owner) {
-                        if (! $owner instanceof User || ! $owner->canReceiveNotifications()
+                        if (! $owner->canReceiveNotifications()
                             || ! NotificationType::VenueMonthlyReport->isEnabledFor($owner)) {
                             continue;
                         }

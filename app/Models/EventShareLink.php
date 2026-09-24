@@ -24,7 +24,11 @@ class EventShareLink extends Model
         return $this->belongsTo(EventOccurrence::class);
     }
 
-    /** Il bersaglio alternativo all'evento: la scheda del locale. @return BelongsTo<Venue, $this> */
+    /**
+     * Il bersaglio alternativo all'evento: la scheda del locale.
+     *
+     * @return BelongsTo<Venue, $this>
+     */
     public function venue(): BelongsTo
     {
         return $this->belongsTo(Venue::class);

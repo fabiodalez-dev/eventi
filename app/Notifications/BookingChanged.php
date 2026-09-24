@@ -47,7 +47,7 @@ class BookingChanged extends Notification implements ShouldQueue
         // Una promozione senza scadenza scritta è una scadenza che nessuno rispetta.
         if ($this->kind === 'promoted' && $booking?->promotion_expires_at !== null) {
             $mail->line(__('ticketing.mail.promotion_deadline', [
-                'scadenza' => $booking->promotion_expires_at->timezone($booking->occurrence?->event?->city?->timezone ?? config('app.timezone'))->format('d/m/Y H:i'),
+                'scadenza' => $booking->promotion_expires_at->timezone($booking->occurrence?->event?->city->timezone ?? config('app.timezone'))->format('d/m/Y H:i'),
             ]));
         }
 

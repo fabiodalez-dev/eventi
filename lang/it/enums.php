@@ -219,6 +219,7 @@ return [
         'not_saved' => 'Data non più salvata',
         'nothing_to_send' => 'Niente da riepilogare',
         'missing_subject' => 'Contenuto non più disponibile',
+        'out_of_band' => 'Tipologia non prevista in coda',
     ],
 
     'notification_status' => [

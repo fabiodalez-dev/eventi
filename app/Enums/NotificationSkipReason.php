@@ -24,6 +24,8 @@ enum NotificationSkipReason: string
     case NotSaved = 'not_saved';
     case NothingToSend = 'nothing_to_send';
     case MissingSubject = 'missing_subject';
+    /* Una tipologia che non passa dalla coda: esiste come preferenza, ma il messaggio lo costruisce chi lo spedisce, con i numeri già in mano. Se ne compare una qui è un errore di chi l'ha pianificata, e va letto come tale invece di essere scambiato per un contenuto sparito. */
+    case OutOfBand = 'out_of_band';
 
     public function label(): string
     {
