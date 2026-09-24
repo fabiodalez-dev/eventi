@@ -36,6 +36,7 @@ use App\Http\Controllers\Api\V1\SubmissionController;
 use App\Http\Controllers\Api\V1\SyncController;
 use App\Http\Controllers\Api\V1\TaxonomyController;
 use App\Http\Controllers\Api\V1\VenueController;
+use App\Http\Controllers\Api\V1\WalletPassController;
 use App\Http\Controllers\RememberedLocationController;
 use App\Http\Controllers\TicketingController;
 use App\Http\Controllers\Web\Account\ContentPreferencesController;
@@ -59,6 +60,9 @@ use Illuminate\Support\Facades\Route;
 // senza, Laravel chiave il contatore sul solo utente e prenotazioni, commenti e recensioni
 // consumerebbero lo stesso secchio. Lo verifica ThrottlePrefixesTest.
 Route::get('v1/occurrences/{occurrence}/booking', [TicketingController::class, 'availability']);
+// Se il biglietto nel portafoglio esiste oggi. Senza credenziali dell'emittente
+// risponde `false` e l'app non disegna il pulsante: vedi WalletPassController.
+Route::get('v1/wallet', [WalletPassController::class, 'availability']);
 Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('v1/me/location', [RememberedLocationController::class, 'show']);
     Route::post('v1/me/location', [RememberedLocationController::class, 'store'])->middleware('throttle:30,1,remembered-location');
@@ -70,6 +74,7 @@ Route::prefix('v1')->middleware(['auth:sanctum', TicketingPrivacy::class])->grou
     Route::post('/occurrences/{occurrence}/bookings', [TicketingController::class, 'store'])->middleware('throttle:20,1,tickets-store');
     Route::post('/me/bookings/{booking}/cancel', [TicketingController::class, 'cancel'])->middleware('throttle:30,1,tickets-cancel');
     Route::post('/ticketing/{occurrence}/check-in', [TicketingController::class, 'checkIn'])->middleware('throttle:120,1,tickets-checkin')->name('api.ticketing.manage.checkin');
+    Route::post('/me/tickets/{ticket}/wallet', [WalletPassController::class, 'store'])->middleware('throttle:30,1,tickets-wallet');
 });
 
 /*

@@ -45,6 +45,14 @@ data class AppUiState(
     val bookingBusy: Boolean = false,
     val bookingError: String? = null,
     val bookingRequestKey: String = "",
+    /*
+     * Il biglietto nel portafoglio: `walletEnabled` arriva dal server e vale
+     * come permesso di disegnare il pulsante — finché l'emittente Google non
+     * è configurato resta falso e il pulsante non esiste. `walletLink` è il
+     * link firmato da aprire una volta sola, poi la schermata lo consuma.
+     */
+    val walletEnabled: Boolean = false,
+    val walletLink: String? = null,
     val tab: AppTab = AppTab.HOME,
     val sponsoredBanner: it.fabiodalez.incitta.data.SponsoredBanner? = null,
     val occurrences: List<Occurrence> = emptyList(),
@@ -82,6 +90,17 @@ data class AppUiState(
     val isOffline: Boolean = false,
     val message: String? = null,
 )
+
+/**
+ * Quando la schermata del biglietto disegna «Aggiungi a Google Wallet».
+ *
+ * Tre condizioni, e nessuna è superflua: il server deve dichiarare di saper
+ * emettere il pass, il biglietto deve essere valido (un annullato o un già
+ * usato non ha pass, e il server risponderebbe 404) e deve esserci il codice
+ * di ingresso, perché è quello che finisce nel codice a barre del pass.
+ */
+internal fun AppUiState.offersWalletPass(ticket: it.fabiodalez.incitta.data.AdmissionTicket): Boolean =
+    walletEnabled && ticket.status == "valid" && ticket.qrPayload != null
 
 internal fun AppUiState.supportsSponsoredBanner(): Boolean = bookingDate == null &&
     (selected != null || selectedVenue != null || tab in listOf(AppTab.HOME, AppTab.SEARCH, AppTab.VENUES) ||
@@ -289,8 +308,61 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    private var walletJob: Job? = null
+    private var walletAsked = false
+
+    /**
+     * Si chiede una volta sola se il pass esiste: è una proprietà del server,
+     * non dell'account, e non cambia mentre l'app è aperta.
+     */
+    private fun askWalletAvailability() {
+        if (walletAsked) return
+        walletAsked = true
+        viewModelScope.launch {
+            try {
+                val enabled = repository.walletAvailable()
+                _state.value = _state.value.copy(walletEnabled = enabled)
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                // Rete assente al primo giro: si riprova al prossimo ingresso nei biglietti.
+                walletAsked = false
+            }
+        }
+    }
+
+    fun addToWallet(ticketId: Long) {
+        val token = _state.value.session?.token ?: return
+        walletJob?.cancel()
+        _state.value = _state.value.copy(bookingBusy = true, bookingError = null)
+        walletJob = viewModelScope.launch {
+            try {
+                val link = repository.walletPass(ticketId)
+                if (repository.session.value?.token == token) _state.value = _state.value.copy(bookingBusy = false, walletLink = link)
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                /*
+                 * 404 qui non è un guasto: è il server che dice che per QUESTO
+                 * biglietto un pass non c'è — annullato, già usato, o funzione
+                 * appena spenta. Un messaggio di rete sarebbe fuorviante.
+                 */
+                val message = if (error is ApiException && error.status == 404) {
+                    getApplication<Application>().getString(R.string.ticket_wallet_unavailable)
+                } else {
+                    userMessage(error)
+                }
+                _state.value = _state.value.copy(bookingBusy = false, bookingError = message)
+            }
+        }
+    }
+
+    /** La schermata ha aperto il link: non va riaperto a ogni ricomposizione. */
+    fun consumeWalletLink() {
+        if (_state.value.walletLink != null) _state.value = _state.value.copy(walletLink = null)
+    }
+
     fun loadBookings() {
         if (_state.value.session == null) return
+        askWalletAvailability()
         bookingJob?.cancel()
         val token = _state.value.session?.token
         _state.value = _state.value.copy(bookingBusy = true, bookingError = null)

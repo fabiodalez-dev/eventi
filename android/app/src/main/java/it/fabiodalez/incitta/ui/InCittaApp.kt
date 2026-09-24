@@ -428,7 +428,7 @@ fun InCittaApp(viewModel: MainViewModel) {
                     )
                     AppTab.CALENDAR -> CalendarScreen(state, padding, viewModel::open, viewModel::toggleSaved) { viewModel.selectTab(AppTab.HOME) }
                     AppTab.VENUES -> VenuesScreen(state, padding, viewModel::openVenue) { viewModel.selectTab(AppTab.HOME) }
-                    AppTab.TICKETS -> TicketsScreen(state, padding, viewModel::cancelBooking, viewModel::loadBookings, viewModel::resendBooking) { viewModel.selectTab(AppTab.ACCOUNT) }
+                    AppTab.TICKETS -> TicketsScreen(state, padding, viewModel::cancelBooking, viewModel::loadBookings, viewModel::resendBooking, viewModel::addToWallet, viewModel::consumeWalletLink) { viewModel.selectTab(AppTab.ACCOUNT) }
                 }
             }
         }

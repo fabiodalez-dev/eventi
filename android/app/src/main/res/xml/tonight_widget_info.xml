@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Dodici ore fra un aggiornamento e l'altro: due volte al giorno bastano a
+    una bacheca della sera, e il sistema non sveglia il telefono per
+    consegnarle. Il giro di rete vero lo decide `tonightWidgetShouldRefresh`,
+    che in risparmio energetico non parte affatto.
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/widget_tonight_description"
+    android:initialLayout="@layout/glance_default_loading_layout"
+    android:minHeight="110dp"
+    android:minWidth="250dp"
+    android:resizeMode="horizontal|vertical"
+    android:targetCellHeight="2"
+    android:targetCellWidth="4"
+    android:updatePeriodMillis="43200000"
+    android:widgetCategory="home_screen" />

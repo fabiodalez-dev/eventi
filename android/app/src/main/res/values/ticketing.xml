@@ -51,4 +51,7 @@
     <string name="ticket_used">Ingresso già effettuato</string>
     <string name="ticket_expired">Evento terminato</string>
     <string name="ticket_cancelled">Annullato</string>
+    <string name="ticket_wallet_add">AGGIUNGI A GOOGLE WALLET</string>
+    <string name="ticket_wallet_hint">Il pass porta lo stesso codice del QR. Se annulli la prenotazione, all’ingresso non vale più.</string>
+    <string name="ticket_wallet_unavailable">Per questo biglietto non c’è un pass da aggiungere.</string>
 </resources>
