@@ -417,8 +417,16 @@ final class ShowcaseGrowthCommand extends Command
      */
     private function ticketingDate(Collection $dates): ?EventOccurrence
     {
-        return $dates->first(fn (EventOccurrence $date): bool => (bool) $date->effectiveVenue()?->ticketing_enabled
+        $adatte = $dates->filter(fn (EventOccurrence $date): bool => (bool) $date->effectiveVenue()?->ticketing_enabled
             && $date->starts_at->greaterThan(now()->addHours(config()->integer('ticketing.promotion.min_hours_before') + 1)));
+
+        /* Meglio una data non imminente: la conferma di un posto promosso
+           scade prima dell'inizio, e su una serata di stasera la finestra
+           sarebbe finita prima della presentazione. Se ci sono solo date
+           vicine si prende quella che c'è — una coda che scade è pur sempre
+           una coda. */
+        return $adatte->first(fn (EventOccurrence $date): bool => $date->starts_at->greaterThan(now()->addHours(36)))
+            ?? $adatte->first();
     }
 
     /**
