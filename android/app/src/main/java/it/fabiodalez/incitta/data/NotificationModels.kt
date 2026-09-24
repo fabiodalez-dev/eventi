@@ -15,6 +15,9 @@ data class NotificationPreferences(
     @SerialName("venue_digest") val venueDigest: Boolean = true,
     @SerialName("daily_digest") val dailyDigest: Boolean = false,
     @SerialName("daily_digest_time") val dailyDigestTime: String? = null,
+    val tonight: Boolean = false,
+    @SerialName("tonight_days") val tonightDays: List<Int> = listOf(5, 6),
+    @SerialName("tonight_time") val tonightTime: String = "18:00",
     @SerialName("push_available") val pushAvailable: Boolean = false,
 )
 

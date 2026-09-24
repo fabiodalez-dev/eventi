@@ -78,7 +78,41 @@
                     :value="$user->daily_digest_time"
                 />
 
-                <fieldset class="flex flex-col gap-2">
+                {{--
+                    La proposta della sera: l'interruttore da solo non basta,
+                    perché «quando» fa parte della proposta quanto «cosa». Ora
+                    e giorni stanno quindi dentro lo stesso riquadro, e
+                    restano leggibili anche da spenti: chi la accende vede
+                    subito che cosa ha acceso, senza un secondo giro.
+                --}}
+                <fieldset class="flex flex-col gap-3 border-t border-line pt-5">
+                    <legend class="sr-only">{{ __('account.profile.tonight') }}</legend>
+
+                    <label class="flex items-start gap-2.5 text-sm text-ink">
+                        <input type="checkbox" name="tonight" value="1" class="mt-0.5 size-4 rounded border-line" @checked($preferences->tonight)>
+                        <span class="font-semibold">{{ __('account.profile.tonight') }}</span>
+                    </label>
+
+                    <p class="text-xs text-ink-subtle">{{ __('account.profile.tonight_hint') }}</p>
+
+                    <div class="flex flex-wrap items-end gap-3">
+                        <x-field name="tonight_time" type="time" :label="__('account.profile.tonight_time')" :value="$preferences->tonightTime" />
+                    </div>
+
+                    <div class="flex flex-col gap-2">
+                        <span class="text-sm text-ink">{{ __('account.profile.tonight_days') }}</span>
+                        <div class="flex flex-wrap gap-x-4 gap-y-2">
+                            @foreach (__('account.profile.weekdays') as $number => $weekday)
+                                <label class="flex items-center gap-2 text-sm text-ink">
+                                    <input type="checkbox" name="tonight_days[]" value="{{ $number }}" class="size-4 rounded border-line" @checked(in_array((int) $number, $preferences->tonightDays, true))>
+                                    {{ $weekday }}
+                                </label>
+                            @endforeach
+                        </div>
+                    </div>
+                </fieldset>
+
+                <fieldset class="flex flex-col gap-2 border-t border-line pt-5">
                     <legend class="text-sm font-semibold text-ink">{{ __('account.profile.quiet_hours') }}</legend>
                     <p class="text-xs text-ink-subtle">{{ __('account.profile.quiet_hours_hint') }}</p>
 

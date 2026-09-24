@@ -42,13 +42,16 @@ final class RememberedLocation
         if ($this->valid($user?->remembered_location) && $user->remembered_location['saved_at'] > $position['saved_at']) {
             return $user->remembered_location;
         }
-        $user?->forceFill(['remembered_location' => $position, 'location_expires_at' => CarbonImmutable::createFromTimestamp($position['expires_at'])])->save();
+        // Le due colonne in chiaro tengono lo stesso valore arrotondato: servono a
+        // filtrare per distanza in SQL, cosa che la colonna cifrata non permette.
+        $user?->forceFill(['remembered_location' => $position, 'location_expires_at' => CarbonImmutable::createFromTimestamp($position['expires_at']),
+            'location_lat' => $position['lat'], 'location_lng' => $position['lng']])->save();
 
         return $position;
     }
 
     public function forget(?User $user): void
     {
-        $user?->forceFill(['remembered_location' => null, 'location_expires_at' => null])->save();
+        $user?->forceFill(['remembered_location' => null, 'location_expires_at' => null, 'location_lat' => null, 'location_lng' => null])->save();
     }
 }

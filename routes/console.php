@@ -318,7 +318,7 @@ Schedule::command('events:publish-due')->everyMinute()->withoutOverlapping(10);
 
 Schedule::call(function (): void {
     User::withTrashed()->where('location_expires_at', '<=', now())
-        ->update(['remembered_location' => null, 'location_expires_at' => null]);
+        ->update(['remembered_location' => null, 'location_expires_at' => null, 'location_lat' => null, 'location_lng' => null]);
 })->name('locations:expire')->daily()->withoutOverlapping();
 
 Schedule::command('carpool:maintain')->everyMinute()->withoutOverlapping(5);

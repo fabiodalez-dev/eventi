@@ -64,6 +64,7 @@ final readonly class MessageFactory
             NotificationType::VenueNewEvent => $this->venueNewEvent($notification, $user),
             NotificationType::VenueDigest => $this->venueDigest($notification, $user),
             NotificationType::DailyDigest => $this->dailyDigest($user),
+            NotificationType::TonightNearby => $this->tonightNearby($user),
             NotificationType::WeekendNewsletter => $this->weekend($user),
             NotificationType::EventPublished => $this->eventPublished($notification),
             NotificationType::EventRejected => $this->eventRejected($notification),
@@ -352,6 +353,70 @@ final readonly class MessageFactory
             url: route('events.today'),
             items: $items,
         );
+    }
+
+    /**
+     * La spinta della sera: poche date che cominciano stasera, vicine a dove
+     * la persona si trova di solito.
+     *
+     * «Vicino» qui ha un significato preciso e dichiarato: il raggio parte
+     * dalle coordinate approssimate che la persona ha acconsentito a salvare,
+     * arrotondate a circa un chilometro. Chi non le ha (o le ha lasciate
+     * scadere) riceve comunque la serata della sua città: meglio una proposta
+     * cittadina che nessuna proposta.
+     *
+     * Sotto il numero minimo di date non parte niente. Un messaggio che
+     * interrompe per dire «c'è una cosa» non vale l'interruzione.
+     */
+    private function tonightNearby(User $user): NotificationMessage|NotificationSkipReason
+    {
+        $city = $user->city ?? $this->city();
+
+        if (! $city instanceof City) {
+            return NotificationSkipReason::NothingToSend;
+        }
+
+        $query = EventOccurrenceQuery::for($city)->excludingDemo()->tonight();
+        $position = $this->coarsePosition($user);
+
+        if ($position !== null) {
+            $query->near($position['lat'], $position['lng'], config()->float('notifications.digests.tonight.radius_km'));
+        }
+
+        $items = $this->items($query, config()->integer('notifications.digests.tonight.max_items'), $user);
+
+        if (count($items) < config()->integer('notifications.digests.tonight.min_items')) {
+            return NotificationSkipReason::NothingToSend;
+        }
+
+        return new NotificationMessage(
+            type: NotificationType::TonightNearby,
+            subject: __('notifications.tonight_nearby.subject'),
+            heading: __('notifications.tonight_nearby.heading'),
+            lines: [__($position === null ? 'notifications.tonight_nearby.line_city' : 'notifications.tonight_nearby.line_near',
+                ['count' => count($items), 'city' => $city->name])],
+            actionLabel: __('notifications.actions.open_tonight'),
+            url: route('events.today'),
+            items: $items,
+        );
+    }
+
+    /**
+     * Le coordinate approssimate di chi riceve, se esistono e non sono scadute.
+     *
+     * @return array{lat: float, lng: float}|null
+     */
+    private function coarsePosition(User $user): ?array
+    {
+        if ($user->location_lat === null || $user->location_lng === null) {
+            return null;
+        }
+
+        if ($user->location_expires_at !== null && $user->location_expires_at->isPast()) {
+            return null;
+        }
+
+        return ['lat' => (float) $user->location_lat, 'lng' => (float) $user->location_lng];
     }
 
     private function weekend(User $user): NotificationMessage|NotificationSkipReason

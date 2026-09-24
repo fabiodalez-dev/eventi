@@ -84,6 +84,8 @@ class User extends Authenticatable implements FilamentUser, HasTenants, MustVeri
     protected $hidden = [
         'remembered_location',
         'location_expires_at',
+        'location_lat',
+        'location_lng',
         'password',
         'whatsapp_phone',
         'whatsapp_phone_hash',
@@ -448,6 +450,8 @@ class User extends Authenticatable implements FilamentUser, HasTenants, MustVeri
             'carpool_suspended_at' => 'immutable_datetime',
             'remembered_location' => 'encrypted:array',
             'location_expires_at' => 'datetime',
+            'location_lat' => 'float',
+            'location_lng' => 'float',
             'password' => 'hashed',
             'notification_preferences' => 'array',
             'content_preferences' => 'array',
