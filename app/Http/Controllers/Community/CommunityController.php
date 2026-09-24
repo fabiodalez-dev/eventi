@@ -20,6 +20,7 @@ use App\Models\City;
 use App\Models\CommunityComment;
 use App\Models\CommunityPost;
 use App\Models\CommunityProfile;
+use App\Models\EventOccurrence;
 use App\Models\User;
 use App\Models\Venue;
 use App\Services\Community\Community;
@@ -220,6 +221,23 @@ final class CommunityController extends Controller
         $post = $this->community->publication($request->user(), $occurrence, $request->validated());
         if ($request->expectsJson()) {
             return ApiResponse::item(['post_id' => $post?->id, 'visibility' => $request->input('visibility')]);
+        }
+
+        return back()->with('status', __('community.updated'));
+    }
+
+    /**
+     * «Ci vado» e il passo indietro. Un solo gesto, un solo interruttore: la
+     * pagina di pubblicazione con testo e intento resta dov'è, per chi vuole
+     * dire qualcosa in più.
+     */
+    public function attendance(Request $request, EventOccurrence $occurrence): JsonResponse|RedirectResponse
+    {
+        $public = $this->community->attendance($request->user(), $occurrence, $request->boolean('going'));
+
+        if ($request->expectsJson()) {
+            return ApiResponse::item(['going' => $public,
+                'count' => app(CommunityAccess::class)->attendees($occurrence, $request->user())->count()]);
         }
 
         return back()->with('status', __('community.updated'));

@@ -32,6 +32,7 @@ Route::middleware(CommunityPrivacy::class)->group(function (): void {
         Route::delete('/persone/{user}/blocca', [CommunityController::class, 'block'])->whereNumber('user')->middleware('throttle:20,1,community-block')->name('community.unblock');
         Route::get('/salvataggi/{occurrence}/visibilita', [CommunityController::class, 'compose'])->whereNumber('occurrence')->name('community.compose');
         Route::put('/salvataggi/{occurrence}/visibilita', [CommunityController::class, 'publish'])->whereNumber('occurrence')->middleware('throttle:20,1,community-publish')->name('community.publish');
+        Route::post('/salvataggi/{occurrence}/partecipazione', [CommunityController::class, 'attendance'])->whereNumber('occurrence')->middleware('throttle:30,1,community-attendance')->name('community.attendance');
         Route::post('/bacheca/post/{post}/commenti', [CommunityController::class, 'comment'])->whereNumber('post')->middleware('throttle:10,1,community-comment')->name('community.comment');
         Route::delete('/bacheca/commenti/{comment}', [CommunityController::class, 'deleteComment'])->whereNumber('comment')->middleware('throttle:20,1,community-comment-delete')->name('community.comment.delete');
         Route::post('/bacheca/segnala', [CommunityController::class, 'report'])->middleware('throttle:5,60,community-report')->name('community.report');

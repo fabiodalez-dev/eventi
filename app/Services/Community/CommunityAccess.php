@@ -11,6 +11,8 @@ use App\Models\City;
 use App\Models\CommunityComment;
 use App\Models\CommunityPost;
 use App\Models\CommunityProfile;
+use App\Models\EventOccurrence;
+use App\Models\SavedEvent;
 use App\Models\User;
 use App\Models\UserBlock;
 use App\Queries\EventOccurrenceQuery;
@@ -39,6 +41,25 @@ final class CommunityAccess
             ->whereIn('visibility', $viewer?->hasVerifiedEmail() ? [ProfileVisibility::Public->value, ProfileVisibility::Members->value] : [ProfileVisibility::Public->value])
             ->when($viewer !== null && ! $ignoreBlocks, fn ($query) => $this->excludeBlocked($query, $viewer))
             ->with(['user' => $this->withRelationCounts(...), 'city', 'media']);
+    }
+
+    /**
+     * Chi ha dichiarato in pubblico che va a questa data.
+     *
+     * La visibilità si ricalcola a ogni lettura, come per i post: un profilo
+     * che diventa privato, un account che perde la verifica o un blocco
+     * tolgono la persona dall'elenco senza che nessun dato cambi.
+     *
+     * @return Builder<User>
+     */
+    public function attendees(EventOccurrence $occurrence, ?User $viewer): Builder
+    {
+        return User::query()
+            ->whereIn('id', $this->profiles($viewer)->select('user_id'))
+            ->whereIn('id', SavedEvent::query()->where('occurrence_id', $occurrence->getKey())
+                ->where('visibility', SavedVisibility::Public->value)->select('user_id'))
+            ->with('communityProfile.media')
+            ->orderBy('id');
     }
 
     /**

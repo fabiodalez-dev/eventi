@@ -30,6 +30,7 @@ Route::prefix('v1/community')->middleware([CommunityPrivacy::class, ResolveApiCi
         Route::delete('/people/{user}/block', [CommunityController::class, 'block'])->whereNumber('user')->middleware('throttle:20,1,community-block');
         Route::get('/saved/{occurrence}', [CommunityController::class, 'compose'])->whereNumber('occurrence');
         Route::put('/saved/{occurrence}', [CommunityController::class, 'publish'])->whereNumber('occurrence')->middleware('throttle:20,1,community-publish');
+        Route::post('/saved/{occurrence}/attendance', [CommunityController::class, 'attendance'])->whereNumber('occurrence')->middleware('throttle:30,1,community-attendance');
         Route::post('/posts/{post}/comments', [CommunityController::class, 'comment'])->whereNumber('post')->middleware('throttle:10,1,community-comment');
         Route::delete('/comments/{comment}', [CommunityController::class, 'deleteComment'])->whereNumber('comment')->middleware('throttle:20,1,community-comment-delete');
         Route::post('/reports', [CommunityController::class, 'report'])->middleware('throttle:5,60,community-report');

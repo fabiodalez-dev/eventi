@@ -434,6 +434,13 @@
                 </section>
             @endif
 
+            {{-- «Chi ci va» riguarda una data precisa, quindi compare solo
+                 sulla pagina di quella data: sulla scheda della serie non
+                 saprebbe a quale appuntamento riferirsi. --}}
+            @if (! ($isPreview ?? false) && ($selectedOccurrence ?? null) && config('community.enabled'))
+                <x-attendance :occurrence="$selectedOccurrence" />
+            @endif
+
             {{-- I commenti stanno sotto i tag, dentro la colonna principale:
                  sono la coda della scheda, non una sezione a larghezza piena
                  come «altri eventi in questo locale». --}}
