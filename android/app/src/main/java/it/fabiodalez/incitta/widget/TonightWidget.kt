@@ -216,29 +216,35 @@ internal object TonightWidgetStore {
     /**
      * Il giro di rete. Lo chiama solo il lavoro pianificato, mai il disegno.
      *
-     * Torna `true` se c'è qualcosa di nuovo da mostrare. Anche quando fallisce
-     * scrive `lastAttemptAt`: è ciò che permette al widget di dire «non ci
-     * sono riuscito» invece di restare su «cerco» per sempre.
+     * Torna **com'è andato**, e la differenza conta: «non serviva» e «non ci
+     * sono riuscito» sono due cose che chi pianifica deve distinguere, perché
+     * sulla seconda si ritenta e sulla prima no. Anche quando fallisce scrive
+     * il tentativo, che è ciò che permette al widget di dire «non ci sono
+     * riuscito» invece di restare su «cerco» per sempre.
      */
-    suspend fun refresh(context: Context): Boolean = withContext(Dispatchers.IO) {
+    suspend fun refresh(context: Context): TonightRefresh = withContext(Dispatchers.IO) {
         val powerSave = powerSaveMode(context)
-        if (!tonightWidgetShouldRefresh(read(context), System.currentTimeMillis(), powerSave)) return@withContext false
+        if (!tonightWidgetShouldRefresh(read(context), System.currentTimeMillis(), powerSave)) {
+            return@withContext TonightRefresh.Skipped
+        }
         refreshing.withLock {
             // Più istanze del widget si aggiornano insieme: la seconda trova già fatto.
             val current = read(context)
-            if (!tonightWidgetShouldRefresh(current, System.currentTimeMillis(), powerSave)) return@withLock false
+            if (!tonightWidgetShouldRefresh(current, System.currentTimeMillis(), powerSave)) {
+                return@withLock TonightRefresh.Skipped
+            }
             val items = try {
                 AppRepository(context).tonightOccurrences(TONIGHT_WIDGET_CACHE)
             } catch (error: CancellationException) {
                 throw error
             } catch (_: Exception) {
-                // Rete assente o server giù: si tiene quel che c'è, si segna il tentativo e si riprova al giro dopo.
-                write(context, current.copy(lastAttemptAt = System.currentTimeMillis()))
-                return@withLock false
+                // Rete assente o server giù: si tiene quel che c'è, si segna il tentativo e si riprova.
+                write(context, current.copy(lastAttemptAt = System.currentTimeMillis(), lastFailed = true))
+                return@withLock TonightRefresh.Failed
             }
             val now = System.currentTimeMillis()
-            write(context, TonightWidgetSnapshot(tonightWidgetEntries(items), now, loaded = true, lastAttemptAt = now))
-            true
+            write(context, TonightWidgetSnapshot(tonightWidgetEntries(items), now, loaded = true, lastAttemptAt = now, lastFailed = false))
+            TonightRefresh.Updated
         }
     }
 
@@ -275,7 +281,7 @@ internal class TonightWidgetRefreshWorker(
     parameters: WorkerParameters,
 ) : CoroutineWorker(context, parameters) {
     override suspend fun doWork(): Result {
-        try {
+        val esito = try {
             TonightWidgetStore.refresh(applicationContext)
         } catch (error: CancellationException) {
             throw error
@@ -286,7 +292,12 @@ internal class TonightWidgetRefreshWorker(
            tentativo fallito cambia comunque la frase, da «cerco» a «non ci
            sono riuscito», ed è tutto il punto di segnarlo. */
         TonightWidget().updateAll(applicationContext)
-        return Result.success()
+
+        /* Un server che risponde male con il telefono connesso è un guasto
+           passeggero, non una risposta: senza il ritento il widget aspetterebbe
+           il giro periodico, cioè fino a dodici ore, per riprovare una cosa che
+           poteva riuscire dopo un minuto. */
+        return if (esito == TonightRefresh.Failed) Result.retry() else Result.success()
     }
 
     companion object {

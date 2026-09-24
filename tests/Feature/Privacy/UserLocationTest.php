@@ -121,7 +121,10 @@ it('tiene una sola posizione, senza cronologia, e la cancella tutta insieme', fu
     expect((float) $user->location_lat)->toBe(45.4067331)
         ->and((float) $user->location_lng)->toBe(11.8768142)
         ->and($user->remembered_location['lat'])->toBe(45.4067331)
-        ->and($user->location_expires_at?->diffInDays(now()))->toBeLessThanOrEqual(184);
+        // Nel futuro, e non oltre sei mesi: `diffInDays` su una data futura è
+        // negativo, quindi da solo avrebbe accettato anche una scadenza fra anni.
+        ->and($user->location_expires_at?->isFuture())->toBeTrue()
+        ->and($user->location_expires_at?->lessThanOrEqualTo(now()->addMonthsNoOverflow(6)))->toBeTrue();
 
     // Una posizione nuova sostituisce la precedente: nessuna riga in più da nessuna parte.
     $prima = contenutoDelDatabase();

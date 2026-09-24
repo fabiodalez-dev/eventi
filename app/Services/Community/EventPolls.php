@@ -108,6 +108,15 @@ final class EventPolls
                 return false;
             }
 
+            /* Togliere un voto resta sempre possibile — è il controllo qui
+               sopra, e viene prima apposta. Metterne uno nuovo su una data che
+               l'organizzatore ha nel frattempo ritirato no: la pagina che sta
+               davanti a chi vota può essere vecchia di minuti, e il voto
+               finirebbe su un'opzione che l'esito non mostra più. Un voto
+               invisibile è peggio di un errore: occupa un posto nel sondaggio
+               senza contare per nessuno. */
+            abort_unless($option->occurrence instanceof EventOccurrence, 409, __('polls.errors.option_withdrawn'));
+
             $participants = EventPollVote::query()->where('event_poll_id', $locked->getKey())
                 ->distinct()->count('user_id');
             $alreadyIn = EventPollVote::query()->where('event_poll_id', $locked->getKey())

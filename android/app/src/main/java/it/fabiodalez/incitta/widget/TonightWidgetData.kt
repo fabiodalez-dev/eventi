@@ -79,6 +79,13 @@ internal data class TonightWidgetSnapshot(
      * widget bloccato, e non lo si può nemmeno aprire per capire.
      */
     val lastAttemptAt: Long = 0L,
+    /*
+     * E com'è andato. Non basta sapere *quando* si è provato: dopo una
+     * risposta valida ma vuota `loaded` resta vero, e un fallimento successivo
+     * verrebbe letto come «stasera non c'è niente» invece che «non ci sono
+     * riuscito». Sono due frasi diverse perché sono due fatti diversi.
+     */
+    val lastFailed: Boolean = false,
 )
 
 /** Cosa ha da dire il widget, quando non ha date da mostrare. */
@@ -95,10 +102,16 @@ internal fun tonightWidgetState(
     visible: List<TonightWidgetEntry>,
 ): TonightWidgetState = when {
     visible.isNotEmpty() -> TonightWidgetState.Entries
+    /* L'esito viene prima di `loaded`: una risposta vuota riuscita ieri e un
+       fallimento oggi devono dire «non ci sono riuscito», non «non c'è niente». */
+    snapshot.lastFailed -> TonightWidgetState.Unreachable
     snapshot.loaded -> TonightWidgetState.Empty
     snapshot.lastAttemptAt > 0L -> TonightWidgetState.Unreachable
     else -> TonightWidgetState.Loading
 }
+
+/** Com'è andato un giro di rete: serve al lavoro pianificato per decidere se ritentare. */
+internal enum class TonightRefresh { Skipped, Updated, Failed }
 
 /** L'indirizzo che apre la singola data: lo stesso che apre un link condiviso. */
 internal fun tonightWidgetUrl(occurrence: Occurrence): String =

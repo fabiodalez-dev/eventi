@@ -30,5 +30,6 @@ return [
         'same_event' => 'Le date devono essere dello stesso evento.',
         'closed' => 'Questo sondaggio è chiuso.',
         'full' => 'Questo sondaggio ha già :max partecipanti.',
+        'option_withdrawn' => 'Questa data è stata ritirata: ricarica la pagina per vedere quelle rimaste.',
     ],
 ];

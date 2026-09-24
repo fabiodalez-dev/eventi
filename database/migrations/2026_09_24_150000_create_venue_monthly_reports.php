@@ -28,10 +28,21 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
             // Il primo giorno del mese riportato: una data e non una stringa, così si ordina e si confronta.
             $table->date('month');
-            $table->dateTime('sent_at');
+            /*
+             * Due istanti e non uno. La presa in carico si scrive prima di
+             * spedire, la spedizione dopo: se il processo muore in mezzo —
+             * server riavviato, memoria finita — con un solo `sent_at` la riga
+             * direbbe «mandato» di un rapporto che non è mai partito, e nessun
+             * lancio successivo lo recupererebbe. Una presa in carico vecchia e
+             * senza invio si può ripulire; un invio scritto non si tocca.
+             */
+            $table->dateTime('claimed_at');
+            $table->dateTime('sent_at')->nullable();
             $table->datetimes();
 
             $table->unique(['venue_id', 'user_id', 'month'], 'venue_monthly_reports_unique');
+            // Per ritrovare in fretta le prese in carico rimaste a metà.
+            $table->index(['sent_at', 'claimed_at']);
         });
     }
 

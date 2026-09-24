@@ -21,7 +21,7 @@ return new class extends Migration
 
     private const NUOVO = "solo l'ultima posizione, con le coordinate che il dispositivo ci comunica, cifrata nel cookie";
 
-    private const PRECISAZIONE = 'Le coordinate non sono arrotondate: servono a calcolare la distanza da un locale, e un\'approssimazione di un chilometro sbaglierebbe proprio la domanda a cui la funzione risponde. Conserviamo quella posizione e nient\'altro.';
+    private const PRECISAZIONE = 'Le coordinate non sono arrotondate: servono a calcolare la distanza da un locale, e un\'approssimazione di un chilometro sbaglierebbe proprio la domanda a cui la funzione risponde. Nel tuo account la posizione sta in due forme: una cifrata e una in chiaro, che e\' quella su cui il database calcola la distanza — senza, ogni invio dovrebbe decifrare la posizione di tutti uno per uno. Sono lo stesso valore, scadono insieme e si cancellano insieme. Conserviamo quella posizione e nient\'altro.';
 
     public function up(): void
     {

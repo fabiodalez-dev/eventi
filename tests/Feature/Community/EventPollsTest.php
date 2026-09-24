@@ -152,3 +152,31 @@ it('vota dal sito e mostra il voto come proprio', function (): void {
     $this->actingAs($voter)->get(route('polls.show', $poll->token))->assertOk()->assertSee(__('polls.voted'));
     expect(EventPoll::query()->count())->toBe(1);
 });
+
+/**
+ * Una data ritirata dopo la creazione del sondaggio.
+ *
+ * Le date si cancellano in modo reversibile e la chiave esterna a cascata
+ * scatta solo su quella vera: l'opzione resta, senza data sotto. Due
+ * conseguenze, e nessuna delle due era coperta — la pagina dell'esito si
+ * rompeva, e un voto arrivato da una pagina vecchia finiva su un'opzione che
+ * nessuno vede più.
+ */
+it('non si rompe e non accetta voti quando una data viene ritirata', function (): void {
+    $poll = app(EventPolls::class)->create($this->owner, pollDates(), 'Ci vediamo lì?', CarbonImmutable::now()->addDays(3));
+    $poll->load('options.occurrence');
+    $ritirata = $poll->options->first();
+    $rimasta = $poll->options->last();
+
+    $ritirata->occurrence->delete();
+    $poll->refresh()->load('options.occurrence');
+
+    $esito = app(EventPolls::class)->outcome($poll, $this->owner);
+    $mostrate = collect($esito['options'])->map(fn (array $riga): int => (int) $riga['option']->getKey());
+
+    expect($mostrate)->not->toContain($ritirata->getKey())
+        ->and($mostrate)->toContain($rimasta->getKey());
+
+    expect(fn () => app(EventPolls::class)->toggle($this->owner, $poll, $ritirata->fresh()))
+        ->toThrow(HttpException::class);
+});

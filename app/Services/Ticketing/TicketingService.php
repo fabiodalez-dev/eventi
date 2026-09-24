@@ -176,6 +176,14 @@ final class TicketingService
             $this->ensure($ticket !== null, 'invalid_qr');
             $this->ensure($ticket->status !== AdmissionStatus::CheckedIn, 'already_used');
             $this->ensure($ticket->status === AdmissionStatus::Valid, 'invalid_qr');
+            /* Una finestra di conferma già scaduta non si sana alla porta.
+               Il lavoro che libera quei posti gira ogni minuto, quindi fra la
+               scadenza e l'annullamento c'è un momento in cui il biglietto
+               sembra ancora buono: senza questo controllo, chi arriva proprio
+               in quel momento entrerebbe su un posto che sta per tornare a chi
+               aspetta, e chi arriva un minuto dopo no. */
+            $this->ensure($ticket->booking?->promotion_expires_at === null
+                || $ticket->booking->promotion_expires_at->isFuture(), 'promotion_expired');
             $ticket->update(['status' => AdmissionStatus::CheckedIn, 'checked_in_at' => now(), 'checked_in_by' => $actor->id]);
             /* Presentarsi alla porta è la conferma più forte che esista, e chiude
                la finestra. Senza, `expirePromotions()` — che gira ogni minuto —

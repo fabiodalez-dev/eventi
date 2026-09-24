@@ -177,12 +177,25 @@ class TonightWidgetTest {
     }
 
     @Test fun dopoUnTentativoFallitoLoDice() {
-        val snapshot = TonightWidgetSnapshot(lastAttemptAt = 1_000L)
+        val snapshot = TonightWidgetSnapshot(lastAttemptAt = 1_000L, lastFailed = true)
+        assertEquals(TonightWidgetState.Unreachable, tonightWidgetState(snapshot, emptyList()))
+    }
+
+    /*
+     * Una risposta vuota ieri e un guasto oggi.
+     *
+     * È la sequenza che il solo `lastAttemptAt` non sapeva raccontare: dopo una
+     * risposta valida `loaded` resta vero per sempre, e senza l'esito
+     * dell'ultimo giro il widget diceva «stasera non c'è niente» mentre il vero
+     * fatto era che non era riuscito a chiedere.
+     */
+    @Test fun unaRispostaVuotaIeriNonMascheraUnGuastoOggi() {
+        val snapshot = TonightWidgetSnapshot(loaded = true, updatedAt = 1_000L, lastAttemptAt = 9_000L, lastFailed = true)
         assertEquals(TonightWidgetState.Unreachable, tonightWidgetState(snapshot, emptyList()))
     }
 
     @Test fun conUnaRispostaVuotaDiceCheNonCEniente() {
-        val snapshot = TonightWidgetSnapshot(loaded = true, updatedAt = 1_000L, lastAttemptAt = 1_000L)
+        val snapshot = TonightWidgetSnapshot(loaded = true, updatedAt = 1_000L, lastAttemptAt = 1_000L, lastFailed = false)
         assertEquals(TonightWidgetState.Empty, tonightWidgetState(snapshot, emptyList()))
     }
 

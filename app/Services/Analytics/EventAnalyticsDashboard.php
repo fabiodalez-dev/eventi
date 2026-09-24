@@ -103,10 +103,16 @@ final class EventAnalyticsDashboard
            filtro dava tutti zeri. */
         $short = $this->window(DB::table('event_share_daily as d')->join('event_share_links as l', 'l.id', '=', 'd.share_link_id')
             ->leftJoin('events as e', 'e.id', '=', 'l.event_id')
-            ->where(function (Builder $query) use ($ids, $venueId): void {
+            ->where(function (Builder $query) use ($ids, $venueId, $filters): void {
                 $query->whereIn('e.id', clone $ids);
-                if ($venueId !== null) {
-                    $query->orWhere('l.venue_id', $venueId);
+                /* Solo i link senza evento, e solo quando non si sta filtrando
+                   per evento o per organizzatore: quei filtri restringono a un
+                   sottoinsieme di eventi, e i clic della scheda del locale non
+                   appartengono a nessuno di essi. Lasciarli entrare comunque
+                   avrebbe gonfiato un totale che l'utente ha appena chiesto di
+                   restringere. */
+                if ($venueId !== null && blank($filters['event'] ?? null) && blank($filters['organizer'] ?? null)) {
+                    $query->orWhere(fn (Builder $scheda) => $scheda->whereNull('l.event_id')->where('l.venue_id', $venueId));
                 }
             })
             ->when(filled($filters['channel'] ?? null), fn (Builder $q) => $q->where('l.channel', $filters['channel'])), 'd.date', $filters);
@@ -153,7 +159,7 @@ final class EventAnalyticsDashboard
            scheda del locale non stanno in nessuna riga — non sono di un evento —
            e senza questo pezzo il totale della pagina sarebbe più basso della
            somma dei link che la pagina stessa elenca. */
-        if ($venueId !== null) {
+        if ($venueId !== null && blank($filters['event'] ?? null) && blank($filters['organizer'] ?? null)) {
             $dellaScheda = (clone $short)->whereNull('l.event_id')
                 ->selectRaw('SUM(d.shares) as short_shares, SUM(d.clicks) as short_clicks')->first();
             $totals['short_shares'] += (int) ($dellaScheda->short_shares ?? 0);

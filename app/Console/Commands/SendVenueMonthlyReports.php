@@ -12,6 +12,7 @@ use App\Notifications\VenueMonthlyReport as VenueMonthlyReportNotification;
 use App\Services\Analytics\VenueMonthlyReport;
 use Carbon\CarbonImmutable;
 use Illuminate\Console\Command;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
@@ -47,9 +48,12 @@ class SendVenueMonthlyReports extends Command
         $sent = 0;
         $skipped = 0;
         $already = 0;
+        $failed = 0;
+
+        $this->recoverStaleClaims();
 
         Venue::query()->where('status', VenueStatus::Approved)->with('city')->orderBy('id')
-            ->chunkById(100, function ($venues) use ($reports, $month, &$sent, &$skipped, &$already): void {
+            ->chunkById(100, function ($venues) use ($reports, $month, &$sent, &$skipped, &$already, &$failed): void {
                 foreach ($venues as $venue) {
                     $report = $reports->forMonth($venue, $month);
 
@@ -86,14 +90,23 @@ class SendVenueMonthlyReports extends Command
 
                         try {
                             $owner->notify(new VenueMonthlyReportNotification($venue, $report['label'], $report['totals'], $report['previous']));
+                            $this->markSent($venue, $owner, $month);
                         } catch (Throwable $errore) {
                             /* La presa in carico si restituisce: un invio non
                                riuscito deve poter essere ritentato, altrimenti
                                il registro proteggerebbe dai doppioni
-                               trasformando ogni guasto in un rapporto perso. */
-                            $this->release($venue, $owner, $month);
+                               trasformando ogni guasto in un rapporto perso.
 
-                            throw $errore;
+                               E il ciclo continua. Un indirizzo che rimbalza
+                               fermava tutti i rapporti dopo di lui, e il comando
+                               gira una volta al mese: quei locali avrebbero
+                               aspettato trenta giorni per colpa di un altro. */
+                            $this->release($venue, $owner, $month);
+                            $failed++;
+                            $this->warn(sprintf('  non spedito a %s: %s', $owner->email, $errore->getMessage()));
+                            report($errore);
+
+                            continue;
                         }
 
                         $sent++;
@@ -101,9 +114,32 @@ class SendVenueMonthlyReports extends Command
                 }
             });
 
-        $this->info(sprintf('Rapporti inviati: %d. Locali senza dati nel mese: %d. Gia inviati in precedenza: %d.', $sent, $skipped, $already));
+        $this->info(sprintf(
+            'Rapporti inviati: %d. Locali senza dati nel mese: %d. Gia inviati in precedenza: %d. Non riusciti: %d.',
+            $sent, $skipped, $already, $failed,
+        ));
 
-        return self::SUCCESS;
+        // Chi pianifica deve accorgersi dei rapporti non partiti: un comando
+        // che dice sempre «fatto» non e' un comando che si puo' sorvegliare.
+        return $failed === 0 ? self::SUCCESS : self::FAILURE;
+    }
+
+    /**
+     * Le prese in carico rimaste a meta'.
+     *
+     * Se il processo muore fra la presa in carico e l'invio, la riga resta
+     * senza `sent_at` e il vincolo unico impedirebbe per sempre di ritentare.
+     * Un'ora e' abbondante per qualunque invio sincrono: oltre, quella riga
+     * appartiene a un processo che non esiste piu'.
+     */
+    private function recoverStaleClaims(): void
+    {
+        $orfane = DB::table('venue_monthly_reports')->whereNull('sent_at')
+            ->where('claimed_at', '<', now()->subHour())->delete();
+
+        if ($orfane > 0) {
+            $this->warn(sprintf('Prese in carico rimaste a meta e liberate: %d.', $orfane));
+        }
     }
 
     /** Prende in carico l'invio, o dice che qualcuno l'ha gia preso. */
@@ -113,16 +149,28 @@ class SendVenueMonthlyReports extends Command
             'venue_id' => $venue->getKey(),
             'user_id' => $owner->getKey(),
             'month' => $month->format('Y-m-01'),
-            'sent_at' => now(),
+            'claimed_at' => now(),
+            'sent_at' => null,
             'created_at' => now(),
             'updated_at' => now(),
         ]]) > 0;
     }
 
+    /** L'invio avvenuto: da qui in poi quella riga non si tocca piu'. */
+    private function markSent(Venue $venue, User $owner, CarbonImmutable $month): void
+    {
+        $this->rowFor($venue, $owner, $month)->update(['sent_at' => now(), 'updated_at' => now()]);
+    }
+
     private function release(Venue $venue, User $owner, CarbonImmutable $month): void
     {
-        DB::table('venue_monthly_reports')
+        $this->rowFor($venue, $owner, $month)->delete();
+    }
+
+    private function rowFor(Venue $venue, User $owner, CarbonImmutable $month): Builder
+    {
+        return DB::table('venue_monthly_reports')
             ->where('venue_id', $venue->getKey())->where('user_id', $owner->getKey())
-            ->where('month', $month->format('Y-m-01'))->delete();
+            ->where('month', $month->format('Y-m-01'));
     }
 }

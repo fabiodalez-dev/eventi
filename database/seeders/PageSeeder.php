@@ -222,6 +222,9 @@ class PageSeeder extends Seeder
         `incitta_location` o nella memoria dell'app e, se accedi, nel tuo account.
         Le coordinate non sono arrotondate: servono a calcolare la distanza da un locale,
         e un'approssimazione di un chilometro sbaglierebbe proprio la domanda a cui la funzione risponde.
+        Nel tuo account la posizione sta in due forme: una cifrata e una in chiaro, che è quella su cui
+        il database calcola la distanza — senza, ogni invio dovrebbe decifrare la posizione di tutti uno
+        per uno. Sono lo stesso valore, scadono insieme e si cancellano insieme.
         La conservazione dura sei mesi dall'ultimo aggiornamento, senza cronologia e senza uso pubblicitario.
         Quando torni alla funzione, se hai già autorizzato la localizzazione e questa è disponibile,
         aggiorniamo automaticamente la posizione. Altrimenti usiamo quella ricordata; se manca o è scaduta,

@@ -10,6 +10,7 @@ use App\Notifications\VenueMonthlyReport as VenueMonthlyReportNotification;
 use App\Services\Analytics\VenueMonthlyReport;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 
 /**
@@ -175,4 +176,48 @@ it('la prova generale non consuma il turno di nessuno', function (): void {
     $this->artisan('venues:monthly-report', ['--month' => '2026-09'])->assertSuccessful();
 
     Notification::assertSentToTimes($owner, VenueMonthlyReportNotification::class, 1);
+});
+
+/**
+ * Una presa in carico rimasta a metà non perde il rapporto.
+ *
+ * Se il processo muore fra la presa in carico e l'invio, con un solo istante
+ * scritto la riga direbbe «mandato» di un rapporto mai partito, e il vincolo
+ * unico impedirebbe per sempre di ritentare. Il riconoscimento della presa in
+ * carico orfana è ciò che rende il registro una protezione dai doppioni invece
+ * che un modo nuovo di perdere le email.
+ */
+it('recupera una presa in carico interrotta e manda il rapporto', function (): void {
+    $venue = reportVenue();
+    $owner = reportOwner($venue, ['email_verified_at' => now()]);
+    septemberActivity($venue);
+
+    // Il processo di ieri ha preso in carico e non ha mai spedito.
+    DB::table('venue_monthly_reports')->insert([
+        'venue_id' => $venue->getKey(), 'user_id' => $owner->getKey(), 'month' => '2026-09-01',
+        'claimed_at' => CarbonImmutable::now()->subDay(), 'sent_at' => null,
+        'created_at' => CarbonImmutable::now()->subDay(), 'updated_at' => CarbonImmutable::now()->subDay(),
+    ]);
+
+    $this->artisan('venues:monthly-report', ['--month' => '2026-09'])->assertSuccessful();
+
+    Notification::assertSentToTimes($owner, VenueMonthlyReportNotification::class, 1);
+    expect(DB::table('venue_monthly_reports')->whereNotNull('sent_at')->count())->toBe(1);
+});
+
+it('non ritenta una presa in carico appena fatta da un altro processo', function (): void {
+    $venue = reportVenue();
+    $owner = reportOwner($venue, ['email_verified_at' => now()]);
+    septemberActivity($venue);
+
+    // Un altro processo sta spedendo proprio adesso: non si tocca.
+    DB::table('venue_monthly_reports')->insert([
+        'venue_id' => $venue->getKey(), 'user_id' => $owner->getKey(), 'month' => '2026-09-01',
+        'claimed_at' => CarbonImmutable::now(), 'sent_at' => null,
+        'created_at' => CarbonImmutable::now(), 'updated_at' => CarbonImmutable::now(),
+    ]);
+
+    $this->artisan('venues:monthly-report', ['--month' => '2026-09'])->assertSuccessful();
+
+    Notification::assertNothingSent();
 });
