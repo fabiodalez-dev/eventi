@@ -100,6 +100,7 @@ return [
     'regex' => 'Il formato di :attribute non è valido.',
     'required' => ':attribute è obbligatorio.',
     'required_if' => ':attribute è obbligatorio quando :other vale :value.',
+    'required_if_accepted' => ':attribute è obbligatorio quando :other è attivo.',
     'required_with' => ':attribute è obbligatorio quando :values è presente.',
     'required_without' => ':attribute è obbligatorio quando :values non è presente.',
     'same' => ':attribute e :other devono coincidere.',
@@ -178,6 +179,17 @@ return [
         'turnstile' => [
             'missing' => 'Completa la verifica antispam prima di inviare.',
             'failed' => 'La verifica antispam non è riuscita: ricaricala e riprova.',
+        ],
+
+        /*
+         * I giorni della proposta della sera. Togliere l'ultima spunta è un
+         * gesto ambiguo — «non voglio più questo giorno» o «non la voglio
+         * più»? — e il messaggio offre la seconda lettura invece di
+         * sceglierla al posto di chi scrive.
+         */
+        'tonight_days' => [
+            'required_if_accepted' => 'Scegli almeno un giorno, oppure spegni la proposta della sera.',
+            'min' => 'Scegli almeno un giorno, oppure spegni la proposta della sera.',
         ],
     ],
 

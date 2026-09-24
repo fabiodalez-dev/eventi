@@ -185,7 +185,7 @@ implementare automaticamente ogni proposta. “Rimandata” richiede una nuova d
 | 13 | Prezzo finale trasparente | P1. Ingresso, consumazione obbligatoria, tessera e altri costi distinti. |
 | 14 | Chi ci va? | **Approvato 24/09/2026.** Resta privato per difetto: si riusa la visibilità per singola data già esistente, con elenco visibile ai soli verificati. |
 | 15 | Gruppi | **Approvato 24/09/2026** nella sola forma del sondaggio fra più amici. Chat e gruppi persistenti restano fuori. |
-| 16 | Sondaggio evento | **Approvato 24/09/2026**, con più di due partecipanti, invito per link, voto riservato a chi ha un account e scadenza obbligatoria. |
+| 16 | Sondaggio evento | **Approvato 24/09/2026**, da due a dieci partecipanti compreso chi propone, invito per link, voto riservato a chi ha un account e scadenza obbligatoria. |
 | 17 | Matching gusti gruppo | Dopo P3. Prima vincoli comuni e regole semplici, senza necessità di AI. |
 | 18 | Calendario personale | P0. Collegamenti, aggiornamenti, annullamenti e revoca affidabili. |
 | 19 | Wallet biglietti | **Approvato 24/09/2026.** Nel progetto non esiste oggi alcun pass per portafoglio digitale: è lavoro nuovo, compresa la registrazione presso il fornitore. |

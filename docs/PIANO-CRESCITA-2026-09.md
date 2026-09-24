@@ -1,6 +1,6 @@
 # Piano di crescita — blocchi approvati il 24 settembre 2026
 
-Approvato da Fabio il 24 settembre 2026, come seguito della [relazione di prodotto](ROADMAP-PRODOTTO.md). Otto blocchi indipendenti, ognuno rilasciabile da solo, con il proprio giro di progettazione, test e verifica in produzione. L'ordine è per rapporto fra valore e rischio, non per importanza: un blocco più in basso non è meno approvato.
+Approvato da Fabio il 24 settembre 2026, come seguito della [relazione di prodotto](ROADMAP-PRODOTTO.md). Otto blocchi, ognuno con il proprio giro di progettazione, test e verifica in produzione. Sette sono rilasciabili da soli; il quinto è l'unica eccezione, perché i sondaggi fra amici partono dalla partecipazione introdotta dal quarto. L'ordine è per rapporto fra valore e rischio, non per importanza: un blocco più in basso non è meno approvato.
 
 Ogni blocco parte da ciò che esiste davvero nel repository al 24 settembre 2026, verificato file per file. Dove una funzione risulta già presente è scritto: il rischio maggiore in questo progetto non è ricostruire da zero, è ricostruire ciò che c'è già.
 
@@ -37,11 +37,11 @@ Trasversale a tutti: **i numeri di ritorno** (quante persone tornano entro sette
 
 **Cosa esiste già.** L'infrastruttura completa. `notifications:plan` (ogni ora) scrive in anticipo nella tabella `scheduled_notifications` con una chiave di deduplica unica; `notifications:send` (ogni cinque minuti) consegna con `FOR UPDATE SKIP LOCKED`, applica preferenze, ore di silenzio e tetto giornaliero, e sceglie il canale al momento dell'invio fra email, push web e push Android (`app/Services/Notifications/`). Il motore che sceglie gli eventi è `app/Services/Search/TonightDiscovery.php`, con la finestra «sera» già definita in `EventOccurrenceQuery::tonight()`.
 
-**Cosa manca.** Un tipo di notifica nuovo (`NotificationType`), il suo ramo in `MessageFactory::build()`, un interruttore in `NotificationPreferences` e la pianificazione in `DigestPlanner`. Nessuna migration: le colonne di tipo sono stringhe.
+**Cosa mancava, e oggi c'è.** Il tipo di notifica (`NotificationType::TonightNearby`), il suo ramo in `MessageFactory::build()`, l'interruttore in `NotificationPreferences` e la pianificazione in `DigestPlanner`. È servita una migration, che il piano non prevedeva: le due colonne approssimate della posizione.
 
 **Decisioni di progetto.**
 
-- **Niente distanza reale nella prima versione.** La posizione salvata dell'utente è cifrata, arrotondata a circa un chilometro, scade dopo sei mesi e non è interrogabile in SQL: filtrare per raggio significherebbe decifrare riga per riga per ogni invio. La prima versione usa la città di riferimento e, se la persona ne ha scelta una, la zona. La distanza resta un secondo giro, e solo se i numeri lo giustificano.
+- ~~**Niente distanza reale nella prima versione.**~~ **Superata.** Era motivata così: la posizione salvata è cifrata, arrotondata a circa un chilometro, scade dopo sei mesi e non è interrogabile in SQL, quindi filtrare per raggio avrebbe voluto dire decifrare riga per riga a ogni invio. La soluzione è stata scrivere lo stesso valore già arrotondato anche in due colonne interrogabili, con lo stesso ciclo di vita: il raggio si calcola in SQL e la distanza è reale dalla prima versione. Chi non ha dato la posizione riceve la serata della propria città.
 - **Conta nel tetto giornaliero** (`countsTowardDailyCap()` vero) e rispetta le ore di silenzio: è una notifica di iniziativa della piattaforma, esattamente ciò per cui quel tetto esiste.
 - **Attivazione esplicita**, spenta per chi non la sceglie, con orario (predefinito le 18) e giorni (predefiniti venerdì e sabato) modificabili.
 - **Nessun invio a vuoto:** sotto due proposte utili non parte niente, come fa già il digest quando non ha contenuto.
@@ -55,7 +55,7 @@ Trasversale a tutti: **i numeri di ritorno** (quante persone tornano entro sette
 
 **Obiettivo.** Una pagina via email il primo del mese: quante persone hanno visto, salvato, prenotato e quante si sono presentate, con il confronto sul mese precedente. Arriva senza che nessuno la chieda: è ciò che fa ricordare il servizio a chi lo paga.
 
-**Cosa esiste già.** Tutti i numeri: `app/Services/Analytics/ManagementAnalytics.php` calcola già viste, salvataggi, follower e sponsorizzazioni per locale nel periodo scelto, isolando i dati del solo locale. Il modello di email periodica esiste ed è collaudato: `app/Notifications/SponsorshipWeeklyReport.php` con il comando `SendSponsorshipReports` pianificato il lunedì mattina.
+**Cosa esiste già.** Buona parte dei numeri: `app/Services/Analytics/ManagementAnalytics.php` calcola viste, salvataggi, follower e sponsorizzazioni per locale nel periodo scelto, isolando i dati del solo locale. Prenotazioni e presenze non stanno lì e vanno contate dalle tabelle della biglietteria, che è ciò che fa il servizio scritto per questo rapporto. Il modello di email periodica esiste ed è collaudato: `app/Notifications/SponsorshipWeeklyReport.php` con il comando `SendSponsorshipReports` pianificato il lunedì mattina.
 
 **Cosa manca.** Il comando mensile, la notifica dedicata ai referenti del locale e la preferenza per spegnerla.
 

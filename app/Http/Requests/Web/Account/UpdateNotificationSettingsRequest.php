@@ -48,7 +48,8 @@ class UpdateNotificationSettingsRequest extends FormRequest
             'tonight' => ['nullable', 'boolean'],
             'venue_report' => ['nullable', 'boolean'],
             'tonight_time' => ['nullable', 'date_format:H:i'],
-            'tonight_days' => ['nullable', 'array', 'max:7'],
+            /* Le caselle dei giorni non arrivano affatto quando si toglie l'ultima spunta: senza `required_if_accepted` la richiesta sarebbe valida, il salvataggio confermato e i giorni di prima resterebbero al loro posto. */
+            'tonight_days' => ['required_if_accepted:tonight', 'nullable', 'array', 'min:1', 'max:7'],
             'tonight_days.*' => ['integer', 'between:1,7'],
             'quiet_from' => ['nullable', 'date_format:H:i', 'required_with:quiet_to'],
             'quiet_to' => ['nullable', 'date_format:H:i', 'required_with:quiet_from'],

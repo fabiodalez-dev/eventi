@@ -184,6 +184,10 @@
                                 </label>
                             @endforeach
                         </div>
+
+                        @error('tonight_days')
+                            <p class="text-xs font-semibold text-live">{{ $message }}</p>
+                        @enderror
                     </div>
                 </fieldset>
 

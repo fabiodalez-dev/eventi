@@ -138,3 +138,51 @@ it('tiene le coordinate approssimate interrogabili accanto a quelle cifrate, e l
     expect($user->location_lat)->toBeNull()->and($user->location_lng)->toBeNull()
         ->and($user->remembered_location)->toBeNull();
 });
+
+/**
+ * Togliere l'ultima spunta non è una conferma silenziosa.
+ *
+ * Le caselle dei giorni non arrivano affatto quando nessuna è spuntata, e un elenco vuoto veniva sostituito dai giorni predefiniti: il salvataggio riusciva, la pagina diceva di sì, e la proposta continuava a partire in giorni che nessuno aveva scelto. Chi non vuole più nessun giorno spegne l'interruttore, e questo glielo dice invece di deciderlo al posto suo.
+ */
+it('non accetta una scelta di giorni vuota finché la proposta è accesa', function (): void {
+    $user = tonightPerson(['tonight_days' => [5]], ['email_verified_at' => now(), 'locale' => 'it']);
+    $token = $user->createToken('Telefono')->plainTextToken;
+
+    $this->withToken($token)->patchJson('/api/v1/me/notification-preferences', [
+        'tonight' => true,
+        'tonight_days' => [],
+    ])->assertStatus(422)->assertJsonStructure(['error' => ['fields' => ['tonight_days']]]);
+
+    $this->actingAs($user)->patch(route('account.profile.update'), [
+        'name' => 'Chi riceve la proposta',
+        'timezone' => 'Europe/Rome',
+        'locale' => 'it',
+        'tonight' => '1',
+    ])->assertSessionHasErrors('tonight_days');
+
+    expect($user->fresh()->notificationPreferences()->tonightDays)->toBe([5]);
+});
+
+/**
+ * Una posizione lontana dalla propria città non deve zittire la proposta per sempre.
+ *
+ * Il raggio non toglie il vincolo della città: chi ha salvato la posizione altrove non troverebbe mai niente dentro il raggio, e smetterebbe di ricevere la proposta senza che nessuno se ne accorga — né chi la riceve, né chi guarda i registri, perché «niente da mandare» è una risposta legittima. Quando il raggio non trova proprio nulla si ricade sulla città.
+ */
+it('ricade sulla città quando la posizione salvata è lontana da tutto', function (): void {
+    freezeLocal($this->city, '2026-09-11 18:30');
+    $user = tonightPerson(['tonight_days' => [5]], ['city_id' => $this->city->getKey()]);
+    $venue = Venue::factory()->approved()->at(45.4100, 11.8800)->create(['city_id' => $this->city->getKey()]);
+
+    occurrenceAtLocal($this->city, $this->category, '2026-09-11 21:00', '2026-09-11 23:00', event: ['title' => 'In città uno'], venue: $venue);
+    occurrenceAtLocal($this->city, $this->category, '2026-09-11 21:30', '2026-09-11 23:30', event: ['title' => 'In città due'], venue: $venue);
+
+    // Una posizione a centinaia di chilometri: dentro il raggio non c'è nulla.
+    app(RememberedLocation::class)->save(41.9028, 12.4964, $user);
+
+    $message = app(MessageFactory::class)
+        ->build(new ScheduledNotification(['type' => NotificationType::TonightNearby->value]), $user->fresh());
+
+    expect($message)->toBeInstanceOf(NotificationMessage::class)
+        ->and(array_column($message->items, 'title'))->toContain('In città uno')->toContain('In città due')
+        ->and($message->lines[0])->toBe(__('notifications.tonight_nearby.line_city', ['count' => 2, 'city' => $this->city->name]));
+});

@@ -379,16 +379,26 @@ final readonly class MessageFactory
             return NotificationSkipReason::NothingToSend;
         }
 
-        $query = EventOccurrenceQuery::for($city)->excludingDemo()->tonight();
+        $max = config()->integer('notifications.digests.tonight.max_items');
+        $min = config()->integer('notifications.digests.tonight.min_items');
         $position = $this->coarsePosition($user);
+        $items = [];
 
         if ($position !== null) {
-            $query->near($position['lat'], $position['lng'], config()->float('notifications.digests.tonight.radius_km'));
+            $items = $this->items(EventOccurrenceQuery::for($city)->excludingDemo()->tonight()
+                ->near($position['lat'], $position['lng'], config()->float('notifications.digests.tonight.radius_km')),
+                $max, $user);
         }
 
-        $items = $this->items($query, config()->integer('notifications.digests.tonight.max_items'), $user);
+        /* Il raggio non toglie il vincolo della città: chi ha salvato la posizione lontano dalla propria città di riferimento — in viaggio, o abitando fra due città — non troverebbe mai niente dentro il raggio, e smetterebbe di ricevere la proposta senza che nessuno se ne accorga.
+           La ricaduta sulla città scatta solo quando il raggio non trova proprio nulla, che è il segno che la posizione non serve a questa città. Una data sola dentro il raggio è un'altra cosa: è una sera tranquilla vicino a casa, e sotto il minimo non parte niente come è sempre stato. */
+        $vicino = $items !== [];
 
-        if (count($items) < config()->integer('notifications.digests.tonight.min_items')) {
+        if (! $vicino) {
+            $items = $this->items(EventOccurrenceQuery::for($city)->excludingDemo()->tonight(), $max, $user);
+        }
+
+        if (count($items) < $min) {
             return NotificationSkipReason::NothingToSend;
         }
 
@@ -396,7 +406,7 @@ final readonly class MessageFactory
             type: NotificationType::TonightNearby,
             subject: __('notifications.tonight_nearby.subject'),
             heading: __('notifications.tonight_nearby.heading'),
-            lines: [__($position === null ? 'notifications.tonight_nearby.line_city' : 'notifications.tonight_nearby.line_near',
+            lines: [__($vicino ? 'notifications.tonight_nearby.line_near' : 'notifications.tonight_nearby.line_city',
                 ['count' => count($items), 'city' => $city->name])],
             actionLabel: __('notifications.actions.open_tonight'),
             url: route('events.today'),

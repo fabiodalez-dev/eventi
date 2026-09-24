@@ -204,7 +204,10 @@ ricostruzione per palina o modifica manuale degli orari.
    protezione vale anche per azioni manuali e retry, non solo per il cron.
 2. **Acquisizione.** HTTP condizionale con ETag/Last-Modified se disponibili;
    scaricamento in staging con timeout, limiti byte/ZIP e hash SHA-256. Endpoint
-   e redirect ammessi esplicitamente; credenziali mai nei log. `401` diventa
+   e redirect ammessi esplicitamente, e l'intestazione `Authorization` segue il
+   redirect solo se resta la stessa origine: verso un altro host si toglie,
+   altrimenti le credenziali della fonte finiscono a chi non le deve avere.
+   Credenziali mai nei log. `401` diventa
    «accesso alla fonte necessario», non un archivio vuoto o un retry infinito.
 3. **Validazione.** CSV, file richiesti, ID/relazioni, coordinate, calendario
    espanso, stop sequence, salita/discesa, tempi, geometrie e copertura. Validator
