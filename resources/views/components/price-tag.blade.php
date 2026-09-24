@@ -1,5 +1,6 @@
 @props([
     'event',
+    'occurrence' => null,
     /* 'badge' dentro la card, 'text' nella scheda */
     'as' => 'badge',
     'neutral' => false,
@@ -20,15 +21,16 @@
         );
     };
 
-    $min = $event->price_min !== null ? (float) $event->price_min : null;
-    $max = $event->price_max !== null ? (float) $event->price_max : null;
+    $resolvedPrice = \App\Http\Resources\V1\PriceResource::toArray($event, $occurrence);
+    $min = $resolvedPrice['min'];
+    $max = $resolvedPrice['max'];
 
     /* Un prezzo sconosciuto non si annuncia: la card resta senza etichetta
        invece di scrivere "prezzo non disponibile" (§8.6, stessa logica). */
-    $label = match ($event->price_type) {
+    $label = match (\App\Enums\PriceType::tryFrom($resolvedPrice['type'])) {
         \App\Enums\PriceType::Free => __('events.price.free'),
         \App\Enums\PriceType::Donation => __('events.price.donation'),
-        \App\Enums\PriceType::Membership => $event->price_type->label(),
+        \App\Enums\PriceType::Membership => \App\Enums\PriceType::Membership->label(),
         \App\Enums\PriceType::Ticket => match (true) {
             $min !== null && $max !== null && $max > $min => __('events.price.range', ['min' => $money($min), 'max' => $money($max)]),
             $min !== null => $money($min),
@@ -38,7 +40,11 @@
         default => null,
     };
 
-    $tone = $event->price_type === \App\Enums\PriceType::Free ? 'free' : 'neutral';
+    $costs = \App\Support\DeclaredCosts::for($occurrence);
+    if ($costs !== null) {
+        $label = $costs['complete'] ? $money($costs['total_cents'] / 100) : __('decision.partial_price', ['amount' => $money($costs['total_cents'] / 100)]);
+    }
+    $tone = $costs === null && $event->price_type === \App\Enums\PriceType::Free ? 'free' : 'neutral';
 @endphp
 
 @if ($label !== null)

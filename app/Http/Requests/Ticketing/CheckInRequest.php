@@ -9,6 +9,6 @@ class CheckInRequest extends ManageRequest
     /** @return array<string, list<string>> */
     public function rules(): array
     {
-        return ['code' => ['required', 'string', 'size:64', 'alpha_num:ascii']];
+        return ['code' => ['required', 'string', 'size:64', 'alpha_num:ascii'], 'request_key' => ['sometimes', 'uuid']];
     }
 }

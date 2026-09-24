@@ -54,7 +54,7 @@ final class EventOccurrenceObserver
      * Gli attributi che una data generata eredita dalla serie: se uno di questi
      * viene modificato a mano, quella data non segue più la regola.
      */
-    private const SERIES_ATTRIBUTES = ['starts_at', 'ends_at', 'doors_at', 'is_all_day', 'status'];
+    private const SERIES_ATTRIBUTES = ['starts_at', 'ends_at', 'doors_at', 'is_all_day', 'status', 'practical_details', 'cost_breakdown'];
 
     /**
      * Una data aggiunta, spostata o annullata cambia i conteggi del calendario
@@ -107,6 +107,9 @@ final class EventOccurrenceObserver
     public function updated(EventOccurrence $occurrence): void
     {
         $scheduler = app(NotificationScheduler::class);
+        if ($occurrence->wasChanged(['capacity', 'capacity_left', 'booking_capacity'])) {
+            $scheduler->announceAlmostFull($occurrence);
+        }
         if ($occurrence->wasChanged('venue_id') && ! $occurrence->wasChanged(['starts_at', 'status'])) {
             $scheduler->announceMove($occurrence, $this->previousStart($occurrence));
         }

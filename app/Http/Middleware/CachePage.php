@@ -461,7 +461,7 @@ final class CachePage
          * della procedura guidata, che passa già da `PersonalizeDiscovery` e
          * non è traffico di massa.
          */
-        if ($request->filled('budget')) {
+        if ($request->filled('budget') || $request->query('date') === 'last_hours') {
             return false;
         }
 

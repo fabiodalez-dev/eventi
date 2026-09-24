@@ -62,7 +62,7 @@ it('stampa le caratteristiche del locale una volta sola', function (): void {
     expect($html)->not->toContain('<h3 class="font-bold">'.__('seo.fields.weather_policy'));
 
     $spoglio = Venue::factory()->approved()->create(['city_id' => $this->city->getKey(), 'name' => 'Circolo Spoglio', 'content_details' => []]);
-    $this->get('/locali/'.$spoglio->slug)->assertOk()->assertDontSee(__('seo.before_going'));
+    $this->get('/locali/'.$spoglio->slug)->assertOk()->assertSee(__('seo.before_going'))->assertSee(__('decision.accessibility_unknown'));
 });
 
 it('non cambia una virgola di quello che vedeva un evento', function (): void {

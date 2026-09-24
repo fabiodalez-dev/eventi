@@ -43,4 +43,21 @@
     <string name="comments_love">Adoro</string>
     <string name="comments_useful">Utile</string>
     <string name="comments_reply">Rispondi</string>
+    <string name="follow_notifications">Notifiche di questo locale</string>
+    <string name="follow_all">Tutto</string>
+    <string name="follow_new">Solo le cose nuove</string>
+    <string name="follow_none">Niente notifiche, lo guardo io</string>
+    <string name="last_hours">Nelle prossime ore</string>
+    <string name="known_remaining">Posti residui dichiarati: %1$d</string>
+    <string name="declared_costs">Costi dichiarati per persona</string>
+    <string name="declared_total">Totale delle voci dichiarate: %1$s</string>
+    <string name="declared_partial">Totale parziale: alcune voci non sono dichiarate.</string>
+    <string name="calendar_sync_saved">Sincronizza solo le mie date salvate (90 giorni)</string>
+    <string name="calendar_saved_active">Questo calendario sincronizza le date salvate. Gli altri filtri non si applicano.</string>
+    <string name="feed_for_you">Dalle fonti che segui</string>
+    <string name="feed_rules">Date in ordine di orario dalle fonti che hai scelto. Nessun interesse dedotto.</string>
+    <string name="feed_show_all">Mostra tutti gli eventi</string>
+    <string name="feed_retry">Riprova</string>
+    <string name="decision_show_details">Prima di andare e costi</string>
+    <string name="decision_hide_details">Chiudi informazioni e costi</string>
 </resources>

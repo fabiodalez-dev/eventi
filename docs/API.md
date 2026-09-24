@@ -8,14 +8,14 @@ test di integrazione e consumato dall'app Android in `android/` contro dati real
 | Voce | Valore |
 |---|---|
 | Base | `/api/v1` |
-| Documentazione | `/docs/api` (Scramble) · JSON versionato in `docs/openapi.json` — OpenAPI **3.1.0**, **66 operazioni** |
+| Documentazione | `/docs/api` (Scramble) · JSON versionato in `docs/openapi.json` — OpenAPI **3.1.0**, **143 operazioni** |
 | Autenticazione | Bearer token (Sanctum) per `/me`, `auth/logout` e scritture ticketing; policy aggiuntive per il locale |
 | Formato risposte | `{data, meta{next_cursor, has_more}}` · errori `{error{code, message, fields}}` |
 | Paginazione | catalogo a cursore (`limit` 1–50); cursore illeggibile → **400**. Biglietti: `page`, 30 prenotazioni, `meta.next_page` nullable |
 | Cache | catalogo: `ETag` + `Cache-Control: max-age=60, public, stale-while-revalidate=300` (private se autenticato), **304**. Ticketing: `no-store`, senza ETag |
 | Rate limit | 60 req/min anonimi, 120 autenticati, con header `X-RateLimit-Limit/-Remaining/-Reset` e `Retry-After` sul 429 |
 
-## Rotte (66)
+## Rotte principali
 
 ### Scoperta e contenuti (pubbliche)
 
@@ -168,3 +168,44 @@ cookie necessario `incitta_appearance`, e possono cambiarlo da Aspetto.
 Il dettaglio locale espone `logo` con lo stesso formato immagine di `cover`, e `is_nonprofit`. Le prenotazioni espongono `ends_at`, basato sulla fine effettiva, per distinguere eventi in corso e passati. `/v1/me` include `management_links` (label, URL, icona): sono collegamenti ai pannelli autorizzati, senza sostituire le policy delle destinazioni. Newsletter compare solo per superadmin.
 
 Il codice Android offre sezioni profilo con ritorno, fuso selezionabile, immagini intere, filtri biglietti e accesso alle impostazioni notifiche di Android. I pannelli amministrativi e lo scanner ingresso si aprono nel browser. La verifica di questo aggiornamento compila il codice ed esegue i test senza generare nuovi APK.
+
+### Informazioni per decidere e preferenze (24 settembre 2026)
+
+- `GET /events?preset=last_hours`: date con inizio fra adesso e la finestra
+  `starting_soon_minutes` della città, in ordine cronologico anche quando viene
+  richiesto un altro ordinamento. Include le date esaurite dichiarandone lo stato;
+  esclude annullate e rinviate. La risposta non viene conservata in cache.
+- Le occorrenze espongono `availability: {remaining, total}|null` e
+  `capacity_left` risolti dalle prenotazioni quando è attiva la biglietteria.
+  Capienza sconosciuta resta `null`; un contatore manuale non la sostituisce.
+- `declared_costs` contiene `items: [{label,cents}]`, `total_cents`, `complete`
+  e `currency`, oppure `null` senza voci. Le quattro voci sono ingresso,
+  consumazione obbligatoria, tessera e altri costi. Zero è un valore dichiarato,
+  campo vuoto è un dato mancante. Con un totale parziale `price.is_partial=true`;
+  `min` è soltanto il subtotale noto e `max=null`. I filtri di budget escludono
+  totali parziali e confrontano quelli completi con il limite richiesto.
+- Nel dettaglio evento, `occurrences[].content_details` risolve le informazioni
+  pratiche in ordine locale → evento → data. `practical_items` comprende anche
+  indicazioni esplicite sui dati non dichiarati. Le stringhe sono testo semplice.
+- `POST /me/follows` accetta `notification_mode=all|new_only|none`. La risposta e
+  la lettura del follow includono lo stesso campo. `notify` resta compatibile:
+  senza modalità esplicita, `true` equivale a `all` e `false` a `none`.
+  `new_only` riceve i primi annunci, ma non i riepiloghi periodici delle fonti
+  seguite. I promemoria delle date salvate hanno preferenze indipendenti.
+- `GET /me/feed` include `recommendation_reasons` per ciascuna data. Le fonti
+  sono follow e categorie scelte esplicitamente; non vengono creati interessi
+  dedotti né profili pubblicitari.
+- `GET /me/calendar/export?saved_only=1&days=90` esporta solo le proprie date
+  salvate e ancora attive, indipendentemente dalle categorie nascoste nella
+  scoperta. `days` ammette 7, 30 e 90. Le annullate non sono nel nuovo snapshot:
+  il client nativo elimina dal proprio calendario le righe non più presenti.
+- Lo scanner web accetta un `request_key` UUID facoltativo: il ritentativo della
+  stessa lettura dello stesso operatore restituisce l'esito già registrato;
+  una lettura indipendente dello stesso biglietto resta respinta. I permessi
+  dello staff sono limitati alle date assegnate e non concedono elenco completo,
+  esportazione o configurazione della biglietteria.
+
+L'export automatico Scramble non è stato sostituito durante questa review:
+la rigenerazione segnala `GEN001 Scope is not initialized for route` sul
+controller della singola occorrenza. Questa sezione descrive le aggiunte
+verificate dai test; il JSON storico richiede una revisione separata del generatore.

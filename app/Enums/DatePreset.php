@@ -29,6 +29,7 @@ enum DatePreset: string
      * dell'API perché la finestra temporale è una sola per tutto il prodotto.
      */
     case StartingSoon = 'starting_soon';
+    case LastHours = 'last_hours';
     case Ongoing = 'ongoing';
 
     /**
@@ -45,6 +46,7 @@ enum DatePreset: string
             self::Tomorrow => $query->tomorrow(),
             self::Weekend => $query->weekend(),
             self::Week => $query->nextDays(7),
+            self::LastHours => $query->lastHours(),
             self::StartingSoon => $query->startingSoon(),
             self::Ongoing => $query->ongoing(),
         };

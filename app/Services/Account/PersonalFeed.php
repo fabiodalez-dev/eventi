@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Account;
 
+use App\Enums\FollowableType;
 use App\Models\Category;
 use App\Models\City;
 use App\Models\EventOccurrence;
@@ -31,6 +32,32 @@ use Illuminate\Database\Eloquent\Collection;
  */
 final class PersonalFeed
 {
+    /** @param iterable<EventOccurrence> $dates
+     * @return array<int, list<string>>
+     */
+    public function reasons(User $user, iterable $dates): array
+    {
+        $venues = $user->followedIds(FollowableType::Venue);
+        $organizers = $user->followedIds(FollowableType::Organizer);
+        $categories = array_unique([...$user->followedIds(FollowableType::Category), ...app(ContentPreferences::class)->selection($user)['categories']]);
+        $result = [];
+        foreach ($dates as $date) {
+            $reasons = [];
+            if (in_array($date->effectiveVenue()?->id, $venues, true)) {
+                $reasons[] = __('decision.because_venue');
+            }
+            if (in_array($date->event->category_id, $categories, true)) {
+                $reasons[] = __('decision.because_category');
+            }
+            if (in_array($date->event->getAttribute('organizer_id'), $organizers, true)) {
+                $reasons[] = __('decision.because_organizer');
+            }
+            $result[$date->id] = $reasons ?: [__('decision.because_tag')];
+        }
+
+        return $result;
+    }
+
     /**
      * @return LengthAwarePaginator<int, EventOccurrence>
      */

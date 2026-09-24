@@ -83,7 +83,7 @@
         @if ($user->venues()->exists())
             <x-button :href="url('/gestione')" variant="secondary">{{ __('account.nav.venue') }}</x-button>
         @endif
-        @if ($user->ownedVenues()->exists() || $user->hasAnyRole(['admin', 'super_admin']))
+        @if ($user->ownedVenues()->exists() || \App\Models\EventOccurrence::whereHas('checkinStaff', fn ($q) => $q->whereKey($user->id))->exists() || $user->hasAnyRole(['admin', 'super_admin']))
             <x-button :href="route('ticketing.manage.index')" variant="secondary">{{ __('ticketing.manage') }}</x-button>
         @endif
         @if ($errors->any())<p role="alert" class="text-sm">{{ $errors->first() }}</p>@endif

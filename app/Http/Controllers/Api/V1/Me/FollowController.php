@@ -8,6 +8,7 @@ use App\Actions\Account\FollowSubject;
 use App\Actions\Account\UnfollowSubject;
 use App\Enums\ApiErrorCode;
 use App\Enums\FollowableType;
+use App\Enums\FollowNotificationMode;
 use App\Exceptions\ApiException;
 use App\Http\Controllers\Api\V1\Concerns\InteractsWithMe;
 use App\Http\Controllers\Controller;
@@ -65,7 +66,7 @@ final class FollowController extends Controller
             throw new ApiException(ApiErrorCode::NotFound);
         }
 
-        $row = $follow($user, $type, $id, $request->boolean('notify', $type !== FollowableType::Organizer));
+        $row = $follow($user, $type, $id, $request->boolean('notify', $type !== FollowableType::Organizer), $request->filled('notification_mode') ? FollowNotificationMode::from($request->validated('notification_mode')) : null);
         $row->load('followable');
 
         return ApiResponse::item(
@@ -81,7 +82,7 @@ final class FollowController extends Controller
         }
         $follow = $this->user($request)->follows()->where('followable_type', $type)->where('followable_id', $id)->first();
 
-        return ApiResponse::item(['following' => $follow !== null, 'notify' => (bool) $follow?->notify]);
+        return ApiResponse::item(['following' => $follow !== null, 'notify' => (bool) $follow?->notify, 'notification_mode' => $follow?->notify ? ($follow->notification_mode->value ?? 'all') : 'none']);
     }
 
     public function destroy(Request $request, string $type, int $id, UnfollowSubject $unfollow): JsonResponse

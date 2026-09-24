@@ -7,6 +7,7 @@ namespace App\Http\Resources\V1;
 use App\Enums\PriceType;
 use App\Models\Event;
 use App\Models\EventOccurrence;
+use App\Support\DeclaredCosts;
 
 /**
  * Il prezzo di una data.
@@ -24,6 +25,16 @@ final class PriceResource
      */
     public static function toArray(Event $event, ?EventOccurrence $occurrence = null): array
     {
+        $costs = DeclaredCosts::for($occurrence);
+        if ($costs !== null) {
+            return [
+                'type' => $costs['complete'] && $costs['total_cents'] === 0 ? PriceType::Free->value : PriceType::Ticket->value,
+                'min' => $costs['total_cents'] / 100, 'max' => $costs['complete'] ? $costs['total_cents'] / 100 : null,
+                'is_partial' => ! $costs['complete'],
+                'currency' => $costs['currency'], 'notes' => $costs['complete'] ? __('decision.subtotal') : __('decision.partial'),
+                'ticket_url' => $event->ticket_url,
+            ];
+        }
         $override = is_array($occurrence?->price_override) ? $occurrence->price_override : [];
 
         $type = isset($override['price_type']) && is_string($override['price_type'])

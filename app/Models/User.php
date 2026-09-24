@@ -7,6 +7,7 @@ namespace App\Models;
 use App\DTOs\NotificationPreferences;
 use App\Enums\DevicePlatform;
 use App\Enums\FollowableType;
+use App\Enums\FollowNotificationMode;
 use App\Enums\UserRole;
 use App\Enums\VenueRole;
 use App\Enums\VenueStatus;
@@ -333,7 +334,7 @@ class User extends Authenticatable implements FilamentUser, HasTenants, MustVeri
         /** @var list<int> $ids */
         $ids = $this->follows()
             ->where('followable_type', $type->value)
-            ->when($notifyingOnly, fn ($query) => $query->where('notify', true))
+            ->when($notifyingOnly, fn ($query) => $query->where('notify', true)->where('notification_mode', FollowNotificationMode::All))
             ->pluck('followable_id')
             ->map(static fn (mixed $id): int => (int) $id)
             ->all();

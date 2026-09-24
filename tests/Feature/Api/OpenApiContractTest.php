@@ -54,3 +54,7 @@ it('espone un contratto OpenAPI utilizzabile da un generatore Android', function
 
     $inspect($document);
 });
+
+it('genera tutte le rotte senza errori di analisi OpenAPI', function (): void {
+    $this->artisan('scramble:analyze')->assertSuccessful();
+});

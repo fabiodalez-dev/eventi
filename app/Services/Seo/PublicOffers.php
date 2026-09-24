@@ -11,6 +11,7 @@ use App\Http\Resources\V1\PriceResource;
 use App\Models\Event;
 use App\Models\EventOccurrence;
 use App\Services\Ticketing\TicketingService;
+use App\Support\DeclaredCosts;
 use App\Support\EventUrl;
 use App\Support\SafeUrl;
 use App\Support\TicketTiers;
@@ -24,6 +25,18 @@ final class PublicOffers
             return [];
         }
         $url = EventUrl::occurrence($date);
+        $costs = DeclaredCosts::for($date);
+        if ($costs !== null) {
+            if (! $costs['complete']) {
+                return [];
+            }
+            $booking = $date->booking_enabled && $date->effectiveVenue()?->ticketing_enabled
+                ? app(TicketingService::class)->availability($date) : null;
+
+            return [$this->offer($date, number_format($costs['total_cents'] / 100, 2, '.', ''), $costs['currency'],
+                $booking === null ? $url : route('tickets.create', $date),
+                $booking === null ? TicketTierStatus::Available : TicketTierStatus::from($booking['sale_state']), $booking['opens_at'] ?? null)];
+        }
         if ($date->booking_enabled && $date->effectiveVenue()?->ticketing_enabled) {
             $booking = app(TicketingService::class)->availability($date);
 

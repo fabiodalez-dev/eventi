@@ -6,6 +6,7 @@ use App\Enums\EventStatus;
 use App\Enums\OccurrenceStatus;
 use App\Filament\Support\DescriptionEditor;
 use App\Filament\Support\OccurrenceAnalyticsFields;
+use App\Filament\Support\OccurrenceDecisionFields;
 use App\Models\Event;
 use App\Models\EventOccurrence;
 use App\Services\Analytics\OccurrenceAnalytics;
@@ -29,6 +30,7 @@ class DatesRelationManager extends RelationManager
     public function form(Schema $schema): Schema
     {
         return $schema->columns(1)->components([
+            ...OccurrenceDecisionFields::make(),
             DateTimePicker::make('starts_at')->label('Inizio')->required()->seconds(false)->timezone(fn () => $this->eventRecord()->city->timezone),
             DateTimePicker::make('ends_at')->label('Fine')->after('starts_at')->seconds(false)->timezone(fn () => $this->eventRecord()->city->timezone),
             Toggle::make('is_all_day')->label('Tutto il giorno'),

@@ -29,11 +29,30 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('users', function (Blueprint $table): void {
-            $table->decimal('location_lat', 10, 7)->nullable();
-            $table->decimal('location_lng', 10, 7)->nullable();
-            $table->index(['location_lat', 'location_lng'], 'users_location_index');
+        $latitudeExists = Schema::hasColumn('users', 'location_lat');
+        $longitudeExists = Schema::hasColumn('users', 'location_lng');
+        Schema::table('users', function (Blueprint $table) use ($latitudeExists, $longitudeExists): void {
+            if ($latitudeExists) {
+                $table->decimal('location_lat', 10, 7)->nullable()->change();
+            } else {
+                $table->decimal('location_lat', 10, 7)->nullable();
+            }
+            if ($longitudeExists) {
+                $table->decimal('location_lng', 10, 7)->nullable()->change();
+            } else {
+                $table->decimal('location_lng', 10, 7)->nullable();
+            }
         });
+        // Installations from the coarse-location rollout already have both columns.
+        if (! Schema::hasIndex('users', 'users_location_index')) {
+            Schema::table('users', function (Blueprint $table): void {
+                if (Schema::hasIndex('users', 'users_coarse_location_index')) {
+                    $table->renameIndex('users_coarse_location_index', 'users_location_index');
+                } else {
+                    $table->index(['location_lat', 'location_lng'], 'users_location_index');
+                }
+            });
+        }
 
         /* Chi ha già una posizione salvata non deve riaccettarla: il valore
            cifrato esiste e va solo ricopiato in chiaro. Le posizioni salvate
@@ -58,6 +77,14 @@ return new class extends Migration
 
     public function down(): void
     {
+        if (DB::table('migrations')->where('migration', '2026_09_24_090000_add_coarse_location_to_users')->exists()) {
+            // Those columns predate this upgrade. Keep their values on rollback.
+            if (Schema::hasIndex('users', 'users_location_index') && ! Schema::hasIndex('users', 'users_coarse_location_index')) {
+                Schema::table('users', fn (Blueprint $table) => $table->renameIndex('users_location_index', 'users_coarse_location_index'));
+            }
+
+            return;
+        }
         Schema::table('users', function (Blueprint $table): void {
             $table->dropIndex('users_location_index');
             $table->dropColumn(['location_lat', 'location_lng']);

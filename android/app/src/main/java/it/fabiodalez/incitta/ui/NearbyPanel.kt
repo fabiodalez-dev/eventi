@@ -20,7 +20,6 @@ import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 import java.util.Calendar
-import kotlin.math.round
 
 @Composable
 internal fun NearbyPanel(state: AppUiState, onOpen: (Occurrence) -> Unit, onSave: (Long) -> Unit) {
@@ -57,7 +56,7 @@ internal fun NearbyPanel(state: AppUiState, onOpen: (Occurrence) -> Unit, onSave
         try {
             val current = withTimeout(10000) { deviceLocation(context) }
             val expires = Calendar.getInstance().apply { add(Calendar.MONTH, 6) }.timeInMillis / 1000
-            val local = RememberedPosition(round(current.latitude * 100) / 100, round(current.longitude * 100) / 100,
+            val local = RememberedPosition(current.latitude, current.longitude,
                 System.currentTimeMillis() / 1000, expires)
             store.rememberPosition(local)
             position = local

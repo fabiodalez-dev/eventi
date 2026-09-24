@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\FollowableType;
+use App\Enums\FollowNotificationMode;
 use Database\Factories\FollowFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -23,6 +24,7 @@ class Follow extends Model
         'followable_type',
         'followable_id',
         'notify',
+        'notification_mode',
     ];
 
     /** @return BelongsTo<User, $this> */
@@ -60,6 +62,7 @@ class Follow extends Model
     {
         return [
             'notify' => 'boolean',
+            'notification_mode' => FollowNotificationMode::class,
         ];
     }
 }

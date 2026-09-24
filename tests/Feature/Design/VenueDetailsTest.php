@@ -172,7 +172,7 @@ it('non disegna le sezioni del locale quando non c è niente da dire', function 
         ->assertOk()
         ->assertDontSee(__('venues.detail.transit'))
         ->assertDontSee(__('venues.detail.info'))
-        ->assertDontSee(__('venues.detail.accessibility'));
+        ->assertSee(__('decision.accessibility_unknown'));
 });
 
 it('filtra e mostra il quartiere', function (): void {

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Seo;
 
 use App\Enums\AgeGroup;
+use App\Enums\MembershipRequirement;
 use App\Models\Event;
 use App\Models\EventFeature;
 use App\Support\PracticalIcons;
@@ -35,15 +36,15 @@ final class BeforeGoing
                 $append(__('family.'.$field).': '.__('family.'.$details[$field]), 'users');
             }
         }
-        if ($membership = $event->membershipRequirement()) {
+        if ($membership = MembershipRequirement::tryFrom($details['membership'] ?? '') ?? $event->membershipRequirement()) {
             $system('membership-'.$membership->value, $membership->label(), 'identification', (string) ($details['membership_notes'] ?? ''));
         } elseif (filled($details['membership_notes'] ?? null)) {
-            $append('Informazioni sulla tessera', 'identification', $details['membership_notes']);
+            $append(__('decision.membership_notes'), 'identification', $details['membership_notes']);
         }
         if (in_array($details['accessibility'] ?? null, ['yes', 'no'], true)) {
-            $system('accessibility-'.$details['accessibility'], $details['accessibility'] === 'yes' ? 'Accessibile in sedia a rotelle' : 'Non accessibile in sedia a rotelle', 'hand-raised', (string) ($details['accessibility_notes'] ?? ''));
+            $system('accessibility-'.$details['accessibility'], $details['accessibility'] === 'yes' ? __('decision.accessible') : __('decision.not_accessible'), 'hand-raised', (string) ($details['accessibility_notes'] ?? ''));
         } elseif (filled($details['accessibility_notes'] ?? null)) {
-            $append('Accessibilità', 'hand-raised', $details['accessibility_notes']);
+            $append(__('decision.accessibility'), 'hand-raised', $details['accessibility_notes']);
         }
         $ids = array_map('intval', is_array($details['feature_ids'] ?? null) ? $details['feature_ids'] : []);
         foreach ($catalog as $feature) {
@@ -52,7 +53,7 @@ final class BeforeGoing
             }
         }
         if (isset($details['minimum_age'])) {
-            $append('Età minima: '.$details['minimum_age'].' anni', 'users');
+            $append(__('decision.minimum_age', ['age' => $details['minimum_age']]), 'users');
         }
         if (in_array($details['parking_type'] ?? null, ['free', 'paid', 'none'], true)) {
             $append(__('seo.parking_'.$details['parking_type']), 'map-pin');
@@ -72,7 +73,25 @@ final class BeforeGoing
         foreach ($event->venue?->accessibility?->available() ?? [] as $facility) {
             $label = $facility->label();
             if (! in_array($label, array_column($items, 'label'), true)) {
-                $append($label, 'check-circle', 'Disponibile nel locale');
+                $append($label, 'check-circle', __('decision.at_venue'));
+            }
+        }
+
+        foreach (['food_notes', 'start_notes'] as $field) {
+            if (filled($details[$field] ?? null)) {
+                $append(__('decision.'.$field), 'check-circle', $details[$field]);
+            }
+        }
+        foreach ([
+            'accessibility_unknown' => in_array($details['accessibility'] ?? null, ['yes', 'no'], true) || filled($details['accessibility_notes'] ?? null),
+            'membership_unknown' => $membership !== null || filled($details['membership_notes'] ?? null),
+            'parking_unknown' => filled($details['parking_type'] ?? null) || filled($details['parking_notes'] ?? null),
+            'transit_unknown' => filled($details['transit_notes'] ?? null),
+            'food_unknown' => filled($details['food_notes'] ?? null),
+            'entry_unknown' => filled($details['entrance_notes'] ?? null),
+        ] as $key => $known) {
+            if (! $known) {
+                $append(__('decision.'.$key), 'question-mark-circle');
             }
         }
 

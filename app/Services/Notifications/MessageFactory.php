@@ -22,6 +22,7 @@ use App\Models\User;
 use App\Models\Venue;
 use App\Queries\EventOccurrenceQuery;
 use App\Settings\NewsletterSettings;
+use App\Support\Capacity;
 use App\Support\CurrentCity;
 use App\Support\DateFormatter;
 use App\Support\EventUrl;
@@ -60,6 +61,7 @@ final readonly class MessageFactory
             NotificationType::EventReminder => $this->reminder($notification, $user),
             NotificationType::EventCancelled => $this->cancelled($notification),
             NotificationType::EventMoved => $this->moved($notification),
+            NotificationType::EventAlmostFull => $this->almostFull($notification, $user),
             NotificationType::EventSoldOut => $this->soldOut($notification),
             NotificationType::VenueNewEvent => $this->venueNewEvent($notification, $user),
             NotificationType::VenueDigest => $this->venueDigest($notification, $user),
@@ -245,6 +247,31 @@ final readonly class MessageFactory
             url: $this->eventUrl($event),
             occurrenceId: (int) $occurrence->getKey(),
             eventId: (int) $event->getKey(),
+        );
+    }
+
+    private function almostFull(ScheduledNotification $notification, User $user): NotificationMessage|NotificationSkipReason
+    {
+        $date = $this->occurrence($notification);
+        if ($date === null || $this->hasStarted($date) || ! in_array($date->status, [OccurrenceStatus::Scheduled, OccurrenceStatus::Moved], true)) {
+            return NotificationSkipReason::OccurrencePast;
+        }
+        if (! EventOccurrenceQuery::for($date->event->city)->forEvent($date->event)->upcoming()->get()->contains('id', $date->id)
+            || ! $date->savedEvents()->where('user_id', $user->id)->exists()) {
+            return NotificationSkipReason::NothingToSend;
+        }
+        $capacity = Capacity::for($date);
+        if (! $capacity?->isAlmostFull()) {
+            return NotificationSkipReason::NothingToSend;
+        }
+
+        return new NotificationMessage(
+            type: NotificationType::EventAlmostFull,
+            subject: __('decision.near_full_subject', ['title' => $date->event->title]),
+            heading: __('decision.near_full_subject', ['title' => $date->event->title]),
+            lines: [__('decision.near_full_line', ['count' => $capacity->left]), __('decision.near_full_why')],
+            actionLabel: __('notifications.actions.open_event'),
+            url: EventUrl::occurrence($date), occurrenceId: (int) $date->id, eventId: (int) $date->event_id,
         );
     }
 

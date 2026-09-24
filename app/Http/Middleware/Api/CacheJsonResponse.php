@@ -27,7 +27,7 @@ final class CacheJsonResponse
     {
         $response = $next($request);
 
-        if ($request->hasAny(['near', 'lat', 'lng'])) {
+        if ($request->hasAny(['near', 'lat', 'lng']) || $request->query('preset') === 'last_hours') {
             $response->headers->set('Cache-Control', 'private, no-store');
 
             return $response;

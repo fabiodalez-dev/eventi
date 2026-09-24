@@ -82,3 +82,5 @@
         @endforeach
     </section>
 @endif
+
+<x-declared-costs :costs="$details['declared_costs'] ?? null" />

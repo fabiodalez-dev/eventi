@@ -151,6 +151,7 @@ fun EventsScreen(
                 }
             }
         }
+        item(key = "personal-feed") { PersonalFeedPanel(state, onOpen, onSave) { onFilter(EventFilter.ALL) } }
         item(key = "today-and-nearby") { NearbyPanel(state, onOpen, onSave) }
         if (state.isLoading && state.occurrences.isEmpty()) {
             item { LoadingBlock() }
@@ -785,6 +786,8 @@ internal fun EventRow(event: Occurrence, saved: Boolean, onOpen: (Occurrence) ->
             EventArtwork(event.poster?.card ?: event.poster?.full ?: event.poster?.thumb)
             Row(Modifier.fillMaxWidth().padding(if (chiaro) 14.dp else 18.dp), verticalAlignment = Alignment.Top) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(if (chiaro) 6.dp else 8.dp)) {
+                    event.recommendationReasons.forEach { Text(it, color = Muted, style = MaterialTheme.typography.labelMedium) }
+                    event.capacityLeft?.let { Text(stringResource(R.string.known_remaining, it), color = Muted) }
                     InterestedBadge(event.interestedCount)
                     Text(event.category?.name.orEmpty(), color = Muted, style = MaterialTheme.typography.labelMedium)
                     Text(eventTitle(event.title), style = MaterialTheme.typography.titleLarge)
@@ -900,11 +903,7 @@ private fun FactLine(icon: androidx.compose.ui.graphics.vector.ImageVector, text
 
 @Composable
 private fun PriceLabel(price: it.fabiodalez.incitta.data.Price?) {
-    val text = when (price?.type) {
-        "free" -> "INGRESSO GRATUITO"
-        "paid" -> listOfNotNull(price.min, price.max).joinToString("–") { "€ ${it.toInt()}" }.ifBlank { "A PAGAMENTO" }
-        else -> price?.notes
-    } ?: return
+    val text = priceText(price)
     Text(text.uppercase(), color = Ink, modifier = Modifier.padding(top = 12.dp).background(Acid).padding(horizontal = 12.dp, vertical = 8.dp), style = androidx.compose.material3.MaterialTheme.typography.labelLarge)
 }
 

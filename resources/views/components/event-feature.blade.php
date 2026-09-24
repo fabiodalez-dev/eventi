@@ -117,7 +117,7 @@
         @endif
 
         <div class="flex flex-wrap items-center gap-2 pt-1">
-            <x-price-tag :event="$event" />
+            <x-price-tag :event="$event" :occurrence="$occurrence" />
 
             @if ($event->is_outdoor)
                 <x-badge tone="neutral" size="sm">{{ __('events.badge.outdoor') }}</x-badge>

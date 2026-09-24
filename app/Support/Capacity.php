@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Support;
 
+use App\Enums\TicketTierStatus;
 use App\Models\EventOccurrence;
+use App\Services\Ticketing\TicketingService;
 
 /**
  * Capienza e posti rimasti di una data, nella forma in cui si mostrano.
@@ -33,6 +35,15 @@ final readonly class Capacity
      */
     public static function for(EventOccurrence $occurrence): ?self
     {
+        if ($occurrence->booking_enabled && $occurrence->effectiveVenue()?->ticketing_enabled) {
+            $availability = app(TicketingService::class)->availability($occurrence);
+
+            if (in_array($availability['sale_state'], [TicketTierStatus::Closed->value, TicketTierStatus::NotYetOnSale->value], true)) {
+                return null;
+            }
+
+            return $availability['remaining'] === null ? null : new self($availability['capacity'], $availability['sale_state'] === TicketTierStatus::SoldOut->value ? 0 : $availability['remaining']);
+        }
         $left = $occurrence->capacity_left;
 
         if ($left === null) {
@@ -48,6 +59,12 @@ final readonly class Capacity
         return new self($total, max(0, $left));
     }
 
+    public function isAlmostFull(): bool
+    {
+        return $this->total !== null && $this->total > 0 && $this->left > 0 && $this->left < $this->total
+            && $this->left <= max(1, (int) floor($this->total * 0.1));
+    }
+
     public function isSoldOut(): bool
     {
         return $this->left === 0;
@@ -60,7 +77,7 @@ final readonly class Capacity
      */
     public function percentSold(): ?int
     {
-        if ($this->total === null || $this->left > $this->total) {
+        if ($this->total === null || $this->total <= 0 || $this->left > $this->total) {
             return null;
         }
 

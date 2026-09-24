@@ -79,6 +79,8 @@
     :description="$city?->name ? __('ui.header.tagline', ['city' => $city->name]) : null"
     :preload="$heroPoster"
 >
+<a class="inline-flex min-h-12 items-center underline" href="{{ route('events.index', ['date' => 'last_hours']) }}">{{ __('decision.last_hours') }}</a>
+
     @if ($city)<x-editorial-content :model="$city" />@endif
     <x-slot:head>
         <x-json-ld :data="$structuredData" />

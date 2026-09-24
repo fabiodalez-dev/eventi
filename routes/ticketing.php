@@ -15,6 +15,8 @@ Route::middleware(['auth', TicketingPrivacy::class])->group(function (): void {
     Route::get('/biglietti/pdf/{ticket}', [TicketingController::class, 'pdf'])->middleware('throttle:30,1,tickets-pdf')->name('tickets.pdf');
     Route::prefix('gestione-biglietti')->name('ticketing.manage.')->group(function (): void {
         Route::get('/', [TicketingController::class, 'dashboard'])->name('index');
+        Route::get('/{occurrence}/scanner', [TicketingController::class, 'scanner'])->name('scanner');
+        Route::post('/{occurrence}/staff', [TicketingController::class, 'staff'])->name('staff');
         Route::get('/{occurrence}', [TicketingController::class, 'manage'])->name('show');
         Route::post('/{occurrence}/impostazioni', [TicketingController::class, 'configure'])->name('configure');
         Route::post('/{occurrence}/ingresso', [TicketingController::class, 'checkIn'])->middleware('throttle:120,1,tickets-checkin')->name('checkin');

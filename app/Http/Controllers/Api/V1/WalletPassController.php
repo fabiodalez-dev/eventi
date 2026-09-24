@@ -5,54 +5,19 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1;
 
 use App\Enums\AdmissionStatus;
+use App\Enums\BookingStatus;
+use App\Enums\EventStatus;
+use App\Enums\OccurrenceStatus;
 use App\Http\Controllers\Controller;
 use App\Models\AdmissionTicket;
+use App\Models\EventOccurrence;
+use App\Services\Ticketing\GoogleWallet;
 use Firebase\JWT\JWT;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 
-/**
- * Il biglietto nel portafoglio digitale (blocco 8 del piano di crescita).
- *
- * Due indirizzi, e il primo esiste per non mostrare un pulsante che non
- * funziona: `GET /v1/wallet` dice soltanto se la funzione è configurata, e
- * l'app disegna «Aggiungi a Google Wallet» solo quando la risposta è vera.
- * Senza credenziali dell'emittente la risposta è falsa e il secondo indirizzo
- * risponde 404: non esiste uno stato in cui il pulsante c'è e non porta a
- * niente.
- *
- * ## Che cosa finisce nel pass, e che cosa no
- *
- * Solo ciò che serve davanti alla porta: il codice di ingresso come codice a
- * barre, il nome di chi entra, titolo e ora della data, il luogo. Niente
- * email, niente identificativo dell'account, niente dati di chi ha prenotato
- * per altri — il pass è un oggetto che vive sui server di Google e viene
- * mostrato a uno sconosciuto all'ingresso.
- *
- * ## Come un pass smette di valere
- *
- * Tre strati, di cui due funzionano già oggi senza credenziali:
- *
- * 1. **Il codice a barre è il codice di ingresso**, lo stesso che il QR
- *    dell'app mostra. La verifica all'ingresso passa da
- *    `TicketingController::checkIn`, che guarda lo stato sul server: un
- *    biglietto annullato viene respinto anche se l'immagine del pass è
- *    rimasta nel telefono. È questa la garanzia che regge davvero.
- * 2. **Il pass ha una scadenza** (`validTimeInterval`) fissata alla fine
- *    della data: passata quella, Google lo mostra come scaduto da solo.
- * 3. **L'oggetto ha un identificativo prevedibile** (`…incitta-<id biglietto>`)
- *    perché il giorno in cui le credenziali esistono basti una PATCH su
- *    `eventticketobject/{id}` con `state: INACTIVE` per spegnerlo anche
- *    dentro il portafoglio. Quella chiamata va agganciata all'annullamento,
- *    cioè dentro `TicketingService::cancel()`, ed è l'unico pezzo che questo
- *    controller non può fare da solo: senza emittente non c'è niente da
- *    spegnere, e con l'emittente la scrittura appartiene al servizio che già
- *    governa la cancellazione.
- *
- * Il pass si emette solo per un biglietto `valid`: per un annullato o già
- * usato l'indirizzo risponde 404, quindi dall'app non se ne può creare uno
- * nuovo dopo l'annullamento.
- */
+/** Google Wallet issuance and cancellation share the occurrence lock. */
 final class WalletPassController extends Controller
 {
     /**
@@ -62,30 +27,33 @@ final class WalletPassController extends Controller
     public function availability(): JsonResponse
     {
         return response()
-            ->json(['data' => ['google_wallet' => self::configured()]])
+            ->json(['data' => ['google_wallet' => app(GoogleWallet::class)->configured()]])
             ->header('Cache-Control', 'no-store');
     }
 
     public function store(AdmissionTicket $ticket): JsonResponse
     {
-        abort_unless(self::configured(), 404);
+        abort_unless(app(GoogleWallet::class)->configured(), 404);
         Gate::authorize('view', $ticket->booking);
-        // 404 e non 403: per chi chiede, un biglietto annullato non ha un pass.
-        abort_unless($ticket->displayStatus() === AdmissionStatus::Valid, 404);
+        $token = DB::transaction(function () use ($ticket): string {
+            EventOccurrence::withTrashed()->lockForUpdate()->findOrFail($ticket->booking->occurrence_id);
+            $ticket = AdmissionTicket::query()->lockForUpdate()->findOrFail($ticket->id);
+            $date = $ticket->booking?->occurrence;
+            abort_unless($ticket->displayStatus() === AdmissionStatus::Valid
+                && $ticket->booking?->status === BookingStatus::Confirmed
+                && ($ticket->booking->promotion_expires_at === null || $ticket->booking->promotion_expires_at->isFuture())
+                && $date?->event?->status === EventStatus::Published
+                && in_array($date->status, [OccurrenceStatus::Scheduled, OccurrenceStatus::Moved, OccurrenceStatus::SoldOut], true), 404);
+            $google = config()->array('wallet.google');
+            app(GoogleWallet::class)->create(self::object($ticket, $google['issuer_id'], $google['class_id']));
+            $ticket->update(['wallet_requested_at' => now()]);
+
+            return self::token($ticket);
+        });
 
         return response()
-            ->json(['data' => ['save_url' => 'https://pay.google.com/gp/v/save/'.self::token($ticket)]])
+            ->json(['data' => ['save_url' => 'https://pay.google.com/gp/v/save/'.$token]])
             ->header('Cache-Control', 'no-store');
-    }
-
-    private static function configured(): bool
-    {
-        $google = config()->array('wallet.google');
-
-        return filled($google['issuer_id'] ?? null)
-            && filled($google['class_id'] ?? null)
-            && filled($google['service_account_email'] ?? null)
-            && filled($google['private_key'] ?? null);
     }
 
     /**
@@ -104,7 +72,7 @@ final class WalletPassController extends Controller
                 'typ' => 'savetowallet',
                 'iat' => time(),
                 'origins' => $google['origins'] ?? [],
-                'payload' => ['eventTicketObjects' => [self::object($ticket, $issuer, (string) $google['class_id'])]],
+                'payload' => ['eventTicketObjects' => [['id' => $issuer.'.incitta-'.$ticket->id, 'classId' => $issuer.'.'.$google['class_id']]]],
             ],
             // Nel file .env gli a capo della chiave PEM sono scritti \n.
             str_replace('\n', "\n", (string) $google['private_key']),
@@ -135,17 +103,11 @@ final class WalletPassController extends Controller
                 'value' => $ticket->code,
                 'alternateText' => '#'.$ticket->id,
             ],
-            'eventName' => $event?->title === null ? null : [
-                'defaultValue' => ['language' => 'it', 'value' => $event->title],
-            ],
-            'venue' => $venue?->name === null ? null : [
-                'name' => ['defaultValue' => ['language' => 'it', 'value' => $venue->name]],
-                'address' => ['defaultValue' => ['language' => 'it', 'value' => (string) $venue->address]],
-            ],
-            'dateTime' => $date?->starts_at === null ? null : array_filter([
-                'start' => $date->starts_at->toIso8601String(),
-                'end' => $ends?->toIso8601String(),
-            ]),
+            'textModulesData' => array_values(array_filter([
+                $event?->title ? ['id' => 'event', 'header' => __('decision.wallet_event'), 'body' => $event->title] : null,
+                $venue?->name ? ['id' => 'venue', 'header' => __('decision.wallet_venue'), 'body' => $venue->name.' — '.$venue->address] : null,
+                $date?->starts_at ? ['id' => 'date', 'header' => __('decision.wallet_date'), 'body' => $date->starts_at->toIso8601String()] : null,
+            ])),
             // Scaduto il pass, il portafoglio lo archivia da solo.
             'validTimeInterval' => $ends === null ? null : [
                 'end' => ['date' => $ends->toIso8601String()],

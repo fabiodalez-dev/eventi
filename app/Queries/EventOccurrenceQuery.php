@@ -24,6 +24,7 @@ use App\Models\User;
 use App\Models\Venue;
 use App\Services\Account\ContentPreferences;
 use App\Services\Geo\GeoQueryInterface;
+use App\Support\DeclaredCosts;
 use Carbon\CarbonImmutable;
 use DateTimeInterface;
 use DateTimeZone;
@@ -237,6 +238,16 @@ final class EventOccurrenceQuery
     /**
      * Comincia entro `city.starting_soon_minutes` (180 di default).
      */
+    public function lastHours(): self
+    {
+        $this->query->where('event_occurrences.starts_at', '>=', $this->nowUtc())
+            ->where('event_occurrences.starts_at', '<=', $this->now->addMinutes($this->city->starting_soon_minutes)->utc()->format('Y-m-d H:i:s'))
+            ->whereIn('event_occurrences.status', [OccurrenceStatus::Scheduled->value, OccurrenceStatus::Moved->value, OccurrenceStatus::SoldOut->value]);
+        $this->ordering = OccurrenceOrdering::Chronological;
+
+        return $this;
+    }
+
     public function startingSoon(): self
     {
         $now = $this->nowUtc();
@@ -400,11 +411,34 @@ final class EventOccurrenceQuery
         return $this;
     }
 
+    /** @return list<string> */
+    private function declaredCostFields(): array
+    {
+        return array_map(fn (string $field): string => "NULLIF(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(event_occurrences.cost_breakdown, '$.".$field."')), 'null'), '')", DeclaredCosts::FIELDS);
+    }
+
+    private function effectivePriceType(): string
+    {
+        $override = "JSON_UNQUOTE(JSON_EXTRACT(event_occurrences.price_override, '$.price_type'))";
+
+        return "CASE WHEN {$override} IN ('free','donation','ticket','membership','unknown') THEN {$override} ELSE events.price_type END";
+    }
+
+    /** Complete date costs replace the fallback price; partial totals cannot guarantee a budget.
+     * @param  list<string|float|int>  $bindings
+     */
+    private function declaredCostsWithin(float|int $amount, string $fallback, array $bindings): void
+    {
+        $fields = $this->declaredCostFields();
+        $sum = implode(' + ', array_map(fn (string $field): string => "CAST(($field) AS DECIMAL(12,2))", $fields));
+        $empty = implode(' AND ', array_map(fn (string $field): string => "($field) IS NULL", $fields));
+        $valid = implode(' AND ', array_map(fn (string $field): string => "($field) REGEXP '^[0-9]+([.][0-9]+)?$'", $fields));
+        $this->query->whereRaw("((($empty) AND ($fallback)) OR (($valid) AND ($sum) <= ?))", [...$bindings, $amount]);
+    }
+
     public function priceFree(): self
     {
-        $this->query->where('events.price_type', PriceType::Free->value);
-
-        return $this;
+        return $this->discoveryBudget(0);
     }
 
     /**
@@ -429,15 +463,14 @@ final class EventOccurrenceQuery
     }
 
     /** Match the effective date price, not a cheaper default on the parent event. */
-    public function discoveryBudget(int $amount): self
+    public function discoveryBudget(float|int $amount): self
     {
-        $overrideType = "JSON_UNQUOTE(JSON_EXTRACT(event_occurrences.price_override, '$.price_type'))";
-        $type = "CASE WHEN {$overrideType} IN ('free','donation','ticket','membership','unknown') THEN {$overrideType} ELSE events.price_type END";
+        $type = $this->effectivePriceType();
         $minimum = "COALESCE(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(event_occurrences.price_override, '$.price_min')), 'null'), events.price_min)";
-        if ($amount === 0) {
-            $this->query->whereRaw("({$type}) = ?", [PriceType::Free->value]);
+        if ($amount == 0) {
+            $this->declaredCostsWithin($amount, "({$type}) = ?", [PriceType::Free->value]);
         } else {
-            $this->query->whereRaw("(({$type}) IN (?, ?) OR (({$type}) IN (?, ?) AND ({$minimum}) REGEXP '^[0-9]+([.][0-9]+)?$' AND CAST(({$minimum}) AS DECIMAL(12,2)) <= ?))", [PriceType::Free->value, PriceType::Donation->value, PriceType::Ticket->value, PriceType::Membership->value, $amount]);
+            $this->declaredCostsWithin($amount, "(({$type}) IN (?, ?) OR (({$type}) IN (?, ?) AND ({$minimum}) REGEXP '^[0-9]+([.][0-9]+)?$' AND CAST(({$minimum}) AS DECIMAL(12,2)) <= ?))", [PriceType::Free->value, PriceType::Donation->value, PriceType::Ticket->value, PriceType::Membership->value, $amount]);
         }
 
         return $this;
@@ -448,7 +481,8 @@ final class EventOccurrenceQuery
      */
     public function priceDonation(): self
     {
-        $this->query->where('events.price_type', PriceType::Donation->value);
+        $empty = implode(' AND ', array_map(fn (string $field): string => "($field) IS NULL", $this->declaredCostFields()));
+        $this->query->whereRaw("($empty) AND (".$this->effectivePriceType().') = ?', [PriceType::Donation->value]);
 
         return $this;
     }
@@ -458,14 +492,7 @@ final class EventOccurrenceQuery
      */
     public function priceMax(float|int $amount): self
     {
-        $this->query->where(function (Builder $price) use ($amount): void {
-            $price->whereIn('events.price_type', [PriceType::Free->value, PriceType::Donation->value])
-                ->orWhere(function (Builder $paid) use ($amount): void {
-                    $paid->whereNotNull('events.price_min')->where('events.price_min', '<=', $amount);
-                });
-        });
-
-        return $this;
+        return $this->discoveryBudget($amount);
     }
 
     /**
@@ -475,7 +502,10 @@ final class EventOccurrenceQuery
      */
     public function pricePaid(): self
     {
-        $this->query->whereIn('events.price_type', [PriceType::Ticket->value, PriceType::Membership->value]);
+        $fields = $this->declaredCostFields();
+        $empty = implode(' AND ', array_map(fn (string $field): string => "($field) IS NULL", $fields));
+        $positive = implode(' OR ', array_map(fn (string $field): string => "(($field) REGEXP '^[0-9]+([.][0-9]+)?$' AND CAST(($field) AS DECIMAL(12,2)) > 0)", $fields));
+        $this->query->whereRaw("((($empty) AND (".$this->effectivePriceType().") IN (?, ?)) OR ($positive))", [PriceType::Ticket->value, PriceType::Membership->value]);
 
         return $this;
     }
@@ -745,8 +775,16 @@ final class EventOccurrenceQuery
      * quindi `savedBy($user)->upcoming()`, e "da oggi in poi" resta una
      * definizione sola (§8.1).
      */
+    public function calendarActive(): self
+    {
+        $this->query->whereIn('event_occurrences.status', [OccurrenceStatus::Scheduled->value, OccurrenceStatus::SoldOut->value, OccurrenceStatus::Moved->value]);
+
+        return $this;
+    }
+
     public function savedBy(User $user): self
     {
+        $this->query->withoutGlobalScope('content_preferences');
         $this->query->whereExists(function (QueryBuilder $sub) use ($user): void {
             $sub->from('saved_events')
                 ->whereColumn('saved_events.occurrence_id', 'event_occurrences.id')

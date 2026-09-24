@@ -39,10 +39,15 @@ final class OccurrenceController extends Controller
         $found = $event->occurrences()->where('url_number', $number)
             ->firstOrFail();
 
-        return $this->show($request, (int) $found->id);
+        return $this->occurrenceResponse($request, (int) $found->id);
     }
 
     public function show(EventQueryRequest $request, int $occurrence): JsonResponse
+    {
+        return $this->occurrenceResponse($request, $occurrence);
+    }
+
+    private function occurrenceResponse(EventQueryRequest $request, int $occurrence): JsonResponse
     {
         $city = $this->city();
 

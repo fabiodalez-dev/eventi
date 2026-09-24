@@ -48,6 +48,8 @@ class EventOccurrence extends Model
         'status',
         'status_note',
         'price_override',
+        'practical_details',
+        'cost_breakdown',
         'capacity',
         'capacity_left',
         'booking_enabled',
@@ -62,6 +64,12 @@ class EventOccurrence extends Model
         'highlight',
         'is_exception',
     ];
+
+    /** @return BelongsToMany<User, $this> */
+    public function checkinStaff(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'occurrence_checkin_staff', 'occurrence_id', 'user_id');
+    }
 
     /** @return BelongsTo<Event, $this> */
     public function event(): BelongsTo
@@ -207,6 +215,8 @@ class EventOccurrence extends Model
             'is_all_day' => 'boolean',
             'status' => OccurrenceStatus::class,
             'price_override' => 'array',
+            'practical_details' => 'array',
+            'cost_breakdown' => 'array',
             'capacity' => 'integer',
             'capacity_left' => 'integer',
             'url_number' => 'integer',

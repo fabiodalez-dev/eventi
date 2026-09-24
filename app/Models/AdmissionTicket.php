@@ -17,7 +17,7 @@ class AdmissionTicket extends Model
     /** @return array<string, string> */
     protected function casts(): array
     {
-        return ['status' => AdmissionStatus::class, 'checked_in_at' => 'datetime', 'cancelled_at' => 'datetime'];
+        return ['status' => AdmissionStatus::class, 'checked_in_at' => 'datetime', 'cancelled_at' => 'datetime', 'wallet_requested_at' => 'datetime'];
     }
 
     /** @return BelongsTo<Booking, $this> */

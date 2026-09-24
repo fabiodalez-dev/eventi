@@ -16,6 +16,12 @@ class BookingPolicy
         return $booking->user_id === $user->id;
     }
 
+    public function checkIn(User $user, EventOccurrence $occurrence): bool
+    {
+        return $this->manage($user, $occurrence)
+            || $occurrence->checkinStaff()->whereKey($user->id)->exists();
+    }
+
     public function manage(User $user, EventOccurrence $occurrence): bool
     {
         if ($occurrence->event?->organizer?->managedBy($user)) {

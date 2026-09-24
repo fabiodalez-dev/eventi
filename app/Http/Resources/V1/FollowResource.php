@@ -36,6 +36,7 @@ final class FollowResource
             'name' => self::name($subject),
             'slug' => self::slug($subject),
             'notify' => (bool) $follow->notify,
+            'notification_mode' => $follow->notify ? ($follow->notification_mode->value ?? 'all') : 'none',
             'followed_at' => ApiDate::attribute($follow, 'created_at', $timezone),
         ];
     }

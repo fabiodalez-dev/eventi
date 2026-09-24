@@ -22,6 +22,8 @@ data class PageMeta(
 
 @Serializable
 data class Occurrence(
+    @SerialName("recommendation_reasons") val recommendationReasons: List<String> = emptyList(),
+    @SerialName("capacity_left") val capacityLeft: Int? = null,
     @SerialName("booking_enabled") val bookingEnabled: Boolean = false,
     @SerialName("occurrence_id") val occurrenceId: Long,
     @SerialName("url_number") val urlNumber: Int? = null,
@@ -124,6 +126,7 @@ data class Tag(
 
 @Serializable
 data class Price(
+    @SerialName("is_partial") val isPartial: Boolean = false,
     val type: String? = null,
     val min: Double? = null,
     val max: Double? = null,

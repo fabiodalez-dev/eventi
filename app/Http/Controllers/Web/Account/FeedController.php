@@ -45,6 +45,7 @@ final class FeedController extends Controller
 
         return view('account.feed', [
             'occurrences' => $occurrences,
+            'reasons' => $this->feed->reasons($user, $occurrences?->items() ?? []),
             'city' => $city,
             'hasFollows' => $follows,
             'venueSearch' => $venueSearch,

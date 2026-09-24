@@ -6,6 +6,7 @@ namespace App\Services\Notifications;
 
 use App\Enums\EventStatus;
 use App\Enums\FollowableType;
+use App\Enums\FollowNotificationMode;
 use App\Enums\NotificationType;
 use App\Models\Follow;
 use App\Models\NotificationLog;
@@ -231,7 +232,7 @@ final class DigestPlanner
             FollowableType::feedSources(),
         );
 
-        foreach (Follow::query()->notifying()->whereIn('followable_type', $sources)->distinct()->pluck('user_id') as $id) {
+        foreach (Follow::query()->notifying()->where('notification_mode', FollowNotificationMode::All)->whereIn('followable_type', $sources)->distinct()->pluck('user_id') as $id) {
             $ids[(int) $id] = true;
         }
 

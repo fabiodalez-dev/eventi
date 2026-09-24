@@ -9,11 +9,14 @@ use App\Enums\BookingStatus;
 use App\Enums\EventStatus;
 use App\Enums\OccurrenceStatus;
 use App\Enums\TicketTierStatus;
+use App\Jobs\DeactivateWalletPass;
 use App\Models\AdmissionTicket;
 use App\Models\Booking;
 use App\Models\EventOccurrence;
 use App\Models\User;
 use App\Notifications\BookingChanged;
+use App\Services\Notifications\NotificationScheduler;
+use App\Support\ContentVersion;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -130,6 +133,7 @@ final class TicketingService
             }
             $this->notify($booking, $full ? 'waitlisted' : 'confirmed');
             $this->audit($booking, 'reserved', $user);
+            app(NotificationScheduler::class)->announceAlmostFull($date);
 
             return $booking->load('tickets');
         }, 3);
@@ -164,9 +168,9 @@ final class TicketingService
         }, 3);
     }
 
-    public function checkIn(EventOccurrence $date, string $code, User $actor): AdmissionTicket
+    public function checkIn(EventOccurrence $date, string $code, User $actor, ?string $requestKey = null): AdmissionTicket
     {
-        return DB::transaction(function () use ($date, $code, $actor): AdmissionTicket {
+        return DB::transaction(function () use ($date, $code, $actor, $requestKey): AdmissionTicket {
             $date = EventOccurrence::query()->lockForUpdate()->findOrFail($date->id);
             $this->ensure($this->eventValid($date), 'event_cancelled');
             $this->ensure(now()->between($date->doors_at ?? $date->starts_at->copy()->subHours(3), $date->effective_ends_at ?? $date->starts_at->copy()->addHours(6)), 'checkin_closed');
@@ -174,6 +178,9 @@ final class TicketingService
                 ->whereHas('booking', fn ($q) => $q->where('occurrence_id', $date->id)->where('status', BookingStatus::Confirmed))
                 ->lockForUpdate()->first();
             $this->ensure($ticket !== null, 'invalid_qr');
+            if ($ticket->status === AdmissionStatus::CheckedIn && $requestKey !== null && $ticket->checkin_request_key === $requestKey && $ticket->checked_in_by === $actor->id) {
+                return $ticket;
+            }
             $this->ensure($ticket->status !== AdmissionStatus::CheckedIn, 'already_used');
             $this->ensure($ticket->status === AdmissionStatus::Valid, 'invalid_qr');
             /* Una finestra di conferma già scaduta non si sana alla porta.
@@ -184,7 +191,7 @@ final class TicketingService
                aspetta, e chi arriva un minuto dopo no. */
             $this->ensure($ticket->booking?->promotion_expires_at === null
                 || $ticket->booking->promotion_expires_at->isFuture(), 'promotion_expired');
-            $ticket->update(['status' => AdmissionStatus::CheckedIn, 'checked_in_at' => now(), 'checked_in_by' => $actor->id]);
+            $ticket->update(['status' => AdmissionStatus::CheckedIn, 'checked_in_at' => now(), 'checked_in_by' => $actor->id, 'checkin_request_key' => $requestKey]);
             /* Presentarsi alla porta è la conferma più forte che esista, e chiude
                la finestra. Senza, `expirePromotions()` — che gira ogni minuto —
                poteva annullare fra sessanta secondi una prenotazione il cui
@@ -194,6 +201,9 @@ final class TicketingService
             Booking::query()->whereKey($ticket->booking_id)->whereNotNull('promotion_expires_at')
                 ->update(['promotion_expires_at' => null]);
             $this->audit($ticket->booking, 'checked_in:'.$ticket->id, $actor);
+            if ($ticket->wallet_requested_at !== null && app(GoogleWallet::class)->configured()) {
+                DeactivateWalletPass::dispatch(app(GoogleWallet::class)->objectId((int) $ticket->id));
+            }
 
             return $ticket;
         }, 3);
@@ -255,6 +265,7 @@ final class TicketingService
         $dateIds = Booking::query()->where('user_id', $user->id)->distinct()->orderBy('occurrence_id')->pluck('occurrence_id');
         foreach ($dateIds as $id) {
             $date = EventOccurrence::withTrashed()->lockForUpdate()->find($id);
+            Booking::query()->where('user_id', $user->id)->where('occurrence_id', $id)->each(fn (Booking $booking) => $this->revokeWallets($booking, true));
             Booking::query()->where('user_id', $user->id)->where('occurrence_id', $id)->delete();
             if ($date) {
                 $this->promote($date);
@@ -275,6 +286,7 @@ final class TicketingService
             $booking->update(['status' => BookingStatus::Confirmed, 'promotion_expires_at' => $this->confirmBy($date)]);
             $booking->tickets()->where('status', AdmissionStatus::Waitlisted)->update(['status' => AdmissionStatus::Valid->value]);
             $this->notify($booking, 'promoted');
+            app(NotificationScheduler::class)->announceAlmostFull($date);
         }
     }
 
@@ -398,8 +410,27 @@ final class TicketingService
         }
     }
 
+    private function revokeWallets(Booking $booking, bool $all = false): void
+    {
+        $wallet = app(GoogleWallet::class);
+        if (! $wallet->configured()) {
+            return;
+        }
+        foreach ($booking->tickets()->whereNotNull('wallet_requested_at')
+            ->when(! $all, fn ($q) => $q->where('status', AdmissionStatus::Cancelled))->pluck('id') as $id) {
+            DeactivateWalletPass::dispatch($wallet->objectId((int) $id));
+        }
+    }
+
     private function notify(Booking $booking, string $kind): void
     {
+        $cityId = $booking->occurrence?->event?->city_id;
+        if ($cityId !== null) {
+            DB::afterCommit(fn () => ContentVersion::bump($cityId));
+        }
+        if (in_array($kind, ['cancelled', 'event_cancelled', 'promotion_expired'], true)) {
+            $this->revokeWallets($booking);
+        }
         $booking->user?->notify(new BookingChanged($booking->id, $kind));
     }
 

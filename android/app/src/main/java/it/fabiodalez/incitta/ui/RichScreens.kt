@@ -222,7 +222,8 @@ fun CompleteEventDetailScreen(
                     }
                 }
 
-                DetailSection("PREZZO") {
+                if (detail.occurrences.all { it.price == detail.price } || detail.booking.url != null || detail.price?.ticketUrl != null || detail.booking.phone != null) DetailSection("PREZZO") {
+                    if (detail.occurrences.all { it.price == detail.price }) {
                     Text(priceText(detail.price), style = androidx.compose.material3.MaterialTheme.typography.headlineMedium, color = Acid)
                     detail.price?.notes?.let { Text(it, color = Muted, modifier = Modifier.padding(top = 8.dp)) }
                     if (detail.tiers.isNotEmpty()) {
@@ -233,6 +234,7 @@ fun CompleteEventDetailScreen(
                             tier.note?.let { Text(it, color = Muted, style = androidx.compose.material3.MaterialTheme.typography.bodyMedium) }
                             tier.url?.let { url -> SmallLink("ACQUISTA") { openUrl(context, url) } }
                         }
+                    }
                     }
                     val bookingUrl = detail.booking.url ?: detail.price?.ticketUrl
                     if (bookingUrl != null) {
@@ -305,7 +307,7 @@ fun CompleteEventDetailScreen(
                     ActionButton("CONDIVIDI QUESTO EVENTO", Icons.Outlined.Share) { share(context, detail.title, detail.url ?: "https://eventi.fabiodalez.it/eventi/${detail.slug}") }
                 }
 
-                EditorialInformation(detail.contentDetails)
+                if (detail.occurrences.none { it.contentDetails != null }) EditorialInformation(detail.contentDetails)
 
                 /*
                  * Il meteo è una sezione sua, non una riga dentro "tutte le date".
@@ -361,6 +363,16 @@ private fun OccurrenceDateBlock(detail: EventDetail, occurrence: Occurrence, sav
     occurrence.placeName()?.let { Text(it, color = Muted) }
     Text(timeRange(occurrence), color = Acid, style = androidx.compose.material3.MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = 5.dp))
     occurrence.statusNote?.let { Text(it, color = Muted, modifier = Modifier.padding(top = 6.dp)) }
+    Text(priceText(occurrence.price), color = Acid, modifier = Modifier.padding(top = 6.dp))
+    occurrence.capacityLeft?.let { remaining -> Text(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.known_remaining, remaining), color = Muted) }
+    if (occurrence.contentDetails != null) {
+        var showPractical by remember(occurrence.occurrenceId) { mutableStateOf(detail.occurrences.size == 1) }
+        TextButton(onClick = { showPractical = !showPractical }) {
+            Text(androidx.compose.ui.res.stringResource(if (showPractical) it.fabiodalez.incitta.R.string.decision_hide_details else it.fabiodalez.incitta.R.string.decision_show_details))
+        }
+        if (showPractical) EditorialInformation(occurrence.contentDetails)
+    }
+
     Row(Modifier.fillMaxWidth().padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         OutlinedButton(
             onClick = { addToCalendar(context, detail, occurrence) },
@@ -1057,6 +1069,7 @@ internal fun priceText(price: Price?): String = when (price?.type) {
     "free" -> "Ingresso gratuito"
     "donation" -> price.notes ?: "Offerta libera"
     "ticket", "paid" -> when {
+        price.isPartial && price.min != null -> "${formatEuro(price.min)} · ${price.notes.orEmpty()}"
         price.min != null && price.max != null && price.min != price.max -> "${formatEuro(price.min)} – ${formatEuro(price.max)}"
         price.min != null -> formatEuro(price.min)
         price.max != null -> "Fino a ${formatEuro(price.max)}"

@@ -419,7 +419,9 @@ class CreateEvent extends CreateRecord
             $data['content_details'] = EditorContent::clean('content_details', $data['content_details']);
         }
         $data = Validator::make(['data' => $data], [
-            'data.content_details' => ['nullable', 'array:membership,membership_notes,accessibility,accessibility_notes,feature_ids,practical_custom,age_groups,stroller,changing_table,kids_area'],
+            'data.content_details' => ['nullable', 'array:membership,membership_notes,accessibility,accessibility_notes,feature_ids,practical_custom,age_groups,stroller,changing_table,kids_area,food_notes,start_notes'],
+            'data.content_details.food_notes' => ['nullable', 'string', 'max:2000'],
+            'data.content_details.start_notes' => ['nullable', 'string', 'max:2000'],
             'data.content_details.age_groups' => ['nullable', 'array', 'max:6'],
             'data.content_details.age_groups.*' => [Rule::enum(AgeGroup::class)],
             'data.content_details.stroller' => ['nullable', Rule::in(['yes', 'no'])],

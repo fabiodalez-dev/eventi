@@ -133,7 +133,7 @@ internal fun SearchFilters(state: AppUiState, query: String = "", collapsible: B
     if (!panelOpen) return
     Column(Modifier.fillMaxWidth().padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (filters.isNotEmpty()) TextButton(onClick = { scope.launch { applyChecked(emptyMap(), "Tutti gli eventi") } }, enabled = !checking) { Text("Azzera i filtri ×") }
-        QuickFilterGroup("Quando", "preset", available("date", listOf("today" to "Oggi", "tonight" to "Stasera", "starting_soon" to "Inizia tra poco", "tomorrow" to "Domani", "weekend" to "Weekend", "week" to "Questa settimana")), filters, ::change)
+        QuickFilterGroup("Quando", "preset", available("date", listOf("today" to "Oggi", "tonight" to "Stasera", "starting_soon" to "Inizia tra poco", "last_hours" to stringResource(R.string.last_hours), "tomorrow" to "Domani", "weekend" to "Weekend", "week" to "Questa settimana")), filters, ::change)
         QuickFilterGroup("Categoria", "categories", available("category", choices.categories.map { it.slug to it.name }), filters, ::change)
         QuickFilterGroup("Prezzo", "price", available("price", listOf("free" to "Gratis", "donation" to "Offerta libera", "max10" to "Fino a 10 €", "max20" to "Fino a 20 €")), filters, ::change)
         QuickFilterGroup("Fascia oraria", "time_of_day", available("time", listOf("day" to "Di giorno", "evening" to "Di sera", "night" to "Di notte")), filters, ::change)

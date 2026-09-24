@@ -104,6 +104,7 @@
 
         <div class="col-span-2 flex items-start [&>a]:inline-flex [&>a]:min-h-12 [&>a]:items-center [&_button]:min-h-12 lg:col-span-1 lg:col-start-3 lg:row-start-1 lg:row-span-2">
             <x-follow-button :type="\App\Enums\FollowableType::Venue" :id="$venue->getKey()" class="ui-action" />
+                <x-follow-preferences :venue="$venue" />
         </div>
     </header>
 

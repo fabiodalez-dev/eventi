@@ -14,6 +14,7 @@ use App\Models\Tag;
 use App\Models\Venue;
 use App\Support\BeforeGoingDefaults;
 use App\Support\CurrentCity;
+use App\Support\DeclaredCosts;
 use App\Support\SafeUrl;
 use Illuminate\Database\Eloquent\Model;
 
@@ -42,7 +43,11 @@ final class EditorialContent
 
         if ($model instanceof Event) {
             $own['membership'] = $model->membershipRequirement()?->value;
+            if ($occurrence !== null) {
+                $own = BeforeGoingDefaults::merge($own, $occurrence->practical_details ?? []);
+            }
             $own['practical_items'] = app(BeforeGoing::class)->items($model, $own);
+            $own['declared_costs'] = DeclaredCosts::for($occurrence);
         } elseif ($model instanceof Venue) {
             /*
              * Le stesse voci pratiche, per il locale che le ha compilate.

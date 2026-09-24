@@ -33,7 +33,7 @@ final class EventFeed
     /**
      * @return Collection<int, EventOccurrence>
      */
-    public function occurrences(City $city, EventFilters $filters, ?int $limit = null, ?int $days = null): Collection
+    public function occurrences(City $city, EventFilters $filters, ?int $limit = null, ?int $days = null, bool $activeOnly = false): Collection
     {
         /*
          * `nextDays()` si somma alla finestra già chiesta invece di
@@ -41,9 +41,11 @@ final class EventFeed
          * weekend, e chi non chiede niente riceve i prossimi tre mesi e non
          * l'intero futuro.
          */
-        $occurrences = $this->finder
-            ->query($city, $filters)
-            ->nextDays(min($days ?? config()->integer('feeds.days_ahead'), config()->integer('feeds.days_ahead')))
+        $query = $this->finder->query($city, $filters);
+        if ($activeOnly) {
+            $query->calendarActive();
+        }
+        $occurrences = $query->nextDays(min($days ?? config()->integer('feeds.days_ahead'), config()->integer('feeds.days_ahead')))
             ->get()
             ->take($limit ?? config()->integer('feeds.max_items'));
 

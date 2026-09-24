@@ -18,10 +18,10 @@ import java.net.URLEncoder
 internal data class OrganizerArchive(val name: String, val id: Long = 0, val description: String? = null, val events: List<Occurrence> = emptyList(), val has_more: Boolean = false)
 
 @Serializable
-internal data class OrganizerFollowState(val following: Boolean = false, val notify: Boolean = false)
+internal data class OrganizerFollowState(val following: Boolean = false, val notify: Boolean = false, val notification_mode: String = "all")
 
 @Serializable
-internal data class OrganizerFollowRequest(val id: Long, val notify: Boolean, val type: String)
+internal data class OrganizerFollowRequest(val id: Long, val notify: Boolean, val type: String, val notification_mode: String? = null)
 
 @Composable
 fun OrganizerScreen(slug: String, session: Session?, savedIds: Set<Long>, onBack: () -> Unit, onOrganizer: (String) -> Unit, onOpen: (Occurrence) -> Unit, onSave: (Long) -> Unit, onLogin: () -> Unit = {}, onVerifyReviews: () -> Unit = {}) {
