@@ -15,6 +15,7 @@ import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
+import androidx.glance.appwidget.updateAll
 import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.background
 import androidx.glance.layout.Alignment
@@ -33,6 +34,16 @@ import androidx.glance.unit.ColorProvider
 import it.fabiodalez.incitta.MainActivity
 import it.fabiodalez.incitta.R
 import it.fabiodalez.incitta.data.AppRepository
+import androidx.work.Constraints
+import androidx.work.CoroutineWorker
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.ExistingWorkPolicy
+import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
+import androidx.work.WorkerParameters
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
@@ -63,29 +74,49 @@ private val Surface = ColorProvider(R.color.widget_surface)
 
 class TonightWidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = TonightWidget()
+
+    /* Il primo widget accende la pianificazione, l'ultimo la spegne: nessun
+       giro di rete per una bacheca che non sta più sulla schermata di nessuno. */
+    override fun onEnabled(context: Context) {
+        super.onEnabled(context)
+        TonightWidgetRefreshWorker.schedule(context.applicationContext)
+    }
+
+    override fun onDisabled(context: Context) {
+        super.onDisabled(context)
+        TonightWidgetRefreshWorker.cancel(context.applicationContext)
+    }
 }
 
 internal class TonightWidget : GlanceAppWidget() {
     /*
-     * Il giro di rete sta PRIMA di `provideContent`, che non torna mai.
-     * `provideGlance` gira sul thread principale, quindi ogni lettura pesante
-     * passa esplicitamente da un altro thread: la rete lo fa già da sé dentro
-     * `ApiClient`, le preferenze no.
+     * Qui NON si va in rete.
+     *
+     * `provideGlance` deve arrivare a `provideContent` — che non torna mai —
+     * il prima possibile: è una sessione con un tempo suo, e una chiamata di
+     * rete infilata prima viene interrotta se il server tarda. Succedeva:
+     * verificato su emulatore il 24/09/2026, il widget appena posato restava
+     * su «Cerco le date di stasera…» all'infinito, riavvio compreso, senza
+     * scrivere niente e senza lasciare una riga nei registri.
+     *
+     * Quindi si disegna quello che c'è in cache, subito, e il giro di rete lo
+     * fa `TonightWidgetRefreshWorker`, che quando ha finito ridisegna.
      */
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val snapshot = TonightWidgetStore.load(context.applicationContext)
-        val now = System.currentTimeMillis()
-        val entries = tonightWidgetVisible(snapshot, now)
+        val application = context.applicationContext
+        val snapshot = TonightWidgetStore.cached(application)
+        val entries = tonightWidgetVisible(snapshot, System.currentTimeMillis())
+        TonightWidgetRefreshWorker.enqueueIfStale(application, snapshot)
         provideContent {
             GlanceTheme {
-                TonightWidgetBody(context, snapshot.loaded, entries)
+                TonightWidgetBody(context, tonightWidgetState(snapshot, entries), entries)
             }
         }
     }
 }
 
 @Composable
-private fun TonightWidgetBody(context: Context, loaded: Boolean, entries: List<TonightWidgetEntry>) {
+private fun TonightWidgetBody(context: Context, state: TonightWidgetState, entries: List<TonightWidgetEntry>) {
     Column(
         modifier = GlanceModifier
             .fillMaxSize()
@@ -99,18 +130,26 @@ private fun TonightWidgetBody(context: Context, loaded: Boolean, entries: List<T
             style = TextStyle(color = AcidInk, fontSize = 12.sp, fontWeight = FontWeight.Bold),
         )
         Spacer(GlanceModifier.height(8.dp))
-        if (entries.isEmpty()) {
+        if (state == TonightWidgetState.Entries) {
+            entries.forEach { entry -> TonightWidgetRow(context, entry) }
+        } else {
             /*
-             * Uno spazio vuoto sembra un widget rotto. Due frasi diverse,
-             * perché «non ho ancora chiesto» e «ho chiesto e non c'è niente»
-             * sono due cose che chi guarda deve poter distinguere.
+             * Uno spazio vuoto sembra un widget rotto, e «cerco» che non
+             * finisce mai è la stessa cosa detta peggio. Tre frasi, perché
+             * «non ho ancora chiesto», «ho chiesto e non ci sono riuscito» e
+             * «ho chiesto e stasera non c'è niente» sono tre cose diverse, e
+             * solo la seconda dice a chi guarda che può riprovare più tardi.
              */
             Text(
-                context.getString(if (loaded) R.string.widget_tonight_empty else R.string.widget_tonight_loading),
+                context.getString(
+                    when (state) {
+                        TonightWidgetState.Empty -> R.string.widget_tonight_empty
+                        TonightWidgetState.Unreachable -> R.string.widget_tonight_unreachable
+                        else -> R.string.widget_tonight_loading
+                    },
+                ),
                 style = TextStyle(color = MutedInk, fontSize = 13.sp),
             )
-        } else {
-            entries.forEach { entry -> TonightWidgetRow(context, entry) }
         }
     }
 }
@@ -168,24 +207,38 @@ internal object TonightWidgetStore {
     private val json = Json { ignoreUnknownKeys = true; explicitNulls = false }
     private val refreshing = Mutex()
 
-    suspend fun load(context: Context): TonightWidgetSnapshot = withContext(Dispatchers.IO) {
-        val cached = read(context)
+    /** Quello che c'è già, senza toccare la rete: è ciò che il widget disegna. */
+    suspend fun cached(context: Context): TonightWidgetSnapshot = withContext(Dispatchers.IO) { read(context) }
+
+    fun shouldRefresh(context: Context, snapshot: TonightWidgetSnapshot): Boolean =
+        tonightWidgetShouldRefresh(snapshot, System.currentTimeMillis(), powerSaveMode(context))
+
+    /**
+     * Il giro di rete. Lo chiama solo il lavoro pianificato, mai il disegno.
+     *
+     * Torna `true` se c'è qualcosa di nuovo da mostrare. Anche quando fallisce
+     * scrive `lastAttemptAt`: è ciò che permette al widget di dire «non ci
+     * sono riuscito» invece di restare su «cerco» per sempre.
+     */
+    suspend fun refresh(context: Context): Boolean = withContext(Dispatchers.IO) {
         val powerSave = powerSaveMode(context)
-        if (!tonightWidgetShouldRefresh(cached, System.currentTimeMillis(), powerSave)) return@withContext cached
+        if (!tonightWidgetShouldRefresh(read(context), System.currentTimeMillis(), powerSave)) return@withContext false
         refreshing.withLock {
             // Più istanze del widget si aggiornano insieme: la seconda trova già fatto.
             val current = read(context)
-            if (!tonightWidgetShouldRefresh(current, System.currentTimeMillis(), powerSave)) return@withLock current
+            if (!tonightWidgetShouldRefresh(current, System.currentTimeMillis(), powerSave)) return@withLock false
             val items = try {
                 AppRepository(context).tonightOccurrences(TONIGHT_WIDGET_LIMIT)
             } catch (error: CancellationException) {
                 throw error
             } catch (_: Exception) {
-                // Rete assente o server giù: si tiene quel che c'è e si riprova al giro dopo.
-                return@withLock current
+                // Rete assente o server giù: si tiene quel che c'è, si segna il tentativo e si riprova al giro dopo.
+                write(context, current.copy(lastAttemptAt = System.currentTimeMillis()))
+                return@withLock false
             }
-            TonightWidgetSnapshot(tonightWidgetEntries(items), System.currentTimeMillis(), loaded = true)
-                .also { write(context, it) }
+            val now = System.currentTimeMillis()
+            write(context, TonightWidgetSnapshot(tonightWidgetEntries(items), now, loaded = true, lastAttemptAt = now))
+            true
         }
     }
 
@@ -203,4 +256,67 @@ internal object TonightWidgetStore {
 
     private fun powerSaveMode(context: Context): Boolean =
         runCatching { context.getSystemService(PowerManager::class.java)?.isPowerSaveMode == true }.getOrDefault(false)
+}
+
+/**
+ * Il giro di rete del widget, fuori dal disegno.
+ *
+ * Sta in un lavoro pianificato e non dentro `provideGlance` per una ragione
+ * verificata e non teorica: la sessione che disegna il widget ha un tempo suo
+ * e viene interrotta se il server tarda, e l'interruzione non lascia traccia
+ * né a schermo né nei registri. Qui invece il tentativo può fallire, essere
+ * ritentato dal sistema, e comunque lasciare scritto che è avvenuto.
+ *
+ * Due giri al giorno come dichiara il widget, più uno appena viene posato:
+ * chi lo aggiunge alla schermata vuole vederlo pieno adesso, non stasera.
+ */
+internal class TonightWidgetRefreshWorker(
+    context: Context,
+    parameters: WorkerParameters,
+) : CoroutineWorker(context, parameters) {
+    override suspend fun doWork(): Result {
+        try {
+            TonightWidgetStore.refresh(applicationContext)
+        } catch (error: CancellationException) {
+            throw error
+        } catch (_: Exception) {
+            return Result.retry()
+        }
+        /* Si ridisegna anche quando non è cambiato niente da mostrare: un
+           tentativo fallito cambia comunque la frase, da «cerco» a «non ci
+           sono riuscito», ed è tutto il punto di segnarlo. */
+        TonightWidget().updateAll(applicationContext)
+        return Result.success()
+    }
+
+    companion object {
+        private const val PERIODIC = "tonight-widget-periodic"
+        private const val ONCE = "tonight-widget-once"
+
+        /** Il giro subito, quando serve: widget appena posato, o copia troppo vecchia. */
+        fun enqueueIfStale(context: Context, snapshot: TonightWidgetSnapshot) {
+            if (!TonightWidgetStore.shouldRefresh(context, snapshot)) return
+            WorkManager.getInstance(context).enqueueUniqueWork(
+                ONCE,
+                ExistingWorkPolicy.KEEP,
+                OneTimeWorkRequestBuilder<TonightWidgetRefreshWorker>()
+                    .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+                    .build(),
+            )
+        }
+
+        fun schedule(context: Context) {
+            WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+                PERIODIC,
+                ExistingPeriodicWorkPolicy.KEEP,
+                PeriodicWorkRequestBuilder<TonightWidgetRefreshWorker>(12, TimeUnit.HOURS)
+                    .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+                    .build(),
+            )
+        }
+
+        fun cancel(context: Context) {
+            WorkManager.getInstance(context).cancelUniqueWork(PERIODIC)
+        }
+    }
 }

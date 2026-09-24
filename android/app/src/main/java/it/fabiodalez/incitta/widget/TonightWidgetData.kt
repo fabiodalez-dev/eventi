@@ -59,7 +59,33 @@ internal data class TonightWidgetSnapshot(
      * mentre sta solo aspettando la prima risposta.
      */
     val loaded: Boolean = false,
+    /*
+     * L'ultimo tentativo, riuscito o no. Senza questo, un giro di rete fallito
+     * lascia `loaded` falso e il widget scrive «cerco» per sempre: visto sulla
+     * schermata iniziale, «cerco» che non finisce mai è indistinguibile da un
+     * widget bloccato, e non lo si può nemmeno aprire per capire.
+     */
+    val lastAttemptAt: Long = 0L,
 )
+
+/** Cosa ha da dire il widget, quando non ha date da mostrare. */
+internal enum class TonightWidgetState { Loading, Unreachable, Empty, Entries }
+
+/**
+ * Lo stato da disegnare.
+ *
+ * Le date in cache vengono prima di tutto: se ci sono e valgono ancora, un
+ * aggiornamento fallito non deve cancellare quello che si sapeva ieri.
+ */
+internal fun tonightWidgetState(
+    snapshot: TonightWidgetSnapshot,
+    visible: List<TonightWidgetEntry>,
+): TonightWidgetState = when {
+    visible.isNotEmpty() -> TonightWidgetState.Entries
+    snapshot.loaded -> TonightWidgetState.Empty
+    snapshot.lastAttemptAt > 0L -> TonightWidgetState.Unreachable
+    else -> TonightWidgetState.Loading
+}
 
 /** L'indirizzo che apre la singola data: lo stesso che apre un link condiviso. */
 internal fun tonightWidgetUrl(occurrence: Occurrence): String =

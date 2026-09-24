@@ -122,4 +122,35 @@ class TonightWidgetTest {
         val futuro = TonightWidgetSnapshot(updatedAt = 5_000_000, loaded = true)
         assertTrue(tonightWidgetShouldRefresh(futuro, now = 1_000, powerSaveMode = false))
     }
+
+    /*
+     * Le tre frasi.
+     *
+     * Verificato su emulatore il 24/09/2026: un giro di rete fallito lasciava
+     * `loaded` falso e il widget scriveva «cerco» all'infinito, riavvio
+     * compreso. Su una schermata iniziale «cerco» che non finisce mai è
+     * indistinguibile da un widget bloccato, e non c'è niente da aprire per
+     * capire: la differenza fra «non ho ancora chiesto» e «ho chiesto e non ci
+     * sono riuscito» deve stare scritta.
+     */
+    @Test fun primaDiChiedereDiceCheStaCercando() {
+        val snapshot = TonightWidgetSnapshot()
+        assertEquals(TonightWidgetState.Loading, tonightWidgetState(snapshot, emptyList()))
+    }
+
+    @Test fun dopoUnTentativoFallitoLoDice() {
+        val snapshot = TonightWidgetSnapshot(lastAttemptAt = 1_000L)
+        assertEquals(TonightWidgetState.Unreachable, tonightWidgetState(snapshot, emptyList()))
+    }
+
+    @Test fun conUnaRispostaVuotaDiceCheNonCEniente() {
+        val snapshot = TonightWidgetSnapshot(loaded = true, updatedAt = 1_000L, lastAttemptAt = 1_000L)
+        assertEquals(TonightWidgetState.Empty, tonightWidgetState(snapshot, emptyList()))
+    }
+
+    @Test fun leDateInCacheBattonoUnAggiornamentoFallito() {
+        val voce = TonightWidgetEntry(1L, "Una sera", "21:00", "Un posto", "https://esempio", Long.MAX_VALUE)
+        val snapshot = TonightWidgetSnapshot(listOf(voce), updatedAt = 1_000L, loaded = true, lastAttemptAt = 9_000L)
+        assertEquals(TonightWidgetState.Entries, tonightWidgetState(snapshot, listOf(voce)))
+    }
 }

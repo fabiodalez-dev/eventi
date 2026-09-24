@@ -123,6 +123,10 @@ dependencies {
     implementation("androidx.navigation:navigation-compose:2.9.5")
     // Il widget della schermata iniziale: Compose per RemoteViews, niente XML a mano.
     implementation("androidx.glance:glance-appwidget:1.2.0")
+    /* Dichiarato e non lasciato arrivare da Glance: il widget ci pianifica
+       sopra il proprio giro di rete, e una dipendenza usata di proposito non
+       deve sparire il giorno in cui Glance cambia le sue. */
+    implementation("androidx.work:work-runtime-ktx:2.7.1")
     implementation("androidx.glance:glance-material3:1.2.0")
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
