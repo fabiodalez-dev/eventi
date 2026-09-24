@@ -2,8 +2,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
+import { CheckinQueue } from '../../resources/js/checkin-queue.js';
 
-const source = readFileSync(new URL('../../resources/js/ticketing.js', import.meta.url), 'utf8');
+const source = readFileSync(new URL('../../resources/js/ticketing.js', import.meta.url), 'utf8')
+    .replace("import { CheckinQueue } from './checkin-queue';", '');
 
 test('recovers a query typed before search listeners attach without repeating server-rendered searches', async () => {
     for (const [query, url, expected] of [
@@ -16,6 +18,7 @@ test('recovers a query typed before search listeners attach without repeating se
         const status = { textContent: '' };
         const form = { action: url, addEventListener() {} };
         vm.runInNewContext(source, {
+            CheckinQueue,
             document: {
                 querySelectorAll: selector => selector === '[data-ticket-search]' ? [form] : [],
                 querySelector: selector => selector === '[data-search-status]' ? status : { replaceWith() { replaced = true; } },
