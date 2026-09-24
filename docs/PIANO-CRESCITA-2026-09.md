@@ -8,7 +8,7 @@ Ogni blocco parte da ciò che esiste davvero nel repository al 24 settembre 2026
 
 Tutti gli otto blocchi sono stati realizzati nella stessa giornata, ognuno con i propri test. Quello che è cambiato rispetto a come erano stati pensati, e che vale la pena ricordare:
 
-- Il blocco 1 doveva rinunciare alla distanza reale. Non è stato necessario: accanto alla posizione cifrata ci sono ora le stesse coordinate arrotondate in due colonne interrogabili, e il raggio si calcola in SQL con il motore geografico che la home usava già.
+- Il blocco 1 doveva rinunciare alla distanza reale. Non è stato necessario: accanto alla posizione cifrata ci sono ora le stesse coordinate in due colonne interrogabili, e il raggio si calcola in SQL con il motore geografico che la home usava già. Su richiesta del proprietario le coordinate non sono più arrotondate a un chilometro ma precise come quelle dei locali, con l'informativa corretta nello stesso rilascio (`docs/DECISIONS.md`, 24/09).
 - Il blocco 6 era stato scritto come «lista d'attesa da completare» ed è diventato molto più piccolo di così: la coda funzionava già, mancavano la finestra di conferma e la posizione mostrata a chi aspetta.
 - Il blocco 7 è quasi tutto «mostrare ciò che c'era»: galleria e caratteristiche del locale erano compilabili e invisibili.
 - Il biglietto nel portafoglio resta spento finché non esistono le credenziali dell'emittente Google: il server dichiara la funzione assente e l'app non disegna il pulsante. Servono quattro variabili d'ambiente e due passaggi amministrativi, descritti nel blocco 8.
@@ -41,7 +41,7 @@ Trasversale a tutti: **i numeri di ritorno** (quante persone tornano entro sette
 
 **Decisioni di progetto.**
 
-- ~~**Niente distanza reale nella prima versione.**~~ **Superata.** Era motivata così: la posizione salvata è cifrata, arrotondata a circa un chilometro, scade dopo sei mesi e non è interrogabile in SQL, quindi filtrare per raggio avrebbe voluto dire decifrare riga per riga a ogni invio. La soluzione è stata scrivere lo stesso valore già arrotondato anche in due colonne interrogabili, con lo stesso ciclo di vita: il raggio si calcola in SQL e la distanza è reale dalla prima versione. Chi non ha dato la posizione riceve la serata della propria città.
+- ~~**Niente distanza reale nella prima versione.**~~ **Superata.** Era motivata così: la posizione salvata è cifrata, arrotondata a circa un chilometro, scade dopo sei mesi e non è interrogabile in SQL, quindi filtrare per raggio avrebbe voluto dire decifrare riga per riga a ogni invio. La soluzione è stata scrivere lo stesso valore anche in due colonne interrogabili, con lo stesso ciclo di vita: il raggio si calcola in SQL e la distanza è reale dalla prima versione. L'arrotondamento è caduto con la decisione del 24/09, perché una posizione spostata fino a un chilometro sbaglia proprio la domanda «è a piedi o no». Chi non ha dato la posizione riceve la serata della propria città, e ci ricade anche chi l'ha data lontano da lì.
 - **Conta nel tetto giornaliero** (`countsTowardDailyCap()` vero) e rispetta le ore di silenzio: è una notifica di iniziativa della piattaforma, esattamente ciò per cui quel tetto esiste.
 - **Attivazione esplicita**, spenta per chi non la sceglie, con orario (predefinito le 18) e giorni (predefiniti venerdì e sabato) modificabili.
 - **Nessun invio a vuoto:** sotto due proposte utili non parte niente, come fa già il digest quando non ha contenuto.

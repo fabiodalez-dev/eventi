@@ -11,14 +11,21 @@ it('requires explicit remembering consent and valid coordinates', function (): v
     $this->postJson('/posizione-ricordata', ['lat' => 91, 'lng' => 12, 'remember' => true])->assertUnprocessable();
 });
 
-it('remembers only one approximate encrypted location for six months', function (): void {
+/*
+ * Dal 24/09/2026 la posizione non è più arrotondata a due decimali: si
+ * conserva com'è, perché serve a calcolare una distanza (`docs/DECISIONS.md`).
+ * Quello che non cambia è il resto — una sola posizione, cifrata, sei mesi,
+ * cancellabile — ed è ciò che questo test continua a verificare.
+ */
+it('remembers only one encrypted location for six months', function (): void {
     $this->freezeTime();
     $user = User::factory()->create();
     $this->actingAs($user)->postJson('/posizione-ricordata', ['lat' => 45.406733, 'lng' => 11.876814, 'remember' => true])
-        ->assertOk()->assertJsonPath('data.lat', 45.41)->assertJsonPath('data.lng', 11.88)
+        ->assertOk()->assertJsonPath('data.lat', 45.406733)->assertJsonPath('data.lng', 11.876814)
         ->assertJsonPath('data.expires_at', now()->addMonthsNoOverflow(6)->timestamp)
         ->assertCookie(RememberedLocation::COOKIE);
-    expect(DB::table('users')->where('id', $user->id)->value('remembered_location'))->not->toContain('45.41');
+    // Cifrata: il valore non compare in chiaro nella colonna che lo contiene.
+    expect(DB::table('users')->where('id', $user->id)->value('remembered_location'))->not->toContain('45.406733');
     $this->postJson('/posizione-ricordata', ['lat' => 44, 'lng' => 10, 'remember' => true])->assertOk();
     expect($user->fresh()->remembered_location['lat'])->toEqual(44);
     expect($user->fresh()->toArray())->not->toHaveKey('remembered_location');

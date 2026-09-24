@@ -122,15 +122,15 @@ it('ignora una posizione scaduta e non la considera mai come vicinanza', functio
     expect(array_column($message->items, 'title'))->toContain('Lontana uno');
 });
 
-it('tiene le coordinate approssimate interrogabili accanto a quelle cifrate, e le cancella insieme', function (): void {
+it('tiene le coordinate interrogabili accanto a quelle cifrate, e le cancella insieme', function (): void {
     $user = User::factory()->create();
 
-    app(RememberedLocation::class)->save(45.40641234, 11.87689999, $user);
+    app(RememberedLocation::class)->save(45.4064123, 11.8768999, $user);
     $user->refresh();
 
-    // Due decimali: circa un chilometro, come il valore cifrato.
-    expect($user->location_lat)->toBe(45.41)->and($user->location_lng)->toBe(11.88)
-        ->and($user->remembered_location['lat'])->toBe(45.41);
+    // Lo stesso valore della colonna cifrata, con la precisione dei locali.
+    expect((float) $user->location_lat)->toBe(45.4064123)->and((float) $user->location_lng)->toBe(11.8768999)
+        ->and($user->remembered_location['lat'])->toBe(45.4064123);
 
     app(RememberedLocation::class)->forget($user);
     $user->refresh();

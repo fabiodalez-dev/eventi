@@ -363,8 +363,8 @@ final readonly class MessageFactory
      * la persona si trova di solito.
      *
      * «Vicino» qui ha un significato preciso e dichiarato: il raggio parte
-     * dalle coordinate approssimate che la persona ha acconsentito a salvare,
-     * arrotondate a circa un chilometro. Chi non le ha (o le ha lasciate
+     * dalle coordinate che la persona ha acconsentito a salvare,
+     * tenute in chiaro accanto a quelle cifrate. Chi non le ha (o le ha lasciate
      * scadere) riceve comunque la serata della sua città: meglio una proposta
      * cittadina che nessuna proposta.
      *

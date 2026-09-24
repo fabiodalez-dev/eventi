@@ -217,9 +217,11 @@ class PageSeeder extends Seeder
         ## Se usi «vicino a me»
 
         La posizione viene richiesta dopo il tuo gesto e il permesso del browser o del sistema operativo.
-        Se scegli «Usa e ricorda la mia posizione», conserviamo solo l'ultima posizione approssimata
-        (coordinate arrotondate a due decimali, circa un chilometro), cifrata nel cookie
+        Se scegli «Usa e ricorda la mia posizione», conserviamo solo l'ultima posizione,
+        con le coordinate che il dispositivo ci comunica, cifrata nel cookie
         `incitta_location` o nella memoria dell'app e, se accedi, nel tuo account.
+        Le coordinate non sono arrotondate: servono a calcolare la distanza da un locale,
+        e un'approssimazione di un chilometro sbaglierebbe proprio la domanda a cui la funzione risponde.
         La conservazione dura sei mesi dall'ultimo aggiornamento, senza cronologia e senza uso pubblicitario.
         Quando torni alla funzione, se hai già autorizzato la localizzazione e questa è disponibile,
         aggiorniamo automaticamente la posizione. Altrimenti usiamo quella ricordata; se manca o è scaduta,
