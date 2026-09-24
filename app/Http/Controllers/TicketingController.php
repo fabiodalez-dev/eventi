@@ -87,6 +87,19 @@ final class TicketingController extends Controller
             : redirect()->route($staff ? 'ticketing.manage.show' : 'tickets.show', $staff ? $booking->occurrence : $booking)->with('status', __('ticketing.mail.cancelled'));
     }
 
+    /**
+     * «Confermo il posto» di chi è stato promosso dalla lista d'attesa.
+     * Senza questo gesto il posto scade e torna a chi è in coda.
+     */
+    public function confirmPromotion(Request $request, Booking $booking, TicketingService $service): JsonResponse|RedirectResponse
+    {
+        Gate::authorize('view', $booking);
+        $booking = $service->confirmPromotion($booking, $request->user());
+
+        return $request->is('api/*') ? response()->json(['data' => BookingResource::toArray($booking)])
+            : back()->with('status', __('ticketing.promotion_confirmed'));
+    }
+
     public function pdf(Request $request, AdmissionTicket $ticket): Response
     {
         Gate::authorize('view', $ticket->booking);

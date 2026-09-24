@@ -23,6 +23,9 @@ use Laravel\Telescope\Telescope;
 use Spatie\ScheduleMonitor\Models\MonitoredScheduledTaskLogItem;
 
 Artisan::command('ticketing:promote', function (): void {
+    // Prima si liberano i posti promossi e mai confermati, poi si promuove:
+    // nell'ordine inverso la coda avanzerebbe un minuto dopo, e per niente.
+    app(TicketingService::class)->expirePromotions();
     app(TicketingService::class)->promoteWaitingLists();
 })->purpose('Promote waiting bookings when their reservation window is open');
 

@@ -14,6 +14,7 @@ use App\Models\Booking;
 use App\Models\EventOccurrence;
 use App\Models\User;
 use App\Notifications\BookingChanged;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -239,7 +240,7 @@ final class TicketingService
 
     private function promote(EventOccurrence $date): void
     {
-        if (! $this->isOpen($date)) {
+        if (! $this->isOpen($date) || ! $this->promotable($date)) {
             return;
         }
         while ($booking = Booking::query()->where('occurrence_id', $date->id)->where('status', BookingStatus::Waitlisted)->oldest('id')->first()) {
@@ -247,10 +248,94 @@ final class TicketingService
             if ($date->booking_capacity !== null && $this->occupied($date) + $count > $date->booking_capacity) {
                 break;
             }
-            $booking->update(['status' => BookingStatus::Confirmed]);
+            $booking->update(['status' => BookingStatus::Confirmed, 'promotion_expires_at' => $this->confirmBy($date)]);
             $booking->tickets()->where('status', AdmissionStatus::Waitlisted)->update(['status' => AdmissionStatus::Valid->value]);
             $this->notify($booking, 'promoted');
         }
+    }
+
+    /**
+     * A ridosso dell'inizio non si promuove più: il posto resta libero per chi
+     * si presenta, invece di essere assegnato a qualcuno che non farebbe in
+     * tempo nemmeno a leggere l'avviso.
+     */
+    private function promotable(EventOccurrence $date): bool
+    {
+        return now()->lt($date->starts_at->subHours(config()->integer('ticketing.promotion.min_hours_before')));
+    }
+
+    /** Entro quando confermare: mai oltre l'inizio della serata. */
+    private function confirmBy(EventOccurrence $date): CarbonImmutable
+    {
+        $deadline = CarbonImmutable::now()->addHours(config()->integer('ticketing.promotion.confirm_hours'));
+        $start = CarbonImmutable::parse($date->starts_at);
+
+        return $deadline->greaterThan($start) ? $start : $deadline;
+    }
+
+    /**
+     * La conferma di chi è stato promosso: il posto smette di avere una
+     * scadenza e diventa suo come ogni altra prenotazione.
+     */
+    public function confirmPromotion(Booking $booking, User $actor): Booking
+    {
+        return DB::transaction(function () use ($booking, $actor): Booking {
+            $booking = Booking::query()->lockForUpdate()->findOrFail($booking->id);
+            abort_unless($booking->user_id === $actor->id, 403);
+            $this->ensure($booking->status === BookingStatus::Confirmed && $booking->promotion_expires_at !== null, 'promotion_missing');
+            $this->ensure($booking->promotion_expires_at->isFuture(), 'promotion_expired');
+            $booking->update(['promotion_expires_at' => null]);
+            $this->audit($booking, 'promotion_confirmed', $actor);
+
+            return $booking;
+        }, 3);
+    }
+
+    /**
+     * I posti promossi e mai confermati tornano in circolo, e la coda avanza.
+     *
+     * Non è un annullamento qualunque: chi non conferma non ha rinunciato, ha
+     * solo taciuto. Il motivo registrato lo dice, così nel pannello si distingue
+     * da chi ha disdetto davvero.
+     */
+    public function expirePromotions(): int
+    {
+        $expired = 0;
+        $dates = Booking::query()->where('status', BookingStatus::Confirmed)
+            ->whereNotNull('promotion_expires_at')->where('promotion_expires_at', '<=', now())
+            ->select('occurrence_id')->distinct()->orderBy('occurrence_id')->pluck('occurrence_id');
+
+        foreach ($dates as $id) {
+            DB::transaction(function () use ($id, &$expired): void {
+                $date = EventOccurrence::withTrashed()->lockForUpdate()->find($id);
+                $bookings = Booking::query()->where('occurrence_id', $id)->where('status', BookingStatus::Confirmed)
+                    ->whereNotNull('promotion_expires_at')->where('promotion_expires_at', '<=', now())->lockForUpdate()->get();
+                foreach ($bookings as $booking) {
+                    $booking->tickets()->where('status', '!=', AdmissionStatus::Cancelled)
+                        ->update(['status' => AdmissionStatus::Cancelled->value, 'cancelled_at' => now()]);
+                    $booking->update(['status' => BookingStatus::Cancelled, 'cancelled_at' => now(),
+                        'promotion_expires_at' => null, 'cancellation_reason' => __('ticketing.errors.promotion_expired')]);
+                    $this->notify($booking, 'promotion_expired');
+                    $expired++;
+                }
+                if ($date !== null) {
+                    $this->promote($date);
+                }
+            }, 3);
+        }
+
+        return $expired;
+    }
+
+    /**
+     * Quanti gruppi ci sono davanti nella coda. È una posizione approssimata e
+     * va raccontata come tale: dipende da quanti posti chiede chi sta davanti,
+     * non solo da quante persone sono in fila.
+     */
+    public function queuePosition(Booking $booking): int
+    {
+        return Booking::query()->where('occurrence_id', $booking->occurrence_id)
+            ->where('status', BookingStatus::Waitlisted)->where('id', '<', $booking->id)->count() + 1;
     }
 
     private function occupied(EventOccurrence $date): int
