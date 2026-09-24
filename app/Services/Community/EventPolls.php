@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Community;
 
+use App\Models\CommunityProfile;
 use App\Models\EventOccurrence;
 use App\Models\EventPoll;
 use App\Models\EventPollOption;
@@ -169,7 +170,10 @@ final class EventPolls
             return __('polls.you');
         }
 
-        return $user->communityProfile?->display_name ?? __('community.member');
+        // Il profilo può non esserci: chi vota non deve per forza avere un profilo pubblico.
+        $profile = $user->communityProfile;
+
+        return $profile instanceof CommunityProfile ? $profile->display_name : __('community.member');
     }
 
     /**

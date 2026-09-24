@@ -4,6 +4,16 @@ Approvato da Fabio il 24 settembre 2026, come seguito della [relazione di prodot
 
 Ogni blocco parte da ciò che esiste davvero nel repository al 24 settembre 2026, verificato file per file. Dove una funzione risulta già presente è scritto: il rischio maggiore in questo progetto non è ricostruire da zero, è ricostruire ciò che c'è già.
 
+## Stato al 24 settembre 2026
+
+Tutti gli otto blocchi sono stati realizzati nella stessa giornata, ognuno con i propri test. Quello che è cambiato rispetto a come erano stati pensati, e che vale la pena ricordare:
+
+- Il blocco 1 doveva rinunciare alla distanza reale. Non è stato necessario: accanto alla posizione cifrata ci sono ora le stesse coordinate arrotondate in due colonne interrogabili, e il raggio si calcola in SQL con il motore geografico che la home usava già.
+- Il blocco 6 era stato scritto come «lista d'attesa da completare» ed è diventato molto più piccolo di così: la coda funzionava già, mancavano la finestra di conferma e la posizione mostrata a chi aspetta.
+- Il blocco 7 è quasi tutto «mostrare ciò che c'era»: galleria e caratteristiche del locale erano compilabili e invisibili.
+- Il biglietto nel portafoglio resta spento finché non esistono le credenziali dell'emittente Google: il server dichiara la funzione assente e l'app non disegna il pulsante. Servono quattro variabili d'ambiente e due passaggi amministrativi, descritti nel blocco 8.
+- Non verificato su dispositivo reale: il widget Android è coperto dai test della sua logica, non dalla prova su un telefono.
+
 ## Quadro d'insieme
 
 | # | Blocco | Per chi | Dimensione | Dipende da |

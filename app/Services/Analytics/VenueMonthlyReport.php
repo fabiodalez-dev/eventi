@@ -54,7 +54,7 @@ final class VenueMonthlyReport
      */
     public function totals(Venue $venue, CarbonImmutable $from, CarbonImmutable $until): array
     {
-        $timezone = $venue->city?->timezone ?? config()->string('app.timezone');
+        $timezone = $venue->city->timezone;
         $localFrom = $from->setTimezone($timezone)->startOfDay();
         $localUntil = $until->setTimezone($timezone)->endOfDay();
         $dates = [$localFrom->toDateString(), $localUntil->toDateString()];
