@@ -114,13 +114,15 @@ final class ShowcaseGrowthCommand extends Command
             return self::SUCCESS;
         }
 
-        return Cache::lock('showcase-growth:'.$city->id, 3600)->block(5, function () use ($city, $events, $people, $future): int {
+        $vetrina = $this->showcasePeople($people);
+
+        return Cache::lock('showcase-growth:'.$city->id, 3600)->block(5, function () use ($city, $events, $vetrina, $future): int {
             $this->seedPractical($future);
-            $this->seedAttendance($future, $people);
-            $this->seedPoll($events, $people);
+            $this->seedAttendance($future, $vetrina);
+            $this->seedPoll($events, $vetrina);
             $this->seedShares($events);
-            $this->seedTicketing($future, $people);
-            $this->seedPreferences($people);
+            $this->seedTicketing($future, $vetrina);
+            $this->seedPreferences($vetrina);
 
             $this->table(['Elemento', 'Creati ora', 'Totale'], array_map(
                 fn (string $label, array $row): array => [$label, $row[0], $row[1]],
@@ -144,6 +146,26 @@ final class ShowcaseGrowthCommand extends Command
     private function demoPeople(): Collection
     {
         return User::query()->where('email', 'like', '%@'.ShowcaseDemoCommand::EMAIL_DOMAIN)->orderBy('id')->get();
+    }
+
+    /**
+     * Le persone del catalogo della vetrina, non tutti gli account demo.
+     *
+     * Il dominio `.invalid` lo usano anche altri comandi dimostrativi, e i
+     * loro account non seguono nessuno: prendendo il primo che capita, la
+     * spinta della sera finiva su un profilo senza relazioni e i modi di
+     * seguire restavano a zero. Se il catalogo non è quello atteso — nei
+     * test, per esempio — si torna a tutte le persone demo.
+     *
+     * @param  Collection<int, User>  $people
+     * @return Collection<int, User>
+     */
+    private function showcasePeople(Collection $people): Collection
+    {
+        $catalogo = ShowcaseDemoCommand::emails(ShowcaseDemoCommand::catalog());
+        $scelte = $people->filter(fn (User $persona): bool => in_array($persona->email, $catalogo, true))->values();
+
+        return $scelte->count() >= 6 ? $scelte : $people;
     }
 
     /**
@@ -422,7 +444,10 @@ final class ShowcaseGrowthCommand extends Command
         }
 
         if (Booking::query()->where('occurrence_id', $date->getKey())->exists()) {
-            $this->report['Lista d’attesa'] = ['già presente', $this->ticketingSummary($date)];
+            // Anche quando la coda c'è già: una vetrina preparata ieri sera
+            // deve arrivare viva alla presentazione di oggi.
+            $this->extendPromotion($date);
+            $this->report['Lista d’attesa'] = ['già presente', $this->ticketingSummary($date->fresh())];
             $this->seedStaff($date, $people);
 
             return;
@@ -455,6 +480,7 @@ final class ShowcaseGrowthCommand extends Command
             // da sola, e chi entra si porta dietro la scadenza della conferma.
             $servizio->cancel($prenotazioni[0], $prenotanti[0], null, false, 'Vetrina: posto liberato per mostrare la coda');
 
+            $this->extendPromotion($date->fresh());
             $this->report['Lista d’attesa'] = ['creata', $this->ticketingSummary($date->fresh())];
         } catch (Throwable $errore) {
             $this->report['Lista d’attesa'] = ['non riuscita', $errore->getMessage()];
@@ -463,6 +489,25 @@ final class ShowcaseGrowthCommand extends Command
         }
 
         $this->seedStaff($date, $people);
+    }
+
+    /**
+     * La scadenza della conferma, spostata avanti quanto la data consente.
+     *
+     * La promozione nasce con la finestra vera, che è di poche ore: una
+     * vetrina preparata la sera arriverebbe al mattino con il posto già
+     * tornato in coda, e si mostrerebbe la scadenza invece del meccanismo.
+     * Il limite resta quello reale — non oltre il momento in cui le
+     * promozioni si fermano, prima dell'inizio — quindi è una data che il
+     * sistema avrebbe potuto scrivere da sé.
+     */
+    private function extendPromotion(EventOccurrence $date): void
+    {
+        $limite = $date->starts_at->subHours(config()->integer('ticketing.promotion.min_hours_before'));
+        $scadenza = CarbonImmutable::now()->addHours(48)->min($limite);
+
+        Booking::query()->where('occurrence_id', $date->getKey())->whereNotNull('promotion_expires_at')
+            ->where('promotion_expires_at', '<', $scadenza)->update(['promotion_expires_at' => $scadenza]);
     }
 
     private function ticketingSummary(EventOccurrence $date): string
