@@ -29,8 +29,11 @@ it('registers corrects validation errors saves the profile and logs in again', f
     $page->assertSee(__('account.register.done'));
     $user = User::query()->where('email', 'browser-auth@example.test')->sole();
     expect($user->hasRole('user'))->toBeTrue()->and($user->email_verified_at)->toBeNull();
-    $page->navigate('/il-mio-profilo')->fill('name', 'Anna aggiornata');
-    $page->page()->locator('form[action$="/il-mio-profilo"] button[type="submit"]:not(.bg-live)')->click(['timeout' => 5000]);
+    $page->navigate('/il-mio-profilo');
+    $page->page()->waitForLoadState();
+    $page->fill('name', 'Anna aggiornata');
+    $page->page()->locator('form:has(input[name="profile_only"]) button[type="submit"]')->click(['timeout' => 5000]);
+    $page->page()->waitForLoadState();
     $page->assertSee(__('account.profile.saved'));
     expect($user->fresh()->name)->toBe('Anna aggiornata')->and($user->fresh()->quiet_hours)->toBeNull();
     $page->page()->locator('[data-profile-logout] button[type="submit"]')->click(['timeout' => 5000]);

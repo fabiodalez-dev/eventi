@@ -130,3 +130,10 @@ it('migrates explicit legacy attendance without turning recommendations into par
     expect(DB::table('community_attendances')->orderBy('occurrence_id')->pluck('occurrence_id')->all())->toBe([$dates['attend'], $dates['explicit']]);
     expect(CommunityPost::count())->toBe(2);
 });
+
+it('refuses a schema rollback that would lose community activity', function (): void {
+    app(Community::class)->attendance($this->admin, $this->date, true);
+    $migration = require database_path('migrations/2026_09_25_190000_separate_community_attendance.php');
+    expect(fn () => $migration->down())->toThrow(RuntimeException::class);
+    $this->assertDatabaseCount('community_attendances', 1);
+});

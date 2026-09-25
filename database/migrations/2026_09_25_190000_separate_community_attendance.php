@@ -49,6 +49,18 @@ return new class extends Migration
 
     public function down(): void
     {
-        throw new RuntimeException('La separazione delle attività richiede il ripristino del backup del rilascio per tornare al modello precedente.');
+        // Su uno schema vuoto il reset è sicuro; con attività reali serve il backup.
+        if (DB::table('community_attendances')->exists() || DB::table('community_posts')->exists()) {
+            throw new RuntimeException('La separazione delle attività richiede il ripristino del backup del rilascio per tornare al modello precedente.');
+        }
+        Schema::table('community_posts', function (Blueprint $table): void {
+            $table->dropForeign(['saved_event_id']);
+            $table->dropUnique(['user_id', 'occurrence_id']);
+        });
+        Schema::table('community_posts', function (Blueprint $table): void {
+            $table->unsignedBigInteger('saved_event_id')->nullable(false)->change();
+            $table->foreign('saved_event_id')->references('id')->on('saved_events')->cascadeOnDelete();
+        });
+        Schema::dropIfExists('community_attendances');
     }
 };

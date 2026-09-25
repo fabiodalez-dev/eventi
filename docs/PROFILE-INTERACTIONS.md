@@ -68,7 +68,8 @@ utente/data. I vecchi handle vengono prenotati nel registro degli alias.
 
 Prima delle migrazioni il deploy ordinario esegue il backup remoto del database.
 La separazione delle intenzioni non è reversibile senza perdita di significato:
-`down` rifiuta la ricombinazione. Per tornare al modello precedente occorre
+`down` rifiuta la ricombinazione se esistono post o partecipazioni; su uno schema
+vuoto consente il reset completo. Per tornare al modello precedente occorre
 ripristinare insieme codice e backup del database, senza sovrascrivere attività
 nuove non ancora recuperate. Non eseguire un semplice rollback del codice dopo
 che sono state registrate attività con il nuovo modello.

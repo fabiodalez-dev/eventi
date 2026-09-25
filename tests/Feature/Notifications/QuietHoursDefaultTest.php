@@ -113,7 +113,7 @@ describe('la scelta si esprime dal profilo', function (): void {
 
         expect(QuietHours::formFor($user))->toBe(['from' => '23:00', 'to' => '08:00', 'off' => false]);
 
-        $this->actingAs($user)->get('/il-mio-profilo')
+        $this->actingAs($user)->get(route('account.notifications.preferences'))
             ->assertOk()
             ->assertSee('value="23:00"', escape: false)
             ->assertSee(__('account.profile.quiet_off'));
