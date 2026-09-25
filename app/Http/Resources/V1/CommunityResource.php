@@ -49,7 +49,7 @@ final class CommunityResource
             'author' => self::profile($author, $viewer, $followingIds),
             'occurrence' => OccurrenceResource::toArray($post->occurrence, $context),
             'is_own' => $post->user_id === $viewer?->id,
-            'can_comment' => $viewer?->isWhatsappVerified() && $viewer->communityProfile !== null];
+            'can_comment' => $viewer?->canParticipateInCommunity() && $viewer->communityProfile !== null];
     }
 
     /**

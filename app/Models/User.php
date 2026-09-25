@@ -99,6 +99,39 @@ class User extends Authenticatable implements FilamentUser, HasTenants, MustVeri
             && $this->whatsapp_phone_hash !== null && $this->community_suspended_at === null && $this->social_suspended_at === null && ! $this->trashed();
     }
 
+    /**
+     * Se questa persona può partecipare alla comunità, numero o non numero.
+     *
+     * **Non dice che il numero è verificato.** Quello resta
+     * `isWhatsappVerified()`, che è un fatto: il badge pubblico, l'esportazione
+     * dei dati, la pagina di verifica e l'API continuano a leggere quello, e
+     * dire il falso lì sarebbe un'altra cosa da esonerare qualcuno.
+     *
+     * **Chi amministra è esonerato.** Il numero serve a dimostrare che dietro
+     * un profilo pubblico c'è una persona raggiungibile, ed è una garanzia che
+     * per chi ha già le chiavi del pannello non aggiunge niente: la sua
+     * identità è nota, le sue azioni sono nel registro. Senza l'esonero
+     * l'amministratore non poteva nemmeno vedere le funzioni che deve
+     * sorvegliare — «Ci vado», i commenti, le recensioni — e le vedeva come non
+     * funzionanti, non come vietate. È la stessa scelta già fatta nei passaggi
+     * in auto (`CarpoolAccess`), con lo stesso insieme di ruoli.
+     *
+     * **Il resto delle condizioni resta**: email confermata, non sospeso, non
+     * cancellato. L'esonero riguarda la verifica del numero, non la sospensione
+     * di un account — e la sospensione di chi amministra è un caso che deve
+     * continuare a valere.
+     */
+    public function canParticipateInCommunity(): bool
+    {
+        if ($this->isWhatsappVerified()) {
+            return true;
+        }
+
+        return $this->hasAnyRole([UserRole::Admin->value, UserRole::SuperAdmin->value])
+            && $this->hasVerifiedEmail() && $this->community_suspended_at === null
+            && $this->social_suspended_at === null && ! $this->trashed();
+    }
+
     /** @return HasOne<CarpoolProfile, $this> */
     public function carpoolProfile(): HasOne
     {
