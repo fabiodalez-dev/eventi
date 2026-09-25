@@ -49,10 +49,22 @@ it('non finge che il numero sia verificato', function (): void {
 });
 
 it('mostra all’amministratore il pulsante «Ci vado», non l’invito a verificare', function (): void {
-    $this->actingAs($this->admin)->get(EventUrl::occurrence($this->occurrence))->assertOk()
+    /* Il profilo pubblico serve comunque — vedi il test seguente — quindi
+       l'amministratore appena creato viene mandato a crearlo. Ciò che conta qui
+       è che non gli si chieda più di verificare un numero. */
+    app(Community::class)->profile($this->admin, ['handle' => 'chi-vede-il-pulsante',
+        'display_name' => 'Chi vede il pulsante', 'city_id' => $this->city->getKey(), 'visibility' => ProfileVisibility::Public->value]);
+
+    $this->actingAs($this->admin->fresh())->get(EventUrl::occurrence($this->occurrence))->assertOk()
         ->assertSee(__('community.attendance.going'))
         ->assertDontSee(__('community.attendance.verify_to_go'))
         ->assertDontSee(__('community.attendance.join'));
+});
+
+it('manda l’amministratore senza profilo a crearlo, non in un vicolo cieco', function (): void {
+    $this->actingAs($this->admin)->get(EventUrl::occurrence($this->occurrence))->assertOk()
+        ->assertSee(__('community.attendance.profile_to_go'))
+        ->assertDontSee(__('community.attendance.verify_to_go'));
 });
 
 it('lascia all’amministratore la dichiarazione «ci vado» e il passo indietro', function (): void {
