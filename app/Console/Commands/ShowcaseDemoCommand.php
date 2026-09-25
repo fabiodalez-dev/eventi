@@ -556,6 +556,14 @@ final class ShowcaseDemoCommand extends Command
             $at = CarbonImmutable::now()->subHours(3 + ($index * 7) % 90);
             $saved = SavedEvent::query()->firstOrCreate(['user_id' => $user->id, 'occurrence_id' => $occurrence->id]);
             $saved->forceFill(['visibility' => SavedVisibility::Public])->save();
+            /* «Parteciperò» è un post, ma dice anche che quella persona ci va:
+               dal modello separato la partecipazione è una riga sua, e senza
+               questa la vetrina mostrerebbe il trafiletto e non il nome fra chi
+               ci va. Un consiglio invece resta solo un consiglio. */
+            if ($intent === PostIntent::Attend->value) {
+                DB::table('community_attendances')->insertOrIgnore(['user_id' => $user->id, 'occurrence_id' => $occurrence->id,
+                    'created_at' => $at, 'updated_at' => $at]);
+            }
             $post = CommunityPost::query()->firstOrNew(['saved_event_id' => $saved->id]);
             if (! $post->exists) {
                 $post->forceFill(['user_id' => $user->id, 'occurrence_id' => $occurrence->id, 'body' => $body, 'intent' => PostIntent::from($intent),

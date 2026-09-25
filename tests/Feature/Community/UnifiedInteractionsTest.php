@@ -7,6 +7,7 @@ use App\Actions\Account\SaveOccurrences;
 use App\Enums\ProfileVisibility;
 use App\Enums\UserRole;
 use App\Models\CommunityPost;
+use App\Models\SavedEvent;
 use App\Models\User;
 use App\Services\Community\Community;
 use App\Services\Community\CommunityAccess;
@@ -112,22 +113,32 @@ it('never changes notification preferences when saving account identity only', f
     expect($this->admin->fresh()->only(array_keys($before)))->toEqual($before);
 });
 
+/*
+ * Il criterio del backfill, caso per caso.
+ *
+ * `silenzioso` è il caso che conta e che prima si perdeva: pubblico, nessun
+ * post, nessuna riga di registro. È la firma del vecchio «Ci vado», che non
+ * creava post e scriveva nel registro solo da questa modifica in avanti — in
+ * produzione sono 103 salvataggi su 140, e fermarsi ai post ne avrebbe migrati
+ * 21 su 124.
+ */
 it('migrates explicit legacy attendance without turning recommendations into participation', function (): void {
     $migration = require database_path('migrations/2026_09_25_190000_separate_community_attendance.php');
-    foreach (['recommend', 'attend', 'explicit', 'private'] as $kind) {
+    foreach (['recommend', 'attend', 'explicit', 'silenzioso', 'private'] as $kind) {
         $date = occurrenceAtLocal($this->city, $this->category, '2026-09-26 21:00', '2026-09-26 23:00');
         $saved = app(SaveOccurrences::class)->one($this->admin, $date);
         $saved->forceFill(['visibility' => $kind === 'private' ? 'private' : 'public'])->save();
         if (in_array($kind, ['recommend', 'attend'])) {
             CommunityPost::create(['user_id' => $this->admin->id, 'saved_event_id' => $saved->id, 'occurrence_id' => $date->id, 'intent' => $kind, 'status' => 'published', 'published_at' => now()]);
-        } else {
+        } elseif ($kind === 'explicit') {
             activity('community')->causedBy($this->admin)->performedOn($date)->withProperties(['saved_event_id' => $saved->id])->event('attendance_public')->log('attendance_public');
         }
         $dates[$kind] = $date->id;
     }
     $migration->backfill();
     $migration->backfill();
-    expect(DB::table('community_attendances')->orderBy('occurrence_id')->pluck('occurrence_id')->all())->toBe([$dates['attend'], $dates['explicit']]);
+    expect(DB::table('community_attendances')->orderBy('occurrence_id')->pluck('occurrence_id')->all())
+        ->toBe([$dates['attend'], $dates['explicit'], $dates['silenzioso']]);
     expect(CommunityPost::count())->toBe(2);
 });
 
@@ -136,4 +147,33 @@ it('refuses a schema rollback that would lose community activity', function (): 
     $migration = require database_path('migrations/2026_09_25_190000_separate_community_attendance.php');
     expect(fn () => $migration->down())->toThrow(RuntimeException::class);
     $this->assertDatabaseCount('community_attendances', 1);
+});
+
+/*
+ * La riparazione delle partecipazioni non riconosciute.
+ *
+ * La separazione è stata rilasciata con un criterio che si fermava ai post: in
+ * produzione ha migrato 21 gesti su 124, perché il vecchio «Ci vado» non creava
+ * post. Questa migrazione recupera i mancanti dai salvataggi, che erano intatti.
+ */
+it('recupera le partecipazioni non riconosciute senza toccare i consigli', function (): void {
+    $silenzioso = occurrenceAtLocal($this->city, $this->category, '2026-09-27 21:00', '2026-09-27 23:00');
+    $consigliato = occurrenceAtLocal($this->city, $this->category, '2026-09-28 21:00', '2026-09-28 23:00');
+
+    foreach ([$silenzioso, $consigliato] as $date) {
+        app(SaveOccurrences::class)->one($this->admin, $date)->forceFill(['visibility' => 'public'])->save();
+    }
+    $salvato = SavedEvent::query()->where('occurrence_id', $consigliato->id)->sole();
+    CommunityPost::create(['user_id' => $this->admin->id, 'saved_event_id' => $salvato->id, 'occurrence_id' => $consigliato->id,
+        'intent' => 'recommend', 'status' => 'published', 'published_at' => now()]);
+
+    // Lo stato in cui il rilascio ha lasciato la produzione: nessuna delle due.
+    DB::table('community_attendances')->delete();
+
+    $riparazione = require database_path('migrations/2026_09_25_200000_repair_legacy_attendance.php');
+    $riparazione->up();
+    // Ripetibile: una seconda esecuzione non duplica niente.
+    $riparazione->up();
+
+    expect(DB::table('community_attendances')->pluck('occurrence_id')->all())->toBe([$silenzioso->id]);
 });

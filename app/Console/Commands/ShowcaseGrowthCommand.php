@@ -315,10 +315,17 @@ final class ShowcaseGrowthCommand extends Command
     }
 
     /**
-     * «Ci vado»: i salvataggi pubblici.
+     * «Ci vado»: le righe in `community_attendances`.
      *
-     * Il contatore e i nomi vengono da lì — `visibility` non è un campo
-     * riempibile, e si scrive come fa la vetrina, con `forceFill`.
+     * Prima questo comando rendeva pubblico il salvataggio, perché nel vecchio
+     * modello era quello a significare «ci vado». Da quando partecipazione,
+     * salvataggio e consiglio sono tre cose distinte, un salvataggio pubblico
+     * non dice più niente sul parteciparvi: i nomi e il contatore delle schede
+     * escono da `community_attendances`, e un comando fermo al vecchio modello
+     * avrebbe seminato una vetrina con zero partecipazioni.
+     *
+     * Dire «ci vado» salva comunque la data, come fa `attendance()`: il
+     * salvataggio resta, privato, e non è lui a rendere pubblico niente.
      *
      * @param  Collection<int, EventOccurrence>  $dates
      * @param  Collection<int, User>  $people
@@ -340,21 +347,19 @@ final class ShowcaseGrowthCommand extends Command
             }
 
             foreach ($gruppo as $persona) {
-                $salvataggio = SavedEvent::query()->firstOrCreate([
+                SavedEvent::query()->firstOrCreate([
                     'user_id' => $persona->getKey(), 'occurrence_id' => $date->getKey(),
                 ]);
 
-                if ($salvataggio->visibility === SavedVisibility::Public) {
-                    continue;
-                }
-
-                $salvataggio->forceFill(['visibility' => SavedVisibility::Public])->save();
-                $creati++;
+                $creati += DB::table('community_attendances')->insertOrIgnore([
+                    'user_id' => $persona->getKey(), 'occurrence_id' => $date->getKey(),
+                    'created_at' => now(), 'updated_at' => now(),
+                ]);
             }
         }
 
-        $this->report['«Ci vado» pubblici'] = [$creati, SavedEvent::query()->whereIn('user_id', $people->modelKeys())
-            ->where('visibility', SavedVisibility::Public->value)->count()];
+        $this->report['«Ci vado»'] = [$creati, DB::table('community_attendances')
+            ->whereIn('user_id', $people->modelKeys())->count()];
     }
 
     /**
@@ -815,8 +820,11 @@ final class ShowcaseGrowthCommand extends Command
         $condivisioni = DB::table('event_share_daily')
             ->whereIn('share_link_id', EventShareLink::query()->whereIn('event_id', $events->modelKeys())->select('id'))->delete();
 
-        $pubblici = SavedEvent::query()->whereIn('user_id', $people->modelKeys())
-            ->whereIn('occurrence_id', $date->modelKeys())->where('visibility', SavedVisibility::Public->value)->count();
+        /* Le partecipazioni si cancellano; i salvataggi pubblici si riportano
+           privati perché possono venire da una semina precedente al modello
+           separato, quando «ci vado» si scriveva così. */
+        $pubblici = DB::table('community_attendances')->whereIn('user_id', $people->modelKeys())
+            ->whereIn('occurrence_id', $date->modelKeys())->delete();
         SavedEvent::query()->whereIn('user_id', $people->modelKeys())
             ->whereIn('occurrence_id', $date->modelKeys())->where('visibility', SavedVisibility::Public->value)
             ->update(['visibility' => SavedVisibility::Private->value]);
@@ -859,7 +867,7 @@ final class ShowcaseGrowthCommand extends Command
             ['Commenti e risposte', $commenti],
             ['Sondaggi', $sondaggi->count()],
             ['Giorni di condivisioni', $condivisioni],
-            ['«Ci vado» riportati a privati', $pubblici],
+            ['«Ci vado» rimossi', $pubblici],
             ['Date ripulite da informazioni e costi', $pratiche],
         ]);
         $this->info('Le funzioni sono state tolte. La vetrina resta: per rimuovere anche quella, demo:showcase --purge.');
