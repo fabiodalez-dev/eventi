@@ -54,7 +54,26 @@ it('refreshes the saved panel and its count after removing a guest save', functi
     $page->script('window.scrollTo(0, 0)');
     $page->assertVisible('[data-saved-opener]')->click('[data-saved-opener]')
         ->assertVisible('[data-saved-dialog] [data-saved-row="'.$occurrence->id.'"]');
-    $page->page()->locator('[data-saved-dialog] [data-save-button]')->click(['timeout' => 5000]);
+    /*
+     * La riga visibile NON vuol dire che la finestra abbia finito.
+     *
+     * Il corpo della finestra si riempie due volte: una al primo disegno della
+     * pagina e una all'apertura, e ogni caricamento **sostituisce tutti i
+     * nodi** (`corpo.replaceChildren`). Quando la riga compare, il secondo
+     * caricamento è spesso ancora in volo: misurato, `data-loading` valeva
+     * ancora `1` a riga visibile. Se la sostituzione arriva mentre Playwright
+     * sta verificando che il pulsante sia cliccabile, il nodo si stacca, il
+     * click riparte da capo, e su una macchina carica cinque secondi non
+     * bastano — è così che questo test ha fatto cadere il job browser tre
+     * volte su otto corse, sempre qui.
+     *
+     * Si aspetta il segnale che la pagina dà già da sé: `data-loading` sparisce
+     * quando il caricamento è finito. Con l'attesa, le sostituzioni del corpo
+     * durante il click passano da una a zero — misurato anche questo. Il tempo
+     * più lungo resta come seconda difesa, non come rimedio.
+     */
+    $page->assertPresent('[data-saved-dialog-body]:not([data-loading])');
+    $page->page()->locator('[data-saved-dialog] [data-save-button]')->click(['timeout' => 15000]);
     $page->assertSee(__('account.saved.empty_title'))
         ->assertNoJavascriptErrors();
     expect($page->script('document.querySelector("[data-saved-opener-count]").textContent'))->toBe('0');
