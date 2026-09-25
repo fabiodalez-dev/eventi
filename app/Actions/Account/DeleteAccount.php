@@ -6,6 +6,7 @@ namespace App\Actions\Account;
 
 use App\Enums\NotificationStatus;
 use App\Models\CommunityComment;
+use App\Models\CommunityPost;
 use App\Models\ScheduledNotification;
 use App\Models\User;
 use App\Models\UserBlock;
@@ -45,6 +46,8 @@ final class DeleteAccount
                 ->where('status', NotificationStatus::Pending->value)
                 ->update(['status' => NotificationStatus::Cancelled->value]);
 
+            CommunityPost::query()->where('user_id', $user->id)->delete();
+            DB::table('community_attendances')->where('user_id', $user->id)->delete();
             CommunityComment::query()->where('user_id', $user->id)->delete();
             $user->communityProfile?->delete();
             WhatsappChallenge::query()->where('user_id', $user->id)->delete();

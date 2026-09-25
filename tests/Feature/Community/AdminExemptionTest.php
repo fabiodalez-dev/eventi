@@ -77,9 +77,12 @@ it('lascia all’amministratore la dichiarazione «ci vado» e il passo indietro
     app(Community::class)->attendance($this->admin->fresh(), $this->occurrence, true);
 
     $this->assertDatabaseHas('saved_events', ['user_id' => $this->admin->getKey(),
-        'occurrence_id' => $this->occurrence->getKey(), 'visibility' => 'public']);
+        'occurrence_id' => $this->occurrence->getKey(), 'visibility' => 'private']);
+
+    $this->assertDatabaseHas('community_attendances', ['user_id' => $this->admin->id, 'occurrence_id' => $this->occurrence->id]);
 
     app(Community::class)->attendance($this->admin->fresh(), $this->occurrence, false);
+    $this->assertDatabaseMissing('community_attendances', ['user_id' => $this->admin->id, 'occurrence_id' => $this->occurrence->id]);
 
     $this->assertDatabaseHas('saved_events', ['user_id' => $this->admin->getKey(),
         'occurrence_id' => $this->occurrence->getKey(), 'visibility' => 'private']);

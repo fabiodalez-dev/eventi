@@ -13,6 +13,7 @@ use App\Http\Requests\Community\WhatsappConfirmRequest;
 use App\Http\Requests\Community\WhatsappRequest;
 use App\Http\Requests\Web\Account\AuthEntryRequest;
 use App\Models\WhatsappChallenge;
+use App\Services\Community\CommunityAccess;
 use App\Services\Community\KapsoClient;
 use App\Services\Community\WhatsappVerification;
 use App\Support\Api\ApiResponse;
@@ -28,7 +29,7 @@ final class WhatsappController extends Controller
         if ($request->hasSession()) {
             $request->rememberDestination();
         }
-        $data = ['available' => $client->available(), 'autofill_available' => $client->autofillAvailable(), 'verified' => $request->user()->isWhatsappVerified(),
+        $data = ['exempt' => $request->user()->isWhatsappExempt(), 'access' => app(CommunityAccess::class)->state($request->user()), 'available' => $client->available(), 'autofill_available' => $client->autofillAvailable(), 'verified' => $request->user()->isWhatsappVerified(),
             'challenge_id' => WhatsappChallenge::query()->where('user_id', $request->user()->id)->where('status', WhatsappChallengeStatus::Sent)->whereNull('consumed_at')->where('expires_at', '>', now())->orderByDesc('created_at')->value('id')];
         if ($request->expectsJson()) {
             return ApiResponse::item($data);

@@ -35,7 +35,7 @@
     $etichetta = $label ?? __('account.follow.'.$tipo->value);
     $etichettaAttiva = $labelFollowing ?? __('account.follow.following');
 
-    $base = 'px-4 py-2.5 font-display text-[0.688rem] leading-none font-extrabold tracking-[0.14em] uppercase border-2 transition-colors';
+    $base = 'ui-action inline-flex min-h-12 items-center px-4 py-2.5 font-display text-[0.688rem] leading-none font-extrabold tracking-[0.14em] uppercase border-2 transition-colors';
 @endphp
 
 @guest

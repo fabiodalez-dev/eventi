@@ -1,24 +1,4 @@
-{{--
-    Il profilo (§15.2) con le preferenze di notifica (§15.4) e i due diritti
-    che gli stanno accanto (§15.9): scaricare i propri dati e cancellare
-    l'account.
-
-    Gli avvisi di annullamento non hanno un interruttore, e la pagina dice
-    perché: §15.4 li dichiara «attivi, non disattivabili». Un interruttore che
-    il server ignora è peggio di nessun interruttore.
---}}
 @php
-    $preferences = $user->notificationPreferences();
-    /* Le ore che valgono davvero: le proprie, oppure la finestra predefinita
-       di chi non ha ancora scelto (D36). Mostrare i campi vuoti a chi non ha
-       scelto racconterebbe un silenzio che non c'è. */
-    $quiet = \App\DTOs\QuietHours::formFor($user);
-    /* Le lingue davvero disponibili (`config/account.php`). Finché è una sola,
-       il menu non si disegna: una tendina con un'unica voce non è una scelta,
-       è un campo obbligatorio in più da attraversare. Il valore viaggia lo
-       stesso in un campo nascosto, perché la validazione lo pretende — ed è
-       anche ciò che riporta in riga chi aveva salvato una lingua che nel
-       frattempo è stata ritirata. */
     $locales = collect(config('account.locales'))->mapWithKeys(fn (string $code) => [$code => strtoupper($code)])->all();
     $soloUnaLingua = count($locales) < 2;
     $linguaScelta = array_key_exists($user->locale, $locales) ? $user->locale : (string) array_key_first($locales);
@@ -39,41 +19,49 @@
             @endunless
         </header>
 
-        <nav aria-label="Area personale" class="divide-y divide-line border-y border-line">
-            @foreach ([
-                ['community.feed', 'heroicon-o-users', __('community.nav'), __('community.lead')],
-                ['community.whatsapp', 'heroicon-o-check-badge', __('community.whatsapp.title'), __('community.whatsapp.lead')],
-                ['community.inbox', 'heroicon-o-bell', __('community.inbox'), __('community.followers')],
-                ['tickets.index', 'heroicon-o-ticket', 'I miei biglietti', 'Prenotazioni, QR e ingressi'],
-                ['account.content-preferences', 'heroicon-o-heart', 'I miei interessi', 'Scegli cosa vedere e ricevere nella newsletter'],
-                ['account.notifications', 'heroicon-o-bell', 'Notifiche e newsletter', 'Canali, orari e ore di silenzio'],
-                ['account.saved', 'heroicon-o-bookmark', 'I miei salvataggi', 'Ritrova gli eventi da non perdere'],
-                ['google-calendar.index', 'heroicon-o-calendar-days', 'Il mio calendario', 'Collega e gestisci Google Calendar'],
-            ] as [$destination, $icon, $label, $description])
-                @continue(! config('community.enabled') && str_starts_with($destination, 'community.'))
-                <a href="{{ route($destination) }}" class="flex min-h-16 items-center gap-3 py-4 hover:text-brand">
-                    <x-dynamic-component :component="$icon" class="size-6 shrink-0" width="24" height="24" aria-hidden="true" />
-                    <span class="min-w-0 flex-1"><span class="block font-semibold">{{ $label }}</span><span class="mt-1 block text-sm text-ink-muted">{{ $description }}</span></span>
-                    <span aria-hidden="true" class="shrink-0">→</span>
-                </a>
-            @endforeach
-        </nav>
+        @if(config('community.enabled'))
+            @php($publicProfile = $user->communityProfile)
+            <section class="space-y-3 border-y border-line py-5" aria-labelledby="public-profile">
+                <h2 id="public-profile" class="text-section">{{ __('community.settings') }}</h2>
+                <p class="text-sm text-ink-muted">{{ __('community.account_identity_help') }}</p>
+                @if($publicProfile)<p>{{ $publicProfile->display_name }} · {{ '@'.$publicProfile->handle }} · {{ __('community.profile_visibility.'.$publicProfile->visibility->value) }}</p>@endif
+                <div class="flex flex-wrap gap-3">
+                    <x-button :href="route('community.settings')">{{ __($publicProfile ? 'community.edit_profile' : 'community.create_profile') }}</x-button>
+                    @if($publicProfile)<x-button variant="secondary" :href="route('community.profile', $publicProfile->handle)">{{ __('community.visit_profile') }}</x-button>@endif
+                </div>
+            </section>
+        @endif
+        @foreach([
+            'activities' => [['account.saved','saved'], ['tickets.index','tickets'], ['account.feed','feed']],
+            'people_group' => [['community.feed','community'], ['community.people','people'], ['community.followers','relationships'], ['community.inbox','inbox']],
+            'preferences' => [['account.content-preferences','interests'], ['account.notifications','notifications'], ['google-calendar.index','calendar'], ['community.whatsapp','verification']]
+        ] as $group => $items)
+            <section aria-labelledby="area-{{ $group }}">
+                <h2 id="area-{{ $group }}" class="text-section">{{ __('community.area.'.$group) }}</h2>
+                <nav class="mt-3 divide-y divide-line border-y border-line" aria-label="{{ __('community.area.'.$group) }}">
+                    @foreach($items as [$destination, $label])
+                        @continue(!config('community.enabled') && str_starts_with($destination, 'community.'))
+                        <a href="{{ route($destination) }}" class="flex min-h-14 items-center justify-between gap-3 py-3 font-semibold hover:text-brand"><span>{{ __('community.area.'.$label) }}</span><span aria-hidden="true">→</span></a>
+                    @endforeach
+                </nav>
+            </section>
+        @endforeach
         @if(config('carpool.enabled'))
         <section class="space-y-4 border-y border-line py-6" aria-labelledby="profile-carpool"><h2 id="profile-carpool" class="text-section">{{ __('carpool.title') }}</h2>
             {{-- Chi non ha i requisiti lo scopre qui, prima di arrivare al modulo di un passaggio: il pulsante porta al passo che manca. --}}
             @php($carpoolAccess = app(\App\Services\Carpool\CarpoolAccess::class)->state(auth()->user()))
             @unless($carpoolAccess['eligible'])
                 @php($carpoolStep = match ($carpoolAccess['reason']) { 'email' => route('verification.notice'), 'whatsapp' => config('community.enabled') ? route('community.whatsapp') : route('carpool.requirements'), 'suspended' => route('carpool.cases'), default => route('carpool.requirements') })
-                <div role="status" class="flex flex-col gap-3 border-l-4 border-accent bg-surface p-4 sm:flex-row sm:items-center sm:justify-between" data-carpool-requirements-warning="{{ $carpoolAccess['reason'] }}">
+                <div role="status" class="flex flex-col gap-3 border border-line bg-surface p-4 sm:flex-row sm:items-center sm:justify-between" data-carpool-requirements-warning="{{ $carpoolAccess['reason'] }}">
                     <p class="text-sm"><strong class="block font-semibold">{{ __('carpool.profile_blocked.title') }}</strong><span class="mt-1 block text-ink-muted">{{ __('carpool.profile_blocked.'.$carpoolAccess['reason']) }}</span></p>
                     <x-button :href="$carpoolStep">{{ __($carpoolAccess['reason'] === 'suspended' ? 'carpool.support' : 'carpool.profile_blocked.action') }}</x-button>
                 </div>
             @endunless<div class="flex flex-wrap gap-4">@foreach(['carpool.index' => 'mine', 'carpool.chats' => 'messages', 'carpool.requirements' => 'requirements'] as $destination => $label)<x-button variant="secondary" :href="route($destination)">{{ __('carpool.'.$label) }}</x-button>@endforeach</div></section>
         @endif
-        <section aria-labelledby="profile-appearance">
-            <h2 id="profile-appearance" class="text-section">Aspetto</h2>
+        <details class="border-y border-line py-4">
+            <summary class="min-h-12 cursor-pointer content-center font-semibold">{{ __('community.appearance') }}</summary>
             <x-appearance-picker />
-        </section>
+        </details>
         @if(auth()->user()->managedOrganizers()->exists())
             <x-button :href="url('/organizza')" variant="secondary">Gestisci i tuoi organizzatori</x-button>
         @endif
@@ -87,13 +75,12 @@
             <x-button :href="route('ticketing.manage.index')" variant="secondary">{{ __('ticketing.manage') }}</x-button>
         @endif
         @if ($errors->any())<p role="alert" class="text-sm">{{ $errors->first() }}</p>@endif
-        <form method="POST" action="{{ route('account.logout') }}" data-profile-logout>
-            @csrf
-            <button type="submit" class="min-h-11 border-2 border-line px-4 py-2 font-semibold text-ink hover:border-brand">{{ __('account.nav.logout') }}</button>
-        </form>
+
         <form method="POST" action="{{ route('account.profile.update') }}" class="flex flex-col gap-6">
             @csrf
             @method('PATCH')
+            <input type="hidden" name="profile_only" value="1">
+            <h2 class="text-section">{{ __('community.account_details') }}</h2>
 
             <section class="flex flex-col gap-4">
                 <x-field name="name" :label="__('account.profile.name')" :value="$user->name" autocomplete="name" />
@@ -111,114 +98,14 @@
                 @endif
             </section>
 
-            <section aria-labelledby="preferenze" class="flex flex-col gap-4 bg-surface p-card">
-                <h2 id="preferenze" class="font-display text-[clamp(1.25rem,1.8vw,1.75rem)] leading-none font-extrabold tracking-[-0.03em] uppercase">{{ __('account.profile.notifications_title') }}</h2>
-                <p class="text-sm text-ink-muted">{{ __('account.profile.notifications_lead') }}</p>
-
-                <label class="flex items-center gap-2.5 text-sm text-ink">
-                    <input type="checkbox" name="reminders" value="1" class="size-4 rounded border-line" @checked($preferences->reminders)>
-                    {{ __('account.profile.reminders') }}
-                </label>
-
-                <label class="flex items-center gap-2.5 text-sm text-ink">
-                    <input type="checkbox" name="sold_out" value="1" class="size-4 rounded border-line" @checked($preferences->soldOut)>
-                    {{ __('account.profile.sold_out') }}
-                </label>
-<label class="flex items-center gap-2.5 text-sm text-ink">
-                    <input type="checkbox" name="comments" value="1" class="size-4 rounded border-line" @checked($preferences->comments)>
-                    {{ __('comments.preference') }}
-                </label>
-
-                <label class="flex items-center gap-2.5 text-sm text-ink">
-                    <input type="checkbox" name="venue_digest" value="1" class="size-4 rounded border-line" @checked($preferences->venueDigest)>
-                    {{ __('account.profile.venue_digest') }}
-                </label>
-
-                <label class="flex items-center gap-2.5 text-sm text-ink">
-                    <input type="checkbox" name="daily_digest" value="1" class="size-4 rounded border-line" @checked($preferences->dailyDigest)>
-                    {{ __('account.profile.daily_digest') }}
-                </label>
-
-                <x-field
-                    name="daily_digest_time"
-                    type="time"
-                    :label="__('account.profile.daily_digest')"
-                    :value="$user->daily_digest_time"
-                />
-
-                @if ($user->venues()->exists())
-                    <label class="flex items-center gap-2.5 text-sm text-ink">
-                        <input type="checkbox" name="venue_report" value="1" class="size-4 rounded border-line" @checked($preferences->venueReport)>
-                        {{ __('account.profile.venue_report') }}
-                    </label>
-                @endif
-
-                {{--
-                    La proposta della sera: l'interruttore da solo non basta,
-                    perché «quando» fa parte della proposta quanto «cosa». Ora
-                    e giorni stanno quindi dentro lo stesso riquadro, e
-                    restano leggibili anche da spenti: chi la accende vede
-                    subito che cosa ha acceso, senza un secondo giro.
-                --}}
-                <fieldset class="flex flex-col gap-3 border-t border-line pt-5">
-                    <legend class="sr-only">{{ __('account.profile.tonight') }}</legend>
-
-                    <label class="flex items-start gap-2.5 text-sm text-ink">
-                        <input type="checkbox" name="tonight" value="1" class="mt-0.5 size-4 rounded border-line" @checked($preferences->tonight)>
-                        <span class="font-semibold">{{ __('account.profile.tonight') }}</span>
-                    </label>
-
-                    <p class="text-xs text-ink-subtle">{{ __('account.profile.tonight_hint') }}</p>
-
-                    <div class="flex flex-wrap items-end gap-3">
-                        <x-field name="tonight_time" type="time" :label="__('account.profile.tonight_time')" :value="$preferences->tonightTime" />
-                    </div>
-
-                    <div class="flex flex-col gap-2">
-                        <span class="text-sm text-ink">{{ __('account.profile.tonight_days') }}</span>
-                        <div class="flex flex-wrap gap-x-4 gap-y-2">
-                            @foreach (__('account.profile.weekdays') as $number => $weekday)
-                                <label class="flex items-center gap-2 text-sm text-ink">
-                                    <input type="checkbox" name="tonight_days[]" value="{{ $number }}" class="size-4 rounded border-line" @checked(in_array((int) $number, $preferences->tonightDays, true))>
-                                    {{ $weekday }}
-                                </label>
-                            @endforeach
-                        </div>
-
-                        @error('tonight_days')
-                            <p class="text-xs font-semibold text-live">{{ $message }}</p>
-                        @enderror
-                    </div>
-                </fieldset>
-
-                <fieldset class="flex flex-col gap-2">
-                    <legend class="text-sm font-semibold text-ink">{{ __('account.profile.quiet_hours') }}</legend>
-                    <p class="text-xs text-ink-subtle">{{ __('account.profile.quiet_hours_hint') }}</p>
-
-                    <div class="flex flex-wrap items-end gap-3">
-                        <x-field name="quiet_from" type="time" :label="__('account.profile.quiet_from')" :value="$quiet['from']" />
-                        <x-field name="quiet_to" type="time" :label="__('account.profile.quiet_to')" :value="$quiet['to']" />
-                    </div>
-
-                    <label class="flex items-center gap-2.5 text-sm text-ink">
-                        <input type="checkbox" name="quiet_off" value="1" class="size-4 rounded border-line" @checked(old('quiet_off', $quiet['off']))>
-                        {{ __('account.profile.quiet_off') }}
-                    </label>
-                </fieldset>
-
-                @newsletter
-                <label class="flex items-center gap-2.5 text-sm text-ink">
-                    <input type="checkbox" name="marketing_opt_in" value="1" class="size-4 rounded border-line" @checked($user->marketing_opt_in_at !== null)>
-                    {{ __('account.profile.marketing') }}
-                </label>
-                @endnewsletter
-            </section>
-
             <button type="submit" class="self-start bg-brand px-4 py-2.5 text-sm font-semibold text-on-brand transition hover:bg-brand-strong">
                 {{ __('account.profile.submit') }}
             </button>
         </form>
 
+        <details class="border-y border-line py-4" @if($errors->has('conferma')) open @endif>
+        <summary class="min-h-12 cursor-pointer content-center font-semibold">{{ __('community.account_privacy') }}</summary>
+        <div class="mt-5 space-y-6">
         <section aria-labelledby="dati" class="flex flex-col gap-2">
             <h2 id="dati" class="font-display text-[clamp(1.25rem,1.8vw,1.75rem)] leading-none font-extrabold tracking-[-0.03em] uppercase">{{ __('account.profile.export') }}</h2>
             <p class="text-sm text-ink-muted">{{ __('account.profile.export_hint') }}</p>
@@ -246,5 +133,10 @@
                 </button>
             </form>
         </section>
+        </div></details>
+        <form method="POST" action="{{ route('account.logout') }}" data-profile-logout>
+            @csrf
+            <button type="submit" class="min-h-11 border-2 border-line px-4 py-2 font-semibold text-ink hover:border-brand">{{ __('account.nav.logout') }}</button>
+        </form>
     </div>
 </x-layouts.app>

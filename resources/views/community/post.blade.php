@@ -18,10 +18,7 @@
             <x-pagination :paginator="$comments" />
             @if($canComment)
                 <form method="post" action="{{ route('community.comment', $post) }}" class="mt-6 space-y-4">@csrf<label class="block font-semibold">{{ __('community.comment') }}<textarea name="body" maxlength="1000" rows="3" required class="mt-2 w-full border-2 border-line bg-canvas p-3">{{ old('body') }}</textarea></label>@error('body')<p role="alert" class="text-alert">{{ $message }}</p>@enderror<x-button type="submit">{{ __('community.send_comment') }}</x-button></form>
-            @elseif(auth()->user()?->canParticipateInCommunity())
-                {{-- Verificato ma senza profilo: il commento verrebbe rifiutato, quindi si porta a completarlo. --}}
-                <p class="my-6 text-sm text-ink-muted" @error('body') role="alert" @enderror>{{ __('community.profile_required') }}</p><x-button :href="route('community.settings')">{{ __('community.settings') }}</x-button>
-            @else<p class="my-6 text-sm text-ink-muted">{{ __('community.verification_required') }}</p><x-button :href="route('community.whatsapp')">{{ __('community.whatsapp.title') }}</x-button>@endif
+            @else<x-community-access-step />@endif
         </section>
     </div>
 </x-layouts.app>

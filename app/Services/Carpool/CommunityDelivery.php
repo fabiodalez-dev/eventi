@@ -81,7 +81,7 @@ final class CommunityDelivery
         }
         if ($category === 'social') {
             if (($data['kind'] ?? '') === 'catalog_review_moderated' && in_array($data['entity'] ?? '', ['venue', 'organizer'], true)) {
-                return $user->isWhatsappVerified() && CatalogReview::where('user_id', $user->id)->where('reviewable_type', $data['entity'])->where('reviewable_id', $data['entity_id'])->exists();
+                return $user->canParticipateInCommunity() && CatalogReview::where('user_id', $user->id)->where('reviewable_type', $data['entity'])->where('reviewable_id', $data['entity_id'])->exists();
             }
             $path = $data['path'] ?? '';
             if (preg_match('~^/bacheca/post/(\d+)$~', $path, $matches)) {
@@ -91,7 +91,7 @@ final class CommunityDelivery
             }
             // Gli avvisi di nuovi follower portano all'elenco personale, visibile solo a chi è verificato.
             if ($path === '/persone-che-mi-seguono') {
-                return $user->isWhatsappVerified();
+                return $user->canParticipateInCommunity();
             }
             if (preg_match('~^/persone/([a-z0-9_]+)$~', $path, $matches)) {
                 return app(CommunityAccess::class)->profiles($user)->where('handle', $matches[1])->exists();

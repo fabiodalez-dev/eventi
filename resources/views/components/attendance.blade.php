@@ -1,15 +1,5 @@
-{{--
-    «Ci vado» su una singola data, e chi altro ci va.
-
-    **Privato per difetto.** Salvare una data non dice niente a nessuno: solo
-    questo pulsante la rende pubblica, e solo per quella data. Il passo
-    indietro è lo stesso pulsante, non una pagina nascosta nelle impostazioni.
-
-    **I nomi si vedono con il numero verificato**, il numero di persone no:
-    chi passa di qui sa che qualcuno ci va, ma non chi, finché non è parte
-    della community. È la stessa regola della bacheca, e vale anche al
-    contrario — chi ha bloccato qualcuno non se lo ritrova in questo elenco.
---}}
+{{-- Salvataggio, partecipazione e consiglio sono indipendenti. I nomi
+     rispettano visibilità del profilo, requisiti e blocchi del lettore. --}}
 @props(['occurrence'])
 
 @php
@@ -22,12 +12,9 @@
         primi dodici nomi: dal tredicesimo in poi il pulsante direbbe «ci
         vado» a chi ci va già, e premendolo non si toglierebbe dall'elenco.
     */
-    $going = $viewer !== null && \App\Models\SavedEvent::query()
-        ->where('user_id', $viewer->getKey())
-        ->where('occurrence_id', $occurrence->getKey())
-        ->where('visibility', \App\Enums\SavedVisibility::Public)
-        ->exists();
-    $verified = $viewer?->canParticipateInCommunity() ?? false;
+    $going = $viewer !== null && \Illuminate\Support\Facades\DB::table('community_attendances')->where('user_id', $viewer->id)->where('occurrence_id', $occurrence->id)->exists();
+    $participationAccess = $access->state($viewer);
+    $verified = $participationAccess['eligible'];
     /*
         Il profilo si legge come proprietà, non con una query a parte: così la
         relazione resta in memoria sull'utente autenticato e non si paga una
@@ -77,11 +64,13 @@
          diceva soltanto «Verifica il tuo numero WhatsApp»: una riga sottolineata
          che non nomina «Ci vado» e che nessuno collega a questa sezione. --}}
     @auth
-        @if ($verified && $profilo !== null)
-            <form method="POST" action="{{ route('community.attendance', $occurrence) }}" class="flex flex-wrap items-center gap-3">
+        @if(in_array($participationAccess['reason'], ['suspended', 'impersonation', 'email'], true) && !$going)
+            <x-community-access-step />
+        @elseif ($going || ($verified && $profilo !== null && $profilo->visibility !== \App\Enums\ProfileVisibility::Private))
+            <form data-community-form method="POST" action="{{ route('community.attendance', $occurrence) }}" class="flex flex-wrap items-center gap-3">
                 @csrf
                 <input type="hidden" name="going" value="{{ $going ? 0 : 1 }}">
-                <button type="submit" @class([
+                <button type="submit" aria-pressed="{{ $going ? 'true' : 'false' }}" @class([
                     'ui-action inline-flex min-h-12 items-center px-4 font-display text-sm font-extrabold transition',
                     'bg-accent text-on-accent hover:bg-brand-strong' => ! $going,
                     'border-2 border-line bg-surface text-ink hover:border-accent' => $going,
@@ -96,10 +85,10 @@
                  divieto scritto. --}}
             <div class="flex flex-col items-start gap-2">
                 <a
-                    href="{{ route('community.settings') }}"
+                    href="{{ route('community.settings', ['intended' => request()->fullUrl()]) }}"
                     class="ui-action inline-flex min-h-12 items-center bg-accent px-5 py-3 font-semibold text-on-accent"
-                >{{ __('community.attendance.profile_to_go') }}</a>
-                <span class="text-xs text-ink-subtle">{{ __('community.attendance.profile_hint') }}</span>
+                >{{ __($profilo !== null ? 'community.edit_profile' : 'community.attendance.profile_to_go') }}</a>
+                <span class="text-xs text-ink-subtle">{{ __($profilo?->visibility === \App\Enums\ProfileVisibility::Private ? 'community.attendance.private_profile' : 'community.attendance.profile_hint') }}</span>
             </div>
         @else
             <a

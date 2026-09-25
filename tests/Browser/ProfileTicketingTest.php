@@ -24,8 +24,8 @@ it('keeps profile preferences aligned and every personal page linked back', func
         ->click('[data-consent-banner] button[value="reject_all"]')
         ->assertVisible('[data-profile-back]')->screenshot(filename: 'profile-interests-'.$device);
     expect($page->script('(() => { const select = document.querySelector("select[name^=choices]"); const label = select.closest("label"); const a = select.getBoundingClientRect(), b = label.querySelector("span").getBoundingClientRect(); return Math.abs((a.top+a.bottom)/2-(b.top+b.bottom)/2) < 2 && document.documentElement.scrollWidth <= innerWidth; })()'))->toBeTrue();
-    $page->click('[data-profile-back]')->assertSee('Il mio profilo')->assertPresent('select[name="timezone"]')->screenshot(filename: 'profile-'.$device);
-    expect($page->script('document.documentElement.scrollWidth <= innerWidth && document.querySelector("nav[aria-label=\"Area personale\"] svg").getBoundingClientRect().width === 24'))->toBeTrue();
+    $page->click('[data-profile-back]')->assertSee('Area personale')->assertPresent('select[name="timezone"]')->screenshot(filename: 'profile-'.$device);
+    expect($page->script('document.documentElement.scrollWidth <= innerWidth && document.querySelectorAll("input[name=reminders]").length === 0'))->toBeTrue();
     $page->click('a[href$="/biglietti"]')->assertSee('Non hai ancora biglietti.')->assertVisible('[data-profile-back]')->screenshot(filename: 'tickets-empty-'.$device);
 })->with(['desktop', 'mobile']);
 

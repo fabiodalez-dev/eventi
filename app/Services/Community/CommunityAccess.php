@@ -6,27 +6,48 @@ namespace App\Services\Community;
 
 use App\Enums\CommunityStatus;
 use App\Enums\ProfileVisibility;
-use App\Enums\SavedVisibility;
 use App\Models\City;
 use App\Models\CommunityComment;
 use App\Models\CommunityPost;
 use App\Models\CommunityProfile;
 use App\Models\EventOccurrence;
-use App\Models\SavedEvent;
 use App\Models\User;
 use App\Models\UserBlock;
 use App\Queries\EventOccurrenceQuery;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 
 final class CommunityAccess
 {
+    /** @return array<string, bool|string|null> */
+    public function state(?User $user): array
+    {
+        $reason = match (true) {
+            $user === null => 'login',
+            $user->trashed(), $user->community_suspended_at !== null, $user->social_suspended_at !== null => 'suspended',
+            request()->hasSession() && request()->session()->has('impersonator_id') => 'impersonation',
+            ! $user->hasVerifiedEmail() => 'email',
+            ! $user->canParticipateInCommunity() => 'whatsapp',
+            default => null,
+        };
+        $profile = $user?->communityProfile;
+        $step = $reason ?? ($profile === null ? 'profile' : null);
+
+        return ['eligible' => $reason === null, 'reason' => $reason, 'required_step' => $step,
+            'whatsapp_exempt' => $user?->isWhatsappExempt() ?? false,
+            'can_publish' => $step === null, 'can_comment' => $step === null,
+            'can_attend' => $step === null && $profile?->visibility !== ProfileVisibility::Private,
+            'can_follow' => $user !== null && $user->hasVerifiedEmail() && ! $user->trashed()
+                && $user->community_suspended_at === null && $user->social_suspended_at === null && $reason !== 'impersonation'];
+    }
+
     /** @return Builder<User> */
     public function eligibleUsers(): Builder
     {
-        return User::query()->whereNotNull('email_verified_at')->whereNotNull('whatsapp_verified_at')
-            ->whereNotNull('whatsapp_phone_hash')->whereNull('community_suspended_at')->whereNull('social_suspended_at');
+        return User::query()->whereNotNull('email_verified_at')->withVerifiedContactOrExemption()->whereNull('community_suspended_at')->whereNull('social_suspended_at');
     }
 
     /**
@@ -56,8 +77,8 @@ final class CommunityAccess
     {
         return User::query()
             ->whereIn('id', $this->profiles($viewer)->select('user_id'))
-            ->whereIn('id', SavedEvent::query()->where('occurrence_id', $occurrence->getKey())
-                ->where('visibility', SavedVisibility::Public->value)->select('user_id'))
+            ->whereNotIn('id', DB::table('community_restrictions')->where('occurrence_id', $occurrence->id)->select('user_id'))
+            ->whereIn('id', DB::table('community_attendances')->where('occurrence_id', $occurrence->getKey())->select('user_id'))
             ->with('communityProfile.media')
             ->orderBy('id');
     }
@@ -187,12 +208,23 @@ final class CommunityAccess
         }
 
         return CommunityPost::query()->where('status', CommunityStatus::Published)
-            ->whereHas('savedEvent', fn ($q) => $q->where('visibility', SavedVisibility::Public->value))
             // Il proprietario vede i propri post anche con profilo privato, finché resta idoneo.
             ->where(fn ($q) => $q->whereIn('user_id', $this->profiles($viewer, $ignoreBlocks)->select('user_id'))
                 ->when($viewer !== null, fn ($q) => $q->orWhere(fn ($own) => $own->where('user_id', $viewer->id)->whereIn('user_id', $this->eligibleUsers()->select('id')))))
             ->whereIn('occurrence_id', $dates->identifiersQuery())
             ->with(['occurrence' => fn ($q) => $q->withCount('interestedUsers as interested_count'), 'user' => $this->withRelationCounts(...), 'user.communityProfile.media', 'user.communityProfile.city', 'occurrence.event.city', 'occurrence.event.venue', 'occurrence.venue', 'occurrence.event.category', 'occurrence.event.media', 'occurrence.event.tags', 'savedEvent']);
+    }
+
+    /** @return LengthAwarePaginator<int, EventOccurrence> */
+    public function participations(User $owner, ?User $viewer, City $city, bool $past = false): LengthAwarePaginator
+    {
+        $visible = $viewer?->id === $owner->id || ($viewer?->canParticipateInCommunity() && $this->profiles($viewer)->where('user_id', $owner->id)->exists());
+
+        return EventOccurrence::query()->withCount('interestedUsers as interested_count')->whereIn('id', EventOccurrenceQuery::archiveFor($city)->ended($past)->identifiersQuery())->with(['event.city', 'event.category', 'event.media', 'event.tags', 'event.venue', 'venue'])
+            ->whereNotIn('event_occurrences.id', DB::table('community_restrictions')->where('user_id', $owner->id)->select('occurrence_id'))
+            ->whereIn('event_occurrences.id', DB::table('community_attendances')->where('user_id', $owner->id)->select('occurrence_id'))
+            ->when(! $visible, fn ($q) => $q->whereRaw('1 = 0'))
+            ->orderBy('starts_at')->paginate(12, ['event_occurrences.*'], 'attendance_page');
     }
 
     public function canViewPost(?User $viewer, CommunityPost $post, bool $ignoreBlocks = false): bool

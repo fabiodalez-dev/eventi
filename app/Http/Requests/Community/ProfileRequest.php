@@ -22,11 +22,28 @@ final class ProfileRequest extends FormRequest
         return true;
     }
 
+    /**
+     * Le regole del nome utente, da sole.
+     *
+     * Le usa anche il controllo dal vivo accanto al campo: se le riscrivesse per
+     * conto proprio, prima o poi direbbe «disponibile» su un nome che poi il
+     * salvataggio rifiuta — ed è la forma peggiore di errore, perché arriva dopo
+     * che la persona ha già compilato il resto.
+     *
+     * @return list<mixed>
+     */
+    public static function handleRules(?int $ignoreProfileId): array
+    {
+        return ['string', 'min:3', 'max:40', 'regex:/^[a-z0-9][a-z0-9_]+$/',
+            Rule::unique('community_profiles', 'handle')->ignore($ignoreProfileId),
+            Rule::unique('community_handle_aliases', 'handle')->where(fn ($query) => $query->where('community_profile_id', '!=', $ignoreProfileId ?? 0))];
+    }
+
     /** @return array<string, mixed> */
     public function rules(): array
     {
         return [
-            'handle' => ['required', 'string', 'min:3', 'max:40', 'regex:/^[a-z0-9][a-z0-9_]+$/', Rule::unique('community_profiles', 'handle')->ignore($this->user()?->communityProfile?->id)],
+            'handle' => ['required', ...self::handleRules($this->user()?->communityProfile?->id)],
             'display_name' => ['required', 'string', 'max:80'], 'bio' => ['nullable', 'string', 'max:500'],
             'city_id' => ['nullable', 'integer', Rule::exists('cities', 'id')->where('is_active', true)],
             'visibility' => ['required', Rule::enum(ProfileVisibility::class)], 'indexable' => ['boolean'],

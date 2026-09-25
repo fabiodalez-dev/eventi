@@ -138,6 +138,7 @@ fun CompleteEventDetailScreen(
     onOrganizer: (String) -> Unit = {},
     carpoolVerified: Boolean = false,
     onCarpool: (Long, Boolean) -> Unit = { _, _ -> },
+    community: @Composable (Long) -> Unit = {},
     comments: @Composable () -> Unit = {},
 ) {
     val context = LocalContext.current
@@ -192,6 +193,7 @@ fun CompleteEventDetailScreen(
                                 Text(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.ticket_reserve))
                             }
                         }
+                        community(occurrence.occurrenceId)
                         // Prima l'azione principale dell'evento, poi i passaggi per arrivarci.
                         Text(cpText("subtitle"), modifier=Modifier.padding(top=16.dp), style=MaterialTheme.typography.bodySmall)
                         androidx.compose.foundation.layout.FlowRow(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
@@ -1117,7 +1119,7 @@ private val shortFormatter = DateTimeFormatter.ofPattern("EEE d MMM", Locale.ITA
 private val clockFormatter = DateTimeFormatter.ofPattern("HH:mm", Locale.ITALIAN)
 private fun parsed(value: String): OffsetDateTime? = runCatching { OffsetDateTime.parse(value) }.getOrNull()
 private fun fullDate(value: String): String = parsed(value)?.format(fullFormatter)?.replaceFirstChar { it.uppercase() } ?: value.take(10)
-private fun shortDate(value: String): String = parsed(value)?.format(shortFormatter)?.uppercase() ?: value.take(10)
+internal fun shortDate(value: String): String = parsed(value)?.format(shortFormatter)?.uppercase() ?: value.take(10)
 private fun clock(value: String): String = parsed(value)?.format(clockFormatter) ?: "--:--"
 internal fun timeRange(event: Occurrence): String {
     if (event.isAllDay) return "Tutto il giorno"

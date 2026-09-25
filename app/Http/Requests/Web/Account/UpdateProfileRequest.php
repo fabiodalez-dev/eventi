@@ -33,6 +33,7 @@ class UpdateProfileRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'profile_only' => ['sometimes', 'boolean'],
             'name' => ['nullable', 'string', 'max:120'],
             'timezone' => ['required', 'string', 'timezone'],
             'locale' => ['required', 'string', Rule::in(config()->array('account.locales'))],

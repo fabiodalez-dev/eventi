@@ -42,6 +42,7 @@ final class Community
      */
     public function requireParticipation(User $user): void
     {
+        abort_if(request()->hasSession() && request()->session()->has('impersonator_id'), 403, __('carpool.errors.impersonation'));
         abort_unless($user->canParticipateInCommunity(), 403, __('community.verification_required'));
     }
 
@@ -54,7 +55,14 @@ final class Community
             $profile = $locked->communityProfile()->firstOrNew();
             $profile->fill(collect($data)->only(['handle', 'display_name', 'bio', 'city_id', 'visibility'])->all());
             $profile->indexable = $profile->visibility === ProfileVisibility::Public && ($data['indexable'] ?? false);
+            if ($profile->exists && $profile->isDirty('handle')) {
+                DB::table('community_handle_aliases')->insertOrIgnore(['handle' => $profile->getOriginal('handle'), 'community_profile_id' => $profile->id]);
+            }
             $profile->save();
+            DB::table('community_handle_aliases')->insertOrIgnore(['handle' => $profile->handle, 'community_profile_id' => $profile->id]);
+            if ((int) DB::table('community_handle_aliases')->where('handle', $profile->handle)->lockForUpdate()->value('community_profile_id') !== $profile->id) {
+                throw ValidationException::withMessages(['handle' => __('community.handle_taken')]);
+            }
             if (array_key_exists('venue_ids', $data)) {
                 $venues = Venue::query()->whereIn('id', $data['venue_ids'] ?? [])->where('status', VenueStatus::Approved)
                     ->whereIn('id', $locked->follows()->where('followable_type', 'venue')->select('followable_id'))->pluck('id');
@@ -78,7 +86,7 @@ final class Community
 
                 return;
             }
-            abort_unless($actor->community_suspended_at === null, 403);
+            abort_unless($actor->community_suspended_at === null && $actor->social_suspended_at === null, 403);
             abort_unless($this->access->profiles($actor)->where('user_id', $recipient->id)->exists(), 404);
             if (! $actor->isFollowing($recipient)) {
                 $actor->follow($recipient);
@@ -164,7 +172,7 @@ final class Community
             $person = $follow->follower;
             $profile = $person instanceof User ? $person->communityProfile : null;
 
-            return ['user_id' => (int) $follow->user_id, 'display_name' => $profile->display_name ?? __('community.member'),
+            return ['user_id' => (int) $follow->user_id, 'display_name' => $profile !== null && in_array($profile->id, $visible, true) ? $profile->display_name : __('community.member'),
                 'handle' => $profile !== null && in_array($profile->id, $visible, true) ? $profile->handle : null];
         })->values()->all();
         $blockedIds = UserBlock::query()->where('user_id', $user->id)->orderBy('id')->pluck('blocked_user_id')->map(fn ($id) => (int) $id);
@@ -175,18 +183,7 @@ final class Community
         return ['page' => $page, 'followers' => $followers, 'blocks' => $blocks];
     }
 
-    /**
-     * «Ci vado»: dichiarare in pubblico che si va a una data, o tornare indietro.
-     *
-     * Riusa la visibilità del singolo salvataggio invece di introdurre un
-     * secondo concetto di partecipazione. Due stati che dicono quasi la stessa
-     * cosa divergono al primo cambiamento, e a quel punto una persona
-     * risulterebbe presente in un elenco e assente nell'altro.
-     *
-     * Tornare privati cancella anche l'eventuale trafiletto in bacheca, nella
-     * stessa transazione: chi si toglie dall'elenco non deve restare in
-     * bacheca ad aspettare un lavoro differito.
-     */
+    /** La partecipazione è indipendente dal salvataggio e dal consiglio. */
     public function attendance(User $user, EventOccurrence $occurrence, bool $public): bool
     {
         return DB::transaction(function () use ($user, $occurrence, $public): bool {
@@ -195,10 +192,7 @@ final class Community
                 ->where('occurrence_id', $occurrence->getKey())->lockForUpdate()->first();
 
             if (! $public) {
-                if ($saved !== null) {
-                    $saved->forceFill(['visibility' => SavedVisibility::Private])->save();
-                    CommunityPost::query()->where('saved_event_id', $saved->id)->delete();
-                }
+                DB::table('community_attendances')->where('user_id', $locked->id)->where('occurrence_id', $occurrence->id)->delete();
 
                 return false;
             }
@@ -208,6 +202,10 @@ final class Community
 
             if (! $locked->communityProfile()->exists()) {
                 throw ValidationException::withMessages(['attendance' => __('community.profile_required')]);
+            }
+
+            if ($locked->communityProfile->visibility === ProfileVisibility::Private) {
+                throw ValidationException::withMessages(['attendance' => __('community.attendance.private_profile')]);
             }
 
             /* Dire «ci vado» salva anche la data: chiedere due gesti per una
@@ -224,7 +222,7 @@ final class Community
                 throw ValidationException::withMessages(['attendance' => __('community.attendance_unavailable')]);
             }
 
-            $saved->forceFill(['visibility' => SavedVisibility::Public])->save();
+            DB::table('community_attendances')->insertOrIgnore(['user_id' => $locked->id, 'occurrence_id' => $occurrence->id, 'created_at' => now(), 'updated_at' => now()]);
             // Il registro punta alla data, non al salvataggio: la mappa morph
             // del progetto conosce le occorrenze, e il salvataggio è un dettaglio interno.
             activity('community')->causedBy($locked)->performedOn($occurrence)
@@ -239,10 +237,10 @@ final class Community
     {
         return DB::transaction(function () use ($user, $occurrence, $data): ?CommunityPost {
             $locked = User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
-            $saved = SavedEvent::query()->where('user_id', $user->id)->where('occurrence_id', $occurrence)->lockForUpdate()->firstOrFail();
+            $saved = SavedEvent::query()->where('user_id', $user->id)->where('occurrence_id', $occurrence)->lockForUpdate()->first();
             if ($data['visibility'] === SavedVisibility::Private->value) {
-                $saved->forceFill(['visibility' => SavedVisibility::Private])->save();
-                CommunityPost::query()->where('saved_event_id', $saved->id)->delete();
+                $saved?->forceFill(['visibility' => SavedVisibility::Private])->save();
+                CommunityPost::query()->where('user_id', $user->id)->where('occurrence_id', $occurrence)->delete();
 
                 return null;
             }
@@ -251,13 +249,17 @@ final class Community
             if (! $locked->communityProfile()->exists()) {
                 throw ValidationException::withMessages(['visibility' => __('community.profile_required')]);
             }
-            $post = CommunityPost::query()->firstOrNew(['saved_event_id' => $saved->id]);
+            $existing = CommunityPost::query()->where('user_id', $user->id)->where('occurrence_id', $occurrence)->first();
+            abort_unless($saved !== null || $existing !== null, 404);
+            $saved = SavedEvent::query()->where('user_id', $user->id)->where('occurrence_id', $occurrence)->first();
+            $post = $existing ?? new CommunityPost;
+            $post->saved_event_id = $saved?->id;
             $post->fill(['user_id' => $user->id, 'occurrence_id' => $occurrence, 'body' => $data['body'] ?? null, 'intent' => $data['intent'] ?? PostIntent::Recommend->value]);
             if (! $post->exists) {
                 $post->published_at = CarbonImmutable::now();
                 $post->status = CommunityStatus::Published;
             }
-            $saved->forceFill(['visibility' => SavedVisibility::Public])->save();
+            $saved?->forceFill(['visibility' => SavedVisibility::Public])->save();
             $post->save();
             activity('community')->causedBy($user)->performedOn($post)->event('post_saved')->log('post_saved');
 

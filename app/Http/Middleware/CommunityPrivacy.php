@@ -13,6 +13,7 @@ final class CommunityPrivacy
     public function handle(Request $request, Closure $next): Response
     {
         abort_unless(config('community.enabled'), 404);
+        abort_if(! $request->isMethodSafe() && $request->hasSession() && $request->session()->has('impersonator_id'), 403, __('carpool.errors.impersonation'));
         $response = $next($request);
         $response->headers->set('Cache-Control', 'private, no-store');
         $response->headers->set('Referrer-Policy', 'same-origin');

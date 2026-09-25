@@ -29,7 +29,7 @@ import java.time.ZoneId
 @Composable
 internal fun ProfileScreen(state: AppUiState, padding: PaddingValues, onTickets: () -> Unit, onSaved: () -> Unit,
     onLogout: () -> Unit, onDeleteAccount: (String) -> Unit, onInterestsSaved: () -> Unit,
-    onAppearance: (String) -> Unit, onProfileSaved: () -> Unit, onCommunity: () -> Unit, onCarpool: () -> Unit, onCarpoolMessages: () -> Unit, onCommunityInbox: () -> Unit, communityTotal: Int, onManagement: () -> Unit = {}) {
+    onAppearance: (String) -> Unit, onProfileSaved: () -> Unit, onCommunity: () -> Unit, onCarpool: () -> Unit, onCarpoolMessages: () -> Unit, onCommunityInbox: () -> Unit, communityTotal: Int, onManagement: () -> Unit = {}, onPublicProfile: () -> Unit = {}, onRelationships: () -> Unit = {}, onVerification: () -> Unit = {}) {
     val session = state.session ?: return
     val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
     var section by rememberSaveable(session.user.id) { mutableStateOf<String?>(null) }
@@ -40,12 +40,15 @@ internal fun ProfileScreen(state: AppUiState, padding: PaddingValues, onTickets:
         Column(Modifier.fillMaxSize().padding(bottom = padding.calculateBottomPadding()).verticalScroll(rememberScrollState()).padding(18.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             if (section != null) TextButton(onClick = { section = null }, modifier = Modifier.heightIn(min = 48.dp)) {
                 Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = null)
-                Text("Il mio profilo", Modifier.padding(start = 8.dp))
+                Text(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.account_area), Modifier.padding(start = 8.dp))
             }
-            Text(section ?: "Il mio profilo", style = MaterialTheme.typography.headlineLarge)
+            Text(section ?: androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.account_area), style = MaterialTheme.typography.headlineLarge)
             when (section) {
                 null -> {
                     AccountIdentity(session.user, onLogout, !state.isAuthenticating)
+                    ProfileRow(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.community_profile), session.user.communityHandle?.let { "@$it" } ?: androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.community_profile_needed), Icons.Outlined.Person, onPublicProfile)
+                    ProfileRow(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.community_following_list), androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.community_followers), Icons.Outlined.People, onRelationships)
+                    ProfileRow(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.community_whatsapp), androidx.compose.ui.res.stringResource(if(session.user.communityAccess.whatsappExempt) it.fabiodalez.incitta.R.string.community_wa_exempt else if(session.user.whatsappVerified) it.fabiodalez.incitta.R.string.community_verified else it.fabiodalez.incitta.R.string.community_wa_lead), Icons.Outlined.VerifiedUser, onVerification)
                     AppearancePicker(state.defaultAppearance, state.appearanceSaving, true, onAppearance)
                     ProfileRow(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.community_title), androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.community_feed), Icons.Outlined.People, onCommunity)
                     ProfileRow(cpText("mine"), cpText("subtitle"), Icons.Outlined.People, onCarpool)

@@ -113,7 +113,7 @@ fun InCittaApp(viewModel: MainViewModel) {
         val eventOpen = state.selected != null && communityRoute == null && state.bookingDate == null
         LaunchedEffect(state.session?.user?.emailVerified, state.session?.user?.whatsappPrompted, eventOpen) {
             val person = state.session?.user
-            if (person != null && shouldPromptWhatsapp(person.emailVerified, person.whatsappVerified, person.whatsappPrompted, promptedCommunity, eventOpen)) {
+            if (person != null && !person.communityAccess.whatsappExempt && shouldPromptWhatsapp(person.emailVerified, person.whatsappVerified, person.whatsappPrompted, promptedCommunity, eventOpen)) {
                 promptedCommunity = true
                 whatsappInvite = true
             }
@@ -311,7 +311,7 @@ fun InCittaApp(viewModel: MainViewModel) {
                 communityRoute != null -> androidx.compose.runtime.key(state.session?.token) { CommunityScreen(state.session, padding, state.savedIds, communityRoute!!,
                     onBack = { communityRoute = null }, onLogin = { communityRoute = null; viewModel.selectTab(AppTab.ACCOUNT) },
                     onOpen = { communityRoute = null; viewModel.open(it) }, onSave = viewModel::toggleSaved, onDestination = ::openDestination,
-                    onProfileSaved = { viewModel.refreshProfile(); if(returnCarpool != null) { carpoolRoute = returnCarpool; returnCarpool = null; communityRoute = null } },
+                    onProfileSaved = { viewModel.refreshProfile(); if(returnCarpool != null) { carpoolRoute = returnCarpool; returnCarpool = null; communityRoute = null } else if(selected != null) { communityRoute = null } },
                     onUnauthorized = viewModel::refreshProfile) }
                 selectedVenue != null -> Box(Modifier.fillMaxSize().padding(padding)) {
                     VenueDetailScreen(
@@ -345,7 +345,8 @@ fun InCittaApp(viewModel: MainViewModel) {
                         onOpenEvent = viewModel::open,
                         onReserve = viewModel::startReservation,
                         onOrganizer = { organizerSlug = it },
-                        carpoolVerified = state.session?.user?.whatsappVerified == true && state.session?.user?.emailVerified == true,
+                        carpoolVerified = state.session?.user?.carpoolAccess?.eligible == true,
+                        community = { id -> CommunityAttendance(id, state.session, id in state.savedIds, { communityRoute = it }, { viewModel.loginForComments(selected.slug) }, viewModel::refreshProfile) },
                         onCarpool = { id, offer -> carpoolRoute = if(offer) "create/$id" else "occurrences/$id" },
                         comments = {
                             EventCommentsSection(
@@ -427,6 +428,7 @@ fun InCittaApp(viewModel: MainViewModel) {
                         onSaved = { viewModel.selectTab(AppTab.SAVED) },
                         onProfileSaved = viewModel::refreshProfile,
                         onCommunity = { carpoolRoute = null; communityRoute = "feed" },
+                        onPublicProfile = { communityRoute = "settings" }, onRelationships = { communityRoute = "following" }, onVerification = { communityRoute = "whatsapp" },
                         onCarpool = { carpoolRoute = "me" }, onCarpoolMessages = { carpoolRoute = "chats" }, onCommunityInbox = { carpoolRoute = "inbox" }, communityTotal = communityTotal,
                     )
                     AppTab.CALENDAR -> CalendarScreen(state, padding, viewModel::open, viewModel::toggleSaved) { viewModel.selectTab(AppTab.HOME) }

@@ -21,4 +21,17 @@ class UserIdentityTest {
         val user = User(3, "Giulia Rossi", "giulia@example.test", roleLabel = "Amministratore")
         assertEquals(user, Json.decodeFromString<User>(Json.encodeToString(User.serializer(), user)))
     }
+    @Test fun exemptAdministratorUsesServerCapabilitiesWithoutPretendingToVerifyPhone() {
+        val user = Json.decodeFromString<User>("""{"id":4,"email":"admin@example.test","whatsapp_verified":false,"community_access":{"eligible":true,"whatsapp_exempt":true,"can_publish":true,"can_attend":true},"carpool_access":{"eligible":true}}""")
+        assertFalse(user.whatsappVerified)
+        assertTrue(user.communityAccess.canPublish)
+        assertTrue(user.communityAccess.canAttend)
+        assertTrue(user.carpoolAccess.eligible)
+    }
+
+    @Test fun anAdministrativeLabelDoesNotGrantCapabilitiesOnTheDevice() {
+        val user = User(5, "Admin", "admin@example.test", roleLabel = "Amministratore")
+        assertFalse(user.communityAccess.eligible)
+        assertFalse(user.carpoolAccess.eligible)
+    }
 }

@@ -9,20 +9,20 @@ declare(strict_types=1);
  */
 return [
 
-    'title' => 'Il mio profilo',
+    'title' => 'Area personale',
 
     'nav' => [
         'login' => 'Accedi',
         'account' => 'Il mio account',
         'feed' => 'Il mio feed',
-        'profile' => 'Profilo',
+        'profile' => 'Area personale',
         'admin' => 'Amministrazione',
         'venue' => 'Il mio locale',
         'logout' => 'Esci',
         'feed' => 'Il mio feed',
         'notifications' => 'Email e avvisi',
         'saved' => 'Salvati',
-        'profile' => 'Profilo',
+        'profile' => 'Area personale',
         'login' => 'Accedi',
         'register' => 'Crea un account',
         'logout' => 'Esci',
@@ -67,7 +67,7 @@ return [
         'venue' => 'Segui questo locale',
         'tag' => 'Segui questo tag',
         'category' => 'Segui questa categoria',
-        'following' => 'Lo segui già',
+        'following' => 'Segui già',
         'stop' => 'Smetti di seguire',
         'stored' => 'Da adesso lo trovi nel tuo feed.',
         'removed' => 'Non lo segui più.',
@@ -201,8 +201,8 @@ return [
     ],
 
     'profile' => [
-        'title' => 'Il mio profilo',
-        'lead' => 'Di te tengo solo questo.',
+        'title' => 'Area personale',
+        'lead' => 'Le tue attività, il profilo pubblico e le impostazioni del tuo account.',
         'name' => 'Nome (facoltativo)',
         'email' => 'Email',
         'timezone' => 'Fuso orario',

@@ -26,7 +26,7 @@ it('requires login for the bell dropdown', function (): void {
 it('shows the same tabs on carpool and community pages and marks the current one', function (): void {
     $this->actingAs($this->passenger)->get('/passaggi/requisiti')->assertOk()
         ->assertSee('aria-current="page"', false)->assertSeeInOrder(['I miei passaggi', 'Messaggi', 'Avvisi', 'Verifiche e requisiti']);
-    $this->actingAs($this->passenger)->get('/avvisi')->assertOk()->assertSeeInOrder(['Bacheca', 'Persone', 'Il mio profilo', 'Avvisi']);
+    $this->actingAs($this->passenger)->get('/avvisi')->assertOk()->assertSeeInOrder(['Bacheca', 'Persone', 'Profilo pubblico', 'Avvisi']);
 });
 
 it('warns on the profile when a requirement for rides is missing', function (): void {

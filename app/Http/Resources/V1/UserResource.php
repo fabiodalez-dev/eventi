@@ -7,6 +7,8 @@ namespace App\Http\Resources\V1;
 use App\Enums\UserRole;
 use App\Enums\VenueStatus;
 use App\Models\User;
+use App\Services\Carpool\CarpoolAccess;
+use App\Services\Community\CommunityAccess;
 use App\Support\Api\ApiDate;
 
 /**
@@ -34,6 +36,8 @@ final class UserResource
             'management_links' => self::managementLinks($user),
             'email_verified' => $user->email_verified_at !== null,
             'whatsapp_verified' => $user->isWhatsappVerified(),
+            'community_access' => app(CommunityAccess::class)->state($user),
+            'carpool_access' => app(CarpoolAccess::class)->state($user),
             'community_handle' => $user->communityProfile?->handle,
             'whatsapp_prompted' => $user->whatsapp_prompted_at !== null,
             'timezone' => $timezone,

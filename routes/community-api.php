@@ -10,12 +10,14 @@ use Illuminate\Support\Facades\Route;
 
 // Stessi nomi di contatore di routes/community.php: sito e app consumano lo stesso limite.
 Route::prefix('v1/community')->middleware([CommunityPrivacy::class, ResolveApiCity::class])->group(function (): void {
+    Route::get('/occurrences/{occurrence}/attendance', [CommunityController::class, 'attendanceState'])->whereNumber('occurrence');
     Route::get('/avatar/{profile}', [CommunityController::class, 'avatar'])->whereNumber('profile')->name('community.api.avatar');
     Route::get('/people', [CommunityController::class, 'people']);
     Route::get('/people/{handle}', [CommunityController::class, 'profile'])->where('handle', '[a-z0-9_]+');
     Route::get('/posts/{post}', [CommunityController::class, 'post'])->whereNumber('post');
     Route::middleware(['auth:sanctum', 'verified'])->group(function (): void {
         Route::get('/feed', [CommunityController::class, 'feed']);
+        Route::get('/profile/handle', [CommunityController::class, 'handleAvailability'])->middleware('throttle:120,1,community-handle');
         Route::get('/profile', [CommunityController::class, 'settings']);
         Route::post('/profile', [CommunityController::class, 'update'])->middleware('throttle:10,1,community-profile');
         Route::get('/whatsapp', [WhatsappController::class, 'show']);

@@ -2,7 +2,7 @@
 <article class="min-w-0 border-t-2 border-line pt-5" data-community-post="{{ $post->id }}">
     <div class="mb-4 flex items-center gap-3">
         @if($author->avatarUrl())<img src="{{ $author->avatarUrl() }}" alt="" width="40" height="40" class="size-10 rounded-full object-cover" loading="lazy">@endif
-        <div class="min-w-0"><a class="font-bold hover:underline" href="{{ route('community.profile', $author->handle) }}">{{ $author->display_name }}</a><span class="ml-2 text-xs text-brand" title="{{ __('community.whatsapp.badge_help') }}">✓ {{ __('community.verified') }}</span>
+        <div class="min-w-0"><a class="font-bold hover:underline" href="{{ route('community.profile', $author->handle) }}">{{ $author->display_name }}</a>@if($post->user->isWhatsappVerified())<span class="ml-2 text-xs text-brand" title="{{ __('community.whatsapp.badge_help') }}">✓ {{ __('community.verified') }}</span>@endif
         <p class="mt-1 text-xs text-ink-muted"><a href="{{ route('community.post', $post) }}">{{ $post->published_at->timezone(app(\App\Support\CurrentCity::class)->timezone())->format('d/m/Y H:i') }}</a> · {{ __('community.intents.'.$post->intent->value) }}</p></div>
     </div>
     @if($post->body)<p class="mb-5 whitespace-pre-line break-words leading-relaxed">{{ $post->body }}</p>@endif

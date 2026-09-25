@@ -406,13 +406,13 @@ it('33 making a save private removes the public post and its replies', function 
     $this->getJson('/api/v1/community/posts/'.$post->id)->assertNotFound();
 });
 
-it('34 unsaving an occurrence cascades only its own post and comments', function (): void {
+it('34 unsaving an occurrence preserves posts and comments', function (): void {
     $author = communityPerson();
     $post = communityPost($author, $this->city, $this->category);
     $other = communityPost($author, $this->city, $this->category);
     app(Community::class)->comment($author, $post, 'Root', null);
     app(RemoveSavedOccurrence::class)($author, $post->occurrence_id);
-    expect(CommunityPost::query()->whereKey($post->id)->exists())->toBeFalse()->and(CommunityPost::query()->whereKey($other->id)->exists())->toBeTrue()->and(CommunityComment::count())->toBe(0);
+    expect(CommunityPost::query()->whereKey($post->id)->exists())->toBeTrue()->and($post->fresh()->saved_event_id)->toBeNull()->and(CommunityPost::query()->whereKey($other->id)->exists())->toBeTrue()->and(CommunityComment::count())->toBe(1);
 });
 
 it('35 publishes exactly the selected date with the full catalog event card', function (): void {

@@ -63,7 +63,7 @@ Il car pooling è riservato ad account con email e WhatsApp verificati e dichiar
     <string name="cp_email" formatted="false">Conferma la tua email</string>
     <string name="cp_whatsapp" formatted="false">Verifica gratis WhatsApp</string>
     <string name="cp_suspended" formatted="false">Il tuo accesso ai passaggi è sospeso. Puoi contattare l’assistenza.</string>
-    <string name="cp_onboarding" formatted="false">Per offrire o richiedere un passaggio servono email e WhatsApp verificati e una dichiarazione di maggiore età.</string>
+    <string name="cp_onboarding" formatted="false">Servono email confermata, maggiore età e accettazione delle regole. La verifica WhatsApp è richiesta salvo esonero amministrativo. Per accordarsi si usa la chat del passaggio.</string>
     <string name="cp_offered" formatted="false">Offro</string>
     <string name="cp_requested" formatted="false">Cerco</string>
     <string name="cp_history" formatted="false">Storico</string>
@@ -157,7 +157,7 @@ Il car pooling è riservato ad account con email e WhatsApp verificati e dichiar
     <string name="cp_reviews_save" formatted="false">Pubblica recensione</string>
     <string name="cp_reviews_remove" formatted="false">Rimuovi la tua recensione</string>
     <string name="cp_reviews_remove_confirm" formatted="false">Rimuovere il voto e la recensione?</string>
-    <string name="cp_reviews_verified_only" formatted="false">Voto e testo saranno visibili solo agli utenti con email e WhatsApp verificati. Non inserire recapiti o informazioni private.</string>
+    <string name="cp_reviews_verified_only" formatted="false">Voto e testo saranno visibili agli utenti abilitati ai passaggi. Non inserire recapiti o informazioni private.</string>
     <string name="cp_reviews_summary" formatted="false">:average su 5 · :count recensioni</string>
     <string name="cp_reviews_none" formatted="false">Non ci sono ancora recensioni per questo conducente.</string>
     <string name="cp_reviews_period" formatted="false">Viaggi degli ultimi 12 mesi. La conferma è una dichiarazione del passeggero; voto e recensione sono volontari.</string>

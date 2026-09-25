@@ -29,11 +29,13 @@ it('registers corrects validation errors saves the profile and logs in again', f
     $page->assertSee(__('account.register.done'));
     $user = User::query()->where('email', 'browser-auth@example.test')->sole();
     expect($user->hasRole('user'))->toBeTrue()->and($user->email_verified_at)->toBeNull();
-    $page->navigate('/il-mio-profilo')->fill('name', 'Anna aggiornata')
-        ->fill('quiet_from', '23:00')->fill('quiet_to', '07:00');
-    $page->page()->locator('form[action$="/il-mio-profilo"] button[type="submit"]:not(.bg-live)')->click(['timeout' => 5000]);
+    $page->navigate('/il-mio-profilo');
+    $page->page()->waitForLoadState();
+    $page->fill('name', 'Anna aggiornata');
+    $page->page()->locator('form:has(input[name="profile_only"]) button[type="submit"]')->click(['timeout' => 5000]);
+    $page->page()->waitForLoadState();
     $page->assertSee(__('account.profile.saved'));
-    expect($user->fresh()->name)->toBe('Anna aggiornata')->and($user->fresh()->quiet_hours)->toBe(['from' => '23:00', 'to' => '07:00']);
+    expect($user->fresh()->name)->toBe('Anna aggiornata')->and($user->fresh()->quiet_hours)->toBeNull();
     $page->page()->locator('[data-profile-logout] button[type="submit"]')->click(['timeout' => 5000]);
     $page->navigate('/il-mio-profilo')->assertPresent('form[action$="/accedi"]')
         ->fill('email', 'browser-auth@example.test')->fill('password', 'wrong-password');
@@ -41,7 +43,7 @@ it('registers corrects validation errors saves the profile and logs in again', f
     $page->assertSee(__('account.login.failed'));
     $page->fill('password', 'A-valid-password-123');
     $page->page()->locator('form[action$="/accedi"] button[type="submit"]')->click(['timeout' => 5000]);
-    $page->navigate('/il-mio-profilo')->assertSee('Il mio profilo');
+    $page->navigate('/il-mio-profilo')->assertSee('Area personale');
     expect($page->script('document.querySelector("input[name=name]").value'))->toBe('Anna aggiornata');
     $page->assertNoJavascriptErrors()->screenshot(filename: 'auth-profile-flow-'.$device);
 })->with(['desktop', 'mobile']);
