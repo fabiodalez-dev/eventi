@@ -79,8 +79,6 @@
     :description="$city?->name ? __('ui.header.tagline', ['city' => $city->name]) : null"
     :preload="$heroPoster"
 >
-<a class="inline-flex min-h-12 items-center underline" href="{{ route('events.index', ['date' => 'last_hours']) }}">{{ __('decision.last_hours') }}</a>
-
     @if ($city)<x-editorial-content :model="$city" />@endif
     <x-slot:head>
         <x-json-ld :data="$structuredData" />
@@ -292,7 +290,6 @@
         </section>
     @endif
 
-    <x-home-organize />
     <section class="home-tonight border-y-2 border-line px-6 py-10 sm:px-12">
         <div class="flex flex-col justify-between gap-6 sm:flex-row sm:items-center">
             <div><h2 class="font-display text-3xl font-extrabold">{{ __('tonight.banner_title') }}</h2><p class="mt-3 text-ink-muted">{{ __('tonight.banner_help') }}</p></div>
@@ -356,7 +353,15 @@
     @endif
 
 
-    <section class="border-t-2 border-line bg-canvas px-gutter py-12 text-ink" aria-labelledby="calendar-banner-title" data-calendar-banner>
+    {{-- Le due richieste di chiusura, una sotto l'altra e in fondo: prima a
+         chi guarda (portati via il calendario), poi a chi pubblica. Stavano
+         a metà pagina, fra la fascia dei numeri e la prima griglia, e
+         interrompevano l'elenco con un annuncio rivolto a qualcun altro.
+
+         Nessun bordo superiore qui: ciò che precede chiude sempre con
+         `border-b-2`, e due bordi adiacenti disegnano una riga da 4px dove
+         tutte le altre ne misurano 2. --}}
+    <section class="border-b-2 border-line bg-canvas px-gutter py-12 text-ink" aria-labelledby="calendar-banner-title" data-calendar-banner>
         <div class="flex flex-col items-start gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div class="max-w-prose">
                 <h2 id="calendar-banner-title" class="font-display text-3xl font-extrabold tracking-tight uppercase">{{ __('subscriptions.banner_title') }}</h2>
@@ -365,4 +370,6 @@
             <x-button :href="route('feeds.wizard')" class="min-h-12">{{ __('subscriptions.create_calendar') }}</x-button>
         </div>
     </section>
+
+    <x-home-organize />
 </x-layouts.app>
