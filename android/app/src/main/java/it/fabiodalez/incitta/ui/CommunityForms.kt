@@ -26,7 +26,7 @@ internal fun CommunityWhatsapp(data: JsonObject, busy: Boolean, token: String?, 
         if (!autofilled && token != null) it.fabiodalez.incitta.community.WhatsappAutofill.take(context, token, data.text("challenge_id"))?.let { code = it; autofilled = true }
     }
     Text(stringResource(R.string.community_whatsapp), style = MaterialTheme.typography.titleLarge)
-    Text(stringResource(R.string.community_wa_lead), color = Muted)
+    Text(stringResource(if(data.flag("exempt")) R.string.community_wa_exempt else R.string.community_wa_lead), color = Muted)
     if(data.flag("verified")) {
         Text(stringResource(R.string.community_verified), color = Acid)
         Button(onClick = onProfile) { Text(stringResource(R.string.community_profile)) }
@@ -49,10 +49,27 @@ internal fun CommunityWhatsapp(data: JsonObject, busy: Boolean, token: String?, 
 }
 
 @Composable
-internal fun CommunityProfileEditor(data: JsonObject, busy: Boolean, save: (JsonObject, android.net.Uri?) -> Unit) {
+internal fun CommunityProfileEditor(data: JsonObject, busy: Boolean, checkHandle: suspend (String) -> JsonObject, save: (JsonObject, android.net.Uri?) -> Unit) {
     val profile = data.obj("profile")
-    var name by rememberSaveable(profile) { mutableStateOf(profile.text("display_name")) }
+    var name by rememberSaveable(profile) { mutableStateOf(profile.text("display_name").ifBlank { data.obj("suggested").text("display_name") }) }
     var handle by rememberSaveable(profile) { mutableStateOf(profile.text("handle")) }
+    var handleStatus by remember { mutableStateOf<String?>(null) }
+    val freeLabel = stringResource(R.string.community_handle_free)
+    val checkingLabel = stringResource(R.string.community_handle_checking)
+    LaunchedEffect(handle) {
+        handleStatus = null
+        if(handle.length >= 3) {
+            kotlinx.coroutines.delay(350)
+            handleStatus = checkingLabel
+            try {
+                val answer = checkHandle(handle).obj("data")
+                handleStatus = if(answer.flag("available")) freeLabel else answer.text("reason")
+            } catch(e: kotlinx.coroutines.CancellationException) { throw e }
+            catch(_: Exception) { handleStatus = null }
+        }
+    }
+    var optional by rememberSaveable { mutableStateOf(false) }
+    var venueQuery by rememberSaveable { mutableStateOf("") }
     var bio by rememberSaveable(profile) { mutableStateOf(profile.text("bio")) }
     var visibility by rememberSaveable(profile) { mutableStateOf(profile.text("visibility", "members")) }
     var indexable by rememberSaveable(profile) { mutableStateOf(profile.flag("indexable")) }
@@ -66,20 +83,27 @@ internal fun CommunityProfileEditor(data: JsonObject, busy: Boolean, save: (Json
     Text(stringResource(R.string.community_profile), style = MaterialTheme.typography.titleLarge)
     OutlinedTextField(name, { name = it.take(80) }, label = { Text(stringResource(R.string.community_name)) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
     OutlinedTextField(handle, { handle = it.lowercase().filter { c -> c in 'a'..'z' || c.isDigit() || c == '_' }.take(40) }, label = { Text(stringResource(R.string.community_handle)) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+    handleStatus?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+    TextButton(onClick = { optional = !optional }) { Text(stringResource(R.string.community_optional_profile)) }
+    if(optional) {
     OutlinedTextField(bio, { bio = it.take(500) }, label = { Text(stringResource(R.string.community_bio)) }, modifier = Modifier.fillMaxWidth(), minLines = 3)
     OutlinedButton(enabled = !busy, onClick = { photoPicker.launch("image/*") }) { Text(stringResource(if (avatar == null) R.string.community_photo else R.string.community_photo_selected)) }
     Text(stringResource(R.string.community_city), style = MaterialTheme.typography.titleMedium)
     CommunityCheck(stringResource(R.string.community_no_city), city == 0L) { city = 0 }
     data.rows("cities").forEach { item -> CommunityCheck(item.text("name"), city == item.number("id")) { city = item.number("id") } }
+    }
     Text(stringResource(R.string.community_visibility), style = MaterialTheme.typography.titleMedium)
     listOf("public" to R.string.community_public, "members" to R.string.community_members, "private" to R.string.community_private_profile).forEach { (value, label) ->
         CommunityCheck(stringResource(label), visibility == value) { visibility = value }
     }
     if(visibility == "public") CommunityCheck(stringResource(R.string.community_index), indexable) { indexable = it }
+    if(optional) {
     Text(stringResource(R.string.community_venues), style = MaterialTheme.typography.titleMedium)
     Text(stringResource(R.string.community_venues_help), color = Muted)
-    data.rows("venues").forEach { venue -> CommunityCheck(venue.text("name"), venue.number("id") in venues) { checked -> venues = if(checked) venues + venue.number("id") else venues - venue.number("id") } }
+    OutlinedTextField(venueQuery, { venueQuery = it }, label = { Text(stringResource(R.string.community_venue_search)) }, modifier = Modifier.fillMaxWidth())
+    data.rows("venues").filter { it.number("id") in venues || it.text("name").contains(venueQuery, ignoreCase = true) }.forEach { venue -> CommunityCheck(venue.text("name"), venue.number("id") in venues) { checked -> venues = if(checked) venues + venue.number("id") else venues - venue.number("id") } }
     if(profile.text("avatar_url").isNotBlank()) CommunityCheck(stringResource(R.string.community_remove_avatar), removeAvatar) { removeAvatar = it }
+    }
     Button(enabled = !busy && name.isNotBlank() && handle.length >= 3, onClick = {
         save(buildJsonObject { put("display_name", name); put("handle", handle); put("bio", bio); put("visibility", visibility); put("indexable", visibility == "public" && indexable); put("venue_ids", JsonArray(venues.map(::JsonPrimitive))); put("remove_avatar", removeAvatar); put("city_id", if (city == 0L) JsonNull else JsonPrimitive(city)) }, avatar)
     }) { Text(stringResource(R.string.community_save)) }
@@ -89,20 +113,20 @@ internal fun CommunityProfileEditor(data: JsonObject, busy: Boolean, save: (Json
 internal fun CommunityPublicationEditor(data: JsonObject, verified: Boolean, busy: Boolean, verify: () -> Unit, save: (JsonObject) -> Unit) {
     var public by rememberSaveable(data) { mutableStateOf(data.text("visibility") == "public") }
     var body by rememberSaveable(data) { mutableStateOf(data.text("body")) }
-    var intent by rememberSaveable(data) { mutableStateOf(data.text("intent", "recommend")) }
+
     Text(stringResource(R.string.community_save_privacy), style = MaterialTheme.typography.titleLarge)
     Text(stringResource(R.string.community_privacy_help), color = Muted)
     CommunityCheck(stringResource(R.string.community_private_save), !public) { public = false }
     if(verified) {
         CommunityCheck(stringResource(R.string.community_public_save), public) { public = true }
         if(public) {
-            CommunityCheck(stringResource(R.string.community_recommend), intent == "recommend") { intent = "recommend" }
-            CommunityCheck(stringResource(R.string.community_attend), intent == "attend") { intent = "attend" }
+
+
             OutlinedTextField(body, { body = it.take(500) }, label = { Text(stringResource(R.string.community_body)) }, modifier = Modifier.fillMaxWidth(), minLines = 3)
         }
     } else {
         Text(stringResource(R.string.community_verify_required), color = Muted)
         TextButton(onClick = verify) { Text(stringResource(R.string.community_whatsapp)) }
     }
-    Button(enabled = !busy && (!public || verified), onClick = { save(buildJsonObject { put("visibility", if(public) "public" else "private"); put("body", body); put("intent", intent) }) }) { Text(stringResource(R.string.community_save)) }
+    Button(enabled = !busy && (!public || verified), onClick = { save(buildJsonObject { put("visibility", if(public) "public" else "private"); put("body", body); put("intent", "recommend") }) }) { Text(stringResource(R.string.community_save)) }
 }

@@ -513,10 +513,10 @@ fun AccountScreen(
     onSaved: () -> Unit = {},
     onProfileSaved: () -> Unit = {},
     onCommunity: () -> Unit = {},
-    onCarpool: () -> Unit = {}, onCarpoolMessages: () -> Unit = {}, onCommunityInbox: () -> Unit = {}, communityTotal: Int = 0, onManagement: () -> Unit = {},
+    onCarpool: () -> Unit = {}, onCarpoolMessages: () -> Unit = {}, onCommunityInbox: () -> Unit = {}, communityTotal: Int = 0, onManagement: () -> Unit = {}, onPublicProfile: () -> Unit = {}, onRelationships: () -> Unit = {}, onVerification: () -> Unit = {},
 ) {
     if (state.session != null) {
-        ProfileScreen(state, padding, onTickets, onSaved, onLogout, onDeleteAccount, onInterestsSaved, onAppearance, onProfileSaved, onCommunity, onCarpool, onCarpoolMessages, onCommunityInbox, communityTotal, onManagement)
+        ProfileScreen(state, padding, onTickets, onSaved, onLogout, onDeleteAccount, onInterestsSaved, onAppearance, onProfileSaved, onCommunity, onCarpool, onCarpoolMessages, onCommunityInbox, communityTotal, onManagement, onPublicProfile, onRelationships, onVerification)
         return
     }
 

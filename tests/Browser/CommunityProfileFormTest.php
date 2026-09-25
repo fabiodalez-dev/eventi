@@ -63,6 +63,7 @@ it('sceglie i locali con la ricerca e li toglie dalle chip, spuntando le caselle
         ->and($page->script('document.querySelector("[data-locali-arricchito]").hidden'))->toBeFalse()
         ->and($page->script('document.querySelectorAll("[data-locali-caselle] input:disabled").length'))->toBe(0);
 
+    $page->script('document.querySelector("[data-locali]").closest("details").open = true');
     $page->fill('#locali-cerca', 'pedro');
     $page->assertPresent('[data-locali-opzioni] li');
     $page->click('[data-locali-opzioni] li');

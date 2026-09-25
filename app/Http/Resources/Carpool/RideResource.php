@@ -10,7 +10,6 @@ use App\Models\RideOffer;
 use App\Models\RideRequest;
 use App\Models\User;
 use App\Queries\CarpoolQuery;
-use App\Services\Carpool\CarpoolAccess;
 use App\Services\Carpool\CarpoolRetention;
 use App\Services\Carpool\CarpoolService;
 use App\Services\Carpool\RideReviews;
@@ -31,7 +30,7 @@ final class RideResource
             'reviews' => app(RideReviews::class)->summary($viewer, $offer->driver),
             'reviews_url' => route('carpool.reviews', $offer->driver_id),
             'event_location' => $offer->snapshot['location'], 'driver' => ['id' => $offer->driver_id,
-                'verified' => app(CarpoolAccess::class)->contacts($offer->driver),
+                'verified' => $offer->driver->isWhatsappVerified(),
                 'name' => $offer->driver?->communityProfile->display_name ?? $offer->driver->name ?? __('community.member')],
             'leg' => $offer->leg->value, 'leg_label' => $offer->leg->label(), 'zone' => $offer->zone,
             'departure_at' => $offer->departure_at->toIso8601String(), 'departure_label' => $offer->departure_at->setTimezone($date->event->city->timezone)->format('d/m/Y H:i'),

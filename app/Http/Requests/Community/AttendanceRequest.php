@@ -11,7 +11,7 @@ use Illuminate\Foundation\Http\FormRequest;
  *
  * `going` è obbligatorio di proposito. Letto con `Request::boolean()`, un
  * campo assente o scritto male vale `false`, e `false` qui non è un valore
- * neutro: ritira la partecipazione e cancella il trafiletto in bacheca. Una
+ * neutro: ritira la partecipazione. Una
  * richiesta malformata non deve poter fare in silenzio la cosa distruttiva
  * delle due.
  */

@@ -10,6 +10,7 @@ use App\Models\RideOffer;
 use App\Services\Carpool\CarpoolAccess;
 use App\Services\Carpool\CarpoolService;
 use App\Services\Carpool\CarpoolTerms;
+use App\Services\Carpool\RideDiscovery;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
@@ -38,6 +39,7 @@ it('does not require WhatsApp verification from an administrator, while retainin
 
     cpAction($this, $admin, 'offer', ['occurrence_id' => $this->date->id, 'leg' => 'outbound', 'zone' => 'Centro', 'departure_at' => '2026-10-10T18:00:00Z',
         'capacity' => 2, 'accessibility' => 'not_specified', 'driver_declaration' => true])->assertOk();
+    expect(app(RideDiscovery::class)->offers($this->passenger, $this->date, [])->where('driver_id', $admin->id)->exists())->toBeTrue();
 });
 
 it('records separate explicit adult and legal acceptance with server metadata', function (): void {

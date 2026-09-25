@@ -35,7 +35,8 @@ final class ProfileRequest extends FormRequest
     public static function handleRules(?int $ignoreProfileId): array
     {
         return ['string', 'min:3', 'max:40', 'regex:/^[a-z0-9][a-z0-9_]+$/',
-            Rule::unique('community_profiles', 'handle')->ignore($ignoreProfileId)];
+            Rule::unique('community_profiles', 'handle')->ignore($ignoreProfileId),
+            Rule::unique('community_handle_aliases', 'handle')->where(fn ($query) => $query->where('community_profile_id', '!=', $ignoreProfileId ?? 0))];
     }
 
     /** @return array<string, mixed> */

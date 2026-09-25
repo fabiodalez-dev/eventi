@@ -37,22 +37,11 @@
                     <div class="min-w-0 flex-1">
                         <a href="{{ route('community.profile', $profile->handle) }}" class="font-display text-xl leading-tight font-bold break-words hover:text-brand">{{ $profile->display_name }}</a>
                         <p class="mt-1 text-sm text-ink-muted">{{ '@'.$profile->handle }}@if($profile->city) · {{ $profile->city->name }}@endif</p>
-                        <p class="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-brand"><svg aria-hidden="true" class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg>{{ __('community.verified') }}</p>
+                        @if($profile->user->isWhatsappVerified())<p class="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-brand"><svg aria-hidden="true" class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg>{{ __('community.verified') }}</p>@endif
                         @if($profile->bio)<p class="mt-3 line-clamp-3 text-sm leading-relaxed text-ink-muted">{{ $profile->bio }}</p>@endif
                         @if($profile->featured)<p class="mt-3 text-xs font-semibold">{{ __('community.featured') }}</p>@endif
                         <div class="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2">
-                            @if(auth()->id() !== $profile->user_id)
-                                @auth
-                                    @php($following = in_array($profile->user_id, $followingIds, true))
-                                    <form method="post" action="{{ route('community.follow', $profile->user_id) }}">@csrf @if($following) @method('DELETE') @endif
-                                        <x-button type="submit" :variant="$following ? 'secondary' : 'primary'" :aria-label="__($following ? 'community.unfollow_person' : 'community.follow_person', ['name' => $profile->display_name])">
-                                            <span aria-hidden="true">{{ $following ? '✓' : '+' }}</span>{{ __($following ? 'community.following_label' : 'community.follow') }}
-                                        </x-button>
-                                    </form>
-                                @else
-                                    <x-button :href="route('login', ['intended' => request()->fullUrl()])"><span aria-hidden="true">+</span>{{ __('community.follow') }}</x-button>
-                                @endauth
-                            @endif
+                            <x-person-follow :user-id="$profile->user_id" :following="in_array($profile->user_id, $followingIds, true)" :name="$profile->display_name" />
                             <a href="{{ route('community.profile', $profile->handle) }}" class="inline-flex min-h-11 items-center gap-3 text-sm font-semibold hover:underline">{{ __('community.see_recommendations') }}<span aria-hidden="true">→</span></a>
                         </div>
                     </div>

@@ -1,3 +1,4 @@
+import './community-actions';
 import './carpool';
 import { nativeShare } from './native-share';
 import './page-transitions';

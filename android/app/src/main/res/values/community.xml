@@ -27,7 +27,7 @@
     <string name="community_delete_comment">Rimuovi commento</string>
     <string name="community_block">Blocca persona</string>
     <string name="community_unblock">Sblocca</string>
-    <string name="community_followers">Chi ti segue e persone bloccate</string>
+    <string name="community_followers">Follower</string>
     <string name="community_report">Segnala</string>
     <string name="community_report_spam">Spam</string>
     <string name="community_report_offensive">Contenuto offensivo</string>
@@ -48,9 +48,9 @@
     <string name="community_venues">Locali che consiglio</string>
     <string name="community_venues_help">Mostra solo i locali seguiti che scegli qui.</string>
     <string name="community_save_privacy">Visibilità e consiglio</string>
-    <string name="community_private_save">Privato · solo per me</string>
-    <string name="community_public_save">Pubblica nella mia bacheca</string>
-    <string name="community_privacy_help">Ogni salvataggio nasce privato. Rendendolo privato rimuovi il post e i commenti.</string>
+    <string name="community_private_save">Non pubblicare il consiglio</string>
+    <string name="community_public_save">Pubblica il consiglio</string>
+    <string name="community_privacy_help">Il consiglio segue la visibilità del profilo. Ritirarlo conserva salvataggio e partecipazione. Consigliare non significa partecipare.</string>
     <string name="community_body">Il tuo consiglio (facoltativo, massimo 500 caratteri)</string>
     <string name="community_recommend">Lo consiglio</string>
     <string name="community_attend">Parteciperò</string>
@@ -96,4 +96,25 @@
     <string name="community_reported">Segnalazione inviata. Grazie.</string>
     <string name="community_read_all_done">Avvisi segnati come letti.</string>
     <string name="community_delete_comment_help">Il commento verrà rimosso. L’operazione non si può annullare.</string>
+    <string name="account_area">Area personale</string>
+    <string name="community_wa_exempt">Il tuo ruolo amministrativo ti esonera dalla verifica WhatsApp. Il badge compare solo dopo la verifica reale del numero.</string>
+    <string name="community_following_list">Persone seguite</string>
+    <string name="community_safety">Privacy e sicurezza</string>
+    <string name="community_more_actions">Altre azioni</string>
+    <string name="community_going">Ci vado</string>
+    <string name="community_not_going">Rimuovi partecipazione</string>
+    <string name="community_attendance_title">Chi ci va</string>
+    <string name="community_attendance_help">La partecipazione segue la visibilità del profilo e salva la data. Consigli, biglietti e passaggi restano separati.</string>
+    <string name="community_attendance_count">%1$d persone partecipano</string>
+    <string name="community_attendance_setup">Completa i requisiti</string>
+    <string name="community_attendance_private">Per dichiarare la partecipazione, scegli chi può vedere il profilo.</string>
+    <string name="community_attendance_blocked">Questa azione non è disponibile per il tuo account.</string>
+    <string name="community_recommend_action">Consiglia evento</string>
+    <string name="community_attendance_retry">Riprova</string>
+    <string name="community_attendance_loading">Caricamento partecipazioni…</string>
+    <string name="community_optional_profile">Personalizza il profilo (facoltativo)</string>
+    <string name="community_venue_search">Cerca un locale</string>
+    <string name="community_handle_free">Nome utente disponibile</string>
+    <string name="community_handle_checking">Controllo disponibilità…</string>
+    <string name="community_member">Utente</string>
 </resources>

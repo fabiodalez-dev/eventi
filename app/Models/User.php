@@ -121,13 +121,25 @@ class User extends Authenticatable implements FilamentUser, HasTenants, MustVeri
      * di un account — e la sospensione di chi amministra è un caso che deve
      * continuare a valere.
      */
+    public function isWhatsappExempt(): bool
+    {
+        return $this->hasAnyRole([UserRole::Admin->value, UserRole::SuperAdmin->value]);
+    }
+
+    /** @param Builder<User> $query */
+    public function scopeWithVerifiedContactOrExemption(Builder $query): void
+    {
+        $query->where(fn ($q) => $q->where(fn ($phone) => $phone->whereNotNull('whatsapp_verified_at')->whereNotNull('whatsapp_phone_hash'))
+            ->orWhereHas('roles', fn ($roles) => $roles->whereIn('name', [UserRole::Admin->value, UserRole::SuperAdmin->value])->where('guard_name', 'web')));
+    }
+
     public function canParticipateInCommunity(): bool
     {
         if ($this->isWhatsappVerified()) {
             return true;
         }
 
-        return $this->hasAnyRole([UserRole::Admin->value, UserRole::SuperAdmin->value])
+        return $this->isWhatsappExempt()
             && $this->hasVerifiedEmail() && $this->community_suspended_at === null
             && $this->social_suspended_at === null && ! $this->trashed();
     }

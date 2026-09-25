@@ -18,6 +18,7 @@ use App\Models\UserBlock;
 use App\Services\Carpool\CarpoolAccount;
 use App\Support\Api\ApiDate;
 use Illuminate\Notifications\DatabaseNotification;
+use Illuminate\Support\Facades\DB;
 use Overtrue\LaravelFollow\Followable;
 
 /**
@@ -46,6 +47,7 @@ final class AccountExport
                 'venue_ids' => $user->communityProfile?->venues()->pluck('venues.id')->all() ?? [],
                 'whatsapp_phone' => $user->whatsapp_phone,
                 'whatsapp_verified_at' => $user->whatsapp_verified_at?->toIso8601String(),
+                'attendances' => DB::table('community_attendances')->where('user_id', $user->id)->get(['occurrence_id', 'created_at'])->toArray(),
                 'posts' => CommunityPost::query()->where('user_id', $user->id)->get()->toArray(),
                 'comments' => CommunityComment::query()->where('user_id', $user->id)->get()->toArray(),
                 'followings' => $user->followings()->get(['followable_id', 'accepted_at'])->toArray(),

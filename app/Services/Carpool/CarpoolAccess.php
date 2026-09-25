@@ -17,7 +17,7 @@ final class CarpoolAccess
 {
     private function isAdministrator(User $user): bool
     {
-        return $user->hasAnyRole(['admin', 'super_admin']);
+        return $user->isWhatsappExempt();
     }
 
     public function contacts(User $user): bool
@@ -94,7 +94,7 @@ final class CarpoolAccess
             default => null,
         };
 
-        return ['eligible' => $reason === null, 'reason' => $reason, 'adult_declared_at' => $profile?->adult_declared_at?->toIso8601String(),
+        return ['whatsapp_exempt' => $user?->isWhatsappExempt() ?? false, 'whatsapp_verified' => $user?->isWhatsappVerified() ?? false, 'eligible' => $reason === null, 'reason' => $reason, 'adult_declared_at' => $profile?->adult_declared_at?->toIso8601String(),
             'terms_version' => config('carpool.terms_version'), 'accepted_version' => $profile?->terms_version,
             'push_enabled' => $profile->push_enabled ?? true];
     }

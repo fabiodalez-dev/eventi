@@ -54,7 +54,7 @@ final class RideDiscovery
      */
     public function eligibleQuery(Builder $query): void
     {
-        $query->whereNotNull('email_verified_at')->whereNotNull('whatsapp_verified_at')->whereNotNull('whatsapp_phone_hash')
+        $query->whereNotNull('email_verified_at')->whereIn('id', User::query()->withVerifiedContactOrExemption()->select('id'))
             ->whereNull('community_suspended_at')->whereNull('carpool_suspended_at')
             ->whereIn('id', DB::table('carpool_profiles')->whereNotNull('adult_declared_at')->select('user_id'));
     }

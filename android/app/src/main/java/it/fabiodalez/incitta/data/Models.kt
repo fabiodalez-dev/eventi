@@ -202,12 +202,29 @@ data class AuthPayload(
 )
 
 @Serializable
+data class CommunityAccessState(
+    val eligible: Boolean = false,
+    val reason: String? = null,
+    @SerialName("required_step") val requiredStep: String? = null,
+    @SerialName("whatsapp_exempt") val whatsappExempt: Boolean = false,
+    @SerialName("can_publish") val canPublish: Boolean = false,
+    @SerialName("can_comment") val canComment: Boolean = false,
+    @SerialName("can_attend") val canAttend: Boolean = false,
+    @SerialName("can_follow") val canFollow: Boolean = false,
+)
+
+@Serializable
+data class CarpoolAccessState(val eligible: Boolean = false, val reason: String? = null)
+
+@Serializable
 data class User(
     val id: Long,
     val name: String? = null,
     val email: String,
     @SerialName("email_verified") val emailVerified: Boolean = false,
     @SerialName("whatsapp_verified") val whatsappVerified: Boolean = false,
+    @SerialName("community_access") val communityAccess: CommunityAccessState = CommunityAccessState(),
+    @SerialName("carpool_access") val carpoolAccess: CarpoolAccessState = CarpoolAccessState(),
     @SerialName("community_handle") val communityHandle: String? = null,
     @SerialName("whatsapp_prompted") val whatsappPrompted: Boolean = false,
     @SerialName("role_label") val roleLabel: String? = null,

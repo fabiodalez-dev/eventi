@@ -45,14 +45,14 @@ function attendee(string $handle, ProfileVisibility $visibility = ProfileVisibil
     return $user->fresh();
 }
 
-it('salva la data e la rende pubblica in un gesto solo, e torna indietro cancellando tutto', function (): void {
+it('salva la data privatamente e ritira soltanto la partecipazione', function (): void {
     $user = attendee('giulia');
 
     expect(app(Community::class)->attendance($user, $this->occurrence, true))->toBeTrue();
 
     $saved = SavedEvent::query()->where('user_id', $user->getKey())->firstOrFail();
     expect($saved->occurrence_id)->toBe($this->occurrence->getKey())
-        ->and($saved->visibility)->toBe(SavedVisibility::Public);
+        ->and($saved->visibility)->toBe(SavedVisibility::Private);
 
     app(Community::class)->attendance($user, $this->occurrence, false);
 
@@ -93,8 +93,9 @@ it('toglie dall elenco chi perde la verifica o chiude il profilo, senza toccare 
     $user->communityProfile->update(['visibility' => ProfileVisibility::Private]);
     expect(app(CommunityAccess::class)->attendees($this->occurrence, $viewer)->count())->toBe(0);
 
-    // Il salvataggio è rimasto pubblico: è la lettura a proteggere, non una cancellazione.
-    expect(SavedEvent::query()->where('user_id', $user->getKey())->value('visibility'))->toBe(SavedVisibility::Public);
+    test()->assertDatabaseHas('community_attendances', ['user_id' => $user->id, 'occurrence_id' => $this->occurrence->id]);
+    // Il segnalibro resta privato; la partecipazione è protetta in lettura.
+    expect(SavedEvent::query()->where('user_id', $user->getKey())->value('visibility'))->toBe(SavedVisibility::Private);
 });
 
 it('non mostra nell elenco chi si è bloccato, in nessuna delle due direzioni', function (): void {

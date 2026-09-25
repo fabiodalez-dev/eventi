@@ -17,7 +17,7 @@ final class CommunityQueryRequest extends FormRequest
     /** @return array<string, mixed> */
     public function rules(): array
     {
-        return ['q' => ['nullable', 'string', 'max:80'], 'sort' => ['nullable', Rule::in(['recent', 'event'])],
+        return ['attendance_page' => ['nullable', 'integer', 'min:1', 'max:10000'], 'following_page' => ['nullable', 'integer', 'min:1', 'max:10000'], 'tab' => ['nullable', Rule::in(['following', 'followers', 'blocks'])], 'q' => ['nullable', 'string', 'max:80'], 'sort' => ['nullable', Rule::in(['recent', 'event'])],
             'scope' => ['nullable', Rule::in(['following', 'discover'])], 'past' => ['nullable', 'boolean'], 'featured' => ['nullable', 'boolean'],
             'page' => ['nullable', 'integer', 'min:1', 'max:10000']];
     }

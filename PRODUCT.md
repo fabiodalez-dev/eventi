@@ -62,3 +62,18 @@ La programmazione degli eventi rispetta moderazione e autorizzazioni correnti de
 ## Community dedicata agli eventi (18 settembre 2026)
 
 I profili pubblici e i loro consigli si leggono anche senza account; quelli riservati agli iscritti richiedono l'email confermata, che serve comunque per seguire le persone. La verifica WhatsApp gratuita permette di avere un profilo, pubblicare singole date salvate e commentare i consigli. I salvataggi restano privati finché la persona sceglie di pubblicarli. Follow libero, feed paginato, discovery e selezione redazionale: l'obiettivo resta trovare eventi, non trattenere l'utente in un social infinito. Specifica e decisioni in [PIANO-UTENTI-VERIFICATI-SOCIAL](docs/PIANO-UTENTI-VERIFICATI-SOCIAL.md).
+
+## Profilo e interazioni uniformi (25 settembre 2026)
+
+Area personale raccoglie attività, persone, impostazioni e accessi di gestione.
+Il profilo pubblico resta distinto dai dati account. Salvare una data è privato;
+partecipare e consigliare sono intenzioni indipendenti. Togliere il segnalibro
+non cancella partecipazioni, consigli o commenti. Ritirare un consiglio elimina
+quel post e i commenti che gli appartengono, senza ritirare la partecipazione.
+
+Admin e superadmin sono esonerati dal requisito WhatsApp; email, sospensioni,
+blocchi, visibilità e requisiti dei passaggi continuano a valere. L'esonero non
+attribuisce un badge di numero verificato. Web e Android usano le capacità del
+server, non il ruolo mostrato né il solo campo whatsapp_verified.
+
+Il contratto e la migrazione sono documentati in [PROFILE-INTERACTIONS](docs/PROFILE-INTERACTIONS.md).

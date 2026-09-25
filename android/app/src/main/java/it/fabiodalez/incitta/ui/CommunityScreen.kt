@@ -97,11 +97,11 @@ internal fun CommunityScreen(session: Session?, padding: PaddingValues, savedIds
             val path = when {
                 route == "feed" -> "feed?page=$page&scope=${if (discover) "discover" else "following"}&sort=${if(eventOrder) "event" else "recent"}&past=${if(past) 1 else 0}"
                 route == "people" -> "people?page=$page&q=${URLEncoder.encode(submittedSearch, "UTF-8")}&featured=${if(featured) 1 else 0}"
-                route.startsWith("profile/") -> "people/${route.substringAfter('/') }?page=$page&past=${if(past) 1 else 0}"
+                route.startsWith("profile/") -> "people/${route.substringAfter('/') }?page=$page&attendance_page=$page&past=${if(past) 1 else 0}"
                 route.startsWith("post/") -> "posts/${route.substringAfter('/')}?page=$page"
                 route.startsWith("save/") -> "saved/${route.substringAfter('/')}"
                 route == "settings" -> "profile"
-                route == "followers" -> "followers?page=$page"
+                route in listOf("followers", "following", "blocks") -> "followers?page=$page&following_page=$page&tab=$route"
                 else -> route
             }
             if (user?.emailVerified == false && route !in listOf("people") && !route.startsWith("profile/") && !route.startsWith("post/")) {
@@ -176,6 +176,10 @@ internal fun CommunityScreen(session: Session?, padding: PaddingValues, savedIds
                     venues.forEach { venue -> TextButton(onClick = { val url = venue.text("url"); if (url.startsWith("https://")) uri.openUri(url) }) { Text(venue.text("name")) } }
                 }
                 CommunityCheck(stringResource(R.string.community_past), past) { past = it; page = 1 }
+                data.rows("participations").forEach { item ->
+                    val occurrence = api.json.decodeFromJsonElement<Occurrence>(item)
+                    TextButton(onClick = { onOpen(occurrence) }) { Text("${occurrence.title} · ${shortDate(occurrence.startsAt)}") }
+                }
                 data.rows("posts").forEach { post -> CommunityPostCard(post, api, savedIds, onOpen, onSave, { navigate("profile/$it") }, { navigate("post/$it") }, { navigate("save/$it") }) }
             }
             route.startsWith("post/") -> {
@@ -194,7 +198,7 @@ internal fun CommunityScreen(session: Session?, padding: PaddingValues, savedIds
                         Box(Modifier.heightIn(min = 48.dp).then(if (handle.isNotBlank()) Modifier.clickable(role = Role.Button) { navigate("profile/$handle") } else Modifier), contentAlignment = Alignment.CenterStart) {
                             Text(comment.text("display_name"), style = MaterialTheme.typography.titleSmall)
                         }
-                        if (comment.number("parent_id") > 0) Text("${stringResource(R.string.community_reply_to)} #${comment.number("parent_id")}", color = Muted, style = MaterialTheme.typography.labelSmall)
+                        if (comment.number("parent_id") > 0) Text("${stringResource(R.string.community_reply_to)} ${data.rows("comments").firstOrNull { it.number("id") == comment.number("parent_id") }?.text("display_name") ?: stringResource(R.string.community_member)}", color = Muted, style = MaterialTheme.typography.labelSmall)
                         Text(comment.text("body"))
                         if(post.flag("can_comment") && comment.number("parent_id") == 0L) TextButton(onClick = { replyTo = comment.number("id") }) { Text(stringResource(R.string.community_reply)) }
                         if(comment.flag("can_delete")) TextButton(enabled = !busy, onClick = { deleteComment = comment.number("id") }) { Text(stringResource(R.string.community_delete_comment)) }
@@ -205,7 +209,7 @@ internal fun CommunityScreen(session: Session?, padding: PaddingValues, savedIds
                     replyTo?.let { Text("${stringResource(R.string.community_reply_to)} #$it"); TextButton(onClick = { replyTo = null }) { Text(stringResource(R.string.community_cancel)) } }
                     OutlinedTextField(body, { body = it.take(1000) }, label = { Text(stringResource(R.string.community_write)) }, modifier = Modifier.fillMaxWidth(), minLines = 3)
                     Button(enabled = !busy && body.isNotBlank(), onClick = { mutate { api.change("posts/${post.number("id")}/comments", buildJsonObject { put("body", body); replyTo?.let { put("parent_id", it) } }); body = ""; replyTo = null } }) { Text(stringResource(R.string.community_send)) }
-                } else { Text(stringResource(R.string.community_verify_required), color = Muted); Button(onClick = { if(session == null) onLogin() else navigate(if(user?.whatsappVerified == true) "settings" else "whatsapp") }) { Text(stringResource(R.string.community_whatsapp)) } }
+                } else { Text(stringResource(R.string.community_verify_required), color = Muted); Button(onClick = { if(session == null) onLogin() else navigate(if(user?.communityAccess?.eligible == true) "settings" else "whatsapp") }) { Text(stringResource(R.string.community_whatsapp)) } }
             }
             route == "whatsapp" -> Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 CommunityWhatsapp(data, busy, session?.token, { path, body, method -> mutate {
@@ -227,18 +231,24 @@ internal fun CommunityScreen(session: Session?, padding: PaddingValues, savedIds
             }
             route == "settings" -> {
                 if(!data.flag("verified")) { Text(stringResource(R.string.community_verify_required)); Button(onClick = { navigate("whatsapp") }) { Text(stringResource(R.string.community_whatsapp)) } }
-                else CommunityProfileEditor(data, busy) { body, avatar -> mutate { api.profile(body, avatar, context); onProfileSaved() } }
+                else CommunityProfileEditor(data, busy, { api.get("profile/handle?handle=${URLEncoder.encode(it, "UTF-8")}") }) { body, avatar -> mutate { api.profile(body, avatar, context); onProfileSaved() } }
                 TextButton(onClick = { navigate("whatsapp") }) { Text(stringResource(R.string.community_whatsapp)) }
                 TextButton(onClick = { navigate("followers") }) { Text(stringResource(R.string.community_followers)) }
             }
-            route.startsWith("save/") -> CommunityPublicationEditor(data, user?.whatsappVerified == true, busy, { navigate("whatsapp") }) { body -> mutate { api.change("saved/${route.substringAfter('/')}", body, "PUT") } }
-            route == "followers" -> {
+            route.startsWith("save/") -> CommunityPublicationEditor(data, data.obj("access").flag("can_publish"), busy, { navigate(if(data.obj("access").text("required_step") == "profile") "settings" else "whatsapp") }) { body -> mutate { api.change("saved/${route.substringAfter('/')}", body, "PUT") } }
+            route in listOf("followers", "following", "blocks") -> {
+                PeekTabRow {
+                    TextButton(onClick = { navigate("following") }) { Text(stringResource(R.string.community_following_list)) }
+                    TextButton(onClick = { navigate("followers") }) { Text(stringResource(R.string.community_followers)) }
+                    TextButton(onClick = { navigate("blocks") }) { Text(stringResource(R.string.community_safety)) }
+                }
                 Text(stringResource(R.string.community_followers), style = MaterialTheme.typography.titleLarge)
-                data.rows("followers").forEach { follower -> Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                (if(route == "blocks") emptyList() else data.rows(if(route == "following") "following" else "followers")).forEach { follower -> Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     TextButton(onClick = { follower.text("handle").takeIf { it.isNotEmpty() }?.let { navigate("profile/$it") } }) { Text(follower.text("display_name")) }
-                    TextButton(enabled = !busy, onClick = { blockTarget = follower.number("user_id") to false }) { Text(stringResource(R.string.community_block)) }
+                    if(route == "following") TextButton(enabled = !busy, onClick = { mutate { api.change("people/${follower.number("user_id")}/follow", method = "DELETE") } }) { Text(stringResource(R.string.community_unfollow)) }
+                    else TextButton(enabled = !busy, onClick = { blockTarget = follower.number("user_id") to false }) { Text(stringResource(R.string.community_more_actions)) }
                 } }
-                data.rows("blocks").forEach { block -> Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                (if(route == "blocks") data.rows("blocks") else emptyList()).forEach { block -> Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(block.text("display_name")); TextButton(enabled = !busy, onClick = { mutate { api.change("people/${block.number("user_id")}/block", method = "DELETE"); successMessage = unblockedMessage } }) { Text(stringResource(R.string.community_unblock)) }
                 } }
             }
@@ -256,7 +266,7 @@ internal fun CommunityScreen(session: Session?, padding: PaddingValues, savedIds
                 }
             }
         }
-        val hasMore = envelope.obj("meta").flag("has_more") || data.flag("has_more")
+        val hasMore = if(route == "following") data.flag("following_has_more") else route != "blocks" && (envelope.obj("meta").flag("has_more") || data.flag("has_more") || data.flag("participations_has_more"))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             if(page > 1 && route != "inbox") OutlinedButton(onClick = { page-- }) { Text(stringResource(R.string.community_previous)) }
             if(route == "inbox" && cursors.size > 1) OutlinedButton(onClick = { cursors = cursors.dropLast(1) }) { Text(stringResource(R.string.community_previous)) }

@@ -51,27 +51,31 @@ final class ProfileController extends Controller
             'name' => $request->string('name')->value() === '' ? null : $request->string('name')->value(),
             'timezone' => (string) $request->validated('timezone'),
             'locale' => (string) $request->validated('locale'),
-            'notification_preferences' => $request->preferences()->toArray(),
-            'daily_digest_time' => $request->string('daily_digest_time')->value() === ''
-                ? null
-                : $request->string('daily_digest_time')->value(),
-            'quiet_hours' => $request->quietHours(),
         ]);
 
-        /*
-         * Il consenso marketing conserva la propria data (§15.9): riconfermarlo
-         * non la riscrive, toglierlo la cancella. È quella data la prova, non
-         * un booleano.
-         *
-         * Con la newsletter spenta la casella non è nel modulo, e la sua
-         * assenza **non significa revoca**: il consenso già dato resta com'è.
-         * Interpretarla come un «no» cancellerebbe di nascosto una scelta della
-         * persona al primo salvataggio di un campo qualsiasi.
-         */
-        if (Features::newsletterActive()) {
-            $user->marketing_opt_in_at = $request->boolean('marketing_opt_in')
-                ? ($user->marketing_opt_in_at ?? Carbon::now())
-                : null;
+        if (! $request->boolean('profile_only')) {
+            $user->fill([
+                'notification_preferences' => $request->preferences()->toArray(),
+                'daily_digest_time' => $request->string('daily_digest_time')->value() === ''
+                    ? null
+                    : $request->string('daily_digest_time')->value(),
+                'quiet_hours' => $request->quietHours(),
+            ]);
+            /*
+             * Il consenso marketing conserva la propria data (§15.9): riconfermarlo
+             * non la riscrive, toglierlo la cancella. È quella data la prova, non
+             * un booleano.
+             *
+             * Con la newsletter spenta la casella non è nel modulo, e la sua
+             * assenza **non significa revoca**: il consenso già dato resta com'è.
+             * Interpretarla come un «no» cancellerebbe di nascosto una scelta della
+             * persona al primo salvataggio di un campo qualsiasi.
+             */
+            if (Features::newsletterActive()) {
+                $user->marketing_opt_in_at = $request->boolean('marketing_opt_in')
+                    ? ($user->marketing_opt_in_at ?? Carbon::now())
+                    : null;
+            }
         }
 
         $user->save();
