@@ -28,6 +28,12 @@
         ->where('visibility', \App\Enums\SavedVisibility::Public)
         ->exists();
     $verified = $viewer?->canParticipateInCommunity() ?? false;
+    /*
+        Il profilo si legge come proprietà, non con una query a parte: così la
+        relazione resta in memoria sull'utente autenticato e non si paga una
+        lettura in più per disegnare un pulsante.
+    */
+    $profilo = $viewer?->communityProfile;
 @endphp
 
 <section class="flex flex-col gap-3 border-t-2 border-line pt-5" aria-labelledby="chi-ci-va-{{ $occurrence->getKey() }}">
@@ -71,7 +77,7 @@
          diceva soltanto «Verifica il tuo numero WhatsApp»: una riga sottolineata
          che non nomina «Ci vado» e che nessuno collega a questa sezione. --}}
     @auth
-        @if ($verified)
+        @if ($verified && $profilo !== null)
             <form method="POST" action="{{ route('community.attendance', $occurrence) }}" class="flex flex-wrap items-center gap-3">
                 @csrf
                 <input type="hidden" name="going" value="{{ $going ? 0 : 1 }}">
@@ -82,6 +88,19 @@
                 ])>{{ $going ? __('community.attendance.not_going') : __('community.attendance.going') }}</button>
                 <span class="text-xs text-ink-subtle">{{ $going ? __('community.attendance.public') : __('community.attendance.hint') }}</span>
             </form>
+        @elseif ($verified)
+            {{-- Il pulsante c'era, il profilo no: premendo «Ci vado» la pagina
+                 tornava identica e senza un messaggio, perché l'errore di
+                 convalida di questa azione non è disegnato da nessuna parte.
+                 Un clic che non fa niente e non spiega niente è peggio di un
+                 divieto scritto. --}}
+            <div class="flex flex-col items-start gap-2">
+                <a
+                    href="{{ route('community.settings') }}"
+                    class="ui-action inline-flex min-h-12 items-center bg-accent px-5 py-3 font-semibold text-on-accent"
+                >{{ __('community.attendance.profile_to_go') }}</a>
+                <span class="text-xs text-ink-subtle">{{ __('community.attendance.profile_hint') }}</span>
+            </div>
         @else
             <a
                 href="{{ route('community.whatsapp', ['intended' => url()->current()]) }}"
@@ -98,4 +117,11 @@
             class="ui-action inline-flex min-h-12 items-center bg-accent px-5 py-3 font-semibold text-on-accent"
         >{{ __('community.attendance.join') }}</a>
     @endauth
+
+    {{-- Gli errori di questa azione restano qui, accanto al pulsante che li ha
+         prodotti: la scheda disegna una sola sezione «Chi ci va», quella della
+         data scelta, quindi non c'è ambiguità su quale data riguardino. --}}
+    @error('attendance')
+        <p class="text-sm text-alert" role="alert">{{ $message }}</p>
+    @enderror
 </section>

@@ -175,6 +175,16 @@
 
     --focus: #ccff00;
 
+    /* L'unico rosso del sistema, e serve a una cosa sola: dire che il gesto
+       appena fatto non è andato a buon fine. Non è uno stato di un evento —
+       quelli sono inchiostro — ed è per questo che non entra in concorrenza
+       con l'accento: compare solo in righe di testo brevi, mai su superfici.
+
+       Prima di questa variabile la classe `text-alert` era usata in quattro
+       viste e non esisteva: i messaggi di errore prendevano il colore del
+       testo circostante, quindi si leggevano come una nota qualsiasi. */
+    --alert: #ff8080;
+
     /* Elevazione: sul nero non si alza niente con un'ombra sfocata — si alza
        con un filo di luce sul bordo. */
     --elev-card: 0 0 0 1px rgba(245, 245, 240, 0.1);
@@ -246,6 +256,7 @@
     --color-on-muted-badge: var(--on-muted-badge);
 
     --color-focus: var(--focus);
+    --color-alert: var(--alert);
 
     --shadow-card: var(--elev-card);
     --shadow-lift: var(--elev-lift);

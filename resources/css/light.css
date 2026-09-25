@@ -44,6 +44,9 @@
     --accent-soft: #f7e9e1;
     --brand-soft: #f7e9e1;
     --light-hover: #f4f3ef;
+    /* Il rosso chiaro del tema scuro su fondo avorio starebbe a 2:1: qui
+       serve il suo opposto, e a questo serve l'override. */
+    --alert: #b3261e;
 
     /* Un solo raggio per i comandi, uno per i contenitori. Il prototipo usa
        10px sui pulsanti e 12-18px sui riquadri: due valori, non otto. */

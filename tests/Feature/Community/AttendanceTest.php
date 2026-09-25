@@ -158,3 +158,47 @@ it('invita l’ospite ad accedere e chi non è verificato a verificare', functio
         ->assertDontSee(__('community.attendance.verify_to_go'))
         ->assertDontSee(__('community.attendance.join'));
 });
+
+/**
+ * Il quarto stato: può partecipare, ma non ha ancora un profilo pubblico.
+ *
+ * Qui il pulsante «Ci vado» c'era e non funzionava. Premerlo faceva tornare la
+ * pagina identica: l'azione solleva un errore di convalida sulla chiave
+ * `attendance`, che nessuna vista disegnava. Un clic che non fa niente e non
+ * dice niente manda a cercare il guasto nel posto sbagliato — ed è esattamente
+ * quello che è successo.
+ */
+it('manda a creare il profilo chi non lo ha, invece di offrire un pulsante che non funziona', function (): void {
+    $url = EventUrl::occurrence($this->occurrence);
+
+    $senzaProfilo = User::factory()->create();
+    $senzaProfilo->forceFill(['whatsapp_verified_at' => now(), 'whatsapp_phone_hash' => hash('sha256', 'senza-profilo')])->save();
+
+    $this->actingAs($senzaProfilo->fresh())->get($url)->assertOk()
+        ->assertSee(__('community.attendance.profile_to_go'))
+        ->assertSee(route('community.settings'))
+        ->assertDontSee(__('community.attendance.going'))
+        ->assertDontSee(__('community.attendance.verify_to_go'));
+
+    /* Creato il profilo, il pulsante torna quello vero e non resta nessun
+       invito a crearne un altro. */
+    $senzaProfilo->communityProfile()->create(['handle' => 'profilo_dopo',
+        'display_name' => 'Profilo dopo', 'city_id' => $this->city->getKey(), 'visibility' => ProfileVisibility::Public]);
+
+    $this->actingAs($senzaProfilo->fresh())->get($url)->assertOk()
+        ->assertSee(__('community.attendance.going'))
+        ->assertDontSee(__('community.attendance.profile_to_go'));
+});
+
+it('mostra accanto al pulsante gli errori dell’azione, che prima non si vedevano', function (): void {
+    /* La via che resta per arrivare all'errore è la richiesta diretta — l'app,
+       o un modulo inviato da chi ha aperto la pagina prima di creare il
+       profilo. Segue il rimando e la pagina deve dire cosa non è andato. */
+    $senzaProfilo = User::factory()->create();
+    $senzaProfilo->forceFill(['whatsapp_verified_at' => now(), 'whatsapp_phone_hash' => hash('sha256', 'errore-visibile')])->save();
+    $url = EventUrl::occurrence($this->occurrence);
+
+    $this->actingAs($senzaProfilo->fresh())->followingRedirects()
+        ->post(route('community.attendance', $this->occurrence), ['going' => 1], ['referer' => $url])
+        ->assertOk()->assertSee(__('community.profile_required'));
+});
