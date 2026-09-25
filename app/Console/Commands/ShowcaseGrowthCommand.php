@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Enums\BookingStatus;
+use App\Enums\EventCommentStatus;
 use App\Enums\SavedVisibility;
 use App\Models\Booking;
 use App\Models\City;
 use App\Models\Event;
+use App\Models\EventComment;
 use App\Models\EventOccurrence;
 use App\Models\EventPoll;
 use App\Models\EventShareLink;
@@ -18,6 +20,7 @@ use App\Models\User;
 use App\Services\Analytics\EventShares;
 use App\Services\Community\EventPolls;
 use App\Services\Ticketing\TicketingService;
+use App\Support\ContentVersion;
 use Carbon\CarbonImmutable;
 use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Collection;
@@ -61,7 +64,41 @@ final class ShowcaseGrowthCommand extends Command
     /** La nota del sondaggio: è anche la chiave con cui `--purge` lo ritrova. */
     private const POLL_NOTE = 'Vetrina inCittà — quale sera vi va meglio?';
 
-    protected $signature = 'demo:crescita {city=padova} {--dry-run} {--allow-production} {--purge : Toglie solo ciò che questo comando ha aggiunto}';
+    /**
+     * Quante date ricevono informazioni pratiche e quante ricevono partecipanti.
+     *
+     * Non tutte, di proposito. Una vetrina in cui ogni singola data ha costi
+     * dichiarati, dieci nomi e una discussione non somiglia a un catalogo
+     * vero: somiglia a una demo. Le date senza niente servono a far vedere la
+     * differenza fra una scheda curata e una scheda normale — che è poi
+     * l'argomento per cui un locale dovrebbe curarla.
+     */
+    private const DATE_CON_DETTAGLI = 18;
+
+    private const DATE_CON_PARTECIPANTI = 14;
+
+    /**
+     * Le conversazioni sotto le date.
+     *
+     * Domande vere, del tipo che si legge davvero sotto un evento: a che ora
+     * si comincia, si porta il bambino, si paga all'ingresso. Ogni voce è
+     * [scostamento sull'elenco degli eventi, indice di chi scrive, testo,
+     * [risposte come [indice, testo]]].
+     *
+     * @var list<array{0: int, 1: int, 2: string, 3: list<array{0: int, 1: string}>}>
+     */
+    private const COMMENTI = [
+        [0, 1, 'Si entra anche a metà serata o conviene arrivare all’inizio?', [[4, 'L’anno scorso sono arrivato alle dieci e sono entrato senza problemi.']]],
+        [1, 2, 'Qualcuno sa se c’è posto per le bici lì davanti?', [[5, 'Sì, rastrelliere sul lato del cortile. Piene il venerdì, ma un buco si trova.']]],
+        [2, 3, 'Si paga all’ingresso o serve prenotare prima?', [[0, 'All’ingresso. L’anno scorso bastava presentarsi.'], [6, 'Confermo, nessuna prenotazione.']]],
+        [3, 4, 'Ci porto mia figlia di otto anni, è una cosa da bambini o no?', [[2, 'Direi di sì fino alle nove, poi si alza il volume.']]],
+        [4, 5, 'C’è modo di arrivarci con i mezzi dopo mezzanotte?', []],
+        [5, 6, 'Ci sono stato il mese scorso: arrivate presto, i posti a sedere finiscono subito.', [[1, 'Buono a sapersi, grazie.']]],
+        [6, 0, 'Si mangia qualcosa o conviene cenare prima?', [[3, 'C’è il banco con panini, ma cena vera no.']]],
+        [7, 2, 'Qualcuno ci va da solo? Mi va di venire ma non conosco nessuno.', [[5, 'Io ci vado, ci si trova all’ingresso.'], [4, 'Anche noi, siamo in tre.']]],
+    ];
+
+    protected $signature = 'demo:crescita {city=padova} {--settimane=0 : Ripete le date della vetrina per altre N settimane} {--dry-run} {--allow-production} {--purge : Toglie solo ciò che questo comando ha aggiunto}';
 
     protected $description = 'Mostra le funzioni di crescita sulla vetrina: informazioni pratiche, costi, «ci vado», sondaggi, condivisioni, lista d’attesa e staff agli ingressi';
 
@@ -91,6 +128,20 @@ final class ShowcaseGrowthCommand extends Command
             return $this->purge($events, $people);
         }
 
+        $settimane = (int) $this->option('settimane');
+
+        if ($settimane < 0 || $settimane > 8) {
+            $this->error('--settimane accetta da 0 a 8.');
+
+            return self::FAILURE;
+        }
+
+        // Qui `--purge` è già uscito: restano la prova a vuoto e l'esecuzione vera.
+        if ($settimane > 0 && ! $this->option('dry-run')) {
+            $this->replicaSettimane($city, $events, $settimane);
+            $events = $this->demoEvents($city);
+        }
+
         $future = $this->futureOccurrences($events);
 
         if ($future->isEmpty()) {
@@ -101,8 +152,10 @@ final class ShowcaseGrowthCommand extends Command
 
         if ($this->option('dry-run')) {
             $this->table(['Funzione', 'Dove si guarda', 'Previsti'], [
-                ['Informazioni pratiche e costi dichiarati', 'scheda della data', min($future->count(), 9).' date'],
-                ['«Ci vado» con i nomi', 'scheda della data', min($future->count(), 5).' date'],
+                ['Date ripetute nelle settimane successive', 'calendario ed elenco', $settimane === 0 ? 'nessuna (--settimane=0)' : $events->count() * $settimane.' date'],
+                ['Informazioni pratiche e costi dichiarati', 'scheda della data', min($future->count(), self::DATE_CON_DETTAGLI).' date'],
+                ['«Ci vado» con i nomi', 'scheda della data', min($future->count(), self::DATE_CON_PARTECIPANTI).' date'],
+                ['Commenti e risposte', 'scheda della data', count(self::COMMENTI).' conversazioni'],
                 ['Sondaggio fra amici', 'link del sondaggio', $this->pollDates($events)->count() >= EventPolls::MIN_OPTIONS ? '1 sondaggio' : 'nessuna data adatta'],
                 ['Condivisioni e QR', 'pannello del locale', min($events->count(), 3).' eventi × 14 giorni'],
                 ['Lista d’attesa e posto promosso', 'pagina dei biglietti', $this->ticketingDate($future) === null ? 'nessun locale con biglietteria' : '1 data'],
@@ -122,7 +175,9 @@ final class ShowcaseGrowthCommand extends Command
             $this->seedPoll($events, $vetrina);
             $this->seedShares($events);
             $this->seedTicketing($future, $vetrina);
+            $this->seedComments($events, $vetrina);
             $this->seedPreferences($vetrina);
+            ContentVersion::bump($city);
 
             $this->table(['Elemento', 'Creati ora', 'Totale'], array_map(
                 fn (string $label, array $row): array => [$label, $row[0], $row[1]],
@@ -199,7 +254,7 @@ final class ShowcaseGrowthCommand extends Command
         $profili = $this->practicalProfiles();
         $toccate = 0;
 
-        foreach ($dates->take(9)->values() as $indice => $date) {
+        foreach ($dates->take(self::DATE_CON_DETTAGLI)->values() as $indice => $date) {
             $profilo = $profili[$indice % count($profili)];
 
             if ($date->practical_details !== null && $date->cost_breakdown === ($profilo['costi'] ?? null)) {
@@ -210,7 +265,7 @@ final class ShowcaseGrowthCommand extends Command
             $toccate++;
         }
 
-        $this->report['Date con informazioni pratiche'] = [$toccate, $dates->take(9)->count()];
+        $this->report['Date con informazioni pratiche'] = [$toccate, $dates->take(self::DATE_CON_DETTAGLI)->count()];
     }
 
     /** @return list<array{pratiche: array<string, mixed>, costi: array<string, mixed>|null}> */
@@ -272,8 +327,19 @@ final class ShowcaseGrowthCommand extends Command
     {
         $creati = 0;
 
-        foreach ($dates->take(5)->values() as $indice => $date) {
-            foreach ($people->slice($indice, 4 + ($indice % 3)) as $persona) {
+        $elenco = $people->values();
+
+        foreach ($dates->take(self::DATE_CON_PARTECIPANTI)->values() as $indice => $date) {
+            /* Il gruppo ruota e si riavvolge: senza, le date più in là
+               restavano senza nessuno perché l'elenco finiva. */
+            $quanti = 4 + ($indice % 3);
+            $gruppo = $elenco->slice(($indice * 3) % max(1, $elenco->count()), $quanti);
+
+            if ($gruppo->count() < $quanti) {
+                $gruppo = $gruppo->concat($elenco->take($quanti - $gruppo->count()));
+            }
+
+            foreach ($gruppo as $persona) {
                 $salvataggio = SavedEvent::query()->firstOrCreate([
                     'user_id' => $persona->getKey(), 'occurrence_id' => $date->getKey(),
                 ]);
@@ -550,6 +616,130 @@ final class ShowcaseGrowthCommand extends Command
     }
 
     /**
+     * Le stesse serate, nelle settimane successive.
+     *
+     * Non nuovi eventi: **nuove date degli stessi eventi**. Una rassegna del
+     * venerdì il venerdì dopo c'è ancora, ed è così che un catalogo vero si
+     * riempie — ripetendosi. Duplicare gli eventi avrebbe moltiplicato
+     * locandine, descrizioni e commenti, e ogni scheda sarebbe apparsa nuova
+     * di zecca invece che frequentata.
+     *
+     * L'orario si sposta nel fuso della città e non in UTC: fra il 25 ottobre
+     * e il 26 la sera cambia l'ora legale, e sommare sette giorni a un istante
+     * UTC sposterebbe le serate di sessanta minuti.
+     *
+     * @param  Collection<int, Event>  $events
+     */
+    private function replicaSettimane(City $city, Collection $events, int $settimane): void
+    {
+        $create = 0;
+
+        foreach ($events as $evento) {
+            $prima = EventOccurrence::query()->where('event_id', $evento->getKey())->orderBy('starts_at')->first();
+
+            if ($prima === null) {
+                continue;
+            }
+
+            for ($settimana = 1; $settimana <= $settimane; $settimana++) {
+                $inizio = $prima->starts_at->timezone($city->timezone)->addWeeks($settimana);
+                $fine = $prima->ends_at?->timezone($city->timezone)->addWeeks($settimana);
+
+                $esiste = EventOccurrence::query()->where('event_id', $evento->getKey())
+                    ->where('starts_at', $inizio->utc())->exists();
+
+                if ($esiste) {
+                    continue;
+                }
+
+                EventOccurrence::query()->create([
+                    'event_id' => $evento->getKey(),
+                    'venue_id' => $prima->venue_id,
+                    'starts_at' => $inizio->utc(),
+                    'ends_at' => $fine?->utc(),
+                    'doors_at' => null,
+                    'is_all_day' => $prima->is_all_day,
+                    'status' => 'scheduled',
+                    'booking_enabled' => false,
+                ]);
+                $create++;
+            }
+        }
+
+        $this->report['Date nelle settimane successive'] = [$create, EventOccurrence::query()
+            ->whereIn('event_id', $events->modelKeys())->where('starts_at', '>', now())->count().' date future in tutto'];
+    }
+
+    /**
+     * Le conversazioni sotto le date.
+     *
+     * Si scrivono qui e non con l'azione dei commenti perché quella avvisa lo
+     * staff del locale, che è vero. Gli stessi valori, scritti direttamente:
+     * pubblicati, con la loro ora, e con le risposte agganciate al commento
+     * giusto.
+     *
+     * @param  Collection<int, Event>  $events
+     * @param  Collection<int, User>  $people
+     */
+    private function seedComments(Collection $events, Collection $people): void
+    {
+        $elenco = $events->values();
+        $persone = $people->values();
+
+        if ($elenco->isEmpty() || $persone->count() < 7) {
+            $this->report['Commenti e risposte'] = ['saltati', 'servono almeno sette persone della vetrina'];
+
+            return;
+        }
+
+        $scritti = 0;
+
+        foreach (self::COMMENTI as $indice => [$scostamento, $autore, $testo, $risposte]) {
+            $evento = $elenco[$scostamento % $elenco->count()];
+            $quando = CarbonImmutable::now()->subHours(50 - $indice * 5);
+            [$commento, $nuovo] = $this->scriviCommento($evento, $persone[$autore % $persone->count()], $testo, null, $quando);
+            $scritti += (int) $nuovo;
+
+            foreach ($risposte as $posizione => [$chi, $risposta]) {
+                $scritti += (int) $this->scriviCommento($evento, $persone[$chi % $persone->count()], $risposta, $commento,
+                    $quando->addMinutes(40 + $posizione * 55))[1];
+            }
+        }
+
+        $this->report['Commenti e risposte'] = [$scritti, EventComment::query()
+            ->whereIn('user_id', $persone->modelKeys())->count().' in tutto'];
+    }
+
+    /**
+     * Un commento, senza passare dall'azione che avvisa il locale.
+     *
+     * Non si chiama `comment()`: quel nome su un comando Artisan è già preso
+     * da `Illuminate\Console\Command`, e ridefinirlo privato è un errore
+     * fatale al caricamento della classe — non un avviso a runtime.
+     *
+     * @return array{0: EventComment, 1: bool}
+     */
+    private function scriviCommento(Event $evento, User $autore, string $testo, ?EventComment $padre, CarbonImmutable $quando): array
+    {
+        $esistente = EventComment::query()->where('event_id', $evento->getKey())
+            ->where('user_id', $autore->getKey())->where('body', $testo)->first();
+
+        if ($esistente !== null) {
+            return [$esistente, false];
+        }
+
+        $commento = new EventComment;
+        $commento->forceFill([
+            'event_id' => $evento->getKey(), 'user_id' => $autore->getKey(),
+            'parent_id' => $padre?->getKey(), 'reply_to_id' => $padre?->getKey(),
+            'body' => $testo, 'status' => EventCommentStatus::Published, 'revision' => 1,
+            'created_at' => $quando, 'updated_at' => $quando,
+        ])->save();
+
+        return [$commento, true];
+    }
+
+    /**
      * Le preferenze che rendono visibili le due funzioni silenziose.
      *
      * La spinta della sera e i modi di seguire non hanno una pagina propria:
@@ -631,8 +821,34 @@ final class ShowcaseGrowthCommand extends Command
             $singola->checkinStaff()->detach($people->modelKeys());
         }
 
+        /* I commenti di questo comando si riconoscono dal testo: quelli della
+           vetrina sono un altro catalogo e restano dove sono. */
+        $testi = array_merge(
+            array_column(self::COMMENTI, 2),
+            array_merge(...array_map(fn (array $voce): array => array_column($voce[3], 1), self::COMMENTI)),
+        );
+        $commenti = EventComment::query()->whereIn('user_id', $people->modelKeys())->whereIn('body', $testi)->delete();
+
+        /* Le date ripetute: di ogni evento della vetrina resta la prima, che
+           l'ha creata `demo:showcase`. Tutte le altre le ha aggiunte questo
+           comando. */
+        $repliche = 0;
+
+        foreach ($events as $evento) {
+            $prima = EventOccurrence::query()->where('event_id', $evento->getKey())->orderBy('starts_at')->value('id');
+
+            if ($prima === null) {
+                continue;
+            }
+
+            $repliche += EventOccurrence::query()->where('event_id', $evento->getKey())
+                ->whereKeyNot($prima)->forceDelete();
+        }
+
         $this->table(['Elemento', 'Rimossi'], [
             ['Prenotazioni della vetrina', $prenotazioni->count()],
+            ['Date ripetute', $repliche],
+            ['Commenti e risposte', $commenti],
             ['Sondaggi', $sondaggi->count()],
             ['Giorni di condivisioni', $condivisioni],
             ['«Ci vado» riportati a privati', $pubblici],
