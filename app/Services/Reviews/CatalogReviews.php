@@ -26,7 +26,7 @@ final class CatalogReviews
 {
     public function canWrite(?User $user, Venue|Organizer $subject): bool
     {
-        return $user !== null && $user->isWhatsappVerified() && ! $user->trashed() && ! session()->has('impersonator_id')
+        return $user !== null && $user->canParticipateInCommunity() && ! $user->trashed() && ! session()->has('impersonator_id')
             && ($subject instanceof Venue ? $subject->status === VenueStatus::Approved && ! $subject->members()->whereKey($user->id)->exists()
                 : $subject->is_active && ! $subject->managedBy($user));
     }
@@ -55,7 +55,7 @@ final class CatalogReviews
 
         return ['count' => $list->total(), 'rated_count' => (int) $stats?->getAttribute('total'),
             'average' => $stats?->getAttribute('average') === null ? null : round((float) $stats->getAttribute('average'), 1),
-            'can_review' => $this->canWrite($user, $subject), 'verified' => $user?->isWhatsappVerified() ?? false,
+            'can_review' => $this->canWrite($user, $subject), 'verified' => $user?->canParticipateInCommunity() ?? false,
             'reviews' => $list->map(fn (CatalogReview $review): array => $this->resource($review))->all(), 'page' => $list->currentPage(), 'last_page' => $list->lastPage(),
             'my_review' => $own === null ? null : ['rating' => $own->rating, 'body' => $own->body, 'moderation_note' => $own->moderation_note, 'revision' => $own->revision, 'status' => $own->status->value]];
     }
@@ -146,7 +146,7 @@ final class CatalogReviews
 
     public function report(User $user, CatalogReview $review, string $body): CarpoolCase
     {
-        abort_unless($user->isWhatsappVerified() && ! session()->has('impersonator_id'), 403);
+        abort_unless($user->canParticipateInCommunity() && ! session()->has('impersonator_id'), 403);
         abort_unless($review->reviewable instanceof Venue || $review->reviewable instanceof Organizer, 404);
         abort_unless($this->published($review->reviewable)->whereKey($review->id)->exists(), 404);
 

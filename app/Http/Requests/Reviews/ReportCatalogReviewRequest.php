@@ -10,7 +10,7 @@ class ReportCatalogReviewRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->isWhatsappVerified() ?? false;
+        return $this->user()?->canParticipateInCommunity() ?? false;
     }
 
     /** @return array<string, list<string>> */

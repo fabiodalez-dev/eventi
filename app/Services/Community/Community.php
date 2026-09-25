@@ -33,9 +33,16 @@ final class Community
 {
     public function __construct(private readonly CommunityAccess $access) {}
 
-    public function requireVerified(User $user): void
+    /**
+     * Il diritto di partecipare, non la verifica del numero.
+     *
+     * Si chiamava `requireVerified`, e il nome ha smesso di dire la verità
+     * quando chi amministra è stato esonerato dalla verifica: il numero resta
+     * la strada normale, ma non è più l'unica.
+     */
+    public function requireParticipation(User $user): void
     {
-        abort_unless($user->isWhatsappVerified(), 403, __('community.verification_required'));
+        abort_unless($user->canParticipateInCommunity(), 403, __('community.verification_required'));
     }
 
     /** @param array<string, mixed> $data */
@@ -43,7 +50,7 @@ final class Community
     {
         return DB::transaction(function () use ($user, $data): CommunityProfile {
             $locked = User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
-            $this->requireVerified($locked);
+            $this->requireParticipation($locked);
             $profile = $locked->communityProfile()->firstOrNew();
             $profile->fill(collect($data)->only(['handle', 'display_name', 'bio', 'city_id', 'visibility'])->all());
             $profile->indexable = $profile->visibility === ProfileVisibility::Public && ($data['indexable'] ?? false);
@@ -196,7 +203,7 @@ final class Community
                 return false;
             }
 
-            $this->requireVerified($locked);
+            $this->requireParticipation($locked);
             abort_if(DB::table('community_restrictions')->where('user_id', $user->id)->where('occurrence_id', $occurrence->getKey())->exists(), 403);
 
             if (! $locked->communityProfile()->exists()) {
@@ -239,7 +246,7 @@ final class Community
 
                 return null;
             }
-            $this->requireVerified($locked);
+            $this->requireParticipation($locked);
             abort_if(DB::table('community_restrictions')->where('user_id', $user->id)->where('occurrence_id', $occurrence)->exists(), 403);
             if (! $locked->communityProfile()->exists()) {
                 throw ValidationException::withMessages(['visibility' => __('community.profile_required')]);
@@ -262,7 +269,7 @@ final class Community
     {
         return DB::transaction(function () use ($user, $post, $body, $parentId): CommunityComment {
             $locked = User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
-            $this->requireVerified($locked);
+            $this->requireParticipation($locked);
             // Il profilo mancante si risolve compilandolo: è un errore del campo, non un divieto.
             if (! $locked->communityProfile()->exists()) {
                 throw ValidationException::withMessages(['body' => __('community.profile_required')]);
