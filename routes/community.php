@@ -21,6 +21,11 @@ Route::middleware(CommunityPrivacy::class)->group(function (): void {
         Route::get('/bacheca', [CommunityController::class, 'feed'])->name('community.feed');
         Route::get('/profilo-social', [CommunityController::class, 'settings'])->name('community.settings');
         Route::post('/profilo-social', [CommunityController::class, 'update'])->middleware('throttle:10,1,community-profile')->name('community.settings.update');
+        /* Il controllo dal vivo del nome utente. Ha un contatore largo — si
+           digita una lettera alla volta — ma un contatore ce l'ha: è una
+           domanda sull'esistenza di un nome, e va fatta pagare a chi la ripete
+           diecimila volte. */
+        Route::get('/profilo-social/nome-utente', [CommunityController::class, 'handleAvailability'])->middleware('throttle:120,1,community-handle')->name('community.handle');
         Route::get('/verifica-whatsapp', [WhatsappController::class, 'show'])->name('community.whatsapp');
         Route::post('/verifica-whatsapp', [WhatsappController::class, 'send'])->middleware('throttle:5,60,community-wa-send')->name('community.whatsapp.send');
         Route::post('/verifica-whatsapp/conferma', [WhatsappController::class, 'confirm'])->middleware('throttle:15,10,community-wa-confirm')->name('community.whatsapp.confirm');

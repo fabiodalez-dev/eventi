@@ -1082,6 +1082,8 @@ function dipingiFollow(bottone, form, segue) {
 
 import { liveSearch, continuousTicker } from './live-search';
 import { venueAutocomplete } from './venue-autocomplete';
+import { venueChips } from './venue-chips';
+import { profileHandle } from './profile-handle';
 
 function start() {
     contentAnalytics();
@@ -1191,6 +1193,8 @@ function start() {
     }
     liveSearch();
     venueAutocomplete();
+    venueChips();
+    profileHandle();
     continuousTicker();
     dialoghi();
     rivelaLocandine();

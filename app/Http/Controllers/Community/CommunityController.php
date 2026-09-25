@@ -34,6 +34,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 final class CommunityController extends Controller
@@ -141,14 +142,55 @@ final class CommunityController extends Controller
         $user = $request->user();
         $profile = $user->communityProfile;
         $venues = Venue::query()->where('status', VenueStatus::Approved)->whereIn('id', $user->follows()->where('followable_type', 'venue')->select('followable_id'))->orderBy('name')->get();
+        /*
+         * Il nome di battesimo come nome pubblico proposto, e solo quando il
+         * profilo non esiste ancora.
+         *
+         * Chi si iscrive ha già lasciato nome e cognome, e ritrovarsi un modulo
+         * vuoto sembra un doppio lavoro. Il cognome però resta fuori, e il nome
+         * utente resta da scegliere: il profilo è un'identità **pubblica** —
+         * compare in un indirizzo e nell'elenco di chi va a un evento — mentre
+         * i dati dell'iscrizione non lo sono. Proporre `mario_rossi` spingerebbe
+         * a pubblicare il cognome senza che nessuno l'abbia deciso.
+         */
+        $proposta = $profile === null ? ['display_name' => trim((string) $user->first_name)] : [];
+
         $data = ['profile' => $profile ? CommunityResource::profile($profile, $user) : null, 'venue_ids' => $profile?->venues()->pluck('venues.id')->all() ?? [],
             'venues' => $venues->map(fn ($v) => ['id' => $v->id, 'name' => $v->name])->all(), 'verified' => $user->canParticipateInCommunity(),
             'cities' => City::query()->active()->get(['id', 'name'])->toArray()];
         if ($request->expectsJson()) {
+            // La proposta resta fuori dalla risposta dell'app: è un aiuto del
+            // modulo del sito, non un dato del profilo.
             return ApiResponse::item($data);
         }
 
-        return view('community.settings', [...$data, 'cities' => City::query()->active()->get(), 'meta' => new PageMeta(__('community.settings'), __('community.settings'), indexable: false)]);
+        return view('community.settings', [...$data, 'suggested' => $proposta, 'cities' => City::query()->active()->get(), 'meta' => new PageMeta(__('community.settings'), __('community.settings'), indexable: false)]);
+    }
+
+    /**
+     * Se un nome utente è libero, mentre lo si sta scrivendo.
+     *
+     * Le regole arrivano da `ProfileRequest::handleRules()`: chiedere due volte
+     * la stessa cosa a due posti diversi è il modo sicuro per farli divergere.
+     * Non espone niente che il salvataggio non esponga già — «questo nome è
+     * preso» lo diceva comunque l'errore di convalida — ma lo dice prima.
+     */
+    public function handleAvailability(Request $request): JsonResponse
+    {
+        $handle = mb_strtolower(trim($request->string('handle')->toString()));
+
+        $validator = Validator::make(['handle' => $handle],
+            ['handle' => ProfileRequest::handleRules($request->user()?->communityProfile?->id)]);
+
+        $libero = $handle !== '' && $validator->passes();
+
+        return response()->json(['data' => [
+            'handle' => $handle,
+            'available' => $libero,
+            // Vuoto o valido: nessun motivo da dare. `first()` restituirebbe una
+            // stringa vuota, che in una risposta JSON è un motivo che non c'è.
+            'reason' => $libero || $handle === '' ? null : $validator->errors()->first('handle'),
+        ]]);
     }
 
     public function update(ProfileRequest $request): JsonResponse|RedirectResponse
