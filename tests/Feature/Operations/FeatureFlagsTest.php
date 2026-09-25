@@ -104,11 +104,11 @@ it('con la newsletter spenta la casella sparisce anche dal profilo', function ()
 
     $user = User::factory()->create(['email_verified_at' => now()]);
 
-    $this->actingAs($user)->get(route('account.notifications.preferences'))->assertSee('marketing_opt_in', false);
+    $this->actingAs($user)->followingRedirects()->get(route('account.notifications'))->assertSee('marketing_opt_in', false);
 
     Feature::for(Features::globalScope())->deactivate(Features::NEWSLETTER);
 
-    $this->actingAs($user)->get(route('account.notifications.preferences'))->assertDontSee('marketing_opt_in', false);
+    $this->actingAs($user)->followingRedirects()->get(route('account.notifications'))->assertDontSee('marketing_opt_in', false);
 });
 
 /**
