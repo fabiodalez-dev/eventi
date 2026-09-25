@@ -394,7 +394,17 @@ final class TicketingService
             && in_array($date->status, [OccurrenceStatus::Scheduled, OccurrenceStatus::SoldOut, OccurrenceStatus::Moved], true);
     }
 
-    private function isOpen(EventOccurrence $date): bool
+    /**
+     * Se **adesso** si può prenotare questa data.
+     *
+     * È pubblica perché è la sola regola che decide: la usa `reserve()` per
+     * autorizzare, e la scheda dell'evento per mostrare il pulsante. Quando la
+     * scheda si accontentava dei due interruttori di configurazione —
+     * `booking_enabled` e `ticketing_enabled`, che dicono se le prenotazioni
+     * *esistono* — offriva «Prenota il tuo posto» anche su una data già
+     * iniziata, e la pagina di prenotazione rispondeva che sono chiuse.
+     */
+    public function isOpen(EventOccurrence $date): bool
     {
         return $this->eventValid($date) && $date->status !== OccurrenceStatus::SoldOut
             && $date->booking_enabled && $date->effectiveVenue()?->ticketing_enabled
