@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 use App\Console\Commands\ShowcaseDemoCommand;
 use App\Enums\BookingStatus;
+use App\Enums\EventCommentStatus;
 use App\Enums\SavedVisibility;
 use App\Models\Booking;
+use App\Models\Event;
+use App\Models\EventComment;
 use App\Models\EventOccurrence;
 use App\Models\EventPoll;
 use App\Models\SavedEvent;
@@ -145,4 +148,58 @@ it('si ferma se la vetrina non c’è', function (): void {
     $this->artisan('demo:crescita', ['city' => $this->city->slug])
         ->expectsOutputToContain('Esegui prima')
         ->assertExitCode(1);
+});
+
+it('ripete le stesse serate nelle settimane successive senza creare eventi nuovi', function (): void {
+    $eventiPrima = Event::query()->count();
+
+    $this->artisan('demo:crescita', ['city' => $this->city->slug, '--settimane' => 2])->assertSuccessful();
+
+    // Cinque serate per due settimane, più la replica già presente nel corredo.
+    expect(EventOccurrence::query()->count())->toBe(6 + 10)
+        ->and(Event::query()->count())->toBe($eventiPrima);
+
+    // Una seconda esecuzione non ne aggiunge altre.
+    $this->artisan('demo:crescita', ['city' => $this->city->slug, '--settimane' => 2])->assertSuccessful();
+    expect(EventOccurrence::query()->count())->toBe(16);
+});
+
+/**
+ * L'ora legale.
+ *
+ * Sommare sette giorni a un istante UTC funziona cinquanta settimane l'anno e
+ * sbaglia di un'ora nelle due in cui l'orologio si sposta. Qui la serata è il
+ * sabato prima del cambio: la replica deve restare alle 21:00 di sera, non
+ * diventare le 20:00.
+ */
+it('ripete alla stessa ora locale anche attraverso il cambio dell’ora', function (): void {
+    $prima = occurrenceAtLocal($this->city, $this->category, '2026-10-24 21:00', venue: $this->venue);
+    $prima->event->forceFill(['source_ref' => ShowcaseDemoCommand::PREFIX.'ora-legale', 'is_demo' => true])->save();
+
+    $this->artisan('demo:crescita', ['city' => $this->city->slug, '--settimane' => 1])->assertSuccessful();
+
+    $replica = EventOccurrence::query()->where('event_id', $prima->event_id)
+        ->where('id', '!=', $prima->getKey())->firstOrFail();
+
+    expect($replica->starts_at->timezone($this->city->timezone)->format('d/m H:i'))->toBe('31/10 21:00')
+        // E l'istante assoluto è diverso di 25 ore, non di 24 x 7: l'ora è cambiata.
+        ->and($prima->starts_at->diffInHours($replica->starts_at))->toBe(169.0);
+});
+
+it('scrive commenti pubblicati con le risposte agganciate al commento giusto', function (): void {
+    $this->artisan('demo:crescita', ['city' => $this->city->slug])->assertSuccessful();
+
+    $radici = EventComment::query()->whereNull('parent_id')->get();
+    $risposte = EventComment::query()->whereNotNull('parent_id')->get();
+
+    expect($radici)->not->toBeEmpty()
+        ->and($risposte)->not->toBeEmpty()
+        ->and($radici->every(fn ($c): bool => $c->status === EventCommentStatus::Published))->toBeTrue()
+        // Ogni risposta punta a una radice che esiste, e allo stesso evento.
+        ->and($risposte->every(fn ($r): bool => $radici->contains('id', $r->parent_id)
+            && $radici->firstWhere('id', $r->parent_id)->event_id === $r->event_id))->toBeTrue();
+
+    $quanti = EventComment::query()->count();
+    $this->artisan('demo:crescita', ['city' => $this->city->slug])->assertSuccessful();
+    expect(EventComment::query()->count())->toBe($quanti);
 });
