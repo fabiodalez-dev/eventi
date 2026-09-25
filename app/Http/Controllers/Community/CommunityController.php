@@ -94,7 +94,7 @@ final class CommunityController extends Controller
     {
         $user = $this->viewer($request);
         $profile = $this->access->profiles($user)->where('handle', $handle)->first();
-        if ($profile === null && $user?->isWhatsappVerified()) {
+        if ($profile === null && $user?->canParticipateInCommunity()) {
             $profile = $user->communityProfile()->where('handle', $handle)->first();
         }
         abort_unless($profile !== null, 404);
@@ -131,7 +131,7 @@ final class CommunityController extends Controller
         }
 
         // Stessa regola di can_comment nel JSON: senza profilo il modulo non serve, serve completarlo.
-        $canComment = $user?->isWhatsappVerified() && $user->communityProfile !== null;
+        $canComment = $user?->canParticipateInCommunity() && $user->communityProfile !== null;
 
         return view('community.post', ['post' => $post, 'comments' => $comments, 'visibleProfileIds' => $visibleProfileIds, 'canComment' => $canComment, 'meta' => new PageMeta(__('community.post'), __('community.post'), indexable: false)]);
     }
@@ -142,7 +142,7 @@ final class CommunityController extends Controller
         $profile = $user->communityProfile;
         $venues = Venue::query()->where('status', VenueStatus::Approved)->whereIn('id', $user->follows()->where('followable_type', 'venue')->select('followable_id'))->orderBy('name')->get();
         $data = ['profile' => $profile ? CommunityResource::profile($profile, $user) : null, 'venue_ids' => $profile?->venues()->pluck('venues.id')->all() ?? [],
-            'venues' => $venues->map(fn ($v) => ['id' => $v->id, 'name' => $v->name])->all(), 'verified' => $user->isWhatsappVerified(),
+            'venues' => $venues->map(fn ($v) => ['id' => $v->id, 'name' => $v->name])->all(), 'verified' => $user->canParticipateInCommunity(),
             'cities' => City::query()->active()->get(['id', 'name'])->toArray()];
         if ($request->expectsJson()) {
             return ApiResponse::item($data);

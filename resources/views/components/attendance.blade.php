@@ -27,7 +27,7 @@
         ->where('occurrence_id', $occurrence->getKey())
         ->where('visibility', \App\Enums\SavedVisibility::Public)
         ->exists();
-    $verified = $viewer?->isWhatsappVerified() ?? false;
+    $verified = $viewer?->canParticipateInCommunity() ?? false;
 @endphp
 
 <section class="flex flex-col gap-3 border-t-2 border-line pt-5" aria-labelledby="chi-ci-va-{{ $occurrence->getKey() }}">

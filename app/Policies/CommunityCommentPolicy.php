@@ -16,7 +16,7 @@ final class CommunityCommentPolicy
 
     public function update(User $user, CommunityComment $record): bool
     {
-        return $user->isEditorialStaff() || ($user->id === $record->user_id && $user->isWhatsappVerified());
+        return $user->isEditorialStaff() || ($user->id === $record->user_id && $user->canParticipateInCommunity());
     }
 
     /**
@@ -27,11 +27,11 @@ final class CommunityCommentPolicy
     public function delete(User $user, CommunityComment $record): bool
     {
         return $user->isEditorialStaff() || $user->id === $record->user_id
-            || ($user->id === $record->post->user_id && $user->isWhatsappVerified());
+            || ($user->id === $record->post->user_id && $user->canParticipateInCommunity());
     }
 
     public function create(User $user): bool
     {
-        return $user->isWhatsappVerified();
+        return $user->canParticipateInCommunity();
     }
 }

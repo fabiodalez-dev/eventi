@@ -10,7 +10,7 @@ class StoreCatalogReviewRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->isWhatsappVerified() ?? false;
+        return $this->user()?->canParticipateInCommunity() ?? false;
     }
 
     protected function prepareForValidation(): void

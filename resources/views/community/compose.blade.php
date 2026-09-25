@@ -3,7 +3,7 @@
     <p class="my-6 text-ink-muted">{{ __('community.privacy_help') }}</p>
     <form method="post" action="{{ route('community.publish', $saved->occurrence_id) }}" class="space-y-6">@csrf @method('PUT')
         {{-- Senza verifica valida l'unica scelta possibile è privata: un pubblico rimasto spuntato ma disabilitato non verrebbe inviato, e il salvataggio fallirebbe invece di ritirare il post. --}}
-        @php($verified = auth()->user()->isWhatsappVerified())
+        @php($verified = auth()->user()->canParticipateInCommunity())
         @php($visibility = $verified ? old('visibility', $saved->visibility->value) : 'private')
         <fieldset class="space-y-3"><legend class="font-semibold">{{ __('community.save_privacy') }}</legend>
             <label class="flex min-h-11 items-center gap-3"><input type="radio" name="visibility" value="private" @checked($visibility === 'private')>{{ __('community.private') }}</label>
