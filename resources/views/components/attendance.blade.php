@@ -59,6 +59,17 @@
         <p class="text-xs text-ink-subtle">{{ __('community.attendance.only_verified') }}</p>
     @endif
 
+    {{-- L'invito a partecipare, in tutti e tre gli stati.
+
+         All'ospite non si mostrava niente: leggeva «sedici persone ci vanno» e
+         non aveva un appiglio per unirsi — mentre i commenti, nella stessa
+         pagina e a due centimetri di distanza, gli offrivano «Accedi per
+         commentare». Due sezioni della stessa scheda trattavano la stessa
+         persona in modo opposto.
+
+         A chi è collegato senza numero verificato il collegamento c'era, ma
+         diceva soltanto «Verifica il tuo numero WhatsApp»: una riga sottolineata
+         che non nomina «Ci vado» e che nessuno collega a questa sezione. --}}
     @auth
         @if ($verified)
             <form method="POST" action="{{ route('community.attendance', $occurrence) }}" class="flex flex-wrap items-center gap-3">
@@ -72,7 +83,19 @@
                 <span class="text-xs text-ink-subtle">{{ $going ? __('community.attendance.public') : __('community.attendance.hint') }}</span>
             </form>
         @else
-            <a href="{{ route('community.whatsapp', ['intended' => url()->current()]) }}" class="inline-flex min-h-12 items-center underline underline-offset-4">{{ __('community.whatsapp.title') }}</a>
+            <a
+                href="{{ route('community.whatsapp', ['intended' => url()->current()]) }}"
+                class="ui-action inline-flex min-h-12 items-center bg-accent px-5 py-3 font-semibold text-on-accent"
+            >{{ __('community.attendance.verify_to_go') }}</a>
         @endif
+    @else
+        {{-- Il pulsante apre il modale di iscrizione invece di portare via dalla
+             pagina, come fanno i commenti: chi si iscrive non perde la data che
+             stava guardando. --}}
+        <a
+            href="{{ route('login', ['intended' => request()->fullUrl().'#chi-ci-va-'.$occurrence->getKey()]) }}"
+            data-apri-iscrizione
+            class="ui-action inline-flex min-h-12 items-center bg-accent px-5 py-3 font-semibold text-on-accent"
+        >{{ __('community.attendance.join') }}</a>
     @endauth
 </section>
