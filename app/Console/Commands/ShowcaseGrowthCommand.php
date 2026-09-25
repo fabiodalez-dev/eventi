@@ -486,12 +486,16 @@ final class ShowcaseGrowthCommand extends Command
         $adatte = $dates->filter(fn (EventOccurrence $date): bool => (bool) $date->effectiveVenue()?->ticketing_enabled
             && $date->starts_at->greaterThan(now()->addHours(config()->integer('ticketing.promotion.min_hours_before') + 1)));
 
-        /* Meglio una data non imminente: la conferma di un posto promosso
-           scade prima dell'inizio, e su una serata di stasera la finestra
-           sarebbe finita prima della presentazione. Se ci sono solo date
-           vicine si prende quella che c'è — una coda che scade è pur sempre
-           una coda. */
-        return $adatte->first(fn (EventOccurrence $date): bool => $date->starts_at->greaterThan(now()->addHours(36)))
+        /* Meglio una data lontana, e non per comodità: la conferma di un posto
+           promosso scade **prima dell'inizio di quella serata**, quindi è la
+           data scelta a decidere quanto a lungo si può mostrare la coda. Su
+           una serata di dopodomani la finestra si chiude in due giorni, il
+           lavoro programmato annulla la prenotazione promossa e la vetrina si
+           smonta da sola — senza che nessuno se ne accorga.
+           Si cerca quindi una serata a una settimana buona, poi una qualunque
+           non imminente, e solo in ultimo quella che c'è. */
+        return $adatte->first(fn (EventOccurrence $date): bool => $date->starts_at->greaterThan(now()->addDays(7)))
+            ?? $adatte->first(fn (EventOccurrence $date): bool => $date->starts_at->greaterThan(now()->addHours(36)))
             ?? $adatte->first();
     }
 
@@ -566,19 +570,23 @@ final class ShowcaseGrowthCommand extends Command
     }
 
     /**
-     * La scadenza della conferma, spostata avanti quanto la data consente.
+     * La scadenza della conferma, spostata fin dove la data consente.
      *
-     * La promozione nasce con la finestra vera, che è di poche ore: una
-     * vetrina preparata la sera arriverebbe al mattino con il posto già
-     * tornato in coda, e si mostrerebbe la scadenza invece del meccanismo.
-     * Il limite resta quello reale — non oltre il momento in cui le
-     * promozioni si fermano, prima dell'inizio — quindi è una data che il
-     * sistema avrebbe potuto scrivere da sé.
+     * La promozione nasce con la finestra vera, dodici ore: una vetrina
+     * preparata la sera arriverebbe al mattino con il posto già tornato in
+     * coda, e si mostrerebbe la scadenza invece del meccanismo. Il lavoro
+     * programmato non aspetta che qualcuno guardi.
+     *
+     * Il limite resta quello del sistema — il momento in cui le promozioni si
+     * fermano, poco prima dell'inizio — quindi è una scadenza che il sistema
+     * stesso avrebbe potuto scrivere. Andare fin lì, invece di fermarsi a
+     * quarantotto ore, è ciò che tiene in piedi la coda per tutta la finestra
+     * in cui la vetrina va mostrata, senza dover rilanciare il comando ogni
+     * due giorni.
      */
     private function extendPromotion(EventOccurrence $date): void
     {
-        $limite = $date->starts_at->subHours(config()->integer('ticketing.promotion.min_hours_before'));
-        $scadenza = CarbonImmutable::now()->addHours(48)->min($limite);
+        $scadenza = $date->starts_at->subHours(config()->integer('ticketing.promotion.min_hours_before'));
 
         Booking::query()->where('occurrence_id', $date->getKey())->whereNotNull('promotion_expires_at')
             ->where('promotion_expires_at', '<', $scadenza)->update(['promotion_expires_at' => $scadenza]);

@@ -109,9 +109,21 @@ it('arriva a una coda con un posto promosso che scade', function (): void {
 
     $promossa = Booking::query()->where('occurrence_id', $data->getKey())->whereNotNull('promotion_expires_at')->first();
 
+    /*
+     * La scadenza non è «fra poche ore»: arriva fin dove il sistema stesso
+     * smette di promuovere, cioè poco prima dell'inizio di quella serata. È
+     * ciò che tiene in piedi la coda per tutta la finestra della vetrina: con
+     * la finestra breve il lavoro programmato annullerebbe la prenotazione
+     * promossa dopo mezza giornata, e la dimostrazione si smonterebbe da sola.
+     */
+    $limite = $data->starts_at->subHours(config()->integer('ticketing.promotion.min_hours_before'));
+
     expect($promossa)->not->toBeNull()
         ->and($promossa->status)->toBe(BookingStatus::Confirmed)
+        ->and($promossa->promotion_expires_at->equalTo($limite))->toBeTrue()
         ->and($promossa->promotion_expires_at->isFuture())->toBeTrue()
+        // E la serata scelta è lontana, non quella di dopodomani.
+        ->and($data->starts_at->greaterThan(now()->addDays(7)))->toBeTrue()
         ->and(Booking::query()->where('occurrence_id', $data->getKey())->where('status', BookingStatus::Cancelled)->count())->toBe(1)
         ->and($data->checkinStaff()->count())->toBe(2);
 });
