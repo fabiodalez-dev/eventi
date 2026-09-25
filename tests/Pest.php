@@ -286,3 +286,33 @@ uses()->beforeEach(function (): void {
     Carbon::setTestNow();
     CarbonImmutable::setTestNow();
 })->in('Feature/Carpool');
+
+/**
+ * Gli errori JavaScript della pagina, tolta una notifica che errore non è.
+ *
+ * `ResizeObserver loop completed with undelivered notifications` non è
+ * un'eccezione: è l'avviso che il browser manda quando il giro degli
+ * osservatori di ridimensionamento non si chiude dentro il fotogramma e le
+ * notifiche rimaste vengono consegnate al successivo. Niente si interrompe e
+ * niente resta indietro — è una nota sui tempi, non un guasto.
+ *
+ * Nelle pagine di amministrazione quegli osservatori **non sono nostri**:
+ * `resources/js/app.js` non viene nemmeno caricato lì (il pannello carica solo
+ * il tema e `filament-map.js`, che si costruisce soltanto dove c'è una mappa).
+ * Vengono da Filament — `tables.js`, `schemas.js`, gli editor — cioè da codice
+ * che non possiamo correggere. Trattare quel messaggio come un errore della
+ * pagina significa far cadere a caso prove che riguardano tutt'altro: è già
+ * successo, e ha fermato un rilascio.
+ *
+ * Il filtro è stretto di proposito, sul testo esatto: qualunque altro errore
+ * resta un errore.
+ *
+ * @return list<array<string, mixed>>
+ */
+function erroriJavascriptVeri(object $pagina): array
+{
+    return array_values(array_filter(
+        $pagina->page()->javaScriptErrors(),
+        fn (array $errore): bool => ! str_contains((string) ($errore['message'] ?? ''), 'ResizeObserver loop completed with undelivered notifications'),
+    ));
+}
