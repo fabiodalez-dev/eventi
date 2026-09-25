@@ -126,7 +126,24 @@ class User extends Authenticatable implements FilamentUser, HasTenants, MustVeri
         return $this->hasAnyRole([UserRole::Admin->value, UserRole::SuperAdmin->value]);
     }
 
-    /** @param Builder<User> $query */
+    /**
+     * Il predicato del **contatto**, e soltanto quello: numero verificato,
+     * oppure ruolo che ne esonera.
+     *
+     * Non è l'equivalente in SQL di `canParticipateInCommunity()`, ed è la cosa
+     * da sapere prima di usarlo. Quel metodo pretende dall'esonerato anche
+     * l'email confermata e nessuna sospensione; qui il ramo dell'esonero guarda
+     * solo il ruolo, quindi da solo questo scope lascia passare chi amministra
+     * ed è sospeso. I due punti che lo usano — `CommunityAccess::eligibleUsers()`
+     * e `RideDiscovery::eligibleQuery()` — aggiungono i propri filtri, e per un
+     * terzo va fatto lo stesso: il predicato completo è quello di
+     * `eligibleUsers()`, non questo.
+     *
+     * Restano fuori da sé le persone cancellate: la cancellazione leggera ha il
+     * suo filtro globale su `User::query()`.
+     *
+     * @param  Builder<User>  $query
+     */
     public function scopeWithVerifiedContactOrExemption(Builder $query): void
     {
         $query->where(fn ($q) => $q->where(fn ($phone) => $phone->whereNotNull('whatsapp_verified_at')->whereNotNull('whatsapp_phone_hash'))
