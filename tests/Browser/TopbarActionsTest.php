@@ -31,5 +31,14 @@ it('keeps role-specific topbar shortcuts usable on desktop and small phones', fu
     }
     $page->screenshot(fullPage: false, filename: 'topbar-'.$panel.'-'.$width);
     $page->keys('[data-topbar-more]', 'Escape');
-    $page->click('[data-topbar-action="create"]')->assertSee('Nuovo evento')->assertNoJavascriptErrors();
+    $page->click('[data-topbar-action="create"]')->assertSee('Nuovo evento');
+    /*
+     * Non `assertNoJavascriptErrors()`: su queste pagine il pannello carica gli
+     * script di Filament, e i loro osservatori di ridimensionamento fanno
+     * comparire a intermittenza «ResizeObserver loop completed with undelivered
+     * notifications» — una nota sui tempi, non un'eccezione. Ha già fatto
+     * cadere il job browser e fermato un rilascio, su una prova che riguarda le
+     * scorciatoie della testata. Tutto il resto resta un errore.
+     */
+    expect(erroriJavascriptVeri($page))->toBe([]);
 })->with([['admin', 1440], ['admin', 390], ['admin', 320], ['venue', 1440], ['venue', 390], ['venue', 320]]);
