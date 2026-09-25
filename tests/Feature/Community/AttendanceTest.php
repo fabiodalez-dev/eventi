@@ -132,3 +132,29 @@ it('mostra il numero a tutti e i nomi solo a chi è verificato', function (): vo
     $this->get($url)->assertOk()->assertSee(__('community.attendance.count_one'))->assertDontSee('Nadia');
     $this->actingAs(attendee('chi_legge'))->get($url)->assertOk()->assertSee('Nadia');
 });
+
+/**
+ * L'invito a partecipare deve esistere in tutti e tre gli stati.
+ *
+ * All'ospite non si mostrava niente: leggeva quante persone ci vanno e non
+ * aveva un appiglio per unirsi, mentre i commenti — nella stessa scheda — gli
+ * offrivano «Accedi per commentare». A chi era collegato senza numero
+ * verificato restava una riga sottolineata che non nominava «Ci vado».
+ */
+it('invita l’ospite ad accedere e chi non è verificato a verificare', function (): void {
+    $url = EventUrl::occurrence($this->occurrence);
+
+    $this->get($url)->assertOk()
+        ->assertSee(__('community.attendance.join'))
+        ->assertDontSee(__('community.attendance.going'));
+
+    $senzaNumero = User::factory()->create();
+    $this->actingAs($senzaNumero)->get($url)->assertOk()
+        ->assertSee(__('community.attendance.verify_to_go'))
+        ->assertDontSee(__('community.attendance.join'));
+
+    $this->actingAs(attendee('chi-ci-va-invito'))->get($url)->assertOk()
+        ->assertSee(__('community.attendance.going'))
+        ->assertDontSee(__('community.attendance.verify_to_go'))
+        ->assertDontSee(__('community.attendance.join'));
+});
