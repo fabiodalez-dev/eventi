@@ -7,6 +7,7 @@ use App\Actions\Account\SaveOccurrences;
 use App\Enums\ProfileVisibility;
 use App\Enums\UserRole;
 use App\Models\CommunityPost;
+use App\Models\SavedEvent;
 use App\Models\User;
 use App\Services\Community\Community;
 use App\Services\Community\CommunityAccess;
@@ -146,4 +147,33 @@ it('refuses a schema rollback that would lose community activity', function (): 
     $migration = require database_path('migrations/2026_09_25_190000_separate_community_attendance.php');
     expect(fn () => $migration->down())->toThrow(RuntimeException::class);
     $this->assertDatabaseCount('community_attendances', 1);
+});
+
+/*
+ * La riparazione delle partecipazioni non riconosciute.
+ *
+ * La separazione è stata rilasciata con un criterio che si fermava ai post: in
+ * produzione ha migrato 21 gesti su 124, perché il vecchio «Ci vado» non creava
+ * post. Questa migrazione recupera i mancanti dai salvataggi, che erano intatti.
+ */
+it('recupera le partecipazioni non riconosciute senza toccare i consigli', function (): void {
+    $silenzioso = occurrenceAtLocal($this->city, $this->category, '2026-09-27 21:00', '2026-09-27 23:00');
+    $consigliato = occurrenceAtLocal($this->city, $this->category, '2026-09-28 21:00', '2026-09-28 23:00');
+
+    foreach ([$silenzioso, $consigliato] as $date) {
+        app(SaveOccurrences::class)->one($this->admin, $date)->forceFill(['visibility' => 'public'])->save();
+    }
+    $salvato = SavedEvent::query()->where('occurrence_id', $consigliato->id)->sole();
+    CommunityPost::create(['user_id' => $this->admin->id, 'saved_event_id' => $salvato->id, 'occurrence_id' => $consigliato->id,
+        'intent' => 'recommend', 'status' => 'published', 'published_at' => now()]);
+
+    // Lo stato in cui il rilascio ha lasciato la produzione: nessuna delle due.
+    DB::table('community_attendances')->delete();
+
+    $riparazione = require database_path('migrations/2026_09_25_200000_repair_legacy_attendance.php');
+    $riparazione->up();
+    // Ripetibile: una seconda esecuzione non duplica niente.
+    $riparazione->up();
+
+    expect(DB::table('community_attendances')->pluck('occurrence_id')->all())->toBe([$silenzioso->id]);
 });
