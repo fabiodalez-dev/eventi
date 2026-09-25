@@ -7,6 +7,9 @@
 --}}
 @php
     $formatter = app(\App\Support\DateFormatter::class);
+    /* Una sola istanza per tutta la rassegna: la regola sulle prenotazioni va
+       chiesta una volta per data, non ricostruita a ogni riga. */
+    $ticketing = app(\App\Services\Ticketing\TicketingService::class);
     $venue = isset($selectedOccurrence) && $selectedOccurrence !== null ? $selectedOccurrence->locationVenue() : $event->locationVenue();
     $organizerInfo = app(\App\Services\Seo\StructuredData::class)->organizer($event);
     /*
@@ -305,11 +308,34 @@
                                 </div>
 
                                 @if ($occurrences->isNotEmpty() && ! ($isPreview ?? false))
+                                    @php
+                                        /* Il pulsante e la pagina di prenotazione devono decidere con
+                                           la stessa regola. `isOpen()` è quella che poi autorizza
+                                           davvero il salvataggio; qui si guardavano invece i due
+                                           interruttori di configurazione, che dicono se le
+                                           prenotazioni *esistono* — non se sono aperte adesso. Su una
+                                           data già iniziata il pulsante c'era e la pagina rispondeva
+                                           «Le prenotazioni non sono aperte per questa data». */
+                                        $prenotabile = $ticketing->isOpen($occurrence);
+                                        $configurata = $occurrence->booking_enabled && $occurrence->effectiveVenue()?->ticketing_enabled;
+                                        /* L'elenco tiene le date di oggi per tutta la giornata
+                                           (`business_date >= oggi`), quindi una serata già finita
+                                           resta in pagina fino a mezzanotte: lasciare la cella vuota
+                                           farebbe sembrare mancante il pulsante invece che chiuso. */
+                                        $chiusura = match (true) {
+                                            $prenotabile, ! $configurata => null,
+                                            $occurrence->status === \App\Enums\OccurrenceStatus::SoldOut => __('ticketing.card.sold_out'),
+                                            $occurrence->booking_opens_at !== null && now()->lt($occurrence->booking_opens_at) => __('ticketing.card.opens_on', ['date' => $formatter->instantDate($occurrence->booking_opens_at)]),
+                                            default => __('ticketing.card.closed'),
+                                        };
+                                    @endphp
                                     <div class="flex items-start empty:hidden sm:justify-end">
                                     @if ($booking = $activeBookings->get($occurrence->id))
                                         <x-button :href="route('tickets.show', $booking)" class="min-h-12">{{ __('ticketing.manage_booking') }}</x-button>
-                                    @elseif ($occurrence->booking_enabled && $occurrence->effectiveVenue()?->ticketing_enabled)
+                                    @elseif ($prenotabile)
                                         <x-button :href="route('tickets.create', $occurrence)" data-content-metric="booking_clicks" class="min-h-12">{{ __('ticketing.reserve') }}</x-button>
+                                    @elseif ($chiusura !== null)
+                                        <p class="text-sm text-ink-muted sm:text-right">{{ $chiusura }}</p>
                                     @endif
                                     </div>
                                     <div class="flex flex-wrap items-center gap-2 border-t border-line pt-3 sm:col-span-2">

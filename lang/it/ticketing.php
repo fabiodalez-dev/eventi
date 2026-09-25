@@ -59,6 +59,15 @@ return [
         'event_cancelled' => 'Evento annullato: i biglietti non sono più validi', 'changed' => 'Le informazioni dell’evento prenotato sono cambiate',
         'current_status' => 'Consulta i tuoi biglietti per lo stato aggiornato, la data e le istruzioni di ingresso.',
     ],
+    /* Quello che prende il posto del pulsante quando prenotare non si può.
+       Una cella vuota non basta: l'elenco tiene le date di oggi per tutta la
+       giornata, quindi senza una riga di testo il pulsante sembrerebbe mancante
+       invece che chiuso. */
+    'card' => [
+        'closed' => 'Prenotazioni chiuse',
+        'sold_out' => 'Posti esauriti',
+        'opens_on' => 'Prenotazioni dal :date',
+    ],
     'errors' => [
         'already_booked' => 'Hai già una prenotazione per questa data. Vai ai tuoi biglietti per gestirla.',
         'retry_conflict' => 'Questa richiesta è già stata usata con dati diversi. Riapri il modulo.',
