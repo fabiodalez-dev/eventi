@@ -30,16 +30,34 @@ return new class extends Migration
         });
     }
 
+    /**
+     * Che cosa, nel vecchio modello, era davvero una partecipazione.
+     *
+     * Un consiglio non la prova: chi scrive «ci consiglio questo posto» non ha
+     * detto che ci va. Ma il criterio non può essere il solo post «Parteciperò»,
+     * perché il vecchio «Ci vado» **non creava alcun post**: rendeva pubblico il
+     * salvataggio e scriveva nel registro, e basta (`attendance()` prima di
+     * questa separazione). La sua firma è quindi *pubblico e senza post*.
+     *
+     * Sui dati di produzione i tre insiemi chiudono esatti: 140 salvataggi
+     * pubblici = 103 senza post + 21 con «Parteciperò» + 16 con un consiglio.
+     * Fermarsi ai post avrebbe migrato 21 partecipazioni su 124, cancellando
+     * dalle schede l'85% di chi ci va.
+     *
+     * Il registro resta come terza via, per le installazioni dove esiste: la
+     * riga `attendance_public` è nata con questa stessa modifica, quindi in
+     * produzione non ne esiste nemmeno una e da sola non avrebbe salvato nulla.
+     */
     public function backfill(): void
     {
-        // Un consiglio non prova una partecipazione. Sono espliciti solo i post
-        // «Parteciperò» o l'ultima azione «Ci vado» ancora pubblica.
         DB::table('saved_events')->where('visibility', 'public')->orderBy('id')->chunkById(500, function ($rows): void {
             foreach ($rows as $row) {
-                $attend = DB::table('community_posts')->where('saved_event_id', $row->id)->where('intent', 'attend')->exists();
+                $intenti = DB::table('community_posts')->where('saved_event_id', $row->id)->pluck('intent');
+                $soloSalvataggio = $intenti->isEmpty();
+                $attend = $intenti->contains('attend');
                 $explicit = DB::table('activity_log')->where('causer_id', $row->user_id)->where('event', 'attendance_public')
                     ->where('properties->saved_event_id', $row->id)->exists();
-                if ($attend || $explicit) {
+                if ($soloSalvataggio || $attend || $explicit) {
                     DB::table('community_attendances')->insertOrIgnore(['user_id' => $row->user_id, 'occurrence_id' => $row->occurrence_id,
                         'created_at' => $row->created_at, 'updated_at' => $row->updated_at]);
                 }

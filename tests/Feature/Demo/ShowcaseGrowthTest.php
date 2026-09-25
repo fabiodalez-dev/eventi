@@ -77,14 +77,23 @@ it('dichiara i costi per intero, a metà e per niente', function (): void {
     expect(EventOccurrence::query()->find($this->dates[2]->getKey())->practical_details['parking_type'])->toBe('free');
 });
 
-it('rende pubblici i «ci vado» e non ne crea di nuovi alla seconda esecuzione', function (): void {
+/*
+ * Le partecipazioni vivono in `community_attendances`, non nella visibilità del
+ * salvataggio: da quando i tre gesti sono separati, un salvataggio pubblico non
+ * dice niente sul parteciparvi, e un comando fermo al vecchio modello avrebbe
+ * seminato una vetrina con zero «ci vado» pur dichiarandoli nel riepilogo.
+ */
+it('scrive i «ci vado» e non ne crea di nuovi alla seconda esecuzione', function (): void {
     $this->artisan('demo:crescita', ['city' => $this->city->slug])->assertSuccessful();
-    $primi = SavedEvent::query()->where('visibility', SavedVisibility::Public->value)->count();
+    $prime = DB::table('community_attendances')->count();
 
     $this->artisan('demo:crescita', ['city' => $this->city->slug])->assertSuccessful();
 
-    expect($primi)->toBeGreaterThan(0)
-        ->and(SavedEvent::query()->where('visibility', SavedVisibility::Public->value)->count())->toBe($primi);
+    expect($prime)->toBeGreaterThan(0)
+        ->and(DB::table('community_attendances')->count())->toBe($prime)
+        // Dire «ci vado» salva la data, ma non la rende pubblica.
+        ->and(SavedEvent::query()->where('visibility', SavedVisibility::Public->value)->count())->toBe(0)
+        ->and(SavedEvent::query()->count())->toBeGreaterThan(0);
 });
 
 it('scrive quattordici giorni di condivisioni, non una colonna sola', function (): void {
@@ -144,7 +153,8 @@ it('toglie ciò che ha aggiunto e lascia in piedi la vetrina', function (): void
 
     $this->artisan('demo:crescita', ['city' => $this->city->slug, '--purge' => true])->assertSuccessful();
 
-    expect(SavedEvent::query()->where('visibility', SavedVisibility::Public->value)->count())->toBe(0)
+    expect(DB::table('community_attendances')->count())->toBe(0)
+        ->and(SavedEvent::query()->where('visibility', SavedVisibility::Public->value)->count())->toBe(0)
         ->and(DB::table('event_share_daily')->count())->toBe(0)
         ->and(EventPoll::query()->count())->toBe(0)
         ->and(Booking::query()->count())->toBe(0)
