@@ -3,8 +3,11 @@
 declare(strict_types=1);
 
 use App\Enums\OccurrenceStatus;
+use App\Models\EventOccurrence;
+use App\Models\User;
 use App\Models\Venue;
 use App\Services\Ticketing\TicketingService;
+use App\Support\DateFormatter;
 use App\Support\EventUrl;
 use Carbon\Carbon;
 
@@ -31,7 +34,7 @@ beforeEach(function (): void {
 
 afterEach(fn () => Carbon::setTestNow());
 
-function dataPrenotabile(string $inizioLocale, array $extra = []): App\Models\EventOccurrence
+function dataPrenotabile(string $inizioLocale, array $extra = []): EventOccurrence
 {
     return occurrenceAtLocal(test()->city, test()->category, $inizioLocale, null,
         ['booking_enabled' => true, 'booking_capacity' => 20, ...$extra], [], test()->locale);
@@ -47,7 +50,7 @@ it('mostra il pulsante solo quando la prenotazione è davvero aperta', function 
         ->assertDontSee(__('ticketing.card.closed'));
 
     // La pagina che il pulsante apre accetta davvero la richiesta.
-    $this->actingAs(App\Models\User::factory()->create())->get(route('tickets.create', $data))->assertOk();
+    $this->actingAs(User::factory()->create())->get(route('tickets.create', $data))->assertOk();
 });
 
 it('sulla data di oggi già iniziata scrive che sono chiuse, invece di offrire il pulsante', function (): void {
@@ -66,7 +69,7 @@ it('scrive da quando si prenota se la finestra non è ancora aperta', function (
     $data = dataPrenotabile('2026-10-10 21:00', ['booking_opens_at' => now()->addDays(3)]);
 
     $this->get(EventUrl::occurrence($data))->assertOk()
-        ->assertSee(__('ticketing.card.opens_on', ['date' => app(App\Support\DateFormatter::class)->instantDate($data->booking_opens_at)]))
+        ->assertSee(__('ticketing.card.opens_on', ['date' => app(DateFormatter::class)->instantDate($data->booking_opens_at)]))
         ->assertDontSee(__('ticketing.reserve'));
 });
 
