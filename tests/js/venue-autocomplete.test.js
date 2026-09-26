@@ -14,3 +14,16 @@ test('keeps at most eight suggestions even with hundreds of venues', () => {
     assert.equal(matchingVenues(choices, 'locale').length, 8);
     assert.deepEqual(matchingVenues(choices, 'Locale 499'), [choices[499]]);
 });
+
+test('con la soglia a zero la ricerca vuota mostra tutte le voci', () => {
+    /* È il caso del campo dei locali consigliati: le voci sono due o quattro, e
+       pretendere due lettere prima di mostrare qualcosa faceva sembrare il campo
+       rotto. Il valore di difetto resta 2 per la ricerca del wizard, che scorre
+       tutti i locali di una città. */
+    const choices = [{ name: 'Centro Sociale Pedro' }, { name: 'Libreria Feltrinelli' }];
+
+    assert.deepEqual(matchingVenues(choices, '', 0), choices);
+    assert.deepEqual(matchingVenues(choices, 'p', 0), [choices[0]]);
+    assert.deepEqual(matchingVenues(choices, '', 2), []);
+    assert.deepEqual(matchingVenues(choices, 'assente', 0), []);
+});
