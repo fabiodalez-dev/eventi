@@ -38,6 +38,21 @@ export function venueChips() {
             attivo = -1;
         };
 
+        /* Lo stato del campo in un posto solo. Lo scrivevo dentro `mostra()`, e
+           così dopo aver scelto l'ultima voce restava la riga precedente: il
+           campo taceva proprio nel momento in cui c'era qualcosa da dire. */
+        const aggiornaStato = (disponibili, trovati) => {
+            if (disponibili.length === 0) {
+                stato.textContent = root.dataset.tutti ?? '';
+            } else if (input.value.trim() !== '' && trovati === 0) {
+                stato.textContent = root.dataset.nessuno ?? '';
+            } else {
+                stato.textContent = '';
+            }
+        };
+
+        const nonScelti = () => voci.filter((voce) => ! voce.casella.checked);
+
         const disegnaChip = () => {
             scelti.replaceChildren();
             for (const voce of voci.filter((v) => v.casella.checked)) {
@@ -57,6 +72,7 @@ export function venueChips() {
                 bottone.addEventListener('click', () => {
                     voce.casella.checked = false;
                     disegnaChip();
+                    aggiornaStato(nonScelti(), 0);
                     input.focus();
                 });
                 chip.append(bottone);
@@ -65,23 +81,29 @@ export function venueChips() {
         };
 
         const scegli = (voce) => {
-            if (voci.filter((v) => v.casella.checked).length >= limite) {
+            if (voci.length - nonScelti().length >= limite) {
                 stato.textContent = root.dataset.limiteTesto ?? '';
                 chiudi();
                 return;
             }
             voce.casella.checked = true;
             input.value = '';
-            stato.textContent = '';
             disegnaChip();
             chiudi();
+            aggiornaStato(nonScelti(), 0);
         };
 
         const mostra = () => {
             /* Chi è già scelto non ricompare fra i risultati: sceglierlo due
                volte non farebbe niente, e una riga che non fa niente in un
                elenco di risultati è un invito sbagliato. */
-            matches = matchingVenues(voci.filter((v) => !v.casella.checked), input.value);
+            const disponibili = nonScelti();
+
+            /* Zero lettere di soglia, al contrario del campo del wizard: là si
+               cerca fra tutti i locali di una città, qui fra i due o quattro che
+               una persona segue. Con la soglia a due, cliccare il campo non
+               mostrava niente e il campo sembrava rotto. */
+            matches = matchingVenues(disponibili, input.value, 0);
             lista.replaceChildren();
             attivo = -1;
             input.removeAttribute('aria-activedescendant');
@@ -98,7 +120,7 @@ export function venueChips() {
             }
             lista.hidden = matches.length === 0;
             input.setAttribute('aria-expanded', String(matches.length > 0));
-            stato.textContent = input.value.trim().length >= 2 && matches.length === 0 ? (root.dataset.nessuno ?? '') : '';
+            aggiornaStato(disponibili, matches.length);
         };
 
         input.addEventListener('input', mostra);

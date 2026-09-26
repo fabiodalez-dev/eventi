@@ -1,7 +1,17 @@
-export function matchingVenues(choices, query) {
+/**
+ * Le voci che corrispondono a quello che si sta scrivendo.
+ *
+ * `minimo` è il numero di lettere sotto il quale non si mostra niente, e non è
+ * un dettaglio di gusto: serve a non riversare in pagina l'elenco dei locali di
+ * un'intera città al primo tasto. Dove le voci sono una manciata — i locali che
+ * una persona segue — quel pavimento è un danno: si clicca, non compare nulla,
+ * e il campo sembra rotto. Lì si passa `0`, e con la ricerca vuota si vedono
+ * tutte (le prime otto).
+ */
+export function matchingVenues(choices, query, minimo = 2) {
     const normalize = (value) => value.normalize('NFD').replace(/\p{M}/gu, '').toLocaleLowerCase('it').trim();
     const term = normalize(query);
-    if ([...term].length < 2) return [];
+    if ([...term].length < minimo) return [];
     return choices.filter((choice) => normalize(choice.name).includes(term)).slice(0, 8);
 }
 

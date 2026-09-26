@@ -64,6 +64,7 @@
                 data-locali
                 data-limite="20"
                 data-nessuno="{{ __('community.venue_none_found') }}"
+                data-tutti="{{ __('community.venue_all_chosen') }}"
                 data-limite-testo="{{ __('community.venue_limit', ['count' => 20]) }}"
                 data-togli="{{ __('community.venue_remove', ['name' => ':name']) }}"
             >

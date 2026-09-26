@@ -64,8 +64,17 @@ it('sceglie i locali con la ricerca e li toglie dalle chip, spuntando le caselle
         ->and($page->script('document.querySelectorAll("[data-locali-caselle] input:disabled").length'))->toBe(0);
 
     $page->script('document.querySelector("[data-locali]").closest("details").open = true');
-    $page->fill('#locali-cerca', 'pedro');
-    $page->assertPresent('[data-locali-opzioni] li');
+    /* Il clic sul campo vuoto apre l'elenco. Con la soglia di due lettere del
+       wizard non compariva niente, e su due o quattro locali quel silenzio è
+       indistinguibile da un campo rotto. */
+    $page->click('#locali-cerca');
+    expect($page->script('document.querySelectorAll("[data-locali-opzioni] li").length'))->toBe(2);
+
+    // Una lettera sola basta a restringere.
+    $page->fill('#locali-cerca', 'p');
+    expect($page->script('[...document.querySelectorAll("[data-locali-opzioni] li")].map((e) => e.textContent)'))
+        ->toBe(['Centro Sociale Pedro']);
+
     $page->click('[data-locali-opzioni] li');
 
     // La chip c'è e la casella corrispondente è spuntata: è lei che viene inviata.
@@ -77,10 +86,19 @@ it('sceglie i locali con la ricerca e li toglie dalle chip, spuntando le caselle
     $page->fill('#locali-cerca', 'pedro');
     expect($page->script('document.querySelectorAll("[data-locali-opzioni] li").length'))->toBe(0);
 
-    // La × della chip despunta la casella.
-    $page->click('[data-locali-scelti] button');
+    /* Scelti tutti, il campo lo dice invece di tacere: era l'altro modo in cui
+       sembrava rotto. */
+    $page->fill('#locali-cerca', '');
+    $page->click('[data-locali-opzioni] li');
+    $page->assertSee(__('community.venue_all_chosen'));
+
+    /* La × della chip despunta la casella. Il selettore nomina la chip: ora ce
+       ne sono due, e `[data-locali-scelti] button` da solo ne troverebbe due. */
+    $page->click('[data-locali-scelti] button[aria-label$="Centro Sociale Pedro"]');
     expect($page->script('document.querySelector("[data-locali-caselle] input[value=\"'.$pedro->getKey().'\"]").checked'))->toBeFalse()
-        ->and($page->script('document.querySelectorAll("[data-locali-scelti] li").length'))->toBe(0);
+        ->and($page->script('document.querySelectorAll("[data-locali-scelti] li").length'))->toBe(1)
+        // Tolta una scelta, l'avviso «hai già scelto tutti» se ne va.
+        ->and($page->script('document.querySelector("[data-locali-stato]").textContent'))->toBe('');
 });
 
 /*
