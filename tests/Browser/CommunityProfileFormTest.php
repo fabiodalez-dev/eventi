@@ -84,22 +84,26 @@ it('sceglie i locali con la ricerca e li toglie dalle chip, spuntando le caselle
 });
 
 /*
- * Manca di proposito la prova dell'invio dal browser.
+ * Manca di proposito la prova dell'invio dal browser, e ora si sa perché.
  *
- * Non per pigrizia: **questo modulo non si invia** nel banco di prova, e non per
- * colpa di questo lavoro. Verificato su `main` senza nessuna di queste modifiche,
- * e isolato per codifica con tre richieste identiche nel contenuto:
+ * Questo modulo non si invia **da questo banco di prova**: i campi non arrivano,
+ * e la stessa cosa succede su `main` senza alcuna modifica. Isolato per codifica,
+ * con tre richieste identiche nel contenuto partite dalla pagina: multipart con
+ * il campo file 422, multipart senza il campo file 422, urlencoded 200. Non è il
+ * campo file, è la codifica — ed è l'unico modulo multipart del progetto, per cui
+ * nessun altro test poteva incontrarlo.
  *
- *   multipart con il campo file    -> 422, i campi non arrivano
- *   multipart senza il campo file  -> 422, i campi non arrivano
- *   application/x-www-form-urlencoded -> 200
+ * **Non è un guasto dell'applicazione, e non lo è nemmeno in produzione.**
+ * Verificato in tre modi: `curl` multipart con un'immagine vera contro
+ * `artisan serve` crea il profilo e allega la foto; lo stesso multipart forzato
+ * in chunked passa; e in produzione il percorso completo del controller —
+ * decodifica, ricodifica, allegato — produce un media servito in `image/jpeg`
+ * con HTTP 200. Il server di sviluppo di PHP, da solo, analizza il multipart
+ * correttamente comprese le parti file vuote.
  *
- * Quindi non è il campo file: è la codifica. `enctype="multipart/form-data"` sta
- * qui perché serve alla foto del profilo, e questo è l'unico modulo multipart di
- * tutto il sito — per cui nessun altro test avrebbe potuto accorgersene.
- *
- * Resta aperto se la cosa valga anche in produzione, dove gira PHP-FPM dietro
- * LiteSpeed e non il server di sviluppo. Indizio, non prova: dei 18 profili in
- * produzione **nessuno** ha una foto caricata. Accertarlo richiede un invio vero
- * sul sito, cioè una scrittura sui dati di produzione.
+ * Resta quindi un limite del solo trasporto fra Chrome e il server di prova, di
+ * cui non ho trovato la causa esatta. Il caricamento è coperto dove conta: in
+ * `ProfileFormTest` dal modulo del sito, e in `CommunitySecurityTest` dalla
+ * rotta dell'app. Se un giorno questo invio comincerà a funzionare, la prova va
+ * aggiunta qui; finché non funziona, non vale inseguirlo.
  */

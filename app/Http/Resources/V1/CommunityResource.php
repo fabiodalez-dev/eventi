@@ -67,6 +67,8 @@ final class CommunityResource
         return ['id' => $comment->id, 'parent_id' => $comment->parent_id, 'body' => $comment->body,
             'display_name' => $visible ? $profile->display_name : __('community.member'),
             'handle' => $visible ? $profile->handle : null,
+            // La foto segue il nome: dove il nome è «Iscritto» non esce nemmeno il volto.
+            'avatar_url' => $visible ? ($profile->avatarUrl() ?: null) : null,
             'created_at' => $comment->created_at->toIso8601String(),
             // Stessa policy che autorizza la cancellazione: il pulsante non promette ciò che il server rifiuta.
             'can_delete' => $viewer?->can('delete', $comment) ?? false];

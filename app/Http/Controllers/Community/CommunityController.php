@@ -262,9 +262,10 @@ final class CommunityController extends Controller
     {
         $result = $this->community->followers($request->user());
         $followers = $result['page'];
-        $following = $this->access->profiles($request->user())->whereIn('user_id', $request->user()->followings()->where('followable_type', 'user')->whereNotNull('accepted_at')->select('followable_id'))->orderBy('display_name')->paginate(30, ['*'], 'following_page');
+        $following = $this->access->profiles($request->user())->with('media')->whereIn('user_id', $request->user()->followings()->where('followable_type', 'user')->whereNotNull('accepted_at')->select('followable_id'))->orderBy('display_name')->paginate(30, ['*'], 'following_page');
         $data = ['followers' => $result['followers'], 'blocks' => $result['blocks'], 'tab' => $request->validated('tab', 'following'),
-            'following' => $following->getCollection()->map(fn ($profile) => ['user_id' => $profile->user_id, 'display_name' => $profile->display_name, 'handle' => $profile->handle])->all(),
+            'following' => $following->getCollection()->map(fn ($profile) => ['user_id' => $profile->user_id, 'display_name' => $profile->display_name,
+                'handle' => $profile->handle, 'avatar_url' => $profile->avatarUrl() ?: null])->all(),
             'following_has_more' => $following->hasMorePages(), 'following_next_page' => $following->hasMorePages() ? $following->currentPage() + 1 : null];
         if ($request->expectsJson()) {
             return ApiResponse::item([...$data, 'has_more' => $followers->hasMorePages(), 'next_page' => $followers->hasMorePages() ? $followers->currentPage() + 1 : null]);
