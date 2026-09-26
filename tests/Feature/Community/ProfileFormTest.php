@@ -27,8 +27,16 @@ beforeEach(function (): void {
     $this->user = $this->user->fresh();
 });
 
-/** Un JPEG minimo, come lo produce il controller dopo la ricodifica. */
-function immagineDiProva(): string
+/**
+ * Un JPEG minimo, come lo produce il controller dopo la ricodifica.
+ *
+ * Il nome è specifico di proposito: le funzioni dichiarate nei file di Pest sono
+ * globali per tutta la suite, e `byteFotoProfilo()` esiste già fra i test dei
+ * media. Un test eseguito da solo non vede la collisione — la vede solo Pest
+ * quando elenca tutti i file, e il messaggio che ne esce parla di «--list-tests
+ * failed», che non somiglia affatto a un nome duplicato.
+ */
+function byteFotoProfilo(): string
 {
     $immagine = imagecreatetruecolor(48, 48);
     imagefill($immagine, 0, 0, imagecolorallocate($immagine, 80, 120, 200));
@@ -194,7 +202,7 @@ it('mostra la foto negli elenchi di chi segui e di chi ti segue', function (): v
     $altra = personaVerificata();
     app(Community::class)->profile($altra, ['handle' => 'con_la_foto', 'display_name' => 'Con la foto',
         'city_id' => $this->city->getKey(), 'visibility' => ProfileVisibility::Public->value]);
-    $altra->communityProfile->addMediaFromString(immagineDiProva())->usingFileName('avatar.jpg')->toMediaCollection('avatar');
+    $altra->communityProfile->addMediaFromString(byteFotoProfilo())->usingFileName('avatar.jpg')->toMediaCollection('avatar');
 
     app(Community::class)->profile($this->user, ['handle' => 'chi_guarda', 'display_name' => 'Chi guarda',
         'city_id' => $this->city->getKey(), 'visibility' => ProfileVisibility::Public->value]);
@@ -212,7 +220,7 @@ it('non mostra la foto di un profilo che chi guarda non può vedere', function (
     $riservata = personaVerificata();
     app(Community::class)->profile($riservata, ['handle' => 'riservata', 'display_name' => 'Riservata',
         'city_id' => $this->city->getKey(), 'visibility' => ProfileVisibility::Private->value]);
-    $riservata->communityProfile->addMediaFromString(immagineDiProva())->usingFileName('avatar.jpg')->toMediaCollection('avatar');
+    $riservata->communityProfile->addMediaFromString(byteFotoProfilo())->usingFileName('avatar.jpg')->toMediaCollection('avatar');
     $nascosto = $riservata->communityProfile->fresh()->avatarUrl();
 
     app(Community::class)->profile($this->user, ['handle' => 'chi_guarda_2', 'display_name' => 'Chi guarda',
