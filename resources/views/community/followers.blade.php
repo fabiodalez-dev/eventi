@@ -13,7 +13,14 @@
         @else
             <ul class="divide-y divide-line">@forelse($tab === 'following' ? $following : $followers as $person)
                 <li class="flex flex-wrap items-center justify-between gap-4 py-4">
-                    @if($person['handle'])<a class="inline-flex min-h-12 items-center font-semibold underline" href="{{ route('community.profile', $person['handle']) }}">{{ $person['display_name'] }}</a>@else<span>{{ $person['display_name'] }}</span>@endif
+                    {{-- Foto e nome sono un solo bersaglio: due collegamenti attaccati
+                         che portano allo stesso posto si leggono come due voci. --}}
+                    <div class="flex min-w-0 items-center gap-3">
+                        @if($person['avatar_url'] ?? null)
+                            <img src="{{ $person['avatar_url'] }}" alt="" width="40" height="40" class="size-10 shrink-0 rounded-full object-cover" loading="lazy">
+                        @endif
+                        @if($person['handle'])<a class="inline-flex min-h-12 items-center font-semibold underline" href="{{ route('community.profile', $person['handle']) }}">{{ $person['display_name'] }}</a>@else<span>{{ $person['display_name'] }}</span>@endif
+                    </div>
                     @if($tab === 'following')<x-person-follow :user-id="$person['user_id']" :following="true" :name="$person['display_name']" />@endif
                     <details><summary class="min-h-12 cursor-pointer content-center text-sm">{{ __('community.more_actions') }}</summary><p class="my-3 max-w-sm text-sm text-ink-muted">{{ __('community.block_help') }}</p><form data-community-form method="post" action="{{ route('community.block', $person['user_id']) }}">@csrf<x-button variant="secondary" type="submit">{{ __('community.block') }}</x-button></form></details>
                 </li>

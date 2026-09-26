@@ -5,7 +5,10 @@
             @forelse($comments as $comment)
                 @php($data = \App\Http\Resources\V1\CommunityResource::comment($comment, auth()->user(), $visibleProfileIds))
                 <article class="border-b border-line py-5 {{ $comment->parent_id ? 'ml-6 border-l pl-4' : '' }}" id="comment-{{ $comment->id }}">
-                    <div class="text-sm font-bold">@if($data['handle'])<a class="hover:underline" href="{{ route('community.profile', $data['handle']) }}">{{ $data['display_name'] }}</a>@else{{ $data['display_name'] }}@endif</div>
+                    <div class="flex items-center gap-2.5 text-sm font-bold">
+                        @if($data['avatar_url'])<img src="{{ $data['avatar_url'] }}" alt="" width="32" height="32" class="size-8 shrink-0 rounded-full object-cover" loading="lazy">@endif
+                        @if($data['handle'])<a class="hover:underline" href="{{ route('community.profile', $data['handle']) }}">{{ $data['display_name'] }}</a>@else{{ $data['display_name'] }}@endif
+                    </div>
                     @if($comment->parent_id)<p class="mt-1 text-xs text-ink-muted">{{ __('community.reply_to', ['id' => $comment->parent_id]) }}</p>@endif
                     <p class="mt-3 whitespace-pre-line break-words">{{ $comment->body }}</p>
                     @if($data['can_delete'])<form method="post" action="{{ route('community.comment.delete', $comment) }}" class="mt-3">@csrf @method('DELETE')<button class="min-h-11 text-xs underline">{{ __('community.delete_comment') }}</button></form>@endif

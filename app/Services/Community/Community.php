@@ -166,14 +166,21 @@ final class Community
     {
         /** @var LengthAwarePaginator<int, Followable> $page */
         $page = Followable::query()->where('followable_type', $user->getMorphClass())->where('followable_id', $user->id)->whereNotNull('accepted_at')
-            ->with('follower.communityProfile')->orderByDesc('id')->paginate($perPage);
+            // `media` con la relazione: senza, la foto di ogni riga sarebbe una query.
+            ->with('follower.communityProfile.media')->orderByDesc('id')->paginate($perPage);
         $visible = $this->access->visibleProfileIds($user, $page->getCollection()->pluck('user_id'));
         $followers = $page->getCollection()->map(function (Followable $follow) use ($visible): array {
             $person = $follow->follower;
             $profile = $person instanceof User ? $person->communityProfile : null;
 
-            return ['user_id' => (int) $follow->user_id, 'display_name' => $profile !== null && in_array($profile->id, $visible, true) ? $profile->display_name : __('community.member'),
-                'handle' => $profile !== null && in_array($profile->id, $visible, true) ? $profile->handle : null];
+            $vedibile = $profile !== null && in_array($profile->id, $visible, true);
+
+            /* La foto segue il nome: dove il nome diventa «Iscritto» perché il
+               profilo non è visibile a chi guarda, la foto non esce. Mostrarla
+               sarebbe peggio del nome — un volto identifica più di una parola. */
+            return ['user_id' => (int) $follow->user_id, 'display_name' => $vedibile ? $profile->display_name : __('community.member'),
+                'handle' => $vedibile ? $profile->handle : null,
+                'avatar_url' => $vedibile ? ($profile->avatarUrl() ?: null) : null];
         })->values()->all();
         $blockedIds = UserBlock::query()->where('user_id', $user->id)->orderBy('id')->pluck('blocked_user_id')->map(fn ($id) => (int) $id);
         // Come prima con User::find(): un account cancellato resta anonimo.

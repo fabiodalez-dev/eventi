@@ -6,6 +6,8 @@ use App\Enums\ProfileVisibility;
 use App\Models\User;
 use App\Models\Venue;
 use App\Services\Community\Community;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * Il modulo del profilo pubblico: quanto lavoro chiede, e quando lo dice.
@@ -24,6 +26,27 @@ beforeEach(function (): void {
     $this->user->forceFill(['whatsapp_verified_at' => now(), 'whatsapp_phone_hash' => hash('sha256', 'profilo-form')])->save();
     $this->user = $this->user->fresh();
 });
+
+/**
+ * Un JPEG minimo, come lo produce il controller dopo la ricodifica.
+ *
+ * Il nome è specifico di proposito: le funzioni dichiarate nei file di Pest sono
+ * globali per tutta la suite, e `byteFotoProfilo()` esiste già fra i test dei
+ * media. Un test eseguito da solo non vede la collisione — la vede solo Pest
+ * quando elenca tutti i file, e il messaggio che ne esce parla di «--list-tests
+ * failed», che non somiglia affatto a un nome duplicato.
+ */
+function byteFotoProfilo(): string
+{
+    $immagine = imagecreatetruecolor(48, 48);
+    imagefill($immagine, 0, 0, imagecolorallocate($immagine, 80, 120, 200));
+    ob_start();
+    imagejpeg($immagine, null, 85);
+    $byte = (string) ob_get_clean();
+    imagedestroy($immagine);
+
+    return $byte;
+}
 
 /** Un'altra persona che può già partecipare: creare un profilo lo richiede. */
 function personaVerificata(): User
@@ -109,4 +132,101 @@ it('non disegna la ricerca a chi non segue nessun locale', function (): void {
     $this->actingAs($this->user)->get(route('community.settings'))->assertOk()
         ->assertSee(__('community.no_venues'))
         ->assertDontSee('data-locali-input', false);
+});
+
+/*
+ * La foto caricata dal modulo del sito, non solo dall'app.
+ *
+ * Il percorso esisteva e funzionava — l'ho verificato in produzione — ma il solo
+ * test con un file passava dalla rotta dell'app (`/api/v1/community/profile`).
+ * Quella del sito è l'unica pagina multipart del progetto, e non aveva copertura:
+ * quando l'invio dal browser di prova ha smesso di funzionare, non c'era modo di
+ * distinguere un guasto dell'applicazione da un limite del banco di prova.
+ */
+it('carica la foto dal modulo del sito e la ricodifica', function (): void {
+    Storage::fake('local');
+
+    $this->actingAs($this->user)->post(route('community.settings.update'), [
+        'display_name' => 'Chiara', 'handle' => 'chiara_con_foto', 'visibility' => ProfileVisibility::Members->value,
+        'avatar' => UploadedFile::fake()->image('ritratto.png', 240, 240),
+    ])->assertRedirect()->assertSessionHasNoErrors();
+
+    $media = $this->user->fresh()->communityProfile->getFirstMedia('avatar');
+
+    /* La ricodifica non è un vezzo: butta via EXIF, metadati e qualunque coda
+       eseguibile appesa a un file che si dichiara immagine. */
+    expect($media)->not->toBeNull()
+        ->and($media->file_name)->toBe('avatar.jpg')
+        ->and($media->mime_type)->toBe('image/jpeg');
+});
+
+it('rifiuta dal modulo del sito ciò che non è un\'immagine', function (): void {
+    Storage::fake('local');
+
+    $this->actingAs($this->user)->post(route('community.settings.update'), [
+        'display_name' => 'Chiara', 'handle' => 'chiara_senza_foto', 'visibility' => ProfileVisibility::Members->value,
+        'avatar' => UploadedFile::fake()->create('script.svg', 2, 'image/svg+xml'),
+    ])->assertSessionHasErrors('avatar');
+
+    expect($this->user->fresh()->communityProfile)->toBeNull();
+});
+
+it('toglie la foto quando lo si chiede, senza toccare il resto del profilo', function (): void {
+    Storage::fake('local');
+
+    $this->actingAs($this->user)->post(route('community.settings.update'), [
+        'display_name' => 'Chiara', 'handle' => 'chiara_foto_via', 'visibility' => ProfileVisibility::Members->value,
+        'avatar' => UploadedFile::fake()->image('ritratto.png'),
+    ])->assertRedirect();
+
+    $this->actingAs($this->user->fresh())->post(route('community.settings.update'), [
+        'display_name' => 'Chiara', 'handle' => 'chiara_foto_via', 'visibility' => ProfileVisibility::Members->value,
+        'remove_avatar' => '1',
+    ])->assertRedirect()->assertSessionHasNoErrors();
+
+    $profilo = $this->user->fresh()->communityProfile;
+    expect($profilo->getFirstMedia('avatar'))->toBeNull()
+        ->and($profilo->handle)->toBe('chiara_foto_via');
+});
+
+/*
+ * La foto si vede dove la persona è nominata.
+ *
+ * Non era così: gli elenchi delle relazioni e i commenti della bacheca
+ * mostravano il solo nome. E la foto deve seguire la stessa regola del nome —
+ * dove il profilo non è visibile a chi guarda e il nome diventa «Iscritto», il
+ * volto non esce: identifica più di una parola.
+ */
+it('mostra la foto negli elenchi di chi segui e di chi ti segue', function (): void {
+    Storage::fake('local');
+    $altra = personaVerificata();
+    app(Community::class)->profile($altra, ['handle' => 'con_la_foto', 'display_name' => 'Con la foto',
+        'city_id' => $this->city->getKey(), 'visibility' => ProfileVisibility::Public->value]);
+    $altra->communityProfile->addMediaFromString(byteFotoProfilo())->usingFileName('avatar.jpg')->toMediaCollection('avatar');
+
+    app(Community::class)->profile($this->user, ['handle' => 'chi_guarda', 'display_name' => 'Chi guarda',
+        'city_id' => $this->city->getKey(), 'visibility' => ProfileVisibility::Public->value]);
+    app(Community::class)->follow($this->user->fresh(), $altra->fresh(), true);
+
+    $atteso = $altra->communityProfile->fresh()->avatarUrl();
+    expect($atteso)->not->toBeEmpty();
+
+    $this->actingAs($this->user->fresh())->get(route('community.followers', ['tab' => 'following']))
+        ->assertOk()->assertSee($atteso, false);
+});
+
+it('non mostra la foto di un profilo che chi guarda non può vedere', function (): void {
+    Storage::fake('local');
+    $riservata = personaVerificata();
+    app(Community::class)->profile($riservata, ['handle' => 'riservata', 'display_name' => 'Riservata',
+        'city_id' => $this->city->getKey(), 'visibility' => ProfileVisibility::Private->value]);
+    $riservata->communityProfile->addMediaFromString(byteFotoProfilo())->usingFileName('avatar.jpg')->toMediaCollection('avatar');
+    $nascosto = $riservata->communityProfile->fresh()->avatarUrl();
+
+    app(Community::class)->profile($this->user, ['handle' => 'chi_guarda_2', 'display_name' => 'Chi guarda',
+        'city_id' => $this->city->getKey(), 'visibility' => ProfileVisibility::Public->value]);
+    app(Community::class)->follow($riservata->fresh(), $this->user->fresh(), true);
+
+    $this->actingAs($this->user->fresh())->get(route('community.followers', ['tab' => 'followers']))
+        ->assertOk()->assertDontSee($nascosto, false)->assertSee(__('community.member'));
 });
