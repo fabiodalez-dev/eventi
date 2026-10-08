@@ -24,7 +24,8 @@
         "tmp": "^0.2.6",
         "uuid": "^11.1.1",
         "qs": "^6.16.0",
-        "puppeteer-core": "^25.10.0"
+        "puppeteer-core": "^25.10.0",
+        "ip-address": "^10.7.1"
     },
     "optionalDependencies": {
         "@laravel/multiplex": "^0.4.1"
