@@ -95,11 +95,13 @@ use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Event as EventFacade;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Translation\FileLoader;
 use Laravel\Telescope\TelescopeApplicationServiceProvider;
 use Minishlink\WebPush\WebPush;
 use NotificationChannels\WebPush\WebPushChannel;
+use PhpOffice\PhpSpreadsheet\Cell\StringValueBinder;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -206,6 +208,27 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        /*
+         * I collegamenti nelle email (accesso senza password, verifica,
+         * reimpostazione) si costruiscono da `APP_URL`, mai dall'intestazione
+         * `Host` della richiesta: chi la falsifica otterrebbe un messaggio
+         * autentico con dentro un indirizzo suo, e il gettone che quel
+         * collegamento porta con sé. In sviluppo `APP_URL` coincide con
+         * l'indirizzo che si usa davvero, quindi non cambia nulla.
+         */
+        $rootUrl = config()->string('app.url');
+        if ($rootUrl !== '') {
+            URL::forceRootUrl($rootUrl);
+        }
+
+        /*
+         * Le esportazioni in Excel scrivono ogni cella come testo: una cella
+         * che comincia con `=` sarebbe altrimenti una formula, e un nome
+         * utente scelto apposta si eseguirebbe sul computer di chi apre il
+         * file. L'esportazione dei biglietti lo faceva già a mano.
+         */
+        config(['excel.value_binder.default' => StringValueBinder::class]);
+
         $this->app->when(WebPushChannel::class)
             ->needs(WebPush::class)
             ->give(fn () => (new SafeWebPushFactory($this->app))->make());
@@ -271,7 +294,7 @@ class AppServiceProvider extends ServiceProvider
          * utente. Il conteggio per utente e non per IP è ciò che evita che una
          * rete aziendale dietro un solo indirizzo si blocchi da sola.
          */
-        RateLimiter::for('api', static function (Request $request): Limit {
+        RateLimiter::for('api', static function (Request $request): array {
             $user = $request->user('sanctum');
 
             $installation = $request->header('X-Installation-ID');
@@ -280,9 +303,18 @@ class AppServiceProvider extends ServiceProvider
                     ? 'installazione:'.$installation
                     : 'ip:'.($request->ip() ?? 'sconosciuto');
 
+            /*
+             * Il tetto per installazione e' comodo per l'app, ma la chiave la
+             * sceglie il client: chi ne manda una nuova a ogni richiesta
+             * non avrebbe nessun limite. Il secondo tetto, per indirizzo,
+             * e' largo abbastanza da non toccare un ufficio dietro un solo
+             * IP e stretto abbastanza da fermare chi raschia il catalogo.
+             */
+            $perIp = Limit::perMinute(config()->integer('api.rate_limit.per_ip'))->by('ip:'.($request->ip() ?? 'sconosciuto'));
+
             return $user === null
-                ? Limit::perMinute(config()->integer('api.rate_limit.anonymous'))->by($anonymousKey)
-                : Limit::perMinute(config()->integer('api.rate_limit.authenticated'))->by('utente:'.$user->getAuthIdentifier());
+                ? [Limit::perMinute(config()->integer('api.rate_limit.anonymous'))->by($anonymousKey), $perIp]
+                : [Limit::perMinute(config()->integer('api.rate_limit.authenticated'))->by('utente:'.$user->getAuthIdentifier()), $perIp];
         });
 
         /*
@@ -314,6 +346,17 @@ class AppServiceProvider extends ServiceProvider
                  */
                 Limit::perMinutes(15, config()->integer('api.rate_limit.attempts_per_account'))
                     ->by('conto:'.$conto),
+
+                /*
+                 * L'ATTACCANTE, indipendentemente da quanti account prova.
+                 *
+                 * I due limiti sopra non fermano chi prova una password sola
+                 * su mille account diversi da un indirizzo solo: ogni coppia e
+                 * ogni conto restano sotto il proprio tetto. Questo conta i
+                 * tentativi partiti dall'indirizzo, ed e' abbastanza largo da
+                 * non chiudere fuori un ufficio.
+                 */
+                Limit::perMinute(config()->integer('api.rate_limit.auth_per_ip'))->by('ip:'.$indirizzo),
             ];
         });
 
@@ -366,6 +409,17 @@ class AppServiceProvider extends ServiceProvider
                  */
                 Limit::perMinutes(15, config()->integer('api.rate_limit.attempts_per_account'))
                     ->by('conto:'.$conto),
+
+                /*
+                 * L'ATTACCANTE, indipendentemente da quanti account prova.
+                 *
+                 * I due limiti sopra non fermano chi prova una password sola
+                 * su mille account diversi da un indirizzo solo: ogni coppia e
+                 * ogni conto restano sotto il proprio tetto. Questo conta i
+                 * tentativi partiti dall'indirizzo, ed e' abbastanza largo da
+                 * non chiudere fuori un ufficio.
+                 */
+                Limit::perMinute(config()->integer('api.rate_limit.auth_per_ip'))->by('ip:'.$indirizzo),
             ];
         });
 

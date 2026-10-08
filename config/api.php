@@ -125,6 +125,22 @@ return [
          * bersaglio.
          */
         'attempts_per_account' => 20,
+
+        /*
+         * Tentativi di accesso da un solo INDIRIZZO al minuto, su qualunque
+         * account. Chiude la forza bruta «a spruzzo»: una password sola
+         * provata su mille account diversi resta sotto i due tetti sopra,
+         * perche' ogni coppia e ogni conto vedono un tentativo solo.
+         */
+        'auth_per_ip' => 30,
+
+        /*
+         * Richieste al minuto da un solo indirizzo verso tutta l'API,
+         * qualunque sia l'identificativo di installazione dichiarato: quello
+         * lo sceglie il client, e un client che ne cambia uno a richiesta
+         * non deve poter azzerare il limite.
+         */
+        'per_ip' => 300,
     ],
 
     /*
