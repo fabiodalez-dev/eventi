@@ -7,6 +7,7 @@ namespace App\Filament\Admin\Resources\Pages;
 use App\Filament\Admin\Resources\Pages\Pages\CreatePage;
 use App\Filament\Admin\Resources\Pages\Pages\EditPage;
 use App\Filament\Admin\Resources\Pages\Pages\ListPages;
+use App\Filament\Concerns\HasSentenceCaseNavigationLabel;
 use App\Filament\Support\BulkActions;
 use App\Filament\Support\EditorialFields;
 use App\Models\Page;
@@ -47,11 +48,13 @@ use Filament\Tables\Table;
  */
 class PageResource extends Resource
 {
+    use HasSentenceCaseNavigationLabel;
+
     protected static ?string $model = Page::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedDocumentText;
 
-    protected static ?int $navigationSort = 9;
+    protected static ?int $navigationSort = 7;
 
     public static function getNavigationGroup(): ?string
     {

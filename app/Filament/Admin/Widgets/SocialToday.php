@@ -17,7 +17,7 @@ use Illuminate\Support\Collection;
 
 class SocialToday extends Widget
 {
-    protected static ?int $sort = -10;
+    protected static ?int $sort = 0;
 
     protected int|string|array $columnSpan = 'full';
 

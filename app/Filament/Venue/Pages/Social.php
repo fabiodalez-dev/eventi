@@ -17,7 +17,7 @@ class Social extends Page
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedPhoto;
 
-    protected static ?int $navigationSort = 4;
+    protected static ?int $navigationSort = 6;
 
     protected string $view = 'filament.social.studio';
 

@@ -7,6 +7,7 @@ namespace App\Filament\Admin\Resources\Categories;
 use App\Filament\Admin\Resources\Categories\Pages\CreateCategory;
 use App\Filament\Admin\Resources\Categories\Pages\EditCategory;
 use App\Filament\Admin\Resources\Categories\Pages\ListCategories;
+use App\Filament\Concerns\HasSentenceCaseNavigationLabel;
 use App\Filament\Support\BulkActions;
 use App\Filament\Support\EditorialFields;
 use App\Models\Category;
@@ -42,11 +43,13 @@ use Illuminate\Database\Eloquent\Model;
  */
 class CategoryResource extends Resource
 {
+    use HasSentenceCaseNavigationLabel;
+
     protected static ?string $model = Category::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedSquares2x2;
 
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 4;
 
     public static function getNavigationGroup(): ?string
     {

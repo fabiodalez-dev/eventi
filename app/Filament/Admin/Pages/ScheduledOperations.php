@@ -10,6 +10,8 @@ class ScheduledOperations extends Page
 {
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedClock;
 
+    protected static ?int $navigationSort = 3;
+
     protected static ?string $slug = 'cron-e-programmazioni';
 
     protected static ?string $title = 'Cron e programmazioni';

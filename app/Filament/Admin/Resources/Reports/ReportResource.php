@@ -9,6 +9,7 @@ use App\Enums\ReportStatus;
 use App\Filament\Admin\Pages\Community;
 use App\Filament\Admin\Resources\Reports\Pages\EditReport;
 use App\Filament\Admin\Resources\Reports\Pages\ListReports;
+use App\Filament\Concerns\HasSentenceCaseNavigationLabel;
 use App\Models\Report;
 use App\Queries\EditorialDashboardQuery;
 use BackedEnum;
@@ -26,6 +27,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * §14.6 — le segnalazioni. Non si creano dal pannello: arrivano dal pubblico,
@@ -38,11 +40,13 @@ use Illuminate\Database\Eloquent\Model;
  */
 class ReportResource extends Resource
 {
+    use HasSentenceCaseNavigationLabel;
+
     protected static ?string $model = Report::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedFlag;
 
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 5;
 
     public static function getNavigationGroup(): ?string
     {
@@ -61,7 +65,7 @@ class ReportResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        $open = Report::query()->tap(EditorialDashboardQuery::openReportScope(...))->count();
+        $open = Cache::remember('nav-badge:reports-open', 60, fn (): int => Report::query()->tap(EditorialDashboardQuery::openReportScope(...))->count());
 
         return $open > 0 ? (string) $open : null;
     }

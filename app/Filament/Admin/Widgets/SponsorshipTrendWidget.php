@@ -26,6 +26,12 @@ use Flowframe\Trend\TrendValue;
  */
 class SponsorshipTrendWidget extends ChartWidget
 {
+    protected static ?int $sort = 8;
+
+    /* Niente aggiornamento automatico ogni cinque secondi: ogni giro era una
+       richiesta completa con tutte le sue query, e i numeri cambiano a ore. */
+    protected ?string $pollingInterval = null;
+
     protected ?string $heading = null;
 
     protected int|string|array $columnSpan = 'full';

@@ -7,6 +7,7 @@ use App\Enums\SubmissionStatus;
 use App\Enums\VenueStatus;
 use App\Filament\Admin\Resources\EventSubmissions\Pages\EditEventSubmission;
 use App\Filament\Admin\Resources\EventSubmissions\Pages\ListEventSubmissions;
+use App\Filament\Concerns\HasSentenceCaseNavigationLabel;
 use App\Filament\Support\DescriptionEditor;
 use App\Models\Category;
 use App\Models\EventSubmission;
@@ -25,12 +26,17 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\Cache;
 
 class EventSubmissionResource extends Resource
 {
+    use HasSentenceCaseNavigationLabel;
+
     protected static ?string $model = EventSubmission::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedInboxArrowDown;
+
+    protected static ?int $navigationSort = 2;
 
     protected static ?string $modelLabel = 'Proposta evento';
 
@@ -38,12 +44,12 @@ class EventSubmissionResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return __('admin.navigation.moderation');
+        return __('admin.navigation.content');
     }
 
     public static function getNavigationBadge(): ?string
     {
-        $count = EventSubmission::query()->pending()->count();
+        $count = Cache::remember('nav-badge:event-submissions-pending', 60, fn (): int => EventSubmission::query()->pending()->count());
 
         return $count > 0 ? (string) $count : null;
     }

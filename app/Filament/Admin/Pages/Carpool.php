@@ -17,6 +17,7 @@ use App\Services\Carpool\RideReviews;
 use BackedEnum;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Livewire\WithPagination;
 
@@ -25,6 +26,8 @@ class Carpool extends Page
     use WithPagination;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedShieldCheck;
+
+    protected static ?int $navigationSort = 2;
 
     protected string $view = 'filament.admin.pages.carpool';
 
@@ -44,7 +47,7 @@ class Carpool extends Page
 
     public static function getNavigationLabel(): string
     {
-        return __('carpool.admin.title');
+        return __('carpool.admin.navigation');
     }
 
     public function getTitle(): string
@@ -64,7 +67,7 @@ class Carpool extends Page
 
     public static function getNavigationBadge(): ?string
     {
-        return static::canAccess() ? (string) CarpoolCase::whereNull('closed_at')->count() : null;
+        return static::canAccess() ? (string) Cache::remember('nav-badge:carpool-open', 60, fn (): int => CarpoolCase::whereNull('closed_at')->count()) : null;
     }
 
     public function updatedSection(): void

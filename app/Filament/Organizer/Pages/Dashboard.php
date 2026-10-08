@@ -35,4 +35,16 @@ class Dashboard extends AnalyticsDetailPage
     {
         return [];
     }
+
+    /* Come nel pannello dei locali: il titolo e' il nome di chi e' appena
+       entrato, non la parola «statistiche». */
+    public function getTitle(): string
+    {
+        return app(ManagementAnalytics::class)->subject()->name;
+    }
+
+    public function getSubheading(): ?string
+    {
+        return __('manage.dashboard.subheading');
+    }
 }

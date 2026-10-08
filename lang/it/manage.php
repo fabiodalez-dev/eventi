@@ -16,6 +16,13 @@ declare(strict_types=1);
  */
 return [
 
+    'navigation' => [
+        'analytics' => 'Statistiche',
+        'community' => 'Community',
+        'profile' => 'Il mio profilo',
+        'tickets' => 'Biglietti e partecipanti',
+    ],
+
     'dashboard' => [
         'title' => 'Riepilogo',
         'subheading' => 'Come vanno i tuoi eventi.',

@@ -22,9 +22,14 @@ class CachePerformance extends Page
 {
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBolt;
 
+    public static function getNavigationGroup(): ?string
+    {
+        return __('admin.navigation.system');
+    }
+
     protected string $view = 'filament.cache.performance';
 
-    protected static ?int $navigationSort = 95;
+    protected static ?int $navigationSort = 9;
 
     /** @var array<string, mixed> */
     public array $data = [];

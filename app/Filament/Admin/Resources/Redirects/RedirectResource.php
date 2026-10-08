@@ -39,7 +39,7 @@ class RedirectResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedArrowUturnRight;
 
-    protected static ?int $navigationSort = 93;
+    protected static ?int $navigationSort = 8;
 
     protected static ?string $slug = 'indirizzi-cambiati';
 

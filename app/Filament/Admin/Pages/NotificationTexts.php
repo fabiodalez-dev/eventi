@@ -41,7 +41,7 @@ class NotificationTexts extends Page implements HasSchemas
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedPencilSquare;
 
-    protected static ?int $navigationSort = 91;
+    protected static ?int $navigationSort = 4;
 
     protected static ?string $slug = 'testi-delle-email';
 

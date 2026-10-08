@@ -31,6 +31,8 @@ use Illuminate\Support\Collection;
  */
 class EventsCalendarWidget extends CalendarWidget
 {
+    protected static ?int $sort = 5;
+
     /** @var view-string */
     protected string $view = 'filament.admin.widgets.events-calendar';
 

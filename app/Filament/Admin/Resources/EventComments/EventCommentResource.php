@@ -7,6 +7,7 @@ namespace App\Filament\Admin\Resources\EventComments;
 use App\Actions\Comments\ModerateComment;
 use App\Enums\EventCommentStatus;
 use App\Filament\Admin\Resources\EventComments\Pages\ListEventComments;
+use App\Filament\Concerns\HasSentenceCaseNavigationLabel;
 use App\Models\EventComment;
 use App\Models\User;
 use BackedEnum;
@@ -21,6 +22,7 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * I commenti agli eventi, visti dall'amministrazione.
@@ -42,9 +44,13 @@ use Filament\Tables\Table;
  */
 class EventCommentResource extends Resource
 {
+    use HasSentenceCaseNavigationLabel;
+
     protected static ?string $model = EventComment::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedChatBubbleLeftRight;
+
+    protected static ?int $navigationSort = 3;
 
     public static function getModelLabel(): string
     {
@@ -68,7 +74,7 @@ class EventCommentResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        $count = EventComment::query()->where('status', EventCommentStatus::Hidden)->count();
+        $count = Cache::remember('nav-badge:event-comments-hidden', 60, fn (): int => EventComment::query()->where('status', EventCommentStatus::Hidden)->count());
 
         return $count ? (string) $count : null;
     }

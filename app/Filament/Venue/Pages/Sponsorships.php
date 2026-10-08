@@ -29,7 +29,7 @@ class Sponsorships extends Page
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedMegaphone;
 
-    protected static ?int $navigationSort = 6;
+    protected static ?int $navigationSort = 7;
 
     protected static ?string $slug = 'sponsorizzazioni';
 

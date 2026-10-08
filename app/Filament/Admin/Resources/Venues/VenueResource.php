@@ -14,6 +14,7 @@ use App\Filament\Admin\Resources\Venues\Pages\ListVenues;
 use App\Filament\Admin\Resources\Venues\RelationManagers\EventsRelationManager;
 use App\Filament\Admin\Resources\Venues\RelationManagers\MembersRelationManager;
 use App\Filament\Admin\Support\VenueModeration;
+use App\Filament\Concerns\HasSentenceCaseNavigationLabel;
 use App\Filament\Forms\Components\MapPicker;
 use App\Filament\Support\AccessibilityField;
 use App\Filament\Support\BeforeGoingFields;
@@ -59,6 +60,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\HtmlString;
 
 /**
@@ -76,11 +78,13 @@ use Illuminate\Support\HtmlString;
  */
 class VenueResource extends Resource
 {
+    use HasSentenceCaseNavigationLabel;
+
     protected static ?string $model = Venue::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBuildingStorefront;
 
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 1;
 
     public static function getNavigationGroup(): ?string
     {
@@ -99,7 +103,7 @@ class VenueResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        $pending = Venue::query()->where('status', VenueStatus::Pending)->count();
+        $pending = Cache::remember('nav-badge:venues-pending', 60, fn (): int => Venue::query()->where('status', VenueStatus::Pending)->count());
 
         return $pending > 0 ? (string) $pending : null;
     }

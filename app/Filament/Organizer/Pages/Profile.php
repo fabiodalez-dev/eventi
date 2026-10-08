@@ -23,6 +23,8 @@ class Profile extends Page implements HasSchemas
 
     protected static string|\BackedEnum|null $navigationIcon = Heroicon::OutlinedUserGroup;
 
+    protected static ?int $navigationSort = 3;
+
     protected string $view = 'filament.organizer.profile';
 
     /** @var array<string, mixed> */

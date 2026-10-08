@@ -17,6 +17,13 @@ class SponsorshipBanners extends Page
 {
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedMegaphone;
 
+    public static function getNavigationGroup(): ?string
+    {
+        return __('admin.navigation.promotion');
+    }
+
+    protected static ?int $navigationSort = 3;
+
     protected static ?string $navigationLabel = 'Banner sponsorizzati';
 
     protected static ?string $title = 'Banner sponsorizzati';

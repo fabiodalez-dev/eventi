@@ -21,7 +21,7 @@ class EventsCalendar extends Page
 {
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCalendarDays;
 
-    protected static ?int $navigationSort = 5;
+    protected static ?int $navigationSort = 3;
 
     protected static ?string $slug = 'calendario';
 

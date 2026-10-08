@@ -3,6 +3,7 @@
 namespace App\Filament\Organizer\Resources\Events;
 
 use App\Enums\PriceType;
+use App\Filament\Concerns\HasSentenceCaseNavigationLabel;
 use App\Filament\Support\BeforeGoingFields;
 use App\Filament\Support\DescriptionEditor;
 use App\Filament\Support\EditorialFields;
@@ -25,6 +26,8 @@ use Illuminate\Auth\Access\Response;
 
 class EventResource extends Resource
 {
+    use HasSentenceCaseNavigationLabel;
+
     protected static ?string $model = Event::class;
 
     protected static ?string $slug = 'eventi';
@@ -36,6 +39,8 @@ class EventResource extends Resource
     protected static ?string $pluralModelLabel = 'I tuoi eventi';
 
     protected static string|\BackedEnum|null $navigationIcon = Heroicon::OutlinedCalendarDays;
+
+    protected static ?int $navigationSort = 1;
 
     public static function getCreateAuthorizationResponse(): Response
     {

@@ -9,6 +9,7 @@ use App\Enums\VenueRole;
 use App\Filament\Admin\Resources\Users\Pages\CreateUser;
 use App\Filament\Admin\Resources\Users\Pages\EditUser;
 use App\Filament\Admin\Resources\Users\Pages\ListUsers;
+use App\Filament\Concerns\HasSentenceCaseNavigationLabel;
 use App\Filament\Support\BulkActions;
 use App\Filament\Support\RoleField;
 use App\Models\City;
@@ -35,6 +36,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\URL;
 
 /**
  * §9.2 — gli utenti, i loro ruoli e l'impersonificazione.
@@ -52,17 +54,19 @@ use Illuminate\Support\Facades\Hash;
  */
 class UserResource extends Resource
 {
+    use HasSentenceCaseNavigationLabel;
+
     protected static ?string $model = User::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUsers;
 
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 5;
 
     protected static ?string $recordTitleAttribute = 'name';
 
     public static function getNavigationGroup(): ?string
     {
-        return __('admin.navigation.people');
+        return __('admin.navigation.places');
     }
 
     public static function getModelLabel(): string
@@ -262,7 +266,7 @@ class UserResource extends Resource
             // dentro l'azione: una richiesta Livewire che cambia l'utente
             // autenticato a metà del proprio ciclo lascerebbe la pagina
             // aperta con i dati di prima.
-            ->action(fn (User $record) => redirect()->route('impersonate.start', ['user' => $record->getKey()]));
+            ->action(fn (User $record) => redirect(URL::temporarySignedRoute('impersonate.start', now()->addMinutes(5), ['user' => $record->getKey()])));
     }
 
     private static function roleLabel(string $name): string

@@ -30,6 +30,10 @@ abstract class EditorialWidget extends StatsOverviewWidget
     // Small counters render with the page, without a second lazy mount request.
     protected static bool $isLazy = false;
 
+    /* Niente aggiornamento automatico ogni cinque secondi: ogni giro era una
+       richiesta completa con tutte le sue query, e i numeri cambiano a ore. */
+    protected ?string $pollingInterval = null;
+
     public static function canView(): bool
     {
         return static::resolveCity() instanceof City;

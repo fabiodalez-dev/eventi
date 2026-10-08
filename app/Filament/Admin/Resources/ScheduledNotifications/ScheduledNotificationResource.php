@@ -9,6 +9,7 @@ use App\Enums\NotificationSkipReason;
 use App\Enums\NotificationStatus;
 use App\Enums\NotificationType;
 use App\Filament\Admin\Resources\ScheduledNotifications\Pages\ListScheduledNotifications;
+use App\Filament\Concerns\HasSentenceCaseNavigationLabel;
 use App\Models\EventOccurrence;
 use App\Models\ScheduledNotification;
 use BackedEnum;
@@ -22,6 +23,9 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * Gli invii previsti, §15.5.
@@ -37,11 +41,13 @@ use Illuminate\Database\Eloquent\Model;
  */
 class ScheduledNotificationResource extends Resource
 {
+    use HasSentenceCaseNavigationLabel;
+
     protected static ?string $model = ScheduledNotification::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBellAlert;
 
-    protected static ?int $navigationSort = 4;
+    protected static ?int $navigationSort = 2;
 
     public static function getNavigationGroup(): ?string
     {
@@ -71,7 +77,7 @@ class ScheduledNotificationResource extends Resource
      */
     public static function getNavigationBadge(): ?string
     {
-        $due = ScheduledNotification::query()->due(CarbonImmutable::now())->count();
+        $due = Cache::remember('nav-badge:scheduled-notifications-due', 60, fn (): int => ScheduledNotification::query()->due(CarbonImmutable::now())->count());
 
         return $due > 0 ? (string) $due : null;
     }
@@ -85,6 +91,16 @@ class ScheduledNotificationResource extends Resource
     {
         return $table
             ->description(__('admin.notifications.lead'))
+            /* Il soggetto di ogni riga (la data e il suo evento) arriva con
+               l'elenco: senza, ogni riga faceva due query per conto proprio. */
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with([
+                'user',
+                'notifiable' => static function (Relation $morph): void {
+                    if ($morph instanceof MorphTo) {
+                        $morph->morphWith([EventOccurrence::class => ['event']]);
+                    }
+                },
+            ]))
             ->columns([
                 TextColumn::make('send_at')
                     ->label(__('admin.notifications.send_at'))

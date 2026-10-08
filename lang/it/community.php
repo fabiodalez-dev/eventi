@@ -108,7 +108,7 @@ return [
         'rate_limit' => 'Hai richiesto troppi codici. Attendi prima di riprovare.', 'phone_unavailable' => 'Non è possibile verificare questo numero. Controllalo o usa un altro numero.',
         'send_failed' => 'Non siamo riusciti a inviare il codice. Riprova più tardi.', 'invalid_code' => 'Il codice non è valido, è scaduto o è già stato usato. Richiedi un nuovo codice.',
     ],
-    'moderation' => 'Community e moderazione', 'hide' => 'Nascondi', 'restore' => 'Ripristina', 'suspend' => 'Sospendi', 'unsuspend' => 'Riattiva',
+    'moderation' => 'Community e moderazione', 'moderation_navigation' => 'Profili e post', 'hide' => 'Nascondi', 'restore' => 'Ripristina', 'suspend' => 'Sospendi', 'unsuspend' => 'Riattiva',
     'suspend_confirm' => 'Sospendere questa persona dalla community? Profilo, post e commenti verranno nascosti.', 'hide_confirm' => 'Nascondere questo contenuto?', 'feature' => 'In evidenza', 'unfeature' => 'Rimuovi dalla selezione',
     'privacy_providers' => 'Utilizziamo fornitori tecnici per ospitare il sito, consegnare le email e, se richiedi la verifica facoltativa, recapitare il codice WhatsApp tramite Kapso e Meta/WhatsApp. I dati condivisi per questa verifica sono descritti nella sezione dedicata qui sotto.',
     'privacy_notice' => <<<'MARKDOWN'

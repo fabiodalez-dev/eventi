@@ -14,6 +14,7 @@ use App\Filament\Admin\Resources\Events\Pages\ListEvents;
 use App\Filament\Admin\Resources\Events\RelationManagers\ActivityRelationManager;
 use App\Filament\Admin\Resources\Events\RelationManagers\OccurrencesRelationManager;
 use App\Filament\Admin\Support\StructuredFields;
+use App\Filament\Concerns\HasSentenceCaseNavigationLabel;
 use App\Filament\Forms\Components\MapPicker;
 use App\Filament\Support\BeforeGoingFields;
 use App\Filament\Support\BulkActions;
@@ -62,6 +63,7 @@ use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * §9.2 — l'evento: la scheda editoriale, non una data.
@@ -86,6 +88,8 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
  */
 class EventResource extends Resource
 {
+    use HasSentenceCaseNavigationLabel;
+
     protected static ?string $model = Event::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCalendarDays;
@@ -111,7 +115,7 @@ class EventResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        $pending = Event::query()->where('status', EventStatus::Pending)->count();
+        $pending = Cache::remember('nav-badge:events-pending', 60, fn (): int => Event::query()->where('status', EventStatus::Pending)->count());
 
         return $pending > 0 ? (string) $pending : null;
     }

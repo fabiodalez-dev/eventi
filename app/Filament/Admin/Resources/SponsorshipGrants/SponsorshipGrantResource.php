@@ -7,6 +7,7 @@ namespace App\Filament\Admin\Resources\SponsorshipGrants;
 use App\Enums\PromotionMode;
 use App\Enums\SponsorshipPlacement;
 use App\Filament\Admin\Resources\Events\RelationManagers\ActivityRelationManager;
+use App\Filament\Concerns\HasSentenceCaseNavigationLabel;
 use App\Models\SponsorshipGrant;
 use App\Services\Sponsorship\GrantPayment;
 use Carbon\CarbonImmutable;
@@ -29,11 +30,15 @@ use Filament\Tables\Table;
 
 class SponsorshipGrantResource extends Resource
 {
+    use HasSentenceCaseNavigationLabel;
+
     protected static ?string $model = SponsorshipGrant::class;
+
+    protected static ?int $navigationSort = 2;
 
     public static function getNavigationGroup(): ?string
     {
-        return __('sponsorships.admin.navigation');
+        return __('admin.navigation.promotion');
     }
 
     public static function getModelLabel(): string

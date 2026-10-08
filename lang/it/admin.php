@@ -17,10 +17,12 @@ return [
     'navigation' => [
         'calendar' => 'Calendario',
         'content' => 'Contenuti',
-        'moderation' => 'Moderazione',
-        'places' => 'Luoghi',
-        'people' => 'Persone',
+        'places' => 'Luoghi e persone',
+        'moderation' => 'Community e moderazione',
+        'promotion' => 'Promozione',
+        'analytics' => 'Analisi',
         'system' => 'Sistema',
+        'profile' => 'Il mio profilo',
     ],
 
     'access' => [
