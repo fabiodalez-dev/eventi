@@ -34,6 +34,10 @@
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null"/>
         <env name="CACHE_STORE" value="array"/>
+        <!-- Gli strumenti di diagnostica riscrivono la risposta: spenti, o le
+             asserzioni sulle viste trovano una stringa al posto della vista. -->
+        <env name="DEBUGBAR_ENABLED" value="false"/>
+        <env name="QUERY_DETECTOR_ENABLED" value="false"/>
         <env name="DB_CONNECTION" value="mariadb"/>
         <env name="DB_HOST" value="127.0.0.1"/>
         <env name="DB_PORT" value="3307"/>

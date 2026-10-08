@@ -112,7 +112,7 @@ final class RehashPhoneFingerprints
             $challenges[$class]++;
             if ($class === 'mismatch') {
                 $mismatchedChallenges[] = (string) $challenge->id;
-            } elseif ($class === 'rehash' && $phone !== null) {
+            } elseif ($class === 'rehash') {
                 $challengeWrites[(string) $challenge->id] = PhoneFingerprint::of($phone, $newKey);
             }
         }

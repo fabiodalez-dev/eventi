@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Listeners\CompressOversizedConversion;
 use App\Models\Event;
+use App\Support\Media\AvifSupport;
 use App\Support\Media\Variants;
 use Illuminate\Support\Facades\Log;
 use Spatie\MediaLibrary\Conversions\Conversion;
@@ -191,7 +192,7 @@ it('tiene nel tetto le conversioni vere, non solo quelle di prova', function ():
     $sopraIlTetto = [];
 
     foreach (['thumb', 'card', 'full'] as $variante) {
-        foreach ([$variante, Variants::avif($variante)] as $nome) {
+        foreach (AvifSupport::available() ? [$variante, Variants::avif($variante)] : [$variante] as $nome) {
             $file = $media->getPath($nome);
 
             if (is_file($file) && filesize($file) > 120 * 1024) {

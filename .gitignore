@@ -88,3 +88,6 @@ CLAUDE.md
 /tests/Browser/Screenshots/
 /.deptrac.cache
 /.infection/
+
+# Richieste salvate da Laravel Debugbar (solo sviluppo)
+/storage/debugbar

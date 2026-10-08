@@ -69,9 +69,17 @@ final class KapsoClient
      */
     private function neverLeft(ConnectionException $exception): bool
     {
+        /*
+         * Guzzle 8 non espone piu' il contesto di cURL sull'eccezione: il
+         * numero d'errore resta solo nel messaggio, che Guzzle compone sempre
+         * come «cURL error N: …». Lo si legge da li'.
+         */
         $previous = $exception->getPrevious();
-        $context = $previous instanceof ConnectException || $previous instanceof RequestException ? $previous->getHandlerContext() : [];
+        $message = $previous instanceof ConnectException || $previous instanceof RequestException
+            ? $previous->getMessage()
+            : $exception->getMessage();
+        $errno = preg_match('/cURL error (\d+):/', $message, $match) === 1 ? (int) $match[1] : null;
 
-        return in_array($context['errno'] ?? null, [5, 6, 7, 35, 60], true);
+        return in_array($errno, [5, 6, 7, 35, 60], true);
     }
 }

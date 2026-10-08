@@ -9,6 +9,7 @@ use App\Enums\VerificationStatus;
 use App\Models\Event;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Copia un evento (§9.2 e §10.3). Serve ai cartelloni che si ripetono con
@@ -46,6 +47,14 @@ final class DuplicateEventAction
                 'updated_at',
                 'deleted_at',
             ]);
+
+            /*
+             * Le pagine del pannello caricano l'evento con colonne calcolate
+             * (`next_starts_at` e simili): non sono colonne della tabella e
+             * la copia non deve provare a scriverle.
+             */
+            $columns = array_flip(Schema::getColumnListing($event->getTable()));
+            $copy->setRawAttributes(array_intersect_key($copy->getAttributes(), $columns));
 
             $copy->title = __('admin.notifications.duplicate_title', ['title' => $event->title]);
             $copy->status = EventStatus::Draft;

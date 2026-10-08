@@ -9,6 +9,8 @@ use App\Http\Resources\V1\PriceResource;
 use App\Models\EventOccurrence;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Intervention\Image\Drivers\Gd\Driver as GdDriver;
+use Intervention\Image\Encoders\JpegEncoder;
 use Intervention\Image\ImageManager;
 use Intervention\Image\Typography\FontFactory;
 use RuntimeException;
@@ -26,8 +28,8 @@ final class SocialGraphic
     {
         $event = $occurrence->event;
         $height = $format->height();
-        $manager = ImageManager::gd();
-        $image = $manager->create(1080, $height)->fill('#0B0B0B');
+        $manager = ImageManager::usingDriver(GdDriver::class);
+        $image = $manager->createImage(1080, $height)->fill('#0B0B0B');
         $dark = '#0B0B0B';
         $foreground = '#F5F5F0';
         $font = resource_path('fonts/og-title.ttf');
@@ -41,22 +43,22 @@ final class SocialGraphic
         }
         if ($poster && is_file($poster)) {
             // No remote fetches: only media already accepted by the application's upload pipeline.
-            $photo = $manager->read($poster);
-            $backdrop = $manager->read($poster)->cover(270, (int) ceil($posterHeight / 4))->blur(12)->resize(1080, $posterHeight);
+            $photo = $manager->decode($poster);
+            $backdrop = $manager->decode($poster)->cover(270, (int) ceil($posterHeight / 4))->blur(12)->resize(1080, $posterHeight);
             $photo = ($options['image_fit'] ?? 'contain') === 'contain'
                 ? $photo->scale(width: 1080, height: $posterHeight)
                 : $photo->cover(1080, $posterHeight);
             if ($options['monochrome'] ?? true) {
-                $photo->greyscale();
-                $backdrop->greyscale();
+                $photo->grayscale();
+                $backdrop->grayscale();
             }
             $panel = $backdrop;
-            $panel->place($photo, 'center');
-            $image->place($panel, 'top-left');
+            $panel->insert($photo, alignment: 'center');
+            $image->insert($panel);
         } else {
-            $panel = $manager->create(1080, $posterHeight)->fill('#CCFF00');
+            $panel = $manager->createImage(1080, $posterHeight)->fill('#CCFF00');
             $panel->text('inCittà', 54, min(320, (int) ($posterHeight * 0.23)), fn (FontFactory $f) => $f->filename($font)->size(110)->color($dark));
-            $image->place($panel, 'top-left');
+            $image->insert($panel);
         }
 
         // Keep the entire poster visible. The lower gradient gives fixed text zones
@@ -71,7 +73,7 @@ final class SocialGraphic
             $color = imagecolorallocatealpha($gradient, 11, 11, 11, $alpha);
             imageline($gradient, 0, $y, 1079, $y, $color);
         }
-        $image->place($manager->read($gradient), 'top-left', 0, $height - $gradientHeight);
+        $image->insert($manager->decode($gradient), 0, $height - $gradientHeight);
         // The brand sits on the image, without opaque strips.
         $topShade = imagecreatetruecolor(1080, 150);
         imagealphablending($topShade, false);
@@ -79,7 +81,7 @@ final class SocialGraphic
         for ($y = 0; $y < 150; $y++) {
             imageline($topShade, 0, $y, 1079, $y, imagecolorallocatealpha($topShade, 11, 11, 11, (int) round(45 + 82 * $y / 149)));
         }
-        $image->place($manager->read($topShade));
+        $image->insert($manager->decode($topShade));
         $image->text('inCittà', 54, 80, fn (FontFactory $f) => $f->filename($font)->size(54)->color('#CCFF00'));
         $image->text(mb_strtoupper($event->city->name), 1026, 76, fn (FontFactory $f) => $f->filename($body)->size(25)->color($foreground)->align('right'));
         $top = $height - 650;
@@ -123,7 +125,7 @@ final class SocialGraphic
         }
         $image->text((string) parse_url(config('app.url'), PHP_URL_HOST), 54, $height - 30, fn (FontFactory $f) => $f->filename($body)->size(24)->color('#CCFF00'));
 
-        return (string) $image->toJpeg(90);
+        return (string) $image->encode(new JpegEncoder(quality: 90));
     }
 
     /** @return array{list<string>, int} */
