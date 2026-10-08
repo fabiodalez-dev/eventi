@@ -325,6 +325,6 @@ final class EventController extends Controller
      */
     private function hydrate(Collection $occurrences): Collection
     {
-        return $occurrences->load(['event.venue', 'event.category', 'event.media', 'lineups', 'ticketTiers']);
+        return $occurrences->loadMissing(['event.venue', 'event.category', 'event.media', 'lineups', 'ticketTiers']);
     }
 }

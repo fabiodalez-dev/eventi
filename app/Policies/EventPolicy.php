@@ -122,6 +122,12 @@ class EventPolicy
      */
     private function canActOnEvent(User $user, Event $event, Permission $permission): bool
     {
+        /* Lo staff globale risponde dal proprio ruolo: non serve interrogare
+           l'organizzatore riga per riga, come faceva l'elenco della redazione
+           (una query per evento). */
+        if ($this->isGlobalStaff($user) && $user->can($permission->value)) {
+            return true;
+        }
         if (in_array($permission, [Permission::ViewEvents, Permission::UpdateEvents, Permission::DeleteEvents], true)
             && $event->organizer?->managedBy($user)) {
             return true;

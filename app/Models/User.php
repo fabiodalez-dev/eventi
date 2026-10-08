@@ -12,6 +12,7 @@ use App\Enums\UserRole;
 use App\Enums\VenueRole;
 use App\Enums\VenueStatus;
 use App\Notifications\VerifyEmailLink;
+use App\Support\Eloquent\VenueMemberships;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Models\Contracts\HasTenants;
@@ -38,6 +39,12 @@ use Spatie\Permission\Traits\HasRoles;
 /** @property array{mode?: string, categories?: list<int>, hidden_categories?: list<int>, inferred_ads?: bool}|null $content_preferences */
 class User extends Authenticatable implements FilamentUser, HasTenants, MustVerifyEmail
 {
+    /** @var Collection<int, Venue>|null */
+    private ?Collection $venueMembershipsMemo = null;
+
+    /** La richiesta per cui vale la copia in memoria: cambiata lei, si rilegge. */
+    private ?int $venueMembershipsRequest = null;
+
     use Followable;
     use Follower;
 
@@ -173,10 +180,23 @@ class User extends Authenticatable implements FilamentUser, HasTenants, MustVeri
         return $this->hasOne(CommunityProfile::class);
     }
 
-    /** @return BelongsToMany<Venue, $this> */
+    /** @return VenueMemberships<$this> */
     public function venues(): BelongsToMany
     {
-        return $this->belongsToMany(Venue::class, 'venue_user')
+        /* La stessa relazione di sempre, ma con la classe che svuota la copia
+           in memoria di `venueMemberships()` a ogni scrittura sulla pivot. */
+        $relation = new VenueMemberships(
+            Venue::query(),
+            $this,
+            'venue_user',
+            'user_id',
+            'venue_id',
+            $this->getKeyName(),
+            (new Venue)->getKeyName(),
+            'venues',
+        );
+
+        return $relation
             ->withPivot(['role', 'invited_at', 'accepted_at'])
             ->withTimestamps();
     }
@@ -296,9 +316,7 @@ class User extends Authenticatable implements FilamentUser, HasTenants, MustVeri
              * eventi mentre e' fuori dal sito: la sospensione diventa una
              * nota interna che nessuno applica.
              */
-            'venue' => $this->venues()
-                ->whereIn('venues.status', VenueStatus::valoriSenzaProvvedimento())
-                ->exists(),
+            'venue' => $this->venueMemberships()->contains(fn (Venue $venue): bool => $this->isActiveMemberOfVenue((int) $venue->getKey())),
             default => false,
         };
     }
@@ -338,14 +356,76 @@ class User extends Authenticatable implements FilamentUser, HasTenants, MustVeri
             return $tenant->managedBy($this);
         }
 
+        /* Lo stesso filtro di `canAccessPanel`: chi gestisce due locali entra
+           grazie a quello sano, e non deve poter passare allo switcher su
+           quello sospeso. */
         return $tenant instanceof Venue
-            && $this->venues()
-                ->whereKey($tenant->getKey())
-                /* Lo stesso filtro di `canAccessPanel`: chi gestisce due
-                   locali entra grazie a quello sano, e non deve poter passare
-                   allo switcher su quello sospeso. */
-                ->whereIn('venues.status', VenueStatus::valoriSenzaProvvedimento())
-                ->exists();
+            && $this->isActiveMemberOfVenue((int) $tenant->getKey());
+    }
+
+    /**
+     * I locali della persona con ruolo e stato, letti **una volta per
+     * richiesta**.
+     *
+     * Il pannello dei locali faceva la stessa domanda — «questa persona fa
+     * parte di questo locale?» — una ventina di volte per pagina, fra
+     * tenancy, policy e switcher: una query ciascuna. La risposta non cambia
+     * nel corso di una richiesta, quindi si legge la pivot una volta e si
+     * risponde da memoria. `refresh()` svuota la memoria: e' il gesto con cui
+     * i test (e il codice) chiedono di rileggere dal database.
+     *
+     * @return Collection<int, Venue>
+     */
+    public function venueMemberships(): Collection
+    {
+        $request = app()->bound('request') ? spl_object_id(app('request')) : 0;
+
+        if ($this->venueMembershipsMemo === null || $this->venueMembershipsRequest !== $request) {
+            /** @var Collection<int, Venue> $memberships */
+            $memberships = $this->venues()->get(['venues.id', 'venues.status'])->keyBy('id');
+            $this->venueMembershipsMemo = $memberships;
+            $this->venueMembershipsRequest = $request;
+        }
+
+        return $this->venueMembershipsMemo;
+    }
+
+    public function forgetVenueMemberships(): void
+    {
+        $this->venueMembershipsMemo = null;
+    }
+
+    public function refresh(): static
+    {
+        $this->forgetVenueMemberships();
+
+        return parent::refresh();
+    }
+
+    public function isMemberOfVenue(int $venueId): bool
+    {
+        return $this->venueMemberships()->has($venueId);
+    }
+
+    public function isOwnerOfVenue(int $venueId): bool
+    {
+        $venue = $this->venueMemberships()->get($venueId);
+
+        return $venue instanceof Venue && $venue->getRelationValue('pivot')?->getAttribute('role') === VenueRole::Owner->value;
+    }
+
+    /** Membro di un locale su cui non pende un provvedimento. */
+    public function isActiveMemberOfVenue(int $venueId): bool
+    {
+        $venue = $this->venueMemberships()->get($venueId);
+
+        return $venue instanceof Venue
+            && in_array($venue->status->value, VenueStatus::valoriSenzaProvvedimento(), true);
+    }
+
+    public function managesSeveralVenues(): bool
+    {
+        return $this->venueMemberships()->count() > 1;
     }
 
     /**

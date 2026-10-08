@@ -18,8 +18,10 @@ use App\Models\ImportSource;
 use App\Models\Report;
 use App\Models\Venue;
 use App\Models\VenueApplication;
+use App\Support\ContentVersion;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * Le code di lavoro della redazione (§9.1) e i controlli di qualità (§14.5).
@@ -291,6 +293,19 @@ final class EditorialDashboardQuery
      * @return list<int>
      */
     public function possibleDuplicateIds(): array
+    {
+        /* Confronto in PHP su tutte le date future: si fa al massimo una volta
+           ogni quindici minuti per città, e la versione dei contenuti lo
+           invalida da sé quando qualcosa cambia. */
+        return Cache::remember(
+            'editorial:duplicates:'.$this->city->getKey().':'.ContentVersion::for($this->city),
+            now()->addMinutes(15),
+            fn (): array => $this->computePossibleDuplicateIds(),
+        );
+    }
+
+    /** @return list<int> */
+    private function computePossibleDuplicateIds(): array
     {
         $rows = EventOccurrence::query()
             ->join('events', 'events.id', '=', 'event_occurrences.event_id')

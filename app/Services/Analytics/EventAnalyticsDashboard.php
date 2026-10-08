@@ -317,7 +317,7 @@ final class EventAnalyticsDashboard
         }
 
         return $query->where(function (Builder $query) use ($column, $filters): void {
-            foreach (City::query()->get(['id', 'timezone']) as $city) {
+            foreach (City::timezones() as $city) {
                 $until = CarbonImmutable::parse($filters['until'], $city->timezone)->endOfDay()->utc();
                 $from = filled($filters['from'] ?? null) ? CarbonImmutable::parse($filters['from'], $city->timezone)->startOfDay()->utc() : null;
                 $query->orWhere(fn (Builder $q) => $q->where('e.city_id', $city->id)->where($column, '<=', $until)

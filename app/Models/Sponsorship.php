@@ -111,7 +111,7 @@ class Sponsorship extends Model
             // Multi-day and recurring events remain eligible until their last valid date.
             ->where(function (Builder $cities) use ($adesso): void {
                 $cities->whereRaw('1 = 0');
-                foreach (City::query()->get(['id', 'timezone']) as $city) {
+                foreach (City::timezones() as $city) {
                     $cities->orWhere(fn (Builder $q) => $q->where('sponsorships.city_id', $city->id)
                         ->whereHas('event.occurrences', fn (Builder $dates) => $dates
                             ->whereIn('status', [OccurrenceStatus::Scheduled, OccurrenceStatus::SoldOut])

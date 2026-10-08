@@ -33,12 +33,12 @@ trait ScopesToVenueMembership
 
     protected function isMemberOfVenue(User $user, int $venueId): bool
     {
-        return $user->venues()->whereKey($venueId)->exists();
+        return $user->isMemberOfVenue($venueId);
     }
 
     protected function isOwnerOfVenue(User $user, int $venueId): bool
     {
-        return $user->ownedVenues()->whereKey($venueId)->exists();
+        return $user->isOwnerOfVenue($venueId);
     }
 
     /**
