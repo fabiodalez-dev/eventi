@@ -74,7 +74,11 @@ it('shows short-link results in venue and admin analytics without overflowing mo
         $page->resize(390, 844);
     }
     $page->page()->locator('[data-analytics-dataset="links"]')->click(['timeout' => 5000]);
-    $page->assertSee('/s/'.$link->code)->click('7 giorni')->assertSee('Aperture dei link')->assertNoJavascriptErrors();
+    $page->assertSee('/s/'.$link->code)->click('7 giorni')->assertSee('Aperture dei link');
+    /* Pagina del pannello: gli osservatori di ridimensionamento di Filament
+       emettono a intermittenza la nota «ResizeObserver loop…», che non e' un
+       errore. Il filtro tiene tutto il resto. */
+    expect(erroriJavascriptVeri($page))->toBe([]);
     $page->screenshot(filename: 'event-analytics-'.$panel.'-mobile');
     expect($page->script('document.documentElement.scrollWidth <= innerWidth'))->toBeTrue();
     expect(DB::table('event_share_daily')->sum('clicks'))->toBe('1');
