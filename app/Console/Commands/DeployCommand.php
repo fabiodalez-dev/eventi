@@ -452,9 +452,10 @@ class DeployCommand extends Command
              */
             ['schedule-monitor:sync', []],
             ['filament:assets', []],
-            ['config:cache', []],
-            ['route:cache', []],
-            ['view:cache', []],
+            /* `optimize` copre configurazione, rotte, viste, eventi e — tramite
+               Filament — componenti e icone dei pannelli: le ultime due cache
+               mancavano, e a ogni richiesta i pannelli ricostruivano l'elenco. */
+            ['optimize', []],
             ['queue:restart', []],
             ['deploy:verify', []],
         ];

@@ -79,7 +79,7 @@ it('rigenera le cache in processi PHP nuovi, non dentro il proprio', function ()
      */
     $codice = (string) file_get_contents(app_path('Console/Commands/DeployCommand.php'));
 
-    foreach (['migrate', 'route:cache', 'config:cache', 'view:cache', 'filament:assets'] as $comando) {
+    foreach (['migrate', 'optimize', 'route:cache', 'config:cache', 'view:cache', 'filament:assets'] as $comando) {
         expect($codice)->not->toContain("Artisan::call('".$comando."'");
     }
 
@@ -88,7 +88,9 @@ it('rigenera le cache in processi PHP nuovi, non dentro il proprio', function ()
        La forma è cambiata da mappa a lista di coppie — `db:seed` va eseguito
        due volte con classi diverse, e le chiavi di un array sono uniche: con
        la mappa la seconda voce avrebbe sovrascritto la prima in silenzio. */
-    expect($codice)->toContain("['route:cache', []]")
-        ->and($codice)->toContain("['config:cache', []]")
+    /* `optimize` raccoglie config, rotte, viste, eventi e le cache di
+       Filament in un passo solo: e' quello che deve comparire, non le tre
+       voci separate di prima. */
+    expect($codice)->toContain("['optimize', []]")
         ->and($codice)->toContain("['migrate', ['--force']]");
 });

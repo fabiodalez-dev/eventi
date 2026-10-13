@@ -6,6 +6,7 @@ namespace App\Filament\Admin\Resources\CatalogReviews;
 
 use App\Enums\CatalogReviewStatus;
 use App\Filament\Admin\Resources\CatalogReviews\Pages\ListCatalogReviews;
+use App\Filament\Concerns\HasSentenceCaseNavigationLabel;
 use App\Models\CatalogReview;
 use App\Models\User;
 use App\Services\Reviews\CatalogReviews;
@@ -18,12 +19,19 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\Cache;
 
 class CatalogReviewResource extends Resource
 {
+    use HasSentenceCaseNavigationLabel;
+
+    protected static ?string $navigationLabel = 'Recensioni';
+
     protected static ?string $model = CatalogReview::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedStar;
+
+    protected static ?int $navigationSort = 4;
 
     public static function getModelLabel(): string
     {
@@ -47,7 +55,7 @@ class CatalogReviewResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        $count = CatalogReview::query()->where('status', CatalogReviewStatus::Pending)->count();
+        $count = Cache::remember('nav-badge:catalog-reviews-pending', 60, fn (): int => CatalogReview::query()->where('status', CatalogReviewStatus::Pending)->count());
 
         return $count ? (string) $count : null;
     }

@@ -86,7 +86,7 @@ return [
         'cancelled' => 'Un passaggio è stato annullato', 'reduced' => 'È cambiato il numero di posti richiesti', 'message' => 'Hai un nuovo messaggio',
         'match' => 'C’è un passaggio per la tua ricerca', 'suggestion' => 'Ti è stato proposto un passaggio', 'reminder' => 'Il tuo passaggio si avvicina',
         'pending' => 'Hai richieste di passaggio da gestire', 'support' => 'L’assistenza ha aggiornato la tua segnalazione', 'moderation' => 'Aggiornamento sui tuoi accessi alla community'],
-    'admin' => ['feedback' => 'Feedback privati', 'reviews' => 'Recensioni conducenti', 'section' => 'Sezione', 'status' => 'Stato', 'all' => 'Tutti', 'case' => 'Caso', 'note' => 'Aggiungi nota interna',
+    'admin' => ['navigation' => 'Passaggi in auto', 'feedback' => 'Feedback privati', 'reviews' => 'Recensioni conducenti', 'section' => 'Sezione', 'status' => 'Stato', 'all' => 'Tutti', 'case' => 'Caso', 'note' => 'Aggiungi nota interna',
         'reason_hint' => 'La motivazione accompagna la prossima azione. Le risposte vanno solo al destinatario selezionato; le note restano interne.',
         'social_reference' => 'Contenuto social: :type #:id', 'ride_reference' => 'Passaggio #:id', 'choose_recipient' => 'Scegli una persona', 'reply' => 'Invia risposta',
         'freeze_chat' => 'Oscura conversazione', 'unfreeze_chat' => 'Rimuovi oscuramento', 'hold_hint' => 'Conservazione eccezionale limitata a questo caso: motivare la necessità e riesaminarla entro 90 giorni. Scadenza:',

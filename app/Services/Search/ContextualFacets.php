@@ -13,6 +13,8 @@ use App\Models\Category;
 use App\Models\City;
 use App\Models\Venue;
 use App\Queries\EventOccurrenceQuery;
+use App\Support\ContentVersion;
+use Illuminate\Support\Facades\Cache;
 
 /** Counts intersect ALL current filters, never just the first result page. */
 final class ContextualFacets
@@ -22,6 +24,32 @@ final class ContextualFacets
      * @return array<string, array<string, int>>
      */
     public function build(City $city, EventFilters $filters, ?\Closure $factory = null, ?\Closure $placeFactory = null): array
+    {
+        /*
+         * Una sessantina di COUNT per richiesta, uno per ogni chip: la pagina
+         * degli eventi e la mappa li rifacevano a ogni apertura, e la cache
+         * di pagina non copre chi e' autenticato ne' chi ha una posizione.
+         * I conteggi dipendono solo dal catalogo e dai filtri scelti: si
+         * conservano dieci minuti, e la versione dei contenuti della citta'
+         * li butta via appena qualcosa viene pubblicato o cambiato. Con una
+         * posizione nella richiesta la chiave sarebbe unica per persona:
+         * li' non si conserva niente.
+         */
+        if ($factory === null && $placeFactory === null && ! $filters->hasPosition()) {
+            $key = 'facets:'.$city->getKey().':'.ContentVersion::for($city).':'
+                .now($city->timezone)->format('Y-m-d').':'.hash('xxh128', serialize($filters));
+
+            return Cache::remember($key, now()->addMinutes(10), fn (): array => $this->compute($city, $filters, null, null));
+        }
+
+        return $this->compute($city, $filters, $factory, $placeFactory);
+    }
+
+    /** @param null|\Closure(): EventOccurrenceQuery $factory
+     * @param  null|\Closure(EventFilters): EventOccurrenceQuery  $placeFactory
+     * @return array<string, array<string, int>>
+     */
+    private function compute(City $city, EventFilters $filters, ?\Closure $factory, ?\Closure $placeFactory): array
     {
         $web = $factory === null;
         $factory ??= fn () => app(EventFinder::class)->query($city, $filters);

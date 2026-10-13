@@ -103,6 +103,14 @@ return Application::configure(basePath: dirname(__DIR__))
          * riempire i vuoti.
          */
         $middleware->append(SecurityHeaders::class);
+
+        /*
+         * Solo l'host di `APP_URL` (e i suoi sottodomini) e' un host valido:
+         * una richiesta con un'intestazione `Host` diversa viene respinta
+         * prima di generare qualunque collegamento. Laravel applica questo
+         * controllo soltanto fuori dall'ambiente locale e dai test.
+         */
+        $middleware->trustHosts(at: fn (): array => array_filter([parse_url((string) config('app.url'), PHP_URL_HOST)]));
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         /*

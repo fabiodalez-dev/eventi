@@ -8,6 +8,7 @@ use App\Actions\MergeTagsAction;
 use App\Filament\Admin\Resources\Tags\Pages\CreateTag;
 use App\Filament\Admin\Resources\Tags\Pages\EditTag;
 use App\Filament\Admin\Resources\Tags\Pages\ListTags;
+use App\Filament\Concerns\HasSentenceCaseNavigationLabel;
 use App\Filament\Support\BulkActions;
 use App\Filament\Support\EditorialFields;
 use App\Models\Tag;
@@ -34,11 +35,13 @@ use Filament\Tables\Table;
  */
 class TagResource extends Resource
 {
+    use HasSentenceCaseNavigationLabel;
+
     protected static ?string $model = Tag::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedTag;
 
-    protected static ?int $navigationSort = 4;
+    protected static ?int $navigationSort = 5;
 
     public static function getNavigationGroup(): ?string
     {

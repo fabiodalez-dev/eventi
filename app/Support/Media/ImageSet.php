@@ -63,6 +63,18 @@ final readonly class ImageSet
         $sources = [];
 
         foreach (['image/avif' => true, 'image/webp' => false] as $mime => $avif) {
+            /*
+             * Una variante AVIF generata altrove — in produzione, su una
+             * macchina con Imagick completo — risulta «generata» anche su un
+             * computer che l'AVIF non lo sa produrre: li' la conversione non
+             * e' nemmeno registrata, e chiederne l'indirizzo farebbe cadere
+             * ogni pagina con una locandina. Senza supporto, l'insieme si
+             * ferma al WebP.
+             */
+            if ($avif && ! AvifSupport::available()) {
+                continue;
+            }
+
             $srcset = [];
 
             foreach (Variants::widths() as $variant => $width) {

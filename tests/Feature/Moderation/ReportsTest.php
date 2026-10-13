@@ -15,6 +15,7 @@ use App\Queries\EditorialDashboardQuery;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 use Database\Seeders\RolesAndPermissionsSeeder;
+use Illuminate\Support\Facades\Cache;
 use Livewire\Livewire;
 
 /**
@@ -118,6 +119,10 @@ it('chiama aperta una segnalazione da esaminare o in esame, e chiusa le altre du
 
     Report::query()->whereKey([$daEsaminare->getKey(), $inEsame->getKey()])
         ->update(['status' => ReportStatus::Dismissed]);
+
+    /* Il contatore del menu resta in cache per un minuto: qui si vuole il
+       valore nuovo, non quello di un attimo fa. */
+    Cache::forget('nav-badge:reports-open');
 
     /* Nessuna coda aperta, nessun numero rosso: un contatore fermo su zero
        sarebbe una notifica che non se ne va più. */

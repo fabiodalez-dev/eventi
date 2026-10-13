@@ -14,3 +14,24 @@ parameters:
     paths:
         - app
         - database
+
+    ignoreErrors:
+        # Le chiusure passate a `with()` ricevono una Relation, e i metodi
+        # chiamati sopra sono scope del modello inoltrati al builder: a
+        # runtime esistono, Larastan 3.12 non li vede sul tipo generico.
+        -
+            message: '#Call to an undefined method Illuminate\\Database\\Eloquent\\Relations\\Relation<\*, \*, \*>::(withTrashed|visible|visibleTo)\(\)#'
+            reportUnmatched: false
+        # `User::venues()` restituisce una sottoclasse di BelongsToMany
+        # (`App\Support\Eloquent\VenueMemberships`): Larastan inoltra al
+        # builder i metodi delle relazioni di Laravel, ma sulle sottoclassi
+        # dell'applicazione li dichiara «privati» pur esistendo a runtime.
+        -
+            message: '#Call to private method [a-zA-Z]+\(\) of parent class Illuminate\\Database\\Eloquent\\Relations\\BelongsToMany<App\\Models\\Venue,#'
+            reportUnmatched: false
+        # `chmod` cambia davvero i permessi fra i due `is_writable`: PHPStan
+        # non lo sa e dichiara il secondo sempre falso.
+        -
+            message: '#Call to function is_writable\(\) with string will always evaluate to false#'
+            path: app/Services/Installer/RequirementsChecker.php
+            reportUnmatched: false

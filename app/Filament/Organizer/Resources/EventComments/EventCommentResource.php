@@ -6,6 +6,7 @@ namespace App\Filament\Organizer\Resources\EventComments;
 
 use App\Actions\Comments\ModerateComment;
 use App\Enums\EventCommentStatus;
+use App\Filament\Concerns\HasSentenceCaseNavigationLabel;
 use App\Filament\Organizer\Resources\EventComments\Pages\ListEventComments;
 use App\Models\EventComment;
 use App\Models\Organizer;
@@ -45,9 +46,18 @@ use Illuminate\Database\Eloquent\Model;
  */
 class EventCommentResource extends Resource
 {
+    use HasSentenceCaseNavigationLabel;
+
     protected static ?string $model = EventComment::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedChatBubbleLeftRight;
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('manage.navigation.community');
+    }
+
+    protected static ?int $navigationSort = 1;
 
     public static function getModelLabel(): string
     {

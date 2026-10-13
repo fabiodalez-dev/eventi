@@ -11,6 +11,7 @@ use App\Filament\Admin\Resources\ImportSources\Pages\CreateImportSource;
 use App\Filament\Admin\Resources\ImportSources\Pages\EditImportSource;
 use App\Filament\Admin\Resources\ImportSources\Pages\ListImportSources;
 use App\Filament\Admin\Resources\ImportSources\RelationManagers\RunsRelationManager;
+use App\Filament\Concerns\HasSentenceCaseNavigationLabel;
 use App\Filament\Support\BulkActions;
 use App\Filament\Support\ImportPreviewRows;
 use App\Jobs\Import\ImportSourceJob;
@@ -53,11 +54,13 @@ use Illuminate\Database\Eloquent\Builder;
  */
 class ImportSourceResource extends Resource
 {
+    use HasSentenceCaseNavigationLabel;
+
     protected static ?string $model = ImportSource::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedArrowDownTray;
 
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 1;
 
     public static function getNavigationGroup(): ?string
     {

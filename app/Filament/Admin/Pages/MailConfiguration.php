@@ -52,7 +52,12 @@ class MailConfiguration extends Page implements HasSchemas
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedEnvelope;
 
-    protected static ?int $navigationSort = 90;
+    public static function getNavigationGroup(): ?string
+    {
+        return __('admin.navigation.system');
+    }
+
+    protected static ?int $navigationSort = 5;
 
     protected static ?string $slug = 'configurazione-posta';
 

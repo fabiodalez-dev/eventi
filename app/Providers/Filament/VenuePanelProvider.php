@@ -9,15 +9,18 @@ use App\Filament\Auth\RequestPasswordReset;
 use App\Filament\Venue\Pages\Dashboard;
 use App\Models\User;
 use App\Models\Venue;
+use Filament\Actions\Action;
 use Filament\FontProviders\LocalFontProvider;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
+use Filament\Navigation\NavigationGroup;
 use Filament\Navigation\NavigationItem;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\Support\Icons\Heroicon;
 use Filament\View\PanelsRenderHook;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -25,7 +28,6 @@ use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Blade;
-use Illuminate\Support\Facades\Vite;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 /**
@@ -57,10 +59,26 @@ class VenuePanelProvider extends PanelProvider
         return $panel
             ->id('venue')
             ->path('gestione')
-            ->navigationItems([NavigationItem::make('Il mio profilo')->icon('heroicon-o-user-circle')->url(fn (): string => route('account.profile')),
-                NavigationItem::make('Biglietti e partecipanti')
-                    ->icon('heroicon-o-ticket')->url(fn (): string => route('ticketing.manage.index'))
+            ->navigationItems([
+                NavigationItem::make(fn (): string => __('manage.navigation.tickets'))
+                    ->icon(Heroicon::OutlinedTicket)->url(fn (): string => route('ticketing.manage.index'))
+                    ->sort(2)
                     ->visible(fn (): bool => auth()->user()?->ownedVenues()->exists() === true),
+            ])
+            ->userMenuItems([
+                Action::make('profile')
+                    ->label(fn (): string => __('manage.navigation.profile'))
+                    ->icon(Heroicon::OutlinedUserCircle)
+                    ->url(fn (): string => route('account.profile')),
+            ])
+            /*
+             * Le statistiche stanno in un gruppo a parte, chiuso: chi entra dal
+             * bancone cerca gli eventi di stasera, non i grafici. Il gruppo
+             * «Community» raccoglie i commenti, che non sono eventi.
+             */
+            ->navigationGroups([
+                NavigationGroup::make(fn (): string => __('manage.navigation.analytics'))->collapsed(),
+                NavigationGroup::make(fn (): string => __('manage.navigation.community')),
             ])
             ->login(Login::class)
             ->passwordReset(RequestPasswordReset::class)
@@ -128,6 +146,6 @@ class VenuePanelProvider extends PanelProvider
     {
         $user = auth()->user();
 
-        return $user instanceof User && $user->venues()->count() > 1;
+        return $user instanceof User && $user->managesSeveralVenues();
     }
 }

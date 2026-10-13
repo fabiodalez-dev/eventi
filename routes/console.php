@@ -125,6 +125,15 @@ Schedule::command('events:archive')
     ->withoutOverlapping();
 
 /*
+ * La cache su file non si pulisce da sola: le chiavi scadute che nessuno
+ * rilegge restano sul disco, e su hosting condiviso il tetto sul numero di
+ * file arriva prima di quello sullo spazio.
+ */
+Schedule::command('cache:prune-file-store')
+    ->dailyAt('04:25')
+    ->withoutOverlapping();
+
+/*
  * ─────────────────────────────────────────────────────────────────────────
  * Esercizio (§16)
  * ─────────────────────────────────────────────────────────────────────────

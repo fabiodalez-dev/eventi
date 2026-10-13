@@ -2,6 +2,7 @@
 
 namespace App\Filament\Admin\Resources\Organizers;
 
+use App\Filament\Concerns\HasSentenceCaseNavigationLabel;
 use App\Filament\Support\ContactFields;
 use App\Filament\Support\DescriptionEditor;
 use App\Models\Organizer;
@@ -18,9 +19,18 @@ use Filament\Tables\Table;
 
 class OrganizerResource extends Resource
 {
+    use HasSentenceCaseNavigationLabel;
+
     protected static ?string $model = Organizer::class;
 
     protected static string|\BackedEnum|null $navigationIcon = Heroicon::OutlinedUserGroup;
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('admin.navigation.places');
+    }
+
+    protected static ?int $navigationSort = 3;
 
     protected static ?string $modelLabel = 'organizzatore';
 

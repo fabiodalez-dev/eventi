@@ -22,6 +22,8 @@ class Community extends Page
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUsers;
 
+    protected static ?int $navigationSort = 1;
+
     protected string $view = 'filament.admin.pages.community';
 
     public string $section = 'profiles';
@@ -32,7 +34,7 @@ class Community extends Page
 
     public static function getNavigationLabel(): string
     {
-        return __('community.moderation');
+        return __('community.moderation_navigation');
     }
 
     public function getTitle(): string

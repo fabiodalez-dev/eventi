@@ -7,6 +7,7 @@ namespace App\Filament\Admin\Resources\Cities;
 use App\Filament\Admin\Resources\Cities\Pages\CreateCity;
 use App\Filament\Admin\Resources\Cities\Pages\EditCity;
 use App\Filament\Admin\Resources\Cities\Pages\ListCities;
+use App\Filament\Concerns\HasSentenceCaseNavigationLabel;
 use App\Filament\Support\BulkActions;
 use App\Filament\Support\EditorialFields;
 use App\Models\City;
@@ -38,11 +39,13 @@ use Filament\Tables\Table;
  */
 class CityResource extends Resource
 {
+    use HasSentenceCaseNavigationLabel;
+
     protected static ?string $model = City::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedMapPin;
 
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 4;
 
     public static function getNavigationGroup(): ?string
     {

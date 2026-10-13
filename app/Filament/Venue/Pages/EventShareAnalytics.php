@@ -10,6 +10,13 @@ use Filament\Facades\Filament;
 
 class EventShareAnalytics extends EventAnalyticsPage
 {
+    public static function getNavigationGroup(): ?string
+    {
+        return __('manage.navigation.analytics');
+    }
+
+    protected static ?int $navigationSort = 2;
+
     public static function canAccess(): bool
     {
         return Filament::getTenant() instanceof Venue && auth()->user()?->canAccessTenant(Filament::getTenant()) === true;

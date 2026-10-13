@@ -9,6 +9,7 @@ use App\Enums\ApplicationStatus;
 use App\Enums\VenueType;
 use App\Filament\Admin\Resources\VenueApplications\Pages\EditVenueApplication;
 use App\Filament\Admin\Resources\VenueApplications\Pages\ListVenueApplications;
+use App\Filament\Concerns\HasSentenceCaseNavigationLabel;
 use App\Models\User;
 use App\Models\VenueApplication;
 use App\Support\Description;
@@ -27,6 +28,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * §7.3 e §9.2 — le richieste di iscrizione dei locali.
@@ -38,6 +40,8 @@ use Illuminate\Support\Facades\Auth;
  */
 class VenueApplicationResource extends Resource
 {
+    use HasSentenceCaseNavigationLabel;
+
     protected static ?string $model = VenueApplication::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedEnvelopeOpen;
@@ -46,7 +50,7 @@ class VenueApplicationResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return __('admin.navigation.moderation');
+        return __('admin.navigation.places');
     }
 
     public static function getModelLabel(): string
@@ -61,7 +65,7 @@ class VenueApplicationResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        $pending = VenueApplication::query()->where('status', ApplicationStatus::Pending)->count();
+        $pending = Cache::remember('nav-badge:venue-applications-pending', 60, fn (): int => VenueApplication::query()->where('status', ApplicationStatus::Pending)->count());
 
         return $pending > 0 ? (string) $pending : null;
     }

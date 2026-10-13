@@ -7,6 +7,7 @@ namespace App\Models;
 use App\Models\Concerns\HasEditorialContent;
 use Database\Factories\CityFactory;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -15,6 +16,20 @@ use Spatie\Sluggable\SlugOptions;
 
 class City extends Model
 {
+    /**
+     * Identificativo e fuso di ogni città, letti una volta per richiesta.
+     *
+     * Le interrogazioni che ragionano «a mezzanotte di ciascuna città» ne
+     * hanno bisogno tutte, e la stessa pagina arrivava a chiederlo tredici
+     * volte. L'elenco cambia solo quando si aggiunge una città.
+     *
+     * @return Collection<int, static>
+     */
+    public static function timezones(): Collection
+    {
+        return once(fn (): Collection => static::query()->get(['id', 'timezone']));
+    }
+
     use HasEditorialContent;
 
     /** @use HasFactory<CityFactory> */

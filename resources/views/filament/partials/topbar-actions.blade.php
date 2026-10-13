@@ -1,7 +1,7 @@
 @php $context = app(\App\Filament\Shared\TopbarActions::class)->context(); @endphp
 @if ($context)
     <a class="itb-context" href="{{ $context['home'] }}" data-topbar-context="{{ $context['panel'] }}">
-        <span class="itb-mark" aria-hidden="true"><x-filament::icon :icon="$context['panel'] === 'venue' ? 'heroicon-o-building-storefront' : 'heroicon-o-squares-2x2'" /></span>
+        <span class="itb-mark" aria-hidden="true"><x-filament::icon :icon="match ($context['panel']) { 'venue' => 'heroicon-o-building-storefront', 'organizer' => 'heroicon-o-user-group', default => 'heroicon-o-squares-2x2' }" /></span>
         <span class="itb-identity"><small>{{ $context['label'] }}</small><strong>{{ $context['name'] }}</strong></span>
     </a>
     <div class="itb-actions" role="group" aria-label="{{ __('topbar.quick_actions') }}">

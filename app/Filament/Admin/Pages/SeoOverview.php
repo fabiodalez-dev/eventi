@@ -20,6 +20,13 @@ class SeoOverview extends Page
 {
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedMagnifyingGlass;
 
+    public static function getNavigationGroup(): ?string
+    {
+        return __('admin.navigation.analytics');
+    }
+
+    protected static ?int $navigationSort = 2;
+
     /** @var array<string, mixed> */
     public array $data = [];
 

@@ -26,7 +26,7 @@ class Newsletter extends Page
 {
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedEnvelope;
 
-    protected static ?int $navigationSort = 90;
+    protected static ?int $navigationSort = 6;
 
     protected string $view = 'filament.admin.pages.newsletter';
 
@@ -40,7 +40,7 @@ class Newsletter extends Page
 
     public static function getNavigationGroup(): ?string
     {
-        return __('admin.navigation.system');
+        return __('admin.navigation.promotion');
     }
 
     public function mount(): void

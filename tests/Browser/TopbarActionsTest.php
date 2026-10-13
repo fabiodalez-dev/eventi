@@ -20,7 +20,9 @@ it('keeps role-specific topbar shortcuts usable on desktop and small phones', fu
         ->assertVisible('[data-topbar-action="analytics"]');
     expect($page->script('Array.from(document.querySelectorAll(".itb-actions > *, .itb-context, .fi-topbar-end")).every(el => { const r = el.getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth; })'))->toBeTrue();
     $page->click('[data-topbar-action="analytics"]')->assertPresent('[data-analytics-summary]');
-    $page->assertVisible('[data-topbar-more][aria-haspopup="true"]');
+    /* Filament 5.10 dichiara il menu con `aria-haspopup="menu"` (prima era
+       `"true"`): conta che l'attributo ci sia, non il valore esatto. */
+    $page->assertVisible('[data-topbar-more][aria-haspopup]');
     $page->page()->locator('[data-topbar-more]')->click(['timeout' => 5000]);
     $page->assertVisible('[data-topbar-more][aria-expanded="true"]')
         ->assertVisible('[data-topbar-action="tickets"]')->assertVisible('[data-topbar-action="public"]');

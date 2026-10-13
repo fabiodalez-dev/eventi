@@ -28,7 +28,16 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
  */
 class SponsorshipHealthWidget extends StatsOverviewWidget
 {
-    protected ?string $heading = null;
+    protected static ?int $sort = 7;
+
+    /* Niente aggiornamento automatico ogni cinque secondi: ogni giro era una
+       richiesta completa con tutte le sue query, e i numeri cambiano a ore. */
+    protected ?string $pollingInterval = null;
+
+    protected function getHeading(): ?string
+    {
+        return __('sponsorships.admin.title');
+    }
 
     protected function getColumns(): int
     {

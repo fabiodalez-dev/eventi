@@ -7,6 +7,7 @@ use App\Http\Controllers\Web\ImpersonationController;
 use App\Models\City;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
+use Illuminate\Support\Facades\URL;
 
 /**
  * §9.2 — «Utenti: ruoli, impersonate».
@@ -33,7 +34,7 @@ it('lascia a un amministratore prendere l\'identità di un utente', function ():
     $target = actor(UserRole::User);
 
     $this->actingAs($admin)
-        ->get(route('impersonate.start', ['user' => $target->getKey()]))
+        ->get(URL::signedRoute('impersonate.start', ['user' => $target->getKey()]))
         ->assertRedirect('/');
 
     expect(auth()->id())->toBe($target->getKey())
@@ -44,9 +45,9 @@ it('riporta all\'identità di partenza, e solo a quella', function (): void {
     $admin = actor(UserRole::Admin);
     $target = actor(UserRole::User);
 
-    $this->actingAs($admin)->get(route('impersonate.start', ['user' => $target->getKey()]));
+    $this->actingAs($admin)->get(URL::signedRoute('impersonate.start', ['user' => $target->getKey()]));
 
-    $this->get(route('impersonate.stop'))->assertRedirect('/admin');
+    $this->get(URL::signedRoute('impersonate.stop'))->assertRedirect('/admin');
 
     expect(auth()->id())->toBe($admin->getKey())
         ->and(session(ImpersonationController::SESSION_KEY))->toBeNull();
@@ -54,7 +55,7 @@ it('riporta all\'identità di partenza, e solo a quella', function (): void {
 
 it('nega l\'uscita a chi non stava impersonando nessuno', function (): void {
     $this->actingAs(actor(UserRole::User))
-        ->get(route('impersonate.stop'))
+        ->get(URL::signedRoute('impersonate.stop'))
         ->assertForbidden();
 });
 
@@ -65,7 +66,7 @@ it('vieta al moderatore di impersonare: non ha quel permesso', function (): void
     expect($moderator->can('impersonate', $target))->toBeFalse();
 
     $this->actingAs($moderator)
-        ->get(route('impersonate.start', ['user' => $target->getKey()]))
+        ->get(URL::signedRoute('impersonate.start', ['user' => $target->getKey()]))
         ->assertForbidden();
 });
 
@@ -78,15 +79,15 @@ it('vieta di impersonare verso l\'alto e verso se stessi', function (): void {
         ->and($superAdmin->can('impersonate', $admin))->toBeTrue();
 
     $this->actingAs($admin)
-        ->get(route('impersonate.start', ['user' => $superAdmin->getKey()]))
+        ->get(URL::signedRoute('impersonate.start', ['user' => $superAdmin->getKey()]))
         ->assertForbidden();
 });
 
 it('manda chi non è autenticato all\'accesso della redazione', function (): void {
     $target = actor(UserRole::User);
 
-    $this->get(route('impersonate.start', ['user' => $target->getKey()]))
+    $this->get(URL::signedRoute('impersonate.start', ['user' => $target->getKey()]))
         ->assertRedirect('/admin/login');
 
-    $this->get(route('impersonate.stop'))->assertRedirect('/admin/login');
+    $this->get(URL::signedRoute('impersonate.stop'))->assertRedirect('/admin/login');
 });

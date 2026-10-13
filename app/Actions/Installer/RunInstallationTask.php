@@ -116,6 +116,9 @@ class RunInstallationTask
             'APP_KEY' => config()->string('app.key'),
             'APP_DEBUG' => 'false',
             'APP_URL' => rtrim($this->text($application, 'app_url'), '/'),
+            /* Il sito vive in HTTPS: il cookie di sessione non deve viaggiare
+               in chiaro nemmeno alla prima visita, prima che HSTS lo imponga. */
+            'SESSION_SECURE_COOKIE' => 'true',
 
             'DB_CONNECTION' => 'mariadb',
             'DB_HOST' => $this->text($database, 'db_host'),

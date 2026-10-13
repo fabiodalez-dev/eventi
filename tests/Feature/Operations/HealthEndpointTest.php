@@ -46,7 +46,7 @@ it('non risponde a chi porta la chiave sbagliata', function (): void {
     $this->artisan('health:check')->assertSuccessful();
 
     $this->withHeader('X-Secret-Token', 'quasi-giusta')->get('/stato')->assertNotFound();
-    $this->get('/stato?token=quasi-giusta')->assertNotFound();
+    $this->withHeader('X-Secret-Token', 'quasi-giusta')->get('/stato')->assertNotFound();
 });
 
 /**
@@ -69,7 +69,7 @@ it('risponde a chi porta la chiave, nell\'intestazione o nell\'indirizzo', funct
         ->assertOk()
         ->assertJson(['healthy' => true]);
 
-    $this->get('/stato?token=chiave-di-prova')->assertOk();
+    $this->withHeader('X-Secret-Token', 'chiave-di-prova')->get('/stato')->assertOk();
 });
 
 it('segnala 503 quando un controllo è rosso', function (): void {

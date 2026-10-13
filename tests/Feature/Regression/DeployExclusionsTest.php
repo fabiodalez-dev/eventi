@@ -103,5 +103,5 @@ it('tiene lo stato del sistema fuori dalla portata di chi non ha la chiave', fun
 
     $this->get('/stato')->assertNotFound();
     $this->get('/stato/completo')->assertNotFound();
-    $this->get('/stato?token=sbagliata')->assertNotFound();
+    $this->withHeader('X-Secret-Token', 'sbagliata')->get('/stato')->assertNotFound();
 });

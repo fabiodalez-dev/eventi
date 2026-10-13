@@ -200,11 +200,19 @@ Route::get('/widget/{venue}', WidgetController::class)
  * nel segnaposto `{user}`. Entrambe stanno fuori dai gruppi del sito pubblico:
  * non appartengono a una città.
  */
+/*
+ * Entrambe accettano solo collegamenti firmati. Sono GET per le ragioni
+ * scritte sopra, ma un GET lo apre anche un link in una pagina qualunque, e
+ * un cookie `SameSite=Lax` lo accompagna: senza firma, un collegamento
+ * confezionato ad arte avrebbe cambiato identita' a chi lo clicca.
+ */
 Route::get('/impersona/interrompi', [ImpersonationController::class, 'stop'])
+    ->middleware('signed')
     ->name('impersonate.stop');
 
 Route::get('/impersona/{user}', [ImpersonationController::class, 'start'])
     ->whereNumber('user')
+    ->middleware('signed')
     ->name('impersonate.start');
 
 /*

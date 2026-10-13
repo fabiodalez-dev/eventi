@@ -7,16 +7,17 @@ namespace App\Providers\Filament;
 use App\Filament\Admin\Pages\Dashboard;
 use App\Filament\Auth\Login;
 use App\Filament\Auth\RequestPasswordReset;
+use Filament\Actions\Action;
 use Filament\FontProviders\LocalFontProvider;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Navigation\NavigationGroup;
-use Filament\Navigation\NavigationItem;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\Support\Icons\Heroicon;
 use Filament\View\PanelsRenderHook;
 use Guava\Calendar\CalendarPlugin;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
@@ -25,7 +26,6 @@ use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Blade;
-use Illuminate\Support\Facades\Vite;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 /**
@@ -62,8 +62,16 @@ class AdminPanelProvider extends PanelProvider
              * in `@fontsource`, quindi non aggiunge una richiesta a Google.
              */
             ->font('Manrope Variable', provider: LocalFontProvider::class)
-            ->navigationItems([NavigationItem::make('Il mio profilo')
-                ->icon('heroicon-o-user-circle')->url(fn (): string => route('account.profile')),
+            /*
+             * Il profilo personale sta nel menu dell'utente, accanto all'uscita:
+             * e' un'azione sulla persona, non una sezione del lavoro di redazione,
+             * e nella barra laterale occupava la seconda riga di ogni pagina.
+             */
+            ->userMenuItems([
+                Action::make('profile')
+                    ->label(fn (): string => __('admin.navigation.profile'))
+                    ->icon(Heroicon::OutlinedUserCircle)
+                    ->url(fn (): string => route('account.profile')),
             ])
             ->darkMode(false)
             ->renderHook(PanelsRenderHook::TOPBAR_END, fn () => view('filament.partials.topbar-actions'))
@@ -81,13 +89,21 @@ class AdminPanelProvider extends PanelProvider
                  */
                 'primary' => Color::hex('#b54d23'),
             ])
+            /*
+             * Sei gruppi, nell'ordine in cui la redazione li usa: cosa si
+             * pubblica, chi lo pubblica e dove, cosa dice la community, cosa
+             * si promuove, come va, e infine la macchina. Le voci sciolte
+             * sopra i gruppi erano diventate nove: oggi resta solo il riepilogo.
+             */
             ->navigationGroups([
                 NavigationGroup::make(fn (): string => __('admin.navigation.content')),
                 NavigationGroup::make(fn (): string => __('admin.navigation.places')),
                 NavigationGroup::make(fn (): string => __('admin.navigation.moderation')),
-                NavigationGroup::make(fn (): string => __('admin.navigation.people')),
-                NavigationGroup::make(fn (): string => __('admin.navigation.system')),
+                NavigationGroup::make(fn (): string => __('admin.navigation.promotion')),
+                NavigationGroup::make(fn (): string => __('admin.navigation.analytics')),
+                NavigationGroup::make(fn (): string => __('admin.navigation.system'))->collapsed(),
             ])
+            ->sidebarCollapsibleOnDesktop()
             ->discoverResources(in: app_path('Filament/Admin/Resources'), for: 'App\Filament\Admin\Resources')
             ->discoverPages(in: app_path('Filament/Admin/Pages'), for: 'App\Filament\Admin\Pages')
             ->discoverWidgets(in: app_path('Filament/Admin/Widgets'), for: 'App\Filament\Admin\Widgets')

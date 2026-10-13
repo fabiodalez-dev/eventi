@@ -10,6 +10,7 @@ use App\Enums\SponsorshipStatus;
 use App\Filament\Admin\Resources\Sponsorships\Pages\CreateSponsorship;
 use App\Filament\Admin\Resources\Sponsorships\Pages\EditSponsorship;
 use App\Filament\Admin\Resources\Sponsorships\Pages\ListSponsorships;
+use App\Filament\Concerns\HasSentenceCaseNavigationLabel;
 use App\Filament\Support\BulkActions;
 use App\Models\City;
 use App\Models\Event;
@@ -45,6 +46,8 @@ use Illuminate\Database\Eloquent\Builder;
  */
 class SponsorshipResource extends Resource
 {
+    use HasSentenceCaseNavigationLabel;
+
     protected static ?string $model = Sponsorship::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedMegaphone;
@@ -53,7 +56,7 @@ class SponsorshipResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return __('sponsorships.admin.navigation');
+        return __('admin.navigation.promotion');
     }
 
     public static function getModelLabel(): string

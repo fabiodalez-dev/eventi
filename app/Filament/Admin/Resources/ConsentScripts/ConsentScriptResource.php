@@ -20,6 +20,8 @@ class ConsentScriptResource extends Resource
 {
     protected static ?string $model = ConsentScript::class;
 
+    protected static ?int $navigationSort = 6;
+
     protected static ?string $slug = 'script-consenso';
 
     public static function getNavigationLabel(): string

@@ -27,7 +27,10 @@
     $interestKey = hash('sha256', json_encode($contentPreferences->selection($contentPreferences->discoveryUser())));
 
     $voci = $city === null ? [] : cache()->remember(
-        'ticker:'.$city->getKey().':'.$interestKey.':'.now($currentCity->timezone())->format('Y-m-d-H-i'),
+        /* Nessun minuto nella chiave: la scadenza di un minuto basta a tenerlo
+           fresco, e la cache su file non cancella da sola le chiavi che
+           nessuno rilegge — una chiave nuova al minuto riempiva il disco. */
+        'ticker:'.$city->getKey().':'.$interestKey,
         now()->addMinute(),
         function () use ($city, $currentCity): array {
             $voci = [];

@@ -33,7 +33,7 @@ class CookieDeclarationResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedShieldCheck;
 
-    protected static ?int $navigationSort = 92;
+    protected static ?int $navigationSort = 7;
 
     protected static ?string $slug = 'cookie';
 

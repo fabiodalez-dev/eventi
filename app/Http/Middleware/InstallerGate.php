@@ -67,10 +67,23 @@ class InstallerGate
             abort(404);
         }
 
-        if (! $this->state->hasStarted() && $this->diagnose() === []) {
-            $this->markExistingInstallation();
+        if (! $this->state->hasStarted()) {
+            if ($this->diagnose() === []) {
+                $this->markExistingInstallation();
 
-            abort(404);
+                abort(404);
+            }
+
+            /*
+             * Marcatore assente e database irraggiungibile su un sistema in
+             * produzione: non e' una prima installazione, e' un guasto. Il
+             * wizard resta chiuso — aperto, chiunque potrebbe puntarlo al
+             * proprio database e riscrivere `.env`. `APP_ENV=production` lo
+             * scrive l'installazione stessa quando finisce.
+             */
+            if (app()->isProduction()) {
+                abort(404);
+            }
         }
 
         return $next($request);

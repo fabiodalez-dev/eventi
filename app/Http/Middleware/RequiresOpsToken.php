@@ -34,12 +34,11 @@ final class RequiresOpsToken
             abort(404);
         }
 
+        /* Solo l'intestazione: un gettone nella query string finisce nei log
+           dell'hosting, nella cronologia del browser e nel Referer. */
         $header = $request->header('X-Secret-Token');
-        $query = $request->query('token');
 
-        $provided = is_string($header) && $header !== ''
-            ? $header
-            : (is_string($query) ? $query : '');
+        $provided = is_string($header) ? $header : '';
 
         if ($provided === '' || ! hash_equals($expected, $provided)) {
             abort(404);

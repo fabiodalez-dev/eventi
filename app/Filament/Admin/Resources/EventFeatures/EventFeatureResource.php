@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Admin\Resources\EventFeatures;
 
+use App\Filament\Concerns\HasSentenceCaseNavigationLabel;
 use App\Models\EventFeature;
 use App\Support\PracticalIcons;
 use BackedEnum;
@@ -24,11 +25,13 @@ use Illuminate\Validation\Rule;
 
 class EventFeatureResource extends Resource
 {
+    use HasSentenceCaseNavigationLabel;
+
     protected static ?string $model = EventFeature::class;
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-information-circle';
 
-    protected static ?int $navigationSort = 5;
+    protected static ?int $navigationSort = 6;
 
     public static function getNavigationGroup(): ?string
     {

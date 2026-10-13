@@ -576,7 +576,7 @@ curl -sS -o /dev/null -w '%{http_code}\n' \
   -H "X-Secret-Token: <token>" https://eventi.fabiodalez.it/stato
 
 # quale controllo e rosso (stessa chiave, anche in query string)
-curl -sS "https://eventi.fabiodalez.it/stato/completo?token=<token>" | python3 -m json.tool
+curl -sS -H "X-Secret-Token: <token>" "https://eventi.fabiodalez.it/stato/completo" | python3 -m json.tool
 
 # rieseguire i controlli adesso invece di leggere l'ultimo esito
 ssh fabiodalez.it 'cd ~/eventi && /opt/cpanel/ea-php84/root/usr/bin/php artisan health:check'

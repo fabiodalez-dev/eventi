@@ -30,7 +30,7 @@ final class EventShareReport
             ->join('events as e', 'e.id', '=', 'l.event_id')
             ->whereIn('e.id', (clone $events)->select('events.id'))
             ->where(function (Builder $query) use ($period): void {
-                foreach (City::query()->get(['id', 'timezone']) as $city) {
+                foreach (City::timezones() as $city) {
                     $until = CarbonImmutable::now($city->timezone);
                     $query->orWhere(fn (Builder $q) => $q->where('e.city_id', $city->id)
                         ->whereBetween('d.date', [$until->subDays($period->days() - 1)->toDateString(), $until->toDateString()]));
