@@ -36,6 +36,19 @@ return [
     ],
 
     /*
+     * Stripe, per l'acquisto delle sponsorizzazioni dai pannelli.
+     *
+     * Senza `secret` il pulsante di acquisto non compare: sviluppo, test e CI
+     * non dipendono da un servizio esterno. `webhook_secret` firma gli eventi
+     * in arrivo su `/webhooks/stripe`, e senza di esso ogni webhook e' 400.
+     */
+    'stripe' => [
+        'key' => env('STRIPE_KEY', ''),
+        'secret' => env('STRIPE_SECRET', ''),
+        'webhook_secret' => env('STRIPE_WEBHOOK_SECRET', ''),
+    ],
+
+    /*
      * Cloudflare Turnstile sui moduli pubblici (§14.7).
      *
      * Le due chiavi vuote **spengono** la protezione: nessun riquadro nel

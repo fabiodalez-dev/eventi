@@ -39,6 +39,8 @@ attendibili che permettono di decidere senza cercare altrove.**
 - Nessun abbonamento utenti.
 - Consolidare il modello attuale di sponsorizzazione basato su autorizzazioni,
   periodi, pagamenti registrati e scadenze, comprese le autorizzazioni commerciali gratuite.
+  Dal 14 ottobre 2026 locali e organizzatori possono anche comprare un periodo dal
+  pannello, con pagamento Stripe e approvazione della redazione (D59).
 - Pubblicità a click: possibile evoluzione, **non subito**. Misurare i click non
   significa fatturarli. Un eventuale passaggio richiederà una decisione esplicita,
   regole di conteggio, controlli antifrode, budget e rendicontazione verificabile.

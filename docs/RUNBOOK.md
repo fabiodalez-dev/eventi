@@ -652,6 +652,43 @@ e il campo `sponsored` nell'API. La pubblicità dev'essere riconoscibile come
 tale (Codice del Consumo, art. 22-23) e un link pagato va marcato per i motori
 di ricerca. Se qualcuno chiede di toglierla, la risposta è no.
 
+### Acquisto dal pannello e Stripe (D59)
+
+Locali (`/gestione/sponsorizzazioni`) e organizzatori (`/organizza/sponsorizzazioni`)
+comprano un periodo scegliendo da `/admin/sponsorship-prices` (il listino:
+posizione × mesi × prezzo, IVA inclusa) e pagano con carta su Stripe Checkout.
+L'ordine arriva in `/admin/sponsorship-orders` con lo stato «Pagato, da
+approvare» e una email alla redazione; **Approva** crea l'abilitazione pagata
+con il periodo che parte da quel momento, **Rifiuta** rimborsa su Stripe e manda
+la motivazione a chi ha ordinato. Le abilitazioni manuali e gratuite si creano
+come prima da `/admin/sponsorship-grants`, ora anche per un organizzatore.
+
+**Chiavi, nel `.env` del server** (poi `php artisan config:cache`):
+
+```
+STRIPE_KEY=pk_live_…
+STRIPE_SECRET=sk_live_…
+STRIPE_WEBHOOK_SECRET=whsec_…
+```
+
+Senza `STRIPE_SECRET` il pulsante «Acquista una sponsorizzazione» non compare
+e il resto del sito non cambia. Il `STRIPE_WEBHOOK_SECRET` si ottiene creando
+nel pannello Stripe (Developers → Webhooks) un endpoint su
+`https://<dominio>/webhooks/stripe` con gli eventi `checkout.session.completed`
+e `checkout.session.async_payment_succeeded`. Senza, ogni webhook risponde 400
+e gli ordini restano «in attesa di pagamento» finché la persona non torna sul
+pannello dopo il checkout (la pagina rilegge la sessione da Stripe e, se è
+pagata, segna l'ordine pagata lo stesso).
+
+**Se un ordine pagato non risulta pagato:** controllare in Stripe che il
+webhook sia arrivato con 200; se è 400, il segreto nel `.env` non è quello
+dell'endpoint. Basta che la persona riapra `/gestione/sponsorizzazioni` dal
+collegamento di ritorno (`?order=ID&session_id=…`) per riconciliare.
+
+**Se un rimborso fallisce**, l'ordine resta rifiutato e la nota della
+decisione riporta l'errore: il rimborso si fa a mano dalla dashboard di Stripe
+sul `payment_intent` indicato nella colonna «Riferimento».
+
 ## Interruttori di funzione (Pennant)
 
 ```bash

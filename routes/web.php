@@ -15,6 +15,7 @@ use App\Http\Controllers\Web\ReleaseStatusController;
 use App\Http\Controllers\Web\SeoController;
 use App\Http\Controllers\Web\SocialDownloadController;
 use App\Http\Controllers\Web\SponsorshipMetricController;
+use App\Http\Controllers\Web\StripeWebhookController;
 use App\Http\Controllers\Web\WebManifestController;
 use App\Http\Controllers\Web\WidgetController;
 use App\Http\Middleware\AuthenticateWebSession;
@@ -49,6 +50,16 @@ Route::get('/app/auth/magic', function () {
 })->name('app.magic-link');
 
 Route::get('/release-status', ReleaseStatusController::class)->name('ops.release');
+
+/*
+ * Il webhook di Stripe (§sponsorizzazioni): nessuna sessione, nessun CSRF —
+ * la firma nell'intestazione e' l'unica autenticazione, e la verifica
+ * `StripeWebhookSignature`.
+ */
+Route::post('/webhooks/stripe', StripeWebhookController::class)
+    ->withoutMiddleware([StartSession::class, AddQueuedCookiesToResponse::class, ShareErrorsFromSession::class, PreventRequestForgery::class,
+        AuthenticateWebSession::class])
+    ->name('webhooks.stripe');
 
 Route::get('/s/{code}', [EventShareController::class, 'open'])
     ->where('code', '[A-Za-z0-9]{7}')

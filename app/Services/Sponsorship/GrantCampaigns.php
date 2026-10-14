@@ -21,7 +21,7 @@ final class GrantCampaigns
 
         return DB::transaction(function () use ($grant, $event): Sponsorship {
             $grant = SponsorshipGrant::query()->lockForUpdate()->findOrFail($grant->id);
-            abort_unless($grant->mode === PromotionMode::Selected && $grant->venue_id === $event->venue_id
+            abort_unless($grant->mode === PromotionMode::Selected && $grant->coversEvent($event)
                 && SponsorshipGrant::active()->whereKey($grant->id)->exists(), 403);
 
             $campaign = $this->campaign($grant, $event);
@@ -41,7 +41,7 @@ final class GrantCampaigns
         if ($grant->mode !== PromotionMode::Automatic) {
             return;
         }
-        Event::query()->where('venue_id', $grant->venue_id)->chunkById(100, function ($events) use ($grant): void {
+        $grant->eventsQuery()->chunkById(100, function ($events) use ($grant): void {
             foreach ($events as $event) {
                 $this->campaign($grant, $event);
             }
@@ -55,7 +55,7 @@ final class GrantCampaigns
         ], [
             'city_id' => $event->city_id, 'created_by' => $grant->created_by,
             'status' => SponsorshipStatus::Active, 'starts_at' => $grant->starts_at, 'ends_at' => $grant->ends_at,
-            'advertiser_name' => $grant->venue->name, 'weight' => 1, 'priority' => 0, 'currency' => 'EUR',
+            'advertiser_name' => $grant->sponsorName(), 'weight' => 1, 'priority' => 0, 'currency' => 'EUR',
         ]);
     }
 }

@@ -57,7 +57,9 @@ final class ActiveGrants
             self::key($cityId),
             now()->addMinutes(config()->integer('page_cache.ttl_minutes')),
             fn (): string => SponsorshipGrant::active()
-                ->whereHas('venue', fn (Builder $query) => $query->where('city_id', $cityId))
+                ->where(fn (Builder $sponsor) => $sponsor
+                    ->whereHas('venue', fn (Builder $query) => $query->where('city_id', $cityId))
+                    ->orWhereHas('organizer', fn (Builder $query) => $query->where('city_id', $cityId)))
                 ->orderBy('id')
                 ->pluck('id')
                 ->toJson(),

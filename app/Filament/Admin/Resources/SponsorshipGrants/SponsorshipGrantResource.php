@@ -55,7 +55,13 @@ class SponsorshipGrantResource extends Resource
     {
         return $schema->columns(1)->components([
             Section::make(__('promotions.rules'))->description(__('promotions.help'))->columns(2)->schema([
-                Select::make('venue_id')->label(__('promotions.venue'))->relationship('venue', 'name')->searchable()->preload()->required()->disabledOn('edit'),
+                Select::make('venue_id')->label(__('promotions.venue'))->relationship('venue', 'name')->searchable()->preload()->disabledOn('edit')
+                    ->helperText(__('promotions.sponsor_hint'))->live()
+                    ->requiredWithout('organizer_id')->prohibits('organizer_id')
+                    ->validationMessages(['required_without' => __('promotions.sponsor_required'), 'prohibits' => __('promotions.sponsor_exclusive')]),
+                Select::make('organizer_id')->label(__('promotions.organizer'))->relationship('organizer', 'name')->searchable()->preload()->disabledOn('edit')
+                    ->live()->requiredWithout('venue_id')
+                    ->validationMessages(['required_without' => __('promotions.sponsor_required')]),
                 Select::make('mode')->label(__('promotions.mode_label'))->options(PromotionMode::options())->default('selected')->required()->disabledOn('edit'),
                 Select::make('placement')->label(__('promotions.placement'))->options(SponsorshipPlacement::options())->default('list_top')->required()->disabledOn('edit'),
                 Toggle::make('enabled')->label(__('promotions.enabled'))->default(true),
@@ -110,7 +116,8 @@ class SponsorshipGrantResource extends Resource
     public static function table(Table $table): Table
     {
         return $table->defaultSort('ends_at', 'desc')->columns([
-            TextColumn::make('venue.name')->label(__('promotions.venue'))->searchable()->sortable(),
+            TextColumn::make('sponsor')->label(__('promotions.sponsor'))->state(fn (SponsorshipGrant $record): string => $record->sponsorName())
+                ->description(fn (SponsorshipGrant $record): string => $record->venue_id !== null ? __('promotions.venue') : __('promotions.organizer')),
             TextColumn::make('effective_status')->label(__('admin.fields.status'))->state(fn (SponsorshipGrant $record): string => $record->statusLabel())->badge(),
             TextColumn::make('mode')->label(__('promotions.mode_label'))->formatStateUsing(fn (PromotionMode $state): string => $state->label()),
             IconColumn::make('enabled')->label(__('promotions.enabled'))->boolean(),
@@ -121,7 +128,10 @@ class SponsorshipGrantResource extends Resource
             TextColumn::make('amount_cents')->label(__('promotions.amount'))->money('EUR', divideBy: 100),
             TextColumn::make('sponsorships_sum_impressions')->label(__('promotions.views'))->sum('sponsorships', 'impressions')->numeric(),
             TextColumn::make('sponsorships_sum_clicks')->label(__('promotions.clicks'))->sum('sponsorships', 'clicks')->numeric(),
-        ])->filters([SelectFilter::make('venue')->label(__('promotions.venue'))->relationship('venue', 'name')->searchable()->preload()])->recordActions([EditAction::make()]);
+        ])->filters([
+            SelectFilter::make('venue')->label(__('promotions.venue'))->relationship('venue', 'name')->searchable()->preload(),
+            SelectFilter::make('organizer')->label(__('promotions.organizer'))->relationship('organizer', 'name')->searchable()->preload(),
+        ])->recordActions([EditAction::make()]);
     }
 
     public static function getPages(): array
