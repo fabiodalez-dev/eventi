@@ -62,6 +62,7 @@
         "spatie/laravel-settings": "^3.9",
         "spatie/laravel-sitemap": "^8.2",
         "spatie/laravel-sluggable": "^4.0",
+        "stripe/stripe-php": "^22.0",
         "typesense/typesense-php": "^6.0"
     },
     "require-dev": {

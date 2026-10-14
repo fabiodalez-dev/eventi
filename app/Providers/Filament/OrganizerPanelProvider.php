@@ -8,6 +8,7 @@ use App\Filament\Organizer\Pages\Dashboard;
 use App\Filament\Organizer\Pages\EventAnalyticsDetail;
 use App\Filament\Organizer\Pages\EventShareAnalytics;
 use App\Filament\Organizer\Pages\Profile;
+use App\Filament\Organizer\Pages\Sponsorships;
 use App\Filament\Organizer\Pages\Statistics;
 use App\Models\Organizer;
 use Filament\Actions\Action;
@@ -50,7 +51,7 @@ class OrganizerPanelProvider extends PanelProvider
             ->viteTheme('resources/css/filament/admin/theme.css')
             ->brandName(fn (): string => (string) config('app.name'))->colors(['primary' => Color::hex('#b54d23')])
             ->tenant(Organizer::class, ownershipRelationship: 'organizer')
-            ->pages([Dashboard::class, Profile::class, Statistics::class, EventShareAnalytics::class, EventAnalyticsDetail::class])
+            ->pages([Dashboard::class, Profile::class, Sponsorships::class, Statistics::class, EventShareAnalytics::class, EventAnalyticsDetail::class])
             ->discoverResources(in: app_path('Filament/Organizer/Resources'), for: 'App\\Filament\\Organizer\\Resources')
             ->middleware([
                 EncryptCookies::class,

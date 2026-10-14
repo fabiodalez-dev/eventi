@@ -71,6 +71,8 @@ use App\Services\Installer\DatabaseInspector;
 use App\Services\Installer\EnvWriter;
 use App\Services\Installer\InstallLock;
 use App\Services\Installer\RequirementsChecker;
+use App\Services\Sponsorship\Payment\PaymentGateway;
+use App\Services\Sponsorship\Payment\StripeGateway;
 use App\Support\Api\MobileOpenApiDocument;
 use App\Support\Consent;
 use App\Support\Csp;
@@ -159,6 +161,10 @@ class AppServiceProvider extends ServiceProvider
         // La traduzione degli indirizzi in coordinate: dietro un'interfaccia
         // perche' i test non debbano interrogare OpenStreetMap.
         $this->app->bind(AddressGeocoder::class, NominatimGeocoder::class);
+
+        // Il pagamento delle sponsorizzazioni: dietro un'interfaccia perche' i
+        // test aprano e rimborsino ordini senza chiamare Stripe.
+        $this->app->bind(PaymentGateway::class, StripeGateway::class);
 
         // La città della richiesta si carica una volta sola, e con lei il fuso
         // in cui vanno lette tutte le date mostrate a chi legge.

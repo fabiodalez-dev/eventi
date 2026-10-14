@@ -3081,3 +3081,15 @@ Prestazioni: i conteggi dei filtri di `/eventi` e della mappa (una sessantina di
 
 Sicurezza: i collegamenti nelle email si costruiscono da `APP_URL` e gli host diversi vengono respinti (`trustHosts`); i limitatori di accesso hanno un tetto per indirizzo IP oltre a quelli per coppia e per account, e l'API ha un tetto per IP che l'identificativo di installazione non può aggirare; le esportazioni Excel scrivono ogni cella come testo; l'installer resta chiuso in produzione anche se il marcatore manca e il database non risponde; il cookie di sessione scritto dall'installer è `Secure`; l'impersonazione accetta solo collegamenti firmati; il gettone operativo si accetta solo nell'intestazione `X-Secret-Token`.
 **Ricontrollo:** a ogni aggiornamento di Filament, rigenerare gli asset e riguardare i tre pannelli nel browser.
+
+
+## 14 ottobre 2026 — D59. Le sponsorizzazioni si comprano dal pannello, con Stripe, e la redazione approva
+
+**Decisione:** locali e organizzatori acquistano un periodo di sponsorizzazione dal proprio pannello, scegliendo da un listino (posizione × durata) gestito dalla redazione, e pagano con carta su Stripe Checkout. Il pagamento non apre nulla da solo: l'ordine pagato aspetta l'approvazione della redazione, e solo allora nasce l'abilitazione (`sponsorship_grants`), già pagata, con il periodo che parte dall'approvazione. Il rifiuto rimborsa su Stripe e scrive la motivazione, che chi ha ordinato riceve per email. Supera D9 («nessun pagamento in v1») su richiesta del proprietario; le abilitazioni manuali e gratuite restano come prima.
+
+**Gli organizzatori sono committenti come i locali.** `sponsorship_grants` accetta un locale oppure un organizzatore (mai entrambi): l'abilitazione di un organizzatore copre gli eventi che lo indicano, in qualunque locale, ed è attiva solo se l'organizzatore è attivo. `Sponsorship::visible()` lo applica insieme alle altre condizioni; chi sceglie gli eventi passa sempre da `GrantCampaigns`.
+
+**Perché Stripe Checkout e non Cashier:** serve un pagamento singolo per ordine, non abbonamenti, e la pagina ospitata da Stripe tiene i dati della carta fuori dal sito. L'ordine diventa pagato dal webhook firmato (`/webhooks/stripe`, `checkout.session.completed` e `async_payment_succeeded`) oppure, idempotentemente, rileggendo la sessione al ritorno dal checkout. Il gateway sta dietro un'interfaccia (`PaymentGateway`) che i test sostituiscono; la verifica della firma no, e i test la attraversano davvero firmando il payload con il segreto di prova.
+
+**Senza chiavi, niente acquisto:** `STRIPE_SECRET` vuoto nasconde il pulsante; `STRIPE_WEBHOOK_SECRET` vuoto fa rispondere 400 a ogni webhook. Sviluppo, test e CI non dipendono da Stripe.
+**Ricontrollo:** quando si decide l'IVA e la fatturazione (oggi la ricevuta la manda Stripe; la fattura, se serve, la emette la redazione a mano).

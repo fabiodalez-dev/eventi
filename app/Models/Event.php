@@ -35,6 +35,9 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Spatie\Sluggable\HasSlug;
 use Spatie\Sluggable\SlugOptions;
 
+/**
+ * @property int|null $organizer_id
+ */
 class Event extends Model implements HasMedia
 {
     use HasSafeEditorContent;

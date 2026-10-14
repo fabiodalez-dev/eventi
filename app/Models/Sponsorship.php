@@ -128,8 +128,13 @@ class Sponsorship extends Model
                     ->whereNull('deleted_at')
                     ->whereColumn('events.city_id', 'sponsorships.city_id')
                     ->where(fn (Builder $q) => $q->whereNull('venue_id')->orWhereHas('venue', fn (Builder $venue) => $venue->whereIn('status', VenueStatus::valoriSenzaProvvedimento())))
+                    /* Il committente dell'abilitazione deve coprire l'evento:
+                       il locale che lo ospita, oppure l'organizzatore che lo
+                       firma. Un'abilitazione da organizzatore non porta in
+                       cima un evento di un altro. */
                     ->where(fn (Builder $q) => $q->whereNull('sponsorships.sponsorship_grant_id')
-                        ->orWhereIn('events.venue_id', SponsorshipGrant::query()->select('venue_id')->whereColumn('sponsorship_grants.id', 'sponsorships.sponsorship_grant_id')));
+                        ->orWhereIn('events.venue_id', SponsorshipGrant::query()->select('venue_id')->whereNotNull('venue_id')->whereColumn('sponsorship_grants.id', 'sponsorships.sponsorship_grant_id'))
+                        ->orWhereIn('events.organizer_id', SponsorshipGrant::query()->select('organizer_id')->whereNotNull('organizer_id')->whereColumn('sponsorship_grants.id', 'sponsorships.sponsorship_grant_id')));
             })
             /*
              * E i tetti di consegna, se dichiarati.

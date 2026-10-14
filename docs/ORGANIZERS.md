@@ -6,8 +6,10 @@ collaboratori. Il pannello `/organizza` limita ogni gestore ai propri organizzat
 attivi: non attribuisce la proprietà dei locali ospitanti.
 
 Gli eventi nascono in bozza e possono essere inviati alla redazione dopo aver
-aggiunto una data. La pubblicazione e la sponsorizzazione non sono concesse
-automaticamente agli organizzatori. Le singole date possono indicare un locale
+aggiunto una data. La pubblicazione non è concessa automaticamente agli
+organizzatori. Dal 14 ottobre 2026 un organizzatore può comprare un periodo di
+sponsorizzazione da `/organizza/sponsorizzazioni` (D59): l'abilitazione copre i
+suoi eventi in qualunque locale, e la redazione approva ogni ordine. Le singole date possono indicare un locale
 diverso da quello principale, nella città dell'evento. I controlli di accesso
 coprono anche date e prenotazioni.
 

@@ -147,6 +147,7 @@ return [
         'title' => 'Sponsorizzazioni',
         'lead' => 'Le campagne attive sui tuoi eventi. Si aprono e si chiudono dalla redazione: scrivici se ne vuoi una.',
         'none' => 'Nessuna campagna sui tuoi eventi.',
+        'analytics' => 'Statistiche e registro clic',
     ],
 
 ];
