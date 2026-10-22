@@ -19,6 +19,7 @@ use App\Services\Geo\AddressGeocoder;
 use App\Support\EditorContent;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Da richiesta di iscrizione a locale vero, in un gesto solo.
@@ -54,6 +55,27 @@ final class ApproveVenueApplication
                due schede per lo stesso posto sono un guaio che si scopre mesi
                dopo, quando gli eventi sono divisi fra le due. */
             $citta = City::query()->orderBy('id')->firstOrFail();
+
+            /*
+             * Una rivendicazione si approva una volta sola. Due persone
+             * possono rivendicare lo stesso locale nello stesso pomeriggio:
+             * la prima approvata vince, e il controllo sta qui, sotto lock,
+             * perche' la pagina da cui si approva l'ha letto un minuto prima.
+             * Le altre rivendicazioni pendenti dello stesso locale si chiudono
+             * da sole, con il motivo scritto.
+             */
+            if ($richiesta->kind() === ApplicationKind::Claim) {
+                $locale = $richiesta->venue_id === null ? null : Venue::query()->lockForUpdate()->find($richiesta->venue_id);
+                if (! $locale instanceof Venue) {
+                    throw ValidationException::withMessages(['venue_id' => __('venue_applications.claim_missing_venue')]);
+                }
+                if ($locale->owners()->exists()) {
+                    throw ValidationException::withMessages(['venue_id' => __('venue_applications.claim_already_managed')]);
+                }
+                VenueApplication::query()->where('venue_id', $locale->getKey())->where('kind', ApplicationKind::Claim)
+                    ->whereKeyNot($richiesta->getKey())->where('status', ApplicationStatus::Pending)
+                    ->update(['status' => ApplicationStatus::Rejected, 'reviewed_by' => $moderatore->getKey(), 'reviewed_at' => now(), 'notes' => __('venue_applications.claim_superseded')]);
+            }
 
             /*
              * L'indirizzo scritto nella richiesta diventa un punto vero, se

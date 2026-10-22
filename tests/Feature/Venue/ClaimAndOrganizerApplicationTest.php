@@ -15,6 +15,7 @@ use App\Services\Geo\AddressGeocoder;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Filament\Facades\Filament;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Validation\ValidationException;
 
 beforeEach(function (): void {
     Notification::fake();
@@ -44,6 +45,18 @@ it('lets a public venue without a referent be claimed, and approving hands over 
         ->and($claim->fresh()->status)->toBe(ApplicationStatus::Approved);
     Notification::assertSentTo(User::where('email', 'marta@example.test')->firstOrFail(), VenueAccessGranted::class);
 
+    // A competing pending claim is closed, and approving it afterwards is refused.
+    $rival = VenueApplication::factory()->create(['kind' => ApplicationKind::Claim, 'venue_id' => $venue->id, 'venue_name' => $venue->name]);
+    expect($rival->fresh()->status)->toBe(ApplicationStatus::Pending);
+    $rival->update(['status' => ApplicationStatus::Pending]);
+    expect(fn () => app(ApproveVenueApplication::class)->handle($rival, $this->moderator))->toThrow(ValidationException::class);
+    $third = VenueApplication::factory()->create(['kind' => ApplicationKind::Claim, 'venue_id' => $venue->id, 'venue_name' => $venue->name]);
+    $fresh = Venue::factory()->approved()->create(['city_id' => $this->city->id]);
+    $claimA = VenueApplication::factory()->create(['kind' => ApplicationKind::Claim, 'venue_id' => $fresh->id, 'venue_name' => $fresh->name]);
+    $claimB = VenueApplication::factory()->create(['kind' => ApplicationKind::Claim, 'venue_id' => $fresh->id, 'venue_name' => $fresh->name]);
+    app(ApproveVenueApplication::class)->handle($claimA, $this->moderator);
+    expect($claimB->fresh()->status)->toBe(ApplicationStatus::Rejected)->and($claimB->fresh()->notes)->toBe(__('venue_applications.claim_superseded'));
+    unset($third);
     // Once managed, the venue cannot be claimed again.
     $this->get(route('venues.claim.create', $venue))->assertNotFound();
     $this->get(route('venues.show', $venue))->assertOk()->assertDontSee(__('forms.claim.cta'));

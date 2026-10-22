@@ -31,6 +31,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Validation\ValidationException;
 
 /**
  * §7.3 e §9.2 — le richieste di iscrizione dei locali.
@@ -222,7 +223,13 @@ class VenueApplicationResource extends Resource
                         }
 
                         $kind = $record->kind();
-                        $soggetto = app(ApproveVenueApplication::class)->handle($record, $moderatore);
+                        try {
+                            $soggetto = app(ApproveVenueApplication::class)->handle($record, $moderatore);
+                        } catch (ValidationException $exception) {
+                            Notification::make()->title($exception->validator->errors()->first())->danger()->send();
+
+                            return;
+                        }
 
                         [$titolo, $corpo] = match (true) {
                             $soggetto instanceof Organizer => [__('venue_applications.approved_organizer', ['organizer' => $soggetto->name]), __('venue_applications.approved_organizer_body')],
