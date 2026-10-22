@@ -15,9 +15,11 @@ use App\Models\Event;
 use App\Models\EventOccurrence;
 use App\Models\Follow;
 use App\Models\SavedEvent;
+use App\Models\SavedSearch;
 use App\Models\ScheduledNotification;
 use App\Models\User;
 use App\Models\Venue;
+use App\Models\VenueNotice;
 use App\Support\Capacity;
 use Carbon\CarbonImmutable;
 use DateTimeInterface;
@@ -324,6 +326,56 @@ final class NotificationScheduler
             });
 
         return $count;
+    }
+
+    /**
+     * L'avviso di un locale a chi lo segue con le notifiche accese: parte una
+     * volta per avviso e per persona, e la chiave lo garantisce.
+     */
+    public function announceVenueNotice(VenueNotice $notice): int
+    {
+        $count = 0;
+        Follow::query()->ofType(FollowableType::Venue)->notifying()
+            ->where('followable_id', $notice->venue_id)
+            ->chunkById(200, function ($follows) use ($notice, &$count): void {
+                $now = CarbonImmutable::now();
+                $rows = [];
+                foreach ($follows as $follow) {
+                    $rows[] = $this->row(
+                        userId: (int) $follow->user_id,
+                        type: NotificationType::VenueNotice,
+                        dedupeKey: sprintf('venue_notice:user_%d:notice_%d', $follow->user_id, $notice->getKey()),
+                        sendAt: $now,
+                        subject: $notice,
+                        payload: ['venue_id' => (int) $notice->venue_id],
+                        now: $now,
+                    );
+                }
+                $count += $this->insert($rows);
+            });
+
+        return $count;
+    }
+
+    /**
+     * Le date nuove per una ricerca salvata. La chiave porta il giorno: chi
+     * salva una ricerca riceve al più un avviso al giorno per ricerca, e le
+     * date che arrivano dopo finiscono in quello del giorno dopo.
+     *
+     * @param  list<int>  $occurrenceIds
+     */
+    public function announceSavedSearch(SavedSearch $search, array $occurrenceIds): bool
+    {
+        $now = CarbonImmutable::now();
+
+        return $this->queue(
+            (int) $search->user_id,
+            NotificationType::SavedSearchMatch,
+            sprintf('saved_search:user_%d:search_%d:%s', $search->user_id, $search->getKey(), $now->format('Y-m-d')),
+            $now,
+            $search,
+            ['occurrence_ids' => array_values($occurrenceIds)],
+        );
     }
 
     /**

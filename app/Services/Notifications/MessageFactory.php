@@ -17,9 +17,11 @@ use App\Models\Event;
 use App\Models\EventComment;
 use App\Models\EventOccurrence;
 use App\Models\SavedEvent;
+use App\Models\SavedSearch;
 use App\Models\ScheduledNotification;
 use App\Models\User;
 use App\Models\Venue;
+use App\Models\VenueNotice;
 use App\Queries\EventOccurrenceQuery;
 use App\Settings\NewsletterSettings;
 use App\Support\Capacity;
@@ -71,6 +73,8 @@ final readonly class MessageFactory
             NotificationType::EventPublished => $this->eventPublished($notification),
             NotificationType::EventRejected => $this->eventRejected($notification),
             NotificationType::VenueInactive => $this->venueInactive($notification),
+            NotificationType::VenueNotice => $this->venueNotice($notification, $user),
+            NotificationType::SavedSearchMatch => $this->savedSearch($notification, $user),
 
             /* Il rapporto mensile al locale non passa da qui: lo compone il comando che lo spedisce, che ha già i numeri del mese. In coda non ci finisce mai, e se ci finisse non ci sarebbe niente da ricostruire. */
             NotificationType::VenueMonthlyReport => NotificationSkipReason::OutOfBand,
@@ -581,6 +585,61 @@ final readonly class MessageFactory
             ],
             actionLabel: __('notifications.actions.open_panel'),
             url: $this->panelUrl($venue),
+        );
+    }
+
+    private function venueNotice(ScheduledNotification $notification, User $user): NotificationMessage|NotificationSkipReason
+    {
+        $notice = $notification->notifiable;
+        if (! $notice instanceof VenueNotice || ! $notice->venue instanceof Venue) {
+            return NotificationSkipReason::MissingSubject;
+        }
+        if (! $user->follows()->ofType(FollowableType::Venue)->notifying()->where('followable_id', $notice->venue_id)->exists()) {
+            return NotificationSkipReason::PreferenceOff;
+        }
+        $lines = [$notice->body];
+        if ($notice->until !== null) {
+            $lines[] = __('notifications.venue_notice.until', ['date' => $this->dates($user)->day(CarbonImmutable::instance($notice->until))]);
+        }
+
+        return new NotificationMessage(
+            type: NotificationType::VenueNotice,
+            subject: __('notifications.venue_notice.subject', ['venue' => $notice->venue->name, 'kind' => $notice->kind->label()]),
+            heading: __('notifications.venue_notice.heading', ['venue' => $notice->venue->name, 'kind' => $notice->kind->label()]),
+            lines: $lines,
+            actionLabel: __('notifications.actions.open_venue'),
+            url: route('venues.show', $notice->venue),
+        );
+    }
+
+    /**
+     * Le date nuove di una ricerca salvata: si rileggono al momento dell'invio,
+     * e quelle intanto annullate o già cominciate escono da sole.
+     */
+    private function savedSearch(ScheduledNotification $notification, User $user): NotificationMessage|NotificationSkipReason
+    {
+        $search = $notification->notifiable;
+        if (! $search instanceof SavedSearch || ! $search->city instanceof City || (int) $search->user_id !== (int) $user->getKey()) {
+            return NotificationSkipReason::MissingSubject;
+        }
+        $ids = array_values(array_filter(array_map(intval(...), (array) $notification->context('occurrence_ids'))));
+        if ($ids === []) {
+            return NotificationSkipReason::NothingToSend;
+        }
+        $query = EventOccurrenceQuery::for($search->city)->excludingDemo()->upcoming()->forOccurrences($ids);
+        $items = $this->items($query, config()->integer('notifications.digests.daily.max_items'), $user);
+        if ($items === []) {
+            return NotificationSkipReason::NothingToSend;
+        }
+
+        return new NotificationMessage(
+            type: NotificationType::SavedSearchMatch,
+            subject: __('notifications.saved_search.subject', ['name' => $search->name]),
+            heading: $search->name,
+            lines: [trans_choice('notifications.saved_search.line', count($items), ['count' => count($items)])],
+            actionLabel: __('notifications.actions.open_search'),
+            url: route('events.index', $search->queryString()),
+            items: $items,
         );
     }
 

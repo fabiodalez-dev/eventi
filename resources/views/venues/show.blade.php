@@ -14,6 +14,7 @@
     $accessibility = $venue->accessibility;
     $hours = is_array($venue->opening_hours) ? $venue->opening_hours : [];
     $days = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+    $avviso = $venue->currentNotice();
     $gallery = $venue->getMedia('gallery')->map(fn ($media) => \App\Support\Media\ImageSet::fromMedia($media))->all();
 @endphp
 
@@ -107,6 +108,13 @@
                 <x-follow-preferences :venue="$venue" />
         </div>
     </header>
+
+    @if ($avviso !== null)
+        <aside role="note" aria-label="{{ $avviso->kind->label() }}" class="mt-5 border-2 border-accent bg-canvas p-4">
+            <p class="m-0 text-xs font-bold uppercase tracking-wide text-accent">{{ $avviso->kind->label() }}@if ($avviso->until) · {{ __('venues.detail.notice_until', ['date' => $formatter->day($avviso->until)]) }}@endif</p>
+            <p class="m-0 mt-1 whitespace-pre-line text-sm text-ink">{{ $avviso->body }}</p>
+        </aside>
+    @endif
 
     <div class="mt-8 grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <div class="flex min-w-0 flex-col gap-8">

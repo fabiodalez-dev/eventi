@@ -26,6 +26,7 @@ return [
 
     'detail' => [
         'about' => 'Il locale',
+        'notice_until' => 'Fino al :date',
         'opening_hours' => 'Orari di apertura',
         'closed' => 'Chiuso',
         'contacts' => 'Contatti',

@@ -32,6 +32,7 @@
                 <span>{{ trans_choice('filters.active', $filters->activeCount(), ['count' => $filters->activeCount()]) }}</span>
                 @if ($filters->activeCount() > 0)
                     <a data-filter-link class="underline min-h-12 inline-flex items-center" href="{{ route('events.index') }}">{{ __('filters.reset') }}</a>
+                    <x-saved-search-button :filters="$filters->toQueryString()" />
                 @endif
                 <span data-results-loading hidden>{{ __('filters.loading_results') }}</span>
             </div>

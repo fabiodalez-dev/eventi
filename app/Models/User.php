@@ -207,6 +207,12 @@ class User extends Authenticatable implements FilamentUser, HasTenants, MustVeri
         return $this->belongsTo(City::class);
     }
 
+    /** @return HasMany<SavedSearch, $this> */
+    public function savedSearches(): HasMany
+    {
+        return $this->hasMany(SavedSearch::class);
+    }
+
     /** @return BelongsToMany<Venue, $this> */
     public function ownedVenues(): BelongsToMany
     {

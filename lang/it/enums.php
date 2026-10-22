@@ -210,6 +210,15 @@ return [
         'comment_reaction' => 'Reazione a un tuo commento',
         'comment_moderated' => 'Tuo commento nascosto',
         'event_new_comment' => 'Nuovo commento su un tuo evento',
+        'venue_notice' => 'Avviso da un locale seguito',
+        'saved_search_match' => 'Nuove date per una ricerca salvata',
+    ],
+
+    'venue_notice_kind' => [
+        'pause' => 'Pausa',
+        'closure' => 'Chiusura',
+        'reopening' => 'Riapertura',
+        'info' => 'Comunicazione',
     ],
 
     'notification_skip_reason' => [

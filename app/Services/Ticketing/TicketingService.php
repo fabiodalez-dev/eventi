@@ -317,7 +317,7 @@ final class TicketingService
                 $booking->tickets()->create(['attendee_name' => $name, 'code' => Str::random(64), 'status' => AdmissionStatus::Valid]);
             }
             $email = $booking->contactEmail();
-            activity('ticketing')->causedBy($staff)->performedOn($booking)->withProperties(array_filter(['email' => $email]))->log('reserved_by_staff');
+            activity('ticketing')->causedBy($staff)->performedOn($booking)->withProperties(['mailed' => $email !== null])->log('reserved_by_staff');
             $cityId = $date->event?->city_id;
             if ($cityId !== null) {
                 DB::afterCommit(fn () => ContentVersion::bump($cityId));

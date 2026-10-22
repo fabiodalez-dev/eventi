@@ -232,6 +232,18 @@ class Venue extends Model implements HasMedia
         return $this->morphMany(Follow::class, 'followable');
     }
 
+    /** @return HasMany<VenueNotice, $this> */
+    public function notices(): HasMany
+    {
+        return $this->hasMany(VenueNotice::class);
+    }
+
+    /** L'avviso in vista oggi sulla scheda pubblica, se ce n'è uno. */
+    public function currentNotice(): ?VenueNotice
+    {
+        return $this->notices()->current()->latest('id')->first();
+    }
+
     /** @return MorphMany<Report, $this> */
     public function reports(): MorphMany
     {

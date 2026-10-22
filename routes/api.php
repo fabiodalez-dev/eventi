@@ -43,6 +43,7 @@ use App\Http\Controllers\TicketingController;
 use App\Http\Controllers\Web\Account\ContentPreferencesController;
 use App\Http\Controllers\Web\Account\NotificationInterestsController;
 use App\Http\Controllers\Web\Account\SavedCalendarController;
+use App\Http\Controllers\Web\Account\SavedSearchController;
 use App\Http\Controllers\Web\CatalogReviewController;
 use App\Http\Controllers\Web\EventCommentController;
 use App\Http\Controllers\Web\EventWeatherController;
@@ -279,6 +280,10 @@ Route::prefix('v1')
                 Route::delete('/saved/{occurrence}', [SavedController::class, 'destroy'])
                     ->whereNumber('occurrence')
                     ->name('saved.destroy');
+
+                Route::get('/searches', [SavedSearchController::class, 'index'])->name('searches.index');
+                Route::post('/searches', [SavedSearchController::class, 'store'])->middleware('throttle:20,1,saved-search')->name('searches.store');
+                Route::delete('/searches/{search}', [SavedSearchController::class, 'destroy'])->whereNumber('search')->middleware('throttle:20,1,saved-search')->name('searches.destroy');
 
                 Route::get('/follows', [FollowController::class, 'index'])->name('follows.index');
                 Route::get('/follows/{type}/{id}', [FollowController::class, 'show'])->whereNumber('id')->name('follows.show');

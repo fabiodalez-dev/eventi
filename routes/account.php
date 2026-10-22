@@ -17,6 +17,7 @@ use App\Http\Controllers\Web\Account\PushSubscriptionController;
 use App\Http\Controllers\Web\Account\RegisterController;
 use App\Http\Controllers\Web\Account\SavedCalendarController;
 use App\Http\Controllers\Web\Account\SavedController;
+use App\Http\Controllers\Web\Account\SavedSearchController;
 use App\Http\Controllers\Web\GoogleCalendarController;
 use App\Http\Middleware\PersonalizeDiscovery;
 use App\Http\Middleware\RequireConfirmedAccount;
@@ -160,6 +161,8 @@ Route::middleware(['auth', RequireConfirmedAccount::class])->group(function (): 
     Route::get('/profilo/interessi', [ContentPreferencesController::class, 'index'])->name('account.content-preferences');
     Route::patch('/profilo/interessi', [ContentPreferencesController::class, 'update'])->name('account.content-preferences.update');
     Route::get('/notifiche/interessi', [NotificationInterestsController::class, 'index'])->name('account.notifications.interests');
+    Route::post('/ricerche-salvate', [SavedSearchController::class, 'store'])->middleware('throttle:20,1,saved-search')->name('account.searches.store');
+    Route::delete('/ricerche-salvate/{search}', [SavedSearchController::class, 'destroy'])->whereNumber('search')->middleware('throttle:20,1,saved-search')->name('account.searches.destroy');
     Route::patch('/notifiche/interessi', [NotificationInterestsController::class, 'update'])->name('account.notifications.interests.update');
     Route::post('/esci', [LoginController::class, 'destroy'])->name('account.logout');
 

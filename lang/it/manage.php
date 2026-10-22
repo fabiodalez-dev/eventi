@@ -279,6 +279,21 @@ return [
         'open_action' => 'Apri il pannello',
     ],
 
+    'notices' => [
+        'action' => 'Avvisa chi ti segue',
+        'heading' => 'Un avviso a chi segue il locale',
+        'description' => 'Arriva una volta sola a chi segue il locale con le notifiche accese e compare sulla scheda pubblica fino alla data indicata (o per un mese). Uno ogni :days giorni.',
+        'kind' => 'Tipo di avviso',
+        'body' => 'Testo',
+        'body_hint' => 'Breve e concreto: «Chiusi per ferie dal 10 al 24 agosto, si riapre il 25».',
+        'until' => 'Valido fino al',
+        'until_hint' => 'Facoltativo. Dopo questa data l’avviso sparisce dalla scheda.',
+        'submit' => 'Pubblica l’avviso',
+        'published' => 'Avviso pubblicato: in arrivo a :count persone.',
+        'too_soon' => 'Hai già pubblicato un avviso negli ultimi :days giorni. Aspetta prima di inviarne un altro.',
+        'last' => 'Ultimo avviso: :date (:kind).',
+    ],
+
     'notifications' => [
         'published' => 'Evento pubblicato',
         'published_body' => 'È online: chi cerca cosa fare in città lo vede.',

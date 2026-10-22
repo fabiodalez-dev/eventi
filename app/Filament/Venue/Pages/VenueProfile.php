@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Filament\Venue\Pages;
 
+use App\Actions\PublishVenueNotice;
+use App\Enums\VenueNoticeKind;
 use App\Enums\VenueType;
 use App\Filament\Admin\Support\StructuredFields;
 use App\Filament\Forms\Components\MapPicker;
@@ -21,6 +23,7 @@ use App\Models\Venue;
 use BackedEnum;
 use Carbon\CarbonImmutable;
 use Filament\Actions\Action;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\KeyValue;
 use Filament\Forms\Components\Repeater;
@@ -37,6 +40,7 @@ use Filament\Schemas\Contracts\HasSchemas;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 
 /**
  * «Il tuo locale» — i dati della **scheda pubblica** del locale, compilati da
@@ -400,6 +404,56 @@ class VenueProfile extends Page implements HasSchemas
                 ->label(__('manage.actions.save_venue'))
                 ->icon(Heroicon::OutlinedCheck)
                 ->action('save'),
+
+            /*
+             * «Avvisa chi ti segue»: pausa, chiusura, riapertura. Non è un
+             * campo del profilo — un profilo descrive il locale, un avviso
+             * racconta un momento — quindi sta in un'azione a parte, con la
+             * sua memoria (`venue_notices`) e il suo tetto settimanale.
+             */
+            Action::make('notify_followers')
+                ->label(__('manage.notices.action'))
+                ->icon(Heroicon::OutlinedMegaphone)
+                ->color('gray')
+                ->modalHeading(__('manage.notices.heading'))
+                ->modalDescription(__('manage.notices.description', ['days' => PublishVenueNotice::MIN_DAYS_BETWEEN]))
+                ->modalSubmitActionLabel(__('manage.notices.submit'))
+                ->schema([
+                    Select::make('kind')
+                        ->label(__('manage.notices.kind'))
+                        ->options(VenueNoticeKind::options())
+                        ->default(VenueNoticeKind::Info->value)
+                        ->required(),
+                    Textarea::make('body')
+                        ->label(__('manage.notices.body'))
+                        ->helperText(__('manage.notices.body_hint'))
+                        ->rows(4)
+                        ->maxLength(500)
+                        ->required(),
+                    DatePicker::make('until')
+                        ->label(__('manage.notices.until'))
+                        ->helperText(__('manage.notices.until_hint'))
+                        ->minDate(now()->toDateString())
+                        ->native(false),
+                ])
+                ->action(function (array $data): void {
+                    $venue = CurrentVenue::get();
+                    try {
+                        app(PublishVenueNotice::class)->handle(
+                            $venue,
+                            auth()->user(),
+                            VenueNoticeKind::from((string) $data['kind']),
+                            (string) $data['body'],
+                            filled($data['until'] ?? null) ? CarbonImmutable::parse((string) $data['until']) : null,
+                        );
+                    } catch (ValidationException $exception) {
+                        Notification::make()->title($exception->validator->errors()->first())->danger()->send();
+
+                        return;
+                    }
+                    $count = $venue->followers()->where('notify', true)->count();
+                    Notification::make()->title(__('manage.notices.published', ['count' => $count]))->success()->send();
+                }),
         ];
     }
 

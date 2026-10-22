@@ -534,6 +534,27 @@ final class EventOccurrenceQuery
         return $this;
     }
 
+    /**
+     * Le date di eventi pubblicati da un certo istante in poi, oppure le date
+     * aggiunte dopo. Serve alle ricerche salvate: «cosa c'è di nuovo da
+     * quando ho guardato», non «cosa è cambiato».
+     */
+    public function publishedSince(CarbonImmutable|DateTimeInterface|string $since): self
+    {
+        $instant = ($since instanceof DateTimeInterface
+            ? CarbonImmutable::instance($since)
+            : CarbonImmutable::parse($since, $this->city->timezone))
+            ->utc()
+            ->format('Y-m-d H:i:s');
+
+        $this->query->where(function (Builder $fresh) use ($instant): void {
+            $fresh->where('events.published_at', '>', $instant)
+                ->orWhere('event_occurrences.created_at', '>', $instant);
+        });
+
+        return $this;
+    }
+
     public function contentUpdatedSince(CarbonImmutable|DateTimeInterface|string $since): self
     {
         $instant = ($since instanceof DateTimeInterface

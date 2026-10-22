@@ -7,6 +7,7 @@ namespace App\Providers;
 use App\Listeners\RevokeInvalidFcmToken;
 use App\Models\AdmissionTicket;
 use App\Models\Booking;
+use App\Models\BookingMessage;
 use App\Models\CatalogReview;
 use App\Models\Category;
 use App\Models\City;
@@ -24,6 +25,7 @@ use App\Models\Page;
 use App\Models\Redirect;
 use App\Models\Report;
 use App\Models\SavedEvent;
+use App\Models\SavedSearch;
 use App\Models\ScheduledNotification;
 use App\Models\Sponsorship;
 use App\Models\SponsorshipGrant;
@@ -32,6 +34,7 @@ use App\Models\TicketTier;
 use App\Models\User;
 use App\Models\Venue;
 use App\Models\VenueApplication;
+use App\Models\VenueNotice;
 use App\Observers\CategoryObserver;
 use App\Observers\CityObserver;
 use App\Observers\EventObserver;
@@ -449,6 +452,9 @@ class AppServiceProvider extends ServiceProvider
             'community_comment' => CommunityComment::class,
             'event_comment' => EventComment::class,
             'catalog_review' => CatalogReview::class,
+            'venue_notice' => VenueNotice::class,
+            'saved_search' => SavedSearch::class,
+            'booking_message' => BookingMessage::class,
         ]);
 
         // `business_date` ed `effective_ends_at` sono calcolate dall'observer a
