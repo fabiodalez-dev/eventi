@@ -98,7 +98,7 @@
                 {{-- Il feed porta con sé i filtri accesi: si sottoscrive
                      esattamente la lista che si sta guardando (§11.10). --}}
                 <div class="border-t-2 border-line px-[clamp(1rem,1.8vw,1.625rem)] py-6">
-                    <x-feed-links :filters="$filters" />
+                    <x-feed-links :filters="$filters" :public-url="($taxonomy ?? null) instanceof \App\Models\Category ? route('categories.calendar', $taxonomy->slug) : null" />
                 </div>
             @else
                 {{-- Questo stato vuoto è legittimo: qualcuno ha chiesto qualcosa

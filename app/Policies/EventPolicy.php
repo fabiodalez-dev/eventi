@@ -129,7 +129,7 @@ class EventPolicy
             return true;
         }
         if (in_array($permission, [Permission::ViewEvents, Permission::UpdateEvents, Permission::DeleteEvents], true)
-            && $event->organizer?->managedBy($user)) {
+            && $event->managedByOrganizerOf($user)) {
             return true;
         }
         if ($event->venue_id === null) {

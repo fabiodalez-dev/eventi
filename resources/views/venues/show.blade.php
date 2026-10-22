@@ -296,7 +296,7 @@
             {{-- Il calendario di questo locale, da sottoscrivere: è la forma
                  più utile del feed di §11.10, e quella per cui un locale ha
                  interesse a tenere aggiornate le proprie date. --}}
-            <x-feed-links :filters="$feedFilters" />
+            <x-feed-links :filters="$feedFilters" :public-url="route('venues.calendar', $venue->slug)" :programme-url="route('venues.programme', $venue->slug)" />
 
             <section class="flex flex-col gap-3" aria-labelledby="condividi-locale">
                 <h2 id="condividi-locale" class="font-display text-[clamp(1.25rem,1.8vw,1.75rem)] leading-none font-extrabold tracking-[-0.03em] uppercase">{{ __('common.actions.share') }}</h2>

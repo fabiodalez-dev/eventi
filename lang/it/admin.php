@@ -199,6 +199,8 @@ return [
 
     'fields' => [
         'kind' => 'Tipo di richiesta',
+        'video_url' => 'Video (YouTube o Vimeo)',
+        'co_organizers' => 'Co-organizzatori',
         'title' => 'Titolo',
         'subtitle' => 'Sottotitolo',
         'description' => 'Descrizione',
@@ -497,6 +499,9 @@ return [
     ],
 
     'hints' => [
+        'video_url' => 'L’indirizzo della pagina del video. Sulla scheda compare un riquadro: il lettore si carica solo quando chi legge lo apre.',
+        'video_url_invalid' => 'Serve l’indirizzo di un video YouTube o Vimeo.',
+        'co_organizers' => 'Gli altri organizzatori registrati che fanno questo evento insieme a quello principale: lo vedono nel proprio pannello e compaiono sulla scheda.',
         'local_time' => 'Ora locale della citta (:timezone)',
         'poster' => 'Formato consigliato 3:4, almeno 800×1067 pixel.',
         'short_description' => 'Una o due righe: è ciò che si legge nella card e nei risultati di ricerca.',

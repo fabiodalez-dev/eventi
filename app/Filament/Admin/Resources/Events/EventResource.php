@@ -34,6 +34,7 @@ use App\Models\Venue;
 use App\Queries\EditorialDashboardQuery;
 use App\Support\BeforeGoingDefaults;
 use App\Support\CurrentCity;
+use App\Support\VideoEmbed;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
@@ -219,6 +220,18 @@ class EventResource extends Resource
                                             ->collection('gallery')
                                             ->multiple()
                                             ->reorderable(),
+
+                                        TextInput::make('video_url')
+                                            ->label(__('admin.fields.video_url'))
+                                            ->helperText(__('admin.hints.video_url'))
+                                            ->url()
+                                            ->maxLength(2048)
+                                            ->rule(fn (): \Closure => static function (string $attribute, mixed $value, \Closure $fail): void {
+                                                if (filled($value) && VideoEmbed::from((string) $value) === null) {
+                                                    $fail(__('admin.hints.video_url_invalid'));
+                                                }
+                                            })
+                                            ->columnSpanFull(),
                                     ]),
                             ]),
 
@@ -398,6 +411,13 @@ class EventResource extends Resource
                                     ->columns(1)
                                     ->schema([
                                         Select::make('organizer_id')->label('Organizzatore registrato')->relationship('organizer', 'name', fn ($query) => $query->where('is_active', true))->searchable()->helperText('Se vuoto, il locale ospitante è anche l’organizzatore.'),
+                                        Select::make('organizers')
+                                            ->label(__('admin.fields.co_organizers'))
+                                            ->helperText(__('admin.hints.co_organizers'))
+                                            ->relationship('organizers', 'name', fn ($query) => $query->where('is_active', true))
+                                            ->multiple()
+                                            ->searchable()
+                                            ->preload(),
                                         TextInput::make('organizer_name')
                                             ->label(__('admin.fields.organizer_name'))
                                             ->maxLength(255),

@@ -44,6 +44,8 @@
 
     <x-public-contact :target="$organizer" />
 
+    <p class="my-4"><a class="ui-action inline-flex min-h-12 items-center border-2 border-line px-4 font-display text-[0.688rem] font-extrabold uppercase tracking-[0.14em]" href="{{ route('organizers.calendar', $organizer->slug) }}">{{ __('feeds.public.title') }}</a> <span class="text-sm text-ink-muted">{{ __('feeds.public.lead') }}</span></p>
+
     <nav aria-label="{{ __('organizers.archive_label') }}" class="my-8 flex flex-wrap gap-4">
         <a class="ui-action min-h-12 border-2 border-line px-4 py-3 {{ ! $past ? 'bg-brand text-on-brand' : '' }}" @if (! $past) aria-current="page" @endif href="{{ route('organizers.show', $organizer) }}">{{ __('organizers.upcoming') }}</a>
         <a class="ui-action min-h-12 border-2 border-line px-4 py-3 {{ $past ? 'bg-brand text-on-brand' : '' }}" @if ($past) aria-current="page" @endif href="{{ route('organizers.show', [$organizer, 'past' => 1]) }}">{{ __('organizers.archive') }}</a>

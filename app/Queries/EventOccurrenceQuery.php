@@ -615,7 +615,13 @@ final class EventOccurrenceQuery
     public function byOrganizer(Organizer $organizer): self
     {
         $this->query->withoutGlobalScope('city');
-        $this->query->where('events.organizer_id', $organizer->id);
+        $this->query->where(function (Builder $owned) use ($organizer): void {
+            $owned->where('events.organizer_id', $organizer->id)
+                ->orWhereExists(function (QueryBuilder $shared) use ($organizer): void {
+                    $shared->from('event_organizer')->whereColumn('event_organizer.event_id', 'events.id')
+                        ->where('event_organizer.organizer_id', $organizer->id);
+                });
+        });
 
         return $this;
     }

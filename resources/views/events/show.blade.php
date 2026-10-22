@@ -31,6 +31,9 @@
     $shown = $dates->take(config('eventi.dates_shown'));
     $headingOccurrence = $selectedOccurrence ?? $dates->first();
     $lineups = $dates->flatMap(fn ($occurrence) => $occurrence->lineups)->unique('id');
+    $galleria = $event->getMedia('gallery')->map(fn ($media) => \App\Support\Media\ImageSet::fromMedia($media))->all();
+    $video = $event->video();
+    $coOrganizers = $event->organizers;
 
     /* I fatti sovrapposti alla locandina: i primi quattro della scheda
        tecnica. Sono le cose che si guardano prima di decidere — durata, età
@@ -213,6 +216,9 @@
                         <p class="m-0">Organizzato da
                             @if(filled($organizerInfo['url'] ?? null))<a class="inline-flex min-h-12 items-center underline" href="{{ $organizerInfo['url'] }}">{{ $organizerInfo['name'] }}</a>
                             @else {{ $organizerInfo['name'] }} @endif
+                            @foreach ($coOrganizers as $co)
+                                {{ __('events.detail.with') }} <a class="inline-flex min-h-12 items-center underline" href="{{ route('organizers.show', $co) }}">{{ $co->name }}</a>
+                            @endforeach
                         </p>
                     @endif
 
@@ -443,6 +449,30 @@
                 </section>
             @endif
 
+            {{-- Le foto dell'evento: la collezione si caricava dal pannello
+                 da sempre e nessuna pagina la mostrava. Stessa griglia della
+                 galleria del locale, per lo stesso motivo. --}}
+            @if ($galleria !== [])
+                <section aria-labelledby="galleria-evento" class="flex flex-col gap-3">
+                    <h2 id="galleria-evento" class="font-display text-[clamp(1.25rem,1.8vw,1.75rem)] leading-none font-extrabold tracking-[-0.03em] uppercase">{{ __('events.detail.gallery') }}</h2>
+
+                    <ul class="m-0 grid list-none grid-cols-2 gap-2 p-0 sm:grid-cols-3">
+                        @foreach ($galleria as $index => $immagine)
+                            <li class="m-0">
+                                <x-media-image
+                                    :set="$immagine"
+                                    :alt="__('events.detail.gallery_alt', ['title' => $event->title, 'number' => $index + 1])"
+                                    width="800"
+                                    height="600"
+                                    sizes="(min-width: 1024px) 15rem, (min-width: 640px) 30vw, 45vw"
+                                    class="aspect-[4/3] w-full object-cover"
+                                />
+                            </li>
+                        @endforeach
+                    </ul>
+                </section>
+            @endif
+
             @if ($event->tags->isNotEmpty())
                 <section aria-labelledby="tag-evento" class="flex flex-col gap-3">
                     <h2 id="tag-evento" class="font-display text-[clamp(1.25rem,1.8vw,1.75rem)] leading-none font-extrabold tracking-[-0.03em] uppercase">{{ __('events.detail.tags') }}</h2>
@@ -504,6 +534,10 @@
         <aside class="flex min-w-0 flex-col gap-6 max-lg:order-first">
             @if ($poster !== null)
                 <x-event-poster :event="$event" :set="$poster" />
+            @endif
+
+            @if ($video !== null)
+                <x-video-embed :video="$video" :title="$event->title" />
             @endif
 
 

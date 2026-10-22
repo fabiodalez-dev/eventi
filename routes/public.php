@@ -15,6 +15,7 @@ use App\Http\Controllers\Web\HomeController;
 use App\Http\Controllers\Web\MapController;
 use App\Http\Controllers\Web\OrganizerApplicationController;
 use App\Http\Controllers\Web\OrganizerController;
+use App\Http\Controllers\Web\PublicCalendarController;
 use App\Http\Controllers\Web\PublicContactController;
 use App\Http\Controllers\Web\ReportController;
 use App\Http\Controllers\Web\SearchController;
@@ -23,6 +24,7 @@ use App\Http\Controllers\Web\TonightController;
 use App\Http\Controllers\Web\VenueApplicationController;
 use App\Http\Controllers\Web\VenueClaimController;
 use App\Http\Controllers\Web\VenueController;
+use App\Http\Controllers\Web\VenueProgrammeController;
 use App\Http\Middleware\CachePage;
 use App\Http\Middleware\PersonalizeDiscovery;
 use Illuminate\Support\Facades\Route;
@@ -129,6 +131,10 @@ Route::get('/locali/{slug}/segnala', [ReportController::class, 'createForVenue']
 Route::post('/locali/{slug}/segnala', [ReportController::class, 'storeForVenue'])
     ->middleware('throttle:public-forms')
     ->name('venues.report.store');
+Route::get('/locali/{slug}/calendario.ics', [PublicCalendarController::class, 'venue'])->middleware('throttle:60,1,public-calendar')->name('venues.calendar');
+Route::get('/locali/{slug}/programma.pdf', VenueProgrammeController::class)->middleware('throttle:30,1,venue-programme')->name('venues.programme');
+Route::get('/organizzatori/{slug}/calendario.ics', [PublicCalendarController::class, 'organizer'])->middleware('throttle:60,1,public-calendar')->name('organizers.calendar');
+Route::get('/eventi/categoria/{slug}/calendario.ics', [PublicCalendarController::class, 'category'])->middleware('throttle:60,1,public-calendar')->name('categories.calendar');
 Route::get('/locali/{slug}', [VenueController::class, 'show'])->middleware(CachePage::class)->name('venues.show');
 
 Route::get('/proponi-evento', [EventSubmissionController::class, 'create'])->name('submissions.create');
