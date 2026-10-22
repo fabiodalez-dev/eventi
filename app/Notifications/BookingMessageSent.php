@@ -53,14 +53,14 @@ class BookingMessageSent extends Notification implements ShouldQueue
         $message = BookingMessage::query()->with('occurrence.event.city')->findOrFail($this->messageId);
         $occurrence = $message->occurrence;
         $event = $occurrence?->event;
-        $timezone = $event?->city?->timezone ?? config('app.timezone');
+        $timezone = $event?->city->timezone ?? config('app.timezone');
 
         $mail = (new MailMessage)
-            ->subject(__('ticketing.messages.mail_subject', ['venue' => $occurrence?->effectiveVenue()?->name ?? config('app.name'), 'subject' => $message->subject]))
+            ->subject(__('ticketing.messages.mail_subject', ['venue' => $occurrence?->effectiveVenue()->name ?? config('app.name'), 'subject' => $message->subject]))
             ->greeting($message->subject)
             ->line(__('ticketing.messages.mail_intro', [
-                'title' => $event?->title ?? __('ticketing.title'),
-                'date' => $occurrence?->starts_at?->timezone($timezone)->format('d/m/Y H:i') ?? '',
+                'title' => $event->title ?? __('ticketing.title'),
+                'date' => $occurrence?->starts_at->timezone($timezone)->format('d/m/Y H:i') ?? '',
             ]));
 
         foreach (preg_split('/\R{2,}/u', trim($message->body)) ?: [] as $paragraph) {
@@ -71,7 +71,7 @@ class BookingMessageSent extends Notification implements ShouldQueue
             $mail->action(__('ticketing.title'), route('tickets.index'));
         }
 
-        return $mail->line(__('ticketing.messages.mail_footer', ['venue' => $occurrence?->effectiveVenue()?->name ?? '']));
+        return $mail->line(__('ticketing.messages.mail_footer', ['venue' => $occurrence?->effectiveVenue()->name ?? '']));
     }
 
     /** @return array<string, mixed> */

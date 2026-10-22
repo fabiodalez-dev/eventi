@@ -374,7 +374,7 @@ final class NotificationScheduler
             sprintf('saved_search:user_%d:search_%d:%s', $search->user_id, $search->getKey(), $now->format('Y-m-d')),
             $now,
             $search,
-            ['occurrence_ids' => array_values($occurrenceIds)],
+            ['occurrence_ids' => $occurrenceIds],
         );
     }
 

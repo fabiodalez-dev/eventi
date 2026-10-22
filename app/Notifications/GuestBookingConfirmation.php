@@ -42,12 +42,12 @@ class GuestBookingConfirmation extends Notification implements ShouldQueue
     {
         $booking = Booking::query()->with(['occurrence.event.city', 'tickets'])->findOrFail($this->bookingId);
         $occurrence = $booking->occurrence;
-        $timezone = $occurrence?->event?->city?->timezone ?? config('app.timezone');
+        $timezone = $occurrence?->event->city->timezone ?? config('app.timezone');
 
         $mail = (new MailMessage)
             ->subject(__('ticketing.mail.confirmed'))
-            ->line(__('ticketing.guest.mail_line', ['title' => $occurrence?->event?->title ?? __('ticketing.title')]))
-            ->line(($occurrence?->starts_at?->timezone($timezone)->format('d/m/Y H:i') ?? '').' · '.($occurrence?->effectiveVenue()?->name ?? ''))
+            ->line(__('ticketing.guest.mail_line', ['title' => $occurrence?->event->title ?? __('ticketing.title')]))
+            ->line(($occurrence?->starts_at->timezone($timezone)->format('d/m/Y H:i') ?? '').' · '.($occurrence?->effectiveVenue()->name ?? ''))
             ->line(__('ticketing.guest.mail_hint'));
 
         foreach ($booking->tickets as $ticket) {

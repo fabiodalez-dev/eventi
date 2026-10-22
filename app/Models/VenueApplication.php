@@ -63,7 +63,7 @@ class VenueApplication extends Model
 
     public function kind(): ApplicationKind
     {
-        return $this->kind instanceof ApplicationKind ? $this->kind : ApplicationKind::Venue;
+        return $this->kind ?? ApplicationKind::Venue;
     }
 
     /** @return BelongsTo<User, $this> */

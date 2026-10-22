@@ -99,7 +99,7 @@ class CalendarImport extends Page implements HasForms
         $source = $this->source();
 
         $this->getForm('form')?->fill([
-            'type' => $source?->type?->value ?? ImportSourceType::Ics->value,
+            'type' => $source?->type->value ?? ImportSourceType::Ics->value,
             'url' => $source !== null && str_starts_with((string) $source->url, CsvImportDriver::UPLOAD_PREFIX) ? null : $source?->url,
             'exclude_keywords' => $source !== null
                 ? $source->mapping['exclude_keywords'] ?? config('import.exclude_keywords')

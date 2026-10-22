@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\ProfileVisibility;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -69,11 +70,19 @@ class EventCollection extends Model
         return route('collections.show', $this->token);
     }
 
-    /** Il nome con cui si presenta chi ha fatto la raccolta: il profilo pubblico, se c'è. */
+    /**
+     * Il nome con cui si presenta chi ha fatto la raccolta: solo se ha un
+     * profilo community **pubblico**. Chi tiene il profilo riservato, o non
+     * ne ha uno, resta anonimo anche quando condivide una raccolta: il link
+     * mostra le date, non la persona.
+     */
     public function ownerLabel(): ?string
     {
         $profile = $this->user?->communityProfile;
+        if ($profile === null || $profile->visibility !== ProfileVisibility::Public) {
+            return null;
+        }
 
-        return $profile?->display_name ?: $profile?->handle;
+        return $profile->display_name ?: $profile->handle;
     }
 }

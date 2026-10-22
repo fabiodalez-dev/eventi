@@ -48,7 +48,7 @@ final class CollectionController extends Controller
                 'items' => $occurrences->map(fn (EventOccurrence $occurrence): array => [
                     'occurrence_id' => $occurrence->getKey(),
                     'title' => $occurrence->event?->title,
-                    'starts_at' => $occurrence->starts_at?->toIso8601String(),
+                    'starts_at' => $occurrence->starts_at->toIso8601String(),
                     'venue' => $occurrence->effectiveVenue()?->name,
                     'url' => EventUrl::occurrence($occurrence),
                     'note' => $notes[$occurrence->getKey()] ?? null,

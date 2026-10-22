@@ -45,7 +45,7 @@ class Dashboard extends AnalyticsDetailPage
     protected function getHeaderActions(): array
     {
         $venue = CurrentVenue::get();
-        $monday = now($venue->city?->timezone ?? config('app.timezone'))->startOfWeek();
+        $monday = now($venue->city->timezone)->startOfWeek();
 
         return [
             Action::make('programme')

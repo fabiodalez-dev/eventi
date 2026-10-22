@@ -170,7 +170,7 @@ final class CollectionController extends Controller
         return $occurrences->map(fn (EventOccurrence $occurrence): array => [
             'occurrence_id' => $occurrence->getKey(),
             'title' => $occurrence->event?->title,
-            'starts_at' => $occurrence->starts_at?->toIso8601String(),
+            'starts_at' => $occurrence->starts_at->toIso8601String(),
             'venue' => $occurrence->effectiveVenue()?->name,
             'url' => EventUrl::occurrence($occurrence),
             'note' => $notes[$occurrence->getKey()] ?? null,
@@ -187,7 +187,7 @@ final class CollectionController extends Controller
             'is_public' => $collection->is_public,
             'public_url' => $collection->is_public ? $collection->publicUrl() : null,
             'items_count' => (int) ($collection->items_count ?? $collection->items()->count()),
-            'created_at' => $collection->created_at?->toIso8601String(),
+            'created_at' => $collection->created_at->toIso8601String(),
         ];
     }
 

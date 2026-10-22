@@ -60,7 +60,7 @@ class Booking extends Model
     /** L'indirizzo a cui scrivere: l'account, oppure il recapito lasciato al banco. */
     public function contactEmail(): ?string
     {
-        $email = $this->user?->email ?? ($this->booker_data['email'] ?? null);
+        $email = $this->user !== null ? $this->user->email : ($this->booker_data['email'] ?? null);
 
         return is_string($email) && $email !== '' ? $email : null;
     }

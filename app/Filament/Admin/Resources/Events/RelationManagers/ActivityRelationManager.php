@@ -86,7 +86,7 @@ class ActivityRelationManager extends RelationManager
                     ->action(function (Activity $record): void {
                         $owner = $this->getOwnerRecord();
                         $previous = self::previous($record);
-                        if ($previous === [] || ! $owner instanceof Model) {
+                        if ($previous === []) {
                             Notification::make()->title(__('admin.activity.restore_empty'))->warning()->send();
 
                             return;

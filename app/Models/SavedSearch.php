@@ -42,7 +42,7 @@ class SavedSearch extends Model
     /** I filtri senza finestra temporale: ciò che il comando applica alle date future. */
     public function filters(): EventFilters
     {
-        $stored = is_array($this->filters) ? $this->filters : [];
+        $stored = $this->filters ?? [];
         unset($stored['date'], $stored['from'], $stored['to'], $stored['discovery'], $stored['sort']);
 
         return EventFilters::fromArray($stored);

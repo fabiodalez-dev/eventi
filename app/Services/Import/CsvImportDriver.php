@@ -85,7 +85,7 @@ final class CsvImportDriver implements ImportSourceDriver
         };
 
         $title = $get('title');
-        $timezone = ImportMapping::fromSource($source)->timezone ?? $source->venue?->city?->timezone ?? $source->city?->timezone ?? config('app.timezone');
+        $timezone = ImportMapping::fromSource($source)->timezone ?? $source->venue?->city->timezone ?? $source->city->timezone ?? config('app.timezone');
         $start = $this->instant($get('start') ?? $get('date'), $get('start') === null ? $get('time') : null, $timezone);
         if ($title === null || $start === null) {
             return null;
@@ -140,7 +140,7 @@ final class CsvImportDriver implements ImportSourceDriver
         $names = array_map(fn (mixed $name): string => $this->normaliseHeader((string) $name), $names);
         $rows = [];
         while (($values = fgetcsv($handle, 0, $delimiter, '"', '')) !== false) {
-            if ($values === [null] || $values === []) {
+            if ($values === [null]) {
                 continue;
             }
             $row = [];
