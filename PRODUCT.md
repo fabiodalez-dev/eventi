@@ -77,3 +77,7 @@ attribuisce un badge di numero verificato. Web e Android usano le capacità del
 server, non il ruolo mostrato né il solo campo whatsapp_verified.
 
 Il contratto e la migrazione sono documentati in [PROFILE-INTERACTIONS](docs/PROFILE-INTERACTIONS.md).
+
+## Strumenti per locali, redazione e persone (23 ottobre 2026)
+
+Dalla revisione delle funzionalità sono entrate diciotto cose, tutte documentate in [DECISIONS](docs/DECISIONS.md) (D60). Per chi cerca: la scheda evento mostra le foto e un video che si carica solo al click; i filtri di una ricerca si salvano e avvisano quando escono date nuove; le date si raccolgono in elenchi con un nome, da condividere con un link. Per i locali e gli organizzatori: chi trova il proprio locale a catalogo lo rivendica, chi organizza senza sede chiede un pannello; dal banco si scrive a chi ha prenotato, si registrano le prenotazioni prese al telefono, si vedono le assenze; il controllo ingressi riconosce i QR anche senza rete; i fogli CSV si importano come i calendari; un evento può avere più organizzatori; ogni locale, organizzatore e categoria ha un calendario ICS pubblico e ogni locale un programma settimanale stampabile; il locale avvisa chi lo segue di pause e riaperture. Per la redazione: fusione dei doppioni, ripristino dei contenuti dalla cronologia, registro delle ricerche senza risultati. Le sette voci rimandate stanno in [ROADMAP-PRODOTTO](docs/ROADMAP-PRODOTTO.md).

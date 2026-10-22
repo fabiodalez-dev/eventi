@@ -19,6 +19,24 @@ Fabio ha approvato otto blocchi di lavoro, descritti in dettaglio nel [piano di 
 
 Tre verifiche fatte sul codice il 24 settembre 2026 correggono altrettante impressioni che le tabelle potevano lasciare: la lista d'attesa del ticketing **è già implementata e collaudata** (coda in ordine di arrivo, promozione per gruppi interi, comando periodico, email dedicate) e le manca solo una finestra di conferma con la posizione mostrata a chi aspetta; la galleria fotografica del locale **si carica ma non è mostrata da nessuna pagina**, insieme a caratteristiche, fasce d'età e note pratiche del locale; i pulsanti di condivisione della pagina del locale **non passano dai link tracciati**, che oggi esistono solo per gli eventi e solo su quattro canali fissi.
 
+## Realizzato il 23 ottobre 2026 (D60)
+
+Dalla revisione delle funzionalità del 22 ottobre il proprietario ha scelto diciotto voci, realizzate in un'unica PR e documentate in [DECISIONS](DECISIONS.md) (D60): galleria e video sulla scheda evento; ricerche salvate con avviso; raccolte condivisibili; rivendicazione di un locale a catalogo; registrazione degli organizzatori; messaggio del locale a chi ha prenotato; prenotazioni prese al banco; assenze contate e limite ai recidivi; controllo ingressi senza rete (web); fusione dei doppioni; import da fogli CSV; co-organizzatori; calendari ICS pubblici per locale, organizzatore e categoria; programma settimanale stampabile; registro delle ricerche senza risultati; ripristino dalla cronologia; avviso del locale a chi lo segue. Nelle tabelle sotto le righe interessate sono: locali 1 (rapporto: ora anche messaggi ai prenotati), 13 (CRM: prenotazioni dal banco e messaggi, senza storico trasversale), 21 (check-in QR: comportamento senza rete sul web), 22 (lista d'attesa: completa); utenti 1 e 4 (ricerche salvate), 15 (gruppi: raccolte condivise), 22 (recensioni verificate: non fatto, vedi sotto).
+
+### Rinviato con la stessa decisione
+
+Queste sette voci della revisione non sono state scelte il 23 ottobre e restano da decidere, nell'ordine in cui conviene riprenderle:
+
+1. **Feedback post-evento a chi ha fatto check-in** (recensioni verificate). I dati ci sono: biglietti con ingresso registrato e assenze. Manca la domanda a serata finita e il legame con `catalog_reviews`.
+2. **Cessione del biglietto** a un'altra persona (cambio nominativo con nuovo QR e revoca del vecchio).
+3. **Autenticazione a due fattori** per redazione e gestori, prima di tutto per chi pubblica sui social e approva pagamenti.
+4. **Apple Wallet**, accanto a Google Wallet: richiede la registrazione presso Apple e un certificato per il pass.
+5. **Login con Google/Apple** (D7 lo rimanda dal 23 agosto): resta il punto di attrito più grande all'iscrizione su telefono.
+6. **Sito in inglese**: `lang/en` esiste ma non c'è né uno switch né una regola per l'indirizzo delle pagine tradotte.
+7. **Artisti come entità** con pagina e follow: oggi la lineup è testo.
+
+E tre code di lavoro aperte dalle funzioni fatte: il **controllo ingressi senza rete nell'app Android** (oggi solo web); l'**import da Excel** (solo CSV, finché non serve una libreria in più); l'eventuale estensione delle **abilitazioni sponsor ai co-organizzatori** (D59 copre solo l'organizzatore principale).
+
 ## Obiettivo
 
 Per gli utenti, inCittà deve essere il modo più semplice per scegliere cosa fare.
