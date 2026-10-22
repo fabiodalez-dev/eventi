@@ -162,6 +162,7 @@ return [
 
     'import_source_type' => [
         'ics' => 'Calendario ICS',
+        'csv' => 'Foglio CSV',
         'json' => 'JSON',
         'rss' => 'Feed RSS',
         'api' => 'API',

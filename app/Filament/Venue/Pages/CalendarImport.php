@@ -10,10 +10,13 @@ use App\Filament\Support\ImportPreviewRows;
 use App\Filament\Venue\Support\CurrentVenue;
 use App\Jobs\Import\ImportSourceJob;
 use App\Models\ImportSource;
+use App\Services\Import\CsvImportDriver;
 use App\Services\Import\ImportRunner;
 use App\Services\Import\ImportUrlGuard;
 use BackedEnum;
 use Filament\Actions\Action;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Concerns\InteractsWithForms;
@@ -96,7 +99,8 @@ class CalendarImport extends Page implements HasForms
         $source = $this->source();
 
         $this->getForm('form')?->fill([
-            'url' => $source?->url,
+            'type' => $source?->type?->value ?? ImportSourceType::Ics->value,
+            'url' => $source !== null && str_starts_with((string) $source->url, CsvImportDriver::UPLOAD_PREFIX) ? null : $source?->url,
             'exclude_keywords' => $source !== null
                 ? $source->mapping['exclude_keywords'] ?? config('import.exclude_keywords')
                 : config('import.exclude_keywords'),
@@ -114,7 +118,7 @@ class CalendarImport extends Page implements HasForms
     {
         return ImportSource::query()
             ->where('venue_id', CurrentVenue::get()->getKey())
-            ->where('type', ImportSourceType::Ics->value)
+            ->whereIn('type', [ImportSourceType::Ics->value, ImportSourceType::Csv->value])
             ->latest('id')
             ->first();
     }
@@ -126,11 +130,27 @@ class CalendarImport extends Page implements HasForms
                 Section::make(__('manage.calendar.form.heading'))
                     ->description(__('manage.calendar.form.help'))
                     ->schema([
+                        Radio::make('type')
+                            ->label(__('manage.calendar.form.type'))
+                            ->options([
+                                ImportSourceType::Ics->value => __('manage.calendar.form.type_ics'),
+                                ImportSourceType::Csv->value => __('manage.calendar.form.type_csv'),
+                            ])
+                            ->default(ImportSourceType::Ics->value)
+                            ->inline()
+                            ->live()
+                            ->afterStateUpdated(function (): void {
+                                $this->previewed = false;
+                                $this->previewRows = [];
+                                $this->previewError = null;
+                            }),
+
                         TextInput::make('url')
                             ->label(__('manage.calendar.form.url'))
-                            ->helperText(__('manage.calendar.form.url_help'))
+                            ->helperText(fn (callable $get): string => $get('type') === ImportSourceType::Csv->value ? __('manage.calendar.form.csv_help') : __('manage.calendar.form.url_help'))
                             ->url()
-                            ->required()
+                            ->requiredWithout('file')
+                            ->validationMessages(['required_without' => __('manage.calendar.form.url_or_file')])
                             ->maxLength(1000)
                             ->live(debounce: 600)
                             ->afterStateUpdated(function (): void {
@@ -150,6 +170,21 @@ class CalendarImport extends Page implements HasForms
                                 if ($reason !== null) {
                                     $fail($reason);
                                 }
+                            }),
+
+                        FileUpload::make('file')
+                            ->label(__('manage.calendar.form.file'))
+                            ->helperText(__('manage.calendar.form.file_help'))
+                            ->visible(fn (callable $get): bool => $get('type') === ImportSourceType::Csv->value)
+                            ->disk('local')
+                            ->directory(fn (): string => CsvImportDriver::UPLOAD_DIRECTORY.'/'.CurrentVenue::get()->getKey())
+                            ->visibility('private')
+                            ->acceptedFileTypes(['text/csv', 'text/plain', 'application/vnd.ms-excel', 'application/csv'])
+                            ->maxSize((int) (config()->integer('import.max_bytes') / 1024))
+                            ->afterStateUpdated(function (): void {
+                                $this->previewed = false;
+                                $this->previewRows = [];
+                                $this->previewError = null;
                             }),
 
                         TagsInput::make('exclude_keywords')
@@ -211,8 +246,8 @@ class CalendarImport extends Page implements HasForms
         $source->fill([
             'city_id' => $venue->city_id,
             'venue_id' => $venue->getKey(),
-            'type' => ImportSourceType::Ics,
-            'url' => $data['url'],
+            'type' => $this->typeFrom($data),
+            'url' => $this->urlFrom($data),
             'mapping' => ['exclude_keywords' => array_values($data['exclude_keywords'] ?? [])],
             'is_active' => true,
         ]);
@@ -326,13 +361,37 @@ class CalendarImport extends Page implements HasForms
         $source->fill([
             'city_id' => $venue->city_id,
             'venue_id' => $venue->getKey(),
-            'type' => ImportSourceType::Ics,
-            'url' => $data['url'],
+            'type' => $this->typeFrom($data),
+            'url' => $this->urlFrom($data),
             'mapping' => ['exclude_keywords' => array_values($data['exclude_keywords'] ?? [])],
         ]);
 
         $source->setRelation('venue', $venue);
 
         return $source;
+    }
+
+    /** @param array<string, mixed> $data */
+    private function typeFrom(array $data): ImportSourceType
+    {
+        return ImportSourceType::tryFrom((string) ($data['type'] ?? '')) ?? ImportSourceType::Ics;
+    }
+
+    /**
+     * L'indirizzo della sorgente: quello scritto, oppure il file caricato
+     * (solo per il CSV), nella forma `upload:<nome>` che il driver sa leggere
+     * dentro la cartella del locale e da nessun'altra parte.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function urlFrom(array $data): string
+    {
+        $file = $data['file'] ?? null;
+        $file = is_array($file) ? (reset($file) ?: null) : $file;
+        if ($this->typeFrom($data) === ImportSourceType::Csv && is_string($file) && $file !== '') {
+            return CsvImportDriver::UPLOAD_PREFIX.basename($file);
+        }
+
+        return (string) ($data['url'] ?? '');
     }
 }

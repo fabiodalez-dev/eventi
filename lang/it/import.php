@@ -43,4 +43,8 @@ return [
         'where' => 'Luogo dichiarato',
     ],
 
+    'csv' => [
+        'empty' => 'Il foglio è vuoto o senza intestazioni.',
+        'missing_file' => 'Il file caricato non c\'è più: caricalo di nuovo.',
+    ],
 ];

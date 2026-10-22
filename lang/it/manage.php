@@ -327,6 +327,13 @@ return [
             'exclude' => 'Parole che tengono fuori una data',
             'exclude_help' => 'Le date il cui titolo contiene una di queste parole non vengono pubblicate. Servono a lasciare fuori le voci interne del tuo calendario, come le riunioni o le chiusure.',
             'exclude_placeholder' => 'Aggiungi una parola',
+            'type' => 'Che cosa colleghi',
+            'type_ics' => 'Un calendario (ICS)',
+            'type_csv' => 'Un foglio di date (CSV)',
+            'csv_help' => 'Un foglio con una riga per data e le intestazioni nella prima riga: titolo, data (o inizio), ora, fine, descrizione, link, luogo, id. Puoi incollare l\'indirizzo di un Google Sheet «pubblicato come CSV» oppure caricare il file.',
+            'file' => 'Oppure carica il file CSV',
+            'file_help' => 'Un file caricato si legge una volta; per tenerlo aggiornato ricaricalo, o usa un indirizzo.',
+            'url_or_file' => 'Serve un indirizzo oppure un file.',
         ],
 
         'preview_required' => 'Guarda prima l\'anteprima: le date che vedi sono esattamente quelle che verranno pubblicate.',
