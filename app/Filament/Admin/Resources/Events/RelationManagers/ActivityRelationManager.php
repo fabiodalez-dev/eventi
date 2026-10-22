@@ -102,9 +102,23 @@ class ActivityRelationManager extends RelationManager
     }
 
     /**
-     * I valori «prima» di una riga, limitati ai campi che il modello registra:
-     * lo stato e la data di pubblicazione non si ripristinano da qui, perché
-     * passano dalla moderazione e dalle sue notifiche.
+     * I soli campi che «Ripristina» può rimettere: contenuti. Stato,
+     * pubblicazione, verifica, piano, vetrina e ogni altra decisione della
+     * redazione passano dalla moderazione, con le sue notifiche e i suoi
+     * controlli, e non si riavvolgono da una riga di cronologia.
+     */
+    private const RESTORABLE = [
+        Event::class => ['title', 'subtitle', 'description', 'short_description', 'price_type', 'price_min', 'price_max', 'price_notes',
+            'ticket_url', 'booking_url', 'booking_phone', 'age_restriction', 'venue_id', 'organizer_id', 'organizer_name', 'organizer_url',
+            'category_id', 'external_links', 'facts', 'content_details', 'video_url'],
+        Venue::class => ['name', 'description', 'short_description', 'address', 'address_extra', 'postal_code', 'municipality', 'zone',
+            'phone', 'email', 'website', 'socials', 'opening_hours', 'transit', 'capacity', 'accessibility', 'info', 'requires_membership',
+            'membership_notes', 'type'],
+    ];
+
+    /**
+     * I valori «prima» di una riga, limitati ai campi ripristinabili del
+     * modello a cui appartiene.
      *
      * @return array<string, mixed>
      */
@@ -112,9 +126,13 @@ class ActivityRelationManager extends RelationManager
     {
         $changes = $activity->attribute_changes?->toArray() ?: ($activity->properties?->toArray() ?? []);
         $old = is_array($changes['old'] ?? null) ? $changes['old'] : [];
-        unset($old['status'], $old['verification_status'], $old['published_at'], $old['rejection_reason'], $old['editorial_score']);
+        $allowed = match ($activity->subject_type) {
+            (new Event)->getMorphClass() => self::RESTORABLE[Event::class],
+            (new Venue)->getMorphClass() => self::RESTORABLE[Venue::class],
+            default => [],
+        };
 
-        return $old;
+        return array_intersect_key($old, array_flip($allowed));
     }
 
     private static function describe(Activity $activity): string
