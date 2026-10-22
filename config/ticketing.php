@@ -17,4 +17,27 @@ return [
          */
         'min_hours_before' => 2,
     ],
+
+    /*
+     * Chi prenota e non si presenta. Un biglietto resta «valido» per sempre
+     * se nessuno lo guarda più; qui si decide quando diventa un'assenza e
+     * quante assenze recenti bloccano una nuova prenotazione gratuita.
+     * Il conteggio vale solo per le date in cui il locale ha davvero usato
+     * il controllo ingressi: dove nessuno ha scansionato niente, nessuno è
+     * un assente.
+     */
+    'no_show' => [
+        'grace_hours' => 2,
+        'limit' => 3,
+        'window_days' => 90,
+    ],
+
+    /*
+     * I messaggi del locale a chi ha prenotato una data: quanti al giorno per
+     * data, perché un canale verso persone che hanno solo prenotato un posto
+     * non deve diventare una newsletter.
+     */
+    'messages' => [
+        'daily_limit' => 3,
+    ],
 ];

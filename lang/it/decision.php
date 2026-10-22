@@ -58,7 +58,7 @@ return [
     'staff_saved' => 'Permessi del personale aggiornati.',
     'offline_pending' => 'Lettura in attesa di rete. Ingresso non ancora confermato: attendi la verifica.',
     'offline_retry' => 'Riprova le letture in attesa',
-    'offline_hint' => 'Le letture restano in questa pagina durante una breve interruzione. Non chiuderla: gli ingressi sono confermati solo dal server.',
+    'offline_hint' => 'Senza rete i QR vengono riconosciuti dall’elenco scaricato e le letture restano salvate su questo telefono, anche se la pagina si ricarica. L’ingresso è confermato dal server appena la rete torna.',
     'scan_ok' => 'Ingresso confermato: :name',
     'scan_failed' => 'Verifica non riuscita. Riprova quando la connessione è disponibile.',
     'spend' => 'Spesa registrata della campagna',

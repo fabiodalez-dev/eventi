@@ -31,6 +31,12 @@ Artisan::command('ticketing:promote', function (): void {
 
 Schedule::command('ticketing:promote')->everyMinute()->withoutOverlapping();
 
+Artisan::command('ticketing:no-shows', function (): void {
+    $this->info((string) app(TicketingService::class)->markNoShows());
+})->purpose('Mark valid tickets as no-show once a checked-in date has ended');
+
+Schedule::command('ticketing:no-shows')->hourly()->withoutOverlapping();
+
 Schedule::call(function (): void {
     if (! app(GoogleCalendarClient::class)->configured()) {
         return;

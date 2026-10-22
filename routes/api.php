@@ -83,6 +83,9 @@ Route::prefix('v1')->middleware(['auth:sanctum', TicketingPrivacy::class])->grou
     Route::post('/occurrences/{occurrence}/bookings', [TicketingController::class, 'store'])->middleware('throttle:20,1,tickets-store');
     Route::post('/me/bookings/{booking}/cancel', [TicketingController::class, 'cancel'])->middleware('throttle:30,1,tickets-cancel');
     Route::post('/ticketing/{occurrence}/check-in', [TicketingController::class, 'checkIn'])->middleware('throttle:120,1,tickets-checkin')->name('api.ticketing.manage.checkin');
+    Route::get('/ticketing/{occurrence}/manifest', [TicketingController::class, 'manifest'])->middleware('throttle:30,1,tickets-manifest');
+    Route::post('/ticketing/{occurrence}/message', [TicketingController::class, 'message'])->middleware('throttle:10,1,tickets-message')->name('api.ticketing.manage.message');
+    Route::post('/ticketing/{occurrence}/guest-booking', [TicketingController::class, 'guestBooking'])->middleware('throttle:60,1,tickets-guest')->name('api.ticketing.manage.guest');
     Route::post('/me/tickets/{ticket}/wallet', [WalletPassController::class, 'store'])->middleware('throttle:30,1,tickets-wallet');
 });
 

@@ -1,14 +1,23 @@
-// Pending reads are kept only in this open page. Never claim offline admission.
+// Pending reads survive a reload when a storage is given, but the server
+// alone confirms an admission: offline, the door only knows "in the list".
 export class CheckinQueue {
-    constructor(send, key = () => crypto.randomUUID()) {
+    constructor(send, key = () => crypto.randomUUID(), storage = null) {
         this.send = send;
         this.key = key;
-        this.entries = [];
+        this.storage = storage;
+        this.entries = storage?.read() ?? [];
         this.running = false;
     }
-    add(code) {
+    add(code, extra = {}) {
         if (this.entries.some((entry) => entry.code === code && entry.state === 'pending')) return;
-        this.entries.push({ code, requestKey: this.key(), state: 'pending', message: '' });
+        this.entries.push({ code, requestKey: this.key(), state: 'pending', message: '', scannedAt: new Date().toISOString(), ...extra });
+        this.persist();
+    }
+    pending() {
+        return this.entries.filter((entry) => entry.state === 'pending');
+    }
+    persist() {
+        this.storage?.write(this.entries);
     }
     async flush(changed = () => {}) {
         if (this.running) return;
@@ -22,13 +31,65 @@ export class CheckinQueue {
                     entry.message = result.message;
                 } catch {
                     // A timeout can follow a committed check-in. Retry the SAME key.
+                    this.persist();
                     changed();
                     break;
                 }
+                this.persist();
                 changed();
             }
         } finally {
             this.running = false;
         }
     }
+}
+
+// What the door knows without network: hashed codes, names, last known state.
+// Codes never reach the browser in clear; the page hashes what it scans.
+export class CheckinManifest {
+    constructor(storage, digest = sha256Hex) {
+        this.storage = storage;
+        this.digest = digest;
+        this.data = storage?.read() ?? null;
+    }
+    load(payload) {
+        this.data = { generatedAt: payload.generated_at, tickets: Object.fromEntries(payload.tickets.map((t) => [t.h, { name: t.name, status: t.status }])) };
+        this.storage?.write(this.data);
+    }
+    get loaded() {
+        return this.data !== null;
+    }
+    get size() {
+        return this.data ? Object.keys(this.data.tickets).length : 0;
+    }
+    async lookup(code) {
+        if (!this.data) return { known: false };
+        const ticket = this.data.tickets[await this.digest(code)];
+        return ticket ? { known: true, ...ticket } : { known: false };
+    }
+    async markUsed(code) {
+        if (!this.data) return;
+        const hash = await this.digest(code);
+        if (this.data.tickets[hash]) {
+            this.data.tickets[hash].status = 'checked_in';
+            this.storage?.write(this.data);
+        }
+    }
+}
+
+export function localStorageStore(key) {
+    return {
+        read() {
+            try { return JSON.parse(window.localStorage.getItem(key)) ?? null; } catch { return null; }
+        },
+        write(value) {
+            try { window.localStorage.setItem(key, JSON.stringify(value)); } catch { /* storage full or blocked: memory only */ }
+        },
+    };
+}
+
+export async function sha256Hex(text) {
+    const bytes = new TextEncoder().encode(text);
+    const buffer = await crypto.subtle.digest('SHA-256', bytes);
+    return [...new Uint8Array(buffer)].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
