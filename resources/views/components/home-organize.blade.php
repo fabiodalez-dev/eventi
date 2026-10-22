@@ -5,6 +5,7 @@
         <div class="mt-4 flex flex-wrap gap-3">
             <x-button :href="route('submissions.create')">{{ __('events.submit.title') }}</x-button>
             <x-button :href="route('venue-applications.create')">{{ __('venues.claim.title') }}</x-button>
+            <x-button :href="route('organizer-applications.create')" variant="secondary">{{ __('forms.organizer_application.title') }}</x-button>
         </div>
     </div>
 </section>

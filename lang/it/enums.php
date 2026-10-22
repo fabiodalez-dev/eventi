@@ -214,6 +214,12 @@ return [
         'saved_search_match' => 'Nuove date per una ricerca salvata',
     ],
 
+    'application_kind' => [
+        'venue' => 'Locale nuovo',
+        'claim' => 'Rivendicazione di un locale',
+        'organizer' => 'Organizzatore',
+    ],
+
     'venue_notice_kind' => [
         'pause' => 'Pausa',
         'closure' => 'Chiusura',

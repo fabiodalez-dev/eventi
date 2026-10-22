@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\ApplicationKind;
 use App\Enums\ApplicationStatus;
 use App\Enums\VenueType;
 use App\Models\Concerns\HasSafeEditorContent;
@@ -22,8 +23,10 @@ class VenueApplication extends Model
 
     /** @var list<string> */
     protected $fillable = [
+        'kind',
         'user_id',
         'venue_id',
+        'organizer_id',
         'venue_name',
         'contact_name',
         'contact_role',
@@ -50,6 +53,17 @@ class VenueApplication extends Model
     public function venue(): BelongsTo
     {
         return $this->belongsTo(Venue::class);
+    }
+
+    /** @return BelongsTo<Organizer, $this> */
+    public function organizer(): BelongsTo
+    {
+        return $this->belongsTo(Organizer::class);
+    }
+
+    public function kind(): ApplicationKind
+    {
+        return $this->kind instanceof ApplicationKind ? $this->kind : ApplicationKind::Venue;
     }
 
     /** @return BelongsTo<User, $this> */
@@ -80,6 +94,7 @@ class VenueApplication extends Model
     protected function casts(): array
     {
         return [
+            'kind' => ApplicationKind::class,
             'type' => VenueType::class,
             'status' => ApplicationStatus::class,
             'socials' => 'array',

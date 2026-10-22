@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
+use App\Enums\ApplicationKind;
 use App\Enums\ApplicationStatus;
 use App\Enums\VenueType;
 use App\Models\VenueApplication;
@@ -21,13 +22,14 @@ final class CreateVenueApplication
     /**
      * @param  array{venue_name: string, contact_name: string, contact_role?: string|null, contact_phone?: string|null, contact_email: string, address?: string|null, type?: string|null, website?: string|null, message?: string|null}  $data
      */
-    public function handle(array $data, ?int $userId = null): VenueApplication
+    public function handle(array $data, ?int $userId = null, ApplicationKind $kind = ApplicationKind::Venue, ?int $venueId = null): VenueApplication
     {
         $website = $data['website'] ?? null;
 
         return VenueApplication::create([
+            'kind' => $kind,
             'user_id' => $userId,
-            'venue_id' => null,
+            'venue_id' => $kind === ApplicationKind::Claim ? $venueId : null,
             'venue_name' => $data['venue_name'],
             'contact_name' => $data['contact_name'],
             'contact_role' => $data['contact_role'] ?? null,

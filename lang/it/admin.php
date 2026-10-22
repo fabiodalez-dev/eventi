@@ -178,6 +178,7 @@ return [
     ],
 
     'fields' => [
+        'kind' => 'Tipo di richiesta',
         'title' => 'Titolo',
         'subtitle' => 'Sottotitolo',
         'description' => 'Descrizione',

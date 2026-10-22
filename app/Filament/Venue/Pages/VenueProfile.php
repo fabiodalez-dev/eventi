@@ -413,6 +413,7 @@ class VenueProfile extends Page implements HasSchemas
              */
             Action::make('notify_followers')
                 ->label(__('manage.notices.action'))
+                ->authorize(fn (): bool => auth()->user()?->can('update', CurrentVenue::get()) ?? false)
                 ->icon(Heroicon::OutlinedMegaphone)
                 ->color('gray')
                 ->modalHeading(__('manage.notices.heading'))

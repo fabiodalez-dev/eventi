@@ -13,6 +13,7 @@ use App\Http\Controllers\Web\EventSubmissionController;
 use App\Http\Controllers\Web\FeedController;
 use App\Http\Controllers\Web\HomeController;
 use App\Http\Controllers\Web\MapController;
+use App\Http\Controllers\Web\OrganizerApplicationController;
 use App\Http\Controllers\Web\OrganizerController;
 use App\Http\Controllers\Web\PublicContactController;
 use App\Http\Controllers\Web\ReportController;
@@ -20,6 +21,7 @@ use App\Http\Controllers\Web\SearchController;
 use App\Http\Controllers\Web\SearchSuggestionsController;
 use App\Http\Controllers\Web\TonightController;
 use App\Http\Controllers\Web\VenueApplicationController;
+use App\Http\Controllers\Web\VenueClaimController;
 use App\Http\Controllers\Web\VenueController;
 use App\Http\Middleware\CachePage;
 use App\Http\Middleware\PersonalizeDiscovery;
@@ -135,6 +137,14 @@ Route::post('/proponi-evento', [EventSubmissionController::class, 'store'])
     ->name('submissions.store');
 
 Route::get('/registra-il-tuo-locale', [VenueApplicationController::class, 'create'])->name('venue-applications.create');
+Route::get('/registra-la-tua-organizzazione', [OrganizerApplicationController::class, 'create'])->name('organizer-applications.create');
+Route::post('/registra-la-tua-organizzazione', [OrganizerApplicationController::class, 'store'])
+    ->middleware('throttle:10,60,organizer-application')
+    ->name('organizer-applications.store');
+Route::get('/locali/{venue}/rivendica', [VenueClaimController::class, 'create'])->name('venues.claim.create');
+Route::post('/locali/{venue}/rivendica', [VenueClaimController::class, 'store'])
+    ->middleware('throttle:10,60,venue-claim')
+    ->name('venues.claim.store');
 Route::post('/registra-il-tuo-locale', [VenueApplicationController::class, 'store'])
     ->middleware('throttle:public-forms')
     ->name('venue-applications.store');

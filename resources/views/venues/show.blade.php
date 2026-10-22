@@ -109,6 +109,10 @@
         </div>
     </header>
 
+    @if ($venue->status === \App\Enums\VenueStatus::Approved && $venue->owners()->doesntExist())
+        <p class="mt-4 text-sm text-ink-muted"><a href="{{ route('venues.claim.create', $venue) }}" class="underline">{{ __('forms.claim.cta') }}</a></p>
+    @endif
+
     @if ($avviso !== null)
         <aside role="note" aria-label="{{ $avviso->kind->label() }}" class="mt-5 border-2 border-accent bg-canvas p-4">
             <p class="m-0 text-xs font-bold uppercase tracking-wide text-accent">{{ $avviso->kind->label() }}@if ($avviso->until) · {{ __('venues.detail.notice_until', ['date' => $formatter->day($avviso->until)]) }}@endif</p>

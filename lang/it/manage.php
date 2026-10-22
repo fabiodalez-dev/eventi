@@ -269,6 +269,11 @@ return [
         'removed' => 'Collaboratore rimosso',
     ],
 
+    'organizer_invitation' => [
+        'subject' => ':organizer su :product: il tuo pannello è pronto',
+        'intro' => 'La redazione ha accolto la richiesta per :organizer. Da :product puoi proporre le date dei tuoi eventi, in qualunque locale della città.',
+    ],
+
     'invitation' => [
         'subject' => ':venue su :product',
         'greeting' => 'Ciao :name,',

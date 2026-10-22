@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace App\Filament\Admin\Resources\VenueApplications;
 
 use App\Actions\ApproveVenueApplication;
+use App\Enums\ApplicationKind;
 use App\Enums\ApplicationStatus;
 use App\Enums\VenueType;
 use App\Filament\Admin\Resources\VenueApplications\Pages\EditVenueApplication;
 use App\Filament\Admin\Resources\VenueApplications\Pages\ListVenueApplications;
 use App\Filament\Concerns\HasSentenceCaseNavigationLabel;
+use App\Models\Organizer;
 use App\Models\User;
 use App\Models\VenueApplication;
 use App\Support\Description;
@@ -82,6 +84,10 @@ class VenueApplicationResource extends Resource
                 Section::make(__('admin.sections.general'))
                     ->columns(2)
                     ->schema([
+                        TextEntry::make('kind')
+                            ->label(__('admin.fields.kind'))
+                            ->badge()
+                            ->formatStateUsing(fn (ApplicationKind $state): string => $state->label()),
                         TextEntry::make('venue_name')->label(__('admin.fields.venue_name')),
                         TextEntry::make('type')
                             ->label(__('admin.fields.type'))
@@ -140,6 +146,11 @@ class VenueApplicationResource extends Resource
                     ->dateTime('d/m/Y H:i')
                     ->sortable(),
 
+                TextColumn::make('kind')
+                    ->label(__('admin.fields.kind'))
+                    ->badge()
+                    ->formatStateUsing(fn (ApplicationKind $state): string => $state->label()),
+
                 TextColumn::make('venue_name')
                     ->label(__('admin.fields.venue_name'))
                     ->searchable(),
@@ -197,7 +208,11 @@ class VenueApplicationResource extends Resource
                     ->icon(Heroicon::OutlinedCheckCircle)
                     ->color('success')
                     ->requiresConfirmation()
-                    ->modalDescription(__('venue_applications.approve_confirm'))
+                    ->modalDescription(fn (VenueApplication $record): string => match ($record->kind()) {
+                        ApplicationKind::Claim => __('venue_applications.approve_claim_confirm'),
+                        ApplicationKind::Organizer => __('venue_applications.approve_organizer_confirm'),
+                        ApplicationKind::Venue => __('venue_applications.approve_confirm'),
+                    })
                     ->visible(fn (VenueApplication $record): bool => $record->status !== ApplicationStatus::Approved)
                     ->action(function (VenueApplication $record): void {
                         $moderatore = Auth::user();
@@ -206,13 +221,16 @@ class VenueApplicationResource extends Resource
                             return;
                         }
 
-                        $locale = app(ApproveVenueApplication::class)->handle($record, $moderatore);
+                        $kind = $record->kind();
+                        $soggetto = app(ApproveVenueApplication::class)->handle($record, $moderatore);
 
-                        Notification::make()
-                            ->title(__('venue_applications.approved', ['venue' => $locale->name]))
-                            ->body(__('venue_applications.approved_body'))
-                            ->success()
-                            ->send();
+                        [$titolo, $corpo] = match (true) {
+                            $soggetto instanceof Organizer => [__('venue_applications.approved_organizer', ['organizer' => $soggetto->name]), __('venue_applications.approved_organizer_body')],
+                            $kind === ApplicationKind::Claim => [__('venue_applications.approved_claim', ['venue' => $soggetto->name]), __('venue_applications.approved_claim_body')],
+                            default => [__('venue_applications.approved', ['venue' => $soggetto->name]), __('venue_applications.approved_body')],
+                        };
+
+                        Notification::make()->title($titolo)->body($corpo)->success()->send();
                     }),
 
                 Action::make('rifiuta')
