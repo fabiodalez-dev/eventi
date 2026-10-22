@@ -75,6 +75,17 @@ it('marks no-shows only after a checked-in date has ended and blocks repeat offe
         ->and(AdmissionTicket::query()->whereHas('booking', fn ($q) => $q->where('user_id', $other->id))->first()->status)->toBe(AdmissionStatus::NoShow)
         ->and($this->service->noShowCount($this->user))->toBe(1)
         ->and($this->service->statistics($this->date)['no_show'])->toBe(2);
+    expect($this->actingAs($this->user)->get(route('tickets.index'))->getContent())->toContain('1 prenotazioni recenti');
+    // A staff booking scanned alone is not proof the door was used.
+    $staffOnly = occurrenceAt(testCity(), testCategory(), '2026-10-23 18:00:00', '2026-10-23 22:00:00', ['booking_enabled' => true]);
+    $staffOnly->event->venue->update(['ticketing_enabled' => true]);
+    $this->travelTo(now()->setDate(2026, 10, 23)->setTime(12, 0));
+    $this->service->reserve(User::factory()->create(), $staffOnly, ['Gio'], (string) Str::uuid(), false);
+    $guest = $this->service->reserveForGuest($staffOnly, ['Banco'], [], $this->owner);
+    $this->travelTo(now()->setTime(19, 0));
+    $this->service->checkIn($staffOnly, $guest->tickets->first()->code, $this->owner);
+    $this->travelTo(now()->setDate(2026, 10, 24)->setTime(2, 0));
+    expect($this->service->markNoShows())->toBe(0);
     // A date where nobody was scanned produces no absentees.
     $quiet = occurrenceAt(testCity(), testCategory(), '2026-10-23 18:00:00', '2026-10-23 22:00:00', ['booking_enabled' => true]);
     $quiet->event->venue->update(['ticketing_enabled' => true]);

@@ -316,12 +316,20 @@ final class TicketingService
             foreach ($names as $name) {
                 $booking->tickets()->create(['attendee_name' => $name, 'code' => Str::random(64), 'status' => AdmissionStatus::Valid]);
             }
-            $this->audit($booking, 'reserved_by_staff', $staff);
+            $email = $booking->contactEmail();
+            activity('ticketing')->causedBy($staff)->performedOn($booking)->withProperties(array_filter(['email' => $email]))->log('reserved_by_staff');
             $cityId = $date->event?->city_id;
             if ($cityId !== null) {
                 DB::afterCommit(fn () => ContentVersion::bump($cityId));
             }
-            if (($email = $booking->contactEmail()) !== null) {
+            /* La mail parte verso un indirizzo scritto dal personale: un tetto
+               giornaliero per data impedisce che il modulo diventi un modo per
+               spedire posta a chiunque. Oltre il tetto la prenotazione resta,
+               la mail no, e il pannello lo dice. */
+            if ($email !== null) {
+                $mailedToday = Booking::query()->where('occurrence_id', $date->id)->whereNull('user_id')
+                    ->where('created_at', '>=', now()->subDay())->where('id', '!=', $booking->id)->whereNotNull('booker_data')->count();
+                $this->ensure($mailedToday < config()->integer('ticketing.guest.daily_mail_limit'), 'guest_mail_limit');
                 Notification::route('mail', $email)->notify(new GuestBookingConfirmation($booking->id));
             }
             app(NotificationScheduler::class)->announceAlmostFull($date);
@@ -382,11 +390,25 @@ final class TicketingService
         $dates = EventOccurrence::withTrashed()
             ->whereRaw('COALESCE(effective_ends_at, ends_at, starts_at) < ?', [$cutoff])
             ->whereHas('bookings.tickets', fn ($q) => $q->where('status', AdmissionStatus::Valid))
-            ->whereHas('bookings.tickets', fn ($q) => $q->where('status', AdmissionStatus::CheckedIn))
+            ->whereHas('bookings', fn ($q) => $q->whereNotNull('user_id')->whereHas('tickets', fn ($t) => $t->where('status', AdmissionStatus::CheckedIn)))
             ->orderBy('id')->pluck('id');
         foreach ($dates as $id) {
+            /* La porta deve essere stata usata davvero, e da chi ha prenotato
+               da solo: un gestore che registra un ingresso fittizio dal banco
+               e lascia gli altri «validi» non deve poter segnare assenti
+               persone che magari sono entrate senza essere scansionate. La
+               soglia sta in configurazione; le prenotazioni del banco non
+               fanno prova né in un senso né nell'altro. */
+            $self = AdmissionTicket::query()->whereHas('booking', fn ($q) => $q->where('occurrence_id', $id)->whereNotNull('user_id')->where('status', BookingStatus::Confirmed))
+                ->whereIn('status', [AdmissionStatus::Valid, AdmissionStatus::CheckedIn])
+                ->selectRaw('status, COUNT(*) as total')->groupBy('status')->pluck('total', 'status');
+            $present = (int) ($self[AdmissionStatus::CheckedIn->value] ?? 0);
+            $total = $present + (int) ($self[AdmissionStatus::Valid->value] ?? 0);
+            if ($total === 0 || $present / $total < config()->float('ticketing.no_show.min_checked_in_share')) {
+                continue;
+            }
             $marked += AdmissionTicket::query()->where('status', AdmissionStatus::Valid)
-                ->whereHas('booking', fn ($q) => $q->where('occurrence_id', $id)->where('status', BookingStatus::Confirmed))
+                ->whereHas('booking', fn ($q) => $q->where('occurrence_id', $id)->whereNotNull('user_id')->where('status', BookingStatus::Confirmed))
                 ->update(['status' => AdmissionStatus::NoShow->value]);
         }
 

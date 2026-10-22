@@ -2,6 +2,9 @@
     <div class="mx-auto flex max-w-3xl flex-col gap-8">
         <h1 class="text-hero">{{ __('ticketing.title') }}</h1>
         @include('ticketing.errors')
+        @if (($noShows ?? 0) > 0)
+            <p class="border-2 border-line bg-canvas p-4 text-sm">{{ __('ticketing.no_show.account', ['count' => $noShows, 'limit' => config('ticketing.no_show.limit'), 'days' => config('ticketing.no_show.window_days')]) }}</p>
+        @endif
         @forelse ($bookings as $booking)
             @php($data = \App\Http\Resources\V1\BookingResource::toArray($booking))
             <section class="border-t-2 border-line pt-5">

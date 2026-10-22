@@ -42,14 +42,15 @@ final class TicketingController extends Controller
         return response()->json(['data' => $service->availability($occurrence)])->header('Cache-Control', 'no-store');
     }
 
-    public function index(Request $request): JsonResponse|View
+    public function index(Request $request, TicketingService $service): JsonResponse|View
     {
         $bookings = Booking::query()->where('user_id', $request->user()->id)
             ->with(['tickets', 'occurrence.event.venue'])->orderByRaw("CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END")->latest('id')->paginate(30);
+        $noShows = $service->noShowCount($request->user());
 
         return $request->is('api/*')
-            ? response()->json(['data' => $bookings->getCollection()->map(fn ($b) => BookingResource::toArray($b)), 'meta' => ['next_page' => $bookings->hasMorePages() ? $bookings->currentPage() + 1 : null]])
-            : view('ticketing.index', ['bookings' => $bookings, 'meta' => $this->meta('title')]);
+            ? response()->json(['data' => $bookings->getCollection()->map(fn ($b) => BookingResource::toArray($b)), 'meta' => ['next_page' => $bookings->hasMorePages() ? $bookings->currentPage() + 1 : null, 'no_shows' => $noShows]])
+            : view('ticketing.index', ['bookings' => $bookings, 'noShows' => $noShows, 'meta' => $this->meta('title')]);
     }
 
     public function show(Booking $booking): View

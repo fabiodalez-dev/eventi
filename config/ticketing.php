@@ -30,6 +30,20 @@ return [
         'grace_hours' => 2,
         'limit' => 3,
         'window_days' => 90,
+        /*
+         * Quota minima di biglietti prenotati da account passati dalla porta
+         * perché la serata faccia prova. Sotto, il locale non ha usato il
+         * controllo ingressi per davvero e non si segna nessuno.
+         */
+        'min_checked_in_share' => 0.25,
+    ],
+
+    /*
+     * Le prenotazioni prese al banco con un'email: quante conferme al giorno
+     * per data possono partire verso indirizzi scritti dal personale.
+     */
+    'guest' => [
+        'daily_mail_limit' => 50,
     ],
 
     /*

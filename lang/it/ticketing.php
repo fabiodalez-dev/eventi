@@ -124,5 +124,6 @@ return [
         'promotion_expired' => 'Il tempo per confermare è scaduto: il posto è tornato a chi era in coda.',
         'no_show_limit' => 'Hai saltato troppe prenotazioni recenti senza annullarle. Per questa data contatta direttamente il locale.',
         'message_limit' => 'Hai già inviato il numero massimo di messaggi di oggi per questa data.',
+        'guest_mail_limit' => 'Hai raggiunto il numero massimo di conferme via email di oggi per questa data. Registra la prenotazione senza email.',
     ],
 ];
