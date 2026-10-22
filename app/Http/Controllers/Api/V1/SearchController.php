@@ -14,6 +14,7 @@ use App\Models\EventOccurrence;
 use App\Models\Tag;
 use App\Models\Venue;
 use App\Services\Api\OccurrenceFeed;
+use App\Services\Search\SearchMissLog;
 use App\Services\Search\SiteSearch;
 use App\Support\Api\ApiContext;
 use App\Support\Api\ApiResponse;
@@ -48,6 +49,9 @@ final class SearchController extends Controller
         $limit = $request->limit();
 
         $occurrences = $this->search->events($city, $term, $limit);
+        if ($occurrences->isEmpty()) {
+            app(SearchMissLog::class)->record($city, $term);
+        }
         $includes = $request->includes();
 
         $this->feed->hydrate($occurrences, $includes);

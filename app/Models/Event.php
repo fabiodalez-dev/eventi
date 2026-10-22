@@ -148,7 +148,15 @@ class Event extends Model implements HasMedia
     {
         return LogOptions::defaults()
             ->useLogName('event')
-            ->logOnly(['status', 'verification_status', 'published_at', 'rejection_reason', 'is_featured', 'editorial_score'])
+            /*
+             * Oltre alle decisioni editoriali, i testi e i dati che un gestore
+             * può rovinare per sbaglio: sono quelli che la cronologia permette
+             * di rimettere com'erano con «Ripristina».
+             */
+            ->logOnly(['status', 'verification_status', 'published_at', 'rejection_reason', 'is_featured', 'editorial_score',
+                'title', 'subtitle', 'description', 'short_description', 'price_type', 'price_min', 'price_max', 'price_notes',
+                'ticket_url', 'booking_url', 'booking_phone', 'age_restriction', 'venue_id', 'organizer_id', 'organizer_name', 'organizer_url',
+                'category_id', 'external_links', 'facts', 'content_details', 'video_url'])
             ->logOnlyDirty()
             ->dontLogEmptyChanges();
     }

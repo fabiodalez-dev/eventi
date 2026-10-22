@@ -11,6 +11,7 @@ use App\Http\Requests\Web\EventFilterRequest;
 use App\Models\City;
 use App\Queries\EventOccurrenceQuery;
 use App\Services\Search\FilterFacets;
+use App\Services\Search\SearchMissLog;
 use App\Services\Search\SiteSearch;
 use Illuminate\Contracts\View\View;
 
@@ -45,6 +46,7 @@ final class SearchController extends Controller
     public function __construct(
         private readonly SiteSearch $search,
         private readonly FilterFacets $facets,
+        private readonly SearchMissLog $misses,
     ) {}
 
     public function __invoke(EventFilterRequest $request): View
@@ -58,6 +60,9 @@ final class SearchController extends Controller
         $organizers = $term === '' ? null : $this->search->organizers($city, $term, self::VENUES);
 
         $found = ($events?->count() ?? 0) + ($venues?->count() ?? 0) + ($tags?->count() ?? 0) + ($organizers?->count() ?? 0);
+        if ($term !== '' && $found === 0) {
+            $this->misses->record($city, $term);
+        }
 
         return view('search.index', [
             'city' => $city,

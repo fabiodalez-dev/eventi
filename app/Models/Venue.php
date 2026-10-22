@@ -142,7 +142,9 @@ class Venue extends Model implements HasMedia
     {
         return LogOptions::defaults()
             ->useLogName('venue')
-            ->logOnly(['status', 'is_verified', 'plan', 'auto_publish', 'ticketing_enabled', 'approved_at', 'approved_by', 'rejection_reason'])
+            ->logOnly(['status', 'is_verified', 'plan', 'auto_publish', 'ticketing_enabled', 'approved_at', 'approved_by', 'rejection_reason',
+                'name', 'description', 'short_description', 'address', 'address_extra', 'postal_code', 'municipality', 'zone', 'phone', 'email',
+                'website', 'socials', 'opening_hours', 'transit', 'capacity', 'accessibility', 'info', 'requires_membership', 'membership_notes', 'type'])
             ->logOnlyDirty()
             ->dontLogEmptyChanges();
     }

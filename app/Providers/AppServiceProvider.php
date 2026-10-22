@@ -27,6 +27,7 @@ use App\Models\Report;
 use App\Models\SavedEvent;
 use App\Models\SavedSearch;
 use App\Models\ScheduledNotification;
+use App\Models\SearchMiss;
 use App\Models\Sponsorship;
 use App\Models\SponsorshipGrant;
 use App\Models\Tag;
@@ -57,6 +58,7 @@ use App\Policies\RedirectPolicy;
 use App\Policies\ReportPolicy;
 use App\Policies\SavedEventPolicy;
 use App\Policies\ScheduledNotificationPolicy;
+use App\Policies\SearchMissPolicy;
 use App\Policies\SponsorshipPolicy;
 use App\Policies\TagPolicy;
 use App\Policies\TicketTierPolicy;
@@ -542,6 +544,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(User::class, UserPolicy::class);
         Gate::policy(Page::class, PagePolicy::class);
         Gate::policy(Redirect::class, RedirectPolicy::class);
+        Gate::policy(SearchMiss::class, SearchMissPolicy::class);
         Gate::policy(EventComment::class, EventCommentPolicy::class);
         Gate::policy(CommunityComment::class, CommunityCommentPolicy::class);
     }

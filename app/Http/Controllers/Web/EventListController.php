@@ -18,6 +18,7 @@ use App\Services\Map\MapPayload;
 use App\Services\Search\ContextualFacets;
 use App\Services\Search\EventFinder;
 use App\Services\Search\FilterFacets;
+use App\Services\Search\SearchMissLog;
 use App\Services\Seo\EditorialContent;
 use App\Services\Seo\EventListingMeta;
 use App\Services\Seo\StructuredData;
@@ -107,6 +108,9 @@ final class EventListController extends Controller
         $city = $this->city();
 
         $occurrences = $this->finder->paginate($city, $filters);
+        if ($filters->q !== '' && $occurrences->total() === 0) {
+            app(SearchMissLog::class)->record($city, $filters->q);
+        }
 
         $meta = $this->meta
             ->build($city, $filters, $occurrences->total())
