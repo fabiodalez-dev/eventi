@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\SponsorshipBannerController;
 use App\Http\Controllers\Web\CalendarController;
 use App\Http\Controllers\Web\CalendarWizardController;
 use App\Http\Controllers\Web\CatalogReviewController;
+use App\Http\Controllers\Web\CollectionController;
 use App\Http\Controllers\Web\EventCommentController;
 use App\Http\Controllers\Web\EventController;
 use App\Http\Controllers\Web\EventListController;
@@ -131,6 +132,7 @@ Route::get('/locali/{slug}/segnala', [ReportController::class, 'createForVenue']
 Route::post('/locali/{slug}/segnala', [ReportController::class, 'storeForVenue'])
     ->middleware('throttle:public-forms')
     ->name('venues.report.store');
+Route::get('/raccolte/{token}', [CollectionController::class, 'show'])->where('token', '[A-Za-z0-9]{24}')->name('collections.show');
 Route::get('/locali/{slug}/calendario.ics', [PublicCalendarController::class, 'venue'])->middleware('throttle:60,1,public-calendar')->name('venues.calendar');
 Route::get('/locali/{slug}/programma.pdf', VenueProgrammeController::class)->middleware('throttle:30,1,venue-programme')->name('venues.programme');
 Route::get('/organizzatori/{slug}/calendario.ics', [PublicCalendarController::class, 'organizer'])->middleware('throttle:60,1,public-calendar')->name('organizers.calendar');

@@ -32,6 +32,7 @@
         <div class="flex flex-wrap gap-3">
             <x-button :href="route('account.saved.calendar')" class="min-h-12">{{ __('subscriptions.saved_export') }}</x-button>
             <x-button :href="route('feeds.wizard')" class="min-h-12">{{ __('subscriptions.create_calendar') }}</x-button>
+            <x-button :href="route('account.collections.index')" class="min-h-12" variant="secondary">{{ __('collections.title') }}</x-button>
         </div>
         <p class="mt-3 max-w-prose text-sm text-ink-muted">{{ __('subscriptions.saved_export_help') }}</p>
     </section>

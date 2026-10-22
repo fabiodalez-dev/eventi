@@ -231,6 +231,9 @@
                         />
                     @endif
                 </div>
+                @if (! ($isPreview ?? false) && $occurrences->isNotEmpty())
+                    <div class="event-detail-loose"><x-collection-add :occurrences="$occurrences" /></div>
+                @endif
             @endif
 
             @if ($shown->isNotEmpty())

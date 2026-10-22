@@ -15,6 +15,7 @@ use App\Models\CommunityComment;
 use App\Models\CommunityPost;
 use App\Models\CommunityProfile;
 use App\Models\Event;
+use App\Models\EventCollection;
 use App\Models\EventComment;
 use App\Models\EventOccurrence;
 use App\Models\Follow;
@@ -48,6 +49,7 @@ use App\Policies\CatalogReviewPolicy;
 use App\Policies\CategoryPolicy;
 use App\Policies\CityPolicy;
 use App\Policies\CommunityCommentPolicy;
+use App\Policies\EventCollectionPolicy;
 use App\Policies\EventCommentPolicy;
 use App\Policies\EventOccurrencePolicy;
 use App\Policies\EventPolicy;
@@ -545,6 +547,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Page::class, PagePolicy::class);
         Gate::policy(Redirect::class, RedirectPolicy::class);
         Gate::policy(SearchMiss::class, SearchMissPolicy::class);
+        Gate::policy(EventCollection::class, EventCollectionPolicy::class);
         Gate::policy(EventComment::class, EventCommentPolicy::class);
         Gate::policy(CommunityComment::class, CommunityCommentPolicy::class);
     }

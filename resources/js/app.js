@@ -1237,3 +1237,6 @@ eventWeather();
 
 import { videoEmbed } from "./video-embed";
 videoEmbed();
+
+import { collectionAdd } from "./collection-add";
+collectionAdd();
