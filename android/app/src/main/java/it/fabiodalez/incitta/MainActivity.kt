@@ -61,6 +61,8 @@ class MainActivity : ComponentActivity() {
                         uri.getQueryParameter("token")?.takeIf(String::isNotBlank)?.let(viewModel::exchangeMagicToken)
                     parts.firstOrNull() == "il-mio-feed" || parts.firstOrNull() == "notifiche" -> viewModel.selectTab(AppTab.ACCOUNT)
                     parts.firstOrNull() == "locali" && parts.size >= 2 -> viewModel.openVenueSlug(parts[1])
+                    it.fabiodalez.incitta.data.CollectionsRoutes.tokenFrom(parts) != null ->
+                        viewModel.openSharedCollection(requireNotNull(it.fabiodalez.incitta.data.CollectionsRoutes.tokenFrom(parts)))
                     parts.firstOrNull() == "mappa" -> viewModel.selectTab(AppTab.MAP)
                     parts.firstOrNull() == "calendario" -> viewModel.selectTab(AppTab.CALENDAR)
                     parts.firstOrNull() == "biglietti" -> viewModel.selectTab(AppTab.TICKETS)

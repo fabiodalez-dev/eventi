@@ -144,9 +144,12 @@ fun CompleteEventDetailScreen(
     onCarpool: (Long, Boolean) -> Unit = { _, _ -> },
     community: @Composable (Long) -> Unit = {},
     comments: @Composable () -> Unit = {},
+    session: it.fabiodalez.incitta.data.Session? = null,
+    onLogin: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val scrollState = rememberScrollState()
+    var collectionFor by remember(detail.id) { mutableStateOf<Long?>(null) }
     var carpoolPrompt by remember(detail.id) { mutableStateOf<Pair<Long,Boolean>?>(null) }
     carpoolPrompt?.let { (id, offer) -> AlertDialog(onDismissRequest={carpoolPrompt=null}, title={Text(cpText("free"))}, text={Text(cpText("onboarding"))}, confirmButton={CpButton("requirements"){carpoolPrompt=null;onCarpool(id,offer)}}, dismissButton={CpButton("back"){carpoolPrompt=null}}) }
     var posterLightbox by remember(detail.id) { mutableStateOf(false) }
@@ -199,7 +202,7 @@ fun CompleteEventDetailScreen(
                     if (detail.occurrences.isEmpty()) Text("Nessuna data futura disponibile.", color = Muted)
                     detail.occurrences.forEachIndexed { index, occurrence ->
                         if (index > 0) HorizontalDivider(Modifier.padding(vertical = 14.dp), color = Rule)
-                        OccurrenceDateBlock(detail, occurrence, occurrence.occurrenceId in savedIds, onSave)
+                        OccurrenceDateBlock(detail, occurrence, occurrence.occurrenceId in savedIds, onSave) { collectionFor = it }
                         if (occurrence.bookingEnabled) {
                             Button(onClick = { onReserve(occurrence) }, modifier = Modifier.fillMaxWidth().padding(top = 10.dp), shape = ControlShape) {
                                 Text(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.ticket_reserve))
@@ -366,6 +369,9 @@ fun CompleteEventDetailScreen(
                 onClose = { posterLightbox = false },
             )
         }
+        collectionFor?.let { occurrenceId ->
+            AddToCollectionSheet(session, occurrenceId, onDismiss = { collectionFor = null }, onLogin = onLogin)
+        }
         galleryLightbox?.let { url ->
             PosterLightbox(
                 url = url,
@@ -442,7 +448,7 @@ private fun EventVideoSection(video: it.fabiodalez.incitta.data.EventVideo) {
 }
 
 @Composable
-private fun OccurrenceDateBlock(detail: EventDetail, occurrence: Occurrence, saved: Boolean, onSave: (Long) -> Unit) {
+private fun OccurrenceDateBlock(detail: EventDetail, occurrence: Occurrence, saved: Boolean, onSave: (Long) -> Unit, onCollect: (Long) -> Unit) {
     val context = LocalContext.current
     InterestedBadge(occurrence.interestedCount)
     Text(fullDate(occurrence.startsAt), style = androidx.compose.material3.MaterialTheme.typography.titleLarge)
@@ -472,6 +478,9 @@ private fun OccurrenceDateBlock(detail: EventDetail, occurrence: Occurrence, sav
             shape = ControlShape,
             colors = ButtonDefaults.buttonColors(containerColor = if (saved) Acid else Paper, contentColor = Ink),
         ) { Text(if (saved) "SALVATA" else "SALVA", fontSize = 11.sp) }
+    }
+    TextButton(onClick = { onCollect(occurrence.occurrenceId) }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+        Text(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.collections_add))
     }
 }
 

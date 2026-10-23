@@ -64,7 +64,26 @@ internal class ApiClient(
         token: String?,
         idempotent: Boolean = false,
     ): T = withContext(Dispatchers.IO) {
-        val request = Request.Builder()
+        val payload = call(request(path, method, body, token, idempotent))
+        try {
+            json.decodeFromString<T>(payload)
+        } catch (error: SerializationException) {
+            throw ApiPayloadException(error)
+        }
+    }
+
+    /**
+     * Per le risposte senza corpo (204): la DELETE di una raccolta, di una
+     * data in una raccolta o di una ricerca salvata. Gli errori arrivano come
+     * per `execute`, il corpo della risposta riuscita non si legge.
+     */
+    suspend fun send(path: String, method: String, body: String?, token: String?) = withContext(Dispatchers.IO) {
+        call(request(path, method, body, token, false))
+        Unit
+    }
+
+    @PublishedApi internal fun request(path: String, method: String, body: String?, token: String?, idempotent: Boolean): Request =
+        Request.Builder()
             .url(BuildConfig.API_BASE_URL + path.removePrefix("/"))
             .header("Accept", "application/json")
             .header("Accept-Language", "it")
@@ -84,13 +103,14 @@ internal class ApiClient(
             )
             .build()
 
+    /** Esegue la richiesta e restituisce il corpo; una risposta non riuscita diventa `ApiException`. */
+    @PublishedApi internal fun call(request: Request): String {
         val response = try {
             client.newCall(request).execute()
         } catch (error: IOException) {
             throw IOException("Connessione non disponibile. Riprova tra poco.", error)
         }
-
-        response.use {
+        return response.use {
             val payload = it.body.string()
             if (!it.isSuccessful) {
                 val problem = try {
@@ -100,11 +120,7 @@ internal class ApiClient(
                 }
                 throw ApiException(it.code, problem)
             }
-            try {
-                json.decodeFromString<T>(payload)
-            } catch (error: SerializationException) {
-                throw ApiPayloadException(error)
-            }
+            payload
         }
     }
 

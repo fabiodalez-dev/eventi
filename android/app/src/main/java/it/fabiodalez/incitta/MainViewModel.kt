@@ -89,6 +89,8 @@ data class AppUiState(
     val authError: String? = null,
     val isOffline: Boolean = false,
     val message: String? = null,
+    /* Il gettone di una raccolta condivisa aperta da un link `/raccolte/{token}`. */
+    val sharedCollectionToken: String? = null,
 )
 
 /**
@@ -125,6 +127,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val state: StateFlow<AppUiState> = _state.asStateFlow()
     fun openCommunityDestination(url: String) {
         _state.value = _state.value.copy(communityDestination = url)
+    }
+    fun openSharedCollection(token: String) {
+        if (it.fabiodalez.incitta.data.CollectionsRoutes.validToken(token)) _state.value = _state.value.copy(sharedCollectionToken = token)
+    }
+    fun closeSharedCollection() {
+        _state.value = _state.value.copy(sharedCollectionToken = null)
     }
     fun consumeCommunityDestination(url: String) {
         if(_state.value.communityDestination == url) _state.value = _state.value.copy(communityDestination = null)
@@ -243,7 +251,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
         _state.value = _state.value.copy(bookingDate = null, bookingAvailability = null)
         detailHistory.clear()
-        _state.value = _state.value.copy(tab = tab, selected = null, selectedVenue = null, mapPreviewEvents = emptyList(), mapPreviewTotal = 0, message = null)
+        _state.value = _state.value.copy(tab = tab, selected = null, selectedVenue = null, mapPreviewEvents = emptyList(), mapPreviewTotal = 0, message = null, sharedCollectionToken = null)
         if (tab == AppTab.SAVED) loadSaved()
         if (tab == AppTab.MAP) loadMap()
         if (tab == AppTab.SEARCH || tab == AppTab.VENUES) loadVenues()

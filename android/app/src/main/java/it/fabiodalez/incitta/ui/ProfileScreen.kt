@@ -29,7 +29,7 @@ import java.time.ZoneId
 @Composable
 internal fun ProfileScreen(state: AppUiState, padding: PaddingValues, onTickets: () -> Unit, onSaved: () -> Unit,
     onLogout: () -> Unit, onDeleteAccount: (String) -> Unit, onInterestsSaved: () -> Unit,
-    onAppearance: (String) -> Unit, onProfileSaved: () -> Unit, onCommunity: () -> Unit, onCarpool: () -> Unit, onCarpoolMessages: () -> Unit, onCommunityInbox: () -> Unit, communityTotal: Int, onManagement: () -> Unit = {}, onPublicProfile: () -> Unit = {}, onRelationships: () -> Unit = {}, onVerification: () -> Unit = {}) {
+    onAppearance: (String) -> Unit, onProfileSaved: () -> Unit, onCommunity: () -> Unit, onCarpool: () -> Unit, onCarpoolMessages: () -> Unit, onCommunityInbox: () -> Unit, communityTotal: Int, onManagement: () -> Unit = {}, onPublicProfile: () -> Unit = {}, onRelationships: () -> Unit = {}, onVerification: () -> Unit = {}, onCollections: () -> Unit = {}) {
     val session = state.session ?: return
     val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
     var section by rememberSaveable(session.user.id) { mutableStateOf<String?>(null) }
@@ -60,6 +60,7 @@ internal fun ProfileScreen(state: AppUiState, padding: PaddingValues, onTickets:
                     ProfileRow("I miei interessi", "Scegli quali eventi vedere", Icons.Outlined.FavoriteBorder) { section = "I miei interessi" }
                     ProfileRow("Notifiche e newsletter", "Canali, orari e permessi del dispositivo", Icons.Outlined.NotificationsNone) { section = "Notifiche e newsletter" }
                     ProfileRow("Eventi salvati", "Ritrova le tue date", Icons.Outlined.BookmarkBorder, onSaved)
+                    ProfileRow(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.collections_title), androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.collections_subtitle), Icons.Outlined.CollectionsBookmark, onCollections)
                     ProfileRow("Calendario", "Google Calendar e calendario del telefono", Icons.Outlined.CalendarMonth) { section = "Calendario" }
                     ProfileRow("Account e accesso", "Esci o cancella il tuo account", Icons.Outlined.ManageAccounts) { section = "Account e accesso" }
                     if (session.user.managementLinks.isNotEmpty()) {
