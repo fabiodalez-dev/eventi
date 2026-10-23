@@ -55,6 +55,26 @@ final class PosterResource
         ];
     }
 
+    /**
+     * Una foto della galleria, nella stessa forma della locandina: così il
+     * client ne disegna una lista con lo stesso componente.
+     *
+     * @return array<string, mixed>
+     */
+    public static function media(Media $media): array
+    {
+        $full = $media->getFullUrl();
+
+        return [
+            'thumb' => self::conversion($media, 'thumb', $full),
+            'card' => self::conversion($media, 'card', $full),
+            'full' => $full,
+            'blurhash' => self::property($media, 'blurhash'),
+            'width' => self::dimension($media, 'width'),
+            'height' => self::dimension($media, 'height'),
+        ];
+    }
+
     private static function conversion(Media $media, string $name, string $fallback): string
     {
         return $media->hasGeneratedConversion($name) ? $media->getFullUrl($name) : $fallback;

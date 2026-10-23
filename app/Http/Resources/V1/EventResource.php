@@ -83,6 +83,26 @@ final class EventResource
                 'slug' => $event->organizer?->is_active ? $event->organizer->slug : null,
                 'host_fallback' => ! $event->organizer?->is_active && blank($event->organizer_name) && empty($event->content_details['organizer_venue_id']),
             ],
+            /*
+             * Gli altri organizzatori (D60), oltre a quello principale sopra:
+             * una rassegna fatta insieme è di tutti quelli che la fanno, e il
+             * client li mostra come il sito, uno dopo l'altro.
+             */
+            'organizers' => $event->organizers->map(static fn ($organizer): array => [
+                'id' => (int) $organizer->getKey(),
+                'name' => (string) $organizer->name,
+                'slug' => (string) $organizer->slug,
+                'url' => route('organizers.show', $organizer),
+            ])->values()->all(),
+            /* Le foto dell'evento e il video (D60). Il video è solo la
+               descrizione: il client decide se e quando aprire il lettore,
+               e finché non lo fa non contatta nessuno. */
+            'gallery' => $event->getMedia('gallery')->map(static fn ($media): array => PosterResource::media($media))->values()->all(),
+            'video' => ($video = $event->video()) === null ? null : [
+                'provider' => $video->provider,
+                'embed_url' => $video->embedUrl,
+                'watch_url' => $video->watchUrl,
+            ],
             'price' => PriceResource::toArray($event),
 
             /*

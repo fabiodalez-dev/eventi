@@ -87,6 +87,24 @@ final class VenueResource
         ];
     }
 
+    /**
+     * L'avviso del locale in vista oggi (pausa, chiusura, riapertura,
+     * comunicazione), come sulla scheda del sito; `null` se non ce n'è uno.
+     * Solo per la scheda del locale: nelle liste costerebbe una query per riga.
+     *
+     * @return array{kind: string, body: string, until: string|null}|null
+     */
+    public static function notice(Venue $venue): ?array
+    {
+        $notice = $venue->currentNotice();
+
+        return $notice === null ? null : [
+            'kind' => $notice->kind->value,
+            'body' => (string) $notice->body,
+            'until' => $notice->until?->toDateString(),
+        ];
+    }
+
     /** @return array<string, mixed>|null */
     private static function image(Venue $venue, string $collection): ?array
     {

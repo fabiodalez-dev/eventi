@@ -98,3 +98,21 @@ it('serves public calendars for a venue, an organizer and a category, and a prin
     expect($pdf->getContent())->toStartWith('%PDF');
     $this->get(route('venues.programme', ['slug' => $venue->slug, 'settimana' => 'non-una-data']))->assertOk();
 });
+
+it('exposes co-organizers, gallery and video to the API without loading any player', function (): void {
+    $date = occurrenceAtLocal($this->city, $this->category, '2026-10-30 21:00', event: ['title' => 'Serata API', 'video_url' => 'https://vimeo.com/123456789']);
+    $event = $date->event;
+    $event->addMedia(ImageFixtures::upload('api-1.png', ImageFixtures::png(640, 480)))->toMediaCollection('gallery');
+    $co = Organizer::query()->create(['city_id' => $this->city->id, 'name' => 'Associazione B', 'is_active' => true]);
+    $event->organizers()->sync([$co->id]);
+    $response = $this->getJson('/api/v1/events/'.$event->slug)->assertOk();
+    expect($response->json('data.organizers.0.slug'))->toBe($co->slug)
+        ->and($response->json('data.organizers.0.url'))->toBe(route('organizers.show', $co))
+        ->and($response->json('data.gallery'))->toHaveCount(1)
+        ->and($response->json('data.gallery.0.full'))->toContain('api-1')
+        ->and($response->json('data.video.provider'))->toBe('vimeo')
+        ->and($response->json('data.video.embed_url'))->toBe('https://player.vimeo.com/video/123456789?dnt=1');
+    $plain = occurrenceAtLocal($this->city, $this->category, '2026-11-02 21:00', event: ['title' => 'Senza extra']);
+    $bare = $this->getJson('/api/v1/events/'.$plain->event->slug)->assertOk();
+    expect($bare->json('data.organizers'))->toBe([])->and($bare->json('data.gallery'))->toBe([])->and($bare->json('data.video'))->toBeNull();
+});

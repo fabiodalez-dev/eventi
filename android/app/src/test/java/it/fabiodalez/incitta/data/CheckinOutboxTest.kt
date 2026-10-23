@@ -37,6 +37,20 @@ class CheckinOutboxTest {
         queue.flush { outcome = it }
         assertFalse(outcome!!.accepted); assertTrue(stored.isEmpty())
     }
+    @Test fun readsKeepTheScanInstantAndSendItAsScannedAt() = runTest {
+        var stored = emptyList<PendingCheckin>()
+        val bodies = mutableListOf<kotlinx.serialization.json.JsonObject>()
+        val scanned = java.time.Instant.parse("2026-10-23T19:45:12Z")
+        val queue = CheckinOutbox(7, { stored }, { stored = it }, { bodies += checkInBody(it); throw IOException() })
+        queue.add(1, "E".repeat(64), scanned); queue.flush()
+        assertEquals("2026-10-23T19:45:12Z", stored.single().scannedAt)
+        assertEquals("2026-10-23T19:45:12Z", (bodies.single()["scanned_at"] as kotlinx.serialization.json.JsonPrimitive).content)
+    }
+    @Test fun readsSavedByOlderVersionsStillDecodeWithoutScannedAt() {
+        val legacy = kotlinx.serialization.json.Json.decodeFromString<List<PendingCheckin>>("""[{"userId":7,"occurrenceId":1,"code":"${"F".repeat(64)}","requestKey":"k"}]""")
+        assertNull(legacy.single().scannedAt)
+        assertFalse(checkInBody(legacy.single()).containsKey("scanned_at"))
+    }
     @Test fun invalidCodesAreNeverStored() = runTest {
         var stored = emptyList<PendingCheckin>()
         val queue = CheckinOutbox(7, { stored }, { stored = it }, { error("Must not send") })

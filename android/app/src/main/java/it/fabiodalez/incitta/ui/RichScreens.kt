@@ -49,6 +49,7 @@ import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material.icons.outlined.Phone
+import androidx.compose.material.icons.outlined.PlayCircle
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Share
@@ -81,6 +82,8 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -99,6 +102,7 @@ import it.fabiodalez.incitta.data.Occurrence
 import it.fabiodalez.incitta.data.Price
 import it.fabiodalez.incitta.data.Tag
 import it.fabiodalez.incitta.data.Venue
+import it.fabiodalez.incitta.data.coOrganizers
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.time.OffsetDateTime
@@ -141,12 +145,16 @@ fun CompleteEventDetailScreen(
     community: @Composable (Long) -> Unit = {},
     comments: @Composable () -> Unit = {},
     dateActions: @Composable (Occurrence) -> Unit = {},
+    session: it.fabiodalez.incitta.data.Session? = null,
+    onLogin: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val scrollState = rememberScrollState()
+    var collectionFor by remember(detail.id) { mutableStateOf<Long?>(null) }
     var carpoolPrompt by remember(detail.id) { mutableStateOf<Pair<Long,Boolean>?>(null) }
     carpoolPrompt?.let { (id, offer) -> AlertDialog(onDismissRequest={carpoolPrompt=null}, title={Text(cpText("free"))}, text={Text(cpText("onboarding"))}, confirmButton={CpButton("requirements"){carpoolPrompt=null;onCarpool(id,offer)}}, dismissButton={CpButton("back"){carpoolPrompt=null}}) }
     var posterLightbox by remember(detail.id) { mutableStateOf(false) }
+    var galleryLightbox by remember(detail.id) { mutableStateOf<String?>(null) }
     LaunchedEffect(detail.id) { scrollState.scrollTo(0) }
     Box(Modifier.fillMaxSize()) {
         Surface(Modifier.fillMaxSize(), color = Ink, contentColor = Paper) {
@@ -172,13 +180,20 @@ fun CompleteEventDetailScreen(
                     }
                 }
 
-                if (detail.organizer.name != null || detail.externalLinks.isNotEmpty()) {
+                EventGallerySection(detail.gallery) { galleryLightbox = it }
+                detail.video?.let { EventVideoSection(it) }
+
+                val coOrganizers = detail.coOrganizers()
+                if (detail.organizer.name != null || detail.externalLinks.isNotEmpty() || coOrganizers.isNotEmpty()) {
                     DetailSection("LINK E ORGANIZZATORE") {
                         detail.organizer.name?.let { name ->
                             LabeledValue("Organizza", name)
                             if (detail.organizer.slug != null) SmallLink("TUTTI GLI EVENTI DELL'ORGANIZZATORE") { onOrganizer(detail.organizer.slug) }
                             else if (detail.organizer.hostFallback && detail.venue != null) SmallLink("TUTTI GLI EVENTI DEL LOCALE") { onVenue(detail.venue) }
                             else detail.organizer.url?.let { url -> SmallLink("SITO DELL'ORGANIZZATORE") { openUrl(context, url) } }
+                        }
+                        coOrganizers.forEach { coOrganizer ->
+                            SmallLink(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.event_coorganizer, coOrganizer.name.orEmpty())) { coOrganizer.slug?.let(onOrganizer) }
                         }
                         detail.externalLinks.forEach { link -> SmallLink(link.label.uppercase()) { openUrl(context, link.url) } }
                     }
@@ -188,7 +203,7 @@ fun CompleteEventDetailScreen(
                     if (detail.occurrences.isEmpty()) Text("Nessuna data futura disponibile.", color = Muted)
                     detail.occurrences.forEachIndexed { index, occurrence ->
                         if (index > 0) HorizontalDivider(Modifier.padding(vertical = 14.dp), color = Rule)
-                        OccurrenceDateBlock(detail, occurrence, occurrence.occurrenceId in savedIds, onSave)
+                        OccurrenceDateBlock(detail, occurrence, occurrence.occurrenceId in savedIds, onSave) { collectionFor = it }
                         if (occurrence.bookingEnabled) {
                             Button(onClick = { onReserve(occurrence) }, modifier = Modifier.fillMaxWidth().padding(top = 10.dp), shape = ControlShape) {
                                 Text(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.ticket_reserve))
@@ -356,11 +371,86 @@ fun CompleteEventDetailScreen(
                 onClose = { posterLightbox = false },
             )
         }
+        collectionFor?.let { occurrenceId ->
+            AddToCollectionSheet(session, occurrenceId, onDismiss = { collectionFor = null }, onLogin = onLogin)
+        }
+        galleryLightbox?.let { url ->
+            PosterLightbox(
+                url = url,
+                title = androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.event_gallery_full, detail.title),
+                onClose = { galleryLightbox = null },
+            )
+        }
+    }
+}
+
+/**
+ * Le foto dell'evento in due colonne. Al tocco si apre la versione grande
+ * nello stesso riquadro a schermo intero della locandina.
+ */
+@Composable
+private fun EventGallerySection(gallery: List<it.fabiodalez.incitta.data.Poster>, onOpen: (String) -> Unit) {
+    val photos = gallery.filter { (it.card ?: it.full ?: it.thumb) != null }
+    if (photos.isEmpty()) return
+    DetailSection(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.event_gallery)) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            photos.chunked(2).forEachIndexed { row, pair ->
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    pair.forEachIndexed { column, photo ->
+                        val position = row * 2 + column + 1
+                        val description = androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.event_gallery_photo, position, photos.size)
+                        val large = photo.full ?: photo.card ?: photo.thumb
+                        Box(
+                            Modifier.weight(1f).aspectRatio(1f).clipToBounds()
+                                .background(if (isLightTheme) MaterialTheme.colorScheme.surfaceVariant else Color(0xFF202020))
+                                .clickable(onClickLabel = description) { large?.let(onOpen) }
+                                .semantics { contentDescription = description },
+                        ) {
+                            AsyncImage(photo.card ?: photo.thumb ?: photo.full, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                        }
+                    }
+                    if (pair.size == 1) Spacer(Modifier.weight(1f))
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Il video come riquadro nostro: icona, fornitore e una riga che dice dove si
+ * apre. Niente WebView e nessuna richiesta al fornitore prima del tocco: al
+ * tocco si apre `watch_url` nel browser o nell'app del fornitore.
+ */
+@Composable
+private fun EventVideoSection(video: it.fabiodalez.incitta.data.EventVideo) {
+    val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
+    val provider = when (video.provider.lowercase(Locale.ROOT)) {
+        "youtube" -> androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.event_video_youtube)
+        "vimeo" -> androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.event_video_vimeo)
+        else -> video.provider.replaceFirstChar { it.titlecase(Locale.ITALIAN) }
+    }
+    DetailSection(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.event_video)) {
+        Surface(
+            onClick = { runCatching { uriHandler.openUri(video.watchUrl) } },
+            modifier = Modifier.fillMaxWidth().heightIn(min = 96.dp),
+            shape = CardShape,
+            color = if (isLightTheme) MaterialTheme.colorScheme.surfaceVariant else Color(0xFF202020),
+            border = BorderStroke(1.dp, Rule),
+        ) {
+            Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                Icon(Icons.Outlined.PlayCircle, contentDescription = null, tint = Acid, modifier = Modifier.size(48.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.event_video_watch, provider), style = MaterialTheme.typography.titleMedium)
+                    Text(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.event_video_note, provider), color = Muted, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 4.dp))
+                }
+                Icon(Icons.AutoMirrored.Outlined.OpenInNew, contentDescription = null, tint = Acid)
+            }
+        }
     }
 }
 
 @Composable
-private fun OccurrenceDateBlock(detail: EventDetail, occurrence: Occurrence, saved: Boolean, onSave: (Long) -> Unit) {
+private fun OccurrenceDateBlock(detail: EventDetail, occurrence: Occurrence, saved: Boolean, onSave: (Long) -> Unit, onCollect: (Long) -> Unit) {
     val context = LocalContext.current
     InterestedBadge(occurrence.interestedCount)
     Text(fullDate(occurrence.startsAt), style = androidx.compose.material3.MaterialTheme.typography.titleLarge)
@@ -390,6 +480,9 @@ private fun OccurrenceDateBlock(detail: EventDetail, occurrence: Occurrence, sav
             shape = ControlShape,
             colors = ButtonDefaults.buttonColors(containerColor = if (saved) Acid else Paper, contentColor = Ink),
         ) { Text(if (saved) "SALVATA" else "SALVA", fontSize = 11.sp) }
+    }
+    TextButton(onClick = { onCollect(occurrence.occurrenceId) }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+        Text(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.collections_add))
     }
 }
 
@@ -421,6 +514,7 @@ fun VenueDetailScreen(
             DetailBar("IN CITTÀ / LOCALE", onBack)
             Column(Modifier.fillMaxSize().verticalScroll(scrollState)) {
                 RichImage(venue.cover, Modifier.fillMaxWidth().aspectRatio(16f / 10f))
+                venue.notice?.let { VenueNoticeBox(it) }
                 Column(Modifier.padding(18.dp)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.Top) {
                         Box(Modifier.size(72.dp).border(1.dp, Rule).padding(4.dp), contentAlignment = Alignment.Center) {
@@ -442,6 +536,19 @@ fun VenueDetailScreen(
                     Spacer(Modifier.height(12.dp))
                     VenueFollowButton(venue.id, session, onLogin)
                     OpenNowLabel(venue, Modifier.padding(top = 12.dp))
+                    venue.slug?.let { slug ->
+                        Spacer(Modifier.height(10.dp))
+                        OutlinedButton(
+                            onClick = { openUrl(context, it.fabiodalez.incitta.data.venueCalendarUrl(it.fabiodalez.incitta.BuildConfig.API_BASE_URL, slug)) },
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                            shape = ControlShape,
+                            border = BorderStroke(1.dp, Rule),
+                        ) {
+                            Icon(Icons.Outlined.CalendarMonth, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Text(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.venue_calendar_ics), modifier = Modifier.padding(start = 8.dp).weight(1f))
+                        }
+                        Text(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.venue_calendar_ics_help), color = Muted, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 4.dp))
+                    }
                     Text(address(venue), color = Muted, modifier = Modifier.padding(top = 12.dp))
                     venue.description?.let { Text(it, style = androidx.compose.material3.MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 16.dp)) }
                     // Solo per chi è dentro: nascondere è una preferenza del profilo.
@@ -1183,6 +1290,26 @@ private fun dial(context: android.content.Context, phone: String) = openUrl(cont
 private fun directions(context: android.content.Context, lat: Double, lng: Double, label: String) {
     val encoded = URLEncoder.encode(label, StandardCharsets.UTF_8.toString())
     openUrl(context, "geo:$lat,$lng?q=$lat,$lng($encoded)")
+}
+
+/** L'avviso del locale in alto nella scheda: tipo, testo e «fino al …». */
+@Composable
+private fun VenueNoticeBox(notice: it.fabiodalez.incitta.data.VenueNotice) {
+    val kind = androidx.compose.ui.res.stringResource(when (notice.kind) {
+        "pause" -> it.fabiodalez.incitta.R.string.venue_notice_pause
+        "closure" -> it.fabiodalez.incitta.R.string.venue_notice_closure
+        "reopening" -> it.fabiodalez.incitta.R.string.venue_notice_reopening
+        else -> it.fabiodalez.incitta.R.string.venue_notice_info
+    })
+    val until = notice.untilDate()?.format(DateTimeFormatter.ofPattern("d MMMM yyyy", Locale.ITALIAN))
+    Column(Modifier.fillMaxWidth().padding(start = 18.dp, end = 18.dp, top = 18.dp).border(2.dp, Acid, ControlShape).padding(14.dp)) {
+        Text(
+            if (until != null) androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.venue_notice_heading_until, kind, until) else kind,
+            color = Acid,
+            style = MaterialTheme.typography.labelLarge,
+        )
+        Text(notice.body, modifier = Modifier.padding(top = 6.dp), style = MaterialTheme.typography.bodyLarge)
+    }
 }
 
 @Composable

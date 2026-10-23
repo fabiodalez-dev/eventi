@@ -40,18 +40,23 @@ class AppRepository(context: Context) {
     suspend fun bookingAvailability(id: Long): BookingAvailability =
         api.get<ApiEnvelope<BookingAvailability>>("occurrences/$id/booking").data
 
-    suspend fun bookings(): List<Booking> {
+    suspend fun bookings(): List<Booking> = bookingList().bookings
+
+    /** Tutte le pagine delle prenotazioni; le assenze recenti si leggono dal `meta` della prima. */
+    suspend fun bookingList(): BookingList {
         val token = requireNotNull(_session.value?.token)
         val result = mutableListOf<Booking>()
+        var noShows = 0
         var page: Int? = 1
         while (page != null) {
             val response = api.get<ApiEnvelope<List<Booking>>>("me/bookings?page=$page", token)
             result.addAll(response.data)
+            if (page == 1) noShows = response.meta?.noShows ?: 0
             page = response.meta?.nextPage
         }
         val user = _session.value
         if (user?.token == token) store.writeBookings(StoredBookings(user.user.id, java.time.Instant.now().toString(), result))
-        return result
+        return BookingList(result, noShows)
     }
 
     /** 11. L'ultima lettura riuscita dei biglietti di chi è dentro, se c'è. */
@@ -89,6 +94,9 @@ class AppRepository(context: Context) {
 
     suspend fun revokePresence(token: String) =
         api.send("me/presence/${token.urlEncoded()}", "DELETE", requireNotNull(_session.value?.token))
+
+    suspend fun saveSearch(filters: Map<String, String>, query: String): SavedSearch =
+        SavedSearchesApi(api, requireNotNull(_session.value?.token)).create(SavedSearchFilters.fromApp(filters, query))
 
     suspend fun reserve(id: Long, body: ReserveBody): Booking =
         api.post<ApiEnvelope<Booking>, ReserveBody>("occurrences/$id/bookings", body, requireNotNull(_session.value?.token)).data

@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -48,10 +49,29 @@ internal fun ManagementScreen(session: Session?, padding: PaddingValues, client:
     var pending by remember { mutableStateOf(outbox.pending()) }
     var outcomes by remember { mutableStateOf(emptyList<CheckinOutcome>()) }
     var removeStaff by remember { mutableStateOf<CheckinStaff?>(null) }
+    var manifest by remember { mutableStateOf<CheckinManifest?>(null) }
+    var manifestBusy by remember { mutableStateOf(false) }
+    var manifestError by remember { mutableStateOf<String?>(null) }
     val saved = stringResource(R.string.management_saved)
     val scanPrompt = stringResource(R.string.management_scan_prompt)
     val invalidCode = stringResource(R.string.management_invalid_code)
     val queueFull = stringResource(R.string.management_queue_full)
+    val notInList = stringResource(R.string.management_offline_unknown)
+    val alreadyUsed = stringResource(R.string.management_offline_used)
+    /*
+     * L'elenco della data aperta: prima quello salvato sul telefono, poi uno
+     * fresco dal server. Se la rete manca resta quello salvato (o nessuno).
+     */
+    suspend fun refreshManifest(id: Long) {
+        manifestBusy = true; manifestError = null
+        try {
+            val fresh = CheckinManifest.from(id, api.manifest(id), System.currentTimeMillis()).refreshedWith(store.readManifest(id))
+            store.writeManifest(id, fresh)
+            if (date?.id == id) manifest = fresh
+        } catch (e: CancellationException) { throw e }
+        catch (e: Exception) { if (date?.id == id) manifestError = requestFailureMessage(e) }
+        finally { manifestBusy = false }
+    }
     suspend fun flush() {
         outbox.flush { result ->
             if (result != null) outcomes = (listOf(result) + outcomes).take(30)
@@ -94,9 +114,28 @@ internal fun ManagementScreen(session: Session?, padding: PaddingValues, client:
     fun addCode(value: String) {
         val current = date ?: return
         val code = value.trim()
+        val scannedAt = java.time.Instant.now()
         if (!code.matches(Regex("[A-Za-z0-9]{64}"))) { error = invalidCode; return }
         if (pending.size >= 200) { error = queueFull; return }
-        action { outbox.add(current.id, code); pending = outbox.pending(); flush() }
+        val list = manifest?.takeIf { it.occurrenceId == current.id }
+        val verdict = list?.verdict(code)
+        when (scanDecision(isOnline(context), verdict)) {
+            ScanDecision.RejectUsed -> { outcomes = (listOf(CheckinOutcome(current.id, false, alreadyUsed.format((verdict as ManifestVerdict.AlreadyUsed).name))) + outcomes).take(30); return }
+            ScanDecision.PendingUnknown -> outcomes = (listOf(CheckinOutcome(current.id, false, notInList)) + outcomes).take(30)
+            ScanDecision.Send, ScanDecision.Pending -> Unit
+        }
+        if (list != null && verdict is ManifestVerdict.Known) {
+            val marked = list.markUsed(code)
+            runCatching { store.writeManifest(current.id, marked) }
+            manifest = marked
+        }
+        action { outbox.add(current.id, code, scannedAt); pending = outbox.pending(); flush() }
+    }
+    LaunchedEffect(date?.id, date?.canCheckIn) {
+        val current = date
+        if (current == null || !current.canCheckIn) { manifest = null; manifestError = null; return@LaunchedEffect }
+        if (manifest?.occurrenceId != current.id) manifest = store.readManifest(current.id)
+        refreshManifest(current.id)
     }
     val scanner = rememberLauncherForActivityResult(ScanContract()) { result -> result.contents?.let(::addCode) }
     fun back() { if (date != null || campaign != null) { date = null; campaign = null; error = null; message = null } else onBack() }
@@ -122,6 +161,21 @@ internal fun ManagementScreen(session: Session?, padding: PaddingValues, client:
                 if (selected.canCheckIn) {
                     Text(stringResource(R.string.management_checkin), style = MaterialTheme.typography.titleLarge)
                     Text(stringResource(R.string.management_online_only), color = Muted)
+                    val list = manifest?.takeIf { it.occurrenceId == selected.id }
+                    Text(
+                        if (list != null) stringResource(R.string.management_offline_loaded, manifestClock(list.generatedAt), list.size)
+                        else stringResource(R.string.management_offline_missing),
+                        color = if (list != null) Paper else MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.titleSmall,
+                    )
+                    manifestError?.let { Text(stringResource(R.string.management_offline_refresh_failed, it), color = Muted) }
+                    OutlinedButton(enabled = !manifestBusy, onClick = { scope.launch { refreshManifest(selected.id) } }, modifier = Modifier.heightIn(min = 48.dp)) {
+                        Text(stringResource(R.string.management_offline_refresh))
+                    }
+                    pending.filter { it.occurrenceId == selected.id }.take(20).forEach { read ->
+                        val name = list?.lookup(read.code)?.name
+                        Text(if (name != null) stringResource(R.string.management_offline_waiting_name, name) else stringResource(R.string.management_offline_waiting_code, read.code.take(6)), color = Muted)
+                    }
                     Button(enabled = !busy, onClick = {
                         scanner.launch(ScanOptions().setDesiredBarcodeFormats(ScanOptions.QR_CODE).setPrompt(scanPrompt).setBeepEnabled(false).setOrientationLocked(false))
                     }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text(stringResource(R.string.management_scan)) }
@@ -147,6 +201,29 @@ internal fun ManagementScreen(session: Session?, padding: PaddingValues, client:
                     var email by remember(selected.id) { mutableStateOf("") }
                     OutlinedTextField(email, { email = it.take(255) }, label = { Text(stringResource(R.string.management_email)) }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email), modifier = Modifier.fillMaxWidth())
                     OutlinedButton(enabled = !busy && email.isNotBlank(), onClick = { action { api.staff(selected.id, email.trim(), false); date = api.date(selected.id); email = ""; message = saved } }) { Text(stringResource(R.string.management_assign)) }
+                    HorizontalDivider()
+                    key(selected.id) {
+                        AttendeeMessageForm(busy) { subject, body, waitlisted, sent ->
+                            action {
+                                val result = api.message(selected.id, subject, body, waitlisted)
+                                message = context.resources.getQuantityString(R.plurals.management_message_sent, result.recipientsCount, result.recipientsCount)
+                                sent()
+                            }
+                        }
+                    }
+                    HorizontalDivider()
+                    key(selected.id) {
+                        GuestBookingForm(busy) { names, email, phone, note, saved ->
+                            action {
+                                val booking = api.guestBooking(selected.id, names, email, phone, note)
+                                saved()
+                                date = api.date(selected.id)
+                                // I biglietti appena registrati devono entrare nell'elenco senza rete.
+                                if (selected.canCheckIn) refreshManifest(selected.id)
+                                message = context.resources.getQuantityString(R.plurals.management_guest_saved, booking.tickets.size, booking.tickets.size)
+                            }
+                        }
+                    }
                     HorizontalDivider()
                     key(selected) { DecisionDetailsForm(selected, busy) { body -> action { api.details(selected.id, body); date = api.date(selected.id); message = saved } } }
                 }
@@ -197,9 +274,75 @@ internal fun ManagementScreen(session: Session?, padding: PaddingValues, client:
         dismissButton = { TextButton(onClick = { removeStaff = null }) { Text(stringResource(R.string.management_cancel)) } }) }
 }
 
+/**
+ * «Scrivi a chi ha prenotato»: oggetto, testo e lista d'attesa facoltativa.
+ * L'invio chiede conferma; il server risponde con il numero di destinatari o
+ * con l'errore del tetto giornaliero, che la schermata mostra così com'è.
+ */
+@Composable private fun AttendeeMessageForm(busy: Boolean, onSend: (String, String, Boolean, () -> Unit) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    var subject by remember { mutableStateOf("") }
+    var body by remember { mutableStateOf("") }
+    var waitlisted by remember { mutableStateOf(false) }
+    var confirm by remember { mutableStateOf(false) }
+    TextButton(onClick = { expanded = !expanded }, modifier = Modifier.heightIn(min = 48.dp)) {
+        Text(stringResource(if (expanded) R.string.management_message_hide else R.string.management_message_title))
+    }
+    if (!expanded) return
+    Text(stringResource(R.string.management_message_hint, MESSAGE_DAILY_LIMIT), color = Muted)
+    OutlinedTextField(subject, { subject = it.take(160) }, enabled = !busy, singleLine = true, label = { Text(stringResource(R.string.management_message_subject)) }, modifier = Modifier.fillMaxWidth())
+    OutlinedTextField(body, { body = it.take(2000) }, enabled = !busy, minLines = 4, label = { Text(stringResource(R.string.management_message_body)) },
+        supportingText = { Text(stringResource(R.string.management_message_length, body.length)) }, modifier = Modifier.fillMaxWidth())
+    Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).toggleable(waitlisted, enabled = !busy, role = androidx.compose.ui.semantics.Role.Checkbox) { waitlisted = it },
+        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+        Checkbox(checked = waitlisted, onCheckedChange = null, enabled = !busy)
+        Text(stringResource(R.string.management_message_waitlisted), modifier = Modifier.padding(start = 8.dp))
+    }
+    Button(enabled = !busy && subject.isNotBlank() && body.isNotBlank(), onClick = { confirm = true }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+        Text(stringResource(R.string.management_message_send))
+    }
+    if (confirm) AlertDialog(
+        onDismissRequest = { confirm = false },
+        title = { Text(stringResource(R.string.management_message_send)) },
+        text = { Text(stringResource(if (waitlisted) R.string.management_message_confirm_waitlisted else R.string.management_message_confirm)) },
+        confirmButton = { TextButton(onClick = { confirm = false; onSend(subject, body, waitlisted) { subject = ""; body = ""; waitlisted = false } }) { Text(stringResource(R.string.management_message_send)) } },
+        dismissButton = { TextButton(onClick = { confirm = false }) { Text(stringResource(R.string.management_cancel)) } },
+    )
+}
+
+/**
+ * «Aggiungi una prenotazione» per chi prenota al telefono o al banco: un
+ * nome per riga, email e telefono facoltativi, nota interna. Non crea account.
+ */
+@Composable private fun GuestBookingForm(busy: Boolean, onSave: (String, String, String, String, () -> Unit) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    var names by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
+    var phone by remember { mutableStateOf("") }
+    var note by remember { mutableStateOf("") }
+    TextButton(onClick = { expanded = !expanded }, modifier = Modifier.heightIn(min = 48.dp)) {
+        Text(stringResource(if (expanded) R.string.management_guest_hide else R.string.management_guest_title))
+    }
+    if (!expanded) return
+    Text(stringResource(R.string.management_guest_hint), color = Muted)
+    OutlinedTextField(names, { names = it.take(3000) }, enabled = !busy, minLines = 3, label = { Text(stringResource(R.string.management_guest_names)) }, modifier = Modifier.fillMaxWidth())
+    OutlinedTextField(email, { email = it.take(255) }, enabled = !busy, singleLine = true, label = { Text(stringResource(R.string.management_guest_email)) },
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email), modifier = Modifier.fillMaxWidth())
+    OutlinedTextField(phone, { phone = it.take(40) }, enabled = !busy, singleLine = true, label = { Text(stringResource(R.string.management_guest_phone)) },
+        supportingText = { Text(stringResource(R.string.management_guest_phone_hint)) }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone), modifier = Modifier.fillMaxWidth())
+    OutlinedTextField(note, { note = it.take(500) }, enabled = !busy, label = { Text(stringResource(R.string.management_guest_note)) }, modifier = Modifier.fillMaxWidth())
+    Button(enabled = !busy && names.isNotBlank(), onClick = { onSave(names, email, phone, note) { names = ""; email = ""; phone = ""; note = "" } }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+        Text(stringResource(R.string.management_guest_save))
+    }
+}
+
+/* Lo stesso tetto di `config/ticketing.php` → `messages.daily_limit`. */
+private const val MESSAGE_DAILY_LIMIT = 3
+
 @Composable private fun MetricLine(label: Int, value: String?) {
     Column { Text(stringResource(label), color = Muted); Text(value ?: stringResource(R.string.management_not_available), style = MaterialTheme.typography.headlineSmall) }
 }
+private fun manifestClock(value: String): String = runCatching { OffsetDateTime.parse(value).atZoneSameInstant(java.time.ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("HH:mm", Locale.ITALIAN)) }.getOrDefault(value)
 private fun managementDate(value: String): String = runCatching { OffsetDateTime.parse(value).atZoneSameInstant(java.time.ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("d MMM yyyy, HH:mm", Locale.ITALIAN)) }.getOrDefault(value)
 internal fun managementMoney(cents: Long?, currency: String): String? = cents?.let {
     NumberFormat.getCurrencyInstance(Locale.ITALIAN).apply { this.currency = runCatching { Currency.getInstance(currency) }.getOrDefault(Currency.getInstance("EUR")) }.format(java.math.BigDecimal.valueOf(it, 2))
@@ -233,4 +376,11 @@ internal fun validManagementCost(value: String): Boolean = value.isBlank() || (v
 @Composable private fun ChoiceField(label: Int, value: String, options: List<Pair<String, Int>>, onChange: (String) -> Unit) {
     Text(stringResource(label), style = MaterialTheme.typography.titleMedium)
     options.forEach { (key, title) -> FilterChip(value == key, { onChange(key) }, label = { Text(stringResource(title)) }) }
+}
+
+/** Vero se il telefono ha una rete che può raggiungere internet. */
+private fun isOnline(context: android.content.Context): Boolean {
+    val manager = context.getSystemService(android.content.Context.CONNECTIVITY_SERVICE) as? android.net.ConnectivityManager ?: return true
+    val capabilities = manager.getNetworkCapabilities(manager.activeNetwork) ?: return false
+    return capabilities.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET)
 }

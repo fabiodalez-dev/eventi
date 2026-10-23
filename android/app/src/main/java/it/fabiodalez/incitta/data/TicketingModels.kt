@@ -36,6 +36,9 @@ data class Booking(
     val tickets: List<AdmissionTicket> = emptyList(),
 )
 
+/** Le prenotazioni dell'account e quante assenze recenti il server ha contato. */
+data class BookingList(val bookings: List<Booking>, val noShows: Int)
+
 @Serializable
 data class AdmissionTicket(
     val id: Long,
