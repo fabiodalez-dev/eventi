@@ -527,6 +527,31 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         search("")
     }
 
+    /**
+     * «Avvisami per nuovi eventi come questi»: salva i filtri attivi e la
+     * parola cercata come ricerca salvata. Fuori sessione porta all'accesso.
+     */
+    fun saveSearch(query: String) {
+        val filters = _state.value.discoveryFilters
+        if (!it.fabiodalez.incitta.data.SavedSearchFilters.canSave(filters, query)) return
+        if (_state.value.session == null) {
+            selectTab(AppTab.ACCOUNT)
+            _state.value = _state.value.copy(message = getApplication<Application>().getString(R.string.saved_search_login))
+            return
+        }
+        viewModelScope.launch {
+            runCatching { repository.saveSearch(filters, query) }
+                .onSuccess { _state.value = _state.value.copy(message = getApplication<Application>().getString(R.string.saved_search_stored, it.name)) }
+                .onFailure { if (it !is CancellationException) _state.value = _state.value.copy(message = userMessage(it)) }
+        }
+    }
+
+    /** Apre una ricerca salvata nella pagina Eventi, con i suoi filtri. */
+    fun openSavedSearch(search: it.fabiodalez.incitta.data.SavedSearch) {
+        selectTab(AppTab.EVENTS)
+        updateSearchFilters(it.fabiodalez.incitta.data.SavedSearchFilters.toApp(search.filters), search.name, search.filters["q"].orEmpty())
+    }
+
     fun updateSearchFilters(filters: Map<String, String>, summary: String, query: String) {
         val tags = _state.value.activeTag?.slug
         val effective = if (tags != null) filters + ("tags" to tags) else filters

@@ -185,4 +185,19 @@
     <string name="collections_note">Nota: %1$s</string>
     <string name="collections_untitled">Evento senza titolo</string>
     <string name="collections_open_profile">Le mie raccolte</string>
+    <!-- D60: ricerche salvate -->
+    <string name="saved_search_button">Avvisami per nuovi eventi come questi</string>
+    <string name="saved_search_help">Ti avviso quando escono eventi nuovi con questi filtri. Le ricerche salvate si gestiscono in Profilo › Notifiche e newsletter.</string>
+    <string name="saved_search_help_guest">Accedi per ricevere un avviso quando escono eventi nuovi con questi filtri.</string>
+    <string name="saved_search_login">Accedi per salvare la ricerca e ricevere gli avvisi.</string>
+    <string name="saved_search_stored">Ricerca salvata: «%1$s». Ti avviso quando escono eventi nuovi.</string>
+    <string name="saved_search_title">Le mie ricerche salvate</string>
+    <string name="saved_search_intro">Quando escono eventi nuovi che corrispondono a una di queste ricerche ricevi un avviso, secondo i canali scelti qui sopra.</string>
+    <string name="saved_search_empty">Nessuna ricerca salvata. Dalla pagina Eventi, dopo aver scelto dei filtri, tocca «Avvisami per nuovi eventi come questi».</string>
+    <string name="saved_search_open">Apri</string>
+    <string name="saved_search_open_label">Apri la ricerca %1$s</string>
+    <string name="saved_search_remove">Rimuovi</string>
+    <string name="saved_search_remove_label">Rimuovi la ricerca %1$s</string>
+    <string name="saved_search_remove_confirm">Rimuovere la ricerca «%1$s»? Non riceverai più avvisi per questi filtri.</string>
+    <string name="saved_search_removed">Ricerca rimossa.</string>
 </resources>

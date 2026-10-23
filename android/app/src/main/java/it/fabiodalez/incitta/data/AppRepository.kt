@@ -52,6 +52,9 @@ class AppRepository(context: Context) {
         return result
     }
 
+    suspend fun saveSearch(filters: Map<String, String>, query: String): SavedSearch =
+        SavedSearchesApi(api, requireNotNull(_session.value?.token)).create(SavedSearchFilters.fromApp(filters, query))
+
     suspend fun reserve(id: Long, body: ReserveBody): Booking =
         api.post<ApiEnvelope<Booking>, ReserveBody>("occurrences/$id/bookings", body, requireNotNull(_session.value?.token)).data
 

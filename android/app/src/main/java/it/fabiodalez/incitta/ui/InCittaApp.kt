@@ -420,6 +420,7 @@ fun InCittaApp(viewModel: MainViewModel) {
                         onClearDiscovery = viewModel::clearDiscovery,
                         onFilters = viewModel::updateSearchFilters,
                         onLoadMore = viewModel::loadMoreEvents,
+                        onSaveSearch = viewModel::saveSearch,
                     )
                     AppTab.SAVED -> SavedScreen(state, padding, viewModel::open, viewModel::toggleSaved, onPrivacy = { communityRoute = "save/$it" }, onCollections = { collectionsOpen = true }, onProfile = { viewModel.selectTab(AppTab.ACCOUNT) })
                     AppTab.ACCOUNT -> AccountScreen(
@@ -433,6 +434,7 @@ fun InCittaApp(viewModel: MainViewModel) {
                         onTickets = { viewModel.selectTab(AppTab.TICKETS) },
                         onManagement = { managementOpen = true },
                         onCollections = { collectionsOpen = true },
+                        onOpenSavedSearch = viewModel::openSavedSearch,
                         onClearAuthError = viewModel::clearAuthError,
                         onInterestsSaved = viewModel::interestsChanged,
                         onAppearance = viewModel::setAppearance,
