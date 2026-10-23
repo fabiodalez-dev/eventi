@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { CheckinQueue, CheckinManifest } from '../../resources/js/checkin-queue.js';
+import { CheckinQueue, CheckinManifest, classifyScan } from '../../resources/js/checkin-queue.js';
 
 function memoryStore(initial = null) {
     let value = initial;
@@ -42,4 +42,14 @@ test('a stored manifest is reused after a reload', async () => {
     const again = new CheckinManifest(store, digest);
     assert.equal(again.loaded, true);
     assert.equal((await again.lookup('k')).name, 'Bo');
+});
+
+test('with network every scan goes to the server, even codes missing from the downloaded list', () => {
+    assert.equal(classifyScan({ online: true, loaded: true, known: false }), 'send_warn_unknown');
+    assert.equal(classifyScan({ online: true, loaded: true, known: true, status: 'checked_in' }), 'send_warn_used');
+    assert.equal(classifyScan({ online: true, loaded: true, known: true, status: 'valid' }), 'send');
+    assert.equal(classifyScan({ online: false, loaded: true, known: false }), 'pending_unknown');
+    assert.equal(classifyScan({ online: false, loaded: true, known: true, status: 'checked_in' }), 'reject_used');
+    assert.equal(classifyScan({ online: false, loaded: true, known: true, status: 'valid' }), 'pending');
+    assert.equal(classifyScan({ online: false, loaded: false, known: false }), 'pending');
 });

@@ -114,6 +114,21 @@ class LocalStore(private val context: Context) {
         if (keys.isNotEmpty()) prefs.edit(commit = true) { keys.forEach(::remove) }
     }
 
+    /*
+     * I biglietti per quando manca la rete: cifrati come la sessione, perché
+     * dentro ci sono nomi e codici di ingresso. Si leggono solo per la stessa
+     * persona che li ha scaricati e spariscono con il logout.
+     */
+    internal fun writeBookings(entry: StoredBookings) {
+        prefs.edit { putString(KEY_BOOKINGS, encrypt(json.encodeToString(entry))) }
+    }
+
+    internal fun readBookings(userId: Long): StoredBookings? = prefs.getString(KEY_BOOKINGS, null)?.let {
+        runCatching { json.decodeFromString<StoredBookings>(decrypt(it)) }.getOrNull()
+    }?.takeIf { it.userId == userId }
+
+    internal fun clearBookings() { prefs.edit(commit = true) { remove(KEY_BOOKINGS) } }
+
     fun readSession(): Session? {
         val encrypted = prefs.getString(KEY_SESSION, null) ?: return null
         return runCatching {
@@ -132,6 +147,7 @@ class LocalStore(private val context: Context) {
         }
         if (readSession()?.user?.id != session.user.id) {
             clearCheckins()
+            clearBookings()
             cacheOccurrences(emptyList())
             runCatching { it.fabiodalez.incitta.calendar.NativeCalendar.disconnect(context) }
         }
@@ -141,6 +157,7 @@ class LocalStore(private val context: Context) {
 
     fun clearSession() {
         clearCheckins()
+        clearBookings()
         clearWhatsappRequest()
         clearCarpoolPending()
         it.fabiodalez.incitta.community.WhatsappAutofill.discard()
@@ -231,6 +248,7 @@ class LocalStore(private val context: Context) {
         const val KEY_GUEST_SAVED = "guest_saved"
         const val KEY_OCCURRENCES = "occurrences"
         const val KEY_PRIVACY_CONSENT = "privacy_consent"
+        const val KEY_BOOKINGS = "bookings_offline"
         const val MANIFEST_PREFIX = "checkin_manifest_"
         const val KEY_ALIAS = "incitta_session_key"
         const val TRANSFORMATION = "AES/GCM/NoPadding"

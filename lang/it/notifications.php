@@ -24,6 +24,21 @@ return [
         'open_panel' => 'Apri il pannello',
         'open_venue' => 'Apri la scheda del locale',
         'open_search' => 'Vedi tutte le date',
+        'open_saved' => 'Apri i tuoi salvati',
+    ],
+
+    'saved_weekly' => [
+        'subject' => 'La tua settimana su inCittà',
+        'heading' => 'Le tue date della settimana',
+        'line' => '{1} Hai una data salvata nei prossimi sette giorni.|[2,*] Hai :count date salvate nei prossimi sette giorni.',
+        'cancelled' => 'annullata',
+        'moved' => 'spostata',
+        'sold_out' => 'esaurita',
+    ],
+
+    'tickets_available' => [
+        'subject' => 'Posti di nuovo disponibili: :title',
+        'line' => 'La data di :when :where non è più esaurita. Ti avevamo promesso di avvisarti: i posti possono finire di nuovo in fretta.',
     ],
 
     'venue_notice' => [

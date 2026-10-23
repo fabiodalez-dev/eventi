@@ -37,6 +37,8 @@ return [
         'follow_series' => 'Segui questo evento',
         'following_series' => 'Segui già questo evento',
         'follow_series_hint' => 'Ogni nuova data di questa rassegna finirà nei tuoi salvati.',
+        'overlap_label' => 'Sovrapposizione',
+        'stored_conflict' => 'Salvato. Si sovrappone a «:title» (:time).',
         'stored' => 'Data salvata.',
         'removed' => 'Data tolta dai salvati.',
         'not_savable' => 'Questa data non è più disponibile.',
@@ -85,6 +87,7 @@ return [
     ],
 
     'saved' => [
+        'overlap' => 'Si sovrappone a «:title»',
         /*
          * Il pannello che si apre dall'icona in testata. Esiste perché chi
          * salva senza un account non aveva NESSUN posto dove rivedere le
@@ -268,4 +271,30 @@ return [
         'email_verified' => 'Indirizzo confermato.',
     ],
 
+    'hidden_venues' => [
+        'hide' => 'Non mostrarmi questo locale',
+        'show' => 'Mostra di nuovo questo locale',
+        'hidden' => 'Non vedrai più le date di questo locale negli elenchi, nella mappa e nelle proposte. Restano nei tuoi salvati e nei biglietti.',
+        'shown' => 'Le date di questo locale tornano negli elenchi.',
+        'hidden_notice' => 'Hai nascosto questo locale: le sue date non compaiono negli elenchi.',
+        'title' => 'Locali nascosti',
+        'help' => 'Le loro date non compaiono negli elenchi, nella mappa, nella ricerca e nelle proposte.',
+        'none' => 'Nessun locale nascosto. Puoi nasconderne uno dalla sua scheda.',
+    ],
+
+    'access_needs' => [
+        'title' => 'Le mie esigenze di accessibilità',
+        'help' => 'Le applichiamo da sole agli elenchi degli eventi quando sei dentro. Puoi sempre scegliere «Mostra tutto» su una singola ricerca.',
+        'banner' => 'Filtri del tuo profilo: :needs',
+        'show_all' => 'Mostra tutto',
+        'manage' => 'Cambia le esigenze',
+    ],
+
+    'attended' => [
+        'title' => 'Le mie serate',
+        'lead' => 'Le date in cui sei entrato con un biglietto inCittà, dalla più recente.',
+        'empty' => 'Qui compariranno le serate in cui il tuo biglietto è passato dal controllo ingressi.',
+        'entries' => '{1} Un ingresso|[2,*] :count ingressi',
+        'menu' => 'Le mie serate',
+    ],
 ];

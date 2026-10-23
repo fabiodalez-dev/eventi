@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace App\Observers;
 
+use App\Enums\TicketTierStatus;
 use App\Models\Event;
+use App\Models\EventOccurrence;
 use App\Models\TicketTier;
+use App\Services\Ticketing\AvailabilityAlerts;
 use App\Support\TicketTiers;
 
 /**
@@ -33,6 +36,19 @@ final class TicketTierObserver
     public function saved(TicketTier $tier): void
     {
         $this->sync($tier);
+
+        /* Una fascia che smette di essere esaurita può riaprire la vendita:
+           chi aveva chiesto l'avviso lo riceve. */
+        if ($tier->wasChanged('status') && $tier->getOriginal('status') === TicketTierStatus::SoldOut) {
+            $alerts = app(AvailabilityAlerts::class);
+            $dates = $tier->occurrence_id !== null
+                ? EventOccurrence::query()->whereKey($tier->occurrence_id)->get()
+                : EventOccurrence::query()->where('event_id', $tier->event_id)->where('starts_at', '>', now())
+                    ->whereHas('availabilityAlerts')->get();
+            foreach ($dates as $date) {
+                $alerts->announceIfAvailable($date);
+            }
+        }
     }
 
     public function deleted(TicketTier $tier): void

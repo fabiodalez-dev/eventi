@@ -93,3 +93,17 @@ export async function sha256Hex(text) {
     const buffer = await crypto.subtle.digest('SHA-256', bytes);
     return [...new Uint8Array(buffer)].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
+
+// What the door does with a scan. The manifest helps offline, it is never the
+// final word: with network every code goes to the server, which is the only
+// one that knows about bookings made after the list was downloaded. Offline,
+// a code already used locally is refused, and an unknown one waits for the
+// server with a warning not to let the person in yet.
+export function classifyScan({ online, loaded, known, status }) {
+    if (online && known && status === 'checked_in') return 'send_warn_used';
+    if (online && loaded && !known) return 'send_warn_unknown';
+    if (online) return 'send';
+    if (known && status === 'checked_in') return 'reject_used';
+    if (loaded && !known) return 'pending_unknown';
+    return 'pending';
+}

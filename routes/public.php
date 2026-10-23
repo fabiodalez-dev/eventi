@@ -16,6 +16,7 @@ use App\Http\Controllers\Web\HomeController;
 use App\Http\Controllers\Web\MapController;
 use App\Http\Controllers\Web\OrganizerApplicationController;
 use App\Http\Controllers\Web\OrganizerController;
+use App\Http\Controllers\Web\PresenceController;
 use App\Http\Controllers\Web\PublicCalendarController;
 use App\Http\Controllers\Web\PublicContactController;
 use App\Http\Controllers\Web\ReportController;
@@ -132,6 +133,7 @@ Route::get('/locali/{slug}/segnala', [ReportController::class, 'createForVenue']
 Route::post('/locali/{slug}/segnala', [ReportController::class, 'storeForVenue'])
     ->middleware('throttle:public-forms')
     ->name('venues.report.store');
+Route::get('/sono-qui/{token}', [PresenceController::class, 'show'])->where('token', '[A-Za-z0-9]{32}')->middleware('throttle:60,1,presence-show')->name('presence.show');
 Route::get('/raccolte/{token}', [CollectionController::class, 'show'])->where('token', '[A-Za-z0-9]{24}')->name('collections.show');
 Route::get('/locali/{slug}/calendario.ics', [PublicCalendarController::class, 'venue'])->middleware('throttle:60,1,public-calendar')->name('venues.calendar');
 Route::get('/locali/{slug}/programma.pdf', VenueProgrammeController::class)->middleware('throttle:30,1,venue-programme')->name('venues.programme');

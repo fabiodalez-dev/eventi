@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Web;
 use App\DTOs\EventFilters;
 use App\DTOs\PageMeta;
 use App\Enums\VenueStatus;
+use App\Http\Controllers\Api\V1\VenueController as ApiVenueController;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Web\Concerns\InteractsWithCity;
 use App\Http\Requests\Web\VenueFilterRequest;
@@ -50,6 +51,8 @@ final class VenueController extends Controller
         $type = $request->type();
         $municipality = $request->municipality();
         $term = $request->term();
+        $openOnly = $request->boolean('aperto');
+        $openIds = $openOnly ? ApiVenueController::openNowIds($city) : null;
 
         $venues = Venue::query()
             ->approved()
@@ -57,6 +60,7 @@ final class VenueController extends Controller
             ->with('media')
             ->when($type !== null, fn (Builder $query) => $query->where('type', $type))
             ->when($municipality !== null, fn (Builder $query) => $query->where('municipality', $municipality))
+            ->when($openIds !== null, fn (Builder $query) => $query->whereKey($openIds))
             ->when($term !== '', fn (Builder $query) => $query->where(function (Builder $match) use ($term): void {
                 $pattern = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\%', '\_'], $term).'%';
 
@@ -70,7 +74,7 @@ final class VenueController extends Controller
             ->withQueryString();
 
         $parameters = array_filter(['type' => $type?->value, 'municipality' => $municipality,
-            'q' => $term, 'page' => $venues->currentPage() > 1 ? $venues->currentPage() : null],
+            'q' => $term, 'aperto' => $openOnly ? '1' : null, 'page' => $venues->currentPage() > 1 ? $venues->currentPage() : null],
             static fn ($value): bool => $value !== null && $value !== '');
         $canonical = route('venues.index').($parameters === [] ? '' : '?'.http_build_query($parameters));
 
@@ -82,6 +86,7 @@ final class VenueController extends Controller
             'type' => $type,
             'municipality' => $municipality,
             'term' => $term,
+            'openOnly' => $openOnly,
             'meta' => new PageMeta(
                 title: __('venues.meta.title', ['city' => $city->name]),
                 heading: __('venues.title'),

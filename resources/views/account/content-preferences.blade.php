@@ -25,6 +25,14 @@
                     </label>
                 @endforeach
             </fieldset>
+            <fieldset class="flex flex-col gap-2" id="esigenze">
+                <legend class="mb-2 font-bold">{{ __('account.access_needs.title') }}</legend>
+                <p class="text-sm text-ink-muted">{{ __('account.access_needs.help') }}</p>
+                <input type="hidden" name="access_needs_present" value="1">
+                @foreach ($access_options as $value => $label)
+                    <label class="flex min-h-12 items-center gap-3"><input type="checkbox" name="access_needs[]" value="{{ $value }}" class="size-5 accent-accent" @checked(in_array($value, old('access_needs', $selection['access_needs']), true))> {{ $label }}</label>
+                @endforeach
+            </fieldset>
             <label class="flex items-start gap-3"><input type="checkbox" name="inferred_ads" value="1" class="mt-1" @checked(old('inferred_ads', $selection['inferred_ads']))><span>Usa anche gli eventi salvati di recente per suggerirmi AD pertinenti.<span class="mt-1 block text-sm text-ink-muted">Le scelte esplicite contano di più. Le categorie nascoste non compaiono neppure negli AD. Non usiamo i singoli click per dedurre interessi.</span></span></label>
             <p class="text-sm text-ink-muted">Le newsletter usano le categorie che ti interessano e ciò che segui. Non includono le categorie nascoste. Biglietti, promemoria e salvataggi restano invariati. Puoi sempre aprire un evento tramite il suo link diretto.</p>
             <x-button type="submit">Salva i miei interessi</x-button>
@@ -36,5 +44,17 @@
             <input type="hidden" name="inferred_ads" value="{{ $selection['inferred_ads'] ? 1 : 0 }}">
             <x-button type="submit" variant="secondary">Ripristina tutte le categorie</x-button>
         </form>
+        <section class="border-t-2 border-line pt-6" aria-labelledby="locali-nascosti">
+            <h2 id="locali-nascosti" class="font-display text-xl font-bold">{{ __('account.hidden_venues.title') }}</h2>
+            <p class="my-2 text-sm text-ink-muted">{{ __('account.hidden_venues.help') }}</p>
+            @forelse ($hidden_venue_options as $venue)
+                <div class="flex flex-wrap items-center justify-between gap-3 border-t border-line py-3">
+                    <a href="{{ route('venues.show', $venue['slug']) }}" class="font-semibold underline">{{ $venue['name'] }}</a>
+                    <form method="POST" action="{{ route('account.hidden-venues.destroy', $venue['id']) }}">@csrf @method('DELETE')<x-button type="submit" variant="ghost">{{ __('account.hidden_venues.show') }}</x-button></form>
+                </div>
+            @empty
+                <p class="text-sm text-ink-muted">{{ __('account.hidden_venues.none') }}</p>
+            @endforelse
+        </section>
     </div>
 </x-layouts.app>

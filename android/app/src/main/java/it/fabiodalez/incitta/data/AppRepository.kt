@@ -54,8 +54,46 @@ class AppRepository(context: Context) {
             if (page == 1) noShows = response.meta?.noShows ?: 0
             page = response.meta?.nextPage
         }
+        val user = _session.value
+        if (user?.token == token) store.writeBookings(StoredBookings(user.user.id, java.time.Instant.now().toString(), result))
         return BookingList(result, noShows)
     }
+
+    /** 11. L'ultima lettura riuscita dei biglietti di chi è dentro, se c'è. */
+    fun cachedBookings(): StoredBookings? = _session.value?.user?.id?.let(store::readBookings)
+
+    /** 12. Il biglietto inviato per email: il server non conserva l'indirizzo. */
+    suspend fun sendTicket(ticketId: Long, email: String): String? =
+        api.post<ApiEnvelope<ApiMessage>, TicketSendBody>("me/tickets/$ticketId/send", TicketSendBody(email.trim(), consent = true), requireNotNull(_session.value?.token)).data.message
+
+    /** 8 e 9. Locali nascosti ed esigenze di accesso, letti dalle preferenze di contenuto. */
+    suspend fun contentProfile(): ContentProfileSelection =
+        api.get<ApiEnvelope<ContentProfile>>("me/content-preferences", requireNotNull(_session.value?.token)).data.selection
+
+    suspend fun setVenueHidden(venueId: Long, hidden: Boolean) =
+        api.send("me/hidden-venues/$venueId", if (hidden) "POST" else "DELETE", requireNotNull(_session.value?.token))
+
+    /** 13. Le date per cui la persona ha chiesto un avviso. */
+    suspend fun availabilityAlerts(): Set<Long> =
+        api.get<ApiEnvelope<List<Long>>>("me/availability-alerts", requireNotNull(_session.value?.token)).data.toSet()
+
+    suspend fun setAvailabilityAlert(occurrenceId: Long, active: Boolean) =
+        api.send("me/availability-alerts/$occurrenceId", if (active) "POST" else "DELETE", requireNotNull(_session.value?.token))
+
+    /** 14. Le mie serate, una pagina per volta. */
+    suspend fun attended(page: Int): ApiEnvelope<List<AttendedEvening>> =
+        api.get("me/attended?page=$page", requireNotNull(_session.value?.token))
+
+    /** 15. «Sono qui». */
+    suspend fun createPresence(occurrenceId: Long, displayName: String?, note: String?): PresenceLink =
+        api.post<ApiEnvelope<PresenceLink>, PresenceBody>(
+            "me/presence",
+            PresenceBody(occurrenceId, displayName?.trim()?.ifBlank { null }, note?.trim()?.ifBlank { null }),
+            requireNotNull(_session.value?.token),
+        ).data
+
+    suspend fun revokePresence(token: String) =
+        api.send("me/presence/${token.urlEncoded()}", "DELETE", requireNotNull(_session.value?.token))
 
     suspend fun saveSearch(filters: Map<String, String>, query: String): SavedSearch =
         SavedSearchesApi(api, requireNotNull(_session.value?.token)).create(SavedSearchFilters.fromApp(filters, query))
@@ -175,8 +213,8 @@ class AppRepository(context: Context) {
         api.delete<ApiEnvelope<ApiMessage>>("venues/${slug.urlEncoded()}/reviews", requireNotNull(_session.value?.token))
     }
 
-    suspend fun venues(): List<Venue> =
-        api.get<ApiEnvelope<List<Venue>>>("venues?city=padova", _session.value?.token).data
+    suspend fun venues(openNow: Boolean = false): List<Venue> =
+        api.get<ApiEnvelope<List<Venue>>>("venues?city=padova" + if (openNow) "&open_now=1" else "", _session.value?.token).data
 
     suspend fun venue(slug: String): Venue =
         api.get<ApiEnvelope<Venue>>("venues/${slug.urlEncoded()}", _session.value?.token).data
@@ -280,7 +318,8 @@ class AppRepository(context: Context) {
         return page
     }
 
-    suspend fun toggleSaved(occurrenceId: Long) = savedMutex.withLock {
+    /** Restituisce le sovrapposizioni segnalate dal server quando la data viene salvata. */
+    suspend fun toggleSaved(occurrenceId: Long): List<SavedConflict> = savedMutex.withLock {
         val token = _session.value?.token
         if (token == null) {
             val next = _savedIds.value.toMutableSet().apply {
@@ -288,7 +327,7 @@ class AppRepository(context: Context) {
             }.toSet()
             _savedIds.value = next
             store.setGuestSaved(next)
-            return@withLock
+            return@withLock emptyList()
         }
 
         try {
@@ -296,15 +335,17 @@ class AppRepository(context: Context) {
                 api.delete<ApiEnvelope<ApiMessage>>("me/saved/$occurrenceId", token)
                 if (_session.value?.token != token) throw kotlinx.coroutines.CancellationException("Session changed")
                 _savedIds.value = _savedIds.value - occurrenceId
+                emptyList()
             } else {
-                api.post<ApiEnvelope<ApiMessage>, SaveBody>(
+                val result = api.post<ApiEnvelope<SaveResult>, SaveBody>(
                     "me/saved",
                     SaveBody(occurrenceId),
                     token,
                     idempotent = true,
-                )
+                ).data
                 if (_session.value?.token != token) throw kotlinx.coroutines.CancellationException("Session changed")
                 _savedIds.value = _savedIds.value + occurrenceId
+                result.conflicts.filter { it.occurrenceId != occurrenceId }
             }
         } catch (error: ApiException) {
             if (error.status == 401 && _session.value?.token == token) clearAuthenticatedState()

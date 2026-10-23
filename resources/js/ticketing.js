@@ -1,4 +1,4 @@
-import { CheckinQueue, CheckinManifest, localStorageStore } from './checkin-queue';
+import { CheckinQueue, CheckinManifest, classifyScan, localStorageStore } from './checkin-queue';
 
 document.querySelectorAll('[data-reservation-form]').forEach((form) => {
     const list = form.querySelector('[data-attendees]');
@@ -187,14 +187,15 @@ document.querySelectorAll('[data-checkin-queue]').forEach((form) => {
         const code = input.value.trim();
         if (!/^[a-zA-Z0-9]{64}$/.test(code)) return;
         const local = await manifest.lookup(code);
-        if (manifest.loaded && !local.known) {
-            queue.entries.push({ code, requestKey: crypto.randomUUID(), state: 'rejected', message: form.dataset.unknown });
-            queue.persist();
-        } else if (local.known && local.status === 'checked_in') {
+        const decision = classifyScan({ online: navigator.onLine, loaded: manifest.loaded, ...local });
+        if (decision === 'reject_used') {
             queue.entries.push({ code, requestKey: crypto.randomUUID(), state: 'rejected', message: form.dataset.knownUsed.replace(':name', local.name) });
             queue.persist();
         } else {
-            queue.add(code, local.known ? { localMessage: form.dataset.knownPending.replace(':name', local.name) } : {});
+            const localMessage = decision === 'pending_unknown' || decision === 'send_warn_unknown' ? form.dataset.unknown
+                : decision === 'send_warn_used' ? form.dataset.knownUsed.replace(':name', local.name)
+                : (local.known ? form.dataset.knownPending.replace(':name', local.name) : '');
+            queue.add(code, localMessage ? { localMessage } : {});
             if (local.known) manifest.markUsed(code);
         }
         input.value = '';
@@ -209,4 +210,20 @@ document.querySelectorAll('[data-checkin-queue]').forEach((form) => {
     if (navigator.onLine) loadManifest();
     render();
     flush();
+});
+
+// "Send to this person": copy the personal ticket link, or hand it to the
+// system share sheet where available. Nothing is sent from the server.
+document.querySelectorAll('[data-ticket-share]').forEach((box) => {
+    const input = box.querySelector('[data-share-url]');
+    const copy = box.querySelector('[data-share-copy]');
+    const native = box.querySelector('[data-share-native]');
+    copy?.addEventListener('click', async () => {
+        try { await navigator.clipboard.writeText(input.value); } catch { input.select(); document.execCommand?.('copy'); }
+        copy.textContent = copy.dataset.copied;
+    });
+    if (native && navigator.share) {
+        native.hidden = false;
+        native.addEventListener('click', () => navigator.share({ title: native.dataset.shareTitle, url: input.value }).catch(() => {}));
+    }
 });

@@ -8,6 +8,7 @@ use App\Models\Venue;
 use App\Services\Seo\EditorialContent;
 use App\Support\Api\ApiDate;
 use App\Support\Description;
+use App\Support\OpeningHours;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
@@ -63,6 +64,9 @@ final class VenueResource
             'website' => $venue->website,
             'socials' => (object) $venue->socials,
             'opening_hours' => $venue->opening_hours,
+            ...(static function (array $state): array {
+                return ['open_now' => $state['open'], 'open_until' => $state['until']];
+            })(OpeningHours::state(is_array($venue->opening_hours) ? $venue->opening_hours : null, now(), $timezone)),
             // «Come arrivare»: lista di `{mode, text}`, dove `mode` è un
             // valore chiuso (`transit_mode` di §13.6) e non testo libero.
             'transit' => $venue->transit->toArray(),

@@ -144,6 +144,7 @@ fun CompleteEventDetailScreen(
     onCarpool: (Long, Boolean) -> Unit = { _, _ -> },
     community: @Composable (Long) -> Unit = {},
     comments: @Composable () -> Unit = {},
+    dateActions: @Composable (Occurrence) -> Unit = {},
     session: it.fabiodalez.incitta.data.Session? = null,
     onLogin: () -> Unit = {},
 ) {
@@ -208,6 +209,7 @@ fun CompleteEventDetailScreen(
                                 Text(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.ticket_reserve))
                             }
                         }
+                        dateActions(occurrence)
                         community(occurrence.occurrenceId)
                         // Prima l'azione principale dell'evento, poi i passaggi per arrivarci.
                         Text(cpText("subtitle"), modifier=Modifier.padding(top=16.dp), style=MaterialTheme.typography.bodySmall)
@@ -501,6 +503,8 @@ fun VenueDetailScreen(
     onSave: (Long) -> Unit,
     session: it.fabiodalez.incitta.data.Session? = null,
     onLogin: () -> Unit = {},
+    hidden: Boolean = false,
+    onHiddenChange: (Boolean) -> Unit = {},
 ) {
     val context = LocalContext.current
     val scrollState = rememberScrollState()
@@ -531,6 +535,7 @@ fun VenueDetailScreen(
                     }
                     Spacer(Modifier.height(12.dp))
                     VenueFollowButton(venue.id, session, onLogin)
+                    OpenNowLabel(venue, Modifier.padding(top = 12.dp))
                     venue.slug?.let { slug ->
                         Spacer(Modifier.height(10.dp))
                         OutlinedButton(
@@ -546,6 +551,8 @@ fun VenueDetailScreen(
                     }
                     Text(address(venue), color = Muted, modifier = Modifier.padding(top = 12.dp))
                     venue.description?.let { Text(it, style = androidx.compose.material3.MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 16.dp)) }
+                    // Solo per chi è dentro: nascondere è una preferenza del profilo.
+                    if (session != null) HideVenueAction(venue, hidden, onHiddenChange)
                     if (venue.requiresMembership) {
                         Text("TESSERA RICHIESTA", color = Ink, modifier = Modifier.padding(top = 14.dp).background(Acid).padding(10.dp), style = androidx.compose.material3.MaterialTheme.typography.labelLarge)
                         venue.membershipNotes?.let { Text(it, color = Muted, modifier = Modifier.padding(top = 8.dp)) }
@@ -599,7 +606,7 @@ fun VenueDetailScreen(
 }
 
 @Composable
-fun VenuesScreen(state: AppUiState, padding: PaddingValues, onVenue: (Venue) -> Unit, onBack: () -> Unit) {
+fun VenuesScreen(state: AppUiState, padding: PaddingValues, onVenue: (Venue) -> Unit, onOpenNow: (Boolean) -> Unit = {}, onOpenNowRetry: () -> Unit = {}, onBack: () -> Unit) {
     var query by remember { mutableStateOf("") }
     var selectedType by remember { mutableStateOf<String?>(null) }
     val canonicalTypes = listOf(
@@ -607,7 +614,9 @@ fun VenuesScreen(state: AppUiState, padding: PaddingValues, onVenue: (Venue) -> 
         "pub", "cinema", "libreria", "galleria", "spazio_pubblico", "ristorante", "altro",
     )
     val types = (canonicalTypes + state.venues.mapNotNull(Venue::type)).distinct()
-    val filtered = state.venues.filter { venue ->
+    // «Aperti adesso» chiede al server l'elenco filtrato: gli orari si calcolano là, nel fuso del locale.
+    val source = if (state.venuesOpenNow) state.openNowVenues.orEmpty() else state.venues
+    val filtered = source.filter { venue ->
         val needle = query.trim().lowercase(Locale.ITALIAN)
         val matchesText = needle.isBlank() || listOfNotNull(
             venue.name, venue.description, venue.shortDescription, venue.address,
@@ -637,6 +646,9 @@ fun VenuesScreen(state: AppUiState, padding: PaddingValues, onVenue: (Venue) -> 
                         cursorColor = Acid,
                     ),
                 )
+                Column(Modifier.padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    OpenNowFilter(state, onOpenNow, onOpenNowRetry)
+                }
                 PeekTabRow(Modifier.padding(top = 12.dp)) {
                     VenueTypeFilter("TUTTI", selectedType == null) { selectedType = null }
                     types.forEach { type ->
@@ -646,15 +658,19 @@ fun VenuesScreen(state: AppUiState, padding: PaddingValues, onVenue: (Venue) -> 
                 Text("${filtered.size} LOCALI", color = Acid, style = androidx.compose.material3.MaterialTheme.typography.labelMedium, modifier = Modifier.padding(top = 12.dp))
             }
         }
-        if (filtered.isEmpty()) {
-            item { Text("Nessun locale corrisponde ai filtri.", color = Muted, modifier = Modifier.padding(24.dp)) }
+        if (filtered.isEmpty() && !(state.venuesOpenNow && (state.openNowLoading || state.openNowError != null))) {
+            item {
+                if (state.venuesOpenNow && state.openNowVenues?.isEmpty() == true) Text(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.venues_open_now_empty), color = Muted, modifier = Modifier.padding(24.dp))
+                else Text("Nessun locale corrisponde ai filtri.", color = Muted, modifier = Modifier.padding(24.dp))
+            }
         }
         items(filtered, key = { it.slug ?: it.id ?: it.name }) { venue ->
-            Row(Modifier.fillMaxWidth().height(132.dp).clickable { onVenue(venue) }) {
+            Row(Modifier.fillMaxWidth().height(156.dp).clickable { onVenue(venue) }) {
                 RichImage(venue.cover, Modifier.width(118.dp).fillMaxHeight())
                 Column(Modifier.weight(1f).padding(14.dp)) {
                     Eyebrow(venue.type?.let(::venueTypeLabel) ?: "LOCALE")
                     Text(venue.name.uppercase(), style = androidx.compose.material3.MaterialTheme.typography.titleLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    OpenNowLabel(venue)
                     Spacer(Modifier.weight(1f))
                     Text("${venue.municipality ?: "PADOVA"} · ${venue.upcomingOccurrences ?: 0} EVENTI", color = Muted, style = androidx.compose.material3.MaterialTheme.typography.labelMedium)
                 }

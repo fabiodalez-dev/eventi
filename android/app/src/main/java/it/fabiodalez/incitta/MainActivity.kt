@@ -66,6 +66,9 @@ class MainActivity : ComponentActivity() {
                     parts.firstOrNull() == "mappa" -> viewModel.selectTab(AppTab.MAP)
                     parts.firstOrNull() == "calendario" -> viewModel.selectTab(AppTab.CALENDAR)
                     parts.firstOrNull() == "biglietti" -> viewModel.selectTab(AppTab.TICKETS)
+                    // Il riepilogo del lunedì (saved_weekly) porta ai salvati; le serate hanno la loro schermata.
+                    it.fabiodalez.incitta.data.personalDestination(parts) == it.fabiodalez.incitta.data.PersonalDestination.SAVED -> viewModel.selectTab(AppTab.SAVED)
+                    it.fabiodalez.incitta.data.personalDestination(parts) == it.fabiodalez.incitta.data.PersonalDestination.ATTENDED -> viewModel.selectTab(AppTab.ATTENDED)
                     parts.take(2) == listOf("eventi", "tag") && parts.size >= 3 ->
                         viewModel.browseTag(it.fabiodalez.incitta.data.Tag(slug = parts[2], name = parts[2]))
                     parts.take(2) == listOf("eventi", "categoria") && parts.size >= 3 -> viewModel.browseCategory(parts[2])

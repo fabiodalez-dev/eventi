@@ -28,6 +28,13 @@
                 <p class="m-0 max-w-prose text-[0.813rem] leading-[1.5] text-ink-muted">{{ $meta->description }}</p>
             @endif
 
+            @if (($profileNeeds ?? []) !== [])
+                <p class="m-0 flex flex-wrap items-center gap-x-3 gap-y-1 border-2 border-line bg-canvas px-3 py-2 text-sm" data-profile-needs>
+                    <span>{{ __('account.access_needs.banner', ['needs' => collect($profileNeeds)->map(fn ($need) => \App\Enums\AccessibilityFeature::from($need)->label())->implode(', ')]) }}</span>
+                    <a class="inline-flex min-h-12 items-center font-semibold underline" href="{{ request()->fullUrlWithQuery(['access' => 'nessuna']) }}">{{ __('account.access_needs.show_all') }}</a>
+                    <a class="inline-flex min-h-12 items-center underline" href="{{ route('account.content-preferences') }}#esigenze">{{ __('account.access_needs.manage') }}</a>
+                </p>
+            @endif
             <div class="catalog-status flex flex-wrap items-center justify-between gap-3" aria-live="polite">
                 <span>{{ trans_choice('filters.active', $filters->activeCount(), ['count' => $filters->activeCount()]) }}</span>
                 @if ($filters->activeCount() > 0)

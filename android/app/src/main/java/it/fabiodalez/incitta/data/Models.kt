@@ -99,6 +99,9 @@ data class Venue(
     @Serializable(with = CoverUrlSerializer::class) val logo: String? = null,
     @SerialName("is_nonprofit") val isNonprofit: Boolean = false,
     @SerialName("upcoming_occurrences") val upcomingOccurrences: Int? = null,
+    /** `null` quando il locale non ha orari: non è «chiuso», è «non si sa». */
+    @SerialName("open_now") val openNow: Boolean? = null,
+    @SerialName("open_until") val openUntil: String? = null,
     /* Solo nella scheda del locale (D60): l'avviso in vista oggi, se c'è. */
     val notice: VenueNotice? = null,
 )

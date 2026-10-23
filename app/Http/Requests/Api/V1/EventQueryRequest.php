@@ -6,6 +6,7 @@ namespace App\Http\Requests\Api\V1;
 
 use App\DTOs\EventFilters;
 use App\DTOs\PriceConstraint;
+use App\Enums\AccessibilityFeature;
 use App\Enums\AgeGroup;
 use App\Enums\ApiEventSort;
 use App\Enums\DatePreset;
@@ -40,6 +41,7 @@ class EventQueryRequest extends ApiRequest
             'discovery' => ['nullable', 'boolean'],
             'outdoor' => ['nullable', 'boolean'],
             'accessible' => ['nullable', 'boolean'],
+            'access' => ['nullable', 'string', 'max:255'],
             'family' => ['nullable', 'boolean'],
             'stroller' => ['nullable', 'boolean'],
             'changing_table' => ['nullable', 'boolean'],
@@ -100,6 +102,10 @@ class EventQueryRequest extends ApiRequest
             discovery: $this->boolean('discovery'),
             outdoor: $this->boolean('outdoor'),
             accessible: $this->boolean('accessible'),
+            /* Le esigenze di accessibilità, come sul sito: `access=a,b`. L'app
+               le precompila dal profilo; i valori sconosciuti si scartano. */
+            access: array_values(array_filter(array_map('trim', explode(',', (string) ($this->text('access') ?? ''))),
+                static fn (string $feature): bool => AccessibilityFeature::tryFrom($feature) !== null)),
             family: $this->boolean('family'),
             stroller: $this->boolean('stroller'),
             changingTable: $this->boolean('changing_table'),

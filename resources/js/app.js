@@ -427,10 +427,31 @@ async function talkToServer(url, method, token, body) {
         if (!response.ok) return false;
         const result = await response.json();
         for (const [id, count] of Object.entries(result.interested_counts ?? {})) updateInterestCount(id, count);
+        if (Array.isArray(result.conflicts) && result.conflicts.length > 0 && result.message) announceSaveNotice(result.message);
         return result;
     } catch {
         return false;
     }
+}
+
+/*
+ * L'avviso di sovrapposizione dopo un salvataggio: una striscia in basso,
+ * annunciata anche agli screen reader, che sparisce da sola. Il salvataggio
+ * è già fatto: è un'informazione, non una domanda.
+ */
+function announceSaveNotice(text) {
+    let notice = document.querySelector("[data-save-notice]");
+    if (!notice) {
+        notice = document.createElement("p");
+        notice.dataset.saveNotice = "";
+        notice.setAttribute("role", "status");
+        notice.className = "fixed inset-x-4 bottom-4 z-50 mx-auto max-w-xl border-2 border-line bg-canvas px-4 py-3 text-sm font-semibold text-ink shadow-xl";
+        document.body.append(notice);
+    }
+    notice.textContent = text;
+    notice.hidden = false;
+    clearTimeout(announceSaveNotice.timer);
+    announceSaveNotice.timer = setTimeout(() => { notice.hidden = true; }, 7000);
 }
 
 function updateInterestCount(id, count) {
@@ -1228,7 +1249,7 @@ if (document.readyState === "loading") {
 } else {
     start();
 }
-if (document.querySelector('[data-reservation-form], [data-ticket-search], [data-ticket-scanner], form[data-confirm]')) {
+if (document.querySelector('[data-reservation-form], [data-ticket-search], [data-ticket-scanner], form[data-confirm], [data-ticket-share]')) {
     void import('./ticketing');
 }
 
@@ -1240,3 +1261,6 @@ videoEmbed();
 
 import { collectionAdd } from "./collection-add";
 collectionAdd();
+
+import { openNowBadges } from "./open-now";
+openNowBadges();

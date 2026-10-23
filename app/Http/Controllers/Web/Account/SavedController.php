@@ -14,6 +14,7 @@ use App\Http\Requests\Web\Account\MergeSavedRequest;
 use App\Http\Requests\Web\Account\StoreSavedRequest;
 use App\Models\EventOccurrence;
 use App\Queries\EventOccurrenceQuery;
+use App\Services\Account\SavedConflicts;
 use App\Services\Calendar\OccurrenceCalendar;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
@@ -145,6 +146,7 @@ final class SavedController extends Controller
 
         return view('account.saved', [
             'occurrences' => $occurrences,
+            'overlaps' => app(SavedConflicts::class)->overlappingTitles($items),
             'past' => $past,
             'calendarView' => $calendarView,
             'calendarOccurrences' => $calendarOccurrences,
@@ -168,7 +170,22 @@ final class SavedController extends Controller
         /** @var list<int> $ids */
         $ids = $saved->pluck('occurrence_id')->map(static fn (mixed $id): int => (int) $id)->values()->all();
 
-        return $this->respond($request, ['saved' => $ids, 'interested_counts' => $this->interestedCounts($ids), 'message' => $message], $message);
+        /* Se la data appena salvata si sovrappone a un'altra salvata o
+           prenotata, il messaggio lo dice subito: è il momento in cui la
+           persona può ancora scegliere. */
+        $conflicts = [];
+        if (count($ids) === 1 && ($date = EventOccurrence::query()->find($ids[0])) !== null) {
+            $conflicts = app(SavedConflicts::class)->for($this->accountUser($request), $date);
+            if ($conflicts !== []) {
+                $timezone = $this->city()->timezone;
+                $message = __('account.save.stored_conflict', [
+                    'title' => $conflicts[0]['title'],
+                    'time' => CarbonImmutable::parse($conflicts[0]['starts_at'])->setTimezone($timezone)->format('H:i'),
+                ]);
+            }
+        }
+
+        return $this->respond($request, ['saved' => $ids, 'conflicts' => $conflicts, 'interested_counts' => $this->interestedCounts($ids), 'message' => $message], $message);
     }
 
     public function destroy(Request $request, int $occurrence, RemoveSavedOccurrence $remove): RedirectResponse|JsonResponse

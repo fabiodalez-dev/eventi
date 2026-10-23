@@ -36,7 +36,7 @@ use Overtrue\LaravelFollow\Traits\Follower;
 use Spatie\Permission\Traits\HasRoles;
 
 /** @property string $appearance */
-/** @property array{mode?: string, categories?: list<int>, hidden_categories?: list<int>, inferred_ads?: bool}|null $content_preferences */
+/** @property array{mode?: string, categories?: list<int>, hidden_categories?: list<int>, inferred_ads?: bool, hidden_venues?: list<int>, access_needs?: list<string>}|null $content_preferences */
 class User extends Authenticatable implements FilamentUser, HasTenants, MustVerifyEmail
 {
     /** @var Collection<int, Venue>|null */

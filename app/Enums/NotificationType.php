@@ -63,6 +63,16 @@ enum NotificationType: string
     case VenueNotice = 'venue_notice';
     case SavedSearchMatch = 'saved_search_match';
 
+    /*
+     * Il riepilogo del lunedì delle date salvate per la settimana, e
+     * l'avviso che una data esaurita è tornata disponibile. Il primo segue
+     * l'interruttore dei promemoria (riguarda ciò che la persona ha salvato),
+     * il secondo quello degli esauriti; nessuno dei due consuma il tetto
+     * giornaliero, perché sono stati chiesti.
+     */
+    case SavedWeekly = 'saved_weekly';
+    case TicketsAvailable = 'tickets_available';
+
     public function label(): string
     {
         return __('enums.notification_type.'.$this->value);
@@ -147,8 +157,8 @@ enum NotificationType: string
         $preferences = $user->notificationPreferences();
 
         return match ($this) {
-            self::EventReminder => $preferences->reminders,
-            self::EventSoldOut, self::EventAlmostFull => $preferences->soldOut,
+            self::EventReminder, self::SavedWeekly => $preferences->reminders,
+            self::EventSoldOut, self::EventAlmostFull, self::TicketsAvailable => $preferences->soldOut,
             self::VenueDigest, self::VenueNewEvent, self::VenueNotice => $preferences->venueDigest,
             self::DailyDigest => $preferences->dailyDigest,
             self::TonightNearby => $preferences->tonight,
@@ -177,8 +187,8 @@ enum NotificationType: string
         }
 
         $key = match ($this) {
-            self::EventReminder => 'reminders',
-            self::EventSoldOut, self::EventAlmostFull => 'sold_out',
+            self::EventReminder, self::SavedWeekly => 'reminders',
+            self::EventSoldOut, self::EventAlmostFull, self::TicketsAvailable => 'sold_out',
             self::VenueDigest, self::VenueNewEvent, self::VenueNotice => 'venue_digest',
             self::DailyDigest => 'daily_digest',
             self::TonightNearby => 'tonight',

@@ -14,6 +14,7 @@ use App\Http\Requests\Web\EventFilterRequest;
 use App\Models\Category;
 use App\Models\Tag;
 use App\Queries\EventOccurrenceQuery;
+use App\Services\Account\ContentPreferences;
 use App\Services\Map\MapPayload;
 use App\Services\Search\ContextualFacets;
 use App\Services\Search\EventFinder;
@@ -107,6 +108,21 @@ final class EventListController extends Controller
     {
         $city = $this->city();
 
+        /*
+         * Le esigenze di accessibilità del profilo (D61) valgono quando
+         * l'indirizzo non sceglie già: `access=nessuna` le spegne per questa
+         * vista. Le pagine di chi è dentro non passano dalla cache delle
+         * pagine, quindi i filtri di una persona non finiscono a un'altra.
+         */
+        $profileNeeds = [];
+        $user = request()->user();
+        if ($user !== null && ! request()->has('access')) {
+            $profileNeeds = app(ContentPreferences::class)->selection($user)['access_needs'];
+            if ($profileNeeds !== []) {
+                $filters = $filters->withAccess([...$filters->access, ...$profileNeeds]);
+            }
+        }
+
         $occurrences = $this->finder->paginate($city, $filters);
         if ($filters->q !== '' && $occurrences->total() === 0) {
             app(SearchMissLog::class)->record($city, $filters->q);
@@ -164,6 +180,7 @@ final class EventListController extends Controller
 
         return view('events.index', [
             'city' => $city,
+            'profileNeeds' => $profileNeeds,
             'taxonomy' => $taxonomy,
             'filters' => $filters,
             'facetCounts' => app(ContextualFacets::class)->build($city, $filters),

@@ -194,6 +194,7 @@ fun SearchScreen(
     onClearDiscovery: () -> Unit = {},
     onFilters: (Map<String, String>, String, String) -> Unit = { _, _, _ -> },
     onLoadMore: () -> Unit = {},
+    onDismissProfileAccess: () -> Unit = {},
     onSaveSearch: (String) -> Unit = {},
 ) {
     var query by remember { mutableStateOf("") }
@@ -230,7 +231,7 @@ fun SearchScreen(
                     colors = fieldColors(),
                 )
                 Text(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.search_live_help), color = Muted, modifier = Modifier.padding(top = 10.dp))
-                SearchFilters(state, query, collapsible = true, onCollapse = { revealResults = true }) { filters, summary -> onFilters(filters, summary, query) }
+                SearchFilters(state, query, collapsible = true, onCollapse = { revealResults = true }, profileAccess = state.accessNeeds, onDismissProfileAccess = onDismissProfileAccess) { filters, summary -> onFilters(filters, summary, query) }
                 if (it.fabiodalez.incitta.data.SavedSearchFilters.canSave(state.discoveryFilters, query)) {
                     OutlinedButton(
                         onClick = { onSaveSearch(query) },
@@ -529,11 +530,12 @@ fun AccountScreen(
     onProfileSaved: () -> Unit = {},
     onCommunity: () -> Unit = {},
     onCarpool: () -> Unit = {}, onCarpoolMessages: () -> Unit = {}, onCommunityInbox: () -> Unit = {}, communityTotal: Int = 0, onManagement: () -> Unit = {}, onPublicProfile: () -> Unit = {}, onRelationships: () -> Unit = {}, onVerification: () -> Unit = {},
+    onAttended: () -> Unit = {},
     onCollections: () -> Unit = {},
     onOpenSavedSearch: (it.fabiodalez.incitta.data.SavedSearch) -> Unit = {},
 ) {
     if (state.session != null) {
-        ProfileScreen(state, padding, onTickets, onSaved, onLogout, onDeleteAccount, onInterestsSaved, onAppearance, onProfileSaved, onCommunity, onCarpool, onCarpoolMessages, onCommunityInbox, communityTotal, onManagement, onPublicProfile, onRelationships, onVerification, onCollections, onOpenSavedSearch)
+        ProfileScreen(state, padding, onTickets, onSaved, onLogout, onDeleteAccount, onInterestsSaved, onAppearance, onProfileSaved, onCommunity, onCarpool, onCarpoolMessages, onCommunityInbox, communityTotal, onManagement, onPublicProfile, onRelationships, onVerification, onAttended, onCollections, onOpenSavedSearch)
         return
     }
 

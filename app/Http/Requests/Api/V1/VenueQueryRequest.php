@@ -28,6 +28,7 @@ final class VenueQueryRequest extends ApiRequest
             'municipality' => ['nullable', 'string', 'max:120'],
             'zone' => ['nullable', 'string', 'max:120'],
             'type' => ['nullable', Rule::in(VenueType::values())],
+            'open_now' => ['nullable', 'boolean'],
             'updated_since' => ['nullable', 'date'],
         ];
     }
@@ -54,6 +55,11 @@ final class VenueQueryRequest extends ApiRequest
         $value = $this->validated('zone');
 
         return is_string($value) && trim($value) !== '' ? trim($value) : null;
+    }
+
+    public function openNow(): bool
+    {
+        return $this->boolean('open_now');
     }
 
     public function type(): ?VenueType

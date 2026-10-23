@@ -99,6 +99,13 @@ return [
      * pomeriggio, come prescrive §15.4.
      */
     'digests' => [
+        /* Il riepilogo del lunedì delle date salvate per i sette giorni. */
+        'saved' => [
+            'weekday' => 1,
+            'time' => '09:00',
+            'window_days' => 7,
+            'max_items' => 10,
+        ],
         'venue' => [
             'weekday' => 2,
             'time' => '18:00',

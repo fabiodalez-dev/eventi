@@ -35,6 +35,25 @@
                                 <p class="text-xs text-ink-muted">{{ __('ticketing.qr_hint') }}</p>
                             </details>
                             <x-button variant="secondary" class="mt-3 min-h-12" :href="route('tickets.pdf', $ticket)">{{ __('ticketing.pdf') }}</x-button>
+                            @if ($shareUrl = app(\App\Services\Ticketing\TicketSharing::class)->url($ticket))
+                                <details class="mt-3" data-ticket-share>
+                                    <summary class="cursor-pointer py-3 font-bold text-brand">{{ __('ticketing.share.title') }}</summary>
+                                    <p class="text-sm text-ink-muted">{{ __('ticketing.share.hint') }}</p>
+                                    <div class="mt-2 flex flex-wrap gap-2">
+                                        <input type="text" readonly value="{{ $shareUrl }}" class="min-h-12 min-w-0 flex-1 border border-line bg-surface px-3 text-sm" aria-label="{{ __('ticketing.share.title') }}" data-share-url>
+                                        <x-button type="button" variant="secondary" data-share-copy data-copied="{{ __('ticketing.share.copied') }}">{{ __('ticketing.share.copy') }}</x-button>
+                                        <x-button type="button" variant="secondary" data-share-native data-share-title="{{ $data['title'] }}" hidden>{{ __('ticketing.share.native') }}</x-button>
+                                    </div>
+                                    <form method="POST" action="{{ route('tickets.share', $ticket) }}" class="mt-4 grid gap-3">
+                                        @csrf
+                                        <p class="font-semibold">{{ __('ticketing.share.email_title') }}</p>
+                                        <p class="text-xs text-ink-muted">{{ __('ticketing.share.email_hint') }}</p>
+                                        <x-field name="email" type="email" :label="__('ticketing.email')" autocomplete="off" :required="true" />
+                                        <label class="flex items-start gap-2 text-sm"><input type="checkbox" name="consent" value="1" required class="mt-1"> {{ __('ticketing.share.consent') }}</label>
+                                        <x-button type="submit" variant="secondary" class="justify-self-start">{{ __('ticketing.share.send') }}</x-button>
+                                    </form>
+                                </details>
+                            @endif
                         @endif
                         @if ($data['can_cancel'] && in_array($ticket->status, [\App\Enums\AdmissionStatus::Valid, \App\Enums\AdmissionStatus::Waitlisted], true))
                             <form method="POST" action="{{ route('tickets.cancel', $booking) }}" class="mt-3" data-confirm="{{ __('ticketing.confirm_cancel') }}">

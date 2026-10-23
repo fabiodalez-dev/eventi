@@ -19,6 +19,7 @@ use App\Models\Venue;
 use App\Queries\EventOccurrenceQuery;
 use App\Services\Api\OccurrenceFeed;
 use App\Support\Api\ApiResponse;
+use App\Support\OpeningHours;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 
@@ -44,6 +45,22 @@ final class VenueController extends Controller
 
     public function __construct(private readonly OccurrenceFeed $feed) {}
 
+    /**
+     * I locali aperti adesso. Gli orari sono JSON e la regola delle fasce
+     * dopo mezzanotte non si scrive bene in SQL: si leggono i locali della
+     * città che hanno orari e si filtrano qui. Sono qualche centinaio.
+     *
+     * @return list<int>
+     */
+    public static function openNowIds(City $city): array
+    {
+        $now = now();
+
+        return Venue::query()->inCity($city)->approved()->whereNotNull('opening_hours')->get(['id', 'opening_hours'])
+            ->filter(static fn (Venue $venue): bool => OpeningHours::state(is_array($venue->opening_hours) ? $venue->opening_hours : null, $now, $city->timezone)['open'] === true)
+            ->map(static fn (Venue $venue): int => (int) $venue->getKey())->values()->all();
+    }
+
     public function index(VenueQueryRequest $request): JsonResponse
     {
         $city = $this->city();
@@ -52,6 +69,7 @@ final class VenueController extends Controller
         $municipality = $request->municipality();
         $zone = $request->zone();
         $since = $request->updatedSince();
+        $openIds = $request->openNow() ? self::openNowIds($city) : null;
 
         $paginator = Venue::query()
             ->with('media')
@@ -61,6 +79,7 @@ final class VenueController extends Controller
             ->when($municipality !== null, fn (Builder $query): Builder => $query->where('municipality', $municipality))
             ->when($zone !== null, fn (Builder $query): Builder => $query->where('zone', $zone))
             ->when($since !== null, fn (Builder $query): Builder => $query->where('updated_at', '>=', $since))
+            ->when($openIds !== null, fn (Builder $query): Builder => $query->whereKey($openIds))
             ->when($term !== '', fn (Builder $query): Builder => $query->where(function (Builder $match) use ($term): void {
                 $pattern = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\%', '\_'], $term).'%';
 
