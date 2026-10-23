@@ -122,7 +122,7 @@ it('does not cache decimal page numbers and bounds stored category combinations'
 });
 
 it('non conserva l\'elenco dei locali aperti adesso, che cambia a ogni fascia oraria', function (): void {
-    $request = \Illuminate\Http\Request::create('/locali', 'GET', ['aperto' => '1']);
+    $request = Request::create('/locali', 'GET', ['aperto' => '1']);
     $method = new ReflectionMethod(CachePage::class, 'isCacheable');
     expect($method->invoke($this->middleware, $request))->toBeFalse();
 });
