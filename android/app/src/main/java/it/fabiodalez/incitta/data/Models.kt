@@ -18,6 +18,8 @@ data class PageMeta(
     @SerialName("next_page") val nextPage: Int? = null,
     @SerialName("next_cursor") val nextCursor: String? = null,
     @SerialName("has_more") val hasMore: Boolean = false,
+    /* Solo in `GET /v1/me/bookings` (D60): le prenotazioni recenti a cui la persona non si è presentata. */
+    @SerialName("no_shows") val noShows: Int? = null,
 )
 
 @Serializable

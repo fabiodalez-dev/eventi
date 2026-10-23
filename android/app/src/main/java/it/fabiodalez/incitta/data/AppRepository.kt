@@ -40,16 +40,21 @@ class AppRepository(context: Context) {
     suspend fun bookingAvailability(id: Long): BookingAvailability =
         api.get<ApiEnvelope<BookingAvailability>>("occurrences/$id/booking").data
 
-    suspend fun bookings(): List<Booking> {
+    suspend fun bookings(): List<Booking> = bookingList().bookings
+
+    /** Tutte le pagine delle prenotazioni; le assenze recenti si leggono dal `meta` della prima. */
+    suspend fun bookingList(): BookingList {
         val token = requireNotNull(_session.value?.token)
         val result = mutableListOf<Booking>()
+        var noShows = 0
         var page: Int? = 1
         while (page != null) {
             val response = api.get<ApiEnvelope<List<Booking>>>("me/bookings?page=$page", token)
             result.addAll(response.data)
+            if (page == 1) noShows = response.meta?.noShows ?: 0
             page = response.meta?.nextPage
         }
-        return result
+        return BookingList(result, noShows)
     }
 
     suspend fun saveSearch(filters: Map<String, String>, query: String): SavedSearch =

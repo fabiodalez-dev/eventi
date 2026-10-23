@@ -200,4 +200,10 @@
     <string name="saved_search_remove_label">Rimuovi la ricerca %1$s</string>
     <string name="saved_search_remove_confirm">Rimuovere la ricerca «%1$s»? Non riceverai più avvisi per questi filtri.</string>
     <string name="saved_search_removed">Ricerca rimossa.</string>
+    <!-- D60: assenze -->
+    <string name="ticket_no_show">Non presentato</string>
+    <plurals name="ticket_no_show_account">
+        <item quantity="one">Hai %1$d prenotazione recente a cui non ti sei presentato. Con %2$d assenze in %3$d giorni le prenotazioni gratuite si bloccano: annulla per tempo se non puoi andare.</item>
+        <item quantity="other">Hai %1$d prenotazioni recenti a cui non ti sei presentato. Con %2$d assenze in %3$d giorni le prenotazioni gratuite si bloccano: annulla per tempo se non puoi andare.</item>
+    </plurals>
 </resources>

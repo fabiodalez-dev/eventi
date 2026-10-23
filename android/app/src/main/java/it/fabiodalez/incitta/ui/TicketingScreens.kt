@@ -3,6 +3,8 @@ package it.fabiodalez.incitta.ui
 import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -109,6 +111,13 @@ fun TicketsScreen(state: AppUiState, padding: PaddingValues, onCancel: (Long, Lo
         if (state.session == null) {
             Text(stringResource(R.string.ticket_login))
         } else {
+            if (state.noShows > 0) {
+                Text(
+                    pluralStringResource(R.plurals.ticket_no_show_account, state.noShows, state.noShows, NO_SHOW_LIMIT, NO_SHOW_WINDOW_DAYS),
+                    color = Paper,
+                    modifier = Modifier.fillMaxWidth().border(2.dp, Danger, ControlShape).padding(14.dp),
+                )
+            }
             OutlinedButton(onClick = onRefresh, enabled = !state.bookingBusy, shape = ControlShape) { Text(stringResource(R.string.ticket_refresh)) }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf(BookingPeriod.UPCOMING to "Prossimi", BookingPeriod.PAST to "Passati", BookingPeriod.CANCELLED to "Annullati").forEach { (value, label) ->
@@ -171,6 +180,10 @@ fun TicketsScreen(state: AppUiState, padding: PaddingValues, onCancel: (Long, Lo
     }
 }
 
+/* Gli stessi valori di `config/ticketing.php` → `no_show`: tre assenze in novanta giorni bloccano le prenotazioni gratuite. */
+private const val NO_SHOW_LIMIT = 3
+private const val NO_SHOW_WINDOW_DAYS = 90
+
 internal fun ticketQr(payload: String): Bitmap {
     val matrix = MultiFormatWriter().encode(payload, BarcodeFormat.QR_CODE, 512, 512)
     val pixels = IntArray(512 * 512) { index -> if (matrix[index % 512, index / 512]) android.graphics.Color.BLACK else android.graphics.Color.WHITE }
@@ -188,5 +201,6 @@ private fun ticketStatus(value: String): String = stringResource(when (value) {
     "waitlisted" -> R.string.ticket_waitlisted
     "checked_in" -> R.string.ticket_used
     "expired" -> R.string.ticket_expired
+    "no_show" -> R.string.ticket_no_show
     else -> R.string.ticket_cancelled
 })

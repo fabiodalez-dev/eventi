@@ -40,6 +40,8 @@ data class AppUiState(
     val defaultAppearance: String = "dark",
     val appearanceSaving: Boolean = false,
     val bookings: List<it.fabiodalez.incitta.data.Booking> = emptyList(),
+    /* Prenotazioni recenti a cui la persona non si è presentata (`meta.no_shows`). */
+    val noShows: Int = 0,
     val bookingDate: Occurrence? = null,
     val bookingAvailability: it.fabiodalez.incitta.data.BookingAvailability? = null,
     val bookingBusy: Boolean = false,
@@ -199,7 +201,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     val sessionChanged = _state.value.session?.token != session?.token
                     if (sessionChanged) {
                         bookingJob?.cancel()
-                        _state.value = _state.value.copy(bookings = emptyList(), bookingDate = null, bookingAvailability = null, bookingBusy = false, bookingError = null)
+                        _state.value = _state.value.copy(bookings = emptyList(), noShows = 0, bookingDate = null, bookingAvailability = null, bookingBusy = false, bookingError = null)
                     }
                     _state.value = _state.value.copy(session = session, savedIds = saved, defaultAppearance = repository.appearance(), appearance = repository.appearance())
                     if (sessionChanged) interestsChanged()
@@ -376,8 +378,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _state.value = _state.value.copy(bookingBusy = true, bookingError = null)
         bookingJob = viewModelScope.launch {
             try {
-                val bookings = repository.bookings()
-                if (repository.session.value?.token == token) _state.value = _state.value.copy(bookings = bookings, bookingBusy = false)
+                val list = repository.bookingList()
+                if (repository.session.value?.token == token) _state.value = _state.value.copy(bookings = list.bookings, noShows = list.noShows, bookingBusy = false)
             } catch (error: Exception) {
                 if (error is CancellationException) throw error
                 _state.value = _state.value.copy(bookingBusy = false, bookingError = userMessage(error))
