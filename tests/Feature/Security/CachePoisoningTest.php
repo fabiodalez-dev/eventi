@@ -49,8 +49,10 @@ it('non lascia divergere i filtri dichiarati dalla chiave della cache', function
     /* Quelli che restano fuori di proposito, e che rendono la pagina NON
        conservabile invece di entrare in chiave: la ricerca libera perché ogni
        ricerca è diversa, il budget perché è un intero su diecimila valori, il
-       `bbox` della mappa perché cambia a ogni spostamento, come `lat` e `lng`. */
-    $fuoriDiProposito = ['q', 'budget', 'bbox'];
+       `bbox` della mappa perché cambia a ogni spostamento, come `lat` e `lng`,
+       e «aperti adesso» (`aperto`) perché la risposta cambia a ogni fascia
+       oraria: una copia di mezz'ora mostrerebbe locali già chiusi. */
+    $fuoriDiProposito = ['q', 'budget', 'bbox', 'aperto'];
 
     $mancanti = array_values(array_diff(
         array_unique($filtri),
@@ -117,4 +119,10 @@ it('does not cache decimal page numbers and bounds stored category combinations'
     $store = Cache::store(config('page_cache.store') ?: null);
     expect($store->get('page-cache-index'))->toHaveCount(3);
     expect($store->has($this->middleware->key(Request::create('/eventi?category=arbitrary-1'))))->toBeFalse();
+});
+
+it('non conserva l\'elenco dei locali aperti adesso, che cambia a ogni fascia oraria', function (): void {
+    $request = \Illuminate\Http\Request::create('/locali', 'GET', ['aperto' => '1']);
+    $method = new ReflectionMethod(CachePage::class, 'isCacheable');
+    expect($method->invoke($this->middleware, $request))->toBeFalse();
 });
