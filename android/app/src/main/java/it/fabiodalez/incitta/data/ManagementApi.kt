@@ -51,7 +51,8 @@ internal class ManagementApi(private val api: ApiClient, private val token: Stri
     suspend fun guestBooking(id: Long, names: String, email: String?, phone: String?, note: String?): Booking =
         api.post<ApiEnvelope<Booking>, GuestBookingBody>("ticketing/$id/guest-booking", guestBookingBody(names, email, phone, note), token, idempotent = true).data
     suspend fun checkIn(read: PendingCheckin): CheckedInTicket = api.post<ApiEnvelope<CheckedInTicket>, JsonObject>(
-        "ticketing/${read.occurrenceId}/check-in", buildJsonObject { put("code", read.code); put("request_key", read.requestKey) }, token).data
+        "ticketing/${read.occurrenceId}/check-in", checkInBody(read), token).data
+    suspend fun manifest(id: Long): ManifestPayload = api.get<ApiEnvelope<ManifestPayload>>("ticketing/$id/manifest", token).data
 }
 
 /** Il corpo della prenotazione dal banco: righe vuote tolte, campi vuoti non inviati. */
@@ -61,3 +62,9 @@ internal fun guestBookingBody(names: String, email: String?, phone: String?, not
     phone = phone?.filterNot(Char::isWhitespace)?.ifBlank { null },
     note = note?.trim()?.ifBlank { null },
 )
+
+internal fun checkInBody(read: PendingCheckin): JsonObject = buildJsonObject {
+    put("code", read.code)
+    put("request_key", read.requestKey)
+    read.scannedAt?.let { put("scanned_at", it) }
+}

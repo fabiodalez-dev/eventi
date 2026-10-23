@@ -71,7 +71,7 @@
     <string name="management_retry_reads">Riprova le letture</string>
     <string name="management_refresh">Aggiorna</string>
     <string name="management_checkin">Controllo ingressi</string>
-    <string name="management_online_only">Solo la conferma del server autorizza l’ingresso. Senza rete il QR resta in attesa.</string>
+    <string name="management_online_only">All’apertura della data scarico l’elenco dei biglietti: senza rete riconosco i QR di quell’elenco e respingo subito quelli estranei o già usati. Un QR riconosciuto resta comunque in attesa: l’ingresso è registrato solo quando il server conferma.</string>
     <string name="management_scan">Scansiona un QR</string>
     <string name="management_manual">Codice biglietto</string>
     <string name="management_check_code">Verifica codice</string>
@@ -234,4 +234,13 @@
         <item quantity="one">Registrata: %1$d biglietto.</item>
         <item quantity="other">Registrata: %1$d biglietti.</item>
     </plurals>
+    <!-- D60: controllo ingressi senza rete -->
+    <string name="management_offline_loaded">Elenco scaricato alle %1$s: %2$d biglietti</string>
+    <string name="management_offline_missing">Elenco non scaricato: senza rete non riconosco i biglietti</string>
+    <string name="management_offline_refresh">Aggiorna l’elenco</string>
+    <string name="management_offline_refresh_failed">Non sono riuscito ad aggiornare l’elenco: %1$s</string>
+    <string name="management_offline_unknown">QR non presente nell’elenco scaricato: non far entrare finché la rete non conferma.</string>
+    <string name="management_offline_used">%1$s: ingresso già registrato (anche da questo telefono).</string>
+    <string name="management_offline_waiting_name">%1$s · in attesa di rete</string>
+    <string name="management_offline_waiting_code">Biglietto %1$s… · in attesa di rete</string>
 </resources>

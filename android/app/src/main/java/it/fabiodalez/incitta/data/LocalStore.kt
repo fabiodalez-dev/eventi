@@ -82,7 +82,37 @@ class LocalStore(private val context: Context) {
     internal fun writeCheckins(entries: List<PendingCheckin>) {
         check(prefs.edit().putString("checkin_pending", encrypt(json.encodeToString(entries))).commit())
     }
-    private fun clearCheckins() { prefs.edit(commit = true) { remove("checkin_pending") } }
+    private fun clearCheckins() {
+        prefs.edit(commit = true) { remove("checkin_pending") }
+        clearManifests()
+    }
+
+    /*
+     * Gli elenchi per il controllo ingressi senza rete, uno per data, cifrati
+     * come le letture in attesa. Contengono nomi: dopo 48 ore si cancellano, e
+     * spariscono con l'uscita dall'account o il cambio di utente.
+     */
+    internal fun readManifest(occurrenceId: Long, nowMillis: Long = System.currentTimeMillis()): CheckinManifest? {
+        purgeManifests(nowMillis)
+        return prefs.getString(MANIFEST_PREFIX + occurrenceId, null)?.let {
+            runCatching { json.decodeFromString<CheckinManifest>(decrypt(it)) }.getOrNull()
+        }?.takeIf { it.occurrenceId == occurrenceId && !it.expired(nowMillis) }
+    }
+    internal fun writeManifest(occurrenceId: Long, manifest: CheckinManifest, nowMillis: Long = System.currentTimeMillis()) {
+        require(manifest.occurrenceId == occurrenceId)
+        purgeManifests(nowMillis)
+        prefs.edit(commit = true) { putString(MANIFEST_PREFIX + occurrenceId, encrypt(json.encodeToString(manifest))) }
+    }
+    private fun purgeManifests(nowMillis: Long) {
+        val stale = prefs.all.keys.filter { it.startsWith(MANIFEST_PREFIX) }.filter { key ->
+            prefs.getString(key, null)?.let { runCatching { json.decodeFromString<CheckinManifest>(decrypt(it)) }.getOrNull() }?.expired(nowMillis) ?: true
+        }
+        if (stale.isNotEmpty()) prefs.edit(commit = true) { stale.forEach(::remove) }
+    }
+    private fun clearManifests() {
+        val keys = prefs.all.keys.filter { it.startsWith(MANIFEST_PREFIX) }
+        if (keys.isNotEmpty()) prefs.edit(commit = true) { keys.forEach(::remove) }
+    }
 
     fun readSession(): Session? {
         val encrypted = prefs.getString(KEY_SESSION, null) ?: return null
@@ -201,6 +231,7 @@ class LocalStore(private val context: Context) {
         const val KEY_GUEST_SAVED = "guest_saved"
         const val KEY_OCCURRENCES = "occurrences"
         const val KEY_PRIVACY_CONSENT = "privacy_consent"
+        const val MANIFEST_PREFIX = "checkin_manifest_"
         const val KEY_ALIAS = "incitta_session_key"
         const val TRANSFORMATION = "AES/GCM/NoPadding"
     }

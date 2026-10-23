@@ -49,10 +49,29 @@ internal fun ManagementScreen(session: Session?, padding: PaddingValues, client:
     var pending by remember { mutableStateOf(outbox.pending()) }
     var outcomes by remember { mutableStateOf(emptyList<CheckinOutcome>()) }
     var removeStaff by remember { mutableStateOf<CheckinStaff?>(null) }
+    var manifest by remember { mutableStateOf<CheckinManifest?>(null) }
+    var manifestBusy by remember { mutableStateOf(false) }
+    var manifestError by remember { mutableStateOf<String?>(null) }
     val saved = stringResource(R.string.management_saved)
     val scanPrompt = stringResource(R.string.management_scan_prompt)
     val invalidCode = stringResource(R.string.management_invalid_code)
     val queueFull = stringResource(R.string.management_queue_full)
+    val notInList = stringResource(R.string.management_offline_unknown)
+    val alreadyUsed = stringResource(R.string.management_offline_used)
+    /*
+     * L'elenco della data aperta: prima quello salvato sul telefono, poi uno
+     * fresco dal server. Se la rete manca resta quello salvato (o nessuno).
+     */
+    suspend fun refreshManifest(id: Long) {
+        manifestBusy = true; manifestError = null
+        try {
+            val fresh = CheckinManifest.from(id, api.manifest(id), System.currentTimeMillis()).refreshedWith(store.readManifest(id))
+            store.writeManifest(id, fresh)
+            if (date?.id == id) manifest = fresh
+        } catch (e: CancellationException) { throw e }
+        catch (e: Exception) { if (date?.id == id) manifestError = requestFailureMessage(e) }
+        finally { manifestBusy = false }
+    }
     suspend fun flush() {
         outbox.flush { result ->
             if (result != null) outcomes = (listOf(result) + outcomes).take(30)
@@ -95,9 +114,28 @@ internal fun ManagementScreen(session: Session?, padding: PaddingValues, client:
     fun addCode(value: String) {
         val current = date ?: return
         val code = value.trim()
+        val scannedAt = java.time.Instant.now()
         if (!code.matches(Regex("[A-Za-z0-9]{64}"))) { error = invalidCode; return }
         if (pending.size >= 200) { error = queueFull; return }
-        action { outbox.add(current.id, code); pending = outbox.pending(); flush() }
+        val list = manifest?.takeIf { it.occurrenceId == current.id }
+        if (list != null) {
+            when (val verdict = list.verdict(code)) {
+                ManifestVerdict.Unknown -> { outcomes = (listOf(CheckinOutcome(current.id, false, notInList)) + outcomes).take(30); return }
+                is ManifestVerdict.AlreadyUsed -> { outcomes = (listOf(CheckinOutcome(current.id, false, alreadyUsed.format(verdict.name))) + outcomes).take(30); return }
+                is ManifestVerdict.Known -> {
+                    val marked = list.markUsed(code)
+                    runCatching { store.writeManifest(current.id, marked) }
+                    manifest = marked
+                }
+            }
+        }
+        action { outbox.add(current.id, code, scannedAt); pending = outbox.pending(); flush() }
+    }
+    LaunchedEffect(date?.id, date?.canCheckIn) {
+        val current = date
+        if (current == null || !current.canCheckIn) { manifest = null; manifestError = null; return@LaunchedEffect }
+        if (manifest?.occurrenceId != current.id) manifest = store.readManifest(current.id)
+        refreshManifest(current.id)
     }
     val scanner = rememberLauncherForActivityResult(ScanContract()) { result -> result.contents?.let(::addCode) }
     fun back() { if (date != null || campaign != null) { date = null; campaign = null; error = null; message = null } else onBack() }
@@ -123,6 +161,21 @@ internal fun ManagementScreen(session: Session?, padding: PaddingValues, client:
                 if (selected.canCheckIn) {
                     Text(stringResource(R.string.management_checkin), style = MaterialTheme.typography.titleLarge)
                     Text(stringResource(R.string.management_online_only), color = Muted)
+                    val list = manifest?.takeIf { it.occurrenceId == selected.id }
+                    Text(
+                        if (list != null) stringResource(R.string.management_offline_loaded, manifestClock(list.generatedAt), list.size)
+                        else stringResource(R.string.management_offline_missing),
+                        color = if (list != null) Paper else MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.titleSmall,
+                    )
+                    manifestError?.let { Text(stringResource(R.string.management_offline_refresh_failed, it), color = Muted) }
+                    OutlinedButton(enabled = !manifestBusy, onClick = { scope.launch { refreshManifest(selected.id) } }, modifier = Modifier.heightIn(min = 48.dp)) {
+                        Text(stringResource(R.string.management_offline_refresh))
+                    }
+                    pending.filter { it.occurrenceId == selected.id }.take(20).forEach { read ->
+                        val name = list?.lookup(read.code)?.name
+                        Text(if (name != null) stringResource(R.string.management_offline_waiting_name, name) else stringResource(R.string.management_offline_waiting_code, read.code.take(6)), color = Muted)
+                    }
                     Button(enabled = !busy, onClick = {
                         scanner.launch(ScanOptions().setDesiredBarcodeFormats(ScanOptions.QR_CODE).setPrompt(scanPrompt).setBeepEnabled(false).setOrientationLocked(false))
                     }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text(stringResource(R.string.management_scan)) }
@@ -165,6 +218,8 @@ internal fun ManagementScreen(session: Session?, padding: PaddingValues, client:
                                 val booking = api.guestBooking(selected.id, names, email, phone, note)
                                 saved()
                                 date = api.date(selected.id)
+                                // I biglietti appena registrati devono entrare nell'elenco senza rete.
+                                if (selected.canCheckIn) refreshManifest(selected.id)
                                 message = context.resources.getQuantityString(R.plurals.management_guest_saved, booking.tickets.size, booking.tickets.size)
                             }
                         }
@@ -287,6 +342,7 @@ private const val MESSAGE_DAILY_LIMIT = 3
 @Composable private fun MetricLine(label: Int, value: String?) {
     Column { Text(stringResource(label), color = Muted); Text(value ?: stringResource(R.string.management_not_available), style = MaterialTheme.typography.headlineSmall) }
 }
+private fun manifestClock(value: String): String = runCatching { OffsetDateTime.parse(value).atZoneSameInstant(java.time.ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("HH:mm", Locale.ITALIAN)) }.getOrDefault(value)
 private fun managementDate(value: String): String = runCatching { OffsetDateTime.parse(value).atZoneSameInstant(java.time.ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("d MMM yyyy, HH:mm", Locale.ITALIAN)) }.getOrDefault(value)
 internal fun managementMoney(cents: Long?, currency: String): String? = cents?.let {
     NumberFormat.getCurrencyInstance(Locale.ITALIAN).apply { this.currency = runCatching { Currency.getInstance(currency) }.getOrDefault(Currency.getInstance("EUR")) }.format(java.math.BigDecimal.valueOf(it, 2))
