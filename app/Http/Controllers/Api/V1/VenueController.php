@@ -95,6 +95,7 @@ final class VenueController extends Controller
 
         return ApiResponse::item([
             ...VenueResource::toArray($venue, $city->timezone),
+            'notice' => VenueResource::notice($venue),
             'upcoming_occurrences' => $counts,
         ]);
     }

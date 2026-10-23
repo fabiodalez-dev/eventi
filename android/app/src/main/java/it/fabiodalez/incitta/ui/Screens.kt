@@ -194,6 +194,7 @@ fun SearchScreen(
     onClearDiscovery: () -> Unit = {},
     onFilters: (Map<String, String>, String, String) -> Unit = { _, _, _ -> },
     onLoadMore: () -> Unit = {},
+    onSaveSearch: (String) -> Unit = {},
 ) {
     var query by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
@@ -230,6 +231,14 @@ fun SearchScreen(
                 )
                 Text(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.search_live_help), color = Muted, modifier = Modifier.padding(top = 10.dp))
                 SearchFilters(state, query, collapsible = true, onCollapse = { revealResults = true }) { filters, summary -> onFilters(filters, summary, query) }
+                if (it.fabiodalez.incitta.data.SavedSearchFilters.canSave(state.discoveryFilters, query)) {
+                    OutlinedButton(
+                        onClick = { onSaveSearch(query) },
+                        modifier = Modifier.fillMaxWidth().padding(top = 12.dp).heightIn(min = 48.dp),
+                        shape = ControlShape,
+                    ) { Text(stringResource(R.string.saved_search_button)) }
+                    Text(stringResource(if (state.session == null) R.string.saved_search_help_guest else R.string.saved_search_help), color = Muted, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 4.dp))
+                }
                 state.activeTag?.let { tag ->
                     Button(
                         onClick = onClearTag,
@@ -303,6 +312,7 @@ fun SavedScreen(
     onSave: (Long) -> Unit,
     onPrivacy: ((Long) -> Unit)? = null,
     onProfile: (() -> Unit)? = null,
+    onCollections: (() -> Unit)? = null,
 ) {
     val context = LocalContext.current
     var mode by remember { mutableIntStateOf(0) }
@@ -339,6 +349,11 @@ fun SavedScreen(
                     ModeButton("CALENDARIO", mode == 1, Modifier.width(156.dp)) { mode = 1 }
                     ModeButton(stringResource(R.string.saved_past), mode == 2, Modifier) { mode = 2 }
                 }
+            }
+        }
+        if (state.session != null && onCollections != null) item {
+            OutlinedButton(onClick = onCollections, modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp).heightIn(min = 48.dp), shape = ControlShape) {
+                Text(stringResource(R.string.collections_open_profile))
             }
         }
         item { SavedCalendarActions(state) }
@@ -514,9 +529,11 @@ fun AccountScreen(
     onProfileSaved: () -> Unit = {},
     onCommunity: () -> Unit = {},
     onCarpool: () -> Unit = {}, onCarpoolMessages: () -> Unit = {}, onCommunityInbox: () -> Unit = {}, communityTotal: Int = 0, onManagement: () -> Unit = {}, onPublicProfile: () -> Unit = {}, onRelationships: () -> Unit = {}, onVerification: () -> Unit = {},
+    onCollections: () -> Unit = {},
+    onOpenSavedSearch: (it.fabiodalez.incitta.data.SavedSearch) -> Unit = {},
 ) {
     if (state.session != null) {
-        ProfileScreen(state, padding, onTickets, onSaved, onLogout, onDeleteAccount, onInterestsSaved, onAppearance, onProfileSaved, onCommunity, onCarpool, onCarpoolMessages, onCommunityInbox, communityTotal, onManagement, onPublicProfile, onRelationships, onVerification)
+        ProfileScreen(state, padding, onTickets, onSaved, onLogout, onDeleteAccount, onInterestsSaved, onAppearance, onProfileSaved, onCommunity, onCarpool, onCarpoolMessages, onCommunityInbox, communityTotal, onManagement, onPublicProfile, onRelationships, onVerification, onCollections, onOpenSavedSearch)
         return
     }
 

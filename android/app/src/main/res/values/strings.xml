@@ -71,7 +71,7 @@
     <string name="management_retry_reads">Riprova le letture</string>
     <string name="management_refresh">Aggiorna</string>
     <string name="management_checkin">Controllo ingressi</string>
-    <string name="management_online_only">Solo la conferma del server autorizza l’ingresso. Senza rete il QR resta in attesa.</string>
+    <string name="management_online_only">All’apertura della data scarico l’elenco dei biglietti: senza rete riconosco i QR di quell’elenco e respingo subito quelli estranei o già usati. Un QR riconosciuto resta comunque in attesa: l’ingresso è registrato solo quando il server conferma.</string>
     <string name="management_scan">Scansiona un QR</string>
     <string name="management_manual">Codice biglietto</string>
     <string name="management_check_code">Verifica codice</string>
@@ -125,4 +125,130 @@
     <string name="management_membership_cost">Costo tessera</string>
     <string name="management_other">Altri costi</string>
     <string name="management_save">Salva informazioni e costi</string>
+    <!-- D60: scheda evento -->
+    <string name="event_gallery">FOTO</string>
+    <string name="event_gallery_photo">Foto %1$d di %2$d, tocca per ingrandire</string>
+    <string name="event_gallery_full">Foto di %1$s a schermo intero</string>
+    <string name="event_video">VIDEO</string>
+    <string name="event_video_watch">Guarda il video su %1$s</string>
+    <string name="event_video_note">Si apre su %1$s, fuori dall’app. Prima del tocco non viene caricato niente dal fornitore.</string>
+    <string name="event_video_youtube">YouTube</string>
+    <string name="event_video_vimeo">Vimeo</string>
+    <string name="event_coorganizer">con %1$s</string>
+    <!-- D60: raccolte -->
+    <string name="collections_title">Le mie raccolte</string>
+    <string name="collections_subtitle">Elenchi di date da condividere con un link</string>
+    <string name="collections_intro">Una raccolta è un elenco di date scelto da te. Se la condividi, chi ha il link la vede anche senza account; se la rendi privata, il link smette subito di funzionare.</string>
+    <string name="collections_empty">Non hai ancora raccolte. Creane una qui oppure dalla scheda di un evento con «Aggiungi a una raccolta».</string>
+    <string name="collections_new_name">Nome della nuova raccolta</string>
+    <string name="collections_public">Condivisa con un link</string>
+    <string name="collections_public_help">Chi ha il link vede la raccolta senza account.</string>
+    <string name="collections_create">Crea raccolta</string>
+    <string name="collections_created">Raccolta creata.</string>
+    <plurals name="collections_items">
+        <item quantity="one">%1$d data</item>
+        <item quantity="other">%1$d date</item>
+    </plurals>
+    <string name="collections_badge_public">Condivisa</string>
+    <string name="collections_badge_private">Privata</string>
+    <string name="collections_name">Nome</string>
+    <string name="collections_description">Descrizione (facoltativa)</string>
+    <string name="collections_save">Salva modifiche</string>
+    <string name="collections_saved">Modifiche salvate.</string>
+    <string name="collections_link">Link della raccolta</string>
+    <string name="collections_copy">Copia il link</string>
+    <string name="collections_copied">Link copiato.</string>
+    <string name="collections_share">Condividi il link</string>
+    <string name="collections_share_chooser">Condividi la raccolta</string>
+    <string name="collections_private_note">La raccolta è privata: attiva «Condivisa con un link» e salva per ottenere il link.</string>
+    <string name="collections_dates">Date nella raccolta</string>
+    <string name="collections_items_empty">Questa raccolta non ha ancora date. Aggiungile dalla scheda di un evento.</string>
+    <string name="collections_remove_item">Togli</string>
+    <string name="collections_remove_item_label">Togli %1$s dalla raccolta</string>
+    <string name="collections_item_removed">Data tolta dalla raccolta.</string>
+    <string name="collections_delete">Elimina la raccolta</string>
+    <string name="collections_delete_confirm">Eliminare la raccolta «%1$s»? Il link condiviso smetterà di funzionare. Non si può annullare.</string>
+    <string name="collections_deleted">Raccolta eliminata.</string>
+    <string name="collections_cancel">Annulla</string>
+    <string name="collections_back">Torna alle raccolte</string>
+    <string name="collections_back_app">Indietro</string>
+    <string name="collections_retry">Riprova</string>
+    <string name="collections_add">Aggiungi a una raccolta</string>
+    <string name="collections_add_login">Accedi per raccogliere le date in elenchi da condividere.</string>
+    <string name="collections_login">Accedi</string>
+    <string name="collections_added">Aggiunta a «%1$s».</string>
+    <string name="collections_new">Nuova raccolta…</string>
+    <string name="collections_choose">Scegli una raccolta oppure creane una nuova con questa data dentro.</string>
+    <string name="collections_shared_title">Raccolta condivisa</string>
+    <string name="collections_shared_by">Condivisa da %1$s</string>
+    <string name="collections_shared_missing">Questa raccolta non esiste più oppure chi l’aveva condivisa l’ha resa privata.</string>
+    <string name="collections_note">Nota: %1$s</string>
+    <string name="collections_untitled">Evento senza titolo</string>
+    <string name="collections_open_profile">Le mie raccolte</string>
+    <!-- D60: ricerche salvate -->
+    <string name="saved_search_button">Avvisami per nuovi eventi come questi</string>
+    <string name="saved_search_help">Ti avviso quando escono eventi nuovi con questi filtri. Le ricerche salvate si gestiscono in Profilo › Notifiche e newsletter.</string>
+    <string name="saved_search_help_guest">Accedi per ricevere un avviso quando escono eventi nuovi con questi filtri.</string>
+    <string name="saved_search_login">Accedi per salvare la ricerca e ricevere gli avvisi.</string>
+    <string name="saved_search_stored">Ricerca salvata: «%1$s». Ti avviso quando escono eventi nuovi.</string>
+    <string name="saved_search_title">Le mie ricerche salvate</string>
+    <string name="saved_search_intro">Quando escono eventi nuovi che corrispondono a una di queste ricerche ricevi un avviso, secondo i canali scelti qui sopra.</string>
+    <string name="saved_search_empty">Nessuna ricerca salvata. Dalla pagina Eventi, dopo aver scelto dei filtri, tocca «Avvisami per nuovi eventi come questi».</string>
+    <string name="saved_search_open">Apri</string>
+    <string name="saved_search_open_label">Apri la ricerca %1$s</string>
+    <string name="saved_search_remove">Rimuovi</string>
+    <string name="saved_search_remove_label">Rimuovi la ricerca %1$s</string>
+    <string name="saved_search_remove_confirm">Rimuovere la ricerca «%1$s»? Non riceverai più avvisi per questi filtri.</string>
+    <string name="saved_search_removed">Ricerca rimossa.</string>
+    <!-- D60: assenze -->
+    <string name="ticket_no_show">Non presentato</string>
+    <plurals name="ticket_no_show_account">
+        <item quantity="one">Hai %1$d prenotazione recente a cui non ti sei presentato. Con %2$d assenze in %3$d giorni le prenotazioni gratuite si bloccano: annulla per tempo se non puoi andare.</item>
+        <item quantity="other">Hai %1$d prenotazioni recenti a cui non ti sei presentato. Con %2$d assenze in %3$d giorni le prenotazioni gratuite si bloccano: annulla per tempo se non puoi andare.</item>
+    </plurals>
+    <!-- D60: messaggio ai prenotati e prenotazione dal banco -->
+    <string name="management_message_title">Scrivi a chi ha prenotato</string>
+    <string name="management_message_hide">Chiudi il messaggio a chi ha prenotato</string>
+    <string name="management_message_hint">Arriva per email (e nell’app) a chi ha un posto confermato per questa data. Massimo %1$d messaggi al giorno per data: è un avviso di servizio, non una newsletter.</string>
+    <string name="management_message_subject">Oggetto</string>
+    <string name="management_message_body">Messaggio</string>
+    <string name="management_message_length">%1$d / 2.000 caratteri</string>
+    <string name="management_message_waitlisted">Invia anche a chi è in lista d’attesa</string>
+    <string name="management_message_send">Invia il messaggio</string>
+    <string name="management_message_confirm">Il messaggio parte subito a tutte le persone con un posto confermato e non si può ritirare. Inviarlo?</string>
+    <string name="management_message_confirm_waitlisted">Il messaggio parte subito a tutte le persone con un posto confermato e a chi è in lista d’attesa, e non si può ritirare. Inviarlo?</string>
+    <plurals name="management_message_sent">
+        <item quantity="one">Inviato a %1$d persona.</item>
+        <item quantity="other">Inviato a %1$d persone.</item>
+    </plurals>
+    <string name="management_guest_title">Aggiungi una prenotazione</string>
+    <string name="management_guest_hide">Chiudi l’aggiunta di una prenotazione</string>
+    <string name="management_guest_hint">Per chi prenota al telefono o al banco. Un nome per riga; se lasci un’email, i biglietti partono subito in allegato. Non crea un account.</string>
+    <string name="management_guest_names">Nomi dei partecipanti, uno per riga</string>
+    <string name="management_guest_email">Email (facoltativa)</string>
+    <string name="management_guest_phone">Telefono (facoltativo)</string>
+    <string name="management_guest_phone_hint">Con il prefisso internazionale, per esempio +39 333 1234567.</string>
+    <string name="management_guest_note">Nota interna (facoltativa)</string>
+    <string name="management_guest_save">Registra la prenotazione</string>
+    <plurals name="management_guest_saved">
+        <item quantity="one">Registrata: %1$d biglietto.</item>
+        <item quantity="other">Registrata: %1$d biglietti.</item>
+    </plurals>
+    <!-- D60: controllo ingressi senza rete -->
+    <string name="management_offline_loaded">Elenco scaricato alle %1$s: %2$d biglietti</string>
+    <string name="management_offline_missing">Elenco non scaricato: senza rete non riconosco i biglietti</string>
+    <string name="management_offline_refresh">Aggiorna l’elenco</string>
+    <string name="management_offline_refresh_failed">Non sono riuscito ad aggiornare l’elenco: %1$s</string>
+    <string name="management_offline_unknown">Non è nell’elenco scaricato: potrebbe essere una prenotazione recente. Non far entrare finché la rete non conferma.</string>
+    <string name="management_offline_used">%1$s: ingresso già registrato (anche da questo telefono).</string>
+    <string name="management_offline_waiting_name">%1$s · in attesa di rete</string>
+    <string name="management_offline_waiting_code">Biglietto %1$s… · in attesa di rete</string>
+    <!-- D60: pagina del locale -->
+    <string name="venue_notice_pause">Pausa</string>
+    <string name="venue_notice_closure">Chiusura</string>
+    <string name="venue_notice_reopening">Riapertura</string>
+    <string name="venue_notice_info">Comunicazione</string>
+    <string name="venue_notice_heading_until">%1$s · fino al %2$s</string>
+    <string name="venue_calendar_ics">Calendario pubblico (ICS)</string>
+    <string name="venue_calendar_ics_help">Le date del locale da aggiungere al tuo calendario, senza account. Si apre fuori dall’app.</string>
 </resources>
