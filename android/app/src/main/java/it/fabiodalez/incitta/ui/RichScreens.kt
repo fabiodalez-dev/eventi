@@ -49,6 +49,7 @@ import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material.icons.outlined.Phone
+import androidx.compose.material.icons.outlined.PlayCircle
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Share
@@ -81,6 +82,8 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -99,6 +102,7 @@ import it.fabiodalez.incitta.data.Occurrence
 import it.fabiodalez.incitta.data.Price
 import it.fabiodalez.incitta.data.Tag
 import it.fabiodalez.incitta.data.Venue
+import it.fabiodalez.incitta.data.coOrganizers
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.time.OffsetDateTime
@@ -146,6 +150,7 @@ fun CompleteEventDetailScreen(
     var carpoolPrompt by remember(detail.id) { mutableStateOf<Pair<Long,Boolean>?>(null) }
     carpoolPrompt?.let { (id, offer) -> AlertDialog(onDismissRequest={carpoolPrompt=null}, title={Text(cpText("free"))}, text={Text(cpText("onboarding"))}, confirmButton={CpButton("requirements"){carpoolPrompt=null;onCarpool(id,offer)}}, dismissButton={CpButton("back"){carpoolPrompt=null}}) }
     var posterLightbox by remember(detail.id) { mutableStateOf(false) }
+    var galleryLightbox by remember(detail.id) { mutableStateOf<String?>(null) }
     LaunchedEffect(detail.id) { scrollState.scrollTo(0) }
     Box(Modifier.fillMaxSize()) {
         Surface(Modifier.fillMaxSize(), color = Ink, contentColor = Paper) {
@@ -171,13 +176,20 @@ fun CompleteEventDetailScreen(
                     }
                 }
 
-                if (detail.organizer.name != null || detail.externalLinks.isNotEmpty()) {
+                EventGallerySection(detail.gallery) { galleryLightbox = it }
+                detail.video?.let { EventVideoSection(it) }
+
+                val coOrganizers = detail.coOrganizers()
+                if (detail.organizer.name != null || detail.externalLinks.isNotEmpty() || coOrganizers.isNotEmpty()) {
                     DetailSection("LINK E ORGANIZZATORE") {
                         detail.organizer.name?.let { name ->
                             LabeledValue("Organizza", name)
                             if (detail.organizer.slug != null) SmallLink("TUTTI GLI EVENTI DELL'ORGANIZZATORE") { onOrganizer(detail.organizer.slug) }
                             else if (detail.organizer.hostFallback && detail.venue != null) SmallLink("TUTTI GLI EVENTI DEL LOCALE") { onVenue(detail.venue) }
                             else detail.organizer.url?.let { url -> SmallLink("SITO DELL'ORGANIZZATORE") { openUrl(context, url) } }
+                        }
+                        coOrganizers.forEach { coOrganizer ->
+                            SmallLink(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.event_coorganizer, coOrganizer.name.orEmpty())) { coOrganizer.slug?.let(onOrganizer) }
                         }
                         detail.externalLinks.forEach { link -> SmallLink(link.label.uppercase()) { openUrl(context, link.url) } }
                     }
@@ -353,6 +365,78 @@ fun CompleteEventDetailScreen(
                 title = detail.title,
                 onClose = { posterLightbox = false },
             )
+        }
+        galleryLightbox?.let { url ->
+            PosterLightbox(
+                url = url,
+                title = androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.event_gallery_full, detail.title),
+                onClose = { galleryLightbox = null },
+            )
+        }
+    }
+}
+
+/**
+ * Le foto dell'evento in due colonne. Al tocco si apre la versione grande
+ * nello stesso riquadro a schermo intero della locandina.
+ */
+@Composable
+private fun EventGallerySection(gallery: List<it.fabiodalez.incitta.data.Poster>, onOpen: (String) -> Unit) {
+    val photos = gallery.filter { (it.card ?: it.full ?: it.thumb) != null }
+    if (photos.isEmpty()) return
+    DetailSection(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.event_gallery)) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            photos.chunked(2).forEachIndexed { row, pair ->
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    pair.forEachIndexed { column, photo ->
+                        val position = row * 2 + column + 1
+                        val description = androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.event_gallery_photo, position, photos.size)
+                        val large = photo.full ?: photo.card ?: photo.thumb
+                        Box(
+                            Modifier.weight(1f).aspectRatio(1f).clipToBounds()
+                                .background(if (isLightTheme) MaterialTheme.colorScheme.surfaceVariant else Color(0xFF202020))
+                                .clickable(onClickLabel = description) { large?.let(onOpen) }
+                                .semantics { contentDescription = description },
+                        ) {
+                            AsyncImage(photo.card ?: photo.thumb ?: photo.full, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                        }
+                    }
+                    if (pair.size == 1) Spacer(Modifier.weight(1f))
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Il video come riquadro nostro: icona, fornitore e una riga che dice dove si
+ * apre. Niente WebView e nessuna richiesta al fornitore prima del tocco: al
+ * tocco si apre `watch_url` nel browser o nell'app del fornitore.
+ */
+@Composable
+private fun EventVideoSection(video: it.fabiodalez.incitta.data.EventVideo) {
+    val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
+    val provider = when (video.provider.lowercase(Locale.ROOT)) {
+        "youtube" -> androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.event_video_youtube)
+        "vimeo" -> androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.event_video_vimeo)
+        else -> video.provider.replaceFirstChar { it.titlecase(Locale.ITALIAN) }
+    }
+    DetailSection(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.event_video)) {
+        Surface(
+            onClick = { runCatching { uriHandler.openUri(video.watchUrl) } },
+            modifier = Modifier.fillMaxWidth().heightIn(min = 96.dp),
+            shape = CardShape,
+            color = if (isLightTheme) MaterialTheme.colorScheme.surfaceVariant else Color(0xFF202020),
+            border = BorderStroke(1.dp, Rule),
+        ) {
+            Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                Icon(Icons.Outlined.PlayCircle, contentDescription = null, tint = Acid, modifier = Modifier.size(48.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.event_video_watch, provider), style = MaterialTheme.typography.titleMedium)
+                    Text(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.event_video_note, provider), color = Muted, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 4.dp))
+                }
+                Icon(Icons.AutoMirrored.Outlined.OpenInNew, contentDescription = null, tint = Acid)
+            }
         }
     }
 }

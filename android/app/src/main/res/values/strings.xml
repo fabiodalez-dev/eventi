@@ -125,4 +125,14 @@
     <string name="management_membership_cost">Costo tessera</string>
     <string name="management_other">Altri costi</string>
     <string name="management_save">Salva informazioni e costi</string>
+    <!-- D60: scheda evento -->
+    <string name="event_gallery">FOTO</string>
+    <string name="event_gallery_photo">Foto %1$d di %2$d, tocca per ingrandire</string>
+    <string name="event_gallery_full">Foto di %1$s a schermo intero</string>
+    <string name="event_video">VIDEO</string>
+    <string name="event_video_watch">Guarda il video su %1$s</string>
+    <string name="event_video_note">Si apre su %1$s, fuori dall’app. Prima del tocco non viene caricato niente dal fornitore.</string>
+    <string name="event_video_youtube">YouTube</string>
+    <string name="event_video_vimeo">Vimeo</string>
+    <string name="event_coorganizer">con %1$s</string>
 </resources>

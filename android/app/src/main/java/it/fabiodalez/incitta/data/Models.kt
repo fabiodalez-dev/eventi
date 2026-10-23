@@ -190,7 +190,27 @@ data class EventDetail(
     @SerialName("verification_status") val verificationStatus: String? = null,
     val occurrences: List<Occurrence> = emptyList(),
     val url: String? = null,
+    /* D60: foto dell'evento (stessa forma della locandina), video come semplice descrizione e co-organizzatori. */
+    val gallery: List<Poster> = emptyList(),
+    val video: EventVideo? = null,
+    val organizers: List<Organizer> = emptyList(),
 )
+
+/**
+ * Il video di un evento: solo la descrizione. L'app non incorpora il lettore
+ * e non contatta il fornitore finché chi legge non tocca il riquadro.
+ */
+@Serializable
+data class EventVideo(
+    val provider: String,
+    @SerialName("embed_url") val embedUrl: String,
+    @SerialName("watch_url") val watchUrl: String,
+)
+
+/** I co-organizzatori da mostrare: senza doppioni e senza ripetere l'organizzatore principale. */
+fun EventDetail.coOrganizers(): List<Organizer> = organizers
+    .filter { !it.name.isNullOrBlank() && !it.slug.isNullOrBlank() && it.slug != organizer.slug }
+    .distinctBy { it.slug }
 
 @Serializable
 data class AuthPayload(
