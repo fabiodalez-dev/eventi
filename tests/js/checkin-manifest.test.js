@@ -45,8 +45,9 @@ test('a stored manifest is reused after a reload', async () => {
 });
 
 test('with network every scan goes to the server, even codes missing from the downloaded list', () => {
-    assert.equal(classifyScan({ online: true, loaded: true, known: false }), 'send');
-    assert.equal(classifyScan({ online: true, loaded: true, known: true, status: 'checked_in' }), 'send');
+    assert.equal(classifyScan({ online: true, loaded: true, known: false }), 'send_warn_unknown');
+    assert.equal(classifyScan({ online: true, loaded: true, known: true, status: 'checked_in' }), 'send_warn_used');
+    assert.equal(classifyScan({ online: true, loaded: true, known: true, status: 'valid' }), 'send');
     assert.equal(classifyScan({ online: false, loaded: true, known: false }), 'pending_unknown');
     assert.equal(classifyScan({ online: false, loaded: true, known: true, status: 'checked_in' }), 'reject_used');
     assert.equal(classifyScan({ online: false, loaded: true, known: true, status: 'valid' }), 'pending');

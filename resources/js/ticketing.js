@@ -192,7 +192,8 @@ document.querySelectorAll('[data-checkin-queue]').forEach((form) => {
             queue.entries.push({ code, requestKey: crypto.randomUUID(), state: 'rejected', message: form.dataset.knownUsed.replace(':name', local.name) });
             queue.persist();
         } else {
-            const localMessage = decision === 'pending_unknown' ? form.dataset.unknown
+            const localMessage = decision === 'pending_unknown' || decision === 'send_warn_unknown' ? form.dataset.unknown
+                : decision === 'send_warn_used' ? form.dataset.knownUsed.replace(':name', local.name)
                 : (local.known ? form.dataset.knownPending.replace(':name', local.name) : '');
             queue.add(code, localMessage ? { localMessage } : {});
             if (local.known) manifest.markUsed(code);

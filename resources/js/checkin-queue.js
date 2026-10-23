@@ -100,6 +100,8 @@ export async function sha256Hex(text) {
 // a code already used locally is refused, and an unknown one waits for the
 // server with a warning not to let the person in yet.
 export function classifyScan({ online, loaded, known, status }) {
+    if (online && known && status === 'checked_in') return 'send_warn_used';
+    if (online && loaded && !known) return 'send_warn_unknown';
     if (online) return 'send';
     if (known && status === 'checked_in') return 'reject_used';
     if (loaded && !known) return 'pending_unknown';
