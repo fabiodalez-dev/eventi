@@ -239,7 +239,7 @@
     <string name="management_offline_missing">Elenco non scaricato: senza rete non riconosco i biglietti</string>
     <string name="management_offline_refresh">Aggiorna l’elenco</string>
     <string name="management_offline_refresh_failed">Non sono riuscito ad aggiornare l’elenco: %1$s</string>
-    <string name="management_offline_unknown">QR non presente nell’elenco scaricato: non far entrare finché la rete non conferma.</string>
+    <string name="management_offline_unknown">Non è nell’elenco scaricato: potrebbe essere una prenotazione recente. Non far entrare finché la rete non conferma.</string>
     <string name="management_offline_used">%1$s: ingresso già registrato (anche da questo telefono).</string>
     <string name="management_offline_waiting_name">%1$s · in attesa di rete</string>
     <string name="management_offline_waiting_code">Biglietto %1$s… · in attesa di rete</string>

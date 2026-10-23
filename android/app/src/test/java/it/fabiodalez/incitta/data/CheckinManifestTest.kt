@@ -68,4 +68,13 @@ class CheckinManifestTest {
         assertFalse(list.expired(1_000 + CheckinManifest.MAX_AGE_MILLIS))
         assertTrue(list.expired(1_001 + CheckinManifest.MAX_AGE_MILLIS))
     }
+
+    @Test fun `with network every scan goes to the server, even codes missing from the downloaded list`() {
+        assertEquals(ScanDecision.Send, scanDecision(true, ManifestVerdict.Unknown))
+        assertEquals(ScanDecision.Send, scanDecision(true, ManifestVerdict.AlreadyUsed("Ada")))
+        assertEquals(ScanDecision.PendingUnknown, scanDecision(false, ManifestVerdict.Unknown))
+        assertEquals(ScanDecision.RejectUsed, scanDecision(false, ManifestVerdict.AlreadyUsed("Ada")))
+        assertEquals(ScanDecision.Pending, scanDecision(false, ManifestVerdict.Known("Ada")))
+        assertEquals(ScanDecision.Pending, scanDecision(false, null))
+    }
 }

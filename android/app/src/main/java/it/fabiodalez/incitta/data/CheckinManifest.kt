@@ -18,9 +18,25 @@ internal data class ManifestPayload(
 @Serializable
 internal data class ManifestEntry(val name: String, val status: String)
 
+/** Che cosa fa la porta con una lettura. */
+internal enum class ScanDecision { Send, RejectUsed, PendingUnknown, Pending }
+
+/**
+ * L'elenco aiuta senza rete, non è mai l'ultima parola: con la rete ogni
+ * codice va al server, l'unico che conosce le prenotazioni arrivate dopo il
+ * download. Senza rete un codice già usato si respinge, uno sconosciuto resta
+ * in coda con l'avviso di non far entrare finché il server non conferma.
+ */
+internal fun scanDecision(online: Boolean, verdict: ManifestVerdict?): ScanDecision = when {
+    online -> ScanDecision.Send
+    verdict is ManifestVerdict.AlreadyUsed -> ScanDecision.RejectUsed
+    verdict == ManifestVerdict.Unknown -> ScanDecision.PendingUnknown
+    else -> ScanDecision.Pending
+}
+
 /** Cosa dice l'elenco scaricato di un codice appena letto. */
 internal sealed interface ManifestVerdict {
-    /** Non c'è nell'elenco: si respinge subito, senza accodare. */
+    /** Non c'è nell'elenco: forse una prenotazione recente; decide il server. */
     data object Unknown : ManifestVerdict
     /** C'è, ma risulta già entrato (dal server o da questo telefono). */
     data class AlreadyUsed(val name: String) : ManifestVerdict

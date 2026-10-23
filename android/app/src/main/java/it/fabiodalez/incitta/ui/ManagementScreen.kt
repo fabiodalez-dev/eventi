@@ -118,16 +118,16 @@ internal fun ManagementScreen(session: Session?, padding: PaddingValues, client:
         if (!code.matches(Regex("[A-Za-z0-9]{64}"))) { error = invalidCode; return }
         if (pending.size >= 200) { error = queueFull; return }
         val list = manifest?.takeIf { it.occurrenceId == current.id }
-        if (list != null) {
-            when (val verdict = list.verdict(code)) {
-                ManifestVerdict.Unknown -> { outcomes = (listOf(CheckinOutcome(current.id, false, notInList)) + outcomes).take(30); return }
-                is ManifestVerdict.AlreadyUsed -> { outcomes = (listOf(CheckinOutcome(current.id, false, alreadyUsed.format(verdict.name))) + outcomes).take(30); return }
-                is ManifestVerdict.Known -> {
-                    val marked = list.markUsed(code)
-                    runCatching { store.writeManifest(current.id, marked) }
-                    manifest = marked
-                }
-            }
+        val verdict = list?.verdict(code)
+        when (scanDecision(isOnline(context), verdict)) {
+            ScanDecision.RejectUsed -> { outcomes = (listOf(CheckinOutcome(current.id, false, alreadyUsed.format((verdict as ManifestVerdict.AlreadyUsed).name))) + outcomes).take(30); return }
+            ScanDecision.PendingUnknown -> outcomes = (listOf(CheckinOutcome(current.id, false, notInList)) + outcomes).take(30)
+            ScanDecision.Send, ScanDecision.Pending -> Unit
+        }
+        if (list != null && verdict is ManifestVerdict.Known) {
+            val marked = list.markUsed(code)
+            runCatching { store.writeManifest(current.id, marked) }
+            manifest = marked
         }
         action { outbox.add(current.id, code, scannedAt); pending = outbox.pending(); flush() }
     }
@@ -376,4 +376,11 @@ internal fun validManagementCost(value: String): Boolean = value.isBlank() || (v
 @Composable private fun ChoiceField(label: Int, value: String, options: List<Pair<String, Int>>, onChange: (String) -> Unit) {
     Text(stringResource(label), style = MaterialTheme.typography.titleMedium)
     options.forEach { (key, title) -> FilterChip(value == key, { onChange(key) }, label = { Text(stringResource(title)) }) }
+}
+
+/** Vero se il telefono ha una rete che può raggiungere internet. */
+private fun isOnline(context: android.content.Context): Boolean {
+    val manager = context.getSystemService(android.content.Context.CONNECTIVITY_SERVICE) as? android.net.ConnectivityManager ?: return true
+    val capabilities = manager.getNetworkCapabilities(manager.activeNetwork) ?: return false
+    return capabilities.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET)
 }
