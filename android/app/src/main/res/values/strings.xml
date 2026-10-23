@@ -125,4 +125,100 @@
     <string name="management_membership_cost">Costo tessera</string>
     <string name="management_other">Altri costi</string>
     <string name="management_save">Salva informazioni e costi</string>
+
+    <!-- Dieci funzioni per chi usa inCittà (contratto PIANO-UTENTE-2026-10-23) -->
+    <!-- 3. Sovrapposizioni fra salvati -->
+    <string name="saved_conflict">Salvato. Si sovrappone a «%1$s» (%2$s).</string>
+    <!-- 5. Aperto adesso -->
+    <string name="venue_open_now">Aperto adesso</string>
+    <string name="venue_open_until">Aperto adesso · fino alle %1$s</string>
+    <string name="venue_closed_now">Chiuso adesso</string>
+    <string name="venues_filter_open_now">Aperti adesso</string>
+    <string name="venues_open_now_loading">Cerco i locali aperti adesso…</string>
+    <string name="venues_open_now_empty">Nessun locale risulta aperto adesso. Gli orari sono quelli dichiarati dai locali.</string>
+    <string name="venues_open_now_error">Non riesco a sapere quali locali sono aperti adesso. %1$s</string>
+    <string name="venues_open_now_retry">Riprova</string>
+    <!-- 8. Nascondere un locale -->
+    <string name="venue_hide">Non mostrarmi questo locale</string>
+    <string name="venue_unhide">Mostra di nuovo questo locale</string>
+    <string name="venue_hide_confirm_title">Nascondere questo locale?</string>
+    <string name="venue_hide_confirm_body">Le date di %1$s spariranno da elenchi, mappa, ricerca e proposte. Restano nei salvati, nei biglietti e raggiungibili dal link diretto. Puoi tornare indietro dai tuoi interessi.</string>
+    <string name="venue_hide_confirm">Nascondi il locale</string>
+    <string name="venue_hide_cancel">Annulla</string>
+    <string name="venue_hidden_done">Non vedrai più le date di questo locale nei tuoi elenchi.</string>
+    <string name="venue_unhidden_done">Il locale torna nei tuoi elenchi.</string>
+    <string name="venue_hidden_notice">Hai nascosto questo locale: le sue date non compaiono nei tuoi elenchi.</string>
+    <string name="interests_hidden_venues_title">Locali nascosti</string>
+    <string name="interests_hidden_venues_empty">Non hai nascosto nessun locale. Puoi farlo dalla scheda di un locale.</string>
+    <string name="interests_show_again">Mostra di nuovo</string>
+    <string name="interests_show_again_description">Mostra di nuovo %1$s</string>
+    <string name="interests_show_again_failed">Locale non ripristinato. %1$s</string>
+    <!-- 9. Esigenze di accessibilità -->
+    <string name="access_need_step_free_entrance">Ingresso senza gradini</string>
+    <string name="access_need_accessible_toilets">Servizi igienici accessibili</string>
+    <string name="access_need_reserved_seating">Posti riservati</string>
+    <string name="access_need_tactile_path">Percorso tattile</string>
+    <string name="access_need_assistance_on_request">Assistenza su richiesta</string>
+    <string name="access_need_guide_dog_allowed">Cani guida ammessi</string>
+    <string name="interests_access_title">Le mie esigenze di accessibilità</string>
+    <string name="interests_access_help">Quando apri i filtri degli eventi le trovi già selezionate. Puoi sempre mostrare tutto.</string>
+    <string name="filter_access_label">Accessibilità</string>
+    <string name="filter_profile_access">Filtri del tuo profilo: %1$s</string>
+    <string name="filter_show_all">Mostra tutto</string>
+    <string name="filter_profile_summary">Filtri del tuo profilo</string>
+    <string name="filter_summary_all">Tutti gli eventi</string>
+    <string name="filter_summary_custom">Filtri personalizzati</string>
+    <!-- 11. Biglietti senza rete -->
+    <string name="ticket_offline_updated">Sei senza rete. Ultimo aggiornamento: %1$s</string>
+    <string name="ticket_offline_notice">Le prenotazioni annullate mentre eri senza rete risultano ancora valide finché non aggiorni.</string>
+    <!-- 12. Un biglietto per ciascun partecipante -->
+    <string name="ticket_share_person">Invia a questa persona</string>
+    <string name="ticket_share_chooser">Invia il biglietto</string>
+    <string name="ticket_share_text">Il tuo biglietto per %1$s: %2$s</string>
+    <string name="ticket_share_hint">Il link mostra solo questo QR e smette di valere dopo l’evento.</string>
+    <string name="ticket_send_email_toggle">Invia per email</string>
+    <string name="ticket_send_email_close">Chiudi l’invio per email</string>
+    <string name="ticket_send_email_field">Indirizzo email della persona</string>
+    <string name="ticket_send_consent">Questa persona sa che le scrivo e mi ha dato l’indirizzo</string>
+    <string name="ticket_send_button">Invia il biglietto per email</string>
+    <string name="ticket_send_invalid">Controlla l’indirizzo email.</string>
+    <string name="ticket_send_done">Biglietto inviato. L’indirizzo non è stato salvato.</string>
+    <string name="ticket_send_privacy">Nel messaggio c’è il tuo nome. L’indirizzo serve solo per questo invio e non viene conservato.</string>
+    <!-- 13. Avvisami se tornano disponibili -->
+    <string name="alert_sold_out">Esaurito</string>
+    <string name="alert_offer">Avvisami se tornano disponibili</string>
+    <string name="alert_active">Avviso attivo · annulla</string>
+    <string name="alert_on_done">Ti avviso se tornano disponibili posti per questa data.</string>
+    <string name="alert_off_done">Avviso annullato.</string>
+    <string name="alert_login">Accedi per ricevere un avviso quando tornano disponibili posti.</string>
+    <!-- 14. Le mie serate -->
+    <string name="attended_title">Le mie serate</string>
+    <string name="attended_subtitle">Le date a cui hai partecipato con un biglietto</string>
+    <string name="attended_empty">Qui compariranno le serate in cui il tuo biglietto è stato registrato all’ingresso.</string>
+    <string name="attended_error">Serate non caricate. %1$s</string>
+    <string name="attended_retry">Riprova</string>
+    <string name="attended_more">Mostra altre serate</string>
+    <string name="attended_login">Accedi per vedere le tue serate.</string>
+    <string name="attended_venue">Locale: %1$s</string>
+    <string name="attended_organizer">Organizza: %1$s</string>
+    <string name="attended_open">Apri la data</string>
+    <plurals name="attended_checked_in">
+        <item quantity="one">%d ingresso registrato</item>
+        <item quantity="other">%d ingressi registrati</item>
+    </plurals>
+    <!-- 15. Sono qui -->
+    <string name="presence_offer">Condividi «sono qui»</string>
+    <string name="presence_help">Chi apre il link vede il locale, l’orario, il nome che scegli e la tua nota: non la posizione del telefono. Il link scade due ore dopo la fine e puoi fermarlo quando vuoi.</string>
+    <string name="presence_name">Nome da mostrare</string>
+    <string name="presence_note">Nota (facoltativa)</string>
+    <string name="presence_create">Crea il link e condividi</string>
+    <string name="presence_cancel">Annulla</string>
+    <string name="presence_share_again">Condividi di nuovo il link</string>
+    <string name="presence_stop">Smetti di condividere</string>
+    <string name="presence_active_until">Link «sono qui» attivo fino alle %1$s</string>
+    <string name="presence_active">Link «sono qui» attivo</string>
+    <string name="presence_stopped">Il link «sono qui» non è più attivo.</string>
+    <string name="presence_chooser">Condividi «sono qui»</string>
+    <string name="presence_share_text">Sono qui: %1$s · %2$s</string>
+    <string name="presence_login">Accedi per condividere «sono qui».</string>
 </resources>

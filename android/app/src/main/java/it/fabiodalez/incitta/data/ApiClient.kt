@@ -108,6 +108,38 @@ internal class ApiClient(
         }
     }
 
+    /**
+     * Una richiesta che risponde senza corpo (204, o un 201 di cui non serve
+     * il contenuto): gli errori passano dalla stessa lettura di `execute`, ma
+     * un corpo vuoto non viene mai dato in pasto al parser JSON.
+     */
+    suspend fun send(path: String, method: String, token: String?, body: String? = null) = withContext(Dispatchers.IO) {
+        val request = Request.Builder()
+            .url(BuildConfig.API_BASE_URL + path.removePrefix("/"))
+            .header("Accept", "application/json")
+            .header("Accept-Language", "it")
+            .header("X-Installation-ID", installationId)
+            .header("User-Agent", "inCitta-Android/${BuildConfig.VERSION_NAME}")
+            .apply { if (token != null) header("Authorization", "Bearer $token") }
+            .method(method, (body ?: "{}").toRequestBody(JSON_MEDIA))
+            .build()
+        val response = try {
+            client.newCall(request).execute()
+        } catch (error: IOException) {
+            throw IOException("Connessione non disponibile. Riprova tra poco.", error)
+        }
+        response.use {
+            if (!it.isSuccessful) {
+                val problem = try {
+                    json.decodeFromString<ApiErrorEnvelope>(it.body.string()).error
+                } catch (_: SerializationException) {
+                    null
+                }
+                throw ApiException(it.code, problem)
+            }
+        }
+    }
+
     companion object {
         @PublishedApi internal val JSON_MEDIA = "application/json; charset=utf-8".toMediaType()
     }

@@ -61,6 +61,8 @@ import androidx.lifecycle.repeatOnLifecycle
 import it.fabiodalez.incitta.AppTab
 import it.fabiodalez.incitta.MainViewModel
 import it.fabiodalez.incitta.supportsSponsoredBanner
+import it.fabiodalez.incitta.data.offersAvailabilityAlert
+import it.fabiodalez.incitta.data.offersPresence
 
 @Composable
 fun InCittaApp(viewModel: MainViewModel) {
@@ -277,7 +279,7 @@ fun InCittaApp(viewModel: MainViewModel) {
                         NavItem(state.tab, AppTab.MAP, "Mappa", Icons.Outlined.Map, { managementOpen = false; tonightOpen = false; organizerSlug = null; carpoolRoute = null; communityRoute = null; viewModel.selectTab(it) })
                         NavItem(state.tab, AppTab.SEARCH, "Cerca", Icons.Outlined.Search, { managementOpen = false; tonightOpen = false; organizerSlug = null; carpoolRoute = null; communityRoute = null; viewModel.selectTab(it) })
                         NavItem(state.tab, AppTab.SAVED, "Salvati", Icons.Outlined.BookmarkBorder, { managementOpen = false; tonightOpen = false; organizerSlug = null; carpoolRoute = null; communityRoute = null; viewModel.selectTab(it) })
-                        NavItem(if (state.tab == AppTab.TICKETS) AppTab.ACCOUNT else state.tab, AppTab.ACCOUNT, "Profilo", Icons.Outlined.AccountCircle, { managementOpen = false; tonightOpen = false; organizerSlug = null; carpoolRoute = null; communityRoute = null; viewModel.selectTab(it) })
+                        NavItem(if (state.tab == AppTab.TICKETS || state.tab == AppTab.ATTENDED) AppTab.ACCOUNT else state.tab, AppTab.ACCOUNT, "Profilo", Icons.Outlined.AccountCircle, { managementOpen = false; tonightOpen = false; organizerSlug = null; carpoolRoute = null; communityRoute = null; viewModel.selectTab(it) })
                     }
                 }
                 }
@@ -329,6 +331,8 @@ fun InCittaApp(viewModel: MainViewModel) {
                         onBack = viewModel::goBack,
                         onOpenEvent = viewModel::open,
                         onSave = viewModel::toggleSaved,
+                        hidden = selectedVenue.id != null && selectedVenue.id in state.hiddenVenueIds,
+                        onHiddenChange = { hide -> selectedVenue.id?.let { id -> viewModel.setVenueHidden(id, hide) } },
                     )
                 }
 
@@ -348,6 +352,28 @@ fun InCittaApp(viewModel: MainViewModel) {
                         carpoolVerified = state.session?.user?.carpoolAccess?.eligible == true,
                         community = { id -> CommunityAttendance(id, state.session, id in state.savedIds, { communityRoute = it }, { viewModel.loginForComments(selected.slug) }, viewModel::refreshProfile) },
                         onCarpool = { id, offer -> carpoolRoute = if(offer) "create/$id" else "occurrences/$id" },
+                        dateActions = { occurrence ->
+                            // 13. Su una data esaurita, l'avviso di quando torna disponibile.
+                            if (occurrence.offersAvailabilityAlert(selected.tiers)) {
+                                AvailabilityAlertButton(
+                                    active = occurrence.occurrenceId in state.availabilityAlerts,
+                                    busy = occurrence.occurrenceId in state.alertBusy,
+                                ) { viewModel.toggleAvailabilityAlert(occurrence.occurrenceId) }
+                            }
+                            // 15. «Sono qui» per la data che comincia entro dodici ore o è in corso.
+                            if (occurrence.offersPresence()) {
+                                PresenceSection(
+                                    occurrence = occurrence,
+                                    title = selected.title,
+                                    link = state.presenceLinks[occurrence.occurrenceId],
+                                    busy = state.presenceBusy,
+                                    defaultName = state.session?.user?.name.orEmpty(),
+                                    timezone = state.session?.user?.timezone,
+                                    onCreate = { name, note, created -> viewModel.createPresence(occurrence.occurrenceId, name, note, created) },
+                                    onStop = { viewModel.stopPresence(occurrence.occurrenceId) },
+                                )
+                            }
+                        },
                         comments = {
                             EventCommentsSection(
                                 slug = selected.slug,
@@ -410,6 +436,7 @@ fun InCittaApp(viewModel: MainViewModel) {
                         onClearDiscovery = viewModel::clearDiscovery,
                         onFilters = viewModel::updateSearchFilters,
                         onLoadMore = viewModel::loadMoreEvents,
+                        onDismissProfileAccess = viewModel::dismissProfileAccess,
                     )
                     AppTab.SAVED -> SavedScreen(state, padding, viewModel::open, viewModel::toggleSaved, onPrivacy = { communityRoute = "save/$it" }) { viewModel.selectTab(AppTab.ACCOUNT) }
                     AppTab.ACCOUNT -> AccountScreen(
@@ -430,10 +457,20 @@ fun InCittaApp(viewModel: MainViewModel) {
                         onCommunity = { carpoolRoute = null; communityRoute = "feed" },
                         onPublicProfile = { communityRoute = "settings" }, onRelationships = { communityRoute = "following" }, onVerification = { communityRoute = "whatsapp" },
                         onCarpool = { carpoolRoute = "me" }, onCarpoolMessages = { carpoolRoute = "chats" }, onCommunityInbox = { carpoolRoute = "inbox" }, communityTotal = communityTotal,
+                        onAttended = { viewModel.selectTab(AppTab.ATTENDED) },
                     )
                     AppTab.CALENDAR -> CalendarScreen(state, padding, viewModel::open, viewModel::toggleSaved) { viewModel.selectTab(AppTab.HOME) }
-                    AppTab.VENUES -> VenuesScreen(state, padding, viewModel::openVenue) { viewModel.selectTab(AppTab.HOME) }
-                    AppTab.TICKETS -> TicketsScreen(state, padding, viewModel::cancelBooking, viewModel::loadBookings, viewModel::resendBooking, viewModel::addToWallet, viewModel::consumeWalletLink) { viewModel.selectTab(AppTab.ACCOUNT) }
+                    AppTab.VENUES -> VenuesScreen(state, padding, viewModel::openVenue, viewModel::setVenuesOpenNow, viewModel::loadOpenNowVenues) { viewModel.selectTab(AppTab.HOME) }
+                    AppTab.TICKETS -> TicketsScreen(state, padding, viewModel::cancelBooking, viewModel::loadBookings, viewModel::resendBooking, viewModel::addToWallet, viewModel::consumeWalletLink, viewModel::sendTicket) { viewModel.selectTab(AppTab.ACCOUNT) }
+                    AppTab.ATTENDED -> AttendedScreen(
+                        session = state.session,
+                        padding = padding,
+                        load = viewModel::attended,
+                        onOpen = viewModel::openOccurrence,
+                        onVenue = viewModel::openVenueSlug,
+                        onOrganizer = { organizerSlug = it },
+                        onBack = { viewModel.selectTab(AppTab.ACCOUNT) },
+                    )
                 }
             }
         }
