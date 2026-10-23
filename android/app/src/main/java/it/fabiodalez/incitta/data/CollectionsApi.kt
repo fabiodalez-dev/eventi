@@ -82,12 +82,12 @@ internal class CollectionsApi(private val api: ApiClient, private val token: Str
             auth(),
         ).data
 
-    suspend fun delete(id: Long) = api.send("me/collections/$id", "DELETE", null, auth())
+    suspend fun delete(id: Long) = api.send("me/collections/$id", "DELETE", auth())
 
     suspend fun addItem(id: Long, occurrenceId: Long, note: String? = null): EventCollection =
         api.post<ApiEnvelope<EventCollection>, CollectionItemBody>("me/collections/$id/items?city=$CITY", CollectionItemBody(occurrenceId, note?.trim()?.ifBlank { null }), auth(), idempotent = true).data
 
-    suspend fun removeItem(id: Long, occurrenceId: Long) = api.send("me/collections/$id/items/$occurrenceId", "DELETE", null, auth())
+    suspend fun removeItem(id: Long, occurrenceId: Long) = api.send("me/collections/$id/items/$occurrenceId", "DELETE", auth())
 
     /** La raccolta condivisa, senza account: 404 se chi l'ha creata l'ha richiusa. */
     suspend fun shared(token: String): CollectionDetail {

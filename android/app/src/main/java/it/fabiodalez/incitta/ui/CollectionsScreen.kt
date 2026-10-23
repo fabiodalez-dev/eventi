@@ -185,7 +185,7 @@ internal fun CollectionsScreen(session: Session?, padding: PaddingValues, onBack
                 Text(link, color = Muted)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = { copyLink(context, current.name, link); message = texts.copied }, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) { Text(stringResource(R.string.collections_copy)) }
-                    Button(onClick = { shareLink(context, current.name, link, texts.chooser) }, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) { Text(stringResource(R.string.collections_share)) }
+                    Button(onClick = { shareCollectionLink(context, current.name, link, texts.chooser) }, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) { Text(stringResource(R.string.collections_share)) }
                 }
             }
 
@@ -416,7 +416,7 @@ private fun copyLink(context: Context, label: String, link: String) {
     (context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager)?.setPrimaryClip(ClipData.newPlainText(label, link))
 }
 
-private fun shareLink(context: Context, title: String, link: String, chooser: String) {
+private fun shareCollectionLink(context: Context, title: String, link: String, chooser: String) {
     runCatching {
         context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
             type = "text/plain"

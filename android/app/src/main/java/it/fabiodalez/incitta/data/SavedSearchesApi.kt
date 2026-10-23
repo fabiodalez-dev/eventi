@@ -28,7 +28,7 @@ internal class SavedSearchesApi(private val api: ApiClient, private val token: S
     suspend fun create(filters: Map<String, String>, name: String? = null): SavedSearch =
         api.post<ApiEnvelope<SavedSearch>, SavedSearchBody>("me/searches?city=$CITY", SavedSearchBody(filters, name?.trim()?.ifBlank { null }), token, idempotent = true).data
 
-    suspend fun delete(id: Long) = api.send("me/searches/$id", "DELETE", null, token)
+    suspend fun delete(id: Long) = api.send("me/searches/$id", "DELETE", token)
 
     private companion object { const val CITY = "padova" }
 }

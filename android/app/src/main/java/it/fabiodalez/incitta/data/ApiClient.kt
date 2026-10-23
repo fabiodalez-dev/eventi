@@ -72,16 +72,6 @@ internal class ApiClient(
         }
     }
 
-    /**
-     * Per le risposte senza corpo (204): la DELETE di una raccolta, di una
-     * data in una raccolta o di una ricerca salvata. Gli errori arrivano come
-     * per `execute`, il corpo della risposta riuscita non si legge.
-     */
-    suspend fun send(path: String, method: String, body: String?, token: String?) = withContext(Dispatchers.IO) {
-        call(request(path, method, body, token, false))
-        Unit
-    }
-
     @PublishedApi internal fun request(path: String, method: String, body: String?, token: String?, idempotent: Boolean): Request =
         Request.Builder()
             .url(BuildConfig.API_BASE_URL + path.removePrefix("/"))
