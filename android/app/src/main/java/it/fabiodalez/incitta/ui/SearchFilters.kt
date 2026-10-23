@@ -26,7 +26,7 @@ import kotlinx.coroutines.*
 import kotlin.coroutines.resume
 
 @Composable
-internal fun SearchFilters(state: AppUiState, query: String = "", collapsible: Boolean = false, onCollapse: () -> Unit = {}, apply: (Map<String, String>, String) -> Unit) {
+internal fun SearchFilters(state: AppUiState, query: String = "", collapsible: Boolean = false, onCollapse: () -> Unit = {}, profileAccess: List<String> = emptyList(), onDismissProfileAccess: () -> Unit = {}, apply: (Map<String, String>, String) -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var panelOpen by rememberSaveable { mutableStateOf(!collapsible) }
@@ -96,6 +96,8 @@ internal fun SearchFilters(state: AppUiState, query: String = "", collapsible: B
     }
     fun change(key: String, value: String) {
         if (checking) return
+        // Chi toglie a mano le esigenze del profilo ha scelto: non si rimettono da sole.
+        if (key == "access" && value.isBlank()) onDismissProfileAccess()
         val next = filters.toMutableMap()
         if (key == "municipality") { next.remove("zone"); next.remove("venue") }
         if (key == "zone") next.remove("venue")
@@ -127,6 +129,22 @@ internal fun SearchFilters(state: AppUiState, query: String = "", collapsible: B
         if (granted.values.any { it }) locate()
         else status = "Permesso posizione negato. Puoi abilitarlo nelle impostazioni dell’app o scegliere una zona."
     }
+    /*
+     * 9. Esigenze di accessibilità del profilo: quando si aprono i filtri e
+     * l'indirizzo non porta già `access`, si preselezionano. L'API non le
+     * applica da sola: è l'app a metterle nella richiesta, e a dirlo.
+     */
+    val profileSummary = stringResource(R.string.filter_profile_summary)
+    val allSummary = stringResource(R.string.filter_summary_all)
+    val customSummary = stringResource(R.string.filter_summary_custom)
+    LaunchedEffect(panelOpen, profileAccess, state.profileAccessDismissed) {
+        if (panelOpen) profileAccessFilters(latestFilters, profileAccess, state.profileAccessDismissed)?.let { latestApply(it, profileSummary) }
+    }
+    if (showsProfileAccess(filters, profileAccess)) ProfileAccessStrip(profileAccess) {
+        onDismissProfileAccess()
+        val rest = filters - "access"
+        latestApply(rest, if (rest.isEmpty()) allSummary else customSummary)
+    }
     if (collapsible) OutlinedButton(onClick = { panelOpen = !panelOpen }, modifier = Modifier.fillMaxWidth().padding(top = 12.dp).heightIn(min = 48.dp), shape = ControlShape) {
         Text(if (panelOpen) "Chiudi i filtri" else "Filtra i risultati")
     }
@@ -146,6 +164,7 @@ internal fun SearchFilters(state: AppUiState, query: String = "", collapsible: B
                 FilterLabel(label + if (active) " ×" else "", active) { change(key, if (active) "" else "1") }
             }
         }
+        QuickFilterGroup(stringResource(R.string.filter_access_label), "access", ACCESS_NEEDS.map { it to accessNeedLabel(it) }, filters, ::change)
         OutlinedButton(onClick = { expanded = !expanded }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp), shape = ControlShape) {
             Text("Filtri avanzati ${if (expanded) "⌃" else "⌄"}")
         }
@@ -196,7 +215,7 @@ private fun QuickFilterGroup(label: String, key: String, options: List<Pair<Stri
     val selected = filters[key].orEmpty().split(',').filter { it.isNotBlank() }
     val searchable = key in listOf("municipality", "zone", "venue", "tags")
     var search by rememberSaveable(key) { mutableStateOf("") }
-    val choices = if (selected.isEmpty() || searchable) options else selected.map { value -> value to (options.find { it.first == value }?.second ?: value) }
+    val choices = if (selected.isEmpty() || searchable || key == "access") options else selected.map { value -> value to (options.find { it.first == value }?.second ?: value) }
     if (choices.isEmpty()) return
     Text(label, color = Muted)
     if (searchable) {
@@ -210,7 +229,7 @@ private fun QuickFilterGroup(label: String, key: String, options: List<Pair<Stri
         }
         visible.forEach { (value, name) ->
             val active = value in selected
-            FilterLabel(name + if (active) " ×" else "", active) { change(key, if (active) (selected - value).joinToString(",") else value) }
+            FilterLabel(name + if (active) " ×" else "", active) { change(key, if (active) (selected - value).joinToString(",") else if (key == "access") (selected + value).joinToString(",") else value) }
         }
     }
 }

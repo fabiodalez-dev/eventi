@@ -87,7 +87,7 @@ fun ReservationScreen(state: AppUiState, padding: PaddingValues, onReserve: (Lis
 }
 
 @Composable
-fun TicketsScreen(state: AppUiState, padding: PaddingValues, onCancel: (Long, Long?) -> Unit, onRefresh: () -> Unit, onEmail: (Long) -> Unit, onWallet: (Long) -> Unit, onWalletOpened: () -> Unit, onBack: () -> Unit) {
+fun TicketsScreen(state: AppUiState, padding: PaddingValues, onCancel: (Long, Long?) -> Unit, onRefresh: () -> Unit, onEmail: (Long) -> Unit, onWallet: (Long) -> Unit, onWalletOpened: () -> Unit, onSendTicket: (Long, String, () -> Unit) -> Unit = { _, _, _ -> }, onBack: () -> Unit) {
     var cancelTarget by remember(state.session?.user?.id) { mutableStateOf<Pair<Long, Long?>?>(null) }
     var period by remember(state.session?.user?.id) { mutableStateOf(BookingPeriod.UPCOMING) }
     var query by remember(state.session?.user?.id) { mutableStateOf("") }
@@ -117,6 +117,7 @@ fun TicketsScreen(state: AppUiState, padding: PaddingValues, onCancel: (Long, Lo
             }
             OutlinedTextField(query, { query = it }, label = { Text("Cerca evento, locale o partecipante") }, singleLine = true, modifier = Modifier.fillMaxWidth())
             if (state.bookingBusy) LinearProgressIndicator(Modifier.fillMaxWidth())
+            state.bookingsSavedAt?.let { OfflineTicketsNotice(it, state.session.user.timezone) }
             state.bookingError?.let { Text(it) }
             if (!state.bookingBusy && state.bookings.isEmpty() && state.bookingError == null) Text(stringResource(R.string.ticket_empty), color = Muted)
             if (!state.bookingBusy && state.bookings.isNotEmpty() && visibleBookings.isEmpty() && state.bookingError == null) Text("Nessun biglietto corrisponde ai filtri scelti.", color = Muted)
@@ -149,6 +150,7 @@ fun TicketsScreen(state: AppUiState, padding: PaddingValues, onCancel: (Long, Lo
                          * pulsante non esiste, invece di esistere e non
                          * funzionare.
                          */
+                        TicketShareActions(ticket, booking.title, state.bookingBusy) { email, sent -> onSendTicket(ticket.id, email, sent) }
                         if (state.offersWalletPass(ticket)) {
                             OutlinedButton(onClick = { onWallet(ticket.id) }, enabled = !state.bookingBusy, shape = ControlShape) { Text(stringResource(R.string.ticket_wallet_add)) }
                             Text(stringResource(R.string.ticket_wallet_hint), color = Muted)

@@ -43,6 +43,8 @@ data class AdmissionTicket(
     val status: String,
     @SerialName("qr_payload") val qrPayload: String? = null,
     @SerialName("checked_in_at") val checkedInAt: String? = null,
+    /** Il link personale firmato che mostra solo questo QR; null se il biglietto non vale. */
+    @SerialName("share_url") val shareUrl: String? = null,
 )
 
 @Serializable

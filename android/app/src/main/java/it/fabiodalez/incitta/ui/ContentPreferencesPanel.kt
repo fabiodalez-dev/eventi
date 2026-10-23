@@ -3,6 +3,9 @@ package it.fabiodalez.incitta.ui
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.Role
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -24,11 +27,21 @@ internal data class ContentSelection(
     val categories: List<Long> = emptyList(),
     @SerialName("hidden_categories") val hiddenCategories: List<Long> = emptyList(),
     @SerialName("inferred_ads") val inferredAds: Boolean = true,
+    /*
+     * 8 e 9. Facoltativi nel PATCH: null quando il server non li manda (un
+     * server vecchio) e allora non si spediscono, così nessuno li azzera.
+     */
+    @SerialName("hidden_venues") val hiddenVenues: List<Long>? = null,
+    @SerialName("access_needs") val accessNeeds: List<String>? = null,
 )
 @Serializable
 internal data class ContentCategory(val id: Long, val name: String)
 @Serializable
-internal data class ContentOptions(val selection: ContentSelection, val options: List<ContentCategory>)
+internal data class ContentOptions(
+    val selection: ContentSelection,
+    val options: List<ContentCategory>,
+    @SerialName("hidden_venue_options") val hiddenVenueOptions: List<HiddenVenueOption> = emptyList(),
+)
 
 @Composable
 fun ContentPreferencesPanel(session: Session, standalone: Boolean = false, onSaved: () -> Unit) {
@@ -86,6 +99,54 @@ fun ContentPreferencesPanel(session: Session, standalone: Boolean = false, onSav
         }
         HorizontalDivider(color = Rule)
     }
+    current.selection.accessNeeds?.let { needs ->
+        Text(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.interests_access_title), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 12.dp))
+        Text(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.interests_access_help), color = Muted)
+        ACCESS_NEEDS.forEach { need ->
+            val checked = need in needs
+            Row(
+                Modifier.fillMaxWidth().heightIn(min = 48.dp).toggleable(value = checked, enabled = !busy, role = Role.Checkbox) {
+                    change(current.selection.copy(accessNeeds = if (it) needs + need else needs - need))
+                },
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+            ) {
+                Checkbox(checked = checked, onCheckedChange = null, enabled = !busy)
+                Text(accessNeedLabel(need), modifier = Modifier.padding(start = 8.dp))
+            }
+        }
+        HorizontalDivider(color = Rule)
+    }
+    if (current.selection.hiddenVenues != null) {
+        Text(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.interests_hidden_venues_title), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 12.dp))
+        if (current.hiddenVenueOptions.isEmpty()) Text(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.interests_hidden_venues_empty), color = Muted)
+        current.hiddenVenueOptions.forEach { venue ->
+            val description = androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.interests_show_again_description, venue.name)
+            Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                Text(venue.name, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+                TextButton(onClick = {
+                    scope.launch {
+                        busy = true
+                        try {
+                            api.send("me/hidden-venues/${venue.id}", "DELETE", session.token)
+                            val latest = data ?: current
+                            data = latest.copy(
+                                selection = latest.selection.copy(hiddenVenues = latest.selection.hiddenVenues?.minus(venue.id)),
+                                hiddenVenueOptions = latest.hiddenVenueOptions.filterNot { it.id == venue.id },
+                            )
+                            message = ""
+                            onSaved()
+                        } catch (error: Exception) {
+                            if (error is CancellationException) throw error
+                            message = context.getString(it.fabiodalez.incitta.R.string.interests_show_again_failed, requestFailureMessage(error))
+                        } finally { busy = false }
+                    }
+                }, enabled = !busy, modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = description }) {
+                    Text(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.interests_show_again))
+                }
+            }
+        }
+        HorizontalDivider(color = Rule)
+    }
     Row {
         Checkbox(checked = current.selection.inferredAds, enabled = !busy, onCheckedChange = { change(current.selection.copy(inferredAds = it)) })
         Text("Usa anche i salvataggi recenti per AD pertinenti, con meno peso delle mie scelte.", modifier = Modifier.padding(top = 12.dp))
@@ -104,7 +165,7 @@ fun ContentPreferencesPanel(session: Session, standalone: Boolean = false, onSav
             } finally { busy = false }
         }
     }, enabled = !busy, shape = ControlShape, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text("SALVA I MIEI INTERESSI") }
-    TextButton(onClick = { change(ContentSelection(inferredAds = current.selection.inferredAds)) }, enabled = !busy) { Text("RIPRISTINA TUTTE LE CATEGORIE (POI SALVA)") }
+    TextButton(onClick = { change(ContentSelection(inferredAds = current.selection.inferredAds, hiddenVenues = current.selection.hiddenVenues, accessNeeds = current.selection.accessNeeds)) }, enabled = !busy) { Text("RIPRISTINA TUTTE LE CATEGORIE (POI SALVA)") }
 }
 
 @Composable

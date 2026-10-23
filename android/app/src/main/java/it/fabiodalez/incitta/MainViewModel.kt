@@ -29,7 +29,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
-enum class AppTab { HOME, EVENTS, MAP, SEARCH, SAVED, ACCOUNT, CALENDAR, VENUES, TICKETS }
+enum class AppTab { HOME, EVENTS, MAP, SEARCH, SAVED, ACCOUNT, CALENDAR, VENUES, TICKETS, ATTENDED }
 
 internal fun navigationTarget(tab: AppTab, authenticated: Boolean): AppTab =
     if (tab == AppTab.SAVED && !authenticated) AppTab.ACCOUNT else tab
@@ -53,6 +53,23 @@ data class AppUiState(
      */
     val walletEnabled: Boolean = false,
     val walletLink: String? = null,
+    /** 11. Valorizzato solo quando i biglietti mostrati vengono dalla copia locale. */
+    val bookingsSavedAt: String? = null,
+    /** 8 e 9. Dalle preferenze di contenuto della persona. */
+    val hiddenVenueIds: Set<Long> = emptySet(),
+    val accessNeeds: List<String> = emptyList(),
+    val profileAccessDismissed: Boolean = false,
+    /** 5. Il filtro «Aperti adesso» dell'elenco dei locali, con il suo elenco a parte. */
+    val venuesOpenNow: Boolean = false,
+    val openNowVenues: List<Venue>? = null,
+    val openNowLoading: Boolean = false,
+    val openNowError: String? = null,
+    /** 13. Le date per cui la persona aspetta un avviso. */
+    val availabilityAlerts: Set<Long> = emptySet(),
+    val alertBusy: Set<Long> = emptySet(),
+    /** 15. I link «sono qui» creati in questa sessione dell'app, per data. */
+    val presenceLinks: Map<Long, it.fabiodalez.incitta.data.PresenceLink> = emptyMap(),
+    val presenceBusy: Boolean = false,
     val tab: AppTab = AppTab.HOME,
     val sponsoredBanner: it.fabiodalez.incitta.data.SponsoredBanner? = null,
     val occurrences: List<Occurrence> = emptyList(),
@@ -182,6 +199,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private var mapJob: Job? = null
     private var detailJob: Job? = null
     private var bookingJob: Job? = null
+    private var contentProfileJob: Job? = null
+    private var openNowJob: Job? = null
     private val detailHistory = mutableListOf<DetailSnapshot>()
 
     init {
@@ -191,15 +210,22 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     val sessionChanged = _state.value.session?.token != session?.token
                     if (sessionChanged) {
                         bookingJob?.cancel()
-                        _state.value = _state.value.copy(bookings = emptyList(), bookingDate = null, bookingAvailability = null, bookingBusy = false, bookingError = null)
+                        _state.value = _state.value.copy(bookings = emptyList(), bookingDate = null, bookingAvailability = null, bookingBusy = false, bookingError = null,
+                            bookingsSavedAt = null, hiddenVenueIds = emptySet(), accessNeeds = emptyList(), profileAccessDismissed = false,
+                            availabilityAlerts = emptySet(), alertBusy = emptySet(), presenceLinks = emptyMap(), presenceBusy = false)
                     }
                     _state.value = _state.value.copy(session = session, savedIds = saved, defaultAppearance = repository.appearance(), appearance = repository.appearance())
-                    if (sessionChanged) interestsChanged()
+                    if (sessionChanged) {
+                        interestsChanged()
+                        if (session != null) refreshAvailabilityAlerts()
+                    }
                 }
         }
         refresh(EventFilter.ALL)
         loadVenues()
         loadMap()
+        loadContentProfile()
+        refreshAvailabilityAlerts()
     }
 
     /**
@@ -369,7 +395,41 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         bookingJob = viewModelScope.launch {
             try {
                 val bookings = repository.bookings()
-                if (repository.session.value?.token == token) _state.value = _state.value.copy(bookings = bookings, bookingBusy = false)
+                if (repository.session.value?.token == token) _state.value = _state.value.copy(bookings = bookings, bookingBusy = false, bookingsSavedAt = null)
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                /*
+                 * Senza rete si mostrano i biglietti dell'ultima lettura
+                 * riuscita: all'ingresso il QR serve proprio quando la rete
+                 * non c'è. Un errore del server (4xx, 5xx) non è «senza rete»
+                 * e resta un errore.
+                 */
+                val cached = if (error is IOException && repository.session.value?.token == token) repository.cachedBookings() else null
+                _state.value = if (cached != null) {
+                    _state.value.copy(bookings = cached.bookings, bookingsSavedAt = cached.savedAt, bookingBusy = false, bookingError = null)
+                } else {
+                    _state.value.copy(bookingBusy = false, bookingError = userMessage(error))
+                }
+            }
+        }
+    }
+
+    /** 12. Il biglietto mandato per email alla persona che lo userà. */
+    fun sendTicket(ticketId: Long, email: String, onSent: () -> Unit) {
+        if (_state.value.bookingBusy) return
+        val token = _state.value.session?.token ?: return
+        if (!it.fabiodalez.incitta.data.plausibleEmail(email)) {
+            _state.value = _state.value.copy(bookingError = getApplication<Application>().getString(R.string.ticket_send_invalid))
+            return
+        }
+        _state.value = _state.value.copy(bookingBusy = true, bookingError = null)
+        viewModelScope.launch {
+            try {
+                val message = repository.sendTicket(ticketId, email)
+                if (repository.session.value?.token == token) {
+                    _state.value = _state.value.copy(bookingBusy = false, message = message ?: getApplication<Application>().getString(R.string.ticket_send_done))
+                    onSent()
+                }
             } catch (error: Exception) {
                 if (error is CancellationException) throw error
                 _state.value = _state.value.copy(bookingBusy = false, bookingError = userMessage(error))
@@ -438,6 +498,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _state.value = _state.value.copy(occurrences = emptyList(), searchResults = emptyList(), searchOrganizers = emptyList(), searchVenues = emptyList(), searchTags = emptyList(), activeTag = null, mapMarkers = emptyList(), mapPreviewEvents = emptyList(), sponsoredBanner = null, relatedOccurrences = emptyList(), venueOccurrences = emptyList(), venuePastOccurrences = emptyList())
         refresh()
         loadMap()
+        loadContentProfile()
+        if (_state.value.venuesOpenNow) loadOpenNowVenues()
         if (_state.value.tab == AppTab.EVENTS || _state.value.tab == AppTab.SEARCH) search(currentSearchQuery)
         viewModelScope.launch { refreshSponsoredBanner(null) }
     }
@@ -551,6 +613,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
                 .onSuccess { (detail, related) ->
                     previous?.let(detailHistory::add)
+                    refreshAvailabilityAlerts()
                     _state.value = _state.value.copy(
                         selected = detail,
                         selectedVenue = null,
@@ -740,9 +803,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             _state.value = _state.value.copy(bookingDate = null, bookingAvailability = null, bookingBusy = false)
             return
         }
-        if (_state.value.tab == AppTab.TICKETS) {
-            selectTab(AppTab.ACCOUNT)
-            return
+        if (_state.value.tab == AppTab.TICKETS || _state.value.tab == AppTab.ATTENDED) {
+            if (_state.value.selected == null && _state.value.selectedVenue == null) {
+                selectTab(AppTab.ACCOUNT)
+                return
+            }
         }
         val previous = detailHistory.removeLastOrNull()
         when (previous) {
@@ -789,9 +854,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             val wasSaved = occurrenceId in _state.value.savedIds
             runCatching { repository.toggleSaved(occurrenceId) }
-                .onSuccess {
+                .onSuccess { conflicts ->
+                    val overlap = if (wasSaved) null else it.fabiodalez.incitta.data.firstConflict(conflicts)
                     _state.value = _state.value.copy(
-                        message = if (wasSaved) "Rimosso dai salvati" else "Salvato",
+                        message = when {
+                            wasSaved -> "Rimosso dai salvati"
+                            overlap != null -> getApplication<Application>().getString(R.string.saved_conflict, overlap.first, overlap.second)
+                            else -> "Salvato"
+                        },
                     )
                     if (_state.value.tab == AppTab.SAVED) loadSaved()
                 }
@@ -945,4 +1015,157 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun userMessage(error: Throwable): String = requestFailureMessage(error)
+
+    private fun text(id: Int, vararg args: Any): String = getApplication<Application>().getString(id, *args)
+
+    /* 8 e 9. Locali nascosti ed esigenze di accesso. */
+    private fun loadContentProfile() {
+        contentProfileJob?.cancel()
+        val token = repository.session.value?.token ?: return
+        contentProfileJob = viewModelScope.launch {
+            try {
+                val profile = repository.contentProfile()
+                if (repository.session.value?.token == token) {
+                    _state.value = _state.value.copy(hiddenVenueIds = profile.hiddenVenues.toSet(), accessNeeds = profile.accessNeeds)
+                }
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                // Senza preferenze si mostra tutto: nessun filtro imposto per errore.
+            }
+        }
+    }
+
+    fun setVenueHidden(venueId: Long, hidden: Boolean) {
+        val token = repository.session.value?.token ?: return
+        viewModelScope.launch {
+            try {
+                repository.setVenueHidden(venueId, hidden)
+                if (repository.session.value?.token != token) return@launch
+                val ids = if (hidden) _state.value.hiddenVenueIds + venueId else _state.value.hiddenVenueIds - venueId
+                _state.value = _state.value.copy(hiddenVenueIds = ids, message = text(if (hidden) R.string.venue_hidden_done else R.string.venue_unhidden_done))
+                interestsChanged()
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                _state.value = _state.value.copy(message = userMessage(error))
+            }
+        }
+    }
+
+    /** 9. «Mostra tutto»: il profilo non riempie più i filtri finché non si rientra. */
+    fun dismissProfileAccess() {
+        if (!_state.value.profileAccessDismissed) _state.value = _state.value.copy(profileAccessDismissed = true)
+    }
+
+    /* 5. Aperti adesso. */
+    fun setVenuesOpenNow(active: Boolean) {
+        _state.value = _state.value.copy(venuesOpenNow = active, openNowError = null)
+        if (active) loadOpenNowVenues() else openNowJob?.cancel()
+    }
+
+    fun loadOpenNowVenues() {
+        openNowJob?.cancel()
+        _state.value = _state.value.copy(openNowLoading = true, openNowError = null)
+        openNowJob = viewModelScope.launch {
+            try {
+                val venues = repository.venues(openNow = true)
+                _state.value = _state.value.copy(openNowVenues = venues, openNowLoading = false)
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                _state.value = _state.value.copy(openNowLoading = false, openNowError = userMessage(error))
+            }
+        }
+    }
+
+    /* 13. Avvisami se tornano disponibili. */
+    private fun refreshAvailabilityAlerts() {
+        val token = repository.session.value?.token ?: return
+        viewModelScope.launch {
+            try {
+                val alerts = repository.availabilityAlerts()
+                if (repository.session.value?.token == token) _state.value = _state.value.copy(availabilityAlerts = alerts)
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+            }
+        }
+    }
+
+    fun toggleAvailabilityAlert(occurrenceId: Long) {
+        if (_state.value.session == null) {
+            selectTab(AppTab.ACCOUNT)
+            _state.value = _state.value.copy(message = text(R.string.alert_login))
+            return
+        }
+        if (occurrenceId in _state.value.alertBusy) return
+        val token = repository.session.value?.token ?: return
+        val active = occurrenceId !in _state.value.availabilityAlerts
+        _state.value = _state.value.copy(alertBusy = _state.value.alertBusy + occurrenceId)
+        viewModelScope.launch {
+            try {
+                repository.setAvailabilityAlert(occurrenceId, active)
+                if (repository.session.value?.token == token) {
+                    val alerts = if (active) _state.value.availabilityAlerts + occurrenceId else _state.value.availabilityAlerts - occurrenceId
+                    _state.value = _state.value.copy(availabilityAlerts = alerts, message = text(if (active) R.string.alert_on_done else R.string.alert_off_done))
+                }
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                _state.value = _state.value.copy(message = userMessage(error))
+            } finally {
+                _state.value = _state.value.copy(alertBusy = _state.value.alertBusy - occurrenceId)
+            }
+        }
+    }
+
+    /* 14. Le mie serate. */
+    suspend fun attended(page: Int) = repository.attended(page)
+
+    /* 15. «Sono qui». */
+    fun createPresence(occurrenceId: Long, displayName: String, note: String, onCreated: (it.fabiodalez.incitta.data.PresenceLink) -> Unit) {
+        if (_state.value.presenceBusy) return
+        if (_state.value.session == null) {
+            selectTab(AppTab.ACCOUNT)
+            _state.value = _state.value.copy(message = text(R.string.presence_login))
+            return
+        }
+        val token = repository.session.value?.token ?: return
+        _state.value = _state.value.copy(presenceBusy = true)
+        viewModelScope.launch {
+            try {
+                val link = repository.createPresence(occurrenceId, displayName, note)
+                if (repository.session.value?.token == token) {
+                    _state.value = _state.value.copy(presenceLinks = _state.value.presenceLinks + (occurrenceId to link))
+                    onCreated(link)
+                }
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                _state.value = _state.value.copy(message = userMessage(error))
+            } finally {
+                _state.value = _state.value.copy(presenceBusy = false)
+            }
+        }
+    }
+
+    fun stopPresence(occurrenceId: Long) {
+        val link = _state.value.presenceLinks[occurrenceId] ?: return
+        if (_state.value.presenceBusy) return
+        val token = repository.session.value?.token ?: return
+        _state.value = _state.value.copy(presenceBusy = true)
+        viewModelScope.launch {
+            try {
+                repository.revokePresence(link.token)
+                forgetPresence(occurrenceId, token)
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                // Un 404 vuol dire che il link è già scaduto o revocato: l'effetto voluto c'è già.
+                if (error is ApiException && error.status == 404) forgetPresence(occurrenceId, token)
+                else _state.value = _state.value.copy(message = userMessage(error))
+            } finally {
+                _state.value = _state.value.copy(presenceBusy = false)
+            }
+        }
+    }
+
+    private fun forgetPresence(occurrenceId: Long, token: String) {
+        if (repository.session.value?.token != token) return
+        _state.value = _state.value.copy(presenceLinks = _state.value.presenceLinks - occurrenceId, message = text(R.string.presence_stopped))
+    }
 }
