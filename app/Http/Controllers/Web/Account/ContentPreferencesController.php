@@ -29,7 +29,7 @@ final class ContentPreferencesController extends Controller
         $data = [
             'selection' => $selection,
             'options' => Category::query()->active()->ordered()->get(['id', 'name']),
-            'hidden_venue_options' => Venue::query()->whereKey($selection['hidden_venues'])->orderBy('name')->get(['id', 'name', 'slug'])
+            'hidden_venue_options' => Venue::query()->approved()->whereKey($selection['hidden_venues'])->orderBy('name')->get(['id', 'name', 'slug'])
                 ->map(static fn (Venue $venue): array => ['id' => (int) $venue->getKey(), 'name' => $venue->name, 'slug' => $venue->slug])->all(),
             'access_options' => AccessibilityFeature::options(),
         ];
@@ -63,7 +63,7 @@ final class ContentPreferencesController extends Controller
             'hidden_categories.*' => ['integer', 'distinct', Rule::exists('categories', 'id')->where('is_active', true)],
             'inferred_ads' => ['required', 'boolean'],
             'hidden_venues' => ['sometimes', 'array', 'max:500'],
-            'hidden_venues.*' => ['integer', 'distinct'],
+            'hidden_venues.*' => ['integer', 'distinct', Rule::exists('venues', 'id')->where('status', 'approved')],
             'access_needs' => ['sometimes', 'array', 'max:10'],
             'access_needs.*' => ['string', 'distinct', Rule::in(AccessibilityFeature::values())],
         ]);
@@ -95,7 +95,7 @@ final class ContentPreferencesController extends Controller
     {
         $user = $request->user();
         abort_unless($user instanceof User, 401);
-        abort_unless(Venue::query()->whereKey($venueId)->exists(), 404);
+        abort_unless(Venue::query()->approved()->whereKey($venueId)->exists() || ! $hide, 404);
         $preferences->toggleVenue($user, $venueId, $hide);
 
         return $request->is('api/*') || $request->expectsJson()

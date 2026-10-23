@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Web\Account;
 
+use App\Enums\EventStatus;
 use App\Http\Controllers\Controller;
 use App\Models\EventOccurrence;
 use App\Models\User;
@@ -23,7 +24,9 @@ final class AvailabilityAlertController extends Controller
 
     public function store(Request $request, EventOccurrence $occurrence, AvailabilityAlerts $alerts): RedirectResponse|JsonResponse
     {
-        $alerts->subscribe($this->user($request), $occurrence->loadMissing('event'));
+        $occurrence->loadMissing('event');
+        abort_unless($occurrence->event?->status === EventStatus::Published, 404);
+        $alerts->subscribe($this->user($request), $occurrence);
 
         return $request->is('api/*')
             ? ApiResponse::item(['occurrence_id' => (int) $occurrence->getKey()], status: 201)

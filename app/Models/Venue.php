@@ -248,7 +248,7 @@ class Venue extends Model implements HasMedia
      */
     public function openingState(?\DateTimeInterface $at = null): array
     {
-        return OpeningHours::state(is_array($this->opening_hours) ? $this->opening_hours : null, $at ?? now(), $this->city?->timezone ?? config()->string('app.timezone'));
+        return OpeningHours::state(is_array($this->opening_hours) ? $this->opening_hours : null, $at ?? now(), $this->city->timezone ?? config()->string('app.timezone'));
     }
 
     /** L'avviso in vista oggi sulla scheda pubblica, se ce n'è uno. */

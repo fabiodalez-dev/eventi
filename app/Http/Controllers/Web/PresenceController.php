@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Web;
 
 use App\DTOs\PageMeta;
+use App\Enums\EventStatus;
+use App\Enums\OccurrenceStatus;
 use App\Http\Controllers\Controller;
 use App\Models\EventOccurrence;
 use App\Models\PresenceShare;
@@ -43,6 +45,9 @@ final class PresenceController extends Controller
             'note' => ['nullable', 'string', 'max:200'],
         ]);
         $occurrence ??= EventOccurrence::query()->findOrFail((int) $data['occurrence_id']);
+        /* Solo date pubbliche e non annullate: il link mostra il locale di
+           un evento, e non deve diventare un modo per esporne uno in bozza. */
+        abort_unless($occurrence->event?->status === EventStatus::Published && $occurrence->status !== OccurrenceStatus::Cancelled, 404);
         $start = CarbonImmutable::instance($occurrence->starts_at);
         $end = CarbonImmutable::instance($occurrence->effective_ends_at ?? $occurrence->ends_at ?? $occurrence->starts_at->copy()->addHours(3));
         if ($start->greaterThan(now()->addHours(self::WINDOW_HOURS)) || $end->lessThanOrEqualTo(now())) {
@@ -76,7 +81,7 @@ final class PresenceController extends Controller
     public function show(string $token): Response
     {
         $share = PresenceShare::query()->where('token', $token)->active()->with(['occurrence.event.city', 'occurrence.venue', 'occurrence.event.venue'])->first();
-        abort_if($share === null || $share->occurrence === null || $share->occurrence->event === null, 404);
+        abort_if($share === null || $share->occurrence === null || $share->occurrence->event?->status !== EventStatus::Published, 404);
 
         return response()->view('presence.show', [
             'share' => $share,

@@ -7,6 +7,7 @@ use App\Models\AvailabilityAlert;
 use App\Models\PresenceShare;
 use App\Models\ScheduledNotification;
 use App\Models\User;
+use App\Models\Venue;
 use App\Notifications\TicketShared;
 use App\Services\Ticketing\TicketingService;
 use Database\Seeders\RolesAndPermissionsSeeder;
@@ -90,4 +91,13 @@ it('lists the evenings attended with a checked-in ticket and shares a temporary 
         ->and($attended->json('data.0.venue.slug'))->toBe($date->event->venue->slug);
     $this->actingAs($this->user)->get(route('account.attended'))->assertOk()->assertSee($date->event->title);
     expect(AdmissionStatus::CheckedIn->value)->toBe('checked_in');
+});
+
+it('refuses alerts, «I am here» links and hidden venues on content that is not public', function (): void {
+    $draft = occurrenceAtLocal($this->city, $this->category, '2026-10-23 18:00', '2026-10-23 22:00', ['status' => 'sold_out'], ['status' => 'draft']);
+    $this->actingAs($this->user)->postJson('/api/v1/me/availability-alerts/'.$draft->id)->assertNotFound();
+    $this->actingAs($this->user)->postJson('/api/v1/me/presence', ['occurrence_id' => $draft->id])->assertNotFound();
+    $hiddenVenue = Venue::factory()->create(['city_id' => $this->city->id, 'status' => 'draft']);
+    $this->actingAs($this->user)->postJson('/api/v1/me/hidden-venues/'.$hiddenVenue->id)->assertNotFound();
+    $this->actingAs($this->user)->patchJson('/api/v1/me/content-preferences', ['mode' => 'all', 'categories' => [], 'hidden_categories' => [], 'inferred_ads' => true, 'hidden_venues' => [$hiddenVenue->id]])->assertUnprocessable();
 });

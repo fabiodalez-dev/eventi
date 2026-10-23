@@ -21,7 +21,7 @@ final class ContentPreferences
             'categories' => array_map('intval', $data['categories'] ?? []),
             'hidden_categories' => array_map('intval', $data['hidden_categories'] ?? []),
             'inferred_ads' => (bool) ($data['inferred_ads'] ?? true),
-            'hidden_venues' => array_values(array_map('intval', $data['hidden_venues'] ?? [])),
+            'hidden_venues' => array_map('intval', $data['hidden_venues'] ?? []),
             'access_needs' => array_values(array_filter(array_map('strval', $data['access_needs'] ?? []),
                 static fn (string $need): bool => AccessibilityFeature::tryFrom($need) !== null)),
         ];
@@ -45,7 +45,7 @@ final class ContentPreferences
     public function toggleVenue(User $user, int $venueId, bool $hide): void
     {
         $data = $user->content_preferences ?? [];
-        $hidden = array_values(array_map('intval', $data['hidden_venues'] ?? []));
+        $hidden = array_map('intval', $data['hidden_venues'] ?? []);
         $hidden = $hide ? array_values(array_unique([...$hidden, $venueId])) : array_values(array_diff($hidden, [$venueId]));
         $data['hidden_venues'] = array_slice($hidden, 0, 500);
         $user->update(['content_preferences' => $data]);

@@ -42,7 +42,7 @@ class TicketShared extends Notification implements ShouldQueue
         return (new MailMessage)
             ->subject(__('ticketing.share.mail_subject', ['name' => $this->senderName, 'title' => $date?->event->title ?? __('ticketing.title')]))
             ->line(__('ticketing.share.mail_intro', ['name' => $this->senderName, 'attendee' => $ticket->attendee_name]))
-            ->line(($date?->event->title ?? '').' · '.($date?->starts_at->timezone($timezone)->format('d/m/Y H:i') ?? '').' · '.($date?->effectiveVenue()?->name ?? ''))
+            ->line(($date?->event->title ?? '').' · '.($date?->starts_at->timezone($timezone)->format('d/m/Y H:i') ?? '').' · '.($date?->effectiveVenue()->name ?? ''))
             ->action(__('ticketing.share.mail_action'), $this->url)
             ->line(__('ticketing.share.mail_privacy', ['name' => $this->senderName]));
     }
