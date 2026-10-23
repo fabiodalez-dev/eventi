@@ -44,3 +44,17 @@ I target interattivi sono almeno 48 dp e hanno etichette per TalkBack.
 Le mappe sono native MapLibre/OpenFreeMap e non richiedono una chiave Google.
 Al primo avvio compare la scelta privacy con accetta/rifiuta e collegamenti alle
 informative; non sono attivi cookie pubblicitari o profilazione.
+
+## Allineamento D60 (ottobre 2026)
+
+Versione 1.19.0 (code 41). L'app porta le funzioni rilasciate sul server con [D60](DECISIONS.md) il 23 ottobre 2026, con le stesse rotte del sito e i testi in `res/values/strings.xml`.
+
+- Scheda evento: foto in griglia a due colonne con l'ingrandimento a schermo intero; il video è un riquadro dell'app che al tocco apre `watch_url` fuori dall'app, senza WebView e senza richieste al fornitore prima del tocco; i co-organizzatori compaiono come «con Nome» e portano alla loro pagina. Ogni data ha «Aggiungi a una raccolta».
+- Raccolte (`ui/CollectionsScreen.kt`, `data/CollectionsApi.kt`): elenco e creazione, dettaglio con rinomina, interruttore «condivisa con un link», link da copiare o condividere, «Togli» ed eliminazione; si raggiungono dal profilo e dai salvati. I link `/raccolte/{token}` aprono la raccolta condivisa in sola lettura, anche senza account.
+- Ricerche salvate (`data/SavedSearchesApi.kt`): nella pagina Eventi e nella ricerca «Avvisami per nuovi eventi come questi» compare quando c'è almeno un criterio che il server conserva; in Profilo › Notifiche e newsletter la sezione «Le mie ricerche salvate» ha «Apri» e «Rimuovi». I filtri dell'app usano i nomi dell'API (`categories`, `tags`, `time_of_day`), le ricerche salvate quelli di `/eventi` (`category`, `tag`, `time`): `SavedSearchFilters` traduce nei due sensi.
+- Biglietti: stato «Non presentato» e, con `meta.no_shows` maggiore di zero, l'avviso sulle assenze recenti (tre in novanta giorni bloccano le prenotazioni gratuite).
+- Gestione di una data: «Scrivi a chi ha prenotato» (con conferma e tetto giornaliero del server) e «Aggiungi una prenotazione» dal banco, un nome per riga.
+- Controllo ingressi senza rete: all'apertura della data l'app scarica il manifest (impronte SHA-256 dei codici e nomi) e lo tiene cifrato per 48 ore. Senza rete respinge subito i QR estranei e quelli già entrati; gli altri restano in coda con il nome accanto e l'ingresso è registrato solo quando il server conferma. Ogni lettura invia `scanned_at`.
+- Scheda del locale: l'avviso in vista oggi (pausa, chiusura, riapertura, comunicazione) in alto, e «Calendario pubblico (ICS)» che apre `/locali/{slug}/calendario.ics`. Il campo `notice` di `GET /v1/venues/{slug}` è stato aggiunto per questo.
+
+Restano fuori, e l'app rimanda al sito: Apple Wallet, cessione del biglietto, login social, rivendicazione di un locale e registrazione degli organizzatori. Gli strumenti del pannello web e della redazione (import CSV, fusione dei doppioni, ripristino dalla cronologia, registro delle ricerche senza risultati) non entrano nell'app.
