@@ -86,7 +86,7 @@ return [
         'list_loaded' => 'Elenco scaricato alle :time: :count biglietti. Senza rete riconosco i QR di questo elenco.',
         'list_missing' => 'Elenco non ancora scaricato: senza rete non posso riconoscere i biglietti.',
         'refresh' => 'Aggiorna l’elenco',
-        'known_pending' => ':name: in elenco, ingresso registrato appena torna la rete.',
+        'known_pending' => ':name è nell’elenco scaricato.',
         'known_used' => ':name: ingresso già registrato (anche da questo telefono).',
         'unknown' => 'QR non presente nell’elenco scaricato: non far entrare finché la rete non conferma.',
         'queue' => 'Letture in attesa di conferma: :count',

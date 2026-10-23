@@ -173,7 +173,7 @@ document.querySelectorAll('[data-checkin-queue]').forEach((form) => {
         results.replaceChildren(...queue.entries.map((entry, index) => {
             const li = document.createElement('li');
             li.dataset.state = entry.state;
-            li.textContent = `${index + 1}. ${entry.state === 'pending' ? (entry.localMessage || form.dataset.pending) : entry.message}`;
+            li.textContent = `${index + 1}. ${entry.state === 'pending' ? form.dataset.pending + (entry.localMessage ? ` ${entry.localMessage}` : '') : entry.message}`;
             return li;
         }));
         const pending = queue.pending().length;
