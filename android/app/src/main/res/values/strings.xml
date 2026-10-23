@@ -243,4 +243,12 @@
     <string name="management_offline_used">%1$s: ingresso già registrato (anche da questo telefono).</string>
     <string name="management_offline_waiting_name">%1$s · in attesa di rete</string>
     <string name="management_offline_waiting_code">Biglietto %1$s… · in attesa di rete</string>
+    <!-- D60: pagina del locale -->
+    <string name="venue_notice_pause">Pausa</string>
+    <string name="venue_notice_closure">Chiusura</string>
+    <string name="venue_notice_reopening">Riapertura</string>
+    <string name="venue_notice_info">Comunicazione</string>
+    <string name="venue_notice_heading_until">%1$s · fino al %2$s</string>
+    <string name="venue_calendar_ics">Calendario pubblico (ICS)</string>
+    <string name="venue_calendar_ics_help">Le date del locale da aggiungere al tuo calendario, senza account. Si apre fuori dall’app.</string>
 </resources>

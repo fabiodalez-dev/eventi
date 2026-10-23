@@ -510,6 +510,7 @@ fun VenueDetailScreen(
             DetailBar("IN CITTÀ / LOCALE", onBack)
             Column(Modifier.fillMaxSize().verticalScroll(scrollState)) {
                 RichImage(venue.cover, Modifier.fillMaxWidth().aspectRatio(16f / 10f))
+                venue.notice?.let { VenueNoticeBox(it) }
                 Column(Modifier.padding(18.dp)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.Top) {
                         Box(Modifier.size(72.dp).border(1.dp, Rule).padding(4.dp), contentAlignment = Alignment.Center) {
@@ -530,6 +531,19 @@ fun VenueDetailScreen(
                     }
                     Spacer(Modifier.height(12.dp))
                     VenueFollowButton(venue.id, session, onLogin)
+                    venue.slug?.let { slug ->
+                        Spacer(Modifier.height(10.dp))
+                        OutlinedButton(
+                            onClick = { openUrl(context, it.fabiodalez.incitta.data.venueCalendarUrl(it.fabiodalez.incitta.BuildConfig.API_BASE_URL, slug)) },
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                            shape = ControlShape,
+                            border = BorderStroke(1.dp, Rule),
+                        ) {
+                            Icon(Icons.Outlined.CalendarMonth, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Text(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.venue_calendar_ics), modifier = Modifier.padding(start = 8.dp).weight(1f))
+                        }
+                        Text(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.venue_calendar_ics_help), color = Muted, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 4.dp))
+                    }
                     Text(address(venue), color = Muted, modifier = Modifier.padding(top = 12.dp))
                     venue.description?.let { Text(it, style = androidx.compose.material3.MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 16.dp)) }
                     if (venue.requiresMembership) {
@@ -1260,6 +1274,26 @@ private fun dial(context: android.content.Context, phone: String) = openUrl(cont
 private fun directions(context: android.content.Context, lat: Double, lng: Double, label: String) {
     val encoded = URLEncoder.encode(label, StandardCharsets.UTF_8.toString())
     openUrl(context, "geo:$lat,$lng?q=$lat,$lng($encoded)")
+}
+
+/** L'avviso del locale in alto nella scheda: tipo, testo e «fino al …». */
+@Composable
+private fun VenueNoticeBox(notice: it.fabiodalez.incitta.data.VenueNotice) {
+    val kind = androidx.compose.ui.res.stringResource(when (notice.kind) {
+        "pause" -> it.fabiodalez.incitta.R.string.venue_notice_pause
+        "closure" -> it.fabiodalez.incitta.R.string.venue_notice_closure
+        "reopening" -> it.fabiodalez.incitta.R.string.venue_notice_reopening
+        else -> it.fabiodalez.incitta.R.string.venue_notice_info
+    })
+    val until = notice.untilDate()?.format(DateTimeFormatter.ofPattern("d MMMM yyyy", Locale.ITALIAN))
+    Column(Modifier.fillMaxWidth().padding(start = 18.dp, end = 18.dp, top = 18.dp).border(2.dp, Acid, ControlShape).padding(14.dp)) {
+        Text(
+            if (until != null) androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.venue_notice_heading_until, kind, until) else kind,
+            color = Acid,
+            style = MaterialTheme.typography.labelLarge,
+        )
+        Text(notice.body, modifier = Modifier.padding(top = 6.dp), style = MaterialTheme.typography.bodyLarge)
+    }
 }
 
 @Composable
