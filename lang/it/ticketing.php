@@ -119,7 +119,7 @@ return [
         'refresh' => 'Aggiorna l’elenco',
         'known_pending' => ':name è nell’elenco scaricato.',
         'known_used' => ':name: ingresso già registrato (anche da questo telefono).',
-        'unknown' => 'QR non presente nell’elenco scaricato: non far entrare finché la rete non conferma.',
+        'unknown' => 'Non è nell’elenco scaricato: potrebbe essere una prenotazione recente. Non far entrare finché la rete non conferma.',
         'queue' => 'Letture in attesa di conferma: :count',
     ],
     'mail' => [

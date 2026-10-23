@@ -1,4 +1,4 @@
-import { CheckinQueue, CheckinManifest, localStorageStore } from './checkin-queue';
+import { CheckinQueue, CheckinManifest, classifyScan, localStorageStore } from './checkin-queue';
 
 document.querySelectorAll('[data-reservation-form]').forEach((form) => {
     const list = form.querySelector('[data-attendees]');
@@ -187,14 +187,14 @@ document.querySelectorAll('[data-checkin-queue]').forEach((form) => {
         const code = input.value.trim();
         if (!/^[a-zA-Z0-9]{64}$/.test(code)) return;
         const local = await manifest.lookup(code);
-        if (manifest.loaded && !local.known) {
-            queue.entries.push({ code, requestKey: crypto.randomUUID(), state: 'rejected', message: form.dataset.unknown });
-            queue.persist();
-        } else if (local.known && local.status === 'checked_in') {
+        const decision = classifyScan({ online: navigator.onLine, loaded: manifest.loaded, ...local });
+        if (decision === 'reject_used') {
             queue.entries.push({ code, requestKey: crypto.randomUUID(), state: 'rejected', message: form.dataset.knownUsed.replace(':name', local.name) });
             queue.persist();
         } else {
-            queue.add(code, local.known ? { localMessage: form.dataset.knownPending.replace(':name', local.name) } : {});
+            const localMessage = decision === 'pending_unknown' ? form.dataset.unknown
+                : (local.known ? form.dataset.knownPending.replace(':name', local.name) : '');
+            queue.add(code, localMessage ? { localMessage } : {});
             if (local.known) manifest.markUsed(code);
         }
         input.value = '';

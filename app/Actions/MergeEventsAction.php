@@ -100,10 +100,12 @@ final class MergeEventsAction
         $this->repointUnique('event_poll_options', 'occurrence_id', $from, $to, ['event_poll_id']);
         $this->repointUnique('occurrence_checkin_staff', 'occurrence_id', $from, $to, ['user_id']);
         $this->repointUnique('ride_occupancies', 'occurrence_id', $from, $to, ['user_id', 'leg']);
+        $this->repointUnique('event_collection_items', 'occurrence_id', $from, $to, ['collection_id']);
+        $this->repointUnique('availability_alerts', 'occurrence_id', $from, $to, ['user_id']);
         $this->sumDaily('occurrence_views_daily', 'occurrence_id', $from, $to);
 
         $report['bookings'] += DB::table('bookings')->where('occurrence_id', $from->getKey())->update(['occurrence_id' => $to->getKey()]);
-        foreach (['booking_messages', 'community_posts', 'ride_offers', 'ride_searches', 'ticket_tiers', 'event_share_links'] as $table) {
+        foreach (['presence_shares', 'booking_messages', 'community_posts', 'ride_offers', 'ride_searches', 'ticket_tiers', 'event_share_links'] as $table) {
             DB::table($table)->where('occurrence_id', $from->getKey())->update(['occurrence_id' => $to->getKey()]);
         }
         if (! DB::table('lineups')->where('occurrence_id', $to->getKey())->exists()) {

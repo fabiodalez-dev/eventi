@@ -51,6 +51,15 @@ return [
      * data, perché un canale verso persone che hanno solo prenotato un posto
      * non deve diventare una newsletter.
      */
+    /*
+     * Le letture fatte senza rete si sincronizzano anche a serata finita:
+     * per quante ore dopo la chiusura della porta il server le accetta,
+     * purché l'istante della scansione cada dentro la serata.
+     */
+    'checkin' => [
+        'late_sync_hours' => 24,
+    ],
+
     'messages' => [
         'daily_limit' => 3,
     ],

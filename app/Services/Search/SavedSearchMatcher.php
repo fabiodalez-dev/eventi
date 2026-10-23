@@ -52,9 +52,10 @@ final class SavedSearchMatcher
     {
         $now ??= CarbonImmutable::now();
         $since = $search->last_checked_at;
-        $search->forceFill(['last_checked_at' => $now])->save();
 
         if ($since === null) {
+            $search->forceFill(['last_checked_at' => $now])->save();
+
             return false;
         }
 
@@ -68,9 +69,19 @@ final class SavedSearchMatcher
             ->all();
 
         if ($ids === []) {
+            $search->forceFill(['last_checked_at' => $now])->save();
+
             return false;
         }
 
-        return $this->scheduler->announceSavedSearch($search, $ids);
+        /* Il cursore avanza solo se l'avviso è stato accodato. Se oggi ne è
+           già partito uno, le date nuove restano «da segnalare» e finiscono
+           nell'avviso di domani, invece di andare perse. */
+        $queued = $this->scheduler->announceSavedSearch($search, $ids);
+        if ($queued) {
+            $search->forceFill(['last_checked_at' => $now])->save();
+        }
+
+        return $queued;
     }
 }

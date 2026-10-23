@@ -179,7 +179,17 @@ final class TicketingService
         return DB::transaction(function () use ($date, $code, $actor, $requestKey, $scannedAt): AdmissionTicket {
             $date = EventOccurrence::query()->lockForUpdate()->findOrFail($date->id);
             $this->ensure($this->eventValid($date), 'event_cancelled');
-            $this->ensure(now()->between($date->doors_at ?? $date->starts_at->copy()->subHours(3), $date->effective_ends_at ?? $date->starts_at->copy()->addHours(6)), 'checkin_closed');
+            /* La porta è aperta da `$from` a `$to`. Una lettura fatta senza
+               rete arriva dopo, a volte a serata finita: vale se l'istante
+               della scansione cade nella finestra e la sincronizzazione arriva
+               entro il margine di recupero. In tempo reale vale l'ora attuale. */
+            $from = CarbonImmutable::instance($date->doors_at ?? $date->starts_at->copy()->subHours(3));
+            $to = CarbonImmutable::instance($date->effective_ends_at ?? $date->starts_at->copy()->addHours(6));
+            $late = $scannedAt !== null
+                && CarbonImmutable::instance($scannedAt)->between($from, $to)
+                && CarbonImmutable::instance($scannedAt)->lessThanOrEqualTo(now())
+                && now()->lessThanOrEqualTo($to->addHours(config()->integer('ticketing.checkin.late_sync_hours')));
+            $this->ensure($late || now()->between($from, $to), 'checkin_closed');
             $ticket = AdmissionTicket::query()->where('code', $code)
                 ->whereHas('booking', fn ($q) => $q->where('occurrence_id', $date->id)->where('status', BookingStatus::Confirmed))
                 ->lockForUpdate()->first();
@@ -201,8 +211,7 @@ final class TicketingService
                persona è passata davvero: si conserva quella, purché stia
                dentro la serata. Un orologio sbagliato non sposta un ingresso
                fuori dalla finestra in cui la porta era aperta. */
-            $from = $date->doors_at ?? $date->starts_at->copy()->subHours(3);
-            $scanned = $scannedAt !== null && CarbonImmutable::instance($scannedAt)->between($from, now()) ? CarbonImmutable::instance($scannedAt)->utc() : now();
+            $scanned = $scannedAt !== null && CarbonImmutable::instance($scannedAt)->between($from, min(now(), $to)) ? CarbonImmutable::instance($scannedAt)->utc() : now();
             $ticket->update(['status' => AdmissionStatus::CheckedIn, 'checked_in_at' => $scanned, 'checked_in_by' => $actor->id, 'checkin_request_key' => $requestKey]);
             /* Presentarsi alla porta è la conferma più forte che esista, e chiude
                la finestra. Senza, `expirePromotions()` — che gira ogni minuto —
@@ -389,6 +398,7 @@ final class TicketingService
         $marked = 0;
         $dates = EventOccurrence::withTrashed()
             ->whereRaw('COALESCE(effective_ends_at, ends_at, starts_at) < ?', [$cutoff])
+            ->where('starts_at', '>=', now()->subDays(config()->integer('ticketing.no_show.window_days')))
             ->whereHas('bookings.tickets', fn ($q) => $q->where('status', AdmissionStatus::Valid))
             ->whereHas('bookings', fn ($q) => $q->whereNotNull('user_id')->whereHas('tickets', fn ($t) => $t->where('status', AdmissionStatus::CheckedIn)))
             ->orderBy('id')->pluck('id');
@@ -418,9 +428,13 @@ final class TicketingService
     /** Quante assenze recenti ha questa persona, nella finestra di configurazione. */
     public function noShowCount(User $user): int
     {
+        /* La finestra si misura sulla data della serata, non sul momento in
+           cui il comando ha segnato l'assenza: un recupero di dati vecchi non
+           deve far sembrare recenti assenze di un anno fa. */
         return AdmissionTicket::query()->where('status', AdmissionStatus::NoShow)
-            ->where('updated_at', '>=', now()->subDays(config()->integer('ticketing.no_show.window_days')))
-            ->whereHas('booking', fn ($q) => $q->where('user_id', $user->id))->count();
+            ->whereHas('booking', fn ($q) => $q->where('user_id', $user->id)
+                ->whereHas('occurrence', fn ($date) => $date->where('starts_at', '>=', now()->subDays(config()->integer('ticketing.no_show.window_days')))))
+            ->count();
     }
 
     /**
