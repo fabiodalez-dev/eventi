@@ -19,7 +19,7 @@ internal data class ManifestPayload(
 internal data class ManifestEntry(val name: String, val status: String)
 
 /** Che cosa fa la porta con una lettura. */
-internal enum class ScanDecision { Send, RejectUsed, PendingUnknown, Pending }
+internal enum class ScanDecision { Send, SendWarnUsed, SendWarnUnknown, RejectUsed, PendingUnknown, Pending }
 
 /**
  * L'elenco aiuta senza rete, non è mai l'ultima parola: con la rete ogni
@@ -28,6 +28,11 @@ internal enum class ScanDecision { Send, RejectUsed, PendingUnknown, Pending }
  * in coda con l'avviso di non far entrare finché il server non conferma.
  */
 internal fun scanDecision(online: Boolean, verdict: ManifestVerdict?): ScanDecision = when {
+    /* Con la rete decide il server, ma l'avviso locale resta visibile: se il
+       server poi non risponde, chi è alla porta sa già che quel codice risultava
+       usato o assente dall'elenco. */
+    online && verdict is ManifestVerdict.AlreadyUsed -> ScanDecision.SendWarnUsed
+    online && verdict == ManifestVerdict.Unknown -> ScanDecision.SendWarnUnknown
     online -> ScanDecision.Send
     verdict is ManifestVerdict.AlreadyUsed -> ScanDecision.RejectUsed
     verdict == ManifestVerdict.Unknown -> ScanDecision.PendingUnknown

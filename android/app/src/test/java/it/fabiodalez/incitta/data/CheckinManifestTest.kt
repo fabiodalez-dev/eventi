@@ -70,8 +70,9 @@ class CheckinManifestTest {
     }
 
     @Test fun `with network every scan goes to the server, even codes missing from the downloaded list`() {
-        assertEquals(ScanDecision.Send, scanDecision(true, ManifestVerdict.Unknown))
-        assertEquals(ScanDecision.Send, scanDecision(true, ManifestVerdict.AlreadyUsed("Ada")))
+        assertEquals(ScanDecision.SendWarnUnknown, scanDecision(true, ManifestVerdict.Unknown))
+        assertEquals(ScanDecision.SendWarnUsed, scanDecision(true, ManifestVerdict.AlreadyUsed("Ada")))
+        assertEquals(ScanDecision.Send, scanDecision(true, ManifestVerdict.Known("Ada")))
         assertEquals(ScanDecision.PendingUnknown, scanDecision(false, ManifestVerdict.Unknown))
         assertEquals(ScanDecision.RejectUsed, scanDecision(false, ManifestVerdict.AlreadyUsed("Ada")))
         assertEquals(ScanDecision.Pending, scanDecision(false, ManifestVerdict.Known("Ada")))

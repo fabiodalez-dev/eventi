@@ -121,7 +121,8 @@ internal fun ManagementScreen(session: Session?, padding: PaddingValues, client:
         val verdict = list?.verdict(code)
         when (scanDecision(isOnline(context), verdict)) {
             ScanDecision.RejectUsed -> { outcomes = (listOf(CheckinOutcome(current.id, false, alreadyUsed.format((verdict as ManifestVerdict.AlreadyUsed).name))) + outcomes).take(30); return }
-            ScanDecision.PendingUnknown -> outcomes = (listOf(CheckinOutcome(current.id, false, notInList)) + outcomes).take(30)
+            ScanDecision.SendWarnUsed -> outcomes = (listOf(CheckinOutcome(current.id, false, alreadyUsed.format((verdict as ManifestVerdict.AlreadyUsed).name))) + outcomes).take(30)
+            ScanDecision.PendingUnknown, ScanDecision.SendWarnUnknown -> outcomes = (listOf(CheckinOutcome(current.id, false, notInList)) + outcomes).take(30)
             ScanDecision.Send, ScanDecision.Pending -> Unit
         }
         if (list != null && verdict is ManifestVerdict.Known) {
@@ -380,7 +381,8 @@ internal fun validManagementCost(value: String): Boolean = value.isBlank() || (v
 
 /** Vero se il telefono ha una rete che può raggiungere internet. */
 private fun isOnline(context: android.content.Context): Boolean {
-    val manager = context.getSystemService(android.content.Context.CONNECTIVITY_SERVICE) as? android.net.ConnectivityManager ?: return true
+    val manager = context.getSystemService(android.content.Context.CONNECTIVITY_SERVICE) as? android.net.ConnectivityManager ?: return false
     val capabilities = manager.getNetworkCapabilities(manager.activeNetwork) ?: return false
     return capabilities.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET)
+        && capabilities.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_VALIDATED)
 }
