@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -148,6 +149,27 @@ internal fun ManagementScreen(session: Session?, padding: PaddingValues, client:
                     OutlinedTextField(email, { email = it.take(255) }, label = { Text(stringResource(R.string.management_email)) }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email), modifier = Modifier.fillMaxWidth())
                     OutlinedButton(enabled = !busy && email.isNotBlank(), onClick = { action { api.staff(selected.id, email.trim(), false); date = api.date(selected.id); email = ""; message = saved } }) { Text(stringResource(R.string.management_assign)) }
                     HorizontalDivider()
+                    key(selected.id) {
+                        AttendeeMessageForm(busy) { subject, body, waitlisted, sent ->
+                            action {
+                                val result = api.message(selected.id, subject, body, waitlisted)
+                                message = context.resources.getQuantityString(R.plurals.management_message_sent, result.recipientsCount, result.recipientsCount)
+                                sent()
+                            }
+                        }
+                    }
+                    HorizontalDivider()
+                    key(selected.id) {
+                        GuestBookingForm(busy) { names, email, phone, note, saved ->
+                            action {
+                                val booking = api.guestBooking(selected.id, names, email, phone, note)
+                                saved()
+                                date = api.date(selected.id)
+                                message = context.resources.getQuantityString(R.plurals.management_guest_saved, booking.tickets.size, booking.tickets.size)
+                            }
+                        }
+                    }
+                    HorizontalDivider()
                     key(selected) { DecisionDetailsForm(selected, busy) { body -> action { api.details(selected.id, body); date = api.date(selected.id); message = saved } } }
                 }
             }
@@ -196,6 +218,71 @@ internal fun ManagementScreen(session: Session?, padding: PaddingValues, client:
         confirmButton = { TextButton(enabled = !busy, onClick = { val id = date?.id ?: return@TextButton; removeStaff = null; action { api.staff(id, member.email, true); date = api.date(id); message = saved } }) { Text(stringResource(R.string.management_revoke)) } },
         dismissButton = { TextButton(onClick = { removeStaff = null }) { Text(stringResource(R.string.management_cancel)) } }) }
 }
+
+/**
+ * «Scrivi a chi ha prenotato»: oggetto, testo e lista d'attesa facoltativa.
+ * L'invio chiede conferma; il server risponde con il numero di destinatari o
+ * con l'errore del tetto giornaliero, che la schermata mostra così com'è.
+ */
+@Composable private fun AttendeeMessageForm(busy: Boolean, onSend: (String, String, Boolean, () -> Unit) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    var subject by remember { mutableStateOf("") }
+    var body by remember { mutableStateOf("") }
+    var waitlisted by remember { mutableStateOf(false) }
+    var confirm by remember { mutableStateOf(false) }
+    TextButton(onClick = { expanded = !expanded }, modifier = Modifier.heightIn(min = 48.dp)) {
+        Text(stringResource(if (expanded) R.string.management_message_hide else R.string.management_message_title))
+    }
+    if (!expanded) return
+    Text(stringResource(R.string.management_message_hint, MESSAGE_DAILY_LIMIT), color = Muted)
+    OutlinedTextField(subject, { subject = it.take(160) }, enabled = !busy, singleLine = true, label = { Text(stringResource(R.string.management_message_subject)) }, modifier = Modifier.fillMaxWidth())
+    OutlinedTextField(body, { body = it.take(2000) }, enabled = !busy, minLines = 4, label = { Text(stringResource(R.string.management_message_body)) },
+        supportingText = { Text(stringResource(R.string.management_message_length, body.length)) }, modifier = Modifier.fillMaxWidth())
+    Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).toggleable(waitlisted, enabled = !busy, role = androidx.compose.ui.semantics.Role.Checkbox) { waitlisted = it },
+        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+        Checkbox(checked = waitlisted, onCheckedChange = null, enabled = !busy)
+        Text(stringResource(R.string.management_message_waitlisted), modifier = Modifier.padding(start = 8.dp))
+    }
+    Button(enabled = !busy && subject.isNotBlank() && body.isNotBlank(), onClick = { confirm = true }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+        Text(stringResource(R.string.management_message_send))
+    }
+    if (confirm) AlertDialog(
+        onDismissRequest = { confirm = false },
+        title = { Text(stringResource(R.string.management_message_send)) },
+        text = { Text(stringResource(if (waitlisted) R.string.management_message_confirm_waitlisted else R.string.management_message_confirm)) },
+        confirmButton = { TextButton(onClick = { confirm = false; onSend(subject, body, waitlisted) { subject = ""; body = ""; waitlisted = false } }) { Text(stringResource(R.string.management_message_send)) } },
+        dismissButton = { TextButton(onClick = { confirm = false }) { Text(stringResource(R.string.management_cancel)) } },
+    )
+}
+
+/**
+ * «Aggiungi una prenotazione» per chi prenota al telefono o al banco: un
+ * nome per riga, email e telefono facoltativi, nota interna. Non crea account.
+ */
+@Composable private fun GuestBookingForm(busy: Boolean, onSave: (String, String, String, String, () -> Unit) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    var names by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
+    var phone by remember { mutableStateOf("") }
+    var note by remember { mutableStateOf("") }
+    TextButton(onClick = { expanded = !expanded }, modifier = Modifier.heightIn(min = 48.dp)) {
+        Text(stringResource(if (expanded) R.string.management_guest_hide else R.string.management_guest_title))
+    }
+    if (!expanded) return
+    Text(stringResource(R.string.management_guest_hint), color = Muted)
+    OutlinedTextField(names, { names = it.take(3000) }, enabled = !busy, minLines = 3, label = { Text(stringResource(R.string.management_guest_names)) }, modifier = Modifier.fillMaxWidth())
+    OutlinedTextField(email, { email = it.take(255) }, enabled = !busy, singleLine = true, label = { Text(stringResource(R.string.management_guest_email)) },
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email), modifier = Modifier.fillMaxWidth())
+    OutlinedTextField(phone, { phone = it.take(40) }, enabled = !busy, singleLine = true, label = { Text(stringResource(R.string.management_guest_phone)) },
+        supportingText = { Text(stringResource(R.string.management_guest_phone_hint)) }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone), modifier = Modifier.fillMaxWidth())
+    OutlinedTextField(note, { note = it.take(500) }, enabled = !busy, label = { Text(stringResource(R.string.management_guest_note)) }, modifier = Modifier.fillMaxWidth())
+    Button(enabled = !busy && names.isNotBlank(), onClick = { onSave(names, email, phone, note) { names = ""; email = ""; phone = ""; note = "" } }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+        Text(stringResource(R.string.management_guest_save))
+    }
+}
+
+/* Lo stesso tetto di `config/ticketing.php` → `messages.daily_limit`. */
+private const val MESSAGE_DAILY_LIMIT = 3
 
 @Composable private fun MetricLine(label: Int, value: String?) {
     Column { Text(stringResource(label), color = Muted); Text(value ?: stringResource(R.string.management_not_available), style = MaterialTheme.typography.headlineSmall) }
