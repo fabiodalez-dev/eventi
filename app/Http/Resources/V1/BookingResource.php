@@ -8,6 +8,7 @@ use App\Enums\AdmissionStatus;
 use App\Enums\BookingStatus;
 use App\Models\Booking;
 use App\Services\Ticketing\TicketingService;
+use App\Services\Ticketing\TicketSharing;
 use App\Support\Description;
 
 final class BookingResource
@@ -44,6 +45,7 @@ final class BookingResource
                 'status' => $ticket->displayStatus()->value,
                 'qr_payload' => $ticket->displayStatus() === AdmissionStatus::Valid ? $ticket->code : null,
                 'checked_in_at' => $ticket->checked_in_at?->toIso8601String(),
+                'share_url' => app(TicketSharing::class)->url($ticket),
             ])->all(),
         ];
     }

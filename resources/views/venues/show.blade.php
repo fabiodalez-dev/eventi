@@ -86,6 +86,7 @@
         </div>
 
         <div class="col-span-2 flex flex-wrap gap-2 lg:col-start-2 lg:row-start-2">
+            <x-open-now :venue="$venue" />
             @if ($venue->is_verified)
                 <x-badge tone="brand">{{ __('venues.badge.verified') }}</x-badge>
             @endif
@@ -108,6 +109,17 @@
                 <x-follow-preferences :venue="$venue" />
         </div>
     </header>
+
+    @auth
+        @php $nascosto = in_array((int) $venue->getKey(), app(\App\Services\Account\ContentPreferences::class)->hiddenVenues(auth()->user()), true); @endphp
+        <div class="mt-4 flex flex-wrap items-center gap-3 text-sm">
+            @if ($nascosto)<p class="m-0 text-ink-muted">{{ __('account.hidden_venues.hidden_notice') }}</p>@endif
+            <form method="POST" action="{{ $nascosto ? route('account.hidden-venues.destroy', $venue->getKey()) : route('account.hidden-venues.store', $venue->getKey()) }}" @unless($nascosto) data-confirm="{{ __('account.hidden_venues.hidden') }}" @endunless>
+                @csrf @if ($nascosto) @method('DELETE') @endif
+                <button type="submit" class="ui-action inline-flex min-h-12 items-center font-semibold underline">{{ $nascosto ? __('account.hidden_venues.show') : __('account.hidden_venues.hide') }}</button>
+            </form>
+        </div>
+    @endauth
 
     @if ($venue->status === \App\Enums\VenueStatus::Approved && $venue->owners()->doesntExist())
         <p class="mt-4 text-sm text-ink-muted"><a href="{{ route('venues.claim.create', $venue) }}" class="underline">{{ __('forms.claim.cta') }}</a></p>

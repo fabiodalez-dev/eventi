@@ -10,6 +10,7 @@ use App\Enums\FollowNotificationMode;
 use App\Enums\NotificationType;
 use App\Models\Follow;
 use App\Models\NotificationLog;
+use App\Models\SavedEvent;
 use App\Models\User;
 use App\Models\Venue;
 use App\Settings\NewsletterSettings;
@@ -50,23 +51,69 @@ final class DigestPlanner
             NotificationType::TonightNearby->value => 0,
             NotificationType::WeekendNewsletter->value => 0,
             NotificationType::VenueInactive->value => 0,
+            NotificationType::SavedWeekly->value => 0,
         ];
 
         $followers = $this->followerIds();
+        $savers = $this->upcomingSaverIds($now);
 
         User::query()
             ->whereNotNull('email_verified_at')
             ->orderBy('id')
-            ->chunkById(500, function (Collection $users) use (&$planned, $now, $horizon, $followers): void {
+            ->chunkById(500, function (Collection $users) use (&$planned, $now, $horizon, $followers, $savers): void {
                 /** @var User $user */
                 foreach ($users as $user) {
                     $this->planForUser($user, $now, $horizon, $followers, $planned);
+                    $this->planSavedWeekly($user, $now, $horizon, $savers, $planned);
                 }
             });
 
         $planned[NotificationType::VenueInactive->value] = $this->planVenueInactivity($now);
 
         return $planned;
+    }
+
+    /**
+     * Il riepilogo del lunedì: per chi ha i promemoria accesi e almeno una
+     * data salvata nei giorni a venire. Se al momento dell'invio la
+     * settimana è vuota, la fabbrica dei messaggi lo salta.
+     *
+     * @param  array<int, bool>  $savers
+     * @param  array<string, int>  $planned
+     */
+    private function planSavedWeekly(User $user, CarbonImmutable $now, CarbonImmutable $horizon, array $savers, array &$planned): void
+    {
+        $userId = (int) $user->getKey();
+        if (! isset($savers[$userId]) || ! $user->notificationPreferences()->reminders) {
+            return;
+        }
+        $timezone = $this->timezone($user);
+        $sendAt = $this->nextWeekday($now, $timezone, config()->integer('notifications.digests.saved.weekday'), config()->string('notifications.digests.saved.time'));
+        if ($sendAt->greaterThan($horizon)) {
+            return;
+        }
+        $planned[NotificationType::SavedWeekly->value] += (int) $this->scheduler->queue(
+            userId: $userId,
+            type: NotificationType::SavedWeekly,
+            dedupeKey: sprintf('saved_weekly:user_%d:%s', $userId, $sendAt->setTimezone($timezone)->format('o-\WW')),
+            sendAt: $sendAt,
+        );
+    }
+
+    /**
+     * Chi ha almeno una data salvata da qui a due settimane: l'unica cerchia
+     * a cui ha senso programmare il riepilogo.
+     *
+     * @return array<int, bool>
+     */
+    private function upcomingSaverIds(CarbonImmutable $now): array
+    {
+        return SavedEvent::query()
+            ->join('event_occurrences', 'event_occurrences.id', '=', 'saved_events.occurrence_id')
+            ->where('event_occurrences.starts_at', '>', $now)
+            ->where('event_occurrences.starts_at', '<', $now->addDays(14))
+            ->distinct()->pluck('saved_events.user_id')
+            ->mapWithKeys(static fn (mixed $id): array => [(int) $id => true])->all();
     }
 
     /**

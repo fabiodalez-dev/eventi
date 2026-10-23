@@ -210,3 +210,19 @@ document.querySelectorAll('[data-checkin-queue]').forEach((form) => {
     render();
     flush();
 });
+
+// "Send to this person": copy the personal ticket link, or hand it to the
+// system share sheet where available. Nothing is sent from the server.
+document.querySelectorAll('[data-ticket-share]').forEach((box) => {
+    const input = box.querySelector('[data-share-url]');
+    const copy = box.querySelector('[data-share-copy]');
+    const native = box.querySelector('[data-share-native]');
+    copy?.addEventListener('click', async () => {
+        try { await navigator.clipboard.writeText(input.value); } catch { input.select(); document.execCommand?.('copy'); }
+        copy.textContent = copy.dataset.copied;
+    });
+    if (native && navigator.share) {
+        native.hidden = false;
+        native.addEventListener('click', () => navigator.share({ title: native.dataset.shareTitle, url: input.value }).catch(() => {}));
+    }
+});

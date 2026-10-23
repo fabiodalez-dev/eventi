@@ -30,6 +30,7 @@ class VenueFilterRequest extends FormRequest
             'type' => ['nullable', Rule::in(VenueType::values())],
             'municipality' => ['nullable', 'string', 'max:120'],
             'q' => ['nullable', 'string', 'max:120'],
+            'aperto' => ['nullable', 'boolean'],
         ];
     }
 

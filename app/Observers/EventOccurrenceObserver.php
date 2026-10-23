@@ -12,6 +12,7 @@ use App\Models\Event;
 use App\Models\EventOccurrence;
 use App\Models\Venue;
 use App\Services\Notifications\NotificationScheduler;
+use App\Services\Ticketing\AvailabilityAlerts;
 use App\Support\ContentVersion;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
@@ -112,6 +113,10 @@ final class EventOccurrenceObserver
         }
         if ($occurrence->wasChanged('venue_id') && ! $occurrence->wasChanged(['starts_at', 'status'])) {
             $scheduler->announceMove($occurrence, $this->previousStart($occurrence));
+        }
+
+        if ($occurrence->wasChanged('status') && $occurrence->getOriginal('status') === OccurrenceStatus::SoldOut) {
+            app(AvailabilityAlerts::class)->announceIfAvailable($occurrence);
         }
 
         if ($occurrence->wasChanged('status')) {

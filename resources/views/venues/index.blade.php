@@ -37,6 +37,11 @@
             :value="$municipality"
         />
 
+        <label class="flex min-h-12 items-center gap-2 self-end text-sm font-semibold">
+            <input type="checkbox" name="aperto" value="1" @checked($openOnly ?? false) class="size-5 accent-accent">
+            {{ __('venues.open_now.filter') }}
+        </label>
+
         <div class="flex items-end gap-3">
             <button
                 type="submit"
@@ -45,7 +50,7 @@
                 {{ __('filters.apply') }}
             </button>
 
-            @if ($term !== '' || $type !== null || $municipality !== null)
+            @if ($term !== '' || $type !== null || $municipality !== null || ($openOnly ?? false))
                 <a href="{{ route('venues.index') }}" class="text-sm font-semibold text-ink-muted underline hover:text-ink">
                     {{ __('filters.reset') }}
                 </a>

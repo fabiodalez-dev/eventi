@@ -75,6 +75,8 @@ final readonly class MessageFactory
             NotificationType::VenueInactive => $this->venueInactive($notification),
             NotificationType::VenueNotice => $this->venueNotice($notification, $user),
             NotificationType::SavedSearchMatch => $this->savedSearch($notification, $user),
+            NotificationType::SavedWeekly => $this->savedWeekly($user),
+            NotificationType::TicketsAvailable => $this->ticketsAvailable($notification, $user),
 
             /* Il rapporto mensile al locale non passa da qui: lo compone il comando che lo spedisce, che ha già i numeri del mese. In coda non ci finisce mai, e se ci finisse non ci sarebbe niente da ricostruire. */
             NotificationType::VenueMonthlyReport => NotificationSkipReason::OutOfBand,
@@ -640,6 +642,78 @@ final readonly class MessageFactory
             actionLabel: __('notifications.actions.open_search'),
             url: route('events.index', $search->queryString()),
             items: $items,
+        );
+    }
+
+    /**
+     * Le date salvate dei prossimi sette giorni, con lo stato quando non è
+     * quello normale: chi apre il riepilogo deve vedere subito che una
+     * serata è stata annullata o spostata.
+     */
+    private function savedWeekly(User $user): NotificationMessage|NotificationSkipReason
+    {
+        $now = CarbonImmutable::now();
+        $dates = $this->dates($user);
+        $occurrences = EventOccurrence::query()
+            ->whereIn('id', SavedEvent::query()->where('user_id', $user->getKey())->select('occurrence_id'))
+            ->where('starts_at', '>', $now)
+            ->where('starts_at', '<', $now->addDays(config()->integer('notifications.digests.saved.window_days')))
+            ->whereHas('event', fn ($event) => $event->where('status', EventStatus::Published))
+            ->with(['event', 'event.venue', 'venue'])
+            ->orderBy('starts_at')
+            ->limit(config()->integer('notifications.digests.saved.max_items'))
+            ->get();
+        if ($occurrences->isEmpty()) {
+            return NotificationSkipReason::NothingToSend;
+        }
+        $items = $occurrences->map(function (EventOccurrence $occurrence) use ($dates): array {
+            $state = match ($occurrence->status) {
+                OccurrenceStatus::Cancelled => ' · '.__('notifications.saved_weekly.cancelled'),
+                OccurrenceStatus::Postponed, OccurrenceStatus::Moved => ' · '.__('notifications.saved_weekly.moved'),
+                OccurrenceStatus::SoldOut => ' · '.__('notifications.saved_weekly.sold_out'),
+                default => '',
+            };
+
+            return [
+                'title' => (string) $occurrence->event?->title,
+                'meta' => trim($dates->dayAndTime($occurrence->business_date, $occurrence->starts_at).' '.$this->where($occurrence)).$state,
+                'url' => EventUrl::occurrence($occurrence),
+            ];
+        })->values()->all();
+
+        return new NotificationMessage(
+            type: NotificationType::SavedWeekly,
+            subject: __('notifications.saved_weekly.subject'),
+            heading: __('notifications.saved_weekly.heading'),
+            lines: [trans_choice('notifications.saved_weekly.line', count($items), ['count' => count($items)])],
+            actionLabel: __('notifications.actions.open_saved'),
+            url: route('account.saved'),
+            items: $items,
+        );
+    }
+
+    /**
+     * Una data esaurita è tornata disponibile: si rilegge al momento
+     * dell'invio, e se nel frattempo è di nuovo esaurita o passata non parte.
+     */
+    private function ticketsAvailable(ScheduledNotification $notification, User $user): NotificationMessage|NotificationSkipReason
+    {
+        $occurrence = $this->occurrence($notification);
+        if ($occurrence === null || $this->hasStarted($occurrence)
+            || $occurrence->status === OccurrenceStatus::Cancelled || $occurrence->status === OccurrenceStatus::SoldOut) {
+            return NotificationSkipReason::MissingSubject;
+        }
+        $event = $occurrence->event;
+
+        return new NotificationMessage(
+            type: NotificationType::TicketsAvailable,
+            subject: __('notifications.tickets_available.subject', ['title' => $event->title]),
+            heading: $event->title,
+            lines: [__('notifications.tickets_available.line', ['when' => $this->dates($user)->dayAndTime($occurrence->business_date, $occurrence->starts_at), 'where' => $this->where($occurrence)])],
+            actionLabel: __('notifications.actions.open_event'),
+            url: EventUrl::occurrence($occurrence),
+            occurrenceId: (int) $occurrence->getKey(),
+            eventId: (int) $event->getKey(),
         );
     }
 

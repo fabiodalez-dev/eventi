@@ -213,6 +213,8 @@ return [
         'event_new_comment' => 'Nuovo commento su un tuo evento',
         'venue_notice' => 'Avviso da un locale seguito',
         'saved_search_match' => 'Nuove date per una ricerca salvata',
+        'saved_weekly' => 'Le tue date della settimana',
+        'tickets_available' => 'Posti di nuovo disponibili',
     ],
 
     'application_kind' => [

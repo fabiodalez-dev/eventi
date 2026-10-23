@@ -16,6 +16,7 @@ use App\Http\Requests\Api\V1\Me\StoreSavedRequest;
 use App\Http\Resources\V1\OccurrenceResource;
 use App\Models\EventOccurrence;
 use App\Queries\EventOccurrenceQuery;
+use App\Services\Account\SavedConflicts;
 use App\Services\Api\OccurrenceFeed;
 use App\Support\Api\ApiContext;
 use App\Support\Api\ApiResponse;
@@ -83,9 +84,13 @@ final class SavedController extends Controller
             throw new ApiException(ApiErrorCode::NotFound, __('account.api.not_savable'));
         }
 
+        $occurrenceId = (int) $saved->value('occurrence_id');
+        $date = EventOccurrence::query()->find($occurrenceId);
+
         return ApiResponse::item([
-            'occurrence_id' => (int) $saved->value('occurrence_id'),
+            'occurrence_id' => $occurrenceId,
             'message' => __('account.api.saved'),
+            'conflicts' => $date === null ? [] : app(SavedConflicts::class)->for($user, $date),
         ], status: 201);
     }
 

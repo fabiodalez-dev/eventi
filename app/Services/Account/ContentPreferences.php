@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace App\Services\Account;
 
+use App\Enums\AccessibilityFeature;
 use App\Models\Category;
 use App\Models\User;
 
 /** Explicit discovery choices, separate from notification subscriptions and purchases. */
 final class ContentPreferences
 {
-    /** @return array{mode: string, categories: list<int>, hidden_categories: list<int>, inferred_ads: bool} */
+    /** @return array{mode: string, categories: list<int>, hidden_categories: list<int>, inferred_ads: bool, hidden_venues: list<int>, access_needs: list<string>} */
     public function selection(?User $user): array
     {
         $data = $user->content_preferences ?? [];
@@ -20,7 +21,34 @@ final class ContentPreferences
             'categories' => array_map('intval', $data['categories'] ?? []),
             'hidden_categories' => array_map('intval', $data['hidden_categories'] ?? []),
             'inferred_ads' => (bool) ($data['inferred_ads'] ?? true),
+            'hidden_venues' => array_values(array_map('intval', $data['hidden_venues'] ?? [])),
+            'access_needs' => array_values(array_filter(array_map('strval', $data['access_needs'] ?? []),
+                static fn (string $need): bool => AccessibilityFeature::tryFrom($need) !== null)),
         ];
+    }
+
+    /**
+     * I locali che la persona ha chiesto di non vedere: spariscono dalle
+     * stesse viste delle categorie nascoste, mai dai salvati o dai biglietti.
+     *
+     * @return list<int>
+     */
+    public function hiddenVenues(?User $user): array
+    {
+        return $user === null ? [] : $this->selection($user)['hidden_venues'];
+    }
+
+    /**
+     * Aggiunge o toglie un locale dai nascosti, conservando il resto delle
+     * preferenze.
+     */
+    public function toggleVenue(User $user, int $venueId, bool $hide): void
+    {
+        $data = $user->content_preferences ?? [];
+        $hidden = array_values(array_map('intval', $data['hidden_venues'] ?? []));
+        $hidden = $hide ? array_values(array_unique([...$hidden, $venueId])) : array_values(array_diff($hidden, [$venueId]));
+        $data['hidden_venues'] = array_slice($hidden, 0, 500);
+        $user->update(['content_preferences' => $data]);
     }
 
     /** @return list<int> */

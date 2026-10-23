@@ -444,6 +444,12 @@ final class CachePage
             return false;
         }
 
+        /* «Aperti adesso» cambia a ogni fascia oraria: una copia servita per
+           mezz'ora mostrerebbe locali che intanto hanno chiuso. */
+        if ($request->boolean('aperto')) {
+            return false;
+        }
+
         /*
          * `budget` resta fuori dalla cache come la ricerca libera, e per
          * entrambe le sue ragioni.

@@ -66,6 +66,14 @@
                 {{ __('account.nav.feed') }}
             </a>
 
+            <a role="menuitem" href="{{ route('account.collections.index') }}" class="border-b-2 border-line px-3.5 py-2.5 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.14em] uppercase transition-colors hover:bg-accent hover:text-on-accent">
+                {{ __('collections.title') }}
+            </a>
+
+            <a role="menuitem" href="{{ route('account.attended') }}" class="border-b-2 border-line px-3.5 py-2.5 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.14em] uppercase transition-colors hover:bg-accent hover:text-on-accent">
+                {{ __('account.attended.menu') }}
+            </a>
+
             @if(config('carpool.enabled'))
             @foreach(['carpool.index' => 'mine', 'carpool.chats' => 'messages'] as $destination => $label)
                 <a role="menuitem" href="{{ route($destination) }}" class="flex items-center justify-between gap-3 border-b-2 border-line px-3.5 py-2.5 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.14em] uppercase transition-colors hover:bg-accent hover:text-on-accent">{{ __('carpool.'.$label) }}<span data-community-count="{{ $label === 'mine' ? 'pending' : 'conversations' }}" hidden></span></a>

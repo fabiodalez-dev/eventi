@@ -16,6 +16,7 @@ use App\Models\Concerns\HasCatalogReviews;
 use App\Models\Concerns\HasEditorialContent;
 use App\Models\Concerns\HasImageVariants;
 use App\Models\Concerns\HasSafeEditorContent;
+use App\Support\OpeningHours;
 use Database\Factories\VenueFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -238,6 +239,16 @@ class Venue extends Model implements HasMedia
     public function notices(): HasMany
     {
         return $this->hasMany(VenueNotice::class);
+    }
+
+    /**
+     * Aperto adesso, secondo gli orari dichiarati, nel fuso della città.
+     *
+     * @return array{open: bool|null, until: string|null}
+     */
+    public function openingState(?\DateTimeInterface $at = null): array
+    {
+        return OpeningHours::state(is_array($this->opening_hours) ? $this->opening_hours : null, $at ?? now(), $this->city?->timezone ?? config()->string('app.timezone'));
     }
 
     /** L'avviso in vista oggi sulla scheda pubblica, se ce n'è uno. */

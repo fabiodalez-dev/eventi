@@ -40,6 +40,8 @@ use App\Http\Controllers\Api\V1\VenueController;
 use App\Http\Controllers\Api\V1\WalletPassController;
 use App\Http\Controllers\RememberedLocationController;
 use App\Http\Controllers\TicketingController;
+use App\Http\Controllers\Web\Account\AttendedController;
+use App\Http\Controllers\Web\Account\AvailabilityAlertController;
 use App\Http\Controllers\Web\Account\CollectionController;
 use App\Http\Controllers\Web\Account\ContentPreferencesController;
 use App\Http\Controllers\Web\Account\NotificationInterestsController;
@@ -50,7 +52,9 @@ use App\Http\Controllers\Web\CollectionController as PublicCollectionController;
 use App\Http\Controllers\Web\EventCommentController;
 use App\Http\Controllers\Web\EventWeatherController;
 use App\Http\Controllers\Web\OrganizerController;
+use App\Http\Controllers\Web\PresenceController;
 use App\Http\Controllers\Web\PublicContactController;
+use App\Http\Controllers\Web\SharedTicketController;
 use App\Http\Controllers\Web\TonightController;
 use App\Http\Middleware\Api\CacheJsonResponse;
 use App\Http\Middleware\Api\IdempotentRequest;
@@ -91,6 +95,7 @@ Route::prefix('v1')->middleware(['auth:sanctum', TicketingPrivacy::class])->grou
     Route::post('/ticketing/{occurrence}/message', [TicketingController::class, 'message'])->middleware('throttle:10,1,tickets-message')->name('api.ticketing.manage.message');
     Route::post('/ticketing/{occurrence}/guest-booking', [TicketingController::class, 'guestBooking'])->middleware('throttle:60,1,tickets-guest')->name('api.ticketing.manage.guest');
     Route::post('/me/tickets/{ticket}/wallet', [WalletPassController::class, 'store'])->middleware('throttle:30,1,tickets-wallet');
+    Route::post('/me/tickets/{ticket}/send', [SharedTicketController::class, 'send'])->middleware('throttle:10,60,tickets-share');
 });
 
 /*
@@ -261,6 +266,14 @@ Route::prefix('v1')
                 Route::get('/notification-preferences', [NotificationPreferenceController::class, 'show'])->name('preferences.show');
                 Route::get('/content-preferences', [ContentPreferencesController::class, 'index'])->name('content-preferences.show');
                 Route::patch('/content-preferences', [ContentPreferencesController::class, 'update'])->name('content-preferences.update');
+                Route::post('/presence', [PresenceController::class, 'store'])->middleware('throttle:20,60,presence')->name('presence.store');
+                Route::delete('/presence/{token}', [PresenceController::class, 'destroy'])->where('token', '[A-Za-z0-9]{32}')->name('presence.destroy');
+                Route::get('/attended', AttendedController::class)->name('attended');
+                Route::get('/availability-alerts', [AvailabilityAlertController::class, 'index'])->name('availability-alerts.index');
+                Route::post('/availability-alerts/{occurrence}', [AvailabilityAlertController::class, 'store'])->whereNumber('occurrence')->middleware('throttle:30,1,availability-alerts')->name('availability-alerts.store');
+                Route::delete('/availability-alerts/{occurrence}', [AvailabilityAlertController::class, 'destroy'])->whereNumber('occurrence')->name('availability-alerts.destroy');
+                Route::post('/hidden-venues/{venue}', [ContentPreferencesController::class, 'hideVenue'])->whereNumber('venue')->middleware('throttle:30,1,hidden-venues')->name('hidden-venues.store');
+                Route::delete('/hidden-venues/{venue}', [ContentPreferencesController::class, 'showVenue'])->whereNumber('venue')->middleware('throttle:30,1,hidden-venues')->name('hidden-venues.destroy');
                 Route::get('/notification-interests', [NotificationInterestsController::class, 'index'])->name('interests.show');
                 Route::patch('/notification-interests', [NotificationInterestsController::class, 'update'])->name('interests.update');
                 Route::patch('/notification-preferences', [NotificationPreferenceController::class, 'update'])->name('preferences.update');

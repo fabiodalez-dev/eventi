@@ -346,6 +346,9 @@
                                     @elseif ($chiusura !== null)
                                         <p class="text-sm text-ink-muted sm:text-right">{{ $chiusura }}</p>
                                     @endif
+                                    @if (! ($isPreview ?? false))
+                                        <x-availability-alert :occurrence="$occurrence" :event="$event" />
+                                    @endif
                                     </div>
                                     <div class="flex flex-wrap items-center gap-2 border-t border-line pt-3 sm:col-span-2">
                                         <a
@@ -502,6 +505,10 @@
                  saprebbe a quale appuntamento riferirsi. --}}
             @if (! ($isPreview ?? false) && ($selectedOccurrence ?? null) && config('community.enabled'))
                 <x-attendance :occurrence="$selectedOccurrence" />
+            @endif
+
+            @if (! ($isPreview ?? false) && ($selectedOccurrence ?? null))
+                <x-presence-share :occurrence="$selectedOccurrence" />
             @endif
 
             {{-- I commenti stanno sotto i tag, dentro la colonna principale:

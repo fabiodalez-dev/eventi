@@ -132,6 +132,12 @@ class EventOccurrence extends Model
         return $this->hasMany(Booking::class, 'occurrence_id');
     }
 
+    /** @return HasMany<AvailabilityAlert, $this> */
+    public function availabilityAlerts(): HasMany
+    {
+        return $this->hasMany(AvailabilityAlert::class, 'occurrence_id');
+    }
+
     /** @return HasMany<BookingMessage, $this> */
     public function bookingMessages(): HasMany
     {

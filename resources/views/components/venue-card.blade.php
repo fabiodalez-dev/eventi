@@ -86,6 +86,7 @@
                         <span aria-hidden="true">{{ __('common.separator') }}</span> {{ $venue->municipality }}
                     @endif
                 </p>
+                <x-open-now :venue="$venue" class="mt-1 self-start" />
             </div>
         </div>
 

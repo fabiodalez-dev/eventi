@@ -108,9 +108,14 @@ final class EventOccurrenceQuery
     private function withContentPreferences(): self
     {
         $preferences = app(ContentPreferences::class);
-        $hidden = $preferences->hidden($preferences->discoveryUser());
+        $user = $preferences->discoveryUser();
+        $hidden = $preferences->hidden($user);
         if ($hidden !== []) {
             $this->query->withGlobalScope('content_preferences', fn (Builder $query) => $query->whereNotIn('events.category_id', $hidden));
+        }
+        $venues = $preferences->hiddenVenues($user);
+        if ($venues !== []) {
+            $this->query->withGlobalScope('hidden_venues', fn (Builder $query) => $query->whereNotIn(DB::raw('COALESCE(event_occurrences.venue_id, events.venue_id)'), $venues));
         }
 
         return $this;

@@ -86,6 +86,13 @@ return [
         'list_body' => 'Prova ad allargare la zona o a togliere un filtro.',
     ],
 
+    'open_now' => [
+        'open' => 'Aperto adesso',
+        'until' => 'Aperto adesso · fino alle :time',
+        'closed' => 'Chiuso adesso',
+        'filter' => 'Solo aperti adesso',
+    ],
+
     'programme' => [
         'eyebrow' => 'Programma della settimana',
         'week' => 'Da lunedì :from a domenica :to',

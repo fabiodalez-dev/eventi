@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Web\Account\AppearanceController;
+use App\Http\Controllers\Web\Account\AttendedController;
+use App\Http\Controllers\Web\Account\AvailabilityAlertController;
 use App\Http\Controllers\Web\Account\CollectionController;
 use App\Http\Controllers\Web\Account\ContentPreferencesController;
 use App\Http\Controllers\Web\Account\EmailVerificationController;
@@ -20,6 +22,7 @@ use App\Http\Controllers\Web\Account\SavedCalendarController;
 use App\Http\Controllers\Web\Account\SavedController;
 use App\Http\Controllers\Web\Account\SavedSearchController;
 use App\Http\Controllers\Web\GoogleCalendarController;
+use App\Http\Controllers\Web\PresenceController;
 use App\Http\Middleware\PersonalizeDiscovery;
 use App\Http\Middleware\RequireConfirmedAccount;
 use App\Http\Middleware\TicketingPrivacy;
@@ -161,7 +164,14 @@ Route::middleware(['auth', RequireConfirmedAccount::class])->group(function (): 
     });
     Route::get('/profilo/interessi', [ContentPreferencesController::class, 'index'])->name('account.content-preferences');
     Route::patch('/profilo/interessi', [ContentPreferencesController::class, 'update'])->name('account.content-preferences.update');
+    Route::post('/avvisi-disponibilita/{occurrence}', [AvailabilityAlertController::class, 'store'])->whereNumber('occurrence')->middleware('throttle:30,1,availability-alerts')->name('account.availability-alerts.store');
+    Route::delete('/avvisi-disponibilita/{occurrence}', [AvailabilityAlertController::class, 'destroy'])->whereNumber('occurrence')->name('account.availability-alerts.destroy');
+    Route::post('/locali-nascosti/{venue}', [ContentPreferencesController::class, 'hideVenue'])->whereNumber('venue')->middleware('throttle:30,1,hidden-venues')->name('account.hidden-venues.store');
+    Route::delete('/locali-nascosti/{venue}', [ContentPreferencesController::class, 'showVenue'])->whereNumber('venue')->middleware('throttle:30,1,hidden-venues')->name('account.hidden-venues.destroy');
     Route::get('/notifiche/interessi', [NotificationInterestsController::class, 'index'])->name('account.notifications.interests');
+    Route::post('/sono-qui/data/{occurrence}', [PresenceController::class, 'store'])->whereNumber('occurrence')->middleware('throttle:20,60,presence')->name('presence.store');
+    Route::delete('/sono-qui/{token}', [PresenceController::class, 'destroy'])->where('token', '[A-Za-z0-9]{32}')->name('presence.destroy');
+    Route::get('/le-mie-serate', AttendedController::class)->name('account.attended');
     Route::get('/le-mie-raccolte', [CollectionController::class, 'index'])->name('account.collections.index');
     Route::post('/le-mie-raccolte', [CollectionController::class, 'store'])->middleware('throttle:30,1,collections')->name('account.collections.store');
     Route::get('/le-mie-raccolte/{collection}', [CollectionController::class, 'show'])->whereNumber('collection')->name('account.collections.show');
