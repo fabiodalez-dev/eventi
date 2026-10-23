@@ -220,3 +220,13 @@ Tutte le rotte seguenti richiedono Bearer e restituiscono `Cache-Control: privat
 - `PATCH /management/dates/{id}/details`: `practical_details` e `cost_breakdown`; oggetti vuoti rimuovono le eccezioni, zero è distinto da assenza. Nessun campo estraneo ammesso.
 - `GET /management/campaigns?page=1` e `GET /management/campaigns/{id}`: campagne autorizzate del locale e rapporti aggregati, con soglie di riservatezza.
 - `POST /ticketing/{id}/check-in`: `code` di 64 caratteri e `request_key` UUID persistente per recuperare una risposta persa. Una lettura in attesa non autorizza l’ingresso.
+
+## Aggiunte del 23 ottobre 2026 (D60)
+
+Tutte dietro `auth:sanctum` salvo dove indicato; stessi limitatori del sito.
+
+- Biglietteria, per chi gestisce una data: `GET /v1/ticketing/{occurrence}/manifest` (impronte e nomi per il controllo senza rete), `POST /v1/ticketing/{occurrence}/message` (`subject`, `body`, `include_waitlisted`), `POST /v1/ticketing/{occurrence}/guest-booking` (`names` una per riga, `email`, `phone`, `note`). `POST /v1/ticketing/{occurrence}/check-in` accetta anche `scanned_at`. `GET /v1/me/bookings` riporta `meta.no_shows`.
+- Ricerche salvate: `GET|POST /v1/me/searches` (`filters` come la query string di `/eventi`, `name` facoltativo), `DELETE /v1/me/searches/{id}`.
+- Raccolte: `GET|POST /v1/me/collections`, `GET|PATCH|DELETE /v1/me/collections/{id}`, `POST /v1/me/collections/{id}/items` (`occurrence_id`, `note`), `DELETE /v1/me/collections/{id}/items/{occurrence}`; pubblica senza token `GET /v1/collections/{token}`, 404 se la raccolta è privata.
+- Calendari pubblici senza token, `text/calendar`, cache di quindici minuti: `/locali/{slug}/calendario.ics`, `/organizzatori/{slug}/calendario.ics`, `/eventi/categoria/{slug}/calendario.ics`; programma settimanale `/locali/{slug}/programma.pdf?settimana=YYYY-MM-DD`.
+- Le schede evento riportano i co-organizzatori (`organizers`) e `video_url` resta nel modello; l'app Android non li mostra ancora.

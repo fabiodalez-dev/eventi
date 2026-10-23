@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Admin\Resources\Events;
 
+use App\Actions\MergeEventsAction;
 use App\Enums\EventSource;
 use App\Enums\EventStatus;
 use App\Enums\PriceType;
@@ -33,7 +34,9 @@ use App\Models\Venue;
 use App\Queries\EditorialDashboardQuery;
 use App\Support\BeforeGoingDefaults;
 use App\Support\CurrentCity;
+use App\Support\VideoEmbed;
 use BackedEnum;
+use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Repeater;
@@ -42,6 +45,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\ToggleButtons;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Components\Fieldset;
@@ -216,6 +220,18 @@ class EventResource extends Resource
                                             ->collection('gallery')
                                             ->multiple()
                                             ->reorderable(),
+
+                                        TextInput::make('video_url')
+                                            ->label(__('admin.fields.video_url'))
+                                            ->helperText(__('admin.hints.video_url'))
+                                            ->url()
+                                            ->maxLength(2048)
+                                            ->rule(fn (): \Closure => static function (string $attribute, mixed $value, \Closure $fail): void {
+                                                if (filled($value) && VideoEmbed::from((string) $value) === null) {
+                                                    $fail(__('admin.hints.video_url_invalid'));
+                                                }
+                                            })
+                                            ->columnSpanFull(),
                                     ]),
                             ]),
 
@@ -395,6 +411,13 @@ class EventResource extends Resource
                                     ->columns(1)
                                     ->schema([
                                         Select::make('organizer_id')->label('Organizzatore registrato')->relationship('organizer', 'name', fn ($query) => $query->where('is_active', true))->searchable()->helperText('Se vuoto, il locale ospitante è anche l’organizzatore.'),
+                                        Select::make('organizers')
+                                            ->label(__('admin.fields.co_organizers'))
+                                            ->helperText(__('admin.hints.co_organizers'))
+                                            ->relationship('organizers', 'name', fn ($query) => $query->where('is_active', true))
+                                            ->multiple()
+                                            ->searchable()
+                                            ->preload(),
                                         TextInput::make('organizer_name')
                                             ->label(__('admin.fields.organizer_name'))
                                             ->maxLength(255),
@@ -661,10 +684,51 @@ class EventResource extends Resource
             ])
             ->recordActions([
                 EditAction::make(),
+                self::mergeAction(),
             ])
             ->toolbarActions([
                 BulkActions::make(),
             ]);
+    }
+
+    /**
+     * «Unisci con un doppione»: la scheda su cui si agisce resta, quella
+     * scelta nel modulo viene assorbita. La logica sta in `MergeEventsAction`;
+     * qui c'è solo il modulo che chiede quale scheda far sparire, limitato
+     * alla stessa città e alle schede non cancellate.
+     */
+    public static function mergeAction(): Action
+    {
+        return Action::make('merge')
+            ->label(__('admin.events.merge'))
+            ->icon(Heroicon::OutlinedArrowsPointingIn)
+            ->color('gray')
+            ->requiresConfirmation()
+            ->modalHeading(__('admin.events.merge_heading'))
+            ->modalDescription(__('admin.events.merge_description'))
+            ->authorize(fn (Event $record): bool => auth()->user()?->can('delete', $record) ?? false)
+            ->schema([
+                Select::make('absorbed')
+                    ->label(__('admin.events.merge_target'))
+                    ->helperText(__('admin.events.merge_hint'))
+                    ->required()
+                    ->searchable()
+                    ->getSearchResultsUsing(fn (string $search, Event $record): array => Event::query()
+                        ->where('city_id', $record->city_id)->whereKeyNot($record->getKey())
+                        ->where('title', 'like', '%'.$search.'%')->orderBy('title')->limit(20)
+                        ->get(['id', 'title', 'slug'])->mapWithKeys(fn (Event $event): array => [$event->id => $event->title.' ('.$event->slug.')'])->all())
+                    ->getOptionLabelUsing(fn (mixed $value): ?string => Event::query()->find($value)?->title),
+            ])
+            ->action(function (Event $record, array $data): void {
+                $absorbed = Event::query()->where('city_id', $record->city_id)->findOrFail($data['absorbed']);
+                $report = app(MergeEventsAction::class)->execute($record, $absorbed, auth()->user());
+
+                Notification::make()
+                    ->title(__('admin.events.merged', ['title' => $absorbed->title]))
+                    ->body(__('admin.events.merged_body', $report))
+                    ->success()
+                    ->send();
+            });
     }
 
     public static function getEloquentQuery(): Builder

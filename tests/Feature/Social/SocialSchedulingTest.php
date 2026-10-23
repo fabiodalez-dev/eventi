@@ -43,6 +43,10 @@ it('schedules without sending and dispatches only once when due', function (): v
 
 it('schedules from the admin UI in the city timezone and can reschedule or cancel', function (): void {
     $this->actingAs($this->admin);
+    /* Data fissa, lontana dal cambio dell'ora: con «oggi + 2 giorni» il test
+       cadeva sull'ultima domenica di ottobre e l'ora letta dal modulo
+       differiva di un'ora da quella attesa. */
+    $this->travelTo(CarbonImmutable::parse('2026-11-10 10:00:00', 'UTC'));
     $when = CarbonImmutable::now()->addDays(2)->setTimezone($this->scenario->city->timezone)->startOfMinute();
     $page = Livewire::test(Social::class)->call('openBatch', $this->batch->id)->set('scheduledAt', $when->format('Y-m-d\TH:i'))
         ->call('schedulePublication')->assertHasNoErrors();

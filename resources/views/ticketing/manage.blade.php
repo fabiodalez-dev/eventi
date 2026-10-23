@@ -4,11 +4,16 @@
     <p>{{ $date->starts_at->timezone($date->event->city->timezone)->format('d/m/Y H:i') }} · {{ $date->effectiveVenue()?->name }}</p>
     <p>Biglietti gratuiti o pagamento all’ingresso. La prenotazione su inCittà è gratuita; l’eventuale importo indicato nell’evento si paga al locale.</p>
     @include('ticketing.errors')
-    <dl class="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4" data-ticket-statistics>
+    <dl class="grid grid-cols-2 gap-4 text-sm sm:grid-cols-5" data-ticket-statistics>
         @foreach (['valid', 'checked_in', 'waitlisted', 'cancelled'] as $status)
             <div><dt class="text-ink-muted">{{ __('ticketing.statuses.'.$status) }}</dt><dd class="font-bold">{{ $statistics[$status] ?? 0 }}</dd></div>
         @endforeach
+        <div><dt class="text-ink-muted">{{ __('ticketing.no_show.stat') }}</dt><dd class="font-bold">{{ $statistics['no_show'] ?? 0 }}</dd></div>
     </dl>
+    @php $presenze = ($statistics['checked_in'] ?? 0) + ($statistics['no_show'] ?? 0); @endphp
+    @if (($statistics['no_show'] ?? 0) > 0 && $presenze > 0)
+        <p class="text-sm text-ink-muted">{{ __('ticketing.no_show.rate', ['percent' => (int) round(($statistics['no_show'] / $presenze) * 100)]) }} {{ __('ticketing.no_show.hint', ['limit' => config('ticketing.no_show.limit'), 'days' => config('ticketing.no_show.window_days')]) }}</p>
+    @endif
     <p>{{ $availability['remaining'] === null ? __('ticketing.unlimited') : __('ticketing.remaining', ['count' => $availability['remaining']]) }}</p>
     @if (! $date->effectiveVenue()?->ticketing_enabled)<p>{{ __('ticketing.disabled_hint') }}</p>@else
     <details class="border border-line p-4"><summary class="cursor-pointer font-bold py-2">{{ __('ticketing.settings') }}</summary>
@@ -39,6 +44,37 @@
         @include('ticketing.scanner-form')
     </section>
     <section class="border-t border-line pt-5">
+        <h2 class="text-2xl font-bold">{{ __('ticketing.messages.title') }}</h2>
+        <p class="my-3 text-sm text-ink-muted">{{ __('ticketing.messages.hint', ['limit' => config('ticketing.messages.daily_limit')]) }}</p>
+        <form method="POST" action="{{ route('ticketing.manage.message', $date) }}" class="grid gap-4" data-confirm="{{ __('ticketing.messages.send') }}?">@csrf
+            <x-field name="subject" :label="__('ticketing.messages.subject')" :required="true" maxlength="160" />
+            <x-field name="body" type="textarea" :label="__('ticketing.messages.body')" :required="true" maxlength="2000" />
+            <label class="flex items-center gap-2 text-sm"><input type="hidden" name="include_waitlisted" value="0"><input type="checkbox" name="include_waitlisted" value="1" @checked(old('include_waitlisted'))> {{ __('ticketing.messages.include_waitlisted') }}</label>
+            <x-button type="submit" class="min-h-12 justify-self-start">{{ __('ticketing.messages.send') }}</x-button>
+        </form>
+        @if ($messages->isNotEmpty())
+            <h3 class="mt-5 font-bold">{{ __('ticketing.messages.history') }}</h3>
+            <ul class="mt-2 flex flex-col gap-3 text-sm">
+                @foreach ($messages as $message)
+                    <li class="border-t border-line pt-2"><strong>{{ $message->subject }}</strong><br>
+                        <span class="text-ink-muted">{{ __('ticketing.messages.history_line', ['date' => $message->created_at?->timezone($date->event->city->timezone)->format('d/m/Y H:i'), 'sender' => $message->sender?->name ?? '—', 'count' => $message->recipients_count]) }}</span>
+                        <p class="mt-1 whitespace-pre-line">{{ $message->body }}</p></li>
+                @endforeach
+            </ul>
+        @endif
+    </section>
+    <section class="border-t border-line pt-5">
+        <h2 class="text-2xl font-bold">{{ __('ticketing.guest.title') }}</h2>
+        <p class="my-3 text-sm text-ink-muted">{{ __('ticketing.guest.hint') }}</p>
+        <form method="POST" action="{{ route('ticketing.manage.guest', $date) }}" class="grid gap-4 md:grid-cols-2">@csrf
+            <x-field name="names" type="textarea" :label="__('ticketing.guest.names')" :required="true" class="md:col-span-2" />
+            <x-field name="email" type="email" :label="__('ticketing.email')" autocomplete="off" />
+            <x-field name="phone" type="tel" :label="__('ticketing.fields.phone')" autocomplete="off" />
+            <x-field name="note" :label="__('ticketing.guest.note')" class="md:col-span-2" />
+            <x-button type="submit" class="min-h-12 justify-self-start">{{ __('ticketing.guest.save') }}</x-button>
+        </form>
+    </section>
+    <section class="border-t border-line pt-5">
         <h2 class="text-2xl font-bold">{{ __('decision.staff') }}</h2>
         <p class="my-3 text-sm text-ink-muted">{{ __('decision.staff_hint') }}</p>
         <a class="inline-flex min-h-12 items-center underline" href="{{ route('ticketing.manage.scanner', $date) }}">{{ __('decision.staff_scanner') }}</a>
@@ -58,7 +94,7 @@
     <p data-search-status role="status" class="text-sm text-ink-muted"></p>
     <div data-ticket-results class="flex flex-col gap-4">
     @forelse ($bookings as $booking)
-        <section class="border-t border-line pt-4"><p class="text-sm">{{ __('ticketing.booking_number', ['id' => $booking->id]) }} · {{ $booking->user?->email }}</p>
+        <section class="border-t border-line pt-4"><p class="text-sm">{{ __('ticketing.booking_number', ['id' => $booking->id]) }} · {{ $booking->contactEmail() ?? '—' }}@if ($booking->isStaffBooking()) · <span class="font-semibold">{{ __('ticketing.guest.badge') }}</span>@endif</p>
             @if ($booking->booker_data)<details><summary class="cursor-pointer py-3 text-brand">{{ __('ticketing.booker') }}</summary><dl class="grid gap-3 text-sm">
                 @foreach ($booking->booker_data as $field => $value)@if ($value)<div><dt class="text-ink-muted">{{ __('ticketing.fields.'.$field) }}</dt><dd class="whitespace-pre-line">{{ $value }}</dd></div>@endif @endforeach
                 <div><dt>{{ __('ticketing.privacy_record') }}</dt><dd>{{ $booking->privacy_accepted_at?->timezone($date->event->city->timezone)->format('d/m/Y H:i') }}</dd></div>

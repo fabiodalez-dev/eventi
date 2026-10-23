@@ -42,6 +42,27 @@ return [
         ],
     ],
 
+    'claim' => [
+        'title' => 'Rivendica il tuo locale',
+        'lead' => ':venue è già nel catalogo. Se lo gestisci tu, chiedi le chiavi della sua pagina: la redazione verifica e ti apre il pannello.',
+        'submit' => 'Chiedi di gestire questo locale',
+        'received' => 'Richiesta ricevuta. Ti ricontattiamo per verificare che sia il tuo locale e poi ti apriamo il pannello.',
+        'already_managed' => 'Questo locale ha già un referente. Se pensi sia un errore, scrivi alla redazione.',
+        'cta' => 'È il tuo locale? Rivendicalo',
+    ],
+
+    'organizer_application' => [
+        'title' => 'Registra la tua organizzazione',
+        'lead' => 'Associazioni, collettivi, rassegne: se organizzi eventi senza una sede fissa, chiedi un pannello per proporre le tue date in qualunque locale di :city.',
+        'submit' => 'Invia la richiesta',
+        'received' => 'Richiesta ricevuta. Ti ricontattiamo per verificare i dati e aprire il pannello dell\'organizzazione.',
+        'fields' => [
+            'venue_name' => 'Nome dell\'organizzazione',
+            'website' => 'Sito o pagina social',
+            'message' => 'Che cosa organizzate',
+        ],
+    ],
+
     'application' => [
         'title' => 'Registra il tuo locale',
         'lead' => 'Pubblica i tuoi eventi su :city e raggiungi chi sta già cercando qualcosa da fare stasera.',

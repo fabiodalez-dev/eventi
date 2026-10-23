@@ -14,6 +14,7 @@ use App\Enums\VerificationStatus;
 use App\Models\Concerns\HasEditorialContent;
 use App\Models\Concerns\HasImageVariants;
 use App\Models\Concerns\HasSafeEditorContent;
+use App\Support\VideoEmbed;
 use Database\Factories\EventFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -72,6 +73,7 @@ class Event extends Model implements HasMedia
         'short_description',
         'poster',
         'gallery',
+        'video_url',
         'price_type',
         'price_min',
         'price_max',
@@ -148,7 +150,15 @@ class Event extends Model implements HasMedia
     {
         return LogOptions::defaults()
             ->useLogName('event')
-            ->logOnly(['status', 'verification_status', 'published_at', 'rejection_reason', 'is_featured', 'editorial_score'])
+            /*
+             * Oltre alle decisioni editoriali, i testi e i dati che un gestore
+             * può rovinare per sbaglio: sono quelli che la cronologia permette
+             * di rimettere com'erano con «Ripristina».
+             */
+            ->logOnly(['status', 'verification_status', 'published_at', 'rejection_reason', 'is_featured', 'editorial_score',
+                'title', 'subtitle', 'description', 'short_description', 'price_type', 'price_min', 'price_max', 'price_notes',
+                'ticket_url', 'booking_url', 'booking_phone', 'age_restriction', 'venue_id', 'organizer_id', 'organizer_name', 'organizer_url',
+                'category_id', 'external_links', 'facts', 'content_details', 'video_url'])
             ->logOnlyDirty()
             ->dontLogEmptyChanges();
     }
@@ -189,6 +199,32 @@ class Event extends Model implements HasMedia
     public function organizer(): BelongsTo
     {
         return $this->belongsTo(Organizer::class);
+    }
+
+    /**
+     * Gli altri organizzatori, oltre a quello principale di `organizer_id`:
+     * una rassegna fatta insieme è di tutti quelli che la fanno.
+     *
+     * @return BelongsToMany<Organizer, $this>
+     */
+    public function organizers(): BelongsToMany
+    {
+        return $this->belongsToMany(Organizer::class, 'event_organizer')->where('organizers.is_active', true);
+    }
+
+    /** Vero se questa persona gestisce l'organizzatore principale o uno dei co-organizzatori. */
+    public function managedByOrganizerOf(User $user): bool
+    {
+        if ($this->organizer?->managedBy($user)) {
+            return true;
+        }
+
+        return $this->organizers()->get()->contains(fn (Organizer $organizer): bool => $organizer->managedBy($user));
+    }
+
+    public function video(): ?VideoEmbed
+    {
+        return VideoEmbed::from($this->video_url);
     }
 
     /** @return BelongsTo<Category, $this> */

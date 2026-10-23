@@ -33,6 +33,7 @@ class EditEvent extends EditRecord
             Action::make('social')->label(__('social.preview'))->url(fn () => Social::getUrl(['event' => $this->getRecord()->getKey()])),
             ...EventModeration::actions(),
             $this->generateOccurrencesAction(),
+            EventResource::mergeAction(),
             DeleteAction::make(),
         ];
     }

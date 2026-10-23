@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Web\Account\AppearanceController;
+use App\Http\Controllers\Web\Account\CollectionController;
 use App\Http\Controllers\Web\Account\ContentPreferencesController;
 use App\Http\Controllers\Web\Account\EmailVerificationController;
 use App\Http\Controllers\Web\Account\FeedController;
@@ -17,6 +18,7 @@ use App\Http\Controllers\Web\Account\PushSubscriptionController;
 use App\Http\Controllers\Web\Account\RegisterController;
 use App\Http\Controllers\Web\Account\SavedCalendarController;
 use App\Http\Controllers\Web\Account\SavedController;
+use App\Http\Controllers\Web\Account\SavedSearchController;
 use App\Http\Controllers\Web\GoogleCalendarController;
 use App\Http\Middleware\PersonalizeDiscovery;
 use App\Http\Middleware\RequireConfirmedAccount;
@@ -160,6 +162,15 @@ Route::middleware(['auth', RequireConfirmedAccount::class])->group(function (): 
     Route::get('/profilo/interessi', [ContentPreferencesController::class, 'index'])->name('account.content-preferences');
     Route::patch('/profilo/interessi', [ContentPreferencesController::class, 'update'])->name('account.content-preferences.update');
     Route::get('/notifiche/interessi', [NotificationInterestsController::class, 'index'])->name('account.notifications.interests');
+    Route::get('/le-mie-raccolte', [CollectionController::class, 'index'])->name('account.collections.index');
+    Route::post('/le-mie-raccolte', [CollectionController::class, 'store'])->middleware('throttle:30,1,collections')->name('account.collections.store');
+    Route::get('/le-mie-raccolte/{collection}', [CollectionController::class, 'show'])->whereNumber('collection')->name('account.collections.show');
+    Route::patch('/le-mie-raccolte/{collection}', [CollectionController::class, 'update'])->whereNumber('collection')->middleware('throttle:30,1,collections')->name('account.collections.update');
+    Route::delete('/le-mie-raccolte/{collection}', [CollectionController::class, 'destroy'])->whereNumber('collection')->name('account.collections.destroy');
+    Route::post('/le-mie-raccolte/{collection}/date', [CollectionController::class, 'addItem'])->whereNumber('collection')->middleware('throttle:60,1,collection-items')->name('account.collections.items.store');
+    Route::delete('/le-mie-raccolte/{collection}/date/{occurrence}', [CollectionController::class, 'removeItem'])->whereNumber('collection')->whereNumber('occurrence')->name('account.collections.items.destroy');
+    Route::post('/ricerche-salvate', [SavedSearchController::class, 'store'])->middleware('throttle:20,1,saved-search')->name('account.searches.store');
+    Route::delete('/ricerche-salvate/{search}', [SavedSearchController::class, 'destroy'])->whereNumber('search')->middleware('throttle:20,1,saved-search')->name('account.searches.destroy');
     Route::patch('/notifiche/interessi', [NotificationInterestsController::class, 'update'])->name('account.notifications.interests.update');
     Route::post('/esci', [LoginController::class, 'destroy'])->name('account.logout');
 

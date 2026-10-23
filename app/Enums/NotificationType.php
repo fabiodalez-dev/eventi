@@ -53,6 +53,16 @@ enum NotificationType: string
     case CommentModerated = 'comment_moderated';
     case EventNewComment = 'event_new_comment';
 
+    /*
+     * Un avviso del locale a chi lo segue (pausa, chiusura, riapertura) e le
+     * date nuove che corrispondono a una ricerca salvata. Entrambe partono di
+     * nostra iniziativa e passano dal tetto giornaliero; la prima segue
+     * l'interruttore di chi segue i locali, la seconda non ha interruttore
+     * perché l'interruttore è la ricerca stessa: la si cancella.
+     */
+    case VenueNotice = 'venue_notice';
+    case SavedSearchMatch = 'saved_search_match';
+
     public function label(): string
     {
         return __('enums.notification_type.'.$this->value);
@@ -85,7 +95,7 @@ enum NotificationType: string
     public function countsTowardDailyCap(): bool
     {
         return match ($this) {
-            self::VenueDigest, self::DailyDigest, self::TonightNearby, self::WeekendNewsletter, self::EventSoldOut, self::EventAlmostFull => true,
+            self::VenueDigest, self::DailyDigest, self::TonightNearby, self::WeekendNewsletter, self::EventSoldOut, self::EventAlmostFull, self::VenueNotice, self::SavedSearchMatch => true,
             /*
              * Le reazioni passano dal tetto giornaliero, le risposte no: una
              * risposta attesa che arriva alle 23 è utile, venti «mi piace»
@@ -139,7 +149,7 @@ enum NotificationType: string
         return match ($this) {
             self::EventReminder => $preferences->reminders,
             self::EventSoldOut, self::EventAlmostFull => $preferences->soldOut,
-            self::VenueDigest, self::VenueNewEvent => $preferences->venueDigest,
+            self::VenueDigest, self::VenueNewEvent, self::VenueNotice => $preferences->venueDigest,
             self::DailyDigest => $preferences->dailyDigest,
             self::TonightNearby => $preferences->tonight,
             self::VenueMonthlyReport => $preferences->venueReport,
@@ -169,7 +179,7 @@ enum NotificationType: string
         $key = match ($this) {
             self::EventReminder => 'reminders',
             self::EventSoldOut, self::EventAlmostFull => 'sold_out',
-            self::VenueDigest, self::VenueNewEvent => 'venue_digest',
+            self::VenueDigest, self::VenueNewEvent, self::VenueNotice => 'venue_digest',
             self::DailyDigest => 'daily_digest',
             self::TonightNearby => 'tonight',
             self::VenueMonthlyReport => 'venue_report',

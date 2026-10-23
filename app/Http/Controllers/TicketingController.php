@@ -10,7 +10,9 @@ use App\Enums\EventStatus;
 use App\Enums\UserRole;
 use App\Http\Requests\Ticketing\CancelRequest;
 use App\Http\Requests\Ticketing\CheckInRequest;
+use App\Http\Requests\Ticketing\GuestBookingRequest;
 use App\Http\Requests\Ticketing\ManageRequest;
+use App\Http\Requests\Ticketing\MessageAttendeesRequest;
 use App\Http\Requests\Ticketing\ReserveRequest;
 use App\Http\Requests\Ticketing\StaffRequest;
 use App\Http\Resources\V1\BookingResource;
@@ -22,6 +24,7 @@ use App\Services\Ticketing\BookingForm;
 use App\Services\Ticketing\TicketingService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
+use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -39,14 +42,15 @@ final class TicketingController extends Controller
         return response()->json(['data' => $service->availability($occurrence)])->header('Cache-Control', 'no-store');
     }
 
-    public function index(Request $request): JsonResponse|View
+    public function index(Request $request, TicketingService $service): JsonResponse|View
     {
         $bookings = Booking::query()->where('user_id', $request->user()->id)
             ->with(['tickets', 'occurrence.event.venue'])->orderByRaw("CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END")->latest('id')->paginate(30);
+        $noShows = $service->noShowCount($request->user());
 
         return $request->is('api/*')
-            ? response()->json(['data' => $bookings->getCollection()->map(fn ($b) => BookingResource::toArray($b)), 'meta' => ['next_page' => $bookings->hasMorePages() ? $bookings->currentPage() + 1 : null]])
-            : view('ticketing.index', ['bookings' => $bookings, 'meta' => $this->meta('title')]);
+            ? response()->json(['data' => $bookings->getCollection()->map(fn ($b) => BookingResource::toArray($b)), 'meta' => ['next_page' => $bookings->hasMorePages() ? $bookings->currentPage() + 1 : null, 'no_shows' => $noShows]])
+            : view('ticketing.index', ['bookings' => $bookings, 'noShows' => $noShows, 'meta' => $this->meta('title')]);
     }
 
     public function show(Booking $booking): View
@@ -150,7 +154,8 @@ final class TicketingController extends Controller
             ->when($search, fn ($q) => $q->where(fn ($q) => $q->whereHas('tickets', fn ($q) => $q->where('attendee_name', 'like', '%'.$search.'%'))->orWhereHas('user', fn ($q) => $q->where('email', 'like', '%'.$search.'%'))))
             ->latest('id')->paginate(30)->withQueryString();
 
-        return view('ticketing.manage', ['date' => $occurrence, 'bookings' => $bookings, 'availability' => $service->availability($occurrence), 'statistics' => $service->statistics($occurrence), 'meta' => $this->meta('manage')]);
+        return view('ticketing.manage', ['date' => $occurrence, 'bookings' => $bookings, 'availability' => $service->availability($occurrence), 'statistics' => $service->statistics($occurrence),
+            'messages' => $occurrence->bookingMessages()->with('sender')->latest('id')->limit(10)->get(), 'meta' => $this->meta('manage')]);
     }
 
     public function configure(ManageRequest $request, EventOccurrence $occurrence, TicketingService $service): RedirectResponse
@@ -168,10 +173,45 @@ final class TicketingController extends Controller
     public function checkIn(CheckInRequest $request, EventOccurrence $occurrence, TicketingService $service): JsonResponse|RedirectResponse
     {
         Gate::authorize('checkIn', [Booking::class, $occurrence]);
-        $ticket = $service->checkIn($occurrence, $request->validated('code'), $request->user(), $request->validated('request_key'));
+        $scanned = $request->filled('scanned_at') ? CarbonImmutable::parse((string) $request->validated('scanned_at')) : null;
+        $ticket = $service->checkIn($occurrence, $request->validated('code'), $request->user(), $request->validated('request_key'), $scanned);
 
         return $request->expectsJson() ? response()->json(['data' => ['id' => $ticket->id, 'attendee_name' => $ticket->attendee_name, 'status' => $ticket->status->value]])
             : redirect()->route($request->user()->can('manage', [Booking::class, $occurrence]) ? 'ticketing.manage.show' : 'ticketing.manage.scanner', $occurrence)->with('status', __('ticketing.checkin_success', ['name' => $ticket->attendee_name]));
+    }
+
+    /**
+     * L'elenco per il controllo ingressi senza rete: impronte dei codici e
+     * nomi, mai i codici. Lo scarica la pagina dello scanner all'apertura e
+     * lo tiene nel browser; vedi `TicketingService::manifest()`.
+     */
+    public function manifest(EventOccurrence $occurrence, TicketingService $service): JsonResponse
+    {
+        Gate::authorize('checkIn', [Booking::class, $occurrence]);
+
+        return response()->json(['data' => $service->manifest($occurrence)])->header('Cache-Control', 'private, no-store');
+    }
+
+    public function message(MessageAttendeesRequest $request, EventOccurrence $occurrence, TicketingService $service): JsonResponse|RedirectResponse
+    {
+        Gate::authorize('manage', [Booking::class, $occurrence]);
+        $message = $service->message($occurrence, $request->user(), (string) $request->validated('subject'), (string) $request->validated('body'), $request->boolean('include_waitlisted'));
+
+        return $request->is('api/*')
+            ? response()->json(['data' => ['id' => $message->id, 'recipients_count' => $message->recipients_count, 'created_at' => $message->created_at?->toIso8601String()]], 201)
+            : redirect()->route('ticketing.manage.show', $occurrence)->with('status', __('ticketing.messages.sent', ['count' => $message->recipients_count]));
+    }
+
+    public function guestBooking(GuestBookingRequest $request, EventOccurrence $occurrence, TicketingService $service): JsonResponse|RedirectResponse
+    {
+        Gate::authorize('manage', [Booking::class, $occurrence]);
+        $booking = $service->reserveForGuest($occurrence, $request->names(), [
+            'email' => $request->validated('email'), 'phone' => $request->validated('phone'), 'note' => $request->validated('note'),
+        ], $request->user());
+
+        return $request->is('api/*')
+            ? response()->json(['data' => BookingResource::toArray($booking)], 201)
+            : redirect()->route('ticketing.manage.show', $occurrence)->with('status', __('ticketing.guest.saved', ['count' => $booking->tickets->count()]));
     }
 
     public function scanner(EventOccurrence $occurrence): View
@@ -202,7 +242,7 @@ final class TicketingController extends Controller
                 ->with('booking.user')->chunkById(200, function ($tickets) use ($out, $bookerFields): void {
                     foreach ($tickets as $ticket) {
                         $safe = fn ($value) => preg_match('/^[\s]*[=+@\-\t\r\n]/u', (string) $value) ? "'".$value : $value;
-                        fputcsv($out, [$ticket->id, $safe($ticket->attendee_name), $safe($ticket->booking->user?->email), __('ticketing.statuses.'.$ticket->status->value), $ticket->checked_in_at?->toIso8601String(), $safe($ticket->first_name), $safe($ticket->last_name), ...array_map(fn ($field) => $safe($ticket->booking->booker_data[$field] ?? ''), $bookerFields), $ticket->booking->privacy_accepted_at?->toIso8601String()], ';', '"', '');
+                        fputcsv($out, [$ticket->id, $safe($ticket->attendee_name), $safe($ticket->booking->contactEmail()), __('ticketing.statuses.'.$ticket->status->value), $ticket->checked_in_at?->toIso8601String(), $safe($ticket->first_name), $safe($ticket->last_name), ...array_map(fn ($field) => $safe($ticket->booking->booker_data[$field] ?? ''), $bookerFields), $ticket->booking->privacy_accepted_at?->toIso8601String()], ';', '"', '');
                     }
                 });
             fclose($out);

@@ -40,10 +40,13 @@ use App\Http\Controllers\Api\V1\VenueController;
 use App\Http\Controllers\Api\V1\WalletPassController;
 use App\Http\Controllers\RememberedLocationController;
 use App\Http\Controllers\TicketingController;
+use App\Http\Controllers\Web\Account\CollectionController;
 use App\Http\Controllers\Web\Account\ContentPreferencesController;
 use App\Http\Controllers\Web\Account\NotificationInterestsController;
 use App\Http\Controllers\Web\Account\SavedCalendarController;
+use App\Http\Controllers\Web\Account\SavedSearchController;
 use App\Http\Controllers\Web\CatalogReviewController;
+use App\Http\Controllers\Web\CollectionController as PublicCollectionController;
 use App\Http\Controllers\Web\EventCommentController;
 use App\Http\Controllers\Web\EventWeatherController;
 use App\Http\Controllers\Web\OrganizerController;
@@ -64,6 +67,7 @@ Route::get('v1/occurrences/{occurrence}/booking', [TicketingController::class, '
 // Se il biglietto nel portafoglio esiste oggi. Senza credenziali dell'emittente
 // risponde `false` e l'app non disegna il pulsante: vedi WalletPassController.
 Route::get('v1/wallet', [WalletPassController::class, 'availability']);
+Route::get('v1/collections/{token}', [PublicCollectionController::class, 'show'])->where('token', '[A-Za-z0-9]{24}')->middleware('throttle:60,1,collections-public');
 Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('v1/me/location', [RememberedLocationController::class, 'show']);
     Route::post('v1/me/location', [RememberedLocationController::class, 'store'])->middleware('throttle:30,1,remembered-location');
@@ -83,6 +87,9 @@ Route::prefix('v1')->middleware(['auth:sanctum', TicketingPrivacy::class])->grou
     Route::post('/occurrences/{occurrence}/bookings', [TicketingController::class, 'store'])->middleware('throttle:20,1,tickets-store');
     Route::post('/me/bookings/{booking}/cancel', [TicketingController::class, 'cancel'])->middleware('throttle:30,1,tickets-cancel');
     Route::post('/ticketing/{occurrence}/check-in', [TicketingController::class, 'checkIn'])->middleware('throttle:120,1,tickets-checkin')->name('api.ticketing.manage.checkin');
+    Route::get('/ticketing/{occurrence}/manifest', [TicketingController::class, 'manifest'])->middleware('throttle:30,1,tickets-manifest');
+    Route::post('/ticketing/{occurrence}/message', [TicketingController::class, 'message'])->middleware('throttle:10,1,tickets-message')->name('api.ticketing.manage.message');
+    Route::post('/ticketing/{occurrence}/guest-booking', [TicketingController::class, 'guestBooking'])->middleware('throttle:60,1,tickets-guest')->name('api.ticketing.manage.guest');
     Route::post('/me/tickets/{ticket}/wallet', [WalletPassController::class, 'store'])->middleware('throttle:30,1,tickets-wallet');
 });
 
@@ -276,6 +283,18 @@ Route::prefix('v1')
                 Route::delete('/saved/{occurrence}', [SavedController::class, 'destroy'])
                     ->whereNumber('occurrence')
                     ->name('saved.destroy');
+
+                Route::get('/collections', [CollectionController::class, 'index'])->name('collections.index');
+                Route::post('/collections', [CollectionController::class, 'store'])->middleware('throttle:30,1,collections')->name('collections.store');
+                Route::get('/collections/{collection}', [CollectionController::class, 'show'])->whereNumber('collection')->name('collections.show');
+                Route::patch('/collections/{collection}', [CollectionController::class, 'update'])->whereNumber('collection')->middleware('throttle:30,1,collections')->name('collections.update');
+                Route::delete('/collections/{collection}', [CollectionController::class, 'destroy'])->whereNumber('collection')->name('collections.destroy');
+                Route::post('/collections/{collection}/items', [CollectionController::class, 'addItem'])->whereNumber('collection')->middleware('throttle:60,1,collection-items')->name('collections.items.store');
+                Route::delete('/collections/{collection}/items/{occurrence}', [CollectionController::class, 'removeItem'])->whereNumber('collection')->whereNumber('occurrence')->name('collections.items.destroy');
+
+                Route::get('/searches', [SavedSearchController::class, 'index'])->name('searches.index');
+                Route::post('/searches', [SavedSearchController::class, 'store'])->middleware('throttle:20,1,saved-search')->name('searches.store');
+                Route::delete('/searches/{search}', [SavedSearchController::class, 'destroy'])->whereNumber('search')->middleware('throttle:20,1,saved-search')->name('searches.destroy');
 
                 Route::get('/follows', [FollowController::class, 'index'])->name('follows.index');
                 Route::get('/follows/{type}/{id}', [FollowController::class, 'show'])->whereNumber('id')->name('follows.show');

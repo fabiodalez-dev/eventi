@@ -1234,3 +1234,9 @@ if (document.querySelector('[data-reservation-form], [data-ticket-search], [data
 
 import { eventWeather } from "./event-weather";
 eventWeather();
+
+import { videoEmbed } from "./video-embed";
+videoEmbed();
+
+import { collectionAdd } from "./collection-add";
+collectionAdd();

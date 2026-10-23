@@ -42,6 +42,10 @@
         <div id="page-search-suggestions" data-search-suggestions hidden role="region" aria-live="polite" aria-label="{{ __('search.live.label') }}" class="absolute inset-x-0 top-full z-50 mt-1 max-h-[60dvh] overflow-y-auto border-2 border-line bg-canvas shadow-xl"></div>
     </form>
 
+    @if ($term !== '')
+        <div class="mt-4"><x-saved-search-button :filters="['q' => $term]" /></div>
+    @endif
+
     @if ($events !== null && $events->isNotEmpty())
         <section class="mt-section" aria-labelledby="risultati-eventi">
             <x-section-heading

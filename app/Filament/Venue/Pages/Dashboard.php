@@ -7,6 +7,7 @@ namespace App\Filament\Venue\Pages;
 use App\Filament\Shared\AnalyticsDetailPage;
 use App\Filament\Venue\Support\CurrentVenue;
 use BackedEnum;
+use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Panel;
 use Filament\Support\Icons\Heroicon;
@@ -39,6 +40,28 @@ class Dashboard extends AnalyticsDetailPage
     public function getBreadcrumbs(): array
     {
         return [];
+    }
+
+    protected function getHeaderActions(): array
+    {
+        $venue = CurrentVenue::get();
+        $monday = now($venue->city->timezone)->startOfWeek();
+
+        return [
+            Action::make('programme')
+                ->label(__('venues.programme.action'))
+                ->icon(Heroicon::OutlinedPrinter)
+                ->color('gray')
+                ->tooltip(__('venues.programme.action_hint'))
+                ->url(route('venues.programme', $venue->slug))
+                ->openUrlInNewTab(),
+            Action::make('programme_next')
+                ->label(__('venues.programme.next_week'))
+                ->icon(Heroicon::OutlinedPrinter)
+                ->color('gray')
+                ->url(route('venues.programme', ['slug' => $venue->slug, 'settimana' => $monday->addWeek()->toDateString()]))
+                ->openUrlInNewTab(),
+        ];
     }
 
     protected function getHeaderWidgets(): array

@@ -19,5 +19,18 @@
         @endforeach
         <x-button type="submit">{{ __('notifications.preferences.submit') }}</x-button>
     </form>
+    <section class="mt-10 border-t-2 border-line pt-6" aria-labelledby="ricerche-salvate">
+        <h2 id="ricerche-salvate" class="font-display text-xl font-bold">{{ __('search.saved.title') }}</h2>
+        <p class="my-3 text-sm text-ink-muted">{{ __('search.saved.help') }}</p>
+        @forelse ($searches as $search)
+            <div class="flex flex-wrap items-center justify-between gap-3 border-t border-line py-3">
+                <div><a href="{{ $search->url ?? route('events.index', $search->queryString()) }}" class="font-semibold underline">{{ $search->name }}</a>
+                    <p class="text-xs text-ink-muted">{{ $search->last_checked_at ? __('search.saved.checked', ['date' => $search->last_checked_at->timezone(auth()->user()->timezone ?: config('app.timezone'))->format('d/m/Y H:i')]) : __('search.saved.never') }}</p></div>
+                <form method="POST" action="{{ route('account.searches.destroy', $search) }}">@csrf @method('DELETE')<x-button type="submit" variant="ghost">{{ __('search.saved.remove') }}</x-button></form>
+            </div>
+        @empty
+            <p class="text-sm text-ink-muted">{{ __('search.saved.none') }}</p>
+        @endforelse
+    </section>
     <a href="{{ route('account.notifications') }}" class="mt-6 inline-block underline">{{ __('subscriptions.delivery') }}</a>
 </x-layouts.app>

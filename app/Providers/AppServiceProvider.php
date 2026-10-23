@@ -7,6 +7,7 @@ namespace App\Providers;
 use App\Listeners\RevokeInvalidFcmToken;
 use App\Models\AdmissionTicket;
 use App\Models\Booking;
+use App\Models\BookingMessage;
 use App\Models\CatalogReview;
 use App\Models\Category;
 use App\Models\City;
@@ -14,6 +15,7 @@ use App\Models\CommunityComment;
 use App\Models\CommunityPost;
 use App\Models\CommunityProfile;
 use App\Models\Event;
+use App\Models\EventCollection;
 use App\Models\EventComment;
 use App\Models\EventOccurrence;
 use App\Models\Follow;
@@ -24,7 +26,9 @@ use App\Models\Page;
 use App\Models\Redirect;
 use App\Models\Report;
 use App\Models\SavedEvent;
+use App\Models\SavedSearch;
 use App\Models\ScheduledNotification;
+use App\Models\SearchMiss;
 use App\Models\Sponsorship;
 use App\Models\SponsorshipGrant;
 use App\Models\Tag;
@@ -32,6 +36,7 @@ use App\Models\TicketTier;
 use App\Models\User;
 use App\Models\Venue;
 use App\Models\VenueApplication;
+use App\Models\VenueNotice;
 use App\Observers\CategoryObserver;
 use App\Observers\CityObserver;
 use App\Observers\EventObserver;
@@ -44,6 +49,7 @@ use App\Policies\CatalogReviewPolicy;
 use App\Policies\CategoryPolicy;
 use App\Policies\CityPolicy;
 use App\Policies\CommunityCommentPolicy;
+use App\Policies\EventCollectionPolicy;
 use App\Policies\EventCommentPolicy;
 use App\Policies\EventOccurrencePolicy;
 use App\Policies\EventPolicy;
@@ -54,6 +60,7 @@ use App\Policies\RedirectPolicy;
 use App\Policies\ReportPolicy;
 use App\Policies\SavedEventPolicy;
 use App\Policies\ScheduledNotificationPolicy;
+use App\Policies\SearchMissPolicy;
 use App\Policies\SponsorshipPolicy;
 use App\Policies\TagPolicy;
 use App\Policies\TicketTierPolicy;
@@ -449,6 +456,9 @@ class AppServiceProvider extends ServiceProvider
             'community_comment' => CommunityComment::class,
             'event_comment' => EventComment::class,
             'catalog_review' => CatalogReview::class,
+            'venue_notice' => VenueNotice::class,
+            'saved_search' => SavedSearch::class,
+            'booking_message' => BookingMessage::class,
         ]);
 
         // `business_date` ed `effective_ends_at` sono calcolate dall'observer a
@@ -536,6 +546,8 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(User::class, UserPolicy::class);
         Gate::policy(Page::class, PagePolicy::class);
         Gate::policy(Redirect::class, RedirectPolicy::class);
+        Gate::policy(SearchMiss::class, SearchMissPolicy::class);
+        Gate::policy(EventCollection::class, EventCollectionPolicy::class);
         Gate::policy(EventComment::class, EventCommentPolicy::class);
         Gate::policy(CommunityComment::class, CommunityCommentPolicy::class);
     }

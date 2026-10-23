@@ -20,6 +20,9 @@ Route::middleware(['auth', TicketingPrivacy::class])->group(function (): void {
         Route::get('/{occurrence}', [TicketingController::class, 'manage'])->name('show');
         Route::post('/{occurrence}/impostazioni', [TicketingController::class, 'configure'])->name('configure');
         Route::post('/{occurrence}/ingresso', [TicketingController::class, 'checkIn'])->middleware('throttle:120,1,tickets-checkin')->name('checkin');
+        Route::get('/{occurrence}/elenco-ingressi', [TicketingController::class, 'manifest'])->middleware('throttle:30,1,tickets-manifest')->name('manifest');
+        Route::post('/{occurrence}/messaggio', [TicketingController::class, 'message'])->middleware('throttle:10,1,tickets-message')->name('message');
+        Route::post('/{occurrence}/prenotazione-manuale', [TicketingController::class, 'guestBooking'])->middleware('throttle:60,1,tickets-guest')->name('guest');
         Route::get('/{occurrence}/csv', [TicketingController::class, 'export'])->middleware('throttle:10,1,tickets-export')->name('export');
         Route::post('/prenotazione/{booking}/annulla', [TicketingController::class, 'cancel'])->name('cancel');
     });

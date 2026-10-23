@@ -269,6 +269,11 @@ return [
         'removed' => 'Collaboratore rimosso',
     ],
 
+    'organizer_invitation' => [
+        'subject' => ':organizer su :product: il tuo pannello è pronto',
+        'intro' => 'La redazione ha accolto la richiesta per :organizer. Da :product puoi proporre le date dei tuoi eventi, in qualunque locale della città.',
+    ],
+
     'invitation' => [
         'subject' => ':venue su :product',
         'greeting' => 'Ciao :name,',
@@ -277,6 +282,21 @@ return [
         'password_action' => 'Scegli la password',
         'ignore' => 'Se non ti aspettavi questo messaggio, puoi ignorarlo.',
         'open_action' => 'Apri il pannello',
+    ],
+
+    'notices' => [
+        'action' => 'Avvisa chi ti segue',
+        'heading' => 'Un avviso a chi segue il locale',
+        'description' => 'Arriva una volta sola a chi segue il locale con le notifiche accese e compare sulla scheda pubblica fino alla data indicata (o per un mese). Uno ogni :days giorni.',
+        'kind' => 'Tipo di avviso',
+        'body' => 'Testo',
+        'body_hint' => 'Breve e concreto: «Chiusi per ferie dal 10 al 24 agosto, si riapre il 25».',
+        'until' => 'Valido fino al',
+        'until_hint' => 'Facoltativo. Dopo questa data l’avviso sparisce dalla scheda.',
+        'submit' => 'Pubblica l’avviso',
+        'published' => 'Avviso pubblicato: in arrivo a :count persone.',
+        'too_soon' => 'Hai già pubblicato un avviso negli ultimi :days giorni. Aspetta prima di inviarne un altro.',
+        'last' => 'Ultimo avviso: :date (:kind).',
     ],
 
     'notifications' => [
@@ -307,6 +327,13 @@ return [
             'exclude' => 'Parole che tengono fuori una data',
             'exclude_help' => 'Le date il cui titolo contiene una di queste parole non vengono pubblicate. Servono a lasciare fuori le voci interne del tuo calendario, come le riunioni o le chiusure.',
             'exclude_placeholder' => 'Aggiungi una parola',
+            'type' => 'Che cosa colleghi',
+            'type_ics' => 'Un calendario (ICS)',
+            'type_csv' => 'Un foglio di date (CSV)',
+            'csv_help' => 'Un foglio con una riga per data e le intestazioni nella prima riga: titolo, data (o inizio), ora, fine, descrizione, link, luogo, id. Puoi incollare l\'indirizzo di un Google Sheet «pubblicato come CSV» oppure caricare il file.',
+            'file' => 'Oppure carica il file CSV',
+            'file_help' => 'Un file caricato si legge una volta; per tenerlo aggiornato ricaricalo, o usa un indirizzo.',
+            'url_or_file' => 'Serve un indirizzo oppure un file.',
         ],
 
         'preview_required' => 'Guarda prima l\'anteprima: le date che vedi sono esattamente quelle che verranno pubblicate.',

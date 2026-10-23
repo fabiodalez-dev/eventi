@@ -14,6 +14,7 @@
     $accessibility = $venue->accessibility;
     $hours = is_array($venue->opening_hours) ? $venue->opening_hours : [];
     $days = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+    $avviso = $venue->currentNotice();
     $gallery = $venue->getMedia('gallery')->map(fn ($media) => \App\Support\Media\ImageSet::fromMedia($media))->all();
 @endphp
 
@@ -107,6 +108,17 @@
                 <x-follow-preferences :venue="$venue" />
         </div>
     </header>
+
+    @if ($venue->status === \App\Enums\VenueStatus::Approved && $venue->owners()->doesntExist())
+        <p class="mt-4 text-sm text-ink-muted"><a href="{{ route('venues.claim.create', $venue) }}" class="underline">{{ __('forms.claim.cta') }}</a></p>
+    @endif
+
+    @if ($avviso !== null)
+        <aside role="note" aria-label="{{ $avviso->kind->label() }}" class="mt-5 border-2 border-accent bg-canvas p-4">
+            <p class="m-0 text-xs font-bold uppercase tracking-wide text-accent">{{ $avviso->kind->label() }}@if ($avviso->until) · {{ __('venues.detail.notice_until', ['date' => $formatter->day($avviso->until)]) }}@endif</p>
+            <p class="m-0 mt-1 whitespace-pre-line text-sm text-ink">{{ $avviso->body }}</p>
+        </aside>
+    @endif
 
     <div class="mt-8 grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <div class="flex min-w-0 flex-col gap-8">
@@ -284,7 +296,7 @@
             {{-- Il calendario di questo locale, da sottoscrivere: è la forma
                  più utile del feed di §11.10, e quella per cui un locale ha
                  interesse a tenere aggiornate le proprie date. --}}
-            <x-feed-links :filters="$feedFilters" />
+            <x-feed-links :filters="$feedFilters" :public-url="route('venues.calendar', $venue->slug)" :programme-url="route('venues.programme', $venue->slug)" />
 
             <section class="flex flex-col gap-3" aria-labelledby="condividi-locale">
                 <h2 id="condividi-locale" class="font-display text-[clamp(1.25rem,1.8vw,1.75rem)] leading-none font-extrabold tracking-[-0.03em] uppercase">{{ __('common.actions.share') }}</h2>

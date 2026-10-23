@@ -26,6 +26,7 @@ return [
 
     'detail' => [
         'about' => 'Il locale',
+        'notice_until' => 'Fino al :date',
         'opening_hours' => 'Orari di apertura',
         'closed' => 'Chiuso',
         'contacts' => 'Contatti',
@@ -83,6 +84,18 @@ return [
     'empty' => [
         'list_title' => 'Nessun locale corrisponde ai filtri',
         'list_body' => 'Prova ad allargare la zona o a togliere un filtro.',
+    ],
+
+    'programme' => [
+        'eyebrow' => 'Programma della settimana',
+        'week' => 'Da lunedì :from a domenica :to',
+        'all_day' => 'Tutto il giorno',
+        'empty' => 'Nessuna data in programma questa settimana.',
+        'footer' => 'Tutte le date, i dettagli e le prenotazioni su',
+        'download' => 'Programma settimanale (PDF)',
+        'action' => 'Stampa il programma della settimana',
+        'action_hint' => 'Un foglio A4 con le date da lunedì a domenica e il QR della tua scheda, da appendere in bacheca.',
+        'next_week' => 'Settimana prossima',
     ],
 
     'claim' => [

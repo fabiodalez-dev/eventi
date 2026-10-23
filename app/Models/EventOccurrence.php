@@ -126,6 +126,18 @@ class EventOccurrence extends Model
         return $this->hasMany(Lineup::class, 'occurrence_id');
     }
 
+    /** @return HasMany<Booking, $this> */
+    public function bookings(): HasMany
+    {
+        return $this->hasMany(Booking::class, 'occurrence_id');
+    }
+
+    /** @return HasMany<BookingMessage, $this> */
+    public function bookingMessages(): HasMany
+    {
+        return $this->hasMany(BookingMessage::class, 'occurrence_id');
+    }
+
     /** @return HasMany<SavedEvent, $this> */
     public function savedEvents(): HasMany
     {

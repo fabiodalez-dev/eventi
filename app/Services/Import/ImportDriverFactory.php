@@ -26,6 +26,7 @@ final class ImportDriverFactory
      */
     private const DRIVERS = [
         ImportSourceType::Ics->value => IcsImportDriver::class,
+        ImportSourceType::Csv->value => CsvImportDriver::class,
     ];
 
     public function __construct(private readonly Container $container) {}

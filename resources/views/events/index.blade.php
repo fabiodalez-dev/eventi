@@ -32,6 +32,7 @@
                 <span>{{ trans_choice('filters.active', $filters->activeCount(), ['count' => $filters->activeCount()]) }}</span>
                 @if ($filters->activeCount() > 0)
                     <a data-filter-link class="underline min-h-12 inline-flex items-center" href="{{ route('events.index') }}">{{ __('filters.reset') }}</a>
+                    <x-saved-search-button :filters="$filters->toQueryString()" />
                 @endif
                 <span data-results-loading hidden>{{ __('filters.loading_results') }}</span>
             </div>
@@ -97,7 +98,7 @@
                 {{-- Il feed porta con sé i filtri accesi: si sottoscrive
                      esattamente la lista che si sta guardando (§11.10). --}}
                 <div class="border-t-2 border-line px-[clamp(1rem,1.8vw,1.625rem)] py-6">
-                    <x-feed-links :filters="$filters" />
+                    <x-feed-links :filters="$filters" :public-url="($taxonomy ?? null) instanceof \App\Models\Category ? route('categories.calendar', $taxonomy->slug) : null" />
                 </div>
             @else
                 {{-- Questo stato vuoto è legittimo: qualcuno ha chiesto qualcosa

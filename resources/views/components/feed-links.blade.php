@@ -10,7 +10,7 @@
     Sono due link normali: nessun JavaScript, nessun pulsante che copia negli
     appunti e non dice dove.
 --}}
-@props(['filters'])
+@props(['filters', 'publicUrl' => null, 'programmeUrl' => null])
 
 @php
     $parameters = $filters->toQueryString();
@@ -21,6 +21,22 @@
     <p class="mt-1 max-w-prose text-sm text-ink-muted">{{ __('feeds.subscribe_lead') }}</p>
 
     <div class="mt-3 flex flex-wrap gap-2">
+        @if ($publicUrl)
+            <a
+                href="{{ $publicUrl }}"
+                class="ui-action bg-surface px-4 py-2.5 font-display text-[0.688rem] leading-none font-extrabold tracking-[0.14em] text-ink uppercase border-2 border-line transition hover:border-accent"
+            >
+                {{ __('feeds.public.title') }}
+            </a>
+        @endif
+        @if ($programmeUrl)
+            <a
+                href="{{ $programmeUrl }}"
+                class="ui-action bg-surface px-4 py-2.5 font-display text-[0.688rem] leading-none font-extrabold tracking-[0.14em] text-ink uppercase border-2 border-line transition hover:border-accent"
+            >
+                {{ __('venues.programme.download') }}
+            </a>
+        @endif
         <a
             href="{{ route('feeds.calendar', $parameters) }}"
             class="ui-action bg-surface px-4 py-2.5 font-display text-[0.688rem] leading-none font-extrabold tracking-[0.14em] text-ink uppercase border-2 border-line transition hover:border-accent"

@@ -12,13 +12,18 @@ use App\Enums\TicketTierStatus;
 use App\Jobs\DeactivateWalletPass;
 use App\Models\AdmissionTicket;
 use App\Models\Booking;
+use App\Models\BookingMessage;
 use App\Models\EventOccurrence;
 use App\Models\User;
 use App\Notifications\BookingChanged;
+use App\Notifications\BookingMessageSent;
+use App\Notifications\GuestBookingConfirmation;
 use App\Services\Notifications\NotificationScheduler;
 use App\Support\ContentVersion;
 use Carbon\CarbonImmutable;
+use DateTimeInterface;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -97,6 +102,7 @@ final class TicketingService
             }
             $this->ensure($this->activeBooking($account, $date) === null, 'already_booked');
             $this->ensure($this->isOpen($date), 'closed');
+            $this->ensure($this->noShowCount($account) < config()->integer('ticketing.no_show.limit'), 'no_show_limit');
             $details = app(BookingForm::class)->validate($date, $booker);
             // Resume queued groups first when a previously closed window reopens.
             $this->promote($date);
@@ -168,9 +174,9 @@ final class TicketingService
         }, 3);
     }
 
-    public function checkIn(EventOccurrence $date, string $code, User $actor, ?string $requestKey = null): AdmissionTicket
+    public function checkIn(EventOccurrence $date, string $code, User $actor, ?string $requestKey = null, ?DateTimeInterface $scannedAt = null): AdmissionTicket
     {
-        return DB::transaction(function () use ($date, $code, $actor, $requestKey): AdmissionTicket {
+        return DB::transaction(function () use ($date, $code, $actor, $requestKey, $scannedAt): AdmissionTicket {
             $date = EventOccurrence::query()->lockForUpdate()->findOrFail($date->id);
             $this->ensure($this->eventValid($date), 'event_cancelled');
             $this->ensure(now()->between($date->doors_at ?? $date->starts_at->copy()->subHours(3), $date->effective_ends_at ?? $date->starts_at->copy()->addHours(6)), 'checkin_closed');
@@ -191,7 +197,13 @@ final class TicketingService
                aspetta, e chi arriva un minuto dopo no. */
             $this->ensure($ticket->booking?->promotion_expires_at === null
                 || $ticket->booking->promotion_expires_at->isFuture(), 'promotion_expired');
-            $ticket->update(['status' => AdmissionStatus::CheckedIn, 'checked_in_at' => now(), 'checked_in_by' => $actor->id, 'checkin_request_key' => $requestKey]);
+            /* Una lettura fatta senza rete arriva dopo, con l'ora in cui la
+               persona è passata davvero: si conserva quella, purché stia
+               dentro la serata. Un orologio sbagliato non sposta un ingresso
+               fuori dalla finestra in cui la porta era aperta. */
+            $from = $date->doors_at ?? $date->starts_at->copy()->subHours(3);
+            $scanned = $scannedAt !== null && CarbonImmutable::instance($scannedAt)->between($from, now()) ? CarbonImmutable::instance($scannedAt)->utc() : now();
+            $ticket->update(['status' => AdmissionStatus::CheckedIn, 'checked_in_at' => $scanned, 'checked_in_by' => $actor->id, 'checkin_request_key' => $requestKey]);
             /* Presentarsi alla porta è la conferma più forte che esista, e chiude
                la finestra. Senza, `expirePromotions()` — che gira ogni minuto —
                poteva annullare fra sessanta secondi una prenotazione il cui
@@ -271,6 +283,172 @@ final class TicketingService
                 $this->promote($date);
             }
         }
+    }
+
+    /**
+     * Una prenotazione scritta dal personale: la telefonata, la persona al
+     * banco, l'ospite dell'organizzatore. Nessun account dietro, nessun limite
+     * per account, ma i posti sono gli stessi di tutti: se la data è piena il
+     * banco lo vede e, se vuole, alza i posti dalle impostazioni. Niente lista
+     * d'attesa, perché chi è al telefono vuole un sì o un no.
+     *
+     * @param  list<string>  $names
+     * @param  array{email?: string|null, phone?: string|null, note?: string|null}  $contact
+     */
+    public function reserveForGuest(EventOccurrence $date, array $names, array $contact, User $staff): Booking
+    {
+        $names = array_values(array_filter(array_map(trim(...), $names), static fn (string $name): bool => $name !== ''));
+        $contact = array_filter(array_map(static fn ($value) => is_string($value) ? trim($value) : $value, $contact));
+
+        return DB::transaction(function () use ($date, $names, $contact, $staff): Booking {
+            $date = EventOccurrence::query()->lockForUpdate()->findOrFail($date->id);
+            $this->ensure($this->eventValid($date) && (bool) $date->effectiveVenue()?->ticketing_enabled, 'closed');
+            $this->ensure(now()->lt($date->effective_ends_at ?? $date->starts_at->copy()->addHours(6)), 'closed');
+            $this->ensure(count($names) > 0 && count($names) <= 50, 'account_limit');
+            $this->ensure($date->booking_capacity === null || $this->occupied($date) + count($names) <= $date->booking_capacity, 'full');
+            $booking = Booking::query()->create([
+                'occurrence_id' => $date->id, 'user_id' => null, 'created_by' => $staff->id,
+                'request_key' => (string) Str::uuid(), 'request_hash' => hash('sha256', (string) Str::uuid()),
+                'status' => BookingStatus::Confirmed,
+                'booker_data' => $contact === [] ? null : $contact,
+                'privacy_accepted_at' => null,
+            ]);
+            foreach ($names as $name) {
+                $booking->tickets()->create(['attendee_name' => $name, 'code' => Str::random(64), 'status' => AdmissionStatus::Valid]);
+            }
+            $email = $booking->contactEmail();
+            activity('ticketing')->causedBy($staff)->performedOn($booking)->withProperties(['mailed' => $email !== null])->log('reserved_by_staff');
+            $cityId = $date->event?->city_id;
+            if ($cityId !== null) {
+                DB::afterCommit(fn () => ContentVersion::bump($cityId));
+            }
+            /* La mail parte verso un indirizzo scritto dal personale: un tetto
+               giornaliero per data impedisce che il modulo diventi un modo per
+               spedire posta a chiunque. Oltre il tetto la prenotazione resta,
+               la mail no, e il pannello lo dice. */
+            if ($email !== null) {
+                $mailedToday = Booking::query()->where('occurrence_id', $date->id)->whereNull('user_id')
+                    ->where('created_at', '>=', now()->subDay())->where('id', '!=', $booking->id)->whereNotNull('booker_data')->count();
+                $this->ensure($mailedToday < config()->integer('ticketing.guest.daily_mail_limit'), 'guest_mail_limit');
+                Notification::route('mail', $email)->notify(new GuestBookingConfirmation($booking->id));
+            }
+            app(NotificationScheduler::class)->announceAlmostFull($date);
+
+            return $booking->load('tickets');
+        }, 3);
+    }
+
+    /**
+     * Il locale scrive a chi ha prenotato: «porta la tessera», «si comincia
+     * alle 22». Arriva a chi ha un posto confermato e, se richiesto, a chi è
+     * in coda. Il tetto giornaliero per data sta in configurazione: è un
+     * canale verso persone che hanno solo prenotato, non una lista di
+     * iscritti.
+     */
+    public function message(EventOccurrence $date, User $sender, string $subject, string $body, bool $includeWaitlisted): BookingMessage
+    {
+        return DB::transaction(function () use ($date, $sender, $subject, $body, $includeWaitlisted): BookingMessage {
+            $date = EventOccurrence::query()->lockForUpdate()->findOrFail($date->id);
+            $sentToday = BookingMessage::query()->where('occurrence_id', $date->id)->where('created_at', '>=', now()->subDay())->count();
+            $this->ensure($sentToday < config()->integer('ticketing.messages.daily_limit'), 'message_limit');
+            $statuses = $includeWaitlisted ? [BookingStatus::Confirmed, BookingStatus::Waitlisted] : [BookingStatus::Confirmed];
+            $recipients = Booking::query()->where('occurrence_id', $date->id)->whereIn('status', $statuses)->with('user')->get();
+            $message = BookingMessage::query()->create([
+                'occurrence_id' => $date->id, 'sender_id' => $sender->id, 'subject' => $subject, 'body' => $body,
+                'include_waitlisted' => $includeWaitlisted, 'recipients_count' => 0,
+            ]);
+            $delivered = 0;
+            $guests = [];
+            foreach ($recipients as $booking) {
+                if ($booking->user !== null) {
+                    $booking->user->notify(new BookingMessageSent($message->id, $booking->id));
+                    $delivered++;
+                } elseif (($email = $booking->contactEmail()) !== null && ! in_array($email, $guests, true)) {
+                    Notification::route('mail', $email)->notify(new BookingMessageSent($message->id, $booking->id));
+                    $guests[] = $email;
+                    $delivered++;
+                }
+            }
+            $message->update(['recipients_count' => $delivered]);
+            activity('ticketing')->causedBy($sender)->performedOn($date)->withProperties(['message_id' => $message->id, 'recipients' => $delivered])->log('message_sent');
+
+            return $message;
+        }, 3);
+    }
+
+    /**
+     * Le assenze: biglietti validi mai passati dalla porta, a serata finita,
+     * **solo dove la porta ha registrato almeno un ingresso**. Un locale che
+     * non ha scansionato nessuno non ha assenti, ha solo biglietti che nessuno
+     * ha guardato. Il comando gira ogni ora; la tolleranza dopo la fine evita
+     * di segnare chi è entrato con l'ultima lettura ancora in coda.
+     */
+    public function markNoShows(): int
+    {
+        $cutoff = now()->subHours(config()->integer('ticketing.no_show.grace_hours'));
+        $marked = 0;
+        $dates = EventOccurrence::withTrashed()
+            ->whereRaw('COALESCE(effective_ends_at, ends_at, starts_at) < ?', [$cutoff])
+            ->whereHas('bookings.tickets', fn ($q) => $q->where('status', AdmissionStatus::Valid))
+            ->whereHas('bookings', fn ($q) => $q->whereNotNull('user_id')->whereHas('tickets', fn ($t) => $t->where('status', AdmissionStatus::CheckedIn)))
+            ->orderBy('id')->pluck('id');
+        foreach ($dates as $id) {
+            /* La porta deve essere stata usata davvero, e da chi ha prenotato
+               da solo: un gestore che registra un ingresso fittizio dal banco
+               e lascia gli altri «validi» non deve poter segnare assenti
+               persone che magari sono entrate senza essere scansionate. La
+               soglia sta in configurazione; le prenotazioni del banco non
+               fanno prova né in un senso né nell'altro. */
+            $self = AdmissionTicket::query()->whereHas('booking', fn ($q) => $q->where('occurrence_id', $id)->whereNotNull('user_id')->where('status', BookingStatus::Confirmed))
+                ->whereIn('status', [AdmissionStatus::Valid, AdmissionStatus::CheckedIn])
+                ->selectRaw('status, COUNT(*) as total')->groupBy('status')->pluck('total', 'status');
+            $present = (int) ($self[AdmissionStatus::CheckedIn->value] ?? 0);
+            $total = $present + (int) ($self[AdmissionStatus::Valid->value] ?? 0);
+            if ($total === 0 || $present / $total < config()->float('ticketing.no_show.min_checked_in_share')) {
+                continue;
+            }
+            $marked += AdmissionTicket::query()->where('status', AdmissionStatus::Valid)
+                ->whereHas('booking', fn ($q) => $q->where('occurrence_id', $id)->whereNotNull('user_id')->where('status', BookingStatus::Confirmed))
+                ->update(['status' => AdmissionStatus::NoShow->value]);
+        }
+
+        return $marked;
+    }
+
+    /** Quante assenze recenti ha questa persona, nella finestra di configurazione. */
+    public function noShowCount(User $user): int
+    {
+        return AdmissionTicket::query()->where('status', AdmissionStatus::NoShow)
+            ->where('updated_at', '>=', now()->subDays(config()->integer('ticketing.no_show.window_days')))
+            ->whereHas('booking', fn ($q) => $q->where('user_id', $user->id))->count();
+    }
+
+    /**
+     * L'elenco che il controllo ingressi scarica **prima** della serata, per
+     * riconoscere i biglietti anche senza rete. Dei codici viaggia solo
+     * l'impronta: chi tiene il telefono alla porta non deve poter ricostruire
+     * un QR altrui. L'ingresso resta confermato dal server quando la rete
+     * torna; qui c'è quanto basta per dire «sì, è in lista» o «mai visto».
+     *
+     * @return array{generated_at: string, window: array{from: string, to: string}, tickets: list<array{h: string, name: string, status: string}>}
+     */
+    public function manifest(EventOccurrence $date): array
+    {
+        $tickets = AdmissionTicket::query()->whereHas('booking', fn ($q) => $q->where('occurrence_id', $date->id)->where('status', BookingStatus::Confirmed))
+            ->whereIn('status', [AdmissionStatus::Valid, AdmissionStatus::CheckedIn])
+            ->whereDoesntHave('booking', fn ($q) => $q->whereNotNull('promotion_expires_at')->where('promotion_expires_at', '<=', now()))
+            ->orderBy('id')->get(['id', 'code', 'attendee_name', 'status']);
+
+        return [
+            'generated_at' => now()->toIso8601String(),
+            'window' => [
+                'from' => ($date->doors_at ?? $date->starts_at->copy()->subHours(3))->toIso8601String(),
+                'to' => ($date->effective_ends_at ?? $date->starts_at->copy()->addHours(6))->toIso8601String(),
+            ],
+            'tickets' => $tickets->map(fn (AdmissionTicket $ticket): array => [
+                'h' => hash('sha256', $ticket->code), 'name' => $ticket->attendee_name, 'status' => $ticket->status->value,
+            ])->all(),
+        ];
     }
 
     private function promote(EventOccurrence $date): void

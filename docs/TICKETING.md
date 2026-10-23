@@ -223,3 +223,15 @@ I test browser usano una sorgente video sintetica contenente un QR reale:
 verificano decodifica, stop del video, conferma ingresso, permesso negato,
 ricerca e disposizione mobile/desktop. Non equivalgono a una prova su camera
 fisica iPhone o Android.
+
+## Strumenti del banco, 23 ottobre 2026 (D60)
+
+Quattro aggiunte alla gestione di una data, tutte in `/gestione-biglietti/{data}` e nell'API `/v1/ticketing/{data}/…`.
+
+**Messaggio a chi ha prenotato.** Oggetto e testo, a chi ha un posto confermato e, con la spunta, anche a chi è in lista d'attesa; email e archivio in-app per chi ha un account, solo email per chi ha prenotato al banco lasciando un indirizzo. Tre al giorno per data (`ticketing.messages.daily_limit`), con lo storico sotto il modulo. Rotte: `POST …/messaggio` (web) e `POST /v1/ticketing/{data}/message`.
+
+**Prenotazione dal banco.** Nomi uno per riga, email e telefono facoltativi, nota interna. Nessun account: `bookings.user_id` è nullo e `created_by` dice chi l'ha scritta; i recapiti stanno in `booker_data`, cifrato. Rispetta i posti, non il limite per account; niente lista d'attesa. Con un'email partono i biglietti in allegato, con un tetto giornaliero per data (`ticketing.guest.daily_mail_limit`). Rotte: `POST …/prenotazione-manuale` e `POST /v1/ticketing/{data}/guest-booking`.
+
+**Assenze.** `ticketing:no-shows` gira ogni ora: due ore dopo la fine di una data, i biglietti ancora validi diventano `no_show`, ma solo se almeno un quarto dei biglietti prenotati da account è passato dalla porta (`ticketing.no_show.min_checked_in_share`); le prenotazioni del banco non fanno prova. Tre assenze in novanta giorni (`limit`, `window_days`) bloccano `reserve()` con l'errore `no_show_limit`. Il conteggio della persona sta in `TicketingService::noShowCount()` e compare in «I miei biglietti».
+
+**Controllo ingressi senza rete.** `GET …/elenco-ingressi` (e `/v1/ticketing/{data}/manifest`) dà impronte SHA-256 dei codici, nomi e stato dei biglietti validi; lo scanner lo scarica all'apertura e lo tiene in `localStorage`, insieme alla coda delle letture. Senza rete un QR in elenco è «in attesa di conferma», uno già usato o sconosciuto viene rifiutato subito; alla riconnessione le letture partono con `scanned_at`, e il server conserva quell'ora se cade dentro la finestra della porta. Il server resta l'unico a confermare un ingresso. L'app Android non usa ancora l'elenco.

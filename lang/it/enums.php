@@ -162,6 +162,7 @@ return [
 
     'import_source_type' => [
         'ics' => 'Calendario ICS',
+        'csv' => 'Foglio CSV',
         'json' => 'JSON',
         'rss' => 'Feed RSS',
         'api' => 'API',
@@ -210,6 +211,21 @@ return [
         'comment_reaction' => 'Reazione a un tuo commento',
         'comment_moderated' => 'Tuo commento nascosto',
         'event_new_comment' => 'Nuovo commento su un tuo evento',
+        'venue_notice' => 'Avviso da un locale seguito',
+        'saved_search_match' => 'Nuove date per una ricerca salvata',
+    ],
+
+    'application_kind' => [
+        'venue' => 'Locale nuovo',
+        'claim' => 'Rivendicazione di un locale',
+        'organizer' => 'Organizzatore',
+    ],
+
+    'venue_notice_kind' => [
+        'pause' => 'Pausa',
+        'closure' => 'Chiusura',
+        'reopening' => 'Riapertura',
+        'info' => 'Comunicazione',
     ],
 
     'notification_skip_reason' => [

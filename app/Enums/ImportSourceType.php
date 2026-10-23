@@ -7,6 +7,7 @@ namespace App\Enums;
 enum ImportSourceType: string
 {
     case Ics = 'ics';
+    case Csv = 'csv';
     case Json = 'json';
     case Rss = 'rss';
     case Api = 'api';
@@ -28,7 +29,10 @@ enum ImportSourceType: string
      */
     public function eventSource(): EventSource
     {
-        return $this === self::Ics ? EventSource::ImportIcs : EventSource::ImportApi;
+        return match ($this) {
+            self::Ics => EventSource::ImportIcs,
+            default => EventSource::ImportApi,
+        };
     }
 
     /**

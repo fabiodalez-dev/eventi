@@ -107,6 +107,13 @@ return [
     ],
 
     'detail' => [
+        'gallery' => 'Foto',
+        'gallery_alt' => ':title, foto :number',
+        'video' => 'Video',
+        'video_play' => 'Guarda il video',
+        'video_notice' => 'Il lettore si carica da :provider solo quando premi: fino ad allora nessun dato viene inviato.',
+        'video_open' => 'Apri su :provider',
+        'with' => 'con',
         'when' => 'Quando',
         'where' => 'Dove',
         'price' => 'Prezzo',

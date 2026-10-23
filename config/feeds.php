@@ -13,6 +13,9 @@ return [
      * Quanto in là guardano i feed. Tre mesi: oltre, un calendario
      * sottoscritto si riempirebbe di date che cambieranno ancora.
      */
+    /* L'orizzonte dei calendari pubblici di locali, organizzatori e categorie. */
+    'public_days_ahead' => 90,
+
     'days_ahead' => 90,
 
     /*

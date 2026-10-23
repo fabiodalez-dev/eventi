@@ -4,17 +4,22 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
+use App\Enums\ApplicationKind;
 use App\Enums\ApplicationStatus;
 use App\Enums\VenueRole;
 use App\Enums\VenueStatus;
 use App\Enums\VenueType;
 use App\Models\City;
+use App\Models\Organizer;
 use App\Models\User;
 use App\Models\Venue;
 use App\Models\VenueApplication;
+use App\Notifications\OrganizerAccessGranted;
 use App\Services\Geo\AddressGeocoder;
+use App\Support\EditorContent;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Da richiesta di iscrizione a locale vero, in un gesto solo.
@@ -39,13 +44,38 @@ final class ApproveVenueApplication
         private readonly AddressGeocoder $geocoder,
     ) {}
 
-    public function handle(VenueApplication $richiesta, User $moderatore): Venue
+    public function handle(VenueApplication $richiesta, User $moderatore): Venue|Organizer
     {
+        if ($richiesta->kind() === ApplicationKind::Organizer) {
+            return $this->organizzatore($richiesta, $moderatore);
+        }
+
         return DB::transaction(function () use ($richiesta, $moderatore): Venue {
             /* Una richiesta gia' collegata a un locale non ne crea un secondo:
                due schede per lo stesso posto sono un guaio che si scopre mesi
                dopo, quando gli eventi sono divisi fra le due. */
             $citta = City::query()->orderBy('id')->firstOrFail();
+
+            /*
+             * Una rivendicazione si approva una volta sola. Due persone
+             * possono rivendicare lo stesso locale nello stesso pomeriggio:
+             * la prima approvata vince, e il controllo sta qui, sotto lock,
+             * perche' la pagina da cui si approva l'ha letto un minuto prima.
+             * Le altre rivendicazioni pendenti dello stesso locale si chiudono
+             * da sole, con il motivo scritto.
+             */
+            if ($richiesta->kind() === ApplicationKind::Claim) {
+                $locale = $richiesta->venue_id === null ? null : Venue::query()->lockForUpdate()->find($richiesta->venue_id);
+                if (! $locale instanceof Venue) {
+                    throw ValidationException::withMessages(['venue_id' => __('venue_applications.claim_missing_venue')]);
+                }
+                if ($locale->owners()->exists()) {
+                    throw ValidationException::withMessages(['venue_id' => __('venue_applications.claim_already_managed')]);
+                }
+                VenueApplication::query()->where('venue_id', $locale->getKey())->where('kind', ApplicationKind::Claim)
+                    ->whereKeyNot($richiesta->getKey())->where('status', ApplicationStatus::Pending)
+                    ->update(['status' => ApplicationStatus::Rejected, 'reviewed_by' => $moderatore->getKey(), 'reviewed_at' => now(), 'notes' => __('venue_applications.claim_superseded')]);
+            }
 
             /*
              * L'indirizzo scritto nella richiesta diventa un punto vero, se
@@ -119,6 +149,52 @@ final class ApproveVenueApplication
             );
 
             return $locale;
+        });
+    }
+
+    /**
+     * Un organizzatore senza sede: un'associazione, un collettivo, una
+     * rassegna. Nasce attivo, perché non ha una scheda pubblica da completare
+     * come un locale: ciò che pubblica passa comunque dalla moderazione degli
+     * eventi. Chi ha scritto la richiesta ne diventa il referente e riceve le
+     * chiavi di `/organizza`.
+     */
+    private function organizzatore(VenueApplication $richiesta, User $moderatore): Organizer
+    {
+        return DB::transaction(function () use ($richiesta, $moderatore): Organizer {
+            $citta = City::query()->orderBy('id')->firstOrFail();
+            $email = mb_strtolower(trim((string) $richiesta->contact_email));
+            $utente = User::query()->where('email', $email)->first();
+            $nuovo = ! $utente instanceof User;
+            if ($nuovo) {
+                $utente = User::query()->create([
+                    'name' => EditorContent::clean('name', (string) $richiesta->contact_name) ?: $email,
+                    'email' => $email,
+                    'password' => Str::password(32),
+                ]);
+            }
+
+            $organizzatore = $richiesta->organizer ?? Organizer::query()->create([
+                'city_id' => $citta->getKey(),
+                'owner_id' => $utente->getKey(),
+                'name' => $richiesta->venue_name,
+                'description' => $richiesta->message,
+                'website' => is_array($richiesta->socials) ? ($richiesta->socials['website'] ?? null) : null,
+                'email' => $email,
+                'is_active' => true,
+            ]);
+            $organizzatore->users()->syncWithoutDetaching([$utente->getKey()]);
+
+            $richiesta->forceFill([
+                'organizer_id' => $organizzatore->getKey(),
+                'status' => ApplicationStatus::Approved,
+                'reviewed_by' => $moderatore->getKey(),
+                'reviewed_at' => now(),
+            ])->save();
+
+            $utente->notify(new OrganizerAccessGranted($organizzatore, $nuovo));
+
+            return $organizzatore;
         });
     }
 

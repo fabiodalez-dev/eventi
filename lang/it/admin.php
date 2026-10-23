@@ -14,6 +14,26 @@ return [
         'venue' => 'Il mio locale',
     ],
 
+    'events' => [
+        'merge' => 'Unisci con un doppione',
+        'merge_heading' => 'Unisci due schede dello stesso evento',
+        'merge_description' => 'Questa scheda resta. Quella che scegli sparisce: le sue date coincidenti si fondono, le altre passano qui con un numero nuovo; salvataggi, prenotazioni, commenti, link e statistiche seguono. Il suo indirizzo diventa un reindirizzamento.',
+        'merge_target' => 'Scheda da assorbire',
+        'merge_hint' => 'Cerca per titolo nella stessa città. Controlla di non aver invertito le due: i testi che restano sono quelli di questa scheda.',
+        'merged' => '«:title» è stata assorbita',
+        'merged_body' => 'Date fuse: :dates_merged · date spostate: :dates_moved · salvataggi: :saves · prenotazioni: :bookings.',
+    ],
+
+    'search_misses' => [
+        'label' => 'Ricerca senza risultati',
+        'plural' => 'Ricerche senza risultati',
+        'term' => 'Cosa è stato cercato',
+        'count' => 'Quante volte',
+        'last' => 'Ultima volta',
+        'first' => 'Prima volta',
+        'hint' => 'Parole cercate sul sito e nell\'app che non hanno trovato nulla. Sono domanda che il catalogo non copre: una categoria che manca, un locale mai inserito, un nome scritto in modo diverso. Cancellare una riga la toglie dal registro finché qualcuno non la cerca di nuovo.',
+    ],
+
     'navigation' => [
         'calendar' => 'Calendario',
         'content' => 'Contenuti',
@@ -178,6 +198,9 @@ return [
     ],
 
     'fields' => [
+        'kind' => 'Tipo di richiesta',
+        'video_url' => 'Video (YouTube o Vimeo)',
+        'co_organizers' => 'Co-organizzatori',
         'title' => 'Titolo',
         'subtitle' => 'Sottotitolo',
         'description' => 'Descrizione',
@@ -476,6 +499,9 @@ return [
     ],
 
     'hints' => [
+        'video_url' => 'L’indirizzo della pagina del video. Sulla scheda compare un riquadro: il lettore si carica solo quando chi legge lo apre.',
+        'video_url_invalid' => 'Serve l’indirizzo di un video YouTube o Vimeo.',
+        'co_organizers' => 'Gli altri organizzatori registrati che fanno questo evento insieme a quello principale: lo vedono nel proprio pannello e compaiono sulla scheda.',
         'local_time' => 'Ora locale della citta (:timezone)',
         'poster' => 'Formato consigliato 3:4, almeno 800×1067 pixel.',
         'short_description' => 'Una o due righe: è ciò che si legge nella card e nei risultati di ricerca.',
@@ -535,6 +561,14 @@ return [
         'created' => 'Creato',
         'updated' => 'Modificato',
         'deleted' => 'Cancellato',
+        'restore' => 'Ripristina i valori precedenti',
+        'restore_heading' => 'Tornare a com\'era prima di questa modifica?',
+        'restore_description' => 'Rimette i valori di prima per i soli campi toccati da questa riga (:fields). Le modifiche successive agli stessi campi vengono sovrascritte; tutto il resto non si tocca. Il ripristino lascia una riga sua nella cronologia.',
+        'restored' => 'Valori precedenti ripristinati.',
+        'restore_empty' => 'Questa riga non ha valori precedenti da rimettere.',
+        'merged' => 'Unita a un doppione',
+        'merged_into' => 'Assorbita da un\'altra scheda',
+        'restored_event' => 'Ripristino',
     ],
 
 ];

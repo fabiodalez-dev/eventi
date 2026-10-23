@@ -41,6 +41,30 @@ class Booking extends Model
         return $this->belongsTo(User::class);
     }
 
+    /** Chi l'ha scritta dal pannello, quando non l'ha fatta la persona da sola. */
+    /** @return BelongsTo<User, $this> */
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Una prenotazione presa al banco o al telefono: nessun account dietro,
+     * i recapiti stanno in `booker_data`.
+     */
+    public function isStaffBooking(): bool
+    {
+        return $this->user_id === null;
+    }
+
+    /** L'indirizzo a cui scrivere: l'account, oppure il recapito lasciato al banco. */
+    public function contactEmail(): ?string
+    {
+        $email = $this->user !== null ? $this->user->email : ($this->booker_data['email'] ?? null);
+
+        return is_string($email) && $email !== '' ? $email : null;
+    }
+
     /** @return HasMany<AdmissionTicket, $this> */
     public function tickets(): HasMany
     {

@@ -11,6 +11,7 @@ use App\Models\SponsorshipGrant;
 use App\Models\User;
 use App\Models\WhatsappChallenge;
 use App\Services\Calendar\GoogleCalendarClient;
+use App\Services\Search\SavedSearchMatcher;
 use App\Services\Sponsorship\GrantCampaigns;
 use App\Services\Ticketing\TicketingService;
 use App\Support\Backup\SpazioSufficiente;
@@ -30,6 +31,18 @@ Artisan::command('ticketing:promote', function (): void {
 })->purpose('Promote waiting bookings when their reservation window is open');
 
 Schedule::command('ticketing:promote')->everyMinute()->withoutOverlapping();
+
+Artisan::command('ticketing:no-shows', function (): void {
+    $this->info((string) app(TicketingService::class)->markNoShows());
+})->purpose('Mark valid tickets as no-show once a checked-in date has ended');
+
+Schedule::command('ticketing:no-shows')->hourly()->withoutOverlapping();
+
+Artisan::command('searches:notify', function (): void {
+    $this->info((string) app(SavedSearchMatcher::class)->run());
+})->purpose('Queue a notification for saved searches that match newly published dates');
+
+Schedule::command('searches:notify')->hourly()->withoutOverlapping();
 
 Schedule::call(function (): void {
     if (! app(GoogleCalendarClient::class)->configured()) {

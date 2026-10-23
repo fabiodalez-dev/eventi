@@ -31,6 +31,7 @@ final class NotificationInterestsController extends Controller
 
         return view('account.notifications.interests', [
             ...$options,
+            'searches' => $user->savedSearches()->where('city_id', $this->city()->getKey())->orderByDesc('id')->get(),
             'meta' => new PageMeta(title: __('subscriptions.interests'), heading: __('subscriptions.interests'), indexable: false),
         ]);
     }

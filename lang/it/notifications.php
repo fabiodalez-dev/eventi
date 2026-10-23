@@ -22,6 +22,19 @@ return [
         'open_tonight' => 'Guarda cosa c\'è oggi',
         'open_weekend' => 'Guarda il weekend',
         'open_panel' => 'Apri il pannello',
+        'open_venue' => 'Apri la scheda del locale',
+        'open_search' => 'Vedi tutte le date',
+    ],
+
+    'venue_notice' => [
+        'subject' => ':venue · :kind',
+        'heading' => ':kind: :venue',
+        'until' => 'Fino al :date.',
+    ],
+
+    'saved_search' => [
+        'subject' => 'Nuove date per «:name»',
+        'line' => '{1} Una data nuova corrisponde alla tua ricerca salvata.|[2,*] :count date nuove corrispondono alla tua ricerca salvata.',
     ],
 
     'common' => [

@@ -1,4 +1,4 @@
-import { CheckinQueue } from './checkin-queue';
+import { CheckinQueue, CheckinManifest, localStorageStore } from './checkin-queue';
 
 document.querySelectorAll('[data-reservation-form]').forEach((form) => {
     const list = form.querySelector('[data-attendees]');
@@ -134,48 +134,79 @@ document.querySelectorAll('[data-ticket-scanner]').forEach((form) => {
 document.querySelectorAll('[data-checkin-queue]').forEach((form) => {
     const results = form.querySelector('[data-checkin-results]');
     const retry = form.querySelector('[data-checkin-retry]');
+    const manifestStatus = form.querySelector('[data-manifest-status]');
+    const refresh = form.querySelector('[data-manifest-refresh]');
+    const key = `checkin:${form.dataset.occurrence}`;
+    const manifest = new CheckinManifest(localStorageStore(`${key}:manifest`));
     const queue = new CheckinQueue(async (entry) => {
         const response = await fetch(form.action, {
             method: 'POST', credentials: 'same-origin', signal: AbortSignal.timeout(15000),
             headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRF-TOKEN': form.querySelector('[name="_token"]').value },
-            body: JSON.stringify({ code: entry.code, request_key: entry.requestKey }),
+            body: JSON.stringify({ code: entry.code, request_key: entry.requestKey, scanned_at: entry.scannedAt }),
         });
         if (response.status >= 500) throw new Error('Temporary failure');
         const payload = await response.json();
-        if (response.ok) document.querySelector('[data-ticket-search]')?.dispatchEvent(new Event('input'));
+        if (response.ok) {
+            document.querySelector('[data-ticket-search]')?.dispatchEvent(new Event('input'));
+            manifest.markUsed(entry.code);
+        }
         return {
             accepted: response.ok,
             message: response.ok ? form.dataset.success.replace(':name', payload.data.attendee_name)
                 : (Object.values(payload.errors || {}).flat()[0] || payload.message || form.dataset.error),
         };
-    });
+    }, undefined, localStorageStore(`${key}:queue`));
+    const describeManifest = () => {
+        manifestStatus.textContent = manifest.loaded
+            ? form.dataset.listLoaded.replace(':time', new Date(manifest.data.generatedAt).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })).replace(':count', manifest.size)
+            : form.dataset.listMissing;
+    };
+    const loadManifest = async () => {
+        try {
+            const response = await fetch(form.dataset.manifestUrl, { credentials: 'same-origin', headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(15000) });
+            if (!response.ok) throw new Error('Manifest unavailable');
+            manifest.load((await response.json()).data);
+        } catch { /* keep the previous list: it is still better than nothing */ }
+        describeManifest();
+    };
     const render = () => {
         results.replaceChildren(...queue.entries.map((entry, index) => {
             const li = document.createElement('li');
             li.dataset.state = entry.state;
-            li.textContent = `${index + 1}. ${entry.state === 'pending' ? form.dataset.pending : entry.message}`;
+            li.textContent = `${index + 1}. ${entry.state === 'pending' ? form.dataset.pending + (entry.localMessage ? ` ${entry.localMessage}` : '') : entry.message}`;
             return li;
         }));
-        retry.hidden = !queue.entries.some((entry) => entry.state === 'pending');
+        const pending = queue.pending().length;
+        retry.hidden = pending === 0;
+        if (pending > 0) retry.textContent = `${form.dataset.queueLabel.replace(':count', pending)}`;
     };
     const flush = () => queue.flush(render);
-    form.addEventListener('submit', (event) => {
+    form.addEventListener('submit', async (event) => {
         event.preventDefault();
         const input = form.querySelector('[name="code"]');
         const code = input.value.trim();
         if (!/^[a-zA-Z0-9]{64}$/.test(code)) return;
-        queue.add(code);
+        const local = await manifest.lookup(code);
+        if (manifest.loaded && !local.known) {
+            queue.entries.push({ code, requestKey: crypto.randomUUID(), state: 'rejected', message: form.dataset.unknown });
+            queue.persist();
+        } else if (local.known && local.status === 'checked_in') {
+            queue.entries.push({ code, requestKey: crypto.randomUUID(), state: 'rejected', message: form.dataset.knownUsed.replace(':name', local.name) });
+            queue.persist();
+        } else {
+            queue.add(code, local.known ? { localMessage: form.dataset.knownPending.replace(':name', local.name) } : {});
+            if (local.known) manifest.markUsed(code);
+        }
         input.value = '';
         render();
         flush();
         input.focus();
     });
     retry.addEventListener('click', flush);
-    window.addEventListener('online', flush);
-    window.addEventListener('beforeunload', (event) => {
-        if (queue.entries.some((entry) => entry.state === 'pending')) {
-            event.preventDefault();
-            event.returnValue = '';
-        }
-    });
+    refresh?.addEventListener('click', loadManifest);
+    window.addEventListener('online', () => { flush(); loadManifest(); });
+    describeManifest();
+    if (navigator.onLine) loadManifest();
+    render();
+    flush();
 });

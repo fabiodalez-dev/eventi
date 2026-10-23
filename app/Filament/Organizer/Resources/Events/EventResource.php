@@ -23,6 +23,7 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Auth\Access\Response;
+use Illuminate\Database\Eloquent\Builder;
 
 class EventResource extends Resource
 {
@@ -33,6 +34,13 @@ class EventResource extends Resource
     protected static ?string $slug = 'eventi';
 
     protected static ?string $tenantOwnershipRelationshipName = 'organizer';
+
+    /*
+     * L'elenco non si limita a `organizer_id`: un evento co-organizzato sta
+     * nel pannello di tutti quelli che lo fanno. La creazione resta a nome
+     * dell'organizzatore corrente (vedi `CreateEvent`).
+     */
+    protected static bool $isScopedToTenant = false;
 
     protected static ?string $modelLabel = 'evento';
 
@@ -76,6 +84,18 @@ class EventResource extends Resource
             BeforeGoingFields::make(),
             EditorialFields::content(event: true),
         ]);
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        $tenant = Filament::getTenant();
+        $query = parent::getEloquentQuery();
+        if (! $tenant instanceof Organizer) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->where(fn (Builder $owned) => $owned->where('organizer_id', $tenant->getKey())
+            ->orWhereHas('organizers', fn (Builder $shared) => $shared->whereKey($tenant->getKey())));
     }
 
     public static function table(Table $table): Table
