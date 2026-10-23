@@ -271,9 +271,9 @@ fun SearchScreen(
                 }
             }
         }
-        if (venues.isNotEmpty()) item { SectionTitle("LOCALI", "${venues.size} RISULTATI") }
+        if (venues.isNotEmpty()) item { SectionTitle("LOCALI", resultCount(venues.size)) }
         if (query.trim().length >= 3 && state.activeTag == null && state.searchOrganizers.isNotEmpty()) {
-            item { SectionTitle("ORGANIZZATORI", "${state.searchOrganizers.size} RISULTATI") }
+            item { SectionTitle("ORGANIZZATORI", resultCount(state.searchOrganizers.size)) }
             items(state.searchOrganizers, key = { "organizer-${it.id}" }) { organizer ->
                 TextButton(onClick = { organizer.slug?.let(onOrganizer) }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text(organizer.name.orEmpty()) }
             }
@@ -282,7 +282,7 @@ fun SearchScreen(
         if (state.searchResults.isNotEmpty()) item {
             SectionTitle(
                 state.activeTag?.let { "EVENTI · #${it.name.uppercase()}" } ?: "EVENTI",
-                "${state.searchResults.size} RISULTATI",
+                resultCount(state.searchResults.size),
             )
         }
         items(state.searchResults, key = Occurrence::occurrenceId) { occurrence ->
@@ -982,3 +982,6 @@ private fun formatDay(value: String): String = date(value)?.format(dayFormatter)
 private fun formatFullDate(value: String): String = date(value)?.format(fullDateFormatter)?.uppercase() ?: value.take(10)
 private fun formatClock(value: String): String = date(value)?.format(clockFormatter) ?: "--:--"
 private fun formatTime(event: Occurrence): String = if (event.isAllDay) "TUTTO IL GIORNO" else "ORE ${formatClock(event.startsAt)}"
+
+/** «1 RISULTATO», «3 RISULTATI»: il conteggio sopra ogni gruppo della ricerca. */
+internal fun resultCount(count: Int): String = if (count == 1) "1 RISULTATO" else "$count RISULTATI"
