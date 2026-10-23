@@ -58,3 +58,7 @@ Versione 1.19.0 (code 41). L'app porta le funzioni rilasciate sul server con [D6
 - Scheda del locale: l'avviso in vista oggi (pausa, chiusura, riapertura, comunicazione) in alto, e «Calendario pubblico (ICS)» che apre `/locali/{slug}/calendario.ics`. Il campo `notice` di `GET /v1/venues/{slug}` è stato aggiunto per questo.
 
 Restano fuori, e l'app rimanda al sito: Apple Wallet, cessione del biglietto, login social, rivendicazione di un locale e registrazione degli organizzatori. Gli strumenti del pannello web e della redazione (import CSV, fusione dei doppioni, ripristino dalla cronologia, registro delle ricerche senza risultati) non entrano nell'app.
+
+## Allineamento D61 (1.20.0, 23 ottobre 2026)
+
+Le dieci funzioni di [PIANO-UTENTE-2026-10-23](PIANO-UTENTE-2026-10-23.md) sono nell'app: avviso di sovrapposizione al salvataggio, link del riepilogo del lunedì verso i salvati, «aperto adesso» nella scheda e nell'elenco dei locali con il filtro, nascondere un locale e gestire i nascosti negli interessi, esigenze di accessibilità precompilate nei filtri con «Mostra tutto», biglietti salvati cifrati e mostrati senza rete, «Invia a questa persona» e invio per email con consenso, avviso di disponibilità sulle date esaurite, «Le mie serate», «sono qui» con il foglio di condivisione. Lo scanner manda al server anche i codici assenti dall'elenco quando la rete c'è (validata da Android) e mostra comunque l'avviso dell'elenco. Regola: ogni modifica per l'utente sul sito si porta nell'app nello stesso lavoro.

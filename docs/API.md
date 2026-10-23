@@ -231,3 +231,17 @@ Tutte dietro `auth:sanctum` salvo dove indicato; stessi limitatori del sito.
 - Calendari pubblici senza token, `text/calendar`, cache di quindici minuti: `/locali/{slug}/calendario.ics`, `/organizzatori/{slug}/calendario.ics`, `/eventi/categoria/{slug}/calendario.ics`; programma settimanale `/locali/{slug}/programma.pdf?settimana=YYYY-MM-DD`.
 - Le schede evento riportano i co-organizzatori (`organizers`), le foto (`gallery`) e il video (`video`, solo descrizione: `provider`, `embed_url`, `watch_url`). La scheda del locale (`GET /v1/venues/{slug}`, non le liste) riporta `notice`: `{kind, body, until}` dell'avviso in vista oggi, oppure `null`.
 - L'app Android 1.19.0 usa tutte queste aggiunte: galleria, video e co-organizzatori nella scheda evento, raccolte con i link `/raccolte/{token}`, ricerche salvate, assenze nei biglietti, messaggio ai prenotati e prenotazione dal banco, controllo ingressi senza rete con il manifest e `scanned_at`, avviso e calendario ICS nella scheda del locale. Il dettaglio è in [MOBILE-APP-SPEC.md](MOBILE-APP-SPEC.md).
+
+## Aggiunte del 23 ottobre 2026 (D61)
+
+Forme complete in [PIANO-UTENTE-2026-10-23](PIANO-UTENTE-2026-10-23.md). In breve:
+
+- `POST /v1/me/saved` riporta `conflicts` (date salvate o prenotate che si sovrappongono).
+- `GET /v1/venues/{slug}` e `GET /v1/venues` riportano `open_now` e `open_until`; `GET /v1/venues?open_now=1` filtra.
+- `GET|PATCH /v1/me/content-preferences`: `hidden_venues` e `access_needs` (facoltativi nel `PATCH`), più `hidden_venue_options`; `POST|DELETE /v1/me/hidden-venues/{venue}`.
+- `GET /v1/events?access=a,b` filtra per esigenze di accessibilità.
+- `BookingResource.tickets[].share_url`; `POST /v1/me/tickets/{ticket}/send` (`email`, `consent`).
+- `GET /v1/me/availability-alerts`, `POST|DELETE /v1/me/availability-alerts/{occurrence}`.
+- `GET /v1/me/attended?page=N`.
+- `POST /v1/me/presence` (`occurrence_id`, `display_name`, `note`), `DELETE /v1/me/presence/{token}`.
+- `POST /v1/ticketing/{occurrence}/check-in` con `scanned_at` vale anche dopo la chiusura della porta, entro ventiquattro ore, se l'istante della scansione cade nella serata.

@@ -3116,3 +3116,20 @@ Sicurezza: i collegamenti nelle email si costruiscono da `APP_URL` e gli host di
 - **L'import CSV** legge da indirizzo o da file caricato nella cartella del locale, con intestazioni in italiano o inglese; senza una colonna `id`, l'identificativo è l'impronta di titolo e inizio. Solo CSV: niente Excel finché non serve una libreria in più.
 
 **Ricontrollo:** dopo un mese di uso vero delle assenze (soglia del quarto e limite di tre), dei messaggi ai prenotati (tre al giorno) e degli avvisi del locale (uno a settimana); e quando l'app Android aggiungerà il controllo ingressi senza rete, che oggi è solo web.
+
+
+## 23 ottobre 2026 — D61. Dieci funzioni per chi usa inCittà, sito e app insieme; correzioni della review della PR #137
+
+**Decisione:** dalla lista «15 cose utili per l'utente» il proprietario ha scelto dieci voci, realizzate insieme sul sito, nell'API e nell'app Android secondo il contratto [PIANO-UTENTE-2026-10-23](PIANO-UTENTE-2026-10-23.md): sovrapposizioni fra salvati, riepilogo del lunedì, «aperto adesso», nascondere un locale, esigenze di accessibilità nel profilo, biglietti nell'app senza rete, un biglietto per ciascun partecipante, avviso quando una data esaurita torna disponibile, «Le mie serate», link «sono qui». Da qui in avanti ogni modifica di funzionalità o di interfaccia per l'utente si fa sul sito e nell'app nello stesso lavoro.
+
+**Scelte che vincolano:**
+
+- **Biglietto per partecipante senza scrivere a chi non l'ha chiesto.** Ogni biglietto valido ha un link firmato con solo quel QR, che scade sei ore dopo la fine; chi prenota lo inoltra lui. L'invio per email dal server è facoltativo, richiede la dichiarazione di consenso, è limitato a uno per biglietto al giorno e non conserva l'indirizzo: nel registro resta solo che è partito.
+- **«Sono qui» mostra il locale, mai il telefono.** Si crea solo per date pubbliche che cominciano entro dodici ore o sono in corso, scade due ore dopo la fine, si revoca quando si vuole; il nome è quello scelto dalla persona.
+- **Esigenze di accessibilità:** sul sito si applicano agli elenchi quando l'indirizzo non sceglie già (`access=nessuna` le spegne per quella vista); l'API non le applica da sola e l'app le precompila nei filtri. Le pagine di chi è dentro non passano dalla cache.
+- **Locali nascosti:** come le categorie nascoste, mai dai salvati né dai biglietti; solo locali approvati.
+- **«Aperto adesso»** si calcola nel browser sul sito (le pagine sono in cache) e sul server per l'API; la fascia con chiusura prima dell'apertura vale dopo mezzanotte.
+- **Riepilogo del lunedì** sotto l'interruttore dei promemoria; **avviso di disponibilità** sotto quello degli esauriti, una volta sola.
+
+**Correzioni della review della PR #137:** con la rete lo scanner (sito e app) manda al server anche i codici assenti dall'elenco scaricato, mostrando comunque l'avviso locale; le letture fatte senza rete si registrano anche a serata finita se l'istante della scansione cade nella serata, entro ventiquattro ore (`ticketing.checkin.late_sync_hours`); le assenze si contano sulla data della serata; il cursore delle ricerche salvate avanza solo quando l'avviso parte; la fusione dei doppioni sposta anche raccolte, avvisi di disponibilità e link «sono qui». Nell'app la rete conta come disponibile solo se Android l'ha validata.
+**Ricontrollo:** dopo un mese, quanti biglietti si inviano per email rispetto al link, e se il margine di ventiquattro ore per le letture tardive basta ai locali.
