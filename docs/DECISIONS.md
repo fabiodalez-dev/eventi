@@ -3133,3 +3133,30 @@ Sicurezza: i collegamenti nelle email si costruiscono da `APP_URL` e gli host di
 
 **Correzioni della review della PR #137:** con la rete lo scanner (sito e app) manda al server anche i codici assenti dall'elenco scaricato, mostrando comunque l'avviso locale; le letture fatte senza rete si registrano anche a serata finita se l'istante della scansione cade nella serata, entro ventiquattro ore (`ticketing.checkin.late_sync_hours`); le assenze si contano sulla data della serata; il cursore delle ricerche salvate avanza solo quando l'avviso parte; la fusione dei doppioni sposta anche raccolte, avvisi di disponibilità e link «sono qui». Nell'app la rete conta come disponibile solo se Android l'ha validata.
 **Ricontrollo:** dopo un mese, quanti biglietti si inviano per email rispetto al link, e se il margine di ventiquattro ore per le letture tardive basta ai locali.
+
+
+## 24 ottobre 2026 — D62. Tre strumenti per i gestori: risposta alle recensioni, «stessa sera in zona», domande a chi prenota
+
+**Decisione:** dalla lista «10 funzionalità utili» del 24 ottobre il proprietario ha scelto le voci 6, 8 e 9, realizzate insieme sul sito, nei pannelli e nell'app Android.
+
+**Scelte che vincolano:**
+
+- **Risposta alle recensioni.** Il locale (tutti i membri) e l'organizzatore (chi lo gestisce) vedono nel proprio pannello le sole recensioni pubblicate — le stesse della scheda — e possono rispondere in pubblico, una risposta per recensione, firmata con il nome della scheda; la riga conserva chi l'ha scritta. Non moderano: approvare e rifiutare restano della redazione, che può togliere una risposta ma non scriverla. La prima risposta avvisa l'autore (`social.catalog_review_replied`), le correzioni no. Se l'autore modifica la recensione, la risposta resta.
+- **«Stessa sera in zona».** Mentre si sceglie l'orario di una data (wizard del locale, date del locale, creazione e date dell'organizzatore) il pannello elenca fino a sei date pubblicate di altri, entro 2 km, che si sovrappongono all'orario; una data senza fine dura tre ore come in `SavedConflicts`. Le date annullate, le bozze, quelle del proprio locale e dell'evento stesso non contano; le preferenze personali del gestore non filtrano nulla (`EventOccurrenceQuery::competitionFor`). È un avviso, non un blocco. Solo pannelli: l'app non crea eventi.
+- **Domande a chi prenota.** Fino a cinque per data, accanto ai dati del prenotante: testo libero, una scelta da un elenco (da due a dieci voci), sì o no; ciascuna facoltativa od obbligatoria. Le risposte stanno cifrate in `bookings.booking_answers` con il testo della domanda, le vedono chi gestisce la data (elenco, CSV) e chi ha prenotato (biglietti, API, esportazione dei dati), e si cancellano trenta giorni dopo la data (`ticketing:prune-answers`, ogni notte). Il pannello chiede di evitare dati sulla salute. Le prenotazioni prese al banco non hanno domande: c'è la nota.
+
+**Ricontrollo:** dopo un mese, quanti locali rispondono e se serve un limite di tempo per farlo; se il raggio di 2 km funziona anche fuori dal centro di Padova; quali domande i gestori fanno davvero, per capire se manca un tipo di risposta.
+
+
+## 24 ottobre 2026 — D63. Avviso di apertura delle prenotazioni, chiusure straordinarie, prossima edizione, lista d'ingresso stampabile
+
+**Decisione:** dalla seconda lista «10 funzionalità non pianificate» del 24 ottobre il proprietario ha scelto le voci 1, 5, 6 e 9, realizzate sul sito, nei pannelli e nell'app Android (la lista stampabile solo sul sito, come il CSV di cui è la sorella).
+
+**Scelte che vincolano:**
+
+- **«Avvisami quando aprono».** Si offre sulle date future, non annullate, con la biglietteria attiva e `booking_opens_at` ancora davanti (`booking_opening_alerts`). `ticketing:announce-openings` ogni cinque minuti avvisa quando la finestra è davvero aperta (`TicketingService::isOpen`) e chiude la richiesta; se all'ora prevista le prenotazioni sono spente o la data è esaurita la richiesta aspetta, e si chiude in silenzio solo a data passata o annullata. Notifica `bookings_open`, sotto l'interruttore degli esauriti come `tickets_available`. L'API espone `booking_opens_at` sulle date.
+- **Chiusure straordinarie.** `venues.closures` è una lista di giorni di calendario nel fuso della città, estremi compresi, con una nota facoltativa; vale sopra gli orari settimanali sul server (`OpeningHours::state`, filtro «aperti adesso») e nel browser (`open-now.js`), dove il badge dice «Chiuso fino al…». Al salvataggio (pannello del locale e redazione) le chiusure finite si tolgono. Chi crea o sposta una data in un giorno di chiusura vede un avviso, non un blocco.
+- **«Avvisami alla prossima edizione».** Si offre sugli eventi senza date in programma (`edition_alerts`). La prossima edizione è la prima data futura dello stesso evento creata dopo la richiesta, oppure di un evento pubblicato dopo la richiesta dello stesso organizzatore (o dello stesso locale, se non c'era organizzatore) con lo stesso titolo a meno di anni, numeri d'edizione, accenti e punteggiatura (`EditionAlerts::titleKey`). Prudente di proposito: niente somiglianze approssimative. `editions:notify` ogni ora; notifica `next_edition` sotto i promemoria. Non sostituisce «Segui questo evento», che salva da solo le nuove date della stessa scheda.
+- **Lista d'ingresso stampabile.** PDF dalla gestione della data, per chi la gestisce: biglietti validi e già entrati in ordine di cognome, con casella da spuntare, risposte alle domande e nota del banco; chi è in lista d'attesa compare solo nel conteggio. Registrata nel log come l'esportazione CSV. I biglietti presi al banco senza nome e cognome separati si ordinano come sono stati scritti.
+
+**Ricontrollo:** dopo un mese, quanti avvisi di apertura e di nuova edizione partono davvero e se il confronto dei titoli ne perde di evidenti; se serve un'eccezione per le serate private nei giorni di chiusura.

@@ -71,10 +71,20 @@ class CatalogReviewResource extends Resource
             TextColumn::make('status')->label(__('reviews.status'))->badge()->formatStateUsing(fn (CatalogReviewStatus $state): string => __('reviews.'.$state->value)),
             TextColumn::make('created_at')->label(__('admin.fields.created_at'))->dateTime('d/m/Y H:i')->sortable(),
             TextColumn::make('moderator.name')->label(__('admin.fields.reviewed_by')),
+            TextColumn::make('owner_reply')->label(__('reviews.reply.field'))->wrap()->limit(120)->placeholder('—')->toggleable(),
         ])->defaultSort('updated_at', 'desc')->filters([
             SelectFilter::make('reviewable_type')->label(__('reviews.type'))->options(['venue' => __('reviews.types.venue'), 'organizer' => __('reviews.types.organizer')]),
             SelectFilter::make('status')->label(__('reviews.status'))->options(collect(CatalogReviewStatus::cases())->mapWithKeys(fn (CatalogReviewStatus $state): array => [$state->value => __('reviews.'.$state->value)])->all()),
-        ])->recordActions([self::moderationAction('approved'), self::moderationAction('rejected')]);
+        ])->recordActions([self::moderationAction('approved'), self::moderationAction('rejected'),
+            Action::make('removeReply')->label(__('reviews.reply.remove'))->color('danger')->requiresConfirmation()
+                ->modalDescription(__('reviews.reply.remove_confirm'))->authorize('removeReply')
+                ->visible(fn (CatalogReview $record): bool => filled($record->owner_reply))
+                ->action(function (CatalogReview $record): void {
+                    $admin = auth()->user();
+                    abort_unless($admin instanceof User, 403);
+                    app(CatalogReviews::class)->reply($record, $admin, null);
+                }),
+        ]);
     }
 
     private static function moderationAction(string $status): Action

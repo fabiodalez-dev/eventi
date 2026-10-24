@@ -61,6 +61,7 @@ class EventOccurrence extends Model
         'cancellation_closes_at',
         'booking_instructions',
         'booking_fields',
+        'booking_questions',
         'highlight',
         'is_exception',
     ];
@@ -240,6 +241,7 @@ class EventOccurrence extends Model
             'url_number' => 'integer',
             'booking_enabled' => 'boolean',
             'booking_fields' => 'array',
+            'booking_questions' => 'array',
             'booking_capacity' => 'integer',
             'booking_limit' => 'integer',
             'booking_waitlist' => 'boolean',

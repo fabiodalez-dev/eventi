@@ -26,6 +26,7 @@ Route::middleware(['auth', TicketingPrivacy::class])->group(function (): void {
         Route::post('/{occurrence}/messaggio', [TicketingController::class, 'message'])->middleware('throttle:10,1,tickets-message')->name('message');
         Route::post('/{occurrence}/prenotazione-manuale', [TicketingController::class, 'guestBooking'])->middleware('throttle:60,1,tickets-guest')->name('guest');
         Route::get('/{occurrence}/csv', [TicketingController::class, 'export'])->middleware('throttle:10,1,tickets-export')->name('export');
+        Route::get('/{occurrence}/lista.pdf', [TicketingController::class, 'printList'])->middleware('throttle:10,1,tickets-print')->name('print');
         Route::post('/prenotazione/{booking}/annulla', [TicketingController::class, 'cancel'])->name('cancel');
     });
 });

@@ -21,7 +21,7 @@ class CatalogReview extends Review
     /** @return array<string, string> */
     protected function casts(): array
     {
-        return ['status' => CatalogReviewStatus::class, 'revision' => 'integer', 'moderated_at' => 'datetime'];
+        return ['status' => CatalogReviewStatus::class, 'revision' => 'integer', 'moderated_at' => 'datetime', 'owner_replied_at' => 'datetime'];
     }
 
     protected static function booted(): void
@@ -53,6 +53,13 @@ class CatalogReview extends Review
     public function moderator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'moderated_by');
+    }
+
+    /** Chi ha scritto la risposta del locale o dell'organizzatore. */
+    /** @return BelongsTo<User, $this> */
+    public function replier(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'owner_reply_by');
     }
 
     /** @return HasMany<CatalogRating, $this> */

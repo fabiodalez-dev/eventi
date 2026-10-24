@@ -25,6 +25,9 @@ return [
     ],
 
     'detail' => [
+        'closures' => 'Chiusure in programma',
+        'closure_day' => 'Chiuso il :day',
+        'closure_range' => 'Chiuso dal :from al :to',
         'about' => 'Il locale',
         'notice_until' => 'Fino al :date',
         'opening_hours' => 'Orari di apertura',
@@ -90,6 +93,7 @@ return [
         'open' => 'Aperto adesso',
         'until' => 'Aperto adesso · fino alle :time',
         'closed' => 'Chiuso adesso',
+        'closure' => 'Chiuso fino al :date',
         'filter' => 'Solo aperti adesso',
     ],
 

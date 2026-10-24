@@ -136,6 +136,17 @@ final class EventOccurrenceQuery
         return (new self($city, [EventStatus::Published, EventStatus::Archived]))->withContentPreferences();
     }
 
+    /**
+     * Le date pubblicate della città così come le vede il pubblico, ma senza
+     * le preferenze di chi guarda: serve ai pannelli per dire a un gestore
+     * che cosa c'è già in zona, e le categorie che lui ha nascosto per sé
+     * restano concorrenza vera.
+     */
+    public static function competitionFor(City $city): self
+    {
+        return new self($city, [EventStatus::Published]);
+    }
+
     /** Management-only calendar for a single event. The caller must authorize update before exposing results. */
     public static function managementFor(Event $event): self
     {
@@ -276,6 +287,19 @@ final class EventOccurrenceQuery
         $end = $this->toLocalDate($to)->format('Y-m-d');
 
         $this->query->whereBetween('event_occurrences.business_date', $start <= $end ? [$start, $end] : [$end, $start]);
+
+        return $this;
+    }
+
+    /**
+     * Le date il cui intervallo `[inizio, fine effettiva)` interseca quello
+     * dato. Una data senza fine dichiarata né calcolata dura tre ore, come in
+     * `SavedConflicts`.
+     */
+    public function overlapping(CarbonImmutable|DateTimeInterface $from, CarbonImmutable|DateTimeInterface $to): self
+    {
+        $this->query->where('event_occurrences.starts_at', '<', CarbonImmutable::instance($to)->utc())
+            ->whereRaw('COALESCE(event_occurrences.effective_ends_at, event_occurrences.ends_at, DATE_ADD(event_occurrences.starts_at, INTERVAL 3 HOUR)) > ?', [CarbonImmutable::instance($from)->utc()]);
 
         return $this;
     }
@@ -613,6 +637,15 @@ final class EventOccurrenceQuery
     public function atVenue(Venue|int $venue): self
     {
         $this->query->where('venues.id', $venue instanceof Venue ? $venue->getKey() : $venue);
+
+        return $this;
+    }
+
+    /** Fuori le date che si tengono nel locale dato. */
+    public function excludingVenue(Venue|int $venue): self
+    {
+        $id = $venue instanceof Venue ? $venue->getKey() : $venue;
+        $this->query->where(fn (Builder $query) => $query->whereNull('venues.id')->orWhere('venues.id', '!=', $id));
 
         return $this;
     }

@@ -17,9 +17,11 @@ use App\Filament\Support\EditorialFields;
 use App\Filament\Support\FactsField;
 use App\Filament\Support\ImageUpload;
 use App\Filament\Support\TransitField;
+use App\Filament\Support\VenueClosuresField;
 use App\Filament\Support\VenueGeographyFields;
 use App\Filament\Venue\Support\CurrentVenue;
 use App\Models\Venue;
+use App\Support\VenueClosures;
 use BackedEnum;
 use Carbon\CarbonImmutable;
 use Filament\Actions\Action;
@@ -120,6 +122,7 @@ class VenueProfile extends Page implements HasSchemas
             // Gli orari si compilano come righe piatte e si salvano come mappa
             // per giorno (D19): la traduzione sta al confine del modulo.
             'opening_hours' => StructuredFields::openingHoursToRows($venue->opening_hours),
+            'closures' => $venue->closures ?? [],
         ]);
     }
 
@@ -292,6 +295,8 @@ class VenueProfile extends Page implements HasSchemas
                                     ->required(),
                             ]),
 
+                        VenueClosuresField::make(),
+
                         TextInput::make('capacity')
                             ->label(__('manage.fields.capacity'))
                             ->helperText(__('manage.hints.capacity'))
@@ -370,6 +375,7 @@ class VenueProfile extends Page implements HasSchemas
         $state = $this->venueForm()->getState();
 
         $state['opening_hours'] = StructuredFields::openingHoursToMap($state['opening_hours'] ?? null);
+        $state['closures'] = VenueClosures::normalize($state['closures'] ?? null, $venue->city->timezone ?? config()->string('app.timezone'));
 
         $venue->fill($state)->save();
 

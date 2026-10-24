@@ -20,11 +20,22 @@ function clock(total) {
     return `${String(Math.floor(value / 60)).padStart(2, '0')}:${String(value % 60).padStart(2, '0')}`;
 }
 
-export function openingState(hours, now, timeZone) {
+// Extraordinary closures (App\Support\VenueClosures): calendar days in the
+// city's timezone, both ends included, that override the weekly hours.
+export function closureOn(closures, now, timeZone) {
+    const day = new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
+    return (Array.isArray(closures) ? closures : []).find((closure) => typeof closure?.from === 'string' && typeof closure?.to === 'string'
+        && closure.from <= day && day <= closure.to) ?? null;
+}
+
+export function openingState(hours, now, timeZone, closures = []) {
+    const closure = closureOn(closures, now, timeZone);
+    if (closure) return { open: false, until: null, closure };
     const parts = Object.fromEntries(new Intl.DateTimeFormat('en-GB', { timeZone, weekday: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
         .formatToParts(now).map((part) => [part.type, part.value]));
     const index = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].indexOf(parts.weekday);
     const minute = Number(parts.hour) * 60 + Number(parts.minute);
+    hours = hours ?? {};
     for (const [open, close] of ranges(hours[DAYS[(index + 6) % 7]])) {
         if (close <= open && minute < close) return { open: true, until: clock(close) };
     }
@@ -37,12 +48,32 @@ export function openingState(hours, now, timeZone) {
 export function openNowBadges(root = document, now = new Date()) {
     root.querySelectorAll('[data-open-now]').forEach((badge) => {
         let hours;
-        try { hours = JSON.parse(badge.dataset.hours); } catch { return; }
-        const state = openingState(hours, now, badge.dataset.timezone);
-        badge.textContent = state.open
-            ? (state.until ? badge.dataset.openUntil.replace(':time', state.until) : badge.dataset.openLabel)
-            : badge.dataset.closedLabel;
+        let closures;
+        try { hours = JSON.parse(badge.dataset.hours || '{}'); closures = JSON.parse(badge.dataset.closures || '[]'); } catch { return; }
+        const state = openingState(hours, now, badge.dataset.timezone, closures);
+        if (!state.closure && Object.keys(hours).length === 0) return;
+        const until = state.closure
+            ? new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'long', timeZone: 'UTC' }).format(new Date(`${state.closure.to}T12:00:00Z`))
+            : null;
+        badge.textContent = state.closure
+            ? badge.dataset.closureLabel.replace(':date', until)
+            : state.open
+                ? (state.until ? badge.dataset.openUntil.replace(':time', state.until) : badge.dataset.openLabel)
+                : badge.dataset.closedLabel;
         badge.dataset.state = state.open ? 'open' : 'closed';
         badge.hidden = false;
+    });
+}
+
+// Closures that have ended disappear even from a cached venue page.
+export function hidePastClosures(root = document, now = new Date()) {
+    root.querySelectorAll('[data-venue-closures]').forEach((section) => {
+        const day = new Intl.DateTimeFormat('en-CA', { timeZone: section.dataset.timezone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
+        let visible = 0;
+        section.querySelectorAll('[data-closure-ends]').forEach((item) => {
+            item.hidden = item.dataset.closureEnds < day;
+            visible += item.hidden ? 0 : 1;
+        });
+        section.hidden = visible === 0;
     });
 }

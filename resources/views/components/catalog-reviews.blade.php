@@ -13,6 +13,13 @@
                 <div class="flex flex-wrap justify-between gap-3"><strong>{{ $review['author'] }}</strong>@if($review['rating'] !== null)<span aria-label="{{ __('reviews.average', ['rating' => $review['rating']]) }}"><span aria-hidden="true" class="text-accent">{{ str_repeat('★', $review['rating']) }}{{ str_repeat('☆', 5 - $review['rating']) }}</span></span>@endif</div>
                 <p class="mt-3 whitespace-pre-line break-words">{{ $review['body'] }}</p>
                 <time class="mt-3 block text-xs text-ink-muted" datetime="{{ $review['date'] }}">{{ $review['date'] }}</time>
+                @if ($review['reply'])
+                    <div class="mt-4 border-l-2 border-accent pl-4" data-review-reply>
+                        <p class="text-sm font-semibold">{{ __('reviews.reply.from', ['name' => $review['reply']['author']]) }}</p>
+                        <p class="mt-2 whitespace-pre-line break-words">{{ $review['reply']['body'] }}</p>
+                        @if ($review['reply']['date'])<time class="mt-2 block text-xs text-ink-muted" datetime="{{ $review['reply']['date'] }}">{{ $review['reply']['date'] }}</time>@endif
+                    </div>
+                @endif
                 @if($reviews['verified'])
                 <details class="mt-3"><summary class="min-h-12 cursor-pointer py-3 text-sm underline">{{ __('reviews.report') }}</summary><form method="post" action="{{ route($reviewRoute.'.review.report', ['slug' => $subject->slug, 'review' => $review['id']]) }}" class="space-y-3">@csrf<label class="block">{{ __('reviews.report_reason') }}<textarea name="body" required minlength="10" maxlength="3000" class="mt-2 w-full rounded-xl border border-line bg-canvas p-3"></textarea></label><x-button type="submit">{{ __('reviews.report_send') }}</x-button></form></details>
                 @endif

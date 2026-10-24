@@ -34,7 +34,21 @@ final class CatalogReviews
     /** @return Builder<CatalogReview> */
     public function published(Venue|Organizer $subject): Builder
     {
-        return CatalogReview::query()->whereMorphedTo('reviewable', $subject)->where('approved', true)
+        return $this->onlyPublished(CatalogReview::query(), $subject);
+    }
+
+    /**
+     * Le condizioni di `published()` applicate a una query data. Serve ai
+     * pannelli, dove Filament mette la propria restrizione come scope globale
+     * del modello: una sottoquery nuova su `CatalogReview` la erediterebbe e
+     * richiamerebbe se stessa all'infinito.
+     *
+     * @param  Builder<CatalogReview>  $query
+     * @return Builder<CatalogReview>
+     */
+    public function onlyPublished(Builder $query, Venue|Organizer $subject): Builder
+    {
+        return $query->whereMorphedTo('reviewable', $subject)->where('approved', true)
             ->where('status', CatalogReviewStatus::Approved)->whereIn('user_id', app(CommunityAccess::class)->eligibleUsers()->select('id'));
     }
 
@@ -42,7 +56,55 @@ final class CatalogReviews
     public function resource(CatalogReview $review): array
     {
         return ['id' => $review->id, 'author' => $review->user->communityProfile->display_name ?? $review->user->name ?? __('community.member'),
-            'rating' => $review->rating, 'body' => $review->body, 'date' => $review->created_at?->format('Y-m-d')];
+            'rating' => $review->rating, 'body' => $review->body, 'date' => $review->created_at?->format('Y-m-d'),
+            'reply' => filled($review->owner_reply) ? ['author' => (string) $review->reviewable?->getAttribute('name'), 'body' => $review->owner_reply,
+                'date' => $review->owner_replied_at?->format('Y-m-d')] : null];
+    }
+
+    /**
+     * Risponde chi gestisce il soggetto recensito: i membri del locale, chi
+     * gestisce l'organizzatore. Solo alle recensioni pubblicate, perché una
+     * risposta a un testo che il pubblico non vede non ha un lettore.
+     */
+    public function canReply(User $user, CatalogReview $review): bool
+    {
+        $subject = $review->reviewable;
+        if (session()->has('impersonator_id') || $user->trashed()) {
+            return false;
+        }
+        $manages = match (true) {
+            $subject instanceof Venue => $subject->members()->whereKey($user->id)->exists(),
+            $subject instanceof Organizer => $subject->managedBy($user),
+            default => false,
+        };
+
+        return $manages && $this->published($subject)->whereKey($review->id)->exists();
+    }
+
+    /**
+     * Scrive, cambia o toglie (`null`) la risposta pubblica. La prima risposta
+     * avvisa chi ha scritto la recensione; le correzioni successive no, o una
+     * virgola sistemata diventerebbe una notifica.
+     */
+    public function reply(CatalogReview $review, User $user, ?string $body): CatalogReview
+    {
+        abort_unless($this->canReply($user, $review) || ($body === null && $user->hasAnyRole(['admin', 'super_admin'])), 403);
+        $body = $body === null ? null : trim($body);
+        if ($body !== null) {
+            validator(['reply' => $body], ['reply' => ['required', 'string', 'min:2', 'max:2000']])->validate();
+        }
+
+        return DB::transaction(function () use ($review, $user, $body): CatalogReview {
+            $locked = CatalogReview::query()->lockForUpdate()->findOrFail($review->id);
+            $first = blank($locked->owner_reply) && $body !== null;
+            $locked->forceFill(['owner_reply' => $body, 'owner_reply_by' => $body === null ? null : $user->id, 'owner_replied_at' => $body === null ? null : now()])->save();
+            app(CarpoolAuditLog::class)->record($user, $body === null ? 'catalog_review_reply_removed' : 'catalog_review_replied', $locked);
+            if ($first && $locked->user && $locked->user_id !== $user->id) {
+                app(CommunityNotices::class)->send($locked->user, 'social', 'catalog_review_replied', $locked->reviewable_type, $locked->reviewable_id, 'catalog-review-reply:'.$locked->id);
+            }
+
+            return $locked;
+        }, 5);
     }
 
     /** @return array<string, mixed> */
@@ -50,7 +112,7 @@ final class CatalogReviews
     {
         $query = $this->published($subject);
         $stats = CatalogRating::where('key', 'overall')->whereIn('review_id', (clone $query)->select('id'))->selectRaw('COUNT(*) as total, AVG(value) as average')->first();
-        $list = $query->with(['ratings', 'user.communityProfile'])->orderByDesc('moderated_at')->orderByDesc('id')->paginate(10, page: $page);
+        $list = $query->with(['ratings', 'user.communityProfile', 'reviewable'])->orderByDesc('moderated_at')->orderByDesc('id')->paginate(10, page: $page);
         $own = $user === null ? null : CatalogReview::whereMorphedTo('reviewable', $subject)->where('user_id', $user->id)->with('ratings')->first();
 
         return ['count' => $list->total(), 'rated_count' => (int) $stats?->getAttribute('total'),

@@ -20,4 +20,11 @@ return [
     'changed' => 'La recensione è cambiata. Ricaricala e verifica il nuovo testo prima di moderarla.',
     'user' => 'Utente', 'venue' => 'Locale', 'status' => 'Stato', 'previous' => 'Recensioni precedenti', 'next' => 'Altre recensioni',
     'closed' => 'Al momento non puoi recensire questa scheda. Chi la gestisce non può recensirla.',
+    'reply' => [
+        'from' => 'Risposta di :name', 'panel' => 'Recensioni ricevute', 'column' => 'La tua risposta', 'published_at' => 'Pubblicata il',
+        'write' => 'Rispondi', 'edit' => 'Modifica la risposta', 'remove' => 'Togli la risposta', 'remove_confirm' => 'La risposta sparisce dalla scheda pubblica. Puoi scriverne un’altra quando vuoi.',
+        'field' => 'Risposta pubblica', 'hint' => 'Compare sotto la recensione con il nome della scheda. Chi ha scritto la recensione riceve un avviso alla prima risposta. Da 2 a 2.000 caratteri.',
+        'saved' => 'Risposta pubblicata.', 'removed' => 'Risposta tolta.',
+        'empty' => 'Qui compariranno le recensioni approvate della tua scheda, con la possibilità di rispondere.',
+    ],
 ];

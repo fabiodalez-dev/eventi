@@ -1262,5 +1262,6 @@ videoEmbed();
 import { collectionAdd } from "./collection-add";
 collectionAdd();
 
-import { openNowBadges } from "./open-now";
+import { hidePastClosures, openNowBadges } from "./open-now";
 openNowBadges();
+hidePastClosures();

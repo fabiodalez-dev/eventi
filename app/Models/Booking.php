@@ -25,7 +25,7 @@ class Booking extends Model
     /** @return array<string, string> */
     protected function casts(): array
     {
-        return ['status' => BookingStatus::class, 'cancelled_at' => 'datetime', 'booker_data' => 'encrypted:array',
+        return ['status' => BookingStatus::class, 'cancelled_at' => 'datetime', 'booker_data' => 'encrypted:array', 'booking_answers' => 'encrypted:array',
             'privacy_accepted_at' => 'datetime', 'promotion_expires_at' => 'datetime'];
     }
 

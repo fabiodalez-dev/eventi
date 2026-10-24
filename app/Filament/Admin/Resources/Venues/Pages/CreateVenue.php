@@ -6,6 +6,8 @@ namespace App\Filament\Admin\Resources\Venues\Pages;
 
 use App\Filament\Admin\Resources\Venues\VenueResource;
 use App\Filament\Admin\Support\StructuredFields;
+use App\Models\City;
+use App\Support\VenueClosures;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreateVenue extends CreateRecord
@@ -23,6 +25,7 @@ class CreateVenue extends CreateRecord
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $data['opening_hours'] = StructuredFields::openingHoursToMap($data['opening_hours'] ?? null);
+        $data['closures'] = VenueClosures::normalize($data['closures'] ?? null, City::find($data['city_id'] ?? null)->timezone ?? config()->string('app.timezone'));
 
         return $data;
     }
