@@ -13,6 +13,9 @@ Il car pooling è riservato ad account con email e WhatsApp verificati e dichiar
     <string name="cp_subtitle" formatted="false">Un passaggio gratuito, verso lo stesso evento.</string>
     <string name="cp_offer" formatted="false">Offro passaggio</string>
     <string name="cp_seek" formatted="false">Cerco passaggio</string>
+    <string name="cp_demo_label" formatted="false">Passaggio dimostrativo</string>
+    <string name="cp_demo_view" formatted="false">Guarda il passaggio</string>
+    <string name="cp_demo_notice" formatted="false">È un passaggio dimostrativo, pubblicato da un profilo di prova per mostrare come funziona il servizio: non si possono richiedere posti.</string>
     <string name="cp_mine" formatted="false">I miei passaggi</string>
     <string name="cp_messages" formatted="false">Messaggi</string>
     <string name="cp_map" formatted="false">Indicazioni sulla zona</string>
@@ -61,9 +64,16 @@ Il car pooling è riservato ad account con email e WhatsApp verificati e dichiar
     <string name="cp_enable" formatted="false">Attiva i passaggi gratuiti</string>
     <string name="cp_login" formatted="false">Accedi o crea un account</string>
     <string name="cp_email" formatted="false">Conferma la tua email</string>
+    <string name="cp_profile_blocked_title" formatted="false">Non puoi ancora chiedere né offrire passaggi</string>
+    <string name="cp_profile_blocked_email" formatted="false">Manca la conferma della tua email.</string>
+    <string name="cp_profile_blocked_whatsapp" formatted="false">Manca la verifica del tuo numero WhatsApp.</string>
+    <string name="cp_profile_blocked_adult" formatted="false">Manca la dichiarazione di maggiore età con l’accettazione delle regole.</string>
+    <string name="cp_profile_blocked_terms" formatted="false">Le regole dei passaggi sono cambiate: vanno accettate di nuovo.</string>
+    <string name="cp_profile_blocked_suspended" formatted="false">Il tuo accesso ai passaggi è sospeso.</string>
+    <string name="cp_profile_blocked_action" formatted="false">Completa le verifiche</string>
     <string name="cp_whatsapp" formatted="false">Verifica gratis WhatsApp</string>
     <string name="cp_suspended" formatted="false">Il tuo accesso ai passaggi è sospeso. Puoi contattare l’assistenza.</string>
-    <string name="cp_onboarding" formatted="false">Servono email confermata, maggiore età e accettazione delle regole. La verifica WhatsApp è richiesta salvo esonero amministrativo. Per accordarsi si usa la chat del passaggio.</string>
+    <string name="cp_onboarding" formatted="false">Per offrire o richiedere un passaggio servono email confermata, maggiore età e accettazione delle regole. La verifica WhatsApp è richiesta salvo esonero amministrativo. Per accordarsi si usa la chat del passaggio.</string>
     <string name="cp_offered" formatted="false">Offro</string>
     <string name="cp_requested" formatted="false">Cerco</string>
     <string name="cp_history" formatted="false">Storico</string>
@@ -74,6 +84,7 @@ Il car pooling è riservato ad account con email e WhatsApp verificati e dichiar
     <string name="cp_empty_messages" formatted="false">La chat si apre quando il conducente accetta la richiesta.</string>
     <string name="cp_filter" formatted="false">Filtra</string>
     <string name="cp_all" formatted="false">Tutti</string>
+    <string name="cp_rules" formatted="false">Regole</string>
     <string name="cp_sort" formatted="false">Ordina</string>
     <string name="cp_sort_departure" formatted="false">Ora di partenza</string>
     <string name="cp_sort_recent" formatted="false">Più recenti</string>
@@ -124,7 +135,7 @@ Il car pooling è riservato ad account con email e WhatsApp verificati e dichiar
     <string name="cp_reasons_no_show" formatted="false">Mancata presentazione</string>
     <string name="cp_reasons_accessibility" formatted="false">Accessibilità diversa da quella dichiarata</string>
     <string name="cp_reasons_other" formatted="false">Altro</string>
-    <string name="cp_rideleg_outbound" formatted="false">Verso l’evento</string>
+    <string name="cp_rideleg_outbound" formatted="false">Andata</string>
     <string name="cp_rideleg_return" formatted="false">Ritorno</string>
     <string name="cp_ridestatus_draft" formatted="false">Bozza</string>
     <string name="cp_ridestatus_open" formatted="false">Aperta</string>
@@ -188,7 +199,9 @@ Il car pooling è riservato ad account con email e WhatsApp verificati e dichiar
     <string name="cp_errors_chat_closed" formatted="false">Non puoi inviare messaggi in questa conversazione.</string>
     <string name="cp_errors_generic" formatted="false">Non è stato possibile completare l’operazione. Riprova.</string>
     <string name="cp_errors_case" formatted="false">Non puoi accedere a questa segnalazione.</string>
+    <string name="cp_errors_demo" formatted="false">Questo è un passaggio dimostrativo: puoi guardarlo, ma non richiedere un posto.</string>
     <string name="cp_notifications_catalog_review_moderated" formatted="false">La tua recensione è stata esaminata</string>
+    <string name="cp_notifications_catalog_review_replied" formatted="false">Hanno risposto alla tua recensione</string>
     <string name="cp_notifications_review" formatted="false">Hai ricevuto una recensione per un passaggio</string>
     <string name="cp_notifications_review_moderated" formatted="false">Aggiornamento sulla tua recensione</string>
     <string name="cp_notifications_open" formatted="false">Apri inCittà per vedere lo stato aggiornato.</string>
@@ -206,6 +219,7 @@ Il car pooling è riservato ad account con email e WhatsApp verificati e dichiar
     <string name="cp_notifications_pending" formatted="false">Hai richieste di passaggio da gestire</string>
     <string name="cp_notifications_support" formatted="false">L’assistenza ha aggiornato la tua segnalazione</string>
     <string name="cp_notifications_moderation" formatted="false">Aggiornamento sui tuoi accessi alla community</string>
+    <string name="cp_admin_navigation" formatted="false">Passaggi in auto</string>
     <string name="cp_admin_feedback" formatted="false">Feedback privati</string>
     <string name="cp_admin_reviews" formatted="false">Recensioni conducenti</string>
     <string name="cp_admin_section" formatted="false">Sezione</string>

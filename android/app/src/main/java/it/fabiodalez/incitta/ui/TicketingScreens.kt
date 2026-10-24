@@ -16,6 +16,9 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalUriHandler
 import it.fabiodalez.incitta.data.AttendeeName
+import it.fabiodalez.incitta.data.BookingQuestion
+import it.fabiodalez.incitta.data.answersComplete
+import it.fabiodalez.incitta.data.supported
 import it.fabiodalez.incitta.data.BookingPeriod
 import it.fabiodalez.incitta.data.filterBookings
 import androidx.compose.ui.unit.dp
@@ -30,10 +33,11 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 @Composable
-fun ReservationScreen(state: AppUiState, padding: PaddingValues, onReserve: (List<AttendeeName>, Boolean, Map<String, String>) -> Unit, onBack: () -> Unit, onRetry: () -> Unit) {
+fun ReservationScreen(state: AppUiState, padding: PaddingValues, onReserve: (List<AttendeeName>, Boolean, Map<String, String>, Map<String, String>) -> Unit, onBack: () -> Unit, onRetry: () -> Unit) {
     val date = state.bookingDate ?: return
     var names by remember(date.occurrenceId) { mutableStateOf(listOf(AttendeeName())) }
     var booker by remember(date.occurrenceId) { mutableStateOf(mapOf("first_name" to "", "last_name" to "")) }
+    var answers by remember(date.occurrenceId) { mutableStateOf(mapOf<String, String>()) }
     val uriHandler = LocalUriHandler.current
     var waitlist by remember(date.occurrenceId) { mutableStateOf(false) }
     var accepted by remember(date.occurrenceId) { mutableStateOf(false) }
@@ -65,6 +69,14 @@ fun ReservationScreen(state: AppUiState, padding: PaddingValues, onReserve: (Lis
                 availability.bookerFields.forEach { field ->
                     OutlinedTextField(booker[field.key].orEmpty(), { booker = booker + (field.key to it.take(255)) }, label = { Text(field.label) }, supportingText = { Text(stringResource(if (field.required) R.string.ticket_required else R.string.ticket_optional)) }, enabled = !state.bookingBusy, modifier = Modifier.fillMaxWidth(), shape = ControlShape, singleLine = true)
                 }
+                val questions = availability.questions.filter { it.supported }
+                if (questions.isNotEmpty()) {
+                    Text(stringResource(R.string.ticket_questions_title), style = MaterialTheme.typography.titleLarge)
+                    Text(stringResource(R.string.ticket_questions_hint), color = Muted)
+                    questions.forEach { question ->
+                        BookingQuestionField(question, answers[question.id].orEmpty(), !state.bookingBusy) { answers = answers + (question.id to it) }
+                    }
+                }
                 Text(stringResource(R.string.ticket_participants), style = MaterialTheme.typography.titleLarge)
                 names.forEachIndexed { index, name ->
                     OutlinedTextField(name.firstName, { value -> names = names.toMutableList().also { it[index] = name.copy(firstName = value.take(120)) } }, label = { Text(stringResource(R.string.ticket_first_name)) }, enabled = !state.bookingBusy, modifier = Modifier.fillMaxWidth(), shape = ControlShape, singleLine = true)
@@ -81,8 +93,8 @@ fun ReservationScreen(state: AppUiState, padding: PaddingValues, onReserve: (Lis
                     Text(stringResource(R.string.ticket_privacy_acknowledgement), modifier = Modifier.padding(top = 10.dp))
                 }
                 availability.privacyUrl?.takeIf { it.startsWith("https://") || it.startsWith("http://") }?.let { url -> TextButton(onClick = { uriHandler.openUri(url) }) { Text(stringResource(R.string.ticket_privacy_link)) } }
-                val complete = names.all { it.firstName.isNotBlank() && it.lastName.isNotBlank() } && listOf("first_name", "last_name").all { !booker[it].isNullOrBlank() } && availability.bookerFields.filter { it.required }.all { !booker[it.key].isNullOrBlank() }
-                Button(onClick = { onReserve(names, waitlist, booker) }, enabled = accepted && complete && !state.bookingBusy, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp), shape = ControlShape) { Text(stringResource(R.string.ticket_confirm)) }
+                val complete = names.all { it.firstName.isNotBlank() && it.lastName.isNotBlank() } && listOf("first_name", "last_name").all { !booker[it].isNullOrBlank() } && availability.bookerFields.filter { it.required }.all { !booker[it.key].isNullOrBlank() } && answersComplete(availability.questions, answers)
+                Button(onClick = { onReserve(names, waitlist, booker, answers) }, enabled = accepted && complete && !state.bookingBusy, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp), shape = ControlShape) { Text(stringResource(R.string.ticket_confirm)) }
             }
         }
     }
@@ -139,6 +151,10 @@ fun TicketsScreen(state: AppUiState, padding: PaddingValues, onCancel: (Long, Lo
                 booking.address?.let { Text(it, color = Muted) }
                 TextButton(onClick = { onEmail(booking.id) }, enabled = !state.bookingBusy) { Text(stringResource(R.string.ticket_email)) }
                 booking.instructions?.let { Text(it) }
+                if (booking.answers.isNotEmpty()) {
+                    Text(stringResource(R.string.ticket_questions_yours), style = MaterialTheme.typography.titleSmall)
+                    booking.answers.forEach { Text("${it.question}: ${it.answer}", color = Muted) }
+                }
                 if (booking.status == "waitlisted") Text(stringResource(R.string.ticket_waiting), color = Muted)
                 booking.tickets.forEach { ticket ->
                     key(ticket.id, state.session.user.id) {
@@ -206,3 +222,27 @@ private fun ticketStatus(value: String): String = stringResource(when (value) {
     "no_show" -> R.string.ticket_no_show
     else -> R.string.ticket_cancelled
 })
+
+/** Una domanda del gestore: testo libero, una scelta dall'elenco, oppure sì o no. */
+@Composable
+private fun BookingQuestionField(question: BookingQuestion, value: String, enabled: Boolean, onChange: (String) -> Unit) {
+    val mode = stringResource(if (question.required) R.string.ticket_required else R.string.ticket_optional)
+    when (question.type) {
+        "choice" -> Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text("${question.label} · $mode")
+            NativeChoicePicker(question.label, value, listOf("" to stringResource(R.string.ticket_questions_choose)) + question.options.map { it to it }, enabled, onChange)
+        }
+        "yes_no" -> Column {
+            Text("${question.label} · $mode")
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                listOf("1" to stringResource(R.string.ticket_questions_yes), "0" to stringResource(R.string.ticket_questions_no)).forEach { (key, label) ->
+                    Row(Modifier.heightIn(min = 48.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        RadioButton(selected = value == key, onClick = { onChange(key) }, enabled = enabled)
+                        Text(label)
+                    }
+                }
+            }
+        }
+        else -> OutlinedTextField(value, { onChange(it.take(500)) }, label = { Text(question.label) }, supportingText = { Text(mode) }, enabled = enabled, modifier = Modifier.fillMaxWidth(), shape = ControlShape, minLines = 2)
+    }
+}

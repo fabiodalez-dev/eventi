@@ -21,6 +21,7 @@
     <string name="reviews_delete">Elimina la mia recensione</string>
     <string name="reviews_deleted">Recensione eliminata.</string>
     <string name="reviews_previous">Precedenti</string>
+    <string name="reviews_reply_from">Risposta di %1$s</string>
     <string name="reviews_next">Altre recensioni</string>
     <string name="reviews_report">Segnala questa recensione</string>
     <string name="reviews_report_reason">Spiega il problema agli amministratori</string>

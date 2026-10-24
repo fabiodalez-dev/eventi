@@ -5,6 +5,12 @@
     <string name="ticket_last_name">Cognome</string>
     <string name="ticket_optional">Facoltativo</string>
     <string name="ticket_required">Obbligatorio</string>
+    <string name="ticket_questions_title">Domande a chi prenota</string>
+    <string name="ticket_questions_hint">Le domande sono di chi organizza la data: le risposte le vede solo chi la gestisce.</string>
+    <string name="ticket_questions_choose">Scegli…</string>
+    <string name="ticket_questions_yes">Sì</string>
+    <string name="ticket_questions_no">No</string>
+    <string name="ticket_questions_yours">Le tue risposte</string>
     <string name="ticket_privacy_link">Leggi l’informativa privacy</string>
     <string name="ticket_privacy_acknowledgement">Ho letto l’informativa privacy. I dati saranno comunicati al locale per gestire prenotazione e ingresso. Non è un consenso marketing.</string>
     <string name="ticket_title">I MIEI BIGLIETTI</string>

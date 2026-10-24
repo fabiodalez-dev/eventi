@@ -80,6 +80,20 @@ class AppRepository(context: Context) {
     suspend fun setAvailabilityAlert(occurrenceId: Long, active: Boolean) =
         api.send("me/availability-alerts/$occurrenceId", if (active) "POST" else "DELETE", requireNotNull(_session.value?.token))
 
+    /** Le date per cui la persona aspetta l'apertura delle prenotazioni. */
+    suspend fun openingAlerts(): Set<Long> =
+        api.get<ApiEnvelope<List<Long>>>("me/opening-alerts", requireNotNull(_session.value?.token)).data.toSet()
+
+    suspend fun setOpeningAlert(occurrenceId: Long, active: Boolean) =
+        api.send("me/opening-alerts/$occurrenceId", if (active) "POST" else "DELETE", requireNotNull(_session.value?.token))
+
+    /** Gli eventi passati di cui la persona aspetta la prossima edizione. */
+    suspend fun editionAlerts(): Set<Long> =
+        api.get<ApiEnvelope<List<Long>>>("me/edition-alerts", requireNotNull(_session.value?.token)).data.toSet()
+
+    suspend fun setEditionAlert(eventId: Long, active: Boolean) =
+        api.send("me/edition-alerts/$eventId", if (active) "POST" else "DELETE", requireNotNull(_session.value?.token))
+
     /** 14. Le mie serate, una pagina per volta. */
     suspend fun attended(page: Int): ApiEnvelope<List<AttendedEvening>> =
         api.get("me/attended?page=$page", requireNotNull(_session.value?.token))

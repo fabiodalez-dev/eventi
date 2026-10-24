@@ -4,7 +4,9 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class VenueReview(val id: Long, val author: String, val rating: Int? = null, val body: String? = null, val date: String? = null)
+data class ReviewReply(val author: String = "", val body: String = "", val date: String? = null)
+@Serializable
+data class VenueReview(val id: Long, val author: String, val rating: Int? = null, val body: String? = null, val date: String? = null, val reply: ReviewReply? = null)
 @Serializable
 data class OwnVenueReview(val rating: Int? = null, val body: String? = null, val status: String, @SerialName("moderation_note") val moderationNote: String? = null, val revision: Int = 0)
 @Serializable
@@ -18,3 +20,5 @@ val VenueReview.givenRating: Int? get() = rating?.takeIf { it in 1..5 }
 val VenueReview.givenBody: String? get() = body?.takeIf { it.isNotBlank() }
 val OwnVenueReview.givenRating: Int? get() = rating?.takeIf { it in 1..5 }
 val OwnVenueReview.givenBody: String? get() = body?.takeIf { it.isNotBlank() }
+// La risposta pubblica del locale o dell'organizzatore; vuota vuol dire nessuna.
+val VenueReview.givenReply: ReviewReply? get() = reply?.takeIf { it.body.isNotBlank() }
