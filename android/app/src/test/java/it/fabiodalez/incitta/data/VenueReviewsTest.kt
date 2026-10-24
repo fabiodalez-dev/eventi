@@ -43,4 +43,12 @@ class VenueReviewsTest {
         assertNull(page.myReview?.givenRating)
         assertEquals("Solo un commento.", page.myReview?.givenBody)
     }
+
+    @Test fun `the public reply of the venue decodes, and a missing or empty one reads as absent`() {
+        val page = json.decodeFromString<VenueReviewPage>("""{"count":2,"reviews":[{"id":1,"author":"Anna","rating":4,"body":"Cena ottima.","date":"2026-10-20","reply":{"author":"Osteria del Ponte","body":"Grazie della visita!","date":"2026-10-21"}},{"id":2,"author":"Luca","rating":3,"body":"Servizio lento.","reply":null}]}""")
+        assertEquals("Osteria del Ponte", page.reviews[0].givenReply?.author)
+        assertEquals("Grazie della visita!", page.reviews[0].givenReply?.body)
+        assertNull(page.reviews[1].givenReply)
+        assertNull(json.decodeFromString<VenueReview>("""{"id":3,"author":"Eva","reply":{"author":"X","body":"  "}}""").givenReply)
+    }
 }

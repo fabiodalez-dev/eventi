@@ -32,6 +32,7 @@ final class BookingResource
             'instructions' => Description::plain($date?->booking_instructions),
             'cancellation_reason' => $booking->cancellation_reason,
             'booker' => $booking->booker_data,
+            'answers' => array_map(fn (array $answer): array => ['question' => (string) $answer['question'], 'answer' => (string) $answer['answer']], (array) ($booking->booking_answers ?? [])),
             'privacy_accepted_at' => $booking->privacy_accepted_at?->toIso8601String(),
             'can_cancel' => $date && now()->lt($date->cancellation_closes_at ?? $date->starts_at),
             // La posizione in coda e la scadenza della conferma: due cose che

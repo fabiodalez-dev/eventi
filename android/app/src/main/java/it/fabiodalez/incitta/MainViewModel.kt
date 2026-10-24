@@ -68,6 +68,11 @@ data class AppUiState(
     val openNowError: String? = null,
     /** 13. Le date per cui la persona aspetta un avviso. */
     val availabilityAlerts: Set<Long> = emptySet(),
+    /** Le date per cui la persona aspetta l'apertura delle prenotazioni. */
+    val openingAlerts: Set<Long> = emptySet(),
+    /** Gli eventi di cui la persona aspetta la prossima edizione. */
+    val editionAlerts: Set<Long> = emptySet(),
+    val editionBusy: Boolean = false,
     val alertBusy: Set<Long> = emptySet(),
     /** 15. I link «sono qui» creati in questa sessione dell'app, per data. */
     val presenceLinks: Map<Long, it.fabiodalez.incitta.data.PresenceLink> = emptyMap(),
@@ -222,7 +227,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         bookingJob?.cancel()
                         _state.value = _state.value.copy(bookings = emptyList(), noShows = 0, bookingDate = null, bookingAvailability = null, bookingBusy = false, bookingError = null,
                             bookingsSavedAt = null, hiddenVenueIds = emptySet(), accessNeeds = emptyList(), profileAccessDismissed = false,
-                            availabilityAlerts = emptySet(), alertBusy = emptySet(), presenceLinks = emptyMap(), presenceBusy = false)
+                            availabilityAlerts = emptySet(), openingAlerts = emptySet(), editionAlerts = emptySet(), alertBusy = emptySet(), presenceLinks = emptyMap(), presenceBusy = false)
                     }
                     _state.value = _state.value.copy(session = session, savedIds = saved, defaultAppearance = repository.appearance(), appearance = repository.appearance())
                     if (sessionChanged) {
@@ -324,7 +329,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun reserve(names: List<it.fabiodalez.incitta.data.AttendeeName>, waitlist: Boolean, booker: Map<String, String>) {
+    fun reserve(names: List<it.fabiodalez.incitta.data.AttendeeName>, waitlist: Boolean, booker: Map<String, String>, answers: Map<String, String> = emptyMap()) {
         val date = _state.value.bookingDate ?: return
         if (_state.value.bookingBusy) return
         val token = _state.value.session?.token ?: return
@@ -332,7 +337,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _state.value = _state.value.copy(bookingBusy = true, bookingError = null)
         bookingJob = viewModelScope.launch {
             try {
-                val booking = repository.reserve(date.occurrenceId, it.fabiodalez.incitta.data.ReserveBody(names.map { it.copy(firstName = it.firstName.trim(), lastName = it.lastName.trim()) }, key, waitlist, true, booker.mapValues { it.value.trim() }))
+                val booking = repository.reserve(date.occurrenceId, it.fabiodalez.incitta.data.ReserveBody(names.map { it.copy(firstName = it.firstName.trim(), lastName = it.lastName.trim()) }, key, waitlist, true, booker.mapValues { it.value.trim() }, it.fabiodalez.incitta.data.answersPayload(_state.value.bookingAvailability?.questions.orEmpty(), answers)))
                 if (repository.session.value?.token == token) {
                     _state.value = _state.value.copy(bookingBusy = false, bookingDate = null, selected = null, selectedVenue = null, tab = AppTab.TICKETS, bookings = listOf(booking), message = getApplication<Application>().getString(if (booking.status == "waitlisted") R.string.ticket_waitlisted_success else R.string.ticket_reserved_success))
                     loadBookings()
@@ -1117,7 +1122,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             try {
                 val alerts = repository.availabilityAlerts()
-                if (repository.session.value?.token == token) _state.value = _state.value.copy(availabilityAlerts = alerts)
+                val openings = repository.openingAlerts()
+                val editions = repository.editionAlerts()
+                if (repository.session.value?.token == token) _state.value = _state.value.copy(availabilityAlerts = alerts, openingAlerts = openings, editionAlerts = editions)
             } catch (error: Exception) {
                 if (error is CancellationException) throw error
             }
@@ -1146,6 +1153,58 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 _state.value = _state.value.copy(message = userMessage(error))
             } finally {
                 _state.value = _state.value.copy(alertBusy = _state.value.alertBusy - occurrenceId)
+            }
+        }
+    }
+
+    fun toggleOpeningAlert(occurrenceId: Long) {
+        if (_state.value.session == null) {
+            selectTab(AppTab.ACCOUNT)
+            _state.value = _state.value.copy(message = text(R.string.opening_alert_login))
+            return
+        }
+        if (occurrenceId in _state.value.alertBusy) return
+        val token = repository.session.value?.token ?: return
+        val active = occurrenceId !in _state.value.openingAlerts
+        _state.value = _state.value.copy(alertBusy = _state.value.alertBusy + occurrenceId)
+        viewModelScope.launch {
+            try {
+                repository.setOpeningAlert(occurrenceId, active)
+                if (repository.session.value?.token == token) {
+                    val alerts = if (active) _state.value.openingAlerts + occurrenceId else _state.value.openingAlerts - occurrenceId
+                    _state.value = _state.value.copy(openingAlerts = alerts, message = text(if (active) R.string.opening_alert_on_done else R.string.alert_off_done))
+                }
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                _state.value = _state.value.copy(message = userMessage(error))
+            } finally {
+                _state.value = _state.value.copy(alertBusy = _state.value.alertBusy - occurrenceId)
+            }
+        }
+    }
+
+    fun toggleEditionAlert(eventId: Long) {
+        if (_state.value.session == null) {
+            selectTab(AppTab.ACCOUNT)
+            _state.value = _state.value.copy(message = text(R.string.edition_alert_login))
+            return
+        }
+        if (_state.value.editionBusy) return
+        val token = repository.session.value?.token ?: return
+        val active = eventId !in _state.value.editionAlerts
+        _state.value = _state.value.copy(editionBusy = true)
+        viewModelScope.launch {
+            try {
+                repository.setEditionAlert(eventId, active)
+                if (repository.session.value?.token == token) {
+                    val alerts = if (active) _state.value.editionAlerts + eventId else _state.value.editionAlerts - eventId
+                    _state.value = _state.value.copy(editionAlerts = alerts, message = text(if (active) R.string.edition_alert_on_done else R.string.alert_off_done))
+                }
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                _state.value = _state.value.copy(message = userMessage(error))
+            } finally {
+                _state.value = _state.value.copy(editionBusy = false)
             }
         }
     }

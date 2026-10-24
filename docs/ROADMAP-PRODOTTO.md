@@ -37,6 +37,14 @@ Queste sette voci della revisione non sono state scelte il 23 ottobre e restano 
 
 E tre code di lavoro aperte dalle funzioni fatte: il **controllo ingressi senza rete nell'app Android** (oggi solo web); l'**import da Excel** (solo CSV, finché non serve una libreria in più); l'eventuale estensione delle **abilitazioni sponsor ai co-organizzatori** (D59 copre solo l'organizzatore principale).
 
+## Realizzato il 24 ottobre 2026 (D62)
+
+Tre strumenti per i gestori, scelti dalla lista «10 funzionalità utili»: la **risposta pubblica alle recensioni** dal pannello del locale e dell'organizzatore (con l'avviso all'autore); l'avviso **«stessa sera in zona»** mentre si sceglie l'orario di una data; le **domande a chi prenota** (fino a cinque per data, risposte visibili al gestore e cancellate dopo trenta giorni). Dettagli in [DECISIONS](DECISIONS.md) (D62).
+
+## Realizzato il 24 ottobre 2026 (D63)
+
+Quattro voci dalla lista «10 funzionalità non pianificate»: l'**avviso quando aprono le prenotazioni**, le **chiusure straordinarie e ferie** del locale (con «Chiuso fino al…» e l'avviso a chi crea una data in quei giorni), l'**avviso della prossima edizione** di un evento passato e la **lista d'ingresso stampabile** in PDF. Dettagli in [DECISIONS](DECISIONS.md) (D63).
+
 ## Obiettivo
 
 Per gli utenti, inCittà deve essere il modo più semplice per scegliere cosa fare.

@@ -13,12 +13,15 @@ use App\Enums\PriceType;
 use App\Enums\RecurrenceFrequency;
 use App\Enums\ScheduleShortcut;
 use App\Filament\Support\BeforeGoingFields;
+use App\Filament\Support\SameNightNearbyField;
+use App\Filament\Support\VenueClosureWarning;
 use App\Filament\Venue\Resources\Events\EventResource;
 use App\Filament\Venue\Support\CurrentVenue;
 use App\Filament\Venue\Support\EventFields;
 use App\Filament\Venue\Support\EventPublication;
 use App\Filament\Venue\Support\RecurrenceForm;
 use App\Models\Category;
+use App\Models\City;
 use App\Models\Event;
 use App\Models\EventOccurrence;
 use App\Rules\ExternalLinks;
@@ -250,8 +253,10 @@ class CreateEvent extends CreateRecord
                         ->label(__('manage.wizard.shortcuts'))
                         ->fullWidth(),
 
-                    EventFields::startsAt(),
-                    EventFields::endsAt(),
+                    EventFields::startsAt()->live(onBlur: true),
+                    EventFields::endsAt()->live(onBlur: true),
+                    SameNightNearbyField::make(fn (Get $get): ?array => $this->sameNightContext($get)),
+                    VenueClosureWarning::make(fn (Get $get): array => ['venue' => CurrentVenue::get(), 'start' => SameNightNearbyField::time($get('starts_at'), 'UTC')]),
 
                     Toggle::make('repeat')
                         ->label(__('manage.recurrence.toggle'))
@@ -293,6 +298,28 @@ class CreateEvent extends CreateRecord
                     EventFields::externalLinks(),
                 ]),
         ];
+    }
+
+    /**
+     * Il luogo è quello indicato a mano, se ha le coordinate, altrimenti il
+     * locale. L'orario arriva dal selettore già in UTC.
+     *
+     * @return array{city: City, lat: float, lng: float, start: CarbonImmutable, end: CarbonImmutable|null, venue_id: int, category_id: int|null}|null
+     */
+    private function sameNightContext(Get $get): ?array
+    {
+        $venue = CurrentVenue::get();
+        $start = SameNightNearbyField::time($get('starts_at'), 'UTC');
+        $lat = $get('custom_location.lat');
+        $lng = $get('custom_location.lng');
+        [$lat, $lng] = is_numeric($lat) && is_numeric($lng) ? [(float) $lat, (float) $lng] : [$venue->lat, $venue->lng];
+        if ($start === null || $venue->city === null) {
+            return null;
+        }
+
+        return ['city' => $venue->city, 'lat' => (float) $lat, 'lng' => (float) $lng, 'start' => $start,
+            'end' => SameNightNearbyField::time($get('ends_at'), 'UTC'), 'venue_id' => (int) $venue->id,
+            'category_id' => is_numeric($get('category_id')) ? (int) $get('category_id') : null];
     }
 
     protected function getCreateFormAction(): Action

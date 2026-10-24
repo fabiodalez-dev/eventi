@@ -67,6 +67,7 @@ internal fun shareLink(context: Context, chooser: String, subject: String, text:
 internal fun OpenNowLabel(venue: Venue, modifier: Modifier = Modifier) {
     val text = when (venue.openState()) {
         OpenState.UNKNOWN -> return
+        OpenState.CLOSURE -> stringResource(R.string.venue_closed_until, closureDay(venue.closureNow?.to.orEmpty()))
         OpenState.CLOSED -> stringResource(R.string.venue_closed_now)
         OpenState.OPEN -> stringResource(R.string.venue_open_now)
         OpenState.OPEN_UNTIL -> stringResource(R.string.venue_open_until, venue.openUntil.orEmpty())
@@ -75,6 +76,20 @@ internal fun OpenNowLabel(venue: Venue, modifier: Modifier = Modifier) {
     Row(modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         Icon(Icons.Outlined.Schedule, contentDescription = null, tint = if (open) Acid else Muted, modifier = Modifier.size(16.dp))
         Text(text, color = if (open) Acid else Muted, style = MaterialTheme.typography.labelLarge)
+    }
+}
+
+/** Le chiusure straordinarie in corso o in arrivo, nella scheda del locale. */
+@Composable
+internal fun VenueClosuresList(venue: Venue, modifier: Modifier = Modifier) {
+    if (venue.closures.isEmpty()) return
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(stringResource(R.string.venue_closures_title), style = MaterialTheme.typography.titleSmall)
+        venue.closures.forEach { closure ->
+            val period = if (closure.from == closure.to) stringResource(R.string.venue_closure_day, closureDay(closure.from, true))
+            else stringResource(R.string.venue_closure_range, closureDay(closure.from), closureDay(closure.to, true))
+            Text(listOfNotNull(period, closure.note?.takeIf { it.isNotBlank() }).joinToString(" · "), color = Muted)
+        }
     }
 }
 
@@ -159,6 +174,36 @@ internal fun AvailabilityAlertButton(active: Boolean, busy: Boolean, onToggle: (
     ) {
         Icon(if (active) Icons.Outlined.NotificationsActive else Icons.Outlined.NotificationsNone, contentDescription = null, modifier = Modifier.size(18.dp))
         Text(stringResource(if (active) R.string.alert_active else R.string.alert_offer), modifier = Modifier.padding(start = 8.dp))
+    }
+}
+
+/* Avvisami alla prossima edizione. */
+
+@Composable
+internal fun EditionAlertSection(active: Boolean, busy: Boolean, onToggle: () -> Unit) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(stringResource(R.string.edition_alert_lead), color = Muted)
+        OutlinedButton(onClick = onToggle, enabled = !busy, shape = ControlShape, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+            Icon(if (active) Icons.Outlined.NotificationsActive else Icons.Outlined.NotificationsNone, contentDescription = null, modifier = Modifier.size(18.dp))
+            Text(stringResource(if (active) R.string.alert_active else R.string.edition_alert_offer), modifier = Modifier.padding(start = 8.dp))
+        }
+    }
+}
+
+/* Avvisami quando aprono le prenotazioni. */
+
+@Composable
+internal fun OpeningAlertButton(opensAt: String, active: Boolean, busy: Boolean, onToggle: () -> Unit) {
+    val opens = runCatching { java.time.OffsetDateTime.parse(opensAt).atZoneSameInstant(java.time.ZoneId.systemDefault()).format(java.time.format.DateTimeFormatter.ofPattern("d MMMM, HH:mm", java.util.Locale.ITALIAN)) }.getOrDefault("")
+    Text(stringResource(R.string.opening_alert_opens, opens), color = Muted, style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = 10.dp))
+    OutlinedButton(
+        onClick = onToggle,
+        enabled = !busy,
+        shape = ControlShape,
+        modifier = Modifier.fillMaxWidth().padding(top = 6.dp).heightIn(min = 48.dp),
+    ) {
+        Icon(if (active) Icons.Outlined.NotificationsActive else Icons.Outlined.NotificationsNone, contentDescription = null, modifier = Modifier.size(18.dp))
+        Text(stringResource(if (active) R.string.alert_active else R.string.opening_alert_offer), modifier = Modifier.padding(start = 8.dp))
     }
 }
 

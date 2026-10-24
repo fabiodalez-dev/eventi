@@ -14,17 +14,25 @@ use DateTimeInterface;
  * Una chiusura che viene prima dell'apertura significa dopo mezzanotte: la
  * fascia del venerdì 21:00–02:00 tiene aperto il locale fino alle due di
  * sabato. Senza orari la risposta è `null`, non «chiuso»: non sappiamo.
+ * Il browser fa lo stesso calcolo in `resources/js/open-now.js`.
  */
 final class OpeningHours
 {
     private const DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 
     /**
+     * Una chiusura straordinaria in corso (`VenueClosures`) vale sopra gli
+     * orari: il locale è chiuso, e lo sappiamo anche senza orari.
+     *
      * @param  array<string, mixed>|null  $hours
+     * @param  array<int|string, mixed>|null  $closures
      * @return array{open: bool|null, until: string|null}
      */
-    public static function state(?array $hours, DateTimeInterface $at, string $timezone): array
+    public static function state(?array $hours, DateTimeInterface $at, string $timezone, ?array $closures = null): array
     {
+        if (VenueClosures::covering($closures, $timezone, $at) !== null) {
+            return ['open' => false, 'until' => null];
+        }
         if ($hours === null || $hours === []) {
             return ['open' => null, 'until' => null];
         }

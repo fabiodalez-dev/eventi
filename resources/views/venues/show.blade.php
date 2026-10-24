@@ -255,6 +255,23 @@
                 </section>
             @endif
 
+            @php $closures = \App\Support\VenueClosures::upcoming(is_array($venue->closures) ? $venue->closures : null, $venue->city?->timezone ?? config('app.timezone')); @endphp
+            @if ($closures !== [])
+                {{-- Le chiusure finite spariscono anche da una pagina in cache: le nasconde il browser (`open-now.js`). --}}
+                <section class="flex flex-col gap-3 bg-canvas p-5 border-2 border-line" aria-labelledby="chiusure-locale" data-venue-closures data-timezone="{{ $venue->city?->timezone ?? config('app.timezone') }}">
+                    <h2 id="chiusure-locale" class="font-display text-[clamp(1.25rem,1.8vw,1.75rem)] leading-none font-extrabold tracking-[-0.03em] uppercase">{{ __('venues.detail.closures') }}</h2>
+                    <ul class="flex flex-col gap-1 text-sm">
+                        @foreach ($closures as $closure)
+                            <li data-closure-ends="{{ $closure['to'] }}">
+                                {{ $closure['from'] === $closure['to']
+                                    ? __('venues.detail.closure_day', ['day' => \Carbon\CarbonImmutable::parse($closure['from'])->locale('it')->isoFormat('D MMMM YYYY')])
+                                    : __('venues.detail.closure_range', ['from' => \Carbon\CarbonImmutable::parse($closure['from'])->locale('it')->isoFormat('D MMMM'), 'to' => \Carbon\CarbonImmutable::parse($closure['to'])->locale('it')->isoFormat('D MMMM YYYY')]) }}@if ($closure['note']) · {{ $closure['note'] }}@endif
+                            </li>
+                        @endforeach
+                    </ul>
+                </section>
+            @endif
+
             {{-- «Come arrivare»: sta sul locale perché cambia col luogo e non
                  con la serata, ed è la domanda che si fa dopo aver deciso di
                  andarci. --}}

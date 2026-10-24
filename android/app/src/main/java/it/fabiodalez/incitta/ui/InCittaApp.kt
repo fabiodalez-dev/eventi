@@ -62,6 +62,7 @@ import it.fabiodalez.incitta.AppTab
 import it.fabiodalez.incitta.MainViewModel
 import it.fabiodalez.incitta.supportsSponsoredBanner
 import it.fabiodalez.incitta.data.offersAvailabilityAlert
+import it.fabiodalez.incitta.data.offersOpeningAlert
 import it.fabiodalez.incitta.data.offersPresence
 
 @Composable
@@ -354,6 +355,11 @@ fun InCittaApp(viewModel: MainViewModel) {
                         carpoolVerified = state.session?.user?.carpoolAccess?.eligible == true,
                         community = { id -> CommunityAttendance(id, state.session, id in state.savedIds, { communityRoute = it }, { viewModel.loginForComments(selected.slug) }, viewModel::refreshProfile) },
                         onCarpool = { id, offer -> carpoolRoute = if(offer) "create/$id" else "occurrences/$id" },
+                        editionAction = {
+                            if (selected.editionAlertOffered) {
+                                EditionAlertSection(active = selected.id in state.editionAlerts, busy = state.editionBusy) { viewModel.toggleEditionAlert(selected.id) }
+                            }
+                        },
                         dateActions = { occurrence ->
                             // 13. Su una data esaurita, l'avviso di quando torna disponibile.
                             if (occurrence.offersAvailabilityAlert(selected.tiers)) {
@@ -361,6 +367,14 @@ fun InCittaApp(viewModel: MainViewModel) {
                                     active = occurrence.occurrenceId in state.availabilityAlerts,
                                     busy = occurrence.occurrenceId in state.alertBusy,
                                 ) { viewModel.toggleAvailabilityAlert(occurrence.occurrenceId) }
+                            }
+                            // Prenotazioni non ancora aperte: l'avviso di quando aprono.
+                            if (occurrence.offersOpeningAlert()) {
+                                OpeningAlertButton(
+                                    opensAt = occurrence.bookingOpensAt.orEmpty(),
+                                    active = occurrence.occurrenceId in state.openingAlerts,
+                                    busy = occurrence.occurrenceId in state.alertBusy,
+                                ) { viewModel.toggleOpeningAlert(occurrence.occurrenceId) }
                             }
                             // 15. «Sono qui» per la data che comincia entro dodici ore o è in corso.
                             if (occurrence.offersPresence()) {

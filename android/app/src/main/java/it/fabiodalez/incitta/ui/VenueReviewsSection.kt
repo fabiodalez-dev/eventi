@@ -16,6 +16,7 @@ import it.fabiodalez.incitta.R
 import it.fabiodalez.incitta.data.VenueReviewPage
 import it.fabiodalez.incitta.data.givenBody
 import it.fabiodalez.incitta.data.givenRating
+import it.fabiodalez.incitta.data.givenReply
 import it.fabiodalez.incitta.data.requestFailureMessage
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
@@ -81,6 +82,13 @@ internal fun VenueReviewsSection(
                     review.givenRating?.let { Text("${"★".repeat(it.coerceIn(0, 5))}${"☆".repeat(5 - it.coerceIn(0, 5))}", modifier = Modifier.semanticsRating(it)) }
                     review.givenBody?.let { Text(it) }
                     review.date?.let { Text(it, style = MaterialTheme.typography.labelSmall) }
+                    review.givenReply?.let { reply ->
+                        Column(Modifier.fillMaxWidth().padding(start = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(stringResource(R.string.reviews_reply_from, reply.author), style = MaterialTheme.typography.titleSmall)
+                            Text(reply.body)
+                            reply.date?.let { Text(it, style = MaterialTheme.typography.labelSmall) }
+                        }
+                    }
                     if(reviews.verified) TextButton(onClick = { reporting = review.id }) { Text(stringResource(R.string.reviews_report)) }
                 }
             }

@@ -102,6 +102,7 @@ final class MergeEventsAction
         $this->repointUnique('ride_occupancies', 'occurrence_id', $from, $to, ['user_id', 'leg']);
         $this->repointUnique('event_collection_items', 'occurrence_id', $from, $to, ['collection_id']);
         $this->repointUnique('availability_alerts', 'occurrence_id', $from, $to, ['user_id']);
+        $this->repointUnique('booking_opening_alerts', 'occurrence_id', $from, $to, ['user_id']);
         $this->sumDaily('occurrence_views_daily', 'occurrence_id', $from, $to);
 
         $report['bookings'] += DB::table('bookings')->where('occurrence_id', $from->getKey())->update(['occurrence_id' => $to->getKey()]);
@@ -129,6 +130,7 @@ final class MergeEventsAction
     {
         $this->repointUnique('event_tag', 'event_id', $absorbed, $keep, ['tag_id']);
         $this->repointMorph('follows', 'followable', $absorbed, $keep, ['user_id']);
+        $this->repointUnique('edition_alerts', 'event_id', $absorbed, $keep, ['user_id']);
         $this->repointMorph('reports', 'reportable', $absorbed, $keep, []);
         $this->sumDaily('event_views_daily', 'event_id', $absorbed, $keep);
 

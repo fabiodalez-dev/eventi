@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Ticketing;
 
+use App\Services\Ticketing\BookingForm;
 use Illuminate\Foundation\Http\FormRequest;
 
 class ReserveRequest extends FormRequest
@@ -16,7 +17,7 @@ class ReserveRequest extends FormRequest
     /** @return array<string, string> */
     public function attributes(): array
     {
-        return ['attendees' => __('ticketing.participants'), 'attendees.*' => __('ticketing.name'), 'attendees.*.first_name' => __('ticketing.fields.first_name'), 'attendees.*.last_name' => __('ticketing.fields.last_name'), 'booker' => __('ticketing.booker'), 'accept_terms' => __('ticketing.consent'), 'request_key' => __('ticketing.request_key'), 'waitlist' => __('ticketing.waitlist')];
+        return ['attendees' => __('ticketing.participants'), 'attendees.*' => __('ticketing.name'), 'attendees.*.first_name' => __('ticketing.fields.first_name'), 'attendees.*.last_name' => __('ticketing.fields.last_name'), 'booker' => __('ticketing.booker'), 'accept_terms' => __('ticketing.consent'), 'request_key' => __('ticketing.request_key'), 'waitlist' => __('ticketing.waitlist'), 'answers' => __('ticketing.questions.title')];
     }
 
     /** @return array<string, list<string>> */
@@ -28,6 +29,8 @@ class ReserveRequest extends FormRequest
             'booker' => ['sometimes', 'array:first_name,last_name,phone,address,city,postal_code,country'],
             'request_key' => ['required', 'uuid'],
             'waitlist' => ['sometimes', 'boolean'],
+            'answers' => ['sometimes', 'array', 'max:'.BookingForm::MAX_QUESTIONS],
+            'answers.*' => ['nullable'],
             'accept_terms' => ['required', 'accepted'],
         ];
         foreach (array_slice((array) $this->input('attendees', []), 0, 20, true) as $index => $attendee) {

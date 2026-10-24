@@ -51,13 +51,21 @@ internal fun personalDestination(pathSegments: List<String>): PersonalDestinatio
 }
 
 /** 5. «Aperto adesso»: tre stati, perché un locale senza orari non è «chiuso». */
-internal enum class OpenState { OPEN, OPEN_UNTIL, CLOSED, UNKNOWN }
+internal enum class OpenState { OPEN, OPEN_UNTIL, CLOSED, CLOSURE, UNKNOWN }
 
-internal fun Venue.openState(): OpenState = when (openNow) {
-    null -> OpenState.UNKNOWN
-    false -> OpenState.CLOSED
-    true -> if (openUntil.isNullOrBlank()) OpenState.OPEN else OpenState.OPEN_UNTIL
+internal fun Venue.openState(): OpenState = when {
+    closureNow != null -> OpenState.CLOSURE
+    else -> when (openNow) {
+        null -> OpenState.UNKNOWN
+        false -> OpenState.CLOSED
+        true -> if (openUntil.isNullOrBlank()) OpenState.OPEN else OpenState.OPEN_UNTIL
+    }
 }
+
+/** Un giorno di chiusura come lo legge una persona: «3 novembre». */
+internal fun closureDay(day: String, withYear: Boolean = false): String = runCatching {
+    java.time.LocalDate.parse(day).format(java.time.format.DateTimeFormatter.ofPattern(if (withYear) "d MMMM yyyy" else "d MMMM", java.util.Locale.ITALIAN))
+}.getOrDefault(day)
 
 /** 9. I valori di `AccessibilityFeature`, nell'ordine in cui il sito li mostra. */
 internal val ACCESS_NEEDS = listOf(
@@ -134,6 +142,14 @@ internal fun Occurrence.offersAvailabilityAlert(eventTiers: List<TicketTier>, no
     if (status == "cancelled" || !isSoldOut(eventTiers)) return false
     val start = runCatching { OffsetDateTime.parse(startsAt).toInstant() }.getOrNull() ?: return false
     return start.isAfter(now)
+}
+
+/** L'avviso di apertura ha senso solo se le prenotazioni aprono più avanti e la data non è passata né annullata. */
+internal fun Occurrence.offersOpeningAlert(now: Instant = Instant.now()): Boolean {
+    if (status == "cancelled" || !bookingEnabled) return false
+    val opens = bookingOpensAt?.let { runCatching { OffsetDateTime.parse(it).toInstant() }.getOrNull() } ?: return false
+    val start = runCatching { OffsetDateTime.parse(startsAt).toInstant() }.getOrNull() ?: return false
+    return opens.isAfter(now) && start.isAfter(now)
 }
 
 /** 14. Una serata a cui si è entrati davvero. */

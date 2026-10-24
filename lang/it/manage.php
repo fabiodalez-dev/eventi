@@ -376,4 +376,18 @@ return [
             'disconnected' => 'Calendario scollegato.',
         ],
     ],
+
+    'same_night' => [
+        'title' => 'Stessa sera in zona',
+        'hint' => 'Date già pubblicate da altri, entro :km km, che si sovrappongono a questo orario. È solo un avviso: la sera la scegli tu.',
+        'distance' => 'a :m m',
+        'same_category' => 'stessa categoria (:category)',
+    ],
+    'closures' => [
+        'title' => 'Chiusure straordinarie e ferie',
+        'hint' => 'Giorni in cui il locale resta chiuso anche se l’orario direbbe aperto. Sul sito e nell’app compare «Chiuso fino al…» e chi crea una data in quei giorni riceve un avviso. Le chiusure finite si tolgono da sole.',
+        'add' => 'Aggiungi una chiusura', 'from' => 'Dal', 'to' => 'Al (compreso)', 'note' => 'Nota per il pubblico', 'note_placeholder' => 'Per esempio: ferie estive',
+        'warning' => 'Il locale risulta chiuso quel giorno',
+        'warning_body' => 'Chiusura dal :from al :to:note. Puoi salvare lo stesso, ma controlla la data o le chiusure del locale.',
+    ],
 ];

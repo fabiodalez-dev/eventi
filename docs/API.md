@@ -245,3 +245,18 @@ Forme complete in [PIANO-UTENTE-2026-10-23](PIANO-UTENTE-2026-10-23.md). In brev
 - `GET /v1/me/attended?page=N`.
 - `POST /v1/me/presence` (`occurrence_id`, `display_name`, `note`), `DELETE /v1/me/presence/{token}`.
 - `POST /v1/ticketing/{occurrence}/check-in` con `scanned_at` vale anche dopo la chiusura della porta, entro ventiquattro ore, se l'istante della scansione cade nella serata.
+
+## Aggiunte del 24 ottobre 2026 (D62)
+
+- `GET /v1/venues/{slug}/reviews` e `GET /v1/organizers/{slug}/reviews`: ogni elemento di `reviews` porta `reply` (`{author, body, date}` oppure `null`), la risposta pubblica del locale o dell'organizzatore.
+- `GET /v1/occurrences/{id}/booking` riporta `questions`: `[{id, label, type, options, required}]` con `type` fra `text`, `choice`, `yes_no`; lista vuota se il gestore non chiede nulla.
+- `POST /v1/occurrences/{id}/bookings` accetta `answers`, un oggetto per `id` della domanda: testo fino a 500 caratteri, una delle `options`, oppure `true`/`false` (o `"1"`/`"0"`) per i sì e no. Le chiavi sconosciute si ignorano; le risposte obbligatorie mancanti o fuori elenco danno 422.
+- `BookingResource` porta `answers`: `[{question, answer}]` con il testo della domanda com'era al momento della prenotazione; si svuota trenta giorni dopo la data.
+
+## Aggiunte del 24 ottobre 2026 (D63)
+
+- Le date (`OccurrenceResource`) portano `booking_opens_at`: l'apertura delle prenotazioni in ISO 8601, `null` se la biglietteria non è attiva o non c'è un'apertura fissata.
+- `GET /v1/me/opening-alerts` → `{data: [occurrence_id, …]}`; `POST /v1/me/opening-alerts/{occurrence}` → 201 (422 se l'apertura non è davanti o la biglietteria non è attiva); `DELETE /v1/me/opening-alerts/{occurrence}` → 204. Notifica `bookings_open`.
+- `GET /v1/venues/{slug}` e gli elementi di `GET /v1/venues`: `closure_now` (`{from, to, note}` oppure `null`) e `closures` (in corso e in arrivo); durante una chiusura `open_now` è `false` e `GET /v1/venues?open_now=1` esclude il locale.
+- `GET /v1/events/{slug}` porta `edition_alert_offered`. `GET /v1/me/edition-alerts` → `{data: [event_id, …]}`; `POST /v1/me/edition-alerts/{event}` → 201 (422 se l'evento ha ancora date in programma); `DELETE /v1/me/edition-alerts/{event}` → 204. Notifica `next_edition`.
+

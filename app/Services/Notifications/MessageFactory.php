@@ -77,6 +77,8 @@ final readonly class MessageFactory
             NotificationType::SavedSearchMatch => $this->savedSearch($notification, $user),
             NotificationType::SavedWeekly => $this->savedWeekly($user),
             NotificationType::TicketsAvailable => $this->ticketsAvailable($notification, $user),
+            NotificationType::BookingsOpen => $this->bookingsOpen($notification, $user),
+            NotificationType::NextEdition => $this->nextEdition($notification, $user),
 
             /* Il rapporto mensile al locale non passa da qui: lo compone il comando che lo spedisce, che ha già i numeri del mese. In coda non ci finisce mai, e se ci finisse non ci sarebbe niente da ricostruire. */
             NotificationType::VenueMonthlyReport => NotificationSkipReason::OutOfBand,
@@ -710,6 +712,46 @@ final readonly class MessageFactory
             subject: __('notifications.tickets_available.subject', ['title' => $event->title]),
             heading: $event->title,
             lines: [__('notifications.tickets_available.line', ['when' => $this->dates($user)->dayAndTime($occurrence->business_date, $occurrence->starts_at), 'where' => $this->where($occurrence)])],
+            actionLabel: __('notifications.actions.open_event'),
+            url: EventUrl::occurrence($occurrence),
+            occurrenceId: (int) $occurrence->getKey(),
+            eventId: (int) $event->getKey(),
+        );
+    }
+
+    private function nextEdition(ScheduledNotification $notification, User $user): NotificationMessage|NotificationSkipReason
+    {
+        $occurrence = $this->occurrence($notification);
+        if ($occurrence === null || $this->hasStarted($occurrence) || $occurrence->status === OccurrenceStatus::Cancelled) {
+            return NotificationSkipReason::MissingSubject;
+        }
+        $event = $occurrence->event;
+
+        return new NotificationMessage(
+            type: NotificationType::NextEdition,
+            subject: __('notifications.next_edition.subject', ['title' => $event->title]),
+            heading: $event->title,
+            lines: [__('notifications.next_edition.line', ['when' => $this->dates($user)->dayAndTime($occurrence->business_date, $occurrence->starts_at), 'where' => $this->where($occurrence)])],
+            actionLabel: __('notifications.actions.open_event'),
+            url: EventUrl::occurrence($occurrence),
+            occurrenceId: (int) $occurrence->getKey(),
+            eventId: (int) $event->getKey(),
+        );
+    }
+
+    private function bookingsOpen(ScheduledNotification $notification, User $user): NotificationMessage|NotificationSkipReason
+    {
+        $occurrence = $this->occurrence($notification);
+        if ($occurrence === null || $this->hasStarted($occurrence) || $occurrence->status === OccurrenceStatus::Cancelled) {
+            return NotificationSkipReason::MissingSubject;
+        }
+        $event = $occurrence->event;
+
+        return new NotificationMessage(
+            type: NotificationType::BookingsOpen,
+            subject: __('notifications.bookings_open.subject', ['title' => $event->title]),
+            heading: $event->title,
+            lines: [__('notifications.bookings_open.line', ['when' => $this->dates($user)->dayAndTime($occurrence->business_date, $occurrence->starts_at), 'where' => $this->where($occurrence)])],
             actionLabel: __('notifications.actions.open_event'),
             url: EventUrl::occurrence($occurrence),
             occurrenceId: (int) $occurrence->getKey(),

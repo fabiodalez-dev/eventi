@@ -80,6 +80,7 @@ final class OccurrenceResource
             'capacity_left' => $availability?->left,
             'availability' => $availability === null ? null : ['remaining' => $availability->left, 'total' => $availability->total],
             'booking_enabled' => (bool) ($occurrence->booking_enabled && $occurrence->effectiveVenue()?->ticketing_enabled),
+            'booking_opens_at' => $occurrence->booking_enabled && $occurrence->effectiveVenue()?->ticketing_enabled ? $occurrence->booking_opens_at?->toIso8601String() : null,
             'title' => (string) $event->title,
             'subtitle' => $event->subtitle,
             'short_description' => $event->short_description,

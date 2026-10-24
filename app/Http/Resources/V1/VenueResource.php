@@ -9,6 +9,7 @@ use App\Services\Seo\EditorialContent;
 use App\Support\Api\ApiDate;
 use App\Support\Description;
 use App\Support\OpeningHours;
+use App\Support\VenueClosures;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
@@ -66,7 +67,10 @@ final class VenueResource
             'opening_hours' => $venue->opening_hours,
             ...(static function (array $state): array {
                 return ['open_now' => $state['open'], 'open_until' => $state['until']];
-            })(OpeningHours::state(is_array($venue->opening_hours) ? $venue->opening_hours : null, now(), $timezone)),
+            })(OpeningHours::state(is_array($venue->opening_hours) ? $venue->opening_hours : null, now(), $timezone, is_array($venue->closures) ? $venue->closures : null)),
+            // Chiusure straordinarie: quella in corso e quelle in arrivo, giorni nel fuso della città.
+            'closure_now' => VenueClosures::covering(is_array($venue->closures) ? $venue->closures : null, $timezone),
+            'closures' => VenueClosures::upcoming(is_array($venue->closures) ? $venue->closures : null, $timezone),
             // «Come arrivare»: lista di `{mode, text}`, dove `mode` è un
             // valore chiuso (`transit_mode` di §13.6) e non testo libero.
             'transit' => $venue->transit->toArray(),

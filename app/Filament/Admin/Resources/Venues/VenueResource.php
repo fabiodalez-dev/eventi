@@ -25,6 +25,7 @@ use App\Filament\Support\EditorialFields;
 use App\Filament\Support\FactsField;
 use App\Filament\Support\ImageUpload;
 use App\Filament\Support\TransitField;
+use App\Filament\Support\VenueClosuresField;
 use App\Filament\Support\VenueGeographyFields;
 use App\Models\City;
 use App\Models\Venue;
@@ -451,6 +452,8 @@ class VenueResource extends Resource
                                                     ->seconds(false)
                                                     ->required(),
                                             ]),
+
+                                        VenueClosuresField::make(),
                                     ]),
 
                                 /*
