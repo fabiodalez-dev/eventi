@@ -9,6 +9,7 @@ use App\Enums\OccurrenceStatus;
 use App\Models\BookingOpeningAlert;
 use App\Models\EventOccurrence;
 use App\Models\User;
+use App\Services\Concerns\RemembersAlertIds;
 use App\Services\Notifications\NotificationScheduler;
 use Carbon\CarbonImmutable;
 use Illuminate\Validation\ValidationException;
@@ -23,6 +24,8 @@ use Illuminate\Validation\ValidationException;
  */
 final class BookingOpeningAlerts
 {
+    use RemembersAlertIds;
+
     public function __construct(private readonly NotificationScheduler $scheduler, private readonly TicketingService $ticketing) {}
 
     public function opensLater(EventOccurrence $date): bool
@@ -38,16 +41,13 @@ final class BookingOpeningAlerts
             throw ValidationException::withMessages(['occurrence' => __('ticketing.opening.not_pending')]);
         }
         BookingOpeningAlert::query()->firstOrCreate(['user_id' => $user->getKey(), 'occurrence_id' => $date->getKey()]);
+        $this->forgetAlertIds($user);
     }
 
     public function unsubscribe(User $user, int $occurrenceId): void
     {
         BookingOpeningAlert::query()->where('user_id', $user->getKey())->where('occurrence_id', $occurrenceId)->delete();
-    }
-
-    public function active(User $user, EventOccurrence $date): bool
-    {
-        return BookingOpeningAlert::query()->where('user_id', $user->getKey())->where('occurrence_id', $date->getKey())->exists();
+        $this->forgetAlertIds($user);
     }
 
     /** @return list<int> */

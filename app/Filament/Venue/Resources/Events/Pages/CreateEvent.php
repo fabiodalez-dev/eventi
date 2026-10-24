@@ -21,7 +21,6 @@ use App\Filament\Venue\Support\EventFields;
 use App\Filament\Venue\Support\EventPublication;
 use App\Filament\Venue\Support\RecurrenceForm;
 use App\Models\Category;
-use App\Models\City;
 use App\Models\Event;
 use App\Models\EventOccurrence;
 use App\Rules\ExternalLinks;
@@ -305,22 +304,13 @@ class CreateEvent extends CreateRecord
      * Il luogo è quello indicato a mano, se ha le coordinate, altrimenti il
      * locale. L'orario arriva dal selettore già in UTC.
      *
-     * @return array{city: City, lat: float, lng: float, start: CarbonImmutable, end: CarbonImmutable|null, venue_id: int, category_id: int|null}|null
+     * @return array<string, mixed>|null
      */
     private function sameNightContext(Get $get): ?array
     {
         $venue = CurrentVenue::get();
-        $start = SameNightNearbyField::time($get('starts_at'), 'UTC');
-        $lat = $get('custom_location.lat');
-        $lng = $get('custom_location.lng');
-        [$lat, $lng] = is_numeric($lat) && is_numeric($lng) ? [(float) $lat, (float) $lng] : [$venue->lat, $venue->lng];
-        if ($start === null || $venue->city === null) {
-            return null;
-        }
 
-        return ['city' => $venue->city, 'lat' => (float) $lat, 'lng' => (float) $lng, 'start' => $start,
-            'end' => SameNightNearbyField::time($get('ends_at'), 'UTC'), 'venue_id' => (int) $venue->id,
-            'category_id' => is_numeric($get('category_id')) ? (int) $get('category_id') : null];
+        return SameNightNearbyField::context($venue->city, [(array) $get('custom_location'), $venue], $get('starts_at'), $get('ends_at'), 'UTC', (int) $venue->id, $get('category_id'));
     }
 
     protected function getCreateFormAction(): Action

@@ -9,12 +9,10 @@ use App\Filament\Support\OccurrenceAnalyticsFields;
 use App\Filament\Support\OccurrenceDecisionFields;
 use App\Filament\Support\SameNightNearbyField;
 use App\Filament\Support\VenueClosureWarning;
-use App\Models\City;
 use App\Models\Event;
 use App\Models\EventOccurrence;
 use App\Models\Venue;
 use App\Services\Analytics\OccurrenceAnalytics;
-use Carbon\CarbonImmutable;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Actions\EditAction;
@@ -66,29 +64,13 @@ class DatesRelationManager extends RelationManager
      * Il luogo è il locale scelto per questa data, poi l'indirizzo a mano
      * dell'evento, poi il locale principale. L'orario arriva in UTC.
      *
-     * @return array{city: City, lat: float, lng: float, start: CarbonImmutable, end: CarbonImmutable|null, category_id: int|null, event_id: int}|null
+     * @return array<string, mixed>|null
      */
     private function sameNightContext(Get $get): ?array
     {
         $event = $this->eventRecord();
-        $start = SameNightNearbyField::time($get('starts_at'), 'UTC');
-        if ($start === null || $event->city === null) {
-            return null;
-        }
-        $venue = Venue::find($get('venue_id'));
-        $custom = $event->custom_location ?? [];
-        [$lat, $lng] = match (true) {
-            $venue !== null => [$venue->lat, $venue->lng],
-            is_numeric($custom['lat'] ?? null) && is_numeric($custom['lng'] ?? null) => [$custom['lat'], $custom['lng']],
-            default => [$event->venue?->lat, $event->venue?->lng],
-        };
-        if ($lat === null || $lng === null) {
-            return null;
-        }
 
-        return ['city' => $event->city, 'lat' => (float) $lat, 'lng' => (float) $lng, 'start' => $start,
-            'end' => SameNightNearbyField::time($get('ends_at'), 'UTC'),
-            'category_id' => (int) $event->category_id, 'event_id' => (int) $event->id];
+        return SameNightNearbyField::context($event->city, [Venue::find($get('venue_id')), $event->custom_location ?? [], $event->venue], $get('starts_at'), $get('ends_at'), 'UTC', categoryId: $event->category_id, eventId: (int) $event->id);
     }
 
     private function eventRecord(): Event

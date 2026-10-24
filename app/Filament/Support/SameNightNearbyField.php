@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Support;
 
 use App\Models\City;
+use App\Models\Venue;
 use App\Services\Events\SameNightNearby;
 use Carbon\CarbonImmutable;
 use Closure;
@@ -45,6 +46,31 @@ final class SameNightNearbyField
             ->html()
             ->hidden(fn (Get $get): bool => self::items($context($get)) === [])
             ->columnSpanFull();
+    }
+
+    /**
+     * Il contesto che serve a `make()`, uguale per tutti i moduli: ciascuno
+     * passa i luoghi candidati in ordine di preferenza (un locale, oppure un
+     * indirizzo a mano con `lat`/`lng`) e vince il primo con le coordinate.
+     *
+     * @param  list<Venue|array<string, mixed>|null>  $places
+     * @return array{city: City, lat: float, lng: float, start: CarbonImmutable, end: CarbonImmutable|null, venue_id: int|null, category_id: int|null, event_id: int|null}|null
+     */
+    public static function context(?City $city, array $places, mixed $start, mixed $end, string $timezone, ?int $venueId = null, mixed $categoryId = null, ?int $eventId = null): ?array
+    {
+        $begins = self::time($start, $timezone);
+        if ($city === null || $begins === null) {
+            return null;
+        }
+        foreach ($places as $place) {
+            [$lat, $lng] = $place instanceof Venue ? [$place->lat, $place->lng] : [$place['lat'] ?? null, $place['lng'] ?? null];
+            if (is_numeric($lat) && is_numeric($lng)) {
+                return ['city' => $city, 'lat' => (float) $lat, 'lng' => (float) $lng, 'start' => $begins, 'end' => self::time($end, $timezone),
+                    'venue_id' => $venueId, 'category_id' => is_numeric($categoryId) ? (int) $categoryId : null, 'event_id' => $eventId];
+            }
+        }
+
+        return null;
     }
 
     /**

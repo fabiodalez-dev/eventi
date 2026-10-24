@@ -15,7 +15,6 @@ use App\Models\City;
 use App\Models\Event;
 use App\Models\Organizer;
 use App\Models\Venue;
-use Carbon\CarbonImmutable;
 use Filament\Actions\EditAction;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\DateTimePicker;
@@ -99,27 +98,13 @@ class EventResource extends Resource
      * scelta (vedi `CreateEvent::afterCreate`); il luogo è l'indirizzo a mano,
      * se ha le coordinate, altrimenti il locale principale.
      *
-     * @return array{city: City, lat: float, lng: float, start: CarbonImmutable, end: CarbonImmutable|null, category_id: int|null}|null
+     * @return array<string, mixed>|null
      */
     private static function sameNightContext(Get $get): ?array
     {
         $city = City::find($get('city_id'));
-        $start = $city === null ? null : SameNightNearbyField::time($get('starts_at'), $city->timezone);
-        if ($city === null || $start === null) {
-            return null;
-        }
-        [$lat, $lng] = [$get('custom_location.lat'), $get('custom_location.lng')];
-        if (! is_numeric($lat) || ! is_numeric($lng)) {
-            $venue = Venue::find($get('venue_id'));
-            [$lat, $lng] = [$venue?->lat, $venue?->lng];
-        }
-        if ($lat === null || $lng === null) {
-            return null;
-        }
 
-        return ['city' => $city, 'lat' => (float) $lat, 'lng' => (float) $lng, 'start' => $start,
-            'end' => SameNightNearbyField::time($get('ends_at'), $city->timezone),
-            'category_id' => is_numeric($get('category_id')) ? (int) $get('category_id') : null];
+        return SameNightNearbyField::context($city, [(array) $get('custom_location'), Venue::find($get('venue_id'))], $get('starts_at'), $get('ends_at'), $city->timezone ?? 'UTC', categoryId: $get('category_id'));
     }
 
     public static function getEloquentQuery(): Builder

@@ -67,6 +67,7 @@ use App\Policies\TicketTierPolicy;
 use App\Policies\UserPolicy;
 use App\Policies\VenueApplicationPolicy;
 use App\Policies\VenuePolicy;
+use App\Services\Events\EditionAlerts;
 use App\Services\Geo\AddressGeocoder;
 use App\Services\Geo\GeoQueryInterface;
 use App\Services\Geo\MariaDbGeoQuery;
@@ -80,6 +81,8 @@ use App\Services\Installer\InstallLock;
 use App\Services\Installer\RequirementsChecker;
 use App\Services\Sponsorship\Payment\PaymentGateway;
 use App\Services\Sponsorship\Payment\StripeGateway;
+use App\Services\Ticketing\AvailabilityAlerts;
+use App\Services\Ticketing\BookingOpeningAlerts;
 use App\Support\Api\MobileOpenApiDocument;
 use App\Support\Consent;
 use App\Support\Csp;
@@ -116,6 +119,11 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        // Gli avvisi di una volta ricordano gli id della persona per la sola richiesta (`RemembersAlertIds`).
+        $this->app->scoped(AvailabilityAlerts::class);
+        $this->app->scoped(BookingOpeningAlerts::class);
+        $this->app->scoped(EditionAlerts::class);
+
         /* Telescope e' una dipendenza di sviluppo: in produzione, dove
            Composer installa con --no-dev, questa condizione evita qualunque
            riferimento a classi non presenti. */

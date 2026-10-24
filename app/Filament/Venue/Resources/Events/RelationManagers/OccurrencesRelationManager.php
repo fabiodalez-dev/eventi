@@ -15,11 +15,9 @@ use App\Filament\Support\SameNightNearbyField;
 use App\Filament\Support\VenueClosureWarning;
 use App\Filament\Venue\Support\CurrentVenue;
 use App\Models\Booking;
-use App\Models\City;
 use App\Models\Event;
 use App\Models\EventOccurrence;
 use App\Services\Analytics\OccurrenceAnalytics;
-use Carbon\CarbonImmutable;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
@@ -273,21 +271,16 @@ class OccurrencesRelationManager extends RelationManager
      * Il luogo della data è quello dell'evento (indirizzo a mano con le sue
      * coordinate, oppure il locale); l'orario arriva dal selettore in UTC.
      *
-     * @return array{city: City, lat: float, lng: float, start: CarbonImmutable, end: CarbonImmutable|null, venue_id: int, category_id: int|null, event_id: int}|null
+     * @return array<string, mixed>|null
      */
     private function sameNightContext(Get $get): ?array
     {
         $event = $this->getOwnerRecord();
-        $venue = CurrentVenue::get();
-        $start = SameNightNearbyField::time($get('starts_at'), 'UTC');
-        if (! $event instanceof Event || $start === null || $event->city === null) {
+        if (! $event instanceof Event) {
             return null;
         }
-        $custom = $event->custom_location ?? [];
-        [$lat, $lng] = is_numeric($custom['lat'] ?? null) && is_numeric($custom['lng'] ?? null) ? [$custom['lat'], $custom['lng']] : [$venue->lat, $venue->lng];
+        $venue = CurrentVenue::get();
 
-        return ['city' => $event->city, 'lat' => (float) $lat, 'lng' => (float) $lng, 'start' => $start,
-            'end' => SameNightNearbyField::time($get('ends_at'), 'UTC'), 'venue_id' => (int) $venue->id,
-            'category_id' => (int) $event->category_id, 'event_id' => (int) $event->id];
+        return SameNightNearbyField::context($event->city, [$event->custom_location ?? [], $venue], $get('starts_at'), $get('ends_at'), 'UTC', (int) $venue->id, $event->category_id, (int) $event->id);
     }
 }

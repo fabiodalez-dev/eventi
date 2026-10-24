@@ -4,11 +4,8 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Web\Account\AppearanceController;
 use App\Http\Controllers\Web\Account\AttendedController;
-use App\Http\Controllers\Web\Account\AvailabilityAlertController;
-use App\Http\Controllers\Web\Account\BookingOpeningAlertController;
 use App\Http\Controllers\Web\Account\CollectionController;
 use App\Http\Controllers\Web\Account\ContentPreferencesController;
-use App\Http\Controllers\Web\Account\EditionAlertController;
 use App\Http\Controllers\Web\Account\EmailVerificationController;
 use App\Http\Controllers\Web\Account\FeedController;
 use App\Http\Controllers\Web\Account\FollowController;
@@ -16,6 +13,7 @@ use App\Http\Controllers\Web\Account\LoginController;
 use App\Http\Controllers\Web\Account\MagicLinkController;
 use App\Http\Controllers\Web\Account\NotificationInterestsController;
 use App\Http\Controllers\Web\Account\NotificationSettingsController;
+use App\Http\Controllers\Web\Account\OneTimeAlertController;
 use App\Http\Controllers\Web\Account\PasswordResetController;
 use App\Http\Controllers\Web\Account\ProfileController;
 use App\Http\Controllers\Web\Account\PushSubscriptionController;
@@ -166,12 +164,10 @@ Route::middleware(['auth', RequireConfirmedAccount::class])->group(function (): 
     });
     Route::get('/profilo/interessi', [ContentPreferencesController::class, 'index'])->name('account.content-preferences');
     Route::patch('/profilo/interessi', [ContentPreferencesController::class, 'update'])->name('account.content-preferences.update');
-    Route::post('/avvisi-disponibilita/{occurrence}', [AvailabilityAlertController::class, 'store'])->whereNumber('occurrence')->middleware('throttle:30,1,availability-alerts')->name('account.availability-alerts.store');
-    Route::delete('/avvisi-disponibilita/{occurrence}', [AvailabilityAlertController::class, 'destroy'])->whereNumber('occurrence')->name('account.availability-alerts.destroy');
-    Route::post('/avvisi-apertura/{occurrence}', [BookingOpeningAlertController::class, 'store'])->whereNumber('occurrence')->middleware('throttle:30,1,opening-alerts')->name('account.opening-alerts.store');
-    Route::delete('/avvisi-apertura/{occurrence}', [BookingOpeningAlertController::class, 'destroy'])->whereNumber('occurrence')->name('account.opening-alerts.destroy');
-    Route::post('/avvisi-edizione/{event}', [EditionAlertController::class, 'store'])->whereNumber('event')->middleware('throttle:30,1,edition-alerts')->name('account.edition-alerts.store');
-    Route::delete('/avvisi-edizione/{event}', [EditionAlertController::class, 'destroy'])->whereNumber('event')->name('account.edition-alerts.destroy');
+    foreach (['disponibilita' => ['availability', 'availability-alerts'], 'apertura' => ['opening', 'opening-alerts'], 'edizione' => ['edition', 'edition-alerts']] as $path => [$kind, $name]) {
+        Route::post('/avvisi-'.$path.'/{subject}', [OneTimeAlertController::class, 'store'])->defaults('kind', $kind)->whereNumber('subject')->middleware('throttle:30,1,'.$name)->name('account.'.$name.'.store');
+        Route::delete('/avvisi-'.$path.'/{subject}', [OneTimeAlertController::class, 'destroy'])->defaults('kind', $kind)->whereNumber('subject')->name('account.'.$name.'.destroy');
+    }
     Route::post('/locali-nascosti/{venue}', [ContentPreferencesController::class, 'hideVenue'])->whereNumber('venue')->middleware('throttle:30,1,hidden-venues')->name('account.hidden-venues.store');
     Route::delete('/locali-nascosti/{venue}', [ContentPreferencesController::class, 'showVenue'])->whereNumber('venue')->middleware('throttle:30,1,hidden-venues')->name('account.hidden-venues.destroy');
     Route::get('/notifiche/interessi', [NotificationInterestsController::class, 'index'])->name('account.notifications.interests');

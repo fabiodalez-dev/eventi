@@ -11,6 +11,7 @@ use App\Models\Event;
 use App\Models\EventOccurrence;
 use App\Models\User;
 use App\Queries\EventOccurrenceQuery;
+use App\Services\Concerns\RemembersAlertIds;
 use App\Services\Notifications\NotificationScheduler;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Str;
@@ -35,6 +36,8 @@ use Illuminate\Validation\ValidationException;
  */
 final class EditionAlerts
 {
+    use RemembersAlertIds;
+
     public function __construct(private readonly NotificationScheduler $scheduler) {}
 
     public function offered(Event $event): bool
@@ -53,16 +56,13 @@ final class EditionAlerts
             throw ValidationException::withMessages(['event' => __('events.edition_alert.not_offered')]);
         }
         EditionAlert::query()->firstOrCreate(['user_id' => $user->getKey(), 'event_id' => $event->getKey()]);
+        $this->forgetAlertIds($user);
     }
 
     public function unsubscribe(User $user, int $eventId): void
     {
         EditionAlert::query()->where('user_id', $user->getKey())->where('event_id', $eventId)->delete();
-    }
-
-    public function active(User $user, Event $event): bool
-    {
-        return EditionAlert::query()->where('user_id', $user->getKey())->where('event_id', $event->getKey())->exists();
+        $this->forgetAlertIds($user);
     }
 
     /** @return list<int> */

@@ -6,7 +6,9 @@ use App\Models\BookingOpeningAlert;
 use App\Models\ScheduledNotification;
 use App\Models\User;
 use App\Services\Notifications\MessageFactory;
+use App\Services\Ticketing\BookingOpeningAlerts;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\DB;
 
 afterEach(fn () => Carbon\Carbon::setTestNow());
 
@@ -78,4 +80,19 @@ it('closes requests for dates cancelled or past before the bookings ever opened'
     $this->travelTo(CarbonImmutable::parse('2026-10-31 09:00', 'UTC'));
     $this->artisan('ticketing:announce-openings')->assertSuccessful();
     expect(BookingOpeningAlert::count())->toBe(0)->and(ScheduledNotification::query()->ofType('bookings_open')->count())->toBe(0);
+});
+
+it('reads the alert ids once per request and forgets them when the person changes an alert', function (): void {
+    $alerts = app(BookingOpeningAlerts::class);
+    expect(app(BookingOpeningAlerts::class))->toBe($alerts)
+        ->and($alerts->has($this->user, $this->date->id))->toBeFalse();
+
+    DB::enableQueryLog();
+    $alerts->has($this->user, $this->date->id);
+    expect(DB::getQueryLog())->toBe([]);
+
+    $alerts->subscribe($this->user, $this->date);
+    expect($alerts->has($this->user, $this->date->id))->toBeTrue();
+    $alerts->unsubscribe($this->user, $this->date->id);
+    expect($alerts->has($this->user, $this->date->id))->toBeFalse();
 });
