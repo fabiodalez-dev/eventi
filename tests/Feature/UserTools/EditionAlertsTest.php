@@ -29,7 +29,10 @@ it('normalizes titles so that yearly editions match and different events do not'
     expect(EditionAlerts::titleKey('Sagra del Bisi 2026 – 12ª edizione'))->toBe('sagra del bisi')
         ->and(EditionAlerts::titleKey('SAGRA DEL BISI 2027'))->toBe('sagra del bisi')
         ->and(EditionAlerts::titleKey('Festival Jazz – XIII edizione'))->toBe('festival jazz')
-        ->and(EditionAlerts::titleKey('Sagra della Polenta 2027'))->not->toBe('sagra del bisi');
+        ->and(EditionAlerts::titleKey('Sagra della Polenta 2027'))->not->toBe('sagra del bisi')
+        ->and(EditionAlerts::titleKey('Rassegna, edizione n. 4'))->toBe('rassegna')
+        ->and(EditionAlerts::titleKey('Notte Bianca 2'))->not->toBe(EditionAlerts::titleKey('Notte Bianca 3'))
+        ->and(EditionAlerts::titleKey('Festa dei 100 anni'))->toBe('festa dei 100 anni');
 });
 
 it('offers the alert only on events without upcoming dates, on the site and the API', function (): void {
@@ -79,4 +82,12 @@ it('moves the alert to the surviving event when duplicates are merged', function
     $keep = Event::factory()->create(['city_id' => $this->city->id, 'category_id' => $this->category->id, 'status' => EventStatus::Published, 'published_at' => now()]);
     app(MergeEventsAction::class)->execute($keep, $this->past->event, User::factory()->create());
     expect(EditionAlert::sole()->event_id)->toBe($keep->id);
+});
+
+it('does not offer the alert when the upcoming dates are only hidden by the viewer preferences', function (): void {
+    $running = occurrenceAtLocal($this->city, $this->category, '2026-11-10 18:00', null, event: ['title' => 'Rassegna in corso']);
+    $this->actingAs($this->user)->postJson('/api/v1/me/hidden-venues/'.$running->event->venue_id)->assertNoContent();
+
+    $this->actingAs($this->user)->get(route('events.show', $running->event))->assertOk()->assertDontSee(__('events.edition_alert.subscribe'));
+    $this->actingAs($this->user)->postJson('/api/v1/me/edition-alerts/'.$running->event_id)->assertUnprocessable();
 });

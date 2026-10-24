@@ -83,7 +83,7 @@ class OccurrencesRelationManager extends RelationManager
                     ->timezone($timezone),
 
                 SameNightNearbyField::make(fn (Get $get): ?array => $this->sameNightContext($get)),
-                VenueClosureWarning::make(fn (Get $get): array => ['venue' => CurrentVenue::get(), 'start' => SameNightNearbyField::time($get('starts_at'), 'UTC')]),
+                VenueClosureWarning::make(fn (Get $get): array => ['venue' => filled($this->getOwnerRecord()->getAttribute('custom_location')['address'] ?? null) ? null : CurrentVenue::get(), 'start' => SameNightNearbyField::time($get('starts_at'), 'UTC')]),
 
                 /*
                  * Quanti posti restano, e su quanti. Il totale si chiede solo

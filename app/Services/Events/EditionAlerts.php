@@ -43,7 +43,8 @@ final class EditionAlerts
             return false;
         }
 
-        return EventOccurrenceQuery::archiveFor($event->city)->forEvent($event)->upcoming()->availableForDiscovery()->count() === 0;
+        // Senza le preferenze di chi guarda: una data in una categoria che ha nascosto è comunque una data in programma.
+        return EventOccurrenceQuery::managementFor($event)->upcoming()->availableForDiscovery()->count() === 0;
     }
 
     public function subscribe(User $user, Event $event): void
@@ -71,14 +72,17 @@ final class EditionAlerts
             ->pluck('event_id')->map(static fn (mixed $id): int => (int) $id)->all();
     }
 
-    /** Il titolo senza anni, numeri d'edizione, accenti e punteggiatura. */
+    /**
+     * Il titolo senza anni, numero d'edizione, accenti e punteggiatura. Gli
+     * altri numeri restano: «Notte Bianca 2» e «Notte Bianca 3» sono due cose.
+     */
     public static function titleKey(string $title): string
     {
         $key = Str::lower(Str::ascii($title));
         $key = (string) preg_replace('/\b(19|20)\d{2}\b/', ' ', $key);
-        $key = (string) preg_replace('/\b\d+\s*(a|o|st|nd|rd|th)?\b/', ' ', $key);
-        $key = (string) preg_replace('/\b[ivxlc]+\b(?=\s*(edizione|edition)\b)/', ' ', $key);
-        $key = (string) preg_replace('/\b(edizione|edition|ed)\b/', ' ', $key);
+        $key = (string) preg_replace('/\b(\d+\s*(a|o|st|nd|rd|th)?|[ivxlc]+)\s+(edizione|edition)\b/', ' ', $key);
+        $key = (string) preg_replace('/\b(edizione|edition)\s+(n\.?\s*)?(\d+|[ivxlc]+)\b/', ' ', $key);
+        $key = (string) preg_replace('/\b(edizione|edition)\b/', ' ', $key);
         $key = (string) preg_replace('/[^a-z0-9]+/', ' ', $key);
 
         return trim((string) preg_replace('/\s+/', ' ', $key));

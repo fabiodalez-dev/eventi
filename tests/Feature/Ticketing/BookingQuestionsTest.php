@@ -93,7 +93,8 @@ it('refuses missing required answers and choices outside the list', function (ar
 it('takes answers through the API booking endpoint', function (): void {
     [$size, , $bike] = shirtQuestions($this);
     $this->actingAs($this->user)->postJson('/api/v1/occurrences/'.$this->date->id.'/bookings', [
-        'attendees' => ['Ada Rossi'], 'request_key' => (string) Str::uuid(), 'accept_terms' => true, 'answers' => [$size['id'] => 'L', $bike['id'] => true],
+        'attendees' => ['Ada Rossi'], 'request_key' => (string) Str::uuid(), 'accept_terms' => true,
+        'answers' => [$size['id'] => 'L', $bike['id'] => true, 'qaaaaaaa1' => 'x', 'qaaaaaaa2' => 'x', 'qaaaaaaa3' => 'x', 'qaaaaaaa4' => 'x'],
     ])->assertCreated()->assertJsonPath('data.answers.1', ['question' => 'Vieni in bicicletta?', 'answer' => 'Sì']);
 });
 

@@ -67,6 +67,8 @@ it('saves closures from the venue panel and warns when a new date falls inside o
         ->fillForm(['title' => 'Cena', 'starts_at' => CarbonImmutable::parse('2026-12-31 20:00', 'Europe/Rome')->utc()->format('Y-m-d H:i:s')])
         ->assertSee(__('manage.closures.warning'))->assertSee('24/12/2026')
         ->fillForm(['starts_at' => CarbonImmutable::parse('2027-01-10 20:00', 'Europe/Rome')->utc()->format('Y-m-d H:i:s')])
+        ->assertDontSee(__('manage.closures.warning'))
+        ->fillForm(['starts_at' => CarbonImmutable::parse('2026-12-31 20:00', 'Europe/Rome')->utc()->format('Y-m-d H:i:s'), 'custom_location' => ['address' => 'Piazza dei Signori, Padova']])
         ->assertDontSee(__('manage.closures.warning'));
 
     Livewire::test(VenueProfile::class)

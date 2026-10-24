@@ -22,8 +22,16 @@ use Filament\Schemas\Components\Utilities\Get;
  */
 final class SameNightNearbyField
 {
-    /** @var array<string, list<array{title: string, place: string, time: string, category: string, same_category: bool, distance_m: int, url: string}>> */
+    /**
+     * Il risultato vale per una sola richiesta: `state()` e `hidden()` lo
+     * chiedono entrambi, ma in un processo che resta acceso non deve
+     * sopravvivere alle date pubblicate o annullate nel frattempo.
+     *
+     * @var array<string, list<array{title: string, place: string, time: string, category: string, same_category: bool, distance_m: int, url: string}>>
+     */
     private static array $memo = [];
+
+    private static ?int $memoRequest = null;
 
     /**
      * @param  Closure(Get): (array{city: City, lat: float, lng: float, start: CarbonImmutable, end: CarbonImmutable|null, venue_id?: int|null, category_id?: int|null, event_id?: int|null}|null)  $context
@@ -63,6 +71,11 @@ final class SameNightNearbyField
     {
         if ($context === null) {
             return [];
+        }
+        $request = app()->bound('request') ? spl_object_id(app('request')) : 0;
+        if (self::$memoRequest !== $request) {
+            self::$memo = [];
+            self::$memoRequest = $request;
         }
         $key = implode('|', [$context['city']->getKey(), $context['lat'], $context['lng'], $context['start']->toIso8601String(),
             $context['end']?->toIso8601String(), $context['venue_id'] ?? '', $context['category_id'] ?? '', $context['event_id'] ?? '']);

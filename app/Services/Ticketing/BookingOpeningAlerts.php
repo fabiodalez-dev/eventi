@@ -63,7 +63,9 @@ final class BookingOpeningAlerts
         $now = CarbonImmutable::now();
         $sent = 0;
         $dates = EventOccurrence::query()->whereIn('id', BookingOpeningAlert::query()->select('occurrence_id'))
-            ->where(fn ($query) => $query->whereNull('booking_opens_at')->orWhere('booking_opens_at', '<=', $now))
+            // Aperte, oppure finite o annullate prima di aprire: anche quelle richieste vanno chiuse.
+            ->where(fn ($query) => $query->whereNull('booking_opens_at')->orWhere('booking_opens_at', '<=', $now)
+                ->orWhere('starts_at', '<=', $now)->orWhere('status', OccurrenceStatus::Cancelled->value))
             ->with('event.venue', 'venue')->get();
         foreach ($dates as $date) {
             $open = $this->ticketing->isOpen($date);

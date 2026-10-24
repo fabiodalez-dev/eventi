@@ -81,7 +81,7 @@ class EventResource extends Resource
                 DateTimePicker::make('starts_at')->label(__('facebook_import.starts_at'))->seconds(false)->requiredWith('ends_at')->dehydrated(false)->live(onBlur: true),
                 DateTimePicker::make('ends_at')->label(__('facebook_import.ends_at'))->seconds(false)->after('starts_at')->dehydrated(false)->live(onBlur: true),
                 SameNightNearbyField::make(fn (Get $get): ?array => self::sameNightContext($get)),
-                VenueClosureWarning::make(fn (Get $get): array => ['venue' => Venue::find($get('venue_id')), 'start' => ($city = City::find($get('city_id'))) === null ? null : SameNightNearbyField::time($get('starts_at'), $city->timezone)]),
+                VenueClosureWarning::make(fn (Get $get): array => ['venue' => filled($get('custom_location.address')) ? null : Venue::find($get('venue_id')), 'start' => ($city = City::find($get('city_id'))) === null ? null : SameNightNearbyField::time($get('starts_at'), $city->timezone)]),
             ]),
             Section::make(__('facebook_import.location'))->description(__('facebook_import.organizer_location'))->visibleOn('create')->schema([
                 TextInput::make('custom_location.name')->label(__('facebook_import.place_name'))->maxLength(255),

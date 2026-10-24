@@ -42,7 +42,7 @@ class DatesRelationManager extends RelationManager
             Toggle::make('is_all_day')->label('Tutto il giorno'),
             Select::make('venue_id')->label('Locale di questa data')->relationship('venue', 'name', fn ($query) => $query->approved())->searchable()->live()->placeholder('Usa il locale principale'),
             SameNightNearbyField::make(fn (Get $get): ?array => $this->sameNightContext($get)),
-            VenueClosureWarning::make(fn (Get $get): array => ['venue' => Venue::find($get('venue_id')) ?? $this->eventRecord()->venue, 'start' => SameNightNearbyField::time($get('starts_at'), 'UTC')]),
+            VenueClosureWarning::make(fn (Get $get): array => ['venue' => Venue::find($get('venue_id')) ?? (filled($this->eventRecord()->custom_location['address'] ?? null) ? null : $this->eventRecord()->venue), 'start' => SameNightNearbyField::time($get('starts_at'), 'UTC')]),
             Select::make('status')->label('Stato')->options(OccurrenceStatus::options())->required()->default('scheduled'),
             DescriptionEditor::make('status_note')->label('Avviso al pubblico')->maxLength(2000),
         ]);

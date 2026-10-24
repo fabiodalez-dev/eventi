@@ -62,3 +62,20 @@ it('keeps waiting while bookings are switched off and drops the request for a ca
     $this->artisan('ticketing:announce-openings')->assertSuccessful();
     expect(BookingOpeningAlert::count())->toBe(0)->and(ScheduledNotification::query()->ofType('bookings_open')->count())->toBe(0);
 });
+
+it('closes requests for dates cancelled or past before the bookings ever opened', function (): void {
+    $later = occurrenceAtLocal($this->city, $this->category, '2026-10-30 21:00', null, [
+        'booking_enabled' => true, 'booking_opens_at' => localInstant($this->city, '2026-10-29 10:00')->utc(),
+    ], venue: $this->date->event->venue);
+    $this->actingAs($this->user)->postJson('/api/v1/me/opening-alerts/'.$this->date->id)->assertCreated();
+    $this->actingAs($this->user)->postJson('/api/v1/me/opening-alerts/'.$later->id)->assertCreated();
+
+    $this->date->update(['status' => 'cancelled']);
+    $later->update(['booking_opens_at' => localInstant($this->city, '2026-11-05 10:00')->utc()]);
+    $this->artisan('ticketing:announce-openings')->assertSuccessful();
+    expect(BookingOpeningAlert::query()->pluck('occurrence_id')->all())->toBe([$later->id]);
+
+    $this->travelTo(CarbonImmutable::parse('2026-10-31 09:00', 'UTC'));
+    $this->artisan('ticketing:announce-openings')->assertSuccessful();
+    expect(BookingOpeningAlert::count())->toBe(0)->and(ScheduledNotification::query()->ofType('bookings_open')->count())->toBe(0);
+});

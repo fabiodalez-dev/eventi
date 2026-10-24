@@ -256,7 +256,8 @@ class CreateEvent extends CreateRecord
                     EventFields::startsAt()->live(onBlur: true),
                     EventFields::endsAt()->live(onBlur: true),
                     SameNightNearbyField::make(fn (Get $get): ?array => $this->sameNightContext($get)),
-                    VenueClosureWarning::make(fn (Get $get): array => ['venue' => CurrentVenue::get(), 'start' => SameNightNearbyField::time($get('starts_at'), 'UTC')]),
+                    // Un evento con un indirizzo proprio non si tiene nel locale: le sue chiusure non contano.
+                    VenueClosureWarning::make(fn (Get $get): array => ['venue' => filled($get('custom_location.address')) ? null : CurrentVenue::get(), 'start' => SameNightNearbyField::time($get('starts_at'), 'UTC')]),
 
                     Toggle::make('repeat')
                         ->label(__('manage.recurrence.toggle'))

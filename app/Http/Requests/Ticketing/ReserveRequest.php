@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Ticketing;
 
-use App\Services\Ticketing\BookingForm;
 use Illuminate\Foundation\Http\FormRequest;
 
 class ReserveRequest extends FormRequest
@@ -29,7 +28,8 @@ class ReserveRequest extends FormRequest
             'booker' => ['sometimes', 'array:first_name,last_name,phone,address,city,postal_code,country'],
             'request_key' => ['required', 'uuid'],
             'waitlist' => ['sometimes', 'boolean'],
-            'answers' => ['sometimes', 'array', 'max:'.BookingForm::MAX_QUESTIONS],
+            // Le chiavi sconosciute si ignorano (una domanda tolta nel frattempo): il tetto serve solo contro gli abusi.
+            'answers' => ['sometimes', 'array', 'max:50'],
             'answers.*' => ['nullable'],
             'accept_terms' => ['required', 'accepted'],
         ];
