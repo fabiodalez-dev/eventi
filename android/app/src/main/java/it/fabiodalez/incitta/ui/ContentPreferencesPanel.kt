@@ -46,6 +46,7 @@ internal data class ContentOptions(
 @Composable
 fun ContentPreferencesPanel(session: Session, standalone: Boolean = false, onSaved: () -> Unit) {
     val context = LocalContext.current
+    val resources = androidx.compose.ui.platform.LocalResources.current
     val api = remember { ApiClient(LocalStore(context).installationId) }
     val json = remember { Json(api.json) { encodeDefaults = true } }
     val scope = rememberCoroutineScope()
@@ -137,7 +138,7 @@ fun ContentPreferencesPanel(session: Session, standalone: Boolean = false, onSav
                             onSaved()
                         } catch (error: Exception) {
                             if (error is CancellationException) throw error
-                            message = context.getString(it.fabiodalez.incitta.R.string.interests_show_again_failed, requestFailureMessage(error))
+                            message = resources.getString(it.fabiodalez.incitta.R.string.interests_show_again_failed, requestFailureMessage(error))
                         } finally { busy = false }
                     }
                 }, enabled = !busy, modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = description }) {
