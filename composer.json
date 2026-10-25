@@ -71,7 +71,7 @@
         "deptrac/deptrac": "^4.7",
         "fakerphp/faker": "^1.23",
         "infection/infection": "^0.35.4",
-        "larastan/larastan": "3.12.*",
+        "larastan/larastan": "3.13.*",
         "laravel/pail": "^1.2.5",
         "laravel/pao": "^1.0.6",
         "laravel/pint": "^1.27",
