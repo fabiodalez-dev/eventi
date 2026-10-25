@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 use Illuminate\Console\Scheduling\Event;
 use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Spatie\Health\Models\HealthCheckResultHistoryItem;
 use Spatie\ScheduleMonitor\Models\MonitoredScheduledTask;
 use Spatie\ScheduleMonitor\Support\ScheduledTasks\ScheduledTasks;
 use Spatie\ScheduleMonitor\Support\ScheduledTasks\Tasks\Task;
@@ -121,4 +124,16 @@ it('concede al backup un margine più lungo degli altri comandi', function (): v
 
     expect($backup->graceTimeInMinutes())->toBe(120)
         ->and($notifiche->graceTimeInMinutes())->toBe(5);
+});
+
+it('applica davvero la conservazione dello storico di salute e dei job falliti', function (): void {
+    $comandi = comandiSchedulati();
+    expect($comandi)->toHaveKey('queue:prune-failed --hours=720')
+        ->and(collect(array_keys($comandi))->contains(fn (string $c): bool => str_contains($c, 'model:prune') && str_contains($c, 'HealthCheckResultHistoryItem')))->toBeTrue();
+
+    $riga = fn (string $quando): array => ['check_name' => 'Database', 'check_label' => 'Database', 'status' => 'ok', 'meta' => '[]',
+        'ended_at' => $quando, 'batch' => (string) Str::uuid(), 'created_at' => $quando, 'updated_at' => $quando];
+    DB::table('health_check_result_history_items')->insert([$riga(now()->subDays(10)->toDateTimeString()), $riga(now()->subDay()->toDateTimeString())]);
+    $this->artisan('model:prune', ['--model' => HealthCheckResultHistoryItem::class])->assertSuccessful();
+    expect(DB::table('health_check_result_history_items')->count())->toBe(1);
 });
