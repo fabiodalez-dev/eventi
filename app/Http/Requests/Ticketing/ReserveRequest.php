@@ -16,7 +16,7 @@ class ReserveRequest extends FormRequest
     /** @return array<string, string> */
     public function attributes(): array
     {
-        return ['attendees' => __('ticketing.participants'), 'attendees.*' => __('ticketing.name'), 'attendees.*.first_name' => __('ticketing.fields.first_name'), 'attendees.*.last_name' => __('ticketing.fields.last_name'), 'booker' => __('ticketing.booker'), 'accept_terms' => __('ticketing.consent'), 'request_key' => __('ticketing.request_key'), 'waitlist' => __('ticketing.waitlist')];
+        return ['attendees' => __('ticketing.participants'), 'attendees.*' => __('ticketing.name'), 'attendees.*.first_name' => __('ticketing.fields.first_name'), 'attendees.*.last_name' => __('ticketing.fields.last_name'), 'booker' => __('ticketing.booker'), 'accept_terms' => __('ticketing.consent'), 'request_key' => __('ticketing.request_key'), 'waitlist' => __('ticketing.waitlist'), 'answers' => __('ticketing.questions.title')];
     }
 
     /** @return array<string, list<string>> */
@@ -28,6 +28,9 @@ class ReserveRequest extends FormRequest
             'booker' => ['sometimes', 'array:first_name,last_name,phone,address,city,postal_code,country'],
             'request_key' => ['required', 'uuid'],
             'waitlist' => ['sometimes', 'boolean'],
+            // Le chiavi sconosciute si ignorano (una domanda tolta nel frattempo): il tetto serve solo contro gli abusi.
+            'answers' => ['sometimes', 'array', 'max:50'],
+            'answers.*' => ['nullable'],
             'accept_terms' => ['required', 'accepted'],
         ];
         foreach (array_slice((array) $this->input('attendees', []), 0, 20, true) as $index => $attendee) {

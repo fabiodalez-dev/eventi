@@ -56,8 +56,8 @@ final class VenueController extends Controller
     {
         $now = now();
 
-        return Venue::query()->inCity($city)->approved()->whereNotNull('opening_hours')->get(['id', 'opening_hours'])
-            ->filter(static fn (Venue $venue): bool => OpeningHours::state(is_array($venue->opening_hours) ? $venue->opening_hours : null, $now, $city->timezone)['open'] === true)
+        return Venue::query()->inCity($city)->approved()->whereNotNull('opening_hours')->get(['id', 'opening_hours', 'closures'])
+            ->filter(static fn (Venue $venue): bool => OpeningHours::state(is_array($venue->opening_hours) ? $venue->opening_hours : null, $now, $city->timezone, is_array($venue->closures) ? $venue->closures : null)['open'] === true)
             ->map(static fn (Venue $venue): int => (int) $venue->getKey())->values()->all();
     }
 

@@ -11,6 +11,8 @@ use App\Enums\OccurrenceStatus;
 use App\Filament\Support\EventStatusPresentation;
 use App\Filament\Support\OccurrenceAnalyticsFields;
 use App\Filament\Support\OccurrenceDecisionFields;
+use App\Filament\Support\SameNightNearbyField;
+use App\Filament\Support\VenueClosureWarning;
 use App\Filament\Venue\Support\CurrentVenue;
 use App\Models\Booking;
 use App\Models\Event;
@@ -27,6 +29,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
@@ -67,13 +70,18 @@ class OccurrencesRelationManager extends RelationManager
                     ->label(__('manage.fields.starts_at'))
                     ->seconds(false)
                     ->required()
+                    ->live(onBlur: true)
                     ->timezone($timezone),
 
                 DateTimePicker::make('ends_at')
                     ->label(__('manage.fields.ends_at'))
                     ->seconds(false)
                     ->after('starts_at')
+                    ->live(onBlur: true)
                     ->timezone($timezone),
+
+                SameNightNearbyField::make(fn (Get $get): ?array => $this->sameNightContext($get)),
+                VenueClosureWarning::make(fn (Get $get): array => ['venue' => filled($this->getOwnerRecord()->getAttribute('custom_location')['address'] ?? null) ? null : CurrentVenue::get(), 'start' => SameNightNearbyField::time($get('starts_at'), 'UTC')]),
 
                 /*
                  * Quanti posti restano, e su quanti. Il totale si chiede solo
@@ -257,5 +265,22 @@ class OccurrencesRelationManager extends RelationManager
                 : __('manage.notifications.dates_updated', ['count' => $changed]))
             ->success()
             ->send();
+    }
+
+    /**
+     * Il luogo della data è quello dell'evento (indirizzo a mano con le sue
+     * coordinate, oppure il locale); l'orario arriva dal selettore in UTC.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function sameNightContext(Get $get): ?array
+    {
+        $event = $this->getOwnerRecord();
+        if (! $event instanceof Event) {
+            return null;
+        }
+        $venue = CurrentVenue::get();
+
+        return SameNightNearbyField::context($event->city, [$event->custom_location ?? [], $venue], $get('starts_at'), $get('ends_at'), 'UTC', (int) $venue->id, $event->category_id, (int) $event->id);
     }
 }

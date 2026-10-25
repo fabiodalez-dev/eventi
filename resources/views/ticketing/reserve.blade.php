@@ -21,6 +21,24 @@
                         <label class="text-sm font-bold">{{ $field['label'] }} · {{ __('ticketing.field_modes.'.($field['required'] ? 'required' : 'optional')) }}<input name="booker[{{ $field['key'] }}]" value="{{ old('booker.'.$field['key']) }}" @required($field['required']) maxlength="255" class="mt-2 w-full border border-line bg-surface p-3 text-ink"></label>
                     @endforeach
                 </fieldset>
+                @if ($availability['questions'] !== [])
+                <fieldset class="grid gap-4" data-booking-questions><legend class="mb-2 text-xl font-bold">{{ __('ticketing.questions.title') }}</legend>
+                    <p class="text-sm text-ink-muted">{{ __('ticketing.questions.public_hint') }}</p>
+                    @foreach ($availability['questions'] as $question)
+                        @php($label = $question['label'].' · '.__('ticketing.field_modes.'.($question['required'] ? 'required' : 'optional')))
+                        @if ($question['type'] === 'choice')
+                            <label class="text-sm font-bold">{{ $label }}<select name="answers[{{ $question['id'] }}]" @required($question['required']) class="mt-2 w-full min-h-12 border border-line bg-surface p-3 text-ink"><option value="">{{ __('ticketing.questions.choose') }}</option>@foreach ($question['options'] as $option)<option value="{{ $option }}" @selected(old('answers.'.$question['id']) === $option)>{{ $option }}</option>@endforeach</select></label>
+                        @elseif ($question['type'] === 'yes_no')
+                            <fieldset class="text-sm"><legend class="font-bold">{{ $label }}</legend><div class="mt-2 flex gap-6">
+                                <label class="flex min-h-12 items-center gap-2"><input type="radio" name="answers[{{ $question['id'] }}]" value="1" @required($question['required']) @checked(old('answers.'.$question['id']) === '1')>{{ __('ticketing.questions.yes') }}</label>
+                                <label class="flex min-h-12 items-center gap-2"><input type="radio" name="answers[{{ $question['id'] }}]" value="0" @checked(old('answers.'.$question['id']) === '0')>{{ __('ticketing.questions.no') }}</label>
+                            </div></fieldset>
+                        @else
+                            <label class="text-sm font-bold">{{ $label }}<textarea name="answers[{{ $question['id'] }}]" @required($question['required']) maxlength="{{ \App\Services\Ticketing\BookingForm::ANSWER_MAX }}" rows="2" class="mt-2 w-full border border-line bg-surface p-3 text-ink">{{ old('answers.'.$question['id']) }}</textarea></label>
+                        @endif
+                    @endforeach
+                </fieldset>
+                @endif
                 <h2 class="text-xl font-bold">{{ __('ticketing.participants') }}</h2>
                 <div data-attendees class="flex flex-col gap-4">
                 @foreach (old('attendees', [['first_name' => '', 'last_name' => '']]) as $index => $name)

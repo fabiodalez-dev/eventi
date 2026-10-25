@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Actions\Account\AssignCheckinStaff;
 use App\DTOs\PageMeta;
+use App\Enums\AdmissionStatus;
 use App\Enums\EventStatus;
 use App\Enums\UserRole;
 use App\Http\Requests\Ticketing\CancelRequest;
@@ -76,7 +77,7 @@ final class TicketingController extends Controller
 
     public function store(ReserveRequest $request, EventOccurrence $occurrence, TicketingService $service): JsonResponse|RedirectResponse
     {
-        $booking = $service->reserve($request->user(), $occurrence, $request->validated('attendees'), $request->validated('request_key'), $request->boolean('waitlist'), $request->validated('booker', []));
+        $booking = $service->reserve($request->user(), $occurrence, $request->validated('attendees'), $request->validated('request_key'), $request->boolean('waitlist'), $request->validated('booker', []), $request->validated('answers', []));
 
         return $request->is('api/*')
             ? response()->json(['data' => BookingResource::toArray($booking)], 201)
@@ -237,16 +238,43 @@ final class TicketingController extends Controller
             $out = fopen('php://output', 'w');
             fwrite($out, "\xEF\xBB\xBF");
             $bookerFields = ['first_name', 'last_name', ...BookingForm::FIELDS];
-            fputcsv($out, [__('ticketing.ticket'), __('ticketing.name'), __('ticketing.email'), __('ticketing.status'), __('ticketing.checked_in_at'), __('ticketing.fields.first_name'), __('ticketing.fields.last_name'), ...array_map(fn ($field) => __('ticketing.booker').' - '.__('ticketing.fields.'.$field), $bookerFields), __('ticketing.privacy_record')], ';', '"', '');
+            // Una colonna per ciascuna domanda di adesso; le risposte a domande poi tolte restano nella scheda della prenotazione.
+            $questions = app(BookingForm::class)->questions($occurrence);
+            fputcsv($out, [__('ticketing.ticket'), __('ticketing.name'), __('ticketing.email'), __('ticketing.status'), __('ticketing.checked_in_at'), __('ticketing.fields.first_name'), __('ticketing.fields.last_name'), ...array_map(fn ($field) => __('ticketing.booker').' - '.__('ticketing.fields.'.$field), $bookerFields), __('ticketing.privacy_record'), ...array_map(fn (string $label) => preg_match('/^[\s]*[=+@\-\t\r\n]/u', $label) ? "'".$label : $label, array_column($questions, 'label'))], ';', '"', '');
             AdmissionTicket::query()->whereHas('booking', fn ($q) => $q->where('occurrence_id', $occurrence->id))
-                ->with('booking.user')->chunkById(200, function ($tickets) use ($out, $bookerFields): void {
+                ->with('booking.user')->chunkById(200, function ($tickets) use ($out, $bookerFields, $questions): void {
                     foreach ($tickets as $ticket) {
                         $safe = fn ($value) => preg_match('/^[\s]*[=+@\-\t\r\n]/u', (string) $value) ? "'".$value : $value;
-                        fputcsv($out, [$ticket->id, $safe($ticket->attendee_name), $safe($ticket->booking->contactEmail()), __('ticketing.statuses.'.$ticket->status->value), $ticket->checked_in_at?->toIso8601String(), $safe($ticket->first_name), $safe($ticket->last_name), ...array_map(fn ($field) => $safe($ticket->booking->booker_data[$field] ?? ''), $bookerFields), $ticket->booking->privacy_accepted_at?->toIso8601String()], ';', '"', '');
+                        $answers = array_column((array) ($ticket->booking->booking_answers ?? []), 'answer', 'id');
+                        fputcsv($out, [$ticket->id, $safe($ticket->attendee_name), $safe($ticket->booking->contactEmail()), __('ticketing.statuses.'.$ticket->status->value), $ticket->checked_in_at?->toIso8601String(), $safe($ticket->first_name), $safe($ticket->last_name), ...array_map(fn ($field) => $safe($ticket->booking->booker_data[$field] ?? ''), $bookerFields), $ticket->booking->privacy_accepted_at?->toIso8601String(), ...array_map(fn (array $question) => $safe($answers[$question['id']] ?? ''), $questions)], ';', '"', '');
                     }
                 });
             fclose($out);
         }, 'partecipanti-'.$occurrence->id.'.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
+    }
+
+    /**
+     * La lista d'ingresso da stampare, per una porta senza telefono: i biglietti
+     * validi e quelli già passati, in ordine di cognome, con le risposte alle
+     * domande del gestore e la nota del banco. Chi è in lista d'attesa non
+     * entra e compare solo nel conteggio.
+     */
+    public function printList(Request $request, EventOccurrence $occurrence): Response
+    {
+        Gate::authorize('manage', [Booking::class, $occurrence]);
+        activity('ticketing')->causedBy($request->user())->performedOn($occurrence)->log('participants_printed');
+        $occurrence->loadMissing('event.city', 'event.venue', 'venue');
+        $tickets = AdmissionTicket::query()->whereHas('booking', fn ($q) => $q->where('occurrence_id', $occurrence->id))
+            ->with('booking')->get();
+        $admitted = $tickets->filter(fn (AdmissionTicket $ticket): bool => in_array($ticket->status, [AdmissionStatus::Valid, AdmissionStatus::CheckedIn], true))
+            ->sortBy(fn (AdmissionTicket $ticket): string => mb_strtolower(trim(($ticket->last_name ?? '').' '.($ticket->first_name ?? '').' '.$ticket->attendee_name)))->values();
+        $timezone = $occurrence->event->city->timezone ?? config()->string('app.timezone');
+
+        return Pdf::loadView('ticketing.print', [
+            'date' => $occurrence, 'tickets' => $admitted, 'timezone' => $timezone,
+            'checkedIn' => $admitted->where('status', AdmissionStatus::CheckedIn)->count(),
+            'waitlisted' => $tickets->where('status', AdmissionStatus::Waitlisted)->count(),
+        ])->setOption('isRemoteEnabled', false)->download('lista-ingressi-'.$occurrence->id.'.pdf');
     }
 
     private function meta(string $key): PageMeta

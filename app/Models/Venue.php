@@ -87,6 +87,7 @@ class Venue extends Model implements HasMedia
         'website',
         'socials',
         'opening_hours',
+        'closures',
         'transit',
         'capacity',
         'accessibility',
@@ -145,7 +146,7 @@ class Venue extends Model implements HasMedia
             ->useLogName('venue')
             ->logOnly(['status', 'is_verified', 'plan', 'auto_publish', 'ticketing_enabled', 'approved_at', 'approved_by', 'rejection_reason',
                 'name', 'description', 'short_description', 'address', 'address_extra', 'postal_code', 'municipality', 'zone', 'phone', 'email',
-                'website', 'socials', 'opening_hours', 'transit', 'capacity', 'accessibility', 'info', 'requires_membership', 'membership_notes', 'type'])
+                'website', 'socials', 'opening_hours', 'closures', 'transit', 'capacity', 'accessibility', 'info', 'requires_membership', 'membership_notes', 'type'])
             ->logOnlyDirty()
             ->dontLogEmptyChanges();
     }
@@ -248,7 +249,7 @@ class Venue extends Model implements HasMedia
      */
     public function openingState(?\DateTimeInterface $at = null): array
     {
-        return OpeningHours::state(is_array($this->opening_hours) ? $this->opening_hours : null, $at ?? now(), $this->city->timezone ?? config()->string('app.timezone'));
+        return OpeningHours::state(is_array($this->opening_hours) ? $this->opening_hours : null, $at ?? now(), $this->city->timezone ?? config()->string('app.timezone'), is_array($this->closures) ? $this->closures : null);
     }
 
     /** L'avviso in vista oggi sulla scheda pubblica, se ce n'è uno. */
@@ -337,6 +338,7 @@ class Venue extends Model implements HasMedia
             'lng' => 'decimal:7',
             'socials' => 'array',
             'opening_hours' => 'array',
+            'closures' => 'array',
             'transit' => AsTransitGuide::class,
             'accessibility' => AsAccessibilityProfile::class,
             'info' => AsFacts::class,

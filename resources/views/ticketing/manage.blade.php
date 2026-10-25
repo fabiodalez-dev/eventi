@@ -37,6 +37,26 @@
                     </label>
                 @endforeach
             </fieldset>
+            @php($questions = app(\App\Services\Ticketing\BookingForm::class)->questions($date))
+            <fieldset class="grid gap-4 md:col-span-2" data-booking-questions><legend class="mb-3 font-bold">{{ __('ticketing.questions.title') }}</legend>
+                <p class="text-sm text-ink-muted">{{ __('ticketing.questions.hint', ['max' => \App\Services\Ticketing\BookingForm::MAX_QUESTIONS, 'days' => \App\Services\Ticketing\BookingForm::ANSWERS_RETENTION_DAYS]) }}</p>
+                @error('booking_questions')<p role="alert" class="text-alert">{{ $message }}</p>@enderror
+                @for ($i = 0; $i < \App\Services\Ticketing\BookingForm::MAX_QUESTIONS; $i++)
+                    @php($question = $questions[$i] ?? null)
+                    <div class="grid gap-3 border-t border-line pt-3 md:grid-cols-2">
+                        <input type="hidden" name="booking_questions[{{ $i }}][id]" value="{{ old('booking_questions.'.$i.'.id', $question['id'] ?? '') }}">
+                        <label class="text-sm">{{ __('ticketing.questions.label') }} {{ $i + 1 }}<input name="booking_questions[{{ $i }}][label]" value="{{ old('booking_questions.'.$i.'.label', $question['label'] ?? '') }}" maxlength="160" class="mt-2 w-full min-h-12 border border-line bg-surface p-3 text-ink"></label>
+                        <label class="text-sm">{{ __('ticketing.questions.type') }}
+                            <select name="booking_questions[{{ $i }}][type]" class="mt-2 w-full min-h-12 border border-line bg-surface p-3 text-ink">
+                                @foreach (\App\Enums\BookingQuestionType::cases() as $type)<option value="{{ $type->value }}" @selected(old('booking_questions.'.$i.'.type', $question['type'] ?? 'text') === $type->value)>{{ __('ticketing.questions.types.'.$type->value) }}</option>@endforeach
+                            </select>
+                        </label>
+                        <label class="text-sm">{{ __('ticketing.questions.options') }}<textarea name="booking_questions[{{ $i }}][options]" rows="3" maxlength="1000" class="mt-2 w-full border border-line bg-surface p-3 text-ink">{{ old('booking_questions.'.$i.'.options', implode("\n", $question['options'] ?? [])) }}</textarea></label>
+                        <label class="flex items-center gap-3 text-sm"><input type="hidden" name="booking_questions[{{ $i }}][required]" value="0"><input type="checkbox" name="booking_questions[{{ $i }}][required]" value="1" @checked(old('booking_questions.'.$i.'.required', $question['required'] ?? false)) class="size-5">{{ __('ticketing.questions.required') }}</label>
+                        @error('booking_questions.'.$i.'.options')<p role="alert" class="text-alert md:col-span-2">{{ $message }}</p>@enderror
+                    </div>
+                @endfor
+            </fieldset>
             <x-button type="submit" class="min-h-12">{{ __('ticketing.save') }}</x-button>
         </form>
     </details>@endif
@@ -89,7 +109,7 @@
             </form>
         @endforeach
     </section>
-    <div class="flex flex-wrap gap-4 items-end"><h2 class="text-2xl font-bold">{{ __('ticketing.participants') }}</h2><x-button variant="secondary" :href="route('ticketing.manage.export', $date)">{{ __('ticketing.export') }}</x-button></div>
+    <div class="flex flex-wrap gap-4 items-end"><h2 class="text-2xl font-bold">{{ __('ticketing.participants') }}</h2><x-button variant="secondary" :href="route('ticketing.manage.export', $date)">{{ __('ticketing.export') }}</x-button><x-button variant="secondary" :href="route('ticketing.manage.print', $date)">{{ __('ticketing.print.action') }}</x-button></div>
     <form method="GET" data-ticket-search class="grid grid-cols-[minmax(0,1fr)_auto] gap-3 items-end"><x-field name="q" :label="__('ticketing.search')" :value="request('q')" /><x-button type="submit">{{ __('ticketing.filter') }}</x-button></form>
     <p data-search-status role="status" class="text-sm text-ink-muted"></p>
     <div data-ticket-results class="flex flex-col gap-4">
@@ -98,6 +118,9 @@
             @if ($booking->booker_data)<details><summary class="cursor-pointer py-3 text-brand">{{ __('ticketing.booker') }}</summary><dl class="grid gap-3 text-sm">
                 @foreach ($booking->booker_data as $field => $value)@if ($value)<div><dt class="text-ink-muted">{{ __('ticketing.fields.'.$field) }}</dt><dd class="whitespace-pre-line">{{ $value }}</dd></div>@endif @endforeach
                 <div><dt>{{ __('ticketing.privacy_record') }}</dt><dd>{{ $booking->privacy_accepted_at?->timezone($date->event->city->timezone)->format('d/m/Y H:i') }}</dd></div>
+            </dl></details>@endif
+            @if ($booking->booking_answers)<details open><summary class="cursor-pointer py-3 text-brand">{{ __('ticketing.questions.answers') }}</summary><dl class="grid gap-3 text-sm" data-booking-answers>
+                @foreach ($booking->booking_answers as $answer)<div><dt class="text-ink-muted">{{ $answer['question'] }}</dt><dd class="whitespace-pre-line">{{ $answer['answer'] }}</dd></div>@endforeach
             </dl></details>@endif
             @foreach ($booking->tickets as $ticket)
                 <div class="flex flex-wrap items-center justify-between gap-3 py-3"><div><strong>{{ $ticket->attendee_name }}</strong><p class="text-sm">#{{ $ticket->id }} · {{ __('ticketing.statuses.'.$ticket->status->value) }}</p></div>

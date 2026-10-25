@@ -133,6 +133,10 @@
     <string name="venue_open_now">Aperto adesso</string>
     <string name="venue_open_until">Aperto adesso · fino alle %1$s</string>
     <string name="venue_closed_now">Chiuso adesso</string>
+    <string name="venue_closed_until">Chiuso fino al %1$s</string>
+    <string name="venue_closures_title">Chiusure in programma</string>
+    <string name="venue_closure_day">Chiuso il %1$s</string>
+    <string name="venue_closure_range">Chiuso dal %1$s al %2$s</string>
     <string name="venues_filter_open_now">Aperti adesso</string>
     <string name="venues_open_now_loading">Cerco i locali aperti adesso…</string>
     <string name="venues_open_now_empty">Nessun locale risulta aperto adesso. Gli orari sono quelli dichiarati dai locali.</string>
@@ -191,6 +195,14 @@
     <string name="alert_on_done">Ti avviso se tornano disponibili posti per questa data.</string>
     <string name="alert_off_done">Avviso annullato.</string>
     <string name="alert_login">Accedi per ricevere un avviso quando tornano disponibili posti.</string>
+    <string name="opening_alert_opens">Prenotazioni dal %1$s</string>
+    <string name="opening_alert_offer">Avvisami quando aprono</string>
+    <string name="opening_alert_on_done">Ti avviso appena aprono le prenotazioni per questa data.</string>
+    <string name="edition_alert_lead">Questo evento non ha altre date in programma.</string>
+    <string name="edition_alert_offer">Avvisami alla prossima edizione</string>
+    <string name="edition_alert_on_done">Ti avviso quando torna.</string>
+    <string name="edition_alert_login">Accedi per essere avvisato della prossima edizione.</string>
+    <string name="opening_alert_login">Accedi per ricevere un avviso quando aprono le prenotazioni.</string>
     <!-- 14. Le mie serate -->
     <string name="attended_title">Le mie serate</string>
     <string name="attended_subtitle">Le date a cui hai partecipato con un biglietto</string>

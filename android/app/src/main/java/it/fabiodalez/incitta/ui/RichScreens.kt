@@ -145,6 +145,7 @@ fun CompleteEventDetailScreen(
     community: @Composable (Long) -> Unit = {},
     comments: @Composable () -> Unit = {},
     dateActions: @Composable (Occurrence) -> Unit = {},
+    editionAction: @Composable () -> Unit = {},
     session: it.fabiodalez.incitta.data.Session? = null,
     onLogin: () -> Unit = {},
 ) {
@@ -321,6 +322,8 @@ fun CompleteEventDetailScreen(
                  * che è un'altra cosa.
                  */
                 comments()
+
+                editionAction()
 
                 DetailSection("CONDIVIDI") {
                     ActionButton("CONDIVIDI QUESTO EVENTO", Icons.Outlined.Share) { share(context, detail.title, detail.url ?: "https://eventi.fabiodalez.it/eventi/${detail.slug}") }
@@ -536,6 +539,7 @@ fun VenueDetailScreen(
                     Spacer(Modifier.height(12.dp))
                     VenueFollowButton(venue.id, session, onLogin)
                     OpenNowLabel(venue, Modifier.padding(top = 12.dp))
+                    VenueClosuresList(venue, Modifier.padding(top = 10.dp))
                     venue.slug?.let { slug ->
                         Spacer(Modifier.height(10.dp))
                         OutlinedButton(

@@ -72,6 +72,8 @@ enum NotificationType: string
      */
     case SavedWeekly = 'saved_weekly';
     case TicketsAvailable = 'tickets_available';
+    case BookingsOpen = 'bookings_open';
+    case NextEdition = 'next_edition';
 
     public function label(): string
     {
@@ -157,8 +159,8 @@ enum NotificationType: string
         $preferences = $user->notificationPreferences();
 
         return match ($this) {
-            self::EventReminder, self::SavedWeekly => $preferences->reminders,
-            self::EventSoldOut, self::EventAlmostFull, self::TicketsAvailable => $preferences->soldOut,
+            self::EventReminder, self::SavedWeekly, self::NextEdition => $preferences->reminders,
+            self::EventSoldOut, self::EventAlmostFull, self::TicketsAvailable, self::BookingsOpen => $preferences->soldOut,
             self::VenueDigest, self::VenueNewEvent, self::VenueNotice => $preferences->venueDigest,
             self::DailyDigest => $preferences->dailyDigest,
             self::TonightNearby => $preferences->tonight,
@@ -187,8 +189,8 @@ enum NotificationType: string
         }
 
         $key = match ($this) {
-            self::EventReminder, self::SavedWeekly => 'reminders',
-            self::EventSoldOut, self::EventAlmostFull, self::TicketsAvailable => 'sold_out',
+            self::EventReminder, self::SavedWeekly, self::NextEdition => 'reminders',
+            self::EventSoldOut, self::EventAlmostFull, self::TicketsAvailable, self::BookingsOpen => 'sold_out',
             self::VenueDigest, self::VenueNewEvent, self::VenueNotice => 'venue_digest',
             self::DailyDigest => 'daily_digest',
             self::TonightNearby => 'tonight',

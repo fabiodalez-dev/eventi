@@ -215,6 +215,8 @@ return [
         'saved_search_match' => 'Nuove date per una ricerca salvata',
         'saved_weekly' => 'Le tue date della settimana',
         'tickets_available' => 'Posti di nuovo disponibili',
+        'bookings_open' => 'Prenotazioni aperte',
+        'next_edition' => 'Prossima edizione di un evento',
     ],
 
     'application_kind' => [

@@ -10,6 +10,7 @@ use App\Enums\TicketTierStatus;
 use App\Models\AvailabilityAlert;
 use App\Models\EventOccurrence;
 use App\Models\User;
+use App\Services\Concerns\RemembersAlertIds;
 use App\Services\Notifications\NotificationScheduler;
 use App\Support\TicketTiers;
 use Carbon\CarbonImmutable;
@@ -25,6 +26,8 @@ use Illuminate\Validation\ValidationException;
  */
 final class AvailabilityAlerts
 {
+    use RemembersAlertIds;
+
     public function __construct(private readonly NotificationScheduler $scheduler) {}
 
     public function isSoldOut(EventOccurrence $date): bool
@@ -47,11 +50,13 @@ final class AvailabilityAlerts
             throw ValidationException::withMessages(['occurrence' => __('ticketing.availability.not_sold_out')]);
         }
         AvailabilityAlert::query()->firstOrCreate(['user_id' => $user->getKey(), 'occurrence_id' => $date->getKey()]);
+        $this->forgetAlertIds($user);
     }
 
     public function unsubscribe(User $user, int $occurrenceId): void
     {
         AvailabilityAlert::query()->where('user_id', $user->getKey())->where('occurrence_id', $occurrenceId)->delete();
+        $this->forgetAlertIds($user);
     }
 
     /** @return list<int> */

@@ -80,7 +80,7 @@ final class CommunityDelivery
             return true;
         }
         if ($category === 'social') {
-            if (($data['kind'] ?? '') === 'catalog_review_moderated' && in_array($data['entity'] ?? '', ['venue', 'organizer'], true)) {
+            if (in_array($data['kind'] ?? '', ['catalog_review_moderated', 'catalog_review_replied'], true) && in_array($data['entity'] ?? '', ['venue', 'organizer'], true)) {
                 return $user->canParticipateInCommunity() && CatalogReview::where('user_id', $user->id)->where('reviewable_type', $data['entity'])->where('reviewable_id', $data['entity_id'])->exists();
             }
             $path = $data['path'] ?? '';

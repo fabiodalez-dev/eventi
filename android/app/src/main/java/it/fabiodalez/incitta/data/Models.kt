@@ -27,6 +27,8 @@ data class Occurrence(
     @SerialName("recommendation_reasons") val recommendationReasons: List<String> = emptyList(),
     @SerialName("capacity_left") val capacityLeft: Int? = null,
     @SerialName("booking_enabled") val bookingEnabled: Boolean = false,
+    /** Quando aprono le prenotazioni, se la data ha la biglietteria attiva e un'apertura fissata. */
+    @SerialName("booking_opens_at") val bookingOpensAt: String? = null,
     @SerialName("occurrence_id") val occurrenceId: Long,
     @SerialName("url_number") val urlNumber: Int? = null,
     @SerialName("date_url") val dateUrl: String? = null,
@@ -102,9 +104,15 @@ data class Venue(
     /** `null` quando il locale non ha orari: non è «chiuso», è «non si sa». */
     @SerialName("open_now") val openNow: Boolean? = null,
     @SerialName("open_until") val openUntil: String? = null,
+    /** La chiusura straordinaria in corso, se c'è, e quelle in arrivo: giorni nel fuso della città. */
+    @SerialName("closure_now") val closureNow: VenueClosure? = null,
+    val closures: List<VenueClosure> = emptyList(),
     /* Solo nella scheda del locale (D60): l'avviso in vista oggi, se c'è. */
     val notice: VenueNotice? = null,
 )
+
+@Serializable
+data class VenueClosure(val from: String, val to: String, val note: String? = null)
 
 @Serializable
 data class CustomLocation(
@@ -195,6 +203,8 @@ data class EventDetail(
     @SerialName("external_links") val externalLinks: List<ExternalLink> = emptyList(),
     val facts: List<Fact> = emptyList(),
     @SerialName("verification_status") val verificationStatus: String? = null,
+    /** Vero quando l'evento non ha più date in programma: si può chiedere l'avviso della prossima edizione. */
+    @SerialName("edition_alert_offered") val editionAlertOffered: Boolean = false,
     val occurrences: List<Occurrence> = emptyList(),
     val url: String? = null,
     /* D60: foto dell'evento (stessa forma della locandina), video come semplice descrizione e co-organizzatori. */

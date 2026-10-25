@@ -228,4 +228,14 @@ return [
         'lead' => 'Segnalaci cosa succede: la redazione controlla e pubblica.',
     ],
 
+    'edition_alert' => [
+        'subscribe' => 'Avvisami alla prossima edizione',
+        'lead' => 'Questo evento non ha altre date in programma.',
+        'active' => 'Avviso attivo: ti scriviamo quando torna.',
+        'cancel' => 'Annulla l’avviso',
+        'login' => 'Accedi per essere avvisato della prossima edizione',
+        'stored' => 'Ti avvisiamo quando torna.',
+        'removed' => 'Avviso annullato.',
+        'not_offered' => 'Questo evento ha ancora date in programma: puoi seguirlo o salvarle.',
+    ],
 ];

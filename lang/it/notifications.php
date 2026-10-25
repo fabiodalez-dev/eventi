@@ -36,6 +36,16 @@ return [
         'sold_out' => 'esaurita',
     ],
 
+    'next_edition' => [
+        'subject' => 'Torna: :title',
+        'line' => 'C’è una nuova edizione: :when :where. L’avevi chiesto tu, sulla scheda dell’edizione passata.',
+    ],
+
+    'bookings_open' => [
+        'subject' => 'Prenotazioni aperte: :title',
+        'line' => 'Si può prenotare per la data di :when :where. Ti avevamo promesso di avvisarti appena si apriva.',
+    ],
+
     'tickets_available' => [
         'subject' => 'Posti di nuovo disponibili: :title',
         'line' => 'La data di :when :where non è più esaurita. Ti avevamo promesso di avvisarti: i posti possono finire di nuovo in fretta.',

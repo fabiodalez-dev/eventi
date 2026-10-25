@@ -234,6 +234,9 @@
                 @if (! ($isPreview ?? false) && $occurrences->isNotEmpty())
                     <div class="event-detail-loose"><x-collection-add :occurrences="$occurrences" /></div>
                 @endif
+                @if (! ($isPreview ?? false))
+                    <x-edition-alert :event="$event" />
+                @endif
             @endif
 
             @if ($shown->isNotEmpty())
@@ -348,6 +351,7 @@
                                     @endif
                                     @if (! ($isPreview ?? false))
                                         <x-availability-alert :occurrence="$occurrence" :event="$event" />
+                                        <x-opening-alert :occurrence="$occurrence" :event="$event" />
                                     @endif
                                     </div>
                                     <div class="flex flex-wrap items-center gap-2 border-t border-line pt-3 sm:col-span-2">

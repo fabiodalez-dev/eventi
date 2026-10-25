@@ -69,25 +69,31 @@ final class TicketingService
             'cancellation_closes_at' => ($date->cancellation_closes_at ?? $date->starts_at)->toIso8601String(),
             'instructions' => $date->booking_instructions,
             'booker_fields' => app(BookingForm::class)->fields($date),
+            'questions' => app(BookingForm::class)->questions($date),
             'privacy_url' => url('/pagine/privacy'),
         ];
     }
 
     /** @param list<string|array{first_name: string, last_name: string}> $names
      * @param  array<string, mixed>  $booker
+     * @param  array<string, mixed>  $answers  risposte alle domande del gestore, per identificativo
      */
-    public function reserve(User $user, EventOccurrence $date, array $names, string $key, bool $waitlist, array $booker = []): Booking
+    public function reserve(User $user, EventOccurrence $date, array $names, string $key, bool $waitlist, array $booker = [], array $answers = []): Booking
     {
         $names = array_map(fn ($name) => is_array($name) ? array_map('trim', $name) : trim($name), $names);
         ksort($booker);
+        ksort($answers);
         // Preserve the digest of already-issued legacy retries.
         $payload = [$date->id, $names, $waitlist];
         if ($booker !== []) {
             $payload[] = $booker;
         }
+        if ($answers !== []) {
+            $payload[] = ['answers' => $answers];
+        }
         $hash = hash('sha256', json_encode($payload, JSON_THROW_ON_ERROR));
 
-        return DB::transaction(function () use ($user, $date, $names, $key, $hash, $waitlist, $booker): Booking {
+        return DB::transaction(function () use ($user, $date, $names, $key, $hash, $waitlist, $booker, $answers): Booking {
             // Serialise retries even when a client reuses its key for another date.
             $account = User::query()->lockForUpdate()->findOrFail($user->id);
             // The occurrence lock must precede ANY consistent read. Under
@@ -104,6 +110,7 @@ final class TicketingService
             $this->ensure($this->isOpen($date), 'closed');
             $this->ensure($this->noShowCount($account) < config()->integer('ticketing.no_show.limit'), 'no_show_limit');
             $details = app(BookingForm::class)->validate($date, $booker);
+            $replies = app(BookingForm::class)->answers($date, $answers);
             // Resume queued groups first when a previously closed window reopens.
             $this->promote($date);
             $this->ensure(count($names) > 0 && count($names) <= $date->booking_limit, 'account_limit');
@@ -125,6 +132,7 @@ final class TicketingService
                 'occurrence_id' => $date->id, 'user_id' => $user->id, 'request_key' => $key,
                 'request_hash' => $hash, 'status' => $full ? BookingStatus::Waitlisted : BookingStatus::Confirmed,
                 'booker_data' => $details ?: null,
+                'booking_answers' => $replies ?: null,
                 'privacy_accepted_at' => now(),
                 'privacy_version' => BookingForm::PRIVACY_VERSION,
             ]);
@@ -238,6 +246,9 @@ final class TicketingService
             $this->ensure((bool) $date->effectiveVenue()?->ticketing_enabled, 'disabled');
             $capacity = $settings['booking_capacity'] ?? null;
             $this->ensure($capacity === null || $capacity >= $this->occupied($date), 'capacity_too_low');
+            if (array_key_exists('booking_questions', $settings)) {
+                $settings['booking_questions'] = app(BookingForm::class)->normalizeQuestions((array) $settings['booking_questions']) ?: null;
+            }
             $date->update($settings);
             activity('ticketing')->causedBy($actor)->performedOn($date)->log('configured');
             $this->promote($date);
@@ -426,6 +437,20 @@ final class TicketingService
     }
 
     /** Quante assenze recenti ha questa persona, nella finestra di configurazione. */
+    /**
+     * Le risposte alle domande del gestore servono a organizzare la serata,
+     * non a costruire un archivio: trenta giorni dopo la fine della data si
+     * cancellano, anche quelle delle prenotazioni annullate.
+     */
+    public function pruneAnswers(): int
+    {
+        $cutoff = now()->subDays(BookingForm::ANSWERS_RETENTION_DAYS);
+
+        return Booking::query()->whereNotNull('booking_answers')
+            ->whereIn('occurrence_id', EventOccurrence::withTrashed()->whereRaw('COALESCE(effective_ends_at, ends_at, starts_at) < ?', [$cutoff])->select('id'))
+            ->update(['booking_answers' => null]);
+    }
+
     public function noShowCount(User $user): int
     {
         /* La finestra si misura sulla data della serata, non sul momento in

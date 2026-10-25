@@ -8,9 +8,13 @@ use App\Filament\Support\BeforeGoingFields;
 use App\Filament\Support\DescriptionEditor;
 use App\Filament\Support\EditorialFields;
 use App\Filament\Support\ImageUpload;
+use App\Filament\Support\SameNightNearbyField;
+use App\Filament\Support\VenueClosureWarning;
 use App\Models\Category;
+use App\Models\City;
 use App\Models\Event;
 use App\Models\Organizer;
+use App\Models\Venue;
 use Filament\Actions\EditAction;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\DateTimePicker;
@@ -18,6 +22,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
@@ -72,8 +77,10 @@ class EventResource extends Resource
             TextInput::make('price_max')->label('Prezzo fino a (€)')->numeric()->minValue(0),
             TextInput::make('ticket_url')->label('Link biglietti')->url()->maxLength(2048),
             Section::make(__('facebook_import.first_date'))->visibleOn('create')->columns(2)->schema([
-                DateTimePicker::make('starts_at')->label(__('facebook_import.starts_at'))->seconds(false)->requiredWith('ends_at')->dehydrated(false),
-                DateTimePicker::make('ends_at')->label(__('facebook_import.ends_at'))->seconds(false)->after('starts_at')->dehydrated(false),
+                DateTimePicker::make('starts_at')->label(__('facebook_import.starts_at'))->seconds(false)->requiredWith('ends_at')->dehydrated(false)->live(onBlur: true),
+                DateTimePicker::make('ends_at')->label(__('facebook_import.ends_at'))->seconds(false)->after('starts_at')->dehydrated(false)->live(onBlur: true),
+                SameNightNearbyField::make(fn (Get $get): ?array => self::sameNightContext($get)),
+                VenueClosureWarning::make(fn (Get $get): array => ['venue' => filled($get('custom_location.address')) ? null : Venue::find($get('venue_id')), 'start' => ($city = City::find($get('city_id'))) === null ? null : SameNightNearbyField::time($get('starts_at'), $city->timezone)]),
             ]),
             Section::make(__('facebook_import.location'))->description(__('facebook_import.organizer_location'))->visibleOn('create')->schema([
                 TextInput::make('custom_location.name')->label(__('facebook_import.place_name'))->maxLength(255),
@@ -84,6 +91,20 @@ class EventResource extends Resource
             BeforeGoingFields::make(),
             EditorialFields::content(event: true),
         ]);
+    }
+
+    /**
+     * Nel modulo di creazione la prima data è scritta nell'ora della città
+     * scelta (vedi `CreateEvent::afterCreate`); il luogo è l'indirizzo a mano,
+     * se ha le coordinate, altrimenti il locale principale.
+     *
+     * @return array<string, mixed>|null
+     */
+    private static function sameNightContext(Get $get): ?array
+    {
+        $city = City::find($get('city_id'));
+
+        return SameNightNearbyField::context($city, [(array) $get('custom_location'), Venue::find($get('venue_id'))], $get('starts_at'), $get('ends_at'), $city->timezone ?? 'UTC', categoryId: $get('category_id'));
     }
 
     public static function getEloquentQuery(): Builder

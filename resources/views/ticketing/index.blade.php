@@ -14,6 +14,11 @@
                 <p class="text-sm text-ink-muted">{{ $data['address'] }}</p>
                 <form method="POST" action="{{ route('tickets.resend', $booking) }}" class="mt-3">@csrf<x-button type="submit" variant="ghost">{{ __('ticketing.resend') }}</x-button></form>
                 @if ($data['instructions'])<p class="mt-3 whitespace-pre-line">{{ $data['instructions'] }}</p>@endif
+                @if ($data['answers'] !== [])
+                    <details class="mt-3"><summary class="cursor-pointer py-3 text-brand">{{ __('ticketing.questions.yours') }}</summary><dl class="grid gap-3 text-sm">
+                        @foreach ($data['answers'] as $answer)<div><dt class="text-ink-muted">{{ $answer['question'] }}</dt><dd class="whitespace-pre-line">{{ $answer['answer'] }}</dd></div>@endforeach
+                    </dl></details>
+                @endif
                 @if ($booking->status === \App\Enums\BookingStatus::Waitlisted)
                     <p class="mt-4 text-sm">{{ __('ticketing.waiting_hint') }}</p>
                     <p class="mt-2 text-sm text-ink-muted">{{ __('ticketing.queue_position', ['position' => $data['queue_position']]) }}</p>

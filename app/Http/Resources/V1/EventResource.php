@@ -9,6 +9,7 @@ use App\Models\Event;
 use App\Models\EventOccurrence;
 use App\Models\Tag;
 use App\Models\TicketTier;
+use App\Services\Events\EditionAlerts;
 use App\Services\Seo\EditorialContent;
 use App\Services\Seo\PublicOffers;
 use App\Services\Seo\StructuredData;
@@ -145,6 +146,8 @@ final class EventResource
             // ce ne sono — per la stessa ragione di `external_links`.
             'facts' => $event->facts->toArray(),
             'verification_status' => $event->verification_status->value,
+            // «Avvisami alla prossima edizione»: vero quando l'evento non ha più date in programma.
+            'edition_alert_offered' => app(EditionAlerts::class)->offered($event),
             'url' => self::webUrl($event, $context),
             'deep_link' => self::webUrl($event, $context),
             'following' => [

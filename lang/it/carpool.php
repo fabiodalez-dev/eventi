@@ -80,7 +80,7 @@ return [
         'generic' => 'Non è stato possibile completare l’operazione. Riprova.', 'case' => 'Non puoi accedere a questa segnalazione.',
         'demo' => 'Questo è un passaggio dimostrativo: puoi guardarlo, ma non richiedere un posto.'],
     'notifications' => [
-        'catalog_review_moderated' => 'La tua recensione è stata esaminata', 'review' => 'Hai ricevuto una recensione per un passaggio', 'review_moderated' => 'Aggiornamento sulla tua recensione', 'open' => 'Apri inCittà per vedere lo stato aggiornato.', 'requested' => 'Qualcuno ha richiesto un passaggio',
+        'catalog_review_moderated' => 'La tua recensione è stata esaminata', 'catalog_review_replied' => 'Hanno risposto alla tua recensione', 'review' => 'Hai ricevuto una recensione per un passaggio', 'review_moderated' => 'Aggiornamento sulla tua recensione', 'open' => 'Apri inCittà per vedere lo stato aggiornato.', 'requested' => 'Qualcuno ha richiesto un passaggio',
         'accepted' => 'La tua richiesta di passaggio è stata accettata', 'declined' => 'La richiesta di passaggio non è stata accettata',
         'withdrawn' => 'Una richiesta di passaggio è stata ritirata', 'expired' => 'Una richiesta di passaggio è scaduta',
         'cancelled' => 'Un passaggio è stato annullato', 'reduced' => 'È cambiato il numero di posti richiesti', 'message' => 'Hai un nuovo messaggio',

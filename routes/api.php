@@ -41,10 +41,10 @@ use App\Http\Controllers\Api\V1\WalletPassController;
 use App\Http\Controllers\RememberedLocationController;
 use App\Http\Controllers\TicketingController;
 use App\Http\Controllers\Web\Account\AttendedController;
-use App\Http\Controllers\Web\Account\AvailabilityAlertController;
 use App\Http\Controllers\Web\Account\CollectionController;
 use App\Http\Controllers\Web\Account\ContentPreferencesController;
 use App\Http\Controllers\Web\Account\NotificationInterestsController;
+use App\Http\Controllers\Web\Account\OneTimeAlertController;
 use App\Http\Controllers\Web\Account\SavedCalendarController;
 use App\Http\Controllers\Web\Account\SavedSearchController;
 use App\Http\Controllers\Web\CatalogReviewController;
@@ -269,9 +269,11 @@ Route::prefix('v1')
                 Route::post('/presence', [PresenceController::class, 'store'])->middleware('throttle:20,60,presence')->name('presence.store');
                 Route::delete('/presence/{token}', [PresenceController::class, 'destroy'])->where('token', '[A-Za-z0-9]{32}')->name('presence.destroy');
                 Route::get('/attended', AttendedController::class)->name('attended');
-                Route::get('/availability-alerts', [AvailabilityAlertController::class, 'index'])->name('availability-alerts.index');
-                Route::post('/availability-alerts/{occurrence}', [AvailabilityAlertController::class, 'store'])->whereNumber('occurrence')->middleware('throttle:30,1,availability-alerts')->name('availability-alerts.store');
-                Route::delete('/availability-alerts/{occurrence}', [AvailabilityAlertController::class, 'destroy'])->whereNumber('occurrence')->name('availability-alerts.destroy');
+                foreach (['availability', 'opening', 'edition'] as $kind) {
+                    Route::get('/'.$kind.'-alerts', [OneTimeAlertController::class, 'index'])->defaults('kind', $kind)->name($kind.'-alerts.index');
+                    Route::post('/'.$kind.'-alerts/{subject}', [OneTimeAlertController::class, 'store'])->defaults('kind', $kind)->whereNumber('subject')->middleware('throttle:30,1,'.$kind.'-alerts')->name($kind.'-alerts.store');
+                    Route::delete('/'.$kind.'-alerts/{subject}', [OneTimeAlertController::class, 'destroy'])->defaults('kind', $kind)->whereNumber('subject')->name($kind.'-alerts.destroy');
+                }
                 Route::post('/hidden-venues/{venue}', [ContentPreferencesController::class, 'hideVenue'])->whereNumber('venue')->middleware('throttle:30,1,hidden-venues')->name('hidden-venues.store');
                 Route::delete('/hidden-venues/{venue}', [ContentPreferencesController::class, 'showVenue'])->whereNumber('venue')->middleware('throttle:30,1,hidden-venues')->name('hidden-venues.destroy');
                 Route::get('/notification-interests', [NotificationInterestsController::class, 'index'])->name('interests.show');

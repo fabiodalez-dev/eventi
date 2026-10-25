@@ -11,8 +11,10 @@ use App\Models\SponsorshipGrant;
 use App\Models\User;
 use App\Models\WhatsappChallenge;
 use App\Services\Calendar\GoogleCalendarClient;
+use App\Services\Events\EditionAlerts;
 use App\Services\Search\SavedSearchMatcher;
 use App\Services\Sponsorship\GrantCampaigns;
+use App\Services\Ticketing\BookingOpeningAlerts;
 use App\Services\Ticketing\TicketingService;
 use App\Support\Backup\SpazioSufficiente;
 use App\Support\OncePerHour;
@@ -37,6 +39,24 @@ Artisan::command('ticketing:no-shows', function (): void {
 })->purpose('Mark valid tickets as no-show once a checked-in date has ended');
 
 Schedule::command('ticketing:no-shows')->hourly()->withoutOverlapping();
+
+Artisan::command('ticketing:announce-openings', function (): void {
+    $this->info((string) app(BookingOpeningAlerts::class)->announce());
+})->purpose('Tell people who asked when the bookings of a date open');
+
+Schedule::command('ticketing:announce-openings')->everyFiveMinutes()->withoutOverlapping();
+
+Artisan::command('editions:notify', function (): void {
+    $this->info((string) app(EditionAlerts::class)->announce());
+})->purpose('Tell people who asked when a past event comes back with a new edition');
+
+Schedule::command('editions:notify')->hourly()->withoutOverlapping();
+
+Artisan::command('ticketing:prune-answers', function (): void {
+    $this->info((string) app(TicketingService::class)->pruneAnswers());
+})->purpose('Erase the answers to booking questions thirty days after the date');
+
+Schedule::command('ticketing:prune-answers')->dailyAt('04:20')->withoutOverlapping();
 
 Artisan::command('searches:notify', function (): void {
     $this->info((string) app(SavedSearchMatcher::class)->run());

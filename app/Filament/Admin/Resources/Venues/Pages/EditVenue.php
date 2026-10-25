@@ -7,6 +7,8 @@ namespace App\Filament\Admin\Resources\Venues\Pages;
 use App\Filament\Admin\Resources\Venues\VenueResource;
 use App\Filament\Admin\Support\StructuredFields;
 use App\Filament\Admin\Support\VenueModeration;
+use App\Models\City;
+use App\Support\VenueClosures;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 
@@ -32,6 +34,7 @@ class EditVenue extends EditRecord
     protected function mutateFormDataBeforeSave(array $data): array
     {
         $data['opening_hours'] = StructuredFields::openingHoursToMap($data['opening_hours'] ?? null);
+        $data['closures'] = VenueClosures::normalize($data['closures'] ?? null, City::find($data['city_id'] ?? $this->getRecord()->getAttribute('city_id'))->timezone ?? config()->string('app.timezone'));
 
         return $data;
     }

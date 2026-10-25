@@ -13,6 +13,8 @@ use App\Enums\PriceType;
 use App\Enums\RecurrenceFrequency;
 use App\Enums\ScheduleShortcut;
 use App\Filament\Support\BeforeGoingFields;
+use App\Filament\Support\SameNightNearbyField;
+use App\Filament\Support\VenueClosureWarning;
 use App\Filament\Venue\Resources\Events\EventResource;
 use App\Filament\Venue\Support\CurrentVenue;
 use App\Filament\Venue\Support\EventFields;
@@ -250,8 +252,11 @@ class CreateEvent extends CreateRecord
                         ->label(__('manage.wizard.shortcuts'))
                         ->fullWidth(),
 
-                    EventFields::startsAt(),
-                    EventFields::endsAt(),
+                    EventFields::startsAt()->live(onBlur: true),
+                    EventFields::endsAt()->live(onBlur: true),
+                    SameNightNearbyField::make(fn (Get $get): ?array => $this->sameNightContext($get)),
+                    // Un evento con un indirizzo proprio non si tiene nel locale: le sue chiusure non contano.
+                    VenueClosureWarning::make(fn (Get $get): array => ['venue' => filled($get('custom_location.address')) ? null : CurrentVenue::get(), 'start' => SameNightNearbyField::time($get('starts_at'), 'UTC')]),
 
                     Toggle::make('repeat')
                         ->label(__('manage.recurrence.toggle'))
@@ -293,6 +298,19 @@ class CreateEvent extends CreateRecord
                     EventFields::externalLinks(),
                 ]),
         ];
+    }
+
+    /**
+     * Il luogo è quello indicato a mano, se ha le coordinate, altrimenti il
+     * locale. L'orario arriva dal selettore già in UTC.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function sameNightContext(Get $get): ?array
+    {
+        $venue = CurrentVenue::get();
+
+        return SameNightNearbyField::context($venue->city, [(array) $get('custom_location'), $venue], $get('starts_at'), $get('ends_at'), 'UTC', (int) $venue->id, $get('category_id'));
     }
 
     protected function getCreateFormAction(): Action
