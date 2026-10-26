@@ -13,7 +13,8 @@ it('espone un contratto OpenAPI utilizzabile da un generatore Android', function
 
     $document = $this->actingAs($staff)->getJson('/docs/api.json')->assertOk()->json();
 
-    expect($document['openapi'] ?? null)->toBe('3.1.0')
+    // Conta la famiglia 3.1, che è quella che il generatore Android sa leggere: Scramble 0.13.49 dichiara 3.1.2, una semplice revisione.
+    expect($document['openapi'] ?? null)->toStartWith('3.1.')
         ->and(count($document['paths'] ?? []))->toBeGreaterThanOrEqual(54)
         ->and($document['paths']['/events']['get']['responses']['200']['content']['application/json']['schema']['properties']['data']['items']['$ref'] ?? null)
         ->toBe('#/components/schemas/MobileOccurrence')
