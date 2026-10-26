@@ -126,7 +126,7 @@ dependencies {
     /* Dichiarato e non lasciato arrivare da Glance: il widget ci pianifica
        sopra il proprio giro di rete, e una dipendenza usata di proposito non
        deve sparire il giorno in cui Glance cambia le sue. */
-    implementation("androidx.work:work-runtime-ktx:2.7.1")
+    implementation("androidx.work:work-runtime-ktx:2.12.0")
     implementation("androidx.glance:glance-material3:1.2.0")
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
@@ -134,8 +134,8 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:5.2.1")
     implementation("io.coil-kt.coil3:coil-compose:3.3.0")
     implementation("io.coil-kt.coil3:coil-network-okhttp:3.3.0")
-    implementation("org.maplibre.gl:android-sdk-opengl:13.6.0")
-    implementation("com.google.zxing:core:3.5.3")
+    implementation("org.maplibre.gl:android-sdk-opengl:13.7.1")
+    implementation("com.google.zxing:core:3.5.4")
     implementation("com.journeyapps:zxing-android-embedded:4.3.0")
 
     testImplementation("junit:junit:4.13.2")
