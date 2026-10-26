@@ -68,6 +68,7 @@ final class SchedulerOverview
             str_starts_with($name, 'events:publish-due') => 'Pubblica ogni minuto gli eventi programmati arrivati a scadenza. Ricontrolla i permessi del richiedente: senza pubblicazione autonoma autorizzata il locale resta in attesa degli admin. Rifiuti e annullamenti impediscono la pubblicazione.',
             str_starts_with($name, 'social:publish-due') => 'Invia alla coda i post social programmati la cui data è arrivata. Il worker verifica i dati e pubblica sui canali Meta e Telegram abilitati.',
             str_starts_with($name, 'social:daily') => 'Prepara il carosello giornaliero all’orario scelto in Social → Impostazioni, nel fuso della città. Richiede collegamento verificato e automatismo attivo.',
+            str_starts_with($name, 'queue:prune-failed') => 'Toglie i job falliti più vecchi di trenta giorni.',
             str_starts_with($name, 'editions:notify') => 'Avvisa chi l’aveva chiesto quando un evento passato torna con una nuova edizione.',
             str_starts_with($name, 'ticketing:announce-openings') => 'Avvisa chi l’aveva chiesto quando si aprono le prenotazioni di una data.',
             str_starts_with($name, 'ticketing:prune-answers') => 'Cancella le risposte alle domande dei gestori trenta giorni dopo la data.',

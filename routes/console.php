@@ -23,6 +23,7 @@ use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
 use Laravel\Telescope\Telescope;
+use Spatie\Health\Models\HealthCheckResultHistoryItem;
 use Spatie\ScheduleMonitor\Models\MonitoredScheduledTaskLogItem;
 
 Artisan::command('ticketing:promote', function (): void {
@@ -304,6 +305,19 @@ Schedule::command('model:prune', [
 Schedule::command('model:prune', [
     '--model' => MobileAuthChallenge::class,
 ])->daily()->doNotMonitor();
+
+/*
+ * Lo storico dei controlli di salute dichiara cinque giorni
+ * (`config/health.php`, `keep_history_for_days`), ma la conservazione la
+ * applica solo `model:prune`: senza questa riga la tabella è cresciuta di un
+ * milione e mezzo di byte al giorno dal 31 agosto 2026, sulla quota già piena.
+ */
+Schedule::command('model:prune', [
+    '--model' => HealthCheckResultHistoryItem::class,
+])->daily()->doNotMonitor();
+
+// I job falliti servono per capire un guasto, non come archivio: dopo trenta giorni non dicono più niente.
+Schedule::command('queue:prune-failed', ['--hours' => 24 * 30])->daily()->doNotMonitor();
 
 Schedule::command('model:prune', ['--model' => WhatsappChallenge::class])
     ->daily()->doNotMonitor();
