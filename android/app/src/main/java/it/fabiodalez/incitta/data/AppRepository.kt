@@ -284,10 +284,26 @@ class AppRepository(context: Context) {
     suspend fun login(email: String, password: String): User {
         // Prevent stale data from one account surviving an account switch.
         clearAuthenticatedState()
-        val payload = api.post<ApiEnvelope<AuthPayload>, LoginBody>(
-            "auth/login",
-            LoginBody(email.trim(), password, deviceName),
-        ).data
+        /* Se l'account non è ancora confermato il server rimanda il collegamento
+           (403 EMAIL_CONFIRMATION_PENDING): lo scambio vuole il verificatore di
+           questa installazione, quindi la sfida parte con ogni accesso. */
+        val previous = store.readMagicVerifier()
+        val verifier = MagicLinkProof.createVerifier()
+        store.writeMagicVerifier(verifier)
+        val payload = try {
+            api.post<ApiEnvelope<AuthPayload>, LoginBody>(
+                "auth/login",
+                LoginBody(email.trim(), password, deviceName, MagicLinkProof.challenge(verifier)),
+            ).data
+        } catch (error: Throwable) {
+            /* Nessun collegamento nuovo è partito: resta valido quello chiesto prima
+               (una registrazione o un link di accesso ancora da aprire). */
+            if (!awaitsEmailConfirmation(error)) {
+                if (previous != null) store.writeMagicVerifier(previous) else store.clearMagicVerifier()
+            }
+            throw error
+        }
+        store.clearMagicVerifier()
         acceptSession(payload)
         runCatching {
             mergeGuestWishlist()
@@ -296,19 +312,26 @@ class AppRepository(context: Context) {
         return payload.user
     }
 
-    suspend fun register(firstName: String, lastName: String, email: String, password: String): User {
-        clearAuthenticatedState()
-        val payload = api.post<ApiEnvelope<AuthPayload>, RegisterBody>(
+    /**
+     * La registrazione non consegna più il token (D64): il server risponde 202
+     * «Ti abbiamo scritto» sia per un indirizzo nuovo sia per uno già usato.
+     * Il verificatore PKCE resta in questo telefono; l'accesso si completa in
+     * [exchangeMagicToken] quando l'utente apre il collegamento, che conferma
+     * l'indirizzo e lascia valida la password scelta qui. I salvati da ospite
+     * restano dove sono e si uniscono all'account in quel momento.
+     *
+     * Rifare la registrazione con gli stessi dati è il reinvio: il server
+     * riconosce la password giusta e riparte il collegamento, legato al nuovo
+     * verificatore.
+     */
+    suspend fun register(firstName: String, lastName: String, email: String, password: String): String? {
+        val verifier = MagicLinkProof.createVerifier()
+        store.writeMagicVerifier(verifier)
+        return api.post<ApiEnvelope<ApiMessage>, RegisterBody>(
             "auth/register",
             RegisterBody(listOf(firstName.trim(), lastName.trim()).filter(String::isNotBlank).joinToString(" ").ifBlank { null }, email.trim(), password, password, deviceName,
-                firstName.trim().ifBlank { null }, lastName.trim().ifBlank { null }),
-        ).data
-        acceptSession(payload)
-        runCatching {
-            mergeGuestWishlist()
-            refreshServerWishlist()
-        }
-        return payload.user
+                firstName.trim().ifBlank { null }, lastName.trim().ifBlank { null }, MagicLinkProof.challenge(verifier)),
+        ).data.message
     }
 
     suspend fun requestMagicLink(email: String) {

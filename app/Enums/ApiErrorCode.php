@@ -17,6 +17,9 @@ enum ApiErrorCode: string
     case Unauthenticated = 'UNAUTHENTICATED';
     case InvalidCredentials = 'INVALID_CREDENTIALS';
     case Forbidden = 'FORBIDDEN';
+    /* Password giusta su un account la cui casella non è ancora dimostrata:
+       è ripartito il collegamento che conferma ed entra (D64). */
+    case EmailConfirmationPending = 'EMAIL_CONFIRMATION_PENDING';
     case NotFound = 'NOT_FOUND';
     case CityNotFound = 'CITY_NOT_FOUND';
     case Conflict = 'CONFLICT';
@@ -37,7 +40,7 @@ enum ApiErrorCode: string
         return match ($this) {
             self::ValidationFailed => 422,
             self::Unauthenticated, self::InvalidCredentials => 401,
-            self::Forbidden => 403,
+            self::Forbidden, self::EmailConfirmationPending => 403,
             self::NotFound, self::CityNotFound => 404,
             self::Conflict, self::ReportAlreadyPending => 409,
             self::InvalidCursor, self::InvalidRequest, self::InvalidToken => 400,

@@ -12,7 +12,7 @@
     </dl>
     @php $presenze = ($statistics['checked_in'] ?? 0) + ($statistics['no_show'] ?? 0); @endphp
     @if (($statistics['no_show'] ?? 0) > 0 && $presenze > 0)
-        <p class="text-sm text-ink-muted">{{ __('ticketing.no_show.rate', ['percent' => (int) round(($statistics['no_show'] / $presenze) * 100)]) }} {{ __('ticketing.no_show.hint', ['limit' => config('ticketing.no_show.limit'), 'days' => config('ticketing.no_show.window_days')]) }}</p>
+        <p class="text-sm text-ink-muted">{{ __('ticketing.no_show.rate', ['percent' => (int) round(($statistics['no_show'] / $presenze) * 100)]) }} {{ __('ticketing.no_show.hint', ['limit' => config('ticketing.no_show.limit'), 'days' => config('ticketing.no_show.window_days'), 'cap' => max(0, (int) config('ticketing.no_show.limit') - 1)]) }}</p>
     @endif
     <p>{{ $availability['remaining'] === null ? __('ticketing.unlimited') : __('ticketing.remaining', ['count' => $availability['remaining']]) }}</p>
     @if (! $date->effectiveVenue()?->ticketing_enabled)<p>{{ __('ticketing.disabled_hint') }}</p>@else

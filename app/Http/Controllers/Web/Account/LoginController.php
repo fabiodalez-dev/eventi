@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Web\Account;
 
+use App\Actions\Account\RequestRegistration;
 use App\DTOs\PageMeta;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Web\Account\AuthEntryRequest;
 use App\Http\Requests\Web\Account\LoginRequest;
+use App\Models\User;
 use App\Support\AccountLoginThrottle;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
@@ -38,7 +40,7 @@ final class LoginController extends Controller
         ]);
     }
 
-    public function store(LoginRequest $request): RedirectResponse
+    public function store(LoginRequest $request, RequestRegistration $registration): RedirectResponse
     {
         $credentials = [
             'email' => (string) $request->validated('email'),
@@ -50,7 +52,32 @@ final class LoginController extends Controller
         $tetto = AccountLoginThrottle::chiave('sito', $credentials['email']);
         AccountLoginThrottle::prenotaOppure429($tetto);
 
-        if (! Auth::attempt($credentials, $request->boolean('remember'))) {
+        /*
+         * La password giusta non basta finché la casella non è dimostrata da
+         * chi l'ha scelta (`email_claim_pending_at`, D64): può averla scelta
+         * chiunque abbia registrato quell'indirizzo, e con la registrazione
+         * che non dice più se un indirizzo è libero quella password non deve
+         * diventare la porta di un account preregistrato. Il controllo
+         * gira solo dopo la verifica della password, quindi lo scopre solo
+         * chi la conosce.
+         */
+        $sospeso = null;
+        $entrato = Auth::attemptWhen($credentials, static function (mixed $utente) use (&$sospeso): bool {
+            $sospeso = $utente instanceof User && $utente->email_claim_pending_at !== null ? $utente : null;
+
+            return $sospeso === null;
+        }, $request->boolean('remember'));
+
+        if ($sospeso instanceof User) {
+            AccountLoginThrottle::restituisci($tetto);
+            /* Riparte il messaggio della registrazione, legato a questo
+               browser: aperto qui conferma ed entra, e la password resta. */
+            $registration->sendFromWeb($sospeso, true, $request->session(), $request->boolean('remember'));
+
+            throw ValidationException::withMessages(['email' => __('account.login.claim_pending')]);
+        }
+
+        if (! $entrato) {
             /*
              * Un solo messaggio per «email inesistente» e «password
              * sbagliata»: due messaggi diversi direbbero a chiunque quali

@@ -136,8 +136,10 @@ it('scrive nel registro chi dà e chi toglie l’accesso a un locale', function 
     $this->actingAs($this->scenario->ownerA);
     openCollaborators($venue);
 
+    // Da D64 un invito resta in sospeso finché non è accettato: il registro
+    // scrive l'invito, e l'accesso concesso quando la persona dice di sì.
     Livewire::test(Collaborators::class)->callTableAction('invite', data: ['name' => 'Marta', 'email' => 'marta@esempio.test']);
-    $granted = securityLog('accesso_locale_concesso');
+    $granted = securityLog('invito_locale_inviato');
     expect($granted->causer_id)->toBe($this->scenario->ownerA->getKey())
         ->and($granted->properties->get('venue_id'))->toBe($venue->getKey());
 
@@ -420,12 +422,22 @@ it('dice alla redazione che non parte nessun invito per chi è già nel locale c
     Notification::assertSentTo($editor, VenueAccessGranted::class);
 });
 
-it('azzera la password di chi ha preregistrato l’email prima di invitarlo in un locale o in un organizzatore', function (): void {
+it('azzera la password di chi ha preregistrato l’email prima di dargli un locale o un organizzatore', function (): void {
     $intruder = User::factory()->unverified()->create(['email' => 'info@locale.test', 'password' => 'password-dell-intruso']);
     $intruder->forceFill(['email_claim_pending_at' => now()])->save();
     $intruder->createToken('android');
 
+    // Un invito da accettare (D64) non apre niente: per entrare serve il collegamento
+    // arrivato nella casella vera, e chi la possiede entra con il collegamento di
+    // accesso, che azzera l'intruso da sé (`ClaimMailbox`). Qui non si tocca nulla.
     app(InviteVenueMemberAction::class)->execute($this->scenario->venueA, 'info@locale.test', 'Info', VenueRole::Editor);
+    expect(Hash::check('password-dell-intruso', $intruder->fresh()->password))->toBeTrue()
+        ->and($intruder->fresh()->canAccessTenant($this->scenario->venueA))->toBeFalse();
+    Notification::assertSentTo($intruder, VenueAccessGranted::class, fn (VenueAccessGranted $n): bool => $n->toMail($intruder)->actionText === __('manage.invitation.accept_action'));
+    $this->scenario->venueA->membersIncludingInvited()->detach($intruder->getKey());
+
+    // L'accesso dato subito — la richiesta approvata — azzera invece le credenziali.
+    app(InviteVenueMemberAction::class)->execute($this->scenario->venueA, 'info@locale.test', 'Info', VenueRole::Editor, requested: true);
 
     $user = $intruder->fresh();
     expect(Hash::check('password-dell-intruso', $user->password))->toBeFalse()

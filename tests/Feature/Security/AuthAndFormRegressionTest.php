@@ -9,7 +9,9 @@ use App\Models\MobileAuthChallenge;
 use App\Models\Organizer;
 use App\Models\User;
 use App\Models\Venue;
+use App\Notifications\AccountAlreadyRegistered;
 use App\Notifications\MagicLoginLink;
+use App\Notifications\RegistrationLink;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Filament\Auth\Pages\PasswordReset\ResetPassword;
 use Filament\Facades\Filament;
@@ -40,10 +42,16 @@ it('rejects invalid registration without creating accounts or tokens', function 
 ]);
 
 it('preserves an existing account when duplicate registration is attempted', function (string $path): void {
+    /* Since D64 a duplicate is no longer a 422 (that told anyone the address
+       was registered): the answer matches a new address, the account stays
+       as it was and only its mailbox hears about the attempt. */
     $user = User::factory()->create(['email' => 'existing@example.test', 'password' => Hash::make('original-password')]);
-    $this->postJson($path, ['email' => $user->email, 'password' => 'replacement-password', 'password_confirmation' => 'replacement-password'])->assertUnprocessable();
+    $response = $this->postJson($path, ['email' => $user->email, 'password' => 'replacement-password', 'password_confirmation' => 'replacement-password']);
+    expect($response->status())->toBeIn([202, 302]);
     expect(User::query()->count())->toBe(1)->and(Hash::check('original-password', $user->fresh()->password))->toBeTrue();
-    Notification::assertNothingSent();
+    Notification::assertSentTo($user, AccountAlreadyRegistered::class);
+    Notification::assertNotSentTo($user, RegistrationLink::class);
+    $this->assertGuest();
 })->with(['/registrati', '/api/v1/auth/register']);
 
 it('ignores privilege and verification fields during registration', function (string $path): void {
@@ -51,7 +59,7 @@ it('ignores privilege and verification fields during registration', function (st
         'email' => 'new@example.test', 'password' => 'A-valid-password-123', 'password_confirmation' => 'A-valid-password-123',
         'roles' => ['super_admin'], 'role' => 'super_admin', 'email_verified_at' => now()->toISOString(), 'id' => 9999,
     ]);
-    expect($response->status())->toBeIn([201, 302]);
+    expect($response->status())->toBeIn([202, 302]);
     $user = User::query()->where('email', 'new@example.test')->sole();
     expect($user->hasRole('user'))->toBeTrue()->and($user->hasRole('super_admin'))->toBeFalse()->and($user->email_verified_at)->toBeNull();
 })->with(['/registrati', '/api/v1/auth/register']);

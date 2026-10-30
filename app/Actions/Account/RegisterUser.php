@@ -8,7 +8,6 @@ use App\Enums\UserRole;
 use App\Models\User;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
-use Illuminate\Auth\Events\Registered;
 use Illuminate\Support\Facades\Hash;
 
 /**
@@ -19,9 +18,12 @@ use Illuminate\Support\Facades\Hash;
  * predefiniti, che sono quelli della città servita; copiarci sopra
  * `app.timezone` registrerebbe ogni nuovo utente su UTC.
  *
- * La verifica dell'email parte subito perché è la condizione di **qualunque**
- * invio successivo (§15.2): senza, un account resterebbe per sempre capace di
- * salvare e incapace di ricevere, senza sapere perché.
+ * Qui l'account nasce e basta: il messaggio lo spedisce `RequestRegistration`,
+ * che è la sola porta d'ingresso. Non è più la verifica dell'email di Laravel
+ * (`Registered` → `VerifyEmailLink`) ma il collegamento di accesso che
+ * conferma l'indirizzo ed entra (`RegistrationLink`): due messaggi per la
+ * stessa registrazione confonderebbero, e il secondo — la sola verifica —
+ * lascerebbe in sospeso proprio chi si è appena registrato.
  */
 final class RegisterUser
 {
@@ -65,7 +67,6 @@ final class RegisterUser
          * memoria non li conosce finché non li rilegge.
          */
         $user->refresh();
-        event(new Registered($user));
 
         return $user;
     }

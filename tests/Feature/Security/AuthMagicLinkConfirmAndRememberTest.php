@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\User;
 use App\Notifications\MagicLoginLink;
+use App\Notifications\RegistrationLink;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -119,14 +120,33 @@ it('dalla pagina di conferma vale la casella spuntata lì', function (): void {
 });
 
 it('la registrazione dal sito non accende il cookie resta collegato da sola', function (): void {
+    /* Dal D64 si entra dal collegamento spedito, non dalla registrazione:
+       la scelta del modulo vale quando il collegamento si apre qui. */
     $this->post(route('account.register.store'), [
         'name' => 'Luca',
         'email' => 'luca@example.test',
         'password' => 'una-password-molto-lunga',
         'password_confirmation' => 'una-password-molto-lunga',
-    ])->assertRedirect(route('verification.notice'))->assertCookieMissing(nomeRicordami());
+    ])->assertRedirect(route('account.register.sent'))->assertCookieMissing(nomeRicordami());
+    $this->assertGuest();
 
-    $this->assertAuthenticated();
+    $user = User::query()->where('email', 'luca@example.test')->firstOrFail();
+    $this->get(Notification::sent($user, RegistrationLink::class)->first()->url)
+        ->assertRedirect()->assertCookieMissing(nomeRicordami());
+    $this->assertAuthenticatedAs($user);
+});
+
+it('la registrazione con resta collegato lo accende quando il collegamento si apre nello stesso browser', function (): void {
+    $this->post(route('account.register.store'), [
+        'email' => 'marta@example.test',
+        'password' => 'una-password-molto-lunga',
+        'password_confirmation' => 'una-password-molto-lunga',
+        'remember' => '1',
+    ])->assertCookieMissing(nomeRicordami());
+
+    $user = User::query()->where('email', 'marta@example.test')->firstOrFail();
+    $this->get(Notification::sent($user, RegistrationLink::class)->first()->url)
+        ->assertRedirect()->assertCookie(nomeRicordami());
 });
 
 it('dura trenta giorni anche il resta collegato dell accesso con password', function (): void {

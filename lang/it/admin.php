@@ -447,6 +447,7 @@ return [
         'merged' => 'Tag uniti: :count eventi spostati.',
         'invitation_sent' => 'Invito inviato',
         'already_member' => 'Questa persona è già nel locale come :role: non è partito nessun invito. Il ruolo si cambia con «Modifica» sulla sua riga.',
+        'already_invited' => 'Questa persona ha già un invito da accettare come :role: non è partito un secondo messaggio. Per entrare deve accettarlo dal collegamento che ha ricevuto.',
         'nothing_to_do' => 'Non c\'era niente da fare.',
         'collaborator_invited' => 'Invito registrato.',
         'impersonating' => 'Stai navigando come :name.',
@@ -552,6 +553,7 @@ return [
 
     'placeholders' => [
         'never' => 'Mai',
+        'pending_invite' => 'Invito da accettare',
         'none' => 'Nessuno',
         'system' => 'Sistema',
         'auto' => 'Automatico',

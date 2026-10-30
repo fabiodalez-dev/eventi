@@ -4,6 +4,8 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import it.fabiodalez.incitta.data.ApiException
+import it.fabiodalez.incitta.data.PendingEmailConfirmation
+import it.fabiodalez.incitta.data.awaitsEmailConfirmation
 import it.fabiodalez.incitta.data.loginFailureMessage
 import it.fabiodalez.incitta.data.requestFailureMessage
 import it.fabiodalez.incitta.data.requiresEmailVerification
@@ -118,6 +120,8 @@ data class AppUiState(
     val isSearching: Boolean = false,
     val isAuthenticating: Boolean = false,
     val authError: String? = null,
+    /* «Controlla la posta»: la registrazione (o l'accesso a un account mai confermato) ha spedito il collegamento che conferma ed entra (D64). */
+    val pendingEmailConfirmation: PendingEmailConfirmation? = null,
     val isOffline: Boolean = false,
     val message: String? = null,
     /* Il gettone di una raccolta condivisa aperta da un link `/raccolte/{token}`. */
@@ -799,6 +803,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     suspend fun eventWeather(id: Long) = repository.eventWeather(id)
 
     private var commentLoginSlug: String? = null
+
+    /* Rifà la registrazione o l'accesso che hanno spedito il collegamento: vero se nel frattempo si è entrati. Solo in memoria. */
+    private var resendConfirmation: (suspend () -> Boolean)? = null
+
     fun loginForComments(slug: String) {
         selectTab(AppTab.ACCOUNT)
         commentLoginSlug = slug
@@ -978,15 +986,73 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun login(email: String, password: String) {
-        authenticate(login = true) { repository.login(email, password) }
+        /* Un account registrato e mai confermato non entra con la password (403
+           EMAIL_CONFIRMATION_PENDING): il server rimanda il collegamento e qui si
+           apre «controlla la posta»; il reinvio rifà l'accesso. */
+        val retry: suspend () -> Boolean = { repository.login(email, password); true }
+        authenticate(
+            login = true,
+            confirmation = PendingEmailConfirmation(email.trim(), fromLogin = true) to retry,
+        ) { repository.login(email, password) }
     }
 
     fun clearAuthError() {
         _state.value = _state.value.copy(authError = null)
     }
 
+    /**
+     * La registrazione risponde sempre «Ti abbiamo scritto», che l'indirizzo sia
+     * nuovo o già registrato (D64): niente sessione qui, ma la schermata
+     * «controlla la posta». L'accesso si completa quando l'utente apre il
+     * collegamento ([exchangeMagicToken]). Il reinvio rifà la registrazione con
+     * gli stessi dati, che restano solo in memoria finché la schermata è aperta.
+     */
     fun register(firstName: String, lastName: String, email: String, password: String) {
-        authenticate { repository.register(firstName, lastName, email, password) }
+        if (_state.value.isAuthenticating) return
+        val send: suspend () -> Boolean = { repository.register(firstName, lastName, email, password); false }
+        viewModelScope.launch {
+            _state.value = _state.value.copy(isAuthenticating = true, message = null, authError = null)
+            runCatching { send() }
+                .onSuccess {
+                    resendConfirmation = send
+                    _state.value = _state.value.copy(
+                        isAuthenticating = false,
+                        pendingEmailConfirmation = PendingEmailConfirmation(email.trim()),
+                    )
+                }
+                .onFailure {
+                    if (it is CancellationException) throw it
+                    _state.value = _state.value.copy(isAuthenticating = false, authError = userMessage(it))
+                }
+        }
+    }
+
+    /** Rimanda il collegamento: rifà la registrazione o l'accesso che l'hanno spedito. */
+    fun resendEmailConfirmation() {
+        val send = resendConfirmation ?: return
+        if (_state.value.isAuthenticating) return
+        viewModelScope.launch {
+            _state.value = _state.value.copy(isAuthenticating = true, message = null, authError = null)
+            val outcome = runCatching { send() }
+            val error = outcome.exceptionOrNull()
+            if (error is CancellationException) throw error
+            _state.value = when {
+                /* Confermato nel frattempo da un altro dispositivo: l'accesso è riuscito. */
+                outcome.getOrNull() == true -> {
+                    resendConfirmation = null
+                    _state.value.copy(isAuthenticating = false, pendingEmailConfirmation = null, message = text(R.string.auth_signed_in))
+                }
+                error == null || awaitsEmailConfirmation(error) ->
+                    _state.value.copy(isAuthenticating = false, message = text(R.string.auth_confirmation_resent))
+                else -> _state.value.copy(isAuthenticating = false, authError = userMessage(error))
+            }
+        }
+    }
+
+    /** Torna al modulo: la schermata «controlla la posta» si chiude, il collegamento già spedito resta valido. */
+    fun dismissEmailConfirmation() {
+        resendConfirmation = null
+        _state.value = _state.value.copy(pendingEmailConfirmation = null, authError = null)
     }
 
     fun requestMagicLink(email: String) {
@@ -1092,15 +1158,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         return detail to related
     }
 
-    private fun authenticate(login: Boolean = false, action: suspend () -> Any) {
+    private fun authenticate(
+        login: Boolean = false,
+        confirmation: Pair<PendingEmailConfirmation, suspend () -> Boolean>? = null,
+        action: suspend () -> Any,
+    ) {
         if (_state.value.isAuthenticating) return
         viewModelScope.launch {
             _state.value = _state.value.copy(isAuthenticating = true, message = null, authError = null)
             runCatching { action() }
                 .onSuccess {
+                    resendConfirmation = null
                     _state.value = _state.value.copy(
                         isAuthenticating = false,
                         authError = null,
+                        pendingEmailConfirmation = null,
                         message = "Accesso eseguito. I salvati del dispositivo sono stati sincronizzati.",
                     )
                     commentLoginSlug?.let { slug ->
@@ -1110,6 +1182,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 .onFailure {
                     if (it is CancellationException) throw it
+                    if (confirmation != null && awaitsEmailConfirmation(it)) {
+                        resendConfirmation = confirmation.second
+                        _state.value = _state.value.copy(isAuthenticating = false, authError = null, pendingEmailConfirmation = confirmation.first)
+                        return@onFailure
+                    }
                     val feedback = if (login) getApplication<Application>().getString(loginFailureMessage(it)) else userMessage(it)
                     _state.value = _state.value.copy(
                         isAuthenticating = false,

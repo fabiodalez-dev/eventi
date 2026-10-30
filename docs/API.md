@@ -56,6 +56,60 @@ un cambio password lo invalida. I vecchi client senza PKCE devono essere aggiorn
 Il collegamento HTTPS `/app/auth/magic` usa gli Android App Links verificati;
 la pagina di ripiego non riflette il token e imposta `no-store` e `no-referrer`.
 
+#### Registrazione (D64)
+
+`POST /auth/register` non rivela se l'indirizzo è già registrato: risponde
+**sempre `202`** con lo stesso corpo e **nessun token**, per un indirizzo nuovo
+come per uno esistente.
+
+```json
+{ "data": { "message": "Ti abbiamo scritto: apri il messaggio per entrare." } }
+```
+
+Campi: `email`, `password` (regole di `Password::defaults()`), facoltativi
+`name`, `first_name`, `last_name`, `password_confirmation` (se presente deve
+coincidere), `marketing_opt_in`, `device_name` e `code_challenge` (PKCE S256,
+43 caratteri base64url, come `magic-link`). Gli errori di validazione dei campi
+restano `422 VALIDATION_FAILED`; l'esistenza dell'email non è mai un errore.
+
+- **Indirizzo nuovo:** l'account nasce con l'email da confermare e arriva il
+  messaggio «Conferma l'indirizzo ed entra» con il collegamento di accesso.
+  Con `code_challenge` è il collegamento mobile `/app/auth/magic?token=…`: lo
+  scambio `magic-link/exchange` con il `code_verifier` della stessa
+  installazione emette il token, conferma l'email e **lascia valida la
+  password scelta** (la sfida è legata a chi l'ha scelta). Senza
+  `code_challenge` arriva il collegamento del sito, che entra dal browser ma,
+  non essendo legato a nessuno, azzera la password alla prima apertura.
+- **Indirizzo esistente:** l'account non cambia (né password né dati inviati)
+  e arriva «Hai già un account»: collegamento di accesso ordinario (lo scambio
+  prova la casella e, se l'account è ancora in sospeso, azzera le credenziali
+  scelte da altri) e invito a usare «password dimenticata».
+- **Account in sospeso con la password giusta** (chi rifà la registrazione
+  perché il messaggio non arriva): riparte «Conferma l'indirizzo ed entra»,
+  legato alla nuova `code_challenge`. È il modo in cui l'app reinvia.
+
+Tetti: `api-auth` (coppia indirizzo+email, casella di destinazione con una
+chiave che non guarda il database — l'email in minuscolo e senza accenti —,
+indirizzo), `outbound-email` (10 l'ora per indirizzo) e al massimo cinque
+messaggi l'ora per account da registrazione e accesso; oltre il tetto il
+messaggio non parte, nessuna sfida PKCE viene creata o cancellata e la risposta
+resta `202`. Per un account eliminato la risposta è la stessa e non parte
+niente.
+
+Se Android apre `/app/auth/magic?token=…` nel browser (App Links non
+verificati), la pagina di ripiego offre «Apri nell'app»: un `intent://auth/magic`
+con il pacchetto esplicito, costruito nel browser leggendo il gettone da
+`location.search` (l'HTML non lo contiene; `no-store`, `no-referrer`).
+
+`POST /auth/login` con la password giusta su un account la cui casella non è
+ancora dimostrata (`email_claim_pending_at`, cioè registrato e mai confermato
+dal collegamento) risponde `403 EMAIL_CONFIRMATION_PENDING` senza token e
+rimanda il messaggio «Conferma l'indirizzo ed entra»; se la richiesta porta
+`code_challenge`, il collegamento si scambia con il verificatore di quella
+installazione e la password resta valida. Con la password sbagliata la
+risposta resta `401 INVALID_CREDENTIALS`, quindi il `403` lo vede solo chi la
+password la conosce.
+
 ### Account (`/me`, Bearer token; senza token → 401)
 
 `GET|PATCH|DELETE /me` · `GET /me/export` · `GET /me/feed` ·

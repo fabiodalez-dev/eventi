@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\User;
+use App\Notifications\RegistrationLink;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Support\Facades\Notification;
 
@@ -26,9 +27,15 @@ it('registers corrects validation errors saves the profile and logs in again', f
         $page->script('document.querySelector("form[action$=\\"/registrati\\"] button[type=submit]").addEventListener("click", () => { const until = performance.now() + 1200; while (performance.now() < until) {} });');
     }
     $page->page()->locator('form[action$="/registrati"] button[type="submit"]')->click(['timeout' => 5000]);
-    $page->assertSee(__('account.register.done'));
+    /* Dal D64 la registrazione risponde «controlla la posta» e si entra dal
+       collegamento spedito: aperto in questo browser conferma ed entra, e
+       la password scelta resta quella con cui si rientra più sotto. */
+    $page->assertSee(__('account.register.sent_title'));
     $user = User::query()->where('email', 'browser-auth@example.test')->sole();
     expect($user->hasRole('user'))->toBeTrue()->and($user->email_verified_at)->toBeNull();
+    $page->navigate(Notification::sent($user, RegistrationLink::class)->first()->url);
+    $page->page()->waitForLoadState();
+    expect($user->fresh()->email_verified_at)->not->toBeNull();
     $page->navigate('/il-mio-profilo');
     $page->page()->waitForLoadState();
     $page->fill('name', 'Anna aggiornata');

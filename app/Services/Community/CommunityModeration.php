@@ -7,6 +7,7 @@ namespace App\Services\Community;
 use App\Enums\CommunityStatus;
 use App\Enums\Permission;
 use App\Enums\UserRole;
+use App\Http\Requests\Community\ProfileRequest;
 use App\Models\CommunityComment;
 use App\Models\CommunityPost;
 use App\Models\CommunityProfile;
@@ -14,6 +15,7 @@ use App\Models\User;
 use App\Services\Carpool\CarpoolAuditLog;
 use App\Services\Carpool\CommunitySafety;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 
 final class CommunityModeration
 {
@@ -67,6 +69,39 @@ final class CommunityModeration
             $model->forceFill($attributes)->save();
             app(CarpoolAuditLog::class)->record($moderator, 'social_moderation', $model, ['kind' => $kind, 'enabled' => $enabled, 'reason' => $reason]);
             activity('community')->causedBy($moderator)->performedOn($model)->withProperties(['kind' => $kind, 'enabled' => $enabled])->event('moderation')->log('moderation');
+        });
+    }
+
+    /**
+     * La redazione cambia un nome utente senza attesa (D64).
+     *
+     * Serve per i nomi offensivi o che si spacciano per qualcun altro: aspettare
+     * trenta giorni che il titolare lo cambi da sé non è moderazione. Le regole del
+     * nome restano quelle del modulo (formato, unicità, registro dei nomi); salta
+     * solo l'attesa. Il cambio fa partire l'attesa del titolare da adesso, così il
+     * nome scelto dalla redazione non torna indietro il minuto dopo. Si agisce verso
+     * il basso, come per le sospensioni.
+     */
+    public function renameHandle(User $moderator, int $profileId, string $handle, string $reason): CommunityProfile
+    {
+        app(CommunitySafety::class)->requireStaff($moderator, Permission::ManageCommunity);
+        abort_if(mb_strlen(trim($reason)) < 5 || mb_strlen($reason) > 1000, 422);
+        $handle = mb_strtolower(trim($handle));
+        Validator::make(['handle' => $handle], ['handle' => ['required', ...ProfileRequest::handleRules($profileId)]])->validate();
+
+        return DB::transaction(function () use ($moderator, $profileId, $handle, $reason): CommunityProfile {
+            $userId = CommunityProfile::query()->whereKey($profileId)->value('user_id');
+            abort_if($userId === null, 404);
+            $author = User::query()->whereKey($userId)->lockForUpdate()->firstOrFail();
+            abort_unless(self::outranks($moderator, $author), 403);
+            $profile = CommunityProfile::query()->whereKey($profileId)->firstOrFail();
+            $prima = $profile->handle;
+            $profile->handle = $handle;
+            app(Community::class)->saveHandle($profile);
+            app(CarpoolAuditLog::class)->record($moderator, 'social_handle_renamed', $profile, ['from' => $prima, 'to' => $handle, 'reason' => $reason]);
+            activity('community')->causedBy($moderator)->performedOn($profile)->withProperties(['from' => $prima, 'to' => $handle])->event('handle_renamed')->log('handle_renamed');
+
+            return $profile;
         });
     }
 

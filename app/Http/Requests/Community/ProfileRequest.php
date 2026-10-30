@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Http\Requests\Community;
 
 use App\Enums\ProfileVisibility;
+use App\Models\CommunityProfile;
+use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -39,11 +41,38 @@ final class ProfileRequest extends FormRequest
             Rule::unique('community_handle_aliases', 'handle')->where(fn ($query) => $query->where('community_profile_id', '!=', $ignoreProfileId ?? 0))];
     }
 
+    /**
+     * L'attesa fra due cambi di nome utente, come regola del campo.
+     *
+     * Sta sul campo `handle` perché così l'errore arriva dove arrivano gli altri:
+     * sotto il campo sul sito, in `error.fields.handle` nell'API, che l'app mostra
+     * già come messaggio della richiesta. Rimettere il nome che si ha non è un
+     * cambio e passa sempre; il primo nome (nessun profilo) nemmeno. La usa anche
+     * il controllo dal vivo, per dire prima del salvataggio che il cambio non è
+     * ancora possibile.
+     */
+    public static function handleCooldownRule(?CommunityProfile $profile): Closure
+    {
+        return static function (string $attribute, mixed $value, Closure $fail) use ($profile): void {
+            if (! $profile instanceof CommunityProfile || ! is_string($value) || mb_strtolower(trim($value)) === $profile->handle) {
+                return;
+            }
+
+            $attesa = $profile->handleCooldownMessage();
+
+            if ($attesa !== null) {
+                $fail($attesa);
+            }
+        };
+    }
+
     /** @return array<string, mixed> */
     public function rules(): array
     {
+        $profile = $this->user()?->communityProfile;
+
         return [
-            'handle' => ['required', ...self::handleRules($this->user()?->communityProfile?->id)],
+            'handle' => ['required', self::handleCooldownRule($profile), ...self::handleRules($profile?->id)],
             'display_name' => ['required', 'string', 'max:80'], 'bio' => ['nullable', 'string', 'max:500'],
             'city_id' => ['nullable', 'integer', Rule::exists('cities', 'id')->where('is_active', true)],
             'visibility' => ['required', Rule::enum(ProfileVisibility::class)], 'indexable' => ['boolean'],

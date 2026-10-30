@@ -73,6 +73,6 @@ final class VenueClaimController extends Controller
     private function claimable(Venue $venue): void
     {
         abort_unless($venue->status === VenueStatus::Approved, 404);
-        abort_if($venue->owners()->exists(), 404, __('forms.claim.already_managed'));
+        abort_if($venue->hasOwnerOrInvitedOwner(), 404, __('forms.claim.already_managed'));
     }
 }

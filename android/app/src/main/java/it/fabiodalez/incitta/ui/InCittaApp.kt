@@ -478,6 +478,8 @@ fun InCittaApp(viewModel: MainViewModel) {
                         onCollections = { collectionsOpen = true },
                         onOpenSavedSearch = viewModel::openSavedSearch,
                         onClearAuthError = viewModel::clearAuthError,
+                        onResendConfirmation = viewModel::resendEmailConfirmation,
+                        onDismissConfirmation = viewModel::dismissEmailConfirmation,
                         onInterestsSaved = viewModel::interestsChanged,
                         onAppearance = viewModel::setAppearance,
                         onSaved = { viewModel.selectTab(AppTab.SAVED) },

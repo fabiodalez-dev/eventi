@@ -31,7 +31,9 @@
                 </div>
                 <p id="handle-stato" data-nome-utente-stato role="status" class="mt-2 text-sm empty:hidden"></p>
             </div>
-            <p id="handle-help" class="text-sm text-ink-muted">{{ __('community.handle_help') }} {{ __('community.handle_change_help') }}</p>
+            <p id="handle-help" class="text-sm text-ink-muted">{{ __('community.handle_help') }} {{ __('community.handle_change_help', ['days' => (int) config('community.handle_change_cooldown_days')]) }}</p>
+            {{-- L'attesa fra due cambi si dice prima, non solo quando il salvataggio la rifiuta. --}}
+            @if($attesaNome = auth()->user()?->communityProfile?->handleCooldownMessage())<p data-nome-utente-attesa class="text-sm text-ink-muted">{{ $attesaNome }}</p>@endif
             <fieldset class="space-y-3 border-y border-line py-6"><legend class="font-semibold">{{ __('community.visibility') }}</legend>
                 @foreach(\App\Enums\ProfileVisibility::cases() as $visibility)<label class="flex min-h-11 items-center gap-3"><input type="radio" name="visibility" value="{{ $visibility->value }}" @checked(old('visibility', $profile['visibility'] ?? 'members') === $visibility->value)>{{ __('community.profile_visibility.'.$visibility->value) }}</label>@endforeach
                 <input type="hidden" name="indexable" value="0"><label class="flex items-start gap-3"><input type="checkbox" name="indexable" value="1" class="mt-1" @checked(old('indexable', $profile['indexable'] ?? false))><span>{{ __('community.indexable') }}</span></label><p class="text-sm text-ink-muted">{{ __('community.index_help') }}</p>

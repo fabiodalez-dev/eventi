@@ -6,7 +6,7 @@
         <h1 class="text-hero">{{ __('ticketing.title') }}</h1>
         @include('ticketing.errors')
         @if (($noShows ?? 0) > 0)
-            <p class="border-2 border-line bg-canvas p-4 text-sm">{{ __('ticketing.no_show.account', ['count' => $noShows, 'limit' => config('ticketing.no_show.limit'), 'days' => config('ticketing.no_show.window_days')]) }}</p>
+            <p class="border-2 border-line bg-canvas p-4 text-sm">{{ __('ticketing.no_show.account', ['count' => $noShows, 'limit' => config('ticketing.no_show.limit'), 'days' => config('ticketing.no_show.window_days'), 'cap' => max(0, (int) config('ticketing.no_show.limit') - 1)]) }}</p>
         @endif
         @forelse ($bookings as $booking)
             @php($data = \App\Http\Resources\V1\BookingResource::toArray($booking))

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Web\Account;
 
-use App\Actions\Account\RegisterUser;
+use App\Actions\Account\RequestRegistration;
 use App\DTOs\PageMeta;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Web\Account\AuthEntryRequest;
@@ -12,7 +12,6 @@ use App\Http\Requests\Web\Account\RegisterRequest;
 use App\Support\Features;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Auth;
 
 /**
  * Registrazione dal sito (§15.2).
@@ -42,9 +41,16 @@ final class RegisterController extends Controller
         ]);
     }
 
-    public function store(RegisterRequest $request, RegisterUser $register): RedirectResponse
+    /**
+     * La risposta è la stessa che l'indirizzo sia nuovo o già registrato
+     * (D64): la pagina «controlla la posta», senza sessione. Si entra dal
+     * collegamento che arriva per posta, che conferma l'indirizzo; aperto in
+     * questo browser lascia valida la password scelta qui
+     * (`RequestRegistration`, `MagicLinkController::login()`).
+     */
+    public function store(RegisterRequest $request, RequestRegistration $registration): RedirectResponse
     {
-        $user = $register([
+        [$user, $registrante] = $registration->account([
             'name' => $request->string('name')->value(),
             'first_name' => $request->validated('first_name'),
             'last_name' => $request->validated('last_name'),
@@ -59,12 +65,24 @@ final class RegisterController extends Controller
         ]);
 
         /* «Resta collegato» solo se spuntato, come all'accesso con password:
-           un cookie che dura settimane non deve nascere da solo. */
-        Auth::login($user, remember: $request->boolean('remember'));
-        $request->session()->regenerate();
+           vale quando il collegamento si apre in questo browser. */
+        $registration->sendFromWeb($user, $registrante, $request->session(), $request->boolean('remember'));
 
         return redirect()
-            ->route('verification.notice')
-            ->with('status', __('account.register.done'));
+            ->route('account.register.sent')
+            ->with('status', __('account.register.sent'));
+    }
+
+    /** «Controlla la posta»: la stessa pagina per ogni indirizzo. */
+    public function sent(): View
+    {
+        return view('account.register-sent', [
+            'meta' => new PageMeta(
+                title: __('account.register.sent_title'),
+                heading: __('account.register.sent_title'),
+                description: __('account.register.sent_lead', ['minutes' => config()->integer('account.magic_link_minutes')]),
+                indexable: false,
+            ),
+        ]);
     }
 }

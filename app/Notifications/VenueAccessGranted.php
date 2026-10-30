@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Notifications;
 
+use App\Actions\InviteVenueMemberAction;
 use App\Enums\VenueRole;
 use App\Models\Venue;
 use Filament\Facades\Filament;
@@ -25,6 +26,12 @@ use Illuminate\Support\Facades\Password;
  * Sono due frasi diverse perché sono due situazioni diverse, e mandare a un
  * collaboratore di vecchia data un invito a "creare la password" lo
  * spaventerebbe.
+ *
+ * **Gli inviti da accettare (D64)** hanno una terza e una quarta frase: a chi
+ * ha già un account arriva «Accetta l'invito» (`$acceptUrl`, firmato e a
+ * scadenza), all'account nato dall'invito il collegamento per scegliere la
+ * password, che vale come accettare (`$pending`). In nessuno dei due casi il
+ * messaggio dice «da adesso puoi pubblicare»: non è ancora vero.
  */
 class VenueAccessGranted extends Notification
 {
@@ -32,6 +39,8 @@ class VenueAccessGranted extends Notification
         private readonly Venue $venue,
         private readonly VenueRole $role,
         private readonly bool $needsPassword,
+        private readonly ?string $acceptUrl = null,
+        private readonly bool $pending = false,
     ) {}
 
     /**
@@ -47,14 +56,23 @@ class VenueAccessGranted extends Notification
         $panel = Filament::getPanel('venue');
         $product = (string) config('app.name');
 
+        $invitation = $this->acceptUrl !== null || $this->pending;
+
         $message = (new MailMessage)
             ->subject(__('manage.invitation.subject', ['venue' => $this->venue->name, 'product' => $product]))
             ->greeting(__('manage.invitation.greeting', ['name' => $notifiable->name]))
-            ->line(__('manage.invitation.intro', [
+            ->line(__($invitation ? 'manage.invitation.invite_intro' : 'manage.invitation.intro', [
                 'venue' => $this->venue->name,
                 'role' => mb_strtolower($this->role->label()),
                 'product' => $product,
             ]));
+
+        if ($this->acceptUrl !== null) {
+            return $message
+                ->line(__('manage.invitation.accept_hint', ['days' => InviteVenueMemberAction::EXPIRES_DAYS]))
+                ->action(__('manage.invitation.accept_action'), $this->acceptUrl)
+                ->line(__('manage.invitation.decline_hint'));
+        }
 
         /*
          * Il gettone per scegliere la password lo emette `createToken()`, che
@@ -72,11 +90,21 @@ class VenueAccessGranted extends Notification
         $broker = Password::broker();
 
         if ($this->needsPassword && $notifiable instanceof CanResetPassword && $broker instanceof PasswordBroker) {
+            $token = $broker->createToken($notifiable);
+
+            /*
+             * L'invito da accettare porta alla pagina del sito, non a quella
+             * del pannello: Filament rifiuta di reimpostare la password a chi
+             * il pannello non lo può ancora aprire, e qui è proprio la
+             * password a dire di sì all'invito.
+             */
             return $message
-                ->line(__('manage.invitation.password_hint'))
+                ->line(__($this->pending ? 'manage.invitation.password_accept_hint' : 'manage.invitation.password_hint'))
                 ->action(
                     __('manage.invitation.password_action'),
-                    $panel->getResetPasswordUrl($broker->createToken($notifiable), $notifiable),
+                    $this->pending
+                        ? route('account.password.reset', ['token' => $token, 'email' => $notifiable->getEmailForPasswordReset()])
+                        : $panel->getResetPasswordUrl($token, $notifiable),
                 )
                 ->line(__('manage.invitation.ignore'));
         }

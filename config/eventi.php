@@ -111,4 +111,34 @@ return [
      */
     'sponsorship_affinity_multiplier' => 2,
 
+    /*
+     * Il tetto globale per campagna e per ora sulle misure delle
+     * sponsorizzazioni, indipendente dall'indirizzo (D64, rinvio chiuso).
+     *
+     * Il tetto per indirizzo (trenta l'ora, /64 per IPv6) ferma una persona
+     * con un ciclo `for`; non ferma chi ha molti indirizzi. Questo numero mette
+     * un soffitto a quanto una campagna può crescere in un'ora, da qualunque
+     * parte arrivino le misure. Oltre, le misure si scartano in silenzio e la
+     * redazione trova una riga nel registro di sicurezza, una per campagna e ora.
+     *
+     * **Un numero fisso e non un multiplo della media delle ore precedenti.**
+     * Le misure si tengono per giorno, non per ora: una media oraria andrebbe
+     * ricavata dividendo il giorno, e appiattirebbe proprio i picchi che contano
+     * (la serata, la newsletter, la notifica). Una campagna nuova non ha storia
+     * da cui partire, e una media si alza da sola se la si gonfia piano piano.
+     * Un tetto fisso è prevedibile, si dice in un contratto e non sbaglia per
+     * mancanza di dati.
+     *
+     * **Alto di proposito.** Deve tagliare solo ciò che nessun pubblico vero
+     * produce: diecimila visualizzazioni in un'ora per una sola campagna sono
+     * quasi tre al secondo per sessanta minuti di fila, ben sopra il traffico
+     * di una città; mille clic l'ora sono il dieci per cento di quel tetto,
+     * molte volte il tasso di clic di una card. Chi ha una campagna che li
+     * supera davvero alza il valore dall'ambiente.
+     */
+    'sponsorship_metric_hourly_cap' => [
+        'impressions' => (int) env('SPONSORSHIP_IMPRESSIONS_HOURLY_CAP', 10000),
+        'clicks' => (int) env('SPONSORSHIP_CLICKS_HOURLY_CAP', 1000),
+    ],
+
 ];

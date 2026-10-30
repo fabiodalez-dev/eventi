@@ -311,8 +311,8 @@
     <!-- D60: assenze -->
     <string name="ticket_no_show">Non presentato</string>
     <plurals name="ticket_no_show_account">
-        <item quantity="one">Hai %1$d prenotazione recente a cui non ti sei presentato. Con %2$d assenze in %3$d giorni le prenotazioni gratuite si bloccano: annulla per tempo se non puoi andare.</item>
-        <item quantity="other">Hai %1$d prenotazioni recenti a cui non ti sei presentato. Con %2$d assenze in %3$d giorni le prenotazioni gratuite si bloccano: annulla per tempo se non puoi andare.</item>
+        <item quantity="one">Hai %1$d prenotazione recente a cui non ti sei presentato. Con %2$d assenze in %3$d giorni nello stesso locale non puoi più prenotarne gratis le date; su tutta la piattaforma il blocco scatta a %2$d assenze, contando al massimo %4$d per locale. Annulla per tempo se non puoi andare.</item>
+        <item quantity="other">Hai %1$d prenotazioni recenti a cui non ti sei presentato. Con %2$d assenze in %3$d giorni nello stesso locale non puoi più prenotarne gratis le date; su tutta la piattaforma il blocco scatta a %2$d assenze, contando al massimo %4$d per locale. Annulla per tempo se non puoi andare.</item>
     </plurals>
     <!-- D60: messaggio ai prenotati e prenotazione dal banco -->
     <string name="management_message_title">Scrivi a chi ha prenotato</string>

@@ -136,6 +136,14 @@ return [
         'submit' => 'Crea l\'account',
         'have_account' => 'Hai già un account?',
         'done' => 'Account creato. Ti ho mandato un\'email per confermare l\'indirizzo.',
+        /* La stessa pagina per un indirizzo nuovo e per uno già registrato
+           (D64): la differenza sta solo nel messaggio che arriva. */
+        'sent' => 'Ti abbiamo scritto: apri il messaggio per entrare.',
+        'sent_title' => 'Controlla la posta',
+        'sent_lead' => 'Ti abbiamo scritto all\'indirizzo che hai indicato: apri il messaggio per entrare. Il collegamento vale :minutes minuti e conferma anche l\'indirizzo.',
+        'sent_same_browser' => 'Aprilo da questo browser per entrare subito con la password che hai scelto.',
+        'sent_help' => 'Non arriva? Controlla la posta indesiderata. Per farlo ripartire, ripeti la registrazione con lo stesso indirizzo e la stessa password.',
+        'sent_again' => 'Ripeti la registrazione',
     ],
 
     'login' => [
@@ -147,6 +155,8 @@ return [
         'submit' => 'Accedi',
         'no_account' => 'Non hai un account?',
         'failed' => 'Email o password non corrispondono.',
+        'claim_pending' => 'Prima conferma l\'indirizzo: ti abbiamo appena scritto un collegamento per entrare. Aprilo da questo browser e la tua password resterà valida.',
+        'claim_pending_panel' => 'Prima conferma l\'indirizzo: accedi una volta dal sito con questa password e apri il collegamento che ti scriviamo, oppure scegli una nuova password da «Password dimenticata».',
         'done' => 'Bentornato.',
         'logged_out' => 'Sessione chiusa.',
     ],
@@ -258,6 +268,19 @@ return [
             'action' => 'Conferma l\'indirizzo',
             'expires' => 'Il collegamento scade fra :minutes minuti.',
             'ignore' => 'Se non ti sei registrato tu, puoi ignorare questo messaggio.',
+        ],
+        'registration' => [
+            'subject' => 'Conferma l\'indirizzo ed entra in :product',
+            'intro' => 'Grazie per esserti registrato. Apri il collegamento per confermare l\'indirizzo ed entrare nel tuo account.',
+            'action' => 'Conferma ed entra',
+            'ignore' => 'Se non ti sei registrato tu, ignora questo messaggio: senza questo collegamento nessuno può usare l\'account.',
+        ],
+        'already_registered' => [
+            'subject' => 'Hai già un account su :product',
+            'intro' => 'Qualcuno ha provato a registrarsi con questo indirizzo, ma hai già un account: entra con questo collegamento.',
+            'action' => 'Entra',
+            'password' => 'Se non ricordi la password, puoi sceglierne una nuova da «Password dimenticata» nella pagina di accesso.',
+            'ignore' => 'Se non sei stato tu, ignora questo messaggio: il tuo account non è cambiato e nessuno è entrato.',
         ],
         'magic' => [
             'subject' => 'Il tuo collegamento di accesso a :product',

@@ -47,8 +47,14 @@ final class MagicLinkExchangeController extends Controller
             $challenge->forceFill(['used_at' => CarbonImmutable::now()])->save();
             /* Il collegamento prova la casella: password e token nati prima di
                questa prova si azzerano (`ClaimMailbox`). Prima di emettere il
-               token nuovo, che così sopravvive. */
-            $claim($user);
+               token nuovo, che così sopravvive. Se il collegamento è nato
+               dalla registrazione di questa stessa installazione, chi lo
+               scambia ha scelto anche la password, e la password resta. */
+            if ($challenge->keeps_password) {
+                $claim->confermaRegistrazione($user);
+            } else {
+                $claim($user);
+            }
             $issued = $tokens->issue($user, $request->validated('device_name'));
             $user->forceFill(['last_active_at' => CarbonImmutable::now()])->save();
 

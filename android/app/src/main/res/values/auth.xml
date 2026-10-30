@@ -14,4 +14,14 @@
     <string name="auth_password_required">Inserisci la password oppure richiedi un link di accesso.</string>
     <string name="auth_password_short">Per creare un account scegli una password di almeno 8 caratteri.</string>
     <string name="auth_in_progress">Accesso in corso…</string>
+    <!-- «Controlla la posta» dopo la registrazione o l'accesso a un account mai confermato (D64) -->
+    <string name="auth_check_mail_title">CONTROLLA LA POSTA</string>
+    <string name="auth_check_mail_body">Ti abbiamo scritto a %1$s: apri il messaggio per entrare. Il collegamento conferma anche l’indirizzo.</string>
+    <string name="auth_check_mail_login_body">Prima conferma l’indirizzo: ti abbiamo scritto a %1$s un collegamento per entrare.</string>
+    <string name="auth_check_mail_device">Aprilo da questo telefono: l’app completa l’accesso e la password che hai scelto resta valida.</string>
+    <string name="auth_check_mail_help">Non arriva? Controlla la posta indesiderata, poi chiedi di reinviarlo.</string>
+    <string name="auth_check_mail_resend">REINVIA IL MESSAGGIO</string>
+    <string name="auth_check_mail_back">TORNA AL MODULO</string>
+    <string name="auth_confirmation_resent">Messaggio reinviato. Controlla anche la cartella spam.</string>
+    <string name="auth_signed_in">Accesso eseguito.</string>
 </resources>

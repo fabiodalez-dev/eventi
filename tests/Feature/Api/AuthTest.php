@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\MobileAuthChallenge;
 use App\Models\User;
 use App\Notifications\MagicLoginLink;
+use App\Notifications\RegistrationLink;
 use App\Notifications\ResetPasswordLink;
 use App\Notifications\VerifyEmailLink;
 use Database\Seeders\RolesAndPermissionsSeeder;
@@ -26,18 +27,43 @@ it('keeps separate registration names and validates an explicitly supplied confi
     $data = ['first_name' => 'Giulia', 'last_name' => 'Rossi', 'email' => 'separate@example.test', 'password' => 'una-password-lunga', 'password_confirmation' => 'diversa'];
     $this->postJson('/api/v1/auth/register', $data)->assertUnprocessable();
     $data['password_confirmation'] = $data['password'];
-    $this->postJson('/api/v1/auth/register', $data)->assertCreated()->assertJsonPath('data.user.name', 'Giulia Rossi');
+    /* Dal D64 la registrazione risponde 202 senza utente né token. */
+    $this->postJson('/api/v1/auth/register', $data)->assertStatus(202)->assertJsonMissingPath('data.user');
     $user = User::where('email', $data['email'])->firstOrFail();
-    expect($user->first_name)->toBe('Giulia')->and($user->last_name)->toBe('Rossi')->and($user->marketing_opt_in_at)->toBeNull();
+    expect($user->name)->toBe('Giulia Rossi')->and($user->first_name)->toBe('Giulia')->and($user->last_name)->toBe('Rossi')->and($user->marketing_opt_in_at)->toBeNull();
 });
 
-it('registra un utente e gli consegna un token', function (): void {
+it('registra un utente e gli consegna il token allo scambio del collegamento', function (): void {
+    /*
+     * Dal D64 la registrazione non consegna più il token: 201 con il token per
+     * un indirizzo nuovo e 422 per uno già usato dicevano a chiunque chi è
+     * iscritto. Il token arriva scambiando il collegamento spedito, con il
+     * verificatore PKCE dell'installazione che si è registrata.
+     */
+    Notification::fake();
+    $verificatore = str_repeat('g', 43);
     $response = $this->postJson('/api/v1/auth/register', [
         'name' => 'Giulia Rossi',
         'email' => 'giulia@example.test',
         'password' => 'una-password-molto-lunga',
         'device_name' => 'iPhone di Giulia',
-    ])->assertCreated();
+        'code_challenge' => rtrim(strtr(base64_encode(hash('sha256', $verificatore, true)), '+/', '-_'), '='),
+    ])->assertStatus(202);
+
+    expect($response->json('data'))->toBe(['message' => __('api.auth.registration_sent')]);
+
+    $user = User::query()->where('email', 'giulia@example.test')->firstOrFail();
+    $collegamento = '';
+    Notification::assertSentTo($user, RegistrationLink::class, function (RegistrationLink $notifica) use (&$collegamento): bool {
+        $collegamento = $notifica->url;
+
+        return true;
+    });
+    parse_str((string) parse_url($collegamento, PHP_URL_QUERY), $query);
+
+    $response = $this->postJson('/api/v1/auth/magic-link/exchange', [
+        'token' => $query['token'], 'code_verifier' => $verificatore, 'device_name' => 'iPhone di Giulia',
+    ])->assertOk();
 
     $token = $response->json('data.token');
 
@@ -47,7 +73,7 @@ it('registra un utente e gli consegna un token', function (): void {
         ->and($response->json('data.user.email'))->toBe('giulia@example.test')
         ->and($response->json('data.user'))->not->toHaveKey('password');
 
-    $user = User::query()->where('email', 'giulia@example.test')->firstOrFail();
+    $user->refresh();
 
     expect(Hash::check('una-password-molto-lunga', (string) $user->password))->toBeTrue()
         /* Il fuso lo scrive il database, ed è quello della città servita. */
@@ -55,6 +81,7 @@ it('registra un utente e gli consegna un token', function (): void {
         /* Il consenso marketing è un'altra cosa e nasce spento (§15.9). */
         ->and($user->marketing_opt_in_at)->toBeNull()
         ->and($user->hasRole('user'))->toBeTrue()
+        ->and($user->hasVerifiedEmail())->toBeTrue()
         ->and($user->tokens()->count())->toBe(1)
         ->and($user->tokens()->first()?->name)->toBe('iPhone di Giulia')
         ->and($user->tokens()->first()?->expires_at)->not->toBeNull();
@@ -109,19 +136,25 @@ it('registra il consenso marketing con una data propria solo se richiesto', func
         'email' => 'marco@example.test',
         'password' => 'una-password-molto-lunga',
         'marketing_opt_in' => true,
-    ])->assertCreated();
+    ])->assertStatus(202);
 
     expect(User::query()->where('email', 'marco@example.test')->firstOrFail()->marketing_opt_in_at)->not->toBeNull();
 });
 
-it('rifiuta una registrazione con email già usata o password debole', function (): void {
-    User::factory()->create(['email' => 'gia@example.test']);
+it('non rivela un email già usata e rifiuta una password debole', function (): void {
+    /* Dal D64 l'indirizzo già usato non è un errore: la risposta è la stessa
+       di un indirizzo nuovo, e l'account esistente non cambia. Gli errori dei
+       campi restano 422. */
+    Notification::fake();
+    $esistente = User::factory()->create(['email' => 'gia@example.test']);
+    $hash = $esistente->password;
 
     $this->postJson('/api/v1/auth/register', [
         'name' => 'Chiunque',
         'email' => 'gia@example.test',
         'password' => 'una-password-molto-lunga',
-    ])->assertStatus(422)->assertJsonStructure(['error' => ['fields' => ['email']]]);
+    ])->assertStatus(202)->assertJsonMissingPath('error');
+    expect($esistente->fresh()->password)->toBe($hash)->and($esistente->fresh()->name)->not->toBe('Chiunque');
 
     $this->postJson('/api/v1/auth/register', [
         'name' => 'Chiunque',

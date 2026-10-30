@@ -8,6 +8,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import it.fabiodalez.incitta.R
 import it.fabiodalez.incitta.data.authValidationMessage
@@ -533,9 +534,15 @@ fun AccountScreen(
     onAttended: () -> Unit = {},
     onCollections: () -> Unit = {},
     onOpenSavedSearch: (it.fabiodalez.incitta.data.SavedSearch) -> Unit = {},
+    onResendConfirmation: () -> Unit = {},
+    onDismissConfirmation: () -> Unit = {},
 ) {
     if (state.session != null) {
         ProfileScreen(state, padding, onTickets, onSaved, onLogout, onDeleteAccount, onInterestsSaved, onAppearance, onProfileSaved, onCommunity, onCarpool, onCarpoolMessages, onCommunityInbox, communityTotal, onManagement, onPublicProfile, onRelationships, onVerification, onAttended, onCollections, onOpenSavedSearch)
+        return
+    }
+    state.pendingEmailConfirmation?.let { pending ->
+        CheckMailScreen(state, pending, padding, onResendConfirmation, onDismissConfirmation)
         return
     }
 
@@ -623,6 +630,58 @@ fun AccountScreen(
     }
         if (error != null) {
             // Keep feedback outside the scrolling form, visible above keyboard/navigation.
+            Text(error, color = Danger, modifier = Modifier.fillMaxWidth().background(Ink).padding(18.dp)
+                .semantics { liveRegion = LiveRegionMode.Assertive })
+        }
+    }
+}
+
+/**
+ * «Controlla la posta» (D64): la registrazione risponde allo stesso modo che
+ * l'indirizzo sia nuovo o già registrato, e l'accesso arriva dal collegamento
+ * spedito. Aperto da questo telefono, l'app lo scambia con il verificatore
+ * salvato qui ([MainViewModel.exchangeMagicToken]) e la schermata lascia il
+ * posto al profilo.
+ */
+@Composable
+private fun CheckMailScreen(
+    state: AppUiState,
+    pending: it.fabiodalez.incitta.data.PendingEmailConfirmation,
+    padding: PaddingValues,
+    onResend: () -> Unit,
+    onBack: () -> Unit,
+) {
+    Column(
+        Modifier.fillMaxSize().padding(bottom = padding.calculateBottomPadding()),
+    ) {
+        Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(18.dp)) {
+            Spacer(Modifier.height(24.dp))
+            Text(stringResource(R.string.auth_check_mail_title), style = androidx.compose.material3.MaterialTheme.typography.displayMedium,
+                modifier = Modifier.semantics { heading() })
+            Text(
+                stringResource(if (pending.fromLogin) R.string.auth_check_mail_login_body else R.string.auth_check_mail_body, pending.email),
+                modifier = Modifier.padding(top = 12.dp),
+            )
+            Text(stringResource(R.string.auth_check_mail_device), color = Muted, modifier = Modifier.padding(top = 12.dp))
+            Text(stringResource(R.string.auth_check_mail_help), color = Muted, modifier = Modifier.padding(top = 12.dp, bottom = 20.dp))
+            Button(
+                onClick = onResend,
+                enabled = !state.isAuthenticating,
+                modifier = Modifier.fillMaxWidth().height(54.dp),
+                shape = ControlShape,
+                colors = ButtonDefaults.buttonColors(containerColor = Acid, contentColor = Ink, disabledContainerColor = Rule),
+            ) {
+                if (state.isAuthenticating) {
+                    CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                    Spacer(Modifier.width(10.dp))
+                }
+                Text(stringResource(R.string.auth_check_mail_resend))
+            }
+            TextButton(onClick = onBack, enabled = !state.isAuthenticating, modifier = Modifier.fillMaxWidth().height(52.dp).padding(top = 8.dp)) {
+                Text(stringResource(R.string.auth_check_mail_back), color = Paper)
+            }
+        }
+        state.authError?.let { error ->
             Text(error, color = Danger, modifier = Modifier.fillMaxWidth().background(Ink).padding(18.dp)
                 .semantics { liveRegion = LiveRegionMode.Assertive })
         }

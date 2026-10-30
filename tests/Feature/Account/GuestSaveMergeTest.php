@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\SavedEvent;
 use App\Models\User;
+use App\Notifications\RegistrationLink;
 use Carbon\Carbon;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Support\Facades\Notification;
@@ -60,7 +61,7 @@ it('ritrova sul sito esattamente le tre date salvate da anonimo, senza duplicati
         'email' => 'anonima@example.test',
         'password' => 'una-password-molto-lunga',
         'password_confirmation' => 'una-password-molto-lunga',
-    ])->assertRedirect(route('verification.notice'));
+    ])->assertRedirect(route('account.register.sent'));
 
     $user = User::query()->where('email', 'anonima@example.test')->firstOrFail();
 
@@ -92,16 +93,21 @@ it('ritrova sul sito esattamente le tre date salvate da anonimo, senza duplicati
 });
 
 it('ritrova le stesse tre date passando dall API', function (): void {
-    $token = $this->postJson('/api/v1/auth/register', [
+    /* Dal D64 la registrazione risponde 202 senza token: il token arriva
+       scambiando il collegamento spedito, che conferma anche l'indirizzo. */
+    $verificatore = str_repeat('v', 43);
+    $this->postJson('/api/v1/auth/register', [
         'email' => 'anonima-app@example.test',
         'password' => 'una-password-molto-lunga',
         'device_name' => 'Telefono',
-    ])->assertCreated()->json('data.token');
+        'code_challenge' => rtrim(strtr(base64_encode(hash('sha256', $verificatore, true)), '+/', '-_'), '='),
+    ])->assertStatus(202)->assertJsonMissingPath('data.token');
 
-    $this->withToken($token)->postJson('/api/v1/me/saved/merge', ['occurrence_ids' => [$this->salvate[0]->id]])->assertForbidden();
-    User::query()->where('email', 'anonima-app@example.test')->firstOrFail()->markEmailAsVerified();
-    // The guard must load the changed user as it would on the next real request.
-    auth()->forgetGuards();
+    $user = User::query()->where('email', 'anonima-app@example.test')->firstOrFail();
+    parse_str((string) parse_url(Notification::sent($user, RegistrationLink::class)->first()->url, PHP_URL_QUERY), $query);
+    $token = $this->postJson('/api/v1/auth/magic-link/exchange', [
+        'token' => $query['token'], 'code_verifier' => $verificatore, 'device_name' => 'Telefono',
+    ])->assertOk()->json('data.token');
 
     $response = $this->withToken($token)
         ->postJson('/api/v1/me/saved/merge', [

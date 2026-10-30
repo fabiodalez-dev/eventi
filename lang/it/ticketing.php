@@ -66,8 +66,8 @@ return [
     'no_show' => [
         'stat' => 'Non presentati',
         'rate' => ':percent% di chi aveva un posto confermato non si è presentato.',
-        'hint' => 'Le assenze si contano solo nelle date in cui hai registrato ingressi, a serata finita. Chi accumula :limit assenze in :days giorni non può prenotare gratis finché non passano.',
-        'account' => 'Hai :count prenotazioni recenti a cui non ti sei presentato. Con :limit assenze in :days giorni le prenotazioni gratuite si bloccano: annulla per tempo se non puoi andare.',
+        'hint' => 'Le assenze si contano solo nelle date in cui hai registrato ingressi, a serata finita. Chi accumula :limit assenze in :days giorni nelle tue date non può più prenotarle gratis finché non passano. Nel resto della piattaforma ogni locale conta al massimo :cap assenze: per bloccarlo anche altrove servono assenze viste da altri locali.',
+        'account' => 'Hai :count prenotazioni recenti a cui non ti sei presentato. Con :limit assenze in :days giorni nello stesso locale non puoi più prenotarne gratis le date; su tutta la piattaforma il blocco scatta a :limit assenze, contando al massimo :cap per locale. Annulla per tempo se non puoi andare.',
     ],
     'messages' => [
         'title' => 'Scrivi a chi ha prenotato',
@@ -175,7 +175,8 @@ return [
         'capacity_too_low' => 'I posti non possono essere inferiori ai biglietti già confermati.',
         'promotion_missing' => 'Questa prenotazione non è in attesa di conferma.',
         'promotion_expired' => 'Il tempo per confermare è scaduto: il posto è tornato a chi era in coda.',
-        'no_show_limit' => 'Hai saltato troppe prenotazioni recenti senza annullarle. Per questa data contatta direttamente il locale.',
+        'no_show_limit' => 'Hai saltato troppe prenotazioni recenti senza annullarle, in più locali: per ora non puoi prenotare gratis su tutta la piattaforma. Per questa data contatta direttamente il locale.',
+        'no_show_limit_venue' => 'Hai saltato troppe prenotazioni recenti di chi organizza questa data senza annullarle: per ora non puoi prenotare gratis le sue date. Altrove puoi prenotare come sempre; per questa data contatta direttamente chi la organizza.',
         'message_limit' => 'Hai già inviato il numero massimo di messaggi di oggi per questa data.',
         'guest_mail_limit' => 'Hai raggiunto il numero massimo di conferme via email di oggi per questa data. Registra la prenotazione senza email.',
     ],

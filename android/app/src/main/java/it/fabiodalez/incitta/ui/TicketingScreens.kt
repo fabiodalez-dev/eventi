@@ -138,7 +138,7 @@ fun TicketsScreen(state: AppUiState, padding: PaddingValues, onCancel: (Long, Lo
         } else {
             if (state.noShows > 0) {
                 Text(
-                    pluralStringResource(R.plurals.ticket_no_show_account, state.noShows, state.noShows, NO_SHOW_LIMIT, NO_SHOW_WINDOW_DAYS),
+                    pluralStringResource(R.plurals.ticket_no_show_account, state.noShows, state.noShows, NO_SHOW_LIMIT, NO_SHOW_WINDOW_DAYS, NO_SHOW_PER_VENUE_CAP),
                     color = Paper,
                     modifier = Modifier.fillMaxWidth().border(2.dp, Danger, ControlShape).padding(14.dp),
                 )
@@ -217,9 +217,11 @@ fun TicketsScreen(state: AppUiState, padding: PaddingValues, onCancel: (Long, Lo
     }
 }
 
-/* Gli stessi valori di `config/ticketing.php` → `no_show`: tre assenze in novanta giorni bloccano le prenotazioni gratuite. */
+/* Gli stessi valori di `config/ticketing.php` → `no_show`: tre assenze in novanta giorni bloccano le prenotazioni gratuite
+   nello stesso locale; su tutta la piattaforma ogni locale ne conta al massimo due (D64). */
 private const val NO_SHOW_LIMIT = 3
 private const val NO_SHOW_WINDOW_DAYS = 90
+private const val NO_SHOW_PER_VENUE_CAP = NO_SHOW_LIMIT - 1
 
 internal fun ticketQr(payload: String): Bitmap {
     val matrix = MultiFormatWriter().encode(payload, BarcodeFormat.QR_CODE, 512, 512)

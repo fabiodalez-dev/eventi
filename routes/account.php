@@ -21,6 +21,7 @@ use App\Http\Controllers\Web\Account\RegisterController;
 use App\Http\Controllers\Web\Account\SavedCalendarController;
 use App\Http\Controllers\Web\Account\SavedController;
 use App\Http\Controllers\Web\Account\SavedSearchController;
+use App\Http\Controllers\Web\Account\VenueInvitationController;
 use App\Http\Controllers\Web\GoogleCalendarController;
 use App\Http\Controllers\Web\PresenceController;
 use App\Http\Middleware\BlockWhileImpersonating;
@@ -72,9 +73,15 @@ Route::patch('/aspetto', [AppearanceController::class, 'update'])->middleware(['
 
 Route::middleware('guest')->group(function (): void {
     Route::get('/registrati', [RegisterController::class, 'create'])->name('account.register');
+    /*
+     * La registrazione spedisce un messaggio dove dice chi la compila (D64):
+     * oltre al tetto dei moduli pubblici ha quello per casella e quello per
+     * indirizzo di chi chiama, come il collegamento di accesso.
+     */
     Route::post('/registrati', [RegisterController::class, 'store'])
-        ->middleware('throttle:public-forms')
+        ->middleware(['throttle:public-forms', 'throttle:account-auth', 'throttle:outbound-email'])
         ->name('account.register.store');
+    Route::get('/registrati/controlla-la-posta', [RegisterController::class, 'sent'])->name('account.register.sent');
 
     Route::get('/accedi', [LoginController::class, 'create'])->name('login');
     Route::post('/accedi', [LoginController::class, 'store'])
@@ -164,6 +171,23 @@ Route::middleware('signed')->group(function (): void {
     Route::post('/notifiche/disiscriviti/{user}/{type}', [NotificationSettingsController::class, 'unsubscribe'])
         ->whereNumber('user')
         ->name('notifications.unsubscribe.submit');
+});
+
+/*
+ * «Accetta l'invito» in un locale (D64). Firmato e a scadenza come le
+ * preferenze, ma dentro `auth`: la firma dice che il collegamento è arrivato
+ * nella casella, la sessione che risponde il titolare dell'account. La firma
+ * la verifica il controller, per dire «scaduto» invece di un 403 muto. Fuori
+ * da `RequireConfirmedAccount`: il collegamento stesso viene dalla casella, e
+ * rimandare alla conferma dell'email perderebbe l'invito per strada.
+ */
+Route::middleware(['auth', BlockWhileImpersonating::class, 'throttle:30,1,venue-invitations'])->group(function (): void {
+    Route::get('/inviti-locali/{venue}/{user}/{invitation}', [VenueInvitationController::class, 'show'])
+        ->whereNumber(['venue', 'user', 'invitation'])
+        ->name('venue-invitations.show');
+    Route::post('/inviti-locali/{venue}/{user}/{invitation}', [VenueInvitationController::class, 'respond'])
+        ->whereNumber(['venue', 'user', 'invitation'])
+        ->name('venue-invitations.respond');
 });
 
 /*

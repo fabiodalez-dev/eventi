@@ -18,12 +18,17 @@ use Illuminate\Support\Collection;
  * stessa richiesta, chiede se può ancora agire riceve la risposta vera, non
  * quella di un attimo prima.
  *
+ * Come `VenueMembers` dall'altro lato, una riga scritta senza `accepted_at`
+ * nasce accettata (`AttachesAcceptedVenueMembership`).
+ *
  * @template TDeclaringModel of User
  *
  * @extends BelongsToMany<Venue, TDeclaringModel, Pivot, 'pivot'>
  */
 class VenueMemberships extends BelongsToMany
 {
+    use AttachesAcceptedVenueMembership;
+
     /**
      * @param  mixed  $id
      * @param  array<string, mixed>  $attributes

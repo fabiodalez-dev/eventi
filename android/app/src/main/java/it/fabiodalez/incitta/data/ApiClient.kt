@@ -152,7 +152,13 @@ internal class ApiClient(
 }
 
 @kotlinx.serialization.Serializable
-data class LoginBody(val email: String, val password: String, @kotlinx.serialization.SerialName("device_name") val deviceName: String)
+data class LoginBody(
+    val email: String,
+    val password: String,
+    @kotlinx.serialization.SerialName("device_name") val deviceName: String,
+    /* Serve solo se l'account non è ancora confermato: il collegamento che il server rimanda si scambia con il verificatore di questa installazione (D64). */
+    @kotlinx.serialization.SerialName("code_challenge") val codeChallenge: String? = null,
+)
 
 @kotlinx.serialization.Serializable
 data class RegisterBody(
@@ -163,6 +169,8 @@ data class RegisterBody(
     @kotlinx.serialization.SerialName("device_name") val deviceName: String,
     @kotlinx.serialization.SerialName("first_name") val firstName: String? = null,
     @kotlinx.serialization.SerialName("last_name") val lastName: String? = null,
+    /* La sfida PKCE: il collegamento che arriva per posta si scambia solo con il verificatore di questa installazione (D64). */
+    @kotlinx.serialization.SerialName("code_challenge") val codeChallenge: String? = null,
 )
 
 @kotlinx.serialization.Serializable

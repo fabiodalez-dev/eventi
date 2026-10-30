@@ -6,6 +6,7 @@ use App\Actions\Account\ClaimMailbox;
 use App\Models\MobileAuthChallenge;
 use App\Models\User;
 use App\Notifications\MagicLoginLink;
+use App\Notifications\RegistrationLink;
 use App\Notifications\VerifyEmailLink;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Auth\Events\PasswordReset;
@@ -28,17 +29,26 @@ beforeEach(function (): void {
     Notification::fake();
 });
 
-/** L'intruso si registra dall'API con l'indirizzo della vittima. */
+/**
+ * L'intruso si registra dall'API con l'indirizzo della vittima.
+ *
+ * Dal D64 la registrazione risponde 202 senza token (la registrazione non
+ * rivela più se un indirizzo esiste): il token che qui l'intruso «si tiene»
+ * è quello che un account registrato prima di quel cambio può avere ancora,
+ * e che `ClaimMailbox` deve continuare a revocare.
+ */
 function registraIntruso(string $email = 'vittima@example.test'): array
 {
-    $token = test()->postJson('/api/v1/auth/register', [
+    test()->postJson('/api/v1/auth/register', [
         'name' => 'Intruso',
         'email' => $email,
         'password' => 'Password-Intruso-123',
         'device_name' => 'Telefono intruso',
-    ])->assertCreated()->json('data.token');
+    ])->assertStatus(202)->assertJsonMissingPath('data.token');
 
-    return [User::query()->where('email', $email)->firstOrFail(), (string) $token];
+    $user = User::query()->where('email', $email)->firstOrFail();
+
+    return [$user, $user->createToken('Telefono intruso')->plainTextToken];
 }
 
 function sfidaMobile(User $user, string $verificatore, string $gettone): void
@@ -148,18 +158,22 @@ it('non tocca token e password di chi ha già dimostrato la casella', function (
     $this->postJson('/api/v1/auth/login', ['email' => $user->email, 'password' => 'password-di-sempre-1'])->assertOk();
 });
 
-it('lascia collegato chi si registra dal sito e conferma dalla stessa sessione', function (): void {
+it('lascia collegato chi si registra dal sito e apre il collegamento dalla stessa sessione', function (): void {
+    /* Dal D64 la registrazione non fa entrare: risponde «controlla la posta»
+       e si entra dal collegamento, che dalla stessa sessione chiude il
+       sospeso senza toccare la password. */
     $this->post(route('account.register.store'), [
         'name' => 'Sara',
         'email' => 'sara@example.test',
         'password' => 'una-password-molto-lunga',
         'password_confirmation' => 'una-password-molto-lunga',
-    ])->assertRedirect(route('verification.notice'));
+    ])->assertRedirect(route('account.register.sent'));
+    $this->assertGuest();
 
     $user = User::query()->where('email', 'sara@example.test')->firstOrFail();
     expect($user->email_claim_pending_at)->not->toBeNull();
 
-    $this->get(VerifyEmailLink::url($user))->assertRedirect();
+    $this->get(Notification::sent($user, RegistrationLink::class)->first()->url)->assertRedirect();
 
     $this->assertAuthenticatedAs($user);
     $user->refresh();

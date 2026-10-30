@@ -6,6 +6,7 @@ use App\Actions\Comments\PostComment;
 use App\Models\Event;
 use App\Models\EventComment;
 use App\Models\User;
+use App\Notifications\RegistrationLink;
 use App\Notifications\VerifyEmailLink;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Auth\Events\Registered;
@@ -19,16 +20,21 @@ beforeEach(function (): void {
     $this->event = Event::factory()->for($city)->published()->create();
 });
 
-it('sends one confirmation email through the Laravel registration event', function (): void {
-    Events::fakeExcept([Registered::class]);
+it('sends exactly one confirmation message on registration, the link that confirms and enters', function (): void {
+    /* Dal D64 la registrazione non passa più dalla verifica di Laravel
+       (`Registered` → `VerifyEmailLink`): parte un solo messaggio, il
+       collegamento che conferma l'indirizzo ed entra. */
+    Events::fake([Registered::class]);
     $this->post('/registrati', [
         'email' => 'confirmation@example.test', 'password' => 'una-password-molto-lunga',
         'password_confirmation' => 'una-password-molto-lunga',
-    ])->assertRedirect(route('verification.notice'));
+    ])->assertRedirect(route('account.register.sent'));
     $user = User::query()->where('email', 'confirmation@example.test')->firstOrFail();
     expect($user->hasVerifiedEmail())->toBeFalse();
-    Notification::assertSentToTimes($user, VerifyEmailLink::class, 1);
-    $this->get(route('verification.notice'))->assertOk()->assertSee($user->email);
+    Notification::assertSentToTimes($user, RegistrationLink::class, 1);
+    Notification::assertNotSentTo($user, VerifyEmailLink::class);
+    Events::assertNotDispatched(Registered::class);
+    $this->get(route('account.register.sent'))->assertOk()->assertDontSee($user->email);
 });
 
 it('blocks unverified comment and reaction submissions and enables them after confirmation', function (): void {
