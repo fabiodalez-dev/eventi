@@ -27,7 +27,11 @@ class MagicLinkRequest extends FormRequest
     {
         return [
             'code_challenge' => ['required', 'string', 'regex:/^[A-Za-z0-9_-]{43}$/D'],
-            'email' => ['required', 'email', 'max:255'],
+            /* `filter` e non la RFC: le varianti accentate di un indirizzo
+               ('vìttima@…') la RFC le accetta, la collation di `users.email`
+               le fa coincidere con l'account vero, e ognuna avrebbe un secchio
+               di limiti suo. Come sul sito e nel login dell'API. */
+            'email' => ['required', 'email:filter', 'max:255'],
         ];
     }
 }

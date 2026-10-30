@@ -89,7 +89,7 @@ it('toglie salvataggi, follow, dispositivi e archivio in-app', function (): void
     expect($user->notifications()->count())->toBe(1);
 
     $this->actingAs($user)
-        ->delete('/il-mio-profilo', ['conferma' => __('account.profile.delete_keyword')])
+        ->delete('/il-mio-profilo', ['conferma' => __('account.profile.delete_keyword'), 'password' => 'password'])
         ->assertRedirect(route('home'));
 
     expect($user->savedEvents()->count())->toBe(0)
@@ -102,7 +102,7 @@ it('spegne gli invii previsti invece di lasciarli in attesa di un destinatario',
     $user = utenteConTuttiIDati($this->occurrence, 'niente-piu@example.test');
 
     $this->actingAs($user)
-        ->delete('/il-mio-profilo', ['conferma' => __('account.profile.delete_keyword')])
+        ->delete('/il-mio-profilo', ['conferma' => __('account.profile.delete_keyword'), 'password' => 'password'])
         ->assertRedirect(route('home'));
 
     expect(ScheduledNotification::query()
@@ -119,7 +119,7 @@ it('non fa partire nessun messaggio dopo la cancellazione, nemmeno al primo giro
     $user = utenteConTuttiIDati($this->occurrence, 'silenzio@example.test');
 
     $this->actingAs($user)
-        ->delete('/il-mio-profilo', ['conferma' => __('account.profile.delete_keyword')])
+        ->delete('/il-mio-profilo', ['conferma' => __('account.profile.delete_keyword'), 'password' => 'password'])
         ->assertRedirect(route('home'));
 
     NotificationFacade::fake();
@@ -137,7 +137,7 @@ it('anonimizza la riga che resta: niente nome, niente indirizzo consegnabile', f
     $user = utenteConTuttiIDati($this->occurrence, 'nome.cognome@example.test');
 
     $this->actingAs($user)
-        ->delete('/il-mio-profilo', ['conferma' => __('account.profile.delete_keyword')])
+        ->delete('/il-mio-profilo', ['conferma' => __('account.profile.delete_keyword'), 'password' => 'password'])
         ->assertRedirect(route('home'));
 
     $user->refresh();
@@ -160,7 +160,7 @@ it('non tocca i dati di nessun altro', function (): void {
     $chiResta = utenteConTuttiIDati($this->occurrence, 'resta@example.test');
 
     $this->actingAs($chiVa)
-        ->delete('/il-mio-profilo', ['conferma' => __('account.profile.delete_keyword')])
+        ->delete('/il-mio-profilo', ['conferma' => __('account.profile.delete_keyword'), 'password' => 'password'])
         ->assertRedirect(route('home'));
 
     expect($chiResta->fresh()?->trashed())->toBeFalse()
@@ -182,7 +182,7 @@ it('lascia in piedi gli eventi che la persona aveva salvato', function (): void 
     $user = utenteConTuttiIDati($this->occurrence, 'addio@example.test');
 
     $this->actingAs($user)
-        ->delete('/il-mio-profilo', ['conferma' => __('account.profile.delete_keyword')])
+        ->delete('/il-mio-profilo', ['conferma' => __('account.profile.delete_keyword'), 'password' => 'password'])
         ->assertRedirect(route('home'));
 
     $this->get('/eventi/'.$this->occurrence->event->slug)->assertOk();
@@ -214,7 +214,7 @@ it('cancella anche dall API, e il token smette di valere subito', function (): v
 });
 
 it('non accetta la cancellazione da chi non è entrato', function (): void {
-    $this->delete('/il-mio-profilo', ['conferma' => __('account.profile.delete_keyword')])
+    $this->delete('/il-mio-profilo', ['conferma' => __('account.profile.delete_keyword'), 'password' => 'password'])
         ->assertRedirect(route('login'));
 
     $this->deleteJson('/api/v1/me')->assertUnauthorized();
@@ -231,7 +231,7 @@ it('non recapita a un account cancellato nemmeno una riga rimasta in sospeso', f
        che è la situazione peggiore possibile — un dato scritto da un'altra
        parte del sistema dopo la cancellazione. */
     $this->actingAs($user)
-        ->delete('/il-mio-profilo', ['conferma' => __('account.profile.delete_keyword')])
+        ->delete('/il-mio-profilo', ['conferma' => __('account.profile.delete_keyword'), 'password' => 'password'])
         ->assertRedirect(route('home'));
 
     ScheduledNotification::query()

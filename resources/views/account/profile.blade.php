@@ -103,7 +103,7 @@
             </button>
         </form>
 
-        <details class="border-y border-line py-4" @if($errors->has('conferma')) open @endif>
+        <details class="border-y border-line py-4" @if($errors->hasAny(['conferma', 'password'])) open @endif>
         <summary class="min-h-12 cursor-pointer content-center font-semibold">{{ __('community.account_privacy') }}</summary>
         <div class="mt-5 space-y-6">
         <section aria-labelledby="dati" class="flex flex-col gap-2">
@@ -127,6 +127,8 @@
                 @method('DELETE')
 
                 <x-field name="conferma" :label="__('account.profile.delete_confirm')" :required="true" class="min-w-56" />
+                <x-field name="password" type="password" autocomplete="current-password" :label="__('account.profile.delete_password')" :hint="__('account.profile.delete_password_hint')" :required="true" class="min-w-56" />
+                <a class="self-end py-2.5 text-sm font-semibold text-ink underline underline-offset-4" href="{{ route('account.password.request') }}">{{ __('account.profile.delete_password_link') }}</a>
 
                 <button type="submit" class="bg-live px-4 py-2.5 text-sm font-semibold text-on-brand transition hover:opacity-90">
                     {{ __('account.profile.delete_submit') }}
@@ -134,7 +136,7 @@
             </form>
         </section>
         </div></details>
-        <form method="POST" action="{{ route('account.logout') }}" data-profile-logout>
+        <form method="POST" action="{{ route('account.logout') }}" data-profile-logout data-logout>
             @csrf
             <button type="submit" class="min-h-11 border-2 border-line px-4 py-2 font-semibold text-ink hover:border-brand">{{ __('account.nav.logout') }}</button>
         </form>

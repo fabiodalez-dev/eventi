@@ -51,8 +51,9 @@ final class CommunityAccess
     }
 
     /**
-     * $ignoreBlocks serve solo alle segnalazioni: chi blocca (o è bloccato) deve poter
+     * $ignoreBlocks serve alle segnalazioni: chi blocca (o è bloccato) deve poter
      * segnalare comunque. Idoneità e visibilità restano: non si segnala ciò che non si vede.
+     * Lo usa anche l'elenco dei bloccati, per decidere di chi mostrare il nome.
      *
      * @return Builder<CommunityProfile>
      */

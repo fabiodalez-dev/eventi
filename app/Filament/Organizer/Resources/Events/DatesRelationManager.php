@@ -24,6 +24,7 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\Gate;
 
 class DatesRelationManager extends RelationManager
 {
@@ -51,8 +52,9 @@ class DatesRelationManager extends RelationManager
         return $table->modifyQueryUsing(fn ($query) => OccurrenceAnalytics::withTotals($query))
             ->description(__('analytics.occurrence_totals'))
             ->columns([TextColumn::make('starts_at')->label('Data')->dateTime('d/m/Y H:i', $this->eventRecord()->city->timezone), TextColumn::make('venue.name')->label('Locale')->placeholder('Locale principale'), TextColumn::make('status')->label('Stato')->badge()->formatStateUsing(fn (OccurrenceStatus $state): string => $state->label()), ...OccurrenceAnalyticsFields::columns()])
-            ->headerActions([CreateAction::make()->authorize(fn () => auth()->user()?->can('create', [EventOccurrence::class, $this->getOwnerRecord()]))])
-            ->recordActions([EditAction::make(),
+            ->headerActions([CreateAction::make()->authorize(fn () => auth()->user()?->can('create', [EventOccurrence::class, $this->getOwnerRecord()]))
+                ->after(fn () => $this->backToReview(true))])
+            ->recordActions([EditAction::make()->after(fn (EventOccurrence $record) => $this->backToReview($record->wasChanged('venue_id'))),
                 OccurrenceAnalyticsFields::action(),
                 Action::make('tickets')->label('Prenotazioni')->url(fn ($record) => route('ticketing.manage.show', $record)),
                 Action::make('social')->label('Grafica social')->url(fn ($record) => route('social.preview', $record))->openUrlInNewTab(),
@@ -71,6 +73,21 @@ class DatesRelationManager extends RelationManager
         $event = $this->eventRecord();
 
         return SameNightNearbyField::context($event->city, [Venue::find($get('venue_id')), $event->custom_location ?? [], $event->venue], $get('starts_at'), $get('ends_at'), 'UTC', categoryId: $event->category_id, eventId: (int) $event->id);
+    }
+
+    /**
+     * Una data nuova, o portata in un altro locale, su un evento già online
+     * torna dalla redazione come la scheda (EditEvent): altrimenti la data
+     * comparirebbe nel programma di un locale che non l'ha mai accettata.
+     * Orario, annullamento e avviso al pubblico restano immediati: sono
+     * notizie da dare subito, e un evento in attesa non si vede.
+     */
+    private function backToReview(bool $changed): void
+    {
+        $event = $this->eventRecord();
+        if ($changed && $event->status === EventStatus::Published && Gate::denies('moderate', $event)) {
+            $event->update(['status' => EventStatus::Pending]);
+        }
     }
 
     private function eventRecord(): Event

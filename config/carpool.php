@@ -7,6 +7,7 @@ return [
     'terms_version' => '2026-09-18',
     'max_seats' => 8,
     'max_pending' => 3,
+    'max_withdrawals_per_offer' => 2,
     'ip_retention_days' => 90,
     'message_retention_days' => 90,
     'history_retention_days' => 365,

@@ -51,7 +51,8 @@ it('preserves the comment destination when switching to magic link login in the 
     $this->get(route('login', ['intended' => $this->destination]))->assertOk();
     $this->get(route('account.magic-link', ['intended' => $this->destination]))->assertOk();
     $this->post(route('account.magic-link.store'), ['email' => $user->email])->assertRedirect();
-    $this->get(MagicLoginLink::url($user))->assertRedirect($this->destination);
+    /* Il collegamento spedito porta l'impronta di questo browser: entra subito. */
+    $this->get(sentMagicLinkUrl($user))->assertRedirect($this->destination);
 });
 
 it('ignores untrusted return URLs', function (string $destination): void {
@@ -91,5 +92,17 @@ it('sends a fresh magic login to the feed after abandoning a comments login', fu
     $this->get(route('login', ['intended' => $this->destination]))->assertOk();
     $this->get(route('account.magic-link'))->assertOk()->assertSessionMissing('url.intended');
     $this->post(route('account.magic-link.store'), ['email' => $user->email])->assertRedirect();
-    $this->get(MagicLoginLink::url($user))->assertRedirect(route('account.feed'));
+    $this->get(sentMagicLinkUrl($user))->assertRedirect(route('account.feed'));
 });
+
+function sentMagicLinkUrl(User $user): string
+{
+    $url = '';
+    Notification::assertSentTo($user, MagicLoginLink::class, function (MagicLoginLink $notifica) use ($user, &$url): bool {
+        $url = (string) $notifica->toMail($user)->actionUrl;
+
+        return true;
+    });
+
+    return $url;
+}

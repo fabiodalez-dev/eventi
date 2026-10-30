@@ -986,6 +986,25 @@ final class EventOccurrenceQuery
     }
 
     /**
+     * Tiene di ogni evento solo la prima data fra quelle che la query accetta,
+     * **senza toccare l'ordinamento scelto**: a differenza di
+     * `firstPerEvent()`, che riordina per data, una sezione per distanza o
+     * per rilevanza resta tale, e il `take()` che segue arriva al database
+     * invece di caricare tutte le ricorrenze per scartarne quasi tutte.
+     */
+    public function onePerEvent(): self
+    {
+        $ranked = (clone $this->query)->reorder()
+            ->select(['event_occurrences.id'])
+            ->selectRaw('ROW_NUMBER() OVER (PARTITION BY event_occurrences.event_id ORDER BY event_occurrences.starts_at, event_occurrences.id) as event_rank')
+            ->toBase();
+
+        $this->query->whereIn('event_occurrences.id', DB::query()->fromSub($ranked, 'event_firsts')->where('event_rank', 1)->select('id'));
+
+        return $this;
+    }
+
+    /**
      * Una sola data per evento, con limite applicato dal database, non dopo
      * aver caricato tutte le ricorrenze del catalogo.
      *

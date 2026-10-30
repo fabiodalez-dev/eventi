@@ -125,7 +125,7 @@ final class EventListController extends Controller
 
         $occurrences = $this->finder->paginate($city, $filters);
         if ($filters->q !== '' && $occurrences->total() === 0) {
-            app(SearchMissLog::class)->record($city, $filters->q);
+            app(SearchMissLog::class)->record($city, $filters->q, request()->ip());
         }
 
         $meta = $this->meta

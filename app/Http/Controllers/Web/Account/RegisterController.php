@@ -58,7 +58,9 @@ final class RegisterController extends Controller
             'marketing_opt_in' => Features::newsletterActive() && $request->boolean('marketing_opt_in'),
         ]);
 
-        Auth::login($user, remember: true);
+        /* «Resta collegato» solo se spuntato, come all'accesso con password:
+           un cookie che dura settimane non deve nascere da solo. */
+        Auth::login($user, remember: $request->boolean('remember'));
         $request->session()->regenerate();
 
         return redirect()

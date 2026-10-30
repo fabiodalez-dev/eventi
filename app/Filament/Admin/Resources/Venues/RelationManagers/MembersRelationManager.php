@@ -6,7 +6,9 @@ namespace App\Filament\Admin\Resources\Venues\RelationManagers;
 
 use App\Actions\InviteVenueMemberAction;
 use App\Enums\VenueRole;
+use App\Models\User;
 use App\Models\Venue;
+use App\Support\SecurityLog;
 use Filament\Actions\Action;
 use Filament\Actions\AttachAction;
 use Filament\Actions\DetachAction;
@@ -20,6 +22,7 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -124,6 +127,19 @@ class MembersRelationManager extends RelationManager
                             return;
                         }
 
+                        // L'invito non declassa e non rimanda il messaggio a
+                        // chi ha già quel ruolo: dirlo, invece di «Invito
+                        // inviato» quando non parte niente.
+                        $current = $venue->members()->where('users.email', mb_strtolower(trim((string) $data['email'])))->first()?->getRelationValue('pivot')?->getAttribute('role');
+                        if ($current === VenueRole::Owner->value || $current === (string) $data['role']) {
+                            Notification::make()
+                                ->title(__('admin.notifications.already_member', ['role' => mb_strtolower(VenueRole::from((string) $current)->label())]))
+                                ->warning()
+                                ->send();
+
+                            return;
+                        }
+
                         app(InviteVenueMemberAction::class)->execute(
                             $venue,
                             (string) $data['email'],
@@ -140,6 +156,11 @@ class MembersRelationManager extends RelationManager
                 AttachAction::make()
                     ->label(__('admin.actions.invite_collaborator'))
                     ->preloadRecordSelect()
+                    /* Solo account con l'email confermata: uno mai confermato
+                       può averlo registrato chiunque con quell'indirizzo, e va
+                       invitato per email (azione sopra), che azzera le
+                       credenziali e manda il collegamento alla casella vera. */
+                    ->recordSelectOptionsQuery(fn (Builder $query): Builder => $query->whereNotNull('email_verified_at'))
                     ->schema(fn (AttachAction $action): array => [
                         $action->getRecordSelect(),
                         Select::make('role')
@@ -153,12 +174,31 @@ class MembersRelationManager extends RelationManager
 
                         return $data;
                     })
+                    ->after(fn (Model $record, array $data) => $this->logAccess('accesso_locale_concesso', $record, (string) ($data['role'] ?? '')))
                     ->authorize(fn (): bool => $this->canManage()),
             ])
             ->recordActions([
-                EditAction::make()->authorize(fn (): bool => $this->canManage()),
-                DetachAction::make()->authorize(fn (): bool => $this->canManage()),
+                EditAction::make()->authorize(fn (): bool => $this->canManage())
+                    ->after(fn (Model $record, array $data) => $this->logAccess('accesso_locale_modificato', $record, (string) ($data['role'] ?? ''))),
+                DetachAction::make()->authorize(fn (): bool => $this->canManage())
+                    ->after(fn (Model $record) => $this->logAccess('accesso_locale_revocato', $record, null)),
             ]);
+    }
+
+    /**
+     * Chi entra in un locale, con quale ruolo, e chi lo ha deciso: senza
+     * questa riga un accesso dato e tolto dopo l'uso non lascerebbe traccia.
+     */
+    private function logAccess(string $evento, Model $record, ?string $ruolo): void
+    {
+        if (! $record instanceof User) {
+            return;
+        }
+
+        SecurityLog::scrivi($evento, $record, array_filter([
+            'venue_id' => $this->getOwnerRecord()->getKey(),
+            'ruolo' => $ruolo,
+        ], fn (mixed $valore): bool => filled($valore)), causa: auth()->user() instanceof User ? auth()->user() : null);
     }
 
     private function canManage(): bool

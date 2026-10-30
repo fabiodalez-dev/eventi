@@ -11,7 +11,6 @@ use App\Enums\FollowNotificationMode;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Web\Concerns\InteractsWithAccount;
 use App\Http\Requests\Web\Account\StoreFollowRequest;
-use App\Models\Organizer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -35,10 +34,10 @@ final class FollowController extends Controller
         /*
          * `follows` è una colonna polimorfa e non ha una chiave esterna: senza
          * questo controllo si potrebbe seguire un locale mai esistito, che poi
-         * comparirebbe nell'elenco come una riga senza nome.
+         * comparirebbe nell'elenco come una riga senza nome, o una bozza che
+         * il pubblico non deve vedere.
          */
-        abort_unless($type->modelClass()::query()->whereKey($id)->exists(), 404);
-        abort_if($type === FollowableType::Organizer && ! Organizer::query()->whereKey($id)->where('is_active', true)->exists(), 404);
+        abort_unless($type->publicQuery()->whereKey($id)->exists(), 404);
 
         $follow($this->accountUser($request), $type, $id, $request->boolean('notify', $type !== FollowableType::Organizer), $request->has('notification_mode') ? FollowNotificationMode::from($request->validated('notification_mode')) : null);
 

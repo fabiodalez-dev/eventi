@@ -26,7 +26,10 @@ final class EmailVerificationController extends Controller
 {
     public function __invoke(VerifyEmailRequest $request, SignedEmailVerification $verification): JsonResponse
     {
-        $user = $verification->verify((string) $request->validated('url'));
+        /* La rotta non pretende il token, ma se l'app lo manda dice che chi
+           conferma è chi si è registrato (`SignedEmailVerification`). */
+        $requester = $request->user('sanctum');
+        $user = $verification->verify((string) $request->validated('url'), $requester instanceof User ? $requester : null);
 
         if ($user === null) {
             throw new ApiException(ApiErrorCode::InvalidToken);

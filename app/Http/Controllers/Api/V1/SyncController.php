@@ -41,7 +41,9 @@ final class SyncController extends Controller
             static fn (EventOccurrence $occurrence): array => OccurrenceResource::toArray($occurrence, $page->context),
             [
                 'server_time' => $serverTime->toIso8601String(),
-                'deleted_ids' => $this->deletedIds($request),
+                // Le rimozioni viaggiano solo con la prima pagina: ricalcolarle
+                // a ogni pagina del cursore rifaceva la stessa scansione.
+                'deleted_ids' => $request->cursor() === null ? $this->deletedIds($request) : [],
                 'window_days' => $request->days(),
             ],
         );

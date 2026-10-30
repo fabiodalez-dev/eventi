@@ -11,6 +11,7 @@ use App\Models\RideRequest;
 use App\Models\RideReview;
 use App\Models\User;
 use App\Queries\CarpoolQuery;
+use App\Support\PublicName;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
@@ -20,6 +21,15 @@ final class RideReviews
     {
         return $user !== null && app(CarpoolAccess::class)->contacts($user) && app(CarpoolAccess::class)->contacts($driver)
             && ! app(CarpoolAccess::class)->blocked($user, $driver);
+    }
+
+    /**
+     * Le recensioni si aprono solo per chi ha offerto almeno un passaggio: senza questo controllo
+     * l'indirizzo con un id qualsiasi diceva chi ha verificato il telefono e con che nome.
+     */
+    public function isDriver(User $driver): bool
+    {
+        return app(CarpoolAccess::class)->contacts($driver) && RideOffer::where('driver_id', $driver->id)->exists();
     }
 
     public function eligibleTrip(User $user, RideRequest $ride): bool
@@ -52,10 +62,10 @@ final class RideReviews
     }
 
     /** @return array<string, mixed> */
-    public function resource(RideReview $review): array
+    public function resource(RideReview $review, ?User $viewer = null): array
     {
         return ['id' => $review->id, 'rating' => $review->rating, 'body' => $review->body, 'revision' => $review->revision,
-            'name' => $review->user?->communityProfile->display_name ?? $review->user->name ?? __('community.member'),
+            'name' => PublicName::for($review->user, $viewer),
             'driver_id' => $review->driver_id, 'status' => $review->status->value,
             'confirmed_at' => $review->rideRequest->passenger_confirmed_at?->toIso8601String(),
             'created_at' => $review->created_at->toIso8601String(), 'updated_at' => $review->updated_at->toIso8601String()];

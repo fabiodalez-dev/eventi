@@ -109,9 +109,10 @@ internal fun CarpoolScreen(session: Session?, padding: PaddingValues, initialRou
                         val offer=row.obj("offer")
                         CpOffer(offer,null,{navigate("drivers/${offer.obj("driver").number("id")}/reviews")})
                         CpButton("event") {offer.text("event_url").takeIf{it.isNotBlank()}?.let(onDestination)}
-                        CpButton("map") {offer.text("map_url").takeIf{it.startsWith("https://www.google.com/maps/search/?") }?.let(uri::openUri)}
+                        // Con un blocco tra chi guarda e il conducente zona, orario e mappa arrivano null: niente pulsante che non apre nulla.
+                        offer.text("map_url").takeIf{it.startsWith("https://www.google.com/maps/search/?") }?.let {url -> CpButton("map") {uri.openUri(url)}}
                         offer.text("note").takeIf{it.isNotBlank()}?.let {Text(it)}
-                        Text(offer.text("accessibility_label"));Text(offer.text("accessibility_note"));Text(cpText("accessibility_disclaimer"),style=MaterialTheme.typography.bodySmall)
+                        Text(offer.text("accessibility_label"));offer.text("accessibility_note").takeIf{it.isNotBlank()}?.let{Text(it)};Text(cpText("accessibility_disclaimer"),style=MaterialTheme.typography.bodySmall)
                         if(offer.flag("is_own")) {
                             if(offer.text("status") in listOf("draft","open","closed")) {
                                 CpButton("update",!busy) {navigate("edit/${offer.number("id")}")}
@@ -186,9 +187,12 @@ internal fun CpGate(access: JsonObject, busy: Boolean, onVerify: () -> Unit, onL
     }
 }
 
+/** Le parti di una riga dell'offerta senza i vuoti: zona e orario possono arrivare null quando c'è un blocco. */
+internal fun cpLine(vararg parts: String): String = parts.filter { it.isNotBlank() }.joinToString(" · ")
+
 @Composable
 internal fun CpOffer(offer: JsonObject, onOpen: (() -> Unit)?, onReviews: (() -> Unit)?) {
-    HorizontalDivider();Text(offer.text("event_title"),style=MaterialTheme.typography.titleLarge);Text(offer.text("zone")+" · "+offer.text("leg_label"));Text(offer.text("departure_label"));Text(offer.obj("driver").text("name"),style=MaterialTheme.typography.titleMedium)
+    HorizontalDivider();Text(offer.text("event_title"),style=MaterialTheme.typography.titleLarge);Text(cpLine(offer.text("zone"),offer.text("leg_label")));offer.text("departure_label").takeIf{it.isNotBlank()}?.let{Text(it)};Text(offer.obj("driver").text("name"),style=MaterialTheme.typography.titleMedium)
     if(offer.obj("driver").flag("verified")) Text(cpText("verified"),style=MaterialTheme.typography.labelMedium)
     Text(cpText("available","count" to offer.number("available"))+" · "+offer.text("status_label"))
     if(onReviews!=null && offer["reviews"] is JsonObject) {val summary=offer.obj("reviews");TextButton(onClick=onReviews){Text(if(summary.number("count")==0L)cpText("reviews.title") else cpText("reviews.summary","average" to summary.text("average"),"count" to summary.number("count")))}}

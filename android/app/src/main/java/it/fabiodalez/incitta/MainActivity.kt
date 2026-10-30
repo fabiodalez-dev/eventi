@@ -50,6 +50,8 @@ class MainActivity : ComponentActivity() {
         }
         when {
             uri.scheme == "incitta" && uri.host == "account" -> viewModel.selectTab(AppTab.ACCOUNT)
+            uri.scheme == "incitta" && uri.host == "auth" && uri.path == "/verify-email" ->
+                uri.getQueryParameter("url")?.takeIf(String::isNotBlank)?.let(viewModel::confirmEmailLink)
             uri.scheme == "incitta" && uri.host == "auth" -> {
                 uri.getQueryParameter("token")?.takeIf(String::isNotBlank)?.let(viewModel::exchangeMagicToken)
             }

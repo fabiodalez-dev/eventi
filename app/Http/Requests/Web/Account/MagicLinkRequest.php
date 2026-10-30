@@ -20,6 +20,7 @@ class MagicLinkRequest extends FormRequest
     {
         return [
             'email' => ['required', 'email:filter', 'max:255'],
+            'remember' => ['nullable', 'boolean'],
         ];
     }
 

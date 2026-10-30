@@ -10,4 +10,6 @@ return [
     'login' => 'Accedi per inviare un messaggio', 'privacy' => 'Nome, email e messaggio saranno inviati al destinatario per risponderti.',
     'captcha' => 'Completa la verifica reCAPTCHA e riprova.', 'subject' => 'Nuovo messaggio per :name',
     'guest_browser' => 'Apri il modulo con verifica anti-spam',
+    'sender_daily_limit' => 'Hai già scritto più volte a questo recapito oggi. Riprova domani.',
+    'target_daily_limit' => 'Questo recapito ha ricevuto troppi messaggi oggi. Riprova domani.',
 ];

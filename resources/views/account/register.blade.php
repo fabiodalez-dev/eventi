@@ -23,6 +23,11 @@
             <x-field name="password" type="password" :label="__('account.register.password')" :required="true" autocomplete="new-password" />
             <x-field name="password_confirmation" type="password" :label="__('account.register.password')" :required="true" autocomplete="new-password" />
 
+            <label class="flex items-center gap-2.5 text-sm text-ink-muted">
+                <input type="checkbox" name="remember" value="1" class="size-4 rounded border-line" @checked(old('remember'))>
+                {{ __('account.login.remember') }}
+            </label>
+
             @newsletter
             <label class="flex items-start gap-2.5 text-sm text-ink-muted">
                 <input type="checkbox" name="marketing_opt_in" value="1" class="mt-0.5 size-4 rounded border-line" @checked(old('marketing_opt_in'))>

@@ -6,6 +6,7 @@ namespace App\Services\Community;
 
 use App\Enums\CommunityStatus;
 use App\Enums\Permission;
+use App\Enums\UserRole;
 use App\Models\CommunityComment;
 use App\Models\CommunityPost;
 use App\Models\CommunityProfile;
@@ -44,8 +45,13 @@ final class CommunityModeration
                 default => abort(422),
             };
             $userId = $model instanceof User ? $model->id : $model->user_id;
-            User::query()->whereKey($userId)->lockForUpdate()->firstOrFail();
+            $author = User::query()->whereKey($userId)->lockForUpdate()->firstOrFail();
             $model->refresh();
+            // Sospendere si fa verso il basso: il moderatore non sospende chi
+            // nello staff gli sta pari o sopra, né gli nasconde un post (che
+            // lo esclude anche dalla data) o un commento. Togliere la
+            // sospensione resta possibile a chiunque abbia il permesso.
+            abort_if(! $enabled && ! $model instanceof CommunityProfile && ! self::outranks($moderator, $author), 403);
             if ($model instanceof CommunityPost) {
                 if (! $enabled) {
                     DB::table('community_restrictions')->updateOrInsert(['user_id' => $model->user_id, 'occurrence_id' => $model->occurrence_id], ['created_at' => now(), 'updated_at' => now()]);
@@ -62,5 +68,24 @@ final class CommunityModeration
             app(CarpoolAuditLog::class)->record($moderator, 'social_moderation', $model, ['kind' => $kind, 'enabled' => $enabled, 'reason' => $reason]);
             activity('community')->causedBy($moderator)->performedOn($model)->withProperties(['kind' => $kind, 'enabled' => $enabled])->event('moderation')->log('moderation');
         });
+    }
+
+    /**
+     * Il grado nello staff: amministratore di sistema, amministratore,
+     * moderatore, poi tutti gli altri. Si agisce solo su chi sta sotto.
+     */
+    public static function outranks(User $actor, User $target): bool
+    {
+        return self::rank($actor) > self::rank($target);
+    }
+
+    private static function rank(User $user): int
+    {
+        return match (true) {
+            $user->hasRole(UserRole::SuperAdmin->value) => 3,
+            $user->hasRole(UserRole::Admin->value) => 2,
+            $user->hasRole(UserRole::Moderator->value) => 1,
+            default => 0,
+        };
     }
 }

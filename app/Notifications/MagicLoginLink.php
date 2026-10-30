@@ -21,7 +21,15 @@ use Illuminate\Support\Facades\URL;
  */
 class MagicLoginLink extends Notification
 {
-    public function __construct(private readonly ?string $mobileUrl = null) {}
+    /**
+     * `$browser` è l'impronta del segreto messo nella sessione del browser che
+     * ha chiesto il collegamento: aperto lì entra subito, aperto altrove chiede
+     * prima una conferma (`MagicLinkController::show()`).
+     */
+    public function __construct(
+        private readonly ?string $mobileUrl = null,
+        private readonly ?string $browser = null,
+    ) {}
 
     /**
      * @return array<int, string>
@@ -36,22 +44,23 @@ class MagicLoginLink extends Notification
         return (new MailMessage)
             ->subject(__('account.mail.magic.subject', ['product' => config()->string('app.name')]))
             ->line(__('account.mail.magic.intro'))
-            ->action(__('account.mail.magic.action'), $this->mobileUrl ?? self::url($notifiable))
+            ->action(__('account.mail.magic.action'), $this->mobileUrl ?? self::url($notifiable, $this->browser))
             ->line(__('account.mail.magic.expires', ['minutes' => config()->integer('account.magic_link_minutes')]))
             ->line(__('account.mail.magic.ignore'));
     }
 
-    public static function url(object $notifiable): string
+    public static function url(object $notifiable, ?string $browser = null): string
     {
         $user = $notifiable instanceof User ? $notifiable : null;
 
         return URL::temporarySignedRoute(
             'account.magic-link.login',
             now()->addMinutes(config()->integer('account.magic_link_minutes')),
-            [
+            array_filter([
                 'user' => $user?->getKey() ?? 0,
                 'fingerprint' => self::fingerprint($user),
-            ],
+                'browser' => $browser,
+            ], static fn (mixed $valore): bool => $valore !== null),
         );
     }
 

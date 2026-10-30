@@ -80,7 +80,8 @@ final class PresenceController extends Controller
 
     public function show(string $token): Response
     {
-        $share = PresenceShare::query()->where('token', $token)->active()->with(['occurrence.event.city', 'occurrence.venue', 'occurrence.event.venue'])->first();
+        // `whereHas('user')` esclude gli account cestinati: il link di chi si è cancellato non mostra più il suo nome.
+        $share = PresenceShare::query()->where('token', $token)->active()->whereHas('user')->with(['occurrence.event.city', 'occurrence.venue', 'occurrence.event.venue'])->first();
         abort_if($share === null || $share->occurrence === null || $share->occurrence->event?->status !== EventStatus::Published, 404);
 
         return response()->view('presence.show', [

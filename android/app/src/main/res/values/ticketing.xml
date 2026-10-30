@@ -1,5 +1,7 @@
 <resources>
     <string name="ticket_booker">Chi prenota</string>
+    <!-- Come sul sito: con l'email non confermata al posto del modulo c'è l'invito a confermarla. -->
+    <string name="ticket_verify_required">Conferma il tuo indirizzo email per prenotare.</string>
     <string name="ticket_participants">Partecipanti</string>
     <string name="ticket_first_name">Nome</string>
     <string name="ticket_last_name">Cognome</string>

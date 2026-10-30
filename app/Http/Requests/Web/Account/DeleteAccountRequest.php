@@ -13,6 +13,10 @@ use Illuminate\Validation\Rule;
  * Non è burocrazia: la cancellazione è immediata e definitiva, e un pulsante
  * premuto per sbaglio su un telefono cancellerebbe salvataggi e promemoria
  * senza appello. La parola da scrivere è una traduzione come tutte le altre.
+ *
+ * Serve anche la password attuale, come nell'API: la parola chiave ferma lo
+ * sbaglio, non chi trova aperta la sessione di un altro su un telefono o un
+ * computer condiviso.
  */
 class DeleteAccountRequest extends FormRequest
 {
@@ -28,6 +32,7 @@ class DeleteAccountRequest extends FormRequest
     {
         return [
             'conferma' => ['required', 'string', Rule::in([__('account.profile.delete_keyword')])],
+            'password' => ['required', 'string', 'current_password:web'],
         ];
     }
 
@@ -36,6 +41,6 @@ class DeleteAccountRequest extends FormRequest
      */
     public function attributes(): array
     {
-        return ['conferma' => __('account.profile.delete_confirm')];
+        return ['conferma' => __('account.profile.delete_confirm'), 'password' => __('account.profile.delete_password')];
     }
 }

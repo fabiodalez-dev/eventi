@@ -14,7 +14,7 @@ Route::prefix('passaggi')->name('carpool.')->middleware(CarpoolPrivacy::class)->
     Route::get('/date/{occurrence}', [C::class, 'dates'])->whereNumber('occurrence')->name('dates');
     Route::get('/date/{occurrence}/offri', [C::class, 'create'])->whereNumber('occurrence')->name('create');
     Route::middleware('auth')->group(function (): void {
-        Route::get('/conducenti/{driver}/recensioni', [RideReviewsController::class, 'index'])->whereNumber('driver')->name('reviews');
+        Route::get('/conducenti/{driver}/recensioni', [RideReviewsController::class, 'index'])->whereNumber('driver')->middleware('throttle:carpool-read')->name('reviews');
         Route::post('/richieste/{rideRequest}/recensione/{action}', [RideReviewsController::class, 'change'])->whereNumber('rideRequest')->whereIn('action', ['confirm', 'save', 'remove'])->middleware('throttle:carpool-review')->name('review.action');
         Route::get('/', [C::class, 'index'])->name('index');
         Route::get('/riepilogo-avvisi', [C::class, 'summary'])->name('summary');

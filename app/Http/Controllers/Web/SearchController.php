@@ -61,7 +61,7 @@ final class SearchController extends Controller
 
         $found = ($events?->count() ?? 0) + ($venues?->count() ?? 0) + ($tags?->count() ?? 0) + ($organizers?->count() ?? 0);
         if ($term !== '' && $found === 0) {
-            $this->misses->record($city, $term);
+            $this->misses->record($city, $term, $request->ip());
         }
 
         return view('search.index', [

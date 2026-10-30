@@ -264,6 +264,8 @@ return [
         'invite_submit' => 'Manda l’invito',
         'invited' => 'Invito inviato',
         'invited_body' => 'Abbiamo scritto a :email.',
+        'invite_limit' => 'Hai mandato molti inviti di seguito. Riprova più tardi.',
+        'already_member' => 'Questa persona è già fra chi gestisce il locale.',
         'remove' => 'Rimuovi',
         'remove_confirm' => 'Non potrà più pubblicare eventi per questo locale. Gli eventi già inseriti restano.',
         'removed' => 'Collaboratore rimosso',

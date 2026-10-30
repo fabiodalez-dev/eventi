@@ -185,6 +185,10 @@ return [
         'sent' => 'Se l\'indirizzo è registrato, fra poco riceverai il collegamento per entrare.',
         'expired' => 'Il collegamento non è più valido. Chiedine un altro.',
         'with_password' => 'Preferisco usare la password',
+        'confirm_title' => 'Entra nel tuo account',
+        'confirm_lead' => 'Stai per entrare come :email.',
+        'confirm_submit' => 'Entra',
+        'confirm_not_you' => 'Non hai chiesto tu questo collegamento, o non è il tuo indirizzo? Chiudi la pagina: nessuno è entrato.',
     ],
 
     'verify' => [
@@ -201,6 +205,10 @@ return [
         'confirmed' => 'L\'indirizzo è stato confermato.',
         'failed' => 'Il collegamento di conferma non è valido o è scaduto.',
         'pending' => 'Indirizzo da confermare',
+        'app_title' => 'Indirizzo confermato',
+        'app_lead' => 'Ti sei iscritto dall\'app inCittà? Completa la conferma anche lì: l\'app resta collegata e la password che hai scelto continua a valere anche quando entri con il collegamento via email.',
+        'app_open' => 'Completa nell\'app',
+        'app_continue' => 'Continua sul sito',
     ],
 
     'profile' => [
@@ -236,6 +244,9 @@ return [
         'delete_body' => 'Spariscono salvataggi, follow e promemoria programmati. Non si torna indietro.',
         'delete_confirm' => 'Scrivi CANCELLA per confermare',
         'delete_keyword' => 'CANCELLA',
+        'delete_password' => 'La tua password attuale',
+        'delete_password_hint' => 'Se entri sempre con il collegamento via email, scegli prima una password da «Password dimenticata».',
+        'delete_password_link' => 'Scegli o reimposta la password',
         'delete_submit' => 'Cancella il mio account',
         'deleted' => 'Account cancellato.',
     ],

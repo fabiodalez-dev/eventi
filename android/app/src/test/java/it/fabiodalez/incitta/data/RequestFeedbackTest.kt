@@ -19,6 +19,22 @@ class RequestFeedbackTest {
         assertTrue(requestFailureMessage(ApiException(503, null)).contains("server"))
     }
 
+    @Test fun genericRateLimitAsksToWaitAMinute() {
+        val generic = ApiException(429, ApiProblem(message = "Troppe richieste: riprova fra poco.", code = "RATE_LIMITED"))
+        assertTrue(requestFailureMessage(generic).contains("Attendi un minuto"))
+        assertTrue(requestFailureMessage(ApiException(429, null)).contains("Attendi un minuto"))
+    }
+
+    @Test fun explainedRateLimitShowsTheServerMessage() {
+        // Il tetto giornaliero di un recapito non passa in un minuto: vale il testo del server.
+        val daily = ApiException(429, ApiProblem(message = "Questo recapito ha ricevuto troppi messaggi oggi. Riprova domani.", code = "CONTACT_DAILY_LIMIT"))
+        assertEquals("Questo recapito ha ricevuto troppi messaggi oggi. Riprova domani.", requestFailureMessage(daily))
+        val field = ApiException(429, ApiProblem(code = "RATE_LIMITED", fields = mapOf("message" to listOf("Riprova domani."))))
+        assertEquals("Riprova domani.", requestFailureMessage(field))
+        val validation = ApiException(422, ApiProblem(code = "VALIDATION_FAILED", fields = mapOf("message" to listOf("Riprova domani."))))
+        assertEquals("Riprova domani.", requestFailureMessage(validation))
+    }
+
     @Test fun invalidPayloadIsNotANetworkFailure() {
         val error = ApiPayloadException(IllegalArgumentException())
         assertFalse(shouldShowOffline(error, true))

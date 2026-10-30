@@ -264,7 +264,7 @@ it('smettere di seguire una serie non toglie dall agenda le date già salvate', 
 it('segue locali, tag e categorie e rifiuta un soggetto che non esiste', function (): void {
     $occurrence = occurrenceAt($this->city, $this->category, '2026-09-12 19:00:00');
     $venue = $occurrence->event->venue;
-    $tag = Tag::factory()->create();
+    $tag = Tag::factory()->approved()->create();
 
     $this->actingAs($this->user)->post('/segui', ['type' => 'venue', 'id' => $venue?->getKey()])->assertRedirect();
     $this->actingAs($this->user)->post('/segui', ['type' => 'category', 'id' => $this->category->getKey()])->assertRedirect();

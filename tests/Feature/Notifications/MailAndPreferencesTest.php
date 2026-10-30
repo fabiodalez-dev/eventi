@@ -142,7 +142,7 @@ it('apre e salva le preferenze senza sessione', function (): void {
     $this->patch($update, [
         'sold_out' => '1',
         'quiet_from' => '23:00',
-        'quiet_to' => '07:30',
+        'quiet_to' => '08:30',
         'daily_digest_time' => '18:00',
     ])->assertRedirect();
 
@@ -151,6 +151,6 @@ it('apre e salva le preferenze senza sessione', function (): void {
     expect($user)->not->toBeNull()
         ->and(NotificationPreferences::fromUser($user)->reminders)->toBeFalse()
         ->and(NotificationPreferences::fromUser($user)->soldOut)->toBeTrue()
-        ->and($user->quiet_hours)->toBe(['from' => '23:00', 'to' => '07:30'])
+        ->and($user->quiet_hours)->toBe(['from' => '23:00', 'to' => '08:30'])
         ->and($user->daily_digest_time)->toBe('18:00:00');
 });

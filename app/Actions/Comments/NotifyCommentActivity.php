@@ -11,6 +11,7 @@ use App\Enums\NotificationType;
 use App\Models\EventComment;
 use App\Models\ScheduledNotification;
 use App\Models\User;
+use App\Services\Community\CommunityAccess;
 use App\Services\Notifications\NotificationDispatcher;
 
 /**
@@ -101,6 +102,12 @@ final class NotifyCommentActivity
 
     private function enqueue(User $recipient, NotificationType $type, EventComment $comment, ?User $actor = null, ?EventCommentReactionType $reaction = null): void
     {
+        /* Chi ha bloccato l'autore (o ne è bloccato) non riceve avvisi sui
+           suoi gesti: vale anche per lo staff del locale. */
+        if ($actor !== null && app(CommunityAccess::class)->blocked($recipient, $actor)) {
+            return;
+        }
+
         // A withdrawn reaction must not erase the delivery's deduplication key.
         $key = implode(':', [$type->value, $comment->id, $recipient->id,
             $type === NotificationType::CommentModerated ? $comment->revision : ($actor->id ?? 0)]);

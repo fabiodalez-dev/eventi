@@ -37,6 +37,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Validation\Rules\Password;
 
 /**
  * §9.2 — gli utenti, i loro ruoli e l'impersonificazione.
@@ -108,7 +109,8 @@ class UserResource extends Resource
                             ->label(__('admin.fields.password'))
                             ->password()
                             ->revealable()
-                            ->minLength(8)
+                            // La stessa politica della registrazione (AppServiceProvider), non una regola a parte.
+                            ->rule(Password::defaults())
                             ->required(fn (string $operation): bool => $operation === 'create')
                             ->dehydrated(fn (?string $state): bool => filled($state))
                             ->dehydrateStateUsing(fn (string $state): string => Hash::make($state)),
@@ -235,7 +237,9 @@ class UserResource extends Resource
                 EditAction::make(),
                 self::impersonateAction(),
                 Action::make('community_suspend')->label(fn (User $record): string => __($record->community_suspended_at ? 'community.unsuspend' : 'community.suspend'))
-                    ->visible(fn (User $record): bool => ! $record->trashed() && auth()->user()?->isEditorialStaff() === true)->requiresConfirmation()
+                    // Si sospende solo chi sta sotto nello staff (vedi CommunityModeration).
+                    ->visible(fn (User $record): bool => ! $record->trashed() && ($staff = auth()->user()) instanceof User && $staff->isEditorialStaff()
+                        && ($record->community_suspended_at !== null || CommunityModeration::outranks($staff, $record)))->requiresConfirmation()
                     ->action(fn (User $record) => app(CommunityModeration::class)->apply(auth()->user(), 'user', $record->id, $record->community_suspended_at !== null)),
                 Action::make('whatsapp_revoke')->label(__('community.whatsapp.revoke'))->requiresConfirmation()
                     ->visible(fn (User $record): bool => $record->whatsapp_verified_at !== null && auth()->user()?->hasAnyRole(['admin', 'super_admin']) === true)

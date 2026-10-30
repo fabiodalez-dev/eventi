@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
+use App\Actions\Account\ClaimMailbox;
 use App\Enums\UserRole;
 use App\Enums\VenueRole;
 use App\Models\User;
 use App\Models\Venue;
 use App\Notifications\VenueAccessGranted;
 use App\Support\EditorContent;
+use App\Support\SecurityLog;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -30,7 +32,7 @@ use Illuminate\Support\Str;
  *
  * Il ruolo globale non viene mai declassato: se la persona è già
  * amministratore, l'invito aggiunge l'appartenenza al locale e non tocca
- * quello che era.
+ * quello che era. Lo stesso vale per il ruolo nel locale.
  */
 final class InviteVenueMemberAction
 {
@@ -51,6 +53,21 @@ final class InviteVenueMemberAction
                 ]);
             }
 
+            /*
+             * Chi è già del locale non viene mai declassato da un invito: un
+             * referente che invita l'email di un altro referente lo
+             * trasformerebbe in collaboratore, e da lì potrebbe toglierlo.
+             * Il ruolo nel locale si alza (collaboratore → referente, quando
+             * accredita la redazione), mai si abbassa: per abbassarlo c'è la
+             * modifica della riga nel pannello di redazione. E chi è già
+             * dentro con lo stesso ruolo non riceve un secondo messaggio.
+             */
+            $current = $isNew ? null : $venue->members()->whereKey($user->getKey())->lockForUpdate()->first()?->getRelationValue('pivot')?->getAttribute('role');
+
+            if ($current === VenueRole::Owner->value || $current === $role->value) {
+                return $user;
+            }
+
             $this->ensureGlobalRole($user, $role);
 
             $venue->members()->syncWithoutDetaching([
@@ -60,7 +77,22 @@ final class InviteVenueMemberAction
                 ],
             ]);
 
-            $user->notify(new VenueAccessGranted($venue, $role, $isNew));
+            $causa = auth()->user() instanceof User ? auth()->user() : null;
+            SecurityLog::scrivi('accesso_locale_concesso', $user, [
+                'venue_id' => $venue->getKey(),
+                'ruolo' => $role->value,
+            ], causa: $causa);
+
+            /*
+             * Un account già esistente ma con la casella non dimostrata può
+             * averlo registrato chiunque, con una password sua: senza questo
+             * passaggio l'invito gli aprirebbe il pannello. Le credenziali si
+             * azzerano e il messaggio porta il collegamento per sceglierne
+             * una, che arriva solo nella casella vera.
+             */
+            $needsPassword = $isNew || app(ClaimMailbox::class)->revocaPerAccessoConcesso($user, $causa);
+
+            $user->notify(new VenueAccessGranted($venue, $role, $needsPassword));
 
             return $user;
         });

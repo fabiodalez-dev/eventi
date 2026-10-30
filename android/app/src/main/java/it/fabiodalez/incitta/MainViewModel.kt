@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import it.fabiodalez.incitta.data.ApiException
 import it.fabiodalez.incitta.data.loginFailureMessage
 import it.fabiodalez.incitta.data.requestFailureMessage
+import it.fabiodalez.incitta.data.requiresEmailVerification
+import it.fabiodalez.incitta.data.isEmailConfirmationLink
 import it.fabiodalez.incitta.data.shouldShowOffline
 import it.fabiodalez.incitta.data.selectOccurrence
 import it.fabiodalez.incitta.data.AppRepository
@@ -46,6 +48,11 @@ data class AppUiState(
     val bookingAvailability: it.fabiodalez.incitta.data.BookingAvailability? = null,
     val bookingBusy: Boolean = false,
     val bookingError: String? = null,
+    /**
+     * L'ultimo errore dei biglietti è il 403 `EMAIL_VERIFICATION_REQUIRED`:
+     * sotto il messaggio del server compare l'invito a confermare l'email.
+     */
+    val bookingVerificationRequired: Boolean = false,
     val bookingRequestKey: String = "",
     /*
      * Il biglietto nel portafoglio: `walletEnabled` arriva dal server e vale
@@ -225,7 +232,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     val sessionChanged = _state.value.session?.token != session?.token
                     if (sessionChanged) {
                         bookingJob?.cancel()
-                        _state.value = _state.value.copy(bookings = emptyList(), noShows = 0, bookingDate = null, bookingAvailability = null, bookingBusy = false, bookingError = null,
+                        _state.value = _state.value.copy(bookings = emptyList(), noShows = 0, bookingDate = null, bookingAvailability = null, bookingBusy = false, bookingError = null, bookingVerificationRequired = false,
                             bookingsSavedAt = null, hiddenVenueIds = emptySet(), accessNeeds = emptyList(), profileAccessDismissed = false,
                             availabilityAlerts = emptySet(), openingAlerts = emptySet(), editionAlerts = emptySet(), alertBusy = emptySet(), presenceLinks = emptyMap(), presenceBusy = false)
                     }
@@ -317,14 +324,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             return
         }
         bookingJob?.cancel()
-        _state.value = _state.value.copy(bookingDate = date, bookingAvailability = null, bookingBusy = true, bookingError = null, bookingRequestKey = java.util.UUID.randomUUID().toString())
+        _state.value = _state.value.copy(bookingDate = date, bookingAvailability = null, bookingBusy = true, bookingError = null, bookingVerificationRequired = false, bookingRequestKey = java.util.UUID.randomUUID().toString())
         bookingJob = viewModelScope.launch {
             try {
                 val availability = repository.bookingAvailability(date.occurrenceId)
                 _state.value = _state.value.copy(bookingAvailability = availability, bookingBusy = false)
             } catch (error: Exception) {
                 if (error is CancellationException) throw error
-                _state.value = _state.value.copy(bookingBusy = false, bookingError = userMessage(error))
+                _state.value = _state.value.copy(bookingBusy = false, bookingError = userMessage(error), bookingVerificationRequired = requiresEmailVerification(error))
             }
         }
     }
@@ -334,7 +341,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (_state.value.bookingBusy) return
         val token = _state.value.session?.token ?: return
         val key = _state.value.bookingRequestKey
-        _state.value = _state.value.copy(bookingBusy = true, bookingError = null)
+        _state.value = _state.value.copy(bookingBusy = true, bookingError = null, bookingVerificationRequired = false)
         bookingJob = viewModelScope.launch {
             try {
                 val booking = repository.reserve(date.occurrenceId, it.fabiodalez.incitta.data.ReserveBody(names.map { it.copy(firstName = it.firstName.trim(), lastName = it.lastName.trim()) }, key, waitlist, true, booker.mapValues { it.value.trim() }, it.fabiodalez.incitta.data.answersPayload(_state.value.bookingAvailability?.questions.orEmpty(), answers)))
@@ -344,7 +351,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
             } catch (error: Exception) {
                 if (error is CancellationException) throw error
-                _state.value = _state.value.copy(bookingBusy = false, bookingError = userMessage(error))
+                _state.value = _state.value.copy(bookingBusy = false, bookingError = userMessage(error), bookingVerificationRequired = requiresEmailVerification(error))
             }
         }
     }
@@ -374,7 +381,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun addToWallet(ticketId: Long) {
         val token = _state.value.session?.token ?: return
         walletJob?.cancel()
-        _state.value = _state.value.copy(bookingBusy = true, bookingError = null)
+        _state.value = _state.value.copy(bookingBusy = true, bookingError = null, bookingVerificationRequired = false)
         walletJob = viewModelScope.launch {
             try {
                 val link = repository.walletPass(ticketId)
@@ -391,7 +398,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 } else {
                     userMessage(error)
                 }
-                _state.value = _state.value.copy(bookingBusy = false, bookingError = message)
+                _state.value = _state.value.copy(bookingBusy = false, bookingError = message, bookingVerificationRequired = requiresEmailVerification(error))
             }
         }
     }
@@ -406,7 +413,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         askWalletAvailability()
         bookingJob?.cancel()
         val token = _state.value.session?.token
-        _state.value = _state.value.copy(bookingBusy = true, bookingError = null)
+        _state.value = _state.value.copy(bookingBusy = true, bookingError = null, bookingVerificationRequired = false)
         bookingJob = viewModelScope.launch {
             try {
                 val list = repository.bookingList()
@@ -421,9 +428,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                  */
                 val cached = if (error is IOException && repository.session.value?.token == token) repository.cachedBookings() else null
                 _state.value = if (cached != null) {
-                    _state.value.copy(bookings = cached.bookings, bookingsSavedAt = cached.savedAt, bookingBusy = false, bookingError = null)
+                    _state.value.copy(bookings = cached.bookings, bookingsSavedAt = cached.savedAt, bookingBusy = false, bookingError = null, bookingVerificationRequired = false)
                 } else {
-                    _state.value.copy(bookingBusy = false, bookingError = userMessage(error))
+                    _state.value.copy(bookingBusy = false, bookingError = userMessage(error), bookingVerificationRequired = requiresEmailVerification(error))
                 }
             }
         }
@@ -434,10 +441,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (_state.value.bookingBusy) return
         val token = _state.value.session?.token ?: return
         if (!it.fabiodalez.incitta.data.plausibleEmail(email)) {
-            _state.value = _state.value.copy(bookingError = getApplication<Application>().getString(R.string.ticket_send_invalid))
+            _state.value = _state.value.copy(bookingError = getApplication<Application>().getString(R.string.ticket_send_invalid), bookingVerificationRequired = false)
             return
         }
-        _state.value = _state.value.copy(bookingBusy = true, bookingError = null)
+        _state.value = _state.value.copy(bookingBusy = true, bookingError = null, bookingVerificationRequired = false)
         viewModelScope.launch {
             try {
                 val message = repository.sendTicket(ticketId, email)
@@ -447,7 +454,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
             } catch (error: Exception) {
                 if (error is CancellationException) throw error
-                _state.value = _state.value.copy(bookingBusy = false, bookingError = userMessage(error))
+                _state.value = _state.value.copy(bookingBusy = false, bookingError = userMessage(error), bookingVerificationRequired = requiresEmailVerification(error))
             }
         }
     }
@@ -455,14 +462,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun cancelBooking(id: Long, ticketId: Long?) {
         if (_state.value.bookingBusy) return
         val token = _state.value.session?.token ?: return
-        _state.value = _state.value.copy(bookingBusy = true, bookingError = null)
+        _state.value = _state.value.copy(bookingBusy = true, bookingError = null, bookingVerificationRequired = false)
         bookingJob = viewModelScope.launch {
             try {
                 val booking = repository.cancelBooking(id, ticketId)
                 if (repository.session.value?.token == token) _state.value = _state.value.copy(bookings = _state.value.bookings.map { if (it.id == id) booking else it }, bookingBusy = false, message = getApplication<Application>().getString(R.string.ticket_cancelled_success))
             } catch (error: Exception) {
                 if (error is CancellationException) throw error
-                _state.value = _state.value.copy(bookingBusy = false, bookingError = userMessage(error))
+                _state.value = _state.value.copy(bookingBusy = false, bookingError = userMessage(error), bookingVerificationRequired = requiresEmailVerification(error))
             }
         }
     }
@@ -470,15 +477,75 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun resendBooking(id: Long) {
         if (_state.value.bookingBusy) return
         val token = _state.value.session?.token ?: return
-        _state.value = _state.value.copy(bookingBusy = true, bookingError = null)
+        _state.value = _state.value.copy(bookingBusy = true, bookingError = null, bookingVerificationRequired = false)
         bookingJob = viewModelScope.launch {
             try {
                 repository.resendBooking(id)
                 if (repository.session.value?.token == token) _state.value = _state.value.copy(bookingBusy = false, message = getApplication<Application>().getString(R.string.ticket_email_queued))
             } catch (error: Exception) {
                 if (error is CancellationException) throw error
-                _state.value = _state.value.copy(bookingBusy = false, bookingError = userMessage(error))
+                _state.value = _state.value.copy(bookingBusy = false, bookingError = userMessage(error), bookingVerificationRequired = requiresEmailVerification(error))
             }
+        }
+    }
+
+    /**
+     * Il reinvio della conferma dall'invito dei biglietti: lo stesso
+     * `auth/verification/resend` dei commenti e della community. L'errore
+     * resta dov'è, così l'invito non sparisce prima che la persona confermi.
+     */
+    fun resendEmailVerification() {
+        if (_state.value.bookingBusy) return
+        val token = _state.value.session?.token ?: return
+        _state.value = _state.value.copy(bookingBusy = true)
+        viewModelScope.launch {
+            val feedback = try {
+                repository.resendConfirmation()
+                text(R.string.email_verification_sent)
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                userMessage(error)
+            }
+            _state.value = if (repository.session.value?.token == token) _state.value.copy(bookingBusy = false, message = feedback) else _state.value.copy(bookingBusy = false)
+        }
+    }
+
+    /**
+     * «Ho confermato»: si toglie l'invito e si rilegge il profilo. Il server
+     * resta l'unico giudice: se l'indirizzo non è ancora confermato, il
+     * prossimo tentativo riporta lo stesso 403 e l'invito ricompare.
+     */
+    fun emailConfirmed() {
+        _state.value = _state.value.copy(bookingError = null, bookingVerificationRequired = false)
+        refreshProfile()
+    }
+
+    /**
+     * `incitta://auth/verify-email`: la pagina di conferma aperta nel browser
+     * senza sessione riporta qui il collegamento firmato. Senza un account
+     * collegato non si manda niente: confermare senza token verificherebbe
+     * l'indirizzo e basta, che il browser ha già fatto.
+     */
+    fun confirmEmailLink(url: String) {
+        val token = repository.session.value?.token
+        if (token == null) {
+            _state.value = _state.value.copy(message = text(R.string.email_link_login_first))
+            return
+        }
+        if (!isEmailConfirmationLink(url, BuildConfig.API_BASE_URL)) {
+            _state.value = _state.value.copy(message = text(R.string.email_link_invalid))
+            return
+        }
+        viewModelScope.launch {
+            val feedback = try {
+                repository.confirmEmailLink(url)
+                emailConfirmed()
+                text(R.string.email_link_confirmed)
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                userMessage(error)
+            }
+            if (repository.session.value?.token == token) _state.value = _state.value.copy(message = feedback)
         }
     }
 

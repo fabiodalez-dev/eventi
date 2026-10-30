@@ -17,6 +17,7 @@ use App\Services\Carpool\CarpoolAccess;
 use App\Services\Carpool\CarpoolAuditLog;
 use App\Services\Carpool\CommunityNotices;
 use App\Services\Community\CommunityAccess;
+use App\Support\PublicName;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -52,10 +53,16 @@ final class CatalogReviews
             ->where('status', CatalogReviewStatus::Approved)->whereIn('user_id', app(CommunityAccess::class)->eligibleUsers()->select('id'));
     }
 
-    /** @return array<string, mixed> */
-    public function resource(CatalogReview $review): array
+    /**
+     * L'autore compare col nome pubblico del profilo, se chi legge può
+     * vederlo, altrimenti col solo nome proprio: mai «nome cognome»
+     * dell'account, che un profilo community non è obbligato ad avere.
+     *
+     * @return array<string, mixed>
+     */
+    public function resource(CatalogReview $review, ?User $viewer = null): array
     {
-        return ['id' => $review->id, 'author' => $review->user->communityProfile->display_name ?? $review->user->name ?? __('community.member'),
+        return ['id' => $review->id, 'author' => PublicName::for($review->user, $viewer),
             'rating' => $review->rating, 'body' => $review->body, 'date' => $review->created_at?->format('Y-m-d'),
             'reply' => filled($review->owner_reply) ? ['author' => (string) $review->reviewable?->getAttribute('name'), 'body' => $review->owner_reply,
                 'date' => $review->owner_replied_at?->format('Y-m-d')] : null];
@@ -118,7 +125,7 @@ final class CatalogReviews
         return ['count' => $list->total(), 'rated_count' => (int) $stats?->getAttribute('total'),
             'average' => $stats?->getAttribute('average') === null ? null : round((float) $stats->getAttribute('average'), 1),
             'can_review' => $this->canWrite($user, $subject), 'verified' => $user?->canParticipateInCommunity() ?? false,
-            'reviews' => $list->map(fn (CatalogReview $review): array => $this->resource($review))->all(), 'page' => $list->currentPage(), 'last_page' => $list->lastPage(),
+            'reviews' => $list->map(fn (CatalogReview $review): array => $this->resource($review, $user))->all(), 'page' => $list->currentPage(), 'last_page' => $list->lastPage(),
             'my_review' => $own === null ? null : ['rating' => $own->rating, 'body' => $own->body, 'moderation_note' => $own->moderation_note, 'revision' => $own->revision, 'status' => $own->status->value]];
     }
 

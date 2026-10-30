@@ -20,6 +20,7 @@ use App\Models\RideOffer;
 use App\Models\RideRequest;
 use App\Models\RideReview;
 use App\Models\User;
+use App\Services\Community\CommunityModeration;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -47,11 +48,13 @@ final class CommunitySafety
         $id = app(CarpoolCommands::class)->run($user, $data['request_key'], 'report', $data, null, function (User $actor) use ($data): int {
             $offer = isset($data['offer_id']) ? RideOffer::findOrFail($data['offer_id']) : null;
             $ride = isset($data['request_id']) ? RideRequest::findOrFail($data['request_id']) : null;
+            // Chi partecipa alla richiesta può segnalarla anche dopo un blocco, che nasconde
+            // l'offerta (`canViewOffer`) ma non deve togliere il modo di segnalare corsa e chat.
             if ($ride) {
                 abort_unless($this->access->participant($actor, $ride), 404);
+                abort_if($offer && $offer->id !== $ride->ride_offer_id, 422);
                 $offer = $ride->offer;
-            }
-            if ($offer) {
+            } elseif ($offer) {
                 abort_unless($this->access->canViewOffer($actor, $offer), 404);
             }
             if (isset($data['message_id'])) {
@@ -187,6 +190,9 @@ final class CommunitySafety
         };
         DB::transaction(function () use ($admin, $user, $field, $scope, $suspend, $reason): void {
             $target = User::whereKey($user->id)->lockForUpdate()->firstOrFail();
+            // Come in CommunityModeration::apply: si sospende solo chi nello
+            // staff sta sotto, in ogni ambito. Togliere la sospensione resta libero.
+            abort_if($suspend && ! CommunityModeration::outranks($admin, $target), 403);
             $target->forceFill([$field => $suspend ? now() : null])->save();
             $this->audit->record($admin, $suspend ? 'user_restricted' : 'user_restored', $target, ['scope' => $scope, 'reason' => $reason]);
             app(CommunityNotices::class)->send($target, 'carpool', 'moderation', 'profile', $target->id, 'moderation:'.(string) Str::uuid());

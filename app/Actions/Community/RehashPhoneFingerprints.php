@@ -18,11 +18,12 @@ use Illuminate\Support\Facades\DB;
  * Ogni riga viene classificata prima di scrivere alcunché: *already* se
  * l'impronta è già quella della chiave nuova, *rehash* se è quella della
  * vecchia, *mismatch* se non è né l'una né l'altra (chiave vecchia sbagliata o
- * riga corrotta), *orphan* per gli account sospesi e cancellati, che per
- * scelta conservano l'impronta senza il numero e quindi non si possono
- * ricalcolare. Basta un solo *mismatch*, una collisione o un'orfana non
- * autorizzata e non si scrive niente: una rotazione a metà lascerebbe impronte
- * con due chiavi diverse, cioè numeri già usati di nuovo liberi.
+ * riga corrotta), *orphan* per gli account sospesi (in qualsiasi ambito) e
+ * cancellati, che per scelta conservano l'impronta senza il numero e quindi
+ * non si possono ricalcolare. Basta un solo *mismatch*, una collisione o
+ * un'orfana non autorizzata e non si scrive niente: una rotazione a metà
+ * lascerebbe impronte con due chiavi diverse, cioè numeri già usati di nuovo
+ * liberi.
  *
  * Il lavoro sta sotto lo stesso lock della richiesta di codice e in una sola
  * transazione con le righe bloccate: nessun invio né conferma può infilarsi
@@ -58,17 +59,17 @@ final class RehashPhoneFingerprints
         $mismatchedUsers = [];
 
         $rows = User::withTrashed()->whereNotNull('whatsapp_phone_hash')->orderBy('id')->lockForUpdate()
-            ->get(['id', 'whatsapp_phone', 'whatsapp_phone_hash', 'community_suspended_at', 'deleted_at']);
+            ->get(['id', 'whatsapp_phone', 'whatsapp_phone_hash', 'community_suspended_at', 'social_suspended_at', 'carpool_suspended_at', 'deleted_at']);
         foreach ($rows as $user) {
             $stored = (string) $user->whatsapp_phone_hash;
             $phone = $this->phone(fn (): mixed => $user->whatsapp_phone);
             if ($phone === null) {
                 // Senza numero l'impronta non si ricalcola. È un'orfana solo se l'account è
-                // sospeso e cancellato, l'unico caso in cui DeleteAccount la trattiene: un
-                // numero illeggibile, o mancante su un account attivo, è un'anomalia e non torna.
+                // sospeso (in qualsiasi ambito) e cancellato, l'unico caso in cui DeleteAccount la
+                // trattiene: un numero illeggibile, o mancante su un account attivo, è un'anomalia e non torna.
                 if ($user->getRawOriginal('whatsapp_phone') === null
                     && $user->trashed()
-                    && $user->community_suspended_at !== null) {
+                    && $user->holdsAnySuspension()) {
                     $users['orphan']++;
                     $orphans[] = (int) $user->id;
                     $orphanHashes[$stored] = true;

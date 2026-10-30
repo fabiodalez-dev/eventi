@@ -34,6 +34,7 @@ class RegisterRequest extends FormRequest
             'email' => ['required', 'email:filter', 'max:255', Rule::unique('users', 'email')],
             'password' => ['required', 'string', 'confirmed', Password::defaults()],
             'marketing_opt_in' => ['nullable', 'boolean'],
+            'remember' => ['nullable', 'boolean'],
             ...Honeypot::rules(),
             ...Turnstile::rules('registrazione-utente'),
         ];

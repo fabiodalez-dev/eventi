@@ -8,6 +8,7 @@ use App\Enums\EventCommentStatus;
 use App\Models\Event;
 use App\Models\EventComment;
 use App\Models\User;
+use App\Services\Community\CommunityAccess;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -23,13 +24,16 @@ use Illuminate\Support\Facades\DB;
  */
 final class PostComment
 {
-    public function __construct(private readonly NotifyCommentActivity $avvisi, private readonly CheckCommentContent $content) {}
+    public function __construct(private readonly NotifyCommentActivity $avvisi, private readonly CheckCommentContent $content, private readonly CommunityAccess $access) {}
 
     public function handle(Event $event, User $user, string $body, ?EventComment $inRispostaA = null): EventComment
     {
         return DB::transaction(function () use ($event, $user, $body, $inRispostaA): EventComment {
             // Serialize account writes so concurrent requests cannot bypass duplicate detection.
-            User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
+            $account = User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
+            /* Ripetuto sulla riga bloccata: copre la sospensione arrivata
+               fra il controllo della policy e la scrittura. */
+            abort_unless($account->community_suspended_at === null && $account->social_suspended_at === null, 403);
             $this->content->handle($body, $user);
             $capostipite = null;
 
@@ -38,6 +42,16 @@ final class PostComment
                 $inRispostaA = EventComment::query()->lockForUpdate()->findOrFail($inRispostaA->id);
                 abort_unless($inRispostaA->event_id === $event->id && $inRispostaA->isPubliclyVisible(), 404);
                 $capostipite = $inRispostaA->parent_id ?? $inRispostaA->id;
+
+                /*
+                 * Un blocco fra due persone, in una qualunque delle due
+                 * direzioni, vale anche qui: niente risposte a chi ti ha
+                 * bloccato (o hai bloccato), né sotto la sua conversazione.
+                 * Ogni risposta gli manderebbe un avviso.
+                 */
+                foreach ([$inRispostaA->user, $inRispostaA->parent?->user] as $altro) {
+                    abort_if($altro instanceof User && $this->access->blocked($user, $altro), 403);
+                }
             }
 
             $commento = new EventComment;

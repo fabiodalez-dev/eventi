@@ -8,6 +8,7 @@ use App\DTOs\PageMeta;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Web\Account\AuthEntryRequest;
 use App\Http\Requests\Web\Account\LoginRequest;
+use App\Support\AccountLoginThrottle;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -44,6 +45,11 @@ final class LoginController extends Controller
             'password' => (string) $request->validated('password'),
         ];
 
+        /* Il tetto per account si conta prima della verifica e si restituisce
+           a password giusta (`AccountLoginThrottle`). */
+        $tetto = AccountLoginThrottle::chiave('sito', $credentials['email']);
+        AccountLoginThrottle::prenotaOppure429($tetto);
+
         if (! Auth::attempt($credentials, $request->boolean('remember'))) {
             /*
              * Un solo messaggio per «email inesistente» e «password
@@ -53,6 +59,7 @@ final class LoginController extends Controller
             throw ValidationException::withMessages(['email' => __('account.login.failed')]);
         }
 
+        AccountLoginThrottle::restituisci($tetto);
         $request->session()->regenerate();
 
         $user = $request->user();

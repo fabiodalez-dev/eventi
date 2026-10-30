@@ -28,6 +28,7 @@ use App\Support\Capacity;
 use App\Support\CurrentCity;
 use App\Support\DateFormatter;
 use App\Support\EventUrl;
+use App\Support\PublicName;
 use Carbon\CarbonImmutable;
 use Filament\Facades\Filament;
 use Illuminate\Support\Str;
@@ -118,7 +119,8 @@ final readonly class MessageFactory
             NotificationType::CommentModerated => 'moderated',
             default => 'new',
         };
-        $title = __('comments.notifications.'.$key, ['name' => $actor->name ?? '']);
+        // Il nome proprio, come sotto il commento: il cognome non esce dall'account.
+        $title = __('comments.notifications.'.$key, ['name' => $actor === null ? '' : PublicName::first($actor)]);
 
         return new NotificationMessage(
             type: $type, subject: $title, heading: $title,

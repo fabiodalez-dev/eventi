@@ -44,6 +44,16 @@ return [
     'verification_link_minutes' => 60,
 
     /*
+     * Il pacchetto dell'app Android ufficiale. La conferma dell'indirizzo
+     * aperta dal telefono senza sessione offre di riportare il collegamento
+     * firmato nell'app con un `intent://` che nomina **questo** pacchetto:
+     * Android lo consegna solo all'app con quel nome, non a chiunque abbia
+     * dichiarato lo stesso schema. Le build di sviluppo hanno il suffisso
+     * `.debug`.
+     */
+    'android_package' => env('ANDROID_APP_PACKAGE', 'it.fabiodalez.incitta'),
+
+    /*
      * Le lingue che un profilo può scegliere (§15.2).
      *
      * **Solo quelle tradotte davvero.** `lang/en` e `lang/de` esistono ma

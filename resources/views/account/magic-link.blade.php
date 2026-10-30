@@ -14,6 +14,13 @@
 
             <x-field name="email" type="email" :label="__('account.login.email')" :required="true" autocomplete="email" />
 
+            {{-- Vale se il collegamento si apre in questo browser; altrove lo si
+                 sceglie nella pagina di conferma. --}}
+            <label class="flex items-center gap-2.5 text-sm text-ink-muted">
+                <input type="checkbox" name="remember" value="1" class="size-4 rounded border-line" @checked(old('remember'))>
+                {{ __('account.login.remember') }}
+            </label>
+
             <button type="submit" class="bg-brand px-4 py-2.5 text-sm font-semibold text-on-brand transition hover:bg-brand-strong">
                 {{ __('account.magic.submit') }}
             </button>

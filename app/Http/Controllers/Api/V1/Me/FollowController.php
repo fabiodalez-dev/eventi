@@ -16,8 +16,8 @@ use App\Http\Requests\Api\V1\Me\MeQueryRequest;
 use App\Http\Requests\Api\V1\Me\StoreFollowRequest;
 use App\Http\Resources\V1\FollowResource;
 use App\Models\Follow;
-use App\Models\Organizer;
 use App\Support\Api\ApiResponse;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -37,8 +37,10 @@ final class FollowController extends Controller
         $user = $this->user($request);
         $timezone = (string) $user->timezone;
 
+        // Un soggetto tornato non pubblico dopo il follow resta in elenco (per
+        // poterlo togliere) ma senza nome né slug.
         $paginator = $user->follows()
-            ->with('followable')
+            ->with(['followable' => static fn (MorphTo $subject) => $subject->constrain(FollowableType::publicConstraints())])
             ->orderByDesc('id')
             ->cursorPaginate($request->limit(), cursor: $request->cursor())
             ->withQueryString();
@@ -56,13 +58,13 @@ final class FollowController extends Controller
         $id = (int) $request->validated('id');
 
         /*
-         * Il soggetto deve esistere: `follows` non ha una chiave esterna
-         * (la colonna è polimorfa) e senza questo controllo si potrebbe
-         * seguire un locale mai esistito, che poi comparirebbe nel feed come
-         * una riga vuota.
+         * Il soggetto deve esistere ed essere pubblico: `follows` non ha una
+         * chiave esterna (la colonna è polimorfa) e senza questo controllo si
+         * potrebbe seguire un locale mai esistito, oppure seguire per id una
+         * bozza o una proposta in moderazione e leggerne titolo e slug nella
+         * risposta.
          */
-        if (! $type->modelClass()::query()->whereKey($id)->exists()
-            || ($type === FollowableType::Organizer && ! Organizer::query()->whereKey($id)->where('is_active', true)->exists())) {
+        if (! $type->publicQuery()->whereKey($id)->exists()) {
             throw new ApiException(ApiErrorCode::NotFound);
         }
 

@@ -56,6 +56,12 @@ final class Community
             $profile->fill(collect($data)->only(['handle', 'display_name', 'bio', 'city_id', 'visibility'])->all());
             $profile->indexable = $profile->visibility === ProfileVisibility::Public && ($data['indexable'] ?? false);
             if ($profile->exists && $profile->isDirty('handle')) {
+                /* Si tiene prenotato solo il nome appena lasciato, per il rinvio dai link
+                   vecchi: gli alias più vecchi tornano liberi. Senza questo tetto ogni cambio
+                   riservava un nome per sempre, e un ciclo di cambi accaparrava migliaia di
+                   nomi (di locali, di persone attese) che poi rinviavano a questo profilo. */
+                DB::table('community_handle_aliases')->where('community_profile_id', $profile->id)
+                    ->whereNotIn('handle', [$profile->getOriginal('handle'), $profile->handle])->delete();
                 DB::table('community_handle_aliases')->insertOrIgnore(['handle' => $profile->getOriginal('handle'), 'community_profile_id' => $profile->id]);
             }
             $profile->save();
@@ -158,7 +164,8 @@ final class Community
 
     /**
      * Seguaci e blocchi di un utente, con un numero di query che non cresce con la pagina:
-     * visibilità dei profili e nomi dei bloccati si leggono una volta sola.
+     * visibilità dei profili e nomi dei bloccati si leggono una volta sola. I nomi, di
+     * seguaci e bloccati, escono solo per i profili che chi guarda può vedere.
      *
      * @return array{page: LengthAwarePaginator<int, Followable>, followers: list<array{user_id: int, display_name: string, handle: string|null}>, blocks: list<array{user_id: int, display_name: string}>}
      */
@@ -183,8 +190,11 @@ final class Community
                 'avatar_url' => $vedibile ? ($profile->avatarUrl() ?: null) : null];
         })->values()->all();
         $blockedIds = UserBlock::query()->where('user_id', $user->id)->orderBy('id')->pluck('blocked_user_id')->map(fn ($id) => (int) $id);
-        // Come prima con User::find(): un account cancellato resta anonimo.
-        $names = CommunityProfile::query()->whereIn('user_id', User::query()->whereIn('id', $blockedIds->all())->select('id'))->pluck('display_name', 'user_id');
+        /* Il nome dei bloccati segue la stessa regola dei seguaci: esce solo se il profilo
+           è visibile a chi guarda (blocco a parte, altrimenti non si vedrebbe mai). Bloccare
+           chiunque resta possibile, ma non diventa un modo per leggere i nomi dei profili
+           privati, riservati o sospesi. Un account cancellato resta anonimo. */
+        $names = $this->access->profiles($user, ignoreBlocks: true)->whereIn('user_id', $blockedIds->all())->withoutEagerLoads()->pluck('display_name', 'user_id');
         $blocks = $blockedIds->map(fn (int $id): array => ['user_id' => $id, 'display_name' => (string) ($names[$id] ?? __('community.member'))])->values()->all();
 
         return ['page' => $page, 'followers' => $followers, 'blocks' => $blocks];

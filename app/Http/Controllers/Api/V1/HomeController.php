@@ -58,8 +58,14 @@ final class HomeController extends Controller
 
         $sections = [];
 
+        /*
+         * Una data per evento e il limite in SQL: con `get()` ogni sezione
+         * caricava tutte le date future della città — il «vicino a te» è in
+         * pratica l'intero catalogo — per tenerne otto, a ogni richiesta
+         * anonima.
+         */
         foreach ($queries as $name => $query) {
-            $items = $query->get()->unique('event_id')->take($size)->values();
+            $items = $query->onePerEvent()->take($size)->values();
             $this->feed->hydrate($items, $request->includes());
             $context = ApiContext::forOccurrences($city, $request->includes(), $user, $this->feed->ids($items));
             $sections[$name] = $items
@@ -100,7 +106,7 @@ final class HomeController extends Controller
         $occurrence = EventOccurrenceQuery::for($city)
             ->forEvent((int) $sponsorship->event_id)
             ->upcoming()
-            ->get()
+            ->take(1)
             ->first();
         $items = $occurrence instanceof EventOccurrence ? new Collection([$occurrence]) : new Collection;
         $this->feed->hydrate($items, []);

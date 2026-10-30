@@ -28,6 +28,7 @@ use App\Services\Carpool\CommunityNotices;
 use App\Services\Carpool\CommunitySafety;
 use App\Services\Carpool\RideChat;
 use App\Services\Carpool\RideDiscovery;
+use App\Support\PublicName;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -71,7 +72,7 @@ final class CarpoolController extends Controller
             'event_date' => $occurrence->starts_at->setTimezone($occurrence->event->city->timezone)->format('d/m/Y H:i'),
             'offers' => $offers?->getCollection()->map(fn ($o) => RideResource::offer($o, $request->user()))->all() ?? [],
             'my_offers' => $eligible ? RideOffer::where('driver_id', $request->user()->id)->where('occurrence_id', $occurrence->id)->where('status', 'open')->where('departure_at', '>', now())->get()->map(fn ($o) => RideResource::offer($o, $request->user()))->all() : [],
-            'wanted' => ($wanted?->getCollection() ?? collect())->map(fn ($s) => ['id' => $s->id, 'name' => $s->user->communityProfile->display_name ?? $s->user->name,
+            'wanted' => ($wanted?->getCollection() ?? collect())->map(fn ($s) => ['id' => $s->id, 'name' => PublicName::for($s->user, $request->user()),
                 'zone' => $s->zone, 'seats' => $s->seats, 'leg_label' => $s->leg->label(), 'latest_at' => $s->latest_at->toIso8601String()])->all(),
             'wanted_has_more' => $wanted?->hasMorePages() ?? false, 'wanted_page' => $wanted?->currentPage() ?? 1,
             'has_more' => $offers?->hasMorePages() ?? false, 'page' => $offers?->currentPage() ?? 1]);

@@ -80,8 +80,11 @@ return [
      * suo. I contenuti utente nei pannelli vanno comunque escapati e testati
      * contro XSS. Vedi `App\Support\Csp`.
      *
-     * `excluded_paths` usa la sintassi di `Request::is()`: `admin*` copre sia
-     * `/admin` sia tutto ciò che ci sta sotto.
+     * `excluded_paths` usa la sintassi di `Request::is()`, dove `*` prende
+     * qualunque carattere, `/` compreso: `gestione*` coprirebbe anche le
+     * pagine pubbliche `/gestione-biglietti/…` e `organizza*` le schede
+     * `/organizzatori/…`. Per questo ogni pannello si scrive in due voci
+     * esatte, la radice e `radice/*`.
      */
     // MapLibre creates blob workers; notifications use the same-origin service worker.
     'worker_src' => "worker-src 'self' blob:",
@@ -89,10 +92,10 @@ return [
     'script_src' => [
         'enabled' => env('SECURITY_SCRIPT_SRC', true),
         'excluded_paths' => [
-            'admin*',
-            'gestione*',
-            'organizza*',
-            'installazione*',
+            'admin', 'admin/*',
+            'gestione', 'gestione/*',
+            'organizza', 'organizza/*',
+            'installazione', 'installazione/*',
             'docs/api*',
             'livewire/*',
             'api/*',

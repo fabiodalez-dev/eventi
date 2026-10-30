@@ -1,4 +1,7 @@
 <x-layouts.app :narrow="true" :meta="$meta">
+    {{-- Sotto impersonificazione si vedono prenotazioni e stato, non QR, PDF e
+         link di condivisione: il codice vale come il biglietto al portatore. --}}
+    @php($impersonating = session()->has(\App\Http\Controllers\Web\ImpersonationController::SESSION_KEY))
     <div class="mx-auto flex max-w-3xl flex-col gap-8">
         <h1 class="text-hero">{{ __('ticketing.title') }}</h1>
         @include('ticketing.errors')
@@ -34,7 +37,9 @@
                     <div class="mt-5 border border-line p-4">
                         <h3 class="font-bold">{{ $ticket->attendee_name }}</h3>
                         <p class="text-sm text-ink-muted">#{{ $ticket->id }} · {{ __('ticketing.statuses.'.$ticket->displayStatus()->value) }}</p>
-                        @if ($ticket->displayStatus() === \App\Enums\AdmissionStatus::Valid)
+                        @if ($ticket->displayStatus() === \App\Enums\AdmissionStatus::Valid && $impersonating)
+                            <p class="mt-4 text-sm text-ink-muted">{{ __('ticketing.qr_impersonating') }}</p>
+                        @elseif ($ticket->displayStatus() === \App\Enums\AdmissionStatus::Valid)
                             <details class="mt-4"><summary class="cursor-pointer py-3 font-bold text-brand">{{ __('ticketing.show_qr') }}</summary>
                                 <div class="my-3 w-fit bg-white p-4" role="img" aria-label="{{ __('ticketing.ticket') }} #{{ $ticket->id }}">{!! \SimpleSoftwareIO\QrCode\Facades\QrCode::size(224)->margin(2)->generate($ticket->code) !!}</div>
                                 <p class="text-xs text-ink-muted">{{ __('ticketing.qr_hint') }}</p>

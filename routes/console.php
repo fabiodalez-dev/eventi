@@ -7,6 +7,7 @@ declare(strict_types=1);
 use App\Jobs\SyncGoogleCalendar;
 use App\Models\GoogleCalendarConnection;
 use App\Models\MobileAuthChallenge;
+use App\Models\SearchMiss;
 use App\Models\SponsorshipGrant;
 use App\Models\User;
 use App\Models\WhatsappChallenge;
@@ -93,8 +94,13 @@ Artisan::command('ticketing:demo {--force : Explicitly permit demonstration acco
 
         return 1;
     }
-    app(TicketingDemoSeeder::class)->run((bool) $this->option('force'));
+    $seeder = app(TicketingDemoSeeder::class);
+    $seeder->run((bool) $this->option('force'));
     $this->info('Ticketing demo ready. No existing accounts or real events were reset.');
+    // Le password nuove si vedono solo qui, una volta; gli account esistenti tengono la loro.
+    foreach ($seeder->credentials as $email => $password) {
+        $this->warn($email.' · '.$password);
+    }
 
     return 0;
 })->purpose('Create clearly labelled demonstration tickets without running the general seeder');
@@ -320,6 +326,10 @@ Schedule::command('model:prune', [
 Schedule::command('queue:prune-failed', ['--hours' => 24 * 30])->daily()->doNotMonitor();
 
 Schedule::command('model:prune', ['--model' => WhatsappChallenge::class])
+    ->daily()->doNotMonitor();
+
+// Le ricerche senza risultati cercate una volta o due e poi dimenticate: la soglia sta in `SearchMiss::prunable()`.
+Schedule::command('model:prune', ['--model' => SearchMiss::class])
     ->daily()->doNotMonitor();
 
 // Le impronte trattenute per i sospesi cancellati scadono dopo il periodo dell'informativa (issue #104).

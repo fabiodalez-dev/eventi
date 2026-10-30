@@ -68,7 +68,7 @@ internal fun CpChat(api:CarpoolApi,id:Long,onRequest:(Long)->Unit,onChanged:()->
     Column(Modifier.fillMaxSize().padding(horizontal=16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
         data?.let {row ->
             Text(row.obj("offer").text("event_title"),style=MaterialTheme.typography.titleMedium)
-            Text(row.obj("offer").text("zone")+" · "+row.obj("offer").text("departure_label"),style=MaterialTheme.typography.bodySmall)
+            cpLine(row.obj("offer").text("zone"),row.obj("offer").text("departure_label")).takeIf{it.isNotBlank()}?.let{Text(it,style=MaterialTheme.typography.bodySmall)}
             CpButton("open_details"){onRequest(row.obj("ride").number("id"))}
             var preferences by remember{mutableStateOf(false)}
             TextButton(onClick={preferences=!preferences}){Text(cpText("chat_settings"))}

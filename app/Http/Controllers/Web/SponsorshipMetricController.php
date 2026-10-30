@@ -8,6 +8,7 @@ use App\Enums\SponsorshipStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Sponsorship;
 use App\Services\Sponsorship\RecordSponsorshipMetric;
+use App\Support\IpBucket;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -68,9 +69,10 @@ final class SponsorshipMetricController extends Controller
          * Un tetto per chi chiama, non per campagna: senza, una sola persona
          * con un ciclo `for` gonfia le cifre di una campagna a piacere, e
          * quelle cifre finiscono in fattura. Trenta all'ora per indirizzo sono
-         * larghi per una persona che naviga e stretti per uno script.
+         * larghi per una persona che naviga e stretti per uno script. Con IPv6
+         * l'indirizzo è il /64: dentro il prefisso lo si cambia a costo zero.
          */
-        $chiave = 'sponsorship-metric:'.$request->ip().':'.$campagna->getKey().':'.$metric;
+        $chiave = 'sponsorship-metric:'.IpBucket::key($request->ip()).':'.$campagna->getKey().':'.$metric;
 
         if (RateLimiter::tooManyAttempts($chiave, maxAttempts: 30)) {
             /* 204 e non 429: al browser non interessa, e un errore in console

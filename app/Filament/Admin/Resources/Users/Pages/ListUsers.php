@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace App\Filament\Admin\Resources\Users\Pages;
 
+use App\Enums\Permission;
 use App\Enums\UserRole;
 use App\Enums\VenueRole;
 use App\Filament\Admin\Resources\Users\UserResource;
 use App\Filament\Admin\Resources\Venues\VenueResource;
+use App\Models\User;
+use App\Support\SecurityLog;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
@@ -55,9 +58,19 @@ class ListUsers extends ListRecords
              * lo riceve non ha modo di sapere che non è quello che aveva
              * chiesto.
              */
+            /*
+             * L'elenco intero con le email è un'esportazione di dati
+             * personali: la fa chi amministra le persone (`users.manage`),
+             * mai il moderatore, e resta nel registro di sicurezza.
+             */
             ExportAction::make()
                 ->label(__('admin.actions.export'))
-                ->color('gray'),
+                ->color('gray')
+                ->authorize(fn (): bool => auth()->user()?->can(Permission::ManageUsers->value) === true)
+                ->before(function (): void {
+                    $staff = auth()->user();
+                    SecurityLog::scrivi('utenti_esportati', causa: $staff instanceof User ? $staff : null);
+                }),
 
             CreateAction::make(),
         ];

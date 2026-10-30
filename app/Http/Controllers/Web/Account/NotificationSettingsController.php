@@ -30,7 +30,10 @@ use Illuminate\Support\Facades\Auth;
  *
  * Cosa **non** si può fare da qui: cambiare nome, lingua, fuso o email. Quelle
  * sono modifiche di identità e vogliono una sessione. Qui si può solo smettere
- * di ricevere, che è il diritto che la pagina esiste per esercitare.
+ * di ricevere, che è il diritto che la pagina esiste per esercitare: accendere
+ * una tipologia, togliere le ore di silenzio o dare il consenso al marketing
+ * vuole una sessione sullo stesso account (la pagina `/notifiche` del sito è
+ * la stessa, firmata al volo per chi ha fatto l'accesso).
  */
 final class NotificationSettingsController extends Controller
 {
@@ -49,7 +52,11 @@ final class NotificationSettingsController extends Controller
 
         return view('account.notifications.preferences', [
             'user' => $user,
-            'action' => PreferenceLinks::preferences($user),
+            'own' => $own,
+            /* Senza sessione il modulo rimanda allo stesso indirizzo firmato,
+               non a uno nuovo: aprire la pagina non deve allungare di altri
+               trenta giorni la vita di un collegamento inoltrato. */
+            'action' => $own ? PreferenceLinks::preferences($user) : $request->fullUrl(),
             'pushAvailable' => $own && $channels->webConfigured(),
             'pushKey' => (string) config('webpush.vapid.public_key'),
             'pushActive' => $own && WebPushSubscription::query()
@@ -62,6 +69,8 @@ final class NotificationSettingsController extends Controller
 
     public function update(UpdateNotificationSettingsRequest $request, User $user): RedirectResponse
     {
+        /* Con la sola firma si può solo ridurre: vedi `ownsAccount()`. */
+        $own = $request->ownsAccount();
         $user->notification_preferences = $request->preferences()->toArray();
         $user->daily_digest_time = $request->string('daily_digest_time')->value() === ''
             ? null
@@ -75,17 +84,23 @@ final class NotificationSettingsController extends Controller
          *
          * Con la newsletter spenta la casella non è nel modulo, e la sua
          * assenza non è una revoca: il consenso già dato resta com'è.
+         *
+         * Il consenso lo dà solo l'interessato, cioè chi ha una sessione su
+         * questo account: dal solo collegamento firmato, che può essere
+         * inoltrato, si può soltanto revocarlo.
          */
         if (Features::newsletterActive()) {
             $user->marketing_opt_in_at = $request->boolean('marketing_opt_in')
-                ? ($user->marketing_opt_in_at ?? Carbon::now())
+                ? ($own ? ($user->marketing_opt_in_at ?? Carbon::now()) : $user->marketing_opt_in_at)
                 : null;
         }
 
         $user->save();
 
+        /* Con la sola firma si torna allo stesso indirizzo, con la sua
+           scadenza: un collegamento inoltrato non deve rinnovarsi da solo. */
         return redirect()
-            ->to(PreferenceLinks::preferences($user))
+            ->to($own ? PreferenceLinks::preferences($user) : $request->fullUrl())
             ->with('status', __('notifications.preferences.saved'));
     }
 

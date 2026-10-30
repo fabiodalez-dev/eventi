@@ -102,10 +102,10 @@ it('does not resurrect a consumed web link after flushing cache', function (): v
     testCity();
     $user = User::factory()->create();
     $url = MagicLoginLink::url($user);
-    $this->get($url)->assertRedirect(route('account.feed'));
+    $this->post($url)->assertRedirect(route('account.feed'));
     auth()->logout();
     Cache::flush();
-    $this->get($url)->assertRedirect(route('account.magic-link'));
+    $this->post($url)->assertRedirect(route('account.magic-link'));
     $this->assertGuest();
 });
 

@@ -50,6 +50,15 @@
         <service android:name=".notifications.InCittaMessagingService" android:exported="false">
             <intent-filter><action android:name="com.google.firebase.MESSAGING_EVENT" /></intent-filter>
         </service>
+        <!-- Lo scanner del check-in con FLAG_SECURE: stessi attributi della CaptureActivity della libreria. -->
+        <activity
+            android:name=".ui.SecureCaptureActivity"
+            android:clearTaskOnLaunch="true"
+            android:exported="false"
+            android:screenOrientation="sensorLandscape"
+            android:stateNotNeeded="true"
+            android:theme="@style/zxing_CaptureTheme"
+            android:windowSoftInputMode="stateAlwaysHidden" />
         <activity android:name=".community.WhatsappCodeActivity" android:exported="true" android:excludeFromRecents="true" android:noHistory="true" android:theme="@android:style/Theme.NoDisplay" android:launchMode="standard">
             <intent-filter><action android:name="com.whatsapp.otp.OTP_RETRIEVED" /></intent-filter>
         </activity>
@@ -83,11 +92,17 @@
                 <data android:scheme="https" android:host="eventi.fabiodalez.it" android:path="/biglietti" />
                 <data android:scheme="https" android:host="eventi.fabiodalez.it" android:path="/app/auth/magic" />
             </intent-filter>
+            <!--
+                /verify-email arriva dalla pagina di conferma aperta nel browser
+                senza sessione: un intent:// che nomina questo pacchetto e porta
+                il collegamento firmato, che l'app rimanda al server col token.
+            -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="incitta" android:host="auth" android:pathPrefix="/magic" />
+                <data android:scheme="incitta" android:host="auth" android:path="/verify-email" />
             </intent-filter>
         </activity>
     </application>

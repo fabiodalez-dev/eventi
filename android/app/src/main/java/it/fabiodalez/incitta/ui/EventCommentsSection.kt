@@ -24,6 +24,7 @@ fun EventCommentsSection(
     react: suspend (Long, String) -> Unit,
     delete: suspend (Long) -> Unit,
     resend: suspend () -> Unit,
+    emailVerified: Boolean = false,
 ) = key(slug, userId) {
     var data by remember { mutableStateOf<EventCommentPage?>(null) }
     var body by rememberSaveable { mutableStateOf("") }
@@ -79,6 +80,12 @@ fun EventCommentsSection(
             }
             when {
                 userId == null -> Button(onClick = onLogin, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.comments_login)) }
+                /*
+                 * `can_comment` è falso anche per un account sospeso dalla
+                 * community: con l'email già confermata l'invito a confermarla
+                 * sarebbe sbagliato, e il reinvio non cambierebbe nulla.
+                 */
+                !page.canComment && emailVerified -> Text(stringResource(R.string.comments_unavailable_account))
                 !page.canComment -> {
                     Text(stringResource(R.string.comments_verify))
                     TextButton(enabled = !busy, onClick = { run { resend(); message = verificationSent } }) { Text(stringResource(R.string.comments_resend)) }

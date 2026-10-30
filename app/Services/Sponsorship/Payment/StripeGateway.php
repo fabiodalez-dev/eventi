@@ -7,6 +7,7 @@ namespace App\Services\Sponsorship\Payment;
 use App\Models\SponsorshipOrder;
 use Stripe\Checkout\Session;
 use Stripe\Exception\ApiErrorException;
+use Stripe\Exception\InvalidRequestException;
 use Stripe\StripeClient;
 use Throwable;
 
@@ -68,6 +69,24 @@ final class StripeGateway implements PaymentGateway
     {
         try {
             return $this->fromSession($this->client()->checkout->sessions->retrieve($sessionId));
+        } catch (InvalidRequestException $e) {
+            throw $this->missingOr($e);
+        } catch (ApiErrorException $e) {
+            throw new PaymentGatewayException($e->getMessage(), previous: $e);
+        }
+    }
+
+    public function expire(string $sessionId): void
+    {
+        try {
+            /* Stripe rifiuta di far scadere una sessione che non e' piu'
+               aperta: quella gia' scaduta va bene cosi', quella completata
+               l'ha gia' riletta chi chiama. */
+            if ($this->client()->checkout->sessions->retrieve($sessionId)->status === Session::STATUS_OPEN) {
+                $this->client()->checkout->sessions->expire($sessionId);
+            }
+        } catch (InvalidRequestException $e) {
+            throw $this->missingOr($e);
         } catch (ApiErrorException $e) {
             throw new PaymentGatewayException($e->getMessage(), previous: $e);
         }
@@ -80,6 +99,18 @@ final class StripeGateway implements PaymentGateway
         } catch (ApiErrorException $e) {
             throw new PaymentGatewayException($e->getMessage(), previous: $e);
         }
+    }
+
+    /**
+     * «No such checkout.session» non passa da solo: la sessione e' di un
+     * altro account (o delle chiavi di test), e chi chiama deve poterla
+     * distinguere da un errore di rete. Gli altri rifiuti restano generici.
+     */
+    private function missingOr(InvalidRequestException $e): PaymentGatewayException
+    {
+        return $e->getStripeCode() === 'resource_missing'
+            ? new PaymentSessionMissing($e->getMessage(), previous: $e)
+            : new PaymentGatewayException($e->getMessage(), previous: $e);
     }
 
     private function fromSession(Session $session): CheckoutSession

@@ -185,6 +185,15 @@ final class CarpoolService
         $this->requireFree($user, $offer->occurrence_id, $offer->leg);
         abort_unless((int) $data['seats'] <= $this->available($offer), 409, __('carpool.errors.capacity'));
         abort_if(RideRequest::where('active_key', $user->id.':'.$offer->id)->exists(), 409, __('carpool.errors.duplicate'));
+        // `active_key` si libera a ogni chiusura: senza memoria delle richieste chiuse, chiedere e
+        // ritirare a ripetizione (o richiedere subito dopo un rifiuto) inonderebbe il conducente di
+        // avvisi. Il rifiuto vale per tutta l'offerta; i ritiri del passeggero hanno un tetto, e lo
+        // consumano anche le chiusure per blocco o requisiti del passeggero: bloccare e sbloccare il
+        // conducente è lo stesso ciclo. Restano fuori le chiusure decise dall'offerta o dall'orario.
+        $closed = RideRequest::where('ride_offer_id', $offer->id)->where('user_id', $user->id)
+            ->whereIn('close_reason', ['driver_declined', 'passenger_withdrew', 'requirements_or_block_changed'])->pluck('close_reason');
+        abort_if($closed->contains('driver_declined'), 409, __('carpool.errors.declined'));
+        abort_if($closed->reject(fn ($reason) => $reason === 'driver_declined')->count() >= config()->integer('carpool.max_withdrawals_per_offer'), 409, __('carpool.errors.withdrawals'));
         $pending = RideRequest::where('user_id', $user->id)->where('status', RideRequestStatus::Pending)
             ->whereHas('offer', fn ($q) => $q->where('occurrence_id', $offer->occurrence_id)->where('leg', $offer->leg))->count();
         abort_if($pending >= config()->integer('carpool.max_pending'), 422, __('carpool.errors.limit'));

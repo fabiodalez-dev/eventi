@@ -36,6 +36,17 @@ final class PublicContactController extends Controller
     {
         $target = $this->target($type, $slug);
         $user = $request->user() ?? $request->user('sanctum');
+
+        /* Il messaggio parte con nome ed email dell'account come mittente e
+           Reply-To, e senza captcha: vale solo per un indirizzo confermato.
+           Stessa risposta di `RequireConfirmedAccount`, che qui non sta sulla
+           rotta perche' la rotta resta aperta agli ospiti. */
+        if ($user instanceof User && ! $user->hasVerifiedEmail()) {
+            return $request->is('api/*') || $request->expectsJson()
+                ? response()->json(['error' => ['code' => 'EMAIL_VERIFICATION_REQUIRED', 'message' => __('community.email_required'), 'fields' => (object) []]], 403)
+                : redirect()->route('verification.notice');
+        }
+
         $contact->send($target, $user instanceof User ? $user : null, $request->validated());
 
         return $request->is('api/*') ? ApiResponse::item(['message' => __('contact.sent')])

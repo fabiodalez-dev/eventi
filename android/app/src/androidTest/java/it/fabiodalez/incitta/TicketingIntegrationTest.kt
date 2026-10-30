@@ -2,6 +2,7 @@ package it.fabiodalez.incitta
 
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
 import com.google.zxing.BinaryBitmap
 import com.google.zxing.MultiFormatReader
 import com.google.zxing.RGBLuminanceSource
@@ -31,8 +32,18 @@ class TicketingIntegrationTest {
     @Test
     fun localApiBookingRetryCancellationAndAccountIsolation() = runBlocking {
         assumeTrue(BuildConfig.API_BASE_URL.startsWith("http://10.0.2.2:"))
+        /*
+         * Le password dei due account demo arrivano dagli argomenti di
+         * strumentazione, mai dal sorgente: il seeder le genera a caso.
+         * -Pandroid.testInstrumentationRunnerArguments.ticketingDemoPassword=…
+         * (e ticketingWaitlistPassword se il secondo account ne ha una diversa).
+         */
+        val args = InstrumentationRegistry.getArguments()
+        val password = args.getString("ticketingDemoPassword")
+        assumeTrue("Serve l'argomento ticketingDemoPassword", !password.isNullOrBlank())
+        val waitlistPassword = args.getString("ticketingWaitlistPassword")?.takeIf { it.isNotBlank() } ?: requireNotNull(password)
         val repo = AppRepository(ApplicationProvider.getApplicationContext())
-        repo.login("biglietti@example.test", "DemoTicket-2026!")
+        repo.login("biglietti@example.test", requireNotNull(password))
         try {
             val existing = repo.bookings().first { it.title == "Padova raccontata: storie tra piazze e portici" }
             assertTrue(repo.bookingAvailability(existing.occurrenceId).open)
@@ -48,7 +59,7 @@ class TicketingIntegrationTest {
                 assertNull(cancelled.tickets.first().qrPayload)
             }
             repo.logout()
-            repo.login("attesa-ticket@example.test", "DemoTicket-2026!")
+            repo.login("attesa-ticket@example.test", waitlistPassword)
             assertTrue(repo.bookings().none { it.id == existing.id })
         } finally {
             repo.logout()

@@ -39,11 +39,11 @@ function rehashChallenge(User $user, string $phone, string $key): WhatsappChalle
     ]);
 }
 
-/** Un sospeso che ha cancellato l'account: resta l'impronta, il numero no. */
-function rehashOrphan(string $phone, string $key): User
+/** Un sospeso (in tutto o in un solo ambito) che ha cancellato l'account: resta l'impronta, il numero no. */
+function rehashOrphan(string $phone, string $key, string $suspension = 'community_suspended_at'): User
 {
     $user = rehashUser($phone, $key);
-    $user->forceFill(['community_suspended_at' => now()->subMonth()])->save();
+    $user->forceFill([$suspension => now()->subMonth()])->save();
     DB::table('users')->where('id', $user->id)->update(['whatsapp_phone' => null, 'deleted_at' => now()]);
 
     return $user;
@@ -159,6 +159,27 @@ it('refuses orphans unless asked to release them, keeping the suspension date', 
         ->and($row->community_suspended_at)->not->toBeNull()
         ->and(DB::table('users')->where('id', $user->id)->value('whatsapp_phone_hash'))->toBe(PhoneFingerprint::of('+393331111111', 'new'));
 });
+
+it('treats a deleted account suspended in a single scope as an orphan, not a mismatch', function (string $field): void {
+    // DeleteAccount trattiene l'impronta anche per le sospensioni per ambito: non devono bloccare la rotazione.
+    $orphan = rehashOrphan('+393339999999', 'old', $field);
+    $user = rehashUser('+393331111111', 'old');
+    $before = storedFingerprints();
+
+    $this->artisan('community:rehash-phones')
+        ->expectsOutputToContain('1 impronte orfane')
+        ->expectsOutputToContain('Nulla è stato scritto')
+        ->assertExitCode(1);
+    expect(storedFingerprints())->toBe($before);
+
+    $this->artisan('community:rehash-phones --release-orphans')
+        ->expectsOutputToContain('Impronte orfane eliminate: 1')
+        ->assertExitCode(0);
+    $row = DB::table('users')->where('id', $orphan->id)->first();
+    expect($row->whatsapp_phone_hash)->toBeNull()
+        ->and($row->{$field})->not->toBeNull()
+        ->and(DB::table('users')->where('id', $user->id)->value('whatsapp_phone_hash'))->toBe(PhoneFingerprint::of('+393331111111', 'new'));
+})->with(['social_suspended_at', 'carpool_suspended_at']);
 
 it('treats a missing number on an account that is not suspended and deleted as a mismatch', function (): void {
     // Un account attivo con l'impronta ma senza numero non è un'orfana: --release-orphans non deve toccarlo.

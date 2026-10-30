@@ -29,6 +29,9 @@
         </header>
         @if (auth()->id() === $user->id)
             <a href="{{ route('account.notifications.interests') }}" class="ui-action border-2 border-accent p-4 font-display font-bold text-accent">{{ __('subscriptions.interests') }} →</a>
+        @else
+            {{-- Senza sessione si può solo ridurre: il server ignora ciò che accende, e la pagina lo dice. --}}
+            <p class="text-sm text-ink-muted">{{ __('notifications.preferences.signed_only') }} <a href="{{ route('login') }}" class="underline">{{ __('notifications.preferences.signed_only_login') }}</a></p>
         @endif
 
         @if ($errors->any())
@@ -139,10 +142,13 @@
                 </fieldset>
 
                 @newsletter
+                {{-- Il consenso si dà solo con una sessione; dal collegamento firmato si può solo revocare. --}}
+                @if ($own || $user->marketing_opt_in_at !== null)
                 <label class="flex items-center gap-2.5 text-sm text-ink">
                     <input type="checkbox" name="marketing_opt_in" value="1" class="size-4 rounded border-line" @checked($user->marketing_opt_in_at !== null)>
                     {{ __('account.profile.marketing') }}
                 </label>
+                @endif
                 @endnewsletter
             </section>
 

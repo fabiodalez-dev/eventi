@@ -10,6 +10,7 @@ use App\Enums\WhatsappChallengeStatus;
 use App\Enums\WhatsappDelivery;
 use App\Models\User;
 use App\Models\WhatsappChallenge;
+use App\Support\IpBucket;
 use App\Support\PhoneFingerprint;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Cache;
@@ -35,11 +36,14 @@ final class WhatsappVerification
         $phone = (new PhoneNumber($input))->formatE164();
         $fingerprint = $this->fingerprint($phone);
         $code = (string) random_int(100000, 999999);
-        $ipKey = 'wa-ip:'.hash('sha256', $ip);
+        // Sul /64 e non sull'indirizzo IPv6 intero: dentro il /64 lo si cambia a ogni richiesta.
+        $ipKey = 'wa-ip:'.hash('sha256', IpBucket::key($ip));
         $challenge = Cache::lock('community-whatsapp-requests', 15)->block(3, function () use ($user, $phone, $fingerprint, $code, $ipKey): WhatsappChallenge {
             return DB::transaction(function () use ($user, $phone, $fingerprint, $code, $ipKey): WhatsappChallenge {
                 $locked = User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
                 abort_unless($locked->hasVerifiedEmail() && $locked->community_suspended_at === null, 403);
+                // Nessun invio verso un numero che il sospeso non potrebbe comunque legare.
+                abort_if($this->wouldReleaseFingerprint($locked, $fingerprint), 403, __('community.suspended'));
                 // Due conti separati: quello dell'account e quello del numero. Con un conto solo
                 // (utente OPPURE numero) un estraneo poteva esaurire il budget del titolare
                 // chiedendo cinque codici sul suo numero; così le sue richieste non toccano i
@@ -124,6 +128,8 @@ final class WhatsappVerification
                     || $challenge->status !== WhatsappChallengeStatus::Sent || $challenge->attempts >= config('community.max_attempts')) {
                     return false;
                 }
+                // Prima di spendere un tentativo: il cambio numero libererebbe l'impronta del primo.
+                abort_if($this->wouldReleaseFingerprint($locked, $challenge->phone_hash), 403, __('community.suspended'));
                 $challenge->increment('attempts');
                 if (! Hash::check($code, $challenge->code_hash)) {
                     return false;
@@ -154,8 +160,8 @@ final class WhatsappVerification
     {
         DB::transaction(function () use ($user, $actor): void {
             $locked = User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
-            // Da sospesi la revoca libererebbe il numero per un altro account: la può fare solo lo staff.
-            abort_if($actor === null && $locked->community_suspended_at !== null, 403, __('community.suspended'));
+            // Da sospesi (in qualsiasi ambito) la revoca libererebbe il numero per un altro account: la può fare solo lo staff.
+            abort_if($actor === null && $locked->holdsAnySuspension(), 403, __('community.suspended'));
             $locked->forceFill(['whatsapp_phone' => null, 'whatsapp_phone_hash' => null, 'whatsapp_verified_at' => null])->save();
             // Consumate e non cancellate: le righe tengono vivi i limiti d'invio, e una
             // revoca non deve diventare il modo di azzerarli. La cancellazione resta a DeleteAccount.
@@ -163,6 +169,19 @@ final class WhatsappVerification
             activity('community')->causedBy($actor ?? $locked)->performedOn($locked)->event('whatsapp_revoked')->log('whatsapp_revoked');
         });
         $user->refresh();
+    }
+
+    /**
+     * Vero se legare questa impronta a un account sospeso, in qualsiasi ambito, toglierebbe
+     * da users quella del numero già verificato: confermando un secondo numero il primo
+     * tornerebbe libero per un altro account e la sospensione non lo seguirebbe più.
+     * Chi è sospeso senza un numero verificato può ancora verificarne uno: lo lega e non libera niente.
+     */
+    private function wouldReleaseFingerprint(User $locked, string $fingerprint): bool
+    {
+        return $locked->holdsAnySuspension()
+            && $locked->whatsapp_phone_hash !== null
+            && ! hash_equals((string) $locked->whatsapp_phone_hash, $fingerprint);
     }
 
     public function fingerprint(string $phone): string
