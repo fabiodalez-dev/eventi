@@ -83,7 +83,7 @@ final readonly class QuietHours
      * `null` quando uno dei due estremi non è un orario, o quando coincidono:
      * un silenzio lungo zero secondi non è silenzio.
      */
-    private static function fromWindow(mixed $from, mixed $to): ?self
+    public static function fromWindow(mixed $from, mixed $to): ?self
     {
         $start = self::seconds($from);
         $end = self::seconds($to);
@@ -146,8 +146,28 @@ final readonly class QuietHours
      */
     public function contains(CarbonImmutable $local): bool
     {
-        $seconds = $local->hour * 3600 + $local->minute * 60 + $local->second;
+        return $this->holds($local->hour * 3600 + $local->minute * 60 + $local->second);
+    }
 
+    /**
+     * Vero se questa finestra contiene per intero l'altra, cioè se passare
+     * dall'altra a questa non toglie nemmeno un minuto di silenzio. Serve a
+     * chi può solo ridurre ciò che riceve (il collegamento firmato senza
+     * sessione): allargare il silenzio sì, accorciarlo no.
+     */
+    public function covers(self $other): bool
+    {
+        for ($seconds = 0; $seconds < 86400; $seconds += 60) {
+            if ($other->holds($seconds) && ! $this->holds($seconds)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private function holds(int $seconds): bool
+    {
         return $this->fromSeconds < $this->toSeconds
             ? $seconds >= $this->fromSeconds && $seconds < $this->toSeconds
             : $seconds >= $this->fromSeconds || $seconds < $this->toSeconds;

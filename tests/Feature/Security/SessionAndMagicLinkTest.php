@@ -88,8 +88,9 @@ it('brucia il collegamento di accesso dopo il primo uso', function (): void {
         ['user' => $utente->getKey(), 'fingerprint' => MagicLoginLink::fingerprint($utente)],
     );
 
-    /* Il primo uso entra. */
-    $this->get($collegamento)->assertRedirect(route('account.feed'));
+    /* Il primo uso entra (dalla pagina di conferma: il collegamento non
+       porta l'impronta di questo browser). */
+    $this->post($collegamento)->assertRedirect(route('account.feed'));
     expect(auth()->id())->toBe($utente->getKey());
 
     /* Il secondo no, nemmeno da un browser pulito e dentro la scadenza. */
@@ -97,5 +98,6 @@ it('brucia il collegamento di accesso dopo il primo uso', function (): void {
     session()->flush();
 
     $this->get($collegamento)->assertRedirect(route('account.magic-link'));
+    $this->post($collegamento)->assertRedirect(route('account.magic-link'));
     expect(auth()->check())->toBeFalse();
 });

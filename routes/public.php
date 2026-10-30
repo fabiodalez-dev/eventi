@@ -27,6 +27,7 @@ use App\Http\Controllers\Web\VenueApplicationController;
 use App\Http\Controllers\Web\VenueClaimController;
 use App\Http\Controllers\Web\VenueController;
 use App\Http\Controllers\Web\VenueProgrammeController;
+use App\Http\Middleware\BlockWhileImpersonating;
 use App\Http\Middleware\CachePage;
 use App\Http\Middleware\PersonalizeDiscovery;
 use Illuminate\Support\Facades\Route;
@@ -60,16 +61,20 @@ Route::get('/stasera', TonightController::class)->middleware(PersonalizeDiscover
 // Web middleware resolves the session; never cache personalized banner responses.
 Route::get('/banner-sponsorizzato', SponsorshipBannerController::class)->name('sponsorships.banner');
 
-Route::get('/eventi', [EventListController::class, 'index'])->middleware(CachePage::class)->name('events.index');
-Route::get('/eventi/oggi', [EventListController::class, 'today'])->middleware(CachePage::class)->name('events.today');
-Route::get('/eventi/domani', [EventListController::class, 'tomorrow'])->middleware(CachePage::class)->name('events.tomorrow');
-Route::get('/eventi/weekend', [EventListController::class, 'weekend'])->middleware(CachePage::class)->name('events.weekend');
-Route::get('/eventi/gratis', [EventListController::class, 'free'])->middleware(CachePage::class)->name('events.free');
-Route::get('/eventi/categoria/{category}', [EventListController::class, 'category'])->middleware(CachePage::class)->name('events.category');
-Route::get('/eventi/tag/{tag}', [EventListController::class, 'tag'])->middleware(CachePage::class)->name('events.tag');
+/*
+ * Con la `q` gli elenchi fanno la stessa ricerca di `/cerca`, fuori dalla
+ * cache: lo stesso tetto (il limitatore `search`, che senza `q` non conta).
+ */
+Route::get('/eventi', [EventListController::class, 'index'])->middleware(['throttle:search', CachePage::class])->name('events.index');
+Route::get('/eventi/oggi', [EventListController::class, 'today'])->middleware(['throttle:search', CachePage::class])->name('events.today');
+Route::get('/eventi/domani', [EventListController::class, 'tomorrow'])->middleware(['throttle:search', CachePage::class])->name('events.tomorrow');
+Route::get('/eventi/weekend', [EventListController::class, 'weekend'])->middleware(['throttle:search', CachePage::class])->name('events.weekend');
+Route::get('/eventi/gratis', [EventListController::class, 'free'])->middleware(['throttle:search', CachePage::class])->name('events.free');
+Route::get('/eventi/categoria/{category}', [EventListController::class, 'category'])->middleware(['throttle:search', CachePage::class])->name('events.category');
+Route::get('/eventi/tag/{tag}', [EventListController::class, 'tag'])->middleware(['throttle:search', CachePage::class])->name('events.tag');
 Route::get('/eventi/{date}', [EventListController::class, 'onDate'])
     ->where('date', '[0-9]{4}-[0-9]{2}-[0-9]{2}')
-    ->middleware(CachePage::class)
+    ->middleware(['throttle:search', CachePage::class])
     ->name('events.date');
 
 /*
@@ -77,7 +82,7 @@ Route::get('/eventi/{date}', [EventListController::class, 'onDate'])
  * slug: `/eventi.ics` è un indirizzo, non un evento che si chiama "ics".
  */
 Route::get('/eventi.ics', [FeedController::class, 'calendar'])->middleware('auth')->name('feeds.calendar');
-Route::get('/feed.rss', [FeedController::class, 'rss'])->name('feeds.rss');
+Route::get('/feed.rss', [FeedController::class, 'rss'])->middleware('throttle:search')->name('feeds.rss');
 
 /*
  * Mappa (§11.6). La pagina, il carico dei marcatori e la card del foglio
@@ -85,7 +90,7 @@ Route::get('/feed.rss', [FeedController::class, 'rss'])->name('feeds.rss');
  * altri due li rilegge la mappa a ogni spostamento.
  */
 Route::get('/mappa', [MapController::class, 'index'])->middleware(CachePage::class)->name('map.index');
-Route::get('/mappa/marcatori', [MapController::class, 'markers'])->name('map.markers');
+Route::get('/mappa/marcatori', [MapController::class, 'markers'])->middleware('throttle:search')->name('map.markers');
 Route::get('/mappa/locale/{venue}', [MapController::class, 'venue'])
     ->whereNumber('venue')
     ->name('map.venue');
@@ -100,7 +105,13 @@ Route::get('/calendario/{month}', CalendarController::class)
     ->where('month', '[0-9]{4}-[0-9]{2}')
     ->name('calendar.month');
 
-Route::get('/cerca', SearchController::class)->name('search');
+/*
+ * La ricerca completa non passa dalla cache (la `q` la rende personale) e
+ * ogni richiesta fa scansioni `LIKE` su eventi, locali e organizzatori: un
+ * tetto come quello dei suggerimenti, più stretto perché costa di più
+ * (il limitatore `search`, lo stesso degli elenchi `/eventi…` con la `q`).
+ */
+Route::get('/cerca', SearchController::class)->middleware('throttle:search')->name('search');
 Route::get('/cerca/suggerimenti', SearchSuggestionsController::class)
     ->middleware('throttle:120,1,search-suggestions')->name('search.suggestions');
 
@@ -109,7 +120,8 @@ Route::post('/eventi/{slug}/segnala', [ReportController::class, 'storeForEvent']
     ->middleware('throttle:public-forms')
     ->name('events.report.store');
 Route::get('/eventi/{slug}/{occurrence}/calendario.ics', [EventController::class, 'calendar'])->where('occurrence', '[1-9][0-9]*')->name('events.calendar');
-Route::get('/eventi/{slug}/{occurrence}/locandina.pdf', [EventController::class, 'poster'])->where('occurrence', '[1-9][0-9]*')->name('events.poster');
+// La locandina si compone con dompdf a ogni richiesta: lo stesso tetto del programma del locale.
+Route::get('/eventi/{slug}/{occurrence}/locandina.pdf', [EventController::class, 'poster'])->where('occurrence', '[1-9][0-9]*')->middleware('throttle:30,1,event-poster')->name('events.poster');
 Route::get('/eventi/{slug}/{occurrence}', [EventController::class, 'date'])
     ->where('occurrence', '[1-9][0-9]*')->name('events.occurrence');
 Route::get('/eventi/{slug}', [EventController::class, 'show'])->middleware(CachePage::class)->name('events.show');
@@ -125,10 +137,10 @@ Route::get('/eventi/{slug}', [EventController::class, 'show'])->middleware(Cache
  * parametri ammessi, quindi la scheda e il suo archivio sono due voci distinte
  * invece della stessa servita a caso.
  */
-Route::get('/organizzatori', [OrganizerController::class, 'index'])->middleware(CachePage::class)->name('organizers.index');
+Route::get('/organizzatori', [OrganizerController::class, 'index'])->middleware(['throttle:search', CachePage::class])->name('organizers.index');
 Route::get('/organizzatori/{slug}', [OrganizerController::class, 'show'])->middleware(CachePage::class)->name('organizers.show');
 
-Route::get('/locali', [VenueController::class, 'index'])->middleware(CachePage::class)->name('venues.index');
+Route::get('/locali', [VenueController::class, 'index'])->middleware(['throttle:search', CachePage::class])->name('venues.index');
 Route::get('/locali/{slug}/segnala', [ReportController::class, 'createForVenue'])->name('venues.report');
 Route::post('/locali/{slug}/segnala', [ReportController::class, 'storeForVenue'])
     ->middleware('throttle:public-forms')
@@ -148,15 +160,17 @@ Route::post('/proponi-evento', [EventSubmissionController::class, 'store'])
 
 Route::get('/registra-il-tuo-locale', [VenueApplicationController::class, 'create'])->name('venue-applications.create');
 Route::get('/registra-la-tua-organizzazione', [OrganizerApplicationController::class, 'create'])->name('organizer-applications.create');
+/* Richieste e contatti legati all'account: durante l'impersonificazione non
+   partono a nome della persona (vale anche per `public.contact` sotto). */
 Route::post('/registra-la-tua-organizzazione', [OrganizerApplicationController::class, 'store'])
-    ->middleware('throttle:10,60,organizer-application')
+    ->middleware([BlockWhileImpersonating::class, 'throttle:10,60,organizer-application'])
     ->name('organizer-applications.store');
 Route::get('/locali/{venue}/rivendica', [VenueClaimController::class, 'create'])->name('venues.claim.create');
 Route::post('/locali/{venue}/rivendica', [VenueClaimController::class, 'store'])
-    ->middleware('throttle:10,60,venue-claim')
+    ->middleware([BlockWhileImpersonating::class, 'throttle:10,60,venue-claim'])
     ->name('venues.claim.store');
 Route::post('/registra-il-tuo-locale', [VenueApplicationController::class, 'store'])
-    ->middleware('throttle:public-forms')
+    ->middleware([BlockWhileImpersonating::class, 'throttle:public-forms'])
     ->name('venue-applications.store');
 
 /*
@@ -164,14 +178,15 @@ Route::post('/registra-il-tuo-locale', [VenueApplicationController::class, 'stor
  *
  * Form normali con redirect, come le recensioni qui sotto: funzionano senza
  * JavaScript. Il `throttle` sulla scrittura è stretto, quello sulle reazioni
- * più largo, perché reagire è un gesto che si ripete e scrivere no.
+ * più largo, perché reagire è un gesto che si ripete e scrivere no. Durante
+ * l'impersonificazione non si scrive a nome di nessuno.
  */
 Route::post('/eventi/{slug}/commenti', [EventCommentController::class, 'store'])
-    ->middleware(['auth', 'verified', 'throttle:10,60,event-comment'])->name('events.comments.store');
+    ->middleware(['auth', 'verified', BlockWhileImpersonating::class, 'throttle:10,60,event-comment'])->name('events.comments.store');
 Route::delete('/eventi/{slug}/commenti/{comment}', [EventCommentController::class, 'destroy'])
-    ->middleware(['auth', 'throttle:30,60,event-comment-delete'])->name('events.comments.destroy');
+    ->middleware(['auth', BlockWhileImpersonating::class, 'throttle:30,60,event-comment-delete'])->name('events.comments.destroy');
 Route::post('/eventi/{slug}/commenti/{comment}/reazione', [EventCommentController::class, 'react'])
-    ->middleware(['auth', 'verified', 'throttle:120,1,event-comment-reaction'])->name('events.comments.react');
+    ->middleware(['auth', 'verified', BlockWhileImpersonating::class, 'throttle:120,1,event-comment-reaction'])->name('events.comments.react');
 
 Route::post('/locali/{slug}/recensione', [CatalogReviewController::class, 'store'])->defaults('type', 'venue')->middleware(['auth', 'throttle:10,60,catalog-review-store'])->name('venues.review.store');
 Route::post('/organizzatori/{slug}/recensione', [CatalogReviewController::class, 'store'])->defaults('type', 'organizer')->middleware(['auth', 'throttle:10,60,catalog-review-store'])->name('organizers.review.store');
@@ -180,4 +195,4 @@ Route::delete('/organizzatori/{slug}/recensione', [CatalogReviewController::clas
 Route::post('/locali/{slug}/recensioni/{review}/segnala', [CatalogReviewController::class, 'report'])->defaults('type', 'venue')->whereNumber('review')->middleware(['auth', 'throttle:10,60,catalog-review-report'])->name('venues.review.report');
 Route::post('/organizzatori/{slug}/recensioni/{review}/segnala', [CatalogReviewController::class, 'report'])->defaults('type', 'organizer')->whereNumber('review')->middleware(['auth', 'throttle:10,60,catalog-review-report'])->name('organizers.review.report');
 
-Route::post('/contatta/{type}/{slug}', [PublicContactController::class, 'store'])->whereIn('type', ['venues', 'organizers'])->middleware('throttle:5,60,public-contact')->name('public.contact');
+Route::post('/contatta/{type}/{slug}', [PublicContactController::class, 'store'])->whereIn('type', ['venues', 'organizers'])->middleware([BlockWhileImpersonating::class, 'throttle:5,60,public-contact'])->name('public.contact');

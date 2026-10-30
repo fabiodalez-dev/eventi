@@ -16,12 +16,15 @@ use App\Models\User;
 use App\Models\Venue;
 use App\Notifications\SponsorshipOrderDecided;
 use App\Notifications\SponsorshipOrderPaid;
+use App\Notifications\SponsorshipStrayRefundFailed;
 use App\Services\Sponsorship\Payment\PaymentGateway;
 use App\Services\Sponsorship\Payment\PaymentGatewayException;
+use App\Services\Sponsorship\Payment\PaymentSessionMissing;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 
 /**
@@ -35,6 +38,12 @@ use Illuminate\Support\Facades\Notification;
  * `markPaid` e' idempotente perche' arriva da due strade — il webhook e il
  * ritorno dal checkout — che possono presentarsi entrambe, in qualunque
  * ordine, anche due volte.
+ *
+ * **Una sola pagina di pagamento aperta per ordine.** Riprovare o annullare
+ * chiude prima la sessione precedente su Stripe; e se un incasso arriva lo
+ * stesso su un ordine che non lo aspetta piu' (annullato, o gia' pagato con
+ * un altro incasso), si rimborsa subito e lo si scrive sull'ordine, invece di
+ * tenere i soldi in silenzio.
  */
 final class SponsorshipOrders
 {
@@ -75,10 +84,31 @@ final class SponsorshipOrders
         return $this->openCheckout($order, $successUrl, $cancelUrl);
     }
 
-    /** Riapre la pagina di pagamento di un ordine ancora da pagare. */
+    /**
+     * Riapre la pagina di pagamento di un ordine ancora da pagare.
+     *
+     * Se la sessione precedente risulta pagata l'ordine torna pagato e non se
+     * ne apre un'altra (`checkout_url` resta vuoto). Se tariffa o committente
+     * non reggono piu', l'ordine si annulla: l'importo e la durata sono
+     * quelli del giorno in cui e' nato, e un ordine lasciato in attesa non
+     * deve diventare un modo di pagare una tariffa ritirata.
+     *
+     * @throws OrderNoLongerPayable
+     * @throws PaymentGatewayException
+     */
     public function openCheckout(SponsorshipOrder $order, string $successUrl, string $cancelUrl): SponsorshipOrder
     {
         abort_unless($order->status === SponsorshipOrderStatus::PendingPayment, 403);
+
+        if (! $this->retirePreviousSession($order)) {
+            return $order->refresh();
+        }
+
+        if (! $this->stillPayable($order)) {
+            $this->markCancelled($order);
+
+            throw new OrderNoLongerPayable;
+        }
 
         /* `{ORDER}` lo mette chi chiama, che l'ordine ancora non ce l'aveva;
            `{CHECKOUT_SESSION_ID}` resta com'e' e lo sostituisce Stripe. */
@@ -109,22 +139,26 @@ final class SponsorshipOrders
 
     public function markPaid(SponsorshipOrder $order, string $paymentIntentId, CarbonImmutable $paidAt): void
     {
-        $notify = DB::transaction(function () use ($order, $paymentIntentId, $paidAt): bool {
+        $outcome = DB::transaction(function () use ($order, $paymentIntentId, $paidAt): string {
             $order = SponsorshipOrder::query()->lockForUpdate()->findOrFail($order->getKey());
 
             if ($order->status !== SponsorshipOrderStatus::PendingPayment) {
-                return false;
+                /* Lo stesso incasso che torna non e' una novita'; uno diverso
+                   e' un pagamento che l'ordine non aspettava piu'. */
+                return $order->payment_intent_id === $paymentIntentId ? 'known' : 'stray';
             }
 
             $order->transitionTo(SponsorshipOrderStatus::Paid);
             $order->forceFill(['payment_intent_id' => $paymentIntentId, 'paid_at' => $paidAt])->save();
 
-            return true;
+            return 'paid';
         });
 
-        if ($notify) {
+        if ($outcome === 'paid') {
             $order->refresh();
             Notification::send($this->decisionMakers(), new SponsorshipOrderPaid($order));
+        } elseif ($outcome === 'stray') {
+            $this->refundStrayPayment($order, $paymentIntentId);
         }
     }
 
@@ -184,13 +218,97 @@ final class SponsorshipOrders
                 }
             }
 
+            /* Il motivo resta in prima riga (e' quella che vede chi ha
+               pagato); sotto, le note che c'erano gia', come un incasso
+               inatteso da rimborsare a mano, che il rifiuto non cancella. */
+            $note = trim($note."\n".(string) $order->decision_note);
+
             $order->forceFill(['decided_at' => CarbonImmutable::now('UTC'), 'decided_by' => $admin->getKey(), 'decision_note' => $note])->save();
         });
 
         $this->notifyBuyer($order->refresh());
     }
 
-    public function cancel(SponsorshipOrder $order): void
+    /**
+     * Annulla un ordine in attesa, chiudendo prima la sua pagina di pagamento.
+     * Se nel frattempo risulta pagato, lo segna pagato e restituisce false:
+     * un ordine pagato non si annulla, lo decide la redazione.
+     *
+     * @throws PaymentGatewayException
+     */
+    public function cancel(SponsorshipOrder $order): bool
+    {
+        if (! $this->retirePreviousSession($order)) {
+            return false;
+        }
+
+        $this->markCancelled($order);
+
+        return true;
+    }
+
+    public function sponsorIsOperational(Venue|Organizer $sponsor): bool
+    {
+        return $sponsor instanceof Venue
+            ? $sponsor->status === VenueStatus::Approved
+            : (bool) $sponsor->is_active;
+    }
+
+    /**
+     * Chiude su Stripe la pagina di pagamento dell'ordine, se ce n'e' una.
+     * Restituisce false se quella pagina risulta gia' pagata: l'ordine e'
+     * appena diventato pagato, e non c'e' altro da aprire ne' da annullare.
+     *
+     * Senza chiavi Stripe non c'e' niente da chiudere ne' da rileggere: un
+     * ordine rimasto in attesa da allora si deve poter annullare lo stesso.
+     * Vale anche per una pagina che l'account Stripe di oggi non conosce
+     * (nata con le chiavi di test, o su un altro account): su quell'account
+     * non si puo' pagare, e senza questa uscita l'ordine resterebbe in
+     * attesa per sempre. Ogni altro errore invece risale: un guasto
+     * passeggero non deve far annullare un ordine che forse e' pagato.
+     *
+     * @throws PaymentGatewayException
+     */
+    private function retirePreviousSession(SponsorshipOrder $order): bool
+    {
+        if ($order->checkout_session_id === null || ! $this->gateway->isConfigured()) {
+            return true;
+        }
+
+        try {
+            $session = $this->gateway->session($order->checkout_session_id);
+
+            if ($session->paid && $session->paymentIntentId !== null) {
+                $this->markPaid($order, $session->paymentIntentId, CarbonImmutable::now('UTC'));
+
+                return false;
+            }
+
+            $this->gateway->expire($order->checkout_session_id);
+        } catch (PaymentSessionMissing $e) {
+            Log::warning('Sponsorship: pagina di pagamento sconosciuta all\'account Stripe attuale, niente da chiudere', [
+                'order' => $order->getKey(), 'session' => $order->checkout_session_id, 'error' => $e->getMessage(),
+            ]);
+        }
+
+        return true;
+    }
+
+    /** L'ordine si paga ancora alle condizioni del listino di oggi, e da un committente operativo? */
+    private function stillPayable(SponsorshipOrder $order): bool
+    {
+        $price = SponsorshipPrice::query()->find($order->sponsorship_price_id);
+
+        return $price !== null
+            && $price->is_active
+            && $price->placement === $order->placement
+            && $price->months === $order->months
+            && $price->amount_cents === $order->amount_cents
+            && strtoupper((string) $price->currency) === strtoupper((string) $order->currency)
+            && $this->sponsorIsOperational($order->sponsor());
+    }
+
+    private function markCancelled(SponsorshipOrder $order): void
     {
         DB::transaction(function () use ($order): void {
             $order = SponsorshipOrder::query()->lockForUpdate()->findOrFail($order->getKey());
@@ -199,11 +317,45 @@ final class SponsorshipOrders
         });
     }
 
-    public function sponsorIsOperational(Venue|Organizer $sponsor): bool
+    /**
+     * Un incasso arrivato su un ordine che non lo aspettava: annullato, o gia'
+     * pagato con un altro incasso (due schede aperte, un webhook in ritardo).
+     * Si rimborsa subito e lo si scrive sull'ordine; se Stripe non rimborsa,
+     * la nota dice che va fatto a mano e la redazione riceve un'email: la
+     * nota da sola sta in una colonna nascosta, e i soldi resterebbero
+     * incassati senza che nessuno lo sappia. Lo stesso incasso visto due
+     * volte non si rimborsa due volte.
+     */
+    private function refundStrayPayment(SponsorshipOrder $order, string $paymentIntentId): void
     {
-        return $sponsor instanceof Venue
-            ? $sponsor->status === VenueStatus::Approved
-            : (bool) $sponsor->is_active;
+        if (str_contains((string) $order->fresh()?->decision_note, $paymentIntentId)) {
+            return;
+        }
+
+        $failure = null;
+
+        try {
+            $this->gateway->refund($paymentIntentId);
+            $line = __('promotions.orders.stray_refund_done', ['intent' => $paymentIntentId]);
+        } catch (PaymentGatewayException $e) {
+            $failure = $e->getMessage();
+            $line = __('promotions.orders.stray_refund_failed', ['intent' => $paymentIntentId, 'error' => $failure]);
+        }
+
+        $status = DB::transaction(function () use ($order, $line): string {
+            $order = SponsorshipOrder::query()->lockForUpdate()->findOrFail($order->getKey());
+            $order->forceFill(['decision_note' => ltrim($order->decision_note."\n".$line)])->save();
+
+            return $order->status->value;
+        });
+
+        Log::warning('Sponsorship: incasso arrivato su un ordine che non lo aspettava', [
+            'order' => $order->getKey(), 'status' => $status, 'payment_intent' => $paymentIntentId,
+        ]);
+
+        if ($failure !== null) {
+            Notification::send($this->decisionMakers(), new SponsorshipStrayRefundFailed($order->refresh(), $paymentIntentId, $failure));
+        }
     }
 
     private function timezoneOf(Venue|Organizer $sponsor): string

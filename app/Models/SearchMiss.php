@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\MassPrunable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -13,7 +15,21 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class SearchMiss extends Model
 {
+    use MassPrunable;
+
     protected $guarded = ['id'];
+
+    /**
+     * Un termine cercato una volta o due, e poi più per tre mesi, non è una
+     * domanda che il catalogo deve inseguire: senza questa potatura la tabella
+     * cresce di una riga per ogni parola mai scritta.
+     *
+     * @return Builder<static>
+     */
+    public function prunable(): Builder
+    {
+        return static::query()->where('count', '<', 3)->where('last_searched_at', '<', now()->subDays(90));
+    }
 
     /** @return array<string, string> */
     protected function casts(): array

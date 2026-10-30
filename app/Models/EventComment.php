@@ -85,22 +85,54 @@ class EventComment extends Model
         return route('events.show', ['slug' => $this->event->slug, 'commento' => $this->id]).'#commento-'.$this->id;
     }
 
-    /** @param Builder<self> $query */
+    /**
+     * L'autore vede sempre i propri commenti, anche nascosti o sospeso; gli
+     * altri vedono quelli pubblicati da account non sospesi.
+     *
+     * Il blocco fra due persone filtra i contenuti in entrambe le direzioni,
+     * come nella community (`CommunityAccess::excludeBlocked`). Per chi non
+     * ha fatto l'accesso i commenti restano pubblici.
+     *
+     * @param  Builder<self>  $query
+     */
     public function scopeVisibleTo(Builder $query, ?User $user): void
     {
         $query->whereHas('user')->where(function (Builder $q) use ($user): void {
-            $q->where('status', EventCommentStatus::Published);
+            $q->where(fn (Builder $published) => $published->where('status', EventCommentStatus::Published)
+                ->whereHas('user', self::authorInGoodStanding(...)));
             if ($user !== null) {
                 $q->orWhere('user_id', $user->id);
             }
         });
+
+        if ($user !== null) {
+            $query->whereNotIn('user_id', UserBlock::query()->where('user_id', $user->id)->select('blocked_user_id'))
+                ->whereNotIn('user_id', UserBlock::query()->where('blocked_user_id', $user->id)->select('user_id'));
+        }
     }
 
     public function isPubliclyVisible(): bool
     {
         return $this->status === EventCommentStatus::Published
-            && $this->user !== null
-            && ($this->parent_id === null || ($this->parent !== null && $this->parent->status === EventCommentStatus::Published && $this->parent->user !== null));
+            && self::visibleAuthor($this->user)
+            && ($this->parent_id === null || ($this->parent !== null && $this->parent->status === EventCommentStatus::Published && self::visibleAuthor($this->parent->user)));
+    }
+
+    /**
+     * Chi è sospeso dalla community esce dalla vista pubblica con tutto ciò
+     * che ha scritto, come i suoi post e le sue recensioni (`eligibleUsers`),
+     * e rientra quando la sospensione viene tolta: nessun dato cambia.
+     *
+     * @param  Builder<User>  $query
+     */
+    private static function authorInGoodStanding(Builder $query): void
+    {
+        $query->whereNull('community_suspended_at')->whereNull('social_suspended_at');
+    }
+
+    private static function visibleAuthor(?User $user): bool
+    {
+        return $user !== null && $user->community_suspended_at === null && $user->social_suspended_at === null;
     }
 
     /** @return BelongsTo<Event, $this> */
@@ -144,13 +176,14 @@ class EventComment extends Model
      *
      * `whereHas('user')` esclude i commenti di chi ha cancellato l'account:
      * il vincolo li porta via in cascata, ma la condizione tiene coerente
-     * anche una lettura che dovesse arrivare prima della cancellazione.
+     * anche una lettura che dovesse arrivare prima della cancellazione. Esclude
+     * anche gli account sospesi dalla community, vedi `authorInGoodStanding()`.
      *
      * @param  Builder<self>  $query
      */
     public function scopePublished(Builder $query): void
     {
-        $query->where('status', EventCommentStatus::Published)->whereHas('user');
+        $query->where('status', EventCommentStatus::Published)->whereHas('user', self::authorInGoodStanding(...));
     }
 
     /** @param Builder<self> $query */

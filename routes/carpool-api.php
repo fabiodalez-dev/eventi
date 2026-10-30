@@ -8,7 +8,7 @@ use App\Http\Middleware\CarpoolPrivacy;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1/carpool')->middleware(['auth:sanctum', CarpoolPrivacy::class])->group(function (): void {
-    Route::get('/drivers/{driver}/reviews', [RideReviewsController::class, 'index'])->whereNumber('driver');
+    Route::get('/drivers/{driver}/reviews', [RideReviewsController::class, 'index'])->whereNumber('driver')->middleware('throttle:carpool-read');
     Route::post('/requests/{rideRequest}/review/{action}', [RideReviewsController::class, 'change'])->whereNumber('rideRequest')->whereIn('action', ['confirm', 'save', 'remove'])->middleware('throttle:carpool-review');
     Route::get('/terms', [C::class, 'terms']);
     Route::get('/requirements', [C::class, 'requirements']);

@@ -10,7 +10,8 @@
         @if($summary['is_own'])<x-button :href="route('community.settings')" variant="secondary">{{ __('community.edit_profile') }}</x-button>
         @else<x-person-follow :user-id="$profile->user_id" :following="$summary['is_following']" :name="$profile->display_name" />@endif
     </header>
-    @if(auth()->check() && app(\App\Services\Carpool\RideReviews::class)->reader(auth()->user(), $profile->user))
+    @php($rideReviews = app(\App\Services\Carpool\RideReviews::class))
+    @if(auth()->check() && $rideReviews->reader(auth()->user(), $profile->user) && $rideReviews->isDriver($profile->user))
         <p class="my-5"><a href="{{ route('carpool.reviews', $profile->user_id) }}" class="font-semibold underline">{{ __('carpool.reviews.title') }}</a></p>
     @endif
     @if($venues->isNotEmpty())<section class="my-8"><h2 class="text-section">{{ __('community.venues') }}</h2><ul class="mt-3 flex flex-wrap gap-3">@foreach($venues as $venue)<li><a class="inline-flex min-h-11 items-center border border-line px-4 hover:underline" href="{{ route('venues.show', $venue) }}">{{ $venue->name }}</a></li>@endforeach</ul></section>@endif

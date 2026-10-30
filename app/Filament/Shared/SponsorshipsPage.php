@@ -16,6 +16,7 @@ use App\Models\SponsorshipPrice;
 use App\Models\User;
 use App\Models\Venue;
 use App\Services\Sponsorship\GrantCampaigns;
+use App\Services\Sponsorship\OrderNoLongerPayable;
 use App\Services\Sponsorship\Payment\PaymentGatewayException;
 use App\Services\Sponsorship\SponsorshipOrders;
 use BackedEnum;
@@ -178,8 +179,19 @@ abstract class SponsorshipsPage extends Page
 
         try {
             app(SponsorshipOrders::class)->openCheckout($order, $this->successUrl(), $this->cancelUrl());
+        } catch (OrderNoLongerPayable) {
+            Notification::make()->title(__('promotions.orders.no_longer_payable'))->warning()->send();
+
+            return;
         } catch (PaymentGatewayException) {
             Notification::make()->title(__('promotions.orders.checkout_failed'))->danger()->send();
+
+            return;
+        }
+
+        /* La pagina aperta prima risultava gia' pagata: niente da riaprire. */
+        if ($order->status === SponsorshipOrderStatus::Paid) {
+            Notification::make()->title(__('promotions.orders.returned_paid'))->success()->send();
 
             return;
         }
@@ -192,8 +204,18 @@ abstract class SponsorshipsPage extends Page
         Gate::authorize('purchase', [SponsorshipOrder::class, $this->sponsor()]);
         $order = SponsorshipOrder::query()->forSponsor($this->sponsor())
             ->where('status', SponsorshipOrderStatus::PendingPayment)->findOrFail($id);
-        app(SponsorshipOrders::class)->cancel($order);
-        Notification::make()->title(__('promotions.orders.cancelled'))->success()->send();
+
+        try {
+            $cancelled = app(SponsorshipOrders::class)->cancel($order);
+        } catch (PaymentGatewayException) {
+            Notification::make()->title(__('promotions.orders.cancel_failed'))->danger()->send();
+
+            return;
+        }
+
+        $cancelled
+            ? Notification::make()->title(__('promotions.orders.cancelled'))->success()->send()
+            : Notification::make()->title(__('promotions.orders.returned_paid'))->success()->send();
     }
 
     public function stop(int $id): void

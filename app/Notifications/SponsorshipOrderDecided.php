@@ -59,7 +59,10 @@ class SponsorshipOrderDecided extends Notification
                 ->line(__($group.'_why'));
         }
 
-        $reason = trim((string) $this->order->decision_note);
+        /* Solo la prima riga, il motivo scritto dalla redazione: sotto ci sono
+           le note interne (esito del rimborso, errori di Stripe, incassi
+           inattesi) che a chi ha pagato non servono. */
+        $reason = trim(strtok((string) $this->order->decision_note, "\n") ?: '');
         if ($reason !== '') {
             $message->line(__('notifications.common.reason', ['reason' => $reason]));
         }

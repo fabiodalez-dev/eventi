@@ -19,6 +19,7 @@ use App\Models\EventComment;
 use App\Models\User;
 use App\Queries\EventCommentQuery;
 use App\Support\Api\ApiResponse;
+use App\Support\PublicName;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -54,7 +55,8 @@ class EventCommentController extends Controller
 
             return [
                 'id' => $comment->id,
-                'author' => $comment->user->name ?? __('comments.anonymous'),
+                // Solo il nome proprio, come sulla scheda web: mai «nome cognome».
+                'author' => $comment->user === null ? __('comments.anonymous') : PublicName::first($comment->user),
                 'body' => $hidden ? null : $comment->body,
                 'hidden' => $hidden,
                 'created_at' => $comment->created_at?->toIso8601String(),
@@ -71,7 +73,7 @@ class EventCommentController extends Controller
             'page' => $data['commentsPage'], 'last_page' => $data['commentsLastPage'],
             'total' => $data['commentsTotal'], 'thread' => $data['commentThread'],
             'replies_page' => $data['repliesPage'], 'replies_last_page' => $data['repliesLastPage'],
-            'can_comment' => $user?->hasVerifiedEmail() ?? false,
+            'can_comment' => $user?->can('create', EventComment::class) ?? false,
         ])->header('Cache-Control', 'private, no-store');
     }
 
@@ -141,6 +143,7 @@ class EventCommentController extends Controller
 
         $user = $request->user();
         abort_unless($user instanceof User, 401);
+        Gate::forUser($user)->authorize('react', $comment);
 
         $tipo = EventCommentReactionType::from((string) $request->validated('type'));
 

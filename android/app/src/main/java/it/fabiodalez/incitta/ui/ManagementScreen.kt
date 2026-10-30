@@ -160,6 +160,8 @@ internal fun ManagementScreen(session: Session?, padding: PaddingValues, client:
                 Text(managementDate(selected.startsAt)); selected.venue?.let { Text(it, color = Muted) }
                 OutlinedButton(enabled = !busy, onClick = { action { date = api.date(selected.id) } }) { Text(stringResource(R.string.management_refresh)) }
                 if (selected.canCheckIn) {
+                    // Codici e nomi del check-in: niente screenshot né anteprima tra le app recenti.
+                    SecureWindow()
                     Text(stringResource(R.string.management_checkin), style = MaterialTheme.typography.titleLarge)
                     Text(stringResource(R.string.management_online_only), color = Muted)
                     val list = manifest?.takeIf { it.occurrenceId == selected.id }
@@ -178,7 +180,7 @@ internal fun ManagementScreen(session: Session?, padding: PaddingValues, client:
                         Text(if (name != null) stringResource(R.string.management_offline_waiting_name, name) else stringResource(R.string.management_offline_waiting_code, read.code.take(6)), color = Muted)
                     }
                     Button(enabled = !busy, onClick = {
-                        scanner.launch(ScanOptions().setDesiredBarcodeFormats(ScanOptions.QR_CODE).setPrompt(scanPrompt).setBeepEnabled(false).setOrientationLocked(false))
+                        scanner.launch(ScanOptions().setDesiredBarcodeFormats(ScanOptions.QR_CODE).setPrompt(scanPrompt).setBeepEnabled(false).setOrientationLocked(false).setCaptureActivity(SecureCaptureActivity::class.java))
                     }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text(stringResource(R.string.management_scan)) }
                     var manual by remember(selected.id) { mutableStateOf("") }
                     OutlinedTextField(manual, { manual = it.take(64) }, label = { Text(stringResource(R.string.management_manual)) }, modifier = Modifier.fillMaxWidth(), singleLine = true)

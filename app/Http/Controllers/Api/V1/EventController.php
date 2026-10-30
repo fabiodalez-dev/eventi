@@ -66,14 +66,13 @@ final class EventController extends Controller
          * nessuna la scheda resta legittima — ci arrivano i collegamenti
          * condivisi mesi prima — e mostra le ultime passate.
          */
-        $occurrences = EventOccurrenceQuery::for($city)->forEvent($event)->upcoming()->get();
+        $occurrences = EventOccurrenceQuery::for($city)->forEvent($event)->upcoming()->take(config()->integer('api.limits.event_dates'));
 
         if ($occurrences->isEmpty()) {
             $occurrences = EventOccurrenceQuery::for($city)
                 ->forEvent($event)
                 ->past()
                 ->orderByNewestFirst()
-                ->get()
                 ->take(3);
         }
 

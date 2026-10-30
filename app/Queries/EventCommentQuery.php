@@ -45,7 +45,7 @@ final class EventCommentQuery
             $position = (clone $query)->where('parent_id', $rootId)->where('id', '<=', $target->id)->count();
             $replyPage = max(1, (int) ceil($position / 20));
         }
-        $hydrate = static fn (Builder $q) => $q->with('user:id,name')
+        $hydrate = static fn (Builder $q) => $q->with('user:id,name,first_name')
             ->withCount('reactions')
             ->with(['reactions' => fn ($r) => $r->where('user_id', $user->id ?? 0)->select(['id', 'event_comment_id', 'user_id', 'type'])]);
         $roots = $hydrate((clone $query)->topLevel())

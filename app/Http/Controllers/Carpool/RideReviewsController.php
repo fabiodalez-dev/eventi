@@ -11,6 +11,7 @@ use App\Http\Requests\Carpool\RideReviewRequest;
 use App\Models\RideRequest;
 use App\Models\User;
 use App\Services\Carpool\RideReviews;
+use App\Support\PublicName;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -19,10 +20,13 @@ class RideReviewsController extends Controller
 {
     public function index(CarpoolQueryRequest $request, User $driver, RideReviews $reviews): View|JsonResponse
     {
+        // 404 per chi non è un conducente verificato, prima dei controlli su chi legge: la risposta
+        // non distingue più un account senza passaggi da uno senza telefono verificato.
+        abort_unless($reviews->isDriver($driver), 404);
         abort_unless($reviews->reader($request->user(), $driver), 403);
         $rows = $reviews->published($driver)->with(['user.communityProfile', 'rideRequest'])->orderByDesc('id')->paginate(20);
-        $data = ['driver_id' => $driver->id, 'driver_name' => $driver->communityProfile->display_name ?? $driver->name,
-            'summary' => $reviews->summary($request->user(), $driver), 'reviews' => $rows->map(fn ($review) => $reviews->resource($review))->all(), 'has_more' => $rows->hasMorePages(), 'page' => $rows->currentPage()];
+        $data = ['driver_id' => $driver->id, 'driver_name' => PublicName::for($driver, $request->user()),
+            'summary' => $reviews->summary($request->user(), $driver), 'reviews' => $rows->map(fn ($review) => $reviews->resource($review, $request->user()))->all(), 'has_more' => $rows->hasMorePages(), 'page' => $rows->currentPage()];
 
         return $request->expectsJson() ? response()->json(['data' => $data]) : view('carpool.reviews', [...$data, 'meta' => new PageMeta(__('carpool.reviews.title'), __('carpool.reviews.title'), indexable: false)]);
     }

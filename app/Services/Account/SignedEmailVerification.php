@@ -25,7 +25,11 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
  */
 final class SignedEmailVerification
 {
-    public function verify(string $url): ?User
+    /**
+     * `$requester` è chi ha aperto il collegamento, se è collegato: quando è
+     * lo stesso account, chi si è registrato ha dimostrato anche la casella.
+     */
+    public function verify(string $url, ?User $requester = null): ?User
     {
         $request = Request::create($url);
 
@@ -60,7 +64,7 @@ final class SignedEmailVerification
             return null;
         }
 
-        return $this->markVerified($user);
+        return $this->markVerified($user, $requester?->is($user) ?? false);
     }
 
     /**
@@ -68,9 +72,22 @@ final class SignedEmailVerification
      * dopo averlo già aperto dal computer non deve vedere un errore per aver
      * fatto la cosa giusta due volte. La data però non si riscrive, perché
      * `email_verified_at` racconta **quando** è avvenuta la verifica.
+     *
+     * Aperto dalla sessione (o dal token) di chi si è registrato, il
+     * collegamento prova che chi ha scelto la password possiede la casella, e
+     * le credenziali smettono di essere in sospeso. Aperto altrove — il
+     * telefono senza sessione, il browser di un altro account — verifica
+     * l'indirizzo e basta: chi ha scelto la password resta da dimostrare, e
+     * il primo accesso con il collegamento azzererà le credenziali
+     * (`ClaimMailbox`). Azzerarle già qui butterebbe fuori dall'app chi si è
+     * iscritto dal telefono e conferma dal browser, che è il caso normale.
      */
-    public function markVerified(User $user): User
+    public function markVerified(User $user, bool $byOwner = false): User
     {
+        if ($byOwner && $user->email_claim_pending_at !== null) {
+            $user->forceFill(['email_claim_pending_at' => null])->save();
+        }
+
         if ($user->hasVerifiedEmail()) {
             return $user;
         }

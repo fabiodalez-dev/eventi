@@ -8,6 +8,7 @@ use App\Enums\EventCommentReactionType;
 use App\Models\EventComment;
 use App\Models\EventCommentReaction;
 use App\Models\User;
+use App\Services\Community\CommunityAccess;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -36,7 +37,7 @@ use Illuminate\Support\Facades\DB;
  */
 final class ToggleReaction
 {
-    public function __construct(private readonly NotifyCommentActivity $avvisi) {}
+    public function __construct(private readonly NotifyCommentActivity $avvisi, private readonly CommunityAccess $access) {}
 
     /** @return array{stato: string, tipo: ?EventCommentReactionType, conteggio: int} */
     public function handle(EventComment $comment, User $user, EventCommentReactionType $type): array
@@ -56,6 +57,11 @@ final class ToggleReaction
                 ->first();
 
             if ($esistente === null) {
+                /* Nessuna reazione nuova fra due persone che si sono bloccate:
+                   avviserebbe chi ha chiesto di non sentirne più. Ritirarne
+                   una già messa resta possibile. */
+                abort_if($bloccato->user instanceof User && $this->access->blocked($user, $bloccato->user), 403);
+
                 /*
                  * `forceFill` e non `create`: i modelli di questo progetto
                  * dichiarano `$guarded = ['*']`, cioè nessun campo passa per

@@ -33,7 +33,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 @Composable
-fun ReservationScreen(state: AppUiState, padding: PaddingValues, onReserve: (List<AttendeeName>, Boolean, Map<String, String>, Map<String, String>) -> Unit, onBack: () -> Unit, onRetry: () -> Unit) {
+fun ReservationScreen(state: AppUiState, padding: PaddingValues, onReserve: (List<AttendeeName>, Boolean, Map<String, String>, Map<String, String>) -> Unit, onBack: () -> Unit, onResendVerification: () -> Unit = {}, onEmailConfirmed: () -> Unit = {}, onRetry: () -> Unit) {
     val date = state.bookingDate ?: return
     var names by remember(date.occurrenceId) { mutableStateOf(listOf(AttendeeName())) }
     var booker by remember(date.occurrenceId) { mutableStateOf(mapOf("first_name" to "", "last_name" to "")) }
@@ -52,9 +52,22 @@ fun ReservationScreen(state: AppUiState, padding: PaddingValues, onReserve: (Lis
         if (state.bookingBusy) LinearProgressIndicator(Modifier.fillMaxWidth())
         state.bookingError?.let {
             Text(it, color = Paper)
-            if (availability == null) OutlinedButton(onClick = onRetry) { Text(stringResource(R.string.ticket_retry)) }
+            if (state.bookingVerificationRequired) EmailVerificationPrompt(state.bookingBusy, onResendVerification, onEmailConfirmed)
+            else if (availability == null) OutlinedButton(onClick = onRetry) { Text(stringResource(R.string.ticket_retry)) }
         }
-        if (availability != null) {
+        /*
+         * Come sul sito, dove la pagina di prenotazione rimanda alla conferma
+         * prima di mostrare il modulo: con l'email non confermata al posto del
+         * modulo c'è l'invito. Il 403 resta la rete per un profilo salvato
+         * vecchio; dopo «Ho confermato» il profilo si rilegge e il modulo
+         * torna con i dati già scritti.
+         */
+        val unverified = state.session?.user?.emailVerified == false
+        if (unverified && !state.bookingVerificationRequired) {
+            Text(stringResource(R.string.ticket_verify_required))
+            EmailVerificationPrompt(state.bookingBusy, onResendVerification, onEmailConfirmed)
+        }
+        if (availability != null && !unverified) {
             if (!availability.open) {
                 Text(stringResource(R.string.ticket_closed))
             } else {
@@ -101,7 +114,7 @@ fun ReservationScreen(state: AppUiState, padding: PaddingValues, onReserve: (Lis
 }
 
 @Composable
-fun TicketsScreen(state: AppUiState, padding: PaddingValues, onCancel: (Long, Long?) -> Unit, onRefresh: () -> Unit, onEmail: (Long) -> Unit, onWallet: (Long) -> Unit, onWalletOpened: () -> Unit, onSendTicket: (Long, String, () -> Unit) -> Unit = { _, _, _ -> }, onBack: () -> Unit) {
+fun TicketsScreen(state: AppUiState, padding: PaddingValues, onCancel: (Long, Long?) -> Unit, onRefresh: () -> Unit, onEmail: (Long) -> Unit, onWallet: (Long) -> Unit, onWalletOpened: () -> Unit, onSendTicket: (Long, String, () -> Unit) -> Unit = { _, _, _ -> }, onResendVerification: () -> Unit = {}, onEmailConfirmed: () -> Unit = {}, onBack: () -> Unit) {
     var cancelTarget by remember(state.session?.user?.id) { mutableStateOf<Pair<Long, Long?>?>(null) }
     var period by remember(state.session?.user?.id) { mutableStateOf(BookingPeriod.UPCOMING) }
     var query by remember(state.session?.user?.id) { mutableStateOf("") }
@@ -139,7 +152,11 @@ fun TicketsScreen(state: AppUiState, padding: PaddingValues, onCancel: (Long, Lo
             OutlinedTextField(query, { query = it }, label = { Text("Cerca evento, locale o partecipante") }, singleLine = true, modifier = Modifier.fillMaxWidth())
             if (state.bookingBusy) LinearProgressIndicator(Modifier.fillMaxWidth())
             state.bookingsSavedAt?.let { OfflineTicketsNotice(it, state.session.user.timezone) }
-            state.bookingError?.let { Text(it) }
+            state.bookingError?.let {
+                Text(it)
+                // Rinvio del riepilogo, invio del biglietto e pass Wallet chiedono l'email confermata.
+                if (state.bookingVerificationRequired) EmailVerificationPrompt(state.bookingBusy, onResendVerification, onEmailConfirmed)
+            }
             if (!state.bookingBusy && state.bookings.isEmpty() && state.bookingError == null) Text(stringResource(R.string.ticket_empty), color = Muted)
             if (!state.bookingBusy && state.bookings.isNotEmpty() && visibleBookings.isEmpty() && state.bookingError == null) Text("Nessun biglietto corrisponde ai filtri scelti.", color = Muted)
             visibleBookings.forEach { booking ->
@@ -164,6 +181,8 @@ fun TicketsScreen(state: AppUiState, padding: PaddingValues, onCancel: (Long, Lo
                         if (ticket.qrPayload != null && ticket.status == "valid") {
                             OutlinedButton(onClick = { expanded = !expanded }, shape = ControlShape) { Text(stringResource(if (expanded) R.string.ticket_hide_qr else R.string.ticket_show_qr)) }
                             if (expanded) {
+                                // Il QR è il biglietto: finché è visibile niente screenshot né anteprima tra le app recenti.
+                                SecureWindow()
                                 val bitmap = remember(ticket.qrPayload) { ticketQr(ticket.qrPayload) }
                                 Image(bitmap.asImageBitmap(), stringResource(R.string.ticket_qr_description, ticket.id), modifier = Modifier.background(Paper).padding(12.dp).fillMaxWidth().heightIn(max = 280.dp).aspectRatio(1f))
                                 Text(stringResource(R.string.ticket_qr_hint), color = Muted)

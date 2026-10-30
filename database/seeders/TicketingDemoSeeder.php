@@ -23,6 +23,15 @@ use Illuminate\Support\Str;
 
 class TicketingDemoSeeder extends Seeder
 {
+    /**
+     * Le password degli account creati in questa esecuzione, da mostrare una
+     * volta sola. Il repository è pubblico: una password scritta qui sarebbe
+     * di chiunque, e il comando gira anche sul sito pubblico.
+     *
+     * @var array<string, string>
+     */
+    public array $credentials = [];
+
     public function run(bool $publicDemo = false): void
     {
         // Production requires the explicit ticketing:demo --force command.
@@ -51,6 +60,9 @@ class TicketingDemoSeeder extends Seeder
         $owner->venues()->syncWithoutDetaching([$venue->id => ['role' => 'owner']]);
         $reader = $this->user('biglietti@example.test', 'Giulia Rossi');
         $waiting = $this->user('attesa-ticket@example.test', 'Luca Moretti');
+        foreach ($this->credentials as $email => $password) {
+            $this->command?->warn($email.' · '.$password);
+        }
         $notificationFacade = Notification::getFacadeRoot();
         Notification::fake();
         try {
@@ -93,7 +105,12 @@ class TicketingDemoSeeder extends Seeder
 
     private function user(string $email, string $name): User
     {
-        $user = User::query()->firstOrCreate(['email' => $email], ['name' => $name, 'password' => Hash::make('DemoTicket-2026!'), 'email_verified_at' => now()]);
+        // Generata solo alla creazione: gli account già esistenti tengono la loro.
+        $password = Str::password(24);
+        $user = User::query()->firstOrCreate(['email' => $email], ['name' => $name, 'password' => Hash::make($password), 'email_verified_at' => now()]);
+        if ($user->wasRecentlyCreated) {
+            $this->credentials[$email] = $password;
+        }
         if (in_array($user->name, ['Gestore Demo', 'Giulia Demo', 'Luca Demo'], true)) {
             $user->update(['name' => $name]);
         }

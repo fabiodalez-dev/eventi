@@ -19,6 +19,9 @@ use Illuminate\Support\Facades\DB;
  * anonimizzata. Si conta dalla sospensione perché ciò che si conserva è il
  * bando, ed è la sua età a giustificarlo; l'informativa dice esattamente questo.
  *
+ * Le sospensioni sono tre (globale, social, passaggi) e ciascuna trattiene
+ * l'impronta: si conta dalla più recente, e scadono insieme.
+ *
  * Tocca solo account cancellati: un account attivo e sospeso tiene la propria
  * sospensione finché lo staff non la toglie.
  */
@@ -28,11 +31,15 @@ final class PruneSuspendedFingerprints
     {
         $cutoff = now()->subMonthsNoOverflow(config()->integer('community.suspended_fingerprint_retention_months'));
 
-        $ids = User::onlyTrashed()
-            ->whereNotNull('whatsapp_phone_hash')
-            ->where(fn (Builder $query) => $query->where('community_suspended_at', '<', $cutoff)
+        $columns = ['community_suspended_at', 'social_suspended_at', 'carpool_suspended_at'];
+        $query = User::onlyTrashed()->whereNotNull('whatsapp_phone_hash');
+        foreach ($columns as $column) {
+            $query->where(fn (Builder $query) => $query->whereNull($column)->orWhere($column, '<', $cutoff));
+        }
+        $ids = $query
+            ->where(fn (Builder $query) => $query->whereNotNull($columns[0])->orWhereNotNull($columns[1])->orWhereNotNull($columns[2])
                 // Difensivo: DeleteAccount toglie già l'impronta a chi non era sospeso.
-                ->orWhere(fn (Builder $query) => $query->whereNull('community_suspended_at')->where('deleted_at', '<', $cutoff)))
+                ->orWhere('deleted_at', '<', $cutoff))
             ->pluck('id')
             ->all();
 
@@ -43,7 +50,7 @@ final class PruneSuspendedFingerprints
 
         DB::transaction(function () use ($ids, $count): void {
             foreach (array_chunk($ids, 500) as $chunk) {
-                DB::table('users')->whereIn('id', $chunk)->update(['whatsapp_phone_hash' => null, 'community_suspended_at' => null]);
+                DB::table('users')->whereIn('id', $chunk)->update(['whatsapp_phone_hash' => null, 'community_suspended_at' => null, 'social_suspended_at' => null, 'carpool_suspended_at' => null]);
             }
             // Solo il conteggio: gli identificativi riporterebbero le persone al bando appena scaduto.
             activity('community')->withProperties(['count' => $count])->event('fingerprints_pruned')->log('fingerprints_pruned');

@@ -312,7 +312,7 @@ fun InCittaApp(viewModel: MainViewModel) {
                         onBack = { organizerSlug = null }, onOrganizer = { organizerSlug = it },
                         onOpen = { organizerSlug = null; viewModel.open(it) }, onSave = viewModel::toggleSaved)
                 }
-                state.bookingDate != null -> ReservationScreen(state, padding, viewModel::reserve, viewModel::goBack) { state.bookingDate?.let(viewModel::startReservation) }
+                state.bookingDate != null -> ReservationScreen(state, padding, viewModel::reserve, viewModel::goBack, onResendVerification = viewModel::resendEmailVerification, onEmailConfirmed = viewModel::emailConfirmed) { state.bookingDate?.let(viewModel::startReservation) }
                 communityRoute != null -> androidx.compose.runtime.key(state.session?.token) { CommunityScreen(state.session, padding, state.savedIds, communityRoute!!,
                     onBack = { communityRoute = null }, onLogin = { communityRoute = null; viewModel.selectTab(AppTab.ACCOUNT) },
                     onOpen = { communityRoute = null; viewModel.open(it) }, onSave = viewModel::toggleSaved, onDestination = ::openDestination,
@@ -402,6 +402,7 @@ fun InCittaApp(viewModel: MainViewModel) {
                                 react = { id, type -> viewModel.reactComment(selected.slug, id, type) },
                                 delete = { id -> viewModel.deleteComment(selected.slug, id) },
                                 resend = viewModel::resendCommentConfirmation,
+                                emailVerified = state.session?.user?.emailVerified == true,
                             )
                         },
                     )
@@ -488,7 +489,7 @@ fun InCittaApp(viewModel: MainViewModel) {
                     )
                     AppTab.CALENDAR -> CalendarScreen(state, padding, viewModel::open, viewModel::toggleSaved) { viewModel.selectTab(AppTab.HOME) }
                     AppTab.VENUES -> VenuesScreen(state, padding, viewModel::openVenue, viewModel::setVenuesOpenNow, viewModel::loadOpenNowVenues) { viewModel.selectTab(AppTab.HOME) }
-                    AppTab.TICKETS -> TicketsScreen(state, padding, viewModel::cancelBooking, viewModel::loadBookings, viewModel::resendBooking, viewModel::addToWallet, viewModel::consumeWalletLink, viewModel::sendTicket) { viewModel.selectTab(AppTab.ACCOUNT) }
+                    AppTab.TICKETS -> TicketsScreen(state, padding, viewModel::cancelBooking, viewModel::loadBookings, viewModel::resendBooking, viewModel::addToWallet, viewModel::consumeWalletLink, viewModel::sendTicket, onResendVerification = viewModel::resendEmailVerification, onEmailConfirmed = viewModel::emailConfirmed) { viewModel.selectTab(AppTab.ACCOUNT) }
                     AppTab.ATTENDED -> AttendedScreen(
                         session = state.session,
                         padding = padding,

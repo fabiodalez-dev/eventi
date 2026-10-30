@@ -32,7 +32,8 @@ final class CollectionController extends Controller
     {
         $collection = EventCollection::query()->where('token', $token)->with('user.communityProfile')->first();
         $viewer = $request->user();
-        abort_unless($collection !== null && ($collection->is_public || ($viewer !== null && (int) $collection->user_id === (int) $viewer->getKey())), 404);
+        // `user` esclude gli account cestinati: la raccolta di chi si è cancellato non si apre più.
+        abort_unless($collection !== null && $collection->user !== null && ($collection->is_public || ($viewer !== null && (int) $collection->user_id === (int) $viewer->getKey())), 404);
 
         $ids = $collection->items()->pluck('occurrence_id')->map(static fn (mixed $id): int => (int) $id)->all();
         $rows = $ids === [] ? new Collection : EventOccurrenceQuery::archiveFor($collection->city ?? $this->city())->forOccurrences($ids)->get()->keyBy('id');

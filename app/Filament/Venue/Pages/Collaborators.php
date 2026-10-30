@@ -8,6 +8,7 @@ use App\Actions\InviteVenueMemberAction;
 use App\Enums\VenueRole;
 use App\Filament\Venue\Support\CurrentVenue;
 use App\Models\User;
+use App\Support\SecurityLog;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\TextInput;
@@ -19,6 +20,7 @@ use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\RateLimiter;
 
 /**
  * §10.6 — i collaboratori, **visibili solo ai referenti**.
@@ -126,8 +128,37 @@ class Collaborators extends Page implements HasTable
                     ->maxLength(255),
             ])
             ->action(function (array $data): void {
+                abort_unless(static::canAccess(), 403);
+                $venue = CurrentVenue::get();
+
+                /*
+                 * Ogni invito crea un account e spedisce un'email dal nostro
+                 * indirizzo a chi il referente sceglie: senza un tetto, la
+                 * pagina diventa un modo di scrivere a una lista intera. La
+                 * chiave è per persona e per locale, come per l'import da
+                 * Facebook.
+                 */
+                $key = 'venue-invite:'.auth()->id().':'.$venue->getKey();
+                $dailyKey = $key.':daily';
+                if (RateLimiter::tooManyAttempts($key, 10) || RateLimiter::tooManyAttempts($dailyKey, 30)) {
+                    Notification::make()->warning()->title(__('manage.collaborators.invite_limit'))->send();
+
+                    return;
+                }
+
+                // Chi è già del locale non si reinvita: il ruolo non cambia da
+                // qui, e un secondo messaggio non serve a nessuno.
+                if ($venue->members()->where('users.email', mb_strtolower(trim((string) $data['email'])))->exists()) {
+                    Notification::make()->warning()->title(__('manage.collaborators.already_member'))->send();
+
+                    return;
+                }
+
+                RateLimiter::hit($key, 3600);
+                RateLimiter::hit($dailyKey, 86400);
+
                 app(InviteVenueMemberAction::class)->execute(
-                    CurrentVenue::get(),
+                    $venue,
                     (string) $data['email'],
                     (string) $data['name'],
                     VenueRole::Editor,
@@ -158,6 +189,10 @@ class Collaborators extends Page implements HasTable
                 abort_unless(static::canAccess(), 403);
                 abort_if($record->getAttribute('venue_role') === VenueRole::Owner->value, 403);
                 CurrentVenue::get()->members()->detach($record->getKey());
+                SecurityLog::scrivi('accesso_locale_revocato', $record, [
+                    'venue_id' => CurrentVenue::get()->getKey(),
+                    'ruolo' => $record->getAttribute('venue_role'),
+                ], causa: auth()->user() instanceof User ? auth()->user() : null);
 
                 Notification::make()
                     ->title(__('manage.collaborators.removed'))

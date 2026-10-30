@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Http\Requests\Web\Account;
 
 use App\DTOs\NotificationPreferences;
+use App\DTOs\QuietHours;
 use App\Enums\NotificationDelivery;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 
 /**
@@ -58,7 +60,42 @@ class UpdateNotificationSettingsRequest extends FormRequest
         ];
     }
 
+    /**
+     * C'è una sessione aperta su questo stesso account? Senza, la sola prova è
+     * la firma, e il collegamento firmato arriva per email: può essere
+     * inoltrato o finire in un archivio pubblico. Con la sola firma si può
+     * quindi soltanto **ridurre** ciò che si riceve (D54): spegnere, mai
+     * accendere, e il consenso al marketing si può solo revocare.
+     */
+    public function ownsAccount(): bool
+    {
+        return Auth::id() === $this->route('user')->getKey();
+    }
+
     public function preferences(): NotificationPreferences
+    {
+        $requested = $this->requestedPreferences();
+
+        if ($this->ownsAccount()) {
+            return $requested;
+        }
+
+        /* Ogni interruttore resta acceso solo se era acceso e lo si lascia
+           acceso; consegna, giorni e orario restano quelli salvati. */
+        $current = NotificationPreferences::fromUser($this->route('user'));
+
+        return $current->with([
+            'reminders' => $current->reminders && $requested->reminders,
+            'sold_out' => $current->soldOut && $requested->soldOut,
+            'venue_digest' => $current->venueDigest && $requested->venueDigest,
+            'daily_digest' => $current->dailyDigest && $requested->dailyDigest,
+            'tonight' => $current->tonight && $requested->tonight,
+            'venue_report' => $current->venueReport && $requested->venueReport,
+            'comments' => $current->comments && $requested->comments,
+        ]);
+    }
+
+    private function requestedPreferences(): NotificationPreferences
     {
         return NotificationPreferences::fromUser($this->route('user'))->with([
             'delivery' => $this->validated('delivery', $this->route('user')->notificationPreferences()->delivery->value),
@@ -88,13 +125,25 @@ class UpdateNotificationSettingsRequest extends FormRequest
      */
     public function quietHours(): ?array
     {
+        $from = $this->string('quiet_from')->value();
+        $to = $this->string('quiet_to')->value();
+        $window = $from === '' || $to === '' ? null : ['from' => $from, 'to' => $to];
+
+        if (! $this->ownsAccount()) {
+            /* Con la sola firma il silenzio si può allargare, mai togliere né
+               accorciare: `quiet_off` non conta, e una finestra nuova vale solo
+               se contiene per intero quella che vale oggi. */
+            $user = $this->route('user');
+            $current = QuietHours::fromUser($user);
+            $requested = $window === null || $this->boolean('quiet_off') ? null : QuietHours::fromWindow($from, $to);
+
+            return $requested !== null && ($current === null || $requested->covers($current)) ? $window : $user->quiet_hours;
+        }
+
         if ($this->boolean('quiet_off')) {
             return [];
         }
 
-        $from = $this->string('quiet_from')->value();
-        $to = $this->string('quiet_to')->value();
-
-        return $from === '' || $to === '' ? null : ['from' => $from, 'to' => $to];
+        return $window;
     }
 }

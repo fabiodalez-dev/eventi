@@ -30,10 +30,26 @@ class EventCommentPolicy
 {
     use ScopesToVenueMembership;
 
-    /** Commentare richiede un indirizzo email confermato. */
+    /**
+     * Commentare richiede un indirizzo email confermato, e nessuna
+     * sospensione dalla community.
+     *
+     * Non `canParticipateInCommunity()`: chiederebbe anche WhatsApp, che per
+     * i commenti agli eventi non serve. Ma la sospensione («Tutta la
+     * community» o «Solo social») è lo strumento della redazione per fermare
+     * chi molesta, e le recensioni la rispettano già: senza questa riga un
+     * account sospeso continuava a pubblicare e a far partire avvisi.
+     */
     public function create(User $user): bool
     {
-        return $user->hasVerifiedEmail();
+        return $user->hasVerifiedEmail() && ! $user->trashed()
+            && $user->community_suspended_at === null && $user->social_suspended_at === null;
+    }
+
+    /** Reagire: stesse condizioni di chi scrive, ogni reazione avvisa l'autore. */
+    public function react(User $user, EventComment $comment): bool
+    {
+        return $this->create($user);
     }
 
     /**
@@ -75,9 +91,24 @@ class EventCommentPolicy
      *
      * Stesse persone: chi può togliere deve poter rimettere, o «nascondere»
      * diventa irreversibile nei fatti anche quando non lo è nello schema.
+     *
+     * Con un limite: quello che ha nascosto la redazione si rimette solo da
+     * `/admin`. Il locale ha un interesse diretto nei commenti sui propri
+     * eventi, e non può annullare una decisione presa su una segnalazione
+     * (insulti, dati personali, spam).
      */
     public function restore(User $user, EventComment $comment): bool
     {
+        if ($this->isGlobalStaff($user)) {
+            return true;
+        }
+
+        $moderatore = $comment->moderator;
+
+        if ($moderatore instanceof User && $this->isGlobalStaff($moderatore)) {
+            return false;
+        }
+
         return $this->hide($user, $comment);
     }
 

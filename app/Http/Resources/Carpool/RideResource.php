@@ -10,9 +10,11 @@ use App\Models\RideOffer;
 use App\Models\RideRequest;
 use App\Models\User;
 use App\Queries\CarpoolQuery;
+use App\Services\Carpool\CarpoolAccess;
 use App\Services\Carpool\CarpoolRetention;
 use App\Services\Carpool\CarpoolService;
 use App\Services\Carpool\RideReviews;
+use App\Support\PublicName;
 
 final class RideResource
 {
@@ -24,14 +26,18 @@ final class RideResource
         $own = $viewer->id === $offer->driver_id;
         // Il passaggio dimostrativo si mostra come gli altri, senza l'azione di richiesta: l'app legge `demo`.
         $demo = $offer->isDemo();
+        // Fra conducente e passeggero c'è un blocco: la propria richiesta resta consultabile (stato,
+        // storico, assistenza), ma senza zona, orario, tappe e note correnti dell'offerta, che il
+        // conducente può spostare dopo il blocco.
+        $hidden = ! $own && $offer->driver !== null && app(CarpoolAccess::class)->blocked($viewer, $offer->driver);
 
-        return ['id' => $offer->id, 'occurrence_id' => $offer->occurrence_id, 'is_own' => $own,
+        $data = ['id' => $offer->id, 'occurrence_id' => $offer->occurrence_id, 'is_own' => $own,
             'event_title' => $offer->snapshot['title'], 'event_url' => $date?->event ? route('events.occurrence', ['slug' => $date->event->slug, 'occurrence' => $date->url_number]) : null,
             'reviews' => app(RideReviews::class)->summary($viewer, $offer->driver),
             'reviews_url' => route('carpool.reviews', $offer->driver_id),
             'event_location' => $offer->snapshot['location'], 'driver' => ['id' => $offer->driver_id,
                 'verified' => $offer->driver->isWhatsappVerified(),
-                'name' => $offer->driver?->communityProfile->display_name ?? $offer->driver->name ?? __('community.member')],
+                'name' => PublicName::for($offer->driver, $viewer)],
             'leg' => $offer->leg->value, 'leg_label' => $offer->leg->label(), 'zone' => $offer->zone,
             'departure_at' => $offer->departure_at->toIso8601String(), 'departure_label' => $offer->departure_at->setTimezone($date->event->city->timezone)->format('d/m/Y H:i'),
             'departure_local' => $offer->departure_at->setTimezone($date->event->city->timezone)->format('Y-m-d\TH:i'),
@@ -42,6 +48,9 @@ final class RideResource
             'demo' => $demo,
             'can_request' => ! $own && ! $demo && $offer->status === RideStatus::Open && $available > 0 && app(CarpoolQuery::class)->operational($offer),
             'url' => route('carpool.offer', $offer), 'map_url' => 'https://www.google.com/maps/search/?api=1&query='.rawurlencode($offer->zone)];
+
+        return $hidden ? [...$data, 'zone' => null, 'departure_at' => null, 'departure_label' => null, 'departure_local' => null, 'note' => null,
+            'accessibility_note' => null, 'stops' => [], 'can_request' => false, 'map_url' => null] : $data;
     }
 
     /** @return array<string, mixed> */
@@ -54,7 +63,7 @@ final class RideResource
 
         return ['id' => $request->id, 'offer_id' => $request->ride_offer_id, 'seats' => $request->seats,
             'companions' => max(0, $request->seats - 1), 'companions_verified' => false, 'note' => app(CarpoolRetention::class)->requestNoteReadable($request) ? $request->note : null,
-            'requester' => ['id' => $request->user_id, 'name' => $request->user?->communityProfile->display_name ?? $request->user->name ?? __('community.member')],
+            'requester' => ['id' => $request->user_id, 'name' => PublicName::for($request->user, $viewer)],
             'status' => $request->status->value, 'status_label' => $request->status->label(), 'is_driver' => $driver,
             'stop_index' => $request->stop_index, 'chat_id' => $chat?->id,
             'can_decide' => $driver && $future && $request->status === RideRequestStatus::Pending,
@@ -62,7 +71,7 @@ final class RideResource
             'can_feedback' => $request->accepted_at !== null && ! $future,
             'can_review' => app(RideReviews::class)->eligibleTrip($viewer, $request),
             'passenger_confirmed_at' => $request->passenger_confirmed_at?->toIso8601String(),
-            'review_revision' => $review->revision ?? 0, 'review' => $review && ! $review->trashed() ? app(RideReviews::class)->resource($review) : null,
+            'review_revision' => $review->revision ?? 0, 'review' => $review && ! $review->trashed() ? app(RideReviews::class)->resource($review, $viewer) : null,
             'url' => route('carpool.request', $request), 'created_at' => $request->created_at->toIso8601String()];
     }
 }

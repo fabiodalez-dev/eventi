@@ -36,6 +36,8 @@ final class CarpoolServiceProvider extends ServiceProvider
                 Limit::perMinute(120)->by($name.'-ip:'.$r->ip()),
             ]);
         }
+        // La lettura delle recensioni di un conducente: un secchio suo, così non si scorrono gli id uno dopo l'altro.
+        RateLimiter::for('carpool-read', static fn (Request $r): Limit => Limit::perMinute(60)->by('carpool-read:'.$user($r)));
         RateLimiter::for('carpool-chat', static fn (Request $r): Limit => Limit::perMinute($action($r) === 'send' ? 30 : 120)->by('carpool-chat:'.$user($r).':'.$action($r)));
         RateLimiter::for('carpool-report', static fn (Request $r): Limit => Limit::perHour(20)->by('carpool-report:'.$user($r)));
         RateLimiter::for('carpool-case-reply', static fn (Request $r): Limit => Limit::perHour(20)->by('carpool-case-reply:'.$user($r)));

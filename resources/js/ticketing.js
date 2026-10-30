@@ -137,7 +137,8 @@ document.querySelectorAll('[data-checkin-queue]').forEach((form) => {
     const manifestStatus = form.querySelector('[data-manifest-status]');
     const refresh = form.querySelector('[data-manifest-refresh]');
     const key = `checkin:${form.dataset.occurrence}`;
-    const manifest = new CheckinManifest(localStorageStore(`${key}:manifest`));
+    const lateSyncHours = Number(form.dataset.lateSyncHours) || 24;
+    const manifest = new CheckinManifest(localStorageStore(`${key}:manifest`), undefined, lateSyncHours);
     const queue = new CheckinQueue(async (entry) => {
         const response = await fetch(form.action, {
             method: 'POST', credentials: 'same-origin', signal: AbortSignal.timeout(15000),
@@ -155,7 +156,7 @@ document.querySelectorAll('[data-checkin-queue]').forEach((form) => {
             message: response.ok ? form.dataset.success.replace(':name', payload.data.attendee_name)
                 : (Object.values(payload.errors || {}).flat()[0] || payload.message || form.dataset.error),
         };
-    }, undefined, localStorageStore(`${key}:queue`));
+    }, undefined, localStorageStore(`${key}:queue`), lateSyncHours);
     const describeManifest = () => {
         manifestStatus.textContent = manifest.loaded
             ? form.dataset.listLoaded.replace(':time', new Date(manifest.data.generatedAt).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })).replace(':count', manifest.size)
@@ -164,6 +165,8 @@ document.querySelectorAll('[data-checkin-queue]').forEach((form) => {
     const loadManifest = async () => {
         try {
             const response = await fetch(form.dataset.manifestUrl, { credentials: 'same-origin', headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(15000) });
+            // Not (or no longer) staff for this date: the names must not stay on the device.
+            if (response.status === 401 || response.status === 403) manifest.clear();
             if (!response.ok) throw new Error('Manifest unavailable');
             manifest.load((await response.json()).data);
         } catch { /* keep the previous list: it is still better than nothing */ }
@@ -189,7 +192,7 @@ document.querySelectorAll('[data-checkin-queue]').forEach((form) => {
         const local = await manifest.lookup(code);
         const decision = classifyScan({ online: navigator.onLine, loaded: manifest.loaded, ...local });
         if (decision === 'reject_used') {
-            queue.entries.push({ code, requestKey: crypto.randomUUID(), state: 'rejected', message: form.dataset.knownUsed.replace(':name', local.name) });
+            queue.entries.push({ requestKey: crypto.randomUUID(), state: 'rejected', message: form.dataset.knownUsed.replace(':name', local.name), scannedAt: new Date().toISOString() });
             queue.persist();
         } else {
             const localMessage = decision === 'pending_unknown' || decision === 'send_warn_unknown' ? form.dataset.unknown

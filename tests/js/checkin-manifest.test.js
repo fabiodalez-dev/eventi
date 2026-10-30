@@ -38,7 +38,7 @@ test('the manifest recognises hashed codes offline and remembers a local admissi
 test('a stored manifest is reused after a reload', async () => {
     const store = memoryStore();
     const digest = async (text) => text;
-    new CheckinManifest(store, digest).load({ generated_at: 'x', tickets: [{ h: 'k', name: 'Bo', status: 'valid' }] });
+    new CheckinManifest(store, digest).load({ generated_at: 'x', window: { to: new Date(Date.now() + 3600000).toISOString() }, tickets: [{ h: 'k', name: 'Bo', status: 'valid' }] });
     const again = new CheckinManifest(store, digest);
     assert.equal(again.loaded, true);
     assert.equal((await again.lookup('k')).name, 'Bo');

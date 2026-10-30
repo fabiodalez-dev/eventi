@@ -7,6 +7,7 @@ namespace App\Actions\Account;
 use App\Enums\UserRole;
 use App\Models\User;
 use Carbon\Carbon;
+use Carbon\CarbonImmutable;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Support\Facades\Hash;
 
@@ -47,6 +48,13 @@ final class RegisterUser
         if (($data['marketing_opt_in'] ?? false) === true) {
             $user->marketing_opt_in_at = Carbon::now();
         }
+
+        /*
+         * Chi si registra non ha ancora provato di possedere la casella: la
+         * password e i token nati qui valgono finché il titolare non la
+         * dimostra da un'altra parte (`ClaimMailbox`).
+         */
+        $user->email_claim_pending_at = CarbonImmutable::now();
 
         $user->save();
         $user->assignRole(UserRole::User->value);

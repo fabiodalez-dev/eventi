@@ -13,12 +13,15 @@ use App\Http\Requests\Api\V1\Auth\RegisterRequest;
 use App\Http\Resources\V1\UserResource;
 use App\Models\User;
 use App\Services\Account\MobileTokenIssuer;
+use App\Support\AccountLoginThrottle;
 use App\Support\Api\ApiResponse;
 use App\Support\SecurityLog;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 /**
  * Registrazione, accesso e uscita con token Sanctum (§13.4).
@@ -72,12 +75,18 @@ final class AuthController extends Controller
          */
         $password = (string) $request->validated('password');
 
-        $valid = Hash::check($password, $user->password ?? '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2uheWG/igi.');
+        /* Il tetto per account si conta prima della verifica e si restituisce
+           a password giusta (`AccountLoginThrottle`). */
+        $tetto = AccountLoginThrottle::chiave('api', (string) $request->validated('email'));
+        AccountLoginThrottle::prenotaOppure429($tetto);
+
+        $valid = Hash::check($password, $user->password ?? self::hashFittizio());
         if (! $user instanceof User || ! $valid) {
             SecurityLog::accessoFallito($request->validated('email'));
             throw new ApiException(ApiErrorCode::InvalidCredentials);
         }
 
+        AccountLoginThrottle::restituisci($tetto);
         $user->forceFill(['last_active_at' => Carbon::now()])->save();
 
         return ApiResponse::item([
@@ -86,6 +95,29 @@ final class AuthController extends Controller
             'user' => UserResource::toArray($user),
             'message' => __('api.auth.logged_in'),
         ]);
+    }
+
+    /**
+     * L'hash contro cui si confronta la password quando l'account non c'è.
+     *
+     * Deve costare quanto quelli veri: scritto a mano con costo 10, contro il
+     * 12 degli hash reali, rispondeva quattro volte più in fretta per le email
+     * inesistenti, e il tempo diceva quello che il messaggio taceva. Si genera
+     * con l'hasher configurato e si rigenera quando la configurazione cambia
+     * (`needsRehash`). Sta in cache e non in una proprietà statica perché ogni
+     * richiesta è un processo nuovo: rigenerarlo ogni volta costerebbe un
+     * bcrypt in più proprio sulle email inesistenti.
+     */
+    private static function hashFittizio(): string
+    {
+        $hash = Cache::get('auth:hash-fittizio');
+
+        if (! is_string($hash) || Hash::needsRehash($hash)) {
+            $hash = Hash::make(Str::random(40));
+            Cache::forever('auth:hash-fittizio', $hash);
+        }
+
+        return $hash;
     }
 
     /**

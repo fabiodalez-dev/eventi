@@ -197,6 +197,8 @@ return [
         'mandatory' => 'Gli avvisi di annullamento e di cambio orario delle date che hai salvato arrivano sempre: sono la ragione per cui salvare una data serve a qualcosa.',
         'submit' => 'Salva le preferenze',
         'account' => 'Hai un account: dal profilo puoi cambiare anche fuso orario, lingua e ore di silenzio.',
+        'signed_only' => 'Da questo collegamento puoi solo ridurre ciò che ricevi. Per attivare una notifica, togliere le ore di silenzio o iscriverti alla newsletter serve l’accesso.',
+        'signed_only_login' => 'Accedi',
     ],
 
     /*

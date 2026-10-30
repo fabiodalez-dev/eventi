@@ -23,6 +23,7 @@ use App\Http\Controllers\Web\Account\SavedController;
 use App\Http\Controllers\Web\Account\SavedSearchController;
 use App\Http\Controllers\Web\GoogleCalendarController;
 use App\Http\Controllers\Web\PresenceController;
+use App\Http\Middleware\BlockWhileImpersonating;
 use App\Http\Middleware\PersonalizeDiscovery;
 use App\Http\Middleware\RequireConfirmedAccount;
 use App\Http\Middleware\TicketingPrivacy;
@@ -86,38 +87,49 @@ Route::middleware('guest')->group(function (): void {
         ->name('account.magic-link.store');
 
     /*
-     * Reimpostare la password (§15.2).
-     *
-     * L'indirizzo `/reimposta-password` non e' una scelta libera: e' quello
-     * che `ResetPasswordLink` mette nei messaggi quando
-     * `API_PASSWORD_RESET_URL` non e' impostato — cioe' in produzione. Finche'
-     * questa rotta non e' esistita, quel collegamento portava a un 404.
-     *
-     * Lo stesso `throttle` dell'accesso: chiedere collegamenti a raffica su
-     * indirizzi altrui e' un modo per riempire caselle di posta che non sono
-     * tue.
-     */
-    Route::get('/password-dimenticata', [PasswordResetController::class, 'create'])
-        ->name('account.password.request');
-    Route::post('/password-dimenticata', [PasswordResetController::class, 'store'])
-        ->middleware(['throttle:account-auth', 'throttle:outbound-email'])
-        ->name('account.password.email');
-
-    Route::get('/reimposta-password', [PasswordResetController::class, 'edit'])
-        ->name('account.password.reset');
-    Route::post('/reimposta-password', [PasswordResetController::class, 'update'])
-        ->middleware('throttle:account-auth')
-        ->name('account.password.update');
-
-    /*
      * Il collegamento di accesso: la firma la verifica il middleware, il
      * resto — che la password non sia cambiata nel frattempo — il controller.
+     * Aperto in un browser diverso da quello che l'ha chiesto, la GET mostra
+     * solo la conferma: entra il POST, con CSRF, verso lo stesso indirizzo.
      */
-    Route::get('/accedi/collegamento/{user}', [MagicLinkController::class, 'login'])
+    Route::get('/accedi/collegamento/{user}', [MagicLinkController::class, 'show'])
         ->middleware('signed')
         ->whereNumber('user')
         ->name('account.magic-link.login');
+    Route::post('/accedi/collegamento/{user}', [MagicLinkController::class, 'login'])
+        ->middleware('signed')
+        ->whereNumber('user')
+        ->name('account.magic-link.confirm');
 });
+
+/*
+ * Reimpostare la password (§15.2).
+ *
+ * L'indirizzo `/reimposta-password` non e' una scelta libera: e' quello
+ * che `ResetPasswordLink` mette nei messaggi quando
+ * `API_PASSWORD_RESET_URL` non e' impostato — cioe' in produzione. Finche'
+ * questa rotta non e' esistita, quel collegamento portava a un 404.
+ *
+ * Lo stesso `throttle` dell'accesso: chiedere collegamenti a raffica su
+ * indirizzi altrui e' un modo per riempire caselle di posta che non sono
+ * tue.
+ *
+ * Fuori dal gruppo `guest`: chi entra sempre con il collegamento non ha mai
+ * scelto una password, e la cancellazione dell'account la chiede. Il
+ * suggerimento sotto quel campo porta qui, e da collegati un rimando altrove
+ * lo renderebbe falso.
+ */
+Route::get('/password-dimenticata', [PasswordResetController::class, 'create'])
+    ->name('account.password.request');
+Route::post('/password-dimenticata', [PasswordResetController::class, 'store'])
+    ->middleware(['throttle:account-auth', 'throttle:outbound-email'])
+    ->name('account.password.email');
+
+Route::get('/reimposta-password', [PasswordResetController::class, 'edit'])
+    ->name('account.password.reset');
+Route::post('/reimposta-password', [PasswordResetController::class, 'update'])
+    ->middleware('throttle:account-auth')
+    ->name('account.password.update');
 
 /*
  * La conferma dell'indirizzo non pretende una sessione: chi apre il messaggio
@@ -142,6 +154,7 @@ Route::middleware('signed')->group(function (): void {
 
     Route::patch('/notifiche/preferenze/{user}', [NotificationSettingsController::class, 'update'])
         ->whereNumber('user')
+        ->middleware(BlockWhileImpersonating::class)
         ->name('notifications.preferences.update');
 
     Route::get('/notifiche/disiscriviti/{user}/{type}', [NotificationSettingsController::class, 'unsubscribe'])
@@ -153,7 +166,12 @@ Route::middleware('signed')->group(function (): void {
         ->name('notifications.unsubscribe.submit');
 });
 
-Route::middleware(['auth', RequireConfirmedAccount::class])->group(function (): void {
+/*
+ * Durante l'impersonificazione l'amministratore guarda l'area personale ma
+ * non scrive a nome della persona (`BlockWhileImpersonating`): l'uscita
+ * resta sempre libera.
+ */
+Route::middleware(['auth', RequireConfirmedAccount::class, BlockWhileImpersonating::class])->group(function (): void {
     Route::prefix('il-mio-calendario/google')->name('google-calendar.')->middleware(TicketingPrivacy::class)->group(function (): void {
         Route::get('/', [GoogleCalendarController::class, 'index'])->name('index');
         Route::get('/da-app/{user}', [GoogleCalendarController::class, 'mobile'])->whereNumber('user')->middleware('signed')->name('mobile');
@@ -184,7 +202,7 @@ Route::middleware(['auth', RequireConfirmedAccount::class])->group(function (): 
     Route::post('/ricerche-salvate', [SavedSearchController::class, 'store'])->middleware('throttle:20,1,saved-search')->name('account.searches.store');
     Route::delete('/ricerche-salvate/{search}', [SavedSearchController::class, 'destroy'])->whereNumber('search')->middleware('throttle:20,1,saved-search')->name('account.searches.destroy');
     Route::patch('/notifiche/interessi', [NotificationInterestsController::class, 'update'])->name('account.notifications.interests.update');
-    Route::post('/esci', [LoginController::class, 'destroy'])->name('account.logout');
+    Route::post('/esci', [LoginController::class, 'destroy'])->withoutMiddleware(BlockWhileImpersonating::class)->name('account.logout');
 
     /*
      * La stessa pagina delle preferenze, raggiungibile da dentro il sito.
@@ -244,8 +262,12 @@ Route::middleware(['auth', RequireConfirmedAccount::class])->group(function (): 
 
     Route::get('/il-mio-profilo', [ProfileController::class, 'edit'])->name('account.profile');
     Route::patch('/il-mio-profilo', [ProfileController::class, 'update'])->name('account.profile.update');
-    Route::get('/il-mio-profilo/dati', [ProfileController::class, 'export'])->name('account.profile.export');
-    Route::delete('/il-mio-profilo', [ProfileController::class, 'destroy'])->name('account.profile.destroy');
+    /* Lo scarico porta tutto il dossier personale in un colpo solo: cinque
+       l'ora bastano a chi lo chiede davvero. */
+    Route::get('/il-mio-profilo/dati', [ProfileController::class, 'export'])->middleware([BlockWhileImpersonating::class.':all', 'throttle:5,60,account-export'])->name('account.profile.export');
+    /* La password attuale qui è una prova: senza limite, chi trova una
+       sessione aperta la tirerebbe a indovinare quanto vuole. */
+    Route::delete('/il-mio-profilo', [ProfileController::class, 'destroy'])->middleware('throttle:5,15,account-delete')->name('account.profile.destroy');
 
     Route::get('/il-mio-feed', FeedController::class)->middleware(PersonalizeDiscovery::class)->name('account.feed');
 

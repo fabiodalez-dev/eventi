@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Admin\Pages;
 
+use App\Enums\UserRole;
 use App\Models\NotificationText;
 use App\Models\User;
 use App\Support\NotificationTextCatalog;
@@ -50,11 +51,47 @@ class NotificationTexts extends Page implements HasSchemas
     /** @var array<string, mixed> */
     public array $data = [];
 
+    /**
+     * Questi testi partono dal nostro indirizzo verso tutti gli iscritti, piede
+     * comune compreso: li riscrive l'amministrazione, non il moderatore, che
+     * cura i contenuti degli altri.
+     */
     public static function canAccess(): bool
     {
         $utente = Auth::user();
 
-        return $utente instanceof User && $utente->isEditorialStaff();
+        return $utente instanceof User && $utente->hasAnyRole([UserRole::Admin->value, UserRole::SuperAdmin->value]);
+    }
+
+    /**
+     * Le chiavi della newsletter si scrivono dalla pagina Newsletter, che è
+     * dell'amministratore di sistema: qui non compaiono a chi non lo è, e
+     * nessun salvataggio o ripristino le tocca.
+     *
+     * @return list<string>
+     */
+    private static function riservate(): array
+    {
+        return Auth::user()?->hasRole(UserRole::SuperAdmin->value) === true ? [] : array_values(Newsletter::texts());
+    }
+
+    /**
+     * Il catalogo per gruppi, senza le chiavi riservate.
+     *
+     * @return array<string, array{etichetta: string, testi: array<string, array{predefinito: string, attuale: string, modificato: bool}>}>
+     */
+    private static function gruppi(): array
+    {
+        $riservate = self::riservate();
+        $gruppi = [];
+        foreach (NotificationTextCatalog::perGruppo() as $nome => $gruppo) {
+            $gruppo['testi'] = array_diff_key($gruppo['testi'], array_flip($riservate));
+            if ($gruppo['testi'] !== []) {
+                $gruppi[$nome] = $gruppo;
+            }
+        }
+
+        return $gruppi;
     }
 
     public static function getNavigationLabel(): string
@@ -81,7 +118,7 @@ class NotificationTexts extends Page implements HasSchemas
     {
         $valori = [];
 
-        foreach (NotificationTextCatalog::perGruppo() as $gruppo) {
+        foreach (self::gruppi() as $gruppo) {
             foreach ($gruppo['testi'] as $chiave => $testo) {
                 $valori[self::campo($chiave)] = $testo['attuale'];
             }
@@ -94,7 +131,7 @@ class NotificationTexts extends Page implements HasSchemas
     {
         $schede = [];
 
-        foreach (NotificationTextCatalog::perGruppo() as $nome => $gruppo) {
+        foreach (self::gruppi() as $gruppo) {
             $campi = [];
 
             foreach ($gruppo['testi'] as $chiave => $testo) {
@@ -156,7 +193,7 @@ class NotificationTexts extends Page implements HasSchemas
         /** @var array<string, string> $valori */
         $valori = $this->modulo()->getState();
         $errors = [];
-        foreach (NotificationTextCatalog::predefiniti() as $key => $default) {
+        foreach (array_diff_key(NotificationTextCatalog::predefiniti(), array_flip(self::riservate())) as $key => $default) {
             $unknown = array_diff(NotificationTextCatalog::variabili((string) ($valori[self::campo($key)] ?? '')), NotificationTextCatalog::variabili($default));
             if ($unknown !== []) {
                 $errors['data.'.self::campo($key)] = __('notification_texts.invalid', ['tokens' => implode(', ', $unknown)]);
@@ -169,7 +206,7 @@ class NotificationTexts extends Page implements HasSchemas
         $scritti = 0;
         $ripristinati = 0;
 
-        foreach (NotificationTextCatalog::perGruppo() as $gruppo) {
+        foreach (self::gruppi() as $gruppo) {
             foreach ($gruppo['testi'] as $chiave => $testo) {
                 $nuovo = trim((string) ($valori[self::campo($chiave)] ?? ''));
 
@@ -204,7 +241,7 @@ class NotificationTexts extends Page implements HasSchemas
     public function ripristinaTutto(): void
     {
         abort_unless(static::canAccess(), 403);
-        NotificationText::query()->delete();
+        NotificationText::query()->whereNotIn('key', self::riservate())->delete();
         NotificationText::dimenticaLaCache();
         $this->mount();
 

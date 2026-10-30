@@ -23,7 +23,7 @@
     ])
 >
     <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <strong>{{ \Illuminate\Support\Str::before($comment->user->name, ' ') }}</strong>
+        <strong>{{ \App\Support\PublicName::first($comment->user) }}</strong>
         <time class="text-xs text-ink-muted" datetime="{{ $comment->created_at?->toIso8601String() }}">
             {{ $comment->created_at?->diffForHumans() }}
         </time>
@@ -132,7 +132,7 @@
                 @csrf
                 <input type="hidden" name="parent_id" value="{{ $comment->id }}">
                 <label class="flex flex-col gap-1.5">
-                    <span class="text-sm font-semibold">{{ __('comments.reply_to', ['name' => \Illuminate\Support\Str::before($comment->user->name, ' ')]) }}</span>
+                    <span class="text-sm font-semibold">{{ __('comments.reply_to', ['name' => \App\Support\PublicName::first($comment->user)]) }}</span>
                     <textarea name="body" rows="3" minlength="3" maxlength="2000" required class="w-full border-2 border-line bg-canvas p-3 focus:border-brand focus:outline-none">{{ (int) old('parent_id') === $comment->id ? old('body') : '' }}</textarea>
                     @if ((int) old('parent_id') === $comment->id) @error('body')<p role="alert">{{ $message }}</p>@enderror @endif
                 </label>

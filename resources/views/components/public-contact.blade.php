@@ -3,7 +3,9 @@
 @if ($contact['enabled'])
 <section id="contatta" class="my-8 scroll-mt-28 border-t border-line pt-6">
     <h2 class="mb-4 text-2xl font-bold">{{ __('contact.title') }} {{ $target->name }}</h2>
-    @if(auth()->check() || $contact['guests'])
+    @if(auth()->check() && ! auth()->user()->hasVerifiedEmail())
+        <a class="underline" href="{{ route('verification.notice') }}">{{ __('community.email_required') }}</a>
+    @elseif(auth()->check() || $contact['guests'])
     <form method="POST" action="{{ route('public.contact', ['type' => $target instanceof \App\Models\Venue ? 'venues' : 'organizers', 'slug' => $target->slug]) }}" class="flex flex-col gap-4">
         @csrf
         @guest

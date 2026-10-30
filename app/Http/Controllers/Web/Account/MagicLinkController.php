@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Web\Account;
 
+use App\Actions\Account\ClaimMailbox;
 use App\DTOs\PageMeta;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Web\Account\AuthEntryRequest;
@@ -16,18 +17,21 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 /**
  * Accesso senza password (§15.2), che il piano raccomanda come opzione
  * primaria: per un uso saltuario come questo, una password da ricordare è
  * attrito puro e l'attrito si paga in account che non nascono.
  *
- * Tre difese, e servono tutte e tre:
+ * Quattro difese, e servono tutte e quattro:
  *
  * - il collegamento è **firmato** e scade in quindici minuti;
  * - porta un'impronta della password in vigore, così cambiarla invalida i
  *   collegamenti già spediti;
- * - la risposta al modulo è sempre la stessa, esista o no quell'indirizzo.
+ * - la risposta al modulo è sempre la stessa, esista o no quell'indirizzo;
+ * - entra con un clic solo nel browser che l'ha chiesto: altrove chiede di
+ *   confermare su quale account si sta entrando.
  */
 final class MagicLinkController extends Controller
 {
@@ -49,7 +53,20 @@ final class MagicLinkController extends Controller
     {
         $user = User::query()->where('email', (string) $request->validated('email'))->first();
 
-        $user?->notify(new MagicLoginLink);
+        /*
+         * Il segreto del browser che chiede il collegamento: il link ne porta
+         * l'impronta, e aperto qui entra senza altri passaggi. Si scrive
+         * sempre, esista o no l'account, perché scriverlo solo per gli
+         * indirizzi veri direbbe quali sono registrati. Qui resta anche la
+         * scelta «resta collegato», che vale per questo browser.
+         */
+        $segreto = Str::random(40);
+        $request->session()->put('magic_link', [
+            'browser' => $segreto,
+            'remember' => $request->boolean('remember'),
+        ]);
+
+        $user?->notify(new MagicLoginLink(browser: hash('sha256', $segreto)));
 
         return redirect()
             ->route('account.magic-link')
@@ -57,10 +74,51 @@ final class MagicLinkController extends Controller
     }
 
     /**
+     * L'apertura del collegamento (GET). Nel browser che l'ha chiesto entra
+     * subito; altrove non consuma niente e mostra su quale account si sta per
+     * entrare, con un pulsante che manda un POST protetto da CSRF.
+     *
+     * Così un collegamento valido per il proprio account, girato a un altro o
+     * aperto con un rinvio, non lo fa entrare a sua insaputa in un account
+     * altrui (login CSRF); e gli scanner di posta, che aprono ogni indirizzo
+     * prima della persona, non lo bruciano.
+     */
+    public function show(Request $request, User $user, ClaimMailbox $claim): View|RedirectResponse
+    {
+        $fingerprint = $request->query('fingerprint');
+
+        if (! is_string($fingerprint) || ! hash_equals(MagicLoginLink::fingerprint($user), $fingerprint)
+            || DB::table('used_web_login_links')->where('hash', hash('sha256', $request->fullUrl()))->exists()) {
+            return redirect()->route('account.magic-link')->with('status', __('account.magic.expired'));
+        }
+
+        $segreto = $request->session()->get('magic_link.browser');
+        $browser = $request->query('browser');
+
+        if (is_string($segreto) && is_string($browser) && hash_equals(hash('sha256', $segreto), $browser)) {
+            return $this->login($request, $user, $claim);
+        }
+
+        [$locale, $dominio] = array_pad(explode('@', (string) $user->email, 2), 2, '');
+
+        return view('account.magic-link-confirm', [
+            'email' => Str::mask($locale, '*', 1).'@'.$dominio,
+            'action' => $request->fullUrl(),
+            'meta' => new PageMeta(
+                title: __('account.magic.confirm_title'),
+                heading: __('account.magic.confirm_title'),
+                indexable: false,
+            ),
+        ]);
+    }
+
+    /**
+     * L'accesso vero: dal pulsante della pagina di conferma (POST) o
+     * direttamente da `show()` nel browser che ha chiesto il collegamento.
      * La firma la verifica il middleware `signed`; qui resta da controllare
      * che la password non sia cambiata nel frattempo.
      */
-    public function login(Request $request, User $user): RedirectResponse
+    public function login(Request $request, User $user, ClaimMailbox $claim): RedirectResponse
     {
         $fingerprint = $request->query('fingerprint');
 
@@ -78,7 +136,23 @@ final class MagicLinkController extends Controller
             return redirect()->route('account.magic-link')->with('status', __('account.magic.expired'));
         }
 
-        Auth::login($user, remember: true);
+        /*
+         * «Resta collegato» solo se chiesto: dalla casella della pagina di
+         * conferma, o da quella del modulo nel browser che ha chiesto il
+         * collegamento. Un cookie che dura mesi su un computer condiviso non
+         * deve nascere da solo.
+         */
+        $remember = $request->isMethod('POST')
+            ? $request->boolean('remember')
+            : (bool) $request->session()->get('magic_link.remember', false);
+        $request->session()->forget('magic_link');
+
+        /* Il collegamento prova la casella: se password e token sono nati
+           prima di questa prova, chi li ha creati non deve restare dentro. Va
+           fatto prima di `Auth::login`, così la sessione nuova sopravvive. */
+        $claim($user);
+
+        Auth::login($user, remember: $remember);
         $request->session()->regenerate();
 
         $user->forceFill(['last_active_at' => CarbonImmutable::now()])->save();

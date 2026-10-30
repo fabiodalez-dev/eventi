@@ -103,7 +103,7 @@ it('manda il collegamento di accesso e lo fa valere una volta sola per quella pa
 
     $url = MagicLoginLink::url($user);
 
-    $this->get($url)->assertRedirect(route('account.feed'));
+    $this->post($url)->assertRedirect(route('account.feed'));
     expect(Auth::id())->toBe($user->getKey());
 
     /* Cambiare la password invalida i collegamenti già spediti: è ciò che
@@ -111,7 +111,7 @@ it('manda il collegamento di accesso e lo fa valere una volta sola per quella pa
     Auth::logout();
     $user->forceFill(['password' => bcrypt('un-altra-password')])->save();
 
-    $this->get($url)->assertRedirect(route('account.magic-link'));
+    $this->post($url)->assertRedirect(route('account.magic-link'));
     expect(Auth::check())->toBeFalse();
 });
 
@@ -188,7 +188,7 @@ it('cancella l account anonimizzandolo e spegnendo subito salvataggi e promemori
     $token = $user->createToken('Telefono')->plainTextToken;
 
     $this->actingAs($user)
-        ->delete('/il-mio-profilo', ['conferma' => __('account.profile.delete_keyword')])
+        ->delete('/il-mio-profilo', ['conferma' => __('account.profile.delete_keyword'), 'password' => 'password'])
         ->assertRedirect(route('home'));
 
     $user->refresh();

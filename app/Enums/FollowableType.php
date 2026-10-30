@@ -9,6 +9,7 @@ use App\Models\Event;
 use App\Models\Organizer;
 use App\Models\Tag;
 use App\Models\Venue;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -50,6 +51,61 @@ enum FollowableType: string
             self::Category => Category::class,
             self::Event => Event::class,
         };
+    }
+
+    /**
+     * I soggetti che il pubblico può vedere, e quindi seguire: le stesse regole
+     * delle letture pubbliche (evento pubblicato o archiviato, locale
+     * approvato o sospeso, tag approvato, categoria e organizzatore attivi).
+     *
+     * È l'unico punto di verità per «si può seguire?» e «se ne può mostrare il
+     * nome?»: senza, chiunque avesse un account poteva seguire per id una
+     * bozza, una proposta in moderazione o un locale rifiutato e leggerne
+     * titolo e slug nella risposta.
+     *
+     * @return Builder<Model>
+     */
+    public function publicQuery(): Builder
+    {
+        /** @var Builder<Model> $query */
+        $query = $this->modelClass()::query();
+        $this->constrainPublic($query);
+
+        return $query;
+    }
+
+    /**
+     * @param  Builder<Model>  $query
+     */
+    public function constrainPublic(Builder $query): void
+    {
+        match ($this) {
+            self::Venue => $query->whereIn('status', [VenueStatus::Approved, VenueStatus::Suspended]),
+            self::Organizer, self::Category => $query->where('is_active', true),
+            self::Tag => $query->where('is_approved', true),
+            self::Event => $query->whereIn('status', [EventStatus::Published, EventStatus::Archived]),
+        };
+    }
+
+    /**
+     * Le stesse regole, nella forma che `MorphTo::constrain()` vuole: chi
+     * carica i soggetti dei «segui» con questi vincoli trova `null` al posto
+     * di un evento tornato in bozza o di un locale rifiutato dopo il follow,
+     * e non ne mostra né il nome né lo slug.
+     *
+     * @return array<class-string<Model>, \Closure(Builder<Model>): void>
+     */
+    public static function publicConstraints(): array
+    {
+        $constraints = [];
+
+        foreach (self::cases() as $case) {
+            $constraints[$case->modelClass()] = static function (Builder $query) use ($case): void {
+                $case->constrainPublic($query);
+            };
+        }
+
+        return $constraints;
     }
 
     /**

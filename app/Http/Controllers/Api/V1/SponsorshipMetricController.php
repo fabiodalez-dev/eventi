@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V1\Concerns\InteractsWithApi;
 use App\Http\Controllers\Controller;
 use App\Models\Sponsorship;
 use App\Services\Sponsorship\RecordSponsorshipMetric;
+use App\Support\IpBucket;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -64,9 +65,10 @@ final class SponsorshipMetricController extends Controller
          * del `click_id` deve poter saltare quella, mai questo. E si conta
          * sull'indirizzo perche' e' l'unico dato di questa richiesta che chi
          * chiama non puo' cambiare a costo zero. Trenta all'ora per campagna e
-         * per indirizzo, gli stessi del web.
+         * per indirizzo, gli stessi del web; con IPv6 l'indirizzo è il /64,
+         * come sul web.
          */
-        $tetto = 'sponsorship-metric-api:'.($request->ip() ?? 'sconosciuto').':'.$campaign->getKey().':'.$metric;
+        $tetto = 'sponsorship-metric-api:'.IpBucket::key($request->ip()).':'.$campaign->getKey().':'.$metric;
 
         if (RateLimiter::tooManyAttempts($tetto, maxAttempts: 30)) {
             return response()->json(status: 204);

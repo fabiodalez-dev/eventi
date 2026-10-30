@@ -104,7 +104,7 @@ class Newsletter extends Page
     }
 
     /** @return array<string, string> */
-    private static function texts(): array
+    public static function texts(): array
     {
         return ['subject' => 'notifications.weekend.subject', 'heading' => 'notifications.weekend.heading', 'line' => 'notifications.weekend.line', 'action' => 'notifications.actions.open_weekend'];
     }

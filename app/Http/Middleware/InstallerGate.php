@@ -11,6 +11,7 @@ use App\Services\Installer\InstallLock;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
@@ -46,10 +47,17 @@ class InstallerGate
             $problems = $this->diagnose();
 
             if ($problems !== []) {
+                /* La pagina la vede chiunque, senza accesso: il percorso
+                   assoluto del marcatore resta qui, nel log. */
+                Log::warning('Installer: marcatore presente ma database non pronto', [
+                    'lock' => $this->lock->path(),
+                    'problems' => $problems,
+                ]);
+
                 return response()->view('installer.diagnosis', [
                     'title' => __('installer.diagnosis.title'),
                     'problems' => $problems,
-                    'lock' => $this->lock->path(),
+                    'lock' => $this->lock->displayPath(),
                 ], Response::HTTP_SERVICE_UNAVAILABLE);
             }
 

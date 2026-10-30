@@ -41,6 +41,9 @@ return [
         'web' => [
             'driver' => 'session',
             'provider' => 'users',
+            /* «Resta collegato» dura trenta giorni, non i 400 predefiniti di
+               Laravel: sul sito non c'è un elenco delle sessioni da chiudere. */
+            'remember' => (int) env('AUTH_REMEMBER_MINUTES', 43200),
         ],
     ],
 
@@ -113,5 +116,14 @@ return [
     */
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
+
+    /*
+     * Quanto aspetta, in microsecondi, un accesso con password fallito sul
+     * sito e nei pannelli (`SessionGuard::attempt`). Deve superare il tempo
+     * di un bcrypt vero sul server: con i 200 ms predefiniti un indirizzo
+     * inesistente rispondeva in 200 ms e uno registrato in oltre 250 (costo
+     * 12), e il tempo diceva quali account esistono.
+     */
+    'timebox_duration' => (int) env('AUTH_TIMEBOX_DURATION', 500000),
 
 ];

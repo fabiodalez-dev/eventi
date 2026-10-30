@@ -18,6 +18,12 @@ import { savedPanel } from './saved-panel';
 import { contentAnalytics } from './content-analytics';
 
 import { sponsorshipContext } from './sponsorship-context';
+import { forgetCheckinData } from './checkin-queue';
+
+// Chi esce non lascia sul dispositivo le liste d'ingresso dello scanner.
+document.addEventListener('submit', (event) => {
+    if (event.target instanceof HTMLFormElement && event.target.matches('[data-logout]')) forgetCheckinData();
+});
 
 /*
  * Miglioramenti progressivi del sito pubblico.

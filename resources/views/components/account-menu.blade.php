@@ -120,7 +120,7 @@
             {{-- L'uscita è un modulo e non un collegamento: una richiesta che
                  cambia lo stato non deve poter partire da un `href` che
                  qualcuno può far seguire a tua insaputa. --}}
-            <form method="POST" action="{{ route('account.logout') }}" class="border-t-2 border-line">
+            <form method="POST" action="{{ route('account.logout') }}" class="border-t-2 border-line" data-logout>
                 @csrf
                 <button role="menuitem" type="submit" class="w-full px-3.5 py-2.5 text-left font-display text-[0.625rem] leading-none font-extrabold tracking-[0.14em] text-ink-muted uppercase transition-colors hover:bg-line-strong hover:text-ink">
                     {{ __('account.nav.logout') }}

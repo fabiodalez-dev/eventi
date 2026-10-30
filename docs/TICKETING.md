@@ -11,7 +11,8 @@ un inventario e non viene usata come limite implicito.
 1. Abilitazione amministrativa per locale, disattivata per impostazione iniziale.
 2. Configurazione per data: attivazione, inventario facoltativo (`null` = senza
    tetto), finestra prenotazioni, limite per account, annullamento e lista d'attesa.
-3. Prenotazione nominativa di gruppo con QR individuali. Account obbligatorio.
+3. Prenotazione nominativa di gruppo con QR individuali. Account con email confermata
+   obbligatorio per prenotare e spedire biglietti; leggere e annullare restano liberi.
    Richieste ripetute con la stessa chiave non emettono altri biglietti.
 4. Profilo sito/app: storico, QR, PDF web, cancellazione singola o di gruppo.
 5. Gestore: partecipanti, CSV, controllo ingresso, revoca, impostazioni.
@@ -151,7 +152,8 @@ I tre esempi verosimili sono «Jazz in acustico: chitarra e contrabbasso» (12 p
 atelier di illustrazione» (2 posti con lista d'attesa). La descrizione chiarisce
 che sono contenuti dimostrativi, senza prefissi «Demo» nei titoli.
 
-Account demo, password comune `DemoTicket-2026!`:
+Account demo (la password si genera alla creazione e il comando la mostra una volta sola; il
+repository è pubblico, quindi nessuna password sta nel codice):
 
 - `gestore-ticket@example.test`: Marta Berti, proprietaria del locale.
 - `biglietti@example.test`: Giulia Rossi, due nominativi già prenotati per ciascun esempio.

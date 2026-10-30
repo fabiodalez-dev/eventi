@@ -13,6 +13,7 @@ use App\Enums\VenueRole;
 use App\Enums\VenueStatus;
 use App\Notifications\VerifyEmailLink;
 use App\Support\Eloquent\VenueMemberships;
+use App\Support\SecurityLog;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Models\Contracts\HasTenants;
@@ -68,6 +69,20 @@ class User extends Authenticatable implements FilamentUser, HasTenants, MustVeri
             EventCommentReaction::query()->where('user_id', $user->id)->delete();
             EventComment::query()->where('user_id', $user->id)->delete();
         });
+
+        // Un account eliminato o ripristinato da qualcun altro (lo staff, da
+        // scheda o in blocco) lascia nel registro chi l'ha fatto.
+        static::deleted(fn (User $user) => self::logStaffChange('utente_eliminato', $user, ['definitivo' => $user->isForceDeleting()]));
+        static::restored(fn (User $user) => self::logStaffChange('utente_ripristinato', $user));
+    }
+
+    /** @param  array<string, mixed>  $dettagli */
+    private static function logStaffChange(string $evento, User $user, array $dettagli = []): void
+    {
+        $staff = auth()->user();
+        if ($staff instanceof User && $staff->isNot($user)) {
+            SecurityLog::scrivi($evento, $user, $dettagli, causa: $staff);
+        }
     }
 
     /** @var list<string> */
@@ -166,6 +181,18 @@ class User extends Authenticatable implements FilamentUser, HasTenants, MustVeri
         return $this->isWhatsappExempt()
             && $this->hasVerifiedEmail() && $this->community_suspended_at === null
             && $this->social_suspended_at === null && ! $this->trashed();
+    }
+
+    /**
+     * Una sospensione qualsiasi: globale, del social o dei passaggi in auto.
+     *
+     * È la regola che lega il numero all'account: chi ne ha una non libera
+     * l'impronta, né revocando la verifica né cancellandosi, altrimenti lo
+     * stesso numero rientrerebbe pulito su un account nuovo.
+     */
+    public function holdsAnySuspension(): bool
+    {
+        return $this->community_suspended_at !== null || $this->social_suspended_at !== null || $this->carpool_suspended_at !== null;
     }
 
     /** @return HasOne<CarpoolProfile, $this> */
@@ -597,6 +624,7 @@ class User extends Authenticatable implements FilamentUser, HasTenants, MustVeri
     {
         return [
             'email_verified_at' => 'datetime',
+            'email_claim_pending_at' => 'immutable_datetime',
             'whatsapp_phone' => 'encrypted',
             'whatsapp_verified_at' => 'immutable_datetime',
             'whatsapp_prompted_at' => 'immutable_datetime',

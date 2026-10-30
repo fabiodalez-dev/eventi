@@ -6,7 +6,9 @@ namespace App\Services\Search;
 
 use App\Models\City;
 use App\Models\SearchMiss;
+use App\Support\IpBucket;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 
 /**
@@ -17,6 +19,13 @@ use Illuminate\Support\Str;
  * termine, con il conteggio che cresce: quello che la redazione guarda non è
  * «chi» ma «quante volte». Termini troppo corti o troppo lunghi non si
  * registrano: non dicono niente, o sono un incollaggio per sbaglio.
+ *
+ * Le ricerche sono anonime e ogni termine nuovo è una riga nuova: per questo
+ * chi cerca da un indirizzo registra al massimo `PER_ACTOR_HOURLY` mancanze
+ * l'ora. Oltre, la ricerca risponde lo stesso e il registro non si muove —
+ * uno script non può gonfiare la tabella né riempire di rumore (o di parole
+ * scelte da lui) l'elenco che legge la redazione. L'indirizzo serve solo al
+ * contatore in cache: nella tabella resta, come prima, nessuno.
  */
 final class SearchMissLog
 {
@@ -24,10 +33,20 @@ final class SearchMissLog
 
     public const MAX_LENGTH = 120;
 
-    public function record(City $city, string $term): void
+    public const PER_ACTOR_HOURLY = 30;
+
+    /**
+     * `$actor` è l'indirizzo di chi cerca; senza, come da riga di comando,
+     * nessun tetto. Con IPv6 si conta il /64 (`IpBucket`): dentro il proprio
+     * prefisso un host cambia indirizzo a ogni richiesta.
+     */
+    public function record(City $city, string $term, ?string $actor = null): void
     {
         $term = Str::of($term)->squish()->lower()->limit(self::MAX_LENGTH, '')->toString();
         if (mb_strlen($term) < self::MIN_LENGTH) {
+            return;
+        }
+        if ($actor !== null && ! RateLimiter::attempt('search-miss:'.IpBucket::key($actor), self::PER_ACTOR_HOURLY, static fn (): bool => true, 3600)) {
             return;
         }
         $now = now();

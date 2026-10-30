@@ -446,6 +446,7 @@ return [
         'occurrences_updated' => 'Date aggiornate: :count.',
         'merged' => 'Tag uniti: :count eventi spostati.',
         'invitation_sent' => 'Invito inviato',
+        'already_member' => 'Questa persona è già nel locale come :role: non è partito nessun invito. Il ruolo si cambia con «Modifica» sulla sua riga.',
         'nothing_to_do' => 'Non c\'era niente da fare.',
         'collaborator_invited' => 'Invito registrato.',
         'impersonating' => 'Stai navigando come :name.',

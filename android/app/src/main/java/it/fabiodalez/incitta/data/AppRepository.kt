@@ -213,6 +213,15 @@ class AppRepository(context: Context) {
         api.post<ApiEnvelope<ApiMessage>, Map<String, String>>("auth/verification/resend", emptyMap(), requireNotNull(_session.value?.token))
     }
 
+    /**
+     * Il collegamento di conferma riportato dal sito, rimandato **col token**:
+     * così il server sa che chi conferma è chi si è registrato, e il primo
+     * accesso col collegamento via email non azzera più password e sessioni.
+     */
+    suspend fun confirmEmailLink(url: String) {
+        api.post<ApiEnvelope<ApiMessage>, Map<String, String>>("auth/verify-email", mapOf("url" to url), requireNotNull(_session.value?.token))
+    }
+
     suspend fun venueReviews(slug: String, page: Int = 1): VenueReviewPage =
         api.get<ApiEnvelope<VenueReviewPage>>("venues/${slug.urlEncoded()}/reviews?page=$page", _session.value?.token).data
 

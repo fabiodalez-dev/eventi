@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
+use App\Actions\Account\ClaimMailbox;
 use App\Enums\ApplicationKind;
 use App\Enums\ApplicationStatus;
 use App\Enums\VenueRole;
@@ -192,7 +193,12 @@ final class ApproveVenueApplication
                 'reviewed_at' => now(),
             ])->save();
 
-            $utente->notify(new OrganizerAccessGranted($organizzatore, $nuovo));
+            // Come per l'invito in un locale: un account con la casella non
+            // dimostrata perde le credenziali e riceve il collegamento per
+            // sceglierne una, invece di trovarsi chi l'ha registrato dentro
+            // `/organizza`.
+            $sceltaPassword = $nuovo || app(ClaimMailbox::class)->revocaPerAccessoConcesso($utente, $moderatore);
+            $utente->notify(new OrganizerAccessGranted($organizzatore, $sceltaPassword));
 
             return $organizzatore;
         });

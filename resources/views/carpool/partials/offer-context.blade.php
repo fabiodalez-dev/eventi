@@ -5,7 +5,7 @@
     <p class="text-sm text-ink-muted">{{ $offer['event_location'] }} · {{ $offer['status_label'] }}</p>
     <div class="flex flex-wrap gap-5 text-sm font-semibold">
         @if($offer['event_url'])<a class="inline-flex min-h-12 items-center underline" href="{{ $offer['event_url'] }}">{{ __('carpool.event') }}</a>@endif
-        <a class="inline-flex min-h-12 items-center underline" href="{{ $offer['map_url'] }}" rel="noopener" target="_blank">{{ __('carpool.map') }}</a>
+        @if($offer['map_url'])<a class="inline-flex min-h-12 items-center underline" href="{{ $offer['map_url'] }}" rel="noopener" target="_blank">{{ __('carpool.map') }}</a>@endif
     </div>
 </div>
 

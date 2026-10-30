@@ -1,11 +1,17 @@
 // Pending reads survive a reload when a storage is given, but the server
 // alone confirms an admission: offline, the door only knows "in the list".
+// Only a pending read keeps its code in clear: once the server has answered,
+// the code is dropped, and settled reads older than `keepHours` are forgotten.
+// On a shared tablet the next person must not find valid QR codes in storage.
 export class CheckinQueue {
-    constructor(send, key = () => crypto.randomUUID(), storage = null) {
+    constructor(send, key = () => crypto.randomUUID(), storage = null, keepHours = 24, now = () => Date.now()) {
         this.send = send;
         this.key = key;
         this.storage = storage;
-        this.entries = storage?.read() ?? [];
+        const oldest = now() - keepHours * 3600000;
+        this.entries = (storage?.read() ?? [])
+            .filter((entry) => entry.state === 'pending' || Date.parse(entry.scannedAt ?? '') >= oldest)
+            .map((entry) => (entry.state === 'pending' ? entry : settle(entry)));
         this.running = false;
     }
     add(code, extra = {}) {
@@ -29,6 +35,7 @@ export class CheckinQueue {
                     const result = await this.send(entry);
                     entry.state = result.accepted ? 'accepted' : 'rejected';
                     entry.message = result.message;
+                    delete entry.code;
                 } catch {
                     // A timeout can follow a committed check-in. Retry the SAME key.
                     this.persist();
@@ -44,17 +51,30 @@ export class CheckinQueue {
     }
 }
 
+function settle(entry) {
+    const { code, ...rest } = entry;
+    return rest;
+}
+
 // What the door knows without network: hashed codes, names, last known state.
 // Codes never reach the browser in clear; the page hashes what it scans.
+// The names do: the list is thrown away once the door window has closed and
+// the late-sync margin has passed, the same rule the Android app applies.
 export class CheckinManifest {
-    constructor(storage, digest = sha256Hex) {
+    constructor(storage, digest = sha256Hex, lateSyncHours = 24, now = () => Date.now()) {
         this.storage = storage;
         this.digest = digest;
         this.data = storage?.read() ?? null;
+        const until = Date.parse(this.data?.until ?? '');
+        if (this.data && (!Number.isFinite(until) || now() > until + lateSyncHours * 3600000)) this.clear();
     }
     load(payload) {
-        this.data = { generatedAt: payload.generated_at, tickets: Object.fromEntries(payload.tickets.map((t) => [t.h, { name: t.name, status: t.status }])) };
+        this.data = { generatedAt: payload.generated_at, until: payload.window?.to ?? null, tickets: Object.fromEntries(payload.tickets.map((t) => [t.h, { name: t.name, status: t.status }])) };
         this.storage?.write(this.data);
+    }
+    clear() {
+        this.data = null;
+        this.storage?.clear?.();
     }
     get loaded() {
         return this.data !== null;
@@ -85,7 +105,27 @@ export function localStorageStore(key) {
         write(value) {
             try { window.localStorage.setItem(key, JSON.stringify(value)); } catch { /* storage full or blocked: memory only */ }
         },
+        clear() {
+            try { window.localStorage.removeItem(key); } catch { /* blocked: nothing stored */ }
+        },
     };
+}
+
+// On logout the door lists go, and settled reads with them. Pending reads
+// stay: they are admissions the server has not confirmed yet, and losing them
+// would turn people who came in into no-shows.
+export function forgetCheckinData(storage = window.localStorage) {
+    try {
+        for (const key of Object.keys(storage).filter((name) => name.startsWith('checkin:'))) {
+            if (key.endsWith(':manifest')) {
+                storage.removeItem(key);
+                continue;
+            }
+            const pending = (JSON.parse(storage.getItem(key)) ?? []).filter((entry) => entry.state === 'pending');
+            if (pending.length > 0) storage.setItem(key, JSON.stringify(pending));
+            else storage.removeItem(key);
+        }
+    } catch { /* storage blocked or corrupt: nothing more to do */ }
 }
 
 export async function sha256Hex(text) {

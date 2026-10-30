@@ -63,12 +63,21 @@ final class CarpoolAccess
 
     public function canViewOffer(User $user, RideOffer $offer): bool
     {
-        if ($offer->driver_id === $user->id || $offer->requests()->where('user_id', $user->id)->exists()) {
+        if ($offer->driver_id === $user->id) {
+            return true;
+        }
+        // Il blocco viene prima della richiesta già fatta: dopo un blocco la prenotazione è annullata
+        // ma la riga resta, e senza questo controllo chi è stato bloccato continuerebbe a leggere
+        // zona, orario e tappe aggiornati di chi lo ha bloccato.
+        if ($offer->driver !== null && $this->blocked($user, $offer->driver)) {
+            return false;
+        }
+        if ($offer->requests()->where('user_id', $user->id)->exists()) {
             return true;
         }
 
         return $this->eligible($user) && $offer->driver !== null && $this->eligible($offer->driver, false)
-            && ! $this->blocked($user, $offer->driver) && $offer->status === RideStatus::Open
+            && $offer->status === RideStatus::Open
             && app(CarpoolQuery::class)->operational($offer);
     }
 

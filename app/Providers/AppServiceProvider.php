@@ -90,6 +90,7 @@ use App\Support\CurrentCity;
 use App\Support\CurrentFollows;
 use App\Support\CurrentSaves;
 use App\Support\DateFormatter;
+use App\Support\IpBucket;
 use App\Support\Lang\DatabaseOverrideLoader;
 use App\Support\SecurityLog;
 use Dedoc\Scramble\Scramble;
@@ -98,10 +99,14 @@ use Illuminate\Auth\Events\Failed;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\PasswordReset;
+use Illuminate\Auth\Events\Verified;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Contracts\Validation\UncompromisedVerifier;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Http\Client\Factory as HttpFactory;
 use Illuminate\Http\Request;
+use Illuminate\Mail\Markdown;
 use Illuminate\Notifications\Events\NotificationFailed;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Event as EventFacade;
@@ -110,6 +115,8 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Translation\FileLoader;
+use Illuminate\Validation\NotPwnedVerifier;
+use Illuminate\Validation\Rules\Password;
 use Laravel\Telescope\TelescopeApplicationServiceProvider;
 use Minishlink\WebPush\WebPush;
 use NotificationChannels\WebPush\WebPushChannel;
@@ -160,6 +167,21 @@ class AppServiceProvider extends ServiceProvider
          * `boot` perche' il traduttore viene costruito prestissimo, e a quel
          * punto il caricatore dev'essere gia' il nostro.
          */
+        /*
+         * Il controllo delle password rubate (`uncompromised()`, vedi
+         * `Password::defaults()`) lascia passare se il servizio non risponde,
+         * ma solo allo scadere del timeout: quello del framework è di 30
+         * secondi, e su hosting condiviso il proxy taglia prima, con un 504
+         * al posto della registrazione. Tre secondi in tutto, connessione
+         * compresa. `extend` e non `singleton`: il provider della validazione
+         * è differito, e quando si carica rifà il proprio binding sopra il
+         * nostro; l'estensione invece resta.
+         */
+        $this->app->extend(UncompromisedVerifier::class, static fn (
+            UncompromisedVerifier $verificatore,
+            Application $app
+        ): UncompromisedVerifier => new NotPwnedVerifier($app->make(HttpFactory::class), 3));
+
         $this->app->extend('translation.loader', static fn (
             FileLoader $vecchio,
             Application $app
@@ -250,6 +272,28 @@ class AppServiceProvider extends ServiceProvider
          */
         config(['excel.value_binder.default' => StringValueBinder::class]);
 
+        /*
+         * La politica delle password, per registrazione, reimpostazione,
+         * installatore e pannello. In produzione si rifiutano le password già
+         * finite in un furto di credenziali: è ciò che il credential stuffing
+         * prova per primo, e i limiti di frequenza da soli non lo fermano.
+         * Il controllo passa per k-anonymity (solo i primi cinque caratteri
+         * dello SHA-1 lasciano il server) e, se il servizio non risponde,
+         * lascia passare: un guasto altrui non blocca le iscrizioni. In
+         * sviluppo e nei test niente chiamate di rete.
+         */
+        Password::defaults(static fn (): Password => app()->isProduction() ? Password::min(8)->uncompromised() : Password::min(8));
+
+        /*
+         * Le email Markdown fanno dei valori stampati con `{{ }}` solo l'escape
+         * HTML: un nome di profilo o di partecipante scritto come
+         * `[testo](https://…)` diventerebbe un collegamento vero, spedito dal
+         * nostro dominio a un indirizzo scelto da chi invia. Con la codifica
+         * sicura `[`, `]` e `<` restano testo. I pulsanti passano dall'url
+         * generato dal codice e non ne risentono.
+         */
+        Markdown::withSecuredEncoding();
+
         $this->app->when(WebPushChannel::class)
             ->needs(WebPush::class)
             ->give(fn () => (new SafeWebPushFactory($this->app))->make());
@@ -270,6 +314,19 @@ class AppServiceProvider extends ServiceProvider
             if ($evento->user instanceof User) {
                 $evento->user->tokens()->delete();
                 MobileAuthChallenge::query()->where('user_id', $evento->user->getKey())->delete();
+                /* La password nuova l'ha scelta chi legge la casella: quella
+                   della registrazione non è più in sospeso, e l'indirizzo è
+                   dimostrato. Senza la verifica `ClaimMailbox` scatterebbe
+                   comunque al primo collegamento di accesso e butterebbe via
+                   proprio la password appena scelta. */
+                $daVerificare = ! $evento->user->hasVerifiedEmail();
+                $evento->user->forceFill([
+                    'email_claim_pending_at' => null,
+                    'email_verified_at' => $evento->user->email_verified_at ?? now(),
+                ])->save();
+                if ($daVerificare) {
+                    event(new Verified($evento->user));
+                }
             }
             SecurityLog::scrivi('password_reimpostata', $evento->user instanceof User ? $evento->user : null);
         });
@@ -305,9 +362,31 @@ class AppServiceProvider extends ServiceProvider
          * perche' scatta a ogni card che entra nello schermo — una pagina
          * scorsa per intero ne manda parecchie — e comunque stretto abbastanza
          * da fermare uno script. Il tetto per SINGOLA campagna, che e' quello
-         * che protegge la fattura, sta nel controller.
+         * che protegge la fattura, sta nel controller. Con IPv6 si conta il /64.
          */
-        RateLimiter::for('sponsorship-metrics', static fn (Request $request): Limit => Limit::perMinute(120)->by($request->ip() ?? 'sconosciuto'));
+        RateLimiter::for('sponsorship-metrics', static fn (Request $request): Limit => Limit::perMinute(120)->by(IpBucket::key($request->ip())));
+
+        /*
+         * La ricerca libera del sito, su `/cerca` e sugli elenchi `/eventi…`
+         * con la `q`. Non passa dalla cache (la `q` la rende personale) e ogni
+         * richiesta rifà le scansioni `LIKE` su eventi, locali e
+         * organizzatori più il conteggio della paginazione: trenta al minuto,
+         * per utente o per indirizzo (il /64 con IPv6). Senza `q` gli elenchi
+         * restano liberi e serviti dalla cache. Vale anche per elenchi di
+         * locali e organizzatori, feed e marcatori della mappa, con un
+         * contatore per rotta: la mappa rilegge i marcatori a ogni
+         * spostamento e non deve consumare la ricerca, quindi ne ha di più.
+         */
+        RateLimiter::for('search', static function (Request $request): Limit {
+            if (! $request->filled('q')) {
+                return Limit::none();
+            }
+            $utente = $request->user();
+            $rotta = $request->routeIs('map.markers', '*.map.markers') ? 'mappa' : 'elenchi';
+
+            return Limit::perMinute($rotta === 'mappa' ? 90 : 30)
+                ->by($rotta.':'.($utente !== null ? 'utente:'.$utente->getAuthIdentifier() : 'ip:'.IpBucket::key($request->ip())));
+        });
 
         /*
          * Limiti dell'API (§13.4): 60 richieste al minuto per chi non è
@@ -355,18 +434,9 @@ class AppServiceProvider extends ServiceProvider
                    un indirizzo solo. */
                 Limit::perMinute(config()->integer('api.rate_limit.auth'))->by($indirizzo.'|'.$conto),
 
-                /*
-                 * IL BERSAGLIO, indipendentemente da chi prova.
-                 *
-                 * Il limite sulla coppia vale per la COPPIA: con un pool di
-                 * mille indirizzi — e si affittano a poco — chi attacca
-                 * ottiene mille volte quel tetto sullo stesso account, e il
-                 * conto non se ne accorge. Questa riga conta i tentativi
-                 * subiti dall'account, che è la grandezza che interessa a chi
-                 * quell'account lo possiede.
-                 */
-                Limit::perMinutes(15, config()->integer('api.rate_limit.attempts_per_account'))
-                    ->by('conto:'.$conto),
+                /* IL BERSAGLIO, indipendentemente da chi prova: vedi
+                   `limitiPerConto()`. */
+                ...self::limitiPerConto($request, $conto),
 
                 /*
                  * L'ATTACCANTE, indipendentemente da quanti account prova.
@@ -418,18 +488,9 @@ class AppServiceProvider extends ServiceProvider
                    un indirizzo solo. */
                 Limit::perMinute(config()->integer('api.rate_limit.auth'))->by($indirizzo.'|'.$conto),
 
-                /*
-                 * IL BERSAGLIO, indipendentemente da chi prova.
-                 *
-                 * Il limite sulla coppia vale per la COPPIA: con un pool di
-                 * mille indirizzi — e si affittano a poco — chi attacca
-                 * ottiene mille volte quel tetto sullo stesso account, e il
-                 * conto non se ne accorge. Questa riga conta i tentativi
-                 * subiti dall'account, che è la grandezza che interessa a chi
-                 * quell'account lo possiede.
-                 */
-                Limit::perMinutes(15, config()->integer('api.rate_limit.attempts_per_account'))
-                    ->by('conto:'.$conto),
+                /* IL BERSAGLIO, indipendentemente da chi prova: vedi
+                   `limitiPerConto()`. */
+                ...self::limitiPerConto($request, $conto),
 
                 /*
                  * L'ATTACCANTE, indipendentemente da quanti account prova.
@@ -558,5 +619,69 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(EventCollection::class, EventCollectionPolicy::class);
         Gate::policy(EventComment::class, EventCommentPolicy::class);
         Gate::policy(CommunityComment::class, CommunityCommentPolicy::class);
+    }
+
+    /**
+     * IL BERSAGLIO, indipendentemente da chi prova: il tetto per account di
+     * `api-auth` e `account-auth`.
+     *
+     * Il limite sulla coppia vale per la COPPIA: con un pool di mille
+     * indirizzi — e si affittano a poco — chi attacca ottiene mille volte quel
+     * tetto sullo stesso account. Qui si contano i tentativi subiti
+     * dall'account, ma con tre attenzioni, perché un tetto per account è anche
+     * una leva per chiudere fuori il suo titolare:
+     *
+     * - **senza un account non c'è secchio.** Scambio del collegamento,
+     *   verifica dell'email e richieste senza il campo `email` davano la
+     *   chiave `conto:` vuota, uguale per tutti: venti richieste anonime
+     *   chiudevano a tutti il collegamento di accesso e la conferma. Il
+     *   gettone e la firma che quelle rotte verificano non si indovinano, e
+     *   restano la coppia e l'indirizzo;
+     * - **l'accesso con password conta solo i fallimenti**, e ha un secchio
+     *   suo, tenuto da `AccountLoginThrottle` nel controller e non qui: chi
+     *   prova password altrui non riempie quello del collegamento di
+     *   accesso o della password dimenticata, che restano la via d'uscita del
+     *   titolare. Non lo condivide nemmeno la nuova password scelta da
+     *   `/reimposta-password`: il gettone del messaggio non si indovina;
+     * - **le rotte che spediscono un messaggio** contano sulla casella di
+     *   destinazione ogni richiesta, così che un pool di indirizzi non la
+     *   sommerga; chi è collegato e chiede di rispedire la conferma conta
+     *   sul proprio utente.
+     *
+     * @return list<Limit>
+     */
+    private static function limitiPerConto(Request $request, string $conto): array
+    {
+        $tetto = Limit::perMinutes(15, config()->integer('api.rate_limit.attempts_per_account'));
+
+        if ($request->routeIs('account.login.store', 'api.v1.auth.login')) {
+            /* Il tetto dell'accesso con password lo conta il controller con
+               `AccountLoginThrottle`: qui il colpo andrebbe contato o prima
+               (anche gli accessi riusciti) o dopo la risposta (e le richieste
+               in volo passerebbero tutte il controllo). */
+            return [];
+        }
+
+        if ($conto !== '' && $request->routeIs('account.magic-link.store', 'account.password.email', 'api.v1.auth.register', 'api.v1.auth.magic-link', 'api.v1.auth.password.forgot')) {
+            return [$tetto->by('casella:'.self::identitaDelConto($conto))];
+        }
+
+        $utente = $request->user();
+
+        return $conto === '' && $utente !== null ? [$tetto->by('utente:'.$utente->getAuthIdentifier())] : [];
+    }
+
+    /**
+     * Il secchio per account va all'account, non alla stringa scritta: la
+     * collation di `users.email` non distingue maiuscole né accenti, quindi
+     * 'àdmin@…', 'admín@…' e 'admin@…' sono lo stesso utente e devono
+     * riempire lo stesso secchio, non averne uno a testa. Quando l'account
+     * non c'è resta la stringa.
+     */
+    private static function identitaDelConto(string $conto): string
+    {
+        $id = User::query()->where('email', $conto)->value('id');
+
+        return $id !== null ? 'id:'.$id : $conto;
     }
 }

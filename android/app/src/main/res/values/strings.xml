@@ -359,4 +359,15 @@
     <string name="venue_notice_heading_until">%1$s · fino al %2$s</string>
     <string name="venue_calendar_ics">Calendario pubblico (ICS)</string>
     <string name="venue_calendar_ics_help">Le date del locale da aggiungere al tuo calendario, senza account. Si apre fuori dall’app.</string>
+    <!-- Conferma dell'email richiesta dal server (403 EMAIL_VERIFICATION_REQUIRED) -->
+    <string name="email_verification_required">Conferma il tuo indirizzo email per continuare.</string>
+    <string name="email_verification_resend">Reinvia email di conferma</string>
+    <string name="email_verification_done">Ho confermato, riprova</string>
+    <string name="email_verification_sent">Email di conferma inviata. Controlla anche la cartella spam.</string>
+    <string name="contact_verify_required">Conferma il tuo indirizzo email per scrivere a questo destinatario.</string>
+    <!-- Il collegamento di conferma riportato dalla pagina del sito (incitta://auth/verify-email) -->
+    <string name="email_link_confirmed">Indirizzo confermato anche nell’app.</string>
+    <string name="email_link_login_first">Accedi nell’app con l’account che hai creato, poi torna alla pagina di conferma e tocca di nuovo «Completa nell’app».</string>
+    <string name="email_link_invalid">Il collegamento di conferma non è valido.</string>
+    <string name="comments_unavailable_account">Al momento il tuo account non può commentare né lasciare reazioni.</string>
 </resources>

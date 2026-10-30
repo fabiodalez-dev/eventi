@@ -5,8 +5,14 @@ declare(strict_types=1);
 namespace App\Actions\Account;
 
 use App\Enums\NotificationStatus;
+use App\Models\AvailabilityAlert;
+use App\Models\BookingOpeningAlert;
 use App\Models\CommunityComment;
 use App\Models\CommunityPost;
+use App\Models\EditionAlert;
+use App\Models\EventPoll;
+use App\Models\EventPollVote;
+use App\Models\PresenceShare;
 use App\Models\ScheduledNotification;
 use App\Models\User;
 use App\Models\UserBlock;
@@ -22,6 +28,7 @@ use Illuminate\Support\Str;
  * Cancellazione dell'account, self-service e con effetto immediato (§15.2, §15.9).
  *
  * «Immediato» ha un significato preciso e verificabile: salvataggi, follow,
+ * ricerche, raccolte, link «sono qui», avvisi, sondaggi, posizione ricordata,
  * dispositivi, archivio delle notifiche e **token di accesso** spariscono nella
  * stessa transazione, e gli invii ancora in attesa passano a `cancelled` —
  * non si limitano a restare senza destinatario. Un promemoria che partisse il
@@ -56,15 +63,31 @@ final class DeleteAccount
             DB::table('community_restrictions')->where('user_id', $user->id)->delete();
             $user->savedEvents()->delete();
             $user->follows()->delete();
+            /* Il soft delete non fa scattare le chiavi `cascadeOnDelete`:
+               ricerche, raccolte (gli elementi cadono con la raccolta, che qui
+               sparisce davvero), link «sono qui», avvisi, sondaggi e voti vanno
+               tolti a mano, altrimenti una raccolta pubblica o un link ancora
+               attivo continuerebbero a mostrare note e nome di chi è sparito. */
+            $user->savedSearches()->delete();
+            $user->eventCollections()->delete();
+            foreach ([PresenceShare::class, AvailabilityAlert::class, BookingOpeningAlert::class, EditionAlert::class, EventPollVote::class, EventPoll::class] as $model) {
+                $model::query()->where('user_id', $user->id)->delete();
+            }
             $user->devices()->delete();
             $user->notifications()->delete();
             $user->tokens()->delete();
 
             // Chi è stato sospeso per abuso non deve potersi reiscrivere con lo stesso numero
             // cancellando l'account: resta l'impronta (non il numero) e la sospensione che la motiva.
-            $suspended = $user->community_suspended_at !== null;
+            // Vale per ogni ambito: una sospensione dai passaggi o dal social pesa quanto quella globale.
+            $suspended = $user->holdsAnySuspension();
             $user->forceFill([
                 'name' => null,
+                'first_name' => null,
+                'last_name' => null,
+                // Le esigenze di accessibilità sono dati sanitari (art. 9 GDPR).
+                'content_preferences' => null,
+                'remembered_location' => null, 'location_expires_at' => null, 'location_lat' => null, 'location_lng' => null,
                 'email' => $this->anonymousEmail($user),
                 'password' => Hash::make(Str::random(64)),
                 'remember_token' => null,
@@ -75,7 +98,7 @@ final class DeleteAccount
                 'last_active_at' => null,
                 'email_verified_at' => null,
                 'whatsapp_phone' => null, 'whatsapp_verified_at' => null, 'whatsapp_prompted_at' => null,
-                ...($suspended ? [] : ['whatsapp_phone_hash' => null, 'community_suspended_at' => null]),
+                ...($suspended ? [] : ['whatsapp_phone_hash' => null, 'community_suspended_at' => null, 'social_suspended_at' => null, 'carpool_suspended_at' => null]),
             ])->save();
 
             $user->delete();

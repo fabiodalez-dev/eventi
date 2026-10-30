@@ -78,4 +78,17 @@ class InstallLock
     {
         return $this->path;
     }
+
+    /**
+     * Il percorso da mostrare in una pagina: relativo alla cartella
+     * dell'applicazione, che chi amministra conosce. Quello assoluto dice a
+     * chiunque il nome dell'account sull'hosting e la struttura delle
+     * cartelle, e resta nel log. Fuori dall'applicazione basta il nome.
+     */
+    public function displayPath(): string
+    {
+        $base = rtrim(base_path(), DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR;
+
+        return str_starts_with($this->path, $base) ? substr($this->path, strlen($base)) : basename($this->path);
+    }
 }

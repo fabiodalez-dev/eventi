@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1\Auth;
 
+use App\Actions\Account\ClaimMailbox;
 use App\Enums\ApiErrorCode;
 use App\Exceptions\ApiException;
 use App\Http\Controllers\Controller;
@@ -20,11 +21,11 @@ use Illuminate\Support\Facades\DB;
 
 final class MagicLinkExchangeController extends Controller
 {
-    public function __invoke(MagicLinkExchangeRequest $request, MobileTokenIssuer $tokens): JsonResponse
+    public function __invoke(MagicLinkExchangeRequest $request, MobileTokenIssuer $tokens, ClaimMailbox $claim): JsonResponse
     {
         $hash = hash('sha256', (string) $request->validated('token'));
 
-        $result = DB::transaction(function () use ($hash, $request, $tokens): ?array {
+        $result = DB::transaction(function () use ($hash, $request, $tokens, $claim): ?array {
             $challenge = MobileAuthChallenge::query()
                 ->where('token_hash', $hash)
                 ->lockForUpdate()
@@ -44,6 +45,10 @@ final class MagicLinkExchangeController extends Controller
                 return null;
             }
             $challenge->forceFill(['used_at' => CarbonImmutable::now()])->save();
+            /* Il collegamento prova la casella: password e token nati prima di
+               questa prova si azzerano (`ClaimMailbox`). Prima di emettere il
+               token nuovo, che così sopravvive. */
+            $claim($user);
             $issued = $tokens->issue($user, $request->validated('device_name'));
             $user->forceFill(['last_active_at' => CarbonImmutable::now()])->save();
 

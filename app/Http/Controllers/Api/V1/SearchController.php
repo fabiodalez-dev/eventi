@@ -50,7 +50,7 @@ final class SearchController extends Controller
 
         $occurrences = $this->search->events($city, $term, $limit);
         if ($occurrences->isEmpty()) {
-            app(SearchMissLog::class)->record($city, $term);
+            app(SearchMissLog::class)->record($city, $term, $request->ip());
         }
         $includes = $request->includes();
 

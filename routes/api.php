@@ -87,15 +87,16 @@ Route::prefix('v1')->middleware(['auth:sanctum', TicketingPrivacy::class])->grou
         Route::get('/campaigns/{campaign}', 'economics')->whereNumber('campaign');
     });
     Route::get('/me/bookings', [TicketingController::class, 'index']);
-    Route::post('/me/bookings/{booking}/email', [TicketingController::class, 'resend'])->middleware('throttle:3,60,tickets-resend');
-    Route::post('/occurrences/{occurrence}/bookings', [TicketingController::class, 'store'])->middleware('throttle:20,1,tickets-store');
+    // Come sul sito: prenotare e spedire biglietti richiede l'indirizzo confermato (403 EMAIL_VERIFICATION_REQUIRED).
+    Route::post('/me/bookings/{booking}/email', [TicketingController::class, 'resend'])->middleware([RequireConfirmedAccount::class, 'throttle:3,60,tickets-resend']);
+    Route::post('/occurrences/{occurrence}/bookings', [TicketingController::class, 'store'])->middleware([RequireConfirmedAccount::class, 'throttle:20,1,tickets-store']);
     Route::post('/me/bookings/{booking}/cancel', [TicketingController::class, 'cancel'])->middleware('throttle:30,1,tickets-cancel');
     Route::post('/ticketing/{occurrence}/check-in', [TicketingController::class, 'checkIn'])->middleware('throttle:120,1,tickets-checkin')->name('api.ticketing.manage.checkin');
     Route::get('/ticketing/{occurrence}/manifest', [TicketingController::class, 'manifest'])->middleware('throttle:30,1,tickets-manifest');
     Route::post('/ticketing/{occurrence}/message', [TicketingController::class, 'message'])->middleware('throttle:10,1,tickets-message')->name('api.ticketing.manage.message');
     Route::post('/ticketing/{occurrence}/guest-booking', [TicketingController::class, 'guestBooking'])->middleware('throttle:60,1,tickets-guest')->name('api.ticketing.manage.guest');
-    Route::post('/me/tickets/{ticket}/wallet', [WalletPassController::class, 'store'])->middleware('throttle:30,1,tickets-wallet');
-    Route::post('/me/tickets/{ticket}/send', [SharedTicketController::class, 'send'])->middleware('throttle:10,60,tickets-share');
+    Route::post('/me/tickets/{ticket}/wallet', [WalletPassController::class, 'store'])->middleware([RequireConfirmedAccount::class, 'throttle:30,1,tickets-wallet']);
+    Route::post('/me/tickets/{ticket}/send', [SharedTicketController::class, 'send'])->middleware([RequireConfirmedAccount::class, 'throttle:10,60,tickets-share']);
 });
 
 /*
@@ -337,7 +338,7 @@ Route::prefix('v1')
                     ->name('notifications.read');
                 Route::post('/notifications/read-all', [NotificationController::class, 'readAll'])
                     ->name('notifications.read-all');
-                Route::get('/export', ExportController::class)->name('export');
+                Route::get('/export', ExportController::class)->middleware('throttle:5,60,account-export')->name('export');
             });
     });
 
