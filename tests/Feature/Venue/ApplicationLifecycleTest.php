@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Actions\ApproveVenueApplication;
+use App\Actions\RespondToVenueInvitation;
 use App\Enums\ApplicationStatus;
 use App\Enums\VenueRole;
 use App\Enums\VenueStatus;
@@ -87,8 +88,34 @@ it('invita chi ha scritto, come referente', function (): void {
     Notification::assertSentTo($invitato, VenueAccessGranted::class);
 
     /* Senza il collegamento nella pivot avremmo creato un locale che il suo
-       referente non puo' toccare: `/gestione` guarda esattamente quella. */
+       referente non puo' toccare: `/gestione` guarda esattamente quella. La
+       richiesta e' arrivata dal modulo pubblico, senza un account dietro:
+       l'appartenenza vale quando chi riceve il messaggio sceglie la password,
+       cioe' quando dimostra che la casella e' sua (D65). */
+    expect($invitato->venuesIncludingInvited()->wherePivot('role', VenueRole::Owner->value)->exists())->toBeTrue()
+        ->and($invitato->venues()->exists())->toBeFalse();
+
+    app(RespondToVenueInvitation::class)->acceptOnPassword($invitato);
     expect($invitato->venues()->wherePivot('role', VenueRole::Owner->value)->exists())->toBeTrue();
+});
+
+it('non aggancia senza consenso un account esistente scritto da altri nella richiesta', function (): void {
+    $esistente = User::factory()->create(['email' => 'anna@example.test']);
+
+    app(ApproveVenueApplication::class)->handle($this->richiesta, $this->moderatore);
+
+    // Il modulo è pubblico: l'email di contatto non prova niente. L'invito resta da accettare.
+    expect($esistente->venuesIncludingInvited()->exists())->toBeTrue()
+        ->and($esistente->venues()->exists())->toBeFalse();
+});
+
+it('fa entrare subito chi ha mandato la richiesta da collegato con la sua casella confermata', function (): void {
+    $anna = User::factory()->create(['email' => 'anna@example.test']);
+    $this->richiesta->forceFill(['user_id' => $anna->id])->save();
+
+    app(ApproveVenueApplication::class)->handle($this->richiesta, $this->moderatore);
+
+    expect($anna->venues()->wherePivot('role', VenueRole::Owner->value)->exists())->toBeTrue();
 });
 
 it('lega la richiesta al locale che ne e nato', function (): void {

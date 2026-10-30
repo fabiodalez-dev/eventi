@@ -7,6 +7,7 @@ namespace App\Providers\Filament;
 use App\Filament\Auth\Login;
 use App\Filament\Auth\RequestPasswordReset;
 use App\Filament\Venue\Pages\Dashboard;
+use App\Filament\Venue\Pages\VenueAccess;
 use App\Models\User;
 use App\Models\Venue;
 use Filament\Actions\Action;
@@ -70,6 +71,11 @@ class VenuePanelProvider extends PanelProvider
                     ->label(fn (): string => __('manage.navigation.profile'))
                     ->icon(Heroicon::OutlinedUserCircle)
                     ->url(fn (): string => route('account.profile')),
+                // Da qui si esce da soli dal locale (D64).
+                Action::make('venue-access')
+                    ->label(fn (): string => __('manage.access.menu'))
+                    ->icon(Heroicon::OutlinedKey)
+                    ->url(fn (): string => VenueAccess::getUrl()),
             ])
             /*
              * Le statistiche stanno in un gruppo a parte, chiuso: chi entra dal

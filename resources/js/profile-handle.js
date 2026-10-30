@@ -54,7 +54,11 @@ export function profileHandle() {
                    deve sovrascrivere lo stato: senza questo controllo, digitando
                    in fretta si legge il verdetto di due lettere prima. */
                 if (data.handle !== input.value.trim().toLowerCase()) return;
-                mostra(data.available ? '✓' : '✗', data.available ? root.dataset.libero : root.dataset.occupato, data.available ? 'si' : 'no');
+                /* Un no che dipende dall'attesa fra due cambi non è «nome
+                   occupato»: lì il server dice da quando si potrà, e si mostra
+                   la sua frase. */
+                const testo = data.available ? root.dataset.libero : (data.changeable_from ? data.reason : root.dataset.occupato);
+                mostra(data.available ? '✓' : '✗', testo, data.available ? 'si' : 'no');
             } catch (errore) {
                 if (errore.name !== 'AbortError') mostra('', '', null);
             }

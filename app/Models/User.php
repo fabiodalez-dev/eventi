@@ -207,8 +207,26 @@ class User extends Authenticatable implements FilamentUser, HasTenants, MustVeri
         return $this->hasOne(CommunityProfile::class);
     }
 
-    /** @return VenueMemberships<$this> */
+    /**
+     * I locali di cui la persona fa parte davvero: solo le appartenenze
+     * **accettate** (D64). Un invito in sospeso non apre il pannello, non
+     * conta per le Policy e non fa arrivare niente: tutto ciò che passa da
+     * qui — `venueMemberships()`, `ownedVenues()`, la tenancy — lo ignora da
+     * sé, senza che ogni chiamante debba ricordarselo.
+     *
+     * Per leggere o scrivere anche gli inviti c'è `venuesIncludingInvited()`:
+     * le scritture passano da lì, perché `sync()` qui non vedrebbe la riga in
+     * sospeso e proverebbe a inserirne una seconda.
+     *
+     * @return VenueMemberships<$this>
+     */
     public function venues(): BelongsToMany
+    {
+        return $this->venuesIncludingInvited()->wherePivotNotNull('accepted_at');
+    }
+
+    /** @return VenueMemberships<$this> */
+    public function venuesIncludingInvited(): BelongsToMany
     {
         /* La stessa relazione di sempre, ma con la classe che svuota la copia
            in memoria di `venueMemberships()` a ogni scrittura sulla pivot. */
@@ -224,7 +242,7 @@ class User extends Authenticatable implements FilamentUser, HasTenants, MustVeri
         );
 
         return $relation
-            ->withPivot(['role', 'invited_at', 'accepted_at'])
+            ->withPivot(['role', 'invited_at', 'accepted_at', 'accepts_on_password'])
             ->withTimestamps();
     }
 
@@ -363,8 +381,9 @@ class User extends Authenticatable implements FilamentUser, HasTenants, MustVeri
     /**
      * I locali fra cui si può passare con lo switcher di `/gestione` (§10).
      *
-     * Sono esattamente quelli in cui la persona ha una riga in `venue_user`:
-     * lo stesso insieme che interrogano le Policy. Se un giorno divergessero,
+     * Sono esattamente quelli in cui la persona ha una riga **accettata** in
+     * `venue_user` (un invito in sospeso non conta, D64): lo stesso insieme
+     * che interrogano le Policy. Se un giorno divergessero,
      * lo switcher offrirebbe un locale che poi nessuna azione lascia toccare.
      *
      * @return Collection<int, Venue>|Collection<int, Organizer>

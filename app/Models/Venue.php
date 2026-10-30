@@ -13,9 +13,11 @@ use App\Enums\VenueRole;
 use App\Enums\VenueStatus;
 use App\Enums\VenueType;
 use App\Models\Concerns\HasCatalogReviews;
+use App\Models\Concerns\HasConfirmedContactEmail;
 use App\Models\Concerns\HasEditorialContent;
 use App\Models\Concerns\HasImageVariants;
 use App\Models\Concerns\HasSafeEditorContent;
+use App\Support\Eloquent\VenueMembers;
 use App\Support\OpeningHours;
 use Database\Factories\VenueFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -26,6 +28,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 use Laravel\Scout\Attributes\SearchUsingFullText;
 use Laravel\Scout\Searchable;
 use MatanYadaev\EloquentSpatial\Objects\Point;
@@ -45,10 +48,12 @@ use Spatie\Sluggable\SlugOptions;
  */
 /** @property ContactMode $contact_mode
  * @property string|null $contact_email
+ * @property Carbon|null $contact_email_verified_at
  */
 class Venue extends Model implements HasMedia
 {
     use HasCatalogReviews;
+    use HasConfirmedContactEmail;
     use HasEditorialContent;
 
     /** @use HasFactory<VenueFactory> */
@@ -186,11 +191,40 @@ class Venue extends Model implements HasMedia
         return $this->hasMany(Event::class);
     }
 
-    /** @return BelongsToMany<User, $this> */
+    /**
+     * Chi gestisce il locale: solo chi ha **accettato** (D64). È la relazione
+     * da cui partono le email dello staff (commenti, provvedimenti, resoconti)
+     * e il controllo «chi è del locale non lo recensisce»: un invito in
+     * sospeso non è nessuna delle due cose.
+     *
+     * @return BelongsToMany<User, $this>
+     */
     public function members(): BelongsToMany
     {
-        return $this->belongsToMany(User::class, 'venue_user')
-            ->withPivot(['role', 'invited_at', 'accepted_at'])
+        return $this->membersIncludingInvited()->wherePivotNotNull('accepted_at');
+    }
+
+    /**
+     * Anche gli inviti in sospeso: per l'elenco dei collaboratori, per la
+     * redazione e per ogni scrittura sulla pivot.
+     *
+     * @return BelongsToMany<User, $this>
+     */
+    public function membersIncludingInvited(): BelongsToMany
+    {
+        $relation = new VenueMembers(
+            User::query(),
+            $this,
+            'venue_user',
+            'venue_id',
+            'user_id',
+            $this->getKeyName(),
+            (new User)->getKeyName(),
+            'members',
+        );
+
+        return $relation
+            ->withPivot(['role', 'invited_at', 'accepted_at', 'accepts_on_password'])
             ->withTimestamps();
     }
 
@@ -198,6 +232,15 @@ class Venue extends Model implements HasMedia
     public function owners(): BelongsToMany
     {
         return $this->members()->wherePivot('role', VenueRole::Owner->value);
+    }
+
+    /**
+     * Se il locale ha già un referente, anche solo invitato e non ancora
+     * entrato: per la rivendicazione conta chi ha già ricevuto le chiavi.
+     */
+    public function hasOwnerOrInvitedOwner(): bool
+    {
+        return $this->membersIncludingInvited()->wherePivot('role', VenueRole::Owner->value)->exists();
     }
 
     /** @return BelongsToMany<User, $this> */

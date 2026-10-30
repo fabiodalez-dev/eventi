@@ -14,6 +14,8 @@ use Laravel\Sanctum\Sanctum;
 beforeEach(function (): void {
     $this->city = testCity();
     $this->venue = Venue::factory()->approved()->create(['city_id' => $this->city->id, 'contact_mode' => ContactMode::Members, 'contact_email' => 'venue-private@example.test']);
+    // Un recapito già confermato dal doppio opt-in (ContactEmailOptInTest prova la conferma).
+    $this->venue->markContactEmailConfirmed();
     $this->url = '/api/v1/venues/'.$this->venue->slug.'/contact';
     Mail::fake();
 });
@@ -53,6 +55,7 @@ it('fails closed when disabled or captcha is unconfigured and validates content'
 it('also supports active organizers and hides their private delivery address', function (): void {
     $owner = User::factory()->create();
     $organizer = Organizer::query()->create(['city_id' => $this->city->id, 'owner_id' => $owner->id, 'name' => 'Organizzatore test', 'slug' => 'organizzatore-test', 'is_active' => true, 'contact_mode' => ContactMode::Members, 'contact_email' => 'organizer-private@example.test']);
+    $organizer->markContactEmailConfirmed();
     $url = '/api/v1/organizers/'.$organizer->slug.'/contact';
     $this->getJson($url)->assertOk()->assertJsonPath('data.enabled', true)->assertDontSee('organizer-private@example.test');
     Sanctum::actingAs(User::factory()->create());

@@ -114,6 +114,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Str;
 use Illuminate\Translation\FileLoader;
 use Illuminate\Validation\NotPwnedVerifier;
 use Illuminate\Validation\Rules\Password;
@@ -662,7 +663,19 @@ class AppServiceProvider extends ServiceProvider
             return [];
         }
 
-        if ($conto !== '' && $request->routeIs('account.magic-link.store', 'account.password.email', 'api.v1.auth.register', 'api.v1.auth.magic-link', 'api.v1.auth.password.forgot')) {
+        /*
+         * La registrazione crea l'account alla prima richiesta: con la chiave
+         * di `identitaDelConto()` un indirizzo nuovo passava da 'casella:…' a
+         * 'casella:id:N' e riceveva un tetto in più di uno già registrato, e
+         * il numero della richiesta respinta diceva se l'indirizzo esisteva.
+         * Qui la chiave non guarda il database: l'email in minuscolo e senza
+         * accenti, come la collation di `users.email` (D64).
+         */
+        if ($conto !== '' && $request->routeIs('account.register.store', 'api.v1.auth.register')) {
+            return [$tetto->by('casella:'.mb_strtolower(Str::ascii($conto)))];
+        }
+
+        if ($conto !== '' && $request->routeIs('account.magic-link.store', 'account.password.email', 'api.v1.auth.magic-link', 'api.v1.auth.password.forgot')) {
             return [$tetto->by('casella:'.self::identitaDelConto($conto))];
         }
 

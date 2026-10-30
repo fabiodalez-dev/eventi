@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\ContactMode;
 use App\Models\Concerns\HasCatalogReviews;
+use App\Models\Concerns\HasConfirmedContactEmail;
 use App\Models\Concerns\HasSafeEditorContent;
 use App\Support\ContentVersion;
 use Illuminate\Database\Eloquent\Builder;
@@ -11,15 +12,18 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 use Spatie\Sluggable\HasSlug;
 use Spatie\Sluggable\SlugOptions;
 
 /** @property ContactMode $contact_mode
  * @property string|null $contact_email
+ * @property Carbon|null $contact_email_verified_at
  */
 class Organizer extends Model
 {
     use HasCatalogReviews;
+    use HasConfirmedContactEmail;
     use HasSafeEditorContent;
 
     /** @param Builder<Organizer> $query */

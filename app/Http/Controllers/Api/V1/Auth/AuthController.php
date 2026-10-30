@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1\Auth;
 
-use App\Actions\Account\RegisterUser;
+use App\Actions\Account\RequestRegistration;
 use App\Enums\ApiErrorCode;
 use App\Exceptions\ApiException;
 use App\Http\Controllers\Controller;
@@ -34,19 +34,26 @@ use Illuminate\Support\Str;
  * perde il telefono deve poter revocare quello e non il tablet. L'uscita
  * revoca **solo** il token con cui è stata chiesta, per la stessa ragione.
  *
- * La creazione dell'account non sta qui ma in `RegisterUser`: sito e API
+ * La registrazione non sta qui ma in `RequestRegistration`: sito e API
  * registrano nello stesso modo, e due copie della stessa procedura sono due
- * occasioni di dimenticarsi l'email di verifica in una delle due.
+ * occasioni di dimenticarsi il messaggio in una delle due.
  */
 final class AuthController extends Controller
 {
     public function __construct(private readonly MobileTokenIssuer $tokens) {}
 
-    public function register(RegisterRequest $request, RegisterUser $register): JsonResponse
+    /**
+     * `POST /v1/auth/register`: sempre 202 con lo stesso corpo e nessun
+     * token, che l'indirizzo sia nuovo o già registrato (D64). Il token
+     * arriva dallo scambio del collegamento spedito per posta
+     * (`MagicLinkExchangeController`), che conferma l'indirizzo e, legato a
+     * questa installazione, lascia valida la password scelta qui.
+     */
+    public function register(RegisterRequest $request, RequestRegistration $registration): JsonResponse
     {
         $data = $request->validated();
 
-        $user = $register([
+        [$user, $registrante] = $registration->account([
             'name' => is_string($data['name'] ?? null) ? $data['name'] : null,
             'first_name' => $request->validated('first_name'),
             'last_name' => $request->validated('last_name'),
@@ -55,15 +62,12 @@ final class AuthController extends Controller
             'marketing_opt_in' => $request->boolean('marketing_opt_in'),
         ]);
 
-        return ApiResponse::item([
-            ...$this->tokens->issue($user, $request->validated('device_name')),
-            'token_type' => 'Bearer',
-            'user' => UserResource::toArray($user),
-            'message' => __('api.auth.registered'),
-        ], status: 201);
+        $registration->sendFromApp($user, $registrante, $request->validated('code_challenge'));
+
+        return ApiResponse::item(['message' => __('api.auth.registration_sent')], status: 202);
     }
 
-    public function login(LoginRequest $request): JsonResponse
+    public function login(LoginRequest $request, RequestRegistration $registration): JsonResponse
     {
         $user = User::query()->where('email', (string) $request->validated('email'))->first();
 
@@ -87,6 +91,21 @@ final class AuthController extends Controller
         }
 
         AccountLoginThrottle::restituisci($tetto);
+
+        /*
+         * La password è giusta, ma la casella non è ancora dimostrata da chi
+         * l'ha scelta: può averla scelta chiunque abbia registrato questo
+         * indirizzo (D64). Niente token: riparte il messaggio della
+         * registrazione, legato a questa installazione, e la risposta lo
+         * dice. Lo sa solo chi conosce già la password, quindi non rivela
+         * niente a chi prova indirizzi.
+         */
+        if ($user->email_claim_pending_at !== null) {
+            $registration->sendFromApp($user, true, $request->validated('code_challenge'));
+
+            throw new ApiException(ApiErrorCode::EmailConfirmationPending);
+        }
+
         $user->forceFill(['last_active_at' => Carbon::now()])->save();
 
         return ApiResponse::item([

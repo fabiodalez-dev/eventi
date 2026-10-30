@@ -24,6 +24,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\Pivot;
 
 /**
  * Referenti e collaboratori del locale (§9.2, «assegnazione owner ed editor»).
@@ -39,7 +40,13 @@ use Illuminate\Database\Eloquent\Model;
  */
 class MembersRelationManager extends RelationManager
 {
-    protected static string $relationship = 'members';
+    /* Anche gli inviti in sospeso (D64): la redazione li vede, li ritira e,
+       se serve, li conferma dalla modifica della riga. */
+    protected static string $relationship = 'membersIncludingInvited';
+
+    /* Senza, Filament cercherebbe l'inverso in `venues`, che ignora gli
+       inviti: chi ne ha uno comparirebbe fra gli account da aggiungere. */
+    protected static ?string $inverseRelationship = 'venuesIncludingInvited';
 
     public static function getTitle(Model $ownerRecord, string $pageClass): string
     {
@@ -60,9 +67,13 @@ class MembersRelationManager extends RelationManager
                 ->required()
                 ->default(VenueRole::Editor->value),
 
+            /* In sola lettura: la data dell'invito sta nel link firmato
+               spedito, e riscriverla (anche solo perdendo i secondi) lo
+               invaliderebbe. */
             DateTimePicker::make('invited_at')
                 ->label(__('admin.fields.invited_at'))
-                ->seconds(false),
+                ->disabled()
+                ->dehydrated(false),
 
             DateTimePicker::make('accepted_at')
                 ->label(__('admin.fields.accepted_at'))
@@ -91,7 +102,7 @@ class MembersRelationManager extends RelationManager
                 TextColumn::make('pivot.accepted_at')
                     ->label(__('admin.fields.accepted_at'))
                     ->dateTime('d/m/Y H:i')
-                    ->placeholder(__('admin.placeholders.never')),
+                    ->placeholder(__('admin.placeholders.pending_invite')),
             ])
             ->headerActions([
                 // Accreditare il referente di un locale appena approvato
@@ -130,15 +141,23 @@ class MembersRelationManager extends RelationManager
                         // L'invito non declassa e non rimanda il messaggio a
                         // chi ha già quel ruolo: dirlo, invece di «Invito
                         // inviato» quando non parte niente.
-                        $current = $venue->members()->where('users.email', mb_strtolower(trim((string) $data['email'])))->first()?->getRelationValue('pivot')?->getAttribute('role');
-                        if ($current === VenueRole::Owner->value || $current === (string) $data['role']) {
+                        $pivot = $venue->membersIncludingInvited()->where('users.email', mb_strtolower(trim((string) $data['email'])))->first()?->getRelationValue('pivot');
+                        $pivot = $pivot instanceof Pivot ? $pivot : null;
+                        $current = $pivot?->getAttribute('role');
+                        if ($pivot !== null && ($current === VenueRole::Owner->value || $current === (string) $data['role'])) {
+                            $key = $pivot->getAttribute('accepted_at') === null ? 'admin.notifications.already_invited' : 'admin.notifications.already_member';
                             Notification::make()
-                                ->title(__('admin.notifications.already_member', ['role' => mb_strtolower(VenueRole::from((string) $current)->label())]))
+                                ->title(__($key, ['role' => mb_strtolower(VenueRole::from((string) $current)->label())]))
                                 ->warning()
                                 ->send();
 
                             return;
                         }
+
+                        /* Un account che esiste già riceve un invito da
+                           accettare (D64); per chi ha chiesto lui l'accesso
+                           c'è «Aggiungi» qui accanto, o l'approvazione della
+                           sua richiesta. */
 
                         app(InviteVenueMemberAction::class)->execute(
                             $venue,
@@ -169,8 +188,12 @@ class MembersRelationManager extends RelationManager
                             ->required()
                             ->default(VenueRole::Editor->value),
                     ])
+                    /* Aggiungere qui un account confermato è la strada della
+                       redazione per chi ha chiesto l'accesso: entra subito,
+                       senza invito da accettare (D64). */
                     ->mutateDataUsing(function (array $data): array {
                         $data['invited_at'] = now();
+                        $data['accepted_at'] = now();
 
                         return $data;
                     })
@@ -179,7 +202,15 @@ class MembersRelationManager extends RelationManager
             ])
             ->recordActions([
                 EditAction::make()->authorize(fn (): bool => $this->canManage())
-                    ->after(fn (Model $record, array $data) => $this->logAccess('accesso_locale_modificato', $record, (string) ($data['role'] ?? ''))),
+                    ->after(function (Model $record, array $data): void {
+                        /* Un invito confermato a mano dalla redazione diventa
+                           un'appartenenza vera: serve anche il ruolo globale,
+                           che l'invito da accettare non assegna più. */
+                        if ($record instanceof User && filled($data['accepted_at'] ?? null) && filled($data['role'] ?? null)) {
+                            InviteVenueMemberAction::ensureGlobalRole($record, VenueRole::from((string) $data['role']));
+                        }
+                        $this->logAccess('accesso_locale_modificato', $record, (string) ($data['role'] ?? ''));
+                    }),
                 DetachAction::make()->authorize(fn (): bool => $this->canManage())
                     ->after(fn (Model $record) => $this->logAccess('accesso_locale_revocato', $record, null)),
             ]);

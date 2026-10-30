@@ -25,6 +25,8 @@ use Tests\Support\InstallerSandbox;
 beforeEach(function (): void {
     $this->city = testCity();
     $this->venue = Venue::factory()->approved()->create(['city_id' => $this->city->id, 'contact_mode' => ContactMode::Members, 'contact_email' => 'venue-private@example.test']);
+    // Un recapito già confermato dal doppio opt-in (ContactEmailOptInTest prova la conferma).
+    $this->venue->markContactEmailConfirmed();
     $this->url = '/api/v1/venues/'.$this->venue->slug.'/contact';
     Mail::fake();
 });
@@ -68,6 +70,7 @@ it('un recapito riceve al massimo trenta messaggi al giorno, anche ruotando gli 
     $owner = User::factory()->create();
     $organizer = Organizer::query()->create(['city_id' => $this->city->id, 'owner_id' => $owner->id, 'name' => 'Stesso recapito', 'slug' => 'stesso-recapito', 'is_active' => true,
         'contact_mode' => ContactMode::Members, 'contact_email' => 'VENUE-private@example.test']);
+    $organizer->markContactEmailConfirmed();
 
     foreach (range(1, 10) as $account) {
         Sanctum::actingAs(User::factory()->create());
@@ -88,6 +91,7 @@ it('un recapito riceve al massimo trenta messaggi al giorno, anche ruotando gli 
     Mail::assertSentCount(30);
 
     $this->venue->update(['contact_email' => 'altro@example.test']);
+    $this->venue->markContactEmailConfirmed();
     $this->postJson($this->url, ['message' => 'Un altro recapito ha il suo tetto.'])->assertOk();
 });
 

@@ -93,12 +93,12 @@ it('marks no-shows only after a checked-in date has ended and blocks repeat offe
     $this->service->reserve(User::factory()->create(), $quiet, ['Dan'], (string) Str::uuid(), false);
     $this->travelTo(now()->setDate(2026, 10, 24)->setTime(2, 0));
     expect($this->service->markNoShows())->toBe(0);
-    // Three recent absences close the free booking for that person.
+    // Recent absences at the same venue close its free bookings for that person
+    // (the platform-wide block, capped per venue, is in NoShowTenantCapTest).
     config()->set('ticketing.no_show.limit', 1);
-    $future = occurrenceAt(testCity(), testCategory(), '2026-10-30 18:00:00', null, ['booking_enabled' => true]);
-    $future->event->venue->update(['ticketing_enabled' => true]);
+    $future = occurrenceAt(testCity(), testCategory(), '2026-10-30 18:00:00', null, ['booking_enabled' => true], [], $this->date->event->venue);
     expect(fn () => $this->service->reserve($this->user, $future, ['Ada'], (string) Str::uuid(), false))
-        ->toThrow(ValidationException::class, __('ticketing.errors.no_show_limit'));
+        ->toThrow(ValidationException::class, __('ticketing.errors.no_show_limit_venue'));
     $this->service->reserve(User::factory()->create(), $future, ['Zoe'], (string) Str::uuid(), false);
 });
 

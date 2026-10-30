@@ -23,6 +23,10 @@ final class LoginRequest extends ApiRequest
             'email' => ['required', 'email:filter', 'max:255'],
             'password' => ['required', 'string'],
             'device_name' => ['nullable', 'string', 'max:120'],
+            /* Serve solo all'account ancora in sospeso: il collegamento che
+               riparte si scambia con il verificatore di questa installazione
+               (`AuthController::login()`). */
+            'code_challenge' => ['nullable', 'string', 'regex:/^[A-Za-z0-9_-]{43}$/D'],
         ];
     }
 }

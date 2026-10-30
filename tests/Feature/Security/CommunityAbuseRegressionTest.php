@@ -85,6 +85,8 @@ it('non lascia accaparrare i nomi utente con una serie di cambi', function (): v
     $owner = abuseCommunityPerson();
     Sanctum::actingAs($owner);
     foreach (['nome_a', 'nome_b', 'nome_c', 'nome_d'] as $handle) {
+        // Fra due cambi passa l'attesa (D64): qui conta il registro dei nomi, non la fretta.
+        $this->travel(31)->days();
         $this->postJson('/api/v1/community/profile', ['handle' => $handle, 'display_name' => 'Titolare', 'visibility' => 'public'])->assertOk();
     }
 
@@ -97,14 +99,18 @@ it('non lascia accaparrare i nomi utente con una serie di cambi', function (): v
     $other = abuseCommunityPerson();
     Sanctum::actingAs($other);
     $this->postJson('/api/v1/community/profile', ['handle' => 'nome_a', 'display_name' => 'Altra persona', 'visibility' => 'public'])->assertOk();
+    // Passata l'attesa, così il rifiuto qui sotto viene dal registro dei nomi e non dall'attesa.
+    $this->travel(31)->days();
+    Sanctum::actingAs($other->fresh());
     $this->postJson('/api/v1/community/profile', ['handle' => 'nome_c', 'display_name' => 'Altra persona', 'visibility' => 'public'])
-        ->assertUnprocessable()->assertJsonStructure(['error' => ['fields' => ['handle']]]);
+        ->assertUnprocessable()->assertJsonPath('error.fields.handle.0', fn (string $errore): bool => ! str_contains($errore, 'potrai cambiarlo'));
 });
 
 it('permette di tornare al nome appena lasciato', function (): void {
     $owner = abuseCommunityPerson();
     Sanctum::actingAs($owner);
     foreach (['nome_a', 'nome_b', 'nome_a'] as $handle) {
+        $this->travel(31)->days();
         $this->postJson('/api/v1/community/profile', ['handle' => $handle, 'display_name' => 'Titolare', 'visibility' => 'public'])->assertOk();
     }
 

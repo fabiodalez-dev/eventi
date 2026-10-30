@@ -55,20 +55,13 @@ final class Community
             $profile = $locked->communityProfile()->firstOrNew();
             $profile->fill(collect($data)->only(['handle', 'display_name', 'bio', 'city_id', 'visibility'])->all());
             $profile->indexable = $profile->visibility === ProfileVisibility::Public && ($data['indexable'] ?? false);
-            if ($profile->exists && $profile->isDirty('handle')) {
-                /* Si tiene prenotato solo il nome appena lasciato, per il rinvio dai link
-                   vecchi: gli alias più vecchi tornano liberi. Senza questo tetto ogni cambio
-                   riservava un nome per sempre, e un ciclo di cambi accaparrava migliaia di
-                   nomi (di locali, di persone attese) che poi rinviavano a questo profilo. */
-                DB::table('community_handle_aliases')->where('community_profile_id', $profile->id)
-                    ->whereNotIn('handle', [$profile->getOriginal('handle'), $profile->handle])->delete();
-                DB::table('community_handle_aliases')->insertOrIgnore(['handle' => $profile->getOriginal('handle'), 'community_profile_id' => $profile->id]);
+            /* L'attesa fra due cambi di nome si ricontrolla qui, sotto il lucchetto
+               dell'utente: la regola di `ProfileRequest` dà l'errore sul campo, ma due
+               salvataggi simultanei la passerebbero entrambi. Il messaggio è lo stesso. */
+            if ($profile->exists && $profile->isDirty('handle') && ($attesa = $profile->handleCooldownMessage()) !== null) {
+                throw ValidationException::withMessages(['handle' => $attesa]);
             }
-            $profile->save();
-            DB::table('community_handle_aliases')->insertOrIgnore(['handle' => $profile->handle, 'community_profile_id' => $profile->id]);
-            if ((int) DB::table('community_handle_aliases')->where('handle', $profile->handle)->lockForUpdate()->value('community_profile_id') !== $profile->id) {
-                throw ValidationException::withMessages(['handle' => __('community.handle_taken')]);
-            }
+            $this->saveHandle($profile);
             if (array_key_exists('venue_ids', $data)) {
                 $venues = Venue::query()->whereIn('id', $data['venue_ids'] ?? [])->where('status', VenueStatus::Approved)
                     ->whereIn('id', $locked->follows()->where('followable_type', 'venue')->select('followable_id'))->pluck('id');
@@ -77,6 +70,34 @@ final class Community
 
             return $profile;
         });
+    }
+
+    /**
+     * Salva il profilo con il nome utente che porta, tenendo il registro dei nomi.
+     *
+     * Va chiamato dentro una transazione, con l'utente già bloccato. Non controlla
+     * l'attesa fra due cambi: la controlla chi chiama, perché la redazione cambia un
+     * nome senza attesa (`CommunityModeration::renameHandle`). Un cambio vero — non il
+     * primo nome scelto — fa partire l'attesa da adesso, anche quando lo fa la
+     * redazione: il nome scelto per moderazione non si annulla il minuto dopo.
+     */
+    public function saveHandle(CommunityProfile $profile): void
+    {
+        if ($profile->exists && $profile->isDirty('handle')) {
+            /* Si tiene prenotato solo il nome appena lasciato, per il rinvio dai link
+               vecchi: gli alias più vecchi tornano liberi. Senza questo tetto ogni cambio
+               riservava un nome per sempre, e un ciclo di cambi accaparrava migliaia di
+               nomi (di locali, di persone attese) che poi rinviavano a questo profilo. */
+            DB::table('community_handle_aliases')->where('community_profile_id', $profile->id)
+                ->whereNotIn('handle', [$profile->getOriginal('handle'), $profile->handle])->delete();
+            DB::table('community_handle_aliases')->insertOrIgnore(['handle' => $profile->getOriginal('handle'), 'community_profile_id' => $profile->id]);
+            $profile->handle_changed_at = CarbonImmutable::now();
+        }
+        $profile->save();
+        DB::table('community_handle_aliases')->insertOrIgnore(['handle' => $profile->handle, 'community_profile_id' => $profile->id]);
+        if ((int) DB::table('community_handle_aliases')->where('handle', $profile->handle)->lockForUpdate()->value('community_profile_id') !== $profile->id) {
+            throw ValidationException::withMessages(['handle' => __('community.handle_taken')]);
+        }
     }
 
     public function follow(User $user, User $target, bool $following): void

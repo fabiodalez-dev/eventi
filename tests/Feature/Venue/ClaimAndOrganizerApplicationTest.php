@@ -41,7 +41,9 @@ it('lets a public venue without a referent be claimed, and approving hands over 
     $result = app(ApproveVenueApplication::class)->handle($claim, $this->moderator);
     expect($result->is($venue))->toBeTrue()
         ->and(Venue::query()->count())->toBe(1)
-        ->and($venue->fresh()->owners()->where('email', 'marta@example.test')->exists())->toBeTrue()
+        // Rivendicazione dal modulo pubblico: Marta entra quando sceglie la password (D65).
+        ->and($venue->fresh()->membersIncludingInvited()->where('email', 'marta@example.test')->exists())->toBeTrue()
+        ->and($venue->fresh()->owners()->where('email', 'marta@example.test')->exists())->toBeFalse()
         ->and($claim->fresh()->status)->toBe(ApplicationStatus::Approved);
     Notification::assertSentTo(User::where('email', 'marta@example.test')->firstOrFail(), VenueAccessGranted::class);
 

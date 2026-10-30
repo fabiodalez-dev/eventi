@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\RememberedLocationController;
 use App\Http\Controllers\Web\ConsentController;
+use App\Http\Controllers\Web\ContactEmailConfirmationController;
 use App\Http\Controllers\Web\ContentMetricController;
 use App\Http\Controllers\Web\DeployController;
 use App\Http\Controllers\Web\EventController;
@@ -48,6 +49,16 @@ Route::get('/app/auth/magic', function () {
         ->header('Referrer-Policy', 'no-referrer')
         ->header('X-Robots-Tag', 'noindex, nofollow');
 })->name('app.magic-link');
+
+/*
+ * La conferma del recapito del modulo contatti (doppio opt-in). Sta prima del
+ * gruppo `/{city}`, come il resto delle rotte senza città. La GET mostra solo
+ * il pulsante; conferma il POST verso lo stesso indirizzo firmato.
+ */
+Route::get('/conferma-recapito/{type}/{id}', [ContactEmailConfirmationController::class, 'show'])
+    ->whereIn('type', ['venues', 'organizers'])->whereNumber('id')->middleware(['signed', 'throttle:30,1,contact-email-confirm'])->name('contact-email.confirm');
+Route::post('/conferma-recapito/{type}/{id}', [ContactEmailConfirmationController::class, 'store'])
+    ->whereIn('type', ['venues', 'organizers'])->whereNumber('id')->middleware(['signed', 'throttle:30,1,contact-email-confirm'])->name('contact-email.confirm.store');
 
 Route::get('/release-status', ReleaseStatusController::class)->name('ops.release');
 

@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\User;
+use App\Notifications\RegistrationLink;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\RateLimiter;
@@ -99,16 +100,23 @@ it('ferma la forza bruta distribuita su un solo account, da indirizzi diversi', 
  * allargata fino a non difendere più niente.
  */
 it('lascia iscriversi e accedere a chi lo fa una volta', function (): void {
+    /* Dal D64 l'accesso passa dal collegamento spedito, che conferma la
+       casella; dopo, la password scelta alla registrazione entra. */
+    $verificatore = str_repeat('p', 43);
     $this->postJson('/api/v1/auth/register', [
         'name' => 'Persona Vera',
         'email' => 'vera@example.test',
         'password' => 'password-lunga-1',
         'password_confirmation' => 'password-lunga-1',
+        'code_challenge' => rtrim(strtr(base64_encode(hash('sha256', $verificatore, true)), '+/', '-_'), '='),
     ])->assertSuccessful();
 
-    expect(User::query()->where('email', 'vera@example.test')->exists())->toBeTrue();
+    $user = User::query()->where('email', 'vera@example.test')->firstOrFail();
+    parse_str((string) parse_url(Notification::sent($user, RegistrationLink::class)->first()->url, PHP_URL_QUERY), $query);
+    $this->postJson('/api/v1/auth/magic-link/exchange', ['token' => $query['token'], 'code_verifier' => $verificatore])->assertSuccessful();
 
-    $this->postJson('/api/v1/auth/login', [
+    $this->app['auth']->forgetGuards();
+    $this->withHeaders(['Authorization' => ''])->postJson('/api/v1/auth/login', [
         'email' => 'vera@example.test',
         'password' => 'password-lunga-1',
     ])->assertSuccessful();

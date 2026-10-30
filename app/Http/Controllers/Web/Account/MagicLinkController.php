@@ -61,9 +61,16 @@ final class MagicLinkController extends Controller
          * scelta «resta collegato», che vale per questo browser.
          */
         $segreto = Str::random(40);
+        /* Se questo browser ha appena scelto (o dimostrato) la password di
+           questo account, il collegamento nuovo non deve dimenticarlo:
+           aperto qui lascia valida la password come quello della
+           registrazione (`RequestRegistration`). Il marcatore resta solo per
+           lo stesso account. */
+        $registrazione = $request->session()->get('magic_link.registrazione');
         $request->session()->put('magic_link', [
             'browser' => $segreto,
             'remember' => $request->boolean('remember'),
+            'registrazione' => $user instanceof User && $registrazione === $user->getKey() ? $registrazione : null,
         ]);
 
         $user?->notify(new MagicLoginLink(browser: hash('sha256', $segreto)));
@@ -145,18 +152,33 @@ final class MagicLinkController extends Controller
         $remember = $request->isMethod('POST')
             ? $request->boolean('remember')
             : (bool) $request->session()->get('magic_link.remember', false);
+        $registrante = $request->session()->get('magic_link.registrazione') === $user->getKey();
         $request->session()->forget('magic_link');
 
         /* Il collegamento prova la casella: se password e token sono nati
            prima di questa prova, chi li ha creati non deve restare dentro. Va
-           fatto prima di `Auth::login`, così la sessione nuova sopravvive. */
-        $claim($user);
+           fatto prima di `Auth::login`, così la sessione nuova sopravvive.
+           Se questo browser ha scelto (o dimostrato) la password di questo
+           account — la registrazione lo scrive nella sessione, che sta sul
+           server — chi entra è la stessa persona, e la password resta. */
+        if ($registrante) {
+            $claim->confermaRegistrazione($user);
+        } else {
+            $claim($user);
+        }
 
         Auth::login($user, remember: $remember);
         $request->session()->regenerate();
 
         $user->forceFill(['last_active_at' => CarbonImmutable::now()])->save();
 
-        return redirect()->intended(route('account.feed'))->with('status', __('account.login.done'));
+        /* Chi ha appena confermato la propria registrazione passa
+           dall'onboarding della community, come dalla vecchia conferma
+           aperta nella stessa sessione; la destinazione ricordata resta. */
+        if ($registrante && config('community.enabled')) {
+            return redirect()->route('community.whatsapp')->with('status', __('account.verify.done'));
+        }
+
+        return redirect()->intended(route('account.feed'))->with('status', __($registrante ? 'account.verify.done' : 'account.login.done'));
     }
 }

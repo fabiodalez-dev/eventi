@@ -19,9 +19,9 @@ final class PublicContactService
 {
     /**
      * Messaggi al giorno verso uno stesso recapito, chiunque li mandi. Il
-     * recapito lo sceglie chi gestisce la scheda e non e' verificato: il tetto
-     * impedisce che il modulo diventi un modo di riempire una casella di terzi
-     * con la posta del sito, anche ruotando account e indirizzi.
+     * recapito lo sceglie chi gestisce la scheda e lo conferma con un doppio
+     * opt-in, ma il tetto resta: una casella confermata non va comunque
+     * riempita con la posta del sito, anche ruotando account e indirizzi.
      */
     private const TARGET_DAILY_LIMIT = 30;
 
@@ -36,10 +36,20 @@ final class PublicContactService
     /** @return array<string, mixed> */
     public function settings(Venue|Organizer $target): array
     {
-        $enabled = $target->contact_mode !== ContactMode::Disabled && filled($target->contact_email);
+        $enabled = $this->accepts($target);
 
         return ['enabled' => $enabled, 'guests' => $enabled && $target->contact_mode === ContactMode::Everyone && $this->captchaReady(),
             'url' => route($target instanceof Venue ? 'venues.show' : 'organizers.show', $target).'#contatta'];
+    }
+
+    /**
+     * Il modulo è acceso e il recapito è confermato dal doppio opt-in: un
+     * indirizzo scritto nel pannello e mai confermato non riceve niente, e
+     * la scheda si comporta come con il modulo spento.
+     */
+    public function accepts(Venue|Organizer $target): bool
+    {
+        return $target->contact_mode !== ContactMode::Disabled && $target->hasConfirmedContactEmail();
     }
 
     public function captchaReady(): bool
@@ -50,7 +60,7 @@ final class PublicContactService
     /** @param array<string, mixed> $data */
     public function send(Venue|Organizer $target, ?User $user, array $data): void
     {
-        abort_unless($target->contact_mode !== ContactMode::Disabled && filled($target->contact_email), 404);
+        abort_unless($this->accepts($target), 404);
         /* Mittente e Reply-To sono quelli dell'account e il captcha si salta:
            solo con un indirizzo confermato (il controller lo dice per bene). */
         abort_if($user !== null && ! $user->hasVerifiedEmail(), 403);

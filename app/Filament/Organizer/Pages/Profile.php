@@ -55,7 +55,7 @@ class Profile extends Page implements HasSchemas
         return $schema->columns(1)->statePath('data')->components([
             DescriptionEditor::make('description')->label('Presentazione')->maxLength(20000),
             TextInput::make('website')->label('Sito web')->url()->maxLength(2048),
-            ContactFields::make(),
+            ContactFields::make(fn (): Organizer => $this->organizer()),
             TextInput::make('email')->label('Email pubblica')->email()->maxLength(255),
         ]);
     }

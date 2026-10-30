@@ -14,7 +14,7 @@ final class MobileAuthChallenge extends Model
     use MassPrunable;
 
     /** @var list<string> */
-    protected $fillable = ['user_id', 'token_hash', 'code_challenge', 'password_fingerprint', 'expires_at', 'used_at'];
+    protected $fillable = ['user_id', 'token_hash', 'code_challenge', 'password_fingerprint', 'keeps_password', 'expires_at', 'used_at'];
 
     /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
@@ -32,6 +32,7 @@ final class MobileAuthChallenge extends Model
     protected function casts(): array
     {
         return [
+            'keeps_password' => 'boolean',
             'expires_at' => 'immutable_datetime',
             'used_at' => 'immutable_datetime',
         ];

@@ -53,6 +53,39 @@ final class ClaimMailbox
     }
 
     /**
+     * La prova della casella arriva da **chi ha scelto la password**: il
+     * collegamento della registrazione aperto nel browser che si è registrato
+     * (la sessione lo ricorda) o scambiato dall'installazione dell'app che si
+     * è registrata (il verificatore PKCE). Lì le due cose che `__invoke()`
+     * non sa tenere insieme — chi possiede la casella e chi conosce la
+     * password — sono la stessa persona: l'indirizzo si conferma, il sospeso
+     * si chiude e la password appena scelta resta valida, come i token e le
+     * sessioni, che può avere solo lei.
+     *
+     * Aperto altrove, lo stesso collegamento passa da `__invoke()`: chi lo
+     * apre possiede la casella ma la password può averla scelta chiunque.
+     */
+    public function confermaRegistrazione(User $user): void
+    {
+        $verificato = $user->hasVerifiedEmail();
+
+        if ($verificato && $user->email_claim_pending_at === null) {
+            return;
+        }
+
+        $user->forceFill([
+            'email_claim_pending_at' => null,
+            'email_verified_at' => $user->email_verified_at ?? CarbonImmutable::now(),
+        ])->save();
+
+        if (! $verificato) {
+            event(new Verified($user));
+        }
+
+        SecurityLog::scrivi('registrazione_confermata', $user);
+    }
+
+    /**
      * Un accesso dato da altri (l'invito in un locale, l'approvazione di una
      * richiesta) a un account la cui casella non è ancora dimostrata: chi ha
      * scelto la password può essere chiunque abbia registrato quell'indirizzo,

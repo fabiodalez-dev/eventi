@@ -9,6 +9,7 @@ use App\Models\SavedEvent;
 use App\Models\ScheduledNotification;
 use App\Models\User;
 use App\Notifications\MagicLoginLink;
+use App\Notifications\RegistrationLink;
 use App\Notifications\VerifyEmailLink;
 use Carbon\Carbon;
 use Database\Seeders\RolesAndPermissionsSeeder;
@@ -26,12 +27,12 @@ beforeEach(function (): void {
     Notification::fake();
 });
 
-it('registra dal sito con il nome facoltativo e manda subito la verifica', function (): void {
+it('registra dal sito con il nome facoltativo e manda subito il collegamento che conferma', function (): void {
     $this->post('/registrati', [
         'email' => 'giulia@example.test',
         'password' => 'una-password-molto-lunga',
         'password_confirmation' => 'una-password-molto-lunga',
-    ])->assertRedirect(route('verification.notice'));
+    ])->assertRedirect(route('account.register.sent'));
 
     $user = User::query()->where('email', 'giulia@example.test')->firstOrFail();
 
@@ -41,11 +42,13 @@ it('registra dal sito con il nome facoltativo e manda subito la verifica', funct
         ->and($user->locale)->toBe('it')
         /* Il consenso marketing è un'altra cosa e nasce spento (§15.9). */
         ->and($user->marketing_opt_in_at)->toBeNull()
-        ->and(Auth::check())->toBeTrue();
+        /* Dal D64 la registrazione non fa entrare: la risposta è la stessa
+           per un indirizzo già registrato, e si entra dal collegamento. */
+        ->and(Auth::check())->toBeFalse();
 
-    /* §15.2: la verifica parte subito, perché è la condizione di ogni invio
-       successivo. */
-    Notification::assertSentTo($user, VerifyEmailLink::class);
+    /* §15.2: la conferma parte subito, perché è la condizione di ogni invio
+       successivo; è il collegamento che conferma l'indirizzo ed entra. */
+    Notification::assertSentTo($user, RegistrationLink::class);
 });
 
 it('registra il consenso alla newsletter con una data propria', function (): void {

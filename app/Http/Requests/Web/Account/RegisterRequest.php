@@ -7,7 +7,6 @@ namespace App\Http\Requests\Web\Account;
 use App\Support\Honeypot;
 use App\Support\Turnstile;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 
 /**
@@ -31,7 +30,10 @@ class RegisterRequest extends FormRequest
             'name' => ['nullable', 'string', 'max:255'],
             'first_name' => ['nullable', 'string', 'max:120'],
             'last_name' => ['nullable', 'string', 'max:120'],
-            'email' => ['required', 'email:filter', 'max:255', Rule::unique('users', 'email')],
+            /* Niente `unique`: «indirizzo già usato» direbbe a chiunque chi è
+               iscritto. Un indirizzo già registrato riceve un messaggio, non
+               un errore (`RequestRegistration`). */
+            'email' => ['required', 'email:filter', 'max:255'],
             'password' => ['required', 'string', 'confirmed', Password::defaults()],
             'marketing_opt_in' => ['nullable', 'boolean'],
             'remember' => ['nullable', 'boolean'],

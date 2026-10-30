@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Filament\Auth;
 
+use App\Models\User;
 use App\Support\AccountLoginThrottle;
 use App\Support\SecurityLog;
 use Filament\Auth\Http\Responses\Contracts\LoginResponse;
+use Filament\Facades\Filament;
 use Illuminate\Validation\ValidationException;
 
 final class Login extends \Filament\Auth\Pages\Login
@@ -32,6 +34,24 @@ final class Login extends \Filament\Auth\Pages\Login
          */
         $risposta = parent::authenticate();
         AccountLoginThrottle::restituisci($key);
+
+        /*
+         * Come sul sito e nell'app (D64): la password di un account la cui
+         * casella non è ancora dimostrata da chi l'ha scelta può averla
+         * scelta chiunque abbia registrato quell'indirizzo, e non apre
+         * nemmeno i pannelli. Il controllo arriva dopo la password, quindi
+         * il messaggio lo legge solo chi la conosce; per entrare basta un
+         * accesso dal sito, che rimanda il collegamento legato al browser e
+         * lascia valida la password.
+         */
+        $utente = Filament::auth()->user();
+        if ($utente instanceof User && $utente->email_claim_pending_at !== null) {
+            Filament::auth()->logout();
+            session()->invalidate();
+            session()->regenerateToken();
+
+            throw ValidationException::withMessages(['data.email' => __('account.login.claim_pending_panel')]);
+        }
 
         return $risposta;
     }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Admin\Resources\Users;
 
+use App\Enums\Permission;
 use App\Enums\UserRole;
 use App\Enums\VenueRole;
 use App\Filament\Admin\Resources\Users\Pages\CreateUser;
@@ -16,6 +17,7 @@ use App\Models\City;
 use App\Models\User;
 use App\Models\Venue;
 use App\Models\WhatsappChallenge;
+use App\Services\Carpool\CommunitySafety;
 use App\Services\Community\CommunityModeration;
 use App\Services\Community\WhatsappVerification;
 use BackedEnum;
@@ -23,7 +25,9 @@ use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -38,6 +42,7 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\ValidationException;
 
 /**
  * §9.2 — gli utenti, i loro ruoli e l'impersonificazione.
@@ -241,6 +246,27 @@ class UserResource extends Resource
                     ->visible(fn (User $record): bool => ! $record->trashed() && ($staff = auth()->user()) instanceof User && $staff->isEditorialStaff()
                         && ($record->community_suspended_at !== null || CommunityModeration::outranks($staff, $record)))->requiresConfirmation()
                     ->action(fn (User $record) => app(CommunityModeration::class)->apply(auth()->user(), 'user', $record->id, $record->community_suspended_at !== null)),
+                /* La redazione cambia un nome utente senza l'attesa che vale per il
+                   titolare (D64): regole del nome uguali al modulo, verso il basso. */
+                Action::make('community_rename_handle')->label(__('community.handle_rename'))->modalDescription(__('community.handle_rename_help'))
+                    ->visible(fn (User $record): bool => ! $record->trashed() && $record->communityProfile !== null && ($staff = auth()->user()) instanceof User
+                        && app(CommunitySafety::class)->staff($staff, Permission::ManageCommunity) && CommunityModeration::outranks($staff, $record))
+                    ->fillForm(fn (User $record): array => ['handle' => $record->communityProfile?->handle])
+                    ->schema([
+                        TextInput::make('handle')->label(__('community.handle'))->required()->maxLength(40),
+                        Textarea::make('reason')->label(__('community.handle_rename_reason'))->required()->minLength(5)->maxLength(1000)->rows(3),
+                    ])
+                    ->action(function (User $record, array $data): void {
+                        try {
+                            app(CommunityModeration::class)->renameHandle(auth()->user(), (int) $record->communityProfile?->getKey(), (string) $data['handle'], (string) $data['reason']);
+                        } catch (ValidationException $errore) {
+                            // Nome preso o non valido: lo si dice, senza chiudere in silenzio.
+                            Notification::make()->title(collect($errore->errors())->flatten()->first() ?? __('community.handle_taken'))->danger()->send();
+
+                            return;
+                        }
+                        Notification::make()->title(__('community.handle_renamed'))->success()->send();
+                    }),
                 Action::make('whatsapp_revoke')->label(__('community.whatsapp.revoke'))->requiresConfirmation()
                     ->visible(fn (User $record): bool => $record->whatsapp_verified_at !== null && auth()->user()?->hasAnyRole(['admin', 'super_admin']) === true)
                     ->action(function (User $record): void {

@@ -25,4 +25,9 @@ return [
     // l'informativa, quindi resta una costante e non una variabile d'ambiente.
     'suspended_fingerprint_retention_months' => 24,
     'global_daily_send_limit' => (int) env('WHATSAPP_DAILY_SEND_LIMIT', 500),
+    // Giorni di attesa fra un cambio di nome utente e il successivo (D64). Il profilo prenota il
+    // nome attuale e l'ultimo lasciato; senza attesa una serie di cambi rapidi faceva girare i
+    // nomi fra profili e confondeva chi segue un collegamento. Il primo nome scelto non conta,
+    // e la redazione cambia un nome senza attesa (moderazione).
+    'handle_change_cooldown_days' => 30,
 ];

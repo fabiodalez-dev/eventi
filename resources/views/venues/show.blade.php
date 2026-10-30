@@ -121,7 +121,7 @@
         </div>
     @endauth
 
-    @if ($venue->status === \App\Enums\VenueStatus::Approved && $venue->owners()->doesntExist())
+    @if ($venue->status === \App\Enums\VenueStatus::Approved && ! $venue->hasOwnerOrInvitedOwner())
         <p class="mt-4 text-sm text-ink-muted"><a href="{{ route('venues.claim.create', $venue) }}" class="underline">{{ __('forms.claim.cta') }}</a></p>
     @endif
 

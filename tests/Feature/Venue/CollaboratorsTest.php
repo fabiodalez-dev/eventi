@@ -28,7 +28,7 @@ beforeEach(function (): void {
     Filament::setTenant($this->venue);
 });
 
-it('crea l’account, il ruolo e l’appartenenza con un solo invito', function (): void {
+it('crea l’account e l’invito da accettare con un solo gesto', function (): void {
     Livewire::test(Collaborators::class)->callTableAction('invite', data: [
         'name' => 'Marta Bianchi',
         'email' => 'MARTA@esempio.test',
@@ -36,10 +36,13 @@ it('crea l’account, il ruolo e l’appartenenza con un solo invito', function 
 
     $invited = User::query()->where('email', 'marta@esempio.test')->sole();
 
+    // L'appartenenza resta in sospeso finché Marta non sceglie la password
+    // dal collegamento (D64): ruolo globale e locale arrivano allora.
     expect($invited->name)->toBe('Marta Bianchi')
-        ->and($invited->hasRole(UserRole::VenueEditor->value))->toBeTrue()
-        ->and($this->venue->editors()->whereKey($invited->getKey())->exists())->toBeTrue()
-        ->and($invited->venues()->whereKey($this->scenario->venueB->getKey())->exists())->toBeFalse();
+        ->and($invited->hasRole(UserRole::VenueEditor->value))->toBeFalse()
+        ->and($this->venue->editors()->whereKey($invited->getKey())->exists())->toBeFalse()
+        ->and($this->venue->membersIncludingInvited()->whereKey($invited->getKey())->exists())->toBeTrue()
+        ->and($invited->venuesIncludingInvited()->whereKey($this->scenario->venueB->getKey())->exists())->toBeFalse();
 
     Notification::assertSentTo($invited, VenueAccessGranted::class);
 });
@@ -54,7 +57,8 @@ it('non crea un secondo account per chi è già registrato', function (): void {
 
     expect(User::query()->where('email', $existing->email)->count())->toBe(1)
         ->and($existing->fresh()->name)->toBe($existing->name)
-        ->and($this->venue->editors()->whereKey($existing->getKey())->exists())->toBeTrue();
+        ->and($this->venue->editors()->whereKey($existing->getKey())->exists())->toBeFalse()
+        ->and($this->venue->membersIncludingInvited()->whereKey($existing->getKey())->exists())->toBeTrue();
 });
 
 it('non declassa il ruolo globale di chi era già qualcosa d’altro', function (): void {

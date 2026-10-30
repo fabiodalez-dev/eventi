@@ -200,11 +200,17 @@ final class CommunityController extends Controller
     public function handleAvailability(Request $request): JsonResponse
     {
         $handle = mb_strtolower(trim($request->string('handle')->toString()));
+        $profilo = $request->user()?->communityProfile;
 
+        /* Anche l'attesa fra due cambi entra qui, con la stessa regola del
+           salvataggio: un nome libero che però oggi non si può prendere è un
+           «disponibile» che il salvataggio smentirebbe. */
         $validator = Validator::make(['handle' => $handle],
-            ['handle' => ProfileRequest::handleRules($request->user()?->communityProfile?->id)]);
+            ['handle' => [ProfileRequest::handleCooldownRule($profilo), ...ProfileRequest::handleRules($profilo?->id)]]);
 
         $libero = $handle !== '' && $validator->passes();
+        // Solo per chi sta davvero cambiando nome: il proprio nome attuale resta «disponibile».
+        $da = $handle !== '' && $profilo !== null && $handle !== $profilo->handle ? $profilo->handleChangeableFrom() : null;
 
         return response()->json(['data' => [
             'handle' => $handle,
@@ -212,6 +218,9 @@ final class CommunityController extends Controller
             // Vuoto o valido: nessun motivo da dare. `first()` restituirebbe una
             // stringa vuota, che in una risposta JSON è un motivo che non c'è.
             'reason' => $libero || $handle === '' ? null : $validator->errors()->first('handle'),
+            // Valorizzato quando il no dipende dall'attesa e non dal nome: chi
+            // mostra l'esito usa `reason`, che allora dice da quando.
+            'changeable_from' => $da?->toIso8601String(),
         ]]);
     }
 

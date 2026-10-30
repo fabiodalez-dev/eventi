@@ -108,7 +108,8 @@ final class TicketingService
             }
             $this->ensure($this->activeBooking($account, $date) === null, 'already_booked');
             $this->ensure($this->isOpen($date), 'closed');
-            $this->ensure($this->noShowCount($account) < config()->integer('ticketing.no_show.limit'), 'no_show_limit');
+            $block = $this->noShowBlock($account, $date);
+            $this->ensure($block === null, $block === 'tenant' ? 'no_show_limit_venue' : 'no_show_limit');
             $details = app(BookingForm::class)->validate($date, $booker);
             $replies = app(BookingForm::class)->answers($date, $answers);
             // Resume queued groups first when a previously closed window reopens.
@@ -436,7 +437,6 @@ final class TicketingService
         return $marked;
     }
 
-    /** Quante assenze recenti ha questa persona, nella finestra di configurazione. */
     /**
      * Le risposte alle domande del gestore servono a organizzare la serata,
      * non a costruire un archivio: trenta giorni dopo la fine della data si
@@ -451,15 +451,105 @@ final class TicketingService
             ->update(['booking_answers' => null]);
     }
 
+    /** Quante assenze recenti ha questa persona, nella finestra di configurazione, ovunque. */
     public function noShowCount(User $user): int
+    {
+        return array_sum($this->noShowsByTenant($user));
+    }
+
+    /**
+     * Le assenze che contano per il blocco su **tutta** la piattaforma (D64):
+     * ogni tenant ne porta al massimo `limit - 1`, così nessun gestore da solo
+     * — magari scorretto, che segna assenti su biglietti suoi — basta a
+     * chiudere a una persona le prenotazioni gratuite altrove. Servono
+     * assenze viste da almeno due tenant diversi.
+     */
+    public function globalNoShowCount(User $user): int
+    {
+        return $this->cappedGlobal($user);
+    }
+
+    /**
+     * Perché questa persona non può prenotare gratis questa data, se non può:
+     * `global` quando le assenze contate con il tetto per tenant arrivano al
+     * limite, `tenant` quando il limite lo raggiunge da sole presso lo stesso
+     * tenant della data — lì contano tutte, perché quel locale le ha viste
+     * con i suoi occhi e decide per le sue serate. `null` se può prenotare.
+     */
+    public function noShowBlock(User $user, EventOccurrence $date): ?string
+    {
+        $limit = config()->integer('ticketing.no_show.limit');
+        if ($this->cappedGlobal($user) >= $limit) {
+            return 'global';
+        }
+        $tenants = $this->noShowsByTenant($user);
+        $event = $date->event()->withTrashed()->first();
+        $tenant = $this->tenantKey($date->venue_id ?? $event?->venue_id, $event?->organizer_id, (int) $date->event_id);
+
+        return ($tenants[$tenant] ?? 0) >= $limit ? 'tenant' : null;
+    }
+
+    /**
+     * Il conteggio con il tetto, preso nel modo più prudente fra due letture
+     * dello stesso tenant: per locale e per organizzatore. Un organizzatore
+     * gestisce gli ingressi di tutte le sue date, in qualunque locale: contato
+     * solo per locale, con serate in due locali basterebbe lui da solo a
+     * raggiungere il limite.
+     */
+    private function cappedGlobal(User $user): int
+    {
+        return min($this->capped($this->noShowsByTenant($user)), $this->capped($this->noShowsByTenant($user, organizerFirst: true)));
+    }
+
+    /** @param  array<string, int>  $tenants */
+    private function capped(array $tenants): int
+    {
+        $cap = max(0, config()->integer('ticketing.no_show.limit') - 1);
+
+        return array_sum(array_map(fn (int $count): int => min($count, $cap), $tenants));
+    }
+
+    /**
+     * Le assenze recenti della persona, divise per tenant della data: il
+     * locale (quello della data, altrimenti quello dell'evento), in mancanza
+     * l'organizzatore, in ultima istanza l'evento stesso. Con
+     * `organizerFirst` l'organizzatore, quando c'è, viene prima del locale.
+     *
+     * @return array<string, int>
+     */
+    private function noShowsByTenant(User $user, bool $organizerFirst = false): array
     {
         /* La finestra si misura sulla data della serata, non sul momento in
            cui il comando ha segnato l'assenza: un recupero di dati vecchi non
-           deve far sembrare recenti assenze di un anno fa. */
-        return AdmissionTicket::query()->where('status', AdmissionStatus::NoShow)
-            ->whereHas('booking', fn ($q) => $q->where('user_id', $user->id)
-                ->whereHas('occurrence', fn ($date) => $date->where('starts_at', '>=', now()->subDays(config()->integer('ticketing.no_show.window_days')))))
-            ->count();
+           deve far sembrare recenti assenze di un anno fa. Le date e gli
+           eventi cancellati contano lo stesso: l'assenza resta vera. */
+        $rows = AdmissionTicket::query()->where('admission_tickets.status', AdmissionStatus::NoShow)
+            ->join('bookings', 'bookings.id', '=', 'admission_tickets.booking_id')
+            ->join('event_occurrences', 'event_occurrences.id', '=', 'bookings.occurrence_id')
+            ->join('events', 'events.id', '=', 'event_occurrences.event_id')
+            ->where('bookings.user_id', $user->id)
+            ->where('event_occurrences.starts_at', '>=', now()->subDays(config()->integer('ticketing.no_show.window_days')))
+            ->selectRaw('COALESCE(event_occurrences.venue_id, events.venue_id) as venue, events.organizer_id as organizer, events.id as event, COUNT(*) as total')
+            ->groupByRaw('COALESCE(event_occurrences.venue_id, events.venue_id), events.organizer_id, events.id')
+            ->toBase()->get();
+        $tenants = [];
+        foreach ($rows as $row) {
+            $venue = $row->venue === null ? null : (int) $row->venue;
+            $organizer = $row->organizer === null ? null : (int) $row->organizer;
+            $key = $organizerFirst && $organizer !== null ? 'organizer:'.$organizer : $this->tenantKey($venue, $organizer, (int) $row->event);
+            $tenants[$key] = ($tenants[$key] ?? 0) + (int) $row->total;
+        }
+
+        return $tenants;
+    }
+
+    private function tenantKey(?int $venue, ?int $organizer, int $event): string
+    {
+        return match (true) {
+            $venue !== null => 'venue:'.$venue,
+            $organizer !== null => 'organizer:'.$organizer,
+            default => 'event:'.$event,
+        };
     }
 
     /**

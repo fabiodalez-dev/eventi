@@ -70,7 +70,10 @@ final class ApproveVenueApplication
                 if (! $locale instanceof Venue) {
                     throw ValidationException::withMessages(['venue_id' => __('venue_applications.claim_missing_venue')]);
                 }
-                if ($locale->owners()->exists()) {
+                /* Conta anche un referente invitato e non ancora entrato: la
+                   rivendicazione approvata prima ha già consegnato le chiavi,
+                   e una seconda non deve consegnarle di nuovo a un altro. */
+                if ($locale->hasOwnerOrInvitedOwner()) {
                     throw ValidationException::withMessages(['venue_id' => __('venue_applications.claim_already_managed')]);
                 }
                 VenueApplication::query()->where('venue_id', $locale->getKey())->where('kind', ApplicationKind::Claim)
@@ -140,13 +143,23 @@ final class ApproveVenueApplication
             /*
              * L'invito arriva a chi ha scritto la richiesta, col suo nome:
              * e' l'unica porta per `/gestione`, e senza di essa avremmo
-             * creato un locale che il suo referente non puo' toccare.
+             * creato un locale che il suo referente non puo' toccare. Entra
+             * subito solo se la richiesta l'ha mandata proprio lui, da
+             * collegato e con quella casella confermata: il modulo e' pubblico
+             * e l'email di contatto e' un campo libero, quindi chiunque
+             * potrebbe scriverci l'indirizzo di un altro e farlo agganciare
+             * senza consenso. Negli altri casi parte l'invito da accettare
+             * (D65).
              */
+            $mittente = $richiesta->user;
+            $richiestaDaLui = $mittente instanceof User && $mittente->hasVerifiedEmail()
+                && mb_strtolower(trim($mittente->email)) === mb_strtolower(trim((string) $richiesta->contact_email));
             $this->invito->execute(
                 $locale,
                 (string) $richiesta->contact_email,
                 (string) $richiesta->contact_name,
                 VenueRole::Owner,
+                requested: $richiestaDaLui,
             );
 
             return $locale;

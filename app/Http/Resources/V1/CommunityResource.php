@@ -31,6 +31,8 @@ final class CommunityResource
             'following_count' => $counts['following'],
             'is_following' => $followingIds !== null ? in_array($profile->user_id, $followingIds, true) : ($viewer?->isFollowing($profile->user) ?? false),
             'is_own' => $viewer?->id === $profile->user_id,
+            // Da quando il titolare potrà cambiare di nuovo il nome utente; agli altri non si dice.
+            'handle_changeable_from' => $viewer?->id === $profile->user_id ? $profile->handleChangeableFrom()?->toIso8601String() : null,
         ];
     }
 

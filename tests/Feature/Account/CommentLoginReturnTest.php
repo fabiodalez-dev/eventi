@@ -5,7 +5,7 @@ declare(strict_types=1);
 use App\Models\Event;
 use App\Models\User;
 use App\Notifications\MagicLoginLink;
-use App\Notifications\VerifyEmailLink;
+use App\Notifications\RegistrationLink;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Support\Facades\Notification;
 
@@ -36,13 +36,17 @@ it('returns to the comments after password login including after a failed attemp
 
 it('returns to the comments after registration', function (): void {
     $this->get(route('account.register', ['intended' => $this->destination]))->assertOk();
+    /* Dal D64 la registrazione non fa entrare: si entra dal collegamento
+       spedito, che aperto in questo browser conferma e porta all'onboarding
+       tenendo la destinazione dei commenti. */
     $this->post('/registrati', [
         'email' => 'commenter@example.test',
         'password' => 'una-password-molto-lunga',
         'password_confirmation' => 'una-password-molto-lunga',
-    ])->assertRedirect(route('verification.notice'))->assertSessionHas('url.intended', $this->destination);
+    ])->assertRedirect(route('account.register.sent'))->assertSessionHas('url.intended', $this->destination);
     $user = User::query()->where('email', 'commenter@example.test')->firstOrFail();
-    $this->get(VerifyEmailLink::url($user))->assertRedirect(route('community.whatsapp'))->assertSessionHas('url.intended', $this->destination);
+    $this->get(Notification::sent($user, RegistrationLink::class)->first()->url)
+        ->assertRedirect(route('community.whatsapp'))->assertSessionHas('url.intended', $this->destination);
     $this->post(route('community.whatsapp.skip'))->assertRedirect($this->destination);
 });
 
