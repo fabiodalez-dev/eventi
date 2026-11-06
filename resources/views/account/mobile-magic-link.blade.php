@@ -2,8 +2,9 @@
     La pagina di ripiego del collegamento dell'app (`/app/auth/magic?token=…`).
 
     Si vede quando Android apre il collegamento nel browser invece che
-    nell'app: finché gli App Links non sono verificati (manca
-    `assetlinks.json`) succede sempre. Chi si è appena registrato dall'app non
+    nell'app: sui telefoni dove gli App Links non sono verificati (una firma
+    non elencata in `assetlinks.json`, o una verifica non ancora rifatta dopo
+    l'installazione). Chi si è appena registrato dall'app non
     può «accedere con la password», che resta rifiutata finché l'indirizzo non
     è confermato (D64): la pagina offre allora di riportare il collegamento
     nell'app con un `intent://` che nomina il pacchetto, come la conferma

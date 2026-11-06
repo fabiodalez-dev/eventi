@@ -1,0 +1,13 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "it.fabiodalez.incitta",
+      "sha256_cert_fingerprints": [
+        "61:EB:2B:F3:40:04:F8:04:2C:FD:EE:33:D3:E9:F3:DB:89:D9:8B:AB:52:AB:70:A0:8E:9C:70:10:20:DC:60:FE",
+        "1A:A0:EF:6D:DD:70:E5:AF:52:B6:0A:CD:88:B2:7D:DF:26:A9:EF:1B:AB:9C:F6:37:2F:62:58:5B:54:BE:9A:E7"
+      ]
+    }
+  }
+]

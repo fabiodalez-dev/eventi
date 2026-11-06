@@ -3216,3 +3216,15 @@ Sicurezza: i collegamenti nelle email si costruiscono da `APP_URL` e gli host di
 
 **Ricontrollo:** dopo un mese, quanti inviti scadono senza risposta, quanti recapiti di contatto restano da confermare, se il tetto delle metriche ha scartato traffico vero, e quante registrazioni dall'app si fermano a «controlla la posta».
 
+## 6 novembre 2026 — D66. App Links verificati e firma dell'app
+
+**Decisione:** il proprietario ha chiesto di chiudere le due voci lasciate fuori da D65, sul dominio di lavoro. `public/.well-known/assetlinks.json` dichiara il pacchetto `it.fabiodalez.incitta` per due certificati: quello storico degli APK installati a mano e quello di upload di Play. Il file è statico e non contiene il dominio: col dominio definitivo si copia così com'è, e cambiano solo gli intent-filter del manifest.
+
+- **Nessuna chiave nuova.** La chiave di rilascio esiste dal 9 settembre (`~/.config/incitta-play/upload-keystore.p12`, RSA 4096): crearne un'altra avrebbe solo aggiunto un segreto da non perdere. `-PplayStore=true` firma già con quella.
+- **L'APK da installare a mano resta sulla firma storica.** Passare alla chiave di rilascio obbliga a disinstallare l'app su ogni telefono e cambia l'hash `Z5ELh4mhkZY` nei `supported_apps` del template WhatsApp. Il file accetta già entrambe le firme, quindi il passaggio non chiede lavoro sul sito: resta una scelta del proprietario al prossimo APK.
+- **Manca l'impronta di Play.** Chi installa da Play riceve l'app firmata da Google, con un certificato che si legge solo in Console (Integrità dell'app → Firma dell'app). Finché non è nel file, quelle installazioni restano sul browser con «Apri nell'app»: si aggiunge una riga e si fa il deploy.
+- **Pagine solo web (app 1.22.3).** Con la verifica Android consegna all'app tutti i percorsi del manifest, compresi quelli che l'app non ha: `.ics`, PDF, `segnala`, `rivendica`, le pagine per giorno e ogni percorso senza destinazione. `isWebOnlyLink` li riconosce e l'app li passa al browser, nominandolo, perché un `ACTION_VIEW` generico tornerebbe all'app. Le schede degli organizzatori, prima ignorate, ora si aprono nell'app.
+
+La verifica avviene quando l'app viene installata o aggiornata: chi ha già l'app la ottiene con l'aggiornamento. La pagina di ripiego `/app/auth/magic` resta per chi apre la mail da un altro dispositivo o con una firma non elencata.
+
+**Ricontrollo:** all'arrivo del dominio definitivo, e quando si decide la firma del prossimo APK.
