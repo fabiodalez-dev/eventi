@@ -8,7 +8,7 @@ Lo script usa il Portachiavi macOS, servizio `it.fabiodalez.incitta.play-upload`
 
 La build AAB richiede `-PplayStore=true` e le variabili `INCITTA_UPLOAD_KEYSTORE`, `INCITTA_UPLOAD_PASSWORD`, `INCITTA_UPLOAD_ALIAS`. Il parametro è incompatibile con `deviceTests`. Il percorso APK storico mantiene la propria firma: non cambiarla incidentalmente durante il packaging Play.
 
-La release esclude eccezioni HTTP per emulatori. VersionCode deve aumentare dopo ogni bundle accettato da Play. Il certificato di upload non è quello con cui Google firma l'app distribuita: aggiornare App Links e integrazioni con il certificato finale corretto.
+La release esclude eccezioni HTTP per emulatori. VersionCode deve aumentare dopo ogni bundle accettato da Play. Il certificato di upload non è quello con cui Google firma l'app distribuita: aggiornare App Links e integrazioni con il certificato finale corretto: l'impronta SHA-256 di «Firma dell'app» va aggiunta a `public/.well-known/assetlinks.json` (D66).
 
 Il kit contiene verifiche statiche, test unitari e screenshot reali. Restano da completare le verifiche runtime 16 KB, privacy, accesso revisori, OAuth pubblico e push reale prima del lancio. Nessun deploy o caricamento è implicito nella generazione del kit.
 

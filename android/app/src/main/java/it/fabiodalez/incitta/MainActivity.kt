@@ -1,6 +1,8 @@
 package it.fabiodalez.incitta
 
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -59,10 +61,12 @@ class MainActivity : ComponentActivity() {
                 val rawParts = uri.pathSegments
                 val parts = if (rawParts.size > 1 && rawParts[1] in setOf("eventi", "locali", "mappa", "calendario")) rawParts.drop(1) else rawParts
                 when {
+                    it.fabiodalez.incitta.data.isWebOnlyLink(parts) -> openInBrowser(uri)
                     uri.scheme == "https" && parts == listOf("app", "auth", "magic") ->
                         uri.getQueryParameter("token")?.takeIf(String::isNotBlank)?.let(viewModel::exchangeMagicToken)
                     parts.firstOrNull() == "il-mio-feed" || parts.firstOrNull() == "notifiche" -> viewModel.selectTab(AppTab.ACCOUNT)
                     parts.firstOrNull() == "locali" && parts.size >= 2 -> viewModel.openVenueSlug(parts[1])
+                    parts.firstOrNull() == "organizzatori" && parts.size == 2 -> viewModel.openCommunityDestination(uri.toString())
                     it.fabiodalez.incitta.data.CollectionsRoutes.tokenFrom(parts) != null ->
                         viewModel.openSharedCollection(requireNotNull(it.fabiodalez.incitta.data.CollectionsRoutes.tokenFrom(parts)))
                     parts.firstOrNull() == "mappa" -> viewModel.selectTab(AppTab.MAP)
@@ -80,8 +84,20 @@ class MainActivity : ComponentActivity() {
                     parts == listOf("eventi", "gratis") -> { viewModel.selectTab(AppTab.HOME); viewModel.refresh(it.fabiodalez.incitta.data.EventFilter.FREE) }
                     parts.firstOrNull() == "eventi" && parts.size == 3 && parts[2].toIntOrNull()?.let { it > 0 } == true -> viewModel.openDate(parts[1], parts[2].toInt())
                     parts.firstOrNull() == "eventi" && parts.size >= 2 -> viewModel.openSlug(parts[1])
+                    else -> openInBrowser(uri)
                 }
             }
         }
+    }
+
+    /* Un ACTION_VIEW qualsiasi tornerebbe qui: il sito è verificato come nostro. */
+    private fun openInBrowser(uri: Uri) {
+        val probe = Intent(Intent.ACTION_VIEW, Uri.parse("https://example.org")).addCategory(Intent.CATEGORY_BROWSABLE)
+        val preferred = packageManager.resolveActivity(probe, PackageManager.MATCH_DEFAULT_ONLY)?.activityInfo?.packageName
+        val installed = packageManager.queryIntentActivities(probe, PackageManager.MATCH_ALL).map { it.activityInfo.packageName }
+        it.fabiodalez.incitta.data.pickBrowser(preferred, installed, packageName)?.let { browser ->
+            runCatching { startActivity(Intent(Intent.ACTION_VIEW, uri).addCategory(Intent.CATEGORY_BROWSABLE).setPackage(browser)) }
+        }
+        if (!isTaskRoot) finish()
     }
 }
