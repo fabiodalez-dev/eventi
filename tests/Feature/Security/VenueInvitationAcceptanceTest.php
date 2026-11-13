@@ -80,7 +80,8 @@ function inviteExisting(User $owner, Venue $venue, User $invited): void
 }
 
 it('non dà pannello, notifiche dello staff né nome a chi è invitato finché non accetta', function (): void {
-    $invited = User::factory()->create(['name' => 'Giulia Nascosta']);
+    // Un nome che Faker it_IT non genera: con «Giulia» la ricerca qui sotto trovava a caso lo staff del locale.
+    $invited = User::factory()->create(['name' => 'Zelinda Nascosta']);
     inviteExisting($this->scenario->ownerA, $this->venue, $invited);
 
     $row = DB::table('venue_user')->where('venue_id', $this->venue->getKey())->where('user_id', $invited->getKey())->first();
@@ -106,9 +107,9 @@ it('non dà pannello, notifiche dello staff né nome a chi è invitato finché n
     Livewire::test(Collaborators::class)
         ->assertSee(__('manage.collaborators.pending_name'))
         ->assertSee(mb_substr($locale, 0, 1).str_repeat('*', mb_strlen($locale) - 1).'@'.$dominio)
-        ->assertDontSee('Giulia Nascosta')
+        ->assertDontSee('Zelinda Nascosta')
         ->assertDontSee($invited->email)
-        ->searchTable('Giulia')
+        ->searchTable('Zelinda')
         ->assertCountTableRecords(0);
 
     // Un commento sull'evento del locale avvisa lo staff, non chi è solo invitato.
