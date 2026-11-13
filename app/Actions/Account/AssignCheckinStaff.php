@@ -30,10 +30,12 @@ final class AssignCheckinStaff
     private const RESEND_AFTER_MINUTES = 60;
 
     /**
-     * Mail d'invito per indirizzo in un giorno, su tutte le date. Il tetto
-     * non sta sulla riga dell'invito, che sparisce quando lo si ritira o lo
-     * si rifiuta: «invita, ritira, invita» non deve diventare un modo di
-     * riempire la casella di qualcuno.
+     * Mail d'invito che una stessa persona può mandare a uno stesso indirizzo
+     * in un giorno, su tutte le date. Il tetto non sta sulla riga
+     * dell'invito, che sparisce quando lo si ritira o lo si rifiuta: «invita,
+     * ritira, invita» non deve diventare un modo di riempire la casella di
+     * qualcuno. Conta per coppia, non per indirizzo: chi lo consuma non
+     * blocca gli inviti che altri mandano allo stesso indirizzo.
      */
     public const MAILS_PER_RECIPIENT_PER_DAY = 3;
 
@@ -70,11 +72,17 @@ final class AssignCheckinStaff
             throw ValidationException::withMessages(['email' => __('decision.staff_daily_limit')]);
         }
 
-        $invitation = DB::transaction(function () use ($date, $email, $actor): ?CheckinStaffInvitation {
+        // Oltre il tetto per indirizzo la mail non parte, senza dirlo, e un
+        // invito già in attesa resta com'è: rinnovarlo renderebbe inutile il
+        // collegamento che la persona ha già ricevuto.
+        $recipientKey = 'checkin-invites:to:'.$actor->id.':'.hash('sha256', $email);
+        $capped = RateLimiter::tooManyAttempts($recipientKey, self::MAILS_PER_RECIPIENT_PER_DAY);
+
+        $invitation = DB::transaction(function () use ($date, $email, $actor, $capped): ?CheckinStaffInvitation {
             $existing = $date->staffInvitations()->where('email', $email)->lockForUpdate()->first();
 
             if ($existing instanceof CheckinStaffInvitation) {
-                if ($existing->invited_at->isAfter(now()->subMinutes(self::RESEND_AFTER_MINUTES))) {
+                if ($capped || $existing->invited_at->isAfter(now()->subMinutes(self::RESEND_AFTER_MINUTES))) {
                     return null;
                 }
                 $existing->forceFill(['invited_at' => CarbonImmutable::now(), 'invited_by_id' => $actor->id])->save();
@@ -86,18 +94,13 @@ final class AssignCheckinStaff
                 throw ValidationException::withMessages(['email' => __('decision.staff_too_many', ['max' => CheckinStaffInvitation::MAX_PENDING])]);
             }
 
-            return $date->staffInvitations()->create(['email' => $email, 'invited_by_id' => $actor->id, 'invited_at' => CarbonImmutable::now()]);
+            // Un indirizzo nuovo compare comunque in attesa, come se la mail fosse partita.
+            $created = $date->staffInvitations()->create(['email' => $email, 'invited_by_id' => $actor->id, 'invited_at' => CarbonImmutable::now()]);
+
+            return $capped ? null : $created;
         });
 
         if (! $invitation instanceof CheckinStaffInvitation) {
-            return;
-        }
-
-        // Oltre il tetto per indirizzo l'invito resta in attesa ma la mail non
-        // parte, senza dirlo: un errore qui direbbe che l'indirizzo è stato
-        // invitato altrove.
-        $recipientKey = 'checkin-invites:to:'.hash('sha256', $email);
-        if (RateLimiter::tooManyAttempts($recipientKey, self::MAILS_PER_RECIPIENT_PER_DAY)) {
             return;
         }
         RateLimiter::hit($actorKey, 86400);

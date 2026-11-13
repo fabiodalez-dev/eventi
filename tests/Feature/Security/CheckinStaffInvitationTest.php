@@ -127,4 +127,16 @@ it('non riempie la casella di nessuno invitando e ritirando di continuo', functi
     }
 
     Notification::assertSentTimes(CheckinStaffInvited::class, AssignCheckinStaff::MAILS_PER_RECIPIENT_PER_DAY);
+
+    // Oltre il tetto, un invito in attesa non si rinnova: il collegamento già mandato resta buono.
+    inviteToDoor($this, 'bersaglio@example.test');
+    $sent = CheckinStaffInvitation::query()->sole()->invited_at;
+    $this->travel(2)->hours();
+    inviteToDoor($this, 'bersaglio@example.test');
+    expect(CheckinStaffInvitation::query()->sole()->invited_at->equalTo($sent))->toBeTrue();
+
+    // Un altro gestore invita lo stesso indirizzo: il tetto consumato dal primo non lo blocca.
+    ['date' => $other, 'owner' => $otherOwner] = tktFlowScenario(event: ['title' => 'Altra serata']);
+    $this->actingAs($otherOwner)->post(route('ticketing.manage.staff', $other), ['email' => 'bersaglio@example.test'])->assertSessionHasNoErrors();
+    Notification::assertSentTimes(CheckinStaffInvited::class, AssignCheckinStaff::MAILS_PER_RECIPIENT_PER_DAY + 1);
 });
