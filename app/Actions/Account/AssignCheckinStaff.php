@@ -11,6 +11,7 @@ use App\Notifications\CheckinStaffInvited;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Validation\ValidationException;
 
@@ -27,6 +28,17 @@ final class AssignCheckinStaff
 {
     /** Un invito ancora in attesa si rimanda al massimo una volta ogni ora. */
     private const RESEND_AFTER_MINUTES = 60;
+
+    /**
+     * Mail d'invito per indirizzo in un giorno, su tutte le date. Il tetto
+     * non sta sulla riga dell'invito, che sparisce quando lo si ritira o lo
+     * si rifiuta: «invita, ritira, invita» non deve diventare un modo di
+     * riempire la casella di qualcuno.
+     */
+    public const MAILS_PER_RECIPIENT_PER_DAY = 3;
+
+    /** Mail d'invito che una persona può far partire in un giorno. */
+    public const MAILS_PER_ACTOR_PER_DAY = 60;
 
     public static function acceptUrl(CheckinStaffInvitation $invitation): string
     {
@@ -52,6 +64,12 @@ final class AssignCheckinStaff
             return;
         }
 
+        // Il tetto di chi invita si controlla prima di creare l'invito, così non resta una riga senza mail.
+        $actorKey = 'checkin-invites:actor:'.$actor->id;
+        if (RateLimiter::tooManyAttempts($actorKey, self::MAILS_PER_ACTOR_PER_DAY)) {
+            throw ValidationException::withMessages(['email' => __('decision.staff_daily_limit')]);
+        }
+
         $invitation = DB::transaction(function () use ($date, $email, $actor): ?CheckinStaffInvitation {
             $existing = $date->staffInvitations()->where('email', $email)->lockForUpdate()->first();
 
@@ -74,6 +92,16 @@ final class AssignCheckinStaff
         if (! $invitation instanceof CheckinStaffInvitation) {
             return;
         }
+
+        // Oltre il tetto per indirizzo l'invito resta in attesa ma la mail non
+        // parte, senza dirlo: un errore qui direbbe che l'indirizzo è stato
+        // invitato altrove.
+        $recipientKey = 'checkin-invites:to:'.hash('sha256', $email);
+        if (RateLimiter::tooManyAttempts($recipientKey, self::MAILS_PER_RECIPIENT_PER_DAY)) {
+            return;
+        }
+        RateLimiter::hit($actorKey, 86400);
+        RateLimiter::hit($recipientKey, 86400);
 
         Notification::route('mail', $email)->notify(new CheckinStaffInvited($date, self::acceptUrl($invitation)));
         activity('ticketing')->causedBy($actor)->performedOn($date)->withProperties(['invitation_id' => $invitation->id])->log('staff_invited');

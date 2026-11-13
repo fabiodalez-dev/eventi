@@ -119,3 +119,12 @@ it('limita gli inviti in attesa per data', function (): void {
     $this->actingAs($this->owner)->post(route('ticketing.manage.staff', $this->date), ['email' => 'uno-di-troppo@example.test'])->assertSessionHasErrors('email');
     Notification::assertNothingSent();
 });
+
+it('non riempie la casella di nessuno invitando e ritirando di continuo', function (): void {
+    foreach (range(1, 6) as $round) {
+        inviteToDoor($this, 'bersaglio@example.test');
+        $this->actingAs($this->owner)->post(route('ticketing.manage.staff', $this->date), ['email' => 'bersaglio@example.test', 'remove' => '1']);
+    }
+
+    Notification::assertSentTimes(CheckinStaffInvited::class, AssignCheckinStaff::MAILS_PER_RECIPIENT_PER_DAY);
+});

@@ -57,6 +57,7 @@ return [
     'staff_withdraw' => 'Ritira l’invito',
     'staff_pending' => 'in attesa di risposta',
     'staff_active' => 'attivo',
+    'staff_daily_limit' => 'Hai già mandato molti inviti oggi: riprova domani.',
     'staff_too_many' => 'Ci sono già :max inviti in attesa per questa data: aspetta le risposte o ritirane qualcuno.',
     'staff_invitation' => [
         'subject' => 'Invito al controllo ingressi: :event',
