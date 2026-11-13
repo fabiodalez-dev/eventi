@@ -37,6 +37,27 @@ final class MobileManagement
             ->where(fn ($q) => $q->whereNull('sponsorship_grant_id')->orWhereHas('grant', fn ($g) => $g->whereIn('venue_id', $user->activeOwnedVenues()->select('venues.id')))));
     }
 
+    /**
+     * Il personale di una data: chi ha accettato e gli inviti in attesa (D67).
+     * Di tutti solo l'indirizzo, quello che chi gestisce ha scritto: il nome
+     * dell'account non gli spetta, e un invito non dice se l'indirizzo è
+     * registrato. `name` resta per le versioni dell'app che lo leggono; `id`
+     * non identifica l'account, serve solo a distinguere le righe.
+     *
+     * @return list<array{id: int, name: string, email: string, status: string}>
+     */
+    public function staff(EventOccurrence $date): array
+    {
+        $active = $date->checkinStaff()->orderBy('users.email')->pluck('users.email')
+            ->map(fn (string $email): array => ['email' => mb_strtolower($email), 'status' => 'accepted']);
+        $pending = $date->staffInvitations()->orderBy('email')->pluck('email')
+            ->map(fn (string $email): array => ['email' => $email, 'status' => 'pending']);
+
+        return $active->concat($pending)->unique('email')->values()
+            ->map(fn (array $row, int $index): array => ['id' => $index + 1, 'name' => $row['email'], 'email' => $row['email'], 'status' => $row['status']])
+            ->all();
+    }
+
     /** @return array<string, mixed> */
     public function date(EventOccurrence $date, User $user, bool $detail = false): array
     {
@@ -47,9 +68,7 @@ final class MobileManagement
         if ($detail && $manage) {
             $data += ['practical_details' => (object) ($date->practical_details ?? []), 'cost_breakdown' => (object) ($date->cost_breakdown ?? []),
                 'currency' => $date->event?->currency ?: 'EUR',
-                // Solo l'indirizzo che chi gestisce ha scritto: il nome dell'account non
-                // gli spetta (D64). `name` resta per le versioni dell'app che lo leggono.
-                'staff' => $date->checkinStaff()->orderBy('users.email')->get(['users.id', 'users.email'])->map(fn ($staff) => ['id' => $staff->id, 'name' => $staff->email, 'email' => $staff->email])->all(),
+                'staff' => $this->staff($date),
                 'statistics' => (object) app(TicketingService::class)->statistics($date),
                 'availability' => app(TicketingService::class)->availability($date)];
         }

@@ -5,6 +5,7 @@
 declare(strict_types=1);
 
 use App\Jobs\SyncGoogleCalendar;
+use App\Models\CheckinStaffInvitation;
 use App\Models\GoogleCalendarConnection;
 use App\Models\MobileAuthChallenge;
 use App\Models\SearchMiss;
@@ -310,6 +311,11 @@ Schedule::command('model:prune', [
 
 Schedule::command('model:prune', [
     '--model' => MobileAuthChallenge::class,
+])->daily()->doNotMonitor();
+
+// Gli inviti al personale di ingresso rimasti senza risposta (D67).
+Schedule::command('model:prune', [
+    '--model' => CheckinStaffInvitation::class,
 ])->daily()->doNotMonitor();
 
 /*

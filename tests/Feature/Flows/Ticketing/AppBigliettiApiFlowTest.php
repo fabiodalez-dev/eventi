@@ -198,11 +198,18 @@ it('gestisce dall app le date, il personale e i dettagli pratici, e il personale
         ->assertJsonPath('data.staff', [])->assertJsonPath('data.currency', 'EUR');
 
     $this->postJson($base.'/staff', ['email' => 'porta@example.test'])->assertOk()->assertJsonPath('data.message', __('decision.staff_saved'));
-    $this->getJson($base)->assertJsonPath('data.staff.0.email', 'porta@example.test');
-    // Un indirizzo sconosciuto risponde come uno registrato e non aggiunge nessuno: il campo non
-    // deve dire chi ha un account.
+    $this->getJson($base)->assertJsonPath('data.staff.0.email', 'porta@example.test')->assertJsonPath('data.staff.0.status', 'pending');
+    // Un indirizzo sconosciuto risponde e compare come uno registrato, in attesa: né la risposta
+    // né la lista dicono chi ha un account.
     $this->postJson($base.'/staff', ['email' => 'nessuno@example.test'])->assertOk();
-    expect($this->getJson($base)->json('data.staff'))->toHaveCount(1);
+    expect($this->getJson($base)->json('data.staff'))->toBe([
+        ['id' => 1, 'name' => 'nessuno@example.test', 'email' => 'nessuno@example.test', 'status' => 'pending'],
+        ['id' => 2, 'name' => 'porta@example.test', 'email' => 'porta@example.test', 'status' => 'pending'],
+    ]);
+    $this->postJson($base.'/staff', ['email' => 'nessuno@example.test', 'remove' => true])->assertOk();
+    acceptCheckinInvitation($date, $doorman);
+    Sanctum::actingAs($owner);
+    expect($this->getJson($base)->json('data.staff'))->toBe([['id' => 1, 'name' => 'porta@example.test', 'email' => 'porta@example.test', 'status' => 'accepted']]);
 
     $this->patchJson($base.'/details', ['practical_details' => ['accessibility' => 'yes', 'entrance_notes' => 'Ingresso dal cortile'], 'cost_breakdown' => ['admission' => '10.00', 'drink' => 0]])
         ->assertOk()->assertJsonPath('data.message', __('ticketing.updated'));

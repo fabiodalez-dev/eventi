@@ -198,8 +198,8 @@ internal fun ManagementScreen(session: Session?, padding: PaddingValues, client:
                     Text(stringResource(R.string.management_staff), style = MaterialTheme.typography.titleLarge)
                     Text(stringResource(R.string.management_staff_help), color = Muted)
                     selected.staff.forEach { member ->
-                        Text(member.email)
-                        TextButton(enabled = !busy, onClick = { removeStaff = member }) { Text(stringResource(R.string.management_revoke)) }
+                        Text(if (member.pending) stringResource(R.string.management_staff_pending, member.email) else member.email)
+                        TextButton(enabled = !busy, onClick = { removeStaff = member }) { Text(stringResource(if (member.pending) R.string.management_withdraw else R.string.management_revoke)) }
                     }
                     var email by remember(selected.id) { mutableStateOf("") }
                     OutlinedTextField(email, { email = it.take(255) }, label = { Text(stringResource(R.string.management_email)) }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email), modifier = Modifier.fillMaxWidth())

@@ -131,13 +131,17 @@ it('aggiunge una persona al personale della porta, che usa lo scanner ma non ved
 
     $this->actingAs($owner)->post(route('ticketing.manage.staff', $date), ['email' => 'porta@example.test'])
         ->assertRedirect(route('ticketing.manage.show', $date))->assertSessionHas('status', __('decision.staff_saved'));
+    // Parte un invito: finché la persona non accetta, la data non la aggancia.
+    expect($date->checkinStaff()->whereKey($doorman->id)->exists())->toBeFalse();
+    $this->get(route('ticketing.manage.show', $date))->assertSee('porta@example.test')->assertSee(__('decision.staff_pending'));
+    // Un indirizzo che non corrisponde a nessun account riceve lo stesso invito e compare allo
+    // stesso modo: il campo non deve dire chi ha un account.
+    $this->post(route('ticketing.manage.staff', $date), ['email' => 'nessuno@example.test'])->assertSessionHasNoErrors();
+    expect($date->staffInvitations()->count())->toBe(2)->and($date->checkinStaff()->count())->toBe(0);
+
+    acceptCheckinInvitation($date, $doorman);
     expect($date->checkinStaff()->whereKey($doorman->id)->exists())->toBeTrue()
         ->and(Activity::query()->where('description', 'staff_assigned')->where('subject_id', $date->id)->exists())->toBeTrue();
-    $this->get(route('ticketing.manage.show', $date))->assertSee('porta@example.test');
-    // Un indirizzo che non corrisponde a nessun account non si aggiunge, e la risposta è la stessa
-    // di un indirizzo registrato: il campo non deve dire chi ha un account.
-    $this->post(route('ticketing.manage.staff', $date), ['email' => 'nessuno@example.test'])->assertSessionHasNoErrors();
-    expect($date->checkinStaff()->count())->toBe(1);
 
     // Il personale apre lo scanner, con la fotocamera permessa, ma non la gestione.
     $this->actingAs($doorman)->get(route('ticketing.manage.scanner', $date))->assertOk()

@@ -3228,3 +3228,17 @@ Sicurezza: i collegamenti nelle email si costruiscono da `APP_URL` e gli host di
 La verifica avviene quando l'app viene installata o aggiornata: chi ha già l'app la ottiene con l'aggiornamento. La pagina di ripiego `/app/auth/magic` resta per chi apre la mail da un altro dispositivo o con una firma non elencata.
 
 **Ricontrollo:** all'arrivo del dominio definitivo, e quando si decide la firma del prossimo APK.
+
+## 13 novembre 2026 — D67. Il personale di ingresso entra solo su invito
+
+**Contesto:** dopo D64 il campo «personale all'ingresso» rispondeva allo stesso modo per un indirizzo registrato e per uno sconosciuto, ma la lista della data mostrava solo gli account trovati. Chi gestiva una data poteva quindi scoprire chi è registrato, e una persona finiva nel personale di una data senza saperlo.
+
+**Decisione:** il proprietario ha chiesto un invito con accettazione.
+
+- Aggiungere un indirizzo crea un invito in `occurrence_staff_invitations` e manda una mail a quell'indirizzo, sempre, che sia registrato o no. La data mostra l'indirizzo scritto «in attesa di risposta», uguale nei due casi, sul sito, nell'API e nell'app.
+- Il collegamento è firmato, vale sette giorni e porta la data dell'invito: un invito rimandato o ritirato rende inutile quello vecchio. Come per i locali (D64), la GET mostra la domanda e decide il POST, e bisogna essere entrati con l'account di quell'indirizzo. Chi non ha un account lo crea e riapre il collegamento.
+- All'accettazione la persona entra in `occurrence_checkin_staff`, che resta l'unica fonte dei permessi; l'invito sparisce. Una data finita non accetta più inviti.
+- Un invito in attesa si rimanda al massimo una volta l'ora, e una data tiene al massimo trenta inviti in attesa. Gli inviti senza risposta si potano dopo trentasette giorni.
+- Nell'API ogni voce del personale ha `status` (`pending` o `accepted`). Il campo `id` numera le righe e non identifica più l'account; `name` resta uguale all'email per le versioni vecchie dell'app. L'app 1.22.4 mostra lo stato e «Ritira l'invito».
+
+**Ricontrollo:** se il personale di ingresso diventa ricorrente (più date, un intero locale), con un invito per locale invece che per data.
