@@ -45,6 +45,10 @@ it('accetta nel ramo degli asset solo file statici', function (): void {
         ->and(ReleaseManifest::firstNonStaticEntry("100644 blob a\tapp.css\n100644 blob b\tprobe.php"))->toBe('probe.php')
         ->and(ReleaseManifest::firstNonStaticEntry("100644 blob a\tsub/.htaccess"))->toBe('sub/.htaccess')
         ->and(ReleaseManifest::firstNonStaticEntry("120000 blob a\tlink-env"))->toBe('link-env')
+        ->and(ReleaseManifest::firstNonStaticEntry("100644 blob a\tbuild/x.php.abc"))->toBe('build/x.php.abc')
+        ->and(ReleaseManifest::firstNonStaticEntry("100644 blob a\tx.phtml.txt"))->toBe('x.phtml.txt')
+        ->and(ReleaseManifest::firstNonStaticEntry("100644 blob a\tLEGGIMI"))->toBe('LEGGIMI')
+        ->and(ReleaseManifest::firstNonStaticEntry("100644 blob a\tfonts/inter.woff2\n100644 blob b\tassets/app-Bx3.js.map"))->toBeNull()
         ->and(ReleaseManifest::firstNonStaticEntry(null))->not->toBeNull();
 });
 
@@ -57,4 +61,7 @@ it('non carica gli script di consenso allo staff collegato e li carica agli ospi
 
     expect((string) $this->get('/')->getContent())->toContain('window.__scriptDiProva');
     expect((string) $this->actingAs($admin)->get('/')->getContent())->not->toContain('window.__scriptDiProva');
+
+    $persona = User::factory()->create();
+    expect((string) $this->actingAs($persona)->withSession(['impersonator_id' => $admin->id])->get('/')->getContent())->not->toContain('window.__scriptDiProva');
 });
