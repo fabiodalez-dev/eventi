@@ -568,7 +568,10 @@ it('48 export includes community data and deletion removes relations and encrypt
     $export = app(AccountExport::class)($author);
     expect($export['community']['posts'])->toHaveCount(1)->and($export['community']['comments'])->toHaveCount(1);
     app(DeleteAccount::class)($author);
-    expect(CommunityPost::count())->toBe(0)->and(CommunityComment::count())->toBe(0)->and(DB::table('followables')->count())->toBe(0)->and(WhatsappChallenge::count())->toBe(0);
+    expect(CommunityPost::count())->toBe(0)->and(CommunityComment::count())->toBe(0)->and(DB::table('followables')->count())->toBe(0);
+    // Le richieste delle ultime 24 ore restano per il tetto per numero, ma senza codice e numero in chiaro.
+    expect(WhatsappChallenge::query()->where('code_hash', '!=', '')->count())->toBe(0)
+        ->and(WhatsappChallenge::query()->get()->every(fn (WhatsappChallenge $challenge): bool => $challenge->phone === ''))->toBeTrue();
     expect(User::withTrashed()->find($author->id)->whatsapp_phone)->toBeNull();
 });
 

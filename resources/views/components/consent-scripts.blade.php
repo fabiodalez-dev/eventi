@@ -1,3 +1,12 @@
+{{--
+    Gli script di consenso li scrive un amministratore e girano sulla stessa
+    origine del pannello: nella sessione di un membro dello staff potrebbero
+    agire con i suoi poteri, compreso il dare a qualcuno un ruolo che chi li
+    ha scritti non può dare. Allo staff collegato non si caricano, e nemmeno
+    durante un'impersonificazione: lì dietro la sessione presa in prestito c'è
+    un amministratore, a cui uno script potrebbe tornare chiamando l'uscita.
+--}}
+@unless (auth()->user()?->isEditorialStaff() || session()->has(\App\Http\Controllers\Web\ImpersonationController::SESSION_KEY))
 @foreach (\App\Models\ConsentScript::enabledScripts() as $consentScript)
     @if (app(\App\Support\Consent::class)->allows($consentScript->category))
         @if (filled($consentScript->code))
@@ -8,4 +17,4 @@
         @endif
     @endif
 @endforeach
-
+@endunless

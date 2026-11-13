@@ -270,6 +270,18 @@ class User extends Authenticatable implements FilamentUser, HasTenants, MustVeri
         return $this->venues()->wherePivot('role', VenueRole::Owner->value);
     }
 
+    /**
+     * I locali di cui è proprietario e su cui non pende un provvedimento: un
+     * locale sospeso o rifiutato toglie ai suoi membri la gestione ovunque,
+     * non solo nel pannello (D52).
+     *
+     * @return BelongsToMany<Venue, $this>
+     */
+    public function activeOwnedVenues(): BelongsToMany
+    {
+        return $this->ownedVenues()->whereIn('venues.status', VenueStatus::valoriSenzaProvvedimento());
+    }
+
     /** @return HasMany<Venue, $this> */
     public function approvedVenues(): HasMany
     {
@@ -318,6 +330,19 @@ class User extends Authenticatable implements FilamentUser, HasTenants, MustVeri
     public function devices(): HasMany
     {
         return $this->hasMany(Device::class);
+    }
+
+    /**
+     * Toglie tutti i canali push (app e browser) quando le credenziali si
+     * revocano in blocco: reimpostazione della password, rivendicazione della
+     * casella, cambio fatto dallo staff. Cancellare i token non basta, perché
+     * i dispositivi registrati da chi li teneva restano destinatari delle
+     * notifiche. L'app e il browser legittimi si registrano di nuovo al
+     * prossimo accesso.
+     */
+    public function revokeDevices(): void
+    {
+        $this->devices()->whereNull('revoked_at')->update(['revoked_at' => now()]);
     }
 
     /** @return HasMany<ScheduledNotification, $this> */

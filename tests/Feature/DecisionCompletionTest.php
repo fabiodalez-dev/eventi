@@ -125,6 +125,9 @@ it('gives door staff access only to the assigned scanner and revokes it immediat
     $booking = $this->service->reserve($this->user, $this->date, ['Ada'], (string) Str::uuid(), false);
     $staff = User::factory()->create();
     $this->actingAs($this->owner)->post(route('ticketing.manage.staff', $this->date), ['email' => $staff->email])->assertRedirect();
+    // Finché non accetta l'invito, la persona non ha accesso.
+    $this->actingAs($staff)->get(route('ticketing.manage.scanner', $this->date))->assertForbidden();
+    acceptCheckinInvitation($this->date, $staff);
     $this->actingAs($staff)->get(route('ticketing.manage.scanner', $this->date))->assertOk()->assertDontSee($this->user->email);
     $this->get(route('ticketing.manage.show', $this->date))->assertForbidden();
     $this->get(route('ticketing.manage.export', $this->date))->assertForbidden();

@@ -81,10 +81,12 @@
     <string name="management_attended">Ingressi registrati: %1$d</string>
     <string name="management_capacity_unknown">Capienza non dichiarata</string>
     <string name="management_staff">Staff della data</string>
-    <string name="management_staff_help">Lo staff assegnato può verificare i biglietti di questa data. Non può modificare dati, gestire lo staff o vedere i rapporti.</string>
+    <string name="management_staff_help">Alla persona arriva un invito per email: quando accetta con l’account di quell’indirizzo può verificare i biglietti di questa data. Non può modificare dati, gestire lo staff o vedere i rapporti.</string>
     <string name="management_revoke">Revoca accesso</string>
-    <string name="management_email">Email di un account esistente</string>
-    <string name="management_assign">Assegna allo staff</string>
+    <string name="management_withdraw">Ritira l’invito</string>
+    <string name="management_staff_pending">%1$s · in attesa di risposta</string>
+    <string name="management_email">Email della persona</string>
+    <string name="management_assign">Invita allo staff</string>
     <string name="management_revoke_confirm">Revocare l’accesso agli ingressi per %1$s?</string>
     <string name="management_cancel">Annulla</string>
     <string name="management_spend">Spesa registrata</string>

@@ -11,6 +11,7 @@ use App\DTOs\ImportReport;
 use App\Enums\EventStatus;
 use App\Enums\ImportRunStatus;
 use App\Enums\OccurrenceStatus;
+use App\Enums\VenueStatus;
 use App\Enums\VerificationStatus;
 use App\Exceptions\ImportException;
 use App\Models\Category;
@@ -213,9 +214,15 @@ final class ImportRunner
      * pubblicato perché è la decisione del committente, non verificato perché
      * §14.1 impone che il sito e l'API sappiano distinguerlo da un evento
      * confermato dal locale.
+     *
+     * Vale solo per un calendario senza locale o di un locale approvato: è la
+     * stessa condizione che EventPolicy::publish chiede a chi pubblica a mano.
+     * Il calendario di un locale in bozza o in attesa crea eventi in attesa,
+     * che passano dalla redazione come gli altri.
      */
     private function create(ImportSource $source, ImportedEventDto $dto, string $ref, int $category, ImportReport $report): void
     {
+        $publishable = $source->venue_id === null || $source->venue?->status === VenueStatus::Approved;
         $event = new Event([
             'city_id' => $source->city_id,
             'venue_id' => $source->venue_id,
@@ -227,8 +234,8 @@ final class ImportRunner
             'source' => $source->type->eventSource(),
             'source_ref' => $ref,
             'verification_status' => VerificationStatus::Unverified,
-            'status' => EventStatus::Published,
-            'published_at' => Carbon::now(),
+            'status' => $publishable ? EventStatus::Published : EventStatus::Pending,
+            'published_at' => $publishable ? Carbon::now() : null,
         ]);
 
         $event->save();

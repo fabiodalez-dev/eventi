@@ -72,13 +72,21 @@ final class CarpoolAccess
         if ($offer->driver !== null && $this->blocked($user, $offer->driver)) {
             return false;
         }
-        if ($offer->requests()->where('user_id', $user->id)->exists()) {
+        // Una richiesta già fatta lascia consultare l'offerta, ma non a chi è stato sospeso:
+        // dopo la revoca niente contenuti nuovi (zona, orario, tappe che il conducente sposta).
+        if (! $this->suspended($user) && $offer->requests()->where('user_id', $user->id)->exists()) {
             return true;
         }
 
         return $this->eligible($user) && $offer->driver !== null && $this->eligible($offer->driver, false)
             && $offer->status === RideStatus::Open
             && app(CarpoolQuery::class)->operational($offer);
+    }
+
+    /** Sospeso dalla community o dai passaggi, o con l'account cancellato. */
+    public function suspended(User $user): bool
+    {
+        return $user->trashed() || $user->community_suspended_at !== null || $user->carpool_suspended_at !== null;
     }
 
     public function canReadChat(User $user, RideConversation $chat): bool

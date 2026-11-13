@@ -102,10 +102,10 @@
             <x-field name="email" type="email" :label="__('decision.staff_email')" :required="true" />
             <x-button type="submit">{{ __('decision.staff_add') }}</x-button>
         </form>
-        @foreach ($date->checkinStaff as $staff)
+        @foreach (app(\App\Services\Ticketing\MobileManagement::class)->staff($date) as $staff)
             <form method="POST" action="{{ route('ticketing.manage.staff', $date) }}" class="flex flex-wrap items-center gap-3 py-2">@csrf
-                <span>{{ $staff->email }}</span><input type="hidden" name="email" value="{{ $staff->email }}"><input type="hidden" name="remove" value="1">
-                <x-button type="submit" variant="secondary">{{ __('decision.staff_remove') }}</x-button>
+                <span>{{ $staff['email'] }} · <span class="text-ink-muted">{{ __($staff['status'] === 'pending' ? 'decision.staff_pending' : 'decision.staff_active') }}</span></span><input type="hidden" name="email" value="{{ $staff['email'] }}"><input type="hidden" name="remove" value="1">
+                <x-button type="submit" variant="secondary">{{ __($staff['status'] === 'pending' ? 'decision.staff_withdraw' : 'decision.staff_remove') }}</x-button>
             </form>
         @endforeach
     </section>

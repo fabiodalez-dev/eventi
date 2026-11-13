@@ -63,6 +63,7 @@ class EditUser extends EditRecord
         }
 
         $record->tokens()->delete();
+        $record->revokeDevices();
         $staff = auth()->user();
         foreach ($this->cambiCredenziali as $evento) {
             SecurityLog::scrivi($evento, $record, causa: $staff instanceof User ? $staff : null);

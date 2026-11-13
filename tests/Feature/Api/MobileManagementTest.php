@@ -31,10 +31,13 @@ it('lists only authorized dates and does not disclose management details to staf
     $this->patchJson($this->base.'/details', ['practical_details' => [], 'cost_breakdown' => []])->assertForbidden();
 });
 
-it('assigns and revokes staff immediately and preserves check-in idempotency', function (): void {
+it('invites staff, grants access on acceptance, revokes it immediately and preserves check-in idempotency', function (): void {
     Sanctum::actingAs($this->owner);
     $this->postJson($this->base.'/staff', ['email' => $this->staff->email])->assertOk();
-    $this->getJson($this->base)->assertOk()->assertJsonPath('data.staff.0.email', $this->staff->email);
+    $this->getJson($this->base)->assertOk()->assertJsonPath('data.staff.0.email', mb_strtolower($this->staff->email))->assertJsonPath('data.staff.0.status', 'pending');
+    acceptCheckinInvitation($this->date, $this->staff);
+    Sanctum::actingAs($this->owner);
+    $this->getJson($this->base)->assertOk()->assertJsonPath('data.staff.0.status', 'accepted');
     $booking = app(TicketingService::class)->reserve(User::factory()->create(), $this->date, ['Ada'], (string) Str::uuid(), false);
     Sanctum::actingAs($this->staff);
     $payload = ['code' => $booking->tickets[0]->code, 'request_key' => (string) Str::uuid()];

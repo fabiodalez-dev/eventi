@@ -118,6 +118,7 @@ final class ClaimMailbox
     private function azzera(User $user, array $attributi): void
     {
         $user->tokens()->delete();
+        $user->revokeDevices();
         MobileAuthChallenge::query()->where('user_id', $user->getKey())->delete();
 
         /* Le sessioni del sito: con il driver `database` si cancellano le

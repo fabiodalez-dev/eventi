@@ -389,7 +389,8 @@ class CalendarImport extends Page implements HasForms
         $file = $data['file'] ?? null;
         $file = is_array($file) ? (reset($file) ?: null) : $file;
         if ($this->typeFrom($data) === ImportSourceType::Csv && is_string($file) && $file !== '') {
-            return CsvImportDriver::UPLOAD_PREFIX.basename($file);
+            // I `\` contano come separatori anche qui: su Linux `basename()` non li toglie.
+            return CsvImportDriver::UPLOAD_PREFIX.basename(str_replace('\\', '/', $file));
         }
 
         return (string) ($data['url'] ?? '');
