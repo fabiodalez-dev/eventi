@@ -24,8 +24,8 @@ final class MobileManagement
     {
         return EventOccurrence::query()->when(! $this->admin($user), fn ($query) => $query->where(fn ($allowed) => $allowed
             ->whereHas('checkinStaff', fn ($q) => $q->whereKey($user->id))
-            ->orWhereIn('venue_id', $user->ownedVenues()->select('venues.id'))
-            ->orWhere(fn ($fallback) => $fallback->whereNull('venue_id')->whereHas('event', fn ($event) => $event->whereIn('venue_id', $user->ownedVenues()->select('venues.id'))))
+            ->orWhereIn('venue_id', $user->activeOwnedVenues()->select('venues.id'))
+            ->orWhere(fn ($fallback) => $fallback->whereNull('venue_id')->whereHas('event', fn ($event) => $event->whereIn('venue_id', $user->activeOwnedVenues()->select('venues.id'))))
             ->orWhereHas('event', fn ($event) => $event->whereIn('organizer_id', $user->managedOrganizers()->select('organizers.id')))));
     }
 
@@ -33,8 +33,8 @@ final class MobileManagement
     public function campaigns(User $user): Builder
     {
         return Sponsorship::withTrashed()->when(! $this->admin($user), fn ($query) => $query
-            ->whereHas('event', fn ($event) => $event->whereIn('venue_id', $user->ownedVenues()->select('venues.id')))
-            ->where(fn ($q) => $q->whereNull('sponsorship_grant_id')->orWhereHas('grant', fn ($g) => $g->whereIn('venue_id', $user->ownedVenues()->select('venues.id')))));
+            ->whereHas('event', fn ($event) => $event->whereIn('venue_id', $user->activeOwnedVenues()->select('venues.id')))
+            ->where(fn ($q) => $q->whereNull('sponsorship_grant_id')->orWhereHas('grant', fn ($g) => $g->whereIn('venue_id', $user->activeOwnedVenues()->select('venues.id')))));
     }
 
     /** @return array<string, mixed> */
@@ -47,7 +47,9 @@ final class MobileManagement
         if ($detail && $manage) {
             $data += ['practical_details' => (object) ($date->practical_details ?? []), 'cost_breakdown' => (object) ($date->cost_breakdown ?? []),
                 'currency' => $date->event?->currency ?: 'EUR',
-                'staff' => $date->checkinStaff()->orderBy('name')->get(['users.id', 'users.name', 'users.email'])->map(fn ($staff) => ['id' => $staff->id, 'name' => $staff->name, 'email' => $staff->email])->all(),
+                // Solo l'indirizzo che chi gestisce ha scritto: il nome dell'account non
+                // gli spetta (D64). `name` resta per le versioni dell'app che lo leggono.
+                'staff' => $date->checkinStaff()->orderBy('users.email')->get(['users.id', 'users.email'])->map(fn ($staff) => ['id' => $staff->id, 'name' => $staff->email, 'email' => $staff->email])->all(),
                 'statistics' => (object) app(TicketingService::class)->statistics($date),
                 'availability' => app(TicketingService::class)->availability($date)];
         }

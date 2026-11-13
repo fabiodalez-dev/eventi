@@ -189,7 +189,7 @@ final readonly class MessageFactory
 
     private function cancelled(ScheduledNotification $notification): NotificationMessage|NotificationSkipReason
     {
-        $occurrence = $this->occurrence($notification);
+        $occurrence = $this->occurrence($notification, allowCancelled: true);
 
         if (! $occurrence instanceof EventOccurrence) {
             return NotificationSkipReason::MissingSubject;
@@ -788,7 +788,14 @@ final readonly class MessageFactory
         return $items;
     }
 
-    private function occurrence(ScheduledNotification $notification): ?EventOccurrence
+    /**
+     * La data di cui parla il messaggio, solo se il suo evento è ancora
+     * pubblico (pubblicato o in archivio). Un evento tornato in bozza, in
+     * revisione o rifiutato non deve arrivare per posta e notifica a chi lo
+     * seguiva: titolo, orari e luogo nuovi non li ha ancora visti la
+     * redazione. L'avviso di annullamento passa anche per un evento annullato.
+     */
+    private function occurrence(ScheduledNotification $notification, bool $allowCancelled = false): ?EventOccurrence
     {
         $occurrence = $notification->notifiable;
 
@@ -797,8 +804,10 @@ final readonly class MessageFactory
         }
 
         $occurrence->loadMissing(['event.venue', 'event.city']);
+        $event = $occurrence->event;
+        $statuses = $allowCancelled ? [EventStatus::Published, EventStatus::Archived, EventStatus::Cancelled] : [EventStatus::Published, EventStatus::Archived];
 
-        return $occurrence->event instanceof Event ? $occurrence : null;
+        return $event instanceof Event && in_array($event->status, $statuses, true) ? $occurrence : null;
     }
 
     private function event(ScheduledNotification $notification): ?Event

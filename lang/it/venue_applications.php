@@ -7,6 +7,7 @@ return [
     'approved' => ':venue è stato creato',
     'approved_body' => 'La scheda è in bozza e l\'invito è partito. Completala e pubblicala quando è pronta.',
     'claim_missing_venue' => 'Il locale rivendicato non esiste più.',
+    'organizer_needs_requester' => 'L\'indirizzo di contatto appartiene a un account che non ha mandato questa richiesta: non lo si aggancia senza consenso. Chiedi alla persona di inviare la richiesta da collegata, oppure aggiungila dalla scheda dell\'organizzatore dopo averle parlato.',
     'claim_already_managed' => 'Il locale ha già un referente: la rivendicazione non si può approvare.',
     'claim_superseded' => 'Un\'altra rivendicazione dello stesso locale è stata approvata prima.',
     'approve_claim_confirm' => 'Chi ha scritto diventa referente del locale già a catalogo e riceve l\'invito al pannello. Verifica prima che sia davvero chi dice di essere.',

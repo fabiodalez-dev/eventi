@@ -198,7 +198,7 @@ internal fun ManagementScreen(session: Session?, padding: PaddingValues, client:
                     Text(stringResource(R.string.management_staff), style = MaterialTheme.typography.titleLarge)
                     Text(stringResource(R.string.management_staff_help), color = Muted)
                     selected.staff.forEach { member ->
-                        Text("${member.name} · ${member.email}")
+                        Text(member.email)
                         TextButton(enabled = !busy, onClick = { removeStaff = member }) { Text(stringResource(R.string.management_revoke)) }
                     }
                     var email by remember(selected.id) { mutableStateOf("") }

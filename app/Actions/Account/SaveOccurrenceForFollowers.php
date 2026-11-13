@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Actions\Account;
 
 use App\Enums\FollowableType;
+use App\Models\Event;
 use App\Models\EventOccurrence;
 use App\Models\Follow;
 use App\Services\Notifications\NotificationScheduler;
@@ -31,6 +32,16 @@ final class SaveOccurrenceForFollowers
 
     public function __invoke(EventOccurrence $occurrence): int
     {
+        /*
+         * Solo le date di un evento pubblico: un evento in bozza, in revisione
+         * o rifiutato (anche una serie che continua a generare date, o un
+         * evento che torna in revisione proprio perché gli si aggiunge una
+         * data) non finisce nei salvati e nei promemoria di chi lo seguiva.
+         */
+        if (! Event::query()->readable()->whereKey($occurrence->event_id)->exists()) {
+            return 0;
+        }
+
         /** @var list<int> $followers */
         $followers = Follow::query()
             ->where('followable_type', FollowableType::Event->value)

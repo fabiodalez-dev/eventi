@@ -16,7 +16,7 @@ internal data class ManagedDate(
     val currency: String = "EUR", val staff: List<CheckinStaff> = emptyList(),
     val statistics: Map<String, Int> = emptyMap(), val availability: BookingAvailability? = null,
 )
-@Serializable internal data class CheckinStaff(val id: Long, val name: String, val email: String)
+@Serializable internal data class CheckinStaff(val id: Long, val email: String, val name: String = "")
 @Serializable internal data class ManagedCampaign(val id: Long, val title: String = "",
     @SerialName("starts_at") val startsAt: String = "", @SerialName("ends_at") val endsAt: String = "",
     val economics: CampaignEconomics? = null)

@@ -180,6 +180,24 @@ final class ApproveVenueApplication
             $email = mb_strtolower(trim((string) $richiesta->contact_email));
             $utente = User::query()->where('email', $email)->first();
             $nuovo = ! $utente instanceof User;
+
+            /*
+             * Come per i locali (D65): l'email di contatto e' un campo libero
+             * del modulo pubblico, quindi un account esistente entra in
+             * `/organizza` solo se la richiesta l'ha mandata lui, da
+             * collegato e con quella casella confermata. Altrimenti chiunque
+             * potrebbe scrivere l'indirizzo di un altro e farlo diventare
+             * referente di un organizzatore inventato.
+             */
+            $mittente = $richiesta->user;
+            $richiestaDaLui = $mittente instanceof User && $mittente->is($utente) && $mittente->hasVerifiedEmail();
+            // Un account con la casella non dimostrata non è un altro da proteggere: le credenziali
+            // si azzerano più sotto e decide chi legge la casella. Una seconda approvazione della
+            // stessa richiesta non cambia referente.
+            if (! $nuovo && $utente->hasVerifiedEmail() && ! $richiestaDaLui && $richiesta->organizer === null) {
+                throw ValidationException::withMessages(['contact_email' => __('venue_applications.organizer_needs_requester')]);
+            }
+
             if ($nuovo) {
                 $utente = User::query()->create([
                     'name' => EditorContent::clean('name', (string) $richiesta->contact_name) ?: $email,
