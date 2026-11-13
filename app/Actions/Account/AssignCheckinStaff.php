@@ -39,6 +39,12 @@ final class AssignCheckinStaff
      */
     public const MAILS_PER_RECIPIENT_PER_DAY = 3;
 
+    /**
+     * Mail d'invito che un indirizzo riceve in un giorno da tutti insieme: la
+     * rete sotto il tetto per coppia, se più account si mettessero d'accordo.
+     */
+    public const MAILS_PER_RECIPIENT_TOTAL_PER_DAY = 10;
+
     /** Mail d'invito che una persona può far partire in un giorno. */
     public const MAILS_PER_ACTOR_PER_DAY = 60;
 
@@ -76,7 +82,9 @@ final class AssignCheckinStaff
         // invito già in attesa resta com'è: rinnovarlo renderebbe inutile il
         // collegamento che la persona ha già ricevuto.
         $recipientKey = 'checkin-invites:to:'.$actor->id.':'.hash('sha256', $email);
-        $capped = RateLimiter::tooManyAttempts($recipientKey, self::MAILS_PER_RECIPIENT_PER_DAY);
+        $recipientTotalKey = 'checkin-invites:to:'.hash('sha256', $email);
+        $capped = RateLimiter::tooManyAttempts($recipientKey, self::MAILS_PER_RECIPIENT_PER_DAY)
+            || RateLimiter::tooManyAttempts($recipientTotalKey, self::MAILS_PER_RECIPIENT_TOTAL_PER_DAY);
 
         $invitation = DB::transaction(function () use ($date, $email, $actor, $capped): ?CheckinStaffInvitation {
             $existing = $date->staffInvitations()->where('email', $email)->lockForUpdate()->first();
@@ -105,6 +113,7 @@ final class AssignCheckinStaff
         }
         RateLimiter::hit($actorKey, 86400);
         RateLimiter::hit($recipientKey, 86400);
+        RateLimiter::hit($recipientTotalKey, 86400);
 
         Notification::route('mail', $email)->notify(new CheckinStaffInvited($date, self::acceptUrl($invitation)));
         activity('ticketing')->causedBy($actor)->performedOn($date)->withProperties(['invitation_id' => $invitation->id])->log('staff_invited');

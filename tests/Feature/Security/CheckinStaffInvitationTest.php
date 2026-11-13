@@ -140,3 +140,12 @@ it('non riempie la casella di nessuno invitando e ritirando di continuo', functi
     $this->actingAs($otherOwner)->post(route('ticketing.manage.staff', $other), ['email' => 'bersaglio@example.test'])->assertSessionHasNoErrors();
     Notification::assertSentTimes(CheckinStaffInvited::class, AssignCheckinStaff::MAILS_PER_RECIPIENT_PER_DAY + 1);
 });
+
+it('tiene un tetto complessivo per indirizzo anche con molti gestori', function (): void {
+    foreach (range(1, AssignCheckinStaff::MAILS_PER_RECIPIENT_TOTAL_PER_DAY + 2) as $n) {
+        ['date' => $date, 'owner' => $owner] = tktFlowScenario(event: ['title' => 'Serata '.$n]);
+        $this->actingAs($owner)->post(route('ticketing.manage.staff', $date), ['email' => 'bersaglio@example.test'])->assertSessionHasNoErrors();
+    }
+
+    Notification::assertSentTimes(CheckinStaffInvited::class, AssignCheckinStaff::MAILS_PER_RECIPIENT_TOTAL_PER_DAY);
+});
