@@ -61,7 +61,7 @@ it('entra nei panni di un utente, non agisce a suo nome e torna al proprio accou
     expect($this->target->fresh()->name)->toBe('Giulia Rossi');
 
     // 4. L'uscita riporta all'identità di partenza e alla redazione.
-    $this->get(URL::signedRoute('impersonate.stop'))->assertRedirect('/admin');
+    $this->post(route('impersonate.stop'))->assertRedirect('/admin');
     expect(auth()->id())->toBe($this->admin->getKey())
         ->and(session(ImpersonationController::SESSION_KEY))->toBeNull();
     $this->get('/admin')->assertOk();
@@ -99,10 +99,10 @@ it('tiene chiuse le porte dell\'impersonificazione: firma mancante o scaduta, ru
     Livewire::test(ListUsers::class)->assertTableActionHidden('impersonate', $this->target);
     $this->get(URL::signedRoute('impersonate.start', ['user' => $this->target->getKey()]))->assertForbidden();
 
-    // Chi non stava impersonando non può «tornare» a un'altra identità,
-    // e l'uscita non firmata non funziona nemmeno per chi sta impersonando.
-    $this->actingAs($this->target)->get(URL::signedRoute('impersonate.stop'))->assertForbidden();
-    $this->get('/impersona/interrompi')->assertForbidden();
+    // Chi non stava impersonando non può «tornare» a un'altra identità, e
+    // l'uscita si chiede solo con un POST: un collegamento non la apre.
+    $this->actingAs($this->target)->post(route('impersonate.stop'))->assertForbidden();
+    $this->get('/impersona/interrompi')->assertStatus(405);
 
     expect(auth()->id())->toBe($this->target->getKey())
         ->and(gstLogSicurezza('impersonificazione_iniziata'))->toBe(0)

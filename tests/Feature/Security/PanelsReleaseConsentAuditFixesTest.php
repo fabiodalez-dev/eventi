@@ -7,6 +7,7 @@ use App\Enums\UserRole;
 use App\Filament\Venue\Pages\Collaborators;
 use App\Models\ConsentScript;
 use App\Models\User;
+use App\Support\BuildHtaccess;
 use App\Support\ReleaseManifest;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Support\Facades\Notification;
@@ -64,4 +65,39 @@ it('non carica gli script di consenso allo staff collegato e li carica agli ospi
 
     $persona = User::factory()->create();
     expect((string) $this->actingAs($persona)->withSession(['impersonator_id' => $admin->id])->get('/')->getContent())->not->toContain('window.__scriptDiProva');
+});
+
+it('scrive in public/build una regola che non serve file eseguibili', function (): void {
+    $dir = sys_get_temp_dir().'/build-'.bin2hex(random_bytes(4));
+    mkdir($dir);
+
+    expect(BuildHtaccess::write($dir))->toBeTrue();
+    $regola = (string) file_get_contents($dir.'/.htaccess');
+    expect($regola)->toContain('RemoveHandler .php')->toContain('Require all denied');
+    preg_match('/<FilesMatch "([^"]+)">/', $regola, $match);
+    $pattern = '/'.str_replace('/', '\/', $match[1]).'/';
+    expect(preg_match($pattern, 'x.php'))->toBe(1)
+        ->and(preg_match($pattern, 'x.PHP.abc'))->toBe(1)
+        ->and(preg_match($pattern, 'x.phtml'))->toBe(1)
+        ->and(preg_match($pattern, 'app-Bx3.js'))->toBe(0)
+        ->and(preg_match($pattern, 'inter.woff2'))->toBe(0);
+
+    unlink($dir.'/.htaccess');
+    rmdir($dir);
+});
+
+it('chiude l\'impersonificazione solo con un POST dal pulsante della fascia', function (): void {
+    $scenario = VenueIsolationScenario::make();
+    $admin = User::factory()->create();
+    $admin->assignRole(UserRole::Admin->value);
+
+    $this->actingAs($admin)->get(URL::temporarySignedRoute('impersonate.start', now()->addMinutes(5), ['user' => $scenario->ownerA->id]))->assertRedirect('/');
+    $this->get('/')->assertOk()->assertSee('action="'.route('impersonate.stop').'"', false)->assertSee('name="_token"', false);
+
+    // Un collegamento, anche firmato, non la chiude più.
+    $this->get(URL::signedRoute('impersonate.stop'))->assertStatus(405);
+    expect(auth()->id())->toBe($scenario->ownerA->id);
+
+    $this->post(route('impersonate.stop'))->assertRedirect('/admin');
+    expect(auth()->id())->toBe($admin->id);
 });

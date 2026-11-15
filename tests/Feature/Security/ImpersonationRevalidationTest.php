@@ -58,7 +58,7 @@ it('non fa avviare una seconda impersonificazione mentre se ne sta già facendo 
         ->and(session(ImpersonationController::SESSION_KEY))->toBe($this->adminA->id);
     $this->get(route('account.profile.export'))->assertForbidden();
 
-    $this->get(URL::signedRoute('impersonate.stop'))->assertRedirect('/admin');
+    $this->post(route('impersonate.stop'))->assertRedirect('/admin');
     expect(auth()->id())->toBe($this->adminA->id)
         ->and(session(ImpersonationController::SESSION_KEY))->toBeNull();
 });

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Support\BuildHtaccess;
 use App\Support\HostingHtaccess;
 use App\Support\ReleaseManifest;
 use App\Support\ReleaseSnapshots;
@@ -407,6 +408,13 @@ class DeployCommand extends Command
 
                 return self::FAILURE;
             }
+        }
+
+        // Seconda difesa dopo il controllo del ramo: in `public/build` niente PHP (vedi la classe).
+        if (! BuildHtaccess::write(public_path('build'))) {
+            $this->error('Non riesco a scrivere public/build/.htaccess: deploy interrotto.');
+
+            return self::FAILURE;
         }
 
         /*

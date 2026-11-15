@@ -223,13 +223,17 @@ Route::get('/widget/{venue}', WidgetController::class)
  * non appartengono a una città.
  */
 /*
- * Entrambe accettano solo collegamenti firmati. Sono GET per le ragioni
- * scritte sopra, ma un GET lo apre anche un link in una pagina qualunque, e
- * un cookie `SameSite=Lax` lo accompagna: senza firma, un collegamento
- * confezionato ad arte avrebbe cambiato identita' a chi lo clicca.
+ * L'ingresso accetta solo collegamenti firmati: è un GET, e un GET lo apre
+ * anche un link in una pagina qualunque, con il cookie `SameSite=Lax` al
+ * seguito. Senza firma, un collegamento confezionato ad arte avrebbe cambiato
+ * identita' a chi lo clicca.
+ *
+ * L'uscita è un POST con il token CSRF, dal pulsante della fascia. Da GET
+ * firmato valeva per sempre e per chiunque, con lo stesso indirizzo: una
+ * pagina esterna, o uno script nella pagina, poteva chiudere
+ * l'impersonificazione e riportare la sessione all'amministratore.
  */
-Route::get('/impersona/interrompi', [ImpersonationController::class, 'stop'])
-    ->middleware('signed')
+Route::post('/impersona/interrompi', [ImpersonationController::class, 'stop'])
     ->name('impersonate.stop');
 
 Route::get('/impersona/{user}', [ImpersonationController::class, 'start'])

@@ -18,12 +18,15 @@
                 {{ __('admin.notifications.impersonating', ['name' => auth()->user()?->name ?? '']) }}
             </p>
 
-            <a
-                class="ui-action bg-on-brand/15 px-3 py-1 font-semibold underline hover:bg-on-brand/25"
-                href="{{ \Illuminate\Support\Facades\URL::signedRoute('impersonate.stop') }}"
-            >
-                {{ __('admin.actions.stop_impersonating') }}
-            </a>
+            <form method="POST" action="{{ route('impersonate.stop') }}">
+                @csrf
+                <button
+                    type="submit"
+                    class="ui-action bg-on-brand/15 px-3 py-1 font-semibold underline hover:bg-on-brand/25"
+                >
+                    {{ __('admin.actions.stop_impersonating') }}
+                </button>
+            </form>
         </div>
     </div>
 @endif
