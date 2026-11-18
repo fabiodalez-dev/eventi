@@ -8,6 +8,7 @@ use App\Filament\Auth\Login;
 use App\Filament\Auth\RequestPasswordReset;
 use App\Filament\Venue\Pages\Dashboard;
 use App\Filament\Venue\Pages\VenueAccess;
+use App\Http\Middleware\RevalidateImpersonation;
 use App\Models\User;
 use App\Models\Venue;
 use Filament\Actions\Action;
@@ -137,6 +138,7 @@ class VenuePanelProvider extends PanelProvider
                 AddQueuedCookiesToResponse::class,
                 StartSession::class,
                 AuthenticateSession::class,
+                RevalidateImpersonation::class,
                 ShareErrorsFromSession::class,
                 PreventRequestForgery::class,
                 SubstituteBindings::class,

@@ -9,6 +9,7 @@ use App\Enums\BookingStatus;
 use App\Enums\EventStatus;
 use App\Enums\OccurrenceStatus;
 use App\Enums\TicketTierStatus;
+use App\Enums\VenueRole;
 use App\Jobs\DeactivateWalletPass;
 use App\Models\AdmissionTicket;
 use App\Models\Booking;
@@ -490,15 +491,58 @@ final class TicketingService
     }
 
     /**
-     * Il conteggio con il tetto, preso nel modo più prudente fra due letture
-     * dello stesso tenant: per locale e per organizzatore. Un organizzatore
-     * gestisce gli ingressi di tutte le sue date, in qualunque locale: contato
-     * solo per locale, con serate in due locali basterebbe lui da solo a
-     * raggiungere il limite.
+     * Il conteggio con il tetto, preso nel modo più prudente fra tre letture
+     * dello stesso tenant: per locale, per organizzatore e per proprietari.
+     * Un organizzatore gestisce gli ingressi di tutte le sue date, in
+     * qualunque locale, e lo stesso vale per chi è proprietario di più locali:
+     * contato solo per locale, con serate in due locali suoi basterebbe lui da
+     * solo a raggiungere il limite.
      */
     private function cappedGlobal(User $user): int
     {
-        return min($this->capped($this->noShowsByTenant($user)), $this->capped($this->noShowsByTenant($user, organizerFirst: true)));
+        return min(
+            $this->capped($this->noShowsByTenant($user)),
+            $this->capped($this->noShowsByTenant($user, organizerFirst: true)),
+            $this->capped($this->noShowsByTenant($user, sharedOwners: true)),
+        );
+    }
+
+    /**
+     * I locali che hanno almeno un proprietario in comune, uniti in gruppi
+     * (anche a catena: A e B per un proprietario, B e C per un altro). Ogni
+     * locale va alla chiave del suo gruppo, il più piccolo id del gruppo.
+     *
+     * @param  list<int>  $venues
+     * @return array<int, string>
+     */
+    private function ownerGroups(array $venues): array
+    {
+        $parent = [];
+        $find = function (int $venue) use (&$parent, &$find): int {
+            $parent[$venue] ??= $venue;
+
+            return $parent[$venue] === $venue ? $venue : $parent[$venue] = $find($parent[$venue]);
+        };
+        $byOwner = DB::table('venue_user')->where('role', VenueRole::Owner->value)->whereNotNull('accepted_at')
+            ->whereIn('user_id', DB::table('venue_user')->where('role', VenueRole::Owner->value)->whereNotNull('accepted_at')->whereIn('venue_id', $venues)->select('user_id'))
+            ->get(['user_id', 'venue_id'])->groupBy('user_id');
+        foreach ($byOwner as $rows) {
+            $ids = $rows->pluck('venue_id')->map(fn (mixed $id): int => (int) $id)->all();
+            $root = $find($ids[0]);
+            foreach (array_slice($ids, 1) as $id) {
+                $other = $find($id);
+                if ($other !== $root) {
+                    $parent[max($root, $other)] = min($root, $other);
+                    $root = min($root, $other);
+                }
+            }
+        }
+        $groups = [];
+        foreach ($venues as $venue) {
+            $groups[$venue] = 'owners:'.$find($venue);
+        }
+
+        return $groups;
     }
 
     /** @param  array<string, int>  $tenants */
@@ -517,7 +561,7 @@ final class TicketingService
      *
      * @return array<string, int>
      */
-    private function noShowsByTenant(User $user, bool $organizerFirst = false): array
+    private function noShowsByTenant(User $user, bool $organizerFirst = false, bool $sharedOwners = false): array
     {
         /* La finestra si misura sulla data della serata, non sul momento in
            cui il comando ha segnato l'assenza: un recupero di dati vecchi non
@@ -532,11 +576,16 @@ final class TicketingService
             ->selectRaw('COALESCE(event_occurrences.venue_id, events.venue_id) as venue, events.organizer_id as organizer, events.id as event, COUNT(*) as total')
             ->groupByRaw('COALESCE(event_occurrences.venue_id, events.venue_id), events.organizer_id, events.id')
             ->toBase()->get();
+        $groups = $sharedOwners ? $this->ownerGroups($rows->pluck('venue')->filter()->map(fn (mixed $id): int => (int) $id)->unique()->values()->all()) : [];
         $tenants = [];
         foreach ($rows as $row) {
             $venue = $row->venue === null ? null : (int) $row->venue;
             $organizer = $row->organizer === null ? null : (int) $row->organizer;
-            $key = $organizerFirst && $organizer !== null ? 'organizer:'.$organizer : $this->tenantKey($venue, $organizer, (int) $row->event);
+            $key = match (true) {
+                $organizerFirst && $organizer !== null => 'organizer:'.$organizer,
+                $sharedOwners && $venue !== null => $groups[$venue],
+                default => $this->tenantKey($venue, $organizer, (int) $row->event),
+            };
             $tenants[$key] = ($tenants[$key] ?? 0) + (int) $row->total;
         }
 

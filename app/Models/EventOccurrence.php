@@ -72,6 +72,12 @@ class EventOccurrence extends Model
         return $this->belongsToMany(User::class, 'occurrence_checkin_staff', 'occurrence_id', 'user_id');
     }
 
+    /** @return HasMany<CheckinStaffInvitation, $this> */
+    public function staffInvitations(): HasMany
+    {
+        return $this->hasMany(CheckinStaffInvitation::class, 'occurrence_id');
+    }
+
     /** @return BelongsTo<Event, $this> */
     public function event(): BelongsTo
     {

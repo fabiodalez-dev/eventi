@@ -2,12 +2,15 @@
 
 declare(strict_types=1);
 
+use App\Actions\Account\AssignCheckinStaff;
 use App\Enums\EventStatus;
 use App\Enums\InstallerStep;
 use App\Models\Category;
+use App\Models\CheckinStaffInvitation;
 use App\Models\City;
 use App\Models\Event;
 use App\Models\EventOccurrence;
+use App\Models\User;
 use App\Models\Venue;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
@@ -47,6 +50,19 @@ uses()->beforeEach(function (): void {
 function testCity(array $attributes = []): City
 {
     return City::factory()->padova()->create($attributes);
+}
+
+/**
+ * Accetta, come farebbe la persona dal collegamento della mail, l'invito al
+ * personale di ingresso arrivato al suo indirizzo (D67). Lascia la sessione
+ * collegata con quell'account.
+ */
+function acceptCheckinInvitation(EventOccurrence $date, User $user): TestResponse
+{
+    $invitation = CheckinStaffInvitation::query()->where('occurrence_id', $date->id)->where('email', mb_strtolower((string) $user->email))->firstOrFail();
+
+    return test()->actingAs($user)->post(AssignCheckinStaff::acceptUrl($invitation), ['decision' => 'accept'])
+        ->assertRedirect(route('ticketing.manage.scanner', $date));
 }
 
 /**

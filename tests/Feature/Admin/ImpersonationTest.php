@@ -47,7 +47,7 @@ it('riporta all\'identità di partenza, e solo a quella', function (): void {
 
     $this->actingAs($admin)->get(URL::signedRoute('impersonate.start', ['user' => $target->getKey()]));
 
-    $this->get(URL::signedRoute('impersonate.stop'))->assertRedirect('/admin');
+    $this->post(route('impersonate.stop'))->assertRedirect('/admin');
 
     expect(auth()->id())->toBe($admin->getKey())
         ->and(session(ImpersonationController::SESSION_KEY))->toBeNull();
@@ -55,7 +55,7 @@ it('riporta all\'identità di partenza, e solo a quella', function (): void {
 
 it('nega l\'uscita a chi non stava impersonando nessuno', function (): void {
     $this->actingAs(actor(UserRole::User))
-        ->get(URL::signedRoute('impersonate.stop'))
+        ->post(route('impersonate.stop'))
         ->assertForbidden();
 });
 
@@ -89,5 +89,5 @@ it('manda chi non è autenticato all\'accesso della redazione', function (): voi
     $this->get(URL::signedRoute('impersonate.start', ['user' => $target->getKey()]))
         ->assertRedirect('/admin/login');
 
-    $this->get(URL::signedRoute('impersonate.stop'))->assertRedirect('/admin/login');
+    $this->post(route('impersonate.stop'))->assertRedirect('/admin/login');
 });

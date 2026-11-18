@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Web\Account\AppearanceController;
 use App\Http\Controllers\Web\Account\AttendedController;
+use App\Http\Controllers\Web\Account\CheckinStaffInvitationController;
 use App\Http\Controllers\Web\Account\CollectionController;
 use App\Http\Controllers\Web\Account\ContentPreferencesController;
 use App\Http\Controllers\Web\Account\EmailVerificationController;
@@ -188,6 +189,14 @@ Route::middleware(['auth', BlockWhileImpersonating::class, 'throttle:30,1,venue-
     Route::post('/inviti-locali/{venue}/{user}/{invitation}', [VenueInvitationController::class, 'respond'])
         ->whereNumber(['venue', 'user', 'invitation'])
         ->name('venue-invitations.respond');
+
+    // L'invito al personale di ingresso di una data (D67), con le stesse regole.
+    Route::get('/inviti-ingressi/{invitation}/{sent}', [CheckinStaffInvitationController::class, 'show'])
+        ->whereNumber(['invitation', 'sent'])
+        ->name('checkin-staff-invitations.show');
+    Route::post('/inviti-ingressi/{invitation}/{sent}', [CheckinStaffInvitationController::class, 'respond'])
+        ->whereNumber(['invitation', 'sent'])
+        ->name('checkin-staff-invitations.respond');
 });
 
 /*

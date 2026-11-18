@@ -4,6 +4,7 @@ use App\Http\Middleware\Api\AlwaysJson;
 use App\Http\Middleware\AuthenticateWebSession;
 use App\Http\Middleware\InstallerSession;
 use App\Http\Middleware\PreventSharedResponseCache;
+use App\Http\Middleware\RevalidateImpersonation;
 use App\Http\Middleware\SecurityHeaders;
 use App\Support\Api\ApiExceptionRenderer;
 use App\Support\SecurityLog;
@@ -70,6 +71,9 @@ return Application::configure(basePath: dirname(__DIR__))
          * sessione, non per quelle che qualcuno si ricorda di marcare.
          */
         $middleware->appendToGroup('web', AuthenticateWebSession::class);
+
+        // Un'impersonificazione cade quando chi la fa perde i poteri: vedi la classe.
+        $middleware->appendToGroup('web', RevalidateImpersonation::class);
 
         /*
          * Gli indirizzi che non esistono più (tabella `redirects`).

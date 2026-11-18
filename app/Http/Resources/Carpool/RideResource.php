@@ -29,7 +29,10 @@ final class RideResource
         // Fra conducente e passeggero c'è un blocco: la propria richiesta resta consultabile (stato,
         // storico, assistenza), ma senza zona, orario, tappe e note correnti dell'offerta, che il
         // conducente può spostare dopo il blocco.
-        $hidden = ! $own && $offer->driver !== null && app(CarpoolAccess::class)->blocked($viewer, $offer->driver);
+        // Lo stesso vale per chi è stato sospeso: la propria richiesta resta nello storico, ma i dati
+        // correnti dell'offerta, cambiati dopo la revoca, non gli spettano più.
+        $hidden = ! $own && (app(CarpoolAccess::class)->suspended($viewer)
+            || ($offer->driver !== null && app(CarpoolAccess::class)->blocked($viewer, $offer->driver)));
 
         $data = ['id' => $offer->id, 'occurrence_id' => $offer->occurrence_id, 'is_own' => $own,
             'event_title' => $offer->snapshot['title'], 'event_url' => $date?->event ? route('events.occurrence', ['slug' => $date->event->slug, 'occurrence' => $date->url_number]) : null,

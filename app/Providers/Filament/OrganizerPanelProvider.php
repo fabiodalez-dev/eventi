@@ -10,6 +10,7 @@ use App\Filament\Organizer\Pages\EventShareAnalytics;
 use App\Filament\Organizer\Pages\Profile;
 use App\Filament\Organizer\Pages\Sponsorships;
 use App\Filament\Organizer\Pages\Statistics;
+use App\Http\Middleware\RevalidateImpersonation;
 use App\Models\Organizer;
 use Filament\Actions\Action;
 use Filament\FontProviders\LocalFontProvider;
@@ -58,6 +59,7 @@ class OrganizerPanelProvider extends PanelProvider
                 AddQueuedCookiesToResponse::class,
                 StartSession::class,
                 AuthenticateSession::class,
+                RevalidateImpersonation::class,
                 ShareErrorsFromSession::class,
                 PreventRequestForgery::class,
                 SubstituteBindings::class,

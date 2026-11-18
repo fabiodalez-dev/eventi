@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Http\Controllers\Web\ImpersonationController;
 use App\Listeners\RevokeInvalidFcmToken;
 use App\Models\AdmissionTicket;
 use App\Models\Booking;
@@ -125,6 +126,14 @@ use PhpOffice\PhpSpreadsheet\Cell\StringValueBinder;
 
 class AppServiceProvider extends ServiceProvider
 {
+    /** I metodi Livewire con cui, impersonando, si sfoglia un pannello senza cambiare nulla. */
+    public const IMPERSONATION_READ_ONLY_CALLS = [
+        '$refresh', '$set', '$sync',
+        'gotoPage', 'nextPage', 'previousPage', 'setPage', 'resetPage',
+        'sortTable', 'loadTable', 'removeTableFilter', 'removeTableFilters', 'resetTableFiltersForm', 'resetTableSearch',
+        'unmountAction', 'unmountTableAction',
+    ];
+
     public function register(): void
     {
         // Gli avvisi di una volta ricordano gli id della persona per la sola richiesta (`RemembersAlertIds`).
@@ -274,6 +283,23 @@ class AppServiceProvider extends ServiceProvider
         config(['excel.value_binder.default' => StringValueBinder::class]);
 
         /*
+         * Durante l'impersonificazione, nei pannelli si guarda e basta: è la
+         * regola di `BlockWhileImpersonating`, che le rotte del sito applicano
+         * e i pannelli no. Ogni gesto nei pannelli passa da una chiamata di
+         * metodo Livewire, quindi si lasciano passare solo quelli che servono a
+         * sfogliare (pagine, ordinamento, filtri, ricerca, chiusura di una
+         * finestra). Una lista di metodi vietati non basterebbe: Filament
+         * esegue le azioni senza finestra dentro `mountAction()`, chiamando
+         * `callMountedAction()` direttamente in PHP, senza nuovi eventi.
+         */
+        \Livewire\on('call', static function (mixed $component, string $method): void {
+            if (! request()->hasSession() || ! request()->session()->has(ImpersonationController::SESSION_KEY)) {
+                return;
+            }
+            abort_unless(in_array($method, self::IMPERSONATION_READ_ONLY_CALLS, true), 403, __('carpool.errors.impersonation'));
+        });
+
+        /*
          * La politica delle password, per registrazione, reimpostazione,
          * installatore e pannello. In produzione si rifiutano le password già
          * finite in un furto di credenziali: è ciò che il credential stuffing
@@ -314,6 +340,7 @@ class AppServiceProvider extends ServiceProvider
         EventFacade::listen(PasswordReset::class, static function (PasswordReset $evento): void {
             if ($evento->user instanceof User) {
                 $evento->user->tokens()->delete();
+                $evento->user->revokeDevices();
                 MobileAuthChallenge::query()->where('user_id', $evento->user->getKey())->delete();
                 /* La password nuova l'ha scelta chi legge la casella: quella
                    della registrazione non è più in sospeso, e l'indirizzo è
@@ -347,7 +374,8 @@ class AppServiceProvider extends ServiceProvider
          * per indirizzo IP. È la seconda barriera dopo il campo esca — la
          * prima ferma i robot generici, questa ferma chi insiste.
          */
-        RateLimiter::for('public-forms', static fn (Request $request): Limit => Limit::perHour(5)->by($request->ip() ?? 'sconosciuto'));
+        // Per /64 in IPv6, come la ricerca: un indirizzo singolo si cambia gratis dentro il proprio blocco.
+        RateLimiter::for('public-forms', static fn (Request $request): Limit => Limit::perHour(5)->by(IpBucket::key($request->ip() ?? 'sconosciuto')));
 
         /*
          * Il consenso (§16) ha un limite proprio, e più largo di quello dei
@@ -470,7 +498,7 @@ class AppServiceProvider extends ServiceProvider
          */
         RateLimiter::for('outbound-email', static fn (Request $request): Limit => Limit::perHour(
             config()->integer('api.rate_limit.outbound_emails_per_hour'),
-        )->by('invii:'.($request->ip() ?? 'sconosciuto')));
+        )->by('invii:'.IpBucket::key($request->ip() ?? 'sconosciuto')));
 
         /*
          * Accesso, registrazione e collegamento di accesso del **sito** (§16).

@@ -30,6 +30,6 @@ class BookingPolicy
         $venueId = $occurrence->effectiveVenue()?->id;
 
         return $venueId !== null && ($user->hasAnyRole([UserRole::Admin->value, UserRole::SuperAdmin->value])
-            || $user->ownedVenues()->whereKey($venueId)->exists());
+            || $user->activeOwnedVenues()->whereKey($venueId)->exists());
     }
 }

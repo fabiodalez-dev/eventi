@@ -101,8 +101,10 @@ final class CsvImportDriver implements ImportSourceDriver
             uid: $uid,
             recurrenceId: null,
             title: $title,
-            startsAt: $start,
-            endsAt: $end,
+            // Il DTO vuole istanti UTC (come il driver ICS): l'ora è letta nel
+            // fuso del locale, ma il runner la salva così com'è.
+            startsAt: $start->utc(),
+            endsAt: $end?->utc(),
             isAllDay: $isAllDay,
             description: $get('description'),
             location: $get('location'),
@@ -236,12 +238,19 @@ final class CsvImportDriver implements ImportSourceDriver
     /**
      * Il file caricato dal pannello: solo il nome, dentro la cartella del
      * locale, così un indirizzo scritto a mano non legge niente altro.
+     *
+     * Il nome deve essere un nome semplice, senza separatori né `..`: su Linux
+     * `basename()` non toglie i `\`, che però il disco (Flysystem) tratta come
+     * cartelle, e `..\2\file.csv` leggeva il calendario di un altro locale.
      */
     private function readUpload(ImportSource $source): string
     {
-        $name = basename(substr((string) $source->url, strlen(self::UPLOAD_PREFIX)));
+        $name = substr((string) $source->url, strlen(self::UPLOAD_PREFIX));
+        if (! self::isPlainName($name)) {
+            throw ImportException::unreachable((string) $source->url, __('import.csv.missing_file'));
+        }
         $path = self::uploadPath($source, $name);
-        if ($name === '' || ! Storage::disk('local')->exists($path)) {
+        if (! Storage::disk('local')->exists($path)) {
             throw ImportException::unreachable((string) $source->url, __('import.csv.missing_file'));
         }
         $size = Storage::disk('local')->size($path);
@@ -250,6 +259,12 @@ final class CsvImportDriver implements ImportSourceDriver
         }
 
         return (string) Storage::disk('local')->get($path);
+    }
+
+    /** Un nome di file semplice: lettere, cifre, punto, trattino e trattino basso, mai `..`. */
+    public static function isPlainName(string $name): bool
+    {
+        return preg_match('/^[A-Za-z0-9][A-Za-z0-9._-]{0,200}$/D', $name) === 1 && ! str_contains($name, '..');
     }
 
     public static function uploadPath(ImportSource $source, string $name): string

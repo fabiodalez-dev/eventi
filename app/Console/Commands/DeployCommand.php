@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Support\BuildHtaccess;
 use App\Support\HostingHtaccess;
 use App\Support\ReleaseManifest;
 use App\Support\ReleaseSnapshots;
@@ -279,6 +280,19 @@ class DeployCommand extends Command
 
             return self::FAILURE;
         }
+        /*
+         * Il ramo degli asset finisce in `public/build`, dentro la radice del
+         * sito, dove `.htaccess` passa i `.php` all'interprete. Il manifesto lo
+         * scrive chi può scrivere su quel ramo: qualunque cosa ci sia dentro,
+         * qui si accettano solo file statici. Niente script, niente `.htaccess`,
+         * niente collegamenti simbolici o sottomoduli.
+         */
+        $nonStatico = ReleaseManifest::firstNonStaticEntry($this->gitOutput(['git', 'ls-tree', '-r', '--full-tree', $assetSha]));
+        if ($nonStatico !== null) {
+            $this->error('Il ramo degli asset contiene un file non statico ('.$nonStatico.'): deploy interrotto, nessun file modificato.');
+
+            return self::FAILURE;
+        }
         $dirty = $this->gitOutput(['git', 'status', '--porcelain', '--untracked-files=no']);
         $hostingOnly = $dirty === 'M public/.htaccess' && HostingHtaccess::isOnlyPhp84Handler(
             $this->gitOutput(['git', 'show', 'HEAD:public/.htaccess']) ?? '',
@@ -394,6 +408,13 @@ class DeployCommand extends Command
 
                 return self::FAILURE;
             }
+        }
+
+        // Seconda difesa dopo il controllo del ramo: in `public/build` niente PHP (vedi la classe).
+        if (! BuildHtaccess::write(public_path('build'))) {
+            $this->error('Non riesco a scrivere public/build/.htaccess: deploy interrotto.');
+
+            return self::FAILURE;
         }
 
         /*

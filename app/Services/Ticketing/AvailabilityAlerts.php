@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Ticketing;
 
+use App\Enums\EventStatus;
 use App\Enums\NotificationType;
 use App\Enums\OccurrenceStatus;
 use App\Enums\TicketTierStatus;
@@ -73,6 +74,10 @@ final class AvailabilityAlerts
     public function announceIfAvailable(EventOccurrence $date): int
     {
         if ($date->starts_at->isPast() || $date->status === OccurrenceStatus::Cancelled || $this->isSoldOut($date)) {
+            return 0;
+        }
+        // Un evento non più pubblico non riapre niente: l'avviso direbbe titolo e data di una bozza.
+        if ($date->event()->withTrashed()->first()?->status !== EventStatus::Published) {
             return 0;
         }
         $alerts = AvailabilityAlert::query()->where('occurrence_id', $date->getKey())->get();

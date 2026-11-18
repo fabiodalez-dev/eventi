@@ -172,7 +172,7 @@ it('limita anche sul sito l’aggiunta dello staff per email, come nell’app', 
     $this->actingAs($owner);
 
     foreach (range(1, 30) as $i) {
-        $this->post(route('ticketing.manage.staff', $this->date), ['email' => 'nessuno'.$i.'@example.test'])->assertSessionHasErrors('email');
+        $this->post(route('ticketing.manage.staff', $this->date), ['email' => 'nessuno'.$i.'@example.test'])->assertSessionHasNoErrors();
     }
     $this->post(route('ticketing.manage.staff', $this->date), ['email' => 'altro@example.test'])->assertTooManyRequests();
 });

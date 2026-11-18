@@ -20,6 +20,7 @@ use App\Models\WhatsappChallenge;
 use App\Services\Calendar\GoogleCalendarSync;
 use App\Services\Carpool\CarpoolAccount;
 use App\Services\Ticketing\TicketingService;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -57,7 +58,18 @@ final class DeleteAccount
             DB::table('community_attendances')->where('user_id', $user->id)->delete();
             CommunityComment::query()->where('user_id', $user->id)->delete();
             $user->communityProfile?->delete();
-            WhatsappChallenge::query()->where('user_id', $user->id)->delete();
+            /* Le richieste delle ultime 24 ore sono il conto dei codici mandati a
+               ogni numero (WhatsappVerification): cancellarle azzerava il tetto
+               per numero, e bastava creare e cancellare account per mandare
+               codici senza fine allo stesso telefono. Restano, svuotate di
+               codice e numero in chiaro; le più vecchie si tolgono subito, e il
+               resto lo pota `model:prune` come ogni altra richiesta. */
+            WhatsappChallenge::query()->where('user_id', $user->id)->where('created_at', '<=', now()->subDay())->delete();
+            WhatsappChallenge::query()->where('user_id', $user->id)->update([
+                'code_hash' => '',
+                'phone' => Crypt::encryptString(''),
+                'consumed_at' => DB::raw('COALESCE(consumed_at, CURRENT_TIMESTAMP)'),
+            ]);
             UserBlock::query()->where('user_id', $user->id)->orWhere('blocked_user_id', $user->id)->delete();
             DB::table('followables')->where('user_id', $user->id)->orWhere(fn ($q) => $q->where('followable_type', 'user')->where('followable_id', $user->id))->delete();
             DB::table('community_restrictions')->where('user_id', $user->id)->delete();

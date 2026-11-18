@@ -17,9 +17,15 @@ class StaffRequest extends FormRequest
         return $date instanceof EventOccurrence && $this->user()?->can('manage', [Booking::class, $date]) === true;
     }
 
-    /** @return array<string, list<string>> */
+    /**
+     * Nessuna regola `exists`: la risposta deve essere la stessa per un
+     * indirizzo registrato e per uno sconosciuto, altrimenti chi gestisce una
+     * data scopre chi ha un account (D64/D65).
+     *
+     * @return array<string, list<string>>
+     */
     public function rules(): array
     {
-        return ['email' => ['required', 'email', 'max:255', 'exists:users,email'], 'remove' => ['sometimes', 'boolean']];
+        return ['email' => ['required', 'email', 'max:255'], 'remove' => ['sometimes', 'boolean']];
     }
 }

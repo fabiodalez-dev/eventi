@@ -131,11 +131,11 @@ final class TicketingController extends Controller
         $search = $filters['q'] ?? '';
         $user = $request->user();
         $admin = $user->hasAnyRole([UserRole::Admin->value, UserRole::SuperAdmin->value]);
-        abort_unless($admin || $user->ownedVenues()->exists() || $user->managedOrganizers()->exists() || EventOccurrence::whereHas('checkinStaff', fn ($q) => $q->whereKey($user->id))->exists(), 403);
+        abort_unless($admin || $user->activeOwnedVenues()->exists() || $user->managedOrganizers()->exists() || EventOccurrence::whereHas('checkinStaff', fn ($q) => $q->whereKey($user->id))->exists(), 403);
         $dates = EventOccurrence::query()->when(! $admin, fn ($query) => $query->where(fn ($allowed) => $allowed
             ->whereHas('checkinStaff', fn ($q) => $q->whereKey($user->id))
-            ->orWhereIn('venue_id', $user->ownedVenues()->select('venues.id'))
-            ->orWhere(fn ($fallback) => $fallback->whereNull('venue_id')->whereHas('event', fn ($event) => $event->whereIn('venue_id', $user->ownedVenues()->select('venues.id'))))
+            ->orWhereIn('venue_id', $user->activeOwnedVenues()->select('venues.id'))
+            ->orWhere(fn ($fallback) => $fallback->whereNull('venue_id')->whereHas('event', fn ($event) => $event->whereIn('venue_id', $user->activeOwnedVenues()->select('venues.id'))))
             ->orWhereHas('event', fn ($event) => $event->whereIn('organizer_id', $user->managedOrganizers()->select('organizers.id')))))
             ->when($period === 'past', fn ($q) => $q->whereRaw('COALESCE(effective_ends_at, ends_at, starts_at) < ?', [now()]), fn ($q) => $q->whereRaw('COALESCE(effective_ends_at, ends_at, starts_at) >= ?', [now()]))
             ->when($search !== '', fn ($q) => $q->where(fn ($q) => $q

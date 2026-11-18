@@ -21,6 +21,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 
@@ -54,15 +55,22 @@ final class CollectionController extends Controller
         if ($user->eventCollections()->count() >= EventCollection::MAX_PER_USER) {
             throw ValidationException::withMessages(['name' => __('collections.limit', ['max' => EventCollection::MAX_PER_USER])]);
         }
-        $collection = $user->eventCollections()->create([
-            'city_id' => $this->city()->getKey(),
-            'name' => EditorContent::clean('name', (string) $request->validated('name')),
-            'description' => filled($request->validated('description')) ? EditorContent::clean('note', (string) $request->validated('description')) : null,
-            'is_public' => $request->boolean('is_public'),
-        ]);
-        if ($request->filled('occurrence_id')) {
-            $this->attach($collection, (int) $request->validated('occurrence_id'));
-        }
+        // Raccolta e prima data insieme: se la data non è valida l'eccezione
+        // annulla anche la raccolta, che altrimenti resterebbe a metà e
+        // consumerebbe il limite a ogni nuovo tentativo.
+        $collection = DB::transaction(function () use ($request, $user): EventCollection {
+            $collection = $user->eventCollections()->create([
+                'city_id' => $this->city()->getKey(),
+                'name' => EditorContent::clean('name', (string) $request->validated('name')),
+                'description' => filled($request->validated('description')) ? EditorContent::clean('note', (string) $request->validated('description')) : null,
+                'is_public' => $request->boolean('is_public'),
+            ]);
+            if ($request->filled('occurrence_id')) {
+                $this->attach($collection, (int) $request->validated('occurrence_id'));
+            }
+
+            return $collection;
+        });
 
         return $request->is('api/*')
             ? ApiResponse::item(self::toArray($collection->loadCount('items')), status: 201)

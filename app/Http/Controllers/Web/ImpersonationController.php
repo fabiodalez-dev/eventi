@@ -43,6 +43,10 @@ class ImpersonationController extends Controller
             return redirect(self::loginUrl());
         }
 
+        // Un'impersonificazione alla volta: avviarne una seconda sovrascriverebbe
+        // il marcatore, e l'uscita riporterebbe all'account impersonato invece
+        // che a quello di partenza, senza più marcatore.
+        abort_if(session()->has(self::SESSION_KEY), 403);
         abort_unless($impersonator->can('impersonate', $user), 403);
 
         SecurityLog::scrivi('impersonificazione_iniziata', $user, causa: $impersonator);
@@ -62,14 +66,24 @@ class ImpersonationController extends Controller
             return redirect(self::loginUrl());
         }
 
-        $impersonatorId = session()->pull(self::SESSION_KEY);
+        $impersonatorId = session()->get(self::SESSION_KEY);
 
         abort_if($impersonatorId === null, 403);
 
         $impersonator = User::query()->find($impersonatorId);
 
-        abort_unless($impersonator instanceof User, 403);
+        // Se chi impersonava non esiste più, la sessione si chiude: togliere il
+        // marcatore e restare dentro lascerebbe una sessione piena a nome
+        // dell'impersonato.
+        if (! $impersonator instanceof User) {
+            Auth::logout();
+            session()->invalidate();
+            session()->regenerateToken();
 
+            abort(403);
+        }
+
+        session()->forget(self::SESSION_KEY);
         SecurityLog::scrivi('impersonificazione_terminata', Auth::user(), causa: $impersonator);
         Auth::login($impersonator);
 

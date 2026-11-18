@@ -174,6 +174,9 @@ final class CachePage
      */
     public const QUERY_ALLOWED = [
         'access',
+        // La pagina delle recensioni di locali e organizzatori: la leggono i
+        // controller e non una FormRequest, ma cambia la pagina quanto un filtro.
+        'recensioni',
         'accessible',
         'age',
         'all_dates',
@@ -376,6 +379,10 @@ final class CachePage
         if ($pagina !== null && (! is_string($pagina) || ! preg_match('/^[1-9][0-9]?$/D', $pagina) || (int) $pagina < 1 || (int) $pagina > 50)) {
             return false;
         }
+        $recensioni = $request->query->all()['recensioni'] ?? null;
+        if ($recensioni !== null && (! is_string($recensioni) || ! preg_match('/^[1-9][0-9]?$/D', $recensioni))) {
+            return false;
+        }
 
         /* Le tre date: se non sono nella forma che il sito produce, la pagina
            si disegna e non si conserva. */
@@ -404,7 +411,9 @@ final class CachePage
     private function isCacheable(Request $request): bool
     {
         // Booking capacity and sale windows must not be frozen in a full-page cache.
-        if ($request->routeIs('events.show', 'events.occurrence')) {
+        // Anche con il prefisso della città: `routes/public.php` è montato due
+        // volte, la seconda con i nomi `city.*`.
+        if ($request->routeIs('events.show', 'events.occurrence', 'city.events.show', 'city.events.occurrence')) {
             return false;
         }
         if (! config()->boolean('page_cache.enabled')) {
