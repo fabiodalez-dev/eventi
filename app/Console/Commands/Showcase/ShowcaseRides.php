@@ -497,7 +497,20 @@ final class ShowcaseRides
      */
     public function purge(array $userIds, array $eventIds): void
     {
-        $dates = $this->dates($eventIds);
+        $this->purgeDates($userIds, $this->dates($eventIds));
+    }
+
+    /**
+     * Come `purge()`, ma sulle singole date invece che su tutte le date di
+     * un evento: `demo:quindicina` aggiunge date nuove a eventi che hanno già
+     * uno storico, e quello storico — compresi i viaggi conclusi recensiti
+     * dalla vetrina — deve restare dov'è.
+     *
+     * @param  list<int>  $userIds
+     * @param  list<int>  $dates
+     */
+    public function purgeDates(array $userIds, array $dates): void
+    {
         $offers = $this->offers($userIds, $dates);
         $requests = $this->requests($userIds, $offers);
         $cases = $this->cases($userIds, $offers, $requests)->pluck('id');
