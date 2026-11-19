@@ -51,10 +51,10 @@ it('shows one full-width column of cards with the event title, a placeholder pos
         ->assertSee(EventResource::getUrl('edit', ['record' => $this->event]), false)
         ->assertSee(route('events.show', $this->event), false)
         ->assertSee('Prossima data')
-        ->assertSee('11/09/2026')
+        ->assertSee('ven 11 set')
         ->assertSee('In programma')
         ->assertSee('Già passate')
-        ->assertSee('01/08/2026')
+        ->assertSee('sab 1 ago')
         ->assertSee('Passata')
         ->assertSee('Anteprima d’estate')
         ->assertDontSee('<table', false);

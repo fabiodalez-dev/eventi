@@ -1,6 +1,6 @@
 {{-- Le tue segnalazioni (scheda «Aiuto»): elenco, stato e il modulo per una nuova. --}}
 <x-layouts.app service :meta="$meta">
-    <x-service-page :title="__('carpool.cases')" :subtitle="__('carpool.web.cases_subtitle')" :tabs="$tabs" :tabs-label="__('carpool.web.tabs.label')">
+    <x-service-page :title="__('carpool.cases')" :subtitle="__('carpool.web.cases_subtitle')" :back="route('account.profile')" :tabs="$tabs" :tabs-label="__('carpool.web.tabs.label')">
         @include('carpool.partials.help-nav')
 
         @if (empty($cases))

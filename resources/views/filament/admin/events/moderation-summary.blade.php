@@ -7,7 +7,7 @@
     /** @var \App\Models\Event $event */
     $event->loadMissing('creator');
     $timezone = \Filament\Support\Facades\FilamentTimezone::get();
-    $at = fn ($date) => $date?->copy()->timezone($timezone)->format('d/m/Y H:i');
+    $at = fn ($date) => $date === null ? null : \App\Filament\Support\PanelDate::event($date, $timezone);
     $rows = array_filter([
         __('admin.fields.source') => $event->source->label(),
         __('admin.fields.verification_status') => $event->verification_status->label(),

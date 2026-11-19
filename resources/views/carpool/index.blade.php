@@ -4,7 +4,7 @@
     (il controller la passa in `selected_tab`).
 --}}
 <x-layouts.app service :meta="$meta">
-    <x-service-page :title="__('carpool.mine')" :subtitle="__('carpool.web.mine_subtitle')" :eyebrow="__('carpool.free')" :tabs="$tabs" :tabs-label="__('carpool.web.tabs.label')">
+    <x-service-page :title="__('carpool.mine')" :subtitle="__('carpool.web.mine_subtitle')" :eyebrow="__('carpool.free')" :back="route('account.profile')" :tabs="$tabs" :tabs-label="__('carpool.web.tabs.label')">
         @if (! $access['eligible'])
             <x-notice tone="alert" :title="__('carpool.profile_blocked.title')">
                 <p>{{ __('carpool.onboarding') }}</p>

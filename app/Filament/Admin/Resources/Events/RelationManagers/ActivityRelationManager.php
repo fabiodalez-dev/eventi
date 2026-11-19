@@ -38,7 +38,7 @@ class ActivityRelationManager extends RelationManager
             ->columns([
                 TextColumn::make('created_at')
                     ->label(__('admin.fields.activity_date'))
-                    ->dateTime('d/m/Y H:i', 'Europe/Rome')
+                    ->panelMoment()
                     ->sortable(),
 
                 TextColumn::make('event')

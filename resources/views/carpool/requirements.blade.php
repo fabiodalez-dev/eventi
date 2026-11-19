@@ -3,7 +3,7 @@
     oppure lo stato raggiunto, le notifiche e la rettifica dell'età.
 --}}
 <x-layouts.app service :meta="$meta">
-    <x-service-page :title="__('carpool.requirements')" :subtitle="__('carpool.web.requirements_subtitle')" :tabs="$tabs" :tabs-label="__('carpool.web.tabs.label')">
+    <x-service-page :title="__('carpool.requirements')" :subtitle="__('carpool.web.requirements_subtitle')" :back="route('account.profile')" :tabs="$tabs" :tabs-label="__('carpool.web.tabs.label')">
         @include('carpool.partials.help-nav')
 
         @if (! $access['eligible'])

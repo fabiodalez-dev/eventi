@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Shared;
 
 use App\Filament\Admin\Pages\EventShareAnalytics;
+use App\Filament\Support\EventSelect;
 use App\Models\Event;
 use App\Models\Organizer;
 use App\Models\Venue;
@@ -12,6 +13,7 @@ use App\Services\Analytics\EventAnalyticsDashboard;
 use Filament\Facades\Filament;
 use Filament\Navigation\NavigationItem;
 use Filament\Pages\Enums\SubNavigationPosition;
+use Filament\Schemas\Schema;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
 
@@ -27,6 +29,9 @@ abstract class AnalyticsDetailPage extends EventAnalyticsPage
 
     #[Locked]
     public int $subjectId;
+
+    /** «Guarda un altro evento»: l'evento scelto, prima del passaggio. */
+    public ?int $otherEvent = null;
 
     public function mount(?string $subjectType = null, ?int $subjectId = null): void
     {
@@ -95,6 +100,32 @@ abstract class AnalyticsDetailPage extends EventAnalyticsPage
     public function getSubNavigation(): array
     {
         return $this->subjectType === 'event' ? EventAnalyticsNavigation::items($this->subjectId, true) : [];
+    }
+
+    /** Il selettore «Guarda un altro evento», solo nella pagina di un evento. */
+    public function otherEventForm(Schema $schema): Schema
+    {
+        return $schema->components([
+            EventSelect::make('otherEvent', fn () => app(EventAnalyticsDashboard::class)->events()->whereKeyNot($this->subjectId))
+                ->label(__('pannelli-statistiche.subject.other_event'))
+                ->helperText(__('pannelli-statistiche.subject.other_event_hint'))
+                ->live()
+                ->afterStateUpdated(fn (mixed $state) => $this->goToEvent($state)),
+        ]);
+    }
+
+    /**
+     * Passa a un altro evento tenendo periodo e canale. L'evento si cerca di
+     * nuovo fra quelli che chi guarda può vedere: un numero scritto a mano
+     * finisce in un 404.
+     */
+    public function goToEvent(mixed $eventId): void
+    {
+        if (blank($eventId)) {
+            return;
+        }
+        $event = app(EventAnalyticsDashboard::class)->events()->findOrFail((int) $eventId);
+        $this->redirect($this->detailUrl('event', (int) $event->getKey()), navigate: false);
     }
 
     protected function reportFilters(): array

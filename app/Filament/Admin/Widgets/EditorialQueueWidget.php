@@ -39,33 +39,42 @@ class EditorialQueueWidget extends EditorialWidget
     {
         $dashboard = $this->dashboard();
 
+        $events = $dashboard->pendingEvents()->count();
+        $venues = $dashboard->pendingVenues()->count();
+        $applications = $dashboard->pendingApplications()->count();
+        $reports = $dashboard->openReports()->count();
+
+        /* Ogni riquadro dice in una frase che cosa aspetta una decisione; quando
+           non aspetta niente resta grigio, così l'occhio va solo dove serve. */
         return [
-            Stat::make(__('admin.dashboard.pending_events'), $dashboard->pendingEvents()->count())
-                ->description(__('admin.dashboard.descriptions.pending_events'))
+            Stat::make(__('admin.dashboard.pending_events'), $events)
+                ->description(trans_choice('pannelli-redazione.riepilogo.pending_events', $events))
                 ->icon(Heroicon::OutlinedInboxArrowDown)
-                ->color('warning')
+                ->color($events > 0 ? 'warning' : 'gray')
                 ->url(EventResource::getUrl('index', [
                     'filters' => ['status' => ['value' => EventStatus::Pending->value]],
                 ])),
 
-            Stat::make(__('admin.dashboard.pending_venues'), $dashboard->pendingVenues()->count())
-                ->description(__('admin.dashboard.descriptions.pending_venues'))
+            Stat::make(__('admin.dashboard.pending_venues'), $venues)
+                ->description(trans_choice('pannelli-redazione.riepilogo.pending_venues', $venues))
                 ->icon(Heroicon::OutlinedBuildingStorefront)
-                ->color('warning')
+                ->color($venues > 0 ? 'warning' : 'gray')
                 ->url(VenueResource::getUrl('index', [
                     'filters' => ['status' => ['value' => VenueStatus::Pending->value]],
                 ])),
 
-            Stat::make(__('admin.dashboard.pending_applications'), $dashboard->pendingApplications()->count())
+            Stat::make(__('admin.dashboard.pending_applications'), $applications)
+                ->description(trans_choice('pannelli-redazione.riepilogo.pending_applications', $applications))
                 ->icon(Heroicon::OutlinedEnvelopeOpen)
+                ->color($applications > 0 ? 'warning' : 'gray')
                 ->url(VenueApplicationResource::getUrl('index', [
                     'filters' => ['status' => ['value' => ApplicationStatus::Pending->value]],
                 ])),
 
-            Stat::make(__('admin.dashboard.open_reports'), $dashboard->openReports()->count())
-                ->description(__('admin.dashboard.descriptions.open_reports'))
+            Stat::make(__('admin.dashboard.open_reports'), $reports)
+                ->description(trans_choice('pannelli-redazione.riepilogo.open_reports', $reports))
                 ->icon(Heroicon::OutlinedFlag)
-                ->color('danger')
+                ->color($reports > 0 ? 'danger' : 'gray')
                 ->url(ReportResource::getUrl('index', [
                     'filters' => ['open' => ['isActive' => true]],
                 ])),

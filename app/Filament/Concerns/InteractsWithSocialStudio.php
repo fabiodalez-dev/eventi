@@ -7,6 +7,7 @@ namespace App\Filament\Concerns;
 use App\Enums\OccurrenceStatus;
 use App\Enums\SocialFormat;
 use App\Enums\SocialPublicationStatus;
+use App\Filament\Support\PanelDate;
 use App\Jobs\Social\PublishSocial;
 use App\Models\City;
 use App\Models\Event;
@@ -218,6 +219,23 @@ trait InteractsWithSocialStudio
         }
 
         return $days;
+    }
+
+    /**
+     * Il periodo dell'elenco in parole: «oggi», «da oggi a dom 23 nov»,
+     * «il sab 22 nov», «dal 1 dic al 31 dic».
+     */
+    public function periodLabel(): string
+    {
+        [$from, $until] = $this->periodRange();
+        $today = EventOccurrenceQuery::for($this->socialCity())->currentBusinessDate();
+
+        return match (true) {
+            $from === $until && $from === $today => __('pannelli-social.studio.today_only'),
+            $from === $until => __('pannelli-social.studio.one_day', ['day' => PanelDate::day($from)]),
+            $from === $today => __('pannelli-social.studio.from_today', ['day' => PanelDate::day($until)]),
+            default => PanelDate::period($from, $until),
+        };
     }
 
     public function monthLabel(): string

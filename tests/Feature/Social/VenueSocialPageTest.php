@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 use App\Enums\OccurrenceStatus;
 use App\Filament\Admin\Pages\Social as AdminSocial;
+use App\Filament\Concerns\InteractsWithSocialStudio;
 use App\Filament\Venue\Pages\Social as VenueSocial;
 use App\Models\SocialBatch;
 use App\Models\SocialConnection;
 use App\Models\SocialPublication;
+use App\Models\Venue;
 use Carbon\Carbon;
 use Filament\Facades\Filament;
 use Illuminate\Support\Facades\Queue;
@@ -127,4 +129,26 @@ it('un periodo non valido torna a quello predefinito invece di rompere la pagina
         ->assertOk()
         ->assertSet('period', 'next30')
         ->assertSee('data-social-card="'.$this->demo->id.'"', false);
+});
+
+it('scrive il periodo dello studio in parole', function (): void {
+    $page = new class
+    {
+        use InteractsWithSocialStudio;
+
+        public function socialVenue(): ?Venue
+        {
+            return null;
+        }
+    };
+    $city = testCity();
+    freezeLocal($city, '2026-11-19 12:00');
+    $page->cityId = $city->id;
+    $page->from = '2026-11-19';
+    $page->until = '2026-11-22';
+    expect($page->periodLabel())->toBe('da oggi a dom 22 nov');
+    $page->until = '2026-11-19';
+    expect($page->periodLabel())->toBe('oggi');
+    $page->from = $page->until = '2026-11-22';
+    expect($page->periodLabel())->toBe('solo dom 22 nov');
 });

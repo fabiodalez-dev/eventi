@@ -22,6 +22,7 @@ Controlla il catalogo, abilita gli operatori e gestisce promozione, comunicazion
 - **Catalogo centralizzato** — Crea e aggiorna eventi, locali e organizzatori da un unico pannello.
 - **Revisione delle pubblicazioni** — Approva o respinge proposte e modifiche prima della pubblicazione.
 - **Bozze e uscite programmate** — Prepara contenuti in anticipo e imposta quando renderli pubblici.
+- **Pannelli leggibili** — Date scritte per esteso, eventi riconoscibili da locandina, titolo, data e locale invece che da numeri, un selettore degli eventi con ricerca in statistiche e grafiche social, riquadri della redazione che dicono cosa aspetta una decisione, menu uguale nei tre pannelli e cambio del tema dal menu della persona. *Solo web.*
 - **Calendario della programmazione** — Consulta le date degli eventi per pianificare e controllare il palinsesto.
 - **Eventi con più date** — Gestisce appuntamenti, orari e variazioni senza duplicare la scheda principale.
 - **Ricorrenze automatiche** — Genera serie di appuntamenti con frequenza e termine configurabili.
@@ -310,6 +311,7 @@ Il valore della piattaforma deriva dall’incontro fra offerta locale, pubblico 
 
 ## Registro degli aggiornamenti
 
+- **19 novembre 2026 (sera)** — Pannelli di redazione, locale e organizzatore più leggibili: date per esteso, selettore degli eventi con locandina, statistiche con una frase per ogni numero, menu comune, cambio del tema nei pannelli, ritorno indietro in tutte le pagine di servizio.
 - **19 novembre 2026** — Pagine di servizio ridisegnate con lo stesso impianto, accesso unico, calendario e prossimo evento in home, tre viste degli elenchi da telefono, registrazione e rivendicazione del locale con account, pannello del locale semplificato, sponsorizzazione richiesta senza pagamento online, iscrizioni in evidenza nell'admin, commenti in stile social, «Stasera» passo per passo, prenotazione senza ripetere i dati.
 - **18 novembre 2026** — Aggiunte le funzioni entrate dal 15 settembre: community verificata, «ci vado», commenti, sondaggi, passaggi in auto, analytics completi, link e QR tracciati, acquisto delle sponsorizzazioni, strumenti per le date (domande, messaggi, assenze, lista stampabile, personale su invito, ingressi senza rete), chiusure e avvisi dei locali, co-organizzatori, e una sezione per il pianificato.
 - **15 settembre 2026** — Prima versione.

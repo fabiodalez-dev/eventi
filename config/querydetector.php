@@ -1,9 +1,12 @@
 <?php
 
+use App\Models\Event;
 use App\Models\EventOccurrence;
+use App\Models\Organizer;
 use App\Models\Venue;
 use BeyondCode\QueryDetector\Outputs\Alert;
 use BeyondCode\QueryDetector\Outputs\Log;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 return [
     /*
@@ -33,6 +36,13 @@ return [
             Venue::class,
             'venue',
         ],
+        // Il campo immagine del plugin Spatie di Filament ricarica `media` per
+        // ogni campo del modulo (`$record->load('media')`): con più campi
+        // immagine nello stesso modulo la stessa query si ripete, ma è un
+        // record solo, non un elenco.
+        Venue::class => [Media::class, 'media'],
+        Event::class => [Media::class, 'media'],
+        Organizer::class => [Media::class, 'media'],
     ],
 
     /*

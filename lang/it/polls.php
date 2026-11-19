@@ -32,4 +32,5 @@ return [
         'full' => 'Questo sondaggio ha già :max partecipanti.',
         'option_withdrawn' => 'Questa data è stata ritirata: ricarica la pagina per vedere quelle rimaste.',
     ],
+    'back_event' => 'Torna all’evento',
 ];

@@ -1,7 +1,13 @@
+{{--
+    La barra in alto dei tre pannelli (`TopbarActions`): dove sono, tre
+    scorciatoie uguali dappertutto, e «Altro» con le voci che restano. Il
+    pulsante «Altro» dice la parola da 640 px in su; sotto mostra solo i tre
+    puntini, con la parola per i lettori di schermo.
+--}}
 @php $context = app(\App\Filament\Shared\TopbarActions::class)->context(); @endphp
 @if ($context)
     <a class="itb-context" href="{{ $context['home'] }}" data-topbar-context="{{ $context['panel'] }}">
-        <span class="itb-mark" aria-hidden="true"><x-filament::icon :icon="match ($context['panel']) { 'venue' => 'heroicon-o-building-storefront', 'organizer' => 'heroicon-o-user-group', default => 'heroicon-o-squares-2x2' }" /></span>
+        <span class="itb-mark" aria-hidden="true"><x-filament::icon :icon="match ($context['panel']) { 'venue' => 'heroicon-o-building-storefront', 'organizer' => 'heroicon-o-user-group', default => 'heroicon-o-newspaper' }" /></span>
         <span class="itb-identity"><small>{{ $context['label'] }}</small><strong>{{ $context['name'] }}</strong></span>
     </a>
     <div class="itb-actions" role="group" aria-label="{{ __('topbar.quick_actions') }}">
@@ -12,6 +18,9 @@
                     <x-filament::icon :icon="$item['icon']" />
                     @if ($item['key'] === 'create')
                         <span class="itb-wide-label">{{ __('topbar.create') }}</span><span class="itb-short-label">{{ __('topbar.create_short') }}</span>
+                    @elseif ($item['key'] === 'analytics' && $item['label'] !== __('topbar.analytics'))
+                        {{-- «Statistiche in dettaglio» sul telefono non ci sta: lì basta «Statistiche». --}}
+                        <span class="itb-wide-label">{{ $item['label'] }}</span><span class="itb-short-label">{{ __('topbar.analytics') }}</span>
                     @else
                         <span>{{ $item['label'] }}</span>
                     @endif
@@ -20,9 +29,11 @@
         @endforeach
         <x-filament::dropdown placement="bottom-end" teleport>
             <x-slot name="trigger">
-                <button type="button" class="itb-action itb-more" x-cloak aria-label="{{ __('topbar.more') }}" data-topbar-more>
-                    <x-filament::icon icon="heroicon-o-ellipsis-horizontal" />
-                </button>
+                <x-filament::button color="gray" class="itb-more" x-cloak :aria-label="__('topbar.more')" data-topbar-more>
+                    <x-filament::icon icon="heroicon-o-ellipsis-horizontal" class="itb-more-dots" />
+                    <span class="itb-more-label">{{ __('topbar.more') }}</span>
+                    <x-filament::icon icon="heroicon-m-chevron-down" class="itb-more-chevron" />
+                </x-filament::button>
             </x-slot>
             <x-filament::dropdown.list>
                 @foreach ($context['items'] as $item)

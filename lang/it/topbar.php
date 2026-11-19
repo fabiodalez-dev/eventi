@@ -1,11 +1,11 @@
 <?php
 
 return [
-    'admin' => 'Amministrazione',
+    'admin' => 'Redazione',
     'venue' => 'Il tuo locale',
-    'organizer' => 'Organizzatore',
+    'organizer' => 'La tua organizzazione',
     'quick_actions' => 'Azioni rapide',
-    'more' => 'Altre azioni',
+    'more' => 'Altro',
     'create' => 'Nuovo evento',
     'create_short' => 'Nuovo',
     'events' => 'Eventi',
@@ -15,5 +15,7 @@ return [
     'tickets' => 'Biglietti e partecipanti',
     'profile' => 'Profilo del locale',
     'organizer_profile' => 'Profilo pubblico',
-    'public' => 'Apri il sito pubblico',
+    'public' => 'Vai al sito',
+    'public_venue' => 'Vedi il locale sul sito',
+    'public_organizer' => 'Vedi la pagina sul sito',
 ];

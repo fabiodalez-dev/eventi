@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'title' => 'Analytics',
+    'title' => 'Statistiche',
     'occurrence_heading' => 'Analytics · :date',
     'occurrence_clicks' => 'Clic',
     'occurrence_saves' => 'Salvataggi',

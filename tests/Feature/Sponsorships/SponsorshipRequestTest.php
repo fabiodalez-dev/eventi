@@ -302,9 +302,9 @@ it('reads days and end dates in the city time zone', function (): void {
     Livewire::test(VenueSponsorships::class)->assertSee('20/07/2026 23:59')->assertDontSee('20/07/2026 21:59');
 
     $report = Livewire::test(VenueAnalytics::class)->set('filters.days', '7')->instance()->report();
-    expect($report['impressions'])->toBe(7)->and($report['series']->last()['date'])->toBe('11/07/2026');
+    expect($report['impressions'])->toBe(7)->and($report['series']->last()['date'])->toBe('sab 11 lug');
     $all = Livewire::test(VenueAnalytics::class)->set('filters.days', 'all')->instance()->report();
-    expect($all['impressions'])->toBe(107)->and($all['series']->first()['date'])->toBe('01/07/2026');
+    expect($all['impressions'])->toBe(107)->and($all['series']->first()['date'])->toBe('mer 1 lug');
     $custom = Livewire::test(VenueAnalytics::class)->set('filters.days', 'custom')->set('filters.from', '2026-07-01')->set('filters.to', '2026-07-02')->instance()->report();
     expect($custom['impressions'])->toBe(100)->and($custom['series'])->toHaveCount(2);
 });

@@ -8,6 +8,7 @@ use App\Actions\Comments\ModerateComment;
 use App\Enums\EventCommentStatus;
 use App\Filament\Admin\Resources\EventComments\Pages\ListEventComments;
 use App\Filament\Concerns\HasSentenceCaseNavigationLabel;
+use App\Filament\Support\PanelDate;
 use App\Filament\Support\PosterColumn;
 use App\Models\EventComment;
 use App\Models\User;
@@ -22,7 +23,6 @@ use Filament\Resources\Resource;
 use Filament\Support\Enums\Alignment;
 use Filament\Support\Enums\FontWeight;
 use Filament\Support\Enums\TextSize;
-use Filament\Support\Facades\FilamentTimezone;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\Layout\Split;
 use Filament\Tables\Columns\Layout\Stack;
@@ -112,7 +112,7 @@ class EventCommentResource extends Resource
                             ->formatStateUsing(fn (string $state, EventComment $record): string => collect([
                                 $state,
                                 $record->parent_id === null ? null : __('admin.comment_list.reply'),
-                                $record->created_at?->copy()->timezone(FilamentTimezone::get())->format('d/m/Y H:i'),
+                                $record->created_at === null ? null : PanelDate::moment($record->created_at),
                             ])->filter()->join(' · ')),
                         TextColumn::make('body')->extraAttributes(['class' => 'py-0.5!'])->label(__('comments.moderation.body'))->wrap()->limit(220)->searchable(),
                         TextColumn::make('status')->extraAttributes(['class' => 'py-0.5!'])->label(__('reviews.status'))->badge()
@@ -144,7 +144,7 @@ class EventCommentResource extends Resource
                         TextEntry::make('body')->label(__('comments.moderation.body')),
                         TextEntry::make('moderation_note')->label(__('comments.moderation.note'))->placeholder('—'),
                         TextEntry::make('moderator.name')->label(__('admin.fields.reviewed_by'))->placeholder('—'),
-                        TextEntry::make('moderated_at')->label(__('comments.moderation.date'))->dateTime('d/m/Y H:i')->placeholder('—'),
+                        TextEntry::make('moderated_at')->label(__('comments.moderation.date'))->panelMoment()->placeholder('—'),
                     ]),
                 self::azioneNascondi(),
                 self::azioneRipristina(),

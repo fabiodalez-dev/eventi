@@ -16,6 +16,12 @@ parameters:
         - database
 
     ignoreErrors:
+        # `->panelDate()` e `->panelMoment()` sono macro registrate in
+        # AppServiceProvider sulle colonne e sulle voci di Filament: a runtime
+        # esistono, Larastan non vede le macro del Macroable di Filament.
+        -
+            message: '#Call to an undefined method Filament\\(Tables\\Columns\\TextColumn|Infolists\\Components\\TextEntry)::panel(Date|Moment)\(\)#'
+            reportUnmatched: false
         # Le chiusure passate a `with()` ricevono una Relation, e i metodi
         # chiamati sopra sono scope del modello inoltrati al builder: a
         # runtime esistono, Larastan 3.12 non li vede sul tipo generico.

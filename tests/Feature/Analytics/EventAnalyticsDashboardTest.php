@@ -191,7 +191,7 @@ it('paginates long reports in Italian while exporting every row and preserving n
     expect($page->instance()->tableRows())->toHaveCount(4);
     $url = $page->instance()->detailUrl('venue', $this->scenario->venueA->id);
     parse_str(parse_url($url, PHP_URL_QUERY), $query);
-    Livewire::withQueryParams($query)->test(EventAnalyticsDetail::class, ['subjectType' => 'venue', 'subjectId' => $this->scenario->venueA->id])->assertSee('Analytics · Circolo Aurora');
+    Livewire::withQueryParams($query)->test(EventAnalyticsDetail::class, ['subjectType' => 'venue', 'subjectId' => $this->scenario->venueA->id])->assertSee('Statistiche · Circolo Aurora');
     $export = app(EventAnalyticsExport::class)->download($this->filters + ['venue' => $this->scenario->venueA->id], 'csv', 'events');
     $path = $export->getFile()->getPathname();
     try {
@@ -209,7 +209,7 @@ it('opens a dedicated analytics page for each subject and pins reports to its ro
         'event' => $this->scenario->publishedEventA->title, 'venue' => $this->scenario->venueA->name, default => $this->organizer->name
     };
     $url = EventAnalyticsDetail::getUrl(['subjectType' => $type, 'subjectId' => $id]);
-    $this->get($url)->assertOk()->assertSee('Analytics · '.$name)->assertSee('data-analytics-subject="'.$type.'"', false);
+    $this->get($url)->assertOk()->assertSee('Statistiche · '.$name)->assertSee('data-analytics-subject="'.$type.'"', false);
     $page = Livewire::test(EventAnalyticsDetail::class, ['subjectType' => $type, 'subjectId' => $id]);
     expect($page->instance()->dashboard()['totals']['views'])->toBe(10);
     $page->set('filters.event', $this->scenario->publishedEventB->id)->set('filters.venue', $this->scenario->venueB->id);
@@ -255,7 +255,7 @@ it('separates viewing an event and all its dates from editing', function (): voi
     $later = EventOccurrence::factory()->create(['event_id' => $this->scenario->publishedEventA->id, 'starts_at' => '2026-10-11 19:00:00', 'ends_at' => '2026-10-11 21:00:00', 'highlight' => 'Seconda serata speciale']);
     EventOccurrence::factory()->create(['event_id' => $this->scenario->publishedEventA->id, 'starts_at' => '2026-08-11 19:00:00', 'ends_at' => '2026-08-11 21:00:00', 'status' => 'cancelled', 'highlight' => 'Serata precedente annullata']);
     $view = Livewire::test(ViewEvent::class, ['record' => $this->scenario->publishedEventA->getRouteKey()]);
-    $view->assertSee('data-event-read-view', false)->assertSee('Seconda serata speciale')->assertSee('11/09/2026')->assertSee('11/10/2026')->assertSee('11/08/2026')->assertSee('Serata precedente annullata')->assertSee('Statistiche');
+    $view->assertSee('data-event-read-view', false)->assertSee('Seconda serata speciale')->assertSee('11 set')->assertSee('11 ott')->assertSee('11 ago')->assertDontSee('11/09/2026')->assertSee('Serata precedente annullata')->assertSee('Statistiche');
     expect($view->instance()->getRelationManagers())->toBeEmpty();
     $edit = Livewire::test(EditEvent::class, ['record' => $this->scenario->publishedEventA->getRouteKey()]);
     $edit->assertFormSet(['title' => $this->scenario->publishedEventA->title])->assertSee('Statistiche');

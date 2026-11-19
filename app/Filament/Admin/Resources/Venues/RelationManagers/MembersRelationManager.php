@@ -101,7 +101,7 @@ class MembersRelationManager extends RelationManager
 
                 TextColumn::make('pivot.accepted_at')
                     ->label(__('admin.fields.accepted_at'))
-                    ->dateTime('d/m/Y H:i')
+                    ->panelMoment()
                     ->placeholder(__('admin.placeholders.pending_invite')),
             ])
             ->headerActions([

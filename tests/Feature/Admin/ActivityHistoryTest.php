@@ -7,6 +7,7 @@ use App\Filament\Admin\Resources\Events\Pages\EditEvent;
 use App\Filament\Admin\Resources\Events\RelationManagers\ActivityRelationManager;
 use App\Filament\Admin\Resources\Venues\Pages\EditVenue;
 use App\Filament\Admin\Resources\Venues\VenueResource;
+use App\Filament\Support\PanelDate;
 use App\Models\Event;
 use App\Models\User;
 use App\Models\Venue;
@@ -34,7 +35,7 @@ it('renders editorial before and after values with actor and local time and esca
     Livewire::test(ActivityRelationManager::class, ['ownerRecord' => $record, 'pageClass' => $page])
         ->assertCanSeeTableRecords([$activity])
         ->assertSee('Motivo precedente')->assertSee($payload)
-        ->assertDontSeeHtml($payload)->assertSee('Redazione Cronologia')->assertSee('01/07/2026 12:00');
+        ->assertDontSeeHtml($payload)->assertSee('Redazione Cronologia')->assertSee(PanelDate::moment(now()))->assertDontSee('01/07/2026');
 })->with([[Event::class, EditEvent::class], [Venue::class, EditVenue::class]]);
 
 it('shows venue history and does not label a removed actor as an automatic system action', function (): void {

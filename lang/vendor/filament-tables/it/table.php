@@ -8,6 +8,24 @@ return [
     'column_manager' => [
         'actions' => [
             'reorder' => ['label' => 'Riordina la colonna'],
+            'reset' => ['label' => 'Rimetti come prima'],
+        ],
+    ],
+
+    /* Lo stato vuoto di serie: mai «Nessun risultato» (vedi `FilamentDefaultsServiceProvider`). */
+    'empty' => [
+        'heading' => 'Qui non c\'è ancora niente',
+        'description' => 'Se hai messo un filtro o una ricerca, prova a toglierli.',
+    ],
+
+    'filters' => [
+        'actions' => [
+            'reset' => ['label' => 'Togli i filtri'],
+            'remove_all' => [
+                'label' => 'Togli tutti i filtri',
+                'tooltip' => 'Togli tutti i filtri',
+            ],
+            'remove' => ['label' => 'Togli il filtro'],
         ],
     ],
 
@@ -27,6 +45,6 @@ return [
 
     'loading' => 'Caricamento…',
 
-    'result_count' => '{0} Nessun risultato|{1} :count risultato|[2,*] :count risultati',
+    'result_count' => '{0} Niente da mostrare|{1} :count risultato|[2,*] :count risultati',
 
 ];

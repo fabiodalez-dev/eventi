@@ -10,7 +10,7 @@
     <div class="flex min-w-0 flex-col gap-6" data-sponsorship-analytics>
         <x-filament::section>
             {{ $this->form }}
-            <p class="mt-3 {{ $muted }}">{{ __('sponsorships.analytics.window', ['from' => $report['from']->format('d/m/Y'), 'to' => $report['to']->format('d/m/Y')]) }}</p>
+            <p class="mt-3 {{ $muted }}">{{ __('pannelli-social.sponsorship.window', ['period' => \App\Filament\Support\PanelDate::period($report['from'], $report['to'])]) }}</p>
         </x-filament::section>
 
         @if ($report['economics'] !== null)
@@ -32,6 +32,16 @@
                 <div><dt class="{{ $muted }}">{{ __('sponsorships.analytics.clicks') }}</dt><dd class="text-3xl font-semibold tabular-nums text-gray-950 dark:text-white">{{ $number($report['clicks']) }}</dd></div>
                 <div><dt class="{{ $muted }}">{{ __('sponsorships.analytics.rate') }}</dt><dd class="text-3xl font-semibold tabular-nums text-gray-950 dark:text-white">{{ $rate }}</dd></div>
             </dl>
+            <p class="mt-4 text-sm text-gray-700 dark:text-gray-300" data-sponsorship-explain>
+                @if ($report['impressions'] === 0)
+                    {{ __('pannelli-social.sponsorship.explain_empty') }}
+                @elseif ($report['clicks'] === 0)
+                    {{ __('pannelli-social.sponsorship.explain_none', ['views' => $number($report['impressions'])]) }}
+                @else
+                    {{ trans_choice('pannelli-social.sponsorship.explain', $report['clicks'], ['views' => $number($report['impressions']), 'clicks' => $number($report['clicks'])]) }}
+                    {{ __('pannelli-social.sponsorship.explain_rate', ['every' => $number(max(1, (int) round($report['impressions'] / $report['clicks'])))]) }}
+                @endif
+            </p>
         </x-filament::section>
 
         @foreach (['impressions' => 'chart_impressions', 'clicks' => 'chart_clicks'] as $metric => $label)
@@ -75,18 +85,22 @@
             @else
                 <ul class="flex flex-col divide-y divide-gray-200 dark:divide-white/10" data-sponsorship-clicks>
                     @foreach ($report['records'] as $click)
-                        <li class="flex flex-col gap-0.5 py-3">
-                            <p class="font-medium text-gray-950 dark:text-white">{{ $click->sponsorship?->event?->title ?? __('sponsorships.analytics.event_gone') }}</p>
+                        <li class="flex items-start gap-3 py-3">
+                            @if ($click->sponsorship?->event)
+                                <img src="{{ \App\Filament\Support\PosterColumn::url($click->sponsorship->event) }}" alt="" width="36" height="48" loading="lazy" decoding="async" class="h-12 w-9 shrink-0 rounded border border-gray-200 bg-gray-100 object-cover dark:border-white/10 dark:bg-white/5">
+                            @endif
+                            <div class="flex min-w-0 flex-col gap-0.5">
+                            <p class="font-medium text-gray-950 [overflow-wrap:anywhere] dark:text-white">{{ $click->sponsorship?->event?->title ?? __('sponsorships.analytics.event_gone') }}</p>
                             <p class="{{ $muted }}">
-                                {{ $click->clicked_at->timezone($tz)->format('d/m/Y H:i:s') }}
+                                {{ \App\Filament\Support\PanelDate::moment($click->clicked_at, $tz) }}
                                 @if ($click->sponsorship?->event?->venue?->name) · {{ $click->sponsorship->event->venue->name }} @endif
-                                · {{ __('sponsorships.analytics.campaign_ref', ['id' => $click->sponsorship_id]) }}
                             </p>
                             <p class="text-xs text-gray-500 dark:text-gray-400">
                                 {{ __('sponsorships.analytics.channels.'.($click->channel === 'android' ? 'android' : 'web')) }}
                                 · {{ \App\Enums\SponsorshipPlacement::tryFrom((string) $click->placement)?->label() ?? (\Illuminate\Support\Facades\Lang::has('sponsorships.analytics.placements.'.$click->placement) ? __('sponsorships.analytics.placements.'.$click->placement) : $click->placement) }}
                                 · {{ __('sponsorships.analytics.pages.'.(in_array($click->page, ['home', 'feed', 'event', 'venues', 'profile', 'search'], true) ? $click->page : 'other')) }}
                             </p>
+                            </div>
                         </li>
                     @endforeach
                 </ul>

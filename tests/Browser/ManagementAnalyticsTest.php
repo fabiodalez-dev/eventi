@@ -26,7 +26,7 @@ it('shows usable analytics to venue and organizer managers on narrow screens', f
     app(RecordContentMetric::class)->record('event', $scenario->publishedEventA->id, ContentMetric::Views);
     app(RecordContentMetric::class)->record($panel, $tenant->id, ContentMetric::Views);
     $page = visit($pageClass::getUrl(panel: $panel, tenant: $tenant))->resize(390, 844)
-        ->assertSee('Analytics')->assertSee('Pagina del profilo')->assertSee($scenario->publishedEventA->title)
+        ->assertSee('Statistiche')->assertSee('Pagina del profilo')->assertSee($scenario->publishedEventA->title)
         ->assertPresent('[data-analytics-chart] svg')->assertPresent('[data-analytics-bars]')
         ->click('7 giorni')->assertSee('Ultimi 7 giorni, nel fuso della città.')
         ->assertNoJavascriptErrors();

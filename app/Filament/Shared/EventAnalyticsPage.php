@@ -6,6 +6,7 @@ namespace App\Filament\Shared;
 
 use App\Enums\StatsPeriod;
 use App\Filament\Admin\Pages\EventAnalyticsDetail;
+use App\Filament\Support\EventSelect;
 use App\Models\Event;
 use App\Models\Venue;
 use App\Services\Analytics\EventAnalyticsDashboard;
@@ -22,6 +23,7 @@ use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -154,6 +156,19 @@ abstract class EventAnalyticsPage extends Page
     {
         $components = [];
         foreach ($this->entityFilters() as $type) {
+            if ($type === 'event') {
+                /* Il filtro «Evento»: locandina, titolo, data e locale, divisi
+                   in «Prossimi» e «Passati». La query è quella di sempre,
+                   ristretta a chi guarda e al locale o organizzatore scelti. */
+                $components[] = EventSelect::make('event', fn () => $this->eventQuery(), showVenue: Filament::getCurrentPanel()?->getId() !== 'venue')->live();
+
+                continue;
+            }
+            /* Nei pannelli del locale e dell'organizzatore i filtri «Locale» e
+               «Organizzatore» non servono: si guardano già i propri eventi. */
+            if (Filament::getCurrentPanel()?->getId() !== 'admin' && blank($this->filters[$type] ?? null)) {
+                continue;
+            }
             $components[] = Select::make($type)->label(__('analytics-dashboard.'.$type))->placeholder(__('analytics-dashboard.all_'.$type))
                 ->searchable()->live()->options(fn () => $this->options($type))
                 ->getSearchResultsUsing(fn (string $search): array => $this->options($type, $search))
@@ -172,6 +187,14 @@ abstract class EventAnalyticsPage extends Page
         $components[] = DatePicker::make('until')->label(__('analytics-dashboard.until'))->native()->required()->live();
 
         return $schema->statePath('filters')->columns(1)->components($components);
+    }
+
+    /** @return Builder<Event> */
+    protected function eventQuery(): Builder
+    {
+        return app(EventAnalyticsDashboard::class)->events()
+            ->when(filled($this->filters['venue'] ?? null), fn ($q) => $q->where('venue_id', $this->filters['venue']))
+            ->when(filled($this->filters['organizer'] ?? null), fn ($q) => $q->where('organizer_id', $this->filters['organizer']));
     }
 
     /** @return array<int, string> */

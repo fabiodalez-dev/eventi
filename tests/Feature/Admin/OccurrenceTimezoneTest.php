@@ -127,7 +127,7 @@ it('mostra le serate nel fuso della città nella sezione delle date della modifi
     $occurrence = EventOccurrence::factory()->create(['event_id' => $event->id, 'starts_at' => '2026-08-18 16:30:00', 'ends_at' => null]);
 
     $manager = Livewire::test(OccurrencesRelationManager::class, ['ownerRecord' => $event, 'pageClass' => EditEvent::class])
-        ->assertSee('18/08/2026 18:30')
+        ->assertSee('mar 18 ago, 18:30')
         ->assertDontSee('18/08/2026 16:30')
         ->mountTableAction('edit', $occurrence);
 

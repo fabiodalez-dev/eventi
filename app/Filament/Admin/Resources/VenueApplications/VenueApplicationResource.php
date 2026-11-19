@@ -216,11 +216,11 @@ class VenueApplicationResource extends Resource
                         TextEntry::make('created_at')
                             ->label(__('venue_applications.admin.fields.received_at'))
                             ->inlineLabel()
-                            ->dateTime('d/m/Y H:i'),
+                            ->panelMoment(),
                         TextEntry::make('email_confirmed_at')
                             ->label(__('venue_applications.admin.fields.queued_at'))
                             ->inlineLabel()
-                            ->dateTime('d/m/Y H:i')
+                            ->panelMoment()
                             ->placeholder(__('admin.placeholders.none')),
                         TextEntry::make('reviewed')
                             ->label(__('admin.fields.reviewed_by'))
@@ -354,10 +354,12 @@ class VenueApplicationResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->emptyStateHeading(__('pannelli-redazione.richieste.empty_heading'))
+            ->emptyStateDescription(__('pannelli-redazione.richieste.empty_description'))
             ->columns([
                 TextColumn::make('created_at')
                     ->label(__('venue_applications.admin.fields.received_at'))
-                    ->dateTime('d/m/Y H:i')
+                    ->panelMoment()
                     ->visibleFrom('md')
                     ->sortable(),
 

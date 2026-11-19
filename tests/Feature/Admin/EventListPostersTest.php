@@ -76,7 +76,8 @@ it('shows the poster thumbnail or the placeholder on every event row, with the n
         ->assertSee('Concerto con locandina')
         ->assertSee('Serata senza locandina')
         // 16:30 UTC del 20 novembre sono le 17:30 a Padova.
-        ->assertSee('Prossima data: ven 20/11/2026, 17:30')
+        ->assertSee('ven 20 nov, 17:30 · ')
+        ->assertDontSee('20/11/2026')
         ->assertSee('Nessuna data')
         ->assertSee('Pubblicato')
         ->assertDontSee('>published<', false);

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Filament\Shared;
 
+use App\Filament\Support\PanelDate;
+use App\Models\Sponsorship;
 use App\Models\SponsorshipClick;
 use App\Models\SponsorshipDailyStat;
 use App\Services\Sponsorship\CampaignEconomics;
@@ -79,9 +81,9 @@ abstract class SponsorshipAnalyticsPage extends Page
 
     public function form(Schema $schema): Schema
     {
-        $options = static fn (string $search = ''): array => app(SponsorshipReport::class)->campaigns()->with('event')
-            ->when($search !== '', fn ($q) => $q->whereHas('event', fn ($e) => $e->where('title', 'like', '%'.addcslashes($search, '%_\\').'%')))
-            ->latest('id')->limit(50)->get()->mapWithKeys(fn ($c) => [$c->id => '#'.$c->id.' · '.$c->event?->title])->all();
+        $options = static fn (string $search = ''): array => app(SponsorshipReport::class)->campaigns()->with('event.venue', 'event.city')
+            ->when($search !== '', fn ($q) => $q->whereHas('event', fn ($e) => $e->where(fn ($q) => $q->where('title', 'like', $like = '%'.addcslashes($search, '%_\\').'%')->orWhereHas('venue', fn ($v) => $v->where('name', 'like', $like)))))
+            ->latest('id')->limit(50)->get()->mapWithKeys(fn ($c) => [$c->id => self::campaignLabel($c)])->all();
         $custom = fn (Get $get): bool => $get('days') === 'custom';
 
         return $schema->statePath('filters')->columns(1)->components([
@@ -90,10 +92,32 @@ abstract class SponsorshipAnalyticsPage extends Page
                 ->visible($custom)->required($custom)->maxDate(now()),
             DatePicker::make('to')->label(__('sponsorships.analytics.to'))->native(false)->displayFormat('d/m/Y')->live()
                 ->visible($custom)->required($custom)->maxDate(now())->afterOrEqual('from'),
-            Select::make('campaign')->label(__('sponsorships.analytics.campaign'))->placeholder(__('sponsorships.analytics.all_campaigns'))->searchable()->live()
+            Select::make('campaign')->label(__('pannelli-social.sponsorship.campaign'))->placeholder(__('pannelli-social.sponsorship.campaign_placeholder'))->searchable()->live()->allowHtml()
+                ->searchPrompt(__('pannelli.select.type_to_search'))->noSearchResultsMessage(__('pannelli.select.no_results'))
                 ->options(fn () => $options())->getSearchResultsUsing(fn (string $search): array => $options($search))
-                ->getOptionLabelUsing(fn ($value) => app(SponsorshipReport::class)->campaigns()->with('event')->find($value)?->event?->title),
+                ->getOptionLabelUsing(fn ($value): ?string => ($c = app(SponsorshipReport::class)->campaigns()->with('event.venue', 'event.city')->find($value)) ? self::campaignLabel($c) : null),
         ]);
+    }
+
+    /**
+     * Una campagna nella tendina: la riga dell'evento (locandina e titolo) e,
+     * sotto, quando è stata in vetrina e dove. Mai il numero della campagna.
+     */
+    private static function campaignLabel(Sponsorship $campaign): string
+    {
+        $event = $campaign->event;
+        if ($event === null) {
+            return e(__('sponsorships.analytics.event_gone'));
+        }
+        $tz = $event->city?->timezone;
+
+        return view('filament.partials.event-option', [
+            'event' => $event,
+            'meta' => __('pannelli-social.sponsorship.campaign_meta', [
+                'period' => PanelDate::period($campaign->starts_at, $campaign->ends_at, $tz),
+                'placement' => $campaign->placement->label(),
+            ]),
+        ])->render();
     }
 
     public function timezone(): string
@@ -157,7 +181,7 @@ abstract class SponsorshipAnalyticsPage extends Page
         $series = collect();
         for ($day = $from; $day->lte($to); $day = $day->addDay()) {
             $row = $daily->get($day->toDateString());
-            $series->push(['day' => $day->format('d/m'), 'date' => $day->format('d/m/Y'), 'impressions' => (int) $row?->impressions, 'clicks' => (int) $row?->clicks]);
+            $series->push(['day' => PanelDate::axis($day), 'date' => PanelDate::day($day), 'impressions' => (int) $row?->impressions, 'clicks' => (int) $row?->clicks]);
         }
 
         return [

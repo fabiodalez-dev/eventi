@@ -61,7 +61,7 @@ it('shows short-link results in venue and admin analytics without overflowing mo
         'organizer' => App\Filament\Organizer\Pages\EventShareAnalytics::getUrl(panel: 'organizer', tenant: $tenant),
         default => VenueEventShareAnalytics::getUrl(panel: 'venue', tenant: $tenant),
     };
-    $page = visit($url)->resize(390, 844)->assertSee('Analytics eventi e pubblico')
+    $page = visit($url)->resize(390, 844)->assertSee('Statistiche in dettaglio')
         ->assertPresent('[data-event-share-report]')->assertSee('Circolo Aurora')
         ->assertDontSee('ID locale')->assertDontSee('ID organizzatore');
     expect($page->script('document.querySelectorAll(".ad-chart-grid > section").length'))->toBe(10);

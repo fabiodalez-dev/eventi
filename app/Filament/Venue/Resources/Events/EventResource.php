@@ -13,6 +13,7 @@ use App\Filament\Support\BeforeGoingFields;
 use App\Filament\Support\EditorialFields;
 use App\Filament\Support\EventStatusPresentation;
 use App\Filament\Support\EventTicketingActions;
+use App\Filament\Support\PanelDate;
 use App\Filament\Support\PosterColumn;
 use App\Filament\Venue\Pages\EventAnalyticsDetail;
 use App\Filament\Venue\Pages\Social;
@@ -32,7 +33,6 @@ use App\Models\EventOccurrence;
 use App\Queries\EventOccurrenceQuery;
 use App\Queries\VenueDashboardQuery;
 use BackedEnum;
-use Carbon\CarbonImmutable;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\EditAction;
@@ -406,18 +406,16 @@ class EventResource extends Resource
                             ->weight(FontWeight::Bold)
                             ->wrap(),
 
+                        /* «sab 22 nov, 21:00», e per l'organizzatore « · Officina dei Portici». */
                         TextColumn::make('when')
                             ->label(__('manage.fields.next_date'))
-                            ->state(fn (Event $record): string => self::whenLabel($record, $timezone))
-                            ->icon(Heroicon::OutlinedClock)
-                            ->color('gray'),
-
-                        TextColumn::make('venue.name')
-                            ->label(__('manage.event_list.venue'))
-                            ->icon(Heroicon::OutlinedMapPin)
+                            ->state(fn (Event $record): string => collect([
+                                self::whenLabel($record, $timezone),
+                                $showVenue ? $record->venue?->name : null,
+                            ])->filter()->implode(' · '))
+                            ->icon(Heroicon::OutlinedCalendar)
                             ->color('gray')
-                            ->wrap()
-                            ->visible($showVenue),
+                            ->wrap(),
 
                         /*
                          * I distintivi della riga: lo stato, «Passato» per
@@ -457,7 +455,8 @@ class EventResource extends Resource
                     ->label(__('manage.fields.status'))
                     ->options(EventStatus::options()),
             ])
-            ->emptyStateHeading(__('manage.event_list.empty'))
+            ->emptyStateHeading(__('pannelli-eventi.list.empty_heading'))
+            ->emptyStateDescription(__('pannelli-eventi.list.empty_description'))
             ->emptyStateIcon(Heroicon::OutlinedCalendarDays);
     }
 
@@ -468,12 +467,10 @@ class EventResource extends Resource
 
     private static function whenLabel(Event $record, string $timezone): string
     {
-        $format = fn (mixed $value): string => CarbonImmutable::parse((string) $value, 'UTC')->setTimezone($timezone)->format('d/m/Y H:i');
-
         return match (true) {
-            $record->getAttribute('next_starts_at') !== null => __('manage.event_list.next', ['date' => $format($record->getAttribute('next_starts_at'))]),
-            $record->getAttribute('last_starts_at') !== null => __('manage.event_list.last', ['date' => $format($record->getAttribute('last_starts_at'))]),
-            default => __('manage.placeholders.no_date'),
+            $record->getAttribute('next_starts_at') !== null => PanelDate::event((string) $record->getAttribute('next_starts_at'), $timezone),
+            $record->getAttribute('last_starts_at') !== null => __('pannelli-eventi.list.was', ['date' => PanelDate::event((string) $record->getAttribute('last_starts_at'), $timezone)]),
+            default => __('pannelli-eventi.list.no_dates'),
         };
     }
 

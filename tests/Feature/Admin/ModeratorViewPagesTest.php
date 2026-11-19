@@ -62,7 +62,7 @@ it('opens the read-only event page for a moderator and keeps the edit page close
         ->assertSee('data-event-read-view', false)
         ->assertSee('data-event-moderation', false)
         // L'ora della serata è quella di Padova: 19:30 UTC sono le 20:30.
-        ->assertSee('20/11/2026, 20:30')
+        ->assertSee('ven 20 nov, 20:30')
         ->assertSee(__('admin.actions.publish'))
         ->assertDontSee('wire:model="data.title"', false)
         ->assertDontSee(EventResource::getUrl('edit', ['record' => $this->pending]), false);

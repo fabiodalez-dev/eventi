@@ -1,6 +1,6 @@
 {{-- Le recensioni di un conducente: media, numero e le recensioni, ognuna segnalabile. --}}
 <x-layouts.app service :meta="$meta">
-    <x-service-page :title="__('carpool.reviews.title')" :subtitle="__('carpool.web.reviews_subtitle', ['name' => $driver_name])" :tabs="$tabs" :tabs-label="__('carpool.web.tabs.label')">
+    <x-service-page :title="__('carpool.reviews.title')" :subtitle="__('carpool.web.reviews_subtitle', ['name' => $driver_name])" :back="route('account.profile')" :tabs="$tabs" :tabs-label="__('carpool.web.tabs.label')">
         <x-card data-reviews-summary>
             <div class="flex min-w-0 items-center gap-4">
                 <x-avatar :name="$driver_name" size="lg" />

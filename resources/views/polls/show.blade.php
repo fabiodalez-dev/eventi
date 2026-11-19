@@ -18,6 +18,8 @@
         :title="__('polls.title', ['evento' => $poll->event->title])"
         :eyebrow="$outcome['open'] ? __('polls.open_until', ['data' => $poll->closes_at->timezone($poll->event->city->timezone)->format('d/m/Y')]) : __('polls.closed')"
         :subtitle="$outcome['open'] ? __('polls.lead') : null"
+        :back="route('events.show', ['slug' => $poll->event->slug])"
+        :back-label="__('polls.back_event')"
     >
         <x-card padding="sm">
             <x-service-event-row :event="$poll->event" :meta="$poll->event->locationVenue()?->name" />

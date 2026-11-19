@@ -4,23 +4,20 @@ declare(strict_types=1);
 
 namespace App\Providers\Filament;
 
+use App\Filament\Support\PanelNavigation;
 use App\Filament\Venue\Pages\Dashboard;
-use App\Filament\Venue\Pages\VenueAccess;
 use App\Http\Middleware\AuthenticatePanel;
 use App\Http\Middleware\AuthenticatePanelSession;
 use App\Http\Middleware\RevalidateImpersonation;
 use App\Models\User;
 use App\Models\Venue;
-use Filament\Actions\Action;
 use Filament\FontProviders\LocalFontProvider;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
-use Filament\Navigation\NavigationGroup;
-use Filament\Navigation\NavigationItem;
+use Filament\Navigation\NavigationBuilder;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
-use Filament\Support\Icons\Heroicon;
 use Filament\View\PanelsRenderHook;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -35,8 +32,8 @@ use Illuminate\View\Middleware\ShareErrorsFromSession;
  *
  * **Chi lo usa non è seduto a una scrivania.** È in piedi dietro al bancone,
  * con il telefono in una mano: ogni scelta qui dentro è subordinata a questo.
- * Nessun gruppo di navigazione (le voci sono cinque, un gruppo sarebbe un
- * livello in più da aprire), nessuna colonna che non si legga su 390 pixel,
+ * Il menu ha gli stessi gruppi degli altri due pannelli, tutti aperti
+ * (`PanelNavigation`); nessuna colonna che non si legga su 390 pixel,
  * nessuna azione che non si possa premere con il pollice.
  *
  * **Tenancy su `Venue`.** Il locale sta nell'indirizzo
@@ -60,32 +57,14 @@ class VenuePanelProvider extends PanelProvider
         return $panel
             ->id('venue')
             ->path('gestione')
-            ->navigationItems([
-                NavigationItem::make(fn (): string => __('manage.navigation.tickets'))
-                    ->icon(Heroicon::OutlinedTicket)->url(fn (): string => route('ticketing.manage.index'))
-                    ->sort(2)
-                    ->visible(fn (): bool => auth()->user()?->ownedVenues()->exists() === true),
-            ])
-            ->userMenuItems([
-                Action::make('profile')
-                    ->label(fn (): string => __('manage.navigation.profile'))
-                    ->icon(Heroicon::OutlinedUserCircle)
-                    ->url(fn (): string => route('account.profile')),
-                // Da qui si esce da soli dal locale (D64).
-                Action::make('venue-access')
-                    ->label(fn (): string => __('manage.access.menu'))
-                    ->icon(Heroicon::OutlinedKey)
-                    ->url(fn (): string => VenueAccess::getUrl()),
-            ])
             /*
-             * Le statistiche stanno in un gruppo a parte, chiuso: chi entra dal
-             * bancone cerca gli eventi di stasera, non i grafici. Il gruppo
-             * «Community» raccoglie i commenti, che non sono eventi.
+             * Menu laterale e menu della persona come negli altri due
+             * pannelli (`PanelNavigation`): «Biglietti e partecipanti» e
+             * «Il tuo accesso» ora sono voci del menu laterale.
              */
-            ->navigationGroups([
-                NavigationGroup::make(fn (): string => __('manage.navigation.analytics'))->collapsed(),
-                NavigationGroup::make(fn (): string => __('manage.navigation.community')),
-            ])
+            ->navigation(fn (NavigationBuilder $builder): NavigationBuilder => PanelNavigation::venue($builder))
+            ->userMenuItems(PanelNavigation::userMenu())
+            ->renderHook(PanelsRenderHook::USER_MENU_PROFILE_BEFORE, fn () => view('filament.partials.user-menu-identity'))
             // Accesso e recupero della password sono quelli del sito; il tema pure: vedi `AdminPanelProvider`.
             ->darkMode(true)
             ->themeSwitcher(false)

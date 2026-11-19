@@ -11,8 +11,9 @@
     $dates = $this->dates();
     $selectedIds = array_map('intval', $selected);
     $chosen = $dates->whereIn('id', $selectedIds)->values();
-    $when = fn (\App\Models\EventOccurrence $occurrence): string => ucfirst($occurrence->starts_at->timezone($timezone)->locale('it')->translatedFormat('D j M'))
-        .' · '.($occurrence->is_all_day ? __('social.all_day') : $occurrence->starts_at->timezone($timezone)->format('H:i'));
+    $when = fn (\App\Models\EventOccurrence $occurrence): string => $occurrence->is_all_day
+        ? \App\Filament\Support\PanelDate::day($occurrence->starts_at, $timezone).' · '.__('pannelli-social.studio.all_day')
+        : \App\Filament\Support\PanelDate::event($occurrence->starts_at, $timezone);
     $statusColor = fn (\App\Enums\OccurrenceStatus $status): string => match ($status) {
         \App\Enums\OccurrenceStatus::Scheduled => 'success',
         \App\Enums\OccurrenceStatus::Cancelled => 'danger',
@@ -120,7 +121,7 @@
                     </div>
                 </div>
 
-                <p class="text-sm font-semibold text-gray-950 dark:text-white" aria-live="polite" data-social-total>{{ trans_choice('social.studio.results', $total, ['count' => $total]) }}</p>
+                <p class="text-sm font-semibold text-gray-950 dark:text-white" aria-live="polite" data-social-total>{{ trans_choice('pannelli-social.studio.results', $total, ['count' => $total, 'period' => $this->periodLabel()]) }}</p>
 
                 @if ($catalog->isEmpty())
                     <x-filament::empty-state :heading="__('social.studio.empty_title')" :description="__('social.studio.empty_body')" icon="heroicon-o-calendar" :contained="false" />
@@ -302,7 +303,7 @@
                         <ul class="divide-y divide-gray-200 dark:divide-white/10">
                             @foreach ($recent as $prepared)
                                 <li class="flex flex-wrap items-center gap-3 py-3" wire:key="recent-{{ $prepared->id }}">
-                                    <span class="min-w-0 flex-1 text-sm text-gray-950 dark:text-white">{{ trans_choice('social.studio.recent_item', count($prepared->items), ['date' => $prepared->date->format('d/m/Y'), 'format' => __('social.'.$prepared->format), 'count' => count($prepared->items)]) }}</span>
+                                    <span class="min-w-0 flex-1 text-sm text-gray-950 dark:text-white">{{ trans_choice('pannelli-social.studio.recent_item', count($prepared->items), ['day' => \App\Filament\Support\PanelDate::day($prepared->date), 'format' => __('social.'.$prepared->format), 'count' => count($prepared->items)]) }}<span class="block text-xs text-gray-500 dark:text-gray-400">{{ __('pannelli-social.studio.prepared', ['when' => \App\Filament\Support\PanelDate::moment($prepared->created_at, $timezone)]) }}</span></span>
                                     <span class="flex flex-wrap gap-2">
                                         <x-filament::button size="sm" color="gray" icon="heroicon-o-eye" wire:click="openBatch('{{ $prepared->id }}')">{{ __('social.studio.open_batch') }}</x-filament::button>
                                         <x-filament::button size="sm" color="gray" tag="a" :href="route('social.zip', $prepared)" icon="heroicon-o-arrow-down-tray">{{ __('social.download') }}</x-filament::button>
@@ -324,7 +325,7 @@
                     <ul class="divide-y divide-gray-200 dark:divide-white/10">
                         @foreach ($publications as $publication)
                             <li class="flex flex-col gap-2 py-3 text-sm text-gray-950 dark:text-white" wire:key="publication-{{ $publication->id }}">
-                                <span>{{ $publication->created_at->timezone($timezone)->format('d/m H:i') }} · {{ ucfirst($publication->platform) }} · {{ __('social.part') }} {{ $publication->part + 1 }} · <strong>{{ __('social.'.$publication->status->value.'_status') }}</strong>@if ($publication->scheduled_at) · {{ __('social.schedule.expected', ['date' => $publication->scheduled_at->timezone($timezone)->format('d/m/Y H:i')]) }}@endif</span>
+                                <span>{{ \App\Filament\Support\PanelDate::moment($publication->created_at, $timezone) }} · {{ ucfirst($publication->platform) }} · {{ __('social.part') }} {{ $publication->part + 1 }} · <strong>{{ __('social.'.$publication->status->value.'_status') }}</strong>@if ($publication->scheduled_at) · {{ __('pannelli-social.studio.expected', ['date' => \App\Filament\Support\PanelDate::event($publication->scheduled_at, $timezone)]) }}@endif</span>
                                 @if ($publication->error)<span class="text-gray-600 dark:text-gray-400">{{ $publication->error }}</span>@endif
                                 <span class="flex flex-wrap gap-2">
                                     @if ($publication->status === \App\Enums\SocialPublicationStatus::Scheduled)
