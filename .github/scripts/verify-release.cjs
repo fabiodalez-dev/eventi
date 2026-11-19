@@ -1,7 +1,7 @@
 const { execFileSync } = require('node:child_process');
 const { appendFileSync } = require('node:fs');
 
-const pages = ['/', '/eventi', '/locali', '/sitemap.xml', '/api/v1/home', '/admin/login'];
+const pages = ['/', '/eventi', '/locali', '/sitemap.xml', '/api/v1/home', '/accedi'];
 
 function siteUrl(value) {
     const url = new URL(value);
