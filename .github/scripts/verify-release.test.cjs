@@ -13,7 +13,7 @@ test('a different commit cannot pass', () => {
 });
 test('a TLS or HTTP failure on any page fails verification', () => {
     assert.throws(() => verify('https://example.test', sha, url => {
-        if (url.endsWith('/admin/login')) throw new Error('TLS failure');
+        if (url.endsWith('/accedi')) throw new Error('TLS failure');
         return JSON.stringify({ sha });
     }), /TLS failure/);
 });
