@@ -79,7 +79,7 @@ document.querySelectorAll('[data-ticket-search]').forEach((form) => {
         pending = new AbortController();
         const url = new URL(form.action || location.href);
         url.search = new URLSearchParams(new FormData(form)).toString();
-        status.textContent = status.dataset.loading ?? '';
+        status.textContent = status.dataset?.loading ?? '';
         try {
             const response = await fetch(url, { signal: pending.signal, headers: { Accept: 'text/html' } });
             if (!response.ok || response.redirected) throw new Error('Search failed');
@@ -89,9 +89,9 @@ document.querySelectorAll('[data-ticket-search]').forEach((form) => {
             if (current !== revision) return;
             document.querySelector('[data-ticket-results]').replaceWith(results);
             history.replaceState(null, '', url);
-            status.textContent = status.dataset.done ?? '';
+            status.textContent = status.dataset?.done ?? '';
         } catch (error) {
-            if (error.name !== 'AbortError' && current === revision) status.textContent = status.dataset.failed ?? '';
+            if (error.name !== 'AbortError' && current === revision) status.textContent = status.dataset?.failed ?? '';
         }
     };
     form.addEventListener('input', () => {
