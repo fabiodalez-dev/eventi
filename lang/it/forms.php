@@ -14,6 +14,10 @@ declare(strict_types=1);
 return [
 
     'required' => 'campo obbligatorio',
+    'password' => [
+        'show' => 'Mostra la password',
+        'hide' => 'Nascondi la password',
+    ],
     'has_errors' => 'Controlla i campi segnalati: qualcosa non va.',
     'honeypot' => 'Lascia vuoto questo campo',
     'privacy_note' => 'Uso questi dati solo per valutare e pubblicare la segnalazione. Non finiscono in nessuna lista.',

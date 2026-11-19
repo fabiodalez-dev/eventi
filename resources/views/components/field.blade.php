@@ -86,6 +86,37 @@
             @if ($hasError) aria-invalid="true" @endif
             class="{{ $control }}"
         >{{ $current }}</textarea>
+    @elseif ($type === 'password')
+        {{-- La password con l'occhio per vederla mentre si scrive. Il
+             pulsante parte nascosto e lo mostra `password-toggle.js`: senza
+             JavaScript il campo resta una password normale. --}}
+        <div class="relative" data-password-field>
+            <input
+                id="{{ $id }}"
+                name="{{ $name }}"
+                type="password"
+                @if ($required) required @endif
+                @if ($placeholder) placeholder="{{ $placeholder }}" @endif
+                @if ($autocomplete) autocomplete="{{ $autocomplete }}" @endif
+                @if ($describedBy !== '') aria-describedby="{{ $describedBy }}" @endif
+                @if ($hasError) aria-invalid="true" @endif
+                class="{{ $control }} pr-14"
+            >
+            <button
+                type="button"
+                hidden
+                data-password-toggle
+                aria-controls="{{ $id }}"
+                aria-pressed="false"
+                aria-label="{{ __('forms.password.show') }}"
+                data-label-show="{{ __('forms.password.show') }}"
+                data-label-hide="{{ __('forms.password.hide') }}"
+                class="absolute inset-y-0 right-0 inline-flex w-12 cursor-pointer items-center justify-center text-ink-muted hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-[-4px] focus-visible:outline-brand"
+            >
+                <x-lucide name="eye" class="size-5" data-password-icon="show" />
+                <x-lucide name="eye-off" class="hidden size-5" data-password-icon="hide" />
+            </button>
+        </div>
     @else
         <input
             id="{{ $id }}"
