@@ -57,7 +57,7 @@ final class HomeNextEvent extends Component
 
         $starts = $this->occurrence->starts_at;
         $now = EventOccurrenceQuery::for($city)->now();
-        $this->soon = $starts !== null && $starts->lessThanOrEqualTo($now->addMinutes($city->starting_soon_minutes));
+        $this->soon = $starts->lessThanOrEqualTo($now->addMinutes($city->starting_soon_minutes));
     }
 
     public function shouldRender(): bool
