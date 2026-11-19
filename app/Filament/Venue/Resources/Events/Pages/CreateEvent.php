@@ -209,6 +209,39 @@ class CreateEvent extends CreateRecord
         $defaults = VenueEventDefaults::formDefaults(CurrentVenue::get());
 
         return $schema->columns(1)->components([
+            Section::make(__('manage.quick.facebook'))
+                ->description(__('manage.quick.facebook_hint'))
+                ->icon(Heroicon::OutlinedArrowDownTray)
+                // In cima e aperta: per un locale incollare il link dell'evento Facebook è il modo più veloce di compilare tutto il resto.
+                ->collapsible()
+                ->schema([
+                    TextInput::make('facebook_url')
+                        ->label(__('facebook_import.url_label'))
+                        ->placeholder('https://www.facebook.com/events/…')
+                        ->helperText(__('facebook_import.url_hint'))
+                        ->maxLength(2048)->dehydrated(false),
+                    ActionsComponent::make([
+                        Action::make('importFacebook')->label(__('facebook_import.load'))
+                            ->icon(Heroicon::OutlinedArrowDownTray)
+                            ->action(fn () => $this->importFacebook()),
+                    ]),
+                    TextEntry::make('facebook_import_details')
+                        ->label(__('facebook_import.source'))
+                        ->state(fn (): string => collect([
+                            $this->facebookImport['venue']['name'] ?? null,
+                            $this->facebookImport['venue']['address'] ?? null,
+                            $this->facebookImport['date_label'] ?? null,
+                            $this->sourceLabels('hosts', 'name') !== '' ? __('facebook_import.hosts', ['names' => $this->sourceLabels('hosts', 'name')]) : null,
+                            $this->sourceLabels('categories', 'label'),
+                            isset($this->facebookImport['responded_count']) ? __('facebook_import.responses', ['count' => $this->facebookImport['responded_count']]) : null,
+                        ])->filter()->implode(' · '))
+                        ->visible(fn (): bool => $this->facebookImport !== []),
+                    TextEntry::make('facebook_location_warning')
+                        ->label(__('facebook_import.location_warning'))
+                        ->state(fn (): string => __('facebook_import.location_warning_hint', ['address' => FacebookEventImport::locationAddress($this->facebookImport) ?? '']))
+                        ->visible(fn (): bool => filled(FacebookEventImport::locationAddress($this->facebookImport)) && ($this->data['custom_location']['address'] ?? null) === FacebookEventImport::locationAddress($this->facebookImport)),
+                ]),
+
             Section::make(__('manage.quick.essentials'))
                 ->description(__('manage.quick.essentials_hint'))
                 ->icon(Heroicon::OutlinedSparkles)
@@ -247,38 +280,6 @@ class CreateEvent extends CreateRecord
                 ->schema([
                     View::make('filament.venue.widgets.event-card')
                         ->viewData(fn (Get $get): array => $this->previewData($get)),
-                ]),
-
-            Section::make(__('manage.quick.facebook'))
-                ->description(__('manage.quick.facebook_hint'))
-                ->icon(Heroicon::OutlinedArrowDownTray)
-                ->collapsed()
-                ->schema([
-                    TextInput::make('facebook_url')
-                        ->label(__('facebook_import.url_label'))
-                        ->placeholder('https://www.facebook.com/events/…')
-                        ->helperText(__('facebook_import.url_hint'))
-                        ->maxLength(2048)->dehydrated(false),
-                    ActionsComponent::make([
-                        Action::make('importFacebook')->label(__('facebook_import.load'))
-                            ->icon(Heroicon::OutlinedArrowDownTray)
-                            ->action(fn () => $this->importFacebook()),
-                    ]),
-                    TextEntry::make('facebook_import_details')
-                        ->label(__('facebook_import.source'))
-                        ->state(fn (): string => collect([
-                            $this->facebookImport['venue']['name'] ?? null,
-                            $this->facebookImport['venue']['address'] ?? null,
-                            $this->facebookImport['date_label'] ?? null,
-                            $this->sourceLabels('hosts', 'name') !== '' ? __('facebook_import.hosts', ['names' => $this->sourceLabels('hosts', 'name')]) : null,
-                            $this->sourceLabels('categories', 'label'),
-                            isset($this->facebookImport['responded_count']) ? __('facebook_import.responses', ['count' => $this->facebookImport['responded_count']]) : null,
-                        ])->filter()->implode(' · '))
-                        ->visible(fn (): bool => $this->facebookImport !== []),
-                    TextEntry::make('facebook_location_warning')
-                        ->label(__('facebook_import.location_warning'))
-                        ->state(fn (): string => __('facebook_import.location_warning_hint', ['address' => FacebookEventImport::locationAddress($this->facebookImport) ?? '']))
-                        ->visible(fn (): bool => filled(FacebookEventImport::locationAddress($this->facebookImport)) && ($this->data['custom_location']['address'] ?? null) === FacebookEventImport::locationAddress($this->facebookImport)),
                 ]),
 
             Section::make(__('manage.quick.more'))

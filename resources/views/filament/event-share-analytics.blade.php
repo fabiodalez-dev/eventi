@@ -79,10 +79,10 @@
         <x-filament::section collapsible collapsed :heading="__('analytics-dashboard.actions_chart')" :description="__('analytics-dashboard.actions_hint')">
             <x-analytics-bars :rows="$interactionRows" name="name" metric="value" :label="__('analytics-dashboard.actions_chart')" />
         </x-filament::section>
-        <x-filament::section collapsible collapsed :heading="__('analytics-dashboard.venues_chart')" :description="__('analytics-dashboard.venues_hint')">
+        <x-filament::section :heading="__('analytics-dashboard.venues_chart')" :description="__('analytics-dashboard.venues_hint')">
             <x-analytics-bars :link="fn ($row) => $this->detailUrl('venue', $row['id'])" :rows="$data['venues']->sortByDesc('event_views')->take(8)->values()" name="name" metric="event_views" :label="__('analytics-dashboard.venues_chart')" :secondary="['key' => 'short_clicks', 'label' => __('event-shares.clicks')]" />
         </x-filament::section>
-        <x-filament::section collapsible collapsed :heading="__('analytics-dashboard.organizers_chart')" :description="__('analytics-dashboard.rank_hint')">
+        <x-filament::section :heading="__('analytics-dashboard.organizers_chart')" :description="__('analytics-dashboard.rank_hint')">
             <x-analytics-bars :link="fn ($row) => $this->detailUrl('organizer', $row['id'])" :rows="$data['organizers']->sortByDesc('event_views')->take(8)->values()" name="name" metric="event_views" :label="__('analytics-dashboard.organizers_chart')" />
         </x-filament::section>
         <x-filament::section collapsible collapsed :heading="__('analytics-dashboard.community_chart')" :description="__('analytics-dashboard.community_hint')">

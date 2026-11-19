@@ -156,7 +156,9 @@ it('switches between the three mobile list layouts without overflow', function (
         ->and($page->script('() => { const card=document.querySelector(".event-grid > .event-card"); const poster=card.querySelector("[data-catalog-poster]").getBoundingClientRect(); const title=card.querySelector(".event-card__title").getBoundingClientRect(); return poster.right <= title.left && poster.width < 120; }'))->toBeTrue()
         ->and($page->script($fits))->toBeTrue();
 
-    $page = visit('/eventi')->{$theme}()->resize($width, 844);
+    /* Ricaricare nella stessa scheda: una `visit()` nuova apre un browser con
+       la memoria vuota, dove la scelta non può esserci. */
+    $page->navigate('/eventi');
     expect($page->script('document.documentElement.dataset.cardLayout'))->toBe('list')
         ->and($page->script('document.querySelector("[data-card-layout-option=list]").getAttribute("aria-checked")'))->toBe('true');
 

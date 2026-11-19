@@ -23,7 +23,7 @@ it('keeps profile preferences aligned and every personal page linked back', func
     $page = visit('/profilo/interessi')->on()->{$device}()
         ->click('[data-consent-banner] button[value="reject_all"]')
         ->assertVisible('[data-profile-back]')->screenshot(filename: 'profile-interests-'.$device);
-    expect($page->script('(() => { const select = document.querySelector("select[name^=choices]"); const label = select.closest("label"); const a = select.getBoundingClientRect(), b = label.querySelector("span").getBoundingClientRect(); return Math.abs((a.top+a.bottom)/2-(b.top+b.bottom)/2) < 2 && document.documentElement.scrollWidth <= innerWidth; })()'))->toBeTrue();
+    expect($page->script('(() => { const select = document.querySelector("select[name^=choices]"); const label = select.closest("label"); const a = select.getBoundingClientRect(), b = label.querySelector("span").getBoundingClientRect(); return (Math.abs((a.top+a.bottom)/2-(b.top+b.bottom)/2) < 2 || (innerWidth < 640 && a.top >= b.bottom && Math.abs(a.left - b.left) < 2)) && document.documentElement.scrollWidth <= innerWidth; })()'))->toBeTrue(); // Da desktop sulla stessa riga; da telefono il nome sopra e la tendina sotto, a tutta larghezza.
     $page->click('[data-profile-back]')->assertSee('Area personale')->assertPresent('select[name="timezone"]')->screenshot(filename: 'profile-'.$device);
     expect($page->script('document.documentElement.scrollWidth <= innerWidth && document.querySelectorAll("input[name=reminders]").length === 0'))->toBeTrue();
     $page->click('a[href$="/biglietti"]')->assertSee('Non hai ancora biglietti.')->assertVisible('[data-profile-back]')->screenshot(filename: 'tickets-empty-'.$device);
