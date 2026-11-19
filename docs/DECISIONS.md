@@ -3258,3 +3258,20 @@ La verifica avviene quando l'app viene installata o aggiornata: chi ha già l'ap
 - **Home.** Il calendario del mese sta subito sotto l'apertura, accanto al prossimo evento e ai quattro a seguire; per chi è collegato seguono i suoi interessi, e tutti gli eventi della home, card sponsorizzata compresa, rispettano categorie e locali nascosti. Le finestre «dal vivo» in cache hanno una chiave per insieme di preferenze, così una persona non decide più cosa vedono le altre.
 
 **Ricontrollo:** dopo un mese, quante richieste di sponsorizzazione arrivano e quante vengono approvate, e se il contatore anonimo dei link si discosta molto dalle condivisioni registrate.
+
+## 19 novembre 2026 — D69. Pannelli leggibili: date, selettore eventi e menu comuni
+
+**Contesto:** nei pannelli di redazione, locale e organizzatore le informazioni si leggevano male: date numeriche o ISO, eventi indicati per ID («Evento #697»), campagne indicate per numero, filtri con elenchi di soli titoli, nomi tecnici o inglesi («Analytics», «CTR»), e un menu diverso nei tre pannelli. Il proprietario ha chiesto informazioni chiare e semplici e un selettore degli eventi al posto di ID e date.
+
+**Decisione:**
+
+- Le date dei pannelli si scrivono in un modo solo, nel fuso della città dell'evento: «sab 22 nov, 21:00» (anno solo se diverso dal corrente), «2 ore fa» per le cose successe. Lo fa `App\Filament\Support\PanelDate`, con le macro `panelDate()` e `panelMoment()` su colonne e voci; le date senza formato dichiarato prendono lo stesso formato dai valori di partenza delle tabelle.
+- Dove si sceglie un evento c'è un solo selettore, `EventSelect` (e `OccurrenceSelect` per una data): locandina, titolo, prossima data e locale, diviso in «Prossimi» e «Passati», con ricerca per titolo e locale. Riceve la query già autorizzata di chi guarda e rifiuta valori fuori da quella query. Mai ID, slug o date numeriche nel testo visibile.
+- Ordine, gruppi e icone del menu dei tre pannelli stanno in un file solo, `PanelNavigation`; il nome di ogni voce lo dà la pagina. Il menu di un pannello si costruisce solo quando quel pannello è attivo.
+- Nel menu della persona dei tre pannelli ci sono nome ed email, «Area personale», il cambio diretto del tema (salvato nel profilo, vale per sito e pannelli) ed «Esci». «Come il sistema» resta nella pagina «Aspetto».
+- I numeri delle statistiche hanno sempre una frase che li spiega; «Analytics» diventa «Statistiche», «Statistiche in dettaglio» resta la pagina con filtri e tabelle.
+- Ogni pagina di servizio del sito ha il link per tornare indietro; le pagine dei passaggi tornano al profilo.
+- Il rilevatore delle query ripetute ignora il ricaricamento delle immagini fatto dal campo immagine di Filament per Spatie, che ripete la stessa query per ogni campo dello stesso record.
+
+**Rinviato:** moduli di creazione e modifica degli eventi, dashboard di locale e organizzatore, elenco dei locali e pagine di configurazione della redazione (piano in `.git/ridisegno/pannelli/piano-pannelli.md`, fuori dal repository).
+

@@ -66,8 +66,7 @@ class NewRegistrationsWidget extends TableWidget
                     ->tooltip(fn (User $record): string => RegistrationState::for($record)->getDescription()),
                 TextColumn::make('created_at')
                     ->label(__('users.registration.registered_at'))
-                    ->since()
-                    ->dateTimeTooltip('d/m/Y H:i')
+                    ->panelMoment()
                     ->color('gray'),
             ])
             // Sul telefono ogni iscrizione è un blocco con le etichette.

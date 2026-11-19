@@ -38,6 +38,8 @@ class MapPicker extends Field
 
     protected ?string $municipalityField = 'municipality';
 
+    protected bool $showCoordinates = true;
+
     /** I campi che questa mappa governa. */
     public function coordinateFields(string $lat, string $lng): static
     {
@@ -60,6 +62,27 @@ class MapPicker extends Field
         $this->municipalityField = $municipality;
 
         return $this;
+    }
+
+    /**
+     * Mostrare o no i numeri delle coordinate sotto la mappa.
+     *
+     * Chi gestisce un locale non sa cosa farsene di «45.4064, 11.8768»: gli
+     * basta sapere che il punto c'è e a quale indirizzo corrisponde. Con
+     * `false` la riga dei numeri sparisce; i due campi delle coordinate
+     * restano nel modulo (nascosti da chi lo compone) e la mappa continua a
+     * scriverci dentro.
+     */
+    public function showCoordinates(bool $show = true): static
+    {
+        $this->showCoordinates = $show;
+
+        return $this;
+    }
+
+    public function shouldShowCoordinates(): bool
+    {
+        return $this->showCoordinates;
     }
 
     public function getLatField(): string

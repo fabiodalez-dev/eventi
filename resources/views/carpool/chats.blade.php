@@ -3,7 +3,7 @@
     persona dall'altra parte, la serata e i messaggi da leggere.
 --}}
 <x-layouts.app service :meta="$meta">
-    <x-service-page :title="__('carpool.messages')" :subtitle="__('carpool.web.chats_subtitle')" :tabs="$tabs" :tabs-label="__('carpool.web.tabs.label')">
+    <x-service-page :title="__('carpool.messages')" :subtitle="__('carpool.web.chats_subtitle')" :back="route('account.profile')" :tabs="$tabs" :tabs-label="__('carpool.web.tabs.label')">
         <x-segmented :label="__('carpool.web.chats_filter')" :items="[
             ['label' => __('carpool.web.chats_active'), 'href' => route('carpool.chats'), 'active' => ! $archived],
             ['label' => __('carpool.web.chats_archived'), 'href' => route('carpool.chats', ['archived' => 1]), 'active' => $archived],

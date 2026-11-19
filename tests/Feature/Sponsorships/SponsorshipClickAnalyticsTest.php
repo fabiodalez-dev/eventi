@@ -84,3 +84,23 @@ it('nega le statistiche ai normali utenti e non accetta filtri di periodo arbitr
     Filament::setCurrentPanel('admin');
     Livewire::test(AdminAnalytics::class)->set('filters.days', 10000)->assertHasErrors('filters.days');
 });
+
+it('fa riconoscere la campagna dall\'evento e scrive date e numeri in parole', function (): void {
+    $this->actingAs($this->admin);
+    Filament::setCurrentPanel('admin');
+    for ($i = 0; $i < 3; $i++) {
+        app(RecordSponsorshipMetric::class)->record($this->campaign, 'impressions', Request::create('/'), 'web');
+    }
+    app(RecordSponsorshipMetric::class)->record($this->campaign, 'clicks', Request::create('/'), 'web');
+    $this->get('/admin/statistiche-sponsorizzazioni')->assertOk();
+    Livewire::test(AdminAnalytics::class)
+        ->set('filters.campaign', $this->campaign->id)
+        ->assertSee('data-event-option', false)
+        ->assertSee('in vetrina dal')
+        ->assertSee('Numeri dal 12 ago al 10 set')
+        ->assertSee('Le campagne sono comparse 3 volte e una persona le ha aperte.')
+        ->assertSee('adesso')
+        ->assertDontSee('campagna n. '.$this->campaign->id)
+        ->assertDontSee('#'.$this->campaign->id.' ·')
+        ->assertDontSee('/09/2026');
+});

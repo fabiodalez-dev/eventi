@@ -22,6 +22,7 @@ use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Filament\Support\Enums\FontWeight;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
@@ -86,12 +87,21 @@ class EventSubmissionResource extends Resource
     public static function table(Table $table): Table
     {
         return $table->defaultSort('created_at', 'desc')->columns([
-            TextColumn::make('title')->label('Proposta')->searchable()->wrap(),
+            TextColumn::make('title')->label('Proposta')->searchable()->wrap()->weight(FontWeight::SemiBold)
+                ->description(fn (EventSubmission $record): ?string => filled($record->contact_name) ? __('pannelli-redazione.proposte.from', ['name' => $record->contact_name]) : null),
+            TextColumn::make('starts_at_hint')->label(__('pannelli-redazione.proposte.when'))->panelDate(fn (EventSubmission $record): ?string => $record->city?->timezone)->placeholder('—'),
             TextColumn::make('venue_hint')->label('Luogo indicato')->wrap(),
-            TextColumn::make('city.name')->label('Città'),
-            TextColumn::make('status')->label('Stato')->badge()->formatStateUsing(fn (SubmissionStatus $state): string => $state->label()),
-            TextColumn::make('created_at')->label('Ricevuta')->dateTime('d/m/Y H:i'),
-        ])->filters([SelectFilter::make('status')->label('Stato')->options(SubmissionStatus::options())])
+            TextColumn::make('city.name')->label('Città')->toggleable(isToggledHiddenByDefault: true),
+            TextColumn::make('status')->label('Stato')->badge()->formatStateUsing(fn (SubmissionStatus $state): string => $state->label())
+                ->color(fn (SubmissionStatus $state): string => match ($state) {
+                    SubmissionStatus::Pending => 'warning',
+                    SubmissionStatus::Approved => 'success',
+                    SubmissionStatus::Rejected => 'gray',
+                }),
+            TextColumn::make('created_at')->label('Ricevuta')->panelMoment()->color('gray'),
+        ])
+            ->emptyStateHeading(__('pannelli-redazione.proposte.empty_heading'))
+            ->emptyStateDescription(__('pannelli-redazione.proposte.empty_description'))->filters([SelectFilter::make('status')->label('Stato')->options(SubmissionStatus::options())])
             ->recordActions([EditAction::make()->label('Esamina')]);
     }
 

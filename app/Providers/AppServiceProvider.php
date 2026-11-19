@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Filament\Support\PanelDate;
 use App\Http\Controllers\Web\ImpersonationController;
 use App\Http\Responses\PanelLogoutResponse;
 use App\Listeners\RevokeInvalidFcmToken;
@@ -95,9 +96,12 @@ use App\Support\DateFormatter;
 use App\Support\IpBucket;
 use App\Support\Lang\DatabaseOverrideLoader;
 use App\Support\SecurityLog;
+use Closure;
 use Dedoc\Scramble\Scramble;
 use Dedoc\Scramble\Support\Generator\OpenApi;
 use Filament\Auth\Http\Responses\Contracts\LogoutResponse;
+use Filament\Infolists\Components\TextEntry;
+use Filament\Tables\Columns\TextColumn;
 use Illuminate\Auth\Events\Failed;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Auth\Events\Login;
@@ -267,6 +271,8 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        $this->registerPanelDateMacros();
+
         /*
          * I collegamenti nelle email (accesso senza password, verifica,
          * reimpostazione) si costruiscono da `APP_URL`, mai dall'intestazione
@@ -730,5 +736,34 @@ class AppServiceProvider extends ServiceProvider
         $id = User::query()->where('email', $conto)->value('id');
 
         return $id !== null ? 'id:'.$id : $conto;
+    }
+
+    /**
+     * Le date nelle tabelle e nelle schede dei pannelli: `->panelDate()`
+     * scrive «sab 22 nov, 21:00», `->panelMoment()` «2 ore fa»; tutte e due
+     * mettono la data per intero nel suggerimento al passaggio del mouse.
+     * Il fuso si passa come testo o come chiusura sul record (quello della
+     * città dell'evento); senza, vale quello dei pannelli. Vedi `PanelDate`.
+     */
+    private function registerPanelDateMacros(): void
+    {
+        $macro = static fn (string $method): Closure => function (Closure|string|null $timezone = null) use ($method): TextColumn|TextEntry {
+            /** @var TextColumn|TextEntry $component */
+            $component = $this; // @phpstan-ignore variable.undefined (la macro lega $this al componente)
+            $zone = static function () use ($component, $timezone): ?string {
+                $value = $component->evaluate($timezone);
+
+                return filled($value) ? (string) $value : null;
+            };
+
+            return $component
+                ->formatStateUsing(static fn (mixed $state): string => PanelDate::{$method}($state, $zone()))
+                ->tooltip(static fn (mixed $state): ?string => blank($state) ? null : PanelDate::full($state, $zone()));
+        };
+
+        TextColumn::macro('panelDate', $macro('event'));
+        TextEntry::macro('panelDate', $macro('event'));
+        TextColumn::macro('panelMoment', $macro('moment'));
+        TextEntry::macro('panelMoment', $macro('moment'));
     }
 }

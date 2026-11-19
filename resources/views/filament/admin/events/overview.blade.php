@@ -29,7 +29,7 @@
      * guarda può aprire (li calcola la pagina).
      */
     $links ??= [];
-    $when = fn ($date) => $date->starts_at->timezone($timezone)->translatedFormat('D d/m/Y, H:i');
+    $when = fn ($date) => \App\Filament\Support\PanelDate::event($date->starts_at, $timezone);
     $price = match (true) {
         $event->price_min !== null && $event->price_max !== null && (float) $event->price_max !== (float) $event->price_min => __('manage.event_view.price_from_to', ['min' => number_format((float) $event->price_min, 2, ',', '.'), 'max' => number_format((float) $event->price_max, 2, ',', '.')]),
         $event->price_min !== null => __('manage.event_view.price_from', ['min' => number_format((float) $event->price_min, 2, ',', '.')]),
@@ -148,7 +148,7 @@
                                     <div class="min-w-0">
                                         <p class="font-semibold text-gray-950 dark:text-white">{{ $when($date) }}</p>
                                         @if ($end)
-                                            <p class="text-sm text-gray-500 dark:text-gray-400">{{ $end->isSameDay($start) ? __('manage.event_view.ends', ['time' => $end->format('H:i')]) : __('manage.event_view.ends_other_day', ['date' => $end->format('d/m/Y, H:i')]) }}</p>
+                                            <p class="text-sm text-gray-500 dark:text-gray-400">{{ $end->isSameDay($start) ? __('manage.event_view.ends', ['time' => $end->format('H:i')]) : __('manage.event_view.ends_other_day', ['date' => \App\Filament\Support\PanelDate::event($end, $timezone)]) }}</p>
                                         @endif
                                     </div>
                                     <div class="flex flex-wrap gap-2">

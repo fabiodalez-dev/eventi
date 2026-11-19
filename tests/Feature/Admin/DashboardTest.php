@@ -272,3 +272,18 @@ it('non disegna alcun riquadro finché non esiste una città', function (): void
         ->and(PublishingWidget::canView())->toBeFalse()
         ->and(ContentQualityWidget::canView())->toBeFalse();
 });
+
+it('in ogni riquadro della coda dice in una frase cosa aspetta, e resta grigio quando non aspetta niente', function (): void {
+    makeEvent(['status' => EventStatus::Pending]);
+    makeEvent(['status' => EventStatus::Pending]);
+
+    Livewire::test(EditorialQueueWidget::class)
+        ->assertOk()
+        ->assertSee(trans_choice('pannelli-redazione.riepilogo.pending_events', 2, ['count' => 2]))
+        ->assertSee(trans_choice('pannelli-redazione.riepilogo.open_reports', 0));
+
+    $stats = (fn () => $this->getStats())->call(new EditorialQueueWidget);
+
+    expect($stats[0]->getColor())->toBe('warning')
+        ->and($stats[3]->getColor())->toBe('gray');
+});

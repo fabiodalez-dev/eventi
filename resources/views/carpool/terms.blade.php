@@ -13,7 +13,7 @@
     $body = \Illuminate\Support\Str::markdown(implode("\n", $lines), ['html_input' => 'strip', 'allow_unsafe_links' => false]);
 @endphp
 <x-layouts.app service :meta="$meta">
-    <x-service-page :title="$heading" :subtitle="$versionLine" :tabs="$tabs" :tabs-label="__('carpool.web.tabs.label')">
+    <x-service-page :title="$heading" :subtitle="$versionLine" :back="route('account.profile')" :tabs="$tabs" :tabs-label="__('carpool.web.tabs.label')">
         @include('carpool.partials.help-nav')
         <x-card data-carpool-terms>
             <div class="rich-text text-sm sm:text-base">{!! $body !!}</div>

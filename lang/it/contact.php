@@ -1,10 +1,13 @@
 <?php
 
 return [
-    'title' => 'Contatta', 'settings' => 'Ricevi messaggi dalla pagina pubblica',
-    'modes' => ['disabled' => 'Disattivato', 'members' => 'Solo iscritti', 'everyone' => 'Chiunque, con reCAPTCHA per gli ospiti'],
-    'recipient' => 'Email a cui ricevere i messaggi', 'private' => 'Questo recapito non viene mostrato nel modulo pubblico.',
-    'captcha_missing' => 'Per consentire messaggi dagli ospiti, gli amministratori devono configurare reCAPTCHA. Gli iscritti possono già utilizzare il modulo.',
+    'title' => 'Contatta', 'settings' => 'Messaggi dalla pagina',
+    /* La sezione del pannello: il titolo dice di cosa si parla, la domanda cosa si sceglie. */
+    'mode_question' => 'Vuoi ricevere messaggi dalla pagina?',
+    'modes' => ['disabled' => 'No, non voglio messaggi', 'members' => 'Sì, solo da chi ha un profilo', 'everyone' => 'Sì, da chiunque'],
+    'recipient' => 'A quale email te li mando', 'private' => 'Non compare sul sito.',
+    'captcha_missing' => 'Per far scrivere anche chi non ha un profilo serve la verifica anti-spam reCAPTCHA, che gli amministratori impostano nella configurazione. Chi ha un profilo può già scrivere.',
+    'members_only' => 'Per ora posso farti scrivere solo da chi ha un profilo su :app.',
     'name' => 'Il tuo nome', 'email' => 'La tua email', 'message' => 'Il tuo messaggio', 'send' => 'Invia messaggio',
     'sent' => 'Messaggio inviato. Riceverai l’eventuale risposta al tuo indirizzo email.',
     'login' => 'Accedi per inviare un messaggio', 'privacy' => 'Nome, email e messaggio saranno inviati al destinatario per risponderti.',

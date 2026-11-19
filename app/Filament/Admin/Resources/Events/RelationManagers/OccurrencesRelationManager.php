@@ -12,6 +12,7 @@ use App\Enums\TicketTierStatus;
 use App\Filament\Support\DescriptionEditor;
 use App\Filament\Support\EventStatusPresentation;
 use App\Filament\Support\OccurrenceDecisionFields;
+use App\Filament\Support\PanelDate;
 use App\Filament\Support\TicketTiersField;
 use App\Models\Booking;
 use App\Models\Event;
@@ -214,18 +215,17 @@ class OccurrencesRelationManager extends RelationManager
             ->columns([
                 TextColumn::make('starts_at')
                     ->label(__('admin.fields.starts_at'))
-                    ->dateTime('d/m/Y H:i')
-                    ->timezone(fn (): string => $this->cityTimezone())
+                    ->panelDate(fn (): string => $this->cityTimezone())
                     ->sortable(),
 
                 TextColumn::make('business_date')
                     ->label(__('admin.fields.business_date'))
-                    ->date('d/m/Y'),
+                    ->formatStateUsing(fn (mixed $state): string => PanelDate::day($state, 'UTC'))
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('effective_ends_at')
                     ->label(__('admin.fields.effective_ends_at'))
-                    ->dateTime('d/m/Y H:i')
-                    ->timezone(fn (): string => $this->cityTimezone())
+                    ->panelDate(fn (): string => $this->cityTimezone())
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('status')

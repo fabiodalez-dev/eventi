@@ -22,14 +22,14 @@ it('navigates to separate event venue and organizer analytics pages with indepen
     $page->assertSee('Filtri attivi')->assertDontSee($scenario->publishedEventB->title);
     $page->click('[data-analytics-reset-filters]')->assertSee($scenario->publishedEventB->title);
     $page->page()->locator('a[href*="/event/'.$scenario->publishedEventA->id.'"]')->first()->click(['timeout' => 5000]);
-    $page->assertSee('Analytics · '.$scenario->publishedEventA->title)->assertPresent('[data-analytics-subject="event"]');
+    $page->assertSee('Statistiche · '.$scenario->publishedEventA->title)->assertPresent('[data-analytics-subject="event"]');
     expect($page->script('location.pathname'))->toEndWith('/event/'.$scenario->publishedEventA->id);
     expect($page->script('scrollY'))->toBe(0);
     $page->page()->locator('a[href*="/venue/'.$scenario->venueA->id.'"]')->first()->click(['timeout' => 5000]);
-    $page->assertSee('Analytics · Circolo Aurora')->assertSee('Report del profilo')->assertDontSee($scenario->publishedEventB->title);
+    $page->assertSee('Statistiche · Circolo Aurora')->assertSee('Report del profilo')->assertDontSee($scenario->publishedEventB->title);
     expect($page->script('location.pathname'))->toEndWith('/venue/'.$scenario->venueA->id);
     $page->page()->locator('a[href*="/organizer/'.$organizer->id.'"]')->first()->click(['timeout' => 5000]);
-    $page->assertSee('Analytics · Rete delle Arti')->assertSee($scenario->publishedEventA->title)->assertSee($scenario->publishedEventB->title)->assertNoJavascriptErrors();
+    $page->assertSee('Statistiche · Rete delle Arti')->assertSee($scenario->publishedEventA->title)->assertSee($scenario->publishedEventB->title)->assertNoJavascriptErrors();
     expect($page->script('location.pathname'))->toEndWith('/organizer/'.$organizer->id);
     $page->screenshot(filename: 'analytics-organizer-detail-desktop');
 });
@@ -49,7 +49,7 @@ it('lets a venue read all nights edit deliberately and open event statistics fro
     $page->assertPresent('[data-event-read-view]')->assertSee('Seconda serata speciale')->assertSee('11/09/2026')->assertSee('11/10/2026');
     expect($page->script('document.querySelectorAll("[data-event-read-view] input, [data-event-read-view] textarea").length'))->toBe(0);
     $page->page()->locator('.fi-page-sub-navigation-tabs a[href*="/event/'.$scenario->publishedEventA->id.'"]')->first()->click(['timeout' => 5000]);
-    $page->assertPresent('[data-analytics-subject="event"]')->assertSee('Analytics · '.$scenario->publishedEventA->title);
+    $page->assertPresent('[data-analytics-subject="event"]')->assertSee('Statistiche · '.$scenario->publishedEventA->title);
     $page->assertVisible('.fi-page-sub-navigation-tabs a[href$="'.parse_url($view, PHP_URL_PATH).'"]');
     $page->page()->locator('.fi-page-sub-navigation-tabs a[href$="'.parse_url($view, PHP_URL_PATH).'"]')->first()->click(['timeout' => 5000]);
     $page->assertPresent('[data-event-read-view]');

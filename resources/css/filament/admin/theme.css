@@ -456,6 +456,18 @@ a.fi-wi-stats-overview-stat:hover { border-color: var(--fi-line-strong); transfo
     .ec-toolbar { align-items: flex-start; }
     .ec-toolbar > div { max-width: 100%; }
 }
+/* Sul telefono le schede (di una pagina e di un modulo) stanno su una riga
+   che scorre di lato, come sul sito: andando a capo su tre righe la scheda
+   attiva si perdeva in mezzo alle altre. Lo scorrimento resta dentro la
+   striscia delle schede, la pagina non si allarga. */
+@media (max-width: 639px) {
+    .fi-tabs, .fi-sc-tabs .fi-tabs,
+    .fi-resource-edit-record-page .fi-tabs, .fi-resource-create-record-page .fi-tabs {
+        flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; overflow-y: hidden;
+        max-width: 100%; scrollbar-width: thin; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch;
+    }
+    .fi-tabs .fi-tabs-item { white-space: nowrap; flex-shrink: 0; min-width: max-content; }
+}
 
 /* ------------------------------------------------------------ mobile */
 
@@ -495,7 +507,6 @@ a.fi-wi-stats-overview-stat:hover { border-color: var(--fi-line-strong); transfo
 
 .event-ticketing-links { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 1rem; }
 
-.fi-resource-edit-record-page .fi-tabs { flex-wrap: wrap; overflow: visible; }
 
 .event-ticketing-intro { display: flex; flex-direction: column; align-items: flex-start; gap: 1rem; }
 .event-ticketing-intro > p { margin: 0; line-height: 1.6; }
@@ -570,15 +581,6 @@ a.fi-wi-stats-overview-stat:hover { border-color: var(--fi-line-strong); transfo
 .ad-read-description { margin-top: 24px; white-space: normal; line-height: 1.7; max-width: 80ch; overflow-wrap: anywhere; }
 .ad-read-description a { color: var(--fi-accent); }
 
-/* Keep the event overview, edit and statistics tabs directly accessible on mobile. */
-.fi-page-has-sub-navigation-top .fi-page-sub-navigation-tabs {
-    display: flex;
-}
-
-.fi-page-has-sub-navigation-top .fi-page-sub-navigation-dropdown {
-    display: none;
-}
-
 .ad-active-filters { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px; padding: 20px; border: 1px solid var(--fi-line); border-radius: 12px; background: var(--fi-subtle); }
 .ad-active-filters strong { font-size: .875rem; }
 .ad-active-filters dl { display: flex; flex-wrap: wrap; gap: 12px 24px; margin-top: 12px; }
@@ -629,4 +631,128 @@ a.fi-wi-stats-overview-stat:hover { border-color: var(--fi-line-strong); transfo
     .itb-actions { gap: 4px; }
     .itb-action { padding-inline: 6px; }
     .itb-action:not(.itb-primary):not(.itb-more) > .fi-icon { display: none; }
+}
+
+/* ======================================================================
+ * Contratto comune dei pannelli (piano «pannelli leggibili», §2).
+ * Le viste `filament/partials/{event-option,event-row,stat-cards}`, la
+ * mappa dei moduli, i colori di stato del calendario della redazione e la
+ * barra «Salva» fissa. Ogni colore passa da un token: valgono in chiaro e
+ * in scuro senza regole doppie.
+ * ==================================================================== */
+
+:root {
+    /* Gli stati di un evento nel calendario della redazione: fondo pieno e
+       testo bianco, contrasto almeno 4,5:1 in tutti e due i temi. */
+    --panel-status-published: oklch(46% 0.12 150);
+    --panel-status-pending: oklch(50% 0.12 62);
+    --panel-status-draft: oklch(47% 0.01 80);
+    --panel-status-rejected: oklch(49% 0.17 27);
+    --panel-status-cancelled: oklch(42% 0.06 20);
+    --panel-status-archived: oklch(45% 0.04 250);
+    --panel-status-ink: #fff;
+}
+:root.dark {
+    --panel-status-published: oklch(48% 0.11 150);
+    --panel-status-pending: oklch(50% 0.11 62);
+    --panel-status-draft: oklch(44% 0.01 80);
+    --panel-status-rejected: oklch(50% 0.16 27);
+    --panel-status-cancelled: oklch(40% 0.05 20);
+    --panel-status-archived: oklch(44% 0.04 250);
+    --panel-status-ink: #fff;
+}
+
+/* Una voce del selettore di eventi: locandina 36×48, titolo su una riga,
+   sotto «sab 22 nov, 21:00 · locale». */
+.incitta-event-option { display: flex; align-items: center; gap: .75rem; min-width: 0; width: 100%; text-align: start; }
+.incitta-event-option-poster {
+    flex: none; width: 36px; height: 48px; object-fit: cover; border-radius: var(--radius-xs);
+    background: var(--fi-muted); border: 1px solid var(--fi-line);
+}
+.incitta-event-option-text { display: flex; flex-direction: column; flex: 1 1 auto; min-width: 0; gap: .125rem; }
+.incitta-event-option-title { font-weight: 700; color: var(--fi-ink); line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.incitta-event-option-meta { font-size: .8125rem; line-height: 1.4; color: var(--fi-ink-soft); overflow-wrap: anywhere; }
+.incitta-event-option-more { color: var(--fi-ink-soft); font-weight: 600; }
+.incitta-event-option-badge { flex: none; }
+.incitta-occurrence-option { display: flex; flex-direction: column; gap: .125rem; min-width: 0; }
+.incitta-occurrence-option-when { font-weight: 650; color: var(--fi-ink); }
+.incitta-occurrence-option-venue { font-size: .8125rem; color: var(--fi-ink-soft); }
+/* Nella tendina, la voce occupa tutta la riga e va a capo invece di uscire. */
+.fi-select-input-option:has(.incitta-event-option), .fi-select-input-option:has(.incitta-occurrence-option) { white-space: normal; }
+
+/* La riga di un evento: locandina, titolo, «data · locale», righe in più,
+   barra e, a destra (sotto sul telefono), un numero o dei pulsanti. */
+.incitta-event-row { display: flex; align-items: flex-start; gap: .875rem; min-width: 0; color: var(--fi-ink); --incitta-poster-w: 48px; }
+.incitta-event-row-sm { --incitta-poster-w: 36px; gap: .75rem; }
+.incitta-event-row-lg { --incitta-poster-w: 72px; gap: 1rem; }
+.incitta-event-row-link { border-radius: var(--radius-md); padding: .375rem; margin: -.375rem; transition: background-color 120ms ease-out; }
+.incitta-event-row-link:hover { background: var(--fi-row-hover); }
+.incitta-event-row-link:focus-visible { outline: 2px solid var(--fi-accent); outline-offset: 2px; }
+.incitta-event-row-poster {
+    flex: none; width: var(--incitta-poster-w); height: auto; aspect-ratio: 3 / 4; object-fit: cover;
+    border-radius: var(--radius-sm); background: var(--fi-muted); border: 1px solid var(--fi-line);
+}
+.incitta-event-row-body { flex: 1 1 auto; min-width: 0; }
+.incitta-event-row-title { margin: 0; font-weight: 700; line-height: 1.3; overflow-wrap: anywhere; }
+.incitta-event-row-lg .incitta-event-row-title { font-family: var(--fi-display); font-size: 1.125rem; font-weight: 800; }
+.incitta-event-row-meta { margin: .125rem 0 0; font-size: .8125rem; line-height: 1.45; color: var(--fi-ink-soft); }
+.incitta-event-row-badges { display: flex; flex-wrap: wrap; gap: .375rem; margin-top: .375rem; }
+.incitta-event-row-bar { height: 4px; margin-top: .5rem; border-radius: 2px; background: var(--fi-muted); overflow: hidden; }
+.incitta-event-row-bar > span { display: block; height: 100%; background: var(--fi-accent); border-radius: inherit; }
+.incitta-event-row-trailing { flex: none; display: flex; align-items: center; gap: .5rem; text-align: end; font-variant-numeric: tabular-nums; }
+@media (max-width: 639px) {
+    .incitta-event-row { flex-wrap: wrap; }
+    .incitta-event-row-body { flex-basis: calc(100% - var(--incitta-poster-w) - 1rem); }
+    .incitta-event-row-trailing { flex-basis: 100%; flex-wrap: wrap; justify-content: flex-start; text-align: start; margin-inline-start: calc(var(--incitta-poster-w) + .875rem); }
+}
+
+/* I numeri: uno per riga sul telefono, affiancati da 640 px. */
+.incitta-stat-cards { display: flex; flex-direction: column; gap: 1.125rem; margin: 0; }
+.incitta-stat-card { display: flex; flex-direction: column; min-width: 0; }
+.incitta-stat-card-value {
+    order: -1; margin: 0; font-family: var(--fi-display); font-size: 1.75rem; font-weight: 800; line-height: 1.1;
+    letter-spacing: -.02em; font-variant-numeric: tabular-nums; color: var(--fi-ink);
+}
+.incitta-stat-card-value-empty { font-family: var(--font-sans); font-size: 1rem; font-weight: 700; letter-spacing: 0; color: var(--fi-ink-soft); }
+.incitta-stat-card-label { margin-top: .25rem; font-size: .875rem; font-weight: 700; line-height: 1.4; color: var(--fi-ink); }
+.incitta-stat-card-hint { margin: .125rem 0 0; font-size: .8125rem; line-height: 1.5; color: var(--fi-ink-soft); }
+@media (min-width: 640px) {
+    .incitta-stat-cards { flex-direction: row; flex-wrap: wrap; gap: 1.5rem 2rem; }
+    .incitta-stat-card { flex: 1 1 12rem; }
+}
+
+/* La mappa dei moduli (`MapPicker`): segnaposto del colore del pannello,
+   tasselli scuri nel tema scuro, una riga che dice dov'è il punto. Il foglio
+   della mappa (`filament-map.css`) arriva dopo questo: i selettori partono
+   da `.fi-map-picker` per valere su quelli. */
+.fi-map-picker .fi-map-picker-canvas { border: 1px solid var(--fi-line-strong); border-radius: var(--radius-lg); background: var(--fi-muted); overflow: hidden; }
+.fi-map-picker .mappa-segnaposto span {
+    width: 20px; height: 20px; margin: 3px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg);
+    background: var(--fi-accent-fill); border: 2px solid var(--fi-panel); box-shadow: 0 1px 4px oklch(0% 0 0 / .35);
+}
+.fi-map-picker .fi-map-picker-canvas .leaflet-bar a { background: var(--fi-panel); color: var(--fi-ink); border-color: var(--fi-line); }
+.fi-map-picker .fi-map-picker-canvas .leaflet-control-attribution { background: color-mix(in srgb, var(--fi-panel) 85%, transparent); color: var(--fi-ink-soft); }
+.fi-map-picker .fi-map-picker-canvas .leaflet-control-attribution a { color: var(--fi-ink-soft); }
+:root.dark .fi-map-picker .fi-map-picker-canvas .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(.82) contrast(.92); }
+.fi-map-picker .fi-map-picker-hint { margin-top: .5rem; font-size: .8125rem; color: var(--fi-ink-soft); }
+.fi-map-picker .fi-map-picker-status { margin-top: .25rem; font-size: .875rem; line-height: 1.5; color: var(--fi-ink); }
+.fi-map-picker .fi-map-picker-status-icon { display: inline-block; width: 1rem; height: 1rem; margin-inline-end: .25rem; vertical-align: -.15em; color: var(--fi-accent); }
+.fi-map-picker .fi-map-picker-coordinates { margin-inline-start: .25rem; color: var(--fi-ink-soft); font-variant-numeric: tabular-nums; }
+
+/* La barra «Salva» che resta in fondo allo schermo nei moduli lunghi. */
+.incitta-sticky-actions {
+    position: sticky; bottom: 0; z-index: 20; display: flex; flex-wrap: wrap; align-items: center; gap: .75rem;
+    margin-top: 1rem; padding: .75rem 1rem; background: var(--fi-panel); border: 1px solid var(--fi-line);
+    border-radius: var(--radius-xl); box-shadow: var(--fi-shadow-pop);
+}
+@media (max-width: 639px) {
+    .incitta-sticky-actions { padding: .625rem .75rem; border-radius: var(--radius-lg); }
+    .incitta-sticky-actions .fi-btn { flex: 1 1 auto; min-height: 2.75rem; }
+}
+
+/* Il riquadro che aspetta il caricamento di una tabella collegata (le date di
+   un evento, lo storico): una striscia bassa che pulsa, non un rettangolo
+   vuoto alto come mezza pagina. */
+:is(.fi-resource-edit-record-page, .fi-resource-view-record-page, .fi-resource-create-record-page) .fi-loading-section {
+    height: 3rem !important; border-color: transparent; background: var(--fi-muted);
 }

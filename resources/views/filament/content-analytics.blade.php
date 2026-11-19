@@ -17,6 +17,20 @@
             </div>
         </div>
 
+        @php
+            $clicksTotal = collect($metrics)->reject(fn ($metric) => in_array($metric, [\App\Enums\ContentMetric::Views, \App\Enums\ContentMetric::Shares]))->sum(fn ($metric) => (int) $report['totals'][$metric->value]);
+            $axisDay = fn (string $date): string => \App\Filament\Support\PanelDate::axis(\Carbon\CarbonImmutable::createFromFormat('!d/m', $date, \App\Filament\Support\PanelDate::defaultTimezone()));
+        @endphp
+        <x-filament::section :heading="__('pannelli-statistiche.summary.heading')" icon="heroicon-o-presentation-chart-line">
+            <x-pannelli::stat-cards data-analytics-summary :label="__('pannelli-statistiche.summary.label')" :items="[
+                ['key' => 'event_views', 'label' => __('analytics.event_views'), 'value' => (int) $report['totals']['views'], 'hint' => __('pannelli-statistiche.hints.event_views')],
+                ['key' => 'profile_views', 'label' => __('analytics.profile_views'), 'value' => (int) $report['profile']['views'], 'hint' => __('pannelli-statistiche.hints.profile_views')],
+                ['key' => 'clicks', 'label' => __('pannelli-statistiche.labels.clicks'), 'value' => $clicksTotal, 'hint' => __('pannelli-statistiche.hints.clicks')],
+                ['key' => 'saves', 'label' => __('analytics.saves'), 'value' => (int) $report['totals']['saves'], 'hint' => __('pannelli-statistiche.hints.saves')],
+                ['key' => 'followers', 'label' => __('pannelli-statistiche.labels.followers'), 'value' => (int) $report['profile']['followers'], 'hint' => __('pannelli-statistiche.hints.followers')],
+            ]" />
+        </x-filament::section>
+
         @include('filament.partials.analytics-consent')
 
         @php
@@ -44,10 +58,10 @@
                         <polyline points="{{ $points('views') }}" class="analytics-line" />
                         <polyline points="{{ $points('profile_views') }}" class="analytics-line analytics-line-profile" />
                         @foreach ($report['series'] as $index => $day)
-                            <circle cx="{{ 1000 * $index / max(1, count($report['series']) - 1) }}" cy="{{ 200 - 190 * $day['views'] / $ceiling }}" r="4" class="analytics-point"><title>{{ $day['date'] }}: {{ __('analytics.event_views') }} {{ $day['views'] }}, {{ __('analytics.profile_views') }} {{ $day['profile_views'] }}</title></circle>
+                            <circle cx="{{ 1000 * $index / max(1, count($report['series']) - 1) }}" cy="{{ 200 - 190 * $day['views'] / $ceiling }}" r="4" class="analytics-point"><title>{{ $axisDay($day['date']) }}: {{ __('analytics.event_views') }} {{ $day['views'] }}, {{ __('analytics.profile_views') }} {{ $day['profile_views'] }}</title></circle>
                         @endforeach
                     </svg>
-                    <div class="analytics-dates" aria-hidden="true"><span>{{ $report['series'][0]['date'] }}</span><span>{{ $report['series'][(int) floor(count($report['series']) / 2)]['date'] }}</span><span>{{ $report['series'][count($report['series']) - 1]['date'] }}</span></div>
+                    <div class="analytics-dates" aria-hidden="true"><span>{{ $axisDay($report['series'][0]['date']) }}</span><span>{{ $axisDay($report['series'][(int) floor(count($report['series']) / 2)]['date']) }}</span><span>{{ $axisDay($report['series'][count($report['series']) - 1]['date']) }}</span></div>
                 </div>
             @endif
         </x-filament::section>
@@ -70,7 +84,7 @@
                     <div><dt>{{ $metric->label() }}</dt><dd>{{ $number($report['profile'][$metric->value]) }}</dd></div>
                 @endforeach
                 @foreach (['followers', 'new_followers'] as $key)
-                    <div><dt>{{ __('analytics.'.$key) }}</dt><dd>{{ $number($report['profile'][$key]) }}</dd></div>
+                    <div><dt>{{ __('pannelli-statistiche.labels.'.$key) }}</dt><dd>{{ $number($report['profile'][$key]) }}</dd></div>
                 @endforeach
             </dl>
         </x-filament::section>
@@ -109,17 +123,17 @@
         <x-filament::section :heading="__('panel.analytics.daily_table')" icon="heroicon-o-table-cells" collapsible collapsed>
             <div class="ad-table-scroll" tabindex="0" role="region" aria-label="{{ __('panel.analytics.daily_table') }}">
                 <table class="ad-table">
-                    <thead><tr>@foreach (['day', 'profile_views', 'event_views', 'clicks'] as $key)<th scope="col">{{ __('analytics.'.$key) }}</th>@endforeach</tr></thead>
-                    <tbody>@foreach ($report['series'] as $day)<tr><th scope="row" class="text-start font-normal">{{ $day['date'] }}</th><td class="ad-number">{{ $day['profile_views'] }}</td><td class="ad-number">{{ $day['views'] }}</td><td class="ad-number">{{ $day['clicks'] }}</td></tr>@endforeach</tbody>
+                    <thead><tr>@foreach (['day', 'profile_views', 'event_views', 'clicks'] as $key)<th scope="col">{{ $key === 'clicks' ? __('pannelli-statistiche.labels.clicks') : __('analytics.'.$key) }}</th>@endforeach</tr></thead>
+                    <tbody>@foreach ($report['series'] as $day)<tr><th scope="row" class="text-start font-normal">{{ $axisDay($day['date']) }}</th><td class="ad-number">{{ $day['profile_views'] }}</td><td class="ad-number">{{ $day['views'] }}</td><td class="ad-number">{{ $day['clicks'] }}</td></tr>@endforeach</tbody>
                 </table>
             </div>
         </x-filament::section>
 
         <x-filament::section :heading="__('analytics.paid')" :description="__('panel.analytics.paid_hint')" icon="heroicon-o-megaphone" collapsible :collapsed="(int) $report['impressions'] === 0">
             <dl class="ad-stat-row">
-                <div><dt>{{ __('analytics.impressions') }}</dt><dd>{{ $number($report['impressions']) }}</dd></div>
-                <div><dt>{{ __('analytics.paid_clicks') }}</dt><dd>{{ $number($report['sponsored_clicks']) }}</dd></div>
-                <div><dt>{{ __('analytics.ctr') }}</dt><dd>{{ $report['impressions'] > 0 ? number_format(100 * $report['sponsored_clicks'] / $report['impressions'], 2, ',', '.').'%' : '—' }}</dd></div>
+                <div><dt>{{ __('pannelli-statistiche.labels.impressions') }}</dt><dd>{{ $number($report['impressions']) }}</dd></div>
+                <div><dt>{{ __('pannelli-statistiche.labels.paid_clicks') }}</dt><dd>{{ $number($report['sponsored_clicks']) }}</dd></div>
+                <div><dt>{{ __('pannelli-statistiche.labels.ctr') }}</dt><dd>{{ $report['impressions'] > 0 ? number_format(100 * $report['sponsored_clicks'] / $report['impressions'], 2, ',', '.').'%' : '—' }}</dd></div>
             </dl>
             @if ($report['breakdown']->isNotEmpty())
                 @php

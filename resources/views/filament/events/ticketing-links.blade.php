@@ -13,7 +13,7 @@
             @forelse ($event->occurrences()->orderBy('starts_at')->get() as $date)
                 @can('manage', [\App\Models\Booking::class, $date])
                     <x-filament::button color="gray" tag="a" :href="route('ticketing.manage.show', $date)">
-                        {{ $date->starts_at->timezone($event->city?->timezone ?? 'Europe/Rome')->format('d/m/Y H:i') }} — Gestisci biglietti
+                        {{ \App\Filament\Support\PanelDate::event($date->starts_at, $event->city?->timezone) }} — Gestisci biglietti
                     </x-filament::button>
                 @endcan
             @empty

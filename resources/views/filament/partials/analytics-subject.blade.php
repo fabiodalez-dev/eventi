@@ -8,7 +8,15 @@
     <x-filament::button tag="a" color="gray" icon="heroicon-o-arrow-left" :href="$this->overviewUrl()">{{ __('analytics-dashboard.back_overview') }}</x-filament::button>
     @endif
 </div>
-<x-filament::section :heading="__('analytics-dashboard.subject_information')">
+@if ($isEvent)
+    {{-- In testa si vede subito di quale evento si parla: locandina, titolo,
+         data leggibile e locale, mai «Evento #697». --}}
+    <x-filament::section :heading="__('pannelli-statistiche.subject.event_heading')" data-analytics-event-header>
+        <x-pannelli::event-row :event="$subject" :venue="$subject->venue?->name" size="lg" />
+        <div class="mt-4">{{ $this->getSchema('otherEventForm') }}</div>
+    </x-filament::section>
+@endif
+<x-filament::section :heading="__('analytics-dashboard.subject_information')" collapsible :collapsed="$isEvent">
     <dl class="ad-event-facts">
         <div><dt>{{ __('analytics-dashboard.columns.city') }}</dt><dd>{{ $subject->city->name }}</dd></div>
         @if ($isEvent && $record)

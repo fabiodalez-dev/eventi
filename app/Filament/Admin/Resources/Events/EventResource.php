@@ -28,6 +28,7 @@ use App\Filament\Support\EventTicketingActions;
 use App\Filament\Support\ExternalLinksField;
 use App\Filament\Support\FactsField;
 use App\Filament\Support\ImageUpload;
+use App\Filament\Support\PanelDate;
 use App\Filament\Support\PosterColumn;
 use App\Filament\Support\SharedEventTags;
 use App\Filament\Support\TicketTiersField;
@@ -40,7 +41,6 @@ use App\Support\BeforeGoingDefaults;
 use App\Support\CurrentCity;
 use App\Support\VideoEmbed;
 use BackedEnum;
-use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
@@ -640,20 +640,14 @@ class EventResource extends Resource
                             ->iconPosition(IconPosition::After)
                             ->iconColor('gray'),
 
+                        /* «dom 22 nov, 08:30 · Rocca di Monselice»: quando e dove in una riga. */
                         TextColumn::make('venue.name')->extraAttributes(['class' => 'py-0.5!'])
                             ->label(__('admin.fields.venue'))
                             ->searchable()
                             ->color('gray')
-                            ->size(TextSize::Small)
                             ->wrap()
-                            ->state(fn (Event $record): string => self::placeLine($record)),
-
-                        TextColumn::make('next_starts_at')->extraAttributes(['class' => 'py-0.5!'])
-                            ->label(__('admin.event_list.when'))
-                            ->color('gray')
-                            ->size(TextSize::Small)
                             ->icon(Heroicon::OutlinedCalendar)
-                            ->state(fn (Event $record): string => self::whenLine($record)),
+                            ->state(fn (Event $record): string => self::whenLine($record).' · '.self::placeLine($record)),
 
                         TextColumn::make('status')->extraAttributes(['class' => 'py-0.5!'])
                             ->label(__('admin.fields.status'))
@@ -673,7 +667,7 @@ class EventResource extends Resource
                             ->label(__('admin.fields.published_at'))
                             ->size(TextSize::Small)
                             ->color('gray')
-                            ->formatStateUsing(fn (CarbonInterface $state): string => __('admin.event_list.published_at', ['date' => $state->copy()->timezone(FilamentTimezone::get())->format('d/m/Y H:i')]))
+                            ->formatStateUsing(fn (CarbonInterface $state): string => __('pannelli-eventi.list.published', ['when' => PanelDate::moment($state)]))
                             ->placeholder(__('admin.event_list.never_published'))
                             ->sortable(),
                     ])->space(1)->alignment(Alignment::End)->grow(false)->visibleFrom('lg'),
@@ -752,12 +746,10 @@ class EventResource extends Resource
             ]);
     }
 
-    /** Luogo · categoria, la seconda riga della card. */
+    /** Il luogo, dopo la data nella seconda riga della card. */
     private static function placeLine(Event $event): string
     {
-        $place = $event->venue->name ?? data_get($event->custom_location, 'name') ?? __('admin.event_list.no_place');
-
-        return collect([$place, $event->category?->name])->filter()->join(' · ');
+        return $event->venue->name ?? data_get($event->custom_location, 'name') ?? __('admin.event_list.no_place');
     }
 
     /**
@@ -771,11 +763,11 @@ class EventResource extends Resource
         $last = $event->getAttribute('last_starts_at');
 
         if (filled($next)) {
-            return __('admin.event_list.next', ['date' => CarbonImmutable::parse((string) $next, 'UTC')->timezone($timezone)->translatedFormat('D d/m/Y, H:i')]);
+            return PanelDate::event((string) $next, $timezone);
         }
 
         if (filled($last)) {
-            return __('admin.event_list.last', ['date' => CarbonImmutable::parse((string) $last, 'UTC')->timezone($timezone)->translatedFormat('D d/m/Y, H:i')]);
+            return __('pannelli-eventi.list.was', ['date' => PanelDate::event((string) $last, $timezone)]);
         }
 
         return __('admin.event_list.no_dates');

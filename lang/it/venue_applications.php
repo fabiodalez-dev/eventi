@@ -92,8 +92,8 @@ return [
             'notes' => 'Note interne',
         ],
         'fields' => [
-            'received_at' => 'Ricevuta il',
-            'queued_at' => 'In coda dal',
+            'received_at' => 'Ricevuta',
+            'queued_at' => 'In coda da',
             'organizer' => 'Organizzatore',
             'description' => 'Presentazione',
             'proof' => 'Come dimostra che il locale è suo',

@@ -21,7 +21,6 @@ use App\Services\Carpool\CommunitySafety;
 use App\Services\Community\CommunityModeration;
 use App\Services\Community\WhatsappVerification;
 use BackedEnum;
-use Carbon\CarbonInterface;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\EditAction;
@@ -199,8 +198,7 @@ class UserResource extends Resource
 
                 TextColumn::make('created_at')
                     ->label(__('users.registration.registered_at'))
-                    ->dateTime('d/m/Y H:i')
-                    ->description(fn (?CarbonInterface $state): ?string => $state?->diffForHumans())
+                    ->panelMoment()
                     ->sortable(),
 
                 TextColumn::make('email')
@@ -241,19 +239,19 @@ class UserResource extends Resource
 
                 TextColumn::make('email_verified_at')
                     ->label(__('admin.fields.email_verified_at'))
-                    ->dateTime('d/m/Y H:i')
+                    ->panelMoment()
                     ->toggleable(isToggledHiddenByDefault: true)
                     ->placeholder(__('admin.placeholders.never')),
 
                 /* Dati della community: si accendono dall'elenco delle colonne,
                    così a 1280 le colonne dell'iscrizione restano leggibili. */
-                TextColumn::make('whatsapp_verified_at')->label(__('community.whatsapp.title'))->dateTime('d/m/Y H:i')->placeholder(__('admin.placeholders.never'))->toggleable(isToggledHiddenByDefault: true)->sortable(),
-                TextColumn::make('community_suspended_at')->label(__('community.suspend'))->dateTime('d/m/Y H:i')->placeholder('—')->toggleable(isToggledHiddenByDefault: true)->sortable(),
+                TextColumn::make('whatsapp_verified_at')->label(__('community.whatsapp.title'))->panelMoment()->placeholder(__('admin.placeholders.never'))->toggleable(isToggledHiddenByDefault: true)->sortable(),
+                TextColumn::make('community_suspended_at')->label(__('community.suspend'))->panelMoment()->placeholder('—')->toggleable(isToggledHiddenByDefault: true)->sortable(),
                 TextColumn::make('communityProfile.handle')->label(__('community.handle'))->searchable()->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('last_active_at')
                     ->label(__('admin.fields.last_active_at'))
                     ->toggleable(isToggledHiddenByDefault: true)
-                    ->dateTime('d/m/Y H:i')
+                    ->panelMoment()
                     ->placeholder(__('admin.placeholders.never'))
                     ->sortable(),
             ])
@@ -362,7 +360,7 @@ class UserResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->with(['roles', 'venues.city', 'city'])->withoutGlobalScopes([SoftDeletingScope::class]);
+        return parent::getEloquentQuery()->with(['roles', 'venues.city', 'city', 'communityProfile'])->withoutGlobalScopes([SoftDeletingScope::class]);
     }
 
     /**

@@ -5,18 +5,17 @@ declare(strict_types=1);
 namespace App\Providers\Filament;
 
 use App\Filament\Admin\Pages\Dashboard;
+use App\Filament\Support\PanelNavigation;
 use App\Http\Middleware\AuthenticatePanel;
 use App\Http\Middleware\AuthenticatePanelSession;
 use App\Http\Middleware\RevalidateImpersonation;
-use Filament\Actions\Action;
 use Filament\FontProviders\LocalFontProvider;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
-use Filament\Navigation\NavigationGroup;
+use Filament\Navigation\NavigationBuilder;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
-use Filament\Support\Icons\Heroicon;
 use Filament\View\PanelsRenderHook;
 use Guava\Calendar\CalendarPlugin;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
@@ -35,9 +34,9 @@ use Illuminate\View\Middleware\ShareErrorsFromSession;
  * file — lo decidono le Policy di `app/Policies`, che Filament interroga da sé
  * su ogni risorsa, riga e azione.
  *
- * Nessuna etichetta è scritta qui: i gruppi di navigazione, come tutto il
- * resto, arrivano da `lang/it/admin.php`. Il nome del prodotto arriva sempre
- * da `config('app.name')` (D10).
+ * Nessuna etichetta è scritta qui: il menu lo costruisce `PanelNavigation`
+ * con i nomi delle pagine, i gruppi arrivano da `lang/it/pannelli-impianto.php`.
+ * Il nome del prodotto arriva sempre da `config('app.name')` (D10).
  */
 class AdminPanelProvider extends PanelProvider
 {
@@ -63,16 +62,12 @@ class AdminPanelProvider extends PanelProvider
              */
             ->font('Manrope Variable', provider: LocalFontProvider::class)
             /*
-             * Il profilo personale sta nel menu dell'utente, accanto all'uscita:
-             * e' un'azione sulla persona, non una sezione del lavoro di redazione,
-             * e nella barra laterale occupava la seconda riga di ogni pagina.
+             * Il menu della persona è lo stesso nei tre pannelli: chi è dentro,
+             * «Area personale», «Tema chiaro o scuro», «Esci». Vedi
+             * `PanelNavigation::userMenu()`.
              */
-            ->userMenuItems([
-                Action::make('profile')
-                    ->label(fn (): string => __('admin.navigation.profile'))
-                    ->icon(Heroicon::OutlinedUserCircle)
-                    ->url(fn (): string => route('account.profile')),
-            ])
+            ->userMenuItems(PanelNavigation::userMenu())
+            ->renderHook(PanelsRenderHook::USER_MENU_PROFILE_BEFORE, fn () => view('filament.partials.user-menu-identity'))
             /*
              * Il tema è quello scelto sul sito (`/aspetto`): lo script in testa
              * alla pagina lo scrive dove Filament lo legge, prima che la pagina
@@ -98,21 +93,11 @@ class AdminPanelProvider extends PanelProvider
                 'primary' => Color::hex('#b54d23'),
             ])
             /*
-             * Sei gruppi, nell'ordine in cui la redazione li usa: cosa si
-             * pubblica, chi lo pubblica e dove, cosa dice la community, cosa
-             * si promuove, come va, e infine la macchina. Le voci sciolte
-             * sopra i gruppi erano diventate nove: oggi resta solo il riepilogo.
+             * Ordine, gruppi e icone del menu stanno in un file solo,
+             * `PanelNavigation`, uguale per i tre pannelli; il nome di ogni
+             * voce lo dà la pagina.
              */
-            ->navigationGroups([
-                NavigationGroup::make(fn (): string => __('admin.navigation.content')),
-                NavigationGroup::make(fn (): string => __('users.navigation_group')),
-                NavigationGroup::make(fn (): string => __('admin.navigation.places')),
-                NavigationGroup::make(fn (): string => __('admin.navigation.moderation')),
-                NavigationGroup::make(fn (): string => __('admin.navigation.promotion')),
-                NavigationGroup::make(fn (): string => __('admin.navigation.analytics')),
-                NavigationGroup::make(fn (): string => __('admin.navigation.system'))->collapsed(),
-            ])
-            ->sidebarCollapsibleOnDesktop()
+            ->navigation(fn (NavigationBuilder $builder): NavigationBuilder => PanelNavigation::admin($builder))
             ->discoverResources(in: app_path('Filament/Admin/Resources'), for: 'App\Filament\Admin\Resources')
             ->discoverPages(in: app_path('Filament/Admin/Pages'), for: 'App\Filament\Admin\Pages')
             ->discoverWidgets(in: app_path('Filament/Admin/Widgets'), for: 'App\Filament\Admin\Widgets')

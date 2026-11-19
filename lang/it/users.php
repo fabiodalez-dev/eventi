@@ -28,7 +28,7 @@ return [
     'roles_short' => 'Ruoli',
 
     'registration' => [
-        'registered_at' => 'Iscritto il',
+        'registered_at' => 'Iscritto',
         'state' => 'Stato',
         'filter' => 'Iscrizione',
         'tab' => 'In attesa di conferma',

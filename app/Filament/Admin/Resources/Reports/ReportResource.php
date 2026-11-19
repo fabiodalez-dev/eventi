@@ -103,10 +103,12 @@ class ReportResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->emptyStateHeading(__('pannelli-redazione.segnalazioni.empty_heading'))
+            ->emptyStateDescription(__('pannelli-redazione.segnalazioni.empty_description'))
             ->columns([
                 TextColumn::make('created_at')
-                    ->label(__('admin.fields.created_at'))
-                    ->dateTime('d/m/Y H:i')
+                    ->label(__('pannelli-redazione.segnalazioni.received'))
+                    ->panelMoment()
                     ->sortable(),
 
                 TextColumn::make('reason')

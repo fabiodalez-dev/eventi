@@ -263,3 +263,24 @@ it('«reinvia conferma» ha un tetto per scheda e per indirizzo', function (): v
     Notification::assertSentOnDemandTimes(ContactEmailConfirmationRequested::class, 5);
     expect($other->fresh()->contact_email_verified_at)->toBeNull();
 });
+
+it('nel pannello chiede in parole semplici se ricevere messaggi e nasconde l’email finché sono spenti', function (): void {
+    config(['contact.recaptcha_site_key' => null, 'contact.recaptcha_secret_key' => null]);
+    $this->venue->update(['contact_mode' => ContactMode::Disabled, 'contact_email' => null]);
+
+    $this->actingAs($this->owner)->get(VenueProfile::getUrl(panel: 'venue', tenant: $this->venue))->assertOk()
+        ->assertSee(__('contact.mode_question'))
+        ->assertSee(__('contact.members_only', ['app' => config('app.name')]))
+        ->assertDontSee('reCAPTCHA')
+        ->assertDontSee(__('contact.recipient'));
+    Filament::setCurrentPanel('venue');
+    Filament::setTenant($this->venue);
+    Livewire::test(VenueProfile::class)
+        ->assertFormFieldIsHidden('contact_email')
+        ->fillForm(['contact_mode' => 'members'])
+        ->assertFormFieldIsVisible('contact_email');
+
+    $admin = $this->scenario->admin;
+    $this->actingAs($admin)->get(EditVenue::getUrl(['record' => $this->venue], panel: 'admin'))->assertOk()
+        ->assertSee(__('contact.captcha_missing'));
+});

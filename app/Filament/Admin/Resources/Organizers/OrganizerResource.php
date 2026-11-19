@@ -12,8 +12,8 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
+use Filament\Support\Enums\FontWeight;
 use Filament\Support\Icons\Heroicon;
-use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
@@ -53,7 +53,16 @@ class OrganizerResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table->columns([TextColumn::make('name')->label('Organizzatore')->searchable(), TextColumn::make('city.name')->label('Città'), TextColumn::make('owner.email')->label('Responsabile'), IconColumn::make('is_active')->label('Attivo')->boolean()])->recordActions([EditAction::make()]);
+        return $table->columns([
+            TextColumn::make('name')->label('Organizzatore')->searchable()->weight(FontWeight::SemiBold)->description(fn (Organizer $record): ?string => $record->city?->name),
+            TextColumn::make('owner.name')->label('Responsabile')->description(fn (Organizer $record): ?string => $record->owner?->email)->placeholder('—'),
+            TextColumn::make('is_active')->label('Stato')->badge()
+                ->formatStateUsing(fn (mixed $state): string => $state ? __('pannelli-redazione.organizzatori.active') : __('pannelli-redazione.organizzatori.inactive'))
+                ->color(fn (mixed $state): string => $state ? 'success' : 'gray'),
+        ])
+            ->emptyStateHeading(__('pannelli-redazione.organizzatori.empty_heading'))
+            ->emptyStateDescription(__('pannelli-redazione.organizzatori.empty_description'))
+            ->recordActions([EditAction::make()]);
     }
 
     public static function getPages(): array

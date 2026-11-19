@@ -15,7 +15,7 @@
             <dl>
                 @foreach ($data['filter_labels'] as $key => $value)
                     @if (filled($value) && ! ($this instanceof \App\Filament\Shared\AnalyticsDetailPage && in_array($key, ['event', 'venue', 'organizer'])))
-                        <div><dt>{{ __('analytics-dashboard.'.$key) }}</dt><dd>{{ in_array($key, ['from', 'until']) ? \Carbon\CarbonImmutable::parse($value)->format('d/m/Y') : $value }}</dd></div>
+                        <div><dt>{{ __('analytics-dashboard.'.$key) }}</dt><dd>{{ in_array($key, ['from', 'until']) ? \App\Filament\Support\PanelDate::day($value) : $value }}</dd></div>
                     @endif
                 @endforeach
             </dl>
@@ -43,12 +43,9 @@
     </x-filament::section>
     <div wire:loading.delay class="ad-loading" role="status">{{ __('analytics-dashboard.loading') }}</div>
     @php $summaryKeys = ['views', 'interactions', 'short_shares', 'short_clicks', 'saves', 'bookings_confirmed']; @endphp
-    <x-filament::section :heading="__('panel.analytics.summary')" :description="__('analytics-dashboard.context', ['events' => $data['events']->count(), 'venues' => $data['venues']->count(), 'organizers' => $data['organizers']->count()])" icon="heroicon-o-presentation-chart-line">
-        <dl class="ad-summary" data-analytics-summary>
-            @foreach ($summaryKeys as $key)
-                <div><dt>{{ $metricLabel($key) }}</dt><dd>{{ number_format($totals[$key], 0, ',', '.') }}</dd></div>
-            @endforeach
-        </dl>
+    <x-filament::section :heading="__('pannelli-statistiche.summary.heading')" :description="__('analytics-dashboard.context', ['events' => $data['events']->count(), 'venues' => $data['venues']->count(), 'organizers' => $data['organizers']->count()])" icon="heroicon-o-presentation-chart-line">
+        <x-pannelli::stat-cards data-analytics-summary :label="__('pannelli-statistiche.summary.label')"
+            :items="collect($summaryKeys)->map(fn ($key) => ['key' => $key, 'label' => $metricLabel($key), 'value' => (int) $totals[$key], 'hint' => __('pannelli-statistiche.hints.'.$key)])->all()" />
         @if (collect($summaryKeys)->every(fn ($key) => (int) $totals[$key] === 0))
             <x-filament::empty-state :heading="__('panel.analytics.empty_title')" :description="__('panel.analytics.empty_body')" icon="heroicon-o-chart-bar" :contained="false" data-analytics-empty />
         @endif

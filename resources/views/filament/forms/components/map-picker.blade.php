@@ -5,6 +5,11 @@
     restano nel modulo e restano modificabili a mano. Chi trascina vede
     cambiare i numeri, chi scrive i numeri vede spostarsi il segnaposto: sono
     due viste sullo stesso dato, e nessuna delle due è la copia dell'altra.
+
+    Sotto la mappa una riga dice se il punto c'è e a quale indirizzo
+    corrisponde («Punto salvato: Via Roma 1, Padova»), oppure che manca. I
+    numeri delle coordinate si vedono solo se chi compone il modulo lo chiede
+    (`showCoordinates()`).
 --}}
 @php
     $lat = $getLatField();
@@ -15,6 +20,7 @@
     $prefisso = str($percorso)->beforeLast('.')->toString();
     $chiave = fn (string $campo): string => $prefisso === $percorso ? $campo : $prefisso.'.'.$campo;
     $citta = \App\Models\City::query()->orderBy('id')->first();
+    $mostraCoordinate = $shouldShowCoordinates();
 @endphp
 
 <x-dynamic-component :component="$getFieldWrapperView()" :field="$field">
@@ -40,11 +46,32 @@
     >
         <div x-ref="mappa" class="fi-map-picker-canvas"></div>
 
-        <p class="fi-map-picker-hint">
-            {{ __('admin.map.hint') }}
+        <p class="fi-map-picker-hint">{{ __('admin.map.hint') }}</p>
+
+        {{-- L'indirizzo si legge dai campi del modulo mentre si scrive:
+             `$wire` è reattivo, quindi la riga segue quello che c'è adesso. --}}
+        <p
+            class="fi-map-picker-status"
+            role="status"
+            x-data="{
+                get indirizzo() {
+                    return [@js($indirizzo ? $chiave($indirizzo) : null), @js($comune ? $chiave($comune) : null)]
+                        .filter((campo) => campo)
+                        .map((campo) => ($wire.get(campo) ?? '').toString().trim())
+                        .filter((valore) => valore !== '')
+                        .join(', ')
+                },
+            }"
+        >
             <span x-show="lat !== null" x-cloak>
-                — <span x-text="lat"></span>, <span x-text="lng"></span>
+                <x-filament::icon icon="heroicon-m-map-pin" class="fi-map-picker-status-icon" />
+                <span x-show="indirizzo !== ''">{{ __('pannelli.map.saved') }} <strong x-text="indirizzo"></strong></span>
+                <span x-show="indirizzo === ''">{{ __('pannelli.map.saved_no_address') }}</span>
+                @if ($mostraCoordinate)
+                    <span class="fi-map-picker-coordinates">(<span x-text="lat"></span>, <span x-text="lng"></span>)</span>
+                @endif
             </span>
+            <span x-show="lat === null" x-cloak>{{ __('pannelli.map.missing') }}</span>
         </p>
     </div>
 </x-dynamic-component>
