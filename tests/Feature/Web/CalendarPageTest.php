@@ -149,3 +149,32 @@ it('non stampa mai una chiave di traduzione grezza', function (): void {
 
     expect($html)->not->toMatch('/(calendar|map|search|feeds)\.[a-z_]+\.[a-z_]+/');
 });
+
+it('funziona senza Alpine, quindi con la CSP del sito', function (): void {
+    $city = testCity();
+    $category = testCategory();
+
+    freezeLocal($city, '2026-09-05 12:00:00');
+    occurrenceAtLocal($city, $category, '2026-09-12 21:00:00');
+
+    $html = (string) $this->get('/calendario')->assertOk()->getContent();
+
+    expect($html)->not->toContain('x-data', 'x-on:', 'x-show', 'x-bind', 'x-cloak', '@keydown')
+        ->toContain('data-month-calendar', 'data-calendar-keyboard', 'data-calendar-titles', 'aria-expanded="false"')
+        ->toContain('data-previous="'.route('calendar.month', ['month' => '2026-08']).'"')
+        ->toContain('data-next="'.route('calendar.month', ['month' => '2026-10']).'"');
+});
+
+it('è una tabella con una riga per settimana e oggi segnato', function (): void {
+    $city = testCity();
+    freezeLocal($city, '2026-09-05 12:00:00');
+
+    $html = (string) $this->get('/calendario')->assertOk()->getContent();
+    $dom = new DOMDocument;
+    @$dom->loadHTML($html);
+    $xpath = new DOMXPath($dom);
+
+    expect($xpath->query('//table[contains(@class, "month-calendar__table")]//thead//th')->length)->toBe(7)
+        ->and($xpath->query('//table[contains(@class, "month-calendar__table")]/tbody/tr')->length)->toBe(5)
+        ->and($xpath->query('//td[@aria-current="date"]')->length)->toBe(1);
+});

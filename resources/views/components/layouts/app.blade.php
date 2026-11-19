@@ -46,6 +46,13 @@
      * ma non ha senso chiederle insieme.
      */
     'narrow' => false,
+    /*
+     * Una pagina «di servizio» (area personale, moduli, biglietti, community,
+     * passaggi) usa la colonna unica da 48rem con il suo respiro sopra il
+     * titolo, e disegna testata e ritorno con il componente `service-page`: il layout
+     * non stampa più il proprio «← Il mio profilo» e ignora `narrow`.
+     */
+    'service' => false,
 ])
 
 @include('layouts.app', [
@@ -60,6 +67,7 @@
     'preload' => $preload,
     'wide' => $wide,
     'narrow' => $narrow,
+    'service' => $service,
     'head' => $head ?? '',
     'slot' => $slot,
 ])

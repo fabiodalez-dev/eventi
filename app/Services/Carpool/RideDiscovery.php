@@ -38,7 +38,7 @@ final class RideDiscovery
             ->when($filters['leg'] ?? null, fn ($q, $leg) => $q->where('leg', $leg))
             ->when($filters['zone'] ?? null, fn ($q, $zone) => $q->where(fn ($q) => $q->where('zone', 'like', '%'.addcslashes($zone, '%_\\').'%')->orWhere('stops', 'like', '%'.addcslashes($zone, '%_\\').'%')))
             ->when(($filters['accessibility'] ?? 'not_specified') !== 'not_specified', fn ($q) => $q->where('accessibility', $filters['accessibility']))
-            ->with(['driver.communityProfile', 'occurrence.event.city'])
+            ->with(['driver.communityProfile', 'occurrence.event.city', 'occurrence.event.media'])
             ->withSum(['requests as occupied_seats' => fn ($q) => $q->where('status', 'accepted')], 'seats')
             ->when(($filters['sort'] ?? 'departure') === 'recent', fn ($q) => $q->orderByDesc('id'), fn ($q) => $q->orderBy('departure_at')->orderBy('id'));
     }

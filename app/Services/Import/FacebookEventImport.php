@@ -8,6 +8,7 @@ use App\DTOs\ExternalLinkList;
 use App\Enums\PriceType;
 use App\Rules\RealImage;
 use App\Services\Http\BoundedStream;
+use App\Support\Description;
 use Carbon\CarbonImmutable;
 use GuzzleHttp\Handler\CurlHandler;
 use Illuminate\Contracts\Process\ProcessResult;
@@ -139,7 +140,9 @@ class FacebookEventImport
     public function formData(array $data, string $timezone): array
     {
         $fields = [
-            'description' => $data['description'],
+            // Il testo di Facebook arriva semplice, con gli a capo: nell'editor
+            // diventano paragrafi e `<br>`, altrimenti si leggerebbe tutto attaccato.
+            'description' => Description::fromPlainText($data['description']),
             'price_type' => PriceType::Unknown->value,
             'price_min' => null,
             'price_max' => null,

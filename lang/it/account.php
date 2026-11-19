@@ -84,6 +84,21 @@ return [
         'onboarding_lead' => 'Segui qualche locale o categoria: le loro prossime date compariranno qui.',
         'onboarding_venues' => 'I locali più attivi',
         'onboarding_categories' => 'Le categorie principali',
+        'manage_title' => 'Gestisci locali e categorie seguiti',
+        'manage_help' => 'Aggiungi o togli le fonti che vuoi con «Segui», poi aggiorna il feed.',
+        'venues_title' => 'Locali da seguire',
+        'venue_search' => 'Cerca un locale',
+        'search' => 'Cerca',
+        'all_venues' => 'Tutti i locali',
+        'no_venues' => 'Nessun locale trovato. Prova un altro nome.',
+        'venues_pagination' => 'Paginazione dei locali',
+        'categories_title' => 'Categorie da seguire',
+        'categories_pagination' => 'Paginazione delle categorie',
+        'refresh' => 'Aggiorna il feed',
+        'count' => '{1} Una data in arrivo|[2,*] :count date in arrivo',
+        'pagination' => 'Paginazione degli eventi del feed',
+        'empty_title' => 'Nessuna data nuova',
+        'empty_follows' => 'Non ci sono ancora nuove date dalle fonti che segui. Puoi aggiungere altri locali o categorie qui sopra.',
     ],
 
     'saved' => [
@@ -109,7 +124,7 @@ return [
         'title' => 'I miei salvataggi',
         'lead' => 'Le date che hai messo in agenda.',
         'empty_title' => 'Non hai ancora salvato nessuna data',
-        'empty_body' => 'Il cuore su ogni evento la mette qui, e prima che cominci ti avviso.',
+        'empty_body' => 'Tocca il segnalibro su un evento per metterlo qui: prima che cominci ti avviso.',
         'past' => 'Date passate',
         'show_past' => 'Mostra anche le date passate',
         'show_upcoming' => 'Mostra solo le prossime date',
@@ -121,6 +136,8 @@ return [
         'month_events' => 'Eventi salvati di :month',
         'no_events_in_month' => 'Non hai eventi salvati in questo mese.',
         'saved_on_day' => ':count evento salvato|:count eventi salvati',
+        'weekdays_short' => ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'],
+        'more_on_day' => '+:count',
     ],
 
     'register' => [
@@ -138,9 +155,9 @@ return [
         'done' => 'Account creato. Ti ho mandato un\'email per confermare l\'indirizzo.',
         /* La stessa pagina per un indirizzo nuovo e per uno già registrato
            (D64): la differenza sta solo nel messaggio che arriva. */
-        'sent' => 'Ti abbiamo scritto: apri il messaggio per entrare.',
+        'sent' => 'Ti ho scritto: apri il messaggio per entrare.',
         'sent_title' => 'Controlla la posta',
-        'sent_lead' => 'Ti abbiamo scritto all\'indirizzo che hai indicato: apri il messaggio per entrare. Il collegamento vale :minutes minuti e conferma anche l\'indirizzo.',
+        'sent_lead' => 'Ti ho scritto all\'indirizzo che hai indicato: apri il messaggio per entrare. Il collegamento vale :minutes minuti e conferma anche l\'indirizzo.',
         'sent_same_browser' => 'Aprilo da questo browser per entrare subito con la password che hai scelto.',
         'sent_help' => 'Non arriva? Controlla la posta indesiderata. Per farlo ripartire, ripeti la registrazione con lo stesso indirizzo e la stessa password.',
         'sent_again' => 'Ripeti la registrazione',
@@ -155,8 +172,7 @@ return [
         'submit' => 'Accedi',
         'no_account' => 'Non hai un account?',
         'failed' => 'Email o password non corrispondono.',
-        'claim_pending' => 'Prima conferma l\'indirizzo: ti abbiamo appena scritto un collegamento per entrare. Aprilo da questo browser e la tua password resterà valida.',
-        'claim_pending_panel' => 'Prima conferma l\'indirizzo: accedi una volta dal sito con questa password e apri il collegamento che ti scriviamo, oppure scegli una nuova password da «Password dimenticata».',
+        'claim_pending' => 'Prima conferma l\'indirizzo: ti ho appena scritto un collegamento per entrare. Aprilo da questo browser e la tua password resterà valida.',
         'done' => 'Bentornato.',
         'logged_out' => 'Sessione chiusa.',
     ],
@@ -203,7 +219,7 @@ return [
 
     'verify' => [
         'step' => 'Un ultimo passo',
-        'instructions' => 'Apri la mail che abbiamo inviato a questo indirizzo e premi il pulsante di conferma.',
+        'instructions' => 'Apri la mail che ti ho inviato a questo indirizzo e premi il pulsante di conferma.',
         'benefits' => 'Dopo la conferma puoi commentare, lasciare reazioni e ricevere promemoria. Nel frattempo puoi già salvare gli eventi.',
         'help' => 'Non trovi la mail? Controlla anche la cartella spam oppure richiedi un nuovo collegamento.',
         'explore' => 'Esplora gli eventi',
@@ -258,7 +274,95 @@ return [
         'delete_password_hint' => 'Se entri sempre con il collegamento via email, scegli prima una password da «Password dimenticata».',
         'delete_password_link' => 'Scegli o reimposta la password',
         'delete_submit' => 'Cancella il mio account',
+        'delete_open' => 'Voglio cancellare l’account',
         'deleted' => 'Account cancellato.',
+        'verify_hint' => 'Ti ho mandato un collegamento a :email. Finché non lo apri non posso mandarti promemoria e non puoi commentare.',
+        'details_hint' => 'Il nome resta privato: nel profilo pubblico compare quello che scegli lì.',
+        'manage_title' => 'Le tue aree di lavoro',
+        'manage_admin' => 'Redazione: eventi, locali, segnalazioni e statistiche.',
+        'manage_venue' => 'Le date, la pagina e le statistiche del tuo locale.',
+        'manage_organizers' => 'I miei organizzatori',
+        'manage_organizers_hint' => 'Gli eventi e le pagine degli organizzatori che gestisci.',
+        'manage_ticketing' => 'Prenotazioni, ingressi e controllo dei biglietti.',
+    ],
+
+    /*
+     * Il tema del sito: scuro, chiaro o come il sistema. «Come il sistema»
+     * nel profilo è `null` e segue il dispositivo anche quando cambia.
+     */
+    'appearance' => [
+        'legend' => 'Tema del sito',
+        'current' => [
+            'dark' => 'Scuro',
+            'light' => 'Chiaro',
+            'system' => 'Come il sistema',
+        ],
+        'options' => [
+            'dark' => ['label' => 'Scuro', 'description' => 'Nero e lime, riposante la sera.'],
+            'light' => ['label' => 'Chiaro', 'description' => 'Carta e terracotta, leggibile di giorno.'],
+            'system' => ['label' => 'Come il sistema', 'description' => 'Segue il tema del telefono o del computer, anche quando cambia.'],
+        ],
+        'help_user' => 'La scelta si salva nel tuo profilo e la ritrovi su tutti i dispositivi in cui accedi.',
+        'help_guest' => 'La scelta resta in questo browser. Accedi per ritrovarla anche sugli altri dispositivi.',
+        'noscript_user' => 'Seleziona un tema per salvarlo e applicarlo.',
+        'noscript_guest' => 'Attiva JavaScript per scegliere e ricordare il tema in questo browser.',
+        'saving' => 'Salvataggio…',
+        'saved' => 'Aspetto salvato.',
+        'saved_profile' => 'Aspetto salvato nel tuo profilo.',
+        'saved_browser' => 'Aspetto salvato in questo browser.',
+        'system_browser' => 'Il sito segue il tema del dispositivo.',
+        'not_stored' => 'Tema applicato. Il browser non consente di salvare la scelta.',
+        'failed' => 'Salvataggio non riuscito. Riprova; se la sessione è scaduta, accedi di nuovo.',
+    ],
+
+    /* «I miei interessi»: cosa compare negli elenchi. */
+    'content_preferences' => [
+        'title' => 'I miei interessi',
+        'lead' => 'Scegli cosa trovare in home, ricerca, mappe, suggerimenti e newsletter. Le scelte valgono anche nell’app e puoi cambiarle in qualsiasi momento.',
+        'mode_title' => 'Cosa vuoi vedere?',
+        'mode_help' => 'Le categorie nuove compaiono qui da sole. In modalità «Solo» vanno scelte per vederle: nessuna scelta significa nessun evento negli elenchi.',
+        'mode' => [
+            'all' => 'Tutto, tranne le categorie che nascondo',
+            'selected' => 'Solo le categorie che mi interessano',
+        ],
+        'categories_title' => 'Categorie',
+        'categories_help' => 'Per ogni categoria: nessuna preferenza, mi interessa oppure nascondi.',
+        'choice' => [
+            'neutral' => 'Nessuna preferenza',
+            'interested' => 'Mi interessa',
+            'hidden' => 'Nascondi',
+        ],
+        'ads_title' => 'Proposte sponsorizzate',
+        'ads_label' => 'Usa anche gli eventi salvati di recente per suggerirmi proposte sponsorizzate pertinenti.',
+        'ads_help' => 'Le scelte esplicite contano di più. Le categorie nascoste non compaiono neppure fra le proposte. Non uso i singoli clic per dedurre interessi.',
+        'newsletter_help' => 'Le newsletter usano le categorie che ti interessano e ciò che segui, mai le categorie nascoste. Biglietti, promemoria e salvataggi restano come sono, e un evento si apre sempre dal suo link diretto.',
+        'submit' => 'Salva i miei interessi',
+        'back_events' => 'Torna agli eventi',
+        'reset_title' => 'Ricomincia da capo',
+        'reset_help' => 'Torni a vedere tutte le categorie. I locali nascosti restano nascosti.',
+        'reset' => 'Ripristina tutte le categorie',
+    ],
+
+    /* I testi comuni dei moduli pubblici: proponi un evento, segnala un errore. */
+    'service_forms' => [
+        'event_title' => 'L’evento',
+        'place_title' => 'Dove',
+        'contact_title' => 'Come ricontattarti',
+        'report_title' => 'Cosa non torna',
+        'cancel' => 'Annulla',
+        'back_events' => 'Vai agli eventi',
+    ],
+
+    'google_calendar' => [
+        'categories' => 'Categorie',
+        'venue' => 'Locale',
+        'horizon' => 'Periodo',
+        'prices' => 'Prezzo',
+    ],
+
+    'polls' => [
+        'dates_title' => 'Le date proposte',
+        'login_hint' => 'Per segnare le date che ti vanno bene accedi o crea un account: chi ti ha mandato il link vedrà il tuo nome.',
     ],
 
     'mail' => [
@@ -318,7 +422,7 @@ return [
 
     'access_needs' => [
         'title' => 'Le mie esigenze di accessibilità',
-        'help' => 'Le applichiamo da sole agli elenchi degli eventi quando sei dentro. Puoi sempre scegliere «Mostra tutto» su una singola ricerca.',
+        'help' => 'Le applico da solo agli elenchi degli eventi quando hai fatto l’accesso. Puoi sempre scegliere «Mostra tutto» su una singola ricerca.',
         'banner' => 'Filtri del tuo profilo: :needs',
         'show_all' => 'Mostra tutto',
         'manage' => 'Cambia le esigenze',
@@ -330,5 +434,8 @@ return [
         'empty' => 'Qui compariranno le serate in cui il tuo biglietto è passato dal controllo ingressi.',
         'entries' => '{1} Un ingresso|[2,*] :count ingressi',
         'menu' => 'Le mie serate',
+        'empty_title' => 'Ancora nessuna serata',
+        'tickets' => 'I miei biglietti',
+        'count' => '{1} Una serata|[2,*] :count serate',
     ],
 ];

@@ -279,6 +279,23 @@ final class EventOccurrenceQuery
     }
 
     /**
+     * Le date che devono ancora cominciare, dalla più vicina: la prima è «il
+     * prossimo evento» della pagina iniziale. A differenza di `startingSoon()`
+     * non ha un limite di tre ore — di notte il prossimo può essere domani —
+     * e comprende i tutto esaurito e le date spostate, che restano serate vere.
+     */
+    public function startingNext(): self
+    {
+        $this->query
+            ->where('event_occurrences.starts_at', '>', $this->nowUtc())
+            ->whereIn('event_occurrences.status', [OccurrenceStatus::Scheduled->value, OccurrenceStatus::Moved->value, OccurrenceStatus::SoldOut->value]);
+
+        $this->ordering = OccurrenceOrdering::Chronological;
+
+        return $this;
+    }
+
+    /**
      * Intervallo di giornate evento, estremi compresi.
      */
     public function between(CarbonImmutable|DateTimeInterface|string $from, CarbonImmutable|DateTimeInterface|string $to): self

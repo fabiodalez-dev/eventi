@@ -7,6 +7,7 @@ namespace App\Filament\Admin\Pages;
 use App\Filament\Concerns\InteractsWithSocialStudio;
 use App\Models\Venue;
 use BackedEnum;
+use Filament\Actions\Action;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
 
@@ -33,5 +34,16 @@ class Social extends Page
     public function socialVenue(): ?Venue
     {
         return null;
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Action::make('settings')
+                ->label(__('social.settings'))
+                ->icon(Heroicon::OutlinedCog6Tooth)
+                ->color('gray')
+                ->url(SocialSettings::getUrl()),
+        ];
     }
 }

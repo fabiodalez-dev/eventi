@@ -5,6 +5,11 @@ declare(strict_types=1);
 namespace App\Filament\Organizer\Pages;
 
 use App\Filament\Shared\AnalyticsDetailPage;
+use App\Filament\Venue\Widgets\RecentViewsWidget;
+use App\Filament\Venue\Widgets\ShortcutsWidget;
+use App\Filament\Venue\Widgets\TodayScheduleWidget;
+use App\Filament\Venue\Widgets\UpcomingEventsWidget;
+use App\Filament\Venue\Widgets\VenueOverviewWidget;
 use App\Services\Analytics\ManagementAnalytics;
 use Filament\Panel;
 
@@ -24,6 +29,30 @@ class Dashboard extends AnalyticsDetailPage
     public function mount(?string $subjectType = null, ?int $subjectId = null): void
     {
         parent::mount('organizer', app(ManagementAnalytics::class)->subject()->id);
+    }
+
+    /**
+     * Gli stessi riquadri del pannello dei locali, sopra il report
+     * dell'organizzazione: il cartellone in tre numeri, le serate di oggi, i
+     * prossimi eventi con la locandina, le ultime visite e le scorciatoie.
+     *
+     * @return array<class-string>
+     */
+    protected function getHeaderWidgets(): array
+    {
+        return [
+            VenueOverviewWidget::class,
+            TodayScheduleWidget::class,
+            UpcomingEventsWidget::class,
+            RecentViewsWidget::class,
+            ShortcutsWidget::class,
+        ];
+    }
+
+    /** Una colonna: un riquadro per riga, a ogni larghezza. */
+    public function getHeaderWidgetsColumns(): int|array
+    {
+        return 1;
     }
 
     public static function getNavigationLabel(): string

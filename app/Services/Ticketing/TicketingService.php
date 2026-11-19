@@ -44,6 +44,60 @@ final class TicketingService
             ->map(fn ($total): int => (int) $total)->all();
     }
 
+    /**
+     * I numeri di una o più date in una sola query: per la testata della
+     * gestione, per le card del riepilogo e per l'app (`counts` nelle date
+     * di gestione). `confirmed` sono i posti occupati — biglietti validi più
+     * quelli già entrati, come li conta il limite dei posti — mentre gli altri
+     * stati sono i biglietti in quello stato. `capacity` è il tetto della data,
+     * `null` se non c'è.
+     *
+     * @param  iterable<EventOccurrence>  $dates
+     * @return array<int, array{confirmed: int, checked_in: int, waitlisted: int, cancelled: int, no_show: int, capacity: int|null}>
+     */
+    public function counts(iterable $dates): array
+    {
+        $dates = collect($dates)->keyBy('id');
+        if ($dates->isEmpty()) {
+            return [];
+        }
+        $rows = AdmissionTicket::query()->join('bookings', 'bookings.id', '=', 'admission_tickets.booking_id')
+            ->whereIn('bookings.occurrence_id', $dates->keys()->all())
+            ->selectRaw('bookings.occurrence_id as occurrence_id, admission_tickets.status as ticket_status, COUNT(*) as total')
+            ->groupBy('bookings.occurrence_id', 'admission_tickets.status')->toBase()->get();
+
+        $counts = [];
+        foreach ($dates as $id => $date) {
+            $counts[(int) $id] = ['confirmed' => 0, 'checked_in' => 0, 'waitlisted' => 0, 'cancelled' => 0, 'no_show' => 0, 'capacity' => $date->booking_capacity];
+        }
+        foreach ($rows as $row) {
+            $id = (int) $row->occurrence_id;
+            $total = (int) $row->total;
+            $status = AdmissionStatus::tryFrom((string) $row->ticket_status);
+            if ($status === AdmissionStatus::Valid || $status === AdmissionStatus::CheckedIn) {
+                $counts[$id]['confirmed'] += $total;
+            }
+            $key = match ($status) {
+                AdmissionStatus::CheckedIn => 'checked_in',
+                AdmissionStatus::Waitlisted => 'waitlisted',
+                AdmissionStatus::Cancelled => 'cancelled',
+                AdmissionStatus::NoShow => 'no_show',
+                default => null,
+            };
+            if ($key !== null) {
+                $counts[$id][$key] += $total;
+            }
+        }
+
+        return $counts;
+    }
+
+    /** Se la data è finita: dopo la fine (o l'inizio, se manca) non si prenota né si scrive più. */
+    public function hasEnded(EventOccurrence $date): bool
+    {
+        return now()->gte($date->effective_ends_at ?? $date->ends_at ?? $date->starts_at);
+    }
+
     /** @return array<string, mixed> */
     public function availability(EventOccurrence $date): array
     {

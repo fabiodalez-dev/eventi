@@ -22,6 +22,7 @@ use App\Http\Controllers\Web\Account\RegisterController;
 use App\Http\Controllers\Web\Account\SavedCalendarController;
 use App\Http\Controllers\Web\Account\SavedController;
 use App\Http\Controllers\Web\Account\SavedSearchController;
+use App\Http\Controllers\Web\Account\VenueApplicationsController;
 use App\Http\Controllers\Web\Account\VenueInvitationController;
 use App\Http\Controllers\Web\GoogleCalendarController;
 use App\Http\Controllers\Web\PresenceController;
@@ -30,6 +31,7 @@ use App\Http\Middleware\PersonalizeDiscovery;
 use App\Http\Middleware\RequireConfirmedAccount;
 use App\Http\Middleware\TicketingPrivacy;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\URL;
@@ -68,6 +70,25 @@ use Illuminate\Support\Facades\URL;
 Route::get('/salvataggi/pannello', [SavedController::class, 'panel'])
     ->middleware('throttle:60,1,saved-panel')
     ->name('account.saved.panel');
+
+/*
+ * Il login unico (§15.2): i pannelli non hanno più una pagina di accesso
+ * loro. I vecchi indirizzi — nei segnalibri, nelle email già spedite, nella
+ * memoria di chi li usava — rimandano a `/accedi` con il pannello come
+ * ritorno, e quelli del recupero della password alle pagine del sito,
+ * portandosi dietro gettone e indirizzo. Stanno fuori da `guest`: chi è già
+ * dentro passa da `/accedi`, che lo manda nel pannello se lo può aprire.
+ */
+foreach (['admin', 'gestione', 'organizza'] as $pannello) {
+    Route::get('/'.$pannello.'/login', static fn (): RedirectResponse => redirect()->route('login', ['intended' => url('/'.$pannello)]))
+        ->name('panel-login.'.$pannello);
+    Route::get('/'.$pannello.'/password-reset/request', static fn (): RedirectResponse => redirect()->route('account.password.request'))
+        ->name('panel-password-request.'.$pannello);
+    Route::get('/'.$pannello.'/password-reset/reset', static fn (Request $request): RedirectResponse => redirect()->route('account.password.reset', array_filter([
+        'token' => is_string($request->query('token')) ? $request->query('token') : null,
+        'email' => is_string($request->query('email')) ? $request->query('email') : null,
+    ])))->name('panel-password-reset.'.$pannello);
+}
 
 Route::get('/aspetto', [AppearanceController::class, 'index'])->name('appearance');
 Route::patch('/aspetto', [AppearanceController::class, 'update'])->middleware(['auth', 'throttle:60,1,appearance'])->name('appearance.update');
@@ -197,6 +218,26 @@ Route::middleware(['auth', BlockWhileImpersonating::class, 'throttle:30,1,venue-
     Route::post('/inviti-ingressi/{invitation}/{sent}', [CheckinStaffInvitationController::class, 'respond'])
         ->whereNumber(['invitation', 'sent'])
         ->name('checkin-staff-invitations.respond');
+});
+
+/*
+ * «Le mie richieste» (registrare o rivendicare un locale, registrare
+ * un'organizzazione). Fuori da `RequireConfirmedAccount` di proposito: chi ha
+ * appena mandato una richiesta da ospite ha un account con l'email ancora da
+ * confermare, e questa è proprio la pagina che gli dice di confermarla.
+ * Sola lettura: le azioni (conferma, ritiro) restano sulle rotte del modulo,
+ * con i loro limiti.
+ *
+ * L'immagine di una richiesta sta sul disco privato: la serve il controller
+ * solo a chi l'ha mandata e a chi può leggere le richieste (la redazione la
+ * vede dalla pagina della richiesta in admin).
+ */
+Route::middleware(['auth', 'throttle:60,1,account-applications'])->group(function (): void {
+    Route::get('/le-mie-richieste', [VenueApplicationsController::class, 'index'])->name('account.applications');
+    Route::get('/account/richieste', static fn (): RedirectResponse => redirect()->route('account.applications', status: 301));
+    Route::get('/richieste-locali/{application}/immagine', [VenueApplicationsController::class, 'image'])
+        ->whereNumber('application')
+        ->name('venue-applications.image');
 });
 
 /*

@@ -88,7 +88,7 @@ it('reaches old comments and paginates replies with stable permalinks', function
     }
     $this->get($this->comment->permalink())->assertOk()->assertSee('id="commento-'.$this->comment->id.'"', false)->assertDontSee('Risposta numero 22');
     $this->get($reply->permalink())->assertOk()->assertSee('Risposta numero 22')->assertDontSee('Risposta numero 1<', false);
-    $this->get(route('events.show', ['slug' => $this->event->slug, 'commenti' => 2]))->assertOk()->assertSee(__('comments.thread'))->assertDontSee('Risposta numero 4');
+    $this->get(route('events.show', ['slug' => $this->event->slug, 'commenti' => 2]))->assertOk()->assertSee(trans_choice('comments.more_replies_count', 19, ['count' => 19]))->assertDontSee('Risposta numero 4');
 });
 it('does not deliver to unverified recipients', function () {
     $this->author->forceFill(['email_verified_at' => null])->save();
@@ -207,6 +207,30 @@ it('conta i commenti dell’evento anche aprendo il permalink di una conversazio
     expect($elenco['commentsTotal'])->toBe(5)
         ->and($conversazione['commentsTotal'])->toBe(5)
         ->and($conversazione['commentThread'])->toBe($this->comment->id);
+});
+
+it('carica le prime risposte di ciascun commento, non le prime tre della pagina', function (): void {
+    /*
+     * Il limite delle prime tre risposte era applicato al builder grezzo e
+     * non alla relazione: valeva per tutta la pagina. Un commento con una
+     * risposta ne mostrava zero se un altro ne aveva già consumate tre.
+     */
+    $azione = app(PostComment::class);
+    $secondo = $azione->handle($this->event, $this->other, 'Secondo capostipite');
+    foreach ([$this->comment, $secondo] as $capostipite) {
+        foreach (['Prima risposta', 'Seconda risposta'] as $testo) {
+            $azione->handle($this->event, User::factory()->create(), $testo, $capostipite);
+        }
+    }
+    $azione->handle($this->event, User::factory()->create(), 'Terza risposta', $secondo);
+    $azione->handle($this->event, User::factory()->create(), 'Quarta risposta', $secondo);
+
+    $elenco = app(EventCommentQuery::class)->listing($this->event, null, 1, null, null);
+    $risposte = $elenco['comments']->mapWithKeys(fn (EventComment $commento): array => [$commento->id => $commento->replies->count()]);
+
+    expect($risposte[$this->comment->id])->toBe(2)
+        ->and($risposte[$secondo->id])->toBe(3)
+        ->and($elenco['comments']->firstWhere('id', $secondo->id)->replies_count)->toBe(4);
 });
 
 it('rifiuta un parametro di pagina storto senza far sparire la scheda', function (string $query): void {

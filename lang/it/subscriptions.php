@@ -40,7 +40,7 @@ return [
     'alerts' => 'Vuoi anche un avviso?',
     'alerts_help' => 'Con un account puoi scegliere categorie e locali e ricevere riepiloghi via email o sul dispositivo. Scaricare un calendario non attiva nessuna notifica e non iscrive a una newsletter.',
     'interests' => 'Cosa vuoi seguire',
-    'interests_help' => 'Ricevi eventi delle categorie oppure dei locali selezionati. Le stesse scelte alimentano il tuo feed. Senza scelte non invieremo riepiloghi personalizzati.',
+    'interests_help' => 'Ricevi eventi delle categorie oppure dei locali selezionati. Le stesse scelte alimentano il tuo feed. Senza scelte non ti mando riepiloghi personalizzati.',
     'categories' => 'Categorie', 'venues' => 'Locali',
     'delivery' => 'Dove ricevere gli avvisi',
     'delivery_options' => ['auto' => 'Automatico: dispositivo, altrimenti email', 'mail' => 'Solo email', 'push' => 'Solo dispositivo e archivio in app', 'both' => 'Email e dispositivo', 'database' => 'Solo archivio in app'],

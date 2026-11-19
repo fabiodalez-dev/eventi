@@ -18,6 +18,7 @@ use App\Models\User;
 use App\Models\Venue;
 use App\Queries\EventOccurrenceQuery;
 use App\Services\Api\OccurrenceFeed;
+use App\Services\Calendar\MonthCalendar;
 use App\Services\RememberedLocation;
 use App\Services\Sponsorship\SponsorshipSelector;
 use App\Support\Api\ApiContext;
@@ -56,6 +57,20 @@ final class HomeController extends Controller
                 ->orderByDistance(),
         ];
 
+        /*
+         * «Il prossimo evento» e «a seguire» della pagina iniziale del sito
+         * (accanto al calendario): fra gli interessi di chi è collegato, se ne
+         * ha e se fra quelli c'è qualcosa in programma; altrimenti la città.
+         */
+        $nextMode = 'city';
+        if ($user !== null && app(MonthCalendar::class)->interests($user) !== null
+            && EventOccurrenceQuery::for($city)->followedBy($user, includeContentPreferences: true)->startingNext()->count() > 0) {
+            $queries['next'] = EventOccurrenceQuery::for($city)->followedBy($user, includeContentPreferences: true)->startingNext();
+            $nextMode = 'personal';
+        } else {
+            $queries['next'] = EventOccurrenceQuery::for($city)->startingNext();
+        }
+
         $sections = [];
 
         /*
@@ -65,7 +80,7 @@ final class HomeController extends Controller
          * anonima.
          */
         foreach ($queries as $name => $query) {
-            $items = $query->onePerEvent()->take($size)->values();
+            $items = $query->onePerEvent()->take($name === 'next' ? 5 : $size)->values();
             $this->feed->hydrate($items, $request->includes());
             $context = ApiContext::forOccurrences($city, $request->includes(), $user, $this->feed->ids($items));
             $sections[$name] = $items
@@ -76,6 +91,7 @@ final class HomeController extends Controller
         return ApiResponse::item([
             'city' => (string) $city->slug,
             'sections' => $sections,
+            'next_mode' => $nextMode,
             'sponsorships' => [
                 'hero' => $this->sponsorship($city, SponsorshipPlacement::HomeHero, $user),
                 'card' => $this->sponsorship($city, SponsorshipPlacement::HomeCard, $user),

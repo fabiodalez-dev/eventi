@@ -16,4 +16,16 @@ class ListOrders extends ListRecords
     {
         return [];
     }
+
+    /** Il titolo com'e' scritto nei testi, non con le iniziali maiuscole che Filament aggiunge da solo. */
+    public function getTitle(): string
+    {
+        return __('promotions.orders.title');
+    }
+
+    /** @return array<string, string> */
+    public function getBreadcrumbs(): array
+    {
+        return [];
+    }
 }

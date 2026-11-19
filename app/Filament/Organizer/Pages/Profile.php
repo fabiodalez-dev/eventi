@@ -5,10 +5,12 @@ namespace App\Filament\Organizer\Pages;
 use App\Filament\Support\ContactFields;
 use App\Filament\Support\DescriptionEditor;
 use App\Models\Organizer;
+use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Concerns\InteractsWithSchemas;
 use Filament\Schemas\Contracts\HasSchemas;
 use Filament\Schemas\Schema;
@@ -19,8 +21,6 @@ class Profile extends Page implements HasSchemas
 {
     use InteractsWithSchemas;
 
-    protected static ?string $title = 'Profilo pubblico';
-
     protected static string|\BackedEnum|null $navigationIcon = Heroicon::OutlinedUserGroup;
 
     protected static ?int $navigationSort = 3;
@@ -29,6 +29,21 @@ class Profile extends Page implements HasSchemas
 
     /** @var array<string, mixed> */
     public array $data = [];
+
+    public function getTitle(): string
+    {
+        return __('panel.organizer_profile.title');
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('panel.organizer_profile.title');
+    }
+
+    public function getSubheading(): ?string
+    {
+        return __('panel.organizer_profile.lead');
+    }
 
     public static function canAccess(): bool
     {
@@ -53,16 +68,39 @@ class Profile extends Page implements HasSchemas
     public function form(Schema $schema): Schema
     {
         return $schema->columns(1)->statePath('data')->components([
-            DescriptionEditor::make('description')->label('Presentazione')->maxLength(20000),
-            TextInput::make('website')->label('Sito web')->url()->maxLength(2048),
+            Section::make(__('panel.organizer_profile.presentation'))
+                ->description(__('panel.organizer_profile.presentation_hint'))
+                ->icon('heroicon-o-document-text')
+                ->schema([
+                    DescriptionEditor::make('description')->label(__('panel.organizer_profile.description'))->maxLength(20000),
+                ]),
+            Section::make(__('panel.organizer_profile.contacts'))
+                ->description(__('panel.organizer_profile.contacts_hint'))
+                ->icon('heroicon-o-at-symbol')
+                ->columns(1)
+                ->schema([
+                    TextInput::make('website')->label(__('panel.organizer_profile.website'))->url()->maxLength(2048),
+                    TextInput::make('email')->label(__('panel.organizer_profile.email'))->email()->maxLength(255),
+                ]),
             ContactFields::make(fn (): Organizer => $this->organizer()),
-            TextInput::make('email')->label('Email pubblica')->email()->maxLength(255),
         ]);
     }
 
     public function save(): void
     {
         $this->organizer()->update($this->form->getState());
-        Notification::make()->success()->title('Profilo aggiornato')->send();
+        Notification::make()->success()->title(__('panel.organizer_profile.saved'))->send();
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Action::make('public')
+                ->label(__('panel.organizer_profile.view_public'))
+                ->icon('heroicon-o-arrow-top-right-on-square')
+                ->color('gray')
+                ->url(fn (): string => route('organizers.show', $this->organizer()->slug))
+                ->openUrlInNewTab(),
+        ];
     }
 }

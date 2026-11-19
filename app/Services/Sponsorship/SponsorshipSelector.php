@@ -10,6 +10,7 @@ use App\Models\City;
 use App\Models\Sponsorship;
 use App\Models\User;
 use App\Queries\EventOccurrenceQuery;
+use App\Services\Account\ContentPreferences;
 use App\Services\Search\EventFinder;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
@@ -84,6 +85,22 @@ final class SponsorshipSelector
                 ->forEvents($candidate->pluck('event_id')->unique()->values()->all())
                 ->promotable()->eventIds();
             $candidate = $candidate->whereIn('event_id', $eligibleIds)->values();
+        }
+
+        /* Anche la card comprata della pagina iniziale segue le preferenze di
+           chi guarda: un evento di una categoria o di un locale che ha nascosto
+           non gli compare, nemmeno a pagamento. Solo quando ne ha, così la
+           pagina degli anonimi resta identica. */
+        if ($placement === SponsorshipPlacement::HomeCard && $candidate->isNotEmpty()) {
+            $preferences = app(ContentPreferences::class);
+            $viewer = $preferences->discoveryUser();
+
+            if ($preferences->hidden($viewer) !== [] || $preferences->hiddenVenues($viewer) !== []) {
+                $visibleIds = EventOccurrenceQuery::for($city)
+                    ->forEvents($candidate->pluck('event_id')->unique()->values()->all())
+                    ->upcoming()->eventIds();
+                $candidate = $candidate->whereIn('event_id', $visibleIds)->values();
+            }
         }
 
         $grantEventIds = $candidate->whereNotNull('sponsorship_grant_id')->pluck('event_id')->unique()->values()->all();

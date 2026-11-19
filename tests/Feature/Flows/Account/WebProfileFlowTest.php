@@ -220,8 +220,12 @@ it('sceglie l aspetto chiaro dal sito, lo ritrova alla richiesta dopo e nell app
 
     $this->get('/aspetto')->assertOk()->assertSee('data-theme="light"', false);
 
-    $this->patchJson('/aspetto', ['appearance' => 'system'])->assertUnprocessable();
+    $this->patchJson('/aspetto', ['appearance' => 'sepia'])->assertUnprocessable();
     expect($user->fresh()->appearance)->toBe('light');
+
+    /* «Come il sistema» è una scelta vera: salva null. */
+    $this->patchJson('/aspetto', ['appearance' => 'system'])->assertOk();
+    expect($user->fresh()->appearance)->toBeNull();
 
     $this->patchJson('/aspetto', ['appearance' => 'dark'])
         ->assertOk()

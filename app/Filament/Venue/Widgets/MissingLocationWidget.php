@@ -33,6 +33,9 @@ class MissingLocationWidget extends Widget
 {
     protected static ?int $sort = 0;
 
+    /* Piccoli e in cima alla pagina: si disegnano subito, senza una richiesta in più per riquadro. */
+    protected static bool $isLazy = false;
+
     protected int|string|array $columnSpan = 'full';
 
     protected string $view = 'filament.venue.widgets.missing-location';

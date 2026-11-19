@@ -42,6 +42,8 @@ return [
     'different' => ':attribute e :other devono essere diversi.',
     'digits' => ':attribute deve essere di :digits cifre.',
     'digits_between' => ':attribute deve avere fra :min e :max cifre.',
+    'dimensions' => ':attribute ha dimensioni non ammesse.',
+    'distinct' => ':attribute contiene un valore ripetuto.',
     'email' => ':attribute non è un indirizzo email valido.',
     'ends_with' => ':attribute deve terminare con uno di questi valori: :values.',
     'exists' => ':attribute selezionato non è valido.',

@@ -87,7 +87,7 @@ it('manda chi non è autenticato all\'accesso della redazione', function (): voi
     $target = actor(UserRole::User);
 
     $this->get(URL::signedRoute('impersonate.start', ['user' => $target->getKey()]))
-        ->assertRedirect('/admin/login');
+        ->assertRedirect(route('login'));
 
-    $this->post(route('impersonate.stop'))->assertRedirect('/admin/login');
+    $this->post(route('impersonate.stop'))->assertRedirect(route('login'));
 });

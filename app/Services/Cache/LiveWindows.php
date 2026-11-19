@@ -6,7 +6,10 @@ namespace App\Services\Cache;
 
 use App\Models\City;
 use App\Models\EventOccurrence;
+use App\Models\User;
 use App\Queries\EventOccurrenceQuery;
+use App\Services\Account\ContentPreferences;
+use App\Services\Calendar\MonthCalendar;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Cache;
 
@@ -43,6 +46,10 @@ final class LiveWindows
 
     public const STARTING_SOON = 'inizia-tra-poco';
 
+    public const NEXT = 'il-prossimo';
+
+    public const NEXT_PERSONAL = 'il-prossimo-per-te';
+
     /**
      * @return Collection<int, EventOccurrence>
      */
@@ -60,6 +67,33 @@ final class LiveWindows
     }
 
     /**
+     * Il prossimo evento che comincia, per la pagina iniziale accanto al
+     * calendario. Per chi è collegato e ha scelto o segue qualcosa è il
+     * prossimo fra i suoi interessi (le stesse regole del calendario
+     * personale); se fra quelli non c'è niente in programma, o se non ha
+     * interessi, è il prossimo della città — sempre senza le categorie e i
+     * locali che ha nascosto.
+     *
+     * Restituisce il primo e quelli che seguono («a seguire»), fino a `$limit`.
+     *
+     * @return array{occurrences: Collection<int, EventOccurrence>, personal: bool}|null
+     */
+    public function next(City $city, ?User $user, int $limit = 5): ?array
+    {
+        if ($user !== null && app(MonthCalendar::class)->interests($user) !== null) {
+            $personal = $this->window($city, self::NEXT_PERSONAL, $limit, $user);
+
+            if ($personal->isNotEmpty()) {
+                return ['occurrences' => $personal, 'personal' => true];
+            }
+        }
+
+        $occurrences = $this->window($city, self::NEXT, $limit);
+
+        return $occurrences->isEmpty() ? null : ['occurrences' => $occurrences, 'personal' => false];
+    }
+
+    /**
      * La chiave di una finestra: città, nome della finestra e **istante
      * arrotondato al quarto d'ora**.
      */
@@ -73,20 +107,41 @@ final class LiveWindows
     }
 
     /**
+     * Le finestre si leggono con le preferenze di chi guarda (le categorie e i
+     * locali nascosti tolgono date), quindi la chiave le deve contenere: senza,
+     * la prima persona collegata che apriva la pagina in un quarto d'ora
+     * decideva cosa vedevano tutti gli altri, e chi aveva nascosto una
+     * categoria se la ritrovava dalla copia di un altro. Chi non ha preferenze
+     * condivide la voce della città; la finestra personale è di una persona
+     * sola.
+     *
      * @return Collection<int, EventOccurrence>
      */
-    private function window(City $city, string $window, int $limit): Collection
+    private function window(City $city, string $window, int $limit, ?User $personal = null): Collection
     {
+        $preferences = app(ContentPreferences::class);
+        $viewer = $preferences->discoveryUser();
+        $hidden = [$preferences->hidden($viewer), $preferences->hiddenVenues($viewer)];
+        $suffix = $personal !== null
+            ? ':u'.$personal->getKey()
+            : ($hidden === [[], []] ? '' : ':p'.substr(sha1((string) json_encode($hidden)), 0, 16));
+
         /** @var list<int> $ids */
         $ids = Cache::remember(
-            self::key($city, $window).':'.$limit,
+            self::key($city, $window).':'.$limit.$suffix,
             now()->addSeconds(config()->integer('page_cache.live_ttl_seconds')),
-            function () use ($city, $window, $limit): array {
+            function () use ($city, $window, $limit, $personal): array {
                 $query = EventOccurrenceQuery::for($city);
 
-                $occurrences = $window === self::ONGOING
-                    ? $query->ongoing()->take($limit)
-                    : $query->startingSoon()->take($limit);
+                $occurrences = match ($window) {
+                    self::ONGOING => $query->ongoing()->take($limit),
+                    self::STARTING_SOON => $query->startingSoon()->take($limit),
+                    self::NEXT_PERSONAL => $personal === null
+                        ? new Collection
+                        : $query->followedBy($personal, includeContentPreferences: true)->startingNext()->take($limit * 4)->unique('event_id')->take($limit),
+                    // Una data per evento: un corso settimanale non deve riempire «a seguire».
+                    default => $query->startingNext()->take($limit * 4)->unique('event_id')->take($limit),
+                };
 
                 return array_map(
                     static fn (EventOccurrence $occurrence): int => (int) $occurrence->getKey(),
@@ -115,6 +170,7 @@ final class LiveWindows
 
         $occurrences = EventOccurrence::query()
             ->whereKey($ids)
+            ->limit(count($ids))
             ->withCount('interestedUsers as interested_count')
             ->with(['event.venue', 'event.category', 'event.media'])
             ->get()

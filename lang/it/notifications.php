@@ -85,7 +85,7 @@ return [
 
     'venue_rejected' => [
         'subject' => 'La richiesta per :venue non è stata accolta',
-        'line' => 'Abbiamo esaminato la scheda di :venue e non possiamo pubblicarla così com\'è.',
+        'line' => 'Ho esaminato la scheda di :venue e non posso pubblicarla così com\'è.',
         'why' => 'Se pensi che ci sia un errore, rispondi a questa email: la leggiamo.',
     ],
 
@@ -108,7 +108,7 @@ return [
         'heading' => ':title è stato annullato',
         'line' => 'La data del :when non si terrà.',
         'note' => 'Il locale ha aggiunto: :note',
-        'why' => 'Ti avvisiamo perché avevi questa data in agenda: gli annullamenti arrivano sempre.',
+        'why' => 'Ti avviso perché avevi questa data in agenda: gli annullamenti arrivano sempre.',
     ],
 
     'moved' => [
@@ -116,7 +116,7 @@ return [
         'heading' => ':title cambia orario',
         'previous' => 'Era in programma :when.',
         'line' => 'Ora comincia :when.',
-        'why' => 'Ti avvisiamo perché avevi questa data in agenda: gli spostamenti arrivano sempre.',
+        'why' => 'Ti avviso perché avevi questa data in agenda: gli spostamenti arrivano sempre.',
     ],
 
     'sold_out' => [
@@ -199,6 +199,17 @@ return [
         'account' => 'Hai un account: dal profilo puoi cambiare anche fuso orario, lingua e ore di silenzio.',
         'signed_only' => 'Da questo collegamento puoi solo ridurre ciò che ricevi. Per attivare una notifica, togliere le ore di silenzio o iscriverti alla newsletter serve l’accesso.',
         'signed_only_login' => 'Accedi',
+        'interests_hint' => 'Le categorie e i locali da cui ricevere riepiloghi, e le ricerche salvate.',
+        'delivery_title' => 'Come ricevere gli avvisi',
+        'what_title' => 'Cosa ricevere',
+        'daily_digest_time' => 'A che ora arriva il riepilogo giornaliero',
+        'tonight_title' => 'La proposta della sera',
+        'newsletter_title' => 'Newsletter',
+    ],
+
+    'interests' => [
+        'selected' => '{0} Nessuna scelta|{1} Una scelta|[2,*] :count scelte',
+        'delivery_hint' => 'Email, dispositivo o archivio in app.',
     ],
 
     /*
@@ -213,7 +224,7 @@ return [
      */
     'push' => [
         'title' => 'Notifiche sul dispositivo',
-        'lead' => 'Attiva questo dispositivo e scegli il canale di consegna qui sopra. In modalità automatica usiamo le email se non hai dispositivi attivi negli ultimi 30 giorni.',
+        'lead' => 'Attiva questo dispositivo e scegli il canale di consegna qui sopra. In modalità automatica uso le email se non hai dispositivi attivi negli ultimi 30 giorni.',
         'toggle' => 'Attiva le notifiche su questo dispositivo',
         'ios' => 'Su iPhone e iPad funzionano solo se aggiungi il sito alla schermata Home.',
         'unavailable' => 'Le notifiche web su questo dispositivo non sono attualmente disponibili. Puoi scegliere Email come canale di consegna.',
@@ -226,6 +237,17 @@ return [
         'enabled' => 'Notifiche attivate su questo dispositivo.',
         'disabled' => 'Notifiche disattivate su questo dispositivo.',
         'unauthenticated' => 'Sessione scaduta: accedi di nuovo.',
+        'reset' => 'Riattiva / reimposta questo browser',
+        'test' => 'Mostra notifica di prova',
+        'test_help' => 'La prova verifica la visualizzazione su questo dispositivo. Gli avvisi automatici rispettano i canali e gli orari salvati qui sopra.',
+        'help_title' => 'Come reimpostare i permessi',
+        'help_steps' => [
+            'Chrome, Edge o Firefox: apri l’icona accanto all’indirizzo del sito, poi Permessi o Impostazioni sito → Notifiche. Scegli Consenti oppure reimposta il permesso.',
+            'Safari su Mac: Safari → Impostazioni → Siti web → Notifiche, quindi consenti inCittà.',
+            'Su iPhone e iPad: aggiungi inCittà alla schermata Home e aprila da lì. Controlla anche Impostazioni → Notifiche → inCittà.',
+            'Torna qui e premi «Riattiva / reimposta questo browser».',
+        ],
+        'help_note' => 'Per proteggere la tua scelta, il sito non può cancellare un rifiuto imposto dal browser. Il comando rinnova soltanto l’iscrizione di questo browser.',
     ],
 
     'unsubscribed' => [
@@ -233,6 +255,7 @@ return [
         'body' => 'Non riceverai più: :type.',
         'mandatory' => 'Questa tipologia non si può disattivare: riguarda le date che hai salvato tu.',
         'undo' => 'Cambia le altre preferenze',
+        'home' => 'Vai agli eventi',
     ],
 
 ];

@@ -122,3 +122,47 @@ it('uses the theme accent in the home photo feature', function (string $theme): 
     $accent = $theme === 'inDarkMode' ? 'rgb(204, 255, 0)' : 'rgb(255, 193, 151)';
     expect($page->script('() => getComputedStyle(document.querySelector(".home-poster-feature .bg-accent")).backgroundColor'))->toBe($accent);
 })->with(['inLightMode', 'inDarkMode']);
+
+/*
+ * Le tre viste degli elenchi sul telefono (pacchetto `home`): card a tutta
+ * riga, griglia a due colonne, elenco compatto con la locandina a sinistra. La
+ * scelta resta dopo il ricaricamento e sopra i 640 px non cambia niente.
+ */
+it('switches between the three mobile list layouts without overflow', function (string $theme, int $width): void {
+    Http::fake(['*' => Http::response([], 503)]);
+    $city = testCity();
+    freezeLocal($city, '2026-09-13 12:00');
+    $category = testCategory();
+    foreach (['Jazz', 'Un concerto con un titolo molto lungo per verificare tutte le righe della card', 'Musica in piazza', 'Una serata insieme'] as $title) {
+        occurrenceAtLocal($city, $category, '2026-09-13 21:00', event: ['title' => $title, 'price_type' => 'free']);
+    }
+
+    $page = visit('/eventi')->{$theme}()->resize($width, 844);
+    $page->script('document.querySelector("[data-consent-banner]")?.remove()');
+
+    $columns = '() => { const cards=[...document.querySelectorAll(".event-grid > .event-card")]; return new Set(cards.map(c => Math.round(c.getBoundingClientRect().left))).size; }';
+    $fits = '() => document.documentElement.scrollWidth <= innerWidth';
+
+    expect($page->script($columns))->toBe(1)->and($page->script($fits))->toBeTrue();
+
+    $page->click('[data-card-layout-option="grid"]');
+    expect($page->script('document.documentElement.dataset.cardLayout'))->toBe('grid')
+        ->and($page->script('document.querySelector("[data-card-layout-option=grid]").getAttribute("aria-checked")'))->toBe('true')
+        ->and($page->script($columns))->toBe(2)
+        ->and($page->script($fits))->toBeTrue();
+
+    $page->click('[data-card-layout-option="list"]');
+    expect($page->script($columns))->toBe(1)
+        ->and($page->script('() => { const card=document.querySelector(".event-grid > .event-card"); const poster=card.querySelector("[data-catalog-poster]").getBoundingClientRect(); const title=card.querySelector(".event-card__title").getBoundingClientRect(); return poster.right <= title.left && poster.width < 120; }'))->toBeTrue()
+        ->and($page->script($fits))->toBeTrue();
+
+    /* Ricaricare nella stessa scheda: una `visit()` nuova apre un browser con
+       la memoria vuota, dove la scelta non può esserci. */
+    $page->navigate('/eventi');
+    expect($page->script('document.documentElement.dataset.cardLayout'))->toBe('list')
+        ->and($page->script('document.querySelector("[data-card-layout-option=list]").getAttribute("aria-checked")'))->toBe('true');
+
+    $page->resize(1280, 900);
+    expect($page->script('getComputedStyle(document.querySelector("[data-card-layout-toggle]")).display'))->toBe('none')
+        ->and($page->script('() => { const cards=[...document.querySelectorAll(".event-grid > .event-card")]; return cards[0].querySelector("[data-catalog-poster]").getBoundingClientRect().width > 150; }'))->toBeTrue();
+})->with(['inLightMode', 'inDarkMode'])->with([375, 390]);

@@ -250,6 +250,70 @@
     </section>
 
     {{-- ------------------------------------------------------------------
+         Il calendario del mese, subito sotto l'apertura: quanti eventi ci
+         sono ogni giorno, e ogni giorno con eventi porta alla sua lista. Per
+         chi è collegato segue i suoi interessi (`HomeController::calendar`).
+         Una colonna sola, larga al massimo 760 px: è una cosa da leggere a
+         colpo d'occhio, non un tabellone. Senza date nel mese non c'è.
+    ------------------------------------------------------------------- --}}
+    @if (($calendar ?? null) !== null)
+        <section class="home-calendar border-b-2 border-line px-gutter py-[clamp(1.5rem,3vw,2.75rem)]" aria-labelledby="home-calendar-title" data-home-calendar data-calendar-mode="{{ $calendar['mode'] }}">
+            {{-- Da desktop due colonne: il calendario a filo del margine
+                 sinistro, il prossimo evento a destra; da telefono uno sotto
+                 l'altro. Il prossimo evento è un buco della cache di pagina
+                 (`CachePage`), perché cambia di minuto in minuto. --}}
+            <div class="home-calendar__grid grid items-start gap-8 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] lg:gap-x-[clamp(2rem,4vw,4rem)] lg:gap-y-8">
+                <div class="home-calendar__inner flex flex-col gap-4 lg:col-start-1 lg:row-start-1">
+                    <div class="flex flex-wrap items-end justify-between gap-x-5 gap-y-3">
+                        {{-- Non `section-head`: il tema chiaro mette numero e
+                             occhiello delle sezioni numerate sulla riga del
+                             titolo, e qui un numero non c'è. --}}
+                        <div class="home-calendar__head flex flex-col gap-2">
+                            <span class="home-calendar__eyebrow font-display text-[0.625rem] leading-none font-extrabold tracking-[0.18em] text-accent uppercase">{{ __('calendar.home.eyebrow.'.$calendar['mode']) }}</span>
+                            <h2 id="home-calendar-title" class="m-0 font-display text-[clamp(1.625rem,3vw,2.5rem)] leading-[0.94] font-extrabold tracking-[-0.04em] uppercase">
+                                {{ $calendar['label'] }}
+                            </h2>
+                            <p class="m-0 text-sm text-ink-muted">
+                                {{ trans_choice('calendar.home.total.'.($calendar['mode'] === 'personal' ? 'personal' : 'city'), $calendar['total'], ['count' => $calendar['total']]) }}
+                            </p>
+                        </div>
+
+                        <a href="{{ route('calendar.index') }}" class="section-more inline-flex items-center gap-2 border-b-2 border-accent pb-[5px] font-display text-[0.688rem] leading-none font-extrabold tracking-[0.14em] uppercase transition-colors hover:text-accent">
+                            {{ __('calendar.home.open') }}
+                            <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="square"><path d="M5 12h14M13 5l7 7-7 7"></path></svg>
+                        </a>
+                    </div>
+
+                    <x-month-calendar :cells="$calendar['cells']" :label="$calendar['label']" :compact="true" />
+
+                    @if (in_array($calendar['mode'], ['fallback', 'filtered'], true))
+                        <p class="home-calendar__hint m-0 text-sm text-ink-muted">
+                            {{ __('calendar.home.hint.'.$calendar['mode']) }}
+                            <a class="font-semibold text-brand underline underline-offset-2" href="{{ route('account.content-preferences') }}">{{ __('calendar.home.preferences') }}</a>
+                        </p>
+                    @endif
+                </div>
+
+                {{-- A destra occupa le due righe: il calendario e, sotto, la
+                     richiesta a chi organizza. --}}
+                <div class="lg:col-start-2 lg:row-span-2 lg:row-start-1">
+                    <!-- page-cache-home-next:start --><x-home-next-event /><!-- page-cache-home-next:end -->
+                </div>
+
+                <div class="lg:col-start-1 lg:row-start-2">
+                    <x-home-organize />
+                </div>
+            </div>
+        </section>
+    @elseif ($city !== null)
+        {{-- Senza date nel mese il calendario non c'è, ma la richiesta a chi
+             organizza resta: è proprio quando il catalogo è vuoto che serve. --}}
+        <section class="border-b-2 border-line px-gutter py-[clamp(1.5rem,3vw,2.75rem)]">
+            <x-home-organize />
+        </section>
+    @endif
+
+    {{-- ------------------------------------------------------------------
          La fascia dei numeri: dice se il catalogo regge, prima ancora di
          scorrere. Sono le misure di §1 del piano.
     ------------------------------------------------------------------- --}}
@@ -290,7 +354,7 @@
         </section>
     @endif
 
-    <section class="home-tonight border-y-2 border-line px-6 py-10 sm:px-12">
+    <section class="home-tonight border-y-2 border-line px-gutter py-12">
         <div class="flex flex-col justify-between gap-6 sm:flex-row sm:items-center">
             <div><h2 class="font-display text-3xl font-extrabold">{{ __('tonight.banner_title') }}</h2><p class="mt-3 text-ink-muted">{{ __('tonight.banner_help') }}</p></div>
             <a class="ui-action inline-flex min-h-14 items-center justify-center bg-brand px-8 py-4 font-bold text-on-brand" href="{{ route('tonight.wizard') }}">{{ __('tonight.find') }} →</a>
@@ -329,9 +393,16 @@
                 </a>
             </div>
 
+            {{-- Il selettore della vista sul telefono sta sopra la prima
+                 griglia numerata; le griglie della pagina non lo ristampano. --}}
+            @once
+                <x-card-layout-toggle class="px-gutter pb-3" :force="true" />
+            @endonce
+
             <x-event-grid
                 :occurrences="$sections[$sezione['key']]"
                 :context="$sezione['context']"
+                :toggle="false"
                 class="border-t-2 border-line"
             />
         </section>
@@ -370,6 +441,4 @@
             <x-button :href="route('feeds.wizard')" class="min-h-12">{{ __('subscriptions.create_calendar') }}</x-button>
         </div>
     </section>
-
-    <x-home-organize />
 </x-layouts.app>

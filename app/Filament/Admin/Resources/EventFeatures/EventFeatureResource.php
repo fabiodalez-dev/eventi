@@ -27,6 +27,9 @@ class EventFeatureResource extends Resource
 {
     use HasSentenceCaseNavigationLabel;
 
+    /** Titoli e briciole in italiano: «Commenti agli eventi», non «Commenti Agli Eventi». */
+    protected static bool $hasTitleCaseModelLabel = false;
+
     protected static ?string $model = EventFeature::class;
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-information-circle';
@@ -55,7 +58,7 @@ class EventFeatureResource extends Resource
             TextInput::make('name')->label('Nome visibile')->required()->maxLength(120),
             Select::make('group')->label('Gruppo')->options(array_combine($groups = ['Accessibilità', 'Ingresso', 'Pubblico', 'Servizi', 'Mobilità', 'Regole', 'Informazioni'], $groups))->required()->default('Informazioni'),
             Select::make('icon')->label('Icona')->options(PracticalIcons::previews())->allowHtml()->searchable()->required()->default('check-circle')->rules([Rule::in(array_keys(PracticalIcons::options()))]),
-            Textarea::make('description')->label('Spiegazione breve')->helperText('Appare sotto il nome in tutti gli eventi che selezionano questa voce.')->maxLength(500)->rows(2),
+            Textarea::make('description')->label('Spiegazione breve')->helperText('Appare sotto il nome in tutti gli eventi che selezionano questa voce.')->maxLength(500)->rows(2)->columnSpanFull(),
             TextInput::make('sort_order')->label('Ordine')->numeric()->integer()->minValue(0)->default(0),
             Toggle::make('is_active')->label('Disponibile')->default(true)->disabled(fn (?Model $record): bool => $record instanceof EventFeature && $record->is_system)->dehydrated(fn (?Model $record): bool => ! ($record instanceof EventFeature && $record->is_system)),
         ];
@@ -63,7 +66,9 @@ class EventFeatureResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
-        return $schema->components([Section::make('Caratteristica riutilizzabile')->description('Le voci di sistema (tessera e accessibilità) si attivano dal dato dell’evento. Le altre si scelgono come tag.')->columns(2)->schema(self::fields())]);
+        /* Una colonna sola: la sezione occupa tutta la pagina invece di
+           metà, con il vuoto accanto. */
+        return $schema->columns(1)->components([Section::make('Caratteristica riutilizzabile')->description('Le voci di sistema (tessera e accessibilità) si attivano dal dato dell’evento. Le altre si scelgono come tag.')->columns(['default' => 1, 'lg' => 2])->columnSpanFull()->schema(self::fields())]);
     }
 
     public static function table(Table $table): Table

@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 use App\Enums\ImageType;
 use App\Exceptions\ImportException;
-use App\Filament\Auth\Login;
-use App\Filament\Auth\RequestPasswordReset;
 use App\Models\ImportSource;
 use App\Models\MobileAuthChallenge;
 use App\Models\Redirect;
@@ -20,14 +18,11 @@ use App\Services\Import\IcsImportDriver;
 use App\Services\Import\ImportUrlGuard;
 use App\Services\Media\ImageSafety;
 use Database\Seeders\RolesAndPermissionsSeeder;
-use Filament\Facades\Filament;
-use Filament\Notifications\Notification;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Validator;
-use Livewire\Livewire;
 use Minishlink\WebPush\Subscription;
 use Spatie\Activitylog\Models\Activity;
 use Tests\Support\ImageFixtures;
@@ -141,19 +136,20 @@ it('logs an actual failed API login without retaining the submitted password', f
     expect($entry->subject_id)->toBe($user->id)->and($entry->properties->toJson())->not->toContain('wrong-secret');
 });
 
-it('gives the same reset notification for known and unknown accounts in every panel', function (string $panel): void {
-    (new RolesAndPermissionsSeeder)->run();
-    Illuminate\Support\Facades\Notification::fake();
-    Filament::setCurrentPanel(Filament::getPanel($panel));
+it('sends the old panel reset pages to the site and answers known and unknown accounts the same way', function (string $path): void {
+    Notification::fake();
     $user = User::factory()->create();
-    $user->assignRole('super_admin');
+
+    $this->get('/'.$path.'/password-reset/request')->assertRedirect(route('account.password.request'));
+
+    $answers = [];
     foreach ([$user->email, 'absent@example.test'] as $email) {
-        Livewire::test(RequestPasswordReset::class)
-            ->fillForm(['email' => $email])->call('request')
-            ->assertNotified(Notification::make()->title(__(Password::RESET_LINK_SENT))
-                ->body(__('filament-panels::auth/pages/password-reset/request-password-reset.notifications.sent.body'))->success());
+        $response = $this->post(route('account.password.email'), ['email' => $email])->assertRedirect(route('account.password.request'));
+        $answers[] = $response->getSession()->get('status');
     }
-})->with(['admin', 'venue', 'organizer']);
+
+    expect($answers[0])->toBe(__('account.forgot.sent'))->and($answers[1])->toBe($answers[0]);
+})->with(['admin', 'gestione', 'organizza']);
 
 it('caps API registrations and reactivations without leaving unbounded revoked rows', function (): void {
     config()->set('account.max_devices_per_user', 3);
@@ -208,17 +204,23 @@ it('blocks external destinations already stored in redirects', function (): void
     $this->get('/old-security-page')->assertNotFound()->assertHeaderMissing('Location');
 });
 
-it('throttles panel login attempts on the account across changing IPs', function (): void {
+it('throttles staff login attempts on the account across changing IPs from the single login', function (): void {
     (new RolesAndPermissionsSeeder)->run();
-    Filament::setCurrentPanel(Filament::getPanel('admin'));
     config()->set('api.rate_limit.attempts_per_account', 2);
     $user = User::factory()->create();
-    foreach (['192.0.2.1', '192.0.2.2', '192.0.2.3'] as $ip) {
-        $this->withServerVariables(['REMOTE_ADDR' => $ip]);
-        Livewire::test(Login::class)->fillForm(['email' => $user->email, 'password' => 'wrong'])
-            ->call('authenticate')->assertHasErrors(['data.email']);
+    $user->assignRole('admin');
+    foreach (['192.0.2.1', '192.0.2.2'] as $ip) {
+        $this->withServerVariables(['REMOTE_ADDR' => $ip])
+            ->post(route('account.login.store'), ['email' => $user->email, 'password' => 'wrong'])
+            ->assertSessionHasErrors('email');
     }
-    expect(Activity::query()->where('description', 'accesso.limitato')->count())->toBe(1);
+    $this->withServerVariables(['REMOTE_ADDR' => '192.0.2.3'])
+        ->post(route('account.login.store'), ['email' => $user->email, 'password' => 'wrong'])
+        ->assertRedirect(route('login'))
+        ->assertHeader('Retry-After')
+        ->assertSessionHasErrors('form');
+    expect(Activity::query()->where('description', 'accesso_bloccato')->count())->toBe(1);
+    $this->assertGuest();
 });
 
 it('does not raise a decoder resource limit configured as zero by the host', function (): void {

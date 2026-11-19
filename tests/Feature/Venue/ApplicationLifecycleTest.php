@@ -12,9 +12,11 @@ use App\Models\User;
 use App\Models\Venue;
 use App\Models\VenueApplication;
 use App\Notifications\VenueAccessGranted;
+use App\Notifications\VenueApplicationApproved;
 use App\Services\Geo\AddressGeocoder;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Dalla richiesta al locale, in un gesto solo.
@@ -64,9 +66,48 @@ beforeEach(function (): void {
 it('crea il locale con i dati della richiesta', function (): void {
     $locale = app(ApproveVenueApplication::class)->handle($this->richiesta, $this->moderatore);
 
+    /* Email e telefono del referente sono suoi, non del locale: sulla scheda
+       pubblica non finiscono mai. */
     expect($locale->name)->toBe('Circolo Arci Prova')
         ->and($locale->address)->toBe('Via delle Prove 1')
-        ->and($locale->email)->toBe('anna@example.test');
+        ->and($locale->email)->toBeNull()
+        ->and($locale->phone)->toBeNull();
+});
+
+it('porta sulla scheda i dati pubblici scritti nella richiesta, sito compreso', function (): void {
+    $this->richiesta->forceFill([
+        'socials' => ['website' => 'https://circolo.example'],
+        'venue_data' => [
+            'website' => 'https://circolo.example',
+            'public_email' => 'info@circolo.example',
+            'public_phone' => '049 111222',
+            'postal_code' => '35121',
+            'municipality' => 'Padova',
+            'capacity' => 120,
+            'description' => 'Un circolo con il cortile.',
+            'instagram' => 'https://instagram.com/circolo',
+        ],
+    ])->save();
+
+    $locale = app(ApproveVenueApplication::class)->handle($this->richiesta, $this->moderatore);
+
+    expect($locale->website)->toBe('https://circolo.example')
+        ->and($locale->email)->toBe('info@circolo.example')
+        ->and($locale->email)->not->toBe($this->richiesta->contact_email)
+        ->and($locale->phone)->toBe('049 111222')
+        ->and($locale->postal_code)->toBe('35121')
+        ->and($locale->municipality)->toBe('Padova')
+        ->and($locale->capacity)->toBe(120)
+        ->and($locale->socials)->toBe(['instagram' => 'https://instagram.com/circolo'])
+        ->and($locale->status)->toBe(VenueStatus::Draft);
+});
+
+it('non approva una richiesta che aspetta ancora la conferma dell email', function (): void {
+    $this->richiesta->forceFill(['email_confirmed_at' => null])->save();
+
+    expect(fn () => app(ApproveVenueApplication::class)->handle($this->richiesta->fresh(), $this->moderatore))
+        ->toThrow(ValidationException::class)
+        ->and(Venue::query()->count())->toBe(0);
 });
 
 it('lo lascia in bozza, perche accettare non e pubblicare', function (): void {
@@ -116,6 +157,8 @@ it('fa entrare subito chi ha mandato la richiesta da collegato con la sua casell
     app(ApproveVenueApplication::class)->handle($this->richiesta, $this->moderatore);
 
     expect($anna->venues()->wherePivot('role', VenueRole::Owner->value)->exists())->toBeTrue();
+    Notification::assertSentTo($anna, VenueApplicationApproved::class);
+    Notification::assertNotSentTo($anna, VenueAccessGranted::class);
 });
 
 it('lega la richiesta al locale che ne e nato', function (): void {

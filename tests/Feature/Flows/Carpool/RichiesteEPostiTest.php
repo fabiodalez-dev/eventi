@@ -52,7 +52,8 @@ it('il passeggero richiede dal sito, il conducente vede la richiesta e la accett
         ->assertJsonPath('data.requests.0.status', 'pending')->assertJsonPath('data.requests.0.can_decide', true);
     $this->get(route('carpool.request', $ride))->assertOk();
 
-    $this->post(route('carpool.action', 'accept'), ['request_key' => (string) Str::uuid(), 'request_id' => $ride->id])->assertRedirect(route('carpool.request', $ride));
+    // Dopo la scelta il conducente resta sull'offerta, dove sono le altre richieste da gestire.
+    $this->post(route('carpool.action', 'accept'), ['request_key' => (string) Str::uuid(), 'request_id' => $ride->id])->assertRedirect(route('carpool.offer', $offer));
 
     $ride->refresh();
     $chat = RideConversation::where('ride_request_id', $ride->id)->firstOrFail();
@@ -68,7 +69,8 @@ it('il passeggero richiede dal sito, il conducente vede la richiesta e la accett
     flussoCpWeb($this, $this->passenger);
     $this->getJson(route('carpool.index').'?tab=requested')->assertOk()->assertJsonCount(1, 'data.requests')
         ->assertJsonPath('data.requests.0.status', 'accepted')->assertJsonPath('data.requests.0.chat_id', $chat->id);
-    $this->get(route('carpool.index'))->assertOk();
+    // Senza una scheda scelta si apre «Cerco», l'unica con qualcosa: la richiesta accettata, non l'elenco vuoto.
+    $this->get(route('carpool.index'))->assertOk()->assertSee('data-request-item', false)->assertDontSee(__('carpool.web.empty.offered.title'));
 });
 
 it('il conducente rifiuta: il passeggero è avvisato, non nasce chat e non può insistere sulla stessa offerta', function (): void {
@@ -218,7 +220,8 @@ it('requisiti mancanti bloccano richiesta, offerta e ricerca finché la persona 
 
     flussoCpWeb($this, $newcomer);
     $this->getJson(route('carpool.dates', $this->date))->assertJsonPath('data.access.reason', 'adult')->assertJsonPath('data.offers', []);
-    $this->get(route('carpool.dates', $this->date))->assertOk()->assertDontSee('Prato della Valle');
+    // Nessun passaggio in elenco: «Prato della Valle» può essere anche il nome della sede, che ora compare nella riga evento.
+    $this->get(route('carpool.dates', $this->date))->assertOk()->assertDontSee('data-offer-row', false);
     cpAction($this, $newcomer, 'request', ['offer_id' => $offer->id, 'revision' => 1, 'seats' => 1])->assertForbidden();
     cpAction($this, $newcomer, 'offer', ['occurrence_id' => $this->date->id, 'leg' => 'return', 'zone' => 'Centro', 'departure_at' => '2026-10-10T23:00:00Z',
         'capacity' => 2, 'accessibility' => 'not_specified', 'driver_declaration' => true])->assertForbidden();

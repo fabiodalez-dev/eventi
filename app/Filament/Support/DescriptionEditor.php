@@ -11,7 +11,7 @@ final class DescriptionEditor
 {
     public static function make(string $name = 'description'): RichEditor
     {
-        return RichEditor::make($name)
+        return DescriptionRichEditor::make($name)
             ->fileAttachments(false)
             ->toolbarButtons([['bold', 'italic', 'underline', 'strike', 'link'], ['h2', 'h3', 'blockquote', 'bulletList', 'orderedList'], ['undo', 'redo']])
             ->formatStateUsing(fn (?string $state): string => (string) Description::render($state))

@@ -30,9 +30,28 @@ return [
         'today_hint' => 'Date in programma nella giornata di oggi.',
         'upcoming' => 'Prossimi',
         'upcoming_hint' => 'Date da oggi in avanti.',
-        'views' => 'Visualizzazioni',
-        'views_hint' => 'Negli ultimi :days giorni.',
         'today_schedule' => 'In programma oggi',
+        'today_schedule_description' => 'Le serate di oggi, con quello che serve a portata di mano.',
+        'drafts' => 'Bozze',
+        'drafts_hint' => 'Eventi da completare o pubblicare.',
+        'summary' => 'Il tuo cartellone',
+        'summary_description' => 'Quante serate hai oggi, quante in arrivo e cosa resta da pubblicare.',
+        'upcoming_heading' => 'Prossimi eventi',
+        'upcoming_description' => 'Le prossime date in cartellone. Tocca un evento per modificarlo, vederne le statistiche, preparare le grafiche o sponsorizzarlo.',
+        'upcoming_empty' => 'Nessuna data in arrivo',
+        'upcoming_empty_body' => 'Crea un evento: bastano titolo, data, categoria e prezzo, il resto si aggiunge quando vuoi.',
+        'all_events' => 'Tutti i tuoi eventi',
+        'recent_views' => 'Ultime visite',
+        'recent_views_description' => 'Le schede più aperte negli ultimi :days giorni.',
+        'views_count' => '{1} :count visita|[2,*] :count visite',
+        'open_statistics' => 'Apri le statistiche',
+        'shortcuts' => 'Vai a',
+        'shortcuts_description' => 'Tutte le pagine del pannello, a un tocco.',
+        'group_events' => 'Eventi',
+        'group_audience' => 'Pubblico e numeri',
+        'group_venue' => 'Il tuo locale',
+        'group_organizer' => 'La tua organizzazione',
+        'event_actions' => 'Azioni per :title',
     ],
 
     'resources' => [
@@ -136,7 +155,7 @@ return [
 
     'hints' => [
         'poster' => 'La locandina è la prima cosa che si vede. Va bene anche la foto scattata al volantino.',
-        'ends_at' => 'Solo se la sai. Altrimenti la calcoliamo dalla categoria.',
+        'ends_at' => 'Solo se la sai. Altrimenti la durata si calcola dalla categoria.',
         'tags' => 'Facoltativi: aiutano a farti trovare da chi cerca un genere preciso.',
         'price_max' => 'Solo se il prezzo cambia (per esempio in prevendita e alla porta).',
         'ticket_url' => 'Dove si comprano i biglietti online, se ci sono.',
@@ -148,10 +167,10 @@ return [
         'ticket_tiers' => 'Vale per tutte le date di questo evento. Puoi segnare esaurito un solo settore: la serata resta in vendita.',
         'tier_price' => 'Vuoto se il prezzo non c\'è ancora. Zero vuol dire ingresso libero.',
         'occurrence_capacity' => 'Solo se questa sera i posti sono diversi dal solito.',
-        'occurrence_capacity_left' => 'Quanti ne restano: lo mostriamo sulla card.',
+        'occurrence_capacity_left' => 'Quanti ne restano: il numero compare sulla card.',
         'occurrence_highlight' => 'Due parole in evidenza: «Ultimi posti», «Nuova data».',
         'zone' => 'Il quartiere. In città la gente cerca così, il comune è lo stesso per tutti.',
-        'venue_name' => 'Il nome lo cambia la redazione: scrivici se è sbagliato.',
+        'venue_name' => 'Il nome lo cambia la redazione: scrivimi se è sbagliato.',
         'capacity' => 'Quante persone entrano. Serve a dire quanti posti restano su una serata.',
     ],
 
@@ -184,9 +203,9 @@ return [
         'add_ticket_tier' => 'Aggiungi una fascia',
         'add_opening_hours' => 'Aggiungi un orario',
         'sold_out_next' => 'Tutto esaurito',
-        'sold_out_next_confirm' => 'Segniamo esaurita la prossima data: :date. Puoi rimetterla in vendita quando vuoi.',
+        'sold_out_next_confirm' => 'La prossima data, :date, diventa esaurita. Puoi rimetterla in vendita quando vuoi.',
         'available_next' => 'Ci sono ancora posti',
-        'available_next_confirm' => 'Rimettiamo in vendita la prossima data: :date.',
+        'available_next_confirm' => 'La prossima data, :date, torna in vendita.',
         'save_venue' => 'Salva',
     ],
 
@@ -210,18 +229,7 @@ return [
 
     'wizard' => [
         'title' => 'Nuovo evento',
-        'shortcuts' => 'Scorciatoie',
         'finish' => 'Pubblica',
-        'step_poster' => 'Locandina',
-        'step_poster_hint' => 'La foto e il nome della serata.',
-        'step_when' => 'Quando',
-        'step_when_hint' => 'Giorno e ora.',
-        'step_category' => 'Genere',
-        'step_category_hint' => 'Serve a farti trovare.',
-        'step_price' => 'Prezzo',
-        'step_price_hint' => 'Anche solo "gratis".',
-        'step_details' => 'Dettagli',
-        'step_details_hint' => 'Facoltativi: puoi pubblicare senza.',
     ],
 
     'shortcuts' => [
@@ -233,14 +241,14 @@ return [
 
     'recurrence' => [
         'toggle' => 'Si ripete',
-        'toggle_hint' => 'Per le serate fisse: la creiamo una volta e la mettiamo in calendario per tutte le date.',
+        'toggle_hint' => 'Per le serate fisse: la crei una volta e va in calendario per tutte le date.',
         'heading' => 'Ripeti questo evento',
-        'description' => 'Le date le mettiamo in calendario noi, fino alla data che indichi.',
+        'description' => 'Le date vanno in calendario da sole, fino al giorno che indichi.',
         'current' => 'Adesso si ripete :rule. Puoi cambiare la regola qui sotto.',
         'submit' => 'Metti in calendario',
         'frequency' => 'Ogni quanto',
         'weekdays' => 'In quali giorni',
-        'weekdays_hint' => 'Se non scegli nulla, usiamo il giorno della prima data.',
+        'weekdays_hint' => 'Se non scegli nulla, vale il giorno della prima data.',
         'until' => 'Fino al',
         'until_hint' => 'Lascia vuoto per andare avanti a tempo indeterminato.',
         'summary' => ':frequency il :days',
@@ -263,7 +271,7 @@ return [
         'invite_description' => 'Riceverà un’email con il collegamento per entrare. Potrà gestire gli eventi, non i dati del locale.',
         'invite_submit' => 'Manda l’invito',
         'invited' => 'Invito inviato',
-        'invited_body' => 'Abbiamo scritto a :email.',
+        'invited_body' => 'L’invito è partito verso :email.',
         'invite_limit' => 'Hai mandato molti inviti di seguito. Riprova più tardi.',
         'already_member' => 'Questa persona è già fra chi gestisce il locale.',
         'remove' => 'Rimuovi',
@@ -338,7 +346,7 @@ return [
         'published' => 'Evento pubblicato',
         'published_body' => 'È online: chi cerca cosa fare in città lo vede.',
         'sent_to_review' => 'Evento inviato alla redazione',
-        'sent_to_review_body' => 'Lo controlliamo e lo pubblichiamo noi. Ti avvisiamo appena è online.',
+        'sent_to_review_body' => 'La redazione lo controlla e lo pubblica: ti arriva un avviso appena è online.',
         'duplicated' => 'Copia creata',
         'duplicated_body' => 'Cambia data e ora, poi pubblica.',
         'dates_created' => 'Aggiunta :count data|Aggiunte :count date',
@@ -358,7 +366,7 @@ return [
             'heading' => 'Indirizzo del calendario',
             'help' => 'Serve il collegamento in formato iCal (finisce per .ics). In Google Calendar lo trovi in Impostazioni del calendario, sezione «Integra calendario»: usa l\'indirizzo pubblico se il calendario e pubblico, altrimenti l\'indirizzo segreto in formato iCal.',
             'url' => 'Collegamento al calendario',
-            'url_help' => 'Incolla qui l\'indirizzo. Lo leggiamo ogni ora e teniamo aggiornate le tue date.',
+            'url_help' => 'Incolla qui l\'indirizzo. Viene letto ogni ora e le tue date restano aggiornate.',
             'exclude' => 'Parole che tengono fuori una data',
             'exclude_help' => 'Le date il cui titolo contiene una di queste parole non vengono pubblicate. Servono a lasciare fuori le voci interne del tuo calendario, come le riunioni o le chiusure.',
             'exclude_placeholder' => 'Aggiungi una parola',
@@ -424,5 +432,100 @@ return [
         'add' => 'Aggiungi una chiusura', 'from' => 'Dal', 'to' => 'Al (compreso)', 'note' => 'Nota per il pubblico', 'note_placeholder' => 'Per esempio: ferie estive',
         'warning' => 'Il locale risulta chiuso quel giorno',
         'warning_body' => 'Chiusura dal :from al :to:note. Puoi salvare lo stesso, ma controlla la data o le chiusure del locale.',
+    ],
+
+    /*
+     * L'elenco degli eventi in `/gestione` e `/organizza`: una card per
+     * evento, con la locandina, la data che conta e lo stato in italiano.
+     */
+    /*
+     * Il modulo rapido dell'evento: un blocco essenziale, tutto il resto in
+     * sezioni facoltative chiuse.
+     */
+    'quick' => [
+        'essentials' => 'L’essenziale',
+        'essentials_hint' => 'Bastano questi campi per pubblicare. Tutto il resto è facoltativo e si aggiunge anche dopo.',
+        'edit_essentials_hint' => 'Le date si cambiano più in basso, nella sezione «Date».',
+        'when' => 'Quando',
+        'facebook' => 'Hai già l’evento su Facebook?',
+        'facebook_hint' => 'Incolla il link: titolo, data, locandina e descrizione si compilano da soli, poi controlli e pubblichi.',
+        'more' => 'Altri dettagli',
+        'more_hint' => 'Orario di fine, tag, biglietti online e link: facoltativi.',
+        'where' => 'Si tiene altrove?',
+        'publishing' => 'Pubblicazione',
+        'preview' => 'Anteprima',
+        'preview_hint' => 'Così compare negli elenchi del sito.',
+        'preview_untitled' => 'Titolo dell’evento',
+        'preview_no_date' => 'Scegli giorno e ora',
+        'preview_free' => 'Ingresso libero',
+        'save_draft' => 'Salva come bozza',
+        'draft_saved' => 'Bozza salvata',
+        'draft_saved_body' => 'La trovi fra le bozze dei tuoi eventi. Per pubblicarla completa data e categoria e premi «Pubblica».',
+        'draft_needs_title' => 'Scrivi almeno il titolo per salvare la bozza.',
+        'tickets_hint' => 'Prenotazioni e biglietti di inCittà per le singole date.',
+        'other_sections_hint' => 'Facoltativo: aprilo solo se ti serve.',
+    ],
+
+    /*
+     * I collegamenti di un evento verso le altre pagine del pannello: dalla
+     * scheda, dalla riga dell'elenco e dal riepilogo.
+     */
+    'event_links' => [
+        'edit' => 'Modifica',
+        'view' => 'Apri la scheda',
+        'statistics' => 'Statistiche',
+        'social' => 'Grafiche social',
+        'sponsor' => 'Sponsorizza',
+        'tickets' => 'Biglietteria',
+        'site' => 'Vedi sul sito',
+        'heading' => 'Cosa puoi fare',
+    ],
+
+    'event_list' => [
+        'next' => 'Prossima data: :date',
+        'last' => 'Ultima data: :date',
+        'past' => 'Passato',
+        'venue' => 'Locale principale',
+        'timing' => 'Quali eventi',
+        'all' => 'Tutti',
+        'upcoming' => 'Prossimi',
+        'past_plural' => 'Passati',
+        'drafts' => 'Bozze',
+        'more_actions' => 'Altre azioni',
+        'empty' => 'Nessun evento da mostrare',
+    ],
+
+    /*
+     * La scheda di un evento nel pannello, in sola lettura: card impilate a
+     * tutta larghezza, una per argomento.
+     */
+    'event_view' => [
+        'hint' => 'Questa è la scheda in sola lettura. Per cambiare testi, locandina o una singola serata usa «Modifica».',
+        'poster_alt' => 'Locandina di :title',
+        'no_poster' => 'Nessuna locandina',
+        'next_date' => 'Prossima data',
+        'last_date' => 'Ultima data',
+        'no_dates' => 'Ancora nessuna data',
+        'statistics' => 'Statistiche',
+        'info' => 'Informazioni',
+        'info_description' => 'Quello che si legge sulla scheda pubblica.',
+        'tags' => 'Tag',
+        'price_range' => 'Prezzo',
+        'price_from_to' => 'da :min a :max €',
+        'price_from' => 'da :min €',
+        'price_up_to' => 'fino a :max €',
+        'description' => 'Descrizione',
+        'no_description' => 'La descrizione è vuota: aggiungila da «Modifica», è la prima cosa che legge chi apre la scheda.',
+        'dates' => 'Serate',
+        'dates_description' => '{0} Nessuna serata inserita.|{1} Una serata.|[2,*] :count serate.',
+        'upcoming_dates' => 'In programma',
+        'past_dates' => 'Già passate',
+        'past_date' => 'Passata',
+        'ends' => 'fino alle :time',
+        'ends_other_day' => 'fino al :date',
+        'doors' => 'Porte alle :time',
+        'capacity' => 'Posti liberi: :left su :total',
+        'capacity_total' => 'Capienza: :total',
+        'lineup' => 'Programma: :names',
     ],
 ];

@@ -31,7 +31,7 @@ final class AttendedController extends Controller
         $dates = EventOccurrence::withTrashed()
             ->whereHas('bookings', fn (Builder $booking) => $booking->where('user_id', $user->getKey())->whereHas('tickets', $attended))
             ->where('starts_at', '<', now())
-            ->with(['event' => fn ($event) => $event->withTrashed()->with(['venue', 'organizer']), 'venue'])
+            ->with(['event' => fn ($event) => $event->withTrashed()->with(['venue', 'organizer', 'media']), 'venue'])
             ->withCount(['bookings as checked_in' => fn (Builder $booking) => $booking->where('user_id', $user->getKey())
                 ->join('admission_tickets', 'admission_tickets.booking_id', '=', 'bookings.id')
                 ->where('admission_tickets.status', AdmissionStatus::CheckedIn->value)])

@@ -8,6 +8,7 @@ use App\Models\Venue;
 use App\Services\Community\Community;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Laravel\Sanctum\Sanctum;
 
 /**
  * Il modulo del profilo pubblico: quanto lavoro chiede, e quando lo dice.
@@ -229,4 +230,44 @@ it('non mostra la foto di un profilo che chi guarda non può vedere', function (
 
     $this->actingAs($this->user->fresh())->get(route('community.followers', ['tab' => 'followers']))
         ->assertOk()->assertDontSee($nascosto, false)->assertSee(__('community.member'));
+});
+
+/*
+ * Il nome utente si salva in minuscolo, dal sito e dall'app.
+ *
+ * Il telefono mette da solo la maiuscola alla prima lettera: «Admin_Recon»
+ * finiva contro la regola delle sole minuscole e tornava indietro con un
+ * errore. È lo stesso nome di «admin_recon», e così viene salvato.
+ */
+it('salva in minuscolo un nome utente scritto con le maiuscole', function (): void {
+    $this->actingAs($this->user)->post(route('community.settings.update'), [
+        'handle' => '  Admin_Recon ', 'display_name' => 'Chiara', 'visibility' => ProfileVisibility::Public->value,
+    ])->assertRedirect()->assertSessionHasNoErrors();
+
+    expect($this->user->fresh()->communityProfile->handle)->toBe('admin_recon');
+});
+
+it('salva in minuscolo il nome utente anche dall\'app', function (): void {
+    Sanctum::actingAs($this->user);
+
+    $this->postJson('/api/v1/community/profile', ['handle' => 'Chiara_App', 'display_name' => 'Chiara', 'visibility' => ProfileVisibility::Public->value])
+        ->assertOk()->assertJsonPath('data.handle', 'chiara_app');
+});
+
+it('dice una volta sola, e in italiano, che un nome utente non va', function (): void {
+    $this->actingAs($this->user)->from(route('community.settings'))->post(route('community.settings.update'), [
+        'handle' => 'nome con spazi', 'display_name' => 'Chiara', 'visibility' => ProfileVisibility::Public->value,
+    ])->assertRedirect(route('community.settings'));
+
+    $html = $this->actingAs($this->user)->get(route('community.settings'))->assertOk()->getContent();
+    expect(substr_count($html, e(__('community.handle_format'))))->toBe(1)
+        ->and($html)->not->toContain('validation.');
+});
+
+it('mette la foto in cima al modulo, fuori dalle voci facoltative', function (): void {
+    $html = $this->actingAs($this->user)->get(route('community.settings'))->assertOk()->getContent();
+
+    expect($html)->toContain('data-avatar-picker')->toContain('data-service-page')
+        ->and(strpos($html, 'data-avatar-picker'))->toBeLessThan(strpos($html, 'name="display_name"'))
+        ->and(preg_match('~<details[^>]*>(?:(?!</details>).)*name="avatar"~s', $html))->toBe(0);
 });

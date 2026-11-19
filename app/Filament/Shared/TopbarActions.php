@@ -8,7 +8,10 @@ use App\Enums\VenueStatus;
 use App\Filament\Admin\Pages\EventsCalendar;
 use App\Filament\Admin\Resources\EventComments\EventCommentResource;
 use App\Filament\Organizer\Pages\Profile;
+use App\Filament\Organizer\Pages\Sponsorships as OrganizerSponsorships;
 use App\Filament\Venue\Pages\EventShareAnalytics;
+use App\Filament\Venue\Pages\Social;
+use App\Filament\Venue\Pages\Sponsorships;
 use App\Filament\Venue\Pages\VenueProfile;
 use App\Filament\Venue\Resources\Events\EventResource;
 use App\Models\Organizer;
@@ -67,6 +70,12 @@ final class TopbarActions
             || ($venuePanel && $user->ownedVenues()->whereKey($tenant->id)->exists())) {
             $items[] = $this->item('tickets', 'ticket', route('ticketing.manage.index'));
         }
+        if ($venuePanel && Social::canAccess()) {
+            $items[] = $this->item('social', 'photo', Social::getUrl(), label: Social::getNavigationLabel());
+        }
+        if ($venuePanel && Sponsorships::canAccess()) {
+            $items[] = $this->item('sponsorships', 'megaphone', Sponsorships::getUrl(), label: Sponsorships::getNavigationLabel());
+        }
         if ($venuePanel && VenueProfile::canAccess()) {
             $items[] = $this->item('profile', 'building-storefront', VenueProfile::getUrl());
         }
@@ -104,6 +113,9 @@ final class TopbarActions
         if ($analytics::canAccess()) {
             $items[] = $this->item('analytics', 'chart-bar', $analytics::getUrl(), true);
         }
+        if (OrganizerSponsorships::canAccess()) {
+            $items[] = $this->item('sponsorships', 'megaphone', OrganizerSponsorships::getUrl(), label: OrganizerSponsorships::getNavigationLabel());
+        }
         $items[] = $this->item('organizer_profile', 'user-group', Profile::getUrl());
         $items[] = $this->item('public', 'arrow-top-right-on-square', $organizer->is_active
             ? route('organizers.show', ['slug' => $organizer->slug])
@@ -118,9 +130,15 @@ final class TopbarActions
         ];
     }
 
-    /** @return array{key: string, icon: string, url: string, inline: bool} */
-    private function item(string $key, string $icon, string $url, bool $inline = false): array
+    /**
+     * Una scorciatoia. L'etichetta arriva da `lang/it/topbar.php` con la
+     * chiave, oppure, per le pagine del pannello, dal nome che hanno nel menu
+     * laterale: la stessa parola nei due posti.
+     *
+     * @return array{key: string, icon: string, url: string, inline: bool, label: string}
+     */
+    private function item(string $key, string $icon, string $url, bool $inline = false, ?string $label = null): array
     {
-        return ['key' => $key, 'icon' => 'heroicon-o-'.$icon, 'url' => $url, 'inline' => $inline];
+        return ['key' => $key, 'icon' => 'heroicon-o-'.$icon, 'url' => $url, 'inline' => $inline, 'label' => $label ?? __('topbar.'.$key)];
     }
 }

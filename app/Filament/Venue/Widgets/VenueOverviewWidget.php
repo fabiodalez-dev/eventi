@@ -4,59 +4,68 @@ declare(strict_types=1);
 
 namespace App\Filament\Venue\Widgets;
 
-use App\Enums\StatsPeriod;
-use App\Filament\Venue\Pages\Statistics;
-use App\Filament\Venue\Resources\Events\EventResource;
-use App\Filament\Venue\Support\CurrentVenue;
-use App\Queries\VenueDashboardQuery;
-use Filament\Support\Icons\Heroicon;
-use Filament\Widgets\StatsOverviewWidget;
-use Filament\Widgets\StatsOverviewWidget\Stat;
+use App\Enums\EventStatus;
+use App\Filament\Venue\Widgets\Support\ManagementContext;
+use Filament\Facades\Filament;
+use Filament\Widgets\Widget;
 use Illuminate\Support\Number;
 
 /**
- * I tre numeri di §10.1, nell'ordine esatto in cui il piano li scrive:
- * *oggi*, *prossimi*, *visualizzazioni negli ultimi 30 giorni*.
+ * «Il tuo cartellone»: le date di oggi, quelle in arrivo e le bozze da
+ * completare, ognuna un collegamento all'elenco eventi già sulla scheda
+ * giusta, e il pulsante «Nuovo evento».
  *
- * I primi due li conta il motore temporale — "oggi" ha una sola definizione in
- * tutto il prodotto (§8.1) — il terzo somma le righe aggregate di
- * `event_views_daily`. Ognuno porta dove serve: agli eventi il primo e il
- * secondo, alle statistiche il terzo.
+ * «Oggi» e «prossimi» li conta il motore temporale — "oggi" ha una sola
+ * definizione in tutto il prodotto (§8.1). Le visite non sono più qui: il
+ * riepilogo del periodo, subito sotto, le mostra già (era un doppione), e il
+ * riquadro «Ultime visite» dice quali schede sono state aperte.
+ *
+ * Vale per i due pannelli: il locale (`/gestione`) e l'organizzazione
+ * (`/organizza`).
  */
-class VenueOverviewWidget extends StatsOverviewWidget
+class VenueOverviewWidget extends Widget
 {
     protected static ?int $sort = 1;
 
-    /* Niente aggiornamento automatico ogni cinque secondi: ogni giro era una
-       richiesta completa con tutte le sue query, e i numeri cambiano a ore. */
-    protected ?string $pollingInterval = null;
+    /* Piccoli e in cima alla pagina: si disegnano subito, senza una richiesta in più per riquadro. */
+    protected static bool $isLazy = false;
 
     protected int|string|array $columnSpan = 'full';
 
-    /**
-     * @return array<Stat>
-     */
-    protected function getStats(): array
+    protected string $view = 'filament.venue.widgets.overview';
+
+    public static function canView(): bool
     {
-        $dashboard = VenueDashboardQuery::for(CurrentVenue::get());
-        $period = StatsPeriod::Month;
+        return ManagementContext::tenant() !== null;
+    }
+
+    /**
+     * @return list<array{key: string, label: string, value: string, hint: string, url: ?string}>
+     */
+    public function numbers(): array
+    {
+        // Una query nuova per numero: il motore temporale si modifica sul posto.
+        $count = fn (string $window): int => ManagementContext::occurrences()?->{$window}()->count() ?? 0;
+        $resource = ManagementContext::eventResource();
+        $list = fn (string $tab): ?string => $resource::canViewAny() ? $resource::getUrl('index', ['tab' => $tab]) : null;
+        $format = fn (int $value): string => Number::format($value, locale: 'it');
 
         return [
-            Stat::make(__('manage.dashboard.today'), Number::format($dashboard->today(), locale: 'it'))
-                ->description(__('manage.dashboard.today_hint'))
-                ->icon(Heroicon::OutlinedCalendarDays)
-                ->color('primary')
-                ->url(EventResource::getUrl('index')),
-
-            Stat::make(__('manage.dashboard.upcoming'), Number::format($dashboard->upcoming(), locale: 'it'))
-                ->description(__('manage.dashboard.upcoming_hint'))
-                ->icon(Heroicon::OutlinedArrowTrendingUp)
-                ->url(EventResource::getUrl('index')),
-
-            Stat::make(__('manage.dashboard.views'), Number::format($dashboard->views($period), locale: 'it'))
-                ->description(__('manage.dashboard.views_hint', ['days' => $period->days()]))
-                ->icon(Heroicon::OutlinedEye)
-                ->url(Statistics::getUrl()),
+            ['key' => 'today', 'label' => __('manage.dashboard.today'), 'value' => $format($count('today')), 'hint' => __('manage.dashboard.today_hint'), 'url' => $list('upcoming')],
+            ['key' => 'upcoming', 'label' => __('manage.dashboard.upcoming'), 'value' => $format($count('upcoming')), 'hint' => __('manage.dashboard.upcoming_hint'), 'url' => $list('upcoming')],
+            ['key' => 'drafts', 'label' => __('manage.dashboard.drafts'), 'value' => $format(ManagementContext::events()->where('status', EventStatus::Draft)->count()), 'hint' => __('manage.dashboard.drafts_hint'), 'url' => $list('drafts')],
         ];
+    }
+
+    public function createUrl(): ?string
+    {
+        $resource = ManagementContext::eventResource();
+
+        return $resource::canCreate() ? $resource::getUrl('create') : null;
+    }
+
+    public function panelId(): string
+    {
+        return (string) Filament::getCurrentPanel()?->getId();
     }
 }

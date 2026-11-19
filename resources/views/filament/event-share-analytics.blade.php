@@ -34,19 +34,25 @@
             @endforeach
         </div>
     </section>
-    <x-filament::section :heading="__('analytics-dashboard.filters')">
+    @include('filament.partials.analytics-consent')
+    <x-filament::section :heading="__('analytics-dashboard.filters')" :description="__('panel.analytics.filters_hint')" icon="heroicon-o-funnel" collapsible :collapsed="! $this->filtersChanged()">
         {{ $this->form }}
         <div class="ad-filter-foot">
             <p>{{ __('analytics-dashboard.channel_scope') }}</p>
         </div>
     </x-filament::section>
     <div wire:loading.delay class="ad-loading" role="status">{{ __('analytics-dashboard.loading') }}</div>
-    <dl class="ad-summary" data-analytics-summary>
-        @foreach (['views', 'interactions', 'short_shares', 'short_clicks', 'saves', 'bookings_confirmed'] as $key)
-            <div><dt>{{ $metricLabel($key) }}</dt><dd>{{ number_format($totals[$key], 0, ',', '.') }}</dd></div>
-        @endforeach
-    </dl>
-    <p class="ad-context">{{ __('analytics-dashboard.context', ['events' => $data['events']->count(), 'venues' => $data['venues']->count(), 'organizers' => $data['organizers']->count()]) }}</p>
+    @php $summaryKeys = ['views', 'interactions', 'short_shares', 'short_clicks', 'saves', 'bookings_confirmed']; @endphp
+    <x-filament::section :heading="__('panel.analytics.summary')" :description="__('analytics-dashboard.context', ['events' => $data['events']->count(), 'venues' => $data['venues']->count(), 'organizers' => $data['organizers']->count()])" icon="heroicon-o-presentation-chart-line">
+        <dl class="ad-summary" data-analytics-summary>
+            @foreach ($summaryKeys as $key)
+                <div><dt>{{ $metricLabel($key) }}</dt><dd>{{ number_format($totals[$key], 0, ',', '.') }}</dd></div>
+            @endforeach
+        </dl>
+        @if (collect($summaryKeys)->every(fn ($key) => (int) $totals[$key] === 0))
+            <x-filament::empty-state :heading="__('panel.analytics.empty_title')" :description="__('panel.analytics.empty_body')" icon="heroicon-o-chart-bar" :contained="false" data-analytics-empty />
+        @endif
+    </x-filament::section>
     @if ($this->filters['event'] && ! ($this instanceof \App\Filament\Shared\AnalyticsDetailPage))
         @php $selected = $data['events']->first(); @endphp
         @if ($selected)
@@ -57,21 +63,21 @@
             </x-filament::section>
         @endif
     @endif
-    <div class="ad-chart-grid">
+    <div class="ad-chart-grid" data-analytics-charts>
         <x-filament::section :heading="__('analytics-dashboard.visits_chart')" :description="__('analytics-dashboard.chart_'.$data['series']['granularity'])">
             <x-analytics-trend :points="$series" :metrics="['views' => $metricLabel('views')]" :label="__('analytics-dashboard.visits_chart')" />
         </x-filament::section>
         <x-filament::section :heading="__('analytics-dashboard.shares_chart')" :description="__('analytics-dashboard.shares_hint')">
             <x-analytics-trend :points="$series" :metrics="['short_shares' => $metricLabel('short_shares'), 'short_clicks' => $metricLabel('short_clicks')]" :label="__('analytics-dashboard.shares_chart')" />
         </x-filament::section>
-        <x-filament::section :heading="__('analytics-dashboard.channels_chart')" :description="__('analytics-dashboard.channels_hint')">
-            <x-analytics-bars :rows="$data['channels']" name="channel" metric="clicks" :label="__('analytics-dashboard.channels_chart')" :secondary="['key' => 'shares', 'label' => __('event-shares.shares')]" />
-        </x-filament::section>
-        <x-filament::section :heading="__('analytics-dashboard.actions_chart')" :description="__('analytics-dashboard.actions_hint')">
-            <x-analytics-bars :rows="$interactionRows" name="name" metric="value" :label="__('analytics-dashboard.actions_chart')" />
-        </x-filament::section>
         <x-filament::section :heading="__('analytics-dashboard.events_chart')" :description="__('analytics-dashboard.rank_hint')">
             <x-analytics-bars :link="fn ($row) => $this->detailUrl('event', $row['id'])" :rows="$data['events']->sortByDesc('views')->take(8)->values()" name="event" metric="views" :label="__('analytics-dashboard.events_chart')" :secondary="['key' => 'short_clicks', 'label' => __('event-shares.clicks')]" />
+        </x-filament::section>
+        <x-filament::section collapsible collapsed :heading="__('analytics-dashboard.channels_chart')" :description="__('analytics-dashboard.channels_hint')">
+            <x-analytics-bars :rows="$data['channels']" name="channel" metric="clicks" :label="__('analytics-dashboard.channels_chart')" :secondary="['key' => 'shares', 'label' => __('event-shares.shares')]" />
+        </x-filament::section>
+        <x-filament::section collapsible collapsed :heading="__('analytics-dashboard.actions_chart')" :description="__('analytics-dashboard.actions_hint')">
+            <x-analytics-bars :rows="$interactionRows" name="name" metric="value" :label="__('analytics-dashboard.actions_chart')" />
         </x-filament::section>
         <x-filament::section :heading="__('analytics-dashboard.venues_chart')" :description="__('analytics-dashboard.venues_hint')">
             <x-analytics-bars :link="fn ($row) => $this->detailUrl('venue', $row['id'])" :rows="$data['venues']->sortByDesc('event_views')->take(8)->values()" name="name" metric="event_views" :label="__('analytics-dashboard.venues_chart')" :secondary="['key' => 'short_clicks', 'label' => __('event-shares.clicks')]" />
@@ -79,13 +85,13 @@
         <x-filament::section :heading="__('analytics-dashboard.organizers_chart')" :description="__('analytics-dashboard.rank_hint')">
             <x-analytics-bars :link="fn ($row) => $this->detailUrl('organizer', $row['id'])" :rows="$data['organizers']->sortByDesc('event_views')->take(8)->values()" name="name" metric="event_views" :label="__('analytics-dashboard.organizers_chart')" />
         </x-filament::section>
-        <x-filament::section :heading="__('analytics-dashboard.community_chart')" :description="__('analytics-dashboard.community_hint')">
+        <x-filament::section collapsible collapsed :heading="__('analytics-dashboard.community_chart')" :description="__('analytics-dashboard.community_hint')">
             <x-analytics-bars :rows="$communityRows" name="name" metric="value" :label="__('analytics-dashboard.community_chart')" />
         </x-filament::section>
-        <x-filament::section :heading="__('analytics-dashboard.bookings_chart')" :description="__('analytics-dashboard.bookings_hint')">
+        <x-filament::section collapsible collapsed :heading="__('analytics-dashboard.bookings_chart')" :description="__('analytics-dashboard.bookings_hint')">
             <x-analytics-bars :rows="$bookingRows" name="name" metric="value" :label="__('analytics-dashboard.bookings_chart')" />
         </x-filament::section>
-        <x-filament::section :heading="__('analytics-dashboard.paid_chart')" :description="__('analytics-dashboard.paid_hint')">
+        <x-filament::section collapsible collapsed :heading="__('analytics-dashboard.paid_chart')" :description="__('analytics-dashboard.paid_hint')">
             <dl class="ad-paid-totals"><div><dt>{{ $metricLabel('paid_impressions') }}</dt><dd>{{ number_format($totals['paid_impressions'], 0, ',', '.') }}</dd></div><div><dt>{{ $metricLabel('paid_clicks') }}</dt><dd>{{ number_format($totals['paid_clicks'], 0, ',', '.') }}</dd></div></dl>
             <x-analytics-bars :rows="$data['events']->where('paid_impressions', '>', 0)->sortByDesc('paid_impressions')->take(5)->values()" name="event" metric="paid_impressions" :label="__('analytics-dashboard.paid_chart')" :secondary="['key' => 'paid_clicks', 'label' => $metricLabel('paid_clicks')]" />
         </x-filament::section>
@@ -189,5 +195,11 @@
         <x-filament::pagination :paginator="$rows->onEachSide(1)" :extreme-links="true" />
         <p class="ad-muted">{{ __('analytics-dashboard.export_hint') }}</p>
     </x-filament::section>
-    <details class="ad-definitions"><summary>{{ __('analytics-dashboard.about_data') }}</summary><p>{{ __('analytics-dashboard.definitions') }}</p><p>{{ __('analytics-dashboard.not_collected') }}</p><p>{{ __('event-shares.notes') }}</p></details>
+    <x-filament::section :heading="__('analytics-dashboard.about_data')" icon="heroicon-o-book-open" collapsible collapsed>
+        <div class="ad-definitions">
+            <p>{{ __('panel.analytics.definitions') }}</p>
+            <p>{{ __('panel.analytics.not_collected') }}</p>
+            <p>{{ __('panel.analytics.share_notes') }}</p>
+        </div>
+    </x-filament::section>
 </x-filament-panels::page>

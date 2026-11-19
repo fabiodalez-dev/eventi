@@ -21,7 +21,7 @@ class EditEvent extends EditRecord
 
     public function getSubNavigation(): array
     {
-        return EventAnalyticsNavigation::items((int) $this->getRecord()->getKey(), false);
+        return EventAnalyticsNavigation::items((int) $this->getRecord()->getKey(), false, true);
     }
 
     protected static string $resource = EventResource::class;

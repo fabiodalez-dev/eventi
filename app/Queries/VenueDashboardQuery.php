@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Queries;
 
+use App\Enums\EventStatus;
 use App\Enums\StatsPeriod;
 use App\Models\City;
 use App\Models\Event;
@@ -159,6 +160,44 @@ final class VenueDashboardQuery
             ['occurrences as next_starts_at' => fn (Builder $occurrences) => $occurrences->where('business_date', '>=', $today)],
             'starts_at',
         );
+    }
+
+    /**
+     * Aggiunge l'**ultima data** dell'evento (`last_starts_at`), passata o
+     * futura che sia.
+     *
+     * Serve a chi rilegge l'elenco: un evento già andato non ha più una
+     * prossima data, e scrivere «Nessuna data» su una serata che c'è stata
+     * davvero è falso. Con l'ultima data la riga dice «Ultima data: …» e porta
+     * il distintivo «Passato»; «Nessuna data» resta solo a chi non ne ha mai
+     * avuta una.
+     *
+     * @param  Builder<Event>  $query
+     */
+    public static function applyLastOccurrence(Builder $query): void
+    {
+        $query->withMax('occurrences as last_starts_at', 'starts_at');
+    }
+
+    /**
+     * Restringe l'elenco eventi a una delle tre viste del pannello: i
+     * **prossimi** (almeno una data da oggi in poi), i **passati** (solo date
+     * prima di oggi) e le **bozze**. Oggi è la giornata evento della città,
+     * come in `applyNextOccurrence`.
+     *
+     * @param  Builder<Event>  $query
+     */
+    public static function applyTiming(Builder $query, City $city, ?string $timing): void
+    {
+        $today = EventOccurrenceQuery::for($city)->currentBusinessDate();
+        $upcoming = fn (Builder $occurrences) => $occurrences->where('business_date', '>=', $today);
+
+        match ($timing) {
+            'upcoming' => $query->whereHas('occurrences', $upcoming),
+            'past' => $query->whereHas('occurrences')->whereDoesntHave('occurrences', $upcoming),
+            'drafts' => $query->where('status', EventStatus::Draft),
+            default => null,
+        };
     }
 
     /**

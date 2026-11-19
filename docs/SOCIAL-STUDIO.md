@@ -4,19 +4,27 @@
 
 Nella dashboard iniziale si vedono le grafiche degli eventi di oggi. **Scarica
 le grafiche di oggi (.zip)** prepara il pacchetto direttamente. **Social**
-permette di cambiare giorno, città, selezione e formato.
+apre lo studio, in tre card una sotto l'altra.
 
-1. Scegli il giorno e seleziona gli eventi desiderati.
-2. Apri «Personalizza le grafiche» solo se vuoi cambiare bianco e nero,
-   inquadratura, indirizzo, prezzo o il titolo di una singola grafica.
-3. Premi «Prepara le grafiche selezionate». Le immagini preparate sono una
-   copia dei dati di quel momento: cambiare le opzioni richiede di prepararle
-   nuovamente.
-4. Scarica lo ZIP. I nomi sono numerati nell'ordine cronologico. Oltre dieci
-   immagini, lo ZIP contiene cartelle separate per ogni carosello, ciascuna
-   con la propria didascalia. Le didascalie riportano luogo, orario e
-   organizzatore quando disponibile, senza inventare un organizzatore.
-5. Le ultime preparazioni restano recuperabili in «Grafiche già preparate».
+1. **Scegli le serate.** Periodo (Oggi, Questa settimana, Prossimi 30 giorni,
+   Personalizzato), ricerca, un piccolo calendario con il numero di serate di
+   ogni giorno e l'elenco a card con locandina, giorno e ora, stato. Toccare
+   una card di un altro giorno sposta lì le grafiche e preseleziona quella
+   serata; le card dello stesso giorno si aggiungono o si tolgono. Toccare un
+   giorno del calendario mostra solo quel giorno e seleziona tutte le sue
+   serate. Le serate annullate o rinviate compaiono ma non si possono scegliere.
+2. **Formato e stile.** Il giorno scelto, le anteprime delle serate del giorno
+   (con la casella per toglierle o rimetterle), formato, inquadratura, bianco e
+   nero, indirizzo, prezzo e titolo alternativo di una singola grafica. Poi
+   «Prepara le grafiche selezionate». Le immagini preparate sono una copia dei
+   dati di quel momento: cambiare le opzioni richiede di prepararle di nuovo.
+3. **Grafiche pronte.** Le immagini, lo ZIP (nomi numerati in ordine
+   cronologico; oltre dieci immagini, cartelle separate per ogni carosello,
+   ciascuna con la propria didascalia) e le ultime preparazioni recuperabili.
+   Nel pannello della redazione qui si pubblica o si programma; lo storico delle
+   pubblicazioni è una card a parte.
+
+Un pacchetto riguarda sempre un solo giorno: è il giorno del carosello.
 
 La locandina viene mostrata intera per default, senza ritagli. Lo sfondo è
 una copia ingrandita e sfocata della stessa immagine, fino ai bordi: nessuna
@@ -34,8 +42,12 @@ l'evento pubblico.
 
 ## Per i locali
 
-La voce «Social» è presente nel pannello del locale. Il pulsante «Anteprima
-grafica» nella modifica dell'evento apre direttamente quell'evento.
+La voce «Social» è presente nel pannello del locale, con lo stesso studio a tre
+card. Il pulsante «Anteprima grafica» nella modifica dell'evento apre
+direttamente quell'evento. Gli eventi dimostrativi del locale compaiono
+nell'elenco con il distintivo «Dimostrativo»: si possono preparare a mano, ma il
+carosello automatico (`social:daily`) e lo studio della redazione continuano a
+escluderli.
 Sono disponibili anteprime e download delle proprie grafiche, anche durante
 la preparazione di un evento non ancora pubblicato. I locali non possono
 configurare i token della piattaforma o pubblicare sui suoi account.

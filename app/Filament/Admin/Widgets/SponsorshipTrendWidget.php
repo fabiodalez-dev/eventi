@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace App\Filament\Admin\Widgets;
 
+use App\Models\City;
+use App\Models\Sponsorship;
 use App\Models\SponsorshipDailyStat;
+use App\Support\Sponsorship\DashboardCity;
 use Carbon\CarbonImmutable;
 use Filament\Widgets\ChartWidget;
 use Flowframe\Trend\Trend;
@@ -38,9 +41,16 @@ class SponsorshipTrendWidget extends ChartWidget
 
     protected ?string $maxHeight = '260px';
 
+    public static function canView(): bool
+    {
+        return DashboardCity::resolve() instanceof City;
+    }
+
     public function getHeading(): string
     {
-        return __('sponsorships.widgets.trend');
+        $city = DashboardCity::resolve();
+
+        return $city === null ? __('sponsorships.widgets.trend') : __('sponsorships.widgets.trend_city', ['city' => $city->name]);
     }
 
     public function getDescription(): ?string
@@ -53,16 +63,21 @@ class SponsorshipTrendWidget extends ChartWidget
      */
     protected function getData(): array
     {
-        $da = CarbonImmutable::now()->subDays(29)->startOfDay();
-        $a = CarbonImmutable::now()->endOfDay();
+        /* I giorni della citta': i contatori si scrivono nel suo fuso, e un
+           giorno UTC spostava di una casella le visite dopo mezzanotte. */
+        $city = DashboardCity::resolve();
+        $oggi = CarbonImmutable::now(DashboardCity::timezone($city));
+        $da = CarbonImmutable::parse($oggi->subDays(29)->toDateString());
+        $a = CarbonImmutable::parse($oggi->toDateString())->endOfDay();
+        $campagne = Sponsorship::withTrashed()->where('city_id', $city?->getKey() ?? 0)->select('id');
 
-        $serie = static fn (string $colonna): Trend => Trend::query(SponsorshipDailyStat::query())
+        $serie = static fn (): Trend => Trend::query(SponsorshipDailyStat::query()->whereIn('sponsorship_id', $campagne))
             ->dateColumn('day')
             ->between(start: $da, end: $a)
             ->perDay();
 
-        $viste = $serie('impressions')->sum('impressions');
-        $aperture = $serie('clicks')->sum('clicks');
+        $viste = $serie()->sum('impressions');
+        $aperture = $serie()->sum('clicks');
 
         return [
             'datasets' => [

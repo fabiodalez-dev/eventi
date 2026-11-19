@@ -141,4 +141,20 @@ return [
         'clicks' => (int) env('SPONSORSHIP_CLICKS_HOURLY_CAP', 1000),
     ],
 
+    /*
+     * Le misure delle schede aperte dall'app (`POST /api/v1/reports/content/
+     * {type}/{id}`): visite, indicazioni, biglietti, condivisioni. Sono gli
+     * stessi contatori aggregati del sito e seguono la stessa regola (decisa il
+     * 19/11/2026): contano solo con il consenso alle statistiche, che l'app
+     * dichiara con `consent: true`. Senza consenso l'indirizzo risponde 204 e
+     * non scrive nulla. Con `false` l'indirizzo non esiste (404): è il modo di
+     * spegnerlo senza un rilascio dell'app.
+     *
+     * Le aperture dei link brevi `/s/{code}` non passano da qui: si contano
+     * lato server anche senza consenso, come contatore anonimo.
+     */
+    'analytics' => [
+        'app_content_metrics' => (bool) env('APP_CONTENT_METRICS', true),
+    ],
+
 ];

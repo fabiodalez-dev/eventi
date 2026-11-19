@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Http\Controllers\Web\ImpersonationController;
+use App\Http\Responses\PanelLogoutResponse;
 use App\Listeners\RevokeInvalidFcmToken;
 use App\Models\AdmissionTicket;
 use App\Models\Booking;
@@ -96,6 +97,7 @@ use App\Support\Lang\DatabaseOverrideLoader;
 use App\Support\SecurityLog;
 use Dedoc\Scramble\Scramble;
 use Dedoc\Scramble\Support\Generator\OpenApi;
+use Filament\Auth\Http\Responses\Contracts\LogoutResponse;
 use Illuminate\Auth\Events\Failed;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Auth\Events\Login;
@@ -152,6 +154,10 @@ class AppServiceProvider extends ServiceProvider
         // Le query geospaziali passano tutte da qui: cambiare motore di
         // database costa questa riga più una implementazione dell'interfaccia.
         $this->app->bind(GeoQueryInterface::class, MariaDbGeoQuery::class);
+
+        /* «Esci» da un pannello porta al login unico (`/accedi`), non alla
+           pagina di accesso di quel pannello, che non esiste più. */
+        $this->app->bind(LogoutResponse::class, PanelLogoutResponse::class);
 
         /*
          * Il nonce della CSP: **uno per risposta**, quindi singleton.

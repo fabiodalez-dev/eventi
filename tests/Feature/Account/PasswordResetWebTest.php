@@ -9,7 +9,6 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
-use Illuminate\Support\Facades\Route;
 
 /*
  * Reimpostare la password dal sito (§15.2).
@@ -150,5 +149,10 @@ it('lo offre anche al pannello di amministrazione', function (): void {
      * registrazione da rifare e nessuno a cui chiedere, perche' chi potrebbe
      * rimediare e' lui. Il pannello dei locali lo aveva gia'.
      */
-    expect(Route::has('filament.admin.auth.password-reset.request'))->toBeTrue();
+    /* Con il login unico è lo stesso modulo del sito: il vecchio indirizzo
+       del pannello porta lì. */
+    $this->get('/admin/password-reset/request')->assertRedirect(route('account.password.request'));
+    $this->get(route('login', ['intended' => url('/admin')]))
+        ->assertOk()
+        ->assertSee(route('account.password.request'), false);
 });

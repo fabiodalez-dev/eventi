@@ -78,7 +78,7 @@ final class EventController extends Controller
     private function renderEvent(City $city, Event $event, bool $isPreview = false, ?EventOccurrence $selected = null): View
     {
 
-        $upcoming = $this->hydrate(($isPreview ? EventOccurrenceQuery::managementFor($event) : EventOccurrenceQuery::for($city)->forEvent($event))->upcoming()->get());
+        $upcoming = ($isPreview ? EventOccurrenceQuery::managementFor($event) : EventOccurrenceQuery::for($city)->forEvent($event))->upcoming()->get();
 
         /*
          * Un evento le cui date sono tutte passate resta una pagina legittima —
@@ -86,16 +86,36 @@ final class EventController extends Controller
          * mostra il proprio archivio invece di una scheda vuota.
          */
         $past = $upcoming->isEmpty()
-            ? $this->hydrate(EventOccurrenceQuery::archiveFor($city)->forEvent($event)->past()->orderByNewestFirst()->get()->take(3))
+            ? EventOccurrenceQuery::archiveFor($city)->forEvent($event)->past()->orderByNewestFirst()->get()->take(3)
             : new Collection;
 
         $related = $this->related($city, $event);
         if ($selected !== null) {
-            $past = $this->hydrate(EventOccurrenceQuery::archiveFor($city)->forEvent($event)->past()->get());
             $upcoming = $upcoming->where('id', $selected->id)->values();
-            $past = $past->where('id', $selected->id)->values();
+            /* L'archivio si legge solo se la data scelta non è fra le
+               prossime: è una query in meno nel caso di gran lunga più
+               comune, la scheda di una data che deve ancora venire. */
+            $past = $upcoming->isNotEmpty()
+                ? new Collection
+                : EventOccurrenceQuery::archiveFor($city)->forEvent($event)->past()->get()->where('id', $selected->id)->values();
             abort_if($upcoming->isEmpty() && $past->isEmpty(), 404);
         }
+        $atVenue = $this->atSameVenue($city, $event);
+
+        /*
+         * Tutte le date della pagina si idratano insieme, in un colpo solo.
+         *
+         * Prima ogni elenco (date dell'evento, archivio, eventi simili, stesso
+         * locale) caricava per conto suo eventi, locali, categorie, locandine,
+         * formazioni e biglietti: la stessa domanda fatta quattro volte, che
+         * il rilevatore N+1 segnalava a ogni apertura della scheda. Le date di
+         * questo evento ricevono l'evento già caricato invece di rileggerlo.
+         */
+        foreach ([$upcoming, $past] as $own) {
+            $own->each(static fn (EventOccurrence $date) => $date->setRelation('event', $event));
+        }
+        $this->hydrate(new Collection([...$upcoming->all(), ...$past->all(), ...$related->all(), ...$atVenue->all()]));
+
         $dates = $upcoming->isNotEmpty() ? $upcoming : $past;
         $isSeries = $event->occurrences()->count() > 1 || $event->recurrences()->exists();
         $canonicalDate = $selected ?? (! $isSeries ? $dates->first() : null);
@@ -127,7 +147,6 @@ final class EventController extends Controller
             $schema[0]['url'] = $meta->canonical;
             $schema[0]['@id'] = $meta->canonical.'#event';
         }
-        $atVenue = $this->atSameVenue($city, $event);
 
         request()->attributes->set('sponsorship_exclude_event', $event->slug);
 
@@ -283,17 +302,15 @@ final class EventController extends Controller
             return new Collection;
         }
 
-        return $this->hydrate(
-            EventOccurrenceQuery::for($city)
-                ->upcoming()
-                ->inCategories([$event->category])
-                ->excludingEvent($event)
-                ->orderByRelevance()
-                ->get()
-                ->unique('event_id')
-                ->take(config()->integer('eventi.related_size'))
-                ->values(),
-        );
+        return EventOccurrenceQuery::for($city)
+            ->upcoming()
+            ->inCategories([$event->category])
+            ->excludingEvent($event)
+            ->orderByRelevance()
+            ->get()
+            ->unique('event_id')
+            ->take(config()->integer('eventi.related_size'))
+            ->values();
     }
 
     /**
@@ -307,16 +324,14 @@ final class EventController extends Controller
             return new Collection;
         }
 
-        return $this->hydrate(
-            EventOccurrenceQuery::for($city)
-                ->upcoming()
-                ->atVenue($venue)
-                ->excludingEvent($event)
-                ->get()
-                ->unique('event_id')
-                ->take(config()->integer('eventi.related_size'))
-                ->values(),
-        );
+        return EventOccurrenceQuery::for($city)
+            ->upcoming()
+            ->atVenue($venue)
+            ->excludingEvent($event)
+            ->get()
+            ->unique('event_id')
+            ->take(config()->integer('eventi.related_size'))
+            ->values();
     }
 
     /**
@@ -325,6 +340,6 @@ final class EventController extends Controller
      */
     private function hydrate(Collection $occurrences): Collection
     {
-        return $occurrences->loadMissing(['event.venue', 'event.category', 'event.media', 'lineups', 'ticketTiers']);
+        return $occurrences->loadMissing(['venue', 'event.venue', 'event.category', 'event.media', 'lineups', 'ticketTiers']);
     }
 }

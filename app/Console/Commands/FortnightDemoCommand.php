@@ -12,6 +12,8 @@ use App\Enums\EventCommentStatus;
 use App\Enums\PostIntent;
 use App\Enums\ProfileVisibility;
 use App\Enums\SavedVisibility;
+use App\Enums\SponsorshipPlacement;
+use App\Enums\SponsorshipStatus;
 use App\Enums\VerificationStatus;
 use App\Models\Booking;
 use App\Models\Category;
@@ -30,6 +32,7 @@ use App\Models\Follow;
 use App\Models\RideOffer;
 use App\Models\SavedEvent;
 use App\Models\Setting;
+use App\Models\Sponsorship;
 use App\Models\User;
 use App\Models\Venue;
 use App\Services\Analytics\EventShares;
@@ -92,6 +95,9 @@ final class FortnightDemoCommand extends Command
 
     /** L'impostazione con le date aggiunte agli eventi già esistenti. */
     public const SETTING = 'demo.quindicina.date_riusate';
+
+    /** Il committente delle campagne dimostrative: mai il nome di un locale vero. */
+    private const DEMO_ADVERTISER = 'Campagna dimostrativa';
 
     /** L'inizio della nota dei sondaggi: è la chiave con cui `--purge` li ritrova. */
     private const POLL_NOTE = 'Quindicina inCittà — ';
@@ -187,6 +193,8 @@ final class FortnightDemoCommand extends Command
                 $this->seedPractical($dates);
                 $this->seedViews($dates);
                 $this->seedShares($dates);
+                $this->seedEventViews($dates);
+                $this->seedSponsorshipStats($dates);
                 $this->seedPolls($dates, $people);
                 $this->seedTicketing($dates, $people);
                 $this->seedRides($city, $catalog, $people, $dates);
@@ -884,6 +892,96 @@ final class FortnightDemoCommand extends Command
             }
         }
         $this->report['Giorni di visite alle schede'] = [$written, DB::table('occurrence_views_daily')->whereIn('occurrence_id', $dates->modelKeys())->count()];
+    }
+
+    /**
+     * Le visite giornaliere degli eventi nuovi, sulle stesse due settimane
+     * delle condivisioni.
+     *
+     * Prima si seminavano solo le visite alle date: nelle statistiche
+     * dell'evento risultavano cinque visite contro mille condivisioni, numeri
+     * che nessuno avrebbe preso sul serio. Solo eventi nuovi di questo
+     * comando: le righe se ne vanno con l'evento, in cascata.
+     *
+     * @param  Collection<int, EventOccurrence>  $dates
+     */
+    private function seedEventViews(Collection $dates): void
+    {
+        if (! Schema::hasTable('event_views_daily')) {
+            return;
+        }
+        $events = $this->newDemoEvents($dates);
+        $written = 0;
+        $today = CarbonImmutable::today();
+        foreach ($events as $event) {
+            $base = 60 + self::pick('visite-evento:'.$event->id, 260);
+            for ($day = 13; $day >= 0; $day--) {
+                $views = (int) round($base * (0.4 + (13 - $day) / 16));
+                $written += DB::table('event_views_daily')->insertOrIgnore([
+                    'event_id' => $event->id, 'date' => $today->subDays($day)->toDateString(), 'views' => $views, 'unique_views' => (int) round($views * 0.7),
+                    'direction_clicks' => intdiv($views, 9), 'ticket_clicks' => intdiv($views, 14), 'shares' => intdiv($views, 25),
+                    'calendar_clicks' => intdiv($views, 18), 'poster_clicks' => intdiv($views, 11), 'website_clicks' => intdiv($views, 30),
+                    'created_at' => now(), 'updated_at' => now(),
+                ]);
+            }
+        }
+        $this->report['Giorni di visite agli eventi'] = [$written, $events->count().' eventi'];
+    }
+
+    /**
+     * Tre campagne dimostrative già concluse, con due settimane di misure:
+     * riempiono le statistiche delle sponsorizzazioni di redazione, locali e
+     * organizzazioni.
+     *
+     * **Concluse apposta.** Una campagna in corso comparirebbe sul sito con
+     * la scritta «Sponsorizzato» e il nome di un locale vero che non ha
+     * pagato niente: finita ieri, resta solo nei pannelli. Stanno su eventi
+     * nuovi di questo comando e se ne vanno con loro, in cascata.
+     *
+     * @param  Collection<int, EventOccurrence>  $dates
+     */
+    private function seedSponsorshipStats(Collection $dates): void
+    {
+        if (! Schema::hasTable('sponsorship_daily_stats')) {
+            return;
+        }
+        $events = $this->newDemoEvents($dates)->unique('venue_id')->take(3)->values();
+        $placements = [SponsorshipPlacement::HomeHero, SponsorshipPlacement::ListTop, SponsorshipPlacement::MapSheet];
+        $today = CarbonImmutable::today();
+        $written = 0;
+        foreach ($events as $position => $event) {
+            $campaign = Sponsorship::query()->firstOrCreate(
+                ['event_id' => $event->id, 'placement' => $placements[$position], 'advertiser_name' => self::DEMO_ADVERTISER],
+                ['city_id' => $event->city_id, 'status' => SponsorshipStatus::Active, 'starts_at' => $today->subDays(14)->utc(), 'ends_at' => $today->subSecond()->utc(),
+                    'weight' => 1, 'priority' => 0, 'currency' => 'EUR', 'notes' => 'demo:quindicina'],
+            );
+            $impressions = 0;
+            $clicks = 0;
+            for ($day = 14; $day >= 1; $day--) {
+                $views = 120 + self::pick('sponsor:'.$campaign->id.':'.$day, 380);
+                $opened = intdiv($views, 40 + $position * 10) + ($day % 3);
+                $written += DB::table('sponsorship_daily_stats')->insertOrIgnore([
+                    'sponsorship_id' => $campaign->id, 'day' => $today->subDays($day)->toDateString(),
+                    'impressions' => $views, 'clicks' => $opened, 'created_at' => now(), 'updated_at' => now(),
+                ]);
+            }
+            $totals = DB::table('sponsorship_daily_stats')->where('sponsorship_id', $campaign->id)
+                ->selectRaw('COALESCE(SUM(impressions), 0) as impressions, COALESCE(SUM(clicks), 0) as clicks')->first();
+            $campaign->forceFill(['impressions' => (int) ($totals->impressions ?? 0), 'clicks' => (int) ($totals->clicks ?? 0)])->saveQuietly();
+        }
+        $this->report['Giorni di sponsorizzazioni dimostrative'] = [$written, $events->count().' campagne concluse'];
+    }
+
+    /**
+     * Gli eventi creati da questo comando fra quelli delle date.
+     *
+     * @param  Collection<int, EventOccurrence>  $dates
+     * @return \Illuminate\Support\Collection<int, Event>
+     */
+    private function newDemoEvents(Collection $dates): \Illuminate\Support\Collection
+    {
+        return $dates->pluck('event')->filter(fn (?Event $event): bool => $event !== null && str_starts_with((string) $event->source_ref, self::PREFIX))
+            ->unique('id')->values();
     }
 
     /**

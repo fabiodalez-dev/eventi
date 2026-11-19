@@ -1,6 +1,12 @@
 @props(['venue'])
 @auth
-@php $followPreference = auth()->user()->follows()->where('followable_type', 'venue')->where('followable_id', $venue->id)->first(); @endphp
+@php
+    /* Nel feed è una riga per locale: le preferenze si leggono tutte insieme,
+       una volta per richiesta. */
+    $followPreference = auth()->user()->followsForRequest()->first(
+        fn ($follow): bool => $follow->followable_type === 'venue' && (int) $follow->followable_id === (int) $venue->id,
+    );
+@endphp
 @if ($followPreference)
 <form method="post" action="{{ route('account.follows.store') }}" class="flex flex-wrap items-end gap-3 py-3">
     @csrf

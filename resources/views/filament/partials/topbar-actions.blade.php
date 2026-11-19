@@ -8,12 +8,12 @@
         @foreach ($context['items'] as $item)
             @if ($item['inline'])
                 <a href="{{ $item['url'] }}" @class(['itb-action', 'itb-primary' => $item['key'] === 'create'])
-                   data-topbar-action="{{ $item['key'] }}" aria-label="{{ __('topbar.'.$item['key']) }}">
+                   data-topbar-action="{{ $item['key'] }}" aria-label="{{ $item['label'] }}">
                     <x-filament::icon :icon="$item['icon']" />
                     @if ($item['key'] === 'create')
                         <span class="itb-wide-label">{{ __('topbar.create') }}</span><span class="itb-short-label">{{ __('topbar.create_short') }}</span>
                     @else
-                        <span>{{ __('topbar.'.$item['key']) }}</span>
+                        <span>{{ $item['label'] }}</span>
                     @endif
                 </a>
             @endif
@@ -30,7 +30,7 @@
                         <x-filament::dropdown.list.item tag="a" :href="$item['url']" :icon="$item['icon']"
                             :target="$item['key'] === 'public' ? '_blank' : null"
                             :rel="$item['key'] === 'public' ? 'noopener noreferrer' : null"
-                            :data-topbar-action="$item['key']">{{ __('topbar.'.$item['key']) }}</x-filament::dropdown.list.item>
+                            :data-topbar-action="$item['key']">{{ $item['label'] }}</x-filament::dropdown.list.item>
                     @endif
                 @endforeach
             </x-filament::dropdown.list>

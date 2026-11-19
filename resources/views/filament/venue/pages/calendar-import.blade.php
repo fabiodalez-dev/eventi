@@ -11,7 +11,7 @@
         <x-filament::section>
             <x-slot name="heading">{{ __('manage.calendar.status.heading') }}</x-slot>
 
-            <dl class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <dl class="flex flex-wrap gap-x-8 gap-y-4">
                 <div>
                     <dt class="text-sm text-gray-500 dark:text-gray-400">
                         {{ __('manage.calendar.status.state') }}
@@ -47,7 +47,7 @@
                     </dd>
                 </div>
 
-                <div class="sm:col-span-2 lg:col-span-1">
+                <div class="min-w-0 basis-full">
                     <dt class="text-sm text-gray-500 dark:text-gray-400">
                         {{ __('manage.calendar.status.address') }}
                     </dt>
@@ -61,9 +61,7 @@
                 {{-- L'errore si legge in italiano, non come traccia di stack:
                      chi gestisce un locale deve capire se il problema è suo
                      (indirizzo sbagliato) o nostro. --}}
-                <div class="mt-4 rounded-lg bg-danger-50 p-4 text-sm text-danger-700 dark:bg-danger-400/10 dark:text-danger-400">
-                    {{ $source->last_error }}
-                </div>
+                <x-filament::callout class="mt-4" color="danger" icon="heroicon-o-exclamation-triangle" :description="$source->last_error" role="alert" />
             @endif
         </x-filament::section>
     @endif

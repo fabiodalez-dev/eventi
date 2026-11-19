@@ -11,6 +11,7 @@ use App\Http\Requests\Web\Account\AuthEntryRequest;
 use App\Http\Requests\Web\Account\LoginRequest;
 use App\Models\User;
 use App\Support\AccountLoginThrottle;
+use App\Support\Auth\PostLoginDestination;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -19,7 +20,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Accesso con password (§15.2).
+ * Accesso con password (§15.2): il login unico, da cui entrano tutti,
+ * redazione e pannelli compresi.
  *
  * Il magic link resta la via raccomandata e sta accanto, non al posto: chi una
  * password l'ha scelta deve poterla usare.
@@ -74,7 +76,7 @@ final class LoginController extends Controller
                browser: aperto qui conferma ed entra, e la password resta. */
             $registration->sendFromWeb($sospeso, true, $request->session(), $request->boolean('remember'));
 
-            throw ValidationException::withMessages(['email' => __('account.login.claim_pending')]);
+            throw ValidationException::withMessages(['email' => __('auth.login.claim_pending')]);
         }
 
         if (! $entrato) {
@@ -98,8 +100,15 @@ final class LoginController extends Controller
             return redirect()->route('community.whatsapp');
         }
 
+        /* Il login unico: la pagina da cui si era partiti, se la si può
+           aprire, altrimenti la propria area (redazione, locale,
+           organizzatore, feed). */
+        $destination = $user instanceof User
+            ? PostLoginDestination::resolve($user, $request->session()->pull('url.intended'))
+            : route('account.feed');
+
         return redirect()
-            ->intended(route('account.feed'))
+            ->to($destination)
             ->with('status', __('account.login.done'));
     }
 
@@ -110,6 +119,10 @@ final class LoginController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect()->route('home')->with('status', __('account.login.logged_out'));
+        /* «Esci e cambia account» della pagina 403 chiede di tornare
+           all'accesso: è lì che si entra con l'altro account. */
+        $to = $request->input('to') === 'login' ? 'login' : 'home';
+
+        return redirect()->route($to)->with('status', __('account.login.logged_out'));
     }
 }

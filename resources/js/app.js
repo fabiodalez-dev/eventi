@@ -16,6 +16,8 @@ import { tonightCounts } from './tonight-counts';
 import { eventFilters } from './event-filters';
 import { savedPanel } from './saved-panel';
 import { contentAnalytics } from './content-analytics';
+import { cardLayout } from './card-layout';
+import { passwordToggles } from './password-toggle';
 
 import { sponsorshipContext } from './sponsorship-context';
 import { forgetCheckinData } from './checkin-queue';
@@ -1119,7 +1121,10 @@ function start() {
        initial module instead of competing with content on the critical path. */
     void import('./motion').then(({ startMotion }) => startMotion());
     eventFilters();
+    cardLayout();
+    passwordToggles();
     document.addEventListener('event-browser:updated', () => {
+        cardLayout();
         infiniteScroll();
         savedHearts();
         geolocation();

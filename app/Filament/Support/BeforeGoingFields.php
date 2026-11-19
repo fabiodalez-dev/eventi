@@ -34,8 +34,11 @@ final class BeforeGoingFields
             ...array_map(fn (string $field) => Select::make('content_details.'.$field)->label(__('family.'.$field))->options(['yes' => __('family.yes'), 'no' => __('family.no')])->placeholder(__('family.unknown'))->rules([Rule::in(['yes', 'no'])]), ['stroller', 'changing_table', 'kids_area']),
             Select::make('content_details.membership')->label('Tessera')->options(MembershipRequirement::options())->placeholder('Non specificato')->rules([Rule::enum(MembershipRequirement::class)]),
             Select::make('content_details.accessibility')->label('Accesso in sedia a rotelle')->options(['yes' => 'Accessibile', 'no' => 'Non accessibile'])->placeholder('Non specificato'),
-            DescriptionEditor::make('content_details.membership_notes')->label('Dettagli tessera')->placeholder('Tipo di tessera, costo e modalità di rilascio')->maxLength(2000),
-            DescriptionEditor::make('content_details.accessibility_notes')->label('Dettagli accessibilità')->placeholder('Percorso di ingresso, accompagnatori, contatto per assistenza')->maxLength(2000),
+            /* Gli editor a tutta larghezza: a metà riga la barra degli
+               strumenti andava a capo e il testo si leggeva a otto parole per
+               riga. */
+            DescriptionEditor::make('content_details.membership_notes')->label('Dettagli tessera')->placeholder('Tipo di tessera, costo e modalità di rilascio')->maxLength(2000)->columnSpanFull(),
+            DescriptionEditor::make('content_details.accessibility_notes')->label('Dettagli accessibilità')->placeholder('Percorso di ingresso, accompagnatori, contatto per assistenza')->maxLength(2000)->columnSpanFull(),
             Select::make('content_details.feature_ids')->label('Caratteristiche e servizi')->multiple()->searchable()->preload()->options(fn (): array => EventFeature::choices())->columnSpanFull()
                 ->helperText('Cerca per nome: per esempio coppia, bagno, interprete, guardaroba. Il catalogo e le icone si gestiscono in Contenuti → Prima di andare.')
                 ->nestedRecursiveRules([Rule::exists('event_features', 'id')->where('is_active', true)->where('is_system', false)])
@@ -46,7 +49,7 @@ final class BeforeGoingFields
 
                     return (int) EventFeature::create($data)->getKey();
                 }),
-            Repeater::make('content_details.practical_custom')->label($venue ? 'Altre informazioni del locale' : 'Altre informazioni per questo evento')->defaultItems(0)->maxItems($venue ? 12 : 24)->addActionLabel('Aggiungi una voce libera')->columnSpanFull()->columns(2)->schema([
+            Repeater::make('content_details.practical_custom')->label($venue ? 'Altre informazioni del locale' : 'Altre informazioni per questo evento')->defaultItems(0)->maxItems($venue ? 12 : 24)->addActionLabel('Aggiungi una voce libera')->columnSpanFull()->columns(['default' => 1, 'lg' => 2])->schema([
                 TextInput::make('label')->label('Titolo')->required()->maxLength(120),
                 Select::make('icon')->label('Icona')->options(PracticalIcons::previews())->allowHtml()->searchable()->required()->default('check-circle')->rules([Rule::in(array_keys(PracticalIcons::options()))]),
                 DescriptionEditor::make('text')->label('Dettagli')->maxLength(1000)->columnSpanFull(),
@@ -56,7 +59,7 @@ final class BeforeGoingFields
                 ->collapsible()->itemLabel(fn (array $state): ?string => $state['label'] ?? null),
         ];
         foreach (['food_notes', 'start_notes'] as $field) {
-            $fields[] = Textarea::make('content_details.'.$field)->label(__('decision.'.$field))->maxLength(2000);
+            $fields[] = Textarea::make('content_details.'.$field)->label(__('decision.'.$field))->maxLength(2000)->columnSpanFull();
         }
         if (! $venue) {
             foreach ($fields as $field) {
@@ -71,7 +74,7 @@ final class BeforeGoingFields
 
         return Section::make('Prima di andare')
             ->description($venue ? 'Informazioni predefinite per tutti gli eventi di questo locale. Usa anche le caratteristiche del catalogo: compariranno già compilate nelle schede degli eventi.' : 'Le informazioni del locale sono già compilate e si aggiungono a quelle dell’evento. Per tessera e accessibilità puoi indicare un’eccezione valida solo per questo evento.')
-            ->columns(2)->schema($fields);
+            ->columns(['default' => 1, 'lg' => 2])->schema($fields);
     }
 
     /** @return array<string, mixed> */

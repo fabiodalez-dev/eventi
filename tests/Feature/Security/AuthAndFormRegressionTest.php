@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use App\Enums\VenueStatus;
-use App\Filament\Auth\Login;
 use App\Models\City;
 use App\Models\MobileAuthChallenge;
 use App\Models\Organizer;
@@ -13,13 +12,11 @@ use App\Notifications\AccountAlreadyRegistered;
 use App\Notifications\MagicLoginLink;
 use App\Notifications\RegistrationLink;
 use Database\Seeders\RolesAndPermissionsSeeder;
-use Filament\Auth\Pages\PasswordReset\ResetPassword;
 use Filament\Facades\Filament;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
-use Livewire\Livewire;
 
 beforeEach(function (): void {
     testCity();
@@ -127,11 +124,13 @@ it('rejects a reset token belonging to another account without changing either p
     expect(Hash::check('password', $owner->fresh()->password))->toBeTrue()->and(Hash::check('password', $other->fresh()->password))->toBeTrue();
 });
 
-it('allows panel login only for an authorized member', function (string $panel): void {
-    Filament::setCurrentPanel(Filament::getPanel($panel));
+it('lets everyone in from the single login and opens each panel only to its members', function (string $panel): void {
     $outsider = User::factory()->create();
-    Livewire::test(Login::class)->fillForm(['email' => $outsider->email, 'password' => 'password'])->call('authenticate')->assertHasErrors(['data.email']);
-    $this->assertGuest();
+    $this->post(route('account.login.store'), ['email' => $outsider->email, 'password' => 'password'])
+        ->assertRedirect(route('account.feed'));
+    $this->get('/'.Filament::getPanel($panel)->getPath())->assertForbidden();
+    auth()->logout();
+
     $member = User::factory()->create();
     if ($panel === 'admin') {
         $member->assignRole('admin');
@@ -141,8 +140,11 @@ it('allows panel login only for an authorized member', function (string $panel):
     } else {
         Organizer::query()->create(['name' => 'Organizzatore test', 'city_id' => City::query()->firstOrFail()->id, 'owner_id' => $member->id, 'is_active' => true]);
     }
-    Livewire::test(Login::class)->fillForm(['email' => $member->email, 'password' => 'password'])->call('authenticate')->assertHasNoErrors();
+    $destination = $this->post(route('account.login.store'), ['email' => $member->email, 'password' => 'password'])
+        ->assertRedirect()->headers->get('Location');
     $this->assertAuthenticatedAs($member);
+    expect(parse_url((string) $destination, PHP_URL_PATH))->toStartWith('/'.Filament::getPanel($panel)->getPath());
+    $this->get((string) $destination)->assertOk();
 })->with(['admin', 'venue', 'organizer']);
 
 it('limits website email requests even when every request targets a different address', function (string $path): void {
@@ -150,7 +152,9 @@ it('limits website email requests even when every request targets a different ad
     foreach (range(1, 2) as $number) {
         $this->post($path, ['email' => 'target'.$number.'@example.test'])->assertRedirect();
     }
-    $this->post($path, ['email' => 'target3@example.test'])->assertStatus(429);
+    /* Il modulo torna indietro con il tempo d'attesa, non su una pagina d'errore; l'app riceve ancora il 429. */
+    $this->post($path, ['email' => 'target3@example.test'])->assertRedirect($path)->assertHeader('Retry-After')->assertSessionHasErrors('form');
+    $this->postJson($path, ['email' => 'target4@example.test'])->assertStatus(429);
     Notification::assertNothingSent();
 })->with(['/accedi/collegamento', '/password-dimenticata']);
 
@@ -168,8 +172,7 @@ it('invalidates mobile challenges when the password changes before exchange', fu
     expect($user->tokens()->count())->toBe(0);
 });
 
-it('resets a password through a real panel form and invalidates the old mobile session', function (string $panel): void {
-    Filament::setCurrentPanel(Filament::getPanel($panel));
+it('resets a panel password through the site form, from the old panel link too, and invalidates the old mobile session', function (string $panel): void {
     $member = User::factory()->create();
     if ($panel === 'admin') {
         $member->assignRole('admin');
@@ -181,9 +184,14 @@ it('resets a password through a real panel form and invalidates the old mobile s
     }
     $oldSession = $member->createToken('old-phone')->plainTextToken;
     $token = Password::broker()->createToken($member);
-    Livewire::test(ResetPassword::class, ['email' => $member->email, 'token' => $token])
-        ->fillForm(['password' => 'New-password-123456', 'passwordConfirmation' => 'New-password-123456'])
-        ->call('resetPassword')->assertHasNoErrors();
+
+    /* Un collegamento del vecchio modulo del pannello, già in una casella. */
+    $this->get('/'.Filament::getPanel($panel)->getPath().'/password-reset/reset?'.http_build_query(['email' => $member->email, 'token' => $token, 'signature' => 'vecchia']))
+        ->assertRedirect(route('account.password.reset', ['token' => $token, 'email' => $member->email]));
+    $this->get(route('account.password.reset', ['token' => $token, 'email' => $member->email]))->assertOk()->assertSee($member->email);
+
+    $this->post(route('account.password.update'), ['email' => $member->email, 'token' => $token, 'password' => 'New-password-123456', 'password_confirmation' => 'New-password-123456'])
+        ->assertRedirect(route('login'));
     expect(Hash::check('New-password-123456', $member->fresh()->password))->toBeTrue()->and($member->tokens()->count())->toBe(0);
     Auth::forgetGuards();
     $this->withToken($oldSession)->getJson('/api/v1/me')->assertUnauthorized();

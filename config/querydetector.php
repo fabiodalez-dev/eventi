@@ -1,5 +1,7 @@
 <?php
 
+use App\Models\EventOccurrence;
+use App\Models\Venue;
 use BeyondCode\QueryDetector\Outputs\Alert;
 use BeyondCode\QueryDetector\Outputs\Log;
 
@@ -24,10 +26,13 @@ return [
      * the "posts" attribute and the "Post::class", since the relation can get resolved in multiple ways.
      */
     'except' => [
-        // Author::class => [
-        //    Post::class,
-        //    'posts',
-        // ]
+        // `EventOccurrence::$with = ['venue']` carica il locale a ogni get():
+        // due elenchi dello stesso locale nella scheda evento fanno la stessa
+        // query e il rilevatore la scambia per un N+1.
+        EventOccurrence::class => [
+            Venue::class,
+            'venue',
+        ],
     ],
 
     /*

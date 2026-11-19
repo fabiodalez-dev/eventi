@@ -57,12 +57,19 @@ final class InviteVenueMemberAction
     /** Quanti giorni vale il collegamento «Accetta l'invito». */
     public const EXPIRES_DAYS = 7;
 
-    public function execute(Venue $venue, string $email, string $name, VenueRole $role, bool $requested = false): User
+    /**
+     * `$notify = false` lascia il messaggio a chi chiama, ma solo quando non
+     * serve scegliere una password: l'approvazione di una richiesta manda il
+     * proprio avviso («la tua richiesta è stata accolta»), che a una persona
+     * già dentro dice la stessa cosa con le parole giuste. Il collegamento
+     * per la password, quando serve, parte sempre da qui.
+     */
+    public function execute(Venue $venue, string $email, string $name, VenueRole $role, bool $requested = false, bool $notify = true): User
     {
         $email = mb_strtolower(trim($email));
         $name = EditorContent::clean('name', $name);
 
-        return DB::transaction(function () use ($venue, $email, $name, $role, $requested): User {
+        return DB::transaction(function () use ($venue, $email, $name, $role, $requested, $notify): User {
             $user = User::query()->where('email', $email)->first();
             $isNew = ! $user instanceof User;
 
@@ -123,7 +130,9 @@ final class InviteVenueMemberAction
                  */
                 $needsPassword = $isNew || app(ClaimMailbox::class)->revocaPerAccessoConcesso($user, $causa);
 
-                $user->notify(new VenueAccessGranted($venue, $role, $needsPassword));
+                if ($needsPassword || $notify) {
+                    $user->notify(new VenueAccessGranted($venue, $role, $needsPassword));
+                }
 
                 return $user;
             }

@@ -38,6 +38,7 @@ final class NotificationInterests
                     : Venue::query()->approved()->where('city_id', $city->id)->pluck('id');
                 $ids = array_values(array_intersect($selection[$key], $allowed->all()));
                 $user->follows()->where('followable_type', $type->value)->whereIn('followable_id', $allowed)->whereNotIn('followable_id', $ids)->delete();
+                $user->forgetFollowsForRequest();
                 foreach ($ids as $id) {
                     $user->follows()->updateOrCreate(['followable_type' => $type->value, 'followable_id' => $id], ['notify' => true]);
                 }

@@ -20,4 +20,37 @@ return [
     'venue_cities' => 'Città dei locali gestiti',
     'missing_city' => 'Città di riferimento mancante',
     'venue' => 'Locale gestito',
+
+    'navigation_group' => 'Persone',
+    'navigation_badge' => 'Iscritti negli ultimi 7 giorni che non hanno ancora completato l\'iscrizione',
+    'no_name' => 'Senza nome',
+    'more_actions' => 'Altre azioni',
+    'roles_short' => 'Ruoli',
+
+    'registration' => [
+        'registered_at' => 'Iscritto il',
+        'state' => 'Stato',
+        'filter' => 'Iscrizione',
+        'tab' => 'In attesa di conferma',
+        'states' => [
+            'confirmed' => 'Confermato',
+            'pending' => 'In attesa di conferma',
+            'first_access' => 'Primo accesso da completare',
+        ],
+        'help' => [
+            'confirmed' => 'Ha confermato l\'indirizzo email: l\'account è attivo.',
+            'pending' => 'Si è iscritto ma non ha ancora aperto il collegamento di conferma arrivato per email. Rifacendo l\'accesso o la registrazione con la stessa password riceve un nuovo collegamento.',
+            'first_access' => 'Ha confermato l\'indirizzo da un altro dispositivo: per entrare deve aprire il collegamento di accesso che riceve per email, poi la password funziona.',
+        ],
+    ],
+
+    'widget' => [
+        'heading' => 'Nuove iscrizioni',
+        'description' => '{0} Nessuna iscrizione negli ultimi :days giorni|{1} Una iscrizione negli ultimi :days giorni|[2,*] :count iscrizioni negli ultimi :days giorni',
+        'pending' => '{0} nessuna in attesa di conferma|{1} una in attesa di conferma|[2,*] :count in attesa di conferma',
+        'all' => 'Tutti gli utenti',
+        'show_pending' => 'Solo in attesa',
+        'empty' => 'Ancora nessun iscritto',
+        'empty_description' => 'Qui compaiono le persone appena si registrano dal sito o dall\'app.',
+    ],
 ];

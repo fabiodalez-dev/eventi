@@ -12,6 +12,7 @@ use App\Http\Requests\Api\V1\EventQueryRequest;
 use App\Models\City;
 use App\Models\EventOccurrence;
 use App\Models\User;
+use App\Models\Venue;
 use App\Queries\EventOccurrenceQuery;
 use App\Services\Search\EventFinder;
 use App\Support\Api\ApiContext;
@@ -111,6 +112,12 @@ final class OccurrenceFeed
         }
 
         $occurrences->load($relations);
+
+        /* Con il locale intero la risposta dice anche se si può rivendicare:
+           lo stato arriva per tutti i locali della pagina in una query. */
+        if (in_array(ApiInclude::Venue, $includes, true)) {
+            Venue::loadClaimState($occurrences->map(static fn (EventOccurrence $occurrence): ?Venue => $occurrence->locationVenue()));
+        }
     }
 
     /**

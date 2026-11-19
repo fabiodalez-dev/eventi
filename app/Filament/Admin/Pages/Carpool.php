@@ -15,15 +15,36 @@ use App\Models\User;
 use App\Services\Carpool\CommunitySafety;
 use App\Services\Carpool\RideReviews;
 use BackedEnum;
+use Closure;
+use Filament\Actions\Action;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Livewire\WithPagination;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
+/**
+ * Sicurezza dei passaggi in auto: segnalazioni, passaggi, recensioni,
+ * feedback privati, utenti, registro e consegne.
+ *
+ * **Una motivazione per azione, nella sua finestra.** Prima c'era un solo
+ * campo «Motivazione» in cima alla pagina, valido per «la prossima azione»:
+ * si scriveva, si scendeva fino al pulsante, e se lo si dimenticava l'errore
+ * compariva lontano. Ora ogni pulsante apre la sua finestra con il motivo, e
+ * — dove serve — il destinatario della risposta o la password per le azioni
+ * sulla conservazione delle evidenze. I permessi li ricontrolla il servizio
+ * a ogni chiamata, come prima.
+ */
 class Carpool extends Page
 {
     use WithPagination;
+
+    public const SECTIONS = ['cases', 'rides', 'reviews', 'feedback', 'users', 'audit', 'deliveries'];
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedShieldCheck;
 
@@ -35,15 +56,9 @@ class Carpool extends Page
 
     public string $search = '';
 
-    public string $reason = '';
-
-    public string $password = '';
-
     public ?int $selectedCase = null;
 
     public string $status = '';
-
-    public ?int $recipient = null;
 
     public static function getNavigationLabel(): string
     {
@@ -53,6 +68,11 @@ class Carpool extends Page
     public function getTitle(): string
     {
         return static::getNavigationLabel();
+    }
+
+    public function getSubheading(): ?string
+    {
+        return __('admin.carpool_page.subheading');
     }
 
     public static function getNavigationGroup(): ?string
@@ -72,6 +92,9 @@ class Carpool extends Page
 
     public function updatedSection(): void
     {
+        if (! in_array($this->section, self::SECTIONS, true)) {
+            $this->section = 'cases';
+        }
         $this->resetPage();
         $this->selectedCase = null;
         $this->status = '';
@@ -87,71 +110,204 @@ class Carpool extends Page
         $this->resetPage();
     }
 
+    /** Assegna, nota interna, risolvi, riapri. */
+    public function caseAction(): Action
+    {
+        return $this->reasonAction('case', function (array $data, array $arguments): void {
+            $this->manage($arguments, (string) $data['reason']);
+        })
+            ->label(fn (array $arguments): string => __('carpool.admin.'.($arguments['op'] ?? 'note')))
+            ->icon(fn (array $arguments): Heroicon => match ($arguments['op'] ?? 'note') {
+                'assign' => Heroicon::OutlinedUserPlus,
+                'resolve' => Heroicon::OutlinedCheckCircle,
+                'reopen' => Heroicon::OutlinedArrowPath,
+                default => Heroicon::OutlinedPencilSquare,
+            })
+            ->color(fn (array $arguments): string => ($arguments['op'] ?? '') === 'resolve' ? 'success' : 'gray')
+            ->modalDescription(fn (array $arguments): string => __('admin.carpool_page.case_ops.'.($arguments['op'] ?? 'note')));
+    }
+
+    /** La risposta a una persona del caso: il testo è il messaggio che riceve. */
+    public function replyCaseAction(): Action
+    {
+        return Action::make('replyCase')
+            ->label(__('carpool.admin.reply'))
+            ->icon(Heroicon::OutlinedPaperAirplane)
+            ->size('sm')
+            ->authorize(fn (): bool => static::canAccess())
+            ->modalDescription(__('admin.carpool_page.reply_description'))
+            ->modalSubmitActionLabel(__('carpool.admin.reply'))
+            ->schema(fn (array $arguments): array => [
+                Select::make('recipient')
+                    ->label(__('admin.carpool_page.recipient'))
+                    ->options(fn (): array => $this->casePeople((int) ($arguments['id'] ?? 0)))
+                    ->required(),
+                Textarea::make('reason')
+                    ->label(__('admin.carpool_page.message'))
+                    ->required()->minLength(5)->maxLength(1000)->rows(4),
+            ])
+            ->action(function (array $data, array $arguments): void {
+                $this->manage($arguments + ['op' => 'reply'], (string) $data['reason'], ['recipient_id' => (int) $data['recipient']]);
+            });
+    }
+
+    /** Conservazione eccezionale delle evidenze: chiede anche la password. */
+    public function holdCaseAction(): Action
+    {
+        return $this->reasonAction('holdCase', function (array $data, array $arguments): void {
+            $this->manage($arguments, (string) $data['reason']);
+        }, [
+            TextInput::make('password')
+                ->label(__('carpool.admin.password'))
+                ->password()
+                ->autocomplete('current-password')
+                ->currentPassword(guard: 'web')
+                ->required()
+                ->dehydrated(false),
+        ])
+            ->label(fn (array $arguments): string => __('carpool.admin.'.(($arguments['op'] ?? '') === 'release' ? 'release' : 'hold')))
+            ->icon(Heroicon::OutlinedArchiveBox)
+            ->color('gray')
+            ->modalDescription(__('admin.carpool_page.hold_description'));
+    }
+
+    public function freezeChatAction(): Action
+    {
+        return $this->reasonAction('freezeChat', function (array $data, array $arguments): void {
+            $this->check();
+            $this->run(fn () => app(CommunitySafety::class)->freezeChat($this->staffUser(), CarpoolCase::findOrFail((int) $arguments['id']), (bool) ($arguments['freeze'] ?? false), (string) $data['reason']));
+        })
+            ->label(fn (array $arguments): string => __(($arguments['freeze'] ?? false) ? 'carpool.admin.freeze_chat' : 'carpool.admin.unfreeze_chat'))
+            ->icon(Heroicon::OutlinedChatBubbleLeftEllipsis)
+            ->color(fn (array $arguments): string => ($arguments['freeze'] ?? false) ? 'warning' : 'gray');
+    }
+
+    public function restrictUserAction(): Action
+    {
+        return $this->reasonAction('restrictUser', function (array $data, array $arguments): void {
+            $this->check();
+            $this->run(fn () => app(CommunitySafety::class)->restrict($this->staffUser(), User::findOrFail((int) $arguments['id']), (string) $arguments['scope'], (bool) ($arguments['suspend'] ?? false), (string) $data['reason']));
+        })
+            ->label(fn (array $arguments): string => __('carpool.admin.'.(($arguments['suspend'] ?? false) ? 'suspend_' : 'restore_').($arguments['scope'] ?? 'social')))
+            ->color(fn (array $arguments): string => ($arguments['suspend'] ?? false) ? 'warning' : 'gray');
+    }
+
+    public function cancelRideAction(): Action
+    {
+        return $this->reasonAction('cancelRide', function (array $data, array $arguments): void {
+            $this->check(Permission::ManageCarpool);
+            $this->run(fn () => app(CommunitySafety::class)->cancelRide($this->staffUser(), RideOffer::findOrFail((int) $arguments['id']), (string) $data['reason']));
+        })
+            ->label(__('carpool.admin.cancel_ride'))
+            ->icon(Heroicon::OutlinedNoSymbol)
+            ->color('danger')
+            ->modalDescription(__('carpool.admin.cancel_confirm'));
+    }
+
+    public function moderateReviewAction(): Action
+    {
+        return $this->reasonAction('moderateReview', function (array $data, array $arguments): void {
+            $this->check(Permission::ManageCarpool);
+            $this->run(fn () => app(RideReviews::class)->moderate($this->staffUser(), RideReview::findOrFail((int) $arguments['id']), (bool) ($arguments['visible'] ?? false), (string) $data['reason']));
+        })
+            ->label(fn (array $arguments): string => __(($arguments['visible'] ?? false) ? 'carpool.reviews.restore' : 'carpool.reviews.hide'))
+            ->color(fn (array $arguments): string => ($arguments['visible'] ?? false) ? 'gray' : 'danger');
+    }
+
+    public function retryDeliveryAction(): Action
+    {
+        return $this->reasonAction('retryDelivery', function (array $data, array $arguments): void {
+            $this->check(Permission::ManageCarpool);
+            $this->run(fn () => app(CommunitySafety::class)->retryDelivery($this->staffUser(), (int) $arguments['id'], (string) $data['reason']));
+        })
+            ->label(__('carpool.admin.retry'))
+            ->icon(Heroicon::OutlinedArrowPath)
+            ->color('gray');
+    }
+
+    /**
+     * La finestra comune: il motivo obbligatorio (più eventuali campi), il
+     * permesso richiesto di nuovo.
+     *
+     * @param  Closure(array<string, mixed>, array<string, mixed>): void  $handler
+     * @param  list<TextInput>  $extra
+     */
+    private function reasonAction(string $name, Closure $handler, array $extra = []): Action
+    {
+        return Action::make($name)
+            ->size('sm')
+            ->authorize(fn (): bool => static::canAccess())
+            ->modalWidth('lg')
+            ->modalSubmitActionLabel(__('admin.carpool_page.confirm'))
+            ->schema([
+                Textarea::make('reason')
+                    ->label(__('carpool.admin.reason'))
+                    ->helperText(__('admin.carpool_page.reason_help'))
+                    ->required()->minLength(5)->maxLength(1000)->rows(3),
+                ...$extra,
+            ])
+            ->action($handler);
+    }
+
+    /**
+     * @param  array<string, mixed>  $arguments
+     * @param  array<string, mixed>  $data
+     */
+    private function manage(array $arguments, string $reason, array $data = []): void
+    {
+        $this->check();
+        $this->run(fn () => app(CommunitySafety::class)->manage(
+            $this->staffUser(),
+            CarpoolCase::findOrFail((int) ($arguments['id'] ?? 0)),
+            (string) ($arguments['op'] ?? 'note'),
+            $reason,
+            ['revision' => (int) ($arguments['revision'] ?? 0)] + $data,
+        ));
+    }
+
+    /**
+     * Esegue l'operazione e dice com'è andata: un caso cambiato nel frattempo
+     * (409) o un dato rifiutato (422) diventano un avviso, non una pagina
+     * d'errore che fa perdere il punto in cui si era.
+     */
+    private function run(Closure $operation): void
+    {
+        try {
+            $operation();
+        } catch (HttpExceptionInterface $exception) {
+            if ($exception->getStatusCode() === 403) {
+                throw $exception;
+            }
+            Notification::make()->title(filled($exception->getMessage()) ? $exception->getMessage() : __('admin.carpool_page.failed'))->danger()->send();
+
+            return;
+        }
+
+        Notification::make()->title(__('admin.carpool_page.done'))->success()->send();
+    }
+
+    /** @return array<int, string> */
+    private function casePeople(int $caseId): array
+    {
+        $case = CarpoolCase::with(['reporter', 'offer.driver', 'rideRequest.user'])->find($caseId);
+
+        return collect([$case?->reporter, $case?->offer?->driver, $case?->rideRequest?->user])
+            ->filter()->unique('id')
+            ->mapWithKeys(fn (User $person): array => [$person->id => $person->name.' #'.$person->id])
+            ->all();
+    }
+
     private function check(Permission $permission = Permission::ManageCommunityCases): void
     {
-        app(CommunitySafety::class)->requireStaff(auth()->user(), $permission);
+        app(CommunitySafety::class)->requireStaff($this->staffUser(), $permission);
     }
 
-    private function validateReason(bool $sensitive = false): void
+    private function staffUser(): User
     {
-        $rules = ['reason' => ['required', 'string', 'min:5', 'max:1000']];
-        if ($sensitive) {
-            $rules['password'] = ['required', 'current_password:web'];
-        }
-        $this->validate($rules);
-    }
+        $user = auth()->user();
+        abort_unless($user instanceof User, 403);
 
-    public function manageCase(int $id, int $revision, string $action): void
-    {
-        $this->check();
-        $this->validateReason(in_array($action, ['hold', 'release'], true));
-        try {
-            app(CommunitySafety::class)->manage(auth()->user(), CarpoolCase::findOrFail($id), $action, $this->reason, ['revision' => $revision, 'recipient_id' => $this->recipient]);
-            $this->reason = '';
-            $this->recipient = null;
-        } finally {
-            $this->password = '';
-        }
-    }
-
-    public function restrict(int $id, string $scope, bool $suspended): void
-    {
-        $this->check();
-        $this->validateReason();
-        app(CommunitySafety::class)->restrict(auth()->user(), User::findOrFail($id), $scope, $suspended, $this->reason);
-        $this->reason = '';
-    }
-
-    public function cancelRide(int $id): void
-    {
-        $this->check(Permission::ManageCarpool);
-        $this->validateReason();
-        app(CommunitySafety::class)->cancelRide(auth()->user(), RideOffer::findOrFail($id), $this->reason);
-        $this->reason = '';
-    }
-
-    public function freezeChat(int $id, bool $freeze): void
-    {
-        $this->check();
-        $this->validateReason();
-        app(CommunitySafety::class)->freezeChat(auth()->user(), CarpoolCase::findOrFail($id), $freeze, $this->reason);
-        $this->reason = '';
-    }
-
-    public function moderateReview(int $id, bool $visible): void
-    {
-        $this->check(Permission::ManageCarpool);
-        $this->validateReason();
-        app(RideReviews::class)->moderate(auth()->user(), RideReview::findOrFail($id), $visible, $this->reason);
-        $this->reason = '';
-    }
-
-    public function retryDelivery(int $id): void
-    {
-        $this->check(Permission::ManageCarpool);
-        $this->validateReason();
-        app(CommunitySafety::class)->retryDelivery(auth()->user(), $id, $this->reason);
-        $this->reason = '';
+        return $user;
     }
 
     /** @return array<string, mixed> */
@@ -177,7 +333,7 @@ class Carpool extends Page
         }
 
         return ['items' => $query->orderByDesc('id')->paginate(25), 'case' => $case,
-            'canSensitive' => app(CommunitySafety::class)->staff(auth()->user(), Permission::ReadCommunityMessages, true),
-            'canRetention' => app(CommunitySafety::class)->staff(auth()->user(), Permission::ManageCommunityRetention, true)];
+            'canSensitive' => app(CommunitySafety::class)->staff($this->staffUser(), Permission::ReadCommunityMessages, true),
+            'canRetention' => app(CommunitySafety::class)->staff($this->staffUser(), Permission::ManageCommunityRetention, true)];
     }
 }

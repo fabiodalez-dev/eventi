@@ -1,30 +1,31 @@
 {{-- «Accetta l'invito» al personale di ingresso (D67): la GET mostra la
      domanda, il POST con CSRF decide. --}}
-<x-layouts.app :narrow="true" :meta="$meta">
-    <div class="mx-auto flex w-full max-w-md flex-col gap-6">
-        <header class="flex flex-col gap-2">
-            <h1 class="text-hero text-ink">{{ $meta->heading }}</h1>
-            @if ($error !== null)
-                <p class="text-sm text-ink-muted" role="alert">{{ $error }}</p>
-            @else
-                <p class="text-sm text-ink-muted">{{ __('decision.staff_invitation.page_lead', ['event' => $date->event?->title, 'date' => $date->starts_at->timezone($date->event?->city?->timezone ?? config('app.timezone'))->translatedFormat('j F Y, H:i')]) }}</p>
-            @endif
-        </header>
-
-        @if ($error === null)
-            <p class="text-sm text-ink-muted">{{ __('decision.staff_invitation.page_consequences') }}</p>
-
-            <form method="POST" action="{{ $action }}" class="flex flex-col gap-3">
+@php
+    $lead = $error === null
+        ? __('decision.staff_invitation.page_lead', ['event' => $date->event?->title, 'date' => $date->starts_at->timezone($date->event?->city?->timezone ?? config('app.timezone'))->translatedFormat('j F Y, H:i')])
+        : null;
+@endphp
+<x-layouts.app service :meta="$meta">
+    <x-service-page :title="$meta->heading" :subtitle="$lead">
+        @if ($error !== null)
+            <x-card tone="alert" :title="__('auth.invitation.unavailable_title')">
+                <p class="text-base text-ink" role="alert">{{ $error }}</p>
+                <x-slot:footer>
+                    <x-button variant="secondary" :href="route('home')">{{ __('auth.invitation.home') }}</x-button>
+                </x-slot:footer>
+            </x-card>
+        @else
+            <x-card as="form" method="POST" action="{{ $action }}" :title="__('auth.invitation.card_title')">
                 @csrf
+                <p class="text-base text-ink-muted">{{ __('decision.staff_invitation.page_consequences') }}</p>
 
-                <button type="submit" name="decision" value="accept" class="bg-brand px-4 py-2.5 text-sm font-semibold text-on-brand transition hover:bg-brand-strong">
-                    {{ __('decision.staff_invitation.accept_action') }}
-                </button>
-
-                <button type="submit" name="decision" value="decline" class="border-2 border-line bg-surface px-4 py-2.5 text-sm font-semibold text-ink transition hover:border-accent hover:bg-canvas">
-                    {{ __('decision.staff_invitation.decline_action') }}
-                </button>
-            </form>
+                <x-slot:footer>
+                    <x-form-actions>
+                        <x-button type="submit" name="decision" value="accept">{{ __('decision.staff_invitation.accept_action') }}</x-button>
+                        <x-button type="submit" variant="secondary" name="decision" value="decline">{{ __('decision.staff_invitation.decline_action') }}</x-button>
+                    </x-form-actions>
+                </x-slot:footer>
+            </x-card>
         @endif
-    </div>
+    </x-service-page>
 </x-layouts.app>

@@ -158,7 +158,7 @@ Route::post('/proponi-evento', [EventSubmissionController::class, 'store'])
     ->middleware('throttle:public-forms')
     ->name('submissions.store');
 
-Route::get('/registra-il-tuo-locale', [VenueApplicationController::class, 'create'])->name('venue-applications.create');
+Route::get('/registra-il-tuo-locale', [VenueApplicationController::class, 'create'])->middleware('throttle:60,1,venue-catalogue-search')->name('venue-applications.create');
 Route::get('/registra-la-tua-organizzazione', [OrganizerApplicationController::class, 'create'])->name('organizer-applications.create');
 /* Richieste e contatti legati all'account: durante l'impersonificazione non
    partono a nome della persona (vale anche per `public.contact` sotto). */
@@ -172,6 +172,23 @@ Route::post('/locali/{venue}/rivendica', [VenueClaimController::class, 'store'])
 Route::post('/registra-il-tuo-locale', [VenueApplicationController::class, 'store'])
     ->middleware([BlockWhileImpersonating::class, 'throttle:public-forms'])
     ->name('venue-applications.store');
+/* «Ho già un account»: conserva quanto scritto e porta all'accesso. Poi,
+   da collegati, la conferma (o il ritiro) di una richiesta scritta da ospite
+   con l'indirizzo di un account che esisteva già. */
+Route::post('/registra-il-tuo-locale/accedi', [VenueApplicationController::class, 'draft'])
+    ->middleware('throttle:20,60,venue-application-draft')
+    ->name('venue-applications.draft');
+Route::post('/locali/{venue}/rivendica/accedi', [VenueClaimController::class, 'draft'])
+    ->middleware('throttle:20,60,venue-application-draft')
+    ->name('venues.claim.draft');
+Route::post('/registra-il-tuo-locale/richieste/{application}/conferma', [VenueApplicationController::class, 'confirm'])
+    ->whereNumber('application')
+    ->middleware(['auth', BlockWhileImpersonating::class, 'throttle:10,60,venue-application-confirm'])
+    ->name('venue-applications.confirm');
+Route::delete('/registra-il-tuo-locale/richieste/{application}', [VenueApplicationController::class, 'discard'])
+    ->whereNumber('application')
+    ->middleware(['auth', BlockWhileImpersonating::class, 'throttle:10,60,venue-application-confirm'])
+    ->name('venue-applications.discard');
 
 /*
  * I commenti a un evento.

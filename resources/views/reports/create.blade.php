@@ -1,58 +1,41 @@
-{{-- "Segnala un errore" (§11.5, §14.6). Nessun account richiesto. --}}
-<x-layouts.app :narrow="true" :meta="$meta">
-    <header class="flex max-w-prose flex-col gap-2">
-        <h1 class="text-balance text-hero text-ink">{{ $meta->heading }}</h1>
-        <p class="text-sm text-ink-muted">{{ $meta->description }}</p>
-    </header>
+{{-- "Segnala un errore" (§11.5, §14.6). Nessun account richiesto. Una card con i tre campi e il pulsante in fondo; il ritorno porta alla scheda da cui si è arrivati. --}}
+<x-layouts.app service :meta="$meta">
+    <x-service-page :title="$meta->heading" :subtitle="$meta->description" :back="$back" :back-label="__('common.actions.back')">
+        <form method="POST" action="{{ $action }}" class="flex flex-col gap-6" data-report-form>
+            @csrf
+            <x-honeypot />
 
-    @if ($errors->any())
-        <p role="alert" class="mt-6 bg-live-soft px-4 py-3 text-sm font-semibold text-on-live-soft">
-            {{ __('forms.has_errors') }}
-        </p>
-    @endif
+            <x-card :title="__('account.service_forms.report_title')" :description="__('forms.privacy_note')">
+                <x-field
+                    name="reason"
+                    :label="__('forms.report.fields.reason')"
+                    :options="$reasons"
+                    :placeholder-option="__('forms.report.reason_placeholder')"
+                    :required="true"
+                />
 
-    <form method="POST" action="{{ $action }}" class="mt-6 grid max-w-xl gap-4">
-        @csrf
-        <x-honeypot />
+                <x-field
+                    type="textarea"
+                    name="note"
+                    :label="__('forms.report.fields.note')"
+                    :hint="__('forms.report.hints.note')"
+                />
 
-        <x-field
-            name="reason"
-            :label="__('forms.report.fields.reason')"
-            :options="$reasons"
-            :placeholder-option="__('forms.report.reason_placeholder')"
-            :required="true"
-        />
+                <x-field
+                    type="email"
+                    name="reporter_email"
+                    :label="__('forms.report.fields.reporter_email')"
+                    :hint="__('forms.report.hints.reporter_email')"
+                    autocomplete="email"
+                />
+            </x-card>
 
-        <x-field
-            type="textarea"
-            name="note"
-            :label="__('forms.report.fields.note')"
-            :hint="__('forms.report.hints.note')"
-        />
+            <x-turnstile action="segnalazione" />
 
-        <x-field
-            type="email"
-            name="reporter_email"
-            :label="__('forms.report.fields.reporter_email')"
-            :hint="__('forms.report.hints.reporter_email')"
-            autocomplete="email"
-        />
-
-        <x-turnstile action="segnalazione" />
-
-        <p class="text-xs text-ink-subtle">{{ __('forms.privacy_note') }}</p>
-
-        <div class="flex flex-wrap items-center gap-3">
-            <button
-                type="submit"
-                class="bg-brand px-5 py-2.5 text-sm font-semibold text-on-brand transition hover:bg-brand-strong"
-            >
-                {{ __('forms.report.submit') }}
-            </button>
-
-            <a href="{{ $back }}" class="text-sm font-semibold text-ink-muted underline hover:text-ink">
-                {{ __('common.actions.back') }}
-            </a>
-        </div>
-    </form>
+            <x-form-actions>
+                <x-button type="submit">{{ __('forms.report.submit') }}</x-button>
+                <x-button variant="ghost" :href="$back">{{ __('common.actions.back') }}</x-button>
+            </x-form-actions>
+        </form>
+    </x-service-page>
 </x-layouts.app>

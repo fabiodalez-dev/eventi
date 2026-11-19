@@ -1,4 +1,4 @@
-@props(['city'])
+@props(['city', 'service' => false])
 @php
     $slug = static fn ($value) => $value instanceof \Illuminate\Database\Eloquent\Model ? $value->getRouteKey() : (is_string($value) ? mb_substr($value, 0, 255) : null);
     $excludedEvent = request()->attributes->get('sponsorship_exclude_event') ?? (request()->routeIs('events.show', 'city.events.show', 'events.occurrence', 'city.events.occurrence') ? $slug(request()->route('slug')) : null);
@@ -12,7 +12,7 @@
     data-endpoint="{{ route('city.sponsorships.banner', ['platform' => 'web', 'city' => $city->slug, 'exclude_event' => $excludedEvent, 'category' => $categoryContext, 'venue' => $venueContext, 'tag' => $tagContext]) }}"
     data-metric-base="{{ url('/api/v1/reports/sponsorships') }}"
     aria-label="Evento sponsorizzato"
-    class="mx-auto my-8 w-full max-w-content px-gutter">
+    @class(["mx-auto my-8 w-full px-gutter", "max-w-service" => $service, "max-w-content" => ! $service])>
     <a rel="sponsored" class="relative flex min-w-0 items-center gap-4 border-2 border-line bg-canvas-deep p-3 text-ink no-underline hover:border-accent focus-visible:outline-2 focus-visible:outline-accent">
         <div class="flex size-20 shrink-0 items-center justify-center overflow-hidden bg-canvas text-accent sm:size-24" aria-hidden="true">
             <span class="font-display text-sm font-extrabold">inCittà</span>

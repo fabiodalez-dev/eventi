@@ -24,8 +24,46 @@ return [
     'day' => [
         'link' => 'Eventi di :date',
         'count' => ':count evento|:count eventi',
-        'more' => 'Mostra gli altri',
-        'less' => 'Mostra meno',
+        'more' => 'Mostra i titoli',
+        'less' => 'Nascondi i titoli',
+    ],
+
+    /*
+     * Il calendario del mese nella pagina iniziale. `mode` dice di chi è:
+     * della città (ospite), della persona (segue i suoi interessi), della
+     * città perché i suoi interessi questo mese non portano a niente
+     * (`fallback`), o della città senza ciò che ha nascosto, perché non ha
+     * ancora scelto interessi (`filtered`).
+     */
+    'home' => [
+        'eyebrow' => [
+            'city' => 'Il calendario della città',
+            'personal' => 'Il tuo calendario',
+            'fallback' => 'Il calendario della città',
+            'filtered' => 'Il calendario della città',
+        ],
+        'total' => [
+            'city' => ':count evento questo mese|:count eventi questo mese',
+            'personal' => ':count evento per te questo mese|:count eventi per te questo mese',
+        ],
+        'hint' => [
+            'fallback' => 'Questo mese non c\'è ancora niente che segue i tuoi interessi: ecco tutto quello che c\'è in città.',
+            'filtered' => 'Scegli categorie e locali che ti interessano e qui vedrai solo i loro eventi.',
+        ],
+        'preferences' => 'Scegli i tuoi interessi',
+        'open' => 'Apri il calendario',
+        'next' => [
+            'eyebrow' => [
+                'personal' => 'Il prossimo per te',
+                'city' => 'Il prossimo in città',
+            ],
+            'title' => [
+                'soon' => 'Inizia tra poco',
+                'next' => 'Il prossimo evento',
+            ],
+            'open' => 'Vedi l\'evento',
+            'following' => 'A seguire',
+        ],
     ],
 
     'weekdays' => [

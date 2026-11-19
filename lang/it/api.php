@@ -14,7 +14,7 @@ return [
         'unauthenticated' => 'Serve un accesso per questa richiesta.',
         'invalid_credentials' => 'Email o password non corrispondono.',
         'forbidden' => 'Questa richiesta non è consentita.',
-        'email_confirmation_pending' => 'Prima conferma l\'indirizzo: ti abbiamo appena scritto un collegamento per entrare. Aprilo da questo telefono.',
+        'email_confirmation_pending' => 'Prima conferma l\'indirizzo: ti ho appena scritto un collegamento per entrare. Aprilo da questo telefono.',
         'not_found' => 'La risorsa richiesta non esiste.',
         'city_not_found' => 'Nessuna città attiva corrisponde a questa richiesta.',
         'conflict' => 'La richiesta è in conflitto con lo stato attuale della risorsa.',
@@ -30,7 +30,7 @@ return [
 
     'auth' => [
         'registered' => 'Registrazione completata.',
-        'registration_sent' => 'Ti abbiamo scritto: apri il messaggio per entrare.',
+        'registration_sent' => 'Ti ho scritto: apri il messaggio per entrare.',
         'logged_in' => 'Accesso effettuato.',
         'logged_out' => 'Sessione chiusa.',
         'password_link_sent' => 'Se l\'indirizzo è registrato, riceverai un messaggio con le istruzioni.',

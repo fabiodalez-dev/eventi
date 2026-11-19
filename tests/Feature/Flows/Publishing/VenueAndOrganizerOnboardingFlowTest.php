@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Actions\Account\ClaimMailbox;
 use App\Enums\ApplicationKind;
 use App\Enums\ApplicationStatus;
 use App\Enums\EventStatus;
@@ -16,13 +17,13 @@ use App\Filament\Admin\Resources\VenueApplications\VenueApplicationResource;
 use App\Filament\Admin\Resources\Venues\Pages\EditVenue as AdminEditVenue;
 use App\Filament\Organizer\Resources\Events\Pages\CreateEvent as OrganizerCreateEvent;
 use App\Filament\Organizer\Resources\Events\Pages\EditEvent as OrganizerEditEvent;
+use App\Http\Requests\Web\StoreVenueApplicationRequest;
 use App\Models\Event;
 use App\Models\Organizer;
 use App\Models\User;
 use App\Models\Venue;
 use App\Models\VenueApplication;
 use App\Notifications\OrganizerAccessGranted;
-use App\Notifications\VenueAccessGranted;
 use App\Services\Geo\AddressGeocoder;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
@@ -77,8 +78,15 @@ function pubCandidaturaLocale(array $overrides = []): array
         'contact_phone' => '347 1234567',
         'contact_email' => 'marco@osteria.example',
         'message' => 'Facciamo musica dal vivo il venerdì.',
+        StoreVenueApplicationRequest::STARTED_FIELD => pubModuloAperto(),
         ...$overrides,
     ];
+}
+
+/** Il modulo aperto un minuto fa: il tempo minimo di compilazione è passato. */
+function pubModuloAperto(): string
+{
+    return StoreVenueApplicationRequest::startedToken(now()->subMinute());
 }
 
 it('porta un gestore dalla candidatura al suo pannello e alla scheda pubblica', function (): void {
@@ -87,7 +95,7 @@ it('porta un gestore dalla candidatura al suo pannello e alla scheda pubblica', 
     $this->actingAs($gestore)->get('/registra-il-tuo-locale')->assertOk()->assertSee(__('forms.application.title'));
     $this->actingAs($gestore)->post('/registra-il-tuo-locale', pubCandidaturaLocale())
         ->assertRedirect(route('venue-applications.create'))
-        ->assertSessionHas('status', __('forms.application.received'));
+        ->assertSessionHas('status', __('forms.application.sent.queued'));
 
     $richiesta = VenueApplication::query()->sole();
     expect($richiesta->kind())->toBe(ApplicationKind::Venue)
@@ -134,7 +142,7 @@ it('porta un gestore dalla candidatura al suo pannello e alla scheda pubblica', 
     $this->get('/locali/'.$locale->slug)->assertOk()->assertSee('Osteria del Portello');
 });
 
-it('respinge le candidature scritte male e invita chi si candida senza account', function (): void {
+it('respinge le candidature scritte male; da ospite crea l’account e mette in coda solo dopo la conferma dell’email', function (): void {
     $this->from('/registra-il-tuo-locale')->post('/registra-il-tuo-locale', pubCandidaturaLocale([
         'contact_name' => '',
         'contact_phone' => 'chiamami',
@@ -142,27 +150,43 @@ it('respinge le candidature scritte male e invita chi si candida senza account',
         'type' => 'astronave',
         'contact_email' => 'non-una-email',
     ]))->assertRedirect('/registra-il-tuo-locale')
-        ->assertSessionHasErrors(['contact_name', 'contact_phone', 'website', 'type', 'contact_email']);
+        ->assertSessionHasErrors(['contact_name', 'contact_phone', 'website', 'type', 'contact_email', 'password']);
 
-    $this->post('/registra-il-tuo-locale', pubCandidaturaLocale(['website_url' => 'https://spam.example']))
+    $this->post('/registra-il-tuo-locale', pubCandidaturaLocale(['website_url' => 'https://spam.example', 'password' => 'una-password-lunga', 'password_confirmation' => 'una-password-lunga']))
         ->assertSessionHasErrors('website_url');
-    expect(VenueApplication::query()->count())->toBe(0);
+    expect(VenueApplication::query()->withoutGlobalScope(VenueApplication::AWAITING_EMAIL)->count())->toBe(0);
 
-    // Una candidatura valida da anonimo: nessun account dietro.
-    $this->post('/registra-il-tuo-locale', pubCandidaturaLocale())->assertSessionHasNoErrors();
-    $richiesta = VenueApplication::query()->sole();
-    expect($richiesta->user_id)->toBeNull();
+    // Da ospite, con la password: l'account nasce, la richiesta aspetta la conferma dell'email.
+    $this->post('/registra-il-tuo-locale', pubCandidaturaLocale(['password' => 'una-password-lunga', 'password_confirmation' => 'una-password-lunga']))
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('venue-applications.create'))
+        ->assertSessionHas('application_sent', 'check_email');
+    $marco = User::query()->where('email', 'marco@osteria.example')->sole();
+    $richiesta = VenueApplication::query()->withoutGlobalScope(VenueApplication::AWAITING_EMAIL)->sole();
+    expect($marco->hasVerifiedEmail())->toBeFalse()
+        ->and($richiesta->user_id)->toBe($marco->id)
+        ->and($richiesta->isAwaitingEmail())->toBeTrue()
+        ->and(VenueApplication::query()->count())->toBe(0);
 
     pubCodaRichieste($this->admin);
-    Livewire::test(ListVenueApplications::class)->callTableAction('approva', $richiesta)->assertHasNoTableActionErrors();
+    Livewire::test(ListVenueApplications::class)->assertCountTableRecords(0);
 
-    // L'email del modulo non prova niente: parte un invito, il pannello resta chiuso.
-    $invitato = User::query()->where('email', 'marco@osteria.example')->sole();
+    // Conferma l'email dal collegamento della registrazione: la richiesta entra in coda.
+    app(ClaimMailbox::class)->confermaRegistrazione($marco);
+    expect($richiesta->fresh()->isAwaitingEmail())->toBeFalse();
+
+    Livewire::test(ListVenueApplications::class)->assertCanSeeTableRecords([$richiesta])
+        ->callTableAction('approva', $richiesta)->assertHasNoTableActionErrors();
+
+    // Ha chiesto lui e ha confermato la casella: entra subito, senza collegamenti a scadenza.
     $locale = Venue::query()->sole();
-    Notification::assertSentTo($invitato, VenueAccessGranted::class);
-    expect($invitato->venuesIncludingInvited()->whereKey($locale->id)->exists())->toBeTrue()
-        ->and($invitato->canAccessTenant($locale))->toBeFalse()
-        ->and($invitato->canAccessPanel(Filament::getPanel('venue')))->toBeFalse();
+    $marco = $marco->fresh();
+    expect($marco->isOwnerOfVenue((int) $locale->id))->toBeTrue()
+        ->and($locale->website)->toBe('https://osteria-portello.example')
+        ->and($locale->email)->toBeNull();
+    // Un browser nuovo: la sessione del test porta l'impronta della password della redazione.
+    $this->flushSession();
+    $this->actingAs($marco)->get('/gestione/'.$locale->slug)->assertOk();
 });
 
 it('lascia rifiutare una candidatura dalla coda solo con un motivo, e la coda è della redazione', function (): void {
@@ -181,7 +205,10 @@ it('lascia rifiutare una candidatura dalla coda solo con un motivo, e la coda è
         ->assertHasTableActionErrors(['notes' => 'required']);
     expect($richiesta->fresh()->status)->toBe(ApplicationStatus::Pending);
 
+    /* La coda si apre su «Da valutare»: dopo il rifiuto la richiesta esce da
+       lì, quindi la si guarda nella scheda «Tutte». */
     Livewire::test(ListVenueApplications::class)
+        ->set('activeTab', 'all')
         ->callTableAction('rifiuta', $richiesta, data: ['notes' => 'Indirizzo inesistente, nessuna risposta al telefono'])
         ->assertHasNoTableActionErrors()
         ->assertTableActionHidden('rifiuta', $richiesta);
@@ -199,7 +226,7 @@ it('consegna le chiavi di un locale a catalogo a chi lo rivendica, senza creare 
     $locale = Venue::factory()->approved()->create(['city_id' => $this->city->id, 'name' => 'Teatro Importato']);
     $titolare = User::factory()->create(['email' => 'titolare@teatro.example']);
 
-    $this->actingAs($titolare)->get('/locali/'.$locale->slug)->assertOk()->assertSee(__('forms.claim.cta'));
+    $this->actingAs($titolare)->get('/locali/'.$locale->slug)->assertOk()->assertSee(__('venues.claim_card.action'));
     $this->actingAs($titolare)->get(route('venues.claim.create', $locale))->assertOk()->assertSee('Teatro Importato');
 
     $this->actingAs($titolare)->post(route('venues.claim.store', $locale), [
@@ -207,7 +234,8 @@ it('consegna le chiavi di un locale a catalogo a chi lo rivendica, senza creare 
         'contact_name' => 'Teresa Titolare',
         'contact_email' => 'titolare@teatro.example',
         'message' => 'Gestisco il teatro dal 2018.',
-    ])->assertRedirect(route('venues.claim.create', $locale))->assertSessionHas('status', __('forms.claim.received'));
+        StoreVenueApplicationRequest::STARTED_FIELD => pubModuloAperto(),
+    ])->assertRedirect(route('venues.claim.create', $locale))->assertSessionHas('status', __('forms.application.sent.queued'));
 
     $rivendicazione = VenueApplication::query()->sole();
     expect($rivendicazione->kind())->toBe(ApplicationKind::Claim)
@@ -229,7 +257,7 @@ it('consegna le chiavi di un locale a catalogo a chi lo rivendica, senza creare 
     $this->post(route('venues.claim.store', $locale), [
         'venue_name' => 'x', 'contact_name' => 'Altra Persona', 'contact_email' => 'altra@example.test',
     ])->assertNotFound();
-    $this->get('/locali/'.$locale->slug)->assertOk()->assertDontSee(__('forms.claim.cta'));
+    $this->get('/locali/'.$locale->slug)->assertOk()->assertDontSee(__('venues.claim_card.action'));
     expect(VenueApplication::query()->count())->toBe(1);
 });
 
@@ -244,6 +272,7 @@ it('porta un’organizzazione dalla registrazione a un evento pubblicato dalla r
         'contact_name' => 'Luca Referente',
         'contact_email' => 'luca@collettivo.example',
         'message' => 'Rassegna itinerante di concerti.',
+        StoreVenueApplicationRequest::STARTED_FIELD => pubModuloAperto(),
     ])->assertRedirect(route('organizer-applications.create'))->assertSessionHas('status');
 
     $richiesta = VenueApplication::query()->sole();
@@ -320,6 +349,7 @@ it('respinge le registrazioni di organizzazioni incomplete e non apre il pannell
     $richiedente = User::factory()->create(['email' => 'attesa@collettivo.example']);
     $this->actingAs($richiedente)->post('/registra-la-tua-organizzazione', [
         'venue_name' => 'Collettivo in Attesa', 'contact_name' => 'Anna', 'contact_email' => 'attesa@collettivo.example',
+        StoreVenueApplicationRequest::STARTED_FIELD => pubModuloAperto(),
     ])->assertSessionHasNoErrors();
     expect(VenueApplication::query()->sole()->status)->toBe(ApplicationStatus::Pending)
         ->and($richiedente->fresh()->canAccessPanel(Filament::getPanel('organizer')))->toBeFalse()

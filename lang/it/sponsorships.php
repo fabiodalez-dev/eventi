@@ -42,7 +42,9 @@ return [
         'week_rate' => 'Aperture su viste',
         'week_rate_lead' => ':aperture aperture nella settimana',
         'week_rate_none' => 'Nessuna visualizzazione ancora: non c\'è niente da rapportare',
+        'heading_city' => 'Sponsorizzazioni · :city',
         'trend' => 'Andamento degli ultimi 30 giorni',
+        'trend_city' => 'Andamento degli ultimi 30 giorni · :city',
         'trend_lead' => 'La distanza fra le due linee dice se le campagne servono a qualcosa, non solo quanto sono state mostrate.',
     ],
 
@@ -65,6 +67,8 @@ return [
         'title' => 'Sponsorizzazioni',
         'singular' => 'Sponsorizzazione',
         'navigation' => 'Sponsorizzazioni',
+        'create' => 'Nuova sponsorizzazione',
+        'analytics' => 'Statistiche e registro clic',
 
         /* Le schede del modulo di una campagna. */
         'tabs' => [
@@ -145,9 +149,50 @@ return [
 
     'venue' => [
         'title' => 'Sponsorizzazioni',
-        'lead' => 'Le campagne attive sui tuoi eventi. Si aprono e si chiudono dalla redazione: scrivici se ne vuoi una.',
-        'none' => 'Nessuna campagna sui tuoi eventi.',
+        'lead' => 'Le campagne sui tuoi eventi e come richiederne una nuova.',
+        'none' => 'Nessuna campagna sui tuoi eventi, per ora.',
         'analytics' => 'Statistiche e registro clic',
+    ],
+
+    /* La pagina dei banner orizzontali, in redazione. */
+    'banners' => [
+        'lead' => 'I banner orizzontali mostrano automaticamente foto, titolo, data, locale e prezzo degli eventi sponsorizzati, con la dicitura AD. Le campagne si alternano rispettando priorità, peso e limiti già impostati.',
+        'rules' => 'Gli eventi conclusi non vengono più sponsorizzati dal giorno successivo, nel fuso della città. Le date annullate, rinviate o spostate sono escluse. Restano validi solo gli eventi con almeno una data valida.',
+        'save' => 'Salva impostazioni',
+        'switch_off' => 'Lo spegnimento riguarda questi banner aggiuntivi, non le collocazioni originali delle campagne. Si applica subito alle nuove richieste e, entro un minuto, alle pagine e alle app già aperte e connesse.',
+    ],
+
+    /* La pagina delle statistiche, uguale nei tre pannelli. */
+    'analytics' => [
+        'title' => 'Statistiche sponsorizzazioni',
+        'lead' => 'Visualizzazioni e clic delle campagne, anche concluse. Scegli il periodo o cerca un evento.',
+        'period' => 'Periodo',
+        'periods' => ['7' => 'Ultimi 7 giorni', '30' => 'Ultimi 30 giorni', '90' => 'Ultimi 90 giorni', '365' => 'Ultimo anno', 'all' => 'Tutto lo storico', 'custom' => 'Fra due date'],
+        'from' => 'Dal',
+        'to' => 'Al',
+        'campaign' => 'Campagna o evento',
+        'all_campaigns' => 'Tutte le campagne',
+        'window' => 'Dal :from al :to, giorni nel fuso della città.',
+        'totals' => 'Nel periodo',
+        'impressions' => 'Visualizzazioni',
+        'clicks' => 'Clic registrati',
+        'rate' => 'Clic ogni 100 visualizzazioni',
+        'not_available' => 'Non disponibile',
+        'chart_impressions' => 'Visualizzazioni giornaliere',
+        'chart_clicks' => 'Clic giornalieri',
+        'chart_empty' => 'Nessun dato in questo periodo.',
+        'chart_label' => ':label. Massimo :max. I valori esatti sono nell’elenco giorno per giorno.',
+        'peak' => 'Massimo: :max',
+        'daily' => 'Valori giorno per giorno',
+        'daily_row' => ':views visualizzazioni · :clicks clic',
+        'register' => 'Registro dei clic',
+        'register_lead' => 'Una riga per ogni clic accettato dai controlli antiabuso, con l’ora nel fuso della città. Nessun IP o dato personale viene conservato. I clic bloccati dal browser o senza connessione non si possono misurare.',
+        'register_empty' => 'Nessun clic nel registro per questo periodo.',
+        'event_gone' => 'Evento non più disponibile',
+        'campaign_ref' => 'campagna n. :id',
+        'channels' => ['web' => 'Sito', 'android' => 'Android'],
+        'placements' => ['banner' => 'Banner orizzontale', 'home_hero' => 'Apertura home', 'card' => 'Scheda sponsorizzata'],
+        'pages' => ['home' => 'Home', 'feed' => 'Il mio feed', 'event' => 'Evento', 'venues' => 'Locali', 'profile' => 'Profilo', 'search' => 'Ricerca', 'other' => 'Pagina non specificata'],
     ],
 
 ];

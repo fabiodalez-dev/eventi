@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Web;
 
+use App\Models\User;
 use App\Support\Honeypot;
 use App\Support\Turnstile;
 use Illuminate\Foundation\Http\FormRequest;
@@ -29,8 +30,11 @@ class StoreOrganizerApplicationRequest extends FormRequest
             'contact_name' => ['required', 'string', 'max:120'],
             'contact_role' => ['nullable', 'string', 'max:120'],
             'contact_phone' => ['nullable', 'string', 'max:40', (new PhoneRule)->country('IT')->type(['mobile', 'fixed_line'])->international()],
-            'contact_email' => ['required', 'email:filter', 'max:255'],
+            /* Da collegati la richiesta parte a nome dell'account, con la sua
+               email: quella del modulo non conta. */
+            'contact_email' => $this->user() instanceof User ? ['nullable'] : ['required', 'email:filter', 'max:255'],
             'message' => ['nullable', 'string', 'max:5000'],
+            StoreVenueApplicationRequest::STARTED_FIELD => StoreVenueApplicationRequest::startedRules(),
             ...Honeypot::rules(),
             ...Turnstile::rules('registrazione-organizzatore'),
         ];
@@ -43,5 +47,13 @@ class StoreOrganizerApplicationRequest extends FormRequest
         $fields = trans('forms.application.fields');
 
         return [...$fields, ...(array) trans('forms.organizer_application.fields')];
+    }
+
+    /** L'email a cui la richiesta risponde: quella dell'account, se c'è. */
+    public function applicantEmail(): string
+    {
+        $user = $this->user();
+
+        return mb_strtolower(trim($user instanceof User ? $user->email : (string) $this->validated('contact_email')));
     }
 }

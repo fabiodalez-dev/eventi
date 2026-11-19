@@ -7,12 +7,12 @@ namespace App\Filament\Venue\Resources\Events\Pages;
 use App\Enums\EventStatus;
 use App\Filament\Shared\EventAnalyticsNavigation;
 use App\Filament\Support\PublicationActions;
-use App\Filament\Venue\Pages\Social;
 use App\Filament\Venue\Resources\Events\EventResource;
 use App\Filament\Venue\Support\EventActions;
 use App\Filament\Venue\Support\EventPublication;
 use App\Models\Event;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Pages\Enums\SubNavigationPosition;
 use Filament\Resources\Pages\EditRecord;
@@ -207,20 +207,45 @@ class EditEvent extends EditRecord
     }
 
     /**
+     * In vista le due azioni che si usano di più su un evento esistente —
+     * Duplica e Ripeti, perché quasi tutti i locali fanno serate fisse (§10.3)
+     * — e Pubblica quando serve. Le altre pagine dell'evento (anteprima,
+     * grafiche social, sponsorizzazione, biglietteria, sito) stanno nel menu
+     * «Altre azioni», insieme a programmazione, annullamento ed eliminazione.
+     *
      * @return array<mixed>
      */
     protected function getHeaderActions(): array
     {
+        $links = collect(EventResource::eventLinks($this->eventRecord(), withEdit: false))
+            ->reject(fn (array $link): bool => in_array($link['key'], ['statistics', 'site'], true))
+            ->map(fn (array $link): Action => Action::make('link_'.$link['key'])
+                ->label($link['label'])
+                ->icon($link['icon'])
+                ->url($link['url']))
+            ->values()
+            ->all();
+
         return [
-            PublicationActions::schedule(),
-            PublicationActions::cancel(),
-            Action::make('pagePreview')->label(__('promotions.preview'))->url(fn () => route('events.preview', $this->getRecord()))->openUrlInNewTab()->color('gray'),
-            Action::make('social')->label(__('social.preview'))->url(fn () => Social::getUrl(['event' => $this->getRecord()->getKey()])),
-            EventActions::viewOnSite(),
             EventActions::publish(),
-            EventActions::repeat(),
             EventActions::duplicate(),
-            DeleteAction::make(),
+            EventActions::repeat(),
+            ActionGroup::make([
+                Action::make('pagePreview')->label(__('promotions.preview'))->icon('heroicon-o-eye')->url(fn () => route('events.preview', $this->getRecord()))->openUrlInNewTab(),
+                ...$links,
+                EventActions::viewOnSite(),
+                PublicationActions::schedule(),
+                PublicationActions::cancel(),
+                DeleteAction::make(),
+            ])->label(__('manage.event_list.more_actions'))->tooltip(__('manage.event_list.more_actions'))->button()->color('gray')->icon('heroicon-o-ellipsis-horizontal'),
         ];
+    }
+
+    private function eventRecord(): Event
+    {
+        /** @var Event $record */
+        $record = $this->getRecord();
+
+        return $record;
     }
 }

@@ -16,11 +16,19 @@
 
     Con `href` diventa un collegamento vestito da pulsante: la navigazione
     resta navigazione e funziona senza JavaScript.
+
+    `danger` è il gesto distruttivo (eliminare, annullare, uscire): pieno, nel
+    rosso del tema, e non va usato per altro. `size` sceglie l'altezza — `md`
+    48px, il bersaglio comodo per il pollice, `sm` 40px per le azioni dentro
+    una riga — e `block` allarga il pulsante a tutta la riga sul telefono,
+    dove due pulsanti affiancati di larghezze diverse si leggono male.
 --}}
 @props([
     'variant' => 'primary',
     'href' => null,
     'type' => 'button',
+    'size' => 'md',
+    'block' => false,
 ])
 
 @php
@@ -28,13 +36,21 @@
         'primary' => 'bg-brand text-on-brand hover:bg-brand-strong active:bg-brand-strong',
         'secondary' => 'border-2 border-line bg-surface text-ink hover:border-accent hover:bg-canvas active:bg-ink/15',
         'ghost' => 'text-brand px-1.5 hover:bg-brand/10 active:bg-brand/20',
+        'danger' => 'svc-button--danger bg-danger text-on-danger',
+    ];
+
+    $sizes = [
+        'md' => 'min-h-12 px-4 py-2',
+        'sm' => 'min-h-10 px-3 py-1.5',
     ];
 
     $classes = [
         'ui-action inline-flex items-center justify-start gap-1.5 text-left',
         'font-display text-sm font-extrabold leading-tight',
-        'min-h-12 px-4 py-2 cursor-pointer no-underline transition',
+        'cursor-pointer no-underline transition',
         'disabled:cursor-not-allowed disabled:opacity-45',
+        $sizes[$size] ?? $sizes['md'],
+        'w-full sm:w-auto' => $block,
         $variants[$variant] ?? $variants['primary'],
     ];
 @endphp

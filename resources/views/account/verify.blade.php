@@ -1,22 +1,24 @@
-<x-layouts.app :narrow="true" :meta="$meta">
-    <section class="flex w-full flex-col gap-6" aria-labelledby="verification-title">
-        <div class="flex items-center gap-3 text-sm font-semibold text-brand">
-            <svg class="size-6 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 6 9 7 9-7"/></svg>
-            <span>{{ __('account.verify.step') }}</span>
-        </div>
-        <header class="flex flex-col gap-4">
-            <h1 id="verification-title" class="font-display text-4xl leading-tight font-extrabold tracking-tight text-ink">{{ __('account.verify.title') }}</h1>
-            <p class="text-base leading-relaxed text-ink-muted">{{ __('account.verify.instructions') }}</p>
-            <p class="break-words text-lg font-semibold text-ink">{{ $email }}</p>
-        </header>
-        <p class="text-sm leading-relaxed text-ink-muted">{{ __('account.verify.benefits') }}</p>
-        <div class="flex flex-col gap-4 border-t border-line pt-6">
-            <p class="text-sm leading-relaxed text-ink-muted">{{ __('account.verify.help') }}</p>
-            <form method="POST" action="{{ route('account.verification.send') }}">
-                @csrf
-                <button type="submit" class="ui-action min-h-12 w-full bg-brand px-5 py-3 text-sm font-semibold text-on-brand transition hover:bg-brand-strong focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand sm:w-auto">{{ __('account.verify.resend') }}</button>
-            </form>
-            <a class="inline-flex min-h-12 items-center text-sm font-semibold text-ink underline underline-offset-4" href="{{ route('home') }}">{{ __('account.verify.explore') }}</a>
-        </div>
-    </section>
+{{-- «Conferma il tuo indirizzo»: l'account c'è, manca la prova della casella. --}}
+<x-layouts.app service :meta="$meta">
+    <x-service-page :title="__('account.verify.title')" :eyebrow="__('auth.verify.eyebrow')" :subtitle="__('auth.verify.instructions')">
+        <x-card :title="__('auth.verify.card_title')">
+            <p class="flex items-center gap-3 font-semibold break-all text-ink">
+                <x-lucide name="mail" class="size-5 shrink-0 text-accent" />
+                <span>{{ $email }}</span>
+            </p>
+            <p class="text-sm text-ink-muted">{{ __('account.verify.benefits') }}</p>
+        </x-card>
+
+        <x-card tone="muted" :title="__('auth.verify.help_title')" :description="__('account.verify.help')">
+            <x-slot:footer>
+                <x-form-actions>
+                    <form method="POST" action="{{ route('account.verification.send') }}">
+                        @csrf
+                        <x-button type="submit" :block="true">{{ __('account.verify.resend') }}</x-button>
+                    </form>
+                    <x-button variant="secondary" :href="route('home')">{{ __('account.verify.explore') }}</x-button>
+                </x-form-actions>
+            </x-slot:footer>
+        </x-card>
+    </x-service-page>
 </x-layouts.app>

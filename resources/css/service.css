@@ -1,0 +1,188 @@
+/* ---------------------------------------------------------------------------
+   Pagine di servizio — il disegno comune
+
+   Area personale, moduli, biglietti, community, passaggi e pagine d'errore
+   usano gli stessi pezzi: `<x-service-page>`, `<x-card>`, `<x-card.row>`,
+   `<x-service-event-row>`, `<x-notice>`, `<x-segmented>`, `<x-avatar>`. La
+   misura (colonna da 48rem, margini, distanze) la danno le classi di Tailwind
+   nei componenti; qui sta solo ciò che cambia con il tema: bordo, fondo,
+   raggio.
+
+   Nel tema scuro il bordo è il sistema: 2px pieni, raggio zero. Nel chiaro i
+   riquadri si staccano con la superficie e un filo da 1px, e prendono il
+   raggio dei pannelli (`--radius-panel`). Il raggio non è mai scritto qui: è
+   del tema, e dove il tema non lo definisce vale zero.
+--------------------------------------------------------------------------- */
+
+/* Lo spazio sotto il corpo della pagina per la barra in basso del telefono.
+   `--navigation-space` è la misura dichiarata dal tema; quella misurata dallo
+   script (`--visible-navigation-height`) vince solo quando è più grande, così
+   lo spazio non cambia mentre la barra si nasconde e ricompare. */
+@media (max-width: 1023px) {
+    body:has(> [data-mobile-navigation]) {
+        padding-bottom: max(var(--navigation-space), var(--visible-navigation-height, 0px));
+    }
+}
+
+/* Il riquadro. */
+.svc-card {
+    min-width: 0;
+    border: 2px solid var(--line);
+    border-radius: var(--radius-panel, 0px);
+    background: var(--surface);
+    color: var(--ink);
+}
+
+.svc-card--muted { background: var(--surface-sunken); }
+.svc-card--accent { border-color: var(--accent); }
+.svc-card--alert { border-color: var(--alert); }
+
+/* Un riquadro fatto di righe porta le righe fino al bordo: il raggio deve
+   tagliare anche il fondo della riga al passaggio del puntatore. */
+.svc-card--flush { overflow: hidden; }
+
+.svc-card__head--flush { border-bottom: 1px solid var(--line); }
+.svc-card__footer { border-top: 1px solid var(--line); }
+
+:root[data-theme="light"] .svc-card {
+    border-width: 1px;
+    background: var(--surface-raised);
+}
+
+:root[data-theme="light"] .svc-card--muted { background: var(--surface); }
+:root[data-theme="light"] .svc-card--accent { border-color: transparent; background: var(--accent-soft); }
+:root[data-theme="light"] .svc-card--alert { border-color: color-mix(in srgb, var(--alert) 45%, var(--line)); }
+
+/* Le righe dentro un riquadro: il filo divisore lo mette la riga che segue,
+   così la prima e l'ultima non ne hanno uno in più. */
+.svc-row + .svc-row { border-top: 1px solid var(--line); }
+
+a.svc-row { transition: background-color 150ms ease; }
+a.svc-row:hover { background: var(--surface-raised); }
+:root[data-theme="light"] a.svc-row:hover { background: var(--surface); }
+
+/* La locandina di una riga evento: 3/4, larga 72px (56px nella variante
+   piccola). Senza immagine resta un riquadro della stessa misura con un
+   segno, così le righe non cambiano altezza a seconda della locandina. */
+.svc-poster {
+    position: relative;
+    display: block;
+    flex: 0 0 auto;
+    width: 72px;
+    aspect-ratio: 3 / 4;
+    overflow: hidden;
+    border-radius: var(--radius-thumb, 0px);
+    background: linear-gradient(160deg, var(--poster-from), var(--poster-to));
+}
+
+.svc-poster--sm { width: 56px; }
+.svc-poster > .event-poster-frame { height: 100%; background: transparent; }
+
+.svc-poster__placeholder {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: 100%;
+    color: var(--ink-subtle);
+    background: linear-gradient(160deg, var(--poster-from), var(--poster-to));
+}
+
+/* Gli avvisi dentro una pagina: un filo spesso a sinistra dice il tono. */
+.svc-notice {
+    border: 2px solid var(--line);
+    border-left-width: 4px;
+    border-radius: var(--radius-control, 0px);
+    background: var(--surface);
+    color: var(--ink);
+}
+
+.svc-notice--info { border-left-color: var(--ink-muted); }
+.svc-notice--success { border-left-color: var(--accent); }
+.svc-notice--alert { border-left-color: var(--alert); }
+
+:root[data-theme="light"] .svc-notice {
+    border-width: 1px 1px 1px 4px;
+}
+
+:root[data-theme="light"] .svc-notice--success { background: var(--accent-soft); }
+:root[data-theme="light"] .svc-notice--alert { background: color-mix(in srgb, var(--alert) 8%, var(--canvas)); }
+
+/* La scelta segmentata: un gruppo di collegamenti che si comporta come un
+   interruttore. Sul telefono scorre in orizzontale invece di andare a capo. */
+.svc-segmented {
+    display: flex;
+    gap: 4px;
+    width: max-content;
+    max-width: 100%;
+    padding: 4px;
+    overflow-x: auto;
+    border: 2px solid var(--line);
+    border-radius: var(--radius-control, 0px);
+    scrollbar-width: none;
+}
+
+.svc-segmented::-webkit-scrollbar { display: none; }
+
+.svc-segmented a {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 6px;
+    min-height: 40px;
+    padding: 0 14px;
+    border-radius: calc(var(--radius-control, 0px) - 3px);
+    color: var(--ink-muted);
+    font-size: 0.875rem;
+    font-weight: 700;
+    white-space: nowrap;
+    text-decoration: none;
+    transition: background-color 150ms ease, color 150ms ease;
+}
+
+.svc-segmented a:hover { color: var(--ink); background: var(--surface); }
+
+.svc-segmented a[aria-current="page"] {
+    background: var(--accent);
+    color: var(--on-accent);
+}
+
+:root[data-theme="light"] .svc-segmented {
+    border: 0;
+    background: var(--surface);
+}
+
+:root[data-theme="light"] .svc-segmented a:hover { background: var(--surface-sunken); }
+
+:root[data-theme="light"] .svc-segmented a[aria-current="page"] {
+    background: var(--ink);
+    color: var(--ink-inverted);
+}
+
+/* La foto di una persona, o le sue iniziali: tonda in entrambi i temi. */
+.svc-avatar {
+    display: inline-grid;
+    flex: 0 0 auto;
+    place-items: center;
+    overflow: hidden;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--on-brand-soft);
+    font-family: var(--font-display);
+    font-weight: 800;
+    line-height: 1;
+}
+
+.svc-avatar > img { width: 100%; height: 100%; object-fit: cover; }
+
+/* Le schede di una pagina di servizio, quando scorrono: sul telefono restano
+   su una riga e si spostano con il dito, senza la barra di scorrimento. */
+.svc-tabs--scroll {
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.svc-tabs--scroll::-webkit-scrollbar { display: none; }
+
+/* Il pulsante distruttivo. Il tema chiaro toglie il bordo ai comandi pieni;
+   qui il fondo basta a riconoscerlo. */
+.svc-button--danger:hover { filter: brightness(0.92); }

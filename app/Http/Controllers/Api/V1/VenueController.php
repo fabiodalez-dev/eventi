@@ -75,6 +75,7 @@ final class VenueController extends Controller
             ->with('media')
             ->inCity($city)
             ->approved()
+            ->withClaimState()
             ->when($type !== null, fn (Builder $query): Builder => $query->where('type', $type))
             ->when($municipality !== null, fn (Builder $query): Builder => $query->where('municipality', $municipality))
             ->when($zone !== null, fn (Builder $query): Builder => $query->where('zone', $zone))

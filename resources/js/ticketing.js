@@ -3,18 +3,39 @@ import { CheckinQueue, CheckinManifest, classifyScan, localStorageStore } from '
 document.querySelectorAll('[data-reservation-form]').forEach((form) => {
     const list = form.querySelector('[data-attendees]');
     const add = form.querySelector('[data-add-attendee]');
-    const template = list.firstElementChild.cloneNode(true);
+    const template = form.querySelector('[data-attendee-template]');
+    const counter = form.querySelector('[data-attendee-counter]');
+    const selfToggle = form.querySelector('[data-self-toggle]');
+    const limit = Number(form.dataset.limit);
+    const booker = (part) => form.querySelector(`[data-booker-part="${part}"]`);
+    const selfRow = () => list.firstElementChild;
+    const label = (index) => (index === 0 && selfToggle?.checked
+        ? list.dataset.selfLabel
+        : list.dataset.numberLabel.replace(':number', index + 1));
+    // «Tu»: il primo partecipante è chi prenota e ne segue nome e cognome.
+    const syncSelf = () => {
+        if (!selfToggle) return;
+        selfRow().querySelectorAll('[data-name-part]').forEach((input) => {
+            input.readOnly = selfToggle.checked;
+            if (selfToggle.checked) input.value = booker(input.dataset.namePart)?.value ?? input.value;
+        });
+    };
     const update = () => {
-        [...list.children].forEach((row, index) => row.querySelectorAll('[data-name-part]').forEach((input) => {
-            input.name = `attendees[${index}][${input.dataset.namePart}]`;
-        }));
-        add.hidden = list.children.length >= Number(form.dataset.limit);
-        list.querySelectorAll('[data-remove-attendee]').forEach((button) => { button.hidden = list.children.length < 2; });
+        [...list.children].forEach((row, index) => {
+            row.querySelectorAll('[data-name-part]').forEach((input) => {
+                input.name = `attendees[${index}][${input.dataset.namePart}]`;
+            });
+            const title = row.querySelector('[data-attendee-title]');
+            if (title) title.textContent = label(index);
+            row.setAttribute('aria-label', label(index));
+            row.querySelector('[data-remove-attendee]')?.toggleAttribute('hidden', index === 0 || list.children.length < 2);
+        });
+        add.hidden = list.children.length >= limit;
+        if (counter) counter.textContent = counter.dataset.template.replace(':count', list.children.length).replace(':limit', limit);
     };
     add.addEventListener('click', () => {
-        if (list.children.length >= Number(form.dataset.limit)) return;
-        const row = template.cloneNode(true);
-        row.querySelectorAll('input').forEach((input) => { input.value = ''; });
+        if (list.children.length >= limit) return;
+        const row = template.content.firstElementChild.cloneNode(true);
         list.append(row);
         update();
         row.querySelector('input').focus();
@@ -26,8 +47,18 @@ document.querySelectorAll('[data-reservation-form]').forEach((form) => {
         update();
         add.focus();
     });
+    selfToggle?.addEventListener('change', () => {
+        if (!selfToggle.checked) {
+            selfRow().querySelectorAll('[data-name-part]').forEach((input) => { input.readOnly = false; input.value = ''; });
+            selfRow().querySelector('[data-name-part]').focus();
+        }
+        syncSelf();
+        update();
+    });
+    ['first_name', 'last_name'].forEach((part) => booker(part)?.addEventListener('input', syncSelf));
     form.addEventListener('submit', () => { form.querySelector('[type="submit"]').disabled = true; });
     window.addEventListener('pageshow', () => { form.querySelector('[type="submit"]').disabled = false; });
+    syncSelf();
     update();
 });
 
@@ -48,7 +79,7 @@ document.querySelectorAll('[data-ticket-search]').forEach((form) => {
         pending = new AbortController();
         const url = new URL(form.action || location.href);
         url.search = new URLSearchParams(new FormData(form)).toString();
-        status.textContent = 'Ricerca in corso…';
+        status.textContent = status.dataset?.loading ?? '';
         try {
             const response = await fetch(url, { signal: pending.signal, headers: { Accept: 'text/html' } });
             if (!response.ok || response.redirected) throw new Error('Search failed');
@@ -58,9 +89,9 @@ document.querySelectorAll('[data-ticket-search]').forEach((form) => {
             if (current !== revision) return;
             document.querySelector('[data-ticket-results]').replaceWith(results);
             history.replaceState(null, '', url);
-            status.textContent = 'Risultati aggiornati.';
+            status.textContent = status.dataset?.done ?? '';
         } catch (error) {
-            if (error.name !== 'AbortError' && current === revision) status.textContent = 'Ricerca non disponibile. Premi Cerca per riprovare.';
+            if (error.name !== 'AbortError' && current === revision) status.textContent = status.dataset?.failed ?? '';
         }
     };
     form.addEventListener('input', () => {
@@ -119,9 +150,7 @@ document.querySelectorAll('[data-ticket-scanner]').forEach((form) => {
         } catch (error) {
             if (current === generation) {
                 stop();
-                message.textContent = error.name === 'NotAllowedError'
-                    ? 'Accesso alla fotocamera negato. Consenti la fotocamera nelle impostazioni del browser e riprova.'
-                    : form.dataset.fallback;
+                message.textContent = error.name === 'NotAllowedError' ? form.dataset.denied : form.dataset.fallback;
             }
         }
     });

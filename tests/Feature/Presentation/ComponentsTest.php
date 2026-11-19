@@ -39,6 +39,22 @@ it('disegna la paginazione con le etichette italiane e la pagina corrente marcat
         ->toContain(__('ui.pagination.showing', ['first' => 25, 'last' => 48, 'total' => 60]));
 });
 
+it('da telefono riduce la paginazione a una riga: frecce e «Pagina X di Y»', function (): void {
+    $html = Blade::render('<x-pagination :paginator="$paginator" />', [
+        'paginator' => paginatorOf(total: 200, perPage: 24, page: 3),
+    ]);
+
+    expect($html)
+        ->toContain(__('ui.pagination.page_of', ['page' => 3, 'last' => 9]))
+        ->not->toContain('flex-wrap items-center justify-center')
+        ->toContain('sm:flex-wrap');
+    // Ogni numero di pagina sparisce sotto i 640 px; le etichette delle frecce restano per chi usa un lettore di schermo.
+    preg_match_all('~aria-label="'.preg_quote(__('ui.pagination.go_to_page', ['page' => 4]), '~').'"~', $html, $numeri);
+    expect($numeri[0])->toHaveCount(1)
+        ->and(preg_match('~class="[^"]*max-sm:hidden[^"]*"\s+aria-label="'.preg_quote(__('ui.pagination.go_to_page', ['page' => 4]), '~').'"~', $html))->toBe(1)
+        ->and(substr_count($html, 'max-sm:sr-only'))->toBe(2);
+});
+
 it('lo stato vuoto porta un titolo e le azioni che gli si passano', function (): void {
     $html = Blade::render(
         '<x-empty-state :title="$title" :description="$body"><a href="/eventi">Sfoglia</a></x-empty-state>',

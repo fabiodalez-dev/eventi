@@ -1,19 +1,88 @@
-<x-layouts.app :meta="$meta">@include('carpool.nav')<div class="w-full max-w-3xl">
-<h1 class="text-hero">{{ __('carpool.mine') }}</h1>
-@if(!$access['eligible'])<a class="my-5 inline-flex min-h-12 items-center underline" href="{{ route('carpool.requirements') }}">{{ __('carpool.requirements') }}</a>@endif
-@php($selectedTab = request('tab', 'offered'))
-<nav class="my-8 flex flex-wrap gap-3 border-b border-line pb-4" aria-label="{{ __('carpool.mine') }}">@foreach(['offered','requested','searches','history'] as $tab)<a href="{{ route('carpool.index', ['tab' => $tab]) }}" @if($selectedTab === $tab) aria-current="page" @endif class="inline-flex min-h-12 items-center rounded-xl border border-line px-4 {{ $selectedTab === $tab ? 'bg-accent text-on-accent' : '' }}">{{ __('carpool.'.$tab) }}</a>@endforeach</nav>
-@if(in_array($selectedTab, ['offered','history']))
-@forelse($offers as $offer) @include('carpool.partials.offer-row') @empty @if($selectedTab === 'offered')<p class="py-8 text-ink-muted">{{ __('carpool.empty_mine') }}</p>@endif @endforelse
-@include('carpool.partials.pages')
-@endif
-@if(in_array($selectedTab, ['requested','history']))
-@forelse($requests as $ride)<div class="mt-6"><h2 class="font-display text-xl font-bold">{{ $ride['offer']['event_title'] }}</h2><p class="mt-2 text-sm text-ink-muted">{{ $ride['offer']['zone'] }} · {{ $ride['offer']['departure_label'] }}</p>@include('carpool.partials.request-row')</div>@empty @if($selectedTab === 'requested')<p class="py-8 text-ink-muted">{{ __('carpool.empty_mine') }}</p>@endif @endforelse
-@include('carpool.partials.pages', ['page_key' => 'requests_page', 'page' => $requests_page, 'has_more' => $requests_has_more])
-@endif
-@if($selectedTab === 'searches')
-@foreach($searches as $search)<article class="border-b border-line py-6"><h2 class="font-semibold">{{ $search['event_title'] }} · {{ $search['leg_label'] }}</h2><p class="my-3">{{ $search['zone'] }} · {{ __('carpool.requested_seats', ['count' => $search['seats']]) }}</p><form method="post" action="{{ route('carpool.discovery','toggle-search') }}">@include('carpool.partials.key')<input type="hidden" name="search_id" value="{{ $search['id'] }}"><input type="hidden" name="active" value="{{ $search['active'] ? 0 : 1 }}"><x-button type="submit" variant="secondary">{{ __('carpool.'.($search['active'] ? 'search_stop' : 'search_start')) }}</x-button></form></article>@endforeach
-@include('carpool.partials.pages', ['page_key' => 'searches_page', 'page' => $searches_page, 'has_more' => $searches_has_more])
-@endif
-@if(count($templates))<details class="mt-8 border-t border-line py-5"><summary class="min-h-12 cursor-pointer font-semibold">{{ __('carpool.templates') }}</summary><p class="my-4 text-sm text-ink-muted">{{ __('carpool.repeat') }}</p>@foreach($templates as $template)<div class="flex items-center justify-between gap-4 border-b border-line py-4"><span>{{ $template['name'] }}</span><form method="post" action="{{ route('carpool.discovery','delete-template') }}">@include('carpool.partials.key')<input type="hidden" name="template_id" value="{{ $template['id'] }}"><x-button type="submit" variant="secondary">{{ __('carpool.delete') }}</x-button></form></div>@endforeach</details>@endif
-</div></x-layouts.app>
+{{--
+    I miei passaggi: offerte, richieste, ricerche e storico, con una scelta
+    segmentata. Senza una scheda scelta si apre la prima che ha qualcosa
+    (il controller la passa in `selected_tab`).
+--}}
+<x-layouts.app service :meta="$meta">
+    <x-service-page :title="__('carpool.mine')" :subtitle="__('carpool.web.mine_subtitle')" :eyebrow="__('carpool.free')" :tabs="$tabs" :tabs-label="__('carpool.web.tabs.label')">
+        @if (! $access['eligible'])
+            <x-notice tone="alert" :title="__('carpool.profile_blocked.title')">
+                <p>{{ __('carpool.onboarding') }}</p>
+                <div><x-button size="sm" :href="route('carpool.requirements')">{{ __('carpool.profile_blocked.action') }}</x-button></div>
+            </x-notice>
+        @endif
+
+        <x-segmented :label="__('carpool.web.mine_filter')" :items="collect(['offered', 'requested', 'searches', 'history'])->map(fn ($tab) => [
+            'label' => __('carpool.'.$tab), 'href' => route('carpool.index', ['tab' => $tab]), 'active' => $selected_tab === $tab, 'count' => ($counts[$tab] ?? 0) ?: null,
+        ])->all()" />
+
+        @php
+            $showOffers = in_array($selected_tab, ['offered', 'history'], true);
+            $showRequests = in_array($selected_tab, ['requested', 'history'], true);
+            $nothing = ($selected_tab === 'offered' && $offers === []) || ($selected_tab === 'requested' && $requests === [])
+                || ($selected_tab === 'searches' && $searches === []) || ($selected_tab === 'history' && $offers === [] && $requests === []);
+        @endphp
+
+        @if ($nothing)
+            <x-empty-state :title="__('carpool.web.empty.'.$selected_tab.'.title')" :description="__('carpool.web.empty.'.$selected_tab.'.description')">
+                <x-button :href="route('events.index')">{{ __('carpool.web.browse_events') }}</x-button>
+            </x-empty-state>
+        @endif
+
+        @if ($showOffers && $offers !== [])
+            <div class="flex flex-col gap-3" data-carpool-list="offers">
+                @foreach ($offers as $offer)
+                    @include('carpool.partials.offer-item')
+                @endforeach
+                @include('carpool.partials.pages')
+            </div>
+        @endif
+
+        @if ($showRequests && $requests !== [])
+            <div class="flex flex-col gap-3" data-carpool-list="requests">
+                @foreach ($requests as $item)
+                    @include('carpool.partials.request-item')
+                @endforeach
+                @include('carpool.partials.pages', ['page_key' => 'requests_page', 'page' => $requests_page, 'has_more' => $requests_has_more])
+            </div>
+        @endif
+
+        @if ($selected_tab === 'searches' && $searches !== [])
+            <x-card padding="none" :title="__('carpool.searches')" data-carpool-list="searches">
+                @foreach ($searches as $search)
+                    <x-card.row :title="$search['event_title']" :description="$search['leg_label'].' · '.collect([$search['zone'], trans_choice('carpool.web.seats_requested', $search['seats'], ['count' => $search['seats']])])->filter()->implode(' · ')">
+                        <x-slot:leading><x-lucide name="search" class="size-5 text-ink-muted" /></x-slot:leading>
+                        <span>{{ $search['active'] ? __('carpool.web.search_active') : __('carpool.web.search_paused') }}</span>
+                        <x-slot:trailing>
+                            <form method="post" action="{{ route('carpool.discovery', 'toggle-search') }}">
+                                @include('carpool.partials.key')
+                                <input type="hidden" name="search_id" value="{{ $search['id'] }}">
+                                <input type="hidden" name="active" value="{{ $search['active'] ? 0 : 1 }}">
+                                <x-button type="submit" size="sm" variant="secondary">{{ __('carpool.'.($search['active'] ? 'search_stop' : 'search_start')) }}</x-button>
+                            </form>
+                        </x-slot:trailing>
+                    </x-card.row>
+                @endforeach
+            </x-card>
+            @include('carpool.partials.pages', ['page_key' => 'searches_page', 'page' => $searches_page, 'has_more' => $searches_has_more])
+        @endif
+
+        @if (count($templates))
+            <x-card padding="none" :title="__('carpool.templates')" :description="__('carpool.web.templates_description')" data-carpool-templates>
+                @foreach ($templates as $template)
+                    <x-card.row :title="$template['name']" icon="bookmark">
+                        <x-slot:trailing>
+                            <form method="post" action="{{ route('carpool.discovery', 'delete-template') }}">
+                                @include('carpool.partials.key')
+                                <input type="hidden" name="template_id" value="{{ $template['id'] }}">
+                                <x-button type="submit" size="sm" variant="ghost">{{ __('carpool.delete') }}</x-button>
+                            </form>
+                        </x-slot:trailing>
+                    </x-card.row>
+                @endforeach
+            </x-card>
+        @endif
+
+        @include('carpool.partials.how')
+    </x-service-page>
+</x-layouts.app>

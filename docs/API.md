@@ -8,7 +8,7 @@ test di integrazione e consumato dall'app Android in `android/` contro dati real
 | Voce | Valore |
 |---|---|
 | Base | `/api/v1` |
-| Documentazione | `/docs/api` (Scramble) · JSON versionato in `docs/openapi.json` — OpenAPI **3.1.0**, **149 operazioni** |
+| Documentazione | `/docs/api` (Scramble) · JSON versionato in `docs/openapi.json` (rigenerato il 19/11/2026 con `php artisan scramble:export --path=docs/openapi.json`) — OpenAPI **3.1.2**, **183 operazioni** |
 | Autenticazione | Bearer token (Sanctum) per `/me`, `auth/logout` e scritture ticketing; policy aggiuntive per il locale |
 | Formato risposte | `{data, meta{next_cursor, has_more}}` · errori `{error{code, message, fields}}` |
 | Paginazione | catalogo a cursore (`limit` 1–50); cursore illeggibile → **400**. Biglietti: `page`, 30 prenotazioni, `meta.next_page` nullable |
@@ -63,7 +63,7 @@ la pagina di ripiego non riflette il token e imposta `no-store` e `no-referrer`.
 come per uno esistente.
 
 ```json
-{ "data": { "message": "Ti abbiamo scritto: apri il messaggio per entrare." } }
+{ "data": { "message": "Ti ho scritto: apri il messaggio per entrare." } }
 ```
 
 Campi: `email`, `password` (regole di `Password::defaults()`), facoltativi
@@ -202,9 +202,11 @@ lista d'attesa, annullamenti e operatività. Il vincolo generale di sola lettura
 ### Aspetto del profilo
 
 `GET /api/v1/me` e le risposte di autenticazione espongono `appearance`
-(`dark` oppure `light`). `PATCH /api/v1/me` accetta lo stesso campo e modifica
-solo il profilo autenticato. Il sito e l'app Android condividono la preferenza;
-le installazioni precedenti restano compatibili grazie al valore `dark` predefinito.
+(`dark`, `light` oppure `null` = segui il sistema, dal 19/11/2026). `PATCH
+/api/v1/me` accetta lo stesso campo, `null` compreso, e modifica solo il
+profilo autenticato. Il sito e l'app Android condividono la preferenza; un
+client che conosce solo `dark` e `light` tratta `null` come il tema del
+telefono.
 I visitatori del sito partono dal tema di sistema, memorizzato per un anno nel
 cookie necessario `incitta_appearance`, e possono cambiarlo da Aspetto.
 
@@ -259,10 +261,9 @@ Il codice Android offre sezioni profilo con ritorno, fuso selezionabile, immagin
   dello staff sono limitati alle date assegnate e non concedono elenco completo,
   esportazione o configurazione della biglietteria.
 
-L'export automatico Scramble non è stato sostituito durante questa review:
-la rigenerazione segnala `GEN001 Scope is not initialized for route` sul
-controller della singola occorrenza. Questa sezione descrive le aggiunte
-verificate dai test; il JSON storico richiede una revisione separata del generatore.
+Il JSON versionato è stato rigenerato il 19/11/2026: l'errore `GEN001` sul
+controller della singola occorrenza non compare più e `scramble:analyze` passa
+(lo verifica `OpenApiContractTest`).
 
 ## Gestione nativa Android 1.17
 
@@ -314,3 +315,58 @@ Forme complete in [PIANO-UTENTE-2026-10-23](PIANO-UTENTE-2026-10-23.md). In brev
 - `GET /v1/venues/{slug}` e gli elementi di `GET /v1/venues`: `closure_now` (`{from, to, note}` oppure `null`) e `closures` (in corso e in arrivo); durante una chiusura `open_now` è `false` e `GET /v1/venues?open_now=1` esclude il locale.
 - `GET /v1/events/{slug}` porta `edition_alert_offered`. `GET /v1/me/edition-alerts` → `{data: [event_id, …]}`; `POST /v1/me/edition-alerts/{event}` → 201 (422 se l'evento ha ancora date in programma); `DELETE /v1/me/edition-alerts/{event}` → 204. Notifica `next_edition`.
 
+## Aggiunte del 19 novembre 2026 (pagine di servizio e app)
+
+Solo aggiunte: nessun campo tolto o rinominato. Le rotte nuove hanno un limite di frequenza con il nome dell'azione, come le altre.
+
+### Campi nuovi
+
+- `GET /v1/me`: `first_name` e `last_name` (nullable), per precompilare chi prenota; se mancano si divide `name`. `appearance` può essere `null` (vedi «Aspetto del profilo»).
+- `GET /v1/me/bookings` (`MobileBooking`): `poster`, nella stessa forma di `EventResource.poster`, oppure `null`.
+- `GET /v1/management/dates` e `/management/dates/{id}`: `poster` e `counts` = `{confirmed, checked_in, waitlisted, cancelled, no_show, capacity}` (interi; `capacity` `null` senza tetto). Nell'elenco i numeri sono calcolati per tutte le date insieme.
+- `VenueResource` (`GET /v1/venues`, `/v1/venues/{slug}`, `venue` della scheda evento e delle date con `include=venue`): `claimable` (locale pubblico senza referente, nemmeno invitato) e `claim_url` (la pagina web «Rivendica», `null` se non rivendicabile). L'app apre `claim_url` nel browser.
+- Passaggi (`RideResource`, l'offerta): `poster`, nella stessa forma di `EventResource.poster`, oppure `null`.
+- `GET /v1/events/{slug}`: `share_links`, un oggetto per canale (`native`, `whatsapp`, `telegram`, `email`) con `url`, il link breve `/s/{code}`. L'app lo mette nel messaggio di condivisione al posto di `url`: l'apertura si conta lato server anche senza consenso, come contatore anonimo per link e giorno (decisione del 19/11/2026), e l'app non deve mandare altro. I codici nascono alla prima richiesta e poi restano gli stessi.
+
+### `GET /v1/management/dates/{id}/bookings`
+
+Le prenotazioni di una data, per chi la **gestisce** (stessa autorizzazione della pagina `/gestione-biglietti/{id}`): 401 senza token, 403 a chi non gestisce la data, anche al personale che fa solo il controllo ingressi (per loro c'è `manifest`). `Cache-Control: private, no-store`. Limite: 60 al minuto (`management-bookings`).
+
+Parametri: `status` fra `confirmed`, `checked_in` (prenotazioni con almeno un ingresso registrato), `waitlisted`, `cancelled` (altro valore → 422); `q` (fino a 120 caratteri) cerca nel nome dei partecipanti e nell'email dell'account, i caratteri `%` e `_` valgono per quello che sono; `page` (30 per pagina, le più recenti prima).
+
+```json
+{
+  "data": [{
+    "id": 41, "status": "confirmed", "created_at": "2026-11-19T10:12:00+00:00",
+    "staff_booking": false, "email": "ada@example.test",
+    "booker": {"phone": "…"}, "answers": [{"question": "…", "answer": "…"}],
+    "privacy_accepted_at": "2026-11-19T10:12:00+00:00", "tickets_count": 1,
+    "tickets": [{"id": 90, "attendee_name": "Ada Lovelace", "first_name": "Ada", "last_name": "Lovelace",
+                 "status": "valid", "checked_in_at": null, "code": "…64 caratteri…"}]
+  }],
+  "meta": {"next_page": null, "status": null,
+           "counts": {"all": 3, "confirmed": 2, "checked_in": 1, "waitlisted": 0, "cancelled": 1}}
+}
+```
+
+`tickets[].code` c'è solo finché il biglietto è valido: serve a registrare l'ingresso dalla riga con `POST /v1/ticketing/{id}/check-in`, come il pulsante della pagina web; per gli altri stati è `null`. `meta.counts` non dipende dal filtro: sono i numeri da mostrare accanto a ciascun filtro.
+
+### `POST /v1/reports/content/{type}/{id}`
+
+Le misure di una scheda aperta dall'app: `type` fra `event`, `venue`, `organizer`; corpo `{metric, occurrence?, consent?}` con `metric` fra `views`, `direction_clicks`, `ticket_clicks`, `shares`, `website_clicks`, `phone_clicks`, `email_clicks`, `calendar_clicks`, `poster_clicks`, `booking_clicks`. Risponde sempre **204** senza corpo.
+
+- Stessa regola del sito (decisione del 19/11/2026): si conta solo con il consenso alle statistiche. L'app lo raccoglie e manda `consent: true`; senza, la risposta è la stessa e non si scrive nulla.
+- Nessun identificativo: niente `X-Installation-ID`, niente utente; nei contatori aggregati per giorno (`event_views_daily`, `profile_views_daily`, `occurrence_views_daily` con `occurrence`) finisce solo un +1.
+- 404 per una scheda che non esiste o non è pubblica, o per una `occurrence` che non è dell'evento (anche senza consenso). 422 per una misura sconosciuta.
+- Limiti: 60 al minuto per indirizzo, in comune con `/misure/{type}/{id}` del sito (`content-metrics`); oltre trenta misure uguali l'ora per la stessa scheda dallo stesso indirizzo si risponde 204 senza contare. L'indirizzo resta in memoria per il limite e non si salva.
+- Si spegne senza un rilascio dell'app con `APP_CONTENT_METRICS=false` (`eventi.analytics.app_content_metrics`): allora la rotta risponde 404 e l'app deve ignorarlo.
+
+### `GET /v1/me/venue-applications`
+
+«Le mie richieste» (registrare o rivendicare un locale, registrare un'organizzazione) dell'account collegato, comprese quelle che aspettano la conferma dell'email; mai quelle degli altri, mai le note della redazione o i recapiti del referente. 20 per pagina con `page`, `meta.next_page`; `meta.manage_url` (la pagina web `/le-mie-richieste`), `meta.new_venue_url`, `meta.new_organizer_url`. `Cache-Control: private, no-store`. Limite: 60 al minuto, in comune con la pagina web (`account-applications`).
+
+Ogni elemento: `id`, `kind` (`venue|claim|organizer`) e `kind_label`, `name`, `type`/`type_label`/`address` (`null` per le organizzazioni), `state` (`awaiting|pending|approved|rejected`) e `state_label`, `next` (il testo «cosa succede adesso» della pagina web), `created_at`, `reviewed_at` (solo se valutata), `can_confirm` (richiesta scritta senza accedere con l'indirizzo di questo account: si conferma o si elimina dalla pagina web), `panel_url` (il pannello, solo se l'accesso c'è davvero), `public_url`, `venue_slug`, `organizer_slug` (solo se pubblici). Le azioni restano pagine del sito: l'app apre `manage_url` o `panel_url` nel browser.
+
+### `GET /v1/calendar?month=YYYY-MM&personal=1`
+
+Con un token e `personal=1` il mese segue gli interessi della persona, come il calendario della pagina iniziale del sito: locali, organizzatori, categorie e tag seguiti e categorie scelte, meno categorie e locali nascosti. Chi non ha espresso interessi riceve il mese della città meno ciò che ha nascosto. `meta.personal` dice se il calendario è personale, `meta.interests` se la persona ha interessi espressi (falso → il client può spiegare che sta mostrando il calendario della città). Senza token `personal=1` non cambia nulla. Con un token la risposta è `private, no-store` e il mese personale non entra in nessuna cache del server. `personal` non booleano → 422.

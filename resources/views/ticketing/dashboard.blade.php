@@ -1,22 +1,59 @@
-<x-layouts.app :meta="$meta"><div class="flex flex-col gap-6">
-    <h1 class="text-hero">{{ __('ticketing.manage') }}</h1>
-    <form method="GET" data-ticket-search class="grid gap-3 sm:grid-cols-[1fr_auto_auto] items-end">
-        <x-field name="q" label="Cerca evento o locale" :value="request('q')" autocomplete="off" />
-        <label class="text-sm font-semibold">Periodo
-            <select name="period" class="block min-h-12 w-full border border-line bg-canvas px-3">
-                <option value="upcoming" @selected($period === 'upcoming')>Prossimi e in corso</option>
-                <option value="past" @selected($period === 'past')>Passati</option>
-            </select>
-        </label>
-        <x-button type="submit">Cerca</x-button>
-    </form>
-    <p data-search-status role="status" class="text-sm text-ink-muted"></p>
-    <div data-ticket-results class="flex flex-col gap-4">
-    @forelse ($dates as $date)
-        <a href="{{ route(auth()->user()->can('manage', [\App\Models\Booking::class, $date]) ? 'ticketing.manage.show' : 'ticketing.manage.scanner', $date) }}" class="flex items-center gap-4 border-t-2 border-line py-4 hover:text-brand"><x-event-artwork :event="$date->event" class="!w-20 shrink-0" /><span class="min-w-0"><strong class="text-xl">{{ $date->event->title }}</strong><br>{{ $date->starts_at->timezone($date->event->city->timezone)->format('d/m/Y H:i') }} · {{ $date->effectiveVenue()?->name }}<br><span class="text-sm">{{ $date->booking_enabled ? __('ticketing.enabled') : __('ticketing.settings') }}</span></span></a>
-    @empty
-        <p>Non ci sono eventi {{ $period === 'past' ? 'passati' : 'prossimi o in corso' }}{{ request('q') ? ' corrispondenti alla ricerca' : '' }}.</p>
-    @endforelse
-    {{ $dates->links() }}
-    </div>
-</div></x-layouts.app>
+{{--
+    Il riepilogo di chi gestisce la biglietteria (`/gestione-biglietti`): una
+    card per data, con la locandina, lo stato delle prenotazioni, i posti, il
+    ruolo e i pulsanti per gestire o aprire lo scanner. I permessi arrivano
+    già calcolati dal controller, una volta per data.
+--}}
+@php
+    $periodUrl = fn (string $value): string => route('ticketing.manage.index', array_filter(['period' => $value === 'upcoming' ? null : $value, 'q' => $search !== '' ? $search : null]));
+@endphp
+<x-layouts.app service :meta="$meta">
+    <x-service-page :title="__('ticketing.manage')" :subtitle="__('ticketing.dashboard_page.subtitle')" :back="route('account.profile')">
+        <x-card as="div">
+            <form method="GET" data-ticket-search class="flex flex-col gap-3" role="search">
+                <input type="hidden" name="period" value="{{ $period }}">
+                <x-field name="q" :label="__('ticketing.dashboard_page.search')" :value="$search" autocomplete="off" />
+                <div><x-button type="submit" variant="secondary"><x-lucide name="search" class="size-4" />{{ __('ticketing.dashboard_page.submit') }}</x-button></div>
+            </form>
+            <p data-search-status role="status" class="text-sm text-ink-muted empty:hidden" data-loading="{{ __('ticketing.search_status.loading') }}" data-done="{{ __('ticketing.search_status.done') }}" data-failed="{{ __('ticketing.search_status.failed') }}"></p>
+        </x-card>
+
+        <div data-ticket-results class="flex flex-col gap-4">
+            <x-segmented :label="__('ticketing.dashboard_page.period_label')" :items="[
+                ['label' => __('ticketing.dashboard_page.upcoming'), 'href' => $periodUrl('upcoming'), 'active' => $period === 'upcoming'],
+                ['label' => __('ticketing.dashboard_page.past'), 'href' => $periodUrl('past'), 'active' => $period === 'past'],
+            ]" />
+            @forelse ($dates as $date)
+                @php
+                    $can = $abilities[$date->id] ?? ['manage' => false, 'check_in' => false];
+                    $count = $counts[$date->id] ?? null;
+                    $target = $can['manage'] ? route('ticketing.manage.show', $date) : route('ticketing.manage.scanner', $date);
+                @endphp
+                <x-card as="article" data-ticket-date="{{ $date->id }}">
+                    <x-service-event-row :occurrence="$date" :href="$target">
+                        <x-slot:badge>
+                            <x-badge :tone="$date->booking_enabled ? 'brand' : 'muted'" size="sm">{{ $date->booking_enabled ? __('ticketing.dashboard_page.booking_on') : __('ticketing.dashboard_page.booking_off') }}</x-badge>
+                        </x-slot:badge>
+                        @if ($count !== null)
+                            <span>
+                                {{ $count['capacity'] === null ? __('ticketing.dashboard_page.seats_unlimited', ['used' => $count['confirmed']]) : __('ticketing.dashboard_page.seats', ['used' => $count['confirmed'], 'capacity' => $count['capacity']]) }}@if ($count['waitlisted'] > 0) · {{ __('ticketing.dashboard_page.waitlisted', ['count' => $count['waitlisted']]) }}@endif
+                            </span>
+                        @endif
+                        <span>{{ $can['manage'] ? __('ticketing.dashboard_page.role_manager') : __('ticketing.dashboard_page.role_staff') }}</span>
+                    </x-service-event-row>
+                    <x-slot:footer>
+                        @if ($can['manage'])
+                            <x-button size="sm" :href="route('ticketing.manage.show', $date)">{{ __('ticketing.dashboard_page.manage') }}</x-button>
+                        @endif
+                        @if ($can['check_in'])
+                            <x-button size="sm" :variant="$can['manage'] ? 'secondary' : 'primary'" :href="route('ticketing.manage.scanner', $date)"><x-lucide name="scan-line" class="size-4" />{{ __('ticketing.dashboard_page.scanner') }}</x-button>
+                        @endif
+                    </x-slot:footer>
+                </x-card>
+            @empty
+                <x-empty-state :title="$search !== '' ? __('ticketing.dashboard_page.empty_search') : __('ticketing.dashboard_page.empty_'.$period)" />
+            @endforelse
+            {{ $dates->links() }}
+        </div>
+    </x-service-page>
+</x-layouts.app>

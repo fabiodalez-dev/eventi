@@ -80,6 +80,18 @@ function venuePanel(): void
     Filament::setTenant(test()->venue);
 }
 
+/**
+ * La scelta a card del pannello: evento (o tutti), formato, durata, invio.
+ *
+ * @param  Livewire\Features\SupportTesting\Testable  $page
+ */
+function sponsorFromPanel($page, string $placement, string $duration, ?int $eventId)
+{
+    $eventId === null ? $page->set('scope', 'all') : $page->call('selectEvent', $eventId);
+
+    return $page->call('selectPlacement', $placement)->call('selectDuration', $duration)->call('submitOrder');
+}
+
 function adminPanel(): void
 {
     test()->actingAs(test()->admin);
@@ -90,13 +102,13 @@ function adminPanel(): void
 it('takes a venue from purchase to a sponsored event visible on the public list', function (): void {
     // 1. Acquisto dal pannello: ordine in attesa, checkout aperto, redirect a Stripe.
     venuePanel();
-    Livewire::test(VenueSponsorships::class)
-        ->assertActionVisible('buy')
-        ->callAction('buy', data: ['price' => $this->price->id, 'mode' => PromotionMode::Selected->value])
-        ->assertHasNoActionErrors()
+    $page = Livewire::test(VenueSponsorships::class)->assertSee(__('promotions.page.step_what'))->assertSee('Concerto del circolo');
+    sponsorFromPanel($page, 'list_top', 'price:'.$this->price->id, $this->event->id)
         ->assertRedirect('https://checkout.stripe.test/pay/'.$this->gateway->checkouts[0]['session']);
     $order = SponsorshipOrder::sole();
     expect($order->status)->toBe(SponsorshipOrderStatus::PendingPayment)
+        ->and($order->mode)->toBe(PromotionMode::Selected)
+        ->and($order->event_id)->toBe($this->event->id)
         ->and($order->venue_id)->toBe($this->venue->id)
         ->and($order->amount_cents)->toBe(16200)
         ->and($order->checkout_session_id)->toBe('cs_test_'.$order->id.'_1')
@@ -133,11 +145,12 @@ it('takes a venue from purchase to a sponsored event visible on the public list'
         ->and(SponsorshipGrant::active()->whereKey($grant->id)->exists())->toBeTrue();
     Notification::assertSentTo($this->owner, SponsorshipOrderDecided::class);
 
-    // 4. Il locale sceglie l'evento: compare in cima a /eventi, dichiarato e col nome del locale.
+    // 4. L'evento scelto con l'ordine è già in evidenza: compare in cima a /eventi, dichiarato e col nome del locale.
     venuePanel();
     Livewire::test(VenueSponsorships::class)
         ->assertSee(__('promotions.orders.status.approved'))
-        ->callAction('choose', data: ['grant' => $grant->id, 'event' => $this->event->id])->assertHasNoActionErrors();
+        ->assertSee(__('promotions.page.active_on'))
+        ->call('activate', $this->event->id)->assertHasNoErrors();
     $campaign = Sponsorship::where('sponsorship_grant_id', $grant->id)->sole();
     expect(Sponsorship::visible()->whereKey($campaign->id)->exists())->toBeTrue()
         ->and($campaign->advertiser_name)->toBe('Circolo Aurora');
@@ -158,11 +171,10 @@ it('lets an organizer buy an automatic campaign that covers its events in any ve
     $this->actingAs($organizerOwner);
     Filament::setCurrentPanel('organizer');
     Filament::setTenant($organizer);
-    Livewire::test(OrganizerSponsorships::class)
-        ->callAction('buy', data: ['price' => $this->price->id, 'mode' => PromotionMode::Automatic->value])
-        ->assertHasNoActionErrors()->assertRedirect('https://checkout.stripe.test/pay/'.$this->gateway->checkouts[0]['session']);
+    sponsorFromPanel(Livewire::test(OrganizerSponsorships::class), 'list_top', 'price:'.$this->price->id, null)
+        ->assertRedirect('https://checkout.stripe.test/pay/'.$this->gateway->checkouts[0]['session']);
     $order = SponsorshipOrder::sole();
-    expect($order->organizer_id)->toBe($organizer->id)->and($order->venue_id)->toBeNull();
+    expect($order->organizer_id)->toBe($organizer->id)->and($order->venue_id)->toBeNull()->and($order->mode)->toBe(PromotionMode::Automatic);
 
     [$payload, $signature] = stripeSignedEvent($order->checkout_session_id, 'pi_org_1', 'checkout.session.async_payment_succeeded');
     postStripeWebhook($payload, $signature)->assertOk();
@@ -180,11 +192,21 @@ it('lets an organizer buy an automatic campaign that covers its events in any ve
         ->and(Sponsorship::visible()->where('event_id', $this->event->id)->exists())->toBeFalse();
     $this->get('/eventi')->assertOk()->assertSee(__('sponsorships.label'))->assertSee('Collettivo Portici')->assertSee('Serata del collettivo');
 
-    // Un evento pubblicato dopo entra da solo nella campagna automatica.
+    // Un evento pubblicato dopo, con una data in programma, entra da solo nella campagna automatica;
+    // una bozza o un evento senza date future no.
     $later = Event::factory()->create(['venue_id' => $this->venue->id, 'organizer_id' => $organizer->id, 'city_id' => $this->city->id, 'category_id' => $this->category->id,
         'status' => EventStatus::Published, 'published_at' => now(), 'title' => 'Seconda serata']);
+    EventOccurrence::factory()->create(['event_id' => $later->id, 'starts_at' => now()->addDays(5), 'ends_at' => now()->addDays(5)->addHours(2)]);
+    $draft = Event::factory()->create(['venue_id' => $this->venue->id, 'organizer_id' => $organizer->id, 'city_id' => $this->city->id, 'category_id' => $this->category->id,
+        'status' => EventStatus::Draft, 'title' => 'Bozza del collettivo']);
+    EventOccurrence::factory()->create(['event_id' => $draft->id, 'starts_at' => now()->addDays(5), 'ends_at' => now()->addDays(5)->addHours(2)]);
+    $past = Event::factory()->create(['venue_id' => $this->venue->id, 'organizer_id' => $organizer->id, 'city_id' => $this->city->id, 'category_id' => $this->category->id,
+        'status' => EventStatus::Published, 'published_at' => now()->subMonth(), 'title' => 'Serata passata']);
+    EventOccurrence::factory()->create(['event_id' => $past->id, 'starts_at' => now()->subDays(5), 'ends_at' => now()->subDays(5)->addHours(2)]);
     app(GrantCampaigns::class)->sync($grant);
-    expect($grant->sponsorships()->where('event_id', $later->id)->exists())->toBeTrue();
+    expect($grant->sponsorships()->where('event_id', $later->id)->exists())->toBeTrue()
+        ->and($grant->sponsorships()->where('event_id', $draft->id)->exists())->toBeFalse()
+        ->and($grant->sponsorships()->where('event_id', $past->id)->exists())->toBeFalse();
 });
 
 it('refunds and keeps the site clean when the newsroom rejects a paid order', function (): void {
@@ -264,13 +286,15 @@ it('reconciles a paid session on the way back from checkout, only for the tenant
     expect($pending->fresh()->status)->toBe(SponsorshipOrderStatus::Cancelled);
 });
 
-it('keeps buying out of reach without a price list or Stripe keys, and deciding out of reach for buyers', function (): void {
+it('keeps paying online out of reach without a price list or Stripe keys, and deciding out of reach for buyers', function (): void {
     venuePanel();
     $this->gateway->configured = false;
-    Livewire::test(VenueSponsorships::class)->assertActionHidden('buy');
+    Livewire::test(VenueSponsorships::class)->call('selectEvent', $this->event->id)->call('selectPlacement', 'list_top')
+        ->assertDontSee(__('promotions.page.submit_online'))->assertSee(__('promotions.page.submit_request'));
     $this->gateway->configured = true;
     $this->price->update(['is_active' => false]);
-    Livewire::test(VenueSponsorships::class)->assertActionHidden('buy');
+    Livewire::test(VenueSponsorships::class)->call('selectEvent', $this->event->id)->call('selectPlacement', 'list_top')
+        ->assertDontSee(__('promotions.page.submit_online'))->assertSee(__('promotions.page.submit_request'));
     expect(fn () => app(SponsorshipOrders::class)->place($this->owner, $this->venue, $this->price, PromotionMode::Selected, 's', 'c'))
         ->toThrow(HttpException::class);
     $this->price->update(['is_active' => true]);
@@ -289,9 +313,12 @@ it('keeps buying out of reach without a price list or Stripe keys, and deciding 
     $this->actingAs($editor);
     Filament::setCurrentPanel('venue');
     Filament::setTenant($this->venue);
-    Livewire::test(VenueSponsorships::class)->assertActionHidden('buy')
+    Livewire::test(VenueSponsorships::class)->assertSee(__('promotions.page.not_owner_title'))
+        ->assertDontSee(__('promotions.page.step_what'))
         ->assertDontSee(__('promotions.orders.cancel'))
         ->call('cancelOrder', $order->id)->assertForbidden();
+    Livewire::test(VenueSponsorships::class)->call('selectEvent', $this->event->id)->call('selectPlacement', 'list_top')
+        ->call('selectDuration', 'price:'.$this->price->id)->call('submitOrder')->assertForbidden();
     expect(fn () => app(SponsorshipOrders::class)->place($editor, $this->venue, $this->price, PromotionMode::Selected, 's', 'c'))
         ->toThrow(AuthorizationException::class);
     expect(SponsorshipOrder::count())->toBe(1);

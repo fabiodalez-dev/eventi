@@ -8,6 +8,7 @@ use App\DTOs\PageMeta;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Web\Concerns\InteractsWithCity;
 use App\Models\City;
+use App\Models\User;
 use App\Services\Calendar\MonthCalendar;
 use App\Support\DateFormatter;
 use Carbon\CarbonImmutable;
@@ -49,7 +50,12 @@ final class CalendarController extends Controller
             'year' => $current->format('Y'),
         ]);
 
-        $cells = $this->calendar->grid($city, $current);
+        /* Il mese della città è uguale per tutti ed entra in cache; chi è
+           collegato lo vede senza le categorie e i locali che ha nascosto. */
+        $user = request()->user();
+        $cells = $user instanceof User
+            ? $this->calendar->cells($city, $current, $this->calendar->filteredDigest($city, $current, $user))
+            : $this->calendar->grid($city, $current);
         $total = array_sum(array_column($cells, 'count'));
 
         return view('calendar.index', [

@@ -5,7 +5,7 @@ return [
     'wrong_account' => 'Nel browser hai aperto un account inCittà diverso da quello dell’app. Esci dal sito, accedi con lo stesso account dell’app e ripeti il collegamento.',
     'lead' => 'Gli eventi che scegli in un calendario inCittà separato, visibile in Google Calendar sul telefono e sugli altri dispositivi.',
     'account' => 'Collegamento per l’account inCittà :email. Usa lo stesso account con cui accedi all’app.',
-    'scope' => 'Google ti chiederà il consenso. Gestiremo soltanto il calendario creato da inCittà, senza leggere o modificare i tuoi altri calendari.',
+    'scope' => 'Google ti chiederà il consenso. Gestisco soltanto il calendario creato da inCittà, senza leggere o modificare i tuoi altri calendari.',
     'timing' => 'Aggiornamenti, nuove date e annullamenti si sincronizzano periodicamente (circa ogni 15 minuti, più il tempo di elaborazione). Non è necessario tenere aperta l’app. Esci dall’app senza interrompere il collegamento; per fermarlo usa Scollega Google.',
     'connect' => 'Collega il mio account Google',
     'manage' => 'Collega a Google Calendar',
@@ -32,7 +32,7 @@ return [
     'disconnect' => 'Scollega Google',
     'disconnect_help' => 'Fermi gli aggiornamenti e revochi l’accesso di inCittà. Il calendario già creato resta nel tuo account come copia: puoi eliminarlo da Google Calendar.',
     'disconnect_retry' => 'Sincronizzazione fermata, ma Google non ha confermato la revoca. Riprova a scollegare.',
-    'disconnected' => 'Google scollegato. Non aggiorneremo più il calendario; la copia rimane nel tuo account Google.',
+    'disconnected' => 'Google scollegato. Non aggiorno più il calendario; la copia rimane nel tuo account Google.',
     'download_login' => 'Accedi per scaricare il file ICS',
     'download_help' => 'Il file ICS è una copia da importare manualmente, senza aggiornamenti automatici.',
 ];

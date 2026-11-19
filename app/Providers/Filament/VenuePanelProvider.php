@@ -4,17 +4,15 @@ declare(strict_types=1);
 
 namespace App\Providers\Filament;
 
-use App\Filament\Auth\Login;
-use App\Filament\Auth\RequestPasswordReset;
 use App\Filament\Venue\Pages\Dashboard;
 use App\Filament\Venue\Pages\VenueAccess;
+use App\Http\Middleware\AuthenticatePanel;
+use App\Http\Middleware\AuthenticatePanelSession;
 use App\Http\Middleware\RevalidateImpersonation;
 use App\Models\User;
 use App\Models\Venue;
 use Filament\Actions\Action;
 use Filament\FontProviders\LocalFontProvider;
-use Filament\Http\Middleware\Authenticate;
-use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Navigation\NavigationGroup;
@@ -51,8 +49,9 @@ use Illuminate\View\Middleware\ShareErrorsFromSession;
  *
  * **Nessuna registrazione libera.** Chi entra qui è stato invitato — dalla
  * redazione come referente, o da un referente come collaboratore
- * (`InviteVenueMemberAction`). Il recupero della password è invece attivo:
- * è il collegamento che l'invito stesso porta con sé.
+ * (`InviteVenueMemberAction`). Si entra dal login unico del sito (`/accedi`),
+ * e il recupero della password è quello del sito: è il collegamento che
+ * l'invito stesso porta con sé.
  */
 class VenuePanelProvider extends PanelProvider
 {
@@ -87,9 +86,10 @@ class VenuePanelProvider extends PanelProvider
                 NavigationGroup::make(fn (): string => __('manage.navigation.analytics'))->collapsed(),
                 NavigationGroup::make(fn (): string => __('manage.navigation.community')),
             ])
-            ->login(Login::class)
-            ->passwordReset(RequestPasswordReset::class)
-            ->darkMode(false)
+            // Accesso e recupero della password sono quelli del sito; il tema pure: vedi `AdminPanelProvider`.
+            ->darkMode(true)
+            ->themeSwitcher(false)
+            ->renderHook(PanelsRenderHook::HEAD_START, fn () => view('filament.partials.theme-bootstrap'))
             ->renderHook(PanelsRenderHook::TOPBAR_END, fn () => view('filament.partials.topbar-actions'))
             ->font('Manrope Variable', provider: LocalFontProvider::class)
             ->viteTheme('resources/css/filament/admin/theme.css')
@@ -137,7 +137,7 @@ class VenuePanelProvider extends PanelProvider
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
                 StartSession::class,
-                AuthenticateSession::class,
+                AuthenticatePanelSession::class,
                 RevalidateImpersonation::class,
                 ShareErrorsFromSession::class,
                 PreventRequestForgery::class,
@@ -146,7 +146,7 @@ class VenuePanelProvider extends PanelProvider
                 DispatchServingFilamentEvent::class,
             ])
             ->authMiddleware([
-                Authenticate::class,
+                AuthenticatePanel::class,
             ]);
     }
 

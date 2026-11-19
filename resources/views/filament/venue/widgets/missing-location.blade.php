@@ -4,23 +4,8 @@
     fatta, ed è l'unico modo perché una cosa che *sembra* a posto venga
     guardata.
 --}}
-<div class="fi-section p-4 sm:p-6">
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div class="flex flex-col gap-1">
-            <p class="text-base font-bold text-gray-950 dark:text-white">
-                {{ __('manage.location_missing.title') }}
-            </p>
-
-            <p class="text-sm text-gray-600 dark:text-gray-400">
-                {{ __('manage.location_missing.body') }}
-            </p>
-        </div>
-
-        <a
-            href="{{ \App\Filament\Venue\Pages\VenueProfile::getUrl() }}"
-            class="fi-btn fi-color fi-color-primary fi-bg-color-400 shrink-0 px-4 py-2 text-sm font-semibold"
-        >
-            {{ __('manage.location_missing.action') }}
-        </a>
-    </div>
-</div>
+<x-filament-widgets::widget>
+    <x-filament::section :heading="__('manage.location_missing.title')" :description="__('manage.location_missing.body')" icon="heroicon-o-map-pin" icon-color="warning" data-dashboard-missing-location>
+        <x-filament::button tag="a" :href="\App\Filament\Venue\Pages\VenueProfile::getUrl()" icon="heroicon-o-map">{{ __('manage.location_missing.action') }}</x-filament::button>
+    </x-filament::section>
+</x-filament-widgets::widget>

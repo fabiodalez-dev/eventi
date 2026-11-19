@@ -1,38 +1,41 @@
-<x-layouts.app :meta="$meta">
-    <section class="mx-auto max-w-5xl py-8 sm:py-14">
-        <p class="text-eyebrow text-accent">{{ $city->name }} / {{ __('tonight.eyebrow') }}</p>
-        <h1 class="mt-4 max-w-3xl font-display text-4xl font-extrabold leading-tight sm:text-6xl">{{ $question === 'results' ? __('tonight.results') : __('tonight.title') }}</h1>
-        <p class="mt-5 max-w-prose text-ink-muted">{{ __('tonight.lead') }}</p>
-        @if($errors->any())<p role="alert" class="my-4">{{ $errors->first() }}</p>@endif
-        @if($question !== 'results')
-            @include('tonight.question')
-        @else
-            <p class="mb-6 max-w-prose text-sm text-ink-muted">{{ __('tonight.order') }}</p>
-            @forelse($dates as $date)
-                <article class="mb-10 border-y-2 border-line py-6">
-                    <p class="text-eyebrow text-accent">0{{ $loop->iteration }} / {{ __('tonight.why') }}</p>
-                    <ul class="my-4 flex list-none flex-wrap gap-x-6 gap-y-2 text-sm text-ink-muted">
-                        @foreach($discovery->reasons($date, $input) as $reason)<li>{{ $reason }}</li>@endforeach
-                    </ul>
-                    <x-event-card :occurrence="$date" :href="\App\Support\EventUrl::occurrence($date)" />
-                    <details class="mt-4">
-                        <summary class="min-h-12 cursor-pointer py-3 font-bold">{{ __('seo.before_going') }}</summary>
-                        <dl class="grid gap-4 py-4 sm:grid-cols-2">
-                            @foreach($discovery->practical($date) as $fact)
-                                <div><dt class="text-sm text-ink-muted">{{ $fact['label'] }}</dt><dd class="mt-1 whitespace-pre-line">{{ $fact['value'] }}</dd></div>
-                            @endforeach
-                        </dl>
-                    </details>
-                </article>
-            @empty
-                <h2 class="text-2xl font-bold">{{ __('tonight.empty') }}</h2>
-                <p class="my-4 max-w-prose text-ink-muted">{{ __('tonight.empty_help') }}</p>
-            @endforelse
-            <nav class="flex flex-wrap gap-4" aria-label="{{ __('tonight.edit') }}">
-                <a class="ui-action min-h-14 bg-brand px-6 py-4 font-bold text-on-brand" href="{{ route('tonight.wizard', [...\Illuminate\Support\Arr::except($input, ['step']), 'question'=>'municipality']) }}">{{ __('tonight.edit') }}</a>
-                <a class="ui-action inline-flex min-h-14 items-center border-2 border-line px-6 py-4" href="{{ route('events.index') }}">{{ __('tonight.all') }}</a>
-            </nav>
-        @endif
-        @auth<a class="mt-6 inline-flex min-h-12 items-center underline" href="{{ route('account.content-preferences') }}">{{ __('tonight.preferences') }}</a>@endauth
-    </section>
+{{--
+    La procedura «Stasera»: una domanda per schermata.
+
+    In cima l'avanzamento («Passo 2 di 5» e una barra a segmenti), poi la
+    domanda come unico titolo della pagina e il suo aiuto. Il modulo con le
+    risposte, il riepilogo, i primi risultati e i comandi sta in
+    `tonight/question`, che il controller prepara una volta sola: la stessa
+    vista risponde anche alle richieste di anteprima mentre si sceglie.
+--}}
+@php
+    $index = array_search($question, $questions, true);
+    $total = count($questions) - 1;
+    $help = match ($question) {
+        'when' => __('tonight.when_help'),
+        'municipality' => __('tonight.municipality_help'),
+        'district' => __('tonight.district_help'),
+        'budget' => __('tonight.budget_help'),
+        default => __('tonight.categories_help'),
+    };
+@endphp
+<x-layouts.app service :meta="$meta">
+    <div class="flex min-w-0 flex-col gap-6" data-tonight>
+        <div class="tonight-progress" data-tonight-progress>
+            <p class="m-0 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                <span class="text-eyebrow text-accent uppercase" data-tonight-step>{{ __('tonight.progress', ['current' => $index + 1, 'total' => $total]) }}</span>
+                <span class="text-sm text-ink-muted">{{ __('tonight.context', ['city' => $city->name]) }}</span>
+            </p>
+            <ol class="tonight-progress__bar" aria-label="{{ __('tonight.progress_label') }}">
+                @foreach (array_slice($questions, 0, $total) as $position => $step)
+                    <li @class(['tonight-progress__step', 'is-done' => $position < $index, 'is-current' => $position === $index]) @if ($position === $index) aria-current="step" @endif>
+                        <span class="sr-only">{{ __('tonight.'.$step) }}</span>
+                    </li>
+                @endforeach
+            </ol>
+        </div>
+
+        <x-service-page :title="__('tonight.'.$question)" :subtitle="$help">
+            {!! $form !!}
+        </x-service-page>
+    </div>
 </x-layouts.app>

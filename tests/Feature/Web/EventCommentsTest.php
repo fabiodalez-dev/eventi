@@ -100,6 +100,92 @@ it('non accetta una risposta a un commento di un altro evento', function (): voi
     ])->assertNotFound();
 });
 
+describe('la conversazione', function (): void {
+    it('annida le risposte dentro il commento a cui rispondono, un livello solo', function (): void {
+        $azione = app(PostComment::class);
+        $primo = $azione->handle($this->event, $this->autore, 'La domanda');
+        $risposta = $azione->handle($this->event, $this->altro, 'La risposta', $primo);
+        $azione->handle($this->event, $this->autore, 'Un altro commento');
+
+        $html = $this->get(route('events.show', ['slug' => $this->event->slug]))->assertOk()->getContent();
+        $dom = new DOMXPath(tap(new DOMDocument, fn (DOMDocument $d) => @$d->loadHTML('<?xml encoding="utf-8"?>'.$html)));
+
+        /* La risposta sta nell'elenco delle risposte del suo capostipite, con
+           la classe della risposta; il capostipite resta nell'elenco principale. */
+        expect($dom->query('//article[@id="commento-'.$primo->id.'"]//ol[contains(@class,"comment__replies")]//article[@id="commento-'.$risposta->id.'"][contains(@class,"comment--reply")]')->length)->toBe(1)
+            ->and($dom->query('//ol[contains(@class,"comments__list")]/li/article[@id="commento-'.$risposta->id.'"]')->length)->toBe(0)
+            ->and($dom->query('//article[contains(@class,"comment--reply")]//ol[contains(@class,"comment__replies")]')->length)->toBe(0)
+            /* Ogni commento ha il suo avatar e il fumetto con nome e testo. */
+            ->and($dom->query('//article[@id="commento-'.$primo->id.'"]/span[@data-avatar]')->length)->toBe(1)
+            ->and($dom->query('//article[@id="commento-'.$risposta->id.'"]//div[contains(@class,"comment__bubble")]/p[contains(@class,"comment__body")]')->item(0)?->textContent)->toBe('La risposta');
+    });
+
+    it('dà un’etichetta leggibile a ogni pulsante, anche a quelli fatti di sole faccine', function (): void {
+        $commento = app(PostComment::class)->handle($this->event, $this->autore, 'Un commento');
+
+        $html = $this->actingAs($this->altro)->get(route('events.show', ['slug' => $this->event->slug]))->assertOk()->getContent();
+        $dom = new DOMXPath(tap(new DOMDocument, fn (DOMDocument $d) => @$d->loadHTML('<?xml encoding="utf-8"?>'.$html)));
+
+        foreach (EventCommentReactionType::cases() as $tipo) {
+            $pulsante = $dom->query('//article[@id="commento-'.$commento->id.'"]//form[@data-reazione][input[@value="'.$tipo->value.'"]]/button')->item(0);
+            expect($pulsante)->not->toBeNull()
+                ->and($pulsante->getAttribute('aria-pressed'))->toBe('false')
+                ->and(trim($dom->query('.//span[contains(@class,"sr-only")]', $pulsante)->item(0)?->textContent ?? ''))->toBe($tipo->label());
+        }
+
+        $rispondi = $dom->query('//button[@data-apri-risposta="'.$commento->id.'"]')->item(0);
+        expect($rispondi->getAttribute('aria-expanded'))->toBe('false')
+            ->and($rispondi->getAttribute('aria-controls'))->toBe('risposta-'.$commento->id)
+            ->and($dom->query('//form[@id="risposta-'.$commento->id.'"][@data-risposta="'.$commento->id.'"]')->length)->toBe(1)
+            ->and($dom->query('//label[@for="commento-nuovo"]')->item(0)?->textContent)->toBe(__('comments.write'))
+            ->and($dom->query('//label[@for="risposta-testo-'.$commento->id.'"]')->length)->toBe(1)
+            /* Il campo per scrivere sta prima dell'elenco, con l'avatar di chi scrive. */
+            ->and($dom->query('//section[@id="commenti"]/form[@data-composer]/span[@data-avatar]')->length)->toBe(1)
+            ->and($dom->query('//section[@id="commenti"]/form[@data-composer]/following-sibling::ol[contains(@class,"comments__list")]')->length)->toBe(1);
+    });
+
+    it('segna i miei commenti e mi lascia eliminarli, agli altri no', function (): void {
+        $mio = app(PostComment::class)->handle($this->event, $this->autore, 'Il mio commento');
+        $suo = app(PostComment::class)->handle($this->event, $this->altro, 'Il suo commento');
+
+        $html = $this->actingAs($this->autore)->get(route('events.show', ['slug' => $this->event->slug]))->assertOk()->getContent();
+        $dom = new DOMXPath(tap(new DOMDocument, fn (DOMDocument $d) => @$d->loadHTML('<?xml encoding="utf-8"?>'.$html)));
+
+        expect($dom->query('//article[@id="commento-'.$mio->id.'"][contains(@class,"comment--mine")]//form[@data-conferma-eliminazione]')->length)->toBe(1)
+            ->and($dom->query('//article[@id="commento-'.$suo->id.'"][contains(@class,"comment--mine")]')->length)->toBe(0)
+            ->and($dom->query('//article[@id="commento-'.$suo->id.'"]//form[@data-conferma-eliminazione]')->length)->toBe(0);
+    });
+
+    it('rimanda alla conversazione intera quando le risposte sono più di quelle mostrate', function (): void {
+        $azione = app(PostComment::class);
+        $primo = $azione->handle($this->event, $this->autore, 'La domanda');
+        foreach (range(1, 5) as $i) {
+            $azione->handle($this->event, $this->altro, 'Risposta '.$i, $primo);
+        }
+
+        $this->get(route('events.show', ['slug' => $this->event->slug]))
+            ->assertOk()
+            ->assertSee(trans_choice('comments.more_replies_count', 2, ['count' => 2]))
+            ->assertSee($primo->permalink(), false);
+    });
+
+    it('invita l’ospite a entrare e chiede la conferma a chi non ha verificato l’email', function (): void {
+        $this->get(route('events.show', ['slug' => $this->event->slug]))
+            ->assertOk()
+            ->assertSee(__('comments.join.lead'))
+            ->assertSee(__('comments.join.prompt'))
+            ->assertDontSee('name="body"', false);
+
+        $this->autore->forceFill(['email_verified_at' => null])->save();
+
+        $this->actingAs($this->autore)->get(route('events.show', ['slug' => $this->event->slug]))
+            ->assertOk()
+            ->assertSee(__('comments.verify_title'))
+            ->assertSee(__('comments.verify_required'))
+            ->assertDontSee('name="body"', false);
+    });
+});
+
 describe('reazioni', function (): void {
     it('ne tiene una sola per persona: la nuova scaccia la vecchia', function (): void {
         $commento = app(PostComment::class)->handle($this->event, $this->autore, 'Un commento');

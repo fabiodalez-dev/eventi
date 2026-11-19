@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Ticketing;
 
 use App\Enums\UserRole;
+use App\Http\Resources\V1\PosterResource;
 use App\Models\Booking;
 use App\Models\EventOccurrence;
 use App\Models\Sponsorship;
@@ -58,13 +59,22 @@ final class MobileManagement
             ->all();
     }
 
-    /** @return array<string, mixed> */
-    public function date(EventOccurrence $date, User $user, bool $detail = false): array
+    /**
+     * Una data da gestire, per l'app. `poster` ha la forma di
+     * `EventResource.poster`; `counts` sono i numeri di `TicketingService::counts()`
+     * e chi chiama un elenco li passa già calcolati per tutte le date insieme.
+     *
+     * @param  array{confirmed: int, checked_in: int, waitlisted: int, cancelled: int, no_show: int, capacity: int|null}|null  $counts
+     * @return array<string, mixed>
+     */
+    public function date(EventOccurrence $date, User $user, bool $detail = false, ?array $counts = null): array
     {
         $manage = $user->can('manage', [Booking::class, $date]);
         $data = ['id' => $date->id, 'title' => $date->event?->title, 'starts_at' => $date->starts_at->toIso8601String(),
             'venue' => $date->effectiveVenue()?->name, 'can_manage' => $manage,
-            'can_check_in' => $user->can('checkIn', [Booking::class, $date])];
+            'can_check_in' => $user->can('checkIn', [Booking::class, $date]),
+            'poster' => $date->event !== null ? PosterResource::toArray($date->event) : null,
+            'counts' => $counts ?? app(TicketingService::class)->counts([$date])[$date->id]];
         if ($detail && $manage) {
             $data += ['practical_details' => (object) ($date->practical_details ?? []), 'cost_breakdown' => (object) ($date->cost_breakdown ?? []),
                 'currency' => $date->event?->currency ?: 'EUR',

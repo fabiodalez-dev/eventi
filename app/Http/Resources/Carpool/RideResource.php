@@ -6,6 +6,7 @@ namespace App\Http\Resources\Carpool;
 
 use App\Enums\RideRequestStatus;
 use App\Enums\RideStatus;
+use App\Http\Resources\V1\PosterResource;
 use App\Models\RideOffer;
 use App\Models\RideRequest;
 use App\Models\User;
@@ -22,7 +23,9 @@ final class RideResource
     public static function offer(RideOffer $offer, User $viewer): array
     {
         $date = $offer->occurrence;
-        $available = $offer->getAttribute('occupied_seats') !== null ? max(0, $offer->capacity - (int) $offer->getAttribute('occupied_seats')) : app(CarpoolService::class)->available($offer);
+        // `withSum` scrive NULL quando non c'è nessun posto confermato: conta che la colonna ci sia,
+        // non che sia piena, o ogni offerta senza passeggeri rifarebbe la somma con una query.
+        $available = array_key_exists('occupied_seats', $offer->getAttributes()) ? max(0, $offer->capacity - (int) $offer->getAttribute('occupied_seats')) : app(CarpoolService::class)->available($offer);
         $own = $viewer->id === $offer->driver_id;
         // Il passaggio dimostrativo si mostra come gli altri, senza l'azione di richiesta: l'app legge `demo`.
         $demo = $offer->isDemo();
@@ -35,7 +38,11 @@ final class RideResource
             || ($offer->driver !== null && app(CarpoolAccess::class)->blocked($viewer, $offer->driver)));
 
         $data = ['id' => $offer->id, 'occurrence_id' => $offer->occurrence_id, 'is_own' => $own,
-            'event_title' => $offer->snapshot['title'], 'event_url' => $date?->event ? route('events.occurrence', ['slug' => $date->event->slug, 'occurrence' => $date->url_number]) : null,
+            'event_title' => $offer->snapshot['title'],
+            // La locandina dell'evento, nella stessa forma di `EventResource.poster`: l'app la mette
+            // accanto al passaggio come il sito.
+            'poster' => $date?->event !== null ? PosterResource::toArray($date->event) : null,
+            'event_url' => $date?->event ? route('events.occurrence', ['slug' => $date->event->slug, 'occurrence' => $date->url_number]) : null,
             'reviews' => app(RideReviews::class)->summary($viewer, $offer->driver),
             'reviews_url' => route('carpool.reviews', $offer->driver_id),
             'event_location' => $offer->snapshot['location'], 'driver' => ['id' => $offer->driver_id,

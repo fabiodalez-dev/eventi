@@ -1,10 +1,23 @@
 <x-filament-widgets::widget>
-    @if(($dates = $this->dates())->isNotEmpty())
-    <x-filament::section :heading="__('social.today')">
-        <div style="display:grid;gap:20px">
-            <div style="display:flex;flex-wrap:wrap;gap:12px"><x-filament::button wire:click="downloadToday" wire:loading.attr="disabled">{{ __('social.download_today') }}</x-filament::button><x-filament::button color="gray" tag="a" :href="\App\Filament\Admin\Pages\Social::getUrl()">{{ __('social.open') }}</x-filament::button><span wire:loading wire:target="downloadToday">{{ __('social.generating') }}</span></div>
-            <div style="display:flex;overflow-x:auto;gap:20px;padding-bottom:12px">@foreach($dates as $date)<a style="flex:0 0 180px" href="{{ \App\Filament\Admin\Pages\Social::getUrl(['event' => $date->event_id]) }}"><img loading="lazy" src="{{ \App\Services\Social\SocialStudio::previewUrl($date) }}" alt="{{ $date->event->title }}" style="width:180px;aspect-ratio:4/5;object-fit:contain"><p style="padding-top:8px">{{ $date->event->title }}</p></a>@endforeach</div>
-        </div>
-    </x-filament::section>
+    @if (($dates = $this->dates())->isNotEmpty())
+        <x-filament::section :heading="__('social.today')" icon="heroicon-o-photo">
+            <div class="flex flex-col gap-5">
+                <div class="flex flex-wrap items-center gap-3">
+                    <x-filament::button wire:click="downloadToday" wire:loading.attr="disabled" icon="heroicon-o-arrow-down-tray">{{ __('social.download_today') }}</x-filament::button>
+                    <x-filament::button color="gray" tag="a" :href="\App\Filament\Admin\Pages\Social::getUrl()">{{ __('social.open') }}</x-filament::button>
+                    <span wire:loading wire:target="downloadToday" class="text-sm text-gray-600 dark:text-gray-400" role="status">{{ __('social.generating') }}</span>
+                </div>
+                <ul class="-mx-1 flex snap-x gap-4 overflow-x-auto px-1 pb-2">
+                    @foreach ($dates as $date)
+                        <li class="w-44 shrink-0 snap-start" wire:key="today-{{ $date->id }}">
+                            <a href="{{ \App\Filament\Admin\Pages\Social::getUrl(['event' => $date->event_id]) }}" class="flex flex-col gap-2 text-sm font-semibold text-gray-950 dark:text-white">
+                                <img loading="lazy" src="{{ \App\Services\Social\SocialStudio::previewUrl($date) }}" alt="" class="aspect-[4/5] w-44 rounded-lg border border-gray-200 bg-gray-100 object-contain dark:border-white/10 dark:bg-white/5">
+                                <span class="[overflow-wrap:anywhere]">{{ $date->event->title }}</span>
+                            </a>
+                        </li>
+                    @endforeach
+                </ul>
+            </div>
+        </x-filament::section>
     @endif
 </x-filament-widgets::widget>

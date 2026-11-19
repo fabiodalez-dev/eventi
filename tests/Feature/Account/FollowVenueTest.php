@@ -78,10 +78,12 @@ it('a chi non ha l accesso offre il login, non un pulsante spento', function ():
     $risposta = $this->get(route('venues.show', $this->venue));
 
     $risposta->assertOk()
-        ->assertSee(__('account.follow.venue'))
         /* Un pulsante disabilitato è un inganno: sembra un'azione e non lo è.
-           Un collegamento al login dice cosa serve per farla. */
-        ->assertDontSee('disabled', false);
+           Un collegamento al login dice cosa serve per farla. Si cerca
+           l'attributo, non la parola: le classi `disabled:` dei pulsanti ci
+           sono sempre. */
+        ->assertSee(__('account.follow.venue'));
 
-    expect($risposta->getContent())->toContain(urlencode(route('venues.show', $this->venue)));
+    expect($risposta->getContent())->toContain(urlencode(route('venues.show', $this->venue)))
+        ->not->toMatch('/<(button|input)\b[^>]*\sdisabled(\s|=|>)/');
 });

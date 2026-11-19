@@ -75,6 +75,7 @@ final class DeleteAccount
             DB::table('community_restrictions')->where('user_id', $user->id)->delete();
             $user->savedEvents()->delete();
             $user->follows()->delete();
+            $user->forgetFollowsForRequest();
             /* Il soft delete non fa scattare le chiavi `cascadeOnDelete`:
                ricerche, raccolte (gli elementi cadono con la raccolta, che qui
                sparisce davvero), link «sono qui», avvisi, sondaggi e voti vanno

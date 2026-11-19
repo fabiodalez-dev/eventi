@@ -34,30 +34,36 @@
 
 @if ($hasPages)
     <nav {{ $attributes->class(['mt-8']) }} role="navigation" aria-label="{{ $label ?? __('ui.pagination.label') }}">
-        <div class="flex flex-wrap items-center justify-center gap-2">
+        {{-- Da telefono una riga sola: frecce e «Pagina X di Y»; i numeri
+             e le etichette delle frecce tornano da 640 px in su. --}}
+        <div class="flex items-center justify-center gap-2 sm:flex-wrap">
             @if ($paginator->previousPageUrl())
-                <a href="{{ $paginator->previousPageUrl() }}" rel="prev" class="{{ $link }}">
-                    <x-lucide name="arrow-left" class="size-3.5" />&nbsp;{{ __('ui.pagination.previous') }}
+                <a href="{{ $paginator->previousPageUrl() }}" rel="prev" class="{{ $link }} shrink-0 gap-1.5">
+                    <x-lucide name="arrow-left" class="size-3.5" /><span class="max-sm:sr-only">{{ __('ui.pagination.previous') }}</span>
                 </a>
             @else
-                <span class="{{ $disabled }}" aria-disabled="true">
-                    <x-lucide name="arrow-left" class="size-3.5" />&nbsp;{{ __('ui.pagination.previous') }}
+                <span class="{{ $disabled }} shrink-0 gap-1.5" aria-disabled="true">
+                    <x-lucide name="arrow-left" class="size-3.5" /><span class="max-sm:sr-only">{{ __('ui.pagination.previous') }}</span>
                 </span>
+            @endif
+
+            @if ($isNumbered)
+                <span class="px-1 text-sm font-semibold whitespace-nowrap text-ink sm:hidden">{{ __('ui.pagination.page_of', ['page' => $paginator->currentPage(), 'last' => $paginator->lastPage()]) }}</span>
             @endif
 
             @foreach ($elements as $element)
                 @if (is_string($element))
-                    <span class="px-1 text-ink-subtle" aria-hidden="true">{{ $element }}</span>
+                    <span class="px-1 text-ink-subtle max-sm:hidden" aria-hidden="true">{{ $element }}</span>
                 @endif
 
                 @if (is_array($element))
                     @foreach ($element as $page => $url)
                         @if ($page == $paginator->currentPage())
-                            <span class="{{ $current }}" aria-current="page" aria-label="{{ __('ui.pagination.current_page', ['page' => $page]) }}">
+                            <span class="{{ $current }} max-sm:hidden" aria-current="page" aria-label="{{ __('ui.pagination.current_page', ['page' => $page]) }}">
                                 {{ $page }}
                             </span>
                         @else
-                            <a href="{{ $url }}" class="{{ $link }}" aria-label="{{ __('ui.pagination.go_to_page', ['page' => $page]) }}">
+                            <a href="{{ $url }}" class="{{ $link }} max-sm:hidden" aria-label="{{ __('ui.pagination.go_to_page', ['page' => $page]) }}">
                                 {{ $page }}
                             </a>
                         @endif
@@ -66,12 +72,12 @@
             @endforeach
 
             @if ($paginator->nextPageUrl())
-                <a href="{{ $paginator->nextPageUrl() }}" rel="next" class="{{ $link }}">
-                    {{ __('ui.pagination.next') }}&nbsp;<x-lucide name="arrow-right" class="size-3.5" />
+                <a href="{{ $paginator->nextPageUrl() }}" rel="next" class="{{ $link }} shrink-0 gap-1.5">
+                    <span class="max-sm:sr-only">{{ __('ui.pagination.next') }}</span><x-lucide name="arrow-right" class="size-3.5" />
                 </a>
             @else
-                <span class="{{ $disabled }}" aria-disabled="true">
-                    {{ __('ui.pagination.next') }}&nbsp;<x-lucide name="arrow-right" class="size-3.5" />
+                <span class="{{ $disabled }} shrink-0 gap-1.5" aria-disabled="true">
+                    <span class="max-sm:sr-only">{{ __('ui.pagination.next') }}</span><x-lucide name="arrow-right" class="size-3.5" />
                 </span>
             @endif
         </div>

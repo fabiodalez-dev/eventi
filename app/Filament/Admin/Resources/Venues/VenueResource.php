@@ -11,6 +11,7 @@ use App\Filament\Admin\Resources\Events\RelationManagers\ActivityRelationManager
 use App\Filament\Admin\Resources\Venues\Pages\CreateVenue;
 use App\Filament\Admin\Resources\Venues\Pages\EditVenue;
 use App\Filament\Admin\Resources\Venues\Pages\ListVenues;
+use App\Filament\Admin\Resources\Venues\Pages\ViewVenue;
 use App\Filament\Admin\Resources\Venues\RelationManagers\EventsRelationManager;
 use App\Filament\Admin\Resources\Venues\RelationManagers\MembersRelationManager;
 use App\Filament\Admin\Support\VenueModeration;
@@ -24,6 +25,7 @@ use App\Filament\Support\DescriptionEditor;
 use App\Filament\Support\EditorialFields;
 use App\Filament\Support\FactsField;
 use App\Filament\Support\ImageUpload;
+use App\Filament\Support\PosterColumn;
 use App\Filament\Support\TransitField;
 use App\Filament\Support\VenueClosuresField;
 use App\Filament\Support\VenueGeographyFields;
@@ -35,7 +37,9 @@ use App\Support\WidgetEmbed;
 use BackedEnum;
 use Carbon\CarbonImmutable;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Forms\Components\KeyValue;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
@@ -53,8 +57,14 @@ use Filament\Schemas\Components\Text;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
+use Filament\Support\Enums\Alignment;
+use Filament\Support\Enums\FontWeight;
+use Filament\Support\Enums\TextSize;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\ImageColumn;
+use Filament\Tables\Columns\Layout\Split;
+use Filament\Tables\Columns\Layout\Stack;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
@@ -81,11 +91,17 @@ class VenueResource extends Resource
 {
     use HasSentenceCaseNavigationLabel;
 
+    /** Titoli e briciole in italiano: «Commenti agli eventi», non «Commenti Agli Eventi». */
+    protected static bool $hasTitleCaseModelLabel = false;
+
     protected static ?string $model = Venue::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBuildingStorefront;
 
     protected static ?int $navigationSort = 1;
+
+    /** «Modifica Teatro Verdi», non «Modifica locale»: si sa sempre quale si ha davanti. */
+    protected static ?string $recordTitleAttribute = 'name';
 
     public static function getNavigationGroup(): ?string
     {
@@ -118,10 +134,6 @@ class VenueResource extends Resource
     {
         return $schema->columns(1)
             ->components([
-                EditorialFields::content(false, true),
-                BeforeGoingFields::make(true),
-                ContactFields::make(),
-                EditorialFields::seo(),
                 /*
                  * **Schede, non due colonne di riquadri.**
                  *
@@ -398,6 +410,12 @@ class VenueResource extends Resource
                                             ->columnSpanFull(),
                                     ]),
 
+                                /* Il modulo di contatto pubblico sta con gli
+                                   altri recapiti, non sopra la scheda: prima
+                                   era il terzo blocco della pagina, prima
+                                   ancora del nome del locale. */
+                                ContactFields::make(),
+
                                 Section::make(__('admin.sections.venue_info'))
                                     ->schema([
                                         FactsField::make('admin', 'info'),
@@ -413,6 +431,22 @@ class VenueResource extends Resource
                                     ->columns(['default' => 1, 'lg' => 2])
                                     ->schema(AccessibilityField::make('admin')),
                             ]),
+
+                        /*
+                         * **I blocchi secondari dentro le schede.**
+                         *
+                         * Introduzione, parcheggio, «Prima di andare» e SEO
+                         * stavano sopra le schede, a tutta pagina: chi apriva
+                         * un locale vedeva quattro riquadri prima del nome e
+                         * dell'indirizzo, che sono la ragione per cui lo si
+                         * apre. Ora il primo schermo è «Identità»; il resto è
+                         * a un clic, come nella scheda degli eventi.
+                         */
+                        Tab::make(__('admin.form_tabs.before_going'))
+                            ->schema([BeforeGoingFields::make(true)]),
+
+                        Tab::make(__('admin.form_tabs.content_seo'))
+                            ->schema([EditorialFields::content(false, true), EditorialFields::seo()]),
 
                         Tab::make(__('admin.form_tabs.advanced'))
                             ->schema([
@@ -532,41 +566,61 @@ class VenueResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(['media', 'city']))
             ->columns([
-                TextColumn::make('name')
-                    ->label(__('admin.fields.name'))
-                    ->searchable()
-                    ->sortable(),
+                /*
+                 * La copertina accanto al nome, come la locandina negli
+                 * eventi: un locale si riconosce dalla facciata prima che
+                 * dal nome, e una riga senza immagine segnala una scheda da
+                 * completare. Sul telefono la riga resta una sola, con
+                 * comune, tipo e numero di eventi sotto il nome.
+                 */
+                Split::make([
+                    ImageColumn::make('cover')
+                        ->label(__('admin.fields.cover'))
+                        ->state(fn (Venue $record): string => self::coverUrl($record))
+                        ->imageWidth(64)
+                        ->imageHeight(48)
+                        ->extraImgAttributes(['loading' => 'lazy', 'decoding' => 'async', 'alt' => '', 'class' => 'fi-poster-column object-cover'])
+                        ->grow(false),
 
-                TextColumn::make('municipality')
-                    ->label(__('admin.fields.municipality'))
-                    ->searchable()
-                    ->sortable(),
+                    Stack::make([
+                        TextColumn::make('name')->extraAttributes(['class' => 'py-0.5!'])
+                            ->label(__('admin.fields.name'))
+                            ->searchable()
+                            ->sortable()
+                            ->weight(FontWeight::SemiBold)
+                            ->wrap(),
 
-                TextColumn::make('type')
-                    ->label(__('admin.fields.type'))
-                    ->badge()
-                    ->formatStateUsing(fn (VenueType $state): string => $state->label()),
+                        TextColumn::make('municipality')->extraAttributes(['class' => 'py-0.5!'])
+                            ->label(__('admin.fields.municipality'))
+                            ->searchable()
+                            ->sortable()
+                            ->color('gray')
+                            ->size(TextSize::Small)
+                            ->state(fn (Venue $record): string => collect([$record->municipality, $record->type->label()])->filter()->join(' · ')),
 
-                TextColumn::make('status')
-                    ->label(__('admin.fields.status'))
-                    ->badge()
-                    ->formatStateUsing(fn (VenueStatus $state): string => $state->label())
-                    ->color(fn (VenueStatus $state): string => VenueModeration::statusColor($state)),
+                        TextColumn::make('status')->extraAttributes(['class' => 'py-0.5!'])
+                            ->label(__('admin.fields.status'))
+                            ->badge()
+                            ->formatStateUsing(fn (VenueStatus $state): string => $state->label())
+                            ->color(fn (VenueStatus $state): string => VenueModeration::statusColor($state)),
+                    ])->space(1),
 
-                TextColumn::make('events_count')
-                    ->label(__('admin.fields.events_count'))
-                    ->counts('events')
-                    ->sortable(),
+                    Stack::make([
+                        TextColumn::make('events_count')->extraAttributes(['class' => 'py-0.5!'])
+                            ->label(__('admin.fields.events_count'))
+                            ->counts('events')
+                            ->sortable()
+                            ->size(TextSize::Small)
+                            ->formatStateUsing(fn (int $state): string => trans_choice('admin.venue_list.events_count', $state, ['count' => $state])),
 
-                IconColumn::make('is_verified')
-                    ->label(__('admin.fields.is_verified'))
-                    ->boolean(),
-
-                IconColumn::make('auto_publish')
-                    ->label(__('admin.fields.auto_publish'))
-                    ->boolean()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                        IconColumn::make('is_verified')
+                            ->label(__('admin.fields.is_verified'))
+                            ->boolean()
+                            ->tooltip(fn (Venue $record): string => $record->is_verified ? __('admin.venue_list.verified') : __('admin.venue_list.not_verified')),
+                    ])->space(1)->alignment(Alignment::End)->grow(false)->visibleFrom('md'),
+                ]),
             ])
             ->defaultSort('name')
             ->filters([
@@ -593,12 +647,37 @@ class VenueResource extends Resource
                     ->query(fn (Builder $query) => EditorialDashboardQuery::inactiveVenueScope($query)),
             ])
             ->recordActions([
-                EditAction::make(),
-                ...VenueModeration::actions(),
+                EditAction::make()->button(),
+                ActionGroup::make([
+                    ViewAction::make()->label(__('admin.actions.open_record')),
+                    ...VenueModeration::rowActions(),
+                ])
+                    ->label(__('admin.actions.moderate'))
+                    ->icon(Heroicon::OutlinedShieldCheck)
+                    ->button()
+                    ->color('gray')
+                    ->dropdown(),
             ])
             ->toolbarActions([
                 BulkActions::make(),
             ]);
+    }
+
+    /**
+     * La copertina in miniatura, poi il logo, poi il segnaposto: una riga non
+     * resta mai con un buco.
+     */
+    public static function coverUrl(Venue $venue): string
+    {
+        foreach (['cover', 'logo'] as $collection) {
+            $media = $venue->getFirstMedia($collection);
+
+            if ($media !== null) {
+                return $media->hasGeneratedConversion('thumb') ? $media->getFullUrl('thumb') : $media->getFullUrl();
+            }
+        }
+
+        return asset(PosterColumn::PLACEHOLDER);
     }
 
     /**
@@ -621,6 +700,7 @@ class VenueResource extends Resource
         return [
             'index' => ListVenues::route('/'),
             'create' => CreateVenue::route('/create'),
+            'view' => ViewVenue::route('/{record}'),
             'edit' => EditVenue::route('/{record}/edit'),
         ];
     }

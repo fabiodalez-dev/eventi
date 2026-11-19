@@ -63,7 +63,8 @@ it('sceglie i locali con la ricerca e li toglie dalle chip, spuntando le caselle
         ->and($page->script('document.querySelector("[data-locali-arricchito]").hidden'))->toBeFalse()
         ->and($page->script('document.querySelectorAll("[data-locali-caselle] input:disabled").length'))->toBe(0);
 
-    $page->script('document.querySelector("[data-locali]").closest("details").open = true');
+    // Nel ridisegno il campo sta sempre aperto; se un giorno torna in una sezione richiudibile, la si apre.
+    $page->script('(() => { const details = document.querySelector("[data-locali]").closest("details"); if (details) details.open = true; })()');
     /* Il clic sul campo vuoto apre l'elenco. Con la soglia di due lettere del
        wizard non compariva niente, e su due o quattro locali quel silenzio è
        indistinguibile da un campo rotto. */

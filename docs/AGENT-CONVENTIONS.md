@@ -79,6 +79,10 @@ Sito, API, notifiche e futura app devono condividere una sola definizione (§2.5
 Verifica: `grep -rn "business_date\|starts_at" app/` non deve mostrare logica di
 finestra temporale fuori da `app/Queries/`.
 
+### L'elenco delle funzionalità si aggiorna con la PR
+
+`docs/FUNZIONALITA.md` è l'elenco per ruoli che si manda a operatori e investitori. Ogni PR che aggiunge, cambia o toglie qualcosa che un utente o un operatore può fare lo aggiorna **nella stessa PR**, con le regole scritte in testa al file. Il documento Word si rigenera con `php scripts/funzionalita-docx.php`.
+
 ## 4. Coordinate geografiche — trappola nota
 
 Le coordinate si scrivono **sempre** come `POINT(lng, lat)` con **SRID 0**.

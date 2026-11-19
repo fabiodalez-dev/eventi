@@ -26,7 +26,12 @@
 @php
     $utente = auth()->user();
     $tipo = $type instanceof \App\Enums\FollowableType ? $type : \App\Enums\FollowableType::from((string) $type);
-    $segue = $utente !== null && in_array((int) $id, $utente->followedIds($tipo), strict: true);
+    /* Un elenco di locali e categorie stampa un pulsante per riga: i follow
+       della persona si leggono una volta per richiesta, tutti insieme
+       (`User::followsForRequest()`), non una volta per pulsante. */
+    $segue = $utente !== null && $utente->followsForRequest()->contains(
+        fn ($follow): bool => $follow->followable_type === $tipo->value && (int) $follow->followable_id === (int) $id,
+    );
 
     /* Le etichette del progetto, non due nuove: `account.follow.venue` dice
        «Segui questo locale» e `account.follow.following` dice «Lo segui già».

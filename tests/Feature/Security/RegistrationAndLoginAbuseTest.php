@@ -7,6 +7,7 @@ use App\Notifications\RegistrationLink;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\ViewErrorBag;
 
 /**
  * Iscrizione e accesso: i due tetti che mancavano.
@@ -137,7 +138,13 @@ it('tiene il tetto per indirizzo anche sul modulo di iscrizione del sito', funct
             'password_confirmation' => 'password-lunga-1',
         ]);
 
-        if ($risposta->status() !== 429) {
+        /* Dal modulo HTML il 429 torna al modulo con il motivo nel
+           riepilogo (`errors.form`), non con una pagina d'errore. */
+        $errori = session('errors');
+        $fermata = $risposta->status() === 429
+            || ($errori instanceof ViewErrorBag && $errori->has('form'))
+            || (is_array($errori) && isset($errori['default']['messages']['form']));
+        if (! $fermata) {
             $accettate++;
         }
     }

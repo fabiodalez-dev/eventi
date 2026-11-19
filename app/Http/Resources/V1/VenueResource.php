@@ -88,6 +88,19 @@ final class VenueResource
             'logo' => self::image($venue, 'logo'),
             'cover' => self::image($venue, 'cover'),
             'updated_at' => ApiDate::attribute($venue, 'updated_at', $timezone),
+            /*
+             * «È il tuo locale? Rivendicalo»: vero per un locale pubblico
+             * senza referente, nemmeno invitato. L'app apre `claim_url` nel
+             * browser, dove si accede o si crea l'account. Negli elenchi lo
+             * stato arriva già calcolato (`withClaimState()` nei locali,
+             * `Venue::loadClaimState()` nelle date con `include=venue`):
+             * altrimenti costerebbe una query per riga.
+             */
+            ...(static function (Venue $venue): array {
+                $claimable = $venue->isClaimable();
+
+                return ['claimable' => $claimable, 'claim_url' => $claimable ? route('venues.claim.create', $venue) : null];
+            })($venue),
         ];
     }
 

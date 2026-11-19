@@ -9,6 +9,7 @@ use App\Enums\VenueRole;
 use App\Filament\Venue\Support\CurrentVenue;
 use App\Models\User;
 use BackedEnum;
+use Carbon\CarbonImmutable;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Notifications\Notification;
@@ -49,10 +50,7 @@ class VenueAccess extends Page
 
     public function getSubheading(): ?string
     {
-        $user = auth()->user();
-        $role = $user instanceof User && $user->isOwnerOfVenue((int) CurrentVenue::get()->getKey()) ? VenueRole::Owner : VenueRole::Editor;
-
-        return __('manage.access.lead', ['venue' => CurrentVenue::get()->name, 'role' => mb_strtolower($role->label())]);
+        return __('manage.access.lead', ['venue' => CurrentVenue::get()->name, 'role' => $this->roleLabel()]);
     }
 
     public function isLastOwner(): bool
@@ -62,40 +60,62 @@ class VenueAccess extends Page
         return $user instanceof User && app(LeaveVenueAction::class)->isLastOwner(CurrentVenue::get(), $user);
     }
 
-    protected function getHeaderActions(): array
+    public function isOwner(): bool
     {
-        return [
-            Action::make('leave')
-                ->label(__('manage.access.leave'))
-                ->icon(Heroicon::OutlinedArrowRightStartOnRectangle)
-                ->color('danger')
-                ->requiresConfirmation()
-                ->modalDescription(fn (): string => __('manage.access.leave_confirm', ['venue' => CurrentVenue::get()->name]))
-                ->disabled(fn (): bool => $this->isLastOwner())
-                ->action(function (): void {
-                    $user = auth()->user();
-                    abort_unless($user instanceof User && static::canAccess(), 403);
-                    $venue = CurrentVenue::get();
+        $user = auth()->user();
 
-                    if (! app(LeaveVenueAction::class)->execute($venue, $user)) {
-                        Notification::make()->warning()->title(__('manage.access.last_owner'))->send();
+        return $user instanceof User && $user->isOwnerOfVenue((int) CurrentVenue::get()->getKey());
+    }
 
-                        return;
-                    }
+    public function roleLabel(): string
+    {
+        return mb_strtolower(($this->isOwner() ? VenueRole::Owner : VenueRole::Editor)->label());
+    }
 
-                    /* Chi ha ancora un altro locale torna al pannello, che
-                       apre quello; gli altri al proprio profilo, perché qui
-                       non hanno più niente da aprire. */
-                    if ($user->venueMemberships()->isNotEmpty()) {
-                        Notification::make()->success()->title(__('manage.access.left', ['venue' => $venue->name]))->send();
-                        $this->redirect(Filament::getPanel('venue')->getUrl() ?? url('/'));
+    /** Da quando la persona gestisce il locale, se l'invito è stato accettato. */
+    public function memberSince(): ?string
+    {
+        $accepted = CurrentVenue::get()->members()->whereKey(auth()->id())->first()?->pivot?->getAttribute('accepted_at');
 
-                        return;
-                    }
+        return $accepted !== null ? CarbonImmutable::parse($accepted)->timezone(CurrentVenue::timezone())->format('d/m/Y') : null;
+    }
 
-                    session()->flash('status', __('manage.access.left', ['venue' => $venue->name]));
-                    $this->redirect(route('account.profile'));
-                }),
-        ];
+    /**
+     * L'uscita sta nella card «Zona pericolosa», non fra le azioni della
+     * testata: è l'unica cosa irreversibile della pagina e chiede conferma.
+     */
+    public function leaveAction(): Action
+    {
+        return Action::make('leave')
+            ->label(__('manage.access.leave'))
+            ->icon(Heroicon::OutlinedArrowRightStartOnRectangle)
+            ->color('danger')
+            ->requiresConfirmation()
+            ->modalDescription(fn (): string => __('manage.access.leave_confirm', ['venue' => CurrentVenue::get()->name]))
+            ->disabled(fn (): bool => $this->isLastOwner())
+            ->action(function (): void {
+                $user = auth()->user();
+                abort_unless($user instanceof User && static::canAccess(), 403);
+                $venue = CurrentVenue::get();
+
+                if (! app(LeaveVenueAction::class)->execute($venue, $user)) {
+                    Notification::make()->warning()->title(__('manage.access.last_owner'))->send();
+
+                    return;
+                }
+
+                /* Chi ha ancora un altro locale torna al pannello, che
+                   apre quello; gli altri al proprio profilo, perché qui
+                   non hanno più niente da aprire. */
+                if ($user->venueMemberships()->isNotEmpty()) {
+                    Notification::make()->success()->title(__('manage.access.left', ['venue' => $venue->name]))->send();
+                    $this->redirect(Filament::getPanel('venue')->getUrl() ?? url('/'));
+
+                    return;
+                }
+
+                session()->flash('status', __('manage.access.left', ['venue' => $venue->name]));
+                $this->redirect(route('account.profile'));
+            });
     }
 }

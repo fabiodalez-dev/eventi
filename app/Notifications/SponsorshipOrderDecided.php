@@ -44,11 +44,14 @@ class SponsorshipOrderDecided extends Notification
             'until' => $grant?->ends_at->setTimezone($timezone)->format('d/m/Y H:i') ?? '',
         ];
         $group = $approved ? 'promotions.orders.mail.approved' : 'promotions.orders.mail.rejected';
+        /* Una richiesta senza pagamento online non ha niente da rimborsare:
+           la riga del rifiuto non deve promettere un rimborso. */
+        $line = ! $approved && $this->order->payment_intent_id === null ? 'promotions.orders.mail.rejected_request_line' : $group.'_line';
 
         $message = (new MailMessage)
             ->subject(__($group.'_subject', $vars))
             ->greeting(__('notifications.common.greeting', ['name' => $notifiable->name]))
-            ->line(__($group.'_line', $vars));
+            ->line(__($line, $vars));
 
         if ($approved) {
             $sponsor = $this->order->sponsor();

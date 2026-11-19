@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use App\Filament\Auth\Login;
 use App\Models\MobileAuthChallenge;
 use App\Models\User;
 use App\Notifications\AccountAlreadyRegistered;
@@ -10,11 +9,9 @@ use App\Notifications\MagicLoginLink;
 use App\Notifications\RegistrationLink;
 use App\Notifications\VerifyEmailLink;
 use Database\Seeders\RolesAndPermissionsSeeder;
-use Filament\Facades\Filament;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\RateLimiter;
-use Livewire\Livewire;
 
 /**
  * La registrazione non rivela se un indirizzo è già registrato (D64).
@@ -295,7 +292,7 @@ describe('sito', function (): void {
         $this->post(route('account.login.store'), ['email' => 'luca@example.test', 'password' => 'sbagliata-davvero'])
             ->assertSessionHasErrors(['email' => __('account.login.failed')]);
         $this->post(route('account.login.store'), ['email' => 'luca@example.test', 'password' => 'Password-Scelta-123'])
-            ->assertSessionHasErrors(['email' => __('account.login.claim_pending')]);
+            ->assertSessionHasErrors(['email' => __('auth.login.claim_pending')]);
         $this->assertGuest();
 
         Notification::assertSentToTimes($user, RegistrationLink::class, 2);
@@ -404,18 +401,18 @@ describe('seconda rilettura', function (): void {
         $this->postJson('/api/v1/auth/magic-link/exchange', ['token' => $primo, 'code_verifier' => SFIDA_VERIFICATORE])->assertOk();
     });
 
-    it('i pannelli non aprono con la password un account in sospeso', function (): void {
-        Filament::setCurrentPanel(Filament::getPanel('admin'));
+    it('il login unico non apre i pannelli con la password di un account in sospeso', function (): void {
         $staff = User::factory()->create(['email_claim_pending_at' => now()]);
         $staff->assignRole('admin');
 
-        Livewire::test(Login::class)->fillForm(['email' => $staff->email, 'password' => 'password'])->call('authenticate')
-            ->assertHasErrors(['data.email']);
+        $this->post(route('account.login.store'), ['email' => $staff->email, 'password' => 'password'])
+            ->assertSessionHasErrors(['email' => __('auth.login.claim_pending')]);
         $this->assertGuest();
+        $this->get('/admin')->assertRedirect(route('login'));
 
         $staff->forceFill(['email_claim_pending_at' => null])->save();
-        Livewire::test(Login::class)->fillForm(['email' => $staff->email, 'password' => 'password'])->call('authenticate')
-            ->assertHasNoErrors();
+        $this->post(route('account.login.store'), ['email' => $staff->email, 'password' => 'password'])
+            ->assertRedirect(url('/admin'));
         $this->assertAuthenticatedAs($staff);
     });
 

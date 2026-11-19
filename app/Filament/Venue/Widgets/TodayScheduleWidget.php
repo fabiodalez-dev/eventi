@@ -4,24 +4,24 @@ declare(strict_types=1);
 
 namespace App\Filament\Venue\Widgets;
 
-use App\Filament\Venue\Support\CurrentVenue;
+use App\Filament\Venue\Widgets\Support\ManagementContext;
 use App\Models\EventOccurrence;
-use App\Queries\VenueDashboardQuery;
-use App\Support\DateFormatter;
-use Filament\Facades\Filament;
 use Filament\Widgets\Widget;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
- * Che cosa succede stasera, qui dentro.
+ * Che cosa succede oggi: una card per serata, con la locandina e quello che
+ * serve la sera stessa — la scheda, la modifica, la biglietteria.
  *
  * **Se non c'è niente, il riquadro non esiste** (§8.6): niente contenitore
- * vuoto, niente "nessun evento". I tre numeri sopra dicono già che oggi è
- * zero; ripeterlo con una tabella vuota sarebbe rumore.
+ * vuoto, niente "nessun evento". Il numero «Oggi» sopra dice già che è zero.
  */
 class TodayScheduleWidget extends Widget
 {
     protected static ?int $sort = 2;
+
+    /* Piccoli e in cima alla pagina: si disegnano subito, senza una richiesta in più per riquadro. */
+    protected static bool $isLazy = false;
 
     protected int|string|array $columnSpan = 'full';
 
@@ -29,8 +29,8 @@ class TodayScheduleWidget extends Widget
 
     public static function canView(): bool
     {
-        return Filament::getTenant() !== null
-            && VenueDashboardQuery::for(CurrentVenue::get())->today() > 0;
+        return ManagementContext::tenant() !== null
+            && (ManagementContext::occurrences()?->today()->count() ?? 0) > 0;
     }
 
     /**
@@ -38,11 +38,19 @@ class TodayScheduleWidget extends Widget
      */
     public function schedule(): Collection
     {
-        return VenueDashboardQuery::for(CurrentVenue::get())->todaySchedule();
+        $schedule = ManagementContext::occurrences()?->today()->get() ?? new Collection;
+        $schedule->load(['event.media', 'event.venue', 'venue']);
+
+        return $schedule->filter(fn (EventOccurrence $date): bool => $date->event !== null)->values();
     }
 
-    public function formatter(): DateFormatter
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function cards(): array
     {
-        return DateFormatter::forTimezone(CurrentVenue::timezone());
+        return $this->schedule()
+            ->map(fn (EventOccurrence $date): array => ManagementContext::card($date->event, $date, ['view', 'tickets', 'edit']))
+            ->all();
     }
 }

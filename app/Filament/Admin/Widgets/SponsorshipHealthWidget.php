@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace App\Filament\Admin\Widgets;
 
-use App\Enums\SponsorshipStatus;
+use App\Models\City;
 use App\Models\Sponsorship;
 use App\Models\SponsorshipDailyStat;
+use App\Support\Sponsorship\DashboardCity;
 use Carbon\CarbonImmutable;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
@@ -25,6 +26,12 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
  * problema per chi paga — che non rinnovera' — e per chi legge, che si vede
  * proporre qualcosa che non gli interessa. Nessuno dei due si lamenta finche'
  * non e' tardi.
+ *
+ * **Solo quello che compare davvero, nella citta' della dashboard.** «In
+ * corso» contava ogni campagna attiva nella finestra, anche su eventi gia'
+ * passati o annullati, e di tutte le citta': ora usa `Sponsorship::visible()`,
+ * la stessa regola delle pagine pubbliche, e i giorni della settimana sono
+ * quelli della citta'.
  */
 class SponsorshipHealthWidget extends StatsOverviewWidget
 {
@@ -34,9 +41,16 @@ class SponsorshipHealthWidget extends StatsOverviewWidget
        richiesta completa con tutte le sue query, e i numeri cambiano a ore. */
     protected ?string $pollingInterval = null;
 
+    public static function canView(): bool
+    {
+        return DashboardCity::resolve() instanceof City;
+    }
+
     protected function getHeading(): ?string
     {
-        return __('sponsorships.admin.title');
+        $city = DashboardCity::resolve();
+
+        return $city === null ? __('sponsorships.admin.title') : __('sponsorships.widgets.heading_city', ['city' => $city->name]);
     }
 
     protected function getColumns(): int
@@ -49,25 +63,25 @@ class SponsorshipHealthWidget extends StatsOverviewWidget
      */
     protected function getStats(): array
     {
-        $adesso = CarbonImmutable::now();
+        $adesso = CarbonImmutable::now('UTC');
+        $city = DashboardCity::resolve();
+        $cityId = $city?->getKey() ?? 0;
+        $visibili = fn () => Sponsorship::query()->visible($adesso)->where('sponsorships.city_id', $cityId);
 
-        $inCorso = Sponsorship::query()
-            ->where('status', SponsorshipStatus::Active)
-            ->where('starts_at', '<=', $adesso)
-            ->where('ends_at', '>=', $adesso)
-            ->count();
+        $inCorso = $visibili()->count();
 
-        $inScadenza = Sponsorship::query()
-            ->where('status', SponsorshipStatus::Active)
-            ->where('ends_at', '>=', $adesso)
-            ->where('ends_at', '<=', $adesso->addDays(7))
+        $inScadenza = $visibili()
+            ->where('sponsorships.ends_at', '<=', $adesso->addDays(7))
             ->count();
 
         /* Sette giorni e non trenta: e' la finestra su cui si giudica «come sta
            andando adesso», e un totale da inizio campagna la annacquerebbe con
-           settimane vecchie. */
+           settimane vecchie. I giorni sono quelli della citta', come li
+           scrive chi conta. */
+        $oggi = CarbonImmutable::now(DashboardCity::timezone($city));
         $settimana = SponsorshipDailyStat::query()
-            ->where('day', '>=', $adesso->subDays(6)->toDateString())
+            ->whereIn('sponsorship_id', Sponsorship::withTrashed()->where('city_id', $cityId)->select('id'))
+            ->where('day', '>=', $oggi->subDays(6)->toDateString())
             ->selectRaw('COALESCE(SUM(impressions), 0) as viste, COALESCE(SUM(clicks), 0) as aperture')
             ->first();
 

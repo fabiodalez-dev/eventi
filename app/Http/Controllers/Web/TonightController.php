@@ -22,6 +22,9 @@ class TonightController extends Controller
 {
     use Concerns\InteractsWithCity;
 
+    /** How many matching dates the web wizard previews under each question. */
+    private const PREVIEW_SIZE = 3;
+
     public function __invoke(TonightRequest $request, TonightDiscovery $discovery, ContentPreferences $preferences): View|JsonResponse|RedirectResponse
     {
         $city = $this->city();
@@ -60,10 +63,10 @@ class TonightController extends Controller
         $municipalities = collect($municipalities)->sortBy(fn (string $name): int => ($counts['municipalities'][$name] ?? 0) > 0 ? 0 : 1)->values()->all();
         $zones = $zones->sortBy(fn (string $name): int => ($counts['zones'][$name] ?? 0) > 0 ? 0 : 1)->values();
         $apiCounts = [...$counts, 'municipalities' => (object) $counts['municipalities'], 'zones' => (object) $counts['zones'], 'categories' => (object) $counts['categories'], 'budgets' => (object) $counts['budgets']];
-        if ($request->boolean('preview')) {
-            return response()->json(['data' => $apiCounts])->header('Cache-Control', 'private, no-store');
-        }
         if ($request->is('api/*')) {
+            if ($request->boolean('preview')) {
+                return response()->json(['data' => $apiCounts])->header('Cache-Control', 'private, no-store');
+            }
             $context = ApiContext::forOccurrences($city, [], $user, $dates->modelKeys());
 
             return ApiResponse::item([
@@ -82,12 +85,21 @@ class TonightController extends Controller
             ]);
         }
 
-        return view('tonight.wizard', [
-            'input' => $input, 'step' => (int) ($input['step'] ?? 1), 'city' => $city,
-            'categories' => $categories, 'zones' => $zones, 'dates' => $dates,
+        // On the web every question shows the first matching dates with their
+        // posters: the shortlist and the "see N events" label change while the
+        // visitor picks, so the result of each choice is visible before moving on.
+        $view = view('tonight.question', [
+            'input' => $input, 'city' => $city, 'categories' => $categories, 'zones' => $zones,
             'municipalities' => $municipalities, 'question' => $question, 'questions' => $questions,
-            'discovery' => $discovery,
-            'counts' => $counts,
+            'counts' => $counts, 'preview' => $discovery->find($city, $input)->take(self::PREVIEW_SIZE),
+        ]);
+        if ($request->boolean('preview')) {
+            return response()->json(['data' => $apiCounts, 'html' => $view->fragment('tonight-live')])
+                ->header('Cache-Control', 'private, no-store');
+        }
+
+        return view('tonight.wizard', [
+            'question' => $question, 'questions' => $questions, 'city' => $city, 'input' => $input, 'form' => $view,
             'meta' => new PageMeta(title: __('tonight.title'), heading: __('tonight.title'), indexable: false),
         ]);
     }

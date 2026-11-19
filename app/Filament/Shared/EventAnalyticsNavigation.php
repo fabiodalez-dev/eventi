@@ -26,10 +26,10 @@ final class EventAnalyticsNavigation
 
         $event = app(EventAnalyticsDashboard::class)->events()->findOrFail($eventId);
         $items = [
-            NavigationItem::make(__('analytics-dashboard.event_tab'))->url($resource::getUrl(Filament::getCurrentPanel()?->getId() === 'venue' ? 'view' : 'edit', ['record' => $event]))->isActiveWhen(fn () => ! $analytics && ! $editing),
+            NavigationItem::make(__('analytics-dashboard.event_tab'))->url($resource::getUrl('view', ['record' => $event]))->isActiveWhen(fn () => ! $analytics && ! $editing),
             NavigationItem::make(__('analytics-dashboard.statistics_tab'))->url($detail::getUrl(['subjectType' => 'event', 'subjectId' => $eventId]))->isActiveWhen(fn () => $analytics),
         ];
-        if (Filament::getCurrentPanel()?->getId() === 'venue' && $resource::canEdit($event)) {
+        if ($resource::canEdit($event)) {
             array_splice($items, 1, 0, [NavigationItem::make(__('manage.actions.edit'))->url($resource::getUrl('edit', ['record' => $event]))->isActiveWhen(fn () => $editing)]);
         }
 

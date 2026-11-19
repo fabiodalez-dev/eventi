@@ -21,7 +21,8 @@ use Livewire\Livewire;
 use Tests\Support\VenueIsolationScenario;
 
 /**
- * §10.2 — il wizard che deve costare **90 secondi**.
+ * §10.2 — il modulo rapido che deve costare **90 secondi** (una pagina sola:
+ * l'essenziale aperto, il resto facoltativo; vedi anche EventQuickFlowTest).
  *
  * Il percorso è quello vero: lo stesso componente Livewire che disegna il
  * pannello, con le stesse Policy, lo stesso observer che calcola

@@ -24,8 +24,8 @@ function venueUrl(string $path = ''): string
     return '/gestione/'.test()->scenario->venueA->slug.$path;
 }
 
-it('manda chi non è entrato alla pagina di accesso', function (): void {
-    $this->get(venueUrl())->assertRedirect('/gestione/login');
+it('manda chi non è entrato al login unico', function (): void {
+    $this->get(venueUrl())->assertRedirect(route('login'));
 });
 
 it('chiude il pannello a chi non gestisce alcun locale', function (): void {

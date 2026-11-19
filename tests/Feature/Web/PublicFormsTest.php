@@ -6,12 +6,14 @@ use App\Enums\ApplicationStatus;
 use App\Enums\ReportReason;
 use App\Enums\ReportStatus;
 use App\Enums\SubmissionStatus;
+use App\Http\Requests\Web\StoreVenueApplicationRequest;
 use App\Models\EventSubmission;
 use App\Models\Report;
 use App\Models\Venue;
 use App\Models\VenueApplication;
 use App\Support\Honeypot;
 use Carbon\Carbon;
+use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Support\Facades\RateLimiter;
 
 beforeEach(function (): void {
@@ -97,6 +99,7 @@ it('ferma chi insiste con il limite di frequenza', function (): void {
 
 it('registra la richiesta di accreditamento di un locale', function (): void {
     testCity();
+    (new RolesAndPermissionsSeeder)->run();
 
     $this->get('/registra-il-tuo-locale')->assertOk()->assertSee(__('forms.application.title'));
 
@@ -110,10 +113,16 @@ it('registra la richiesta di accreditamento di un locale', function (): void {
         'contact_phone' => '049 1234567',
         'contact_email' => 'anna@example.com',
         'message' => 'Organizziamo concerti ogni venerdì.',
+        /* Da ospite la richiesta crea anche l'account: password e tempo minimo
+           di compilazione, accanto all'esca. */
+        'password' => 'password-lunga-1',
+        'password_confirmation' => 'password-lunga-1',
+        StoreVenueApplicationRequest::STARTED_FIELD => StoreVenueApplicationRequest::startedToken(now()->subMinute()),
         Honeypot::FIELD => '',
-    ])->assertRedirect('/registra-il-tuo-locale')->assertSessionHas('status');
+    ])->assertRedirect('/registra-il-tuo-locale')->assertSessionHas('status')->assertSessionHas('application_sent');
 
-    $application = VenueApplication::query()->firstOrFail();
+    /* Finché l'email non è confermata la richiesta resta fuori dalla coda. */
+    $application = VenueApplication::query()->withoutGlobalScope(VenueApplication::AWAITING_EMAIL)->firstOrFail();
 
     expect($application->venue_name)->toBe('Circolo Nuovo')
         ->and($application->status)->toBe(ApplicationStatus::Pending)

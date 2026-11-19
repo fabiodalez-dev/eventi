@@ -28,7 +28,8 @@ class UpdateProfileRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'appearance' => ['sometimes', 'required', Rule::in(['dark', 'light'])],
+            /* `null` è una scelta: «segui il tema del sistema». */
+            'appearance' => ['sometimes', 'nullable', Rule::in(['dark', 'light'])],
             'name' => ['sometimes', 'nullable', 'string', 'max:120'],
             'timezone' => ['sometimes', 'string', 'timezone'],
             'locale' => ['sometimes', 'string', Rule::in(config()->array('account.locales'))],

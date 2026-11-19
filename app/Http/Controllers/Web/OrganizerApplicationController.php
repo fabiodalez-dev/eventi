@@ -10,8 +10,10 @@ use App\Enums\ApplicationKind;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Web\Concerns\InteractsWithCity;
 use App\Http\Requests\Web\StoreOrganizerApplicationRequest;
+use App\Models\User;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 
 /**
  * `/registra-la-tua-organizzazione`: la porta per chi organizza senza una
@@ -22,14 +24,15 @@ final class OrganizerApplicationController extends Controller
 {
     use InteractsWithCity;
 
-    public function create(): View
+    public function create(Request $request): View
     {
         $city = $this->city();
 
         return view('venues.apply', [
             'city' => $city,
+            'mode' => 'organizer',
             'types' => [],
-            'organizer' => true,
+            ...VenueApplicationController::accountState($request->user()),
             'meta' => new PageMeta(
                 title: __('forms.organizer_application.title'),
                 heading: __('forms.organizer_application.title'),
@@ -42,7 +45,16 @@ final class OrganizerApplicationController extends Controller
     public function store(StoreOrganizerApplicationRequest $request, CreateVenueApplication $action): RedirectResponse
     {
         $data = $request->validated();
-        $userId = $request->user()?->getKey();
+        $user = $request->user();
+        $userId = $user?->getKey();
+        $email = $request->applicantEmail();
+        $returnTo = route('organizer-applications.create');
+
+        if ($action->limitReached($email, $user instanceof User ? $user : null)) {
+            return $user instanceof User
+                ? back()->withInput()->withErrors(['form' => __('forms.application.limit_reached')])
+                : VenueApplicationController::sent($returnTo, 'organizer');
+        }
 
         $action->handle([
             'venue_name' => (string) $data['venue_name'],
@@ -50,10 +62,13 @@ final class OrganizerApplicationController extends Controller
             'contact_name' => (string) $data['contact_name'],
             'contact_role' => isset($data['contact_role']) ? (string) $data['contact_role'] : null,
             'contact_phone' => isset($data['contact_phone']) ? (string) $data['contact_phone'] : null,
-            'contact_email' => (string) $data['contact_email'],
+            'contact_email' => $email,
             'message' => isset($data['message']) ? (string) $data['message'] : null,
         ], is_int($userId) ? $userId : null, ApplicationKind::Organizer);
 
-        return to_route('organizer-applications.create')->with('status', __('forms.organizer_application.received'));
+        /* Un organizzatore entra in coda subito, anche da ospite: l'account
+           lo crea l'approvazione, che manda il collegamento per la password
+           all'indirizzo scritto (e lo conferma così). */
+        return VenueApplicationController::sent($returnTo, 'organizer');
     }
 }

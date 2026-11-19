@@ -18,15 +18,38 @@ it('keeps parent reactions separate and confirms deletion under strict CSP', fun
     $this->actingAs($user);
     $page = visit($comment->permalink())->{$theme}();
     $page->script('document.querySelector("[data-consent-banner]")?.remove(); window.reviewViolations=[]; document.addEventListener("securitypolicyviolation",e=>window.reviewViolations.push(e.violatedDirective));');
-    $parentSelector = '#commento-'.$comment->id.' > div form[data-reazione] input[value="love"] + button';
+    $parentSelector = '#commento-'.$comment->id.' > .comment__main > .comment__actions form[data-reazione] input[value="love"] + button';
     $replySelector = '#commento-'.$reply->id.' form[data-reazione] input[value="love"] + button';
     $page->page()->locator($parentSelector)->click(['timeout' => 10000]);
     $page->assertAttribute($parentSelector, 'aria-pressed', 'true')->assertAttribute($replySelector, 'aria-pressed', 'false');
     $page->script('window.reviewConfirmed=false; window.confirm=()=>{window.reviewConfirmed=true;return false;}');
-    $page->page()->locator('#commento-'.$comment->id.' > div form[data-conferma-eliminazione] button')->click(['timeout' => 10000]);
+    $page->page()->locator('#commento-'.$comment->id.' > .comment__main > .comment__actions form[data-conferma-eliminazione] button')->click(['timeout' => 10000]);
     expect($page->script('window.reviewConfirmed'))->toBeTrue();
     expect($page->script('window.reviewViolations'))->toBe([]);
     $page->refresh()->assertSee('Conversazione principale')->assertSee('Risposta indipendente');
+})->with(['inLightMode', 'inDarkMode']);
+
+it('opens and closes the reply form with its state announced', function (string $theme): void {
+    (new RolesAndPermissionsSeeder)->run();
+    Notification::fake();
+    $city = testCity();
+    $event = Event::factory()->for($city)->published()->create();
+    $author = User::factory()->create();
+    $reader = User::factory()->create();
+    $comment = app(PostComment::class)->handle($event, $author, 'Si parcheggia vicino?');
+    $this->actingAs($reader);
+    $page = visit(route('events.show', ['slug' => $event->slug]))->{$theme}()->resize(390, 844);
+    $page->script('document.querySelector("[data-consent-banner]")?.remove()');
+    $open = '[data-apri-risposta="'.$comment->id.'"]';
+    $form = '[data-risposta="'.$comment->id.'"]';
+    $page->assertAttribute($open, 'aria-expanded', 'false')->assertMissing($form);
+    $page->click($open)->assertAttribute($open, 'aria-expanded', 'true')->assertVisible($form.' textarea');
+    expect($page->script('document.activeElement.name'))->toBe('body');
+    $page->click('[data-chiudi-risposta="'.$comment->id.'"]')->assertAttribute($open, 'aria-expanded', 'false')->assertMissing($form);
+    expect($page->script('document.scrollingElement.scrollWidth <= window.innerWidth'))->toBeTrue();
+    $page->click($open)->fill($form.' textarea', 'Sì, c’è un parcheggio dietro.')->click($form.' button[type="submit"]')
+        ->assertSee('Sì, c’è un parcheggio dietro.');
+    expect($page->script('document.querySelectorAll("#commento-'.$comment->id.' .comment__replies .comment--reply").length'))->toBe(1);
 })->with(['inLightMode', 'inDarkMode']);
 
 it('offers the guest dialog only on event pages with a working login fallback', function (): void {

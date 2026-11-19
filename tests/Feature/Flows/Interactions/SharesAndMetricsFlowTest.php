@@ -45,7 +45,7 @@ function intFlowMetricUrl(TestResponse $page): string
     return html_entity_decode($match[1]);
 }
 
-it('chi condivide la data dalla scheda genera link brevi stabili: apertura e condivisione si contano solo col consenso, il QR non conta', function (): void {
+it('chi condivide la data dalla scheda genera link brevi stabili: l apertura conta sempre come totale anonimo, la condivisione solo col consenso, il QR non conta', function (): void {
     $page = $this->get($this->datePage)->assertOk();
     $links = app(EventShares::class)->links($this->event, $this->occurrence);
     $page->assertSee('data-share-url="'.$links['native']['url'].'"', false)
@@ -53,15 +53,16 @@ it('chi condivide la data dalla scheda genera link brevi stabili: apertura e con
     $code = basename((string) parse_url($links['whatsapp']['url'], PHP_URL_PATH));
     expect($code)->toMatch('/^[A-Za-z0-9]{7}$/');
 
-    // Senza consenso: porta alla data, nessun cookie, nessun conteggio.
+    // Senza consenso: porta alla data, nessun cookie; l'apertura conta come totale anonimo, la condivisione no.
     $aperto = $this->get('/s/'.$code.'?url=https://evil.example')->assertRedirect($this->datePage);
     expect($aperto->headers->get('Cache-Control'))->toContain('no-store')
         ->and($aperto->headers->get('X-Robots-Tag'))->toBe('noindex')
         ->and($aperto->headers->getCookies())->toBeEmpty();
     $this->post('/s/'.$code.'/share')->assertNoContent();
-    expect(DB::table('event_share_daily')->count())->toBe(0);
+    $anonima = DB::table('event_share_daily')->sole();
+    expect((int) $anonima->clicks)->toBe(1)->and((int) $anonima->shares)->toBe(0);
 
-    // Con il consenso alle statistiche: un'apertura e una condivisione.
+    // Con il consenso alle statistiche: un'altra apertura e una condivisione.
     intFlowConsentStatistics($this);
     $this->get('/s/'.$code)->assertRedirect($this->datePage);
     $this->post('/s/'.$code.'/share')->assertNoContent();
@@ -70,7 +71,7 @@ it('chi condivide la data dalla scheda genera link brevi stabili: apertura e con
     $this->get('/s/'.$code, ['Purpose' => 'prefetch'])->assertRedirect($this->datePage);
 
     $riga = DB::table('event_share_daily')->sole();
-    expect((int) $riga->clicks)->toBe(1)->and((int) $riga->shares)->toBe(1)->and($riga->date)->toBe('2026-11-12');
+    expect((int) $riga->clicks)->toBe(2)->and((int) $riga->shares)->toBe(1)->and($riga->date)->toBe('2026-11-12');
     $this->assertDatabaseHas('event_views_daily', ['event_id' => $this->event->id, 'shares' => 1]);
     $this->assertDatabaseHas('occurrence_views_daily', ['occurrence_id' => $this->occurrence->id, 'shares' => 1]);
 
@@ -80,7 +81,7 @@ it('chi condivide la data dalla scheda genera link brevi stabili: apertura e con
         ->and((string) $qr->getContent())->toContain('<svg');
     $download = $this->get('/s/'.$code.'/qr.svg?scarica=1')->assertOk();
     expect($download->headers->get('Content-Disposition'))->toStartWith('attachment;');
-    expect((int) DB::table('event_share_daily')->sole()->clicks)->toBe(1);
+    expect((int) DB::table('event_share_daily')->sole()->clicks)->toBe(2);
 
     // Gli stessi link alla visita successiva; un codice inventato non esiste.
     expect(app(EventShares::class)->links($this->event, $this->occurrence))->toBe($links);

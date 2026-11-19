@@ -45,7 +45,10 @@ class OrganizerAccessGranted extends Notification
         if ($this->needsPassword && $notifiable instanceof CanResetPassword && $broker instanceof PasswordBroker) {
             return $message
                 ->line(__('manage.invitation.password_hint'))
-                ->action(__('manage.invitation.password_action'), $panel->getResetPasswordUrl($broker->createToken($notifiable), $notifiable))
+                ->action(__('manage.invitation.password_action'), route('account.password.reset', [
+                    'token' => $broker->createToken($notifiable),
+                    'email' => $notifiable->getEmailForPasswordReset(),
+                ]))
                 ->line(__('manage.invitation.ignore'));
         }
 

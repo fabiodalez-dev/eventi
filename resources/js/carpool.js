@@ -66,11 +66,16 @@ function chat() {
             if (existing.has(row.id)) continue;
             const article = document.createElement('article');
             article.dataset.messageId = String(row.id);
-            article.className = `max-w-[85%] border border-line p-4 ${row.mine ? 'ml-auto bg-surface' : ''}`;
-            const text = document.createElement('p'); text.className = 'whitespace-pre-wrap break-words'; text.textContent = row.body;
-            const time = document.createElement('time'); time.className = 'mt-2 block text-xs text-ink-muted';
+            // Le stesse classi dei messaggi disegnati dal server (data-bubble-*), così un messaggio
+            // arrivato adesso non si distingue da quelli caricati con la pagina.
+            article.className = `${row.mine ? root.dataset.bubbleMine : root.dataset.bubbleTheirs} px-4 py-3`;
+            const text = document.createElement('p'); text.className = 'text-sm whitespace-pre-wrap break-words'; text.textContent = row.body;
+            const time = document.createElement('time'); time.className = 'mt-1 block text-xs opacity-75';
             time.dateTime = row.created_at;
-            time.textContent = new Intl.DateTimeFormat('it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(row.created_at));
+            // «gg/mm hh:mm» nell'ora di Roma, come i messaggi stampati dal server.
+            const parts = Object.fromEntries(new Intl.DateTimeFormat('it-IT', { timeZone: 'Europe/Rome', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+                .formatToParts(new Date(row.created_at)).map(part => [part.type, part.value]));
+            time.textContent = `${parts.day}/${parts.month} ${parts.hour}:${parts.minute}`;
             article.append(text, time); fragment.append(article);
         }
         const atBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 50;
@@ -162,6 +167,32 @@ function inboxMenu() {
     });
 }
 
+/*
+ * Il modulo «Offro passaggio»: la partenza consentita dipende dalla tratta. Cambiando
+ * andata/ritorno si aggiornano `min`/`max` del campo e la riga d'aiuto, così il
+ * selettore del browser propone solo orari che il servizio accetta.
+ */
+function departureWindows() {
+    document.querySelectorAll('form[data-ride-windows]').forEach(form => {
+        let windows;
+        try { windows = JSON.parse(form.dataset.rideWindows || '{}'); } catch { return; }
+        const inputs = [...form.querySelectorAll('input[type="datetime-local"]')];
+        if (!inputs.length) return;
+        const apply = () => {
+            const leg = form.querySelector('input[name="leg"]:checked')?.value ?? form.querySelector('select[name="leg"]')?.value;
+            const range = windows[leg];
+            if (!range) return;
+            inputs.forEach(input => {
+                input.min = range.min; input.max = range.max;
+                const hint = document.getElementById(`${input.id}-aiuto`);
+                if (hint && form.dataset.windowText) hint.textContent = form.dataset.windowText.replace(':from', range.from).replace(':to', range.to);
+            });
+        };
+        form.querySelectorAll('[name="leg"]').forEach(control => control.addEventListener('change', apply));
+        apply();
+    });
+}
+
 export function carpool() {
     badges(); chat(); inboxMenu();
     document.querySelectorAll('[data-ride-template]').forEach(select => select.addEventListener('change', () => {
@@ -173,9 +204,10 @@ export function carpool() {
             else if (form.elements[name]) form.elements[name].value = value ?? '';
         }
     }));
-    document.querySelectorAll('form[data-confirm]').forEach(form => form.addEventListener('submit', event => {
-        if (!window.confirm(form.dataset.confirm)) event.preventDefault();
-    }));
+    departureWindows();
+    // `form[data-confirm]` (annulla, rinuncia, rimuovi recensione) lo gestisce già ticketing.js,
+    // caricato da app.js per qualunque pagina con quel modulo: un secondo ascoltatore qui
+    // faceva comparire la conferma due volte.
     document.querySelectorAll('[data-carpool-gate]').forEach(control => control.addEventListener('click', event => {
         const dialog = document.getElementById(control.dataset.carpoolGate);
         if (!dialog?.showModal) return;

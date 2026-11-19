@@ -11,6 +11,7 @@ use App\Support\ContentVersion;
 use App\Support\Csp;
 use App\Support\CurrentCity;
 use App\Support\Sponsorship\ActiveGrants;
+use App\View\Components\HomeNextEvent;
 use App\View\Components\LiveNow;
 use Closure;
 use Illuminate\Http\Request;
@@ -69,6 +70,9 @@ final class CachePage
 
     /** The time-sensitive homepage fragment is rendered afresh on every hit. */
     private const LIVE_NOW_PLACEHOLDER = '@@live-now@@';
+
+    /** Il prossimo evento accanto al calendario: stesso motivo, frammento a parte. */
+    private const HOME_NEXT_PLACEHOLDER = '@@home-next@@';
 
     public function handle(Request $request, Closure $next): Response
     {
@@ -549,6 +553,11 @@ final class CachePage
             self::LIVE_NOW_PLACEHOLDER,
             $content,
         ) ?? $content;
+        $content = preg_replace(
+            '/<!-- page-cache-home-next:start -->.*?<!-- page-cache-home-next:end -->/s',
+            self::HOME_NEXT_PLACEHOLDER,
+            $content,
+        ) ?? $content;
         $content = str_replace(csrf_token(), self::CSRF_PLACEHOLDER, $content);
         $nonce = app(Csp::class)->issued();
 
@@ -571,6 +580,14 @@ final class CachePage
                 'startingSoon' => $component->startingSoon,
             ])->render().'<!-- page-cache-live-now:end -->';
             $content = str_replace(self::LIVE_NOW_PLACEHOLDER, $fragment, $content);
+        }
+
+        if (str_contains($content, self::HOME_NEXT_PLACEHOLDER)) {
+            $next = app(HomeNextEvent::class);
+            $fragment = '<!-- page-cache-home-next:start -->'
+                .($next->shouldRender() ? $next->render()->with($next->data())->render() : '')
+                .'<!-- page-cache-home-next:end -->';
+            $content = str_replace(self::HOME_NEXT_PLACEHOLDER, $fragment, $content);
         }
 
         $content = str_replace(self::CSRF_PLACEHOLDER, csrf_token(), $content);

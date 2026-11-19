@@ -10,6 +10,7 @@ use App\Models\Tag;
 use App\Models\User;
 use App\Models\Venue;
 use Carbon\Carbon;
+use Illuminate\Support\Str;
 
 /**
  * `/il-mio-feed` (§15.7): le prossime date di ciò che si segue, in ordine di
@@ -127,6 +128,19 @@ it('mantiene la lista e permette altri follow dopo il primo locale', function ()
     expect($this->user->followedIds(FollowableType::Venue))->toContain($this->seguito->id, $this->altro->id);
     $response = $this->get('/il-mio-feed')->assertOk()->assertSee('data-live-sponsorship', false);
     expect(strpos($response->getContent(), 'data-live-sponsorship'))->toBeLessThan(strpos($response->getContent(), 'id="feed-events"'));
+});
+
+it('disegna tutte le righe di locali e categorie allo stesso modo: nome a sinistra, pulsante a destra', function (): void {
+    $html = $this->actingAs($this->user)->get('/il-mio-feed')->assertOk()->getContent();
+
+    $venues = Str::between($html, 'data-feed-venues', '</ul>');
+    $categories = Str::between($html, 'data-feed-categories', '</ul>');
+    foreach ([$venues, $categories] as $list) {
+        // Nessuna riga che va a capo solo quando il nome è lungo.
+        expect($list)->not->toContain('flex-wrap items-center justify-between')
+            ->and($list)->toContain('min-w-0 flex-1')
+            ->and($list)->toContain('class="shrink-0"');
+    }
 });
 
 it('pagina locali e categorie e permette di cercare un locale fuori dalla prima pagina', function (): void {

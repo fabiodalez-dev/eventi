@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use App\Filament\Auth\Login;
 use App\Models\MobileAuthChallenge;
 use App\Models\User;
 use App\Notifications\MagicLoginLink;
@@ -10,14 +9,12 @@ use App\Notifications\VerifyEmailLink;
 use App\Support\AccountLoginThrottle;
 use Carbon\CarbonImmutable;
 use Database\Seeders\RolesAndPermissionsSeeder;
-use Filament\Facades\Filament;
 use Illuminate\Auth\Events\Attempting;
 use Illuminate\Support\Facades\Event as EventFacade;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\RateLimiter;
 use Laravel\Sanctum\Sanctum;
-use Livewire\Livewire;
 
 /**
  * Il tetto per account di `api-auth` e `account-auth` non deve diventare una
@@ -140,21 +137,22 @@ it('ferma ancora i tentativi sbagliati sullo stesso account da indirizzi diversi
 
     $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.41'])->post(route('account.login.store'), ['email' => $vittima->email, 'password' => 'a'])->assertSessionHasErrors('email');
     $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.42'])->post(route('account.login.store'), ['email' => $vittima->email, 'password' => 'b'])->assertSessionHasErrors('email');
-    $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.43'])->post(route('account.login.store'), ['email' => $vittima->email, 'password' => 'c'])->assertStatus(429);
+    /* Sul sito il modulo torna indietro con il tempo d'attesa invece di una pagina d'errore. */
+    $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.43'])->post(route('account.login.store'), ['email' => $vittima->email, 'password' => 'c'])
+        ->assertRedirect(route('login'))->assertHeader('Retry-After')->assertSessionHasErrors('form');
+    /* L'app (JSON) riceve ancora il 429. */
+    $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.44'])->postJson(route('account.login.store'), ['email' => $vittima->email, 'password' => 'c'])->assertStatus(429);
 });
 
-it('non chiude il pannello a chi entra più volte con la password giusta', function (): void {
+it('non chiude il login unico alla redazione che entra più volte con la password giusta', function (): void {
     $gestore = User::factory()->create(['password' => 'password-lunga-1']);
     $gestore->assignRole('admin');
-    $this->get('/admin/login')->assertOk();
-    Filament::setCurrentPanel(Filament::getPanel('admin'));
 
     foreach (['192.0.2.1', '192.0.2.2', '192.0.2.3'] as $ip) {
-        $this->withServerVariables(['REMOTE_ADDR' => $ip]);
-        Livewire::test(Login::class)
-            ->fillForm(['email' => $gestore->email, 'password' => 'password-lunga-1'])
-            ->call('authenticate')
-            ->assertHasNoErrors();
+        $this->withServerVariables(['REMOTE_ADDR' => $ip])
+            ->post(route('account.login.store'), ['email' => $gestore->email, 'password' => 'password-lunga-1'])
+            ->assertRedirect(url('/admin'))
+            ->assertSessionHasNoErrors();
         auth()->logout();
     }
 });
@@ -200,30 +198,6 @@ it('conta il tentativo sul sito mentre la password è ancora in verifica', funct
     $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.62'])->post(route('account.login.store'), ['email' => $utente->email, 'password' => 'password-lunga-1'])->assertRedirect();
 
     expect($visti)->toBe([1, 2])
-        ->and((int) RateLimiter::attempts($chiave))->toBe(1);
-});
-
-it('conta il tentativo sul pannello mentre la password è ancora in verifica', function (): void {
-    $gestore = User::factory()->create(['password' => 'password-lunga-1']);
-    $gestore->assignRole('admin');
-    $chiave = AccountLoginThrottle::chiave('pannello', $gestore->email);
-    $visti = [];
-    EventFacade::listen(Attempting::class, function () use (&$visti, $chiave): void {
-        $visti[] = (int) RateLimiter::attempts($chiave);
-    });
-    $this->get('/admin/login')->assertOk();
-    Filament::setCurrentPanel(Filament::getPanel('admin'));
-
-    $this->withServerVariables(['REMOTE_ADDR' => '192.0.2.31']);
-    Livewire::test(Login::class)->fillForm(['email' => $gestore->email, 'password' => 'sbagliata'])
-        ->call('authenticate')->assertHasErrors(['data.email']);
-    $this->withServerVariables(['REMOTE_ADDR' => '192.0.2.32']);
-    Livewire::test(Login::class)->fillForm(['email' => $gestore->email, 'password' => 'password-lunga-1'])
-        ->call('authenticate')->assertHasNoErrors();
-
-    /* Filament annuncia il tentativo più di una volta per richiesta: conta
-       che ognuno trovi già contato quello in corso. */
-    expect(array_values(array_unique($visti)))->toBe([1, 2])
         ->and((int) RateLimiter::attempts($chiave))->toBe(1);
 });
 

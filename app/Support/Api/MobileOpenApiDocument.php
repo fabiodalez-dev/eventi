@@ -56,6 +56,7 @@ final class MobileOpenApiDocument
         $booking = (new ObjectType)
             ->addProperty('id', new IntegerType)->addProperty('occurrence_id', new IntegerType)
             ->addProperty('title', $text())->addProperty('event_slug', $text()->nullable(true))
+            ->addProperty('poster', (new ObjectType)->additionalProperties(new MixedType)->nullable(true))
             ->addProperty('venue', $text()->nullable(true))->addProperty('address', $text()->nullable(true))
             ->addProperty('starts_at', $time())->addProperty('status', $text())
             ->addProperty('instructions', $text()->nullable(true))->addProperty('cancellation_reason', $text()->nullable(true))
@@ -108,6 +109,8 @@ final class MobileOpenApiDocument
             ->addProperty('lat', new NumberType)
             ->addProperty('lng', new NumberType)
             ->addProperty('cover', $genericObject()->nullable(true))
+            ->addProperty('claimable', new BooleanType)
+            ->addProperty('claim_url', (new StringType)->format('uri')->nullable(true))
             ->setRequired(['id', 'slug', 'name', 'municipality', 'lat', 'lng']);
         $venueRef = $components->addSchema('MobileVenue', Schema::fromType($venue));
 
@@ -146,6 +149,9 @@ final class MobileOpenApiDocument
             ->addProperty('sponsored', $genericObject()->nullable(true))
             ->addProperty('occurrences', (new ArrayType)->setItems($occurrenceRef))
             ->addProperty('url', (new StringType)->nullable(true))
+            ->addProperty('share_links', (new ObjectType)->additionalProperties(
+                (new ObjectType)->addProperty('url', (new StringType)->format('uri'))->setRequired(['url'])
+            ))
             ->setRequired(['id', 'slug', 'title', 'poster', 'venue', 'sponsored', 'occurrences', 'url']);
         $eventRef = $components->addSchema('MobileEvent', Schema::fromType($event));
 
