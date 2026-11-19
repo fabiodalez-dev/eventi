@@ -1,179 +1,150 @@
-{{-- Le date salvate: lista paginata oppure calendario mensile completo. --}}
-<x-layouts.app :meta="$meta">
-    <header class="flex flex-col gap-2" data-saved-page>
-        <h1 class="text-hero text-ink">{{ $meta->heading }}</h1>
-        <p class="text-sm text-ink-muted">{{ __('account.saved.lead') }}</p>
+{{--
+    Le date salvate: lista paginata, calendario del mese oppure le date
+    passate. Tre viste della stessa cosa, scelte con la barra segmentata sotto
+    il titolo; ogni data ha la sua locandina e il segnalibro per toglierla.
+--}}
+@php
+    $views = [
+        ['label' => __('account.saved.list_view'), 'href' => route('account.saved'), 'active' => ! $calendarView && ! $past],
+        ['label' => __('account.saved.calendar_view'), 'href' => route('account.saved', ['vista' => 'calendario']), 'active' => $calendarView],
+        ['label' => __('account.saved.past_tab'), 'href' => route('account.saved', ['passate' => 1]), 'active' => $past && ! $calendarView],
+    ];
+@endphp
+<x-layouts.app service :meta="$meta">
+    <x-service-page :title="$meta->heading" :subtitle="__('account.saved.lead')" :back="route('account.profile')" data-saved-page>
+        <x-segmented :label="__('account.saved.view')" :items="$views" />
 
-        <nav data-peek-tabs class="mt-3 flex w-full max-w-md gap-0.5 overflow-x-auto whitespace-nowrap bg-line p-0.5 [&>a]:min-h-12 [&>a]:shrink-0 [&>a]:grow" aria-label="{{ __('account.saved.view') }}">
-            <a
-                href="{{ route('account.saved') }}"
-                @class([
-                    'px-4 py-3 text-center font-display text-xs font-extrabold tracking-[0.14em] uppercase',
-                    'bg-accent text-on-accent' => ! $calendarView && ! $past,
-                    'bg-canvas text-ink' => $calendarView || $past,
-                ])
-                @if (! $calendarView && ! $past) aria-current="page" @endif
-            >{{ __('account.saved.list_view') }}</a>
-            <a
-                href="{{ route('account.saved', ['vista' => 'calendario']) }}"
-                @class([
-                    'px-4 py-3 text-center font-display text-xs font-extrabold tracking-[0.14em] uppercase',
-                    'bg-accent text-on-accent' => $calendarView,
-                    'bg-canvas text-ink' => ! $calendarView,
-                ])
-                @if ($calendarView) aria-current="page" @endif
-            >{{ __('account.saved.calendar_view') }}</a>
-            <a href="{{ route('account.saved', ['passate' => 1]) }}" @if ($past && ! $calendarView) aria-current="page" @endif
-               class="px-2 py-3 text-center font-display text-xs font-extrabold uppercase {{ $past && ! $calendarView ? 'bg-accent text-on-accent' : 'bg-canvas text-ink' }}">{{ __('account.saved.past_tab') }}</a>
-        </nav>
-    </header>
-
-    <section class="my-6 border-y-2 border-line py-5" aria-label="{{ __('subscriptions.saved_title') }}">
-        <div class="flex flex-wrap gap-3">
-            <x-button :href="route('account.saved.calendar')" class="min-h-12">{{ __('subscriptions.saved_export') }}</x-button>
-            <x-button :href="route('feeds.wizard')" class="min-h-12">{{ __('subscriptions.create_calendar') }}</x-button>
-            <x-button :href="route('account.collections.index')" class="min-h-12" variant="secondary">{{ __('collections.title') }}</x-button>
-        </div>
-        <p class="mt-3 max-w-prose text-sm text-ink-muted">{{ __('subscriptions.saved_export_help') }}</p>
-    </section>
-
-    @if ($calendarView)
-        @php
-            $daysByDate = $calendarOccurrences->groupBy(fn ($occurrence) => $occurrence->business_date->format('Y-m-d'));
-            $gridStart = $month->startOfWeek();
-            $gridDays = collect(range(0, 41))->map(fn (int $offset) => $gridStart->addDays($offset));
-            $monthLabel = $month->locale('it')->translatedFormat('F Y');
-            $weekdays = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
-        @endphp
-
-        <section class="mt-7" aria-labelledby="saved-calendar-title" data-saved-calendar>
-            <div class="flex items-center justify-between gap-3 border-y-2 border-line py-3">
-                <a
-                    href="{{ route('account.saved', ['vista' => 'calendario', 'mese' => $month->subMonth()->format('Y-m')]) }}"
-                    class="border-2 border-line px-3 py-2 font-display text-[0.625rem] font-extrabold tracking-[0.12em] uppercase hover:border-accent hover:text-accent"
-                    aria-label="{{ __('account.saved.previous_month') }}"
-                >← <span class="hidden sm:inline">{{ __('account.saved.previous_month') }}</span></a>
-
-                <h2 id="saved-calendar-title" class="font-display text-xl font-extrabold tracking-[-0.03em] uppercase">
-                    {{ $monthLabel }}
-                </h2>
-
-                <a
-                    href="{{ route('account.saved', ['vista' => 'calendario', 'mese' => $month->addMonth()->format('Y-m')]) }}"
-                    class="border-2 border-line px-3 py-2 font-display text-[0.625rem] font-extrabold tracking-[0.12em] uppercase hover:border-accent hover:text-accent"
-                    aria-label="{{ __('account.saved.next_month') }}"
-                ><span class="hidden sm:inline">{{ __('account.saved.next_month') }}</span> →</a>
+        <x-card :title="__('subscriptions.saved_title')" :description="__('subscriptions.saved_export_help')">
+            <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                <x-button :href="route('account.saved.calendar')" :block="true">
+                    <x-lucide name="download" class="size-4" />
+                    {{ __('subscriptions.saved_export') }}
+                </x-button>
+                <x-button :href="route('feeds.wizard')" variant="secondary" :block="true">{{ __('subscriptions.create_calendar') }}</x-button>
+                <x-button :href="route('account.collections.index')" variant="secondary" :block="true">{{ __('collections.title') }}</x-button>
             </div>
+        </x-card>
 
-            <div class="mt-4 grid grid-cols-7 gap-0.5 bg-line p-0.5" role="grid" aria-label="{{ $monthLabel }}">
-                @foreach ($weekdays as $weekday)
-                    <div class="bg-surface px-1 py-2 text-center font-display text-[0.5625rem] font-extrabold tracking-[0.12em] text-ink-subtle uppercase sm:text-[0.625rem]" role="columnheader">
-                        {{ $weekday }}
-                    </div>
-                @endforeach
+        @if ($calendarView)
+            @php
+                $daysByDate = $calendarOccurrences->groupBy(fn ($occurrence) => $occurrence->business_date->format('Y-m-d'));
+                $gridStart = $month->startOfWeek();
+                $gridDays = collect(range(0, 41))->map(fn (int $offset) => $gridStart->addDays($offset));
+                $monthLabel = $month->locale('it')->translatedFormat('F Y');
+                $weekdays = __('account.saved.weekdays_short');
+                $formatter = app(\App\Support\DateFormatter::class);
+            @endphp
 
-                @foreach ($gridDays as $day)
-                    @php
-                        $dayKey = $day->format('Y-m-d');
-                        $dayItems = $daysByDate->get($dayKey, collect());
-                        $inMonth = $day->month === $month->month;
-                    @endphp
-                    <div
-                        @class([
-                            'min-h-16 bg-canvas p-1.5 sm:min-h-28 sm:p-2',
-                            'opacity-35' => ! $inMonth,
-                            'ring-2 ring-inset ring-accent' => $day->isToday(),
-                        ])
-                        role="gridcell"
-                        aria-label="{{ $day->locale('it')->translatedFormat('l j F') }}{{ $dayItems->isNotEmpty() ? ', '.trans_choice('account.saved.saved_on_day', $dayItems->count(), ['count' => $dayItems->count()]) : '' }}"
-                    >
-                        <div class="flex flex-wrap items-start justify-between gap-1">
-                            <time datetime="{{ $dayKey }}" class="font-display text-xs font-extrabold {{ $day->isToday() ? 'text-accent' : 'text-ink' }}">
-                                {{ $day->day }}
-                            </time>
+            <x-card padding="none" aria-labelledby="saved-calendar-title" data-saved-calendar>
+                <div class="flex items-center justify-between gap-3 border-b border-line px-3 py-3 sm:px-4">
+                    <x-button size="sm" variant="secondary" :href="route('account.saved', ['vista' => 'calendario', 'mese' => $month->subMonth()->format('Y-m')])" :aria-label="__('account.saved.previous_month')">
+                        <x-lucide name="chevron-left" class="size-4" /><span class="hidden sm:inline">{{ __('account.saved.previous_month') }}</span>
+                    </x-button>
+                    <h2 id="saved-calendar-title" class="m-0 font-display text-lg font-extrabold text-ink">{{ \Illuminate\Support\Str::ucfirst($monthLabel) }}</h2>
+                    <x-button size="sm" variant="secondary" :href="route('account.saved', ['vista' => 'calendario', 'mese' => $month->addMonth()->format('Y-m')])" :aria-label="__('account.saved.next_month')">
+                        <span class="hidden sm:inline">{{ __('account.saved.next_month') }}</span><x-lucide name="chevron-right" class="size-4" />
+                    </x-button>
+                </div>
+
+                <div class="grid grid-cols-7 gap-px bg-line" role="grid" aria-label="{{ $monthLabel }}">
+                    @foreach ($weekdays as $weekday)
+                        <div class="bg-surface px-1 py-2 text-center text-[0.625rem] font-bold tracking-[0.08em] whitespace-nowrap text-ink-muted uppercase sm:text-xs" role="columnheader">{{ $weekday }}</div>
+                    @endforeach
+
+                    @foreach ($gridDays as $day)
+                        @php
+                            $dayKey = $day->format('Y-m-d');
+                            $dayItems = $daysByDate->get($dayKey, collect());
+                            $inMonth = $day->month === $month->month;
+                        @endphp
+                        <div
+                            @class([
+                                'flex min-h-16 min-w-0 flex-col gap-1 bg-canvas p-1 sm:min-h-24 sm:p-1.5',
+                                'opacity-40' => ! $inMonth,
+                                'ring-2 ring-accent ring-inset' => $day->isToday(),
+                            ])
+                            role="gridcell"
+                            aria-label="{{ $day->locale('it')->translatedFormat('l j F') }}{{ $dayItems->isNotEmpty() ? ', '.trans_choice('account.saved.saved_on_day', $dayItems->count(), ['count' => $dayItems->count()]) : '' }}"
+                        >
+                            <time datetime="{{ $dayKey }}" @class(['text-xs font-bold', 'text-accent' => $day->isToday(), 'text-ink' => ! $day->isToday()])>{{ $day->day }}</time>
                             @if ($dayItems->isNotEmpty())
-                                <a data-calendar-preview="saved-day-{{ $dayKey }}" href="#saved-{{ $dayItems->first()->getKey() }}" aria-haspopup="dialog" aria-label="{{ trans_choice('account.saved.saved_on_day', $dayItems->count(), ['count' => $dayItems->count()]) }}" class="flex min-h-12 w-full items-center justify-center bg-accent font-display text-[0.625rem] font-extrabold text-on-accent">
+                                <a data-calendar-preview="saved-day-{{ $dayKey }}" href="#saved-{{ $dayItems->first()->getKey() }}" aria-haspopup="dialog" aria-label="{{ trans_choice('account.saved.saved_on_day', $dayItems->count(), ['count' => $dayItems->count()]) }}" class="flex min-h-10 w-full items-center justify-center bg-accent text-xs font-extrabold text-on-accent no-underline sm:hidden">
                                     {{ $dayItems->count() }}
                                 </a>
                             @endif
-                        </div>
-
-                        @foreach ($dayItems->take(2) as $occurrence)
-                            <a
-                                href="{{ \App\Support\EventUrl::occurrence($occurrence) }}"
-                                data-calendar-preview="saved-preview-{{ $occurrence->getKey() }}" aria-haspopup="dialog"
-                                class="mt-1 hidden text-[0.625rem] leading-tight text-ink-muted hover:text-accent sm:block"
-                            >
-                                {{ $occurrence->is_all_day ? __('events.badge.all_day') : app(\App\Support\DateFormatter::class)->time($occurrence->starts_at) }}
-                                · {{ $occurrence->event->title }}
-                            </a>
-                        @endforeach
-                    </div>
-                @endforeach
-            </div>
-        </section>
-
-        <section class="mt-8" aria-labelledby="saved-month-events">
-            <h2 id="saved-month-events" class="font-display text-xl font-extrabold tracking-[-0.03em] uppercase">
-                {{ __('account.saved.month_events', ['month' => $monthLabel]) }}
-            </h2>
-
-            @if ($calendarOccurrences->isEmpty())
-                <p class="mt-4 border-2 border-line p-5 text-sm text-ink-muted">{{ __('account.saved.no_events_in_month') }}</p>
-            @else
-                <div class="mt-4 flex flex-col gap-0.5" data-results>
-                    @foreach ($daysByDate as $items)
-                        <h3 class="bg-accent px-4 py-3 font-display text-sm font-extrabold tracking-[0.12em] text-on-accent uppercase">
-                            {{ $items->first()->business_date->locale('it')->translatedFormat('l j F Y') }}
-                        </h3>
-                        @foreach ($items as $occurrence)
-                            <article id="saved-{{ $occurrence->getKey() }}" class="scroll-mt-28 grid gap-3 border-2 border-line bg-canvas p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
-                                <a href="{{ \App\Support\EventUrl::occurrence($occurrence) }}" data-calendar-preview="saved-preview-{{ $occurrence->getKey() }}" aria-haspopup="dialog" class="group flex min-w-0 items-center gap-3">
-                                    <x-event-artwork :event="$occurrence->event" class="!w-20 shrink-0" />
-                                    <div class="min-w-0">
-                                    <p class="font-display text-[0.625rem] font-extrabold tracking-[0.14em] text-accent uppercase">
-                                        {{ $occurrence->is_all_day ? __('filters.time_of_day.any') : $occurrence->starts_at->format('H:i') }}
-                                    </p>
-                                    <h4 class="mt-1 text-card text-ink transition-colors group-hover:text-accent">{{ $occurrence->event->title }}</h4>
-                                    @if ($occurrence->effectiveVenue() !== null)
-                                        <p class="mt-1 text-sm text-ink-muted">{{ $occurrence->effectiveVenue()->name }}</p>
-                                    @endif
-                                    </div>
-                                </a>
+                            @foreach ($dayItems->take(2) as $occurrence)
                                 <a
-                                    href="{{ $calendar->googleUrl($occurrence) }}"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    class="border-2 border-accent px-4 py-3 text-center font-display text-[0.625rem] font-extrabold tracking-[0.12em] text-ink uppercase transition-colors hover:bg-accent hover:text-on-accent"
-                                >{{ __('common.actions.google_calendar') }}</a>
-                            </article>
-                        @endforeach
+                                    href="{{ \App\Support\EventUrl::occurrence($occurrence) }}"
+                                    data-calendar-preview="saved-preview-{{ $occurrence->getKey() }}" aria-haspopup="dialog"
+                                    class="hidden min-w-0 border-l-2 border-accent pl-1 text-[0.6875rem] leading-tight break-words text-ink-muted no-underline hover:text-accent sm:block"
+                                >
+                                    {{ $occurrence->is_all_day ? __('events.badge.all_day') : $formatter->time($occurrence->starts_at) }} · {{ $occurrence->event->title }}
+                                </a>
+                            @endforeach
+                            @if ($dayItems->count() > 2)
+                                <a href="#saved-{{ $dayItems->get(2)->getKey() }}" class="hidden text-[0.6875rem] font-semibold text-brand no-underline sm:block">{{ __('account.saved.more_on_day', ['count' => $dayItems->count() - 2]) }}</a>
+                            @endif
+                        </div>
                     @endforeach
                 </div>
+            </x-card>
+
+            @if ($calendarOccurrences->isEmpty())
+                <x-empty-state :title="__('account.saved.month_events', ['month' => $monthLabel])" :description="__('account.saved.no_events_in_month')" />
+            @else
+                <x-card :title="__('account.saved.month_events', ['month' => $monthLabel])" padding="none" data-results>
+                    @foreach ($daysByDate as $items)
+                        <p class="svc-row m-0 bg-surface-sunken px-5 py-2 text-xs font-bold tracking-[0.08em] text-ink-muted uppercase sm:px-6">
+                            {{ $items->first()->business_date->locale('it')->translatedFormat('l j F Y') }}
+                        </p>
+                        @foreach ($items as $occurrence)
+                            <div class="svc-row px-5 py-4 sm:px-6">
+                                <x-service-event-row :occurrence="$occurrence" id="saved-{{ $occurrence->getKey() }}" class="scroll-mt-28">
+                                    <x-slot:actions>
+                                        <x-button size="sm" variant="secondary" :href="$calendar->googleUrl($occurrence)" target="_blank" rel="noopener noreferrer">
+                                            <x-lucide name="external-link" class="size-4" />
+                                            {{ __('common.actions.google_calendar') }}
+                                        </x-button>
+                                    </x-slot:actions>
+                                </x-service-event-row>
+                            </div>
+                        @endforeach
+                    @endforeach
+                </x-card>
             @endif
-        </section>
-        @foreach ($daysByDate as $dateKey => $items)
-            <x-saved-calendar-preview :id="'saved-day-'.$dateKey" :occurrences="$items" />
-            @foreach ($items as $occurrence)
-                <x-saved-calendar-preview :id="'saved-preview-'.$occurrence->getKey()" :occurrences="collect([$occurrence])" />
+
+            @foreach ($daysByDate as $dateKey => $items)
+                <x-saved-calendar-preview :id="'saved-day-'.$dateKey" :occurrences="$items" />
+                @foreach ($items as $occurrence)
+                    <x-saved-calendar-preview :id="'saved-preview-'.$occurrence->getKey()" :occurrences="collect([$occurrence])" />
+                @endforeach
             @endforeach
-        @endforeach
-    @elseif ($occurrences->total() > 0)
-        <div class="mt-6" data-results>
-            <div class="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
-            @foreach($occurrences as $occurrence)
-                <div><x-event-card :occurrence="$occurrence" />@if (isset($overlaps[$occurrence->getKey()]))<p class="mt-2 text-sm font-semibold" data-saved-overlap>⚠ {{ __('account.saved.overlap', ['title' => $overlaps[$occurrence->getKey()]]) }}</p>@endif @if(config('community.enabled'))<a class="inline-flex min-h-12 items-center py-3 text-sm font-semibold underline" href="{{ route('community.compose', $occurrence->id) }}">{{ __('community.publish') }}</a>@endif</div>
-            @endforeach
+        @elseif ($occurrences->total() > 0)
+            <x-card :title="$past ? __('account.saved.past') : trans_choice('account.saved.panel_count', $occurrences->total(), ['count' => $occurrences->total()])" padding="none" data-results>
+                @foreach ($occurrences as $occurrence)
+                    <div class="svc-row px-5 py-4 sm:px-6">
+                        <x-service-event-row :occurrence="$occurrence">
+                            @if (isset($overlaps[$occurrence->getKey()]))
+                                <span class="font-semibold text-ink" data-saved-overlap>{{ __('account.saved.overlap', ['title' => $overlaps[$occurrence->getKey()]]) }}</span>
+                                <x-slot:badge><x-badge tone="alert" size="sm">{{ __('account.save.overlap_label') }}</x-badge></x-slot:badge>
+                            @endif
+                            <x-slot:actions>
+                                <x-save-heart :occurrence="$occurrence" :saved="true" variant="label" />
+                                @if (config('community.enabled'))
+                                    <x-button size="sm" variant="secondary" :href="route('community.compose', $occurrence->id)">{{ __('community.publish') }}</x-button>
+                                @endif
+                            </x-slot:actions>
+                        </x-service-event-row>
+                    </div>
+                @endforeach
+            </x-card>
+            <div data-pagination>
+                <x-pagination :paginator="$occurrences" :summary="true" />
             </div>
-        </div>
-        <div class="mt-8" data-pagination>
-            <x-pagination :paginator="$occurrences" :summary="true" />
-        </div>
-    @else
-        <x-empty-state class="mt-8" :title="__('account.saved.empty_title')" :description="__('account.saved.empty_body')">
-            <a href="{{ route('events.index') }}" class="ui-action bg-brand px-4 py-2.5 text-sm font-semibold text-on-brand transition hover:bg-brand-strong">
-                {{ __('events.title') }}
-            </a>
-        </x-empty-state>
-    @endif
+        @else
+            <x-empty-state :title="__('account.saved.empty_title')" :description="__('account.saved.empty_body')">
+                <x-button :href="route('events.index')">{{ __('events.title') }}</x-button>
+            </x-empty-state>
+        @endif
+    </x-service-page>
 </x-layouts.app>

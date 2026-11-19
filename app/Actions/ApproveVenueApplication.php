@@ -16,9 +16,11 @@ use App\Models\User;
 use App\Models\Venue;
 use App\Models\VenueApplication;
 use App\Notifications\OrganizerAccessGranted;
+use App\Notifications\VenueApplicationApproved;
 use App\Services\Geo\AddressGeocoder;
 use App\Support\EditorContent;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -49,6 +51,12 @@ final class ApproveVenueApplication
     {
         if ($richiesta->kind() === ApplicationKind::Organizer) {
             return $this->organizzatore($richiesta, $moderatore);
+        }
+
+        /* Una richiesta che aspetta ancora la conferma dell'email non è in
+           coda: nessuno l'ha vista, e chi l'ha scritta può ancora ritirarla. */
+        if ($richiesta->isAwaitingEmail()) {
+            throw ValidationException::withMessages(['status' => __('venue_applications.awaiting_email')]);
         }
 
         return DB::transaction(function () use ($richiesta, $moderatore): Venue {
@@ -93,8 +101,8 @@ final class ApproveVenueApplication
              * anche il motivo per cui il locale nasce in bozza.
              */
             $punto = $this->geocoder->coordinate(
-                (string) ($richiesta->address ?? ''),
-                $citta->name,
+                trim((string) ($richiesta->address ?? '').' '.($richiesta->venueDatum('postal_code') ?? '')),
+                (string) ($richiesta->venueDatum('municipality') ?? $citta->name),
             );
 
             $locale = $richiesta->venue ?? Venue::query()->create([
@@ -119,7 +127,6 @@ final class ApproveVenueApplication
                  * largo dell'Africa. L'ha visto l'analisi statica, non una
                  * prova.
                  */
-                'municipality' => $citta->name,
                 'province_code' => $citta->province_code,
                 'lat' => $punto['lat'] ?? $citta->center_lat,
                 'lng' => $punto['lng'] ?? $citta->center_lng,
@@ -127,11 +134,13 @@ final class ApproveVenueApplication
                 'slug' => $this->slug($richiesta->venue_name),
                 'type' => $this->tipo($richiesta),
                 'address' => (string) ($richiesta->address ?? ''),
-                'email' => $richiesta->contact_email,
-                'phone' => $richiesta->contact_phone,
-                'socials' => $richiesta->socials,
+                ...$this->datiPubblici($richiesta, $citta),
                 'status' => VenueStatus::Draft,
             ]);
+
+            if ($locale->wasRecentlyCreated) {
+                $this->immagine($richiesta, $locale);
+            }
 
             $richiesta->forceFill([
                 'venue_id' => $locale->getKey(),
@@ -160,10 +169,64 @@ final class ApproveVenueApplication
                 (string) $richiesta->contact_name,
                 VenueRole::Owner,
                 requested: $richiestaDaLui,
+                notify: ! $richiestaDaLui,
             );
+
+            /* Chi entra subito riceve «la tua richiesta è stata accolta» con
+               il pannello a portata di clic, invece dell'invito generico. */
+            if ($richiestaDaLui) {
+                $mittente->notify(new VenueApplicationApproved($locale, $richiesta->kind()));
+            }
 
             return $locale;
         });
+    }
+
+    /**
+     * I contatti **pubblici** del locale vengono dai dati del locale scritti
+     * nella richiesta, mai dai contatti di chi scrive: email e telefono del
+     * referente sono suoi, non del locale, e finivano sulla scheda pubblica.
+     * Il sito, scritto nella richiesta, diventa il sito del locale (prima
+     * restava fra i social e si perdeva).
+     *
+     * @return array<string, mixed>
+     */
+    private function datiPubblici(VenueApplication $richiesta, City $citta): array
+    {
+        $website = $richiesta->venueDatum('website') ?? (is_array($richiesta->socials) ? ($richiesta->socials['website'] ?? null) : null);
+        $social = array_filter([
+            'instagram' => $richiesta->venueDatum('instagram'),
+            'facebook' => $richiesta->venueDatum('facebook'),
+        ], static fn (mixed $url): bool => is_string($url) && $url !== '');
+        $capienza = $richiesta->venueDatum('capacity');
+
+        return [
+            'municipality' => $richiesta->venueDatum('municipality') ?? $citta->name,
+            'postal_code' => $richiesta->venueDatum('postal_code'),
+            'email' => $richiesta->venueDatum('public_email'),
+            'phone' => $richiesta->venueDatum('public_phone'),
+            'website' => is_string($website) && $website !== '' ? $website : null,
+            'socials' => $social === [] ? null : $social,
+            'capacity' => is_numeric($capienza) ? (int) $capienza : null,
+            'description' => $richiesta->venueDatum('description'),
+        ];
+    }
+
+    /**
+     * L'immagine della richiesta, se c'è, diventa la copertina della scheda in
+     * bozza. Sta sul disco privato e lì resta (la copia va nella libreria dei
+     * media): un'immagine che non si riesce a leggere non ferma
+     * l'approvazione, la copertina si carica dal pannello.
+     */
+    private function immagine(VenueApplication $richiesta, Venue $locale): void
+    {
+        $percorso = $richiesta->image_path;
+
+        if (! is_string($percorso) || $percorso === '' || ! Storage::disk('local')->exists($percorso)) {
+            return;
+        }
+
+        rescue(static fn () => $locale->addMediaFromDisk($percorso, 'local')->preservingOriginal()->toMediaCollection('cover'), report: true);
     }
 
     /**

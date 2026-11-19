@@ -8,6 +8,7 @@ use App\Models\Event;
 use App\Models\EventComment;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\Relation;
 
 final class EventCommentQuery
 {
@@ -45,13 +46,17 @@ final class EventCommentQuery
             $position = (clone $query)->where('parent_id', $rootId)->where('id', '<=', $target->id)->count();
             $replyPage = max(1, (int) ceil($position / 20));
         }
-        $hydrate = static fn (Builder $q) => $q->with('user:id,name,first_name')
+        /* Accetta anche la relazione `replies`: il limite delle prime risposte
+           va chiesto alla relazione, che lo applica a ciascun capostipite.
+           Sul builder grezzo (`getQuery()`) diventava un limite di 3 per
+           tutta la pagina. */
+        $hydrate = static fn (Builder|Relation $q) => $q->with('user:id,name,first_name')
             ->withCount('reactions')
             ->with(['reactions' => fn ($r) => $r->where('user_id', $user->id ?? 0)->select(['id', 'event_comment_id', 'user_id', 'type'])]);
         $roots = $hydrate((clone $query)->topLevel())
             ->withCount(['replies' => fn ($q) => $q->visibleTo($user)])
             ->when($rootId !== null, fn ($q) => $q->whereKey($rootId))
-            ->when($rootId === null, fn ($q) => $q->with(['replies' => fn ($replies) => $hydrate($replies->visibleTo($user)->getQuery())->orderBy('id')->limit(3)]))
+            ->when($rootId === null, fn ($q) => $q->with(['replies' => fn (Relation $replies) => $hydrate($replies->visibleTo($user))->orderBy('id')->limit(3)]))
             ->orderByDesc('id')
             ->paginate(10, page: $rootId === null ? max(1, $page) : 1);
         $repliesLastPage = 1;

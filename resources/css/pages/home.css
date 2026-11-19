@@ -1,0 +1,370 @@
+/* La prima schermata: calendario del mese, vista degli elenchi (piena, griglia,
+   lista) e barra in basso. Ogni regola vale per entrambi i temi o porta il
+   prefisso `:root[data-theme="light"]`. Solo token del tema: nessun colore
+   scritto qui. */
+
+/* ---------------------------------------------------------------------------
+   Calendario del mese (`<x-month-calendar>`): `/calendario` e la home
+--------------------------------------------------------------------------- */
+
+.home-calendar__inner { max-width: 760px; }
+
+/* Da desktop il calendario e il prossimo evento si dividono tutta la
+   larghezza; il calendario resta largo al massimo 760 px solo da tablet. */
+@media (min-width: 1024px) {
+    .home-calendar__inner { max-width: none; }
+}
+
+/* Lo spazio fra le caselle lo dà la tabella; il margine negativo riporta la
+   prima e l'ultima colonna a filo del testo sopra. */
+.month-calendar__table {
+    width: calc(100% + 8px);
+    margin-inline: -4px;
+    border-spacing: 4px;
+}
+
+.month-calendar__weekday { font-size: 0.6875rem; letter-spacing: 0.08em; }
+
+.month-calendar__step,
+.month-calendar__titles-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    border: 2px solid var(--line);
+    border-radius: var(--radius-control, 0px);
+    background: var(--surface);
+    color: var(--ink);
+    transition: border-color 150ms ease, background-color 150ms ease;
+}
+
+.month-calendar__step { width: 44px; }
+.month-calendar__titles-toggle { padding-inline: 14px; font-size: 0.875rem; font-weight: 700; cursor: pointer; }
+.month-calendar__step:hover,
+.month-calendar__titles-toggle:hover { border-color: var(--accent); }
+.month-calendar__titles-toggle[hidden] { display: none; }
+
+/* Casella della variante completa. */
+.month-calendar__day {
+    height: 5rem;
+    padding: 6px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-control, 0px);
+    background: var(--surface);
+}
+
+@media (min-width: 640px) {
+    .month-calendar__day { height: 7rem; padding: 8px; }
+}
+
+.month-calendar__day.is-outside { border-color: transparent; background: var(--surface-sunken); }
+.month-calendar__day.is-past { opacity: 0.55; }
+.month-calendar__day.is-today { border-color: var(--brand); box-shadow: inset 0 0 0 1px var(--brand); opacity: 1; }
+
+.month-calendar__link {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    font-weight: 600;
+    color: var(--ink);
+    text-decoration: none;
+}
+
+.month-calendar__link:hover .month-calendar__number { color: var(--brand); }
+
+@media (min-width: 640px) {
+    .month-calendar:not(.month-calendar--compact) .month-calendar__link {
+        flex-direction: row;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 4px;
+    }
+}
+
+.month-calendar__number { font-size: 0.875rem; font-variant-numeric: tabular-nums; }
+.month-calendar__empty .month-calendar__number { color: var(--ink-subtle); }
+.month-calendar__day.is-outside .month-calendar__number { opacity: 0.6; }
+
+.month-calendar__count {
+    display: inline-block;
+    min-width: 1.25rem;
+    padding: 2px 5px;
+    border-radius: var(--radius-pill, 0px);
+    background: var(--brand-soft);
+    color: var(--on-brand-soft);
+    font-size: 0.6875rem;
+    font-weight: 800;
+    line-height: 1.2;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Variante compatta (home): numero e conteggio, caselle da almeno 44 px. Il
+   giorno con eventi è tutto un pulsante; quello senza resta un numero. */
+.month-calendar--compact .month-calendar__day {
+    height: 48px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    vertical-align: middle;
+}
+
+.month-calendar--compact .month-calendar__day.is-outside { background: transparent; }
+.month-calendar--compact .month-calendar__day.is-outside > * { visibility: hidden; }
+.month-calendar--compact .month-calendar__day.is-today { box-shadow: none; }
+
+.month-calendar--compact .month-calendar__link,
+.month-calendar--compact .month-calendar__empty {
+    display: flex;
+    min-height: 48px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    border-radius: var(--radius-control, 0px);
+}
+
+.month-calendar--compact .month-calendar__link {
+    border: 2px solid var(--line);
+    background: var(--surface);
+    transition: border-color 150ms ease, background-color 150ms ease;
+}
+
+.month-calendar--compact .month-calendar__link:hover { border-color: var(--accent); }
+.month-calendar--compact .month-calendar__number { font-size: 0.9375rem; font-weight: 700; line-height: 1; }
+.month-calendar--compact .month-calendar__count { padding: 1px 4px; font-size: 0.625rem; min-width: 1.125rem; }
+.month-calendar--compact .is-today :is(.month-calendar__link, .month-calendar__empty) { outline: 2px solid var(--brand); outline-offset: -2px; }
+.month-calendar--compact .is-today .month-calendar__link { background: var(--brand); border-color: var(--brand); }
+.month-calendar--compact .is-today .month-calendar__link .month-calendar__number { color: var(--on-brand); }
+.month-calendar--compact .is-today .month-calendar__link .month-calendar__count { background: var(--on-brand); color: var(--brand); }
+
+:root[data-theme="light"] .month-calendar__day,
+:root[data-theme="light"] .month-calendar--compact .month-calendar__link,
+:root[data-theme="light"] :is(.month-calendar__step, .month-calendar__titles-toggle) {
+    border-width: 1px;
+    background: var(--surface-raised);
+}
+
+:root[data-theme="light"] .month-calendar--compact .month-calendar__day { background: transparent; }
+:root[data-theme="light"] .month-calendar__day.is-outside { background: var(--surface); }
+:root[data-theme="light"] .month-calendar--compact .month-calendar__day.is-outside { background: transparent; }
+:root[data-theme="light"] .month-calendar--compact .is-today .month-calendar__link { background: var(--brand); }
+
+/* ---------------------------------------------------------------------------
+   Vista degli elenchi sul telefono (`<x-card-layout-toggle>`)
+
+   `<html data-card-layout>` vale `full`, `grid` o `list`. Sopra i 640 px le
+   card stanno già in più colonne e la scelta non cambia niente.
+--------------------------------------------------------------------------- */
+
+.card-layout-toggle { display: none; }
+
+@media (max-width: 639px) and (scripting: enabled) {
+    .card-layout-toggle { display: flex; }
+}
+
+.card-layout-toggle__group {
+    padding: 2px;
+    gap: 2px;
+    border: 2px solid var(--line);
+    border-radius: var(--radius-control, 0px);
+    background: var(--surface);
+}
+
+.card-layout-toggle__option {
+    border-radius: calc(var(--radius-control, 0px) - 2px);
+    color: var(--ink-muted);
+    cursor: pointer;
+    transition: background-color 150ms ease, color 150ms ease;
+}
+
+.card-layout-toggle__option:hover { color: var(--ink); }
+.card-layout-toggle__option:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+
+/* La voce scelta si vede subito, prima ancora che lo script allinei
+   `aria-checked`: la decide lo stesso attributo che decide la vista. */
+:root[data-card-layout="full"] [data-card-layout-option="full"],
+:root[data-card-layout="grid"] [data-card-layout-option="grid"],
+:root[data-card-layout="list"] [data-card-layout-option="list"] {
+    background: var(--accent);
+    color: var(--on-accent);
+}
+
+:root[data-theme="light"] .card-layout-toggle__group { border-width: 1px; background: var(--surface-raised); }
+
+:root[data-theme="light"][data-card-layout="full"] [data-card-layout-option="full"],
+:root[data-theme="light"][data-card-layout="grid"] [data-card-layout-option="grid"],
+:root[data-theme="light"][data-card-layout="list"] [data-card-layout-option="list"] {
+    background: var(--brand);
+    color: var(--on-brand);
+}
+
+@media (max-width: 639px) {
+    /* --- Griglia a due colonne ------------------------------------------ */
+
+    :root[data-card-layout="grid"][data-theme] :is(.event-grid, [data-card-list]) {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0;
+    }
+
+    :root[data-card-layout="grid"][data-theme="light"] :is(.event-grid, [data-card-list]) { gap: 8px; }
+
+    :root[data-card-layout="grid"][data-theme] :is(.event-grid, [data-card-list]) .event-card {
+        min-height: 0;
+        row-gap: 8px;
+    }
+
+    :root[data-card-layout="grid"][data-theme] :is(.event-grid, [data-card-list]) .event-card:has([data-catalog-poster]) { padding-bottom: 12px; }
+
+    :root[data-card-layout="grid"][data-theme] :is(.event-grid, [data-card-list]) .event-card:has([data-catalog-poster]) > :not([data-catalog-poster]):not([aria-hidden]) {
+        margin-inline: 10px;
+    }
+
+    :root[data-card-layout="grid"][data-theme="light"] :is(.event-grid, [data-card-list]) .event-card:has([data-catalog-poster]) {
+        padding: 6px 6px 10px;
+    }
+
+    :root[data-card-layout="grid"][data-theme="light"] :is(.event-grid, [data-card-list]) .event-card:has([data-catalog-poster]) > :not([data-catalog-poster]):not([aria-hidden="true"]) {
+        margin-inline: 4px;
+    }
+
+    :root[data-card-layout="grid"][data-theme] :is(.event-grid, [data-card-list]) .event-card :is(h2, h3, h4) {
+        font-size: 0.9375rem;
+        line-height: 1.15;
+        letter-spacing: -0.01em;
+    }
+
+    :root[data-card-layout="grid"][data-theme] :is(.event-grid, [data-card-list]) .event-card time { font-size: 0.625rem; letter-spacing: 0.04em; }
+    :root[data-card-layout="grid"][data-theme] :is(.event-grid, [data-card-list]) .event-card .event-card__venue span { font-size: 0.6875rem; }
+
+    /* Nella card stretta restano locandina, titolo, luogo, data e prezzo: la
+       freccia (la card intera è già il collegamento), la barra dei posti e il
+       contatore sulla locandina non ci stanno. */
+    :root[data-card-layout="grid"][data-theme] :is(.event-grid, [data-card-list]) .event-card :is([data-card-arrow], [data-interest-control]),
+    :root[data-card-layout="grid"][data-theme] :is(.event-grid, [data-card-list]) .event-card .event-card__details {
+        display: none;
+    }
+
+    :root[data-card-layout="grid"][data-theme] :is(.event-grid, [data-card-list]) .event-card__footer {
+        min-height: 0;
+        padding-top: 8px;
+    }
+
+    :root[data-card-layout="grid"][data-theme] :is(.event-grid, [data-card-list]) .event-card__footer > span { font-size: 0.8125rem; }
+
+    /* La categoria sopra la locandina, nel chiaro, si fa piccola. */
+    :root[data-card-layout="grid"][data-theme="light"] :is(.event-grid, [data-card-list]) .event-card:has([data-catalog-poster]) .event-card__category {
+        left: 11px;
+        top: 11px;
+    }
+
+    :root[data-card-layout="grid"][data-theme] :is(.event-grid, [data-card-list]) .event-card .event-card__category .ui-tag {
+        padding: 3px 6px;
+        font-size: 0.5625rem;
+    }
+
+    @supports (grid-template-rows: subgrid) {
+        :root[data-card-layout="grid"][data-theme] .event-grid > .event-card { row-gap: 8px; }
+        :root[data-card-layout="grid"][data-theme] .event-grid > .event-card .event-card__details { display: none; }
+    }
+
+    /* --- Elenco compatto: locandina a sinistra, testo a destra ---------- */
+
+    :root[data-card-layout="list"][data-theme] :is(.event-grid, [data-card-list]) {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 0;
+    }
+
+    :root[data-card-layout="list"][data-theme="light"] :is(.event-grid, [data-card-list]) { gap: 8px; }
+
+    :root[data-card-layout="list"][data-theme] :is(.event-grid, [data-card-list]) .event-card,
+    :root[data-card-layout="list"][data-theme] :is(.event-grid, [data-card-list]) .event-card:has([data-catalog-poster]) {
+        display: grid;
+        grid-template-columns: 84px minmax(0, 1fr);
+        grid-template-rows: none;
+        grid-auto-rows: auto;
+        grid-row: auto;
+        align-content: start;
+        min-height: 0;
+        gap: 4px 12px;
+        padding: 12px;
+    }
+
+    :root[data-card-layout="list"][data-theme] :is(.event-grid, [data-card-list]) .event-card > [data-catalog-poster] {
+        grid-column: 1;
+        grid-row: 1 / span 6;
+        align-self: start;
+        margin: 0;
+    }
+
+    :root[data-card-layout="list"][data-theme] :is(.event-grid, [data-card-list]) .event-card > :not([data-catalog-poster]):not([aria-hidden]),
+    :root[data-card-layout="list"][data-theme] :is(.event-grid, [data-card-list]) .event-card:has([data-catalog-poster]) > :not([data-catalog-poster]):not([aria-hidden]) {
+        grid-column: 2;
+        margin-inline: 0;
+    }
+
+    /* Nel chiaro la categoria sta sopra la locandina, fuori dal flusso: qui
+       la locandina è troppo piccola, e torna una riga del testo. */
+    :root[data-card-layout="list"][data-theme="light"] :is(.event-grid, [data-card-list]) .event-card:has([data-catalog-poster]) .event-card__category {
+        position: static;
+        grid-row: auto;
+    }
+
+    :root[data-card-layout="list"][data-theme] :is(.event-grid, [data-card-list]) .event-card .event-card__category .ui-tag {
+        padding: 3px 6px;
+        font-size: 0.5625rem;
+    }
+
+    :root[data-card-layout="list"][data-theme] :is(.event-grid, [data-card-list]) .event-card :is(h2, h3, h4) {
+        font-size: 1rem;
+        line-height: 1.15;
+        letter-spacing: -0.01em;
+    }
+
+    :root[data-card-layout="list"][data-theme] :is(.event-grid, [data-card-list]) .event-card :is([data-card-arrow], [data-interest-control]),
+    :root[data-card-layout="list"][data-theme] :is(.event-grid, [data-card-list]) .event-card .event-card__details {
+        display: none;
+    }
+
+    /* Prezzo e segnalibro in una riga bassa: il segnalibro resta un bersaglio
+       da 48 px, ma senza filo e senza margine sopra la riga non si allunga. */
+    :root[data-card-layout="list"][data-theme] :is(.event-grid, [data-card-list]) .event-card__footer {
+        min-height: 0;
+        margin-top: 0;
+        padding-top: 0;
+        border-top: 0;
+    }
+
+    :root[data-card-layout="list"][data-theme] :is(.event-grid, [data-card-list]) .event-card__footer > span { font-size: 0.875rem; }
+}
+
+/* ---------------------------------------------------------------------------
+   Barra in basso del telefono (`<x-mobile-navigation>`)
+
+   Solo icone da 24 px; la voce attiva ha una pastiglia attorno all'icona.
+   Alta 56 px: nello scuro 58 con il filo, nel chiaro 70 con il bordo interno
+   del pannello che galleggia (`light.css`).
+--------------------------------------------------------------------------- */
+
+.mobile-nav__item { color: var(--ink-muted); transition: color 150ms ease; }
+.mobile-nav__item:hover { color: var(--accent); }
+.mobile-nav__pill { border-radius: var(--radius-pill, 0px); transition: background-color 150ms ease, color 150ms ease; }
+.mobile-nav__item[aria-current="page"] .mobile-nav__pill { background: var(--accent); color: var(--on-accent); }
+.mobile-nav__badge { border-radius: 999px; background: var(--accent); color: var(--on-accent); box-shadow: 0 0 0 2px var(--canvas); }
+.mobile-nav__item[aria-current="page"] .mobile-nav__badge { background: var(--ink); color: var(--canvas); }
+
+:root[data-theme="light"] .mobile-nav__item { color: var(--ink-inverted); opacity: 0.78; }
+:root[data-theme="light"] .mobile-nav__item:hover,
+:root[data-theme="light"] .mobile-nav__item[aria-current="page"] { opacity: 1; }
+:root[data-theme="light"] .mobile-nav__pill { border-radius: 12px; }
+:root[data-theme="light"] .mobile-nav__item[aria-current="page"] .mobile-nav__pill { background: var(--brand); color: var(--on-brand); }
+:root[data-theme="light"] .mobile-nav__badge { background: var(--brand); color: var(--on-brand); box-shadow: 0 0 0 2px var(--ink); }
+
+@media (prefers-reduced-motion: reduce) {
+    .mobile-nav__item,
+    .mobile-nav__pill,
+    .card-layout-toggle__option,
+    .month-calendar--compact .month-calendar__link { transition: none; }
+}

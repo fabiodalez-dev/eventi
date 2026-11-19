@@ -7,81 +7,81 @@
 
     L'esito non sceglie: mostra le date in ordine di preferenza e si ferma lì.
     La decisione di un gruppo di amici non la prende un calcolo.
+
+    In alto l'evento con la sua locandina, poi una card con le date (una riga
+    per data, con chi ha risposto e il pulsante «Mi va bene»), poi il link da
+    passare e le azioni sul sondaggio.
 --}}
-<x-layouts.app :narrow="true" :meta="$meta">
-    @php($dates = app(\App\Support\DateFormatter::class))
-
-    <div class="flex w-full flex-col gap-8">
-        <header class="flex flex-col gap-2">
-            <p class="font-display text-xs font-extrabold tracking-widest text-brand uppercase">{{ $poll->event->title }}</p>
-            <h1 class="text-hero text-ink">{{ __('polls.title', ['evento' => $poll->event->title]) }}</h1>
-            <p class="text-sm text-ink-muted">{{ $outcome['open'] ? __('polls.open_until', ['data' => $poll->closes_at->timezone($poll->event->city->timezone)->format('d/m/Y')]) : __('polls.closed') }}</p>
+@php($dates = app(\App\Support\DateFormatter::class))
+<x-layouts.app service :meta="$meta">
+    <x-service-page
+        :title="__('polls.title', ['evento' => $poll->event->title])"
+        :eyebrow="$outcome['open'] ? __('polls.open_until', ['data' => $poll->closes_at->timezone($poll->event->city->timezone)->format('d/m/Y')]) : __('polls.closed')"
+        :subtitle="$outcome['open'] ? __('polls.lead') : null"
+    >
+        <x-card padding="sm">
+            <x-service-event-row :event="$poll->event" :meta="$poll->event->locationVenue()?->name" />
             @if (filled($poll->note))
-                <p class="mt-2 whitespace-pre-line">{{ $poll->note }}</p>
+                <p class="m-0 border-l-4 border-accent pl-3 whitespace-pre-line text-ink">{{ $poll->note }}</p>
             @endif
-        </header>
+        </x-card>
 
-        @if ($errors->any())
-            <p role="alert" class="border-l-4 border-brand bg-surface p-4 text-sm">{{ $errors->first() }}</p>
-        @endif
-
-        <ul class="flex flex-col divide-y divide-line border-y border-line">
+        <x-card :title="__('account.polls.dates_title')" :description="__('polls.participants', ['count' => $outcome['participants']])" padding="none" data-poll-options>
             @foreach ($outcome['options'] as $index => $row)
                 @php($occurrence = $row['option']->occurrence)
-                <li class="flex flex-col gap-3 py-5 sm:flex-row sm:items-center sm:justify-between">
+                <div class="svc-row flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
                     <div class="flex min-w-0 flex-col gap-1">
-                        <p class="font-display text-lg font-extrabold">{{ $dates->dayAndTime($occurrence->business_date, $occurrence->starts_at) }}</p>
-                        <p class="text-sm text-ink-muted">
-                            @if ($row['count'] === 0)
-                                {{ __('polls.nobody') }}
-                            @else
-                                {{ implode(', ', $row['voters']) }}
+                        <p class="m-0 flex flex-wrap items-center gap-2 font-display text-lg leading-tight font-extrabold text-ink">
+                            {{ $dates->dayAndTime($occurrence->business_date, $occurrence->starts_at) }}
+                            @if ($index === 0 && $row['count'] > 0)
+                                <x-badge tone="accent" size="sm">{{ __('polls.winner') }}</x-badge>
                             @endif
                         </p>
-                        @if ($index === 0 && $row['count'] > 0)
-                            <p class="text-xs font-semibold text-accent">{{ __('polls.winner') }}</p>
-                        @endif
+                        <p class="m-0 text-sm text-ink-muted">{{ $row['count'] === 0 ? __('polls.nobody') : implode(', ', $row['voters']) }}</p>
                     </div>
 
                     @auth
                         @if ($outcome['open'])
                             @php($mineHere = in_array($row['option']->getKey(), $mine, true))
-                            <form method="POST" action="{{ route('polls.vote', [$poll->token, $row['option']]) }}">
+                            <form method="POST" action="{{ route('polls.vote', [$poll->token, $row['option']]) }}" class="shrink-0">
                                 @csrf
-                                <button type="submit" @class([
-                                    'ui-action inline-flex min-h-12 items-center px-4 font-display text-sm font-extrabold transition',
-                                    'bg-accent text-on-accent hover:bg-brand-strong' => ! $mineHere,
-                                    'border-2 border-line bg-surface text-ink hover:border-accent' => $mineHere,
-                                ])>{{ $mineHere ? __('polls.voted') : __('polls.vote') }}</button>
+                                <x-button type="submit" size="sm" :variant="$mineHere ? 'secondary' : 'primary'" :block="true" aria-pressed="{{ $mineHere ? 'true' : 'false' }}">
+                                    @if ($mineHere)<x-lucide name="check" class="size-4" />@endif
+                                    {{ $mineHere ? __('polls.voted') : __('polls.vote') }}
+                                </x-button>
                             </form>
                         @endif
                     @endauth
-                </li>
+                </div>
             @endforeach
-        </ul>
-
-        <p class="text-sm text-ink-muted">{{ __('polls.participants', ['count' => $outcome['participants']]) }}</p>
+        </x-card>
 
         @auth
-            <div class="flex flex-col gap-4 border-t border-line pt-6">
-                <div class="flex flex-col gap-2">
-                    <span class="text-sm font-semibold">{{ __('polls.share') }}</span>
-                    <input type="text" readonly value="{{ route('polls.show', $poll->token) }}" class="w-full border border-line bg-surface p-3 text-sm" onfocus="this.select()">
-                </div>
-
-                <div class="flex flex-wrap gap-4">
-                    @if ($outcome['open'] && auth()->id() === $poll->user_id)
-                        <form method="POST" action="{{ route('polls.close', $poll->token) }}">@csrf
-                            <button type="submit" class="ui-action inline-flex min-h-12 items-center border-2 border-line bg-surface px-4 text-sm font-semibold hover:border-accent">{{ __('polls.close') }}</button>
-                        </form>
-                    @endif
-                    @if ($mine !== [])
-                        <form method="POST" action="{{ route('polls.leave', $poll->token) }}">@csrf
-                            <button type="submit" class="ui-action inline-flex min-h-12 items-center px-4 text-sm text-ink-muted underline underline-offset-4 hover:text-ink">{{ __('polls.leave') }}</button>
-                        </form>
-                    @endif
-                </div>
-            </div>
+            <x-card :title="__('polls.share')">
+                <label class="flex flex-col gap-2">
+                    <span class="sr-only">{{ __('polls.share') }}</span>
+                    <input type="text" readonly value="{{ route('polls.show', $poll->token) }}" class="min-h-12 w-full border-2 border-line bg-canvas px-3 text-sm text-ink" data-poll-link>
+                </label>
+                @if (($outcome['open'] && auth()->id() === $poll->user_id) || $mine !== [])
+                    <x-slot:footer>
+                        @if ($outcome['open'] && auth()->id() === $poll->user_id)
+                            <form method="POST" action="{{ route('polls.close', $poll->token) }}">@csrf
+                                <x-button type="submit" variant="secondary" size="sm">{{ __('polls.close') }}</x-button>
+                            </form>
+                        @endif
+                        @if ($mine !== [])
+                            <form method="POST" action="{{ route('polls.leave', $poll->token) }}">@csrf
+                                <x-button type="submit" variant="ghost" size="sm">{{ __('polls.leave') }}</x-button>
+                            </form>
+                        @endif
+                    </x-slot:footer>
+                @endif
+            </x-card>
+        @else
+            <x-notice>
+                <p class="m-0">{{ __('account.polls.login_hint') }}</p>
+                <div><x-button size="sm" :href="route('login')">{{ __('account.nav.login') }}</x-button></div>
+            </x-notice>
         @endauth
-    </div>
+    </x-service-page>
 </x-layouts.app>

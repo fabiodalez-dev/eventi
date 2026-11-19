@@ -20,6 +20,20 @@ use Illuminate\Http\JsonResponse;
  *
  * I giorni senza date **non compaiono**: una griglia di caselle vuote la
  * disegna il client, che sa quanto è larga la sua (§8.6).
+ *
+ * ## `personal=1`
+ *
+ * Con un token e `personal=1` il mese segue gli interessi di chi chiede, come
+ * il calendario della pagina iniziale del sito: locali, organizzatori,
+ * categorie e tag seguiti, categorie scelte, meno categorie e locali nascosti
+ * (`MonthCalendar::personalDigest()`). Chi non ha espresso interessi riceve il
+ * mese della città meno ciò che ha nascosto (`filteredDigest()`), e
+ * `meta.interests` lo dice al client, che può spiegarlo. Senza token
+ * `personal=1` non cambia nulla: `meta.personal` resta falso.
+ *
+ * La risposta personale non entra in nessuna cache condivisa:
+ * `CacheJsonResponse` la segna `private, no-store` perché c'è un token, e
+ * `MonthCalendar` non mette in cache il mese personale.
  */
 final class CalendarController extends Controller
 {
@@ -31,8 +45,16 @@ final class CalendarController extends Controller
     {
         $city = $this->city();
         $month = $request->month($city->timezone);
+        $request->validate(['personal' => ['nullable', 'boolean']]);
 
-        $digest = $this->calendar->digest($city, $month);
+        $user = $request->boolean('personal') ? $this->currentUser($request) : null;
+        $personal = $user === null ? null : $this->calendar->personalDigest($city, $month, $user);
+
+        $digest = match (true) {
+            $user === null => $this->calendar->digest($city, $month),
+            $personal === null => $this->calendar->filteredDigest($city, $month, $user),
+            default => $personal,
+        };
 
         $days = [];
 
@@ -48,6 +70,8 @@ final class CalendarController extends Controller
             'month' => $month->format('Y-m'),
             'timezone' => $city->timezone,
             'total' => array_sum(array_column($days, 'count')),
+            'personal' => $user !== null,
+            'interests' => $personal !== null,
         ]);
     }
 }

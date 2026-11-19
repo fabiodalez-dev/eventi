@@ -2,20 +2,28 @@
 
 namespace App\Filament\Organizer\Resources\Events;
 
+use App\Enums\EventStatus;
 use App\Enums\PriceType;
 use App\Filament\Concerns\HasSentenceCaseNavigationLabel;
+use App\Filament\Organizer\Pages\EventAnalyticsDetail;
+use App\Filament\Organizer\Pages\Sponsorships;
 use App\Filament\Support\BeforeGoingFields;
 use App\Filament\Support\DescriptionEditor;
 use App\Filament\Support\EditorialFields;
 use App\Filament\Support\ImageUpload;
 use App\Filament\Support\SameNightNearbyField;
 use App\Filament\Support\VenueClosureWarning;
+use App\Filament\Venue\Resources\Events\EventResource as VenueEventResource;
+use App\Filament\Venue\Support\EventActions;
 use App\Models\Category;
 use App\Models\City;
 use App\Models\Event;
 use App\Models\Organizer;
 use App\Models\Venue;
+use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
@@ -25,7 +33,6 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
-use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Auth\Access\Response;
 use Illuminate\Database\Eloquent\Builder;
@@ -50,6 +57,10 @@ class EventResource extends Resource
     protected static ?string $modelLabel = 'evento';
 
     protected static ?string $pluralModelLabel = 'I tuoi eventi';
+
+    protected static bool $hasTitleCaseModelLabel = false;
+
+    protected static ?string $recordTitleAttribute = 'title';
 
     protected static string|\BackedEnum|null $navigationIcon = Heroicon::OutlinedCalendarDays;
 
@@ -119,9 +130,42 @@ class EventResource extends Resource
             ->orWhereHas('organizers', fn (Builder $shared) => $shared->whereKey($tenant->getKey())));
     }
 
+    /**
+     * Lo stesso elenco a card di `/gestione` (locandina, data che conta, stato
+     * in italiano), con in più il locale principale: un organizzatore lavora
+     * in posti diversi. La card apre la scheda in lettura; «Modifica» è il
+     * pulsante, il resto sta nel menu della riga.
+     */
     public static function table(Table $table): Table
     {
-        return $table->columns([TextColumn::make('title')->label('Evento')->searchable()->wrap(), TextColumn::make('venue.name')->label('Locale principale')->wrap(), TextColumn::make('status')->label('Stato')->badge()])->recordActions([EditAction::make()]);
+        $tenant = Filament::getTenant();
+        $city = $tenant instanceof Organizer ? $tenant->city : null;
+
+        return VenueEventResource::listTable($table, $city ?? City::query()->firstOrFail(), showVenue: true)
+            ->recordUrl(fn (Event $record): string => static::getUrl('view', ['record' => $record]))
+            ->recordActions([
+                EditAction::make()->label(__('manage.actions.edit'))->button(),
+                ActionGroup::make([
+                    ViewAction::make()->label(__('analytics-dashboard.view_event')),
+                    // Le stesse pagine collegate di `/gestione`, già filtrate sull'evento.
+                    Action::make('statistics')
+                        ->label(__('manage.event_links.statistics'))
+                        ->icon(Heroicon::OutlinedChartBar)
+                        ->url(fn (Event $record): string => EventAnalyticsDetail::getUrl(['subjectType' => 'event', 'subjectId' => $record->getKey()]))
+                        ->visible(fn (): bool => EventAnalyticsDetail::canAccess()),
+                    Action::make('sponsor')
+                        ->label(__('manage.event_links.sponsor'))
+                        ->icon(Heroicon::OutlinedMegaphone)
+                        ->url(fn (Event $record): string => Sponsorships::getUrl(['event' => $record->getKey()]))
+                        ->visible(fn (Event $record): bool => $record->status === EventStatus::Published && Sponsorships::canAccess()),
+                    Action::make('tickets')
+                        ->label(__('manage.event_links.tickets'))
+                        ->icon(Heroicon::OutlinedTicket)
+                        ->url(fn (Event $record): ?string => ($date = VenueEventResource::ticketDate($record)) === null ? null : route('ticketing.manage.show', $date))
+                        ->visible(fn (Event $record): bool => VenueEventResource::ticketDate($record) !== null),
+                    EventActions::viewOnSite(),
+                ])->label(__('manage.event_list.more_actions'))->tooltip(__('manage.event_list.more_actions')),
+            ]);
     }
 
     public static function getRelations(): array
@@ -131,6 +175,11 @@ class EventResource extends Resource
 
     public static function getPages(): array
     {
-        return ['index' => Pages\ListEvents::route('/'), 'create' => Pages\CreateEvent::route('/create'), 'edit' => Pages\EditEvent::route('/{record}/edit')];
+        return [
+            'index' => Pages\ListEvents::route('/'),
+            'create' => Pages\CreateEvent::route('/create'),
+            'view' => Pages\ViewEvent::route('/{record}'),
+            'edit' => Pages\EditEvent::route('/{record}/edit'),
+        ];
     }
 }

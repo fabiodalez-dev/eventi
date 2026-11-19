@@ -90,10 +90,15 @@
                     />
                 @endif
 
+                {{-- Il selettore della vista sta fuori dalla griglia a tutta
+                     larghezza, con il margine laterale della pagina. --}}
+                <div class="px-gutter"><x-card-layout-toggle class="mb-3" /></div>
+
                 <div data-results>
                     <x-event-grid
                         :occurrences="$occurrences->getCollection()"
                         :show-poster="true"
+                        :toggle="false"
                         :offset="($occurrences->currentPage() - 1) * $occurrences->perPage()"
                     />
                 </div>

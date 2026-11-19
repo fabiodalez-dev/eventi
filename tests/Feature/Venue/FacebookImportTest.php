@@ -104,6 +104,15 @@ it('rejects unsafe, fake and oversized images', function (string $variant): void
     expect(fn () => app(FacebookEventImport::class)->photo($this->payload['cover']['url']))->toThrow(RuntimeException::class);
 })->with(['host', 'fake', 'large']);
 
+it('keeps the Facebook line breaks as editor paragraphs and escapes the text', function (): void {
+    $this->payload['description'] = "Venerdì 4 dicembre!\n👉 Serata di sostegno <per tutti>\n✅ Ingresso €12\n\nPorte alle 20.45";
+    $fields = app(FacebookEventImport::class)->formData($this->payload, 'Europe/Rome');
+
+    expect($fields['description'])->toBe('<p>Venerdì 4 dicembre!<br>👉 Serata di sostegno &lt;per tutti&gt;<br>✅ Ingresso €12</p><p>Porte alle 20.45</p>')
+        ->and($fields['price_type'])->toBe('ticket')
+        ->and($fields['price_min'])->toBe(12.0);
+});
+
 it('does not guess a free price when Facebook provides no price', function (): void {
     $this->payload['description'] = 'Un evento senza prezzo dichiarato.';
     expect(app(FacebookEventImport::class)->formData($this->payload, 'Europe/Rome')['price_type'])->toBe('unknown');

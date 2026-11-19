@@ -243,6 +243,67 @@ class Venue extends Model implements HasMedia
         return $this->membersIncludingInvited()->wherePivot('role', VenueRole::Owner->value)->exists();
     }
 
+    /**
+     * Se il locale si può rivendicare: pubblico e senza un referente, nemmeno
+     * invitato. È la stessa domanda per la scheda, la pagina dell'evento, il
+     * modulo e l'app: una sola risposta, scritta qui.
+     */
+    public function isClaimable(): bool
+    {
+        if ($this->status !== VenueStatus::Approved) {
+            return false;
+        }
+
+        /* Negli elenchi la risposta arriva già dalla query (`withClaimState()`):
+           niente query per riga. */
+        $known = $this->getAttribute('has_owner_or_invited_owner');
+
+        return $known !== null ? ! (bool) $known : ! $this->hasOwnerOrInvitedOwner();
+    }
+
+    /**
+     * Aggiunge a ogni locale se ha già un referente, anche solo invitato, per
+     * chiedere `isClaimable()` su un elenco senza una query per riga.
+     *
+     * @param  Builder<Venue>  $query
+     */
+    public function scopeWithClaimState(Builder $query): void
+    {
+        $query->withExists(['membersIncludingInvited as has_owner_or_invited_owner' => static function (Builder $members): void {
+            $members->where('venue_user.role', VenueRole::Owner->value);
+        }]);
+    }
+
+    /**
+     * Lo stesso stato di `withClaimState()` per locali già caricati (per
+     * esempio quelli delle date di un elenco): una sola query per tutti.
+     *
+     * @param  iterable<int, Venue|null>  $venues
+     */
+    public static function loadClaimState(iterable $venues): void
+    {
+        $missing = [];
+        foreach ($venues as $venue) {
+            if ($venue instanceof self && $venue->getAttribute('has_owner_or_invited_owner') === null) {
+                $missing[] = $venue;
+            }
+        }
+
+        if ($missing === []) {
+            return;
+        }
+
+        $known = self::query()->withoutGlobalScopes()
+            ->whereKey(array_map(static fn (self $venue): mixed => $venue->getKey(), $missing))
+            ->withClaimState()
+            ->pluck('has_owner_or_invited_owner', 'id');
+
+        foreach ($missing as $venue) {
+            $venue->setAttribute('has_owner_or_invited_owner', (bool) ($known[$venue->getKey()] ?? false));
+            $venue->syncOriginalAttribute('has_owner_or_invited_owner');
+        }
+    }
+
     /** @return BelongsToMany<User, $this> */
     public function editors(): BelongsToMany
     {

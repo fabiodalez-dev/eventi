@@ -5,13 +5,11 @@ declare(strict_types=1);
 namespace App\Providers\Filament;
 
 use App\Filament\Admin\Pages\Dashboard;
-use App\Filament\Auth\Login;
-use App\Filament\Auth\RequestPasswordReset;
+use App\Http\Middleware\AuthenticatePanel;
+use App\Http\Middleware\AuthenticatePanelSession;
 use App\Http\Middleware\RevalidateImpersonation;
 use Filament\Actions\Action;
 use Filament\FontProviders\LocalFontProvider;
-use Filament\Http\Middleware\Authenticate;
-use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Navigation\NavigationGroup;
@@ -49,14 +47,15 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
-            ->login(Login::class)
             /*
-             * Un amministratore che dimentica la password restava fuori: non
-             * c'e' registrazione da rifare e nessuno a cui chiedere, perche'
-             * chi potrebbe rimediare e' lui. Il pannello dei locali lo aveva
-             * gia'; questo no, e la differenza non era voluta.
+             * Nessuna pagina di accesso propria: si entra da `/accedi`, il
+             * login unico, e da lì ognuno arriva nella propria area o alla
+             * pagina da cui era partito (`PostLoginDestination`). Anche il
+             * recupero della password è quello del sito; i vecchi indirizzi
+             * `/admin/login` e `/admin/password-reset/*` rimandano lì
+             * (`routes/account.php`). Chi è dentro ma non è della redazione
+             * riceve un 403 che lo dice (`AuthenticatePanel`).
              */
-            ->passwordReset(RequestPasswordReset::class)
             ->brandName(fn (): string => (string) config('app.name'))
             /*
              * Lo stesso carattere del sito, servito dal nostro dominio: e' gia'
@@ -74,7 +73,15 @@ class AdminPanelProvider extends PanelProvider
                     ->icon(Heroicon::OutlinedUserCircle)
                     ->url(fn (): string => route('account.profile')),
             ])
-            ->darkMode(false)
+            /*
+             * Il tema è quello scelto sul sito (`/aspetto`): lo script in testa
+             * alla pagina lo scrive dove Filament lo legge, prima che la pagina
+             * si disegni. Il commutatore di Filament è spento: il tema si
+             * sceglie in un posto solo. Vedi `filament.partials.theme-bootstrap`.
+             */
+            ->darkMode(true)
+            ->themeSwitcher(false)
+            ->renderHook(PanelsRenderHook::HEAD_START, fn () => view('filament.partials.theme-bootstrap'))
             ->renderHook(PanelsRenderHook::TOPBAR_END, fn () => view('filament.partials.topbar-actions'))
             /*
              * Il foglio che porta qui dentro l'identita' del sito — titoli Bricolage,
@@ -98,6 +105,7 @@ class AdminPanelProvider extends PanelProvider
              */
             ->navigationGroups([
                 NavigationGroup::make(fn (): string => __('admin.navigation.content')),
+                NavigationGroup::make(fn (): string => __('users.navigation_group')),
                 NavigationGroup::make(fn (): string => __('admin.navigation.places')),
                 NavigationGroup::make(fn (): string => __('admin.navigation.moderation')),
                 NavigationGroup::make(fn (): string => __('admin.navigation.promotion')),
@@ -146,7 +154,7 @@ class AdminPanelProvider extends PanelProvider
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
                 StartSession::class,
-                AuthenticateSession::class,
+                AuthenticatePanelSession::class,
                 RevalidateImpersonation::class,
                 ShareErrorsFromSession::class,
                 PreventRequestForgery::class,
@@ -155,7 +163,7 @@ class AdminPanelProvider extends PanelProvider
                 DispatchServingFilamentEvent::class,
             ])
             ->authMiddleware([
-                Authenticate::class,
+                AuthenticatePanel::class,
             ]);
     }
 }

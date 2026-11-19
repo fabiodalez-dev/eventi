@@ -3242,3 +3242,19 @@ La verifica avviene quando l'app viene installata o aggiornata: chi ha già l'ap
 - Nell'API ogni voce del personale ha `status` (`pending` o `accepted`). Il campo `id` numera le righe e non identifica più l'account; `name` resta uguale all'email per le versioni vecchie dell'app. L'app 1.22.4 mostra lo stato e «Ritira l'invito».
 
 **Ricontrollo:** se il personale di ingresso diventa ricorrente (più date, un intero locale), con un invito per locale invece che per data.
+
+## 19 novembre 2026 — D68. Pagine di servizio con un solo impianto, accesso unico, contatore anonimo dei link
+
+**Contesto:** il proprietario ha chiesto di ridisegnare tutte le pagine di servizio (account, persone, passaggi, biglietteria, pannello del locale) con la stessa larghezza, gli stessi margini e pulsanti riconoscibili, nei due temi, e di togliere i tre accessi separati: dopo il logout da un locale si arrivava a `/gestione/login`, dove la redazione non entrava.
+
+**Decisione:**
+
+- **Un impianto per le pagine di servizio.** Le pagine usano gli stessi componenti (`x-service-page`, `x-card`, `x-button`, `x-service-event-row` con la locandina, `x-empty-state` come card). Niente colonne dentro colonne. Gli elenchi di eventi mostrano sempre la locandina, anche nei pannelli (`PosterColumn`).
+- **Accesso unico.** `/accedi` è l'unica pagina di accesso; `/admin/login`, `/gestione/login` e `/organizza/login` reindirizzano lì portando la destinazione. Dopo l'accesso ognuno arriva nella sua area. Chi apre una pagina riservata senza essere entrato va all'accesso; chi è entrato ma non ha i permessi vede una pagina 403 in tema, con i pulsanti per tornare alla sua area. La verifica in due passaggi per lo staff resta fuori da questo lavoro: con un solo punto di accesso diventa più semplice farla dopo.
+- **Aperture dei link brevi contate senza consenso.** Le aperture di `/s/{code}` si contano come totale anonimo per link e giorno, senza cookie, identificativi o indirizzi IP salvati, con il filtro dei bot e un tetto di dieci aperture contate al giorno per indirizzo e link (che vive solo nel limitatore). Visite, clic e condivisioni restano soggetti al consenso statistico.
+- **Pannelli anche in tema scuro.** I pannelli seguono la scelta d'aspetto della persona come il sito.
+- **Tema «come il sistema».** La scelta si salva come null; nell'API il campo `appearance` resta sempre una stringa (vecchio predefinito `dark`) per le versioni dell'app in circolazione, e la scelta vera sta nel nuovo `appearance_choice`.
+- **Sponsorizzazioni senza pagamento online.** Senza Stripe configurato il locale manda una richiesta (stato `requested`) che la redazione approva dopo aver concordato il pagamento. Con Stripe resta l'acquisto con carta.
+- **Home.** Il calendario del mese sta subito sotto l'apertura, accanto al prossimo evento e ai quattro a seguire; per chi è collegato seguono i suoi interessi, e tutti gli eventi della home, card sponsorizzata compresa, rispettano categorie e locali nascosti. Le finestre «dal vivo» in cache hanno una chiave per insieme di preferenze, così una persona non decide più cosa vedono le altre.
+
+**Ricontrollo:** dopo un mese, quante richieste di sponsorizzazione arrivano e quante vengono approvate, e se il contatore anonimo dei link si discosta molto dalle condivisioni registrate.

@@ -2,15 +2,13 @@
 
 declare(strict_types=1);
 
-use App\Filament\Auth\Login;
 use App\Models\User;
 use App\Notifications\MagicLoginLink;
+use App\Support\AccountLoginThrottle;
 use Database\Seeders\RolesAndPermissionsSeeder;
-use Filament\Facades\Filament;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
-use Livewire\Livewire;
 
 /**
  * Due modi di sapere o provare più di quanto il login lasci intendere: il
@@ -41,26 +39,26 @@ it('fa aspettare il login fallito di sito e pannelli più di un bcrypt vero', fu
     expect(config()->integer('auth.timebox_duration'))->toBeGreaterThanOrEqual(400000);
 });
 
-it('conta i tentativi sul pannello per account anche con le varianti accentate dell email', function (): void {
+it('conta i tentativi della redazione sul login unico per account anche con le varianti dell email', function (): void {
     $gestore = User::factory()->create(['email' => 'admin@example.test', 'password' => 'password-giusta-1']);
     $gestore->assignRole('admin');
     config()->set('api.rate_limit.attempts_per_account', 2);
-    $this->get('/admin/login')->assertOk();
-    Filament::setCurrentPanel(Filament::getPanel('admin'));
 
     foreach (['192.0.2.11', '192.0.2.12'] as $ip) {
-        $this->withServerVariables(['REMOTE_ADDR' => $ip]);
-        Livewire::test(Login::class)->fillForm(['email' => 'admin@example.test', 'password' => 'sbagliata'])
-            ->call('authenticate')->assertHasErrors(['data.email']);
+        $this->withServerVariables(['REMOTE_ADDR' => $ip])
+            ->post(route('account.login.store'), ['email' => 'admin@example.test', 'password' => 'sbagliata'])
+            ->assertSessionHasErrors('email');
     }
 
-    /* 'àdmin@…' per la collation è lo stesso utente: niente secchio nuovo,
-       nemmeno con la password giusta. */
-    $this->withServerVariables(['REMOTE_ADDR' => '192.0.2.13']);
-    Livewire::test(Login::class)->fillForm(['email' => 'àdmin@example.test', 'password' => 'password-giusta-1'])
-        ->call('authenticate')->assertHasErrors(['data.email']);
+    /* 'ADMIN@…' e 'àdmin@…' per la collation sono lo stesso utente: niente
+       secchio nuovo, nemmeno con la password giusta. */
+    $this->withServerVariables(['REMOTE_ADDR' => '192.0.2.13'])
+        ->post(route('account.login.store'), ['email' => 'ADMIN@example.test', 'password' => 'password-giusta-1'])
+        ->assertRedirect(route('login'))
+        ->assertSessionHasErrors('form');
 
-    expect(Auth::check())->toBeFalse();
+    expect(Auth::check())->toBeFalse()
+        ->and(AccountLoginThrottle::chiave('sito', 'àdmin@example.test'))->toBe(AccountLoginThrottle::chiave('sito', 'admin@example.test'));
 });
 
 it('conta le richieste del collegamento mobile sulla casella anche con le varianti accentate', function (): void {

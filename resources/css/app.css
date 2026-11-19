@@ -14,6 +14,14 @@
    nel chiaro Bricolage distingue i titoli e Manrope serve testo e comandi. */
 @import './fonts.css';
 
+/* Il sistema delle pagine di servizio (card, righe, avvisi, pulsanti
+   distruttivi) e i fogli delle singole pagine. Stanno dopo i due temi perché
+   le loro regole per il chiaro devono vincere a parità di specificità. */
+@import './service.css';
+@import './pages/home.css';
+@import './pages/comments.css';
+@import './pages/tonight.css';
+
 /* A missing home cover is a short notice, not an empty portrait poster.
    Leave room for the category and the interested-count overlay in both themes. */
 :root [data-home-page] .event-card .event-poster-frame:has(> [data-event-hero-placeholder]) {
@@ -185,6 +193,19 @@
        testo circostante, quindi si leggevano come una nota qualsiasi. */
     --alert: #ff8080;
 
+    /* Il gesto distruttivo (eliminare, annullare una prenotazione, uscire da
+       un locale): un pulsante pieno, quindi una coppia fondo/testo e non solo
+       un colore di testo come `--alert`. Il nero sopra regge 8:1. */
+    --danger: #ff8080;
+    --on-danger: #0b0b0b;
+
+    /* Lo spazio che la barra in basso del telefono si prende dal fondo della
+       finestra: 3.5rem (le voci, solo icone) più il filo da 2px. Il corpo
+       della pagina lo lascia libero, così l'ultima riga del piè di pagina non
+       finisce sotto la barra. Il tema chiaro, dove la barra galleggia, lo
+       ridefinisce. */
+    --navigation-space: calc(3.5rem + 2px + env(safe-area-inset-bottom));
+
     /* Elevazione: sul nero non si alza niente con un'ombra sfocata — si alza
        con un filo di luce sul bordo. */
     --elev-card: 0 0 0 1px rgba(245, 245, 240, 0.1);
@@ -257,6 +278,8 @@
 
     --color-focus: var(--focus);
     --color-alert: var(--alert);
+    --color-danger: var(--danger);
+    --color-on-danger: var(--on-danger);
 
     --shadow-card: var(--elev-card);
     --shadow-lift: var(--elev-lift);
@@ -342,6 +365,11 @@
     --spacing-card: 0.875rem;
 
     --container-content: 76rem;
+
+    /* La colonna delle pagine di servizio (area personale, moduli, biglietti,
+       community, passaggi): una sola larghezza, così passando da una pagina
+       all'altra il titolo non cambia posto. */
+    --container-service: 48rem;
 
     /* Raggio zero ovunque: nessun angolo si arrotonda, di proposito. I token
        restano perché le classi `rounded-card` e `rounded-pill` li usano. */

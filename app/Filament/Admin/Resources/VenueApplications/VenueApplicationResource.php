@@ -8,29 +8,40 @@ use App\Actions\ApproveVenueApplication;
 use App\Enums\ApplicationKind;
 use App\Enums\ApplicationStatus;
 use App\Enums\VenueType;
+use App\Filament\Admin\Resources\Users\UserResource;
 use App\Filament\Admin\Resources\VenueApplications\Pages\EditVenueApplication;
 use App\Filament\Admin\Resources\VenueApplications\Pages\ListVenueApplications;
+use App\Filament\Admin\Resources\Venues\VenueResource;
 use App\Filament\Concerns\HasSentenceCaseNavigationLabel;
 use App\Models\Organizer;
 use App\Models\User;
+use App\Models\Venue;
 use App\Models\VenueApplication;
+use App\Notifications\VenueApplicationRejected;
 use App\Support\Description;
 use BackedEnum;
+use Carbon\CarbonInterface;
 use Filament\Actions\Action;
-use Filament\Actions\EditAction;
-use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\Toggle;
+use Filament\Infolists\Components\ImageEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
+use Filament\Support\Facades\FilamentTimezone;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\HtmlString;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -38,8 +49,14 @@ use Illuminate\Validation\ValidationException;
  *
  * Ciò che ha scritto chi si candida si **legge** e non si corregge: è la sua
  * dichiarazione, e riscriverla renderebbe impossibile capire, mesi dopo, su
- * quali informazioni era stata presa la decisione. Modificabili sono soltanto
- * l'esito, le note interne e il collegamento al locale creato.
+ * quali informazioni era stata presa la decisione.
+ *
+ * **Si decide dalla pagina che si legge.** L'esito non è un campo del modulo:
+ * una select «Stato» messa ad «Approvata» salvava la richiesta senza creare il
+ * locale né consegnare l'accesso, cioè una richiesta accolta per finta. Le
+ * sole porte sono «Approva» e «Rifiuta», le stesse nella riga dell'elenco e
+ * nell'intestazione della pagina, e passano entrambe sotto lock. Nella pagina
+ * si scrivono soltanto le note interne.
  */
 class VenueApplicationResource extends Resource
 {
@@ -50,6 +67,8 @@ class VenueApplicationResource extends Resource
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedEnvelopeOpen;
 
     protected static ?int $navigationSort = 2;
+
+    protected static bool $hasTitleCaseModelLabel = false;
 
     public static function getNavigationGroup(): ?string
     {
@@ -78,62 +97,256 @@ class VenueApplicationResource extends Resource
         return false;
     }
 
+    /**
+     * Le richieste ancora da confermare restano fuori grazie allo scope
+     * globale del modello. Qui si aggiunge, in una sola lettura, il segnale
+     * «possibile doppione» che l'elenco mostra accanto al nome.
+     *
+     * @return Builder<Model>
+     */
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->with(['reviewer'])
+            ->select('venue_applications.*')
+            ->selectRaw('('.self::duplicateSql().') as possible_duplicate');
+    }
+
+    /**
+     * Un doppione probabile, deciso dal database:
+     *
+     * - una rivendicazione è doppia se un'altra rivendicazione in coda chiede
+     *   lo stesso locale;
+     * - un locale nuovo, se esiste già un locale con lo stesso nome (che non
+     *   sia quello nato da questa richiesta) o se un'altra richiesta in coda
+     *   porta lo stesso nome;
+     * - un'organizzazione, se esiste già un organizzatore con lo stesso nome o
+     *   un'altra richiesta in coda lo porta.
+     *
+     * È un avviso, non un blocco: due «Bar Centrale» in due comuni esistono
+     * davvero. Chi decide apre la richiesta e trova i nomi con i collegamenti.
+     */
+    private static function duplicateSql(): string
+    {
+        $claim = ApplicationKind::Claim->value;
+        $organizer = ApplicationKind::Organizer->value;
+        $pending = ApplicationStatus::Pending->value;
+
+        $altre = "EXISTS (SELECT 1 FROM venue_applications AS altre WHERE altre.id <> venue_applications.id AND altre.status = '{$pending}' AND altre.email_confirmed_at IS NOT NULL";
+
+        return "CASE WHEN venue_applications.kind = '{$claim}' THEN {$altre} AND altre.kind = '{$claim}' AND altre.venue_id = venue_applications.venue_id)"
+            ." WHEN venue_applications.kind = '{$organizer}' THEN (EXISTS (SELECT 1 FROM organizers WHERE LOWER(organizers.name) = LOWER(venue_applications.venue_name) AND (venue_applications.organizer_id IS NULL OR organizers.id <> venue_applications.organizer_id))"
+            ." OR {$altre} AND altre.kind = '{$organizer}' AND LOWER(altre.venue_name) = LOWER(venue_applications.venue_name)))"
+            .' ELSE (EXISTS (SELECT 1 FROM venues WHERE venues.deleted_at IS NULL AND LOWER(venues.name) = LOWER(venue_applications.venue_name) AND (venue_applications.venue_id IS NULL OR venues.id <> venue_applications.venue_id))'
+            ." OR {$altre} AND (altre.kind IS NULL OR altre.kind <> '{$claim}') AND LOWER(altre.venue_name) = LOWER(venue_applications.venue_name)))"
+            .' END';
+    }
+
+    /**
+     * I doppioni probabili di una richiesta, per la pagina di lettura: gli
+     * stessi criteri di `duplicateSql()`, con i nomi e i collegamenti.
+     *
+     * @return list<array{label: string, url: string|null}>
+     */
+    public static function duplicates(VenueApplication $record): array
+    {
+        $kind = $record->kind();
+        $name = mb_strtolower(trim($record->venue_name));
+        $found = [];
+
+        $others = VenueApplication::query()->whereKeyNot($record->getKey())->pending()
+            ->when(
+                $kind === ApplicationKind::Claim,
+                fn (Builder $query) => $query->where('kind', ApplicationKind::Claim)->where('venue_id', $record->venue_id),
+                fn (Builder $query) => $query->whereRaw('LOWER(venue_name) = ?', [$name])
+                    ->where(fn (Builder $kinds) => $kind === ApplicationKind::Organizer
+                        ? $kinds->where('kind', ApplicationKind::Organizer)
+                        : $kinds->whereNull('kind')->orWhere('kind', ApplicationKind::Venue)),
+            )
+            ->latest('id')->limit(5)->get();
+
+        foreach ($others as $other) {
+            $found[] = [
+                'label' => __('venue_applications.admin.duplicate_application', ['name' => $other->venue_name, 'contact' => $other->contact_name, 'date' => ($ricevuta = $other->getAttribute('created_at')) instanceof CarbonInterface ? $ricevuta->copy()->timezone(FilamentTimezone::get())->format('d/m/Y') : '—']),
+                'url' => self::getUrl('edit', ['record' => $other]),
+            ];
+        }
+
+        if ($kind === ApplicationKind::Venue) {
+            $venues = Venue::query()->whereRaw('LOWER(name) = ?', [$name])
+                ->when($record->venue_id !== null, fn (Builder $query) => $query->whereKeyNot($record->venue_id))
+                ->limit(5)->get();
+            foreach ($venues as $venue) {
+                $found[] = ['label' => __('venue_applications.admin.duplicate_venue', ['name' => $venue->name, 'address' => $venue->address ?: '—']), 'url' => VenueResource::getUrl('edit', ['record' => $venue])];
+            }
+        }
+
+        if ($kind === ApplicationKind::Organizer) {
+            $organizers = Organizer::query()->whereRaw('LOWER(name) = ?', [$name])
+                ->when($record->organizer_id !== null, fn (Builder $query) => $query->whereKeyNot($record->organizer_id))
+                ->limit(5)->get();
+            foreach ($organizers as $organizer) {
+                $found[] = ['label' => __('venue_applications.admin.duplicate_organizer', ['name' => $organizer->name]), 'url' => $organizer->is_active ? route('organizers.show', $organizer) : null];
+            }
+        }
+
+        return $found;
+    }
+
     public static function form(Schema $schema): Schema
     {
         return $schema->columns(1)
             ->components([
-                Section::make(__('admin.sections.general'))
-                    ->columns(2)
+                Section::make(__('venue_applications.admin.sections.outcome'))
+                    ->description(fn (VenueApplication $record): string => self::outcomeHint($record))
+                    ->columns(1)
                     ->schema([
+                        TextEntry::make('status')
+                            ->label(__('admin.fields.status'))
+                            ->inlineLabel()
+                            ->badge()
+                            ->formatStateUsing(fn (ApplicationStatus $state): string => $state->label())
+                            ->color(fn (ApplicationStatus $state): string => self::statusColor($state)),
                         TextEntry::make('kind')
                             ->label(__('admin.fields.kind'))
+                            ->inlineLabel()
                             ->badge()
-                            ->formatStateUsing(fn (ApplicationKind $state): string => $state->label()),
-                        TextEntry::make('venue_name')->label(__('admin.fields.venue_name')),
+                            ->color('gray')
+                            ->state(fn (VenueApplication $record): string => $record->kind()->label()),
+                        TextEntry::make('created_at')
+                            ->label(__('venue_applications.admin.fields.received_at'))
+                            ->inlineLabel()
+                            ->dateTime('d/m/Y H:i'),
+                        TextEntry::make('email_confirmed_at')
+                            ->label(__('venue_applications.admin.fields.queued_at'))
+                            ->inlineLabel()
+                            ->dateTime('d/m/Y H:i')
+                            ->placeholder(__('admin.placeholders.none')),
+                        TextEntry::make('reviewed')
+                            ->label(__('admin.fields.reviewed_by'))
+                            ->inlineLabel()
+                            ->state(fn (VenueApplication $record): ?string => $record->reviewed_at === null ? null : __('venue_applications.admin.reviewed', [
+                                'name' => $record->reviewer->name ?? __('venue_applications.admin.someone'),
+                                'date' => $record->reviewed_at->copy()->timezone(FilamentTimezone::get())->format('d/m/Y H:i'),
+                            ]))
+                            ->placeholder(__('venue_applications.admin.not_reviewed')),
+                        TextEntry::make('linked')
+                            ->label(fn (VenueApplication $record): string => $record->kind() === ApplicationKind::Organizer ? __('venue_applications.admin.fields.organizer') : __('admin.fields.venue'))
+                            ->inlineLabel()
+                            ->state(fn (VenueApplication $record): ?string => $record->kind() === ApplicationKind::Organizer ? $record->organizer?->name : $record->venue?->name)
+                            ->url(fn (VenueApplication $record): ?string => self::linkedUrl($record))
+                            ->color('primary')
+                            ->icon(Heroicon::OutlinedArrowTopRightOnSquare)
+                            ->iconPosition('after')
+                            ->placeholder(__('venue_applications.admin.not_linked')),
+                        TextEntry::make('duplicates')
+                            ->label(__('venue_applications.admin.possible_duplicate'))
+                            ->inlineLabel()
+                            ->visible(fn (VenueApplication $record): bool => $record->status === ApplicationStatus::Pending && self::duplicates($record) !== [])
+                            ->state(fn (VenueApplication $record): HtmlString => self::duplicatesHtml($record))
+                            ->html()
+                            ->helperText(__('venue_applications.admin.duplicate_hint')),
+                    ]),
+
+                Section::make(fn (VenueApplication $record): string => $record->kind() === ApplicationKind::Organizer ? __('venue_applications.admin.sections.organizer') : __('venue_applications.admin.sections.venue'))
+                    ->columns(1)
+                    ->schema([
+                        TextEntry::make('venue_name')->label(__('admin.fields.venue_name'))->inlineLabel(),
                         TextEntry::make('type')
                             ->label(__('admin.fields.type'))
+                            ->inlineLabel()
+                            ->visible(fn (VenueApplication $record): bool => $record->kind() !== ApplicationKind::Organizer)
                             ->formatStateUsing(fn (VenueType $state): string => $state->label()),
                         TextEntry::make('address')
                             ->label(__('admin.fields.address'))
+                            ->inlineLabel()
+                            ->visible(fn (VenueApplication $record): bool => $record->kind() !== ApplicationKind::Organizer)
                             ->placeholder(__('admin.placeholders.none')),
+                        self::datum('postal_code'),
+                        self::datum('municipality'),
+                        self::datum('capacity'),
+                        TextEntry::make('venue_description')
+                            ->label(__('venue_applications.admin.fields.description'))
+                            ->inlineLabel()
+                            ->visible(fn (VenueApplication $record): bool => filled($record->venueDatum('description')))
+                            ->state(fn (VenueApplication $record): HtmlString => Description::render((string) $record->venueDatum('description'))),
                         TextEntry::make('message')
                             ->formatStateUsing(fn (?string $state) => Description::render($state))
-                            ->label(__('admin.fields.message'))
-                            ->placeholder(__('admin.placeholders.none'))
-                            ->columnSpanFull(),
+                            ->label(fn (VenueApplication $record): string => $record->kind() === ApplicationKind::Claim ? __('venue_applications.admin.fields.proof') : __('admin.fields.message'))
+                            ->inlineLabel()
+                            ->placeholder(__('admin.placeholders.none')),
                     ]),
 
-                Section::make(__('admin.sections.contacts'))
-                    ->columns(2)
+                Section::make(__('venue_applications.admin.sections.public_contacts'))
+                    ->description(__('venue_applications.admin.public_contacts_hint'))
+                    ->columns(1)
+                    ->visible(fn (VenueApplication $record): bool => $record->kind() !== ApplicationKind::Claim)
                     ->schema([
-                        TextEntry::make('contact_name')->label(__('admin.fields.contact_name')),
+                        TextEntry::make('website')
+                            ->label(__('venue_applications.admin.fields.website'))
+                            ->inlineLabel()
+                            ->state(fn (VenueApplication $record): ?string => self::website($record))
+                            ->url(fn (VenueApplication $record): ?string => self::website($record), shouldOpenInNewTab: true)
+                            ->color('primary')
+                            ->placeholder(__('admin.placeholders.none')),
+                        self::datum('public_email'),
+                        self::datum('public_phone'),
+                        self::datum('instagram', link: true),
+                        self::datum('facebook', link: true),
+                    ]),
+
+                Section::make(__('venue_applications.admin.sections.image'))
+                    ->description(__('venue_applications.admin.image_hint'))
+                    ->columns(1)
+                    ->visible(fn (VenueApplication $record): bool => filled($record->image_path))
+                    ->schema([
+                        ImageEntry::make('image_preview')
+                            ->hiddenLabel()
+                            ->state(fn (VenueApplication $record): string => route('venue-applications.image', $record->getKey()))
+                            ->url(fn (VenueApplication $record): string => route('venue-applications.image', $record->getKey()), shouldOpenInNewTab: true)
+                            ->imageHeight(220)
+                            ->extraImgAttributes(['alt' => __('venue_applications.admin.image_alt'), 'class' => 'object-cover']),
+                    ]),
+
+                Section::make(__('venue_applications.admin.sections.contact'))
+                    ->description(__('venue_applications.admin.contact_hint'))
+                    ->columns(1)
+                    ->schema([
+                        TextEntry::make('contact_name')->label(__('admin.fields.contact_name'))->inlineLabel(),
                         TextEntry::make('contact_role')
                             ->label(__('admin.fields.contact_role'))
+                            ->inlineLabel()
                             ->placeholder(__('admin.placeholders.none')),
-                        TextEntry::make('contact_email')->label(__('admin.fields.contact_email')),
+                        TextEntry::make('contact_email')->label(__('admin.fields.contact_email'))->inlineLabel()->copyable(),
                         TextEntry::make('contact_phone')
                             ->label(__('admin.fields.contact_phone'))
+                            ->inlineLabel()
                             ->placeholder(__('admin.placeholders.none')),
+                        TextEntry::make('account')
+                            ->label(__('venue_applications.admin.fields.account'))
+                            ->inlineLabel()
+                            ->state(fn (VenueApplication $record): ?string => $record->user === null ? null : $record->user->name.' · '.$record->user->email)
+                            ->url(fn (VenueApplication $record): ?string => $record->user === null ? null : UserResource::getUrl('edit', ['record' => $record->user]))
+                            ->color('primary')
+                            ->placeholder(__('venue_applications.admin.no_account')),
+                        TextEntry::make('account_state')
+                            ->label(__('venue_applications.admin.fields.account_state'))
+                            ->inlineLabel()
+                            ->visible(fn (VenueApplication $record): bool => $record->user !== null)
+                            ->badge()
+                            ->state(fn (VenueApplication $record): string => $record->user?->hasVerifiedEmail() ? __('venue_applications.admin.account_verified') : __('venue_applications.admin.account_unverified'))
+                            ->color(fn (VenueApplication $record): string => $record->user?->hasVerifiedEmail() ? 'success' : 'warning'),
                     ]),
 
-                Section::make(__('admin.sections.review'))
-                    ->columns(2)
+                Section::make(__('venue_applications.admin.sections.notes'))
+                    ->description(__('venue_applications.admin.notes_hint'))
+                    ->columns(1)
                     ->schema([
-                        Select::make('status')
-                            ->label(__('admin.fields.status'))
-                            ->options(ApplicationStatus::options())
-                            ->required(),
-
-                        Select::make('venue_id')
-                            ->label(__('admin.fields.venue'))
-                            ->relationship('venue', 'name')
-                            ->searchable()
-                            ->preload(),
-
                         Textarea::make('notes')
                             ->label(__('admin.fields.notes'))
+                            ->hiddenLabel()
                             ->rows(4)
-                            ->columnSpanFull(),
+                            ->maxLength(5000),
                     ]),
             ]);
     }
@@ -143,131 +356,283 @@ class VenueApplicationResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('created_at')
-                    ->label(__('admin.fields.created_at'))
+                    ->label(__('venue_applications.admin.fields.received_at'))
                     ->dateTime('d/m/Y H:i')
+                    ->visibleFrom('md')
                     ->sortable(),
-
-                TextColumn::make('kind')
-                    ->label(__('admin.fields.kind'))
-                    ->badge()
-                    ->formatStateUsing(fn (ApplicationKind $state): string => $state->label()),
 
                 TextColumn::make('venue_name')
                     ->label(__('admin.fields.venue_name'))
+                    ->weight('semibold')
+                    /* Sul telefono la colonna dei segnali non c'è: l'avviso del
+                       doppione sta sotto il nome, così l'elenco non scorre di lato. */
+                    ->description(fn (VenueApplication $record): HtmlString => new HtmlString(e($record->kind()->label()).(
+                        $record->status === ApplicationStatus::Pending && (bool) $record->getAttribute('possible_duplicate')
+                            ? ' <span class="font-semibold text-warning-700 md:hidden dark:text-warning-400">· '.e(__('venue_applications.admin.possible_duplicate')).'</span>'
+                            : ''
+                    )))
+                    ->wrap()
                     ->searchable(),
+
+                TextColumn::make('possible_duplicate')
+                    ->label(__('venue_applications.admin.signals'))
+                    ->badge()
+                    ->color('warning')
+                    ->icon(Heroicon::OutlinedExclamationTriangle)
+                    ->visibleFrom('md')
+                    ->state(fn (VenueApplication $record): ?string => $record->status === ApplicationStatus::Pending && (bool) $record->getAttribute('possible_duplicate') ? __('venue_applications.admin.possible_duplicate') : null),
 
                 TextColumn::make('contact_name')
                     ->label(__('admin.fields.contact_name'))
-                    ->searchable(),
-
-                TextColumn::make('contact_email')
-                    ->label(__('admin.fields.contact_email'))
-                    ->searchable(),
-
-                TextColumn::make('type')
-                    ->label(__('admin.fields.type'))
-                    ->badge()
-                    ->formatStateUsing(fn (VenueType $state): string => $state->label()),
+                    ->visibleFrom('lg')
+                    ->description(fn (VenueApplication $record): string => (string) $record->contact_email)
+                    ->wrap()
+                    ->searchable(['contact_name', 'contact_email']),
 
                 TextColumn::make('status')
                     ->label(__('admin.fields.status'))
                     ->badge()
+                    ->visibleFrom('sm')
                     ->formatStateUsing(fn (ApplicationStatus $state): string => $state->label())
-                    ->color(fn (ApplicationStatus $state): string => match ($state) {
-                        ApplicationStatus::Pending => 'warning',
-                        ApplicationStatus::Approved => 'success',
-                        ApplicationStatus::Rejected => 'danger',
-                    }),
+                    ->color(fn (ApplicationStatus $state): string => self::statusColor($state)),
+
+                TextColumn::make('type')
+                    ->label(__('admin.fields.type'))
+                    ->badge()
+                    ->formatStateUsing(fn (VenueType $state): string => $state->label())
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('reviewer.name')
                     ->label(__('admin.fields.reviewed_by'))
-                    ->placeholder(__('admin.placeholders.none')),
+                    ->placeholder(__('admin.placeholders.none'))
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('created_at', 'desc')
+            ->recordUrl(fn (VenueApplication $record): string => self::getUrl('edit', ['record' => $record]))
             ->filters([
-                SelectFilter::make('status')
-                    ->label(__('admin.fields.status'))
-                    ->options(ApplicationStatus::options()),
+                SelectFilter::make('kind')
+                    ->label(__('admin.fields.kind'))
+                    ->options(ApplicationKind::options()),
 
                 SelectFilter::make('type')
                     ->label(__('admin.fields.type'))
                     ->options(VenueType::options()),
             ])
             ->recordActions([
-                /*
-                 * **Accettare una richiesta crea il locale.**
-                 *
-                 * Fin qui c'era solo «Modifica»: la coda sapeva contare le
-                 * richieste ma non c'era modo di accoglierne una. Chi voleva
-                 * farlo apriva la richiesta, andava in un'altra pagina e
-                 * ricopiava i dati a mano — col rischio di ricopiarli male e
-                 * la certezza di perdere il filo fra il locale nuovo e la
-                 * richiesta che l'aveva chiesto.
-                 */
-                Action::make('approva')
-                    ->label(__('admin.actions.approve'))
-                    ->icon(Heroicon::OutlinedCheckCircle)
-                    ->color('success')
-                    ->requiresConfirmation()
-                    ->modalDescription(fn (VenueApplication $record): string => match ($record->kind()) {
-                        ApplicationKind::Claim => __('venue_applications.approve_claim_confirm'),
-                        ApplicationKind::Organizer => __('venue_applications.approve_organizer_confirm'),
-                        ApplicationKind::Venue => __('venue_applications.approve_confirm'),
-                    })
-                    ->visible(fn (VenueApplication $record): bool => $record->status !== ApplicationStatus::Approved)
-                    ->action(function (VenueApplication $record): void {
-                        $moderatore = Auth::user();
-
-                        if (! $moderatore instanceof User) {
-                            return;
-                        }
-
-                        $kind = $record->kind();
-                        try {
-                            $soggetto = app(ApproveVenueApplication::class)->handle($record, $moderatore);
-                        } catch (ValidationException $exception) {
-                            Notification::make()->title($exception->validator->errors()->first())->danger()->send();
-
-                            return;
-                        }
-
-                        [$titolo, $corpo] = match (true) {
-                            $soggetto instanceof Organizer => [__('venue_applications.approved_organizer', ['organizer' => $soggetto->name]), __('venue_applications.approved_organizer_body')],
-                            $kind === ApplicationKind::Claim => [__('venue_applications.approved_claim', ['venue' => $soggetto->name]), __('venue_applications.approved_claim_body')],
-                            default => [__('venue_applications.approved', ['venue' => $soggetto->name]), __('venue_applications.approved_body')],
-                        };
-
-                        Notification::make()->title($titolo)->body($corpo)->success()->send();
-                    }),
-
-                Action::make('rifiuta')
-                    ->label(__('admin.actions.reject'))
-                    ->icon(Heroicon::OutlinedXCircle)
-                    ->color('danger')
-                    ->visible(fn (VenueApplication $record): bool => $record->status !== ApplicationStatus::Rejected)
-                    ->schema([
-                        Textarea::make('notes')
-                            ->label(__('venue_applications.reject_reason'))
-                            ->required()
-                            ->rows(3),
-                    ])
-                    /* Il motivo si scrive e si conserva: fra un mese, quando
-                       la stessa persona riscrivera' chiedendo perche', la
-                       risposta dev'essere nella scheda e non nella memoria di
-                       chi decise. */
-                    ->action(function (VenueApplication $record, array $data): void {
-                        $record->forceFill([
-                            'status' => ApplicationStatus::Rejected,
-                            'reviewed_by' => Auth::id(),
-                            'reviewed_at' => now(),
-                            'notes' => (string) $data['notes'],
-                        ])->save();
-
-                        Notification::make()->title(__('venue_applications.rejected'))->success()->send();
-                    }),
-
-                EditAction::make(),
+                self::approveAction(),
+                self::rejectAction(),
             ]);
+    }
+
+    /**
+     * **Accettare una richiesta crea il locale** (o l'organizzatore, o
+     * consegna le chiavi del locale rivendicato). La stessa azione sta nella
+     * riga dell'elenco e nell'intestazione della pagina.
+     *
+     * Passa sempre da `ApproveVenueApplication`, dentro una transazione che
+     * blocca la riga della richiesta: due clic, o due persone nello stesso
+     * minuto, non creano due locali. Lo stato si rilegge sotto lock, perché
+     * la pagina da cui si clicca l'ha letto prima.
+     */
+    public static function approveAction(): Action
+    {
+        return Action::make('approva')
+            ->label(__('admin.actions.approve'))
+            ->icon(Heroicon::OutlinedCheckCircle)
+            ->color('success')
+            ->authorize('update')
+            ->requiresConfirmation()
+            ->modalHeading(fn (VenueApplication $record): string => __('venue_applications.admin.approve_heading', ['venue' => $record->venue_name]))
+            ->modalDescription(fn (VenueApplication $record): string => match ($record->kind()) {
+                ApplicationKind::Claim => __('venue_applications.approve_claim_confirm'),
+                ApplicationKind::Organizer => __('venue_applications.approve_organizer_confirm'),
+                ApplicationKind::Venue => __('venue_applications.approve_confirm'),
+            })
+            ->modalSubmitActionLabel(__('admin.actions.approve'))
+            ->visible(fn (VenueApplication $record): bool => $record->status !== ApplicationStatus::Approved)
+            ->action(function (VenueApplication $record): void {
+                $moderatore = Auth::user();
+
+                if (! $moderatore instanceof User) {
+                    return;
+                }
+
+                $kind = $record->kind();
+                try {
+                    $soggetto = DB::transaction(function () use ($record, $moderatore): Venue|Organizer {
+                        $richiesta = VenueApplication::query()->lockForUpdate()->find($record->getKey());
+
+                        if (! $richiesta instanceof VenueApplication) {
+                            throw ValidationException::withMessages(['status' => __('venue_applications.awaiting_email')]);
+                        }
+                        if ($richiesta->status === ApplicationStatus::Approved) {
+                            throw ValidationException::withMessages(['status' => __('venue_applications.admin.already_approved')]);
+                        }
+
+                        return app(ApproveVenueApplication::class)->handle($richiesta, $moderatore);
+                    });
+                } catch (ValidationException $exception) {
+                    Notification::make()->title($exception->validator->errors()->first())->danger()->send();
+                    $record->refresh();
+
+                    return;
+                }
+
+                $record->refresh();
+                Cache::forget('nav-badge:venue-applications-pending');
+
+                [$titolo, $corpo] = match (true) {
+                    $soggetto instanceof Organizer => [__('venue_applications.approved_organizer', ['organizer' => $soggetto->name]), __('venue_applications.approved_organizer_body')],
+                    $kind === ApplicationKind::Claim => [__('venue_applications.approved_claim', ['venue' => $soggetto->name]), __('venue_applications.approved_claim_body')],
+                    default => [__('venue_applications.approved', ['venue' => $soggetto->name]), __('venue_applications.approved_body')],
+                };
+
+                Notification::make()->title($titolo)->body($corpo)->success()->send();
+            });
+    }
+
+    /**
+     * Rifiutare chiede un motivo, che resta nella scheda: fra un mese, quando
+     * la stessa persona riscriverà chiedendo perché, la risposta dev'essere
+     * qui e non nella memoria di chi decise. Avvisare chi ha scritto è una
+     * scelta, e l'avviso va solo all'account che ha mandato la richiesta.
+     */
+    public static function rejectAction(): Action
+    {
+        return Action::make('rifiuta')
+            ->label(__('admin.actions.reject'))
+            ->icon(Heroicon::OutlinedXCircle)
+            ->color('danger')
+            ->authorize('update')
+            ->modalHeading(fn (VenueApplication $record): string => __('venue_applications.admin.reject_heading', ['venue' => $record->venue_name]))
+            ->modalSubmitActionLabel(__('admin.actions.reject'))
+            ->visible(fn (VenueApplication $record): bool => $record->status === ApplicationStatus::Pending)
+            ->schema(fn (VenueApplication $record): array => [
+                Textarea::make('notes')
+                    ->label(__('venue_applications.reject_reason'))
+                    ->helperText(__('venue_applications.admin.reject_reason_hint'))
+                    ->required()
+                    ->maxLength(5000)
+                    ->rows(3),
+                Toggle::make('notify')
+                    ->label(__('venue_applications.admin.reject_notify'))
+                    ->helperText($record->user === null ? __('venue_applications.admin.reject_notify_unavailable') : __('venue_applications.admin.reject_notify_hint', ['email' => $record->user->email]))
+                    ->disabled($record->user === null)
+                    ->default(false)
+                    ->live(),
+                Textarea::make('message')
+                    ->label(__('venue_applications.admin.reject_message'))
+                    ->helperText(__('venue_applications.admin.reject_message_hint'))
+                    ->visible(fn (Get $get): bool => (bool) $get('notify'))
+                    ->maxLength(2000)
+                    ->rows(3),
+            ])
+            ->action(function (VenueApplication $record, array $data): void {
+                $moderatore = Auth::user();
+
+                if (! $moderatore instanceof User) {
+                    return;
+                }
+
+                $rifiutata = DB::transaction(function () use ($record, $moderatore, $data): ?VenueApplication {
+                    $richiesta = VenueApplication::query()->lockForUpdate()->find($record->getKey());
+
+                    if (! $richiesta instanceof VenueApplication || $richiesta->status !== ApplicationStatus::Pending) {
+                        return null;
+                    }
+
+                    $richiesta->forceFill([
+                        'status' => ApplicationStatus::Rejected,
+                        'reviewed_by' => $moderatore->getKey(),
+                        'reviewed_at' => now(),
+                        'notes' => (string) $data['notes'],
+                    ])->save();
+
+                    return $richiesta;
+                });
+
+                $record->refresh();
+
+                if ($rifiutata === null) {
+                    Notification::make()->title(__('venue_applications.admin.already_decided'))->danger()->send();
+
+                    return;
+                }
+
+                Cache::forget('nav-badge:venue-applications-pending');
+
+                $mittente = $rifiutata->user;
+                $avvisa = (bool) ($data['notify'] ?? false) && $mittente instanceof User;
+                if ($avvisa) {
+                    $mittente->notify(new VenueApplicationRejected($rifiutata, isset($data['message']) ? (string) $data['message'] : null));
+                }
+
+                Notification::make()
+                    ->title(__('venue_applications.rejected'))
+                    ->body($avvisa ? __('venue_applications.admin.rejected_notified') : null)
+                    ->success()
+                    ->send();
+            });
+    }
+
+    public static function statusColor(ApplicationStatus $state): string
+    {
+        return match ($state) {
+            ApplicationStatus::Pending => 'warning',
+            ApplicationStatus::Approved => 'success',
+            ApplicationStatus::Rejected => 'danger',
+        };
+    }
+
+    private static function outcomeHint(VenueApplication $record): string
+    {
+        return match ($record->status) {
+            ApplicationStatus::Pending => __('venue_applications.admin.outcome_pending'),
+            ApplicationStatus::Approved => __('venue_applications.admin.outcome_approved'),
+            ApplicationStatus::Rejected => __('venue_applications.admin.outcome_rejected'),
+        };
+    }
+
+    private static function linkedUrl(VenueApplication $record): ?string
+    {
+        if ($record->kind() === ApplicationKind::Organizer) {
+            return $record->organizer?->is_active ? route('organizers.show', $record->organizer) : null;
+        }
+
+        return $record->venue === null ? null : VenueResource::getUrl('edit', ['record' => $record->venue]);
+    }
+
+    private static function website(VenueApplication $record): ?string
+    {
+        $website = $record->venueDatum('website') ?? (is_array($record->socials) ? ($record->socials['website'] ?? null) : null);
+
+        return is_string($website) && $website !== '' ? $website : null;
+    }
+
+    /** Un dato pubblico del locale scritto nella richiesta (`venue_data`). */
+    private static function datum(string $key, bool $link = false): TextEntry
+    {
+        $entry = TextEntry::make('venue_data_'.$key)
+            ->label(__('venue_applications.admin.fields.'.$key))
+            ->inlineLabel()
+            ->state(fn (VenueApplication $record): ?string => ($value = $record->venueDatum($key)) === null ? null : (string) $value)
+            ->placeholder(__('admin.placeholders.none'));
+
+        if ($link) {
+            $entry->url(fn (VenueApplication $record): ?string => is_string($url = $record->venueDatum($key)) && str_starts_with($url, 'http') ? $url : null, shouldOpenInNewTab: true)
+                ->color('primary');
+        }
+
+        return $entry;
+    }
+
+    private static function duplicatesHtml(VenueApplication $record): HtmlString
+    {
+        $items = array_map(static fn (array $item): string => $item['url'] === null
+            ? '<li>'.e($item['label']).'</li>'
+            : '<li><a href="'.e($item['url']).'" class="text-primary-600 underline dark:text-primary-400">'.e($item['label']).'</a></li>', self::duplicates($record));
+
+        return new HtmlString('<ul class="flex list-disc flex-col gap-1 ps-5">'.implode('', $items).'</ul>');
     }
 
     /**

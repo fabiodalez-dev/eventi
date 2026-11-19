@@ -9,7 +9,9 @@ use App\Actions\ModerateEventAction;
 use App\Actions\PublishEventAction;
 use App\Enums\EventStatus;
 use App\Filament\Admin\Resources\Events\EventResource;
+use App\Filament\Admin\Resources\Sponsorships\SponsorshipResource;
 use App\Models\Event;
+use App\Models\Sponsorship;
 use App\Models\User;
 use Carbon\Carbon;
 use Filament\Actions\Action;
@@ -46,6 +48,70 @@ final class EventModeration
                 self::duplicate(),
             ])->dropdown(),
         ];
+    }
+
+    /**
+     * Le decisioni nell'intestazione della scheda in sola lettura: lì «Vedi
+     * sul sito» sta già fra i pulsanti della testata, e ripeterlo sopra
+     * sarebbe un doppione.
+     *
+     * @return array<Action|ActionGroup>
+     */
+    public static function decisions(): array
+    {
+        return [
+            self::publish(),
+            ActionGroup::make([
+                self::unpublish(),
+                self::reject(),
+                self::cancel(),
+                self::feature(),
+                self::duplicate(),
+            ])
+                ->label(__('admin.actions.more'))
+                ->icon(Heroicon::OutlinedEllipsisVertical)
+                ->button()
+                ->color('gray')
+                ->dropdown(),
+        ];
+    }
+
+    /**
+     * Le stesse decisioni **nella riga dell'elenco**, senza menu annidati:
+     * le raccoglie l'`ActionGroup` della tabella. Ognuna compare solo quando
+     * ha senso e chiede il suo permesso, come nell'intestazione della scheda.
+     *
+     * @return list<Action>
+     */
+    public static function rowActions(): array
+    {
+        return [
+            self::publish(),
+            self::unpublish(),
+            self::reject(),
+            self::cancel(),
+            self::feature(),
+            self::duplicate(),
+            self::viewOnSite(),
+        ];
+    }
+
+    /**
+     * «Sponsorizza questo evento»: dalla scheda in redazione alla nuova
+     * campagna, con l'evento già indicato nell'indirizzo. Compare solo a chi
+     * può creare sponsorizzazioni e solo su un evento pubblicato con una data
+     * futura, l'unico su cui una campagna si vede davvero.
+     */
+    public static function sponsor(): Action
+    {
+        return Action::make('sponsor')
+            ->label(__('admin.actions.sponsor'))
+            ->icon(Heroicon::OutlinedMegaphone)
+            ->color('gray')
+            ->url(fn (Event $record): string => SponsorshipResource::getUrl('create', ['event' => $record->getKey()]))
+            ->authorize(fn (): bool => auth()->user()?->can('create', Sponsorship::class) ?? false)
+            ->visible(fn (Event $record): bool => $record->status === EventStatus::Published
+                && $record->occurrences()->where('starts_at', '>=', now())->exists());
     }
 
     /**

@@ -23,7 +23,7 @@ return [
     'paid' => 'Sponsorizzazioni degli eventi', 'impressions' => 'Impressioni', 'paid_clicks' => 'Click sponsorizzati',
     'channel' => 'Canale', 'placement' => 'Posizione', 'page' => 'Pagina di provenienza',
     'empty' => 'Non ci sono misure registrate nel periodo scelto. Prova ad ampliare il periodo.',
-    'coverage' => 'Le aperture e i click web sono conteggiati solo dopo il consenso alle statistiche. La raccolta interna parte da questo aggiornamento: i giorni precedenti senza misure non indicano assenza di visite. Le aperture includono le visite ripetute, non sono visitatori unici. Il traffico dell’app non è incluso nelle aperture web.',
+    'coverage' => 'Le aperture dei link brevi sono un totale anonimo contato anche senza consenso; le visite e i click web sono conteggiati solo dopo il consenso alle statistiche. La raccolta interna parte da questo aggiornamento: i giorni precedenti senza misure non indicano assenza di visite. Le aperture includono le visite ripetute, non sono visitatori unici. Il traffico dell’app non è incluso nelle aperture web.',
     'definitions' => 'I click misurano l’apertura dei collegamenti, non acquisti o prenotazioni completate. Le condivisioni includono la copia del link. Salvataggi e nuovi follower contano le relazioni create nel periodo e ancora presenti; i salvataggi anonimi nel browser non sono inclusi. Le sponsorizzazioni riportano i canali già tracciati, separatamente dalle aperture.',
     'metrics' => [
         'views' => 'Visualizzazioni', 'direction_clicks' => 'Indicazioni', 'ticket_clicks' => 'Click biglietti',

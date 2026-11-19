@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Enums\EventStatus;
 use App\Enums\StatsPeriod;
 use App\Filament\Venue\Pages\Statistics;
+use App\Filament\Venue\Resources\Events\EventResource;
 use App\Filament\Venue\Widgets\TodayScheduleWidget;
 use App\Filament\Venue\Widgets\VenueOverviewWidget;
 use App\Models\Event;
@@ -96,14 +97,32 @@ it('disegna il riquadro di stasera solo se c’è qualcosa', function (): void {
     expect(TodayScheduleWidget::canView())->toBeTrue();
 });
 
-it('mostra i tre numeri del riepilogo', function (): void {
+it('mostra i tre numeri del cartellone, ognuno verso la scheda giusta dell’elenco', function (): void {
     $this->scenario->publishedEventA->occurrences()->delete();
     occurrenceFor($this->scenario->publishedEventA, '2026-09-10 21:30');
 
+    // Le visite non sono più un numero qui: il riepilogo del periodo, sotto, le mostra già.
     Livewire::test(VenueOverviewWidget::class)
         ->assertSee(__('manage.dashboard.today'))
         ->assertSee(__('manage.dashboard.upcoming'))
-        ->assertSee(__('manage.dashboard.views'));
+        ->assertSee(__('manage.dashboard.drafts'))
+        ->assertDontSee('Visualizzazioni')
+        ->assertSee(EventResource::getUrl('index', ['tab' => 'drafts']), false);
+
+    $numbers = collect(Livewire::test(VenueOverviewWidget::class)->instance()->numbers())->keyBy('key');
+
+    expect($numbers['today']['value'])->toBe('1')
+        ->and($numbers['drafts']['value'])->toBe('1');
+});
+
+it('mostra le serate di oggi con la locandina e la biglietteria', function (): void {
+    $this->scenario->publishedEventA->occurrences()->delete();
+    $tonight = occurrenceFor($this->scenario->publishedEventA, '2026-09-10 21:30');
+
+    Livewire::test(TodayScheduleWidget::class)
+        ->assertSee($this->scenario->publishedEventA->title)
+        ->assertSee('data-panel-event-poster', false)
+        ->assertSee(route('ticketing.manage.show', $tonight), false);
 });
 
 /*

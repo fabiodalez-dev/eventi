@@ -93,18 +93,15 @@ class VenueAccessGranted extends Notification
             $token = $broker->createToken($notifiable);
 
             /*
-             * L'invito da accettare porta alla pagina del sito, non a quella
-             * del pannello: Filament rifiuta di reimpostare la password a chi
-             * il pannello non lo può ancora aprire, e qui è proprio la
-             * password a dire di sì all'invito.
+             * Il modulo della password è quello del sito, per tutti: i
+             * pannelli non ne hanno più uno loro (login unico). Dopo la
+             * password si entra da `/accedi`, che porta dritti nel pannello.
              */
             return $message
                 ->line(__($this->pending ? 'manage.invitation.password_accept_hint' : 'manage.invitation.password_hint'))
                 ->action(
                     __('manage.invitation.password_action'),
-                    $this->pending
-                        ? route('account.password.reset', ['token' => $token, 'email' => $notifiable->getEmailForPasswordReset()])
-                        : $panel->getResetPasswordUrl($token, $notifiable),
+                    route('account.password.reset', ['token' => $token, 'email' => $notifiable->getEmailForPasswordReset()]),
                 )
                 ->line(__('manage.invitation.ignore'));
         }

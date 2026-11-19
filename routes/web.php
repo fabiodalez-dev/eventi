@@ -23,6 +23,7 @@ use App\Http\Middleware\AuthenticateWebSession;
 use App\Http\Middleware\PersonalizeDiscovery;
 use App\Http\Middleware\RequiresOpsToken;
 use App\Http\Middleware\ResolveCity;
+use App\Models\EventOccurrence;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
@@ -61,6 +62,25 @@ Route::post('/conferma-recapito/{type}/{id}', [ContactEmailConfirmationControlle
     ->whereIn('type', ['venues', 'organizers'])->whereNumber('id')->middleware(['signed', 'throttle:30,1,contact-email-confirm'])->name('contact-email.confirm.store');
 
 Route::get('/release-status', ReleaseStatusController::class)->name('ops.release');
+
+/*
+ * La pagina campione delle pagine di servizio: tutti i componenti in una
+ * pagina. Esiste solo in sviluppo e nei test — in produzione la rotta non è
+ * nemmeno registrata, quindi risponde 404 come qualunque indirizzo inventato.
+ */
+if (app()->environment('local', 'testing')) {
+    Route::get('/_design/servizio', function () {
+        $upcoming = EventOccurrence::query()
+            ->with(['event.media', 'event.venue', 'venue'])
+            ->where('starts_at', '>=', now())
+            ->orderBy('starts_at');
+
+        return view('design.servizio', [
+            'occurrences' => (clone $upcoming)->limit(3)->get(),
+            'withoutPoster' => (clone $upcoming)->whereDoesntHave('event.media')->whereHas('event', fn ($event) => $event->whereNull('poster'))->first(),
+        ]);
+    })->name('design.service');
+}
 
 /*
  * Il webhook di Stripe (§sponsorizzazioni): nessuna sessione, nessun CSRF —

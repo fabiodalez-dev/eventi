@@ -9,7 +9,8 @@ use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Support\Facades\RateLimiter;
 
 /**
- * Il tetto per account sull'accesso con password: sito, API e pannelli.
+ * Il tetto per account sull'accesso con password: sito (che è anche la porta
+ * dei pannelli, dal login unico) e API.
  *
  * Conta i tentativi subiti dall'account, da qualunque indirizzo arrivino: è
  * la grandezza che un pool di indirizzi non moltiplica (vedi
@@ -21,8 +22,12 @@ use Illuminate\Support\Facades\RateLimiter;
  * password provate erano cento, non venti. `increment` è atomico sulla cache,
  * quindi ogni richiesta vede già quelle partite prima di lei.
  *
- * Ogni porta ha il suo secchio, come prima: i tentativi sbagliati sull'API
- * non chiudono l'accesso dal sito, né quello del pannello.
+ * Le porte sono due, e ognuna ha il suo secchio: i tentativi sbagliati
+ * sull'API non chiudono l'accesso dal sito. Il pannello aveva un terzo
+ * secchio, con la sua pagina di accesso; con il login unico redazione e
+ * gestori entrano dal sito, e per account resta un secchio solo per tutto il
+ * web (`sito`). Pieno, il modulo torna indietro con il tempo d'attesa
+ * (`bootstrap/app.php`), e `Retry-After` resta nella risposta.
  */
 final class AccountLoginThrottle
 {

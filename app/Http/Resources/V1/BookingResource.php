@@ -17,13 +17,17 @@ final class BookingResource
     public static function toArray(Booking $booking): array
     {
         $date = $booking->occurrence;
-        $event = $date?->event()->withTrashed()->first();
+        // L'evento già caricato con la prenotazione evita una query per riga;
+        // se manca (evento eliminato) lo si cerca anche fra i cestinati.
+        $event = $date?->relationLoaded('event') && $date->event !== null ? $date->event : $date?->event()->withTrashed()->first();
 
         return [
             'id' => $booking->id,
             'occurrence_id' => $booking->occurrence_id,
             'title' => $event->title ?? __('ticketing.unavailable'),
             'event_slug' => $event?->slug,
+            // La locandina nella stessa forma di `EventResource.poster`.
+            'poster' => $event !== null ? PosterResource::toArray($event) : null,
             'venue' => $date?->effectiveVenue()?->name,
             'address' => $date?->effectiveVenue()?->address,
             'starts_at' => $date?->starts_at?->toIso8601String(),

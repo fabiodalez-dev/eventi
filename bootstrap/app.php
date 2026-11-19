@@ -7,14 +7,17 @@ use App\Http\Middleware\PreventSharedResponseCache;
 use App\Http\Middleware\RevalidateImpersonation;
 use App\Http\Middleware\SecurityHeaders;
 use App\Support\Api\ApiExceptionRenderer;
+use App\Support\Auth\PostLoginDestination;
 use App\Support\SecurityLog;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Exceptions\InvalidSignatureException;
 use Sentry\Laravel\Integration;
 use Spatie\MissingPageRedirector\RedirectsMissingPages;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -115,6 +118,24 @@ return Application::configure(basePath: dirname(__DIR__))
          * controllo soltanto fuori dall'ambiente locale e dai test.
          */
         $middleware->trustHosts(at: fn (): array => array_filter([parse_url((string) config('app.url'), PHP_URL_HOST)]));
+
+        /*
+         * Il tema scelto da ospite lo scrive lo script del browser, in chiaro:
+         * cifrarlo lo renderebbe illeggibile a chi lo ha scritto, e per il
+         * server — che lo usa per la chiave della cache delle pagine e per
+         * copiarlo nel profilo al primo accesso — sarebbe sempre vuoto. È una
+         * preferenza d'aspetto, non un segreto; il valore si accetta solo se
+         * è uno dei due temi.
+         */
+        $middleware->encryptCookies(except: ['incitta_appearance']);
+
+        /*
+         * Chi apre `/accedi` (o un'altra pagina riservata agli ospiti) quando
+         * è già dentro va nella propria area — o alla pagina di ritorno
+         * scritta nell'indirizzo, se la può aprire: è anche la strada di «Vai
+         * alla tua area» della pagina 403.
+         */
+        $middleware->redirectUsersTo(fn (Request $request): string => PostLoginDestination::forRequest($request));
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         /*
@@ -144,4 +165,100 @@ return Application::configure(basePath: dirname(__DIR__))
         });
 
         $exceptions->render(new ApiExceptionRenderer);
+
+        /*
+         * Un collegamento firmato dell'accesso o della conferma dell'email
+         * scaduto o già usato non è un «non puoi aprire questa pagina»: chi
+         * si è appena registrato deve sapere che basta chiederne uno nuovo.
+         */
+        $exceptions->render(function (InvalidSignatureException $exception, Request $request) {
+            if ($request->expectsJson() || ! $request->routeIs('account.magic-link.login', 'account.magic-link.confirm', 'verification.verify')) {
+                return null;
+            }
+
+            return response()->view('errors.link-expired', ['exception' => $exception], 403);
+        });
+
+        /*
+         * La sessione scaduta (419) e il limite dei tentativi (429) sui moduli
+         * di accesso, registrazione, collegamento, recupero e nuova password
+         * non sono una pagina d'errore: si torna al modulo, con l'indirizzo
+         * già scritto e il motivo sopra (`$errors->get('form')`). Il 429
+         * conserva `Retry-After`, e il messaggio dice quanto aspettare.
+         * Le richieste JSON (l'app) restano come sono.
+         */
+        $exceptions->render(function (HttpExceptionInterface $exception, Request $request) {
+            $status = $exception->getStatusCode();
+            $forms = [
+                'account.login.store' => fn (): string => route('login'),
+                'account.register.store' => fn (): string => route('account.register'),
+                'account.magic-link.store' => fn (): string => route('account.magic-link'),
+                'account.password.email' => fn (): string => route('account.password.request'),
+                'account.password.update' => fn (): string => route('account.password.reset', array_filter([
+                    'token' => is_string($request->input('token')) ? $request->input('token') : null,
+                    'email' => is_string($request->input('email')) ? $request->input('email') : null,
+                ])),
+            ];
+            $route = $request->route()?->getName();
+
+            if (! in_array($status, [419, 429], true)
+                || ! is_string($route)
+                || ! isset($forms[$route])
+                || $request->expectsJson()
+                || ! $request->hasSession()) {
+                return null;
+            }
+
+            $headers = $exception->getHeaders();
+            $wait = is_numeric($headers['Retry-After'] ?? null) ? max(1, (int) $headers['Retry-After']) : null;
+            $message = match (true) {
+                $status === 419 => __('auth.form.expired'),
+                $wait !== null && $wait > 90 => trans_choice('auth.form.throttled_minutes', (int) ceil($wait / 60), ['minutes' => (int) ceil($wait / 60)]),
+                default => trans_choice('auth.form.throttled', $wait ?? 60, ['seconds' => $wait ?? 60]),
+            };
+
+            $response = redirect()->to($forms[$route]())
+                ->withInput($request->only(['email', 'first_name', 'last_name', 'remember', 'marketing_opt_in']))
+                ->withErrors(['form' => $message]);
+
+            if ($status === 429 && isset($headers['Retry-After'])) {
+                $response->headers->set('Retry-After', (string) $headers['Retry-After']);
+            }
+
+            return $response;
+        });
+
+        /*
+         * Un conflitto (409) o un dato non accettabile (422) dopo l'invio di
+         * un modulo del sito non è una pagina d'errore: è il modulo che non è
+         * passato. Si torna al modulo, con i dati già scritti e il messaggio
+         * nel riepilogo degli errori (`$errors->get('form')`).
+         *
+         * Solo per i moduli HTML: le letture (GET), le richieste JSON, quelle
+         * di Livewire (i pannelli) e l'API hanno già la loro risposta. Il
+         * ritorno segue il Referer solo verso questo stesso sito: un indirizzo
+         * esterno diventa la prima pagina.
+         */
+        $exceptions->render(function (HttpExceptionInterface $exception, Request $request) {
+            if (! in_array($exception->getStatusCode(), [409, 422], true)
+                || $request->isMethodSafe()
+                || $request->expectsJson()
+                || $request->headers->has('X-Livewire')
+                || $request->is('api/*')
+                || ! $request->hasSession()) {
+                return null;
+            }
+
+            $previous = (string) $request->headers->get('referer', '');
+            $host = $previous !== '' ? parse_url($previous, PHP_URL_HOST) : null;
+            $target = is_string($host) && strcasecmp($host, $request->getHost()) === 0 ? $previous : url('/');
+
+            $message = trim($exception->getMessage()) !== ''
+                ? $exception->getMessage()
+                : __($exception->getStatusCode() === 409 ? 'errors.form.conflict' : 'errors.form.unprocessable');
+
+            return redirect()->to($target)
+                ->withInput($request->except(['password', 'password_confirmation', 'current_password', '_token', '_method']))
+                ->withErrors(['form' => $message]);
+        });
     })->create();

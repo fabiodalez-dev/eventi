@@ -36,7 +36,7 @@ use Overtrue\LaravelFollow\Traits\Followable;
 use Overtrue\LaravelFollow\Traits\Follower;
 use Spatie\Permission\Traits\HasRoles;
 
-/** @property string $appearance */
+/** @property string|null $appearance `light`, `dark`, oppure null: segui il sistema */
 /** @property array{mode?: string, categories?: list<int>, hidden_categories?: list<int>, inferred_ads?: bool, hidden_venues?: list<int>, access_needs?: list<string>}|null $content_preferences */
 class User extends Authenticatable implements FilamentUser, HasTenants, MustVerifyEmail
 {
@@ -549,6 +549,48 @@ class User extends Authenticatable implements FilamentUser, HasTenants, MustVeri
     }
 
     /**
+     * Tutti i follow della persona, letti una volta per richiesta web: i
+     * pulsanti «Segui» di un elenco, il feed e il calendario personale ne
+     * chiedono uno per riga o per tipo, e il rilevatore N+1 li segnalava.
+     *
+     * La memoria vive negli attributi della richiesta e solo fuori dalla
+     * console: un processo delle code tiene la stessa richiesta per ore, e lì
+     * (come nei test) si legge sempre da capo. Un follow creato, cambiato o
+     * tolto con Eloquent la svuota (`Follow::booted()`); le cancellazioni in
+     * blocco chiamano `forgetFollowsForRequest()`.
+     *
+     * @return Collection<int, Follow>
+     */
+    public function followsForRequest(): Collection
+    {
+        if (app()->runningInConsole()) {
+            return $this->follows()->get();
+        }
+
+        $key = self::followsCacheKey((int) $this->getKey());
+        $attributes = request()->attributes;
+
+        if (! $attributes->has($key)) {
+            $attributes->set($key, $this->follows()->get());
+        }
+
+        /** @var Collection<int, Follow> $follows */
+        $follows = $attributes->get($key);
+
+        return $follows;
+    }
+
+    public function forgetFollowsForRequest(): void
+    {
+        request()->attributes->remove(self::followsCacheKey((int) $this->getKey()));
+    }
+
+    public static function followsCacheKey(int $userId): string
+    {
+        return 'user-follows:'.$userId;
+    }
+
+    /**
      * Gli identificativi di ciò che questa persona segue, per tipo. È la sola
      * lettura di `follows` che serve al feed (§15.7) e ai digest.
      *
@@ -557,11 +599,11 @@ class User extends Authenticatable implements FilamentUser, HasTenants, MustVeri
     public function followedIds(FollowableType $type, bool $notifyingOnly = false): array
     {
         /** @var list<int> $ids */
-        $ids = $this->follows()
-            ->where('followable_type', $type->value)
-            ->when($notifyingOnly, fn ($query) => $query->where('notify', true)->where('notification_mode', FollowNotificationMode::All))
-            ->pluck('followable_id')
-            ->map(static fn (mixed $id): int => (int) $id)
+        $ids = $this->followsForRequest()
+            ->filter(static fn (Follow $follow): bool => $follow->followable_type === $type->value
+                && (! $notifyingOnly || ($follow->notify && $follow->notification_mode === FollowNotificationMode::All)))
+            ->map(static fn (Follow $follow): int => (int) $follow->followable_id)
+            ->values()
             ->all();
 
         return $ids;

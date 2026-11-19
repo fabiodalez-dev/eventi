@@ -103,8 +103,13 @@ it('lascia chiudere il sondaggio solo a chi lo ha creato, e dopo la chiusura non
         ->assertRedirect($pagina)->assertSessionHas('status', __('polls.closed_status'));
     expect($poll->fresh()->closed_at)->not->toBeNull()->and($poll->fresh()->isOpen())->toBeFalse();
 
-    // Il voto già dato resta nell'esito; uno nuovo viene rifiutato.
-    $this->actingAs($this->amico, 'web')->post($pagina.'/voti/'.$poll->options()->orderByDesc('id')->firstOrFail()->id)->assertStatus(409);
+    /* Il voto già dato resta nell'esito; uno nuovo viene rifiutato. Dal modulo
+       del sito il rifiuto (409) torna alla pagina con il messaggio, invece di
+       una pagina d'errore; dall'app resta il 409. */
+    $nuovaOpzione = $poll->options()->orderByDesc('id')->firstOrFail()->id;
+    $this->actingAs($this->amico, 'web')->withHeader('Referer', url($pagina))->post($pagina.'/voti/'.$nuovaOpzione)
+        ->assertRedirect(url($pagina))->assertSessionHasErrors('form');
+    $this->actingAs($this->amico, 'web')->postJson($pagina.'/voti/'.$nuovaOpzione)->assertStatus(409);
     expect(EventPollVote::query()->count())->toBe(1);
     $this->get($pagina)->assertOk()->assertSee(__('polls.closed'))->assertDontSee('action="'.route('polls.vote', [$poll->token, $opzione]).'"', false);
 });

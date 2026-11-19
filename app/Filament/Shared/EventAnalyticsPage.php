@@ -134,6 +134,16 @@ abstract class EventAnalyticsPage extends Page
         $this->resetPage('analyticsPage');
     }
 
+    /**
+     * Il riquadro dei filtri resta chiuso finché non si filtra nulla: il
+     * riepilogo dei filtri attivi, sopra, dice già che cosa si sta guardando.
+     */
+    public function filtersChanged(): bool
+    {
+        return $this->period === 'custom'
+            || collect($this->filters)->only([...$this->entityFilters(), 'channel'])->filter(fn ($value): bool => filled($value))->isNotEmpty();
+    }
+
     public function resetFilters(): void
     {
         $this->filters = ['venue' => null, 'organizer' => null, 'event' => null, 'channel' => null, 'from' => null, 'until' => null];
@@ -161,7 +171,7 @@ abstract class EventAnalyticsPage extends Page
         $components[] = DatePicker::make('from')->label(__('analytics-dashboard.from'))->native()->live();
         $components[] = DatePicker::make('until')->label(__('analytics-dashboard.until'))->native()->required()->live();
 
-        return $schema->statePath('filters')->columns(['default' => 1, 'md' => 3])->components($components);
+        return $schema->statePath('filters')->columns(1)->components($components);
     }
 
     /** @return array<int, string> */

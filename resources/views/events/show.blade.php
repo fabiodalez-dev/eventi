@@ -684,6 +684,10 @@
                     <x-venue-map :venue="$venue" />
                 </section>
 
+                {{-- Un locale pubblico che nessuno gestisce: chi lo gestisce
+                     lo scopre spesso da qui, guardando una serata a casa sua. --}}
+                <x-claim-card :venue="$venue" :compact="true" class="max-lg:order-7!" />
+
                 {{-- «Come arrivare» e accessibilità stanno sul locale, non
                      sull'evento: cambiano col luogo e non con la serata. Qui
                      si mostrano perché è dove servono — mentre si decide se

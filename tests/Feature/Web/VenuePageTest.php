@@ -74,8 +74,9 @@ it('mostra il pulsante Segui come promessa, non come inganno', function (): void
     $city = testCity();
     $venue = Venue::factory()->approved()->create(['city_id' => $city->getKey()]);
 
-    $this->get('/locali/'.$venue->slug)
-        ->assertOk()
+    $response = $this->get('/locali/'.$venue->slug);
+
+    $response->assertOk()
         /*
          * Qui si pretendeva un pulsante **spento** e la nota «funzionerà
          * quando arriveranno gli account». Gli account sono arrivati, e con
@@ -86,8 +87,10 @@ it('mostra il pulsante Segui come promessa, non come inganno', function (): void
          * porta al login. Un pulsante disabilitato sembra un'azione e non lo
          * è; un collegamento dice cosa serve per farla.
          */
-        ->assertSee(__('account.follow.venue'))
-        ->assertDontSee('disabled', false);
+        ->assertSee(__('account.follow.venue'));
+
+    /* L'attributo, non la parola: le classi `disabled:` dei pulsanti ci sono sempre. */
+    expect($response->getContent())->not->toMatch('/<(button|input)\b[^>]*\sdisabled(\s|=|>)/');
 });
 
 it('offre le indicazioni verso entrambe le applicazioni di navigazione', function (): void {

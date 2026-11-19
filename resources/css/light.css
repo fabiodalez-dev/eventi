@@ -167,6 +167,13 @@
     border: 0;
 }
 
+/* Il piè del pannello dei salvati resta in vista mentre l'elenco scorre:
+   prende il fondo del pannello, non quello della pagina. */
+:root[data-theme="light"] .saved-dialog [data-saved-panel-footer] {
+    border-top-width: 1px;
+    background: var(--surface-raised);
+}
+
 /* Le righe del pannello: separate dallo spazio e dal fondo al passaggio, non
    da una riga grigia. */
 :root[data-theme="light"] .saved-row {
@@ -525,32 +532,9 @@
     box-shadow: 0 14px 34px rgb(38 38 36 / 26%);
 }
 
-:root[data-theme="light"] [data-mobile-navigation] a {
-    min-height: 54px;
-    gap: 4px;
-    border-radius: 14px;
-    font-family: var(--font-sans);
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0;
-    color: #c9c7c1;
-    transition: background-color 180ms ease, color 180ms ease;
-}
-
-:root[data-theme="light"] [data-mobile-navigation] a svg {
-    width: 19px;
-    height: 19px;
-}
-
-:root[data-theme="light"] [data-mobile-navigation] a:hover {
-    color: var(--ink-inverted);
-}
-
-:root[data-theme="light"] [data-mobile-navigation] a[aria-current="page"] {
-    background: var(--brand);
-    color: var(--ink-inverted);
-    font-weight: 700;
-}
+/* Le voci (icone, pastiglia della voce attiva) stanno in `pages/home.css`,
+   con quelle dello scuro: qui resta il pannello che galleggia. Alto 70 px:
+   56 di voci più i 7 di bordo interno sopra e sotto. */
 
 /* Lo spazio che la barra si prende, dichiarato UNA volta.
 
@@ -562,12 +546,15 @@
    se l'era copiato finisce sotto i comandi. È successo davvero con la fascia
    del consenso, che è esattamente la cosa che non deve finire coperta. */
 :root[data-theme="light"] {
-    --dock-space: calc(5.5rem + env(safe-area-inset-bottom));
+    /* 12px di margine sotto + 70px di pannello. */
+    --dock-space: calc(5.125rem + env(safe-area-inset-bottom));
 }
 
 @media (max-width: 1023px) {
-    :root[data-theme="light"] body {
-        padding-bottom: var(--dock-space);
+    /* Il corpo della pagina lascia libero questo spazio attraverso
+       `--navigation-space`, letto da `service.css` per entrambi i temi. */
+    :root[data-theme="light"] {
+        --navigation-space: var(--dock-space);
     }
 
     /* Sopra a tutto il mobilio fisso, non solo sopra la barra dei comandi:
@@ -1273,7 +1260,8 @@
 --------------------------------------------------------------------------- */
 
 :root[data-theme="light"] :is(.home-tonight, .home-cta, [data-calendar-banner]) {
-    margin: clamp(22px, 3vw, 40px) clamp(18px, 4vw, 56px);
+    /* A filo del margine di tutte le altre fasce (`px-gutter`), non più rientrato. */
+    margin: clamp(22px, 3vw, 40px) var(--spacing-gutter);
     padding: clamp(22px, 3vw, 44px);
     border: 0;
     border-radius: 24px;
@@ -1314,6 +1302,14 @@
 :root[data-theme="light"] :is(.home-tonight, .home-cta, [data-calendar-banner]) a[href]:hover {
     background: var(--brand-strong);
     color: var(--on-brand);
+}
+
+/* Dentro la fascia del calendario la richiesta a chi organizza è una card
+   della colonna: niente margini da fascia a tutta larghezza, a filo del mese. */
+:root[data-theme="light"] .home-calendar .home-cta {
+    margin: 0;
+    padding: clamp(18px, 2vw, 28px);
+    border-radius: 20px;
 }
 
 /* La seconda azione della chiusura è secondaria e lo dichiara. */

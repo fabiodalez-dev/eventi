@@ -28,7 +28,7 @@ class RideReviewsController extends Controller
         $data = ['driver_id' => $driver->id, 'driver_name' => PublicName::for($driver, $request->user()),
             'summary' => $reviews->summary($request->user(), $driver), 'reviews' => $rows->map(fn ($review) => $reviews->resource($review, $request->user()))->all(), 'has_more' => $rows->hasMorePages(), 'page' => $rows->currentPage()];
 
-        return $request->expectsJson() ? response()->json(['data' => $data]) : view('carpool.reviews', [...$data, 'meta' => new PageMeta(__('carpool.reviews.title'), __('carpool.reviews.title'), indexable: false)]);
+        return $request->expectsJson() ? response()->json(['data' => $data]) : view('carpool.reviews', [...$data, 'tabs' => CarpoolController::tabs(), 'meta' => new PageMeta(__('carpool.reviews.title'), __('carpool.reviews.title'), indexable: false)]);
     }
 
     public function change(RideReviewRequest $request, RideRequest $rideRequest, string $action, RideReviews $reviews): JsonResponse|RedirectResponse

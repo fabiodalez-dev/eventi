@@ -100,8 +100,32 @@
     $venueLinks = $links([
         'venue-applications.create' => __('ui.footer.register_venue'),
         'submissions.create' => __('ui.footer.submit_event'),
-        'filament.venue.auth.login' => __('ui.footer.venue_login'),
     ]);
+
+    /*
+     * L'accesso al pannello del locale passa dal login unico del sito, con il
+     * ritorno al pannello: la pagina di accesso propria del pannello non è più
+     * la porta d'ingresso.
+     */
+    if (\Illuminate\Support\Facades\Route::has('login')) {
+        $venueLinks[] = ['name' => 'login', 'url' => route('login', ['intended' => url('/gestione')]), 'label' => __('ui.footer.venue_login')];
+    }
+
+    /*
+     * Il tema. Chi ha scelto dal profilo lo trova già nell'HTML; chi non ha
+     * scelto — l'ospite, e l'utente con `appearance` vuota — riceve il tema
+     * dallo script qui sotto, prima che la pagina si disegni: prima la scelta
+     * fatta in questo browser (cookie, poi memoria locale), poi il sistema.
+     */
+    $profileAppearance = auth()->user()?->appearance;
+    $chosenTheme = in_array($profileAppearance, ['light', 'dark'], true) ? $profileAppearance : null;
+    /* L'HTML di chi è collegato non va mai nella cache delle pagine: per lui
+       la scelta del browser si può già scrivere nella pagina. Per l'ospite
+       resta allo script, così la copia in cache è uguale per tutti. */
+    $browserTheme = auth()->check() && in_array(request()->cookie('incitta_appearance'), ['light', 'dark'], true)
+        ? request()->cookie('incitta_appearance')
+        : null;
+    $service = (bool) ($service ?? false);
 
     /*
      * Le pagine informative del piè di pagina (§11.1, §16). L'elenco non è
@@ -123,7 +147,7 @@
         : [];
 @endphp
 <!DOCTYPE html>
-<html data-theme="{{ auth()->user()?->appearance === 'light' ? 'light' : 'dark' }}" data-theme-user="{{ auth()->id() ?? 'guest' }}" lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html data-theme="{{ $chosenTheme ?? $browserTheme ?? 'dark' }}" data-theme-user="{{ auth()->id() ?? 'guest' }}" @if ($chosenTheme === null) data-theme-auto @endif data-card-layout="full" lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -136,7 +160,7 @@
          script qui sotto, che è quello che lo corregge per chi ha scelto un
          tema diverso da quello del sistema: un `media="(prefers-color-scheme)"`
          seguirebbe il sistema operativo e non la scelta fatta qui. --}}
-    <meta name="theme-color" content="{{ auth()->user()?->appearance === 'light' ? '#faf9f6' : '#0b0b0b' }}">
+    <meta name="theme-color" content="{{ $chosenTheme === 'light' ? '#faf9f6' : '#0b0b0b' }}">
 
     {{-- Le icone del sito.
 
@@ -151,19 +175,35 @@
     @if (\Illuminate\Support\Facades\Route::has('webmanifest'))
         <link rel="manifest" href="{{ route('webmanifest') }}">
     @endif
-    {{-- Applied before CSS paints. Guests share cached HTML, never preferences. --}}
+    {{-- Applied before CSS paints. Guests share cached HTML, never preferences.
+
+         `data-theme-auto` c'è quando il profilo non ha una scelta (l'ospite,
+         o l'utente con `appearance` vuota): vale la scelta fatta in questo
+         browser, altrimenti il sistema. Il cookie si rinnova solo per una
+         scelta vera: un tema dedotto dal sistema non diventa una preferenza,
+         ed è ciò che al primo accesso viene copiato nel profilo.
+
+         La vista degli elenchi sul telefono (`full`, `grid`, `list`) è una
+         preferenza del browser, letta qui per lo stesso motivo del tema: le
+         card devono nascere nella forma giusta, non saltare dopo. --}}
     <script @cspNonce>
         (() => {
             const root = document.documentElement;
-            if (root.dataset.themeUser === 'guest') {
+            if ('themeAuto' in root.dataset) {
                 const cookie = document.cookie.split('; ').find(value => value.startsWith('incitta_appearance='))?.split('=')[1];
                 let saved = cookie;
                 if (saved !== 'light' && saved !== 'dark') {
                     try { saved = localStorage.getItem('incitta:appearance:guest'); } catch {}
                 }
-                root.dataset.theme = saved === 'light' || saved === 'dark' ? saved : (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
-                document.cookie = 'incitta_appearance=' + root.dataset.theme + '; Path=/; Max-Age=31536000; SameSite=Lax' + (location.protocol === 'https:' ? '; Secure' : '');
+                const chosen = saved === 'light' || saved === 'dark';
+                root.dataset.theme = chosen ? saved : (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+                if (chosen) {
+                    document.cookie = 'incitta_appearance=' + root.dataset.theme + '; Path=/; Max-Age=31536000; SameSite=Lax' + (location.protocol === 'https:' ? '; Secure' : '');
+                }
             }
+            let layout = null;
+            try { layout = localStorage.getItem('incitta:card-layout'); } catch {}
+            root.dataset.cardLayout = layout === 'grid' || layout === 'list' ? layout : 'full';
             document.querySelector('meta[name="color-scheme"]').content = root.dataset.theme;
             document.querySelector('meta[name="theme-color"]').content = root.dataset.theme === 'light' ? '#faf9f6' : '#0b0b0b';
         })();
@@ -314,7 +354,7 @@
 
     {{ $head ?? '' }}
 </head>
-<body class="min-h-dvh bg-canvas text-ink antialiased pb-[calc(4rem+env(safe-area-inset-bottom))] lg:pb-0">
+<body class="min-h-dvh bg-canvas text-ink antialiased">
     <a
         href="#contenuto"
         class="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-50 focus:focus:bg-brand focus:px-4 focus:py-2 focus:font-semibold focus:text-on-brand"
@@ -496,7 +536,11 @@
         evento» sono rimasti fuori squadra.
     --}}
     <main id="contenuto" class="pt-header" @if (request()->routeIs('home', 'city.home')) data-home-page @endif>
-        @if (! ($wide ?? false))
+        @if ($service)
+            {{-- La colonna delle pagine di servizio: una sola larghezza, un
+                 solo margine, lo stesso respiro sopra il titolo. --}}
+            <div data-service-layout class="mx-auto w-full max-w-service px-gutter pt-[clamp(2.5rem,6vw,5rem)] pb-16">
+        @elseif (! ($wide ?? false))
             {{-- `narrow` per moduli e testi: una riga da 1200 px non si legge
                  e un campo largo 1200 px non si compila. Sotto i 48rem il
                  contenuto resta centrato davvero, invece di stare a sinistra
@@ -505,46 +549,41 @@
                  moduli e testi, dove il titolo è la prima cosa che si legge e
                  attaccarlo al nastro della testata lo fa sembrare parte di
                  quello. Le pagine larghe hanno le proprie sezioni con i propri
-                 margini e non ne hanno bisogno. --}}
-            {{-- Le pagine di servizio (community, passaggi, account) hanno
-                 tutte lo stesso respiro sopra, larghe o strette che siano:
-                 passando da «Persone» a «Il mio profilo» la barra delle
-                 schede non deve saltare di 45 px. --}}
-            @php($servicePage = request()->routeIs('community.*', 'carpool.*', 'account.*', 'tickets.*', 'appearance', 'google-calendar.*', 'verification.notice', 'notifications.preferences'))
+                 margini e non ne hanno bisogno. Le pagine di servizio passano
+                 tutte dal ramo `service` qui sopra. --}}
             <div @class([
                 'mx-auto w-full px-gutter',
-                'max-w-3xl' => $narrow ?? false,
-                'max-w-content' => ! ($narrow ?? false),
-                'pt-[clamp(2.5rem,6vw,5rem)] pb-16' => ($narrow ?? false) || $servicePage,
-                'py-8' => ! ($narrow ?? false) && ! $servicePage,
+                'max-w-3xl pt-[clamp(2.5rem,6vw,5rem)] pb-16' => $narrow ?? false,
+                'max-w-content py-8' => ! ($narrow ?? false),
             ])>
         @endif
         {{-- Conferma dell'ultima azione (una proposta inviata, una segnalazione
              ricevuta): sta nel layout perché è l'unico punto che ogni pagina
              attraversa dopo un reindirizzamento. --}}
-        @if (session()->has('status'))
+        {{-- Nelle pagine di servizio la conferma e l'avviso sui contenuti
+             filtrati li stampa `<x-service-page>` sotto la testata, così il
+             ritorno e il titolo restano al loro posto. --}}
+        @if (session()->has('status') && ! $service)
             <p role="status" class="flex items-center gap-2.5 border-b-2 border-line bg-accent px-gutter py-3.5 font-display text-[0.688rem] font-extrabold tracking-[0.14em] text-on-accent uppercase">
                 <span aria-hidden="true" class="size-[7px] bg-on-accent"></span>
                 {{ session('status') }}
             </p>
         @endif
 
-        @auth
+        @if (! $service && auth()->check())
             @php($contentSelection = app(\App\Services\Account\ContentPreferences::class)->selection(auth()->user()))
             @if($contentSelection['mode'] === 'selected' || $contentSelection['hidden_categories'] !== [])
-                <p class="bg-surface px-gutter py-3 text-sm">Stai esplorando gli eventi secondo i tuoi interessi. <a class="font-bold underline" href="{{ route('account.content-preferences') }}">Modifica o mostra tutto</a></p>
+                <p class="bg-surface px-gutter py-3 text-sm">{{ __('ui.content_filter.notice') }} <a class="font-bold underline" href="{{ route('account.content-preferences') }}">{{ __('ui.content_filter.change') }}</a></p>
             @endif
-        @endauth
-        @if(auth()->check() && ! request()->routeIs('account.profile') && request()->routeIs('account.*', 'tickets.*', 'ticketing.manage.*', 'appearance', 'google-calendar.*', 'verification.notice', 'notifications.preferences'))
-            <a href="{{ route('account.profile') }}" class="mb-6 inline-flex min-h-12 items-center gap-2 font-semibold text-brand" data-profile-back><span aria-hidden="true">←</span> Il mio profilo</a>
         @endif
         {{ $slot }}
 
-        @if (! ($wide ?? false))
+        @if ($service || ! ($wide ?? false))
             </div>
         @endif
         @if ($city !== null && ! request()->routeIs('events.preview') && request()->routeIs('home', 'events.*', 'venues.*', 'search', 'categories.*', 'tags.*', 'account.profile', 'city.home', 'city.events.*', 'city.venues.*', 'city.search', 'city.categories.*', 'city.tags.*'))
-            <x-sponsorship-banner :city="$city" />
+            {{-- Sotto una pagina di servizio il riquadro resta nella sua colonna. --}}
+            <x-sponsorship-banner :city="$city" :service="$service" />
         @endif
     </main>
 

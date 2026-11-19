@@ -17,11 +17,23 @@ class ListGrants extends ListRecords
 
     protected function getHeaderActions(): array
     {
-        return [Action::make('campaigns')->label(__('promotions.campaigns'))->url(SponsorshipResource::getUrl())->color('gray'), CreateAction::make()];
+        return [Action::make('campaigns')->label(__('promotions.campaigns'))->url(SponsorshipResource::getUrl())->color('gray'), CreateAction::make()->label(__('promotions.create_title'))];
     }
 
     protected function getHeaderWidgets(): array
     {
         return [PromotionSummary::class];
+    }
+
+    /** Il titolo com'e' scritto nei testi, non con le iniziali maiuscole che Filament aggiunge da solo. */
+    public function getTitle(): string
+    {
+        return __('promotions.title');
+    }
+
+    /** @return array<string, string> */
+    public function getBreadcrumbs(): array
+    {
+        return [];
     }
 }

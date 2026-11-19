@@ -6,10 +6,13 @@ namespace App\Filament\Admin\Resources\Cities\Pages;
 
 use App\Filament\Admin\Resources\Cities\CityResource;
 use App\Filament\Admin\Support\StructuredFields;
+use App\Filament\Concerns\HasFeminineCreateTitle;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreateCity extends CreateRecord
 {
+    use HasFeminineCreateTitle;
+
     protected static string $resource = CityResource::class;
 
     /**

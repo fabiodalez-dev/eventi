@@ -130,7 +130,8 @@ it('rejects a second reservation with another request key on web and API', funct
     $this->get('/eventi/'.$this->date->event->slug)->assertOk()
         ->assertSee(__('ticketing.manage_booking'))->assertSee(route('tickets.show', $booking), false)
         ->assertDontSee('href="'.route('tickets.create', $this->date).'"', false);
-    $this->get(route('tickets.show', $booking))->assertOk()->assertSee('Mostra QR');
+    // La scheda della prenotazione mostra subito il QR, senza doverlo aprire.
+    $this->get(route('tickets.show', $booking))->assertOk()->assertSee(__('ticketing.tickets_page.qr_label'))->assertSee('role="img"', false);
     $this->actingAs(User::factory()->create())->get(route('tickets.show', $booking))->assertForbidden();
     $this->get('/eventi/'.$this->date->event->slug)->assertOk()
         ->assertSee(route('tickets.create', $this->date), false)->assertDontSee(__('ticketing.manage_booking'));

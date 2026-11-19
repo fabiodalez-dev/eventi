@@ -65,15 +65,20 @@ it('keeps venue selection isolated and unpaid grants unusable', function (): voi
     expect(Gate::forUser($this->owner)->allows('feature', $this->event))->toBeFalse();
 });
 
-it('automatically includes new events without duplicates and hides drafts', function (): void {
+it('automatically includes new events without duplicates and leaves out drafts and events without dates', function (): void {
+    EventOccurrence::factory()->create(['event_id' => $this->event->id, 'starts_at' => now()->addDay(), 'ends_at' => now()->addDay()->addHour()]);
     $this->grant->update(['mode' => 'automatic', 'complimentary' => true]);
     $service = app(GrantCampaigns::class);
     $service->sync($this->grant);
     $service->sync($this->grant);
     expect($this->grant->sponsorships()->count())->toBe(1);
     $draft = Event::factory()->create(['venue_id' => $this->venue->id, 'status' => EventStatus::Draft]);
+    EventOccurrence::factory()->create(['event_id' => $draft->id, 'starts_at' => now()->addDay(), 'ends_at' => now()->addDay()->addHour()]);
+    $undated = Event::factory()->create(['venue_id' => $this->venue->id, 'status' => EventStatus::Published]);
     $service->sync($this->grant);
-    expect($this->grant->sponsorships()->count())->toBe(2);
+    expect($this->grant->sponsorships()->count())->toBe(1)
+        ->and($this->grant->sponsorships()->where('event_id', $draft->id)->exists())->toBeFalse()
+        ->and($this->grant->sponsorships()->where('event_id', $undated->id)->exists())->toBeFalse();
     expect(Sponsorship::visible()->where('event_id', $draft->id)->exists())->toBeFalse();
 });
 
@@ -101,6 +106,7 @@ it('renders admin payment forms and the venue summary with historic metrics', fu
 });
 
 it('records a manual payment in cents through the admin form', function (): void {
+    EventOccurrence::factory()->create(['event_id' => $this->event->id, 'starts_at' => now()->addDay(), 'ends_at' => now()->addDay()->addHour()]);
     $this->actingAs($this->admin);
     Filament::setCurrentPanel('admin');
     Filament::setTenant(null);
@@ -115,13 +121,17 @@ it('records a manual payment in cents through the admin form', function (): void
 });
 
 it('lets a paid venue select and stop its campaign through the panel', function (): void {
+    EventOccurrence::factory()->create(['event_id' => $this->event->id, 'starts_at' => now()->addDay(), 'ends_at' => now()->addDay()->addHour()]);
     $this->grant->update(['paid_at' => now()->subMinute()]);
     $this->actingAs($this->owner);
+    $this->get('/gestione/'.$this->venue->slug.'/sponsorizzazioni')->assertOk()->assertSee(__('promotions.page.active_title'));
     Filament::setCurrentPanel('venue');
     Filament::setTenant($this->venue);
     $page = Livewire::test(Sponsorships::class)
-        ->callAction('choose', data: ['grant' => $this->grant->id, 'event' => $this->event->id])
-        ->assertHasNoActionErrors();
+        ->assertSet('grantId', $this->grant->id)
+        ->call('activate', $this->event->id)
+        ->assertNotified(__('promotions.success'))
+        ->assertSee(__('promotions.page.active_on'));
     $campaign = $this->grant->sponsorships()->firstOrFail();
     $page->call('stop', $campaign->id);
     expect($campaign->fresh()->status)->toBe(SponsorshipStatus::Paused);
@@ -133,6 +143,7 @@ it('does not select automatic campaigns for events without upcoming dates', func
     $selector = app(SponsorshipSelector::class);
     expect($selector->forPlacement($this->venue->city, SponsorshipPlacement::ListTop))->toHaveCount(0);
     EventOccurrence::factory()->create(['event_id' => $this->event->id, 'starts_at' => now()->addDay(), 'ends_at' => now()->addDay()->addHour()]);
+    app(GrantCampaigns::class)->sync($this->grant);
     expect($selector->forPlacement($this->venue->city, SponsorshipPlacement::ListTop))->toHaveCount(1);
 });
 
@@ -237,6 +248,7 @@ it('blocks non-admin access to grant creation and editing', function (string $ro
 })->with(['owner', 'moderator']);
 
 it('updates campaign dates without reactivating a campaign stopped by the venue', function (): void {
+    EventOccurrence::factory()->create(['event_id' => $this->event->id, 'starts_at' => now()->addDay(), 'ends_at' => now()->addDay()->addHour()]);
     $this->grant->update(['complimentary' => true]);
     $service = app(GrantCampaigns::class);
     $campaign = $service->choose($this->owner, $this->grant, $this->event);

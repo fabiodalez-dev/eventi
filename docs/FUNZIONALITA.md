@@ -1,6 +1,6 @@
 # inCittà — Funzionalità della piattaforma
 
-*Panoramica per ruoli e opportunità commerciali. Aggiornata al 18 novembre 2026.*
+*Panoramica per ruoli e opportunità commerciali. Aggiornata al 19 novembre 2026.*
 
 <!--
 COME SI AGGIORNA QUESTO FILE
@@ -33,6 +33,8 @@ Controlla il catalogo, abilita gli operatori e gestisce promozione, comunicazion
 - **Gestione di più città** — Configura città, fuso orario e riferimenti geografici per i rispettivi cataloghi.
 - **Accreditamento dei locali** — Valuta richieste di gestione, dati del locale e accesso al pannello dedicato.
 - **Account e autorizzazioni** — Assegna ruoli e responsabilità mantenendo separati gli ambiti di gestione.
+- **Nuove iscrizioni in evidenza** — L'elenco degli utenti parte dagli ultimi iscritti, con data d'iscrizione, stato della conferma e il filtro «In attesa di conferma»; il riepilogo mostra le nuove iscrizioni. *Solo web.*
+- **Richieste di sponsorizzazione da approvare** — Le richieste mandate dai locali senza pagamento online arrivano in redazione, che concorda il pagamento e le approva. *Solo web.*
 - **Organizzatori indipendenti** — Gestisce identità e contenuti di realtà che organizzano eventi anche in sedi diverse.
 - **Evidenza editoriale** — Seleziona appuntamenti da valorizzare nelle aree di scoperta della piattaforma.
 - **Segnalazioni e recensioni** — Esamina contenuti segnalati e modera le recensioni dei locali.
@@ -122,6 +124,11 @@ Promuove la propria attività, mantiene aggiornato il programma e misura l’int
 - **Moderazione dei commenti sui propri eventi** — Nasconde o ripristina i commenti alle proprie date. *Solo web.*
 - **Risposta alle recensioni** — Risponde in pubblico con il nome della scheda; la prima risposta avvisa l'autore. *Risposta dal pannello web, visibile anche nell'app.*
 - **Rivendicazione di un locale a catalogo** — Il titolare chiede la gestione della scheda direttamente dalla pagina pubblica. *Solo web.*
+- **Registrazione del locale con account** — Chi registra o rivendica un locale senza avere un account lo crea nello stesso modulo, scegliendo la password; la richiesta entra in coda dopo la conferma dell'email. *Solo web.*
+- **Pannello semplificato e collegato** — Dalla scheda di un evento si passa a modifica, statistiche, grafiche social, sponsorizzazione e biglietteria; gli elenchi mostrano le locandine. *Solo web.*
+- **Pagina Social con filtri e calendario** — Si scelgono le serate da un calendario o da un elenco filtrabile, senza conoscere le date a memoria. *Solo web.*
+- **Sponsorizzazione in quattro passi** — Evento con locandina, posizione spiegata, durata con prezzo, riepilogo; senza pagamento online la richiesta va alla redazione. *Solo web.*
+- **Descrizioni con gli a capo** — I testi incollati (anche da Facebook) mantengono paragrafi e a capo, nel pannello e sul sito. *Sito e app.*
 - **Messaggio ai prenotati** — Scrive a chi ha un posto e, se vuole, a chi è in lista d'attesa, fino a tre messaggi al giorno per data. *Sito e app.*
 - **Prenotazioni al banco o al telefono** — Registra prenotazioni di persone senza account; con un'email, i biglietti partono in allegato. *Sito e app.*
 - **Domande a chi prenota** — Fino a cinque domande per data (testo, scelta, sì/no), con risposte in elenco, CSV e lista stampabile, cancellate dopo trenta giorni. *Sito e app.*
@@ -185,6 +192,10 @@ Controlla i biglietti all’ingresso delle date a cui è assegnato, con permessi
 Scopre cosa fare, organizza il proprio calendario e riceve aggiornamenti sugli appuntamenti di interesse.
 
 - **Consultazione senza iscrizione** — Esplora il catalogo pubblico e le schede degli eventi anche senza un account.
+- **Calendario in home** — Il mese in corso subito sotto l'apertura, accanto al prossimo evento e a quelli a seguire; per chi è collegato segue i suoi interessi. *Solo web, l'app lo riceve dall'API.*
+- **Tre viste degli elenchi da telefono** — Card grandi, griglia a due colonne o elenco con la locandina a sinistra; la scelta resta ricordata. *Solo web.*
+- **Accesso unico** — Una sola pagina di accesso per visitatori, gestori, organizzatori e redazione; ognuno arriva nella sua area. Le pagine riservate mandano all'accesso o spiegano in tema perché non si possono aprire. *Solo web.*
+- **«Stasera» passo per passo** — Una domanda per schermata, con avanzamento, risposte grandi e i risultati che si aggiornano mentre si sceglie. *Solo web.*
 - **Oggi e questo fine settimana** — Trova selezioni temporali rapide per decidere cosa fare senza impostare ricerche complesse.
 - **Eventi di stasera e in corso** — Accede agli appuntamenti rilevanti per il momento della consultazione.
 - **Ricerca nel catalogo** — Cerca eventi e riferimenti di interesse attraverso i contenuti disponibili.
@@ -216,6 +227,7 @@ Scopre cosa fare, organizza il proprio calendario e riceve aggiornamenti sugli a
 - **Preferenze delle notifiche** — Configura le comunicazioni facoltative, con limiti e orari di quiete previsti.
 - **Notifiche push ed email** — Riceve messaggi sui canali disponibili e autorizzati, con integrazione web e Android.
 - **Prenotazione di un posto** — Prenota le date abilitate, gratuite o con pagamento all’ingresso, nei limiti disponibili.
+- **Prenotazione senza ripetere i dati** — Chi prenota trova nome e cognome già compilati e con «Partecipo anch'io» è già fra i partecipanti. *Solo web.*
 - **Biglietti con QR** — Riceve conferma e biglietti utilizzabili per il controllo dell’ingresso.
 - **Lista di attesa e annullamento** — Si mette in attesa e gestisce la cancellazione entro i termini dell’appuntamento.
 - **Recensioni dei locali** — Condivide una valutazione secondo le regole di accesso e moderazione previste.
@@ -226,6 +238,7 @@ Scopre cosa fare, organizza il proprio calendario e riceve aggiornamenti sugli a
 - **Tema chiaro e scuro** — Sceglie una preferenza di aspetto e può cambiarla rapidamente durante la consultazione.
 - **Promozioni riconoscibili** — Distingue gli spazi sponsorizzati dai contenuti editoriali grazie alle indicazioni dedicate.
 - **Commenti agli eventi** — Risposte, reazioni e avvisi di risposta, per chi ha l'email confermata o il numero WhatsApp verificato dove la community lo richiede. *Sito e app.*
+- **Commenti in stile social** — Avatar, fumetto, tempo relativo, reazioni e risposte rientrate sotto ogni commento. *Solo web.*
 - **Community di persone verificate** — Profilo pubblico con avatar e nome utente, persone da seguire, bacheca e pubblicazione volontaria delle date salvate con un consiglio; blocchi e segnalazioni. *Sito e app.*
 - **Verifica WhatsApp gratuita** — Con un codice o, nell'app, con un tocco; apre la partecipazione alla community. *Sito e app.*
 - **«Ci vado» e chi partecipa** — Dichiara pubblicamente che andrà a una data e vede chi altro ci va, fra le persone verificate; resta privato finché non lo sceglie. *Sito e app.*
@@ -285,7 +298,7 @@ Il valore della piattaforma deriva dall’incontro fra offerta locale, pubblico 
 - **Apple Wallet** — Da fare.
 - **Feedback dopo l’evento** — Recensioni verificate di chi è entrato davvero.
 - **Cessione del biglietto** — Passare il proprio biglietto a un’altra persona.
-- **Autenticazione a due fattori** — Per redazione e gestori.
+- **Autenticazione a due fattori** — Per redazione e gestori: con l'accesso unico si potrà fare in un punto solo.
 - **Accesso con Google o Apple.**
 - **Sito in inglese.**
 - **Artisti da seguire** — Oggi la lineup è solo testo.
@@ -297,5 +310,6 @@ Il valore della piattaforma deriva dall’incontro fra offerta locale, pubblico 
 
 ## Registro degli aggiornamenti
 
+- **19 novembre 2026** — Pagine di servizio ridisegnate con lo stesso impianto, accesso unico, calendario e prossimo evento in home, tre viste degli elenchi da telefono, registrazione e rivendicazione del locale con account, pannello del locale semplificato, sponsorizzazione richiesta senza pagamento online, iscrizioni in evidenza nell'admin, commenti in stile social, «Stasera» passo per passo, prenotazione senza ripetere i dati.
 - **18 novembre 2026** — Aggiunte le funzioni entrate dal 15 settembre: community verificata, «ci vado», commenti, sondaggi, passaggi in auto, analytics completi, link e QR tracciati, acquisto delle sponsorizzazioni, strumenti per le date (domande, messaggi, assenze, lista stampabile, personale su invito, ingressi senza rete), chiusure e avvisi dei locali, co-organizzatori, e una sezione per il pianificato.
 - **15 settembre 2026** — Prima versione.

@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V1\Auth\PasswordController;
 use App\Http\Controllers\Api\V1\CalendarController;
 use App\Http\Controllers\Api\V1\CityController;
 use App\Http\Controllers\Api\V1\ConfigController;
+use App\Http\Controllers\Api\V1\ContentMetricController;
 use App\Http\Controllers\Api\V1\DiscoveryController;
 use App\Http\Controllers\Api\V1\EventController;
 use App\Http\Controllers\Api\V1\HomeController;
@@ -25,6 +26,7 @@ use App\Http\Controllers\Api\V1\Me\NotificationPreferenceController;
 use App\Http\Controllers\Api\V1\Me\ProfileController;
 use App\Http\Controllers\Api\V1\Me\SavedController;
 use App\Http\Controllers\Api\V1\Me\SessionController;
+use App\Http\Controllers\Api\V1\Me\VenueApplicationController;
 use App\Http\Controllers\Api\V1\MobileManagementController;
 use App\Http\Controllers\Api\V1\OccurrenceController;
 use App\Http\Controllers\Api\V1\PageController;
@@ -81,6 +83,7 @@ Route::prefix('v1')->middleware(['auth:sanctum', TicketingPrivacy::class])->grou
     Route::prefix('management')->controller(MobileManagementController::class)->group(function (): void {
         Route::get('/dates', 'index');
         Route::get('/dates/{occurrence}', 'show');
+        Route::get('/dates/{occurrence}/bookings', 'bookings')->middleware('throttle:60,1,management-bookings');
         Route::post('/dates/{occurrence}/staff', 'staff')->middleware('throttle:30,1,ticketing-staff');
         Route::patch('/dates/{occurrence}/details', 'details')->middleware('throttle:30,1,ticketing-details');
         Route::get('/campaigns', 'campaigns');
@@ -212,6 +215,20 @@ Route::prefix('v1')
             ->middleware('throttle:sponsorship-metrics')
             ->name('sponsorships.metric');
 
+        /*
+         * Le misure di una scheda aperta dall'app (visite, indicazioni,
+         * biglietti, condivisioni…): gli stessi contatori aggregati del sito
+         * (`/misure/{type}/{id}`), con la stessa regola del consenso — l'app
+         * manda `consent: true` solo se la persona ha accettato le statistiche,
+         * e senza non si conta nulla. Si spegne con
+         * `eventi.analytics.app_content_metrics` falso: allora risponde 404.
+         */
+        Route::post('/reports/content/{type}/{id}', ContentMetricController::class)
+            ->whereIn('type', ['event', 'venue', 'organizer'])
+            ->whereNumber('id')
+            ->middleware('throttle:60,1,content-metrics')
+            ->name('content.metric');
+
         Route::prefix('auth')->name('auth.')->group(function (): void {
             Route::middleware('throttle:api-auth')->group(function (): void {
                 Route::post('/register', [AuthController::class, 'register'])
@@ -270,6 +287,7 @@ Route::prefix('v1')
                 Route::post('/presence', [PresenceController::class, 'store'])->middleware('throttle:20,60,presence')->name('presence.store');
                 Route::delete('/presence/{token}', [PresenceController::class, 'destroy'])->where('token', '[A-Za-z0-9]{32}')->name('presence.destroy');
                 Route::get('/attended', AttendedController::class)->name('attended');
+                Route::get('/venue-applications', VenueApplicationController::class)->middleware('throttle:60,1,account-applications')->name('venue-applications');
                 foreach (['availability', 'opening', 'edition'] as $kind) {
                     Route::get('/'.$kind.'-alerts', [OneTimeAlertController::class, 'index'])->defaults('kind', $kind)->name($kind.'-alerts.index');
                     Route::post('/'.$kind.'-alerts/{subject}', [OneTimeAlertController::class, 'store'])->defaults('kind', $kind)->whereNumber('subject')->middleware('throttle:30,1,'.$kind.'-alerts')->name($kind.'-alerts.store');

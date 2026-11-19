@@ -40,6 +40,8 @@ it('opens the mobile scanner decodes a qr and records admission only after confi
         ->click('[data-consent-banner] button[value="reject_all"]')->screenshot(filename: 'ticket-management-'.$device);
     expect($page->script('document.permissionsPolicy ? document.permissionsPolicy.allowsFeature("camera") : document.featurePolicy.allowsFeature("camera")'))->toBeTrue();
     expect($page->script('(() => { const r = [...document.querySelectorAll("[data-ticket-statistics] > div")].map(e=>e.getBoundingClientRect().top); return (r[0] === r[1] && r[2] === r[3]) && document.documentElement.scrollWidth <= innerWidth; })()'))->toBeTrue();
+    // La registrazione manuale dell'ingresso sta in una sezione chiusa della gestione: la si apre.
+    $page->click('[data-manage-section="checkin"] summary');
     // Real ZXing decoding against a deterministic camera feed, without a physical camera in CI.
     $page->script('window.qrSource = '.json_encode('data:image/svg+xml;base64,'.$svg));
     $page->script('(() => { navigator.mediaDevices.getUserMedia = async () => { window.cameraRequested = true; const canvas = document.createElement("canvas"); canvas.width=canvas.height=480; const image = new Image(); image.src=window.qrSource; await image.decode(); const context=canvas.getContext("2d"); const draw=()=>{context.fillStyle="white";context.fillRect(0,0,480,480);context.drawImage(image,0,0);}; draw(); window.cameraInterval=setInterval(draw,100); window.cameraStream=canvas.captureStream(10); return window.cameraStream; }; return true; })()');
@@ -65,8 +67,9 @@ it('searches upcoming and past events without losing the mobile controls', funct
     $page = visit('/gestione-biglietti')->on()->{$device}()
         ->click('[data-consent-banner] button[value="reject_all"]')
         ->assertSee('Concerto futuro')->assertDontSee('Concerto passato');
-    $page->select('period', 'past')->assertSee('Concerto passato')->assertDontSee('Concerto futuro');
-    $page->fill('[data-ticket-search] [name="q"]', 'nessuna corrispondenza')->assertSee('Non ci sono eventi passati corrispondenti alla ricerca');
+    // Il periodo è una scelta segmentata a collegamenti: «Passati» ricarica la pagina con `period=past`.
+    $page->click('[data-segmented] a[href*="period=past"]')->assertSee('Concerto passato')->assertDontSee('Concerto futuro');
+    $page->fill('[data-ticket-search] [name="q"]', 'nessuna corrispondenza')->assertSee('Non ci sono eventi corrispondenti alla ricerca');
     $page->fill('[data-ticket-search] [name="q"]', 'Concerto')->assertSee('Concerto passato');
     $page->navigate('/admin/newsletter')->assertSee('Invio della newsletter')->screenshot(filename: 'newsletter-'.$device);
 })->with(['desktop', 'mobile']);

@@ -18,9 +18,12 @@ final class UnfollowSubject
 {
     public function __invoke(User $user, FollowableType $type, int $id): bool
     {
-        return $user->follows()
+        $removed = $user->follows()
             ->where('followable_type', $type->value)
             ->where('followable_id', $id)
             ->delete() > 0;
+        $user->forgetFollowsForRequest();
+
+        return $removed;
     }
 }

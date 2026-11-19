@@ -9,7 +9,6 @@ use App\Enums\VenueStatus;
 use App\Models\User;
 use App\Models\Venue;
 use Filament\Actions\Action;
-use Filament\Actions\ActionGroup;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
 use Filament\Support\Icons\Heroicon;
@@ -25,35 +24,24 @@ use Filament\Support\Icons\Heroicon;
 final class VenueModeration
 {
     /**
-     * Le azioni **nella riga di una tabella**, raggruppate in un menu.
+     * Le azioni **nella riga di una tabella**: le raccoglie il menu
+     * «Moderazione» dell'elenco, insieme ad «Apri la scheda».
      *
      * Lì lo spazio è poco e le righe sono molte: quattro pulsanti per riga
-     * renderebbero illeggibile l'elenco.
+     * renderebbero illeggibile l'elenco. Il menu ha un'etichetta perché un
+     * menu di sole icone non dice cosa contiene, ed è grigio perché in un
+     * elenco di locali già approvati l'azione principale non è moderarli —
+     * è trovarne uno.
      *
-     * @return array<Action|ActionGroup>
+     * @return list<Action>
      */
-    public static function actions(): array
+    public static function rowActions(): array
     {
         return [
-            ActionGroup::make([
-                self::approve(),
-                self::reject(),
-                self::suspend(),
-                self::verify(),
-            ])
-                /* Un'etichetta, perché un menu di sole icone non dice cosa
-                   contiene: chi cerca «sospendi» non ha motivo di aprire tre
-                   puntini per scoprirlo. */
-                ->label(__('admin.actions.moderate'))
-                ->icon(Heroicon::OutlinedShieldCheck)
-                ->button()
-                /* Grigio, non lime.
-                   Il lime dice «questa e' l'azione principale della
-                   schermata»: ripetuto su cinquanta righe smette di dirlo, e
-                   in un elenco di locali gia' approvati l'azione principale
-                   non e' moderarli — e' trovarne uno. */
-                ->color('gray')
-                ->dropdown(),
+            self::approve(),
+            self::reject(),
+            self::suspend(),
+            self::verify(),
         ];
     }
 
@@ -74,7 +62,7 @@ final class VenueModeration
      * ognuna compare solo quando ha senso — «approva» sparisce su un locale
      * già approvato, «sospendi» esiste solo per chi è approvato.
      *
-     * @return array<Action|ActionGroup>
+     * @return list<Action>
      */
     public static function headerActions(): array
     {

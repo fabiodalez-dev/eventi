@@ -31,6 +31,10 @@ final class UserResource
         return [
             'id' => (int) $user->getKey(),
             'name' => $user->name,
+            // Nome e cognome separati, quando la persona li ha dati: l'app li usa
+            // per precompilare chi prenota. Altrimenti null, e resta `name`.
+            'first_name' => filled($user->first_name) ? (string) $user->first_name : null,
+            'last_name' => filled($user->last_name) ? (string) $user->last_name : null,
             'email' => (string) $user->email,
             'role_label' => $role->label(),
             'management_links' => self::managementLinks($user),
@@ -42,7 +46,10 @@ final class UserResource
             'whatsapp_prompted' => $user->whatsapp_prompted_at !== null,
             'timezone' => $timezone,
             'locale' => (string) $user->locale,
-            'appearance' => $user->appearance,
+            // `light` o `dark`, mai null: senza una scelta vale `dark`, come nelle versioni precedenti dell'app, che leggono questo campo come stringa obbligatoria.
+            'appearance' => $user->appearance ?? 'dark',
+            // La scelta della persona: `light`, `dark` oppure null (nessuna scelta, si segue il tema del sistema).
+            'appearance_choice' => $user->appearance,
             'marketing_opt_in' => $user->marketing_opt_in_at !== null,
             'created_at' => ApiDate::attribute($user, 'created_at', $timezone),
             'updated_at' => ApiDate::attribute($user, 'updated_at', $timezone),

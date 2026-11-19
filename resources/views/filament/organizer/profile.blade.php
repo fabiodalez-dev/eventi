@@ -1,7 +1,8 @@
 <x-filament-panels::page>
-    <p>Nome, responsabile e collaboratori sono gestiti dalla redazione. Qui puoi aggiornare la presentazione e i contatti pubblici.</p>
-    <form wire:submit="save" class="flex flex-col gap-6">
+    <form wire:submit="save" class="flex flex-col gap-6" data-organizer-profile>
         {{ $this->form }}
-        <x-filament::button type="submit">Salva il profilo</x-filament::button>
+        <div class="flex flex-wrap gap-3">
+            <x-filament::button type="submit" icon="heroicon-o-check" wire:loading.attr="disabled">{{ __('panel.organizer_profile.save') }}</x-filament::button>
+        </div>
     </form>
 </x-filament-panels::page>

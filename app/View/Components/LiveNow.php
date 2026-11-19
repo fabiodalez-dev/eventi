@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace App\View\Components;
 
 use App\Models\EventOccurrence;
+use App\Models\User;
 use App\Services\Cache\LiveWindows;
 use App\Support\CurrentCity;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\View\Component;
 
 /**
@@ -65,6 +67,17 @@ final class LiveNow extends Component
 
         $this->ongoing = $city === null ? new Collection : $windows->ongoing($city, self::PER_SECTION);
         $this->startingSoon = $city === null ? new Collection : $windows->startingSoon($city, self::PER_SECTION);
+
+        /* Le date già nel blocco accanto al calendario (`HomeNextEvent`) non si
+           ripetono qui sotto: stessa pagina, stessa serata due volte. */
+        if ($city !== null && $this->startingSoon->isNotEmpty()) {
+            $user = Auth::user();
+            $shown = $windows->next($city, $user instanceof User ? $user : null)['occurrences'] ?? new Collection;
+            $ids = $shown->modelKeys();
+            $this->startingSoon = $this->startingSoon
+                ->reject(static fn (EventOccurrence $occurrence): bool => in_array($occurrence->getKey(), $ids, true))
+                ->values();
+        }
     }
 
     public function render(): View

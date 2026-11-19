@@ -24,7 +24,7 @@ class ListSponsorships extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Action::make('analytics')->label('Statistiche e registro clic')->url(SponsorshipAnalytics::getUrl())->color('gray'),
+            Action::make('analytics')->label(__('sponsorships.admin.analytics'))->url(SponsorshipAnalytics::getUrl())->color('gray'),
             Action::make('grants')->label(__('promotions.title'))->url(SponsorshipGrantResource::getUrl())->color('gray'),
             /*
              * L'esportazione dell'elenco, coi filtri applicati.
@@ -40,7 +40,7 @@ class ListSponsorships extends ListRecords
                 ->label(__('admin.actions.export'))
                 ->color('gray'),
 
-            CreateAction::make(),
+            CreateAction::make()->label(__('sponsorships.admin.create')),
         ];
     }
 

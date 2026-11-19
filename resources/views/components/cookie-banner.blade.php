@@ -48,11 +48,16 @@
 @endphp
 
 @unless ($consent->decided())
+    {{-- Sul telefono la fascia sta sopra la barra in basso quando la barra si
+         vede (`--visible-navigation-height`, misurata da `app.js`), e scende
+         al bordo quando la barra si nasconde scorrendo. Finché lo script non
+         ha misurato vale lo spazio dichiarato dal tema. Il chiaro, dove la
+         barra galleggia, la sposta in `light.css`. --}}
     <aside
         data-consent-banner
         role="region"
         aria-labelledby="consenso-titolo"
-        class="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] lg:bottom-0 z-[9001] max-h-[70dvh] overflow-y-auto border-t border-line bg-surface"
+        class="fixed inset-x-0 bottom-[var(--visible-navigation-height,var(--navigation-space))] lg:bottom-0 z-[9001] max-h-[70dvh] overflow-y-auto border-t border-line bg-surface"
     >
         <form
             method="POST"

@@ -37,7 +37,7 @@ return [
     'navigation' => [
         'calendar' => 'Calendario',
         'content' => 'Contenuti',
-        'places' => 'Luoghi e persone',
+        'places' => 'Luoghi',
         'moderation' => 'Community e moderazione',
         'promotion' => 'Promozione',
         'analytics' => 'Analisi',
@@ -64,7 +64,7 @@ return [
         'quality_description' => 'Schede incomplete e situazioni da guardare prima che le veda il pubblico.',
         'pending_events' => 'Eventi in attesa',
         'pending_venues' => 'Locali in attesa',
-        'pending_applications' => 'Richieste di iscrizione',
+        'pending_applications' => 'Richieste dei locali',
         'published_today' => 'Pubblicati oggi',
         'published_this_week' => 'Pubblicati questa settimana',
         'scheduled_today' => 'In programma oggi',
@@ -94,13 +94,16 @@ return [
         ],
     ],
 
+    /* Il titolo delle pagine di creazione per le risorse dal nome femminile. */
+    'create_feminine' => ['title' => 'Nuova :label', 'breadcrumb' => 'Nuova'],
+
     'resources' => [
         'city' => ['label' => 'Città', 'plural' => 'Città'],
-        'venue' => ['label' => 'Locale', 'plural' => 'Locali'],
-        'venue_application' => ['label' => 'Richiesta di iscrizione', 'plural' => 'Richieste di iscrizione'],
+        'venue' => ['label' => 'locale', 'plural' => 'Locali'],
+        'venue_application' => ['label' => 'Richiesta di un locale', 'plural' => 'Richieste dei locali'],
         'category' => ['label' => 'Categoria', 'plural' => 'Categorie'],
         'tag' => ['label' => 'Tag', 'plural' => 'Tag'],
-        'event' => ['label' => 'Evento', 'plural' => 'Eventi'],
+        'event' => ['label' => 'evento', 'plural' => 'Eventi'],
         'occurrence' => ['label' => 'Data', 'plural' => 'Date'],
         'event_occurrence' => ['label' => 'Data', 'plural' => 'Date'],
         'recurrence' => ['label' => 'Ricorrenza', 'plural' => 'Ricorrenze'],
@@ -171,6 +174,8 @@ return [
 
         // condivise
         'where' => 'Dove',
+        'before_going' => 'Prima di andare',
+        'content_seo' => 'Contenuti e SEO',
     ],
 
     'tabs' => [
@@ -418,6 +423,9 @@ return [
         'preview_import' => 'Anteprima',
         'run_import' => 'Esegui ora',
         'close' => 'Chiudi',
+        'more' => 'Altre azioni',
+        'open_record' => 'Apri la scheda',
+        'sponsor' => 'Sponsorizza questo evento',
     ],
 
     'scopes' => [
@@ -572,6 +580,167 @@ return [
         'merged' => 'Unita a un doppione',
         'merged_into' => 'Assorbita da un\'altra scheda',
         'restored_event' => 'Ripristino',
+    ],
+
+    /* Gli elenchi della redazione: la riga è una card con la locandina (o la
+       copertina), il titolo, il luogo, la data e lo stato. */
+    'event_list' => [
+        'when' => 'Quando',
+        'next' => 'Prossima data: :date',
+        'last' => 'Ultima data: :date',
+        'no_dates' => 'Nessuna data',
+        'no_place' => 'Luogo da indicare',
+        'dates_count' => '{0} Nessuna data|{1} Una data|[2,*] :count date',
+        'published_at' => 'Pubblicato il :date',
+        'never_published' => 'Mai pubblicato',
+    ],
+
+    'venue_list' => [
+        'events_count' => '{0} Nessun evento|{1} Un evento|[2,*] :count eventi',
+        'verified' => 'Verificato',
+        'not_verified' => 'Da verificare',
+    ],
+
+    'comment_list' => [
+        'reply' => 'Risposta',
+        'reactions' => '{0} Nessuna reazione|{1} Una reazione|[2,*] :count reazioni',
+        'moderated_by' => 'Moderato da :name',
+    ],
+
+    /* Le schede in sola lettura di eventi e locali (chi modera senza poter
+       modificare). */
+    'view_pages' => [
+        'editorial' => 'Redazione',
+        'editorial_description' => 'Quello che serve a chi modera e non compare sulla scheda pubblica.',
+        'created_by' => 'Inserito da',
+        'scheduled_publish_at' => 'Pubblicazione programmata',
+        'featured_open' => 'In evidenza, senza scadenza',
+        'edit' => 'Modifica',
+        'info' => 'Informazioni',
+        'yes' => 'Sì',
+        'no' => 'No',
+        'no_cover' => 'Nessuna copertina',
+        'no_description' => 'La descrizione non è ancora stata scritta.',
+        'event_hint' => 'Questa è la scheda in sola lettura. Le decisioni (pubblica, rifiuta, annulla, metti in evidenza) stanno in alto; per cambiare testi, locandina o una serata usa «Modifica».',
+        'social' => 'Grafiche social',
+        'venue_hint' => 'Questa è la scheda in sola lettura. Le decisioni (approva, verifica, sospendi, rifiuta) stanno in alto; per cambiare i dati usa «Modifica».',
+        'upcoming' => 'Prossimi eventi',
+        'upcoming_description' => 'Le prossime date in cartellone, con la locandina. Si apre la scheda dell\'evento.',
+        'no_upcoming' => 'Nessun evento in programma.',
+        'members' => 'Chi gestisce il locale',
+        'no_members' => 'Nessun account collegato a questo locale.',
+    ],
+
+    'community_page' => [
+        'subheading' => 'Ogni decisione chiede una motivazione, che resta nel registro della moderazione.',
+        'sections_label' => 'Che cosa moderare',
+        'sections' => [
+            'profiles' => 'Profili',
+            'posts' => 'Pubblicazioni',
+            'comments' => 'Commenti',
+            'restrictions' => 'Serate bloccate',
+        ],
+        'search' => [
+            'name' => 'Cerca per nome',
+            'text' => 'Cerca nel testo',
+        ],
+        'empty' => [
+            'profiles' => 'Nessun profilo',
+            'posts' => 'Nessuna pubblicazione',
+            'comments' => 'Nessun commento',
+            'restrictions' => 'Nessuna serata bloccata',
+        ],
+        'empty_search' => 'Nessun risultato per questa ricerca: prova con un\'altra parola.',
+        'reason_help' => 'Almeno cinque caratteri. La legge solo lo staff.',
+        'confirm' => 'Conferma',
+        'done' => 'Fatto: la decisione è registrata.',
+        'feature_description' => 'Il profilo entra o esce dalla selezione mostrata nella community.',
+        'unsuspend_description' => 'La persona torna nella community con profilo, post e commenti.',
+        'restore_description' => 'Il contenuto torna visibile a chi poteva vederlo prima.',
+        'suspended' => 'Sospeso',
+        'hidden' => 'Nascosto',
+    ],
+
+    'carpool_page' => [
+        'subheading' => 'Ogni azione chiede una motivazione nella sua finestra; le risposte vanno solo alla persona scelta, le note restano interne.',
+        'reason_help' => 'Almeno cinque caratteri. Resta nel registro del caso.',
+        'confirm' => 'Conferma',
+        'done' => 'Fatto: l\'operazione è registrata.',
+        'failed' => 'L\'operazione non è riuscita: ricarica la pagina e riprova.',
+        'empty' => 'Niente da mostrare in questa sezione',
+        'close_case' => 'Chiudi il caso',
+        'recipient' => 'A chi rispondere',
+        'message' => 'Messaggio',
+        'reply_description' => 'Il messaggio arriva soltanto alla persona scelta e il caso passa in attesa di risposta.',
+        'hold_description' => 'Conservazione eccezionale delle evidenze di questo caso per 90 giorni. Va motivata e riesaminata alla scadenza; serve la password del tuo account.',
+        'case_ops' => [
+            'assign' => 'Il caso passa a te e chi l\'ha segnalato vede che è in lavorazione.',
+            'note' => 'La nota resta interna: la legge solo lo staff.',
+            'resolve' => 'Il caso si chiude come risolto. Si può riaprire.',
+            'reopen' => 'Il caso torna aperto.',
+        ],
+    ],
+
+    'seo_page' => [
+        'steps_heading' => 'Come si collega',
+        'tools_heading' => 'Strumenti esterni',
+        'tools_description' => 'Si aprono in una scheda nuova: la validazione vera la fanno loro.',
+        'tools' => [
+            'sitemap' => 'Sitemap XML',
+            'search_console' => 'Google Search Console',
+            'rich_results' => 'Rich Results Test',
+            'schema' => 'Schema.org Validator',
+            'pagespeed' => 'PageSpeed Insights',
+        ],
+        'audit_heading' => 'Controllo del catalogo',
+        'filters' => [
+            'issues' => 'Da sistemare',
+            'all' => 'Tutti',
+        ],
+        'empty' => 'Nessun evento da sistemare',
+    ],
+
+    'scheduler_page' => [
+        'intro' => 'Tutte le attività programmate passano dallo scheduler Laravel. Installa una sola volta i due cron qui sotto: lo scheduler decide cosa eseguire, il worker completa i lavori in coda. Non aggiungere un cron separato per ogni riga dell’elenco.',
+        'cron_heading' => 'Cron del server',
+        'scheduler' => 'Scheduler',
+        'worker' => 'Worker',
+        'in_crontab' => 'presente nel crontab',
+        'not_in_crontab' => 'non trovato nel crontab',
+        'unreadable_before' => 'Il processo web non può leggere il crontab. Verifica queste righe in cPanel → Cron Jobs o con',
+        'unreadable_after' => 'Questo non indica da solo che il cron sia fermo.',
+        'every_minute_before' => 'Esecuzione ogni minuto.',
+        'every_minute_after' => 'impedisce che due copie dello stesso processo si sovrappongano; i log sono separati. Sostituisci eventuali righe precedenti dello stesso progetto, senza duplicarle.',
+        'cron' => [
+            'scheduler' => '1. Scheduler',
+            'worker' => '2. Worker della coda',
+        ],
+        'queue' => 'Il worker richiede una coda persistente: configurazione attuale «:queue». Per controllare manualmente usa',
+        'queue_after' => 'In produzione usa il percorso PHP mostrato sopra.',
+        'social_heading' => 'Instagram, Facebook e Telegram',
+        'social_before' => 'In',
+        'social_link' => 'Social → Impostazioni',
+        'social_after' => 'collega e verifica l’account Meta. Per il riepilogo quotidiano abilita la pubblicazione automatica e scegli l’ora. Per un singolo contenuto prepara l’anteprima in Social, scegli data e ora e premi Programma.',
+        'social_timing' => 'La data social segue il fuso della città. L’invio parte dopo l’orario scelto, con un controllo ogni minuto e i tempi di elaborazione di Meta. Gli eventi modificati fermano il post; gli esiti incerti richiedono verifica su Instagram prima di un nuovo tentativo. Le storie si scaricano e si pubblicano manualmente.',
+        'telegram' => 'Telegram :state.',
+        'connection' => 'Collegamento :city: :state.',
+        'verified' => 'verificato',
+        'to_verify' => 'da configurare o verificare',
+        'verified_at' => 'verificato il :date',
+        'instagram_on' => 'Instagram abilitato.',
+        'instagram_off' => 'Instagram disabilitato.',
+        'autopost_on' => 'Autopost attivo alle :time.',
+        'autopost_off' => 'Autopost disattivato.',
+        'no_social' => 'Nessun collegamento social configurato: autopost non operativo.',
+        'tasks_heading' => 'Attività registrate',
+        'tasks_description' => 'Elenco letto dallo scheduler reale. Espressioni cron, prossime esecuzioni e storico sono in UTC. La prossima esecuzione è un controllo: le condizioni della singola attività possono rinviare il lavoro. Nessun comando viene eseguito aprendo questa pagina.',
+        'expression' => 'Espressione cron',
+        'next' => 'Prossimo controllo (UTC)',
+        'last' => 'Ultimo completamento (UTC)',
+        'failed' => 'Ultimo errore (UTC)',
+        'never_finished' => 'Nessun completamento registrato',
+        'never_failed' => 'Nessun errore registrato',
+        'unmonitored' => 'Fuori dal registro del monitor: battito/worker dedicato oppure sincronizzazione da eseguire.',
     ],
 
 ];

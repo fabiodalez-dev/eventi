@@ -25,4 +25,10 @@ return [
     'subscribe' => 'Sottoscrivi questa lista',
     'subscribe_lead' => 'Gli stessi filtri, nel calendario del telefono o in un lettore di feed: le nuove date arrivano da sole.',
 
+    /* Il calendario su misura (`/calendario/personalizza`): l'indicatore dei passi. */
+    'wizard' => [
+        'step' => 'Passo :step di :total · :name',
+        'progress' => 'Avanzamento',
+    ],
+
 ];

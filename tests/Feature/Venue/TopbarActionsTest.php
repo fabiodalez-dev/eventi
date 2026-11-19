@@ -24,13 +24,15 @@ it('offers authorized shortcuts for each management role', function (string $rol
         expect($context['name'])->toBe('Circolo Aurora');
         expect($items['events']['url'])->toContain('/gestione/'.$scenario->venueA->slug.'/');
         expect($items['analytics']['url'])->toContain('/gestione/'.$scenario->venueA->slug.'/');
+        expect($items['social']['url'])->toContain('/gestione/'.$scenario->venueA->slug.'/');
+        expect($items['sponsorships']['label'])->not->toBe('topbar.sponsorships');
         expect($context['home'])->toContain('/gestione/'.$scenario->venueA->slug);
     }
 })->with([
     ['admin', 'admin', ['create', 'comments', 'analytics', 'calendar', 'tickets', 'public'], ['profile']],
     ['moderator', 'admin', ['comments', 'calendar', 'public'], ['analytics', 'tickets', 'profile']],
-    ['ownerA', 'venue', ['create', 'events', 'analytics', 'tickets', 'profile', 'public'], ['comments', 'calendar']],
-    ['editorA', 'venue', ['create', 'events', 'analytics', 'public'], ['comments', 'tickets']],
+    ['ownerA', 'venue', ['create', 'events', 'analytics', 'tickets', 'social', 'sponsorships', 'profile', 'public'], ['comments', 'calendar']],
+    ['editorA', 'venue', ['create', 'events', 'analytics', 'social', 'sponsorships', 'public'], ['comments', 'tickets']],
 ]);
 
 it('does not expose another venues shortcuts or shortcuts to unauthenticated users', function (): void {

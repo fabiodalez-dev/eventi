@@ -6,7 +6,7 @@
  * normale che il server sa già gestire.
  *
  * 1. Il modale che chiede l'iscrizione.
- * 2. Il form di risposta, che nasce chiuso.
+ * 2. Il form di risposta, che nasce chiuso, e i campi che crescono col testo.
  * 3. Le reazioni, che aggiornano il conteggio senza ricaricare la pagina.
  */
 
@@ -33,6 +33,21 @@ function apriIscrizione(evento) {
  * Senza, resta visibile: un pulsante che non fa niente è peggio di un form
  * sempre aperto.
  */
+function mostraRisposta(radice, id, aperta) {
+    const form = radice.querySelector(`[data-risposta="${CSS.escape(id)}"]`);
+    const pulsante = radice.querySelector(`[data-apri-risposta="${CSS.escape(id)}"]`);
+    if (!form) return;
+
+    form.hidden = !aperta;
+    pulsante?.setAttribute("aria-expanded", aperta ? "true" : "false");
+
+    if (aperta) {
+        form.querySelector("textarea")?.focus();
+    } else {
+        pulsante?.focus();
+    }
+}
+
 function preparaRisposte(radice) {
     radice.querySelectorAll("[data-apri-risposta]").forEach((pulsante) => {
         if (pulsante.dataset.legato === "1") return;
@@ -41,11 +56,41 @@ function preparaRisposte(radice) {
         pulsante.addEventListener("click", () => {
             const id = pulsante.getAttribute("data-apri-risposta");
             const form = radice.querySelector(`[data-risposta="${CSS.escape(id)}"]`);
-            if (!form) return;
-
-            form.hidden = !form.hidden;
-            if (!form.hidden) form.querySelector("textarea")?.focus();
+            if (form) mostraRisposta(radice, id, form.hidden);
         });
+    });
+
+    /*
+     * «Annulla» esiste solo quando c'è JavaScript a richiudere il form:
+     * senza, il form è sempre aperto e il pulsante non servirebbe a niente.
+     */
+    radice.querySelectorAll("[data-chiudi-risposta]").forEach((pulsante) => {
+        pulsante.hidden = false;
+        if (pulsante.dataset.legato === "1") return;
+        pulsante.dataset.legato = "1";
+
+        pulsante.addEventListener("click", () => {
+            mostraRisposta(radice, pulsante.getAttribute("data-chiudi-risposta"), false);
+        });
+    });
+}
+
+/*
+ * I campi di testo partono da due righe e crescono mentre si scrive, fino al
+ * massimo fissato dal CSS: sul telefono un riquadro alto quattro righe vuoto
+ * occupa mezzo schermo prima ancora di cominciare.
+ */
+function adatta(campo) {
+    campo.style.height = "auto";
+    campo.style.height = `${campo.scrollHeight + campo.offsetHeight - campo.clientHeight}px`;
+}
+
+function preparaCampi(radice) {
+    radice.querySelectorAll("textarea[data-cresce]").forEach((campo) => {
+        if (campo.dataset.legato === "1") return;
+        campo.dataset.legato = "1";
+        campo.addEventListener("input", () => adatta(campo));
+        if (campo.value !== "") adatta(campo);
     });
 }
 
@@ -118,10 +163,6 @@ function aggiornaConteggio(commento, esito) {
 
         const attiva = esito.tipo !== null && tipo === esito.tipo;
         pulsante.setAttribute("aria-pressed", attiva ? "true" : "false");
-        pulsante.classList.toggle("border-accent", attiva);
-        pulsante.classList.toggle("text-accent", attiva);
-        pulsante.classList.toggle("border-line", !attiva);
-        pulsante.classList.toggle("text-ink-muted", !attiva);
     });
 }
 
@@ -140,6 +181,8 @@ function avvia() {
         if (!form.dataset.preparata) {
             form.hidden = form.dataset.rispostaError !== "1";
             form.dataset.preparata = "1";
+            const id = form.getAttribute("data-risposta");
+            sezione.querySelector(`[data-apri-risposta="${CSS.escape(id)}"]`)?.setAttribute("aria-expanded", form.hidden ? "false" : "true");
         }
     });
 
@@ -151,6 +194,7 @@ function avvia() {
         });
     });
     preparaRisposte(sezione);
+    preparaCampi(sezione);
     preparaReazioni(sezione);
 }
 

@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace App\Filament\Admin\Resources\Sponsorships\Pages;
 
 use App\Filament\Admin\Resources\Sponsorships\SponsorshipResource;
+use App\Filament\Concerns\HasFeminineCreateTitle;
 use App\Models\Event;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreateSponsorship extends CreateRecord
 {
+    use HasFeminineCreateTitle;
+
     protected static string $resource = SponsorshipResource::class;
 
     /**

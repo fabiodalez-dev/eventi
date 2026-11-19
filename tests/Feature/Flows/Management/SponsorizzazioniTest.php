@@ -87,9 +87,16 @@ it('porta un locale dall\'acquisto al banner: firma falsa respinta, firma vera a
     Filament::setCurrentPanel('venue');
     Filament::setTenant($this->venue);
     Livewire::test(VenueSponsorships::class)
-        ->assertActionVisible('buy')
-        ->callAction('buy', data: ['price' => $this->price->id, 'mode' => PromotionMode::Selected->value])
-        ->assertHasNoActionErrors()
+        ->assertSee(__('promotions.page.how_title'))
+        ->set('scope', 'event')
+        ->call('selectPlacement', 'list_top')
+        ->call('selectDuration', 'price:'.$this->price->id)
+        ->assertSee(__('promotions.page.incomplete_hint'))
+        ->call('submitOrder')
+        ->assertNotified(__('promotions.request.incomplete'))
+        ->call('selectEvent', $this->event->id)
+        ->assertSee(__('promotions.page.submit_online'))
+        ->call('submitOrder')
         ->assertRedirect('https://checkout.stripe.test/pay/'.$this->gateway->checkouts[0]['session']);
 
     $order = SponsorshipOrder::query()->sole();
@@ -129,13 +136,11 @@ it('porta un locale dall\'acquisto al banner: firma falsa respinta, firma vera a
         ->and(SponsorshipGrant::active()->whereKey($grant->id)->exists())->toBeTrue();
     Notification::assertSentTo($this->owner, SponsorshipOrderDecided::class);
 
-    // 5. Il gestore sceglie l'evento: la campagna è attiva e compare nel banner.
+    // 5. L'evento scelto con l'ordine è già in evidenza: la campagna è attiva e compare nel banner.
     $this->actingAs($this->owner);
     Filament::setCurrentPanel('venue');
     Filament::setTenant($this->venue);
-    Livewire::test(VenueSponsorships::class)
-        ->callAction('choose', data: ['grant' => $grant->id, 'event' => $this->event->id])
-        ->assertHasNoActionErrors();
+    Livewire::test(VenueSponsorships::class)->assertSee(__('promotions.page.active_title'))->assertSee(__('promotions.page.active_on'));
 
     $campaign = Sponsorship::query()->where('sponsorship_grant_id', $grant->id)->sole();
     expect(Sponsorship::visible()->whereKey($campaign->id)->exists())->toBeTrue();
@@ -163,8 +168,8 @@ it('rimborsa l\'ordine di un\'organizzazione rifiutato dalla redazione e tiene a
     Filament::setCurrentPanel('organizer');
     Filament::setTenant($organizer);
     Livewire::test(OrganizerSponsorships::class)
-        ->callAction('buy', data: ['price' => $this->price->id, 'mode' => PromotionMode::Automatic->value])
-        ->assertHasNoActionErrors();
+        ->set('scope', 'all')->call('selectPlacement', 'list_top')->call('selectDuration', 'price:'.$this->price->id)
+        ->call('submitOrder');
     $order = SponsorshipOrder::query()->sole();
     expect($order->organizer_id)->toBe($organizer->id)->and($order->venue_id)->toBeNull();
 
@@ -185,7 +190,7 @@ it('rimborsa l\'ordine di un\'organizzazione rifiutato dalla redazione e tiene a
     $this->actingAs($editor)->get('/gestione/'.$this->venue->slug.'/sponsorizzazioni')->assertOk();
     Filament::setCurrentPanel('venue');
     Filament::setTenant($this->venue);
-    Livewire::test(VenueSponsorships::class)->assertActionHidden('buy');
+    Livewire::test(VenueSponsorships::class)->assertSee(__('promotions.page.not_owner_title'))->assertDontSee(__('promotions.page.step_what'));
     expect(fn () => app(SponsorshipOrders::class)->place($editor, $this->venue, $this->price, PromotionMode::Selected, 's', 'c'))
         ->toThrow(AuthorizationException::class);
 

@@ -1,20 +1,32 @@
-{{-- `/raccolte/{token}`: una raccolta condivisa, per chi ha il link. --}}
-<x-layouts.app :meta="$meta" :narrow="true">
-    <p class="text-eyebrow">{{ $collection->ownerLabel() ? __('collections.shared_by', ['name' => $collection->ownerLabel()]) : __('collections.shared_anonymous') }}</p>
-    <h1 class="text-hero">{{ $collection->name }}</h1>
-    <p class="my-3 text-ink-muted">{{ filled($collection->description) ? $collection->description : __('collections.shared_lead', ['app' => config('app.name')]) }}</p>
-    @if ($isOwner)
-        <a href="{{ route('account.collections.show', $collection) }}" class="inline-flex min-h-12 items-center underline">{{ __('collections.manage') }}</a>
-    @endif
+{{-- `/raccolte/{token}`: una raccolta condivisa, per chi ha il link. Le date con la locandina e la nota di chi l'ha fatta. --}}
+<x-layouts.app service :meta="$meta">
+    <x-service-page
+        :title="$collection->name"
+        :eyebrow="$collection->ownerLabel() ? __('collections.shared_by', ['name' => $collection->ownerLabel()]) : __('collections.shared_anonymous')"
+        :subtitle="filled($collection->description) ? $collection->description : __('collections.shared_lead', ['app' => config('app.name')])"
+    >
+        @if ($isOwner)
+            <x-slot:actions>
+                <x-button variant="secondary" size="sm" :href="route('account.collections.show', $collection)">{{ __('collections.manage') }}</x-button>
+            </x-slot:actions>
+        @endif
 
-    @forelse ($occurrences as $occurrence)
-        <div class="border-t-2 border-line py-4">
-            <x-event-card :occurrence="$occurrence" />
-            @if (filled($notes[$occurrence->getKey()] ?? null))
-                <p class="mt-2 text-sm"><strong>{{ __('collections.note') }}:</strong> {{ $notes[$occurrence->getKey()] }}</p>
-            @endif
-        </div>
-    @empty
-        <p class="text-sm text-ink-muted">{{ __('collections.empty') }}</p>
-    @endforelse
+        @if ($occurrences->isEmpty())
+            <x-empty-state :title="__('collections.empty_title')" :description="__('collections.shared_empty')">
+                <x-button variant="secondary" :href="route('events.index')">{{ __('collections.browse') }}</x-button>
+            </x-empty-state>
+        @else
+            <x-card :title="trans_choice('collections.items', $occurrences->count(), ['count' => $occurrences->count()])" padding="none" data-collection-items>
+                @foreach ($occurrences as $occurrence)
+                    <div class="svc-row px-5 py-4 sm:px-6">
+                        <x-service-event-row :occurrence="$occurrence">
+                            @if (filled($notes[$occurrence->getKey()] ?? null))
+                                <span><strong class="text-ink">{{ __('collections.note') }}:</strong> {{ $notes[$occurrence->getKey()] }}</span>
+                            @endif
+                        </x-service-event-row>
+                    </div>
+                @endforeach
+            </x-card>
+        @endif
+    </x-service-page>
 </x-layouts.app>

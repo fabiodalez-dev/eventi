@@ -1,17 +1,23 @@
-<article class="grid gap-5 border-b border-line py-7 sm:grid-cols-[1fr_auto]">
-    <div class="min-w-0">
-        <div class="mb-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-ink-muted"><span>{{ $offer['leg_label'] }}</span><span>{{ $offer['departure_label'] }}</span>@if($offer['demo'])<span class="font-semibold text-ink">{{ __('carpool.demo_label') }}</span>@endif</div>
-        <h2 class="font-display text-2xl font-bold"><a href="{{ $offer['url'] }}">{{ $offer['zone'] }}</a></h2>
-        <p class="mt-2 text-sm">{{ $offer['driver']['name'] }} @if($offer['driver']['verified'])<span class="text-ink-muted">· {{ __('carpool.verified') }}</span>@endif</p>
-
-@if(!empty($offer['reviews']))<p class="my-3 text-sm">@if($offer['reviews']['count']){{ __('carpool.reviews.summary', ['average' => number_format($offer['reviews']['average'], 1, ',', ''), 'count' => $offer['reviews']['count']]) }} · @endif<a class="underline" href="{{ $offer['reviews_url'] }}">{{ __('carpool.reviews.open') }}</a></p>@endif
-
-        <p class="mt-3 text-sm text-ink-muted">{{ $offer['accessibility_label'] }}</p>
-        @if($offer['accessibility_note'])<p class="mt-1 text-sm">{{ $offer['accessibility_note'] }}</p>@endif
-        @if(count($offer['stops']))<p class="mt-2 text-sm text-ink-muted">{{ implode(' → ', $offer['stops']) }}</p>@endif
-    </div>
-    <div class="flex flex-wrap items-center justify-between gap-4 sm:flex-col sm:items-end sm:justify-start">
-        <span class="font-semibold">{{ __('carpool.available', ['count' => $offer['available']]) }}</span>
-        <x-button variant="secondary" :href="$offer['url']">{{ $offer['is_own'] ? __('carpool.pending') : ($offer['demo'] ? __('carpool.demo_view') : __('carpool.seek')) }}</x-button>
-    </div>
-</article>
+{{--
+    Un passaggio nell'elenco di una data: chi guida, da dove e a che ora, i
+    posti liberi. Tutta la riga porta al passaggio. `$offer` arriva da
+    `RideResource::offer()`.
+--}}
+<x-card.row :href="$offer['url']" data-offer-row>
+    <x-slot:leading><x-avatar :name="$offer['driver']['name']" /></x-slot:leading>
+    <x-slot:trailing>
+        <span class="hidden text-sm font-semibold text-ink sm:inline">{{ trans_choice('carpool.web.seats_left', $offer['available'], ['count' => $offer['available']]) }}</span>
+        <x-lucide name="chevron-right" class="size-5 text-ink-subtle" />
+    </x-slot:trailing>
+    <span class="flex flex-wrap items-center gap-2">
+        <span class="font-semibold text-ink">{{ $offer['zone'] ?? $offer['event_title'] }}</span>
+        @if ($offer['demo'])<x-badge tone="muted" size="sm">{{ __('carpool.demo_label') }}</x-badge>@endif
+    </span>
+    <span>{{ $offer['leg_label'] }}@if ($offer['departure_label']) · {{ $offer['departure_label'] }}@endif</span>
+    <span>{{ __('carpool.web.with_driver', ['name' => $offer['driver']['name']]) }}@if ($offer['driver']['verified']) · {{ __('carpool.verified') }}@endif</span>
+    @if (! empty($offer['reviews']['count']))
+        <span>{{ __('carpool.reviews.summary', ['average' => number_format($offer['reviews']['average'], 1, ',', ''), 'count' => $offer['reviews']['count']]) }}</span>
+    @endif
+    <span class="font-semibold text-ink sm:hidden">{{ trans_choice('carpool.web.seats_left', $offer['available'], ['count' => $offer['available']]) }}</span>
+    <span class="font-semibold text-brand">{{ $offer['is_own'] ? __('carpool.web.manage') : ($offer['demo'] ? __('carpool.demo_view') : __('carpool.web.view')) }}</span>
+</x-card.row>

@@ -6,6 +6,8 @@ use App\Enums\OccurrenceStatus;
 use App\Enums\PriceType;
 use App\Models\Event;
 use App\Models\EventOccurrence;
+use App\Models\Venue;
+use App\Support\EventUrl;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -181,4 +183,40 @@ it('does not count interested users once per homepage card', function (): void {
     $this->get('/')->assertOk();
 
     expect($counts)->toBe(0);
+});
+
+/*
+ * La scheda evento idrata tutte le sue date — quelle dell'evento, gli eventi
+ * simili e quelli dello stesso locale — in un colpo solo: il numero di query
+ * non cresce con il numero di date mostrate (pacchetto `home`, rilevatore N+1).
+ */
+it('keeps the event page query count flat as related dates grow', function (): void {
+    $city = testCity();
+    freezeLocal($city, '2026-09-05 12:00:00');
+    $category = testCategory();
+    $venue = Venue::factory()->approved()->create(['city_id' => $city->getKey()]);
+    $main = occurrenceAtLocal($city, $category, '2026-09-12 21:00:00', event: ['title' => 'Scheda principale'], venue: $venue);
+
+    $count = function () use ($main): int {
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+        $this->get(EventUrl::occurrence($main))->assertOk();
+        $queries = count(DB::getQueryLog());
+        DB::disableQueryLog();
+
+        return $queries;
+    };
+
+    occurrenceAtLocal($city, $category, '2026-09-13 21:00:00', venue: $venue);
+    /* La prima apertura scalda le cache (testata, collegamenti brevi di
+       condivisione): si misura dalla seconda. */
+    $count();
+    $few = $count();
+
+    foreach (range(14, 19) as $giorno) {
+        occurrenceAtLocal($city, $category, '2026-09-'.$giorno.' 21:00:00', venue: $venue);
+        occurrenceAtLocal($city, $category, '2026-09-'.$giorno.' 22:00:00');
+    }
+
+    expect($count())->toBe($few);
 });

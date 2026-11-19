@@ -84,8 +84,12 @@ La paginazione ricontrolla lo stesso isolamento delle altre statistiche. Il cana
 indica il pulsante di origine: se il link viene inoltrato altrove l'attribuzione
 rimane quella originale. Le aperture sono passaggi, non utenti unici.
 
-La raccolta rispetta il consenso Statistiche sia per chi condivide sia per chi
-apre: senza consenso il link continua a funzionare ma non incrementa i contatori.
+Le aperture dei link brevi si contano anche senza consenso (decisione del
+19/11/2026): sono un solo totale anonimo per link e per giorno
+(`event_share_daily.clicks`), senza cookie, senza identificativi e senza IP, e
+non diventano visite alla scheda. Le condivisioni (`POST /s/{code}/share`) e le
+visite alle schede restano legate al consenso Statistiche. Le pagine delle
+statistiche dei pannelli lo spiegano in una card sempre visibile sopra i numeri.
 Le anteprime/bot riconosciuti dallo user-agent, HEAD e richieste prefetch/prerender
 non incrementano le aperture. Il filtro è euristico, non una certificazione di
 visitatore umano. Le somme giornaliere non conservano IP, referrer o identificativi

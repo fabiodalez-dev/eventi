@@ -14,8 +14,10 @@ use App\Models\Category;
 use App\Models\City;
 use App\Models\Event;
 use App\Models\EventOccurrence;
+use App\Models\User;
 use App\Models\Venue;
 use App\Queries\EventOccurrenceQuery;
+use App\Services\Calendar\MonthCalendar;
 use App\Services\Map\MapPayload;
 use App\Services\RememberedLocation;
 use App\Services\Seo\StructuredData;
@@ -50,6 +52,7 @@ final class HomeController extends Controller
         private readonly StructuredData $structuredData,
         private readonly MapPayload $mapPayload,
         private readonly SponsorshipSelector $sponsorships,
+        private readonly MonthCalendar $calendar,
     ) {}
 
     public function __invoke(CurrentCity $currentCity, HomeRequest $request, RememberedLocation $locations): View
@@ -62,9 +65,8 @@ final class HomeController extends Controller
             return view('home', [
                 'city' => null,
                 'sections' => [],
-                'days' => [],
+                'calendar' => null,
                 'categories' => [],
-                'venues' => new Collection,
                 'hero' => null,
                 'nearby' => new Collection,
                 'stats' => ['upcoming' => 0],
@@ -156,9 +158,8 @@ final class HomeController extends Controller
             'statCells' => $this->statCells($stats),
             'quickFilters' => $this->quickFilters($city),
             'todayLine' => $this->todayLine($city, $stats),
-            'days' => $this->days($city),
+            'calendar' => $this->calendar($city, ($viewer = $request->user()) instanceof User ? $viewer : null),
             'categories' => $this->categories($city),
-            'venues' => $this->venues($city),
             'structuredData' => [
                 $this->structuredData->website($city),
                 $this->structuredData->organization(),
@@ -356,39 +357,55 @@ final class HomeController extends Controller
     }
 
     /**
-     * Lo scroller dei prossimi giorni con l'indicatore di densità (§11.2).
+     * Il calendario del mese, subito sotto l'apertura.
      *
-     * I conteggi arrivano da una sola interrogazione aggregata, e i giorni
-     * senza eventi restano nell'elenco con densità zero: qui la fila di giorni
-     * è un calendario, e un calendario con i buchi tolti non si legge più.
+     * Per chi non è collegato è il calendario generale, lo stesso di
+     * `/calendario` e in cache insieme alla pagina. Per chi è collegato segue
+     * i suoi interessi (categorie scelte, locali, organizzatori, categorie e
+     * tag seguiti) e toglie ciò che ha nascosto: la pagina di una persona
+     * collegata non entra mai nella cache di pagina (`CachePage`), quindi il
+     * suo calendario non può finire a nessun altro.
      *
-     * @return list<array{date: CarbonImmutable, count: int, density: int}>
+     * Quando i suoi interessi questo mese non portano a niente, la sezione
+     * mostra il calendario della città e lo dice: una griglia vuota direbbe
+     * che in città non succede nulla, che è falso. Senza alcuna data nel mese
+     * la sezione non si disegna (§8.6).
+     *
+     * @return array{cells: list<array{date: CarbonImmutable, in_month: bool, is_today: bool, is_past: bool, count: int, titles: list<string>}>, label: string, month: string, total: int, mode: 'city'|'personal'|'fallback'|'filtered'}|null
      */
-    private function days(City $city): array
+    private function calendar(City $city, ?User $user): ?array
     {
-        $span = config()->integer('eventi.day_scroller_days');
-        $counts = EventOccurrenceQuery::for($city)->nextDays($span)->countsByBusinessDate();
+        $month = CarbonImmutable::now($city->timezone)->startOfMonth();
+        $mode = 'city';
 
-        if ($counts === []) {
-            return [];
+        if ($user === null) {
+            $cells = $this->calendar->grid($city, $month);
+        } else {
+            $cells = $this->calendar->personalGrid($city, $month, $user);
+            $mode = 'personal';
+
+            if ($cells === null || array_sum(array_column($cells, 'count')) === 0) {
+                $mode = $cells === null ? 'filtered' : 'fallback';
+                $cells = $this->calendar->cells($city, $month, $this->calendar->filteredDigest($city, $month, $user));
+            }
         }
 
-        $busiest = max($counts);
-        $today = CarbonImmutable::now($city->timezone)->startOfDay();
-        $days = [];
+        $total = array_sum(array_column($cells, 'count'));
 
-        foreach (range(0, $span - 1) as $offset) {
-            $date = $today->addDays($offset);
-            $count = $counts[$date->format('Y-m-d')] ?? 0;
-
-            $days[] = [
-                'date' => $date,
-                'count' => $count,
-                'density' => $busiest === 0 ? 0 : (int) ceil($count / $busiest * 3),
-            ];
+        if ($total === 0) {
+            return null;
         }
 
-        return $days;
+        return [
+            'cells' => $cells,
+            'label' => __('calendar.month_year', [
+                'month' => DateFormatter::for($city)->monthName($month),
+                'year' => $month->format('Y'),
+            ]),
+            'month' => $month->format('Y-m'),
+            'total' => $total,
+            'mode' => $mode,
+        ];
     }
 
     /**
@@ -419,33 +436,6 @@ final class HomeController extends Controller
         }
 
         return $grid;
-    }
-
-    /**
-     * I locali attivi sono quelli che hanno davvero date in programma, in
-     * ordine di quante ne hanno: "attivo" è una constatazione, non un premio.
-     *
-     * @return Collection<int, Venue>
-     */
-    private function venues(City $city): Collection
-    {
-        $counts = EventOccurrenceQuery::for($city)->upcoming()->countsByVenue();
-
-        if ($counts === []) {
-            return new Collection;
-        }
-
-        arsort($counts);
-        $ids = array_slice(array_keys($counts), 0, 4);
-
-        return Venue::query()
-            ->approved()
-            ->inCity($city)
-            ->whereKey($ids)
-            ->with('media')
-            ->get()
-            ->sortBy(static fn (Venue $venue): int => array_search((int) $venue->getKey(), $ids, true) ?: 0)
-            ->values();
     }
 
     /**

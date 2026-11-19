@@ -52,7 +52,8 @@ it('il passeggero richiede dal sito, il conducente vede la richiesta e la accett
         ->assertJsonPath('data.requests.0.status', 'pending')->assertJsonPath('data.requests.0.can_decide', true);
     $this->get(route('carpool.request', $ride))->assertOk();
 
-    $this->post(route('carpool.action', 'accept'), ['request_key' => (string) Str::uuid(), 'request_id' => $ride->id])->assertRedirect(route('carpool.request', $ride));
+    // Dopo la scelta il conducente resta sull'offerta, dove sono le altre richieste da gestire.
+    $this->post(route('carpool.action', 'accept'), ['request_key' => (string) Str::uuid(), 'request_id' => $ride->id])->assertRedirect(route('carpool.offer', $offer));
 
     $ride->refresh();
     $chat = RideConversation::where('ride_request_id', $ride->id)->firstOrFail();
@@ -68,7 +69,8 @@ it('il passeggero richiede dal sito, il conducente vede la richiesta e la accett
     flussoCpWeb($this, $this->passenger);
     $this->getJson(route('carpool.index').'?tab=requested')->assertOk()->assertJsonCount(1, 'data.requests')
         ->assertJsonPath('data.requests.0.status', 'accepted')->assertJsonPath('data.requests.0.chat_id', $chat->id);
-    $this->get(route('carpool.index'))->assertOk();
+    // Senza una scheda scelta si apre «Cerco», l'unica con qualcosa: la richiesta accettata, non l'elenco vuoto.
+    $this->get(route('carpool.index'))->assertOk()->assertSee('data-request-item', false)->assertDontSee(__('carpool.web.empty.offered.title'));
 });
 
 it('il conducente rifiuta: il passeggero è avvisato, non nasce chat e non può insistere sulla stessa offerta', function (): void {

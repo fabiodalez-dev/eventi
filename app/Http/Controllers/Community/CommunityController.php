@@ -74,8 +74,9 @@ final class CommunityController extends Controller
         $user = $this->viewer($request) ?? abort(401);
         $scope = $request->string('scope', 'following')->toString();
         $posts = $this->community->feed($user, $this->city(), $scope, $request->string('sort')->toString(), $request->boolean('past'))->withQueryString();
-        $context = ApiContext::forOccurrences($this->city(), [], $user, $posts->pluck('occurrence_id')->all());
         if ($request->expectsJson()) {
+            // Il contesto serve solo al JSON: sulla pagina caricava i follow di ogni autore per niente.
+            $context = ApiContext::forOccurrences($this->city(), [], $user, $posts->pluck('occurrence_id')->all());
             $followingIds = $this->access->followingIds($user, $posts->pluck('user_id'));
 
             return ApiResponse::collection($posts->getCollection()->map(fn ($post) => CommunityResource::post($post, $user, $context, $followingIds))->all(), ['has_more' => $posts->hasMorePages(), 'next_page' => $posts->hasMorePages() ? $posts->currentPage() + 1 : null]);
@@ -230,15 +231,11 @@ final class CommunityController extends Controller
         if ($request->boolean('remove_avatar')) {
             $profile->clearMediaCollection('avatar');
         }
-        if ($request->hasFile('avatar')) {
-            // Decode/re-encode: remove EXIF, embedded metadata and executable trailing bytes.
-            $image = imagecreatefromstring(file_get_contents($request->file('avatar')->getRealPath()));
-            abort_unless($image !== false, 422);
-            ob_start();
-            imagejpeg($image, null, 85);
-            $bytes = ob_get_clean();
-            imagedestroy($image);
-            $profile->addMediaFromString($bytes)->usingFileName('avatar.jpg')->toMediaCollection('avatar');
+        /* La foto l'ha già decodificata e ricodificata la richiesta (JPEG da
+           512 px, senza metadati): un file illeggibile è tornato al modulo come
+           errore del campo, prima che il profilo venisse salvato. */
+        if (($jpeg = $request->avatarJpeg()) !== null) {
+            $profile->addMediaFromString($jpeg)->usingFileName('avatar.jpg')->toMediaCollection('avatar');
         }
         if ($request->expectsJson()) {
             return ApiResponse::item(CommunityResource::profile($profile->refresh(), $request->user()));
@@ -286,7 +283,7 @@ final class CommunityController extends Controller
     public function compose(Request $request, int $occurrence): View|JsonResponse
     {
         $user = $request->user();
-        $date = EventOccurrence::with('event.city')->findOrFail($occurrence);
+        $date = EventOccurrence::with(['event.city', 'event.media', 'event.venue', 'venue'])->findOrFail($occurrence);
         $post = CommunityPost::query()->where('user_id', $user->id)->where('occurrence_id', $occurrence)->first();
         abort_unless($post !== null || EventOccurrenceQuery::archiveFor($date->event->city)->identifiersQuery()->where('event_occurrences.id', $occurrence)->exists(), 404);
         $saved = $user->savedEvents()->where('occurrence_id', $occurrence)->first() ?? new SavedEvent(['occurrence_id' => $occurrence]);

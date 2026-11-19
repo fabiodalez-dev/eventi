@@ -9,6 +9,7 @@ use App\Models\Event;
 use App\Models\EventOccurrence;
 use App\Models\Tag;
 use App\Models\TicketTier;
+use App\Services\Analytics\EventShares;
 use App\Services\Events\EditionAlerts;
 use App\Services\Seo\EditorialContent;
 use App\Services\Seo\PublicOffers;
@@ -150,6 +151,15 @@ final class EventResource
             'edition_alert_offered' => app(EditionAlerts::class)->offered($event),
             'url' => self::webUrl($event, $context),
             'deep_link' => self::webUrl($event, $context),
+            /*
+             * I link brevi da condividere, uno per canale (`native`,
+             * `whatsapp`, `telegram`, `email`): gli stessi codici `/s/{code}`
+             * dei pulsanti del sito. Aprirli porta alla scheda e si conta lato
+             * server, anche senza consenso, come contatore anonimo per link e
+             * giorno: l'app li mette nel messaggio al posto di `url` e non deve
+             * mandare altro.
+             */
+            'share_links' => self::shareLinks($event),
             'following' => [
                 'venue' => $context->isFollowing(FollowableType::Venue, $venue === null ? null : (int) $venue->getKey()),
                 'category' => $context->isFollowing(FollowableType::Category, $event->category === null ? null : (int) $event->category->getKey()),
@@ -165,6 +175,20 @@ final class EventResource
             'published_at' => ApiDate::instant($event->published_at, $timezone),
             'updated_at' => ApiDate::attribute($event, 'updated_at', $timezone),
         ];
+    }
+
+    /**
+     * Uno per canale; i codici nascono alla prima richiesta e poi restano gli
+     * stessi (`EventShares` usa `createOrFirst`), quindi una risposta in cache
+     * e una ricalcolata portano gli stessi indirizzi.
+     *
+     * @return array<string, array{url: string}>
+     */
+    public static function shareLinks(Event $event): array
+    {
+        return collect(app(EventShares::class)->links($event, null))
+            ->map(static fn (array $link): array => ['url' => $link['url']])
+            ->all();
     }
 
     public static function webUrl(Event $event, ApiContext $context): ?string

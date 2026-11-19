@@ -2,20 +2,19 @@
 
 namespace App\Providers\Filament;
 
-use App\Filament\Auth\Login;
-use App\Filament\Auth\RequestPasswordReset;
 use App\Filament\Organizer\Pages\Dashboard;
 use App\Filament\Organizer\Pages\EventAnalyticsDetail;
 use App\Filament\Organizer\Pages\EventShareAnalytics;
 use App\Filament\Organizer\Pages\Profile;
+use App\Filament\Organizer\Pages\SponsorshipAnalytics;
 use App\Filament\Organizer\Pages\Sponsorships;
 use App\Filament\Organizer\Pages\Statistics;
+use App\Http\Middleware\AuthenticatePanel;
+use App\Http\Middleware\AuthenticatePanelSession;
 use App\Http\Middleware\RevalidateImpersonation;
 use App\Models\Organizer;
 use Filament\Actions\Action;
 use Filament\FontProviders\LocalFontProvider;
-use Filament\Http\Middleware\Authenticate;
-use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Navigation\NavigationGroup;
@@ -35,7 +34,7 @@ class OrganizerPanelProvider extends PanelProvider
 {
     public function panel(Panel $panel): Panel
     {
-        return $panel->id('organizer')->path('organizza')->login(Login::class)->passwordReset(RequestPasswordReset::class)
+        return $panel->id('organizer')->path('organizza')
             ->userMenuItems([
                 Action::make('profile')
                     ->label(fn (): string => __('manage.navigation.profile'))
@@ -47,24 +46,27 @@ class OrganizerPanelProvider extends PanelProvider
                 NavigationGroup::make(fn (): string => __('manage.navigation.community')),
             ])
             ->renderHook(PanelsRenderHook::TOPBAR_END, fn () => view('filament.partials.topbar-actions'))
-            ->darkMode(false)
+            // Il tema è quello scelto sul sito: vedi `AdminPanelProvider`.
+            ->darkMode(true)
+            ->themeSwitcher(false)
+            ->renderHook(PanelsRenderHook::HEAD_START, fn () => view('filament.partials.theme-bootstrap'))
             ->font('Manrope Variable', provider: LocalFontProvider::class)
             ->viteTheme('resources/css/filament/admin/theme.css')
             ->brandName(fn (): string => (string) config('app.name'))->colors(['primary' => Color::hex('#b54d23')])
             ->tenant(Organizer::class, ownershipRelationship: 'organizer')
-            ->pages([Dashboard::class, Profile::class, Sponsorships::class, Statistics::class, EventShareAnalytics::class, EventAnalyticsDetail::class])
+            ->pages([Dashboard::class, Profile::class, Sponsorships::class, SponsorshipAnalytics::class, Statistics::class, EventShareAnalytics::class, EventAnalyticsDetail::class])
             ->discoverResources(in: app_path('Filament/Organizer/Resources'), for: 'App\\Filament\\Organizer\\Resources')
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
                 StartSession::class,
-                AuthenticateSession::class,
+                AuthenticatePanelSession::class,
                 RevalidateImpersonation::class,
                 ShareErrorsFromSession::class,
                 PreventRequestForgery::class,
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
-            ])->authMiddleware([Authenticate::class]);
+            ])->authMiddleware([AuthenticatePanel::class]);
     }
 }

@@ -6,6 +6,7 @@ namespace App\Filament\Shared;
 
 use App\Enums\PromotionMode;
 use App\Enums\SponsorshipOrderStatus;
+use App\Enums\SponsorshipPlacement;
 use App\Enums\SponsorshipStatus;
 use App\Models\Event;
 use App\Models\Organizer;
@@ -19,9 +20,9 @@ use App\Services\Sponsorship\GrantCampaigns;
 use App\Services\Sponsorship\OrderNoLongerPayable;
 use App\Services\Sponsorship\Payment\PaymentGatewayException;
 use App\Services\Sponsorship\SponsorshipOrders;
+use App\Support\Sponsorship\SponsorableEvents;
 use BackedEnum;
 use Filament\Actions\Action;
-use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
@@ -29,22 +30,35 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Livewire\WithPagination;
 
 /**
- * Sponsorizzazioni dal pannello di un committente: abilitazioni, campagne,
- * ordini e acquisto.
+ * Sponsorizzazioni dal pannello di un committente: come funziona, la scelta
+ * a card di evento, formato e durata, le richieste e gli ordini, le campagne.
  *
  * Una classe per i due pannelli perche' locale e organizzatore fanno le
  * stesse cose; cambia solo chi e' il committente (`sponsor()`), e quello lo
  * dicono le sottoclassi.
  *
- * La scelta degli eventi passa sempre da `GrantCampaigns`, l'acquisto da
- * `SponsorshipOrders`: qui si disegna e si autorizza, non si decide.
+ * **Si puo' sempre cominciare.** Con Stripe configurato l'ultimo passo apre il
+ * pagamento; senza, invia una richiesta alla redazione. Prima la pagina, senza
+ * Stripe, mostrava solo elenchi vuoti e nessun pulsante: «qui non si puo'
+ * sponsorizzare».
+ *
+ * La pagina disegna e autorizza; le regole stanno in `SponsorshipOrders`
+ * (acquisto e richiesta), `GrantCampaigns` (scelta degli eventi) e
+ * `SponsorableEvents` (quali eventi): ogni valore che arriva da Livewire
+ * viene ricontrollato li'.
  */
 abstract class SponsorshipsPage extends Page
 {
     use WithPagination;
+
+    /** Quante richieste puo' inviare una persona in un'ora, oltre al tetto delle richieste aperte. */
+    private const REQUESTS_PER_HOUR = 5;
+
+    private const EVENTS_PAGE = 6;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedMegaphone;
 
@@ -53,6 +67,24 @@ abstract class SponsorshipsPage extends Page
     protected static ?string $slug = 'sponsorizzazioni';
 
     protected string $view = 'filament.shared.sponsorships';
+
+    /** «event» (un evento scelto qui) oppure «all» (tutti gli eventi, anche i prossimi). */
+    public string $scope = 'event';
+
+    public ?int $eventId = null;
+
+    public ?string $placement = null;
+
+    public ?string $duration = null;
+
+    public string $note = '';
+
+    public string $search = '';
+
+    public int $eventLimit = self::EVENTS_PAGE;
+
+    /** L'abilitazione attiva con cui si stanno scegliendo eventi da mettere in evidenza subito. */
+    public ?int $grantId = null;
 
     abstract protected function sponsor(): Venue|Organizer;
 
@@ -70,7 +102,7 @@ abstract class SponsorshipsPage extends Page
 
     public function getSubheading(): ?string
     {
-        return __('promotions.venue_lead');
+        return __('promotions.page.lead');
     }
 
     /**
@@ -79,6 +111,15 @@ abstract class SponsorshipsPage extends Page
      */
     public function mount(): void
     {
+        $this->grantId = $this->selectableGrants()->first()?->getKey();
+
+        /* `?event=ID` dai collegamenti delle altre pagine del pannello: l'evento
+           arriva gia' scelto, se e' del committente e sponsorizzabile. */
+        $eventId = request()->integer('event');
+        if ($eventId > 0 && SponsorableEvents::of($this->sponsor())->whereKey($eventId)->exists()) {
+            $this->eventId = $eventId;
+        }
+
         $orderId = request()->integer('order');
 
         if ($orderId === 0) {
@@ -113,62 +154,247 @@ abstract class SponsorshipsPage extends Page
 
     protected function getHeaderActions(): array
     {
-        $actions = [];
         $analytics = $this->analyticsUrl();
 
-        if ($analytics !== null) {
-            $actions[] = Action::make('analytics')->label(__('sponsorships.venue.analytics'))->url($analytics)->color('gray');
+        return $analytics === null ? [] : [
+            Action::make('analytics')->label(__('sponsorships.venue.analytics'))->icon(Heroicon::OutlinedChartBar)->url($analytics)->color('gray'),
+        ];
+    }
+
+    /* ---------------------------------------------------------------
+     * La scelta: evento, formato, durata, riepilogo.
+     * --------------------------------------------------------------- */
+
+    /** Pagamento online con carta (Stripe configurato) o richiesta alla redazione. */
+    public function paysOnline(): bool
+    {
+        return app(SponsorshipOrders::class)->available();
+    }
+
+    public function updatedSearch(): void
+    {
+        $this->eventLimit = self::EVENTS_PAGE;
+    }
+
+    public function updatedScope(string $value): void
+    {
+        if (! in_array($value, ['event', 'all'], true)) {
+            $this->scope = 'event';
+        }
+    }
+
+    public function showMoreEvents(): void
+    {
+        $this->eventLimit = min($this->eventLimit + self::EVENTS_PAGE, 60);
+    }
+
+    public function selectEvent(int $id): void
+    {
+        $event = SponsorableEvents::of($this->sponsor())->find($id);
+
+        if ($event === null) {
+            Notification::make()->title(__('promotions.request.event_not_available'))->warning()->send();
+
+            return;
         }
 
-        $actions[] = Action::make('buy')->label(__('promotions.orders.buy'))->icon(Heroicon::OutlinedShoppingCart)
-            ->modalDescription(__('promotions.orders.buy_lead'))->modalSubmitActionLabel(__('promotions.orders.pay'))
-            ->visible(fn (): bool => $this->canPurchase() && app(SponsorshipOrders::class)->available())
-            ->schema([
-                Select::make('price')->label(__('promotions.orders.price'))->required()
-                    ->options(fn () => SponsorshipPrice::active()->orderBy('placement')->orderBy('months')->get()->mapWithKeys(fn (SponsorshipPrice $price) => [$price->getKey() => $price->label()])->all()),
-                Select::make('mode')->label(__('promotions.orders.mode'))->required()->options(PromotionMode::options())
-                    ->default(PromotionMode::Selected->value)->helperText(__('promotions.orders.mode_hint')),
-            ])
-            ->action(function (array $data): void {
-                $price = SponsorshipPrice::active()->findOrFail($data['price']);
-                $mode = PromotionMode::from((string) $data['mode']);
-
-                try {
-                    $order = app(SponsorshipOrders::class)->place($this->buyer(), $this->sponsor(), $price, $mode, $this->successUrl(), $this->cancelUrl());
-                } catch (PaymentGatewayException) {
-                    Notification::make()->title(__('promotions.orders.checkout_failed'))->danger()->send();
-
-                    return;
-                }
-
-                $this->redirectToCheckout($order);
-            });
-
-        $actions[] = Action::make('choose')->label(__('promotions.choose'))->schema([
-            Select::make('grant')->label(__('promotions.grant'))->required()->options(fn () => $this->selectableGrants()
-                ->mapWithKeys(fn (SponsorshipGrant $g) => [$g->getKey() => $g->placement->label().' · '.$g->ends_at->timezone('Europe/Rome')->format('d/m/Y')])->all()),
-            Select::make('event')->label(__('promotions.event'))->required()->searchable()->options(fn () => $this->eventsOfSponsor()->orderBy('title')->pluck('title', 'id')),
-        ])->visible(fn (): bool => $this->selectableGrants()->isNotEmpty())
-            ->action(function (array $data): void {
-                $grant = SponsorshipGrant::query()->forSponsor($this->sponsor())->findOrFail($data['grant']);
-                $event = $this->eventsOfSponsor()->findOrFail($data['event']);
-                app(GrantCampaigns::class)->choose($this->buyer(), $grant, $event);
-                Notification::make()->title(__('promotions.success'))->success()->send();
-            });
-
-        return $actions;
+        $this->eventId = $event->getKey();
+        $this->scope = 'event';
     }
+
+    public function selectPlacement(string $placement): void
+    {
+        $this->placement = SponsorshipPlacement::tryFrom($placement)?->value;
+        $keys = $this->placement === null ? [] : array_column($this->durations(), 'key');
+
+        if (! in_array($this->duration, $keys, true)) {
+            $this->duration = count($keys) > 0 ? $keys[0] : null;
+        }
+    }
+
+    public function selectDuration(string $key): void
+    {
+        $this->duration = in_array($key, array_column($this->durations(), 'key'), true) ? $key : null;
+    }
+
+    /** @return list<array{key: string, months: int, amount_cents: int|null, price_id: int|null}> */
+    public function durations(): array
+    {
+        $placement = SponsorshipPlacement::tryFrom((string) $this->placement);
+
+        return $placement === null ? [] : app(SponsorshipOrders::class)->durations($placement);
+    }
+
+    /** @return array{key: string, months: int, amount_cents: int|null, price_id: int|null}|null */
+    public function chosenDuration(): ?array
+    {
+        foreach ($this->durations() as $duration) {
+            if ($duration['key'] === $this->duration) {
+                return $duration;
+            }
+        }
+
+        return null;
+    }
+
+    public function chosenEvent(): ?Event
+    {
+        return $this->scope === 'event' && $this->eventId !== null
+            ? SponsorableEvents::of($this->sponsor())->with('media')->find($this->eventId)
+            : null;
+    }
+
+    public function readyToSubmit(): bool
+    {
+        return ($this->scope === 'all' || $this->chosenEvent() !== null)
+            && SponsorshipPlacement::tryFrom((string) $this->placement) !== null
+            && $this->chosenDuration() !== null;
+    }
+
+    /**
+     * Gli eventi fra cui scegliere, cercando per titolo; i primi in ordine di
+     * data.
+     *
+     * @return Collection<int, Event>
+     */
+    public function sponsorableEvents(): Collection
+    {
+        return $this->eventsQuery()->with('media')->orderBy('next_starts_at')->limit($this->eventLimit)->get();
+    }
+
+    public function hasMoreEvents(): bool
+    {
+        return $this->eventsQuery()->count() > $this->eventLimit;
+    }
+
+    public function sponsorableCount(): int
+    {
+        return SponsorableEvents::of($this->sponsor())->count();
+    }
+
+    /**
+     * @param  Collection<int, Event>  $events
+     * @return list<int>
+     */
+    public function sponsoredIds(Collection $events): array
+    {
+        return SponsorableEvents::alreadySponsored(array_map('intval', $events->modelKeys()));
+    }
+
+    public function submitOrder(): void
+    {
+        Gate::authorize('purchase', [SponsorshipOrder::class, $this->sponsor()]);
+        $this->validate([
+            'scope' => ['required', 'in:event,all'],
+            'placement' => ['required', 'in:'.implode(',', SponsorshipPlacement::values())],
+            'duration' => ['required', 'string'],
+            'note' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $placement = SponsorshipPlacement::from((string) $this->placement);
+        $duration = $this->chosenDuration();
+        $event = $this->scope === 'event' ? $this->chosenEvent() : null;
+
+        if ($duration === null || ($this->scope === 'event' && $event === null)) {
+            Notification::make()->title(__('promotions.request.incomplete'))->warning()->send();
+
+            return;
+        }
+
+        $key = 'sponsorship-request:'.$this->buyer()->getKey();
+        if (RateLimiter::tooManyAttempts($key, self::REQUESTS_PER_HOUR)) {
+            Notification::make()->title(__('promotions.request.slow_down'))->danger()->send();
+
+            return;
+        }
+        RateLimiter::hit($key, 3600);
+
+        $mode = $event !== null ? PromotionMode::Selected : PromotionMode::Automatic;
+        $price = $duration['price_id'] !== null ? SponsorshipPrice::active()->find($duration['price_id']) : null;
+
+        if ($price !== null && $this->paysOnline()) {
+            try {
+                $order = app(SponsorshipOrders::class)->place($this->buyer(), $this->sponsor(), $price, $mode, $this->successUrl(), $this->cancelUrl(), $event);
+            } catch (PaymentGatewayException) {
+                Notification::make()->title(__('promotions.orders.checkout_failed'))->danger()->send();
+
+                return;
+            }
+
+            $this->redirectToCheckout($order);
+
+            return;
+        }
+
+        $open = SponsorshipOrder::query()->forSponsor($this->sponsor())->where('status', SponsorshipOrderStatus::Requested)->count();
+        if ($open >= SponsorshipOrders::MAX_OPEN_REQUESTS) {
+            Notification::make()->title(__('promotions.request.too_many', ['max' => SponsorshipOrders::MAX_OPEN_REQUESTS]))->warning()->send();
+
+            return;
+        }
+
+        app(SponsorshipOrders::class)->request($this->buyer(), $this->sponsor(), $placement, $duration['months'], $price, $mode, $event, $this->note);
+        Notification::make()->title(__('promotions.request.sent'))->body(__('promotions.request.sent_body'))->success()->send();
+        $this->reset(['eventId', 'placement', 'duration', 'note', 'search']);
+        $this->scope = 'event';
+    }
+
+    /* ---------------------------------------------------------------
+     * Un periodo gia' attivo: scegliere subito gli eventi.
+     * --------------------------------------------------------------- */
+
+    public function chooseGrant(int $id): void
+    {
+        $this->grantId = $this->selectableGrants()->firstWhere('id', $id)?->getKey();
+    }
+
+    public function activate(int $eventId): void
+    {
+        $grant = $this->grantId === null ? null : SponsorshipGrant::active()->forSponsor($this->sponsor())
+            ->where('mode', PromotionMode::Selected)->find($this->grantId);
+        $event = SponsorableEvents::of($this->sponsor())->find($eventId);
+
+        if ($grant === null || $event === null) {
+            Notification::make()->title(__('promotions.request.event_not_available'))->warning()->send();
+
+            return;
+        }
+
+        app(GrantCampaigns::class)->choose($this->buyer(), $grant, $event);
+        Notification::make()->title(__('promotions.success'))->success()->send();
+    }
+
+    /** @return Collection<int, SponsorshipGrant> */
+    public function selectableGrants(): Collection
+    {
+        return SponsorshipGrant::active()->forSponsor($this->sponsor())->where('mode', PromotionMode::Selected)->orderBy('ends_at')->get();
+    }
+
+    /**
+     * Gli eventi gia' in evidenza con l'abilitazione scelta.
+     *
+     * @return list<int>
+     */
+    public function activeEventIds(): array
+    {
+        return $this->grantId === null ? [] : Sponsorship::query()->where('sponsorship_grant_id', $this->grantId)
+            ->where('status', SponsorshipStatus::Active)->pluck('event_id')->map(fn ($id): int => (int) $id)->all();
+    }
+
+    /* ---------------------------------------------------------------
+     * Richieste, ordini, abilitazioni e campagne.
+     * --------------------------------------------------------------- */
 
     /** @return Collection<int, SponsorshipGrant> */
     public function grants(): Collection
     {
-        return SponsorshipGrant::query()->forSponsor($this->sponsor())->orderByDesc('ends_at')->get();
+        return SponsorshipGrant::query()->forSponsor($this->sponsor())->with(['venue', 'organizer'])->orderByDesc('ends_at')->get();
     }
 
     /** @return Collection<int, SponsorshipOrder> */
     public function orders(): Collection
     {
-        return SponsorshipOrder::query()->forSponsor($this->sponsor())->latest('id')->get();
+        return SponsorshipOrder::query()->forSponsor($this->sponsor())->with('event.media')->latest('id')->limit(20)->get();
     }
 
     public function retry(int $id): void
@@ -218,6 +444,15 @@ abstract class SponsorshipsPage extends Page
             : Notification::make()->title(__('promotions.orders.returned_paid'))->success()->send();
     }
 
+    public function withdraw(int $id): void
+    {
+        Gate::authorize('purchase', [SponsorshipOrder::class, $this->sponsor()]);
+        $order = SponsorshipOrder::query()->forSponsor($this->sponsor())
+            ->where('status', SponsorshipOrderStatus::Requested)->findOrFail($id);
+        app(SponsorshipOrders::class)->withdraw($order);
+        Notification::make()->title(__('promotions.request.withdrawn'))->success()->send();
+    }
+
     public function stop(int $id): void
     {
         $campaign = Sponsorship::query()->whereHas('event', fn (Builder $q) => $this->scopeEventsOfSponsor($q))
@@ -230,7 +465,7 @@ abstract class SponsorshipsPage extends Page
     /** @return LengthAwarePaginator<int, Sponsorship> */
     public function sponsorships(): LengthAwarePaginator
     {
-        return $this->campaignsQuery()->with(['event', 'grant'])->orderByDesc('ends_at')->paginate(25);
+        return $this->campaignsQuery()->with(['event.media', 'grant'])->orderByDesc('ends_at')->paginate(10);
     }
 
     /** @return array{impressions: int, clicks: int} */
@@ -242,6 +477,26 @@ abstract class SponsorshipsPage extends Page
         return ['impressions' => (int) $totals?->impressions, 'clicks' => (int) $totals?->clicks];
     }
 
+    /** Il fuso della citta' del committente: date e scadenze si leggono li', non in UTC. */
+    public function timezone(): string
+    {
+        $sponsor = $this->sponsor();
+        $timezone = $sponsor->city?->timezone;
+
+        return is_string($timezone) && $timezone !== '' ? $timezone : 'Europe/Rome';
+    }
+
+    public function isVenue(): bool
+    {
+        return $this->sponsor() instanceof Venue;
+    }
+
+    /** Solo chi e' proprietario del committente puo' spendere a suo nome (`SponsorshipOrderPolicy::purchase`). */
+    public function canPurchase(): bool
+    {
+        return Gate::allows('purchase', [SponsorshipOrder::class, $this->sponsor()]);
+    }
+
     /** @return Builder<Sponsorship> */
     private function campaignsQuery(): Builder
     {
@@ -250,16 +505,13 @@ abstract class SponsorshipsPage extends Page
             ->where(fn (Builder $q) => $q->whereNull('sponsorship_grant_id')->orWhereHas('grant', fn (Builder $g) => $g->forSponsor($this->sponsor())));
     }
 
-    /** @return Collection<int, SponsorshipGrant> */
-    private function selectableGrants(): Collection
-    {
-        return SponsorshipGrant::active()->forSponsor($this->sponsor())->where('mode', PromotionMode::Selected)->get();
-    }
-
     /** @return Builder<Event> */
-    private function eventsOfSponsor(): Builder
+    private function eventsQuery(): Builder
     {
-        return $this->scopeEventsOfSponsor(Event::query());
+        $search = trim($this->search);
+
+        return SponsorableEvents::of($this->sponsor())
+            ->when($search !== '', fn (Builder $q) => $q->where('events.title', 'like', '%'.addcslashes(mb_substr($search, 0, 80), '%_\\').'%'));
     }
 
     /**
@@ -273,12 +525,6 @@ abstract class SponsorshipsPage extends Page
         return $sponsor instanceof Venue
             ? $query->where('venue_id', $sponsor->getKey())
             : $query->where('organizer_id', $sponsor->getKey());
-    }
-
-    /** Solo chi e' proprietario del committente puo' spendere a suo nome (`SponsorshipOrderPolicy::purchase`). */
-    public function canPurchase(): bool
-    {
-        return Gate::allows('purchase', [SponsorshipOrder::class, $this->sponsor()]);
     }
 
     private function buyer(): User

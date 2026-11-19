@@ -13,6 +13,7 @@ use App\Enums\PriceType;
 use App\Enums\RecurrenceFrequency;
 use App\Enums\ScheduleShortcut;
 use App\Filament\Support\BeforeGoingFields;
+use App\Filament\Support\PosterColumn;
 use App\Filament\Support\SameNightNearbyField;
 use App\Filament\Support\VenueClosureWarning;
 use App\Filament\Venue\Resources\Events\EventResource;
@@ -37,12 +38,13 @@ use Filament\Forms\Components\Toggle;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
-use Filament\Resources\Pages\CreateRecord\Concerns\HasWizard;
 use Filament\Schemas\Components\Actions as ActionsComponent;
 use Filament\Schemas\Components\Group;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
-use Filament\Schemas\Components\Wizard\Step;
+use Filament\Schemas\Components\View;
+use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\RateLimiter;
@@ -50,37 +52,37 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Locked;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 /**
- * Il wizard di §10.2, con un obiettivo dichiarato: **90 secondi** (§2.4).
+ * Il nuovo evento, con un obiettivo dichiarato: **90 secondi** (§2.4).
  *
- * Cinque passi, nell'ordine in cui un gestore ha le informazioni sotto mano:
- * la locandina (che di solito è già nel telefono), quando, che genere di
- * serata è, quanto costa, e — solo alla fine, perché è l'unico passo che si
- * può saltare — la descrizione.
+ * Una pagina sola, non più cinque passi: in cima il blocco «L'essenziale» —
+ * locandina, titolo, giorno e ora (con le scorciatoie e «Si ripete»),
+ * categoria, prezzo, descrizione — che basta da solo per pubblicare. Sotto
+ * l'anteprima della card come la vedrà il pubblico, e le sezioni facoltative
+ * (import da Facebook, orario di fine, tag e link, un altro luogo, «Prima di
+ * andare»), chiuse finché non servono.
  *
- * **La bozza si salva da sola a ogni passo.** Non è una comodità: è la
- * differenza fra perdere il lavoro e non perderlo quando arriva un cliente al
- * bancone a metà del terzo passo. L'evento nasce alla fine del primo passo e
- * viene aggiornato dagli altri; l'ultimo salvataggio riusa la stessa riga, e
- * per questo `handleRecordCreation()` non crea nulla di nuovo se una bozza
- * c'è già.
+ * **La bozza.** «Salva come bozza» salva quello che c'è, anche senza data:
+ * non è una comodità, è la differenza fra perdere il lavoro e non perderlo
+ * quando arriva un cliente al bancone a metà modulo. La pubblicazione riusa
+ * la stessa riga, e per questo `handleRecordCreation()` non crea nulla di
+ * nuovo se una bozza c'è già.
  *
  * **`$draftId` è `#[Locked]`**, e non per eleganza: senza, il numero della
  * bozza viaggerebbe nello stato del componente e chiunque potrebbe
  * sostituirlo con l'id di un evento altrui, facendoselo riscrivere dal
- * proprio wizard. Il blocco è la prima difesa; la seconda è che la bozza
+ * proprio modulo. Il blocco è la prima difesa; la seconda è che la bozza
  * viene ricaricata filtrando sempre sul locale corrente.
  *
- * **Le scorciatoie del secondo passo** valgono i 90 secondi da sole: quattro
+ * **Le scorciatoie della data** valgono i 90 secondi da sole: quattro
  * pulsanti al posto di un calendario. Propongono un valore per il campo data,
  * niente di più — la definizione di "stasera" resta di `EventOccurrenceQuery`
  * (§3 delle convenzioni).
  */
 class CreateEvent extends CreateRecord
 {
-    use HasWizard;
-
     protected static string $resource = EventResource::class;
 
     protected static bool $canCreateAnother = false;
@@ -197,21 +199,60 @@ class CreateEvent extends CreateRecord
     }
 
     /**
-     * I passi. Le abitudini del locale non arrivano da un `fill()` in
+     * Il modulo. Le abitudini del locale non arrivano da un `fill()` in
      * `mount()` — che azzererebbe i valori predefiniti dichiarati dai campi —
      * ma dal `->default()` di ciascun campo, che è il posto in cui Filament
      * se li aspetta.
-     *
-     * @return array<int, Step>
      */
-    public function getSteps(): array
+    public function form(Schema $schema): Schema
     {
         $defaults = VenueEventDefaults::formDefaults(CurrentVenue::get());
 
-        return [
-            Step::make(__('manage.wizard.step_poster'))
-                ->description(__('manage.wizard.step_poster_hint'))
-                ->icon(Heroicon::OutlinedPhoto)
+        return $schema->columns(1)->components([
+            Section::make(__('manage.quick.essentials'))
+                ->description(__('manage.quick.essentials_hint'))
+                ->icon(Heroicon::OutlinedSparkles)
+                ->schema([
+                    EventFields::poster(previewTemporary: true)->key('imported-poster'),
+                    EventFields::title()->live(onBlur: true),
+
+                    ActionsComponent::make($this->shortcutActions())
+                        ->label(__('manage.quick.when'))
+                        ->fullWidth(),
+
+                    EventFields::startsAt()->live(onBlur: true),
+                    SameNightNearbyField::make(fn (Get $get): ?array => $this->sameNightContext($get)),
+                    // Un evento con un indirizzo proprio non si tiene nel locale: le sue chiusure non contano.
+                    VenueClosureWarning::make(fn (Get $get): array => ['venue' => filled($get('custom_location.address')) ? null : CurrentVenue::get(), 'start' => SameNightNearbyField::time($get('starts_at'), 'UTC')]),
+
+                    // Le serate fisse sono la regola, non l'eccezione (§10.3): la ripetizione sta qui, non in fondo.
+                    Toggle::make('repeat')
+                        ->label(__('manage.recurrence.toggle'))
+                        ->helperText(__('manage.recurrence.toggle_hint'))
+                        ->live(),
+
+                    Group::make(RecurrenceForm::fields('repeat_'))
+                        ->visible(fn (Get $get): bool => (bool) $get('repeat')),
+
+                    EventFields::category()->default($defaults['category_id'] ?? null)->live(),
+                    EventResource::priceTypeInline()->default($defaults['price_type'] ?? PriceType::Free->value),
+                    EventFields::priceMin()->default($defaults['price_min'] ?? null)->live(onBlur: true),
+                    EventFields::priceMax()->live(onBlur: true),
+                    EventFields::description(),
+                ]),
+
+            Section::make(__('manage.quick.preview'))
+                ->description(__('manage.quick.preview_hint'))
+                ->icon(Heroicon::OutlinedEye)
+                ->schema([
+                    View::make('filament.venue.widgets.event-card')
+                        ->viewData(fn (Get $get): array => $this->previewData($get)),
+                ]),
+
+            Section::make(__('manage.quick.facebook'))
+                ->description(__('manage.quick.facebook_hint'))
+                ->icon(Heroicon::OutlinedArrowDownTray)
+                ->collapsed()
                 ->schema([
                     TextInput::make('facebook_url')
                         ->label(__('facebook_import.url_label'))
@@ -238,66 +279,77 @@ class CreateEvent extends CreateRecord
                         ->label(__('facebook_import.location_warning'))
                         ->state(fn (): string => __('facebook_import.location_warning_hint', ['address' => FacebookEventImport::locationAddress($this->facebookImport) ?? '']))
                         ->visible(fn (): bool => filled(FacebookEventImport::locationAddress($this->facebookImport)) && ($this->data['custom_location']['address'] ?? null) === FacebookEventImport::locationAddress($this->facebookImport)),
-                    EventFields::poster(previewTemporary: true)->key('imported-poster'),
-                    EventFields::title(),
-                    EventFields::location(),
-                ])
-                ->afterValidation(fn () => $this->saveDraft()),
+                ]),
 
-            Step::make(__('manage.wizard.step_when'))
-                ->description(__('manage.wizard.step_when_hint'))
-                ->icon(Heroicon::OutlinedClock)
+            Section::make(__('manage.quick.more'))
+                ->description(__('manage.quick.more_hint'))
+                ->icon(Heroicon::OutlinedAdjustmentsHorizontal)
+                ->collapsed()
                 ->schema([
-                    ActionsComponent::make($this->shortcutActions())
-                        ->label(__('manage.wizard.shortcuts'))
-                        ->fullWidth(),
-
-                    EventFields::startsAt()->live(onBlur: true),
                     EventFields::endsAt()->live(onBlur: true),
-                    SameNightNearbyField::make(fn (Get $get): ?array => $this->sameNightContext($get)),
-                    // Un evento con un indirizzo proprio non si tiene nel locale: le sue chiusure non contano.
-                    VenueClosureWarning::make(fn (Get $get): array => ['venue' => filled($get('custom_location.address')) ? null : CurrentVenue::get(), 'start' => SameNightNearbyField::time($get('starts_at'), 'UTC')]),
-
-                    Toggle::make('repeat')
-                        ->label(__('manage.recurrence.toggle'))
-                        ->helperText(__('manage.recurrence.toggle_hint'))
-                        ->live(),
-
-                    Group::make(RecurrenceForm::fields('repeat_'))
-                        ->visible(fn (Get $get): bool => (bool) $get('repeat')),
-                ])
-                ->afterValidation(fn () => $this->saveDraft()),
-
-            Step::make(__('manage.wizard.step_category'))
-                ->description(__('manage.wizard.step_category_hint'))
-                ->icon(Heroicon::OutlinedTag)
-                ->schema([
-                    EventFields::category()->default($defaults['category_id'] ?? null),
                     EventFields::tags(),
-                ])
-                ->afterValidation(fn () => $this->saveDraft()),
-
-            Step::make(__('manage.wizard.step_price'))
-                ->description(__('manage.wizard.step_price_hint'))
-                ->icon(Heroicon::OutlinedBanknotes)
-                ->schema([
-                    EventFields::priceType()->default($defaults['price_type'] ?? PriceType::Free->value),
-                    EventFields::priceMin()->default($defaults['price_min'] ?? null),
-                    EventFields::priceMax(),
-                ])
-                ->afterValidation(fn () => $this->saveDraft()),
-
-            Step::make(__('manage.wizard.step_details'))
-                ->description(__('manage.wizard.step_details_hint'))
-                ->icon(Heroicon::OutlinedPencilSquare)
-                ->schema([
-                    EventFields::description(),
-                    BeforeGoingFields::make(),
                     EventFields::ticketUrl(),
                     EventFields::bookingUrl(),
                     EventFields::externalLinks(),
                 ]),
+
+            EventResource::locationCollapsed(),
+
+            BeforeGoingFields::make()->icon(Heroicon::OutlinedInformationCircle)->columns(1)->collapsed(),
+        ]);
+    }
+
+    /**
+     * I dati della card d'anteprima, presi dal modulo mentre lo si compila:
+     * la stessa card dei riquadri del riepilogo.
+     *
+     * @return array<string, mixed>
+     */
+    private function previewData(Get $get): array
+    {
+        $timezone = CurrentVenue::timezone();
+        $start = SameNightNearbyField::time($get('starts_at'), $timezone);
+        $category = filled($get('category_id')) ? Category::query()->whereKey((int) $get('category_id'))->value('name') : null;
+        $type = $get('price_type');
+        $type = $type instanceof PriceType ? $type : PriceType::tryFrom((string) $type);
+        $min = $get('price_min');
+        $price = match (true) {
+            $type === PriceType::Free => __('manage.quick.preview_free'),
+            $type !== null && is_numeric($min) => $type->label().' · '.__('manage.event_view.price_from', ['min' => number_format((float) $min, 2, ',', '.')]),
+            default => $type?->label(),
+        };
+
+        $when = ['heroicon-o-clock', $start === null ? __('manage.quick.preview_no_date') : $start->translatedFormat('D d/m/Y, H:i')];
+        $where = ['heroicon-o-map-pin', filled($get('custom_location.address')) ? (string) ($get('custom_location.name') ?: $get('custom_location.address')) : CurrentVenue::get()->name];
+
+        return [
+            'poster' => $this->previewPoster($get('poster_media')),
+            'title' => filled($get('title')) ? (string) $get('title') : __('manage.quick.preview_untitled'),
+            'lines' => $price === null ? [$when, $where] : [$when, $where, ['heroicon-o-banknotes', $price]],
+            'badges' => $category === null ? [] : [[(string) $category, 'gray']],
+            'preview' => true,
         ];
+    }
+
+    /**
+     * La locandina appena caricata, se il browser la può già mostrare; poi
+     * quella salvata con la bozza; altrimenti il segnaposto.
+     */
+    private function previewPoster(mixed $state): string
+    {
+        foreach (is_array($state) ? $state : [] as $file) {
+            if ($file instanceof TemporaryUploadedFile) {
+                try {
+                    return $file->isPreviewable() ? $file->temporaryUrl() : PosterColumn::url(null);
+                } catch (\Throwable) {
+                    return PosterColumn::url(null);
+                }
+            }
+        }
+
+        $draft = $this->draft();
+
+        return PosterColumn::url($draft);
     }
 
     /**
@@ -318,6 +370,44 @@ class CreateEvent extends CreateRecord
         return parent::getCreateFormAction()
             ->label(__('manage.wizard.finish'))
             ->icon(Heroicon::OutlinedRocketLaunch);
+    }
+
+    /**
+     * Pubblica, salva come bozza, annulla: la bozza non chiede né la data né
+     * la categoria, solo un titolo.
+     *
+     * @return array<Action>
+     */
+    protected function getFormActions(): array
+    {
+        return [
+            $this->getCreateFormAction(),
+            Action::make('saveDraftAction')
+                ->label(__('manage.quick.save_draft'))
+                ->icon(Heroicon::OutlinedDocumentCheck)
+                ->color('gray')
+                ->action(fn () => $this->saveDraftNow()),
+            $this->getCancelFormAction(),
+        ];
+    }
+
+    /**
+     * Il pulsante «Salva come bozza»: salva e lo dice, oppure spiega perché
+     * non può (manca il titolo).
+     */
+    public function saveDraftNow(): void
+    {
+        if (blank($this->data['title'] ?? null)) {
+            Notification::make()->warning()->title(__('manage.quick.draft_needs_title'))->send();
+
+            return;
+        }
+
+        $this->saveDraft();
+
+        if ($this->draftId !== null) {
+            Notification::make()->success()->title(__('manage.quick.draft_saved'))->body(__('manage.quick.draft_saved_body'))->send();
+        }
     }
 
     /**
@@ -360,16 +450,20 @@ class CreateEvent extends CreateRecord
         return null;
     }
 
+    /**
+     * Dopo la pubblicazione si arriva sulla scheda dell'evento: da lì sono a
+     * un tocco modifica, statistiche, grafiche social, sponsorizzazione e
+     * biglietteria.
+     */
     protected function getRedirectUrl(): string
     {
-        return static::getResource()::getUrl('index');
+        return static::getResource()::getUrl('view', ['record' => $this->getRecord()]);
     }
 
     /**
-     * Salvataggio automatico di fine passo. È pubblico perché è ciò che
-     * chiama il wizard alla fine di ogni passo, e perché è il comportamento
-     * che i test devono poter verificare direttamente: salvare due volte non
-     * deve produrre due eventi.
+     * Il salvataggio della bozza. È pubblico perché è il comportamento che i
+     * test devono poter verificare direttamente: salvare due volte non deve
+     * produrre due eventi.
      */
     public function saveDraft(): void
     {
@@ -379,13 +473,12 @@ class CreateEvent extends CreateRecord
             return;
         }
 
-        // `events.category_id` è obbligatoria nello schema, ma la categoria
-        // si chiede al terzo passo: senza un ripiego la bozza dei primi due
-        // passi non sarebbe salvabile, e si perderebbe proprio il lavoro di
-        // chi ha appena caricato la locandina e scritto il titolo. Il ripiego
-        // è la categoria abituale del locale (o la prima del catalogo) e vive
-        // il tempo di arrivare al terzo passo, dove il campo è obbligatorio e
-        // la sovrascrive.
+        // `events.category_id` è obbligatoria nello schema, ma una bozza può
+        // nascere prima che la categoria sia scelta: senza un ripiego non
+        // sarebbe salvabile, e si perderebbe proprio il lavoro di chi ha
+        // appena caricato la locandina e scritto il titolo. Il ripiego è la
+        // categoria abituale del locale (o la prima del catalogo) e vive fino
+        // alla pubblicazione, dove il campo è obbligatorio e la sovrascrive.
         if (blank($data['category_id'] ?? null)) {
             $data['category_id'] = $this->fallbackCategoryId();
         }

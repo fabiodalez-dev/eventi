@@ -13,6 +13,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
+/**
+ * @property FollowNotificationMode $notification_mode
+ */
 class Follow extends Model
 {
     /** @use HasFactory<FollowFactory> */
@@ -53,6 +56,14 @@ class Follow extends Model
     public function scopeOfType(Builder $query, FollowableType $type): void
     {
         $query->where('followable_type', $type->value);
+    }
+
+    /** Un follow che cambia svuota la lettura della richiesta (`User::followsForRequest()`). */
+    protected static function booted(): void
+    {
+        $forget = static fn (Follow $follow) => request()->attributes->remove(User::followsCacheKey((int) $follow->user_id));
+        static::saved($forget);
+        static::deleted($forget);
     }
 
     /**

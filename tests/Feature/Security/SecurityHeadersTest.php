@@ -62,7 +62,7 @@ it('lega gli script al nonce sul sito pubblico e non nei pannelli', function ():
 
     /* I pannelli sono Filament: markup suo, script suoi, nessun contenuto di
        sconosciuti da stampare. Restano fuori. */
-    expect((string) $this->get('/admin/login')->headers->get('Content-Security-Policy'))
+    expect((string) $this->get('/admin')->headers->get('Content-Security-Policy'))
         ->not->toContain('script-src');
 });
 

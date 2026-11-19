@@ -1,18 +1,10 @@
-@php
-    $schedule = $this->schedule();
-    $formatter = $this->formatter();
-@endphp
-
+{{-- Le serate di oggi, una card per data con la locandina. --}}
 <x-filament-widgets::widget>
-    <x-filament::section :heading="__('manage.dashboard.today_schedule')">
-        <ul class="divide-y divide-gray-200 dark:divide-white/10">
-            @foreach ($schedule as $occurrence)
-                <li class="flex items-baseline gap-3 py-2">
-                    <span class="font-semibold tabular-nums">{{ $formatter->time($occurrence->starts_at) }}</span>
-                    <span class="min-w-0 flex-1 truncate">{{ $occurrence->event->title }}</span>
-                    <x-filament::badge :color="$occurrence->status === \App\Enums\OccurrenceStatus::Scheduled ? 'success' : 'warning'">
-                        {{ $occurrence->status->label() }}
-                    </x-filament::badge>
+    <x-filament::section :heading="__('manage.dashboard.today_schedule')" :description="__('manage.dashboard.today_schedule_description')" icon="heroicon-o-sun" data-dashboard-today>
+        <ul class="flex flex-col divide-y divide-gray-100 dark:divide-white/10">
+            @foreach ($this->cards() as $card)
+                <li class="py-4 first:pt-0 last:pb-0">
+                    @include('filament.venue.widgets.event-card', $card)
                 </li>
             @endforeach
         </ul>

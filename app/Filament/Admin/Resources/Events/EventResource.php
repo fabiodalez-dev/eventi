@@ -12,8 +12,10 @@ use App\Enums\VerificationStatus;
 use App\Filament\Admin\Resources\Events\Pages\CreateEvent;
 use App\Filament\Admin\Resources\Events\Pages\EditEvent;
 use App\Filament\Admin\Resources\Events\Pages\ListEvents;
+use App\Filament\Admin\Resources\Events\Pages\ViewEvent;
 use App\Filament\Admin\Resources\Events\RelationManagers\ActivityRelationManager;
 use App\Filament\Admin\Resources\Events\RelationManagers\OccurrencesRelationManager;
+use App\Filament\Admin\Support\EventModeration;
 use App\Filament\Admin\Support\StructuredFields;
 use App\Filament\Concerns\HasSentenceCaseNavigationLabel;
 use App\Filament\Forms\Components\MapPicker;
@@ -26,18 +28,24 @@ use App\Filament\Support\EventTicketingActions;
 use App\Filament\Support\ExternalLinksField;
 use App\Filament\Support\FactsField;
 use App\Filament\Support\ImageUpload;
+use App\Filament\Support\PosterColumn;
 use App\Filament\Support\SharedEventTags;
 use App\Filament\Support\TicketTiersField;
 use App\Models\City;
 use App\Models\Event;
 use App\Models\Venue;
 use App\Queries\EditorialDashboardQuery;
+use App\Queries\VenueDashboardQuery;
 use App\Support\BeforeGoingDefaults;
 use App\Support\CurrentCity;
 use App\Support\VideoEmbed;
 use BackedEnum;
+use Carbon\CarbonImmutable;
+use Carbon\CarbonInterface;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
@@ -56,9 +64,14 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
+use Filament\Support\Enums\Alignment;
+use Filament\Support\Enums\FontWeight;
 use Filament\Support\Enums\IconPosition;
+use Filament\Support\Enums\TextSize;
+use Filament\Support\Facades\FilamentTimezone;
 use Filament\Support\Icons\Heroicon;
-use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\Layout\Split;
+use Filament\Tables\Columns\Layout\Stack;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
@@ -93,6 +106,9 @@ use Illuminate\Support\Facades\Cache;
 class EventResource extends Resource
 {
     use HasSentenceCaseNavigationLabel;
+
+    /** Titoli e briciole in italiano: «Commenti agli eventi», non «Commenti Agli Eventi». */
+    protected static bool $hasTitleCaseModelLabel = false;
 
     protected static ?string $model = Event::class;
 
@@ -575,64 +591,93 @@ class EventResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            /*
+             * Locandina, luogo, categoria e città in una sola query: senza
+             * il precaricamento ogni riga ne chiederebbe quattro. La prossima
+             * e l'ultima data arrivano dalla stessa query (`withMin`/`withMax`):
+             * chi modera riconosce una riga da quando si fa, non dal titolo.
+             */
+            ->modifyQueryUsing(function (Builder $query): void {
+                $query->with(['media', 'venue', 'category', 'city']);
+                VenueDashboardQuery::applyNextOccurrence($query, self::listCity());
+                VenueDashboardQuery::applyLastOccurrence($query);
+            })
             ->columns([
-                TextColumn::make('title')
-                    ->label(__('admin.fields.title'))
-                    ->searchable()
-                    ->sortable()
-                    ->limit(60)
-                    /*
-                     * Da dove arriva questo evento.
-                     *
-                     * Nel sito pubblico un evento importato ha la stessa
-                     * dignita di uno inserito a mano: chi cerca cosa fare
-                     * stasera non deve chiedersi da quale tubo sia passato.
-                     * Qui dentro no: chi modera deve riconoscere a colpo
-                     * d'occhio cio che nessuno ha letto prima di pubblicarlo,
-                     * ed e la meta operativa di §14.1.
-                     *
-                     * Sta sotto al titolo e non in una colonna propria perche
-                     * la stragrande maggioranza degli eventi e inserita a mano:
-                     * una colonna quasi sempre vuota ruba spazio a quelle che
-                     * si leggono davvero.
-                     */
-                    ->description(fn (Event $record): ?string => $record->source->isImported()
-                        ? $record->source->label()
-                        : null)
-                    ->icon(fn (Event $record): ?Heroicon => $record->source->isImported()
-                        ? Heroicon::OutlinedArrowDownTray
-                        : null)
-                    ->iconPosition(IconPosition::After)
-                    ->iconColor('gray'),
+                /*
+                 * **Una riga che si legge anche sul telefono.**
+                 *
+                 * Sette colonne affiancate a 390 px si tagliavano, e la sola
+                 * cosa leggibile era l'inizio del titolo. Ora la riga è la
+                 * locandina con accanto titolo, luogo, data e stato; i numeri
+                 * da redazione (date in cartellone, pubblicazione) si
+                 * aggiungono a destra solo dove c'è spazio.
+                 */
+                Split::make([
+                    PosterColumn::make('poster_media'),
 
-                TextColumn::make('venue.name')
-                    ->label(__('admin.fields.venue'))
-                    ->searchable()
-                    ->placeholder(__('admin.placeholders.none')),
+                    Stack::make([
+                        TextColumn::make('title')->extraAttributes(['class' => 'py-0.5!'])
+                            ->label(__('admin.fields.title'))
+                            ->searchable()
+                            ->sortable()
+                            ->weight(FontWeight::SemiBold)
+                            ->wrap()
+                            ->lineClamp(2)
+                            /*
+                             * Da dove arriva questo evento.
+                             *
+                             * Nel sito pubblico un evento importato ha la stessa
+                             * dignita di uno inserito a mano. Qui dentro no: chi
+                             * modera deve riconoscere a colpo d'occhio cio che
+                             * nessuno ha letto prima di pubblicarlo (§14.1).
+                             */
+                            ->description(fn (Event $record): ?string => $record->source->isImported()
+                                ? $record->source->label()
+                                : null)
+                            ->icon(fn (Event $record): ?Heroicon => $record->source->isImported()
+                                ? Heroicon::OutlinedArrowDownTray
+                                : null)
+                            ->iconPosition(IconPosition::After)
+                            ->iconColor('gray'),
 
-                TextColumn::make('category.name')
-                    ->label(__('admin.fields.category')),
+                        TextColumn::make('venue.name')->extraAttributes(['class' => 'py-0.5!'])
+                            ->label(__('admin.fields.venue'))
+                            ->searchable()
+                            ->color('gray')
+                            ->size(TextSize::Small)
+                            ->wrap()
+                            ->state(fn (Event $record): string => self::placeLine($record)),
 
-                TextColumn::make('status')
-                    ->label(__('admin.fields.status'))
-                    ->badge()
-                    ->formatStateUsing(fn (EventStatus $state): string => $state->label())
-                    ->color(fn (EventStatus $state): string => EventStatusPresentation::color($state)),
+                        TextColumn::make('next_starts_at')->extraAttributes(['class' => 'py-0.5!'])
+                            ->label(__('admin.event_list.when'))
+                            ->color('gray')
+                            ->size(TextSize::Small)
+                            ->icon(Heroicon::OutlinedCalendar)
+                            ->state(fn (Event $record): string => self::whenLine($record)),
 
-                TextColumn::make('occurrences_count')
-                    ->label(__('admin.fields.occurrences_count'))
-                    ->counts('occurrences'),
+                        TextColumn::make('status')->extraAttributes(['class' => 'py-0.5!'])
+                            ->label(__('admin.fields.status'))
+                            ->badge()
+                            ->formatStateUsing(fn (EventStatus $state): string => $state->label())
+                            ->color(fn (EventStatus $state): string => EventStatusPresentation::color($state)),
+                    ])->space(1),
 
-                TextColumn::make('published_at')
-                    ->label(__('admin.fields.published_at'))
-                    ->dateTime('d/m/Y H:i')
-                    ->placeholder(__('admin.placeholders.never'))
-                    ->sortable(),
+                    Stack::make([
+                        TextColumn::make('occurrences_count')->extraAttributes(['class' => 'py-0.5!'])
+                            ->label(__('admin.fields.occurrences_count'))
+                            ->counts('occurrences')
+                            ->size(TextSize::Small)
+                            ->formatStateUsing(fn (int $state): string => trans_choice('admin.event_list.dates_count', $state, ['count' => $state])),
 
-                IconColumn::make('is_featured')
-                    ->label(__('admin.fields.is_featured'))
-                    ->boolean()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                        TextColumn::make('published_at')->extraAttributes(['class' => 'py-0.5!'])
+                            ->label(__('admin.fields.published_at'))
+                            ->size(TextSize::Small)
+                            ->color('gray')
+                            ->formatStateUsing(fn (CarbonInterface $state): string => __('admin.event_list.published_at', ['date' => $state->copy()->timezone(FilamentTimezone::get())->format('d/m/Y H:i')]))
+                            ->placeholder(__('admin.event_list.never_published'))
+                            ->sortable(),
+                    ])->space(1)->alignment(Alignment::End)->grow(false)->visibleFrom('lg'),
+                ]),
             ])
             ->defaultSort('created_at', 'desc')
             ->filters([
@@ -683,12 +728,63 @@ class EventResource extends Resource
                 TrashedFilter::make(),
             ])
             ->recordActions([
-                EditAction::make(),
-                self::mergeAction(),
+                EditAction::make()->button(),
+                /*
+                 * La moderazione nella riga, dentro un menu con un nome: chi
+                 * smaltisce la coda «In attesa» pubblica o rifiuta senza
+                 * aprire la scheda, e chi non può modificare (il moderatore)
+                 * trova comunque «Apri la scheda» e le decisioni che gli
+                 * spettano. Ogni voce chiede il suo permesso alla Policy.
+                 */
+                ActionGroup::make([
+                    ViewAction::make()->label(__('admin.actions.open_record')),
+                    ...EventModeration::rowActions(),
+                    self::mergeAction(),
+                ])
+                    ->label(__('admin.actions.more'))
+                    ->icon(Heroicon::OutlinedEllipsisVertical)
+                    ->button()
+                    ->color('gray')
+                    ->dropdown(),
             ])
             ->toolbarActions([
                 BulkActions::make(),
             ]);
+    }
+
+    /** Luogo · categoria, la seconda riga della card. */
+    private static function placeLine(Event $event): string
+    {
+        $place = $event->venue->name ?? data_get($event->custom_location, 'name') ?? __('admin.event_list.no_place');
+
+        return collect([$place, $event->category?->name])->filter()->join(' · ');
+    }
+
+    /**
+     * «Prossima data», oppure «Ultima data» per chi ha solo date passate, nel
+     * fuso della città dell'evento.
+     */
+    private static function whenLine(Event $event): string
+    {
+        $timezone = $event->city->timezone ?? FilamentTimezone::get();
+        $next = $event->getAttribute('next_starts_at');
+        $last = $event->getAttribute('last_starts_at');
+
+        if (filled($next)) {
+            return __('admin.event_list.next', ['date' => CarbonImmutable::parse((string) $next, 'UTC')->timezone($timezone)->translatedFormat('D d/m/Y, H:i')]);
+        }
+
+        if (filled($last)) {
+            return __('admin.event_list.last', ['date' => CarbonImmutable::parse((string) $last, 'UTC')->timezone($timezone)->translatedFormat('D d/m/Y, H:i')]);
+        }
+
+        return __('admin.event_list.no_dates');
+    }
+
+    /** La città da cui si misura «oggi» per la prossima data dell'elenco. */
+    private static function listCity(): City
+    {
+        return app(CurrentCity::class)->get() ?? City::query()->orderBy('id')->firstOrFail();
     }
 
     /**
@@ -755,6 +851,7 @@ class EventResource extends Resource
         return [
             'index' => ListEvents::route('/'),
             'create' => CreateEvent::route('/create'),
+            'view' => ViewEvent::route('/{record}'),
             'edit' => EditEvent::route('/{record}/edit'),
         ];
     }

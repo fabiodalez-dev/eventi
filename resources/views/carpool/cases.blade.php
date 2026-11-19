@@ -1,3 +1,21 @@
-<x-layouts.app :meta="$meta">@include('carpool.nav')<div class="w-full max-w-3xl">
-<h1 class="text-hero">{{ __('carpool.cases') }}</h1>@if(empty($cases))<p class="mt-8 text-ink-muted">{{ __('carpool.empty_cases') }}</p>@endif<div class="mt-8 divide-y divide-line">@foreach($cases as $case)<a class="flex min-h-16 items-center justify-between gap-4 py-5" href="{{ route('carpool.case',$case['id']) }}"><span>{{ __('carpool.case',['id'=>$case['id']]) }}</span><span class="text-sm text-ink-muted">{{ __('carpool.CarpoolCaseStatus.'.($case['status'] instanceof \BackedEnum ? $case['status']->value : $case['status'])) }}</span></a>@endforeach</div>@include('carpool.partials.report')
-</div></x-layouts.app>
+{{-- Le tue segnalazioni (scheda «Aiuto»): elenco, stato e il modulo per una nuova. --}}
+<x-layouts.app service :meta="$meta">
+    <x-service-page :title="__('carpool.cases')" :subtitle="__('carpool.web.cases_subtitle')" :tabs="$tabs" :tabs-label="__('carpool.web.tabs.label')">
+        @include('carpool.partials.help-nav')
+
+        @if (empty($cases))
+            <x-empty-state :title="__('carpool.web.empty_cases_title')" :description="__('carpool.empty_cases')" />
+        @else
+            <x-card padding="none" data-carpool-cases>
+                @foreach ($cases as $case)
+                    <x-card.row :href="route('carpool.case', $case['id'])" icon="info" :title="__('carpool.case', ['id' => $case['id']])"
+                        :description="\Illuminate\Support\Facades\Lang::has('carpool.reasons.'.$case['reason']) ? __('carpool.reasons.'.$case['reason']) : null"
+                        :badge="__('carpool.CarpoolCaseStatus.'.($case['status'] instanceof \BackedEnum ? $case['status']->value : $case['status']))" />
+                @endforeach
+            </x-card>
+            @include('carpool.partials.pages')
+        @endif
+
+        @include('carpool.partials.report')
+    </x-service-page>
+</x-layouts.app>

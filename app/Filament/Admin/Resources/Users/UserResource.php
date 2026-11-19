@@ -21,7 +21,9 @@ use App\Services\Carpool\CommunitySafety;
 use App\Services\Community\CommunityModeration;
 use App\Services\Community\WhatsappVerification;
 use BackedEnum;
+use Carbon\CarbonInterface;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
@@ -72,7 +74,28 @@ class UserResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return __('admin.navigation.places');
+        return __('users.navigation_group');
+    }
+
+    /**
+     * Le iscrizioni dell'ultima settimana ancora da completare: la redazione
+     * le vede dal menu senza aprire l'elenco. Senza nessuna, niente numero.
+     */
+    public static function getNavigationBadge(): ?string
+    {
+        $count = RegistrationState::scopeRecent(RegistrationState::scopeIncomplete(User::query()))->count();
+
+        return $count > 0 ? (string) $count : null;
+    }
+
+    public static function getNavigationBadgeColor(): string
+    {
+        return 'warning';
+    }
+
+    public static function getNavigationBadgeTooltip(): string
+    {
+        return __('users.navigation_badge');
     }
 
     public static function getModelLabel(): string
@@ -158,11 +181,26 @@ class UserResource extends Resource
     {
         return $table
             ->columns([
+                /* Chi si registra dall'app può non dare un nome: la riga mostra
+                   allora l'indirizzo, e non resta una riga vuota in cima. */
                 TextColumn::make('name')
                     ->label(__('admin.fields.name'))
-                    ->description(fn (User $record): string => $record->email)
+                    ->state(fn (User $record): string => filled($record->name) ? (string) $record->name : $record->email)
+                    ->description(fn (User $record): string => filled($record->name) ? $record->email : __('users.no_name'))
                     ->searchable(['name', 'email'])
                     ->wrap()
+                    ->sortable(),
+
+                TextColumn::make('registration_state')
+                    ->label(__('users.registration.state'))
+                    ->state(fn (User $record): RegistrationState => RegistrationState::for($record))
+                    ->badge()
+                    ->tooltip(fn (User $record): string => RegistrationState::for($record)->getDescription()),
+
+                TextColumn::make('created_at')
+                    ->label(__('users.registration.registered_at'))
+                    ->dateTime('d/m/Y H:i')
+                    ->description(fn (?CarbonInterface $state): ?string => $state?->diffForHumans())
                     ->sortable(),
 
                 TextColumn::make('email')
@@ -171,13 +209,16 @@ class UserResource extends Resource
                     ->searchable(),
 
                 TextColumn::make('roles.name')
-                    ->label(__('users.platform_roles'))
+                    ->label(__('users.roles_short'))
+                    ->visibleFrom('md')
                     ->badge()
                     ->placeholder(UserRole::User->label())
                     ->formatStateUsing(fn (string $state): string => self::roleLabel($state)),
 
                 TextColumn::make('memberships')
                     ->label(__('users.memberships'))
+                    // Sotto i 1536 px le schede «Amministratori locali» e «Collaboratori» bastano.
+                    ->visibleFrom('2xl')
                     ->searchable(query: fn (Builder $query, string $search): Builder => $query->whereHas('venues', fn (Builder $venues): Builder => $venues->where('name', 'like', "%{$search}%")))
                     ->state(fn (User $record): array => $record->venues->map(fn (Venue $venue): string => $venue->name.' ('.$venue->city?->name.') — '.(VenueRole::tryFrom((string) $venue->getRelation('pivot')->getAttribute('role'))?->label() ?? '—'))->all())
                     ->listWithLineBreaks()
@@ -187,6 +228,8 @@ class UserResource extends Resource
                 TextColumn::make('city.name')
                     ->label(__('users.city'))
                     ->placeholder(__('users.unknown_city'))
+                    // Facoltativa e quasi sempre vuota: si accende dall'elenco delle colonne.
+                    ->toggleable(isToggledHiddenByDefault: true)
                     ->sortable(),
 
                 TextColumn::make('managed_city_names')
@@ -202,9 +245,11 @@ class UserResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true)
                     ->placeholder(__('admin.placeholders.never')),
 
-                TextColumn::make('whatsapp_verified_at')->label(__('community.whatsapp.title'))->dateTime('d/m/Y H:i')->placeholder(__('admin.placeholders.never'))->sortable(),
-                TextColumn::make('community_suspended_at')->label(__('community.suspend'))->dateTime('d/m/Y H:i')->placeholder('—')->sortable(),
-                TextColumn::make('communityProfile.handle')->label(__('community.handle'))->searchable()->toggleable(),
+                /* Dati della community: si accendono dall'elenco delle colonne,
+                   così a 1280 le colonne dell'iscrizione restano leggibili. */
+                TextColumn::make('whatsapp_verified_at')->label(__('community.whatsapp.title'))->dateTime('d/m/Y H:i')->placeholder(__('admin.placeholders.never'))->toggleable(isToggledHiddenByDefault: true)->sortable(),
+                TextColumn::make('community_suspended_at')->label(__('community.suspend'))->dateTime('d/m/Y H:i')->placeholder('—')->toggleable(isToggledHiddenByDefault: true)->sortable(),
+                TextColumn::make('communityProfile.handle')->label(__('community.handle'))->searchable()->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('last_active_at')
                     ->label(__('admin.fields.last_active_at'))
                     ->toggleable(isToggledHiddenByDefault: true)
@@ -212,8 +257,15 @@ class UserResource extends Resource
                     ->placeholder(__('admin.placeholders.never'))
                     ->sortable(),
             ])
-            ->defaultSort('name')
+            // Le iscrizioni più recenti in cima: chi si è appena registrato si vede subito.
+            ->defaultSort('created_at', 'desc')
+            // Sul telefono ogni persona è un blocco con le etichette, non una riga che scorre.
+            ->stackedOnMobile()
             ->filters([
+                SelectFilter::make('registration')
+                    ->label(__('users.registration.filter'))
+                    ->options(RegistrationState::options())
+                    ->query(fn (Builder $query, array $data): Builder => ($state = RegistrationState::tryFrom((string) ($data['value'] ?? ''))) instanceof RegistrationState ? $state->scope($query) : $query),
                 SelectFilter::make('city_id')
                     ->label(__('users.city'))
                     ->relationship('city', 'name')->searchable()->preload(),
@@ -238,46 +290,50 @@ class UserResource extends Resource
                 TernaryFilter::make('community_suspended_at')->label(__('community.suspend'))->nullable(),
                 TrashedFilter::make(),
             ])
+            /* «Modifica» resta a vista; le altre azioni stanno nel menu della
+               riga, altrimenti la colonna delle azioni allargava la tabella
+               oltre lo schermo e le colonne dell'iscrizione scorrevano via. */
             ->recordActions([
                 EditAction::make(),
-                self::impersonateAction(),
-                Action::make('community_suspend')->label(fn (User $record): string => __($record->community_suspended_at ? 'community.unsuspend' : 'community.suspend'))
-                    // Si sospende solo chi sta sotto nello staff (vedi CommunityModeration).
-                    ->visible(fn (User $record): bool => ! $record->trashed() && ($staff = auth()->user()) instanceof User && $staff->isEditorialStaff()
-                        && ($record->community_suspended_at !== null || CommunityModeration::outranks($staff, $record)))->requiresConfirmation()
-                    ->action(fn (User $record) => app(CommunityModeration::class)->apply(auth()->user(), 'user', $record->id, $record->community_suspended_at !== null)),
-                /* La redazione cambia un nome utente senza l'attesa che vale per il
+                ActionGroup::make([
+                    self::impersonateAction(),
+                    Action::make('community_suspend')->label(fn (User $record): string => __($record->community_suspended_at ? 'community.unsuspend' : 'community.suspend'))
+                        // Si sospende solo chi sta sotto nello staff (vedi CommunityModeration).
+                        ->visible(fn (User $record): bool => ! $record->trashed() && ($staff = auth()->user()) instanceof User && $staff->isEditorialStaff()
+                            && ($record->community_suspended_at !== null || CommunityModeration::outranks($staff, $record)))->requiresConfirmation()
+                        ->action(fn (User $record) => app(CommunityModeration::class)->apply(auth()->user(), 'user', $record->id, $record->community_suspended_at !== null)),
+                    /* La redazione cambia un nome utente senza l'attesa che vale per il
                    titolare (D64): regole del nome uguali al modulo, verso il basso. */
-                Action::make('community_rename_handle')->label(__('community.handle_rename'))->modalDescription(__('community.handle_rename_help'))
-                    ->visible(fn (User $record): bool => ! $record->trashed() && $record->communityProfile !== null && ($staff = auth()->user()) instanceof User
-                        && app(CommunitySafety::class)->staff($staff, Permission::ManageCommunity) && CommunityModeration::outranks($staff, $record))
-                    ->fillForm(fn (User $record): array => ['handle' => $record->communityProfile?->handle])
-                    ->schema([
-                        TextInput::make('handle')->label(__('community.handle'))->required()->maxLength(40),
-                        Textarea::make('reason')->label(__('community.handle_rename_reason'))->required()->minLength(5)->maxLength(1000)->rows(3),
-                    ])
-                    ->action(function (User $record, array $data): void {
-                        try {
-                            app(CommunityModeration::class)->renameHandle(auth()->user(), (int) $record->communityProfile?->getKey(), (string) $data['handle'], (string) $data['reason']);
-                        } catch (ValidationException $errore) {
-                            // Nome preso o non valido: lo si dice, senza chiudere in silenzio.
-                            Notification::make()->title(collect($errore->errors())->flatten()->first() ?? __('community.handle_taken'))->danger()->send();
+                    Action::make('community_rename_handle')->label(__('community.handle_rename'))->modalDescription(__('community.handle_rename_help'))
+                        ->visible(fn (User $record): bool => ! $record->trashed() && $record->communityProfile !== null && ($staff = auth()->user()) instanceof User
+                            && app(CommunitySafety::class)->staff($staff, Permission::ManageCommunity) && CommunityModeration::outranks($staff, $record))
+                        ->fillForm(fn (User $record): array => ['handle' => $record->communityProfile?->handle])
+                        ->schema([
+                            TextInput::make('handle')->label(__('community.handle'))->required()->maxLength(40),
+                            Textarea::make('reason')->label(__('community.handle_rename_reason'))->required()->minLength(5)->maxLength(1000)->rows(3),
+                        ])
+                        ->action(function (User $record, array $data): void {
+                            try {
+                                app(CommunityModeration::class)->renameHandle(auth()->user(), (int) $record->communityProfile?->getKey(), (string) $data['handle'], (string) $data['reason']);
+                            } catch (ValidationException $errore) {
+                                // Nome preso o non valido: lo si dice, senza chiudere in silenzio.
+                                Notification::make()->title(collect($errore->errors())->flatten()->first() ?? __('community.handle_taken'))->danger()->send();
 
-                            return;
-                        }
-                        Notification::make()->title(__('community.handle_renamed'))->success()->send();
-                    }),
-                Action::make('whatsapp_revoke')->label(__('community.whatsapp.revoke'))->requiresConfirmation()
-                    ->visible(fn (User $record): bool => $record->whatsapp_verified_at !== null && auth()->user()?->hasAnyRole(['admin', 'super_admin']) === true)
-                    ->action(function (User $record): void {
-                        abort_unless(auth()->user()?->hasAnyRole(['admin', 'super_admin']), 403);
-                        app(WhatsappVerification::class)->revoke($record, auth()->user());
-                    }),
-                Action::make('whatsapp_history')->label(__('community.verification_history'))
-                    ->visible(fn (): bool => auth()->user()?->isEditorialStaff() === true)
-                    ->modalContent(fn (User $record) => view('filament.admin.pages.whatsapp-history', ['challenges' => WhatsappChallenge::query()->where('user_id', $record->id)->latest()->limit(30)->get()]))
-                    ->modalSubmitAction(false)->modalCancelActionLabel(__('community.close')),
-
+                                return;
+                            }
+                            Notification::make()->title(__('community.handle_renamed'))->success()->send();
+                        }),
+                    Action::make('whatsapp_revoke')->label(__('community.whatsapp.revoke'))->requiresConfirmation()
+                        ->visible(fn (User $record): bool => $record->whatsapp_verified_at !== null && auth()->user()?->hasAnyRole(['admin', 'super_admin']) === true)
+                        ->action(function (User $record): void {
+                            abort_unless(auth()->user()?->hasAnyRole(['admin', 'super_admin']), 403);
+                            app(WhatsappVerification::class)->revoke($record, auth()->user());
+                        }),
+                    Action::make('whatsapp_history')->label(__('community.verification_history'))
+                        ->visible(fn (): bool => auth()->user()?->isEditorialStaff() === true)
+                        ->modalContent(fn (User $record) => view('filament.admin.pages.whatsapp-history', ['challenges' => WhatsappChallenge::query()->where('user_id', $record->id)->latest()->limit(30)->get()]))
+                        ->modalSubmitAction(false)->modalCancelActionLabel(__('community.close')),
+                ])->label(__('users.more_actions'))->tooltip(__('users.more_actions')),
             ])
             ->toolbarActions([
                 BulkActions::make(),

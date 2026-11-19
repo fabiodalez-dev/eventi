@@ -43,6 +43,10 @@ final class CollectionController extends Controller
             return ApiResponse::collection($collections->map(fn (EventCollection $collection): array => self::toArray($collection))->all());
         }
 
+        /* Le prime tre locandine di ogni raccolta, per riconoscerla a colpo
+           d'occhio: tre date per raccolta, caricate tutte insieme. */
+        $collections->load(['items' => fn ($items) => $items->limit(3)->with('occurrence.event.media')]);
+
         return view('account.collections.index', [
             'collections' => $collections,
             'meta' => new PageMeta(title: __('collections.title'), heading: __('collections.title'), indexable: false),
@@ -89,6 +93,7 @@ final class CollectionController extends Controller
         return view('account.collections.show', [
             'collection' => $collection,
             'occurrences' => $occurrences,
+            'notes' => $collection->items()->pluck('note', 'occurrence_id'),
             'meta' => new PageMeta(title: $collection->name, heading: $collection->name, indexable: false),
         ]);
     }

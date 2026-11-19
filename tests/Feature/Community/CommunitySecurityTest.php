@@ -1283,14 +1283,24 @@ it('92 the moderation page names the event behind a restriction, searches it and
         ->set('search', 'Ristretta')
         ->assertSee('Autrice Ristretta')->assertSee($post->occurrence->event->title)->assertDontSee('Altro Membro');
 
+    /* Le conferme sono le finestre delle azioni, con la spiegazione e il
+       motivo da scrivere, non più un `wire:confirm`. */
     Livewire::test(CommunityModerationPage::class)
-        ->assertSeeHtml('wire:confirm="'.e(__('community.suspend_confirm')).'"')
-        ->set('section', 'posts')->assertSeeHtml('wire:confirm="'.e(__('community.hide_confirm')).'"');
+        ->mountAction('suspendUser', ['id' => $author->id, 'enabled' => false])
+        ->assertMountedActionModalSee(__('community.suspend_confirm'));
+    Livewire::test(CommunityModerationPage::class)->set('section', 'posts')
+        ->mountAction('hideContent', ['kind' => 'post', 'id' => $post->id, 'enabled' => false])
+        ->assertMountedActionModalSee(__('community.hide_confirm'));
     $post->update(['status' => CommunityStatus::Hidden]);
     User::query()->whereKey([$author->id, $other->id])->update(['community_suspended_at' => now()]);
     Livewire::test(CommunityModerationPage::class)
-        ->assertDontSeeHtml('wire:confirm="'.e(__('community.suspend_confirm')).'"')
-        ->set('section', 'posts')->assertDontSeeHtml('wire:confirm="'.e(__('community.hide_confirm')).'"');
+        ->mountAction('suspendUser', ['id' => $author->id, 'enabled' => true])
+        ->assertMountedActionModalSee(__('admin.community_page.unsuspend_description'))
+        ->assertMountedActionModalDontSee(__('community.suspend_confirm'));
+    Livewire::test(CommunityModerationPage::class)->set('section', 'posts')
+        ->mountAction('hideContent', ['kind' => 'post', 'id' => $post->id, 'enabled' => true])
+        ->assertMountedActionModalSee(__('admin.community_page.restore_description'))
+        ->assertMountedActionModalDontSee(__('community.hide_confirm'));
 });
 
 it('93 follow buttons announce a name that starts with the visible text', function (): void {

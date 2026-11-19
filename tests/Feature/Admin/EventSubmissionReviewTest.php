@@ -76,7 +76,9 @@ it('rejects a proposal without publishing and records the reason', function (): 
     expect(Event::count())->toBe(0);
 });
 
-it('uses the same light-only theme across all back-office panels', function (string $panel): void {
+it('uses the site theme and the same font across all back-office panels', function (string $panel): void {
     $config = Filament::getPanel($panel);
-    expect($config->hasDarkMode())->toBeFalse()->and($config->getFontFamily())->toBe('Manrope Variable');
+    expect($config->hasDarkMode())->toBeTrue()
+        ->and($config->hasThemeSwitcher())->toBeFalse()
+        ->and($config->getFontFamily())->toBe('Manrope Variable');
 })->with(['admin', 'venue', 'organizer']);

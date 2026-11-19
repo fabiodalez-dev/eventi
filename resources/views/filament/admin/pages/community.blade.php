@@ -1,26 +1,92 @@
+@php
+    use App\Models\CommunityPost;
+    use App\Models\CommunityProfile;
+    use Illuminate\Support\Carbon;
+
+    $sections = collect(\App\Filament\Admin\Pages\Community::SECTIONS);
+@endphp
 <x-filament-panels::page>
-    <label>{{ __('carpool.admin.reason') }}<textarea wire:model="reason" minlength="5" maxlength="1000" class="block w-full rounded-lg border border-gray-300 bg-white p-3 text-gray-950"></textarea>@error('reason')<span class="text-danger-600">{{ $message }}</span>@enderror</label>
-    <div class="flex flex-wrap gap-4">
-        <label>{{ __('community.nav') }}<select wire:model.live="section" class="rounded-lg border border-gray-300 bg-white p-3 text-gray-950"><option value="profiles">{{ __('community.people') }}</option><option value="posts">{{ __('community.feed') }}</option><option value="comments">{{ __('community.comments') }}</option><option value="restrictions">{{ __('community.restrictions') }}</option></select></label>
-        <label>{{ __('community.search') }}<input type="search" wire:model.live.debounce.400ms="search" maxlength="80" class="rounded-lg border border-gray-300 bg-white p-3 text-gray-950"></label>
+    {{-- Che cosa si modera: schede, non una tendina. La ricerca subito sotto,
+         con un'etichetta che dice dove cerca. --}}
+    <div class="flex min-w-0 flex-col gap-4" data-community-moderation>
+        <x-filament::tabs :label="__('admin.community_page.sections_label')" class="max-w-full flex-wrap">
+            @foreach ($sections as $tab)
+                <x-filament::tabs.item :active="$section === $tab" wire:click="$set('section', '{{ $tab }}')">
+                    {{ __('admin.community_page.sections.'.$tab) }}
+                </x-filament::tabs.item>
+            @endforeach
+        </x-filament::tabs>
+
+        <label class="flex flex-col gap-2">
+            <span class="text-sm font-medium text-gray-950 dark:text-white">{{ __('admin.community_page.search.'.($section === 'restrictions' || $section === 'profiles' ? 'name' : 'text')) }}</span>
+            <x-filament::input.wrapper prefix-icon="heroicon-o-magnifying-glass">
+                <x-filament::input type="search" wire:model.live.debounce.400ms="search" maxlength="80" />
+            </x-filament::input.wrapper>
+        </label>
     </div>
-    <div class="divide-y divide-gray-200 dark:divide-gray-700">
-    @foreach($items as $item)
-        <article class="space-y-3 py-5" wire:key="{{ $section }}-{{ $item->id }}">
-            @if($section === 'restrictions')
-                <p><span class="font-bold">{{ $item->name }}</span> · {{ __('community.restricted_occurrence', ['title' => $item->event_title, 'date' => \Illuminate\Support\Carbon::parse($item->starts_at, 'UTC')->timezone($item->timezone)->format('d/m/Y H:i')]) }} <span class="text-sm text-gray-500">({{ __('community.restricted_occurrence_id', ['id' => $item->occurrence_id]) }})</span></p>
-                <x-filament::button color="gray" wire:confirm="{{ __('community.restore_restriction_confirm') }}" wire:click="restoreRestriction({{ $item->id }})">{{ __('community.restore') }}</x-filament::button>
-            @elseif($item instanceof \App\Models\CommunityProfile)
-                <p class="font-bold">{{ $item->display_name }} · {{ '@'.$item->handle }}</p><p>{{ $item->bio }}</p><p>{{ __('community.profile_visibility.'.$item->visibility->value) }}</p>
-                <div class="flex flex-wrap gap-4"><x-filament::button color="gray" wire:click="moderate('profile', {{ $item->id }}, {{ $item->featured ? 'false' : 'true' }})">{{ __($item->featured ? 'community.unfeature' : 'community.feature') }}</x-filament::button>
-                <x-filament::button color="warning" :wire:confirm="$item->user->community_suspended_at ? null : __('community.suspend_confirm')" wire:click="moderate('user', {{ $item->user_id }}, {{ $item->user->community_suspended_at ? 'true' : 'false' }})">{{ __($item->user->community_suspended_at ? 'community.unsuspend' : 'community.suspend') }}</x-filament::button></div>
-            @else
-                <p class="font-bold">{{ $item->user->communityProfile?->display_name ?? __('community.member') }} · #{{ $item->id }}</p><p class="whitespace-pre-line">{{ $item->body }}</p>
-                @if($item instanceof \App\Models\CommunityPost)<p>{{ $item->occurrence->event->title }}</p>@endif
-                <x-filament::button color="gray" :wire:confirm="$item->status->value === 'published' ? __('community.hide_confirm') : null" wire:click="moderate('{{ $section === 'posts' ? 'post' : 'comment' }}', {{ $item->id }}, {{ $item->status->value === 'published' ? 'false' : 'true' }})">{{ __($item->status->value === 'published' ? 'community.hide' : 'community.restore') }}</x-filament::button>
-            @endif
-        </article>
-    @endforeach
-    </div>
-    {{ $items->links() }}
+
+    @if ($items->isEmpty())
+        <x-filament::empty-state icon="heroicon-o-inbox" :heading="__('admin.community_page.empty.'.$section)" :description="$search !== '' ? __('admin.community_page.empty_search') : null" />
+    @else
+        <x-filament::section>
+            <ul class="divide-y divide-gray-100 dark:divide-white/10">
+                @foreach ($items as $item)
+                    <li class="flex min-w-0 flex-col gap-3 py-4 first:pt-0 last:pb-0" wire:key="{{ $section }}-{{ $item->id }}">
+                        @if ($section === 'restrictions')
+                            <div class="flex min-w-0 flex-col gap-1">
+                                <p class="text-sm font-semibold text-gray-950 dark:text-white">{{ $item->name }}</p>
+                                <p class="text-sm text-gray-700 [overflow-wrap:anywhere] dark:text-gray-300">{{ __('community.restricted_occurrence', ['title' => $item->event_title, 'date' => Carbon::parse($item->starts_at, 'UTC')->timezone($item->timezone)->format('d/m/Y H:i')]) }}</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">{{ __('community.restricted_occurrence_id', ['id' => $item->occurrence_id]) }}</p>
+                            </div>
+                            <div class="flex flex-wrap gap-3">
+                                {{ ($this->restoreRestrictionAction)(['id' => $item->id]) }}
+                            </div>
+                        @elseif ($item instanceof CommunityProfile)
+                            <div class="flex min-w-0 flex-col gap-1">
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <p class="text-sm font-semibold text-gray-950 dark:text-white">{{ $item->display_name }}</p>
+                                    <span class="text-sm text-gray-500 dark:text-gray-400">{{ '@'.$item->handle }}</span>
+                                    @if ($item->featured)
+                                        <x-filament::badge color="success" icon="heroicon-o-star">{{ __('community.feature') }}</x-filament::badge>
+                                    @endif
+                                    @if ($item->user?->community_suspended_at)
+                                        <x-filament::badge color="warning">{{ __('admin.community_page.suspended') }}</x-filament::badge>
+                                    @endif
+                                </div>
+                                @if (filled($item->bio))
+                                    <p class="whitespace-pre-line text-sm text-gray-700 [overflow-wrap:anywhere] dark:text-gray-300">{{ $item->bio }}</p>
+                                @endif
+                                <p class="text-xs text-gray-500 dark:text-gray-400">{{ __('community.profile_visibility.'.$item->visibility->value) }}</p>
+                            </div>
+                            <div class="flex flex-wrap gap-3">
+                                {{ ($this->featureProfileAction)(['id' => $item->id, 'enabled' => ! $item->featured]) }}
+                                {{ ($this->suspendUserAction)(['id' => $item->user_id, 'enabled' => (bool) $item->user?->community_suspended_at]) }}
+                            </div>
+                        @else
+                            @php $published = $item->status->value === 'published'; @endphp
+                            <div class="flex min-w-0 flex-col gap-1">
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <p class="text-sm font-semibold text-gray-950 dark:text-white">{{ $item->user->communityProfile?->display_name ?? __('community.member') }}</p>
+                                    <span class="text-sm text-gray-500 dark:text-gray-400">#{{ $item->id }}</span>
+                                    @unless ($published)
+                                        <x-filament::badge color="danger">{{ __('admin.community_page.hidden') }}</x-filament::badge>
+                                    @endunless
+                                </div>
+                                <p class="whitespace-pre-line text-sm text-gray-700 [overflow-wrap:anywhere] dark:text-gray-300">{{ $item->body }}</p>
+                                @if ($item instanceof CommunityPost)
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">{{ $item->occurrence->event->title }}</p>
+                                @endif
+                            </div>
+                            <div class="flex flex-wrap gap-3">
+                                {{ ($this->hideContentAction)(['kind' => $section === 'posts' ? 'post' : 'comment', 'id' => $item->id, 'enabled' => ! $published]) }}
+                            </div>
+                        @endif
+                    </li>
+                @endforeach
+            </ul>
+        </x-filament::section>
+
+        <x-filament::pagination :paginator="$items" />
+    @endif
+
 </x-filament-panels::page>

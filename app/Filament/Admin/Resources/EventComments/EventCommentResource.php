@@ -8,6 +8,7 @@ use App\Actions\Comments\ModerateComment;
 use App\Enums\EventCommentStatus;
 use App\Filament\Admin\Resources\EventComments\Pages\ListEventComments;
 use App\Filament\Concerns\HasSentenceCaseNavigationLabel;
+use App\Filament\Support\PosterColumn;
 use App\Models\EventComment;
 use App\Models\User;
 use BackedEnum;
@@ -18,10 +19,18 @@ use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Textarea;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
+use Filament\Support\Enums\Alignment;
+use Filament\Support\Enums\FontWeight;
+use Filament\Support\Enums\TextSize;
+use Filament\Support\Facades\FilamentTimezone;
 use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Columns\Layout\Split;
+use Filament\Tables\Columns\Layout\Stack;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Enums\RecordActionsPosition;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
 
 /**
@@ -45,6 +54,9 @@ use Illuminate\Support\Facades\Cache;
 class EventCommentResource extends Resource
 {
     use HasSentenceCaseNavigationLabel;
+
+    /** Titoli e briciole in italiano: «Commenti agli eventi», non «Commenti Agli Eventi». */
+    protected static bool $hasTitleCaseModelLabel = false;
 
     protected static ?string $model = EventComment::class;
 
@@ -82,17 +94,38 @@ class EventCommentResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            /* Locandina, autore e moderatore nella stessa query: senza, ogni
+               riga ne chiederebbe tre. */
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(['event.media', 'user', 'moderator']))
             ->columns([
-                TextColumn::make('event.title')->label(__('comments.moderation.event'))->searchable()->wrap()->limit(60),
-                TextColumn::make('user.name')->label(__('reviews.user'))->searchable(),
-                TextColumn::make('body')->label(__('comments.moderation.body'))->wrap()->limit(140)->searchable(),
-                TextColumn::make('parent_id')->label(__('comments.reply'))->formatStateUsing(fn (?int $state): string => $state === null ? '—' : '↳'),
-                TextColumn::make('reactions_count')->counts('reactions')->label(__('comments.reactions.like'))->sortable(),
-                TextColumn::make('status')->label(__('reviews.status'))->badge()
-                    ->formatStateUsing(fn (EventCommentStatus $state): string => $state->label())
-                    ->color(fn (EventCommentStatus $state): string => $state === EventCommentStatus::Hidden ? 'danger' : 'success'),
-                TextColumn::make('created_at')->label(__('admin.fields.created_at'))->dateTime('d/m/Y H:i')->sortable(),
-                TextColumn::make('moderator.name')->label(__('admin.fields.reviewed_by')),
+                /*
+                 * La riga è il commento, riconoscibile dalla locandina
+                 * dell'evento: sul telefono le sette colonne di prima si
+                 * tagliavano, e il testo — la sola cosa da leggere per
+                 * decidere — finiva fuori schermo.
+                 */
+                Split::make([
+                    PosterColumn::make('event.poster_media'),
+                    Stack::make([
+                        TextColumn::make('event.title')->extraAttributes(['class' => 'py-0.5!'])->label(__('comments.moderation.event'))->searchable()->weight(FontWeight::SemiBold)->wrap()->limit(80),
+                        TextColumn::make('user.name')->extraAttributes(['class' => 'py-0.5!'])->label(__('reviews.user'))->searchable()->color('gray')->size(TextSize::Small)
+                            ->formatStateUsing(fn (string $state, EventComment $record): string => collect([
+                                $state,
+                                $record->parent_id === null ? null : __('admin.comment_list.reply'),
+                                $record->created_at?->copy()->timezone(FilamentTimezone::get())->format('d/m/Y H:i'),
+                            ])->filter()->join(' · ')),
+                        TextColumn::make('body')->extraAttributes(['class' => 'py-0.5!'])->label(__('comments.moderation.body'))->wrap()->limit(220)->searchable(),
+                        TextColumn::make('status')->extraAttributes(['class' => 'py-0.5!'])->label(__('reviews.status'))->badge()
+                            ->formatStateUsing(fn (EventCommentStatus $state): string => $state->label())
+                            ->color(fn (EventCommentStatus $state): string => $state === EventCommentStatus::Hidden ? 'danger' : 'success'),
+                    ])->space(1),
+                    Stack::make([
+                        TextColumn::make('reactions_count')->extraAttributes(['class' => 'py-0.5!'])->counts('reactions')->label(__('comments.reactions.like'))->sortable()->size(TextSize::Small)
+                            ->formatStateUsing(fn (int $state): string => trans_choice('admin.comment_list.reactions', $state, ['count' => $state])),
+                        TextColumn::make('moderator.name')->extraAttributes(['class' => 'py-0.5!'])->label(__('admin.fields.reviewed_by'))->size(TextSize::Small)->color('gray')
+                            ->formatStateUsing(fn (string $state): string => __('admin.comment_list.moderated_by', ['name' => $state])),
+                    ])->space(1)->alignment(Alignment::End)->grow(false)->visibleFrom('lg'),
+                ]),
             ])
             ->defaultSort('id', 'desc')
             ->filters([
@@ -117,7 +150,7 @@ class EventCommentResource extends Resource
                 self::azioneRipristina(),
                 DeleteAction::make()->label(__('comments.delete'))->authorize('delete')
                     ->modalDescription(__('comments.delete_confirm')),
-            ]);
+            ], position: RecordActionsPosition::AfterContent);
     }
 
     private static function azioneNascondi(): Action

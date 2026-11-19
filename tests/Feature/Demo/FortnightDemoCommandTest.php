@@ -17,6 +17,7 @@ use App\Models\RideOffer;
 use App\Models\RideRequest;
 use App\Models\SavedEvent;
 use App\Models\Setting;
+use App\Models\Sponsorship;
 use App\Models\User;
 use App\Models\Venue;
 use Carbon\CarbonImmutable;
@@ -123,7 +124,12 @@ it('fills the next fifteen days with new events, new dates for past ones and eve
         ->and(RideRequest::query()->distinct()->pluck('status')->map(fn ($s) => $s->value)->sort()->values()->all())->toBe(['accepted', 'declined', 'pending', 'withdrawn'])
         ->and(DB::table('chat_messages')->count())->toBeGreaterThan(5)
         ->and(EventOccurrence::query()->whereNotNull('practical_details')->count())->toBeGreaterThan(10)
-        ->and(DB::table('occurrence_views_daily')->count())->toBeGreaterThan(100);
+        ->and(DB::table('occurrence_views_daily')->count())->toBeGreaterThan(100)
+        ->and(DB::table('event_views_daily')->count())->toBeGreaterThan(50)
+        ->and(DB::table('sponsorship_daily_stats')->count())->toBeGreaterThan(20);
+    // Le campagne dimostrative sono concluse: nessuna compare sul sito con «Sponsorizzato».
+    expect(DB::table('sponsorships')->where('advertiser_name', 'Campagna dimostrativa')->count())->toBeGreaterThan(0)
+        ->and(Sponsorship::query()->visible()->where('advertiser_name', 'Campagna dimostrativa')->exists())->toBeFalse();
 
     // Nessuno riceve niente: né mail, né avvisi in app — compresi quelli della biglietteria.
     Mail::assertNothingOutgoing();
@@ -153,6 +159,8 @@ it('purges what it added and leaves the history of the reused events in place', 
         ->and(EventPoll::query()->count())->toBe(0)
         ->and(RideOffer::query()->where('departure_at', '>', now())->count())->toBe(0)
         ->and(EventComment::query()->count())->toBe(0)
+        ->and(DB::table('sponsorships')->where('advertiser_name', 'Campagna dimostrativa')->count())->toBe(0)
+        ->and(DB::table('event_views_daily')->count())->toBe(0)
         ->and(Setting::query()->where('key', FortnightDemoCommand::SETTING)->exists())->toBeFalse();
     // Le persone della vetrina restano: sono di demo:showcase.
     expect(User::query()->whereIn('email', ShowcaseDemoCommand::emails(ShowcaseDemoCommand::catalog()))->count())

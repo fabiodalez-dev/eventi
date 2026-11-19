@@ -36,7 +36,8 @@ it('un ospite consulta data, regole e requisiti ma per agire viene mandato ad ac
     flussoCpGuest();
 
     $this->get(route('carpool.dates', $this->date))->assertOk()->assertSee($this->date->event->title)
-        ->assertHeader('X-Robots-Tag', 'noindex, nofollow')->assertDontSee('Prato della Valle');
+        // Nessun passaggio per l'ospite («Prato della Valle» è anche il nome della sede, ora nella riga evento).
+        ->assertHeader('X-Robots-Tag', 'noindex, nofollow')->assertDontSee('data-offer-row', false);
     $this->getJson(route('carpool.dates', $this->date))->assertOk()
         ->assertJsonPath('data.access.eligible', false)->assertJsonPath('data.access.reason', 'login')
         ->assertJsonPath('data.offers', [])->assertJsonPath('data.my_offers', []);
@@ -110,7 +111,10 @@ it('la dichiarazione rifiuta un indirizzo di ritorno esterno e una versione dell
 
     $this->from(route('carpool.requirements'))->post(route('carpool.action', 'declare'), ['request_key' => (string) Str::uuid(), 'adult' => '1', 'terms' => '1',
         'version' => config('carpool.terms_version'), 'return_to' => 'https://esempio.invalid/passaggi'])->assertRedirect(route('carpool.requirements'))->assertSessionHasErrors('return_to');
-    $this->post(route('carpool.action', 'declare'), ['request_key' => (string) Str::uuid(), 'adult' => '1', 'terms' => '1', 'version' => '2020-01-01'])->assertStatus(409);
+    // Dal sito la versione superata torna al modulo con il messaggio; dall'app resta un 409.
+    $this->from(route('carpool.requirements'))->post(route('carpool.action', 'declare'), ['request_key' => (string) Str::uuid(), 'adult' => '1', 'terms' => '1', 'version' => '2020-01-01'])
+        ->assertRedirect(route('carpool.requirements'))->assertSessionHasErrors(['form' => __('carpool.errors.terms')]);
+    $this->postJson(route('carpool.action', 'declare'), ['request_key' => (string) Str::uuid(), 'adult' => '1', 'terms' => '1', 'version' => '2020-01-01'])->assertStatus(409);
 
     expect(CarpoolProfile::where('user_id', $user->id)->whereNotNull('adult_declared_at')->exists())->toBeFalse();
     $this->getJson(route('carpool.requirements'))->assertJsonPath('data.access.reason', 'adult');
@@ -141,9 +145,11 @@ it('il conducente apre il modulo, pubblica il passaggio dal sito e lo ritrova fr
 
     // Una seconda offerta sulla stessa tratta della stessa data non passa.
     flussoCpWeb($this, $this->driver);
-    $this->post(route('carpool.action', 'offer'), flussoCpOfferForm($this, ['zone' => 'Arcella']))->assertStatus(409);
+    $this->from(route('carpool.create', $this->date))->post(route('carpool.action', 'offer'), flussoCpOfferForm($this, ['zone' => 'Arcella']))
+        ->assertRedirect(route('carpool.create', $this->date))->assertSessionHasErrors(['form' => __('carpool.errors.occupied')]);
     // Né una partenza fuori dalla finestra della data.
-    $this->post(route('carpool.action', 'offer'), flussoCpOfferForm($this, ['leg' => 'return', 'departure_at' => '2026-10-20T20:00']))->assertStatus(422);
+    $this->from(route('carpool.create', $this->date))->post(route('carpool.action', 'offer'), flussoCpOfferForm($this, ['leg' => 'return', 'departure_at' => '2026-10-20T20:00']))
+        ->assertRedirect(route('carpool.create', $this->date))->assertSessionHasErrors(['departure_at' => __('carpool.errors.departure')]);
     expect(RideOffer::count())->toBe(1);
 });
 

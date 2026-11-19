@@ -34,3 +34,29 @@ it('fills the hero with its image behind readable event information', function (
     expect($page->script('() => { const hero=document.querySelector(".event-detail-hero"); const frame=hero.querySelector(".event-poster-frame").getBoundingClientRect(); const heading=hero.querySelector(".event-heading-panel").getBoundingClientRect(); const img=hero.querySelector("img"); return Math.abs(frame.width - hero.getBoundingClientRect().width) < 2 && heading.bottom <= frame.bottom + 2 && heading.left >= frame.left && getComputedStyle(img).objectFit === "cover" && getComputedStyle(hero.querySelector(".event-heading-panel")).backgroundColor === "rgba(0, 0, 0, 0)" && document.documentElement.scrollWidth <= innerWidth; }'))->toBeTrue();
     $page->screenshot(filename: 'event-hero-'.$theme.'-'.$width);
 })->with(['inLightMode', 'inDarkMode'])->with([391, 804, 1440]);
+
+/*
+ * Pacchetto `home`: il calendario del mese subito sotto l'apertura e la barra
+ * in basso a sole icone, non più alta di 58 px nello scuro e 70 nel chiaro.
+ */
+it('shows the month calendar under the hero and an icon-only bottom bar', function (string $theme, int $width): void {
+    $city = testCity();
+    freezeLocal($city, '2026-09-12 12:00');
+    occurrenceAtLocal($city, testCategory(), '2026-09-12 21:00');
+    occurrenceAtLocal($city, testCategory(), '2026-09-20 21:00');
+
+    $page = visit('/')->{$theme}()->resize($width, 844);
+    $page->script('document.querySelector("[data-consent-banner]")?.remove()');
+
+    expect($page->script('() => { const opening=document.querySelector(".home-opening").getBoundingClientRect(); const calendar=document.querySelector("[data-home-calendar]").getBoundingClientRect(); return Math.abs(calendar.top - opening.bottom) < 2 && calendar.height > 200; }'))->toBeTrue()
+        ->and($page->script('() => [...document.querySelectorAll(".month-calendar--compact .month-calendar__link")].every(a => a.getBoundingClientRect().height >= 44 && a.getBoundingClientRect().width >= 40)'))->toBeTrue()
+        ->and($page->script('document.documentElement.scrollWidth <= innerWidth'))->toBeTrue();
+
+    if ($width < 1024) {
+        $page->script('scrollTo(0, 400)');
+        $limit = $theme === 'inDarkMode' ? 58 : 70;
+        expect($page->script('() => { const nav=document.querySelector("[data-mobile-navigation]"); const links=[...nav.querySelectorAll("a")]; return nav.getBoundingClientRect().height <= '.$limit.' && nav.innerText.trim() === "" && links.length === 7 && links.every(a => a.getAttribute("aria-label") && a.getBoundingClientRect().width >= 44 && a.getBoundingClientRect().height >= 44); }'))->toBeTrue();
+    }
+
+    $page->screenshot(filename: 'home-calendar-'.$theme.'-'.$width);
+})->with(['inLightMode', 'inDarkMode'])->with([375, 390, 1280]);

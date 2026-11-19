@@ -74,14 +74,13 @@
         </ul>
     @endif
 
-    <div class="flex flex-col gap-3 border-t-2 border-line pt-3">
+    {{-- Il piè resta in vista in fondo all'area che scorre: con molte date, o
+         su uno schermo basso, il pulsante non finisce sotto il bordo. --}}
+    <div class="sticky -bottom-4 z-20 -mb-4 flex flex-col gap-3 border-t-2 border-line bg-canvas pt-3 pb-4" data-saved-panel-footer>
         @if ($authenticated)
-            <a
-                href="{{ route('account.saved') }}"
-                class="ui-action inline-flex min-h-12 items-center justify-center bg-accent px-4 font-display text-[0.875rem] leading-none font-extrabold tracking-[0.06em] text-on-accent uppercase transition-colors hover:bg-brand-strong"
-            >
+            <x-button :href="route('account.saved')" class="w-full">
                 {{ $total > $occurrences->count() ? __('account.saved.panel_more', ['count' => $total]) : __('account.saved.panel_all') }}
-            </a>
+            </x-button>
         @else
             {{-- Per chi non ha un account la pagina dei salvataggi chiede
                  l'accesso, quindi mandarcelo e basta sarebbe un vicolo cieco:
@@ -91,12 +90,9 @@
                 <p class="m-0 text-xs leading-relaxed text-ink-muted">{{ __('account.saved.panel_guest_hint') }}</p>
             @endif
 
-            <a
-                href="{{ route('login') }}"
-                class="ui-action inline-flex min-h-12 items-center justify-center bg-accent px-4 font-display text-[0.875rem] leading-none font-extrabold tracking-[0.06em] text-on-accent uppercase transition-colors hover:bg-brand-strong"
-            >
+            <x-button :href="route('login')" class="w-full">
                 {{ __('account.saved.panel_guest_action') }}
-            </a>
+            </x-button>
         @endif
     </div>
 </div>

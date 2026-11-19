@@ -240,7 +240,7 @@ it('rifiuta la password di un account appena registrato e non confermato, risped
 
     /* Password giusta: non entra, ma riparte il collegamento. */
     $this->post('/accedi', ['email' => 'sospeso.flusso@example.test', 'password' => 'password-del-sospeso'])
-        ->assertSessionHasErrors(['email' => __('account.login.claim_pending')]);
+        ->assertSessionHasErrors(['email' => __('auth.login.claim_pending')]);
     $this->assertGuest();
     Notification::assertSentToTimes($user, RegistrationLink::class, 2);
 

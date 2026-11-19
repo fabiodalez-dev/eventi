@@ -1,20 +1,40 @@
 <x-filament-panels::page>
-    <p style="max-width:75ch">{{ __('social.setup_help') }}</p>
-    <x-filament::section heading="API e autenticazione Meta">
-        <p>Instagram e Facebook condividono l’app Meta. Inserisci App ID e App Secret, salva, poi premi Collega con Meta. Autorizza le Pagine desiderate e scegli quale collegare. È richiesto un account Instagram professionale associato alla Pagina.</p>
-        <p style="margin-top:12px">In Meta Developers, nelle impostazioni di Facebook Login, registra questo URL di reindirizzamento OAuth:</p>
-        <code style="display:block;overflow-wrap:anywhere;margin-top:8px">{{ route('social.meta.callback') }}</code>
-        <p style="margin-top:12px">Permessi: pages_show_list, pages_read_engagement, pages_manage_posts, instagram_basic, instagram_content_publish. Per account esterni ai ruoli dell’app possono servire revisione e accesso avanzato Meta.</p>
-        @if(session('meta_message'))<p role="status" style="margin-top:12px;font-weight:700">{{ session('meta_message') }}</p>@endif
-        @php($connection = \App\Models\SocialConnection::first())
-        <p style="margin-top:12px">App Secret: {{ $connection?->app_secret ? 'salvato' : 'mancante' }}. Token: {{ $connection?->access_token ? 'salvato' : 'mancante' }}. Collegamento: {{ $connection?->verified_at ? 'verificato' : 'da verificare' }}.</p>
+    @php($connection = \App\Models\SocialConnection::first())
+    <p class="max-w-prose text-sm text-gray-600 dark:text-gray-400">{{ __('social.setup_help') }}</p>
+    <x-filament::section :heading="__('social.settings_page.meta_heading')">
+        <div class="flex flex-col gap-3 text-sm text-gray-700 dark:text-gray-300">
+            <p>{{ __('social.settings_page.meta_intro') }}</p>
+            <p>{{ __('social.settings_page.redirect_hint') }}</p>
+            <code class="block [overflow-wrap:anywhere] text-gray-950 dark:text-white">{{ route('social.meta.callback') }}</code>
+            <p>{{ __('social.settings_page.permissions') }}</p>
+            @if (session('meta_message'))
+                <p role="status" class="font-semibold text-gray-950 dark:text-white">{{ session('meta_message') }}</p>
+            @endif
+            <p>{{ __('social.settings_page.meta_status', [
+                'secret' => __($connection?->app_secret ? 'social.settings_page.saved' : 'social.settings_page.missing'),
+                'token' => __($connection?->access_token ? 'social.settings_page.saved' : 'social.settings_page.missing'),
+                'verified' => __($connection?->verified_at ? 'social.settings_page.verified' : 'social.settings_page.to_verify'),
+            ]) }}</p>
+        </div>
     </x-filament::section>
-    <x-filament::section heading="Stato Telegram">
-        <p>Token bot: {{ $connection?->telegram_bot_token ? 'salvato' : 'mancante' }}. Canale: {{ $connection?->telegram_chat_id ?: 'non configurato' }}. Verifica: {{ $connection?->telegram_verified_at ? 'completata' : 'da eseguire' }}.</p>
-        <p>Le didascalie con immagini hanno un limite di 1024 caratteri. La verifica controlla bot, canale e permesso di pubblicare senza inviare messaggi.</p>
+    <x-filament::section :heading="__('social.settings_page.telegram_heading')">
+        <div class="flex flex-col gap-3 text-sm text-gray-700 dark:text-gray-300">
+            <p>{{ __('social.settings_page.telegram_status', [
+                'token' => __($connection?->telegram_bot_token ? 'social.settings_page.saved' : 'social.settings_page.missing'),
+                'chat' => $connection?->telegram_chat_id ?: __('social.settings_page.telegram_no_chat'),
+                'verified' => __($connection?->telegram_verified_at ? 'social.settings_page.telegram_done' : 'social.settings_page.telegram_todo'),
+            ]) }}</p>
+            <p>{{ __('social.settings_page.telegram_help') }}</p>
+        </div>
     </x-filament::section>
-    <form wire:submit="save" style="display:grid;gap:24px">
+    <form wire:submit="save" class="flex flex-col gap-6">
         {{ $this->getSchema('form') }}
-        <div style="display:flex;flex-wrap:wrap;gap:16px"><x-filament::button type="submit">{{ __('social.save') }}</x-filament::button><x-filament::button color="gray" wire:click="verify" wire:loading.attr="disabled">{{ __('social.verify') }}</x-filament::button><x-filament::button color="gray" wire:click="verifyTelegram" wire:loading.attr="disabled">Verifica Telegram</x-filament::button><x-filament::button color="gray" wire:click="connectMeta" wire:loading.attr="disabled">Collega con Meta</x-filament::button><x-filament::button color="gray" wire:click="disconnectMeta" wire:confirm="Rimuovere il token salvato e disattivare l’autopost?">Scollega Meta</x-filament::button></div>
+        <div class="flex flex-wrap gap-4">
+            <x-filament::button type="submit">{{ __('social.save') }}</x-filament::button>
+            <x-filament::button color="gray" wire:click="verify" wire:loading.attr="disabled">{{ __('social.verify') }}</x-filament::button>
+            <x-filament::button color="gray" wire:click="verifyTelegram" wire:loading.attr="disabled">{{ __('social.settings_page.verify_telegram') }}</x-filament::button>
+            <x-filament::button color="gray" wire:click="connectMeta" wire:loading.attr="disabled">{{ __('social.settings_page.connect_meta') }}</x-filament::button>
+            <x-filament::button color="gray" wire:click="disconnectMeta" wire:confirm="{{ __('social.settings_page.disconnect_confirm') }}">{{ __('social.settings_page.disconnect_meta') }}</x-filament::button>
+        </div>
     </form>
 </x-filament-panels::page>

@@ -1,26 +1,52 @@
-<x-layouts.app :meta="$meta" :narrow="true">
-    <h1 class="text-hero">{{ $meta->heading }}</h1>
-    <p class="my-6 text-ink-muted">{{ __('collections.lead') }}</p>
-    @if ($errors->any())<p role="alert" class="mb-5 text-sm font-semibold">{{ $errors->first() }}</p>@endif
+{{--
+    Le raccolte di una persona: prima quelle che ha, ognuna con le prime tre
+    locandine per riconoscerla, poi il modulo per crearne una nuova.
+--}}
+<x-layouts.app service :meta="$meta">
+    <x-service-page :title="$meta->heading" :subtitle="__('collections.lead')" :back="route('account.profile')">
+        @if ($collections->isEmpty())
+            <x-empty-state :title="__('collections.none_title')" :description="__('collections.none')" />
+        @else
+            <x-card :title="trans_choice('collections.count', $collections->count(), ['count' => $collections->count()])" padding="none" data-collections>
+                @foreach ($collections as $collection)
+                    @php($posters = $collection->items->map(fn ($item) => $item->occurrence?->event)->filter()->take(3))
+                    <x-card.row
+                        :href="route('account.collections.show', $collection)"
+                        :title="$collection->name"
+                        :description="trans_choice('collections.items', $collection->items_count, ['count' => $collection->items_count]).' '.__('common.separator').' '.($collection->is_public ? __('collections.public') : __('collections.private'))"
+                    >
+                        <x-slot:leading>
+                            <span class="flex w-[104px] items-center" aria-hidden="true">
+                                @forelse ($posters as $event)
+                                    <span @class(['svc-poster svc-poster--sm ring-2 ring-surface', '-ml-8' => ! $loop->first])>
+                                        @if (\App\Support\Poster::imageSet($event) !== null)
+                                            <x-event-artwork :event="$event" sizes="56px" />
+                                        @else
+                                            <span class="svc-poster__placeholder"><x-lucide name="calendar" class="size-5" /></span>
+                                        @endif
+                                    </span>
+                                @empty
+                                    <span class="svc-poster svc-poster--sm"><span class="svc-poster__placeholder"><x-lucide name="heart" class="size-5" /></span></span>
+                                @endforelse
+                            </span>
+                        </x-slot:leading>
+                    </x-card.row>
+                @endforeach
+            </x-card>
+        @endif
 
-    <form method="POST" action="{{ route('account.collections.store') }}" class="mb-8 grid gap-4 border-2 border-line bg-canvas p-5">
-        @csrf
-        <h2 class="font-display text-xl font-bold">{{ __('collections.new') }}</h2>
-        <x-field name="name" :label="__('collections.fields.name')" :required="true" maxlength="120" />
-        <x-field name="description" :label="__('collections.fields.description')" maxlength="500" />
-        <label class="flex items-center gap-2 text-sm"><input type="hidden" name="is_public" value="0"><input type="checkbox" name="is_public" value="1" @checked(old('is_public'))> {{ __('collections.public') }}</label>
-        <x-button type="submit" class="min-h-12 justify-self-start">{{ __('collections.create') }}</x-button>
-    </form>
-
-    @forelse ($collections as $collection)
-        <div class="flex flex-wrap items-center justify-between gap-3 border-t-2 border-line py-4">
-            <div>
-                <a href="{{ route('account.collections.show', $collection) }}" class="font-display text-lg font-extrabold uppercase underline">{{ $collection->name }}</a>
-                <p class="text-sm text-ink-muted">{{ trans_choice('collections.items', $collection->items_count, ['count' => $collection->items_count]) }} · {{ $collection->is_public ? __('collections.public') : __('collections.private') }}</p>
-            </div>
-            <x-button :href="route('account.collections.show', $collection)" variant="secondary">{{ __('collections.open') }}</x-button>
-        </div>
-    @empty
-        <p class="text-sm text-ink-muted">{{ __('collections.none') }}</p>
-    @endforelse
+        <x-card as="form" id="nuova-raccolta" method="POST" :action="route('account.collections.store')" :title="__('collections.new')" :description="__('collections.new_help')">
+            @csrf
+            <x-field name="name" :label="__('collections.fields.name')" :required="true" maxlength="120" />
+            <x-field name="description" :label="__('collections.fields.description')" maxlength="500" />
+            <label class="flex min-h-12 items-start gap-3 text-ink">
+                <input type="hidden" name="is_public" value="0">
+                <input type="checkbox" name="is_public" value="1" class="mt-1 size-5 shrink-0 accent-accent" @checked(old('is_public'))>
+                <span>{{ __('collections.public') }}<span class="mt-1 block text-sm text-ink-muted">{{ __('collections.public_hint') }}</span></span>
+            </label>
+            <x-form-actions>
+                <x-button type="submit">{{ __('collections.create') }}</x-button>
+            </x-form-actions>
+        </x-card>
+    </x-service-page>
 </x-layouts.app>

@@ -37,7 +37,7 @@
                 </h2>
             </div>
 
-            <x-event-grid :occurrences="$ongoing" context="ongoing" />
+            <x-event-grid :occurrences="$ongoing" context="ongoing" :toggle="false" />
         </section>
     @endif
 
@@ -54,7 +54,7 @@
                 </h2>
             </div>
 
-            <x-event-grid :occurrences="$startingSoon" context="starting_soon" />
+            <x-event-grid :occurrences="$startingSoon" context="starting_soon" :toggle="false" />
         </section>
     @endif
 </div>

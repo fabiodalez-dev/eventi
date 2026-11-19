@@ -6,15 +6,23 @@ namespace App\Filament\Venue\Pages;
 
 use App\Filament\Shared\AnalyticsDetailPage;
 use App\Filament\Venue\Support\CurrentVenue;
+use App\Filament\Venue\Widgets\MissingLocationWidget;
+use App\Filament\Venue\Widgets\RecentViewsWidget;
+use App\Filament\Venue\Widgets\ShortcutsWidget;
+use App\Filament\Venue\Widgets\TodayScheduleWidget;
+use App\Filament\Venue\Widgets\UpcomingEventsWidget;
+use App\Filament\Venue\Widgets\VenueOverviewWidget;
 use BackedEnum;
 use Filament\Actions\Action;
-use Filament\Facades\Filament;
 use Filament\Panel;
 use Filament\Support\Icons\Heroicon;
 
 /**
  * §10.1 — la prima schermata: *i tuoi eventi oggi, i prossimi, quante volte
- * sono stati visti*.
+ * sono stati visti*, e da qui tutte le altre pagine del pannello.
+ *
+ * È di proposito la pagina delle statistiche del locale
+ * (`AnalyticsDetailPage`); i riquadri del riepilogo stanno sopra il report.
  *
  * Il titolo porta il nome del locale e non la parola "riepilogo": chi gestisce
  * più di un posto deve capire dov'è appena entrato senza cercarlo.
@@ -64,9 +72,30 @@ class Dashboard extends AnalyticsDetailPage
         ];
     }
 
+    /**
+     * Sopra le statistiche del locale, in quest'ordine: l'avviso della mappa
+     * (solo se serve), il cartellone in tre numeri, le serate di oggi, i
+     * prossimi eventi con la locandina, le ultime visite e le scorciatoie
+     * verso tutte le pagine. Sotto resta il report del locale.
+     *
+     * @return array<class-string>
+     */
     protected function getHeaderWidgets(): array
     {
-        return Filament::getWidgets();
+        return [
+            MissingLocationWidget::class,
+            VenueOverviewWidget::class,
+            TodayScheduleWidget::class,
+            UpcomingEventsWidget::class,
+            RecentViewsWidget::class,
+            ShortcutsWidget::class,
+        ];
+    }
+
+    /** Una colonna: un riquadro per riga, a ogni larghezza. */
+    public function getHeaderWidgetsColumns(): int|array
+    {
+        return 1;
     }
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedHome;

@@ -144,4 +144,9 @@ return [
         'unsubscribe' => 'Puoi spegnere questo rapporto dalle preferenze di notifica del tuo profilo.',
     ],
 
+    'claim_card' => [
+        'title' => 'Gestisci questo locale?',
+        'description' => 'Se :venue è tuo, chiedi le chiavi della sua pagina: aggiorni orari e contatti e pubblichi i tuoi eventi.',
+        'action' => 'Rivendica il locale',
+    ],
 ];

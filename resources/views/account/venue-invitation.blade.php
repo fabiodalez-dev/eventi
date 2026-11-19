@@ -1,31 +1,30 @@
 {{-- «Accetta l'invito» (D64): la GET mostra la domanda, il POST con CSRF
      decide. Gli scanner di posta aprono il collegamento ma non premono
      pulsanti, quindi non accettano niente al posto della persona. --}}
-<x-layouts.app :narrow="true" :meta="$meta">
-    <div class="mx-auto flex w-full max-w-md flex-col gap-6">
-        <header class="flex flex-col gap-2">
-            <h1 class="text-hero text-ink">{{ $meta->heading }}</h1>
-            @if ($error !== null)
-                <p class="text-sm text-ink-muted" role="alert">{{ $error }}</p>
-            @else
-                <p class="text-sm text-ink-muted">{{ __('manage.invitation.page_lead', ['venue' => $venue->name, 'role' => mb_strtolower($role->label())]) }}</p>
-            @endif
-        </header>
-
-        @if ($error === null)
-            <p class="text-sm text-ink-muted">{{ __('manage.invitation.page_consequences') }}</p>
-
-            <form method="POST" action="{{ $action }}" class="flex flex-col gap-3">
+<x-layouts.app service :meta="$meta">
+    <x-service-page
+        :title="$meta->heading"
+        :subtitle="$error === null ? __('manage.invitation.page_lead', ['venue' => $venue->name, 'role' => mb_strtolower($role->label())]) : null"
+    >
+        @if ($error !== null)
+            <x-card tone="alert" :title="__('auth.invitation.unavailable_title')">
+                <p class="text-base text-ink" role="alert">{{ $error }}</p>
+                <x-slot:footer>
+                    <x-button variant="secondary" :href="route('home')">{{ __('auth.invitation.home') }}</x-button>
+                </x-slot:footer>
+            </x-card>
+        @else
+            <x-card as="form" method="POST" action="{{ $action }}" :title="__('auth.invitation.card_title')">
                 @csrf
+                <p class="text-base text-ink-muted">{{ __('manage.invitation.page_consequences') }}</p>
 
-                <button type="submit" name="decision" value="accept" class="bg-brand px-4 py-2.5 text-sm font-semibold text-on-brand transition hover:bg-brand-strong">
-                    {{ __('manage.invitation.accept_action') }}
-                </button>
-
-                <button type="submit" name="decision" value="decline" class="border-2 border-line bg-surface px-4 py-2.5 text-sm font-semibold text-ink transition hover:border-accent hover:bg-canvas">
-                    {{ __('manage.invitation.decline_action') }}
-                </button>
-            </form>
+                <x-slot:footer>
+                    <x-form-actions>
+                        <x-button type="submit" name="decision" value="accept">{{ __('manage.invitation.accept_action') }}</x-button>
+                        <x-button type="submit" variant="secondary" name="decision" value="decline">{{ __('manage.invitation.decline_action') }}</x-button>
+                    </x-form-actions>
+                </x-slot:footer>
+            </x-card>
         @endif
-    </div>
+    </x-service-page>
 </x-layouts.app>

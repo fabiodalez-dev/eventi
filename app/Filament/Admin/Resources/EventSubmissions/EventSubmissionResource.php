@@ -32,6 +32,9 @@ class EventSubmissionResource extends Resource
 {
     use HasSentenceCaseNavigationLabel;
 
+    /** Titoli e briciole in italiano: «Commenti agli eventi», non «Commenti Agli Eventi». */
+    protected static bool $hasTitleCaseModelLabel = false;
+
     protected static ?string $model = EventSubmission::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedInboxArrowDown;

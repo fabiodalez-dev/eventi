@@ -48,7 +48,8 @@ it('links the wizard from the home hero', function (): void {
 it('starts with time before the municipality question', function (): void {
     $this->get('/stasera')->assertOk()->assertViewHas('question', 'when')
         ->assertViewHas('input', fn ($input) => $input['municipality'] === 'Padova')
-        ->assertDontSee('<legend class="mb-6 font-display text-2xl font-bold sm:text-3xl">'.__('tonight.budget'), false);
+        ->assertSee('>'.e(__('tonight.when')).'</h1>', false)
+        ->assertDontSee('>'.e(__('tonight.budget')).'</h1>', false);
 });
 
 it('advances or skips the neighborhood question appropriately', function (string $municipality, string $question, string $expected): void {

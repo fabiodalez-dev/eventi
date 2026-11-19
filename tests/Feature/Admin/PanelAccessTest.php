@@ -47,7 +47,7 @@ it('chiude il pannello a chi non appartiene alla redazione', function (UserRole 
 ]);
 
 it('manda chi non è entrato alla pagina di accesso', function (): void {
-    $this->get('/admin')->assertRedirect('/admin/login');
+    $this->get('/admin')->assertRedirect(route('login'));
 });
 
 it('non mostra ai moderatori il pulsante per creare una città', function (): void {

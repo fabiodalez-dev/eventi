@@ -4,24 +4,66 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Web;
 
+use App\Actions\Account\RequestRegistration;
 use App\Enums\VenueType;
+use App\Models\User;
+use App\Models\Venue;
 use App\Support\Honeypot;
 use App\Support\Turnstile;
+use Carbon\CarbonInterface;
+use Closure;
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
 use Propaganistas\LaravelPhone\Rules\Phone as PhoneRule;
 
 /**
- * Richiesta di accreditamento di un locale (§11.1, §7.3).
+ * Richiesta di accreditamento di un locale (§11.1, §7.3) e rivendicazione di
+ * un locale già a catalogo (`/locali/{venue}/rivendica`).
  *
  * Il referente è un dato obbligatorio: l'accreditamento è un rapporto con una
  * persona, non con un indirizzo email generico, ed è la persona che la
  * redazione richiama per verificare.
+ *
+ * **Sempre con un account.** Chi è collegato scrive a nome del proprio
+ * account, con la sua email (quella scritta nel modulo non conta). Chi non lo
+ * è sceglie una password: l'account nasce con la registrazione di sempre
+ * (`RequestRegistration`, la stessa risposta per indirizzi nuovi e già
+ * registrati) e la richiesta entra in coda solo quando l'email è confermata.
+ *
+ * **Tempo minimo di compilazione.** Accanto al campo esca c'è
+ * `form_started`, l'ora in cui il modulo è stato disegnato, cifrata con la
+ * chiave dell'applicazione: un robot che invia il modulo un istante dopo
+ * averlo letto, o che lo invia senza averlo letto, viene respinto.
  */
 class StoreVenueApplicationRequest extends FormRequest
 {
+    public const STARTED_FIELD = 'form_started';
+
+    /** Meno di così non è una persona che ha letto il modulo. */
+    public const MIN_SECONDS = 3;
+
+    /** Oltre un giorno il modulo si ridisegna con un'ora nuova. */
+    public const MAX_SECONDS = 86400;
+
+    /** I campi che si conservano andando ad accedere: mai la password, mai i file. */
+    public const DRAFT_FIELDS = ['venue_name', 'type', 'address', 'postal_code', 'municipality', 'website', 'public_email', 'public_phone', 'instagram', 'facebook', 'capacity', 'description', 'contact_name', 'contact_role', 'contact_phone', 'contact_email', 'message'];
+
+    /**
+     * Un locale che non si può più rivendicare risponde 404 prima ancora di
+     * guardare i campi: la scheda pubblica resta in cache fino a mezz'ora
+     * dopo un'approvazione e può ancora mostrare l'invito.
+     */
     public function authorize(): bool
     {
+        $venue = $this->claimedVenue();
+        if ($venue instanceof Venue && ! $venue->isClaimable()) {
+            abort(404, (string) __('forms.claim.already_managed'));
+        }
+
         return true;
     }
 
@@ -30,11 +72,28 @@ class StoreVenueApplicationRequest extends FormRequest
      */
     public function rules(): array
     {
+        $guest = ! $this->user() instanceof User;
+        $claim = $this->claimedVenue() instanceof Venue;
+
         return [
-            'venue_name' => ['required', 'string', 'max:255'],
-            'type' => ['nullable', Rule::in(VenueType::values())],
-            'address' => ['nullable', 'string', 'max:255'],
-            'website' => ['nullable', 'url:http,https', 'max:255'],
+            ...($claim ? [
+                'message' => ['required', 'string', 'min:10', 'max:5000'],
+            ] : [
+                'venue_name' => ['required', 'string', 'max:255'],
+                'type' => ['nullable', Rule::in(VenueType::values())],
+                'address' => ['required', 'string', 'max:255'],
+                'postal_code' => ['nullable', 'string', 'regex:/^\d{5}$/'],
+                'municipality' => ['nullable', 'string', 'max:120'],
+                'website' => ['nullable', 'url:http,https', 'max:255'],
+                'public_email' => ['nullable', 'email:filter', 'max:255'],
+                'public_phone' => ['nullable', 'string', 'max:40', (new PhoneRule)->country('IT')->type(['mobile', 'fixed_line'])->international()],
+                'instagram' => ['nullable', 'url:http,https', 'max:255'],
+                'facebook' => ['nullable', 'url:http,https', 'max:255'],
+                'capacity' => ['nullable', 'integer', 'min:1', 'max:100000'],
+                'description' => ['nullable', 'string', 'max:2000'],
+                'image' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp', 'max:5120', 'dimensions:min_width=400,min_height=300,max_width=8000,max_height=8000'],
+                'message' => ['nullable', 'string', 'max:5000'],
+            ]),
             'contact_name' => ['required', 'string', 'max:120'],
             'contact_role' => ['nullable', 'string', 'max:120'],
             /*
@@ -51,8 +110,9 @@ class StoreVenueApplicationRequest extends FormRequest
              * intero, che su un evento di confine capita.
              */
             'contact_phone' => ['nullable', 'string', 'max:40', (new PhoneRule)->country('IT')->type(['mobile', 'fixed_line'])->international()],
-            'contact_email' => ['required', 'email:filter', 'max:255'],
-            'message' => ['nullable', 'string', 'max:5000'],
+            'contact_email' => $guest ? ['required', 'email:filter', 'max:255'] : ['nullable'],
+            'password' => $guest ? ['required', 'string', 'confirmed', Password::defaults()] : ['prohibited'],
+            self::STARTED_FIELD => self::startedRules(),
             ...Honeypot::rules(),
             ...Turnstile::rules('registrazione-locale'),
         ];
@@ -66,6 +126,126 @@ class StoreVenueApplicationRequest extends FormRequest
         /** @var array<string, string> $fields */
         $fields = trans('forms.application.fields');
 
-        return $fields;
+        return [
+            ...$fields,
+            'message' => $this->claimedVenue() instanceof Venue ? (string) __('forms.claim.fields.message') : ($fields['message'] ?? 'message'),
+        ];
+    }
+
+    /** L'email a cui la richiesta risponde: quella dell'account, se c'è. */
+    public function applicantEmail(): string
+    {
+        $user = $this->user();
+
+        return mb_strtolower(trim($user instanceof User ? $user->email : (string) $this->validated('contact_email')));
+    }
+
+    /**
+     * I dati pubblici del locale, per `venue_applications.venue_data`.
+     *
+     * @return array<string, string|int>
+     */
+    public function venueData(): array
+    {
+        $data = [];
+        foreach (['postal_code', 'municipality', 'public_email', 'public_phone', 'website', 'instagram', 'facebook', 'description'] as $key) {
+            $value = $this->validated($key);
+            if (is_string($value) && trim($value) !== '') {
+                $data[$key] = trim($value);
+            }
+        }
+        $capacity = $this->validated('capacity');
+        if (is_numeric($capacity)) {
+            $data['capacity'] = (int) $capacity;
+        }
+
+        return $data;
+    }
+
+    /**
+     * L'account di chi scrive da ospite: nuovo, o quello già registrato con
+     * quell'indirizzo. La risposta della pagina è la stessa nei due casi, e il
+     * messaggio lo vede solo chi legge la casella (D64). Dopo l'ingresso dal
+     * collegamento si torna al modulo, dove la richiesta si ritrova.
+     */
+    public function guestAccount(RequestRegistration $registration, string $returnTo): User
+    {
+        [$user, $registrante] = $registration->account([
+            'name' => (string) $this->validated('contact_name'),
+            'email' => $this->applicantEmail(),
+            'password' => (string) $this->validated('password'),
+        ]);
+
+        $this->session()->put('url.intended', $returnTo);
+        $registration->sendFromWeb($user, $registrante, $this->session(), false);
+
+        return $user;
+    }
+
+    public static function startedToken(?CarbonInterface $at = null): string
+    {
+        return Crypt::encryptString((string) ($at ?? now())->getTimestamp());
+    }
+
+    /** @return array<int, mixed> */
+    public static function startedRules(): array
+    {
+        return ['required', 'string', static function (string $attribute, mixed $value, Closure $fail): void {
+            try {
+                $started = is_string($value) ? Crypt::decryptString($value) : '';
+            } catch (DecryptException) {
+                $started = '';
+            }
+
+            if (! ctype_digit($started)) {
+                $fail(__('forms.timing.invalid'));
+
+                return;
+            }
+
+            $elapsed = now()->getTimestamp() - (int) $started;
+            if ($elapsed < self::MIN_SECONDS) {
+                $fail(__('forms.timing.too_fast'));
+            } elseif ($elapsed > self::MAX_SECONDS) {
+                $fail(__('forms.timing.expired'));
+            }
+        }];
+    }
+
+    /**
+     * Conserva in sessione quanto scritto finora, per ritrovarlo dopo
+     * l'accesso (`$scope` distingue la registrazione dalla rivendicazione).
+     */
+    public static function saveDraft(Request $request, string $scope): void
+    {
+        $draft = [];
+        foreach (self::DRAFT_FIELDS as $field) {
+            $value = $request->input($field);
+            if (is_string($value) && $value !== '') {
+                $draft[$field] = mb_substr($value, 0, 5000);
+            }
+        }
+
+        $request->session()->put('venue_application_draft.'.$scope, $draft);
+    }
+
+    /**
+     * Rimette nel modulo la bozza conservata, una volta sola, se il modulo non
+     * ha già i dati di un invio respinto.
+     */
+    public static function restoreDraft(Request $request, string $scope): void
+    {
+        $draft = $request->session()->pull('venue_application_draft.'.$scope);
+
+        if (is_array($draft) && $draft !== [] && ! $request->session()->has('_old_input')) {
+            $request->session()->now('_old_input', $draft);
+        }
+    }
+
+    private function claimedVenue(): ?Venue
+    {
+        $venue = $this->route('venue');
+
+        return $venue instanceof Venue ? $venue : null;
     }
 }

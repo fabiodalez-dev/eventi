@@ -21,6 +21,6 @@ class Sponsorships extends SponsorshipsPage
 
     protected function analyticsUrl(): ?string
     {
-        return null;
+        return SponsorshipAnalytics::isRegistered() ? SponsorshipAnalytics::getUrl(tenant: $this->sponsor()) : null;
     }
 }

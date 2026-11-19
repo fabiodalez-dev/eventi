@@ -1,0 +1,325 @@
+/* La procedura «Stasera». Ogni regola vale per entrambi i temi o porta il
+   prefisso `:root[data-theme="light"]`. Solo token del tema: nessun colore
+   scritto qui.
+
+   Una domanda per schermata: in cima l'avanzamento, poi le risposte come
+   opzioni grandi, il riepilogo e i primi risultati; in fondo i comandi, che
+   sul telefono stanno in una barra fissa sopra la barra di navigazione. */
+
+/* ---------------------------------------------------------------------------
+   Avanzamento: «Passo 2 di 5» e una barra a segmenti, uno per domanda
+--------------------------------------------------------------------------- */
+
+.tonight-progress {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.tonight-progress__bar {
+    display: flex;
+    gap: 4px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.tonight-progress__step {
+    flex: 1 1 0;
+    height: 6px;
+    border-radius: var(--radius-control, 0px);
+    background: var(--line);
+}
+
+.tonight-progress__step.is-done,
+.tonight-progress__step.is-current { background: var(--accent); }
+
+/* La domanda in corso si distingue da quelle già fatte senza affidarsi al
+   solo colore: è più alta. */
+.tonight-progress__step.is-current { height: 10px; margin-top: -2px; }
+
+/* ---------------------------------------------------------------------------
+   Le risposte
+--------------------------------------------------------------------------- */
+
+/* Il segno della scelta: un cerchio disegnato dal tema al posto di quello del
+   browser, grande abbastanza da vedersi con il pollice sopra. */
+.tonight-option__input {
+    appearance: none;
+    flex: none;
+    width: 24px;
+    height: 24px;
+    margin: 0;
+    border: 2px solid var(--ink-muted);
+    border-radius: 50%;
+    background: transparent;
+    cursor: inherit;
+}
+
+.tonight-option__input:checked {
+    border-color: var(--accent);
+    background: radial-gradient(circle, var(--accent) 0 5px, transparent 6px);
+}
+
+/* Le card di «quando» e del budget. */
+.tonight-option {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-height: 64px;
+    padding: 16px;
+    border: 2px solid var(--line);
+    border-radius: var(--radius-control, 0px);
+    background: var(--surface);
+    color: var(--ink);
+    cursor: pointer;
+    transition: border-color 150ms ease, background-color 150ms ease;
+}
+
+.tonight-option:hover { border-color: var(--ink-muted); }
+
+.tonight-option:has(:checked),
+.tonight-place:has(:checked) {
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+}
+
+.tonight-option:has(:disabled),
+.tonight-place:has(:disabled),
+.tonight-chip:has(:disabled) {
+    cursor: not-allowed;
+    opacity: 0.45;
+}
+
+.tonight-option:has(:focus-visible),
+.tonight-place:has(:focus-visible),
+.tonight-chip:has(:focus-visible) {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+/* Il numero di eventi che si troverebbero con quella risposta. */
+.tonight-count {
+    flex: none;
+    min-width: 2.25rem;
+    margin-left: auto;
+    padding: 2px 8px;
+    border-radius: var(--radius-control, 0px);
+    background: var(--surface-sunken);
+    color: var(--ink-muted);
+    font-size: 0.875rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+}
+
+/* Comuni e quartieri: un elenco con la ricerca. Niente riquadro che scorre
+   dentro la pagina (sul telefono il dito resterebbe intrappolato nell'elenco):
+   accorciato a otto righe da `tonight-counts.js`, con un pulsante per il resto. */
+.tonight-search {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-inline: 14px;
+    border: 2px solid var(--line);
+    border-radius: var(--radius-control, 0px);
+    background: var(--surface);
+    font-weight: 400;
+}
+
+.tonight-search:focus-within { border-color: var(--accent); }
+
+.tonight-places {
+    overflow: hidden;
+    border: 2px solid var(--line);
+    border-radius: var(--radius-panel, 0px);
+    background: var(--surface);
+}
+
+.tonight-place {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-height: 56px;
+    padding: 10px 16px;
+    color: var(--ink);
+    cursor: pointer;
+    transition: background-color 150ms ease;
+}
+
+.tonight-place + .tonight-place { border-top: 1px solid var(--line); }
+.tonight-places.is-collapsed:not(.is-searching) .tonight-place:nth-child(n + 9):not(:has(:checked)) { display: none; }
+.tonight-place:hover { background: var(--surface-raised); }
+.tonight-place:has(:focus-visible) { outline-offset: -2px; }
+
+/* Le categorie: etichette che vanno a capo, si possono sceglierne più d'una. */
+.tonight-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.tonight-chip {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 48px;
+    padding: 8px 10px 8px 12px;
+    border: 2px solid var(--line);
+    border-radius: var(--radius-control, 0px);
+    background: var(--surface);
+    color: var(--ink);
+    font-weight: 700;
+    cursor: pointer;
+    transition: border-color 150ms ease, background-color 150ms ease;
+}
+
+.tonight-chip:hover { border-color: var(--ink-muted); }
+
+/* La casella vera resta nel modulo e nel giro del tabulatore; si vede il segno. */
+.tonight-chip .tonight-option__input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.tonight-chip__mark {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--ink-muted);
+    /* Una casella, non un cerchio: metà del raggio dei comandi (zero nello scuro). */
+    border-radius: calc(var(--radius-control, 0px) / 2);
+    color: transparent;
+}
+
+.tonight-chip .tonight-count { margin-left: 2px; padding: 0 6px; background: transparent; }
+
+.tonight-chip:has(:checked) {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: var(--on-accent);
+}
+
+.tonight-chip:has(:checked) .tonight-chip__mark { border-color: var(--on-accent); color: var(--on-accent); }
+.tonight-chip:has(:checked) .tonight-count { color: var(--on-accent); }
+
+/* ---------------------------------------------------------------------------
+   I comandi: Indietro, Salta e il pulsante principale
+--------------------------------------------------------------------------- */
+
+.tonight-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+}
+
+.tonight-actions__next { margin-left: auto; }
+
+@media (min-width: 1024px) {
+    /* Da desktop i comandi seguono la domanda e, se le opzioni sono più alte
+       dello schermo, restano attaccati al bordo inferiore mentre si scorre. */
+    .tonight-actions {
+        position: sticky;
+        bottom: 0;
+        z-index: 5;
+        padding-block: 12px;
+        border-top: 2px solid var(--line);
+        background: var(--canvas);
+    }
+
+    :root[data-theme="light"] .tonight-actions { border-top-width: 1px; }
+}
+
+@media (max-width: 1023px) {
+    /* Una barra sola, fissa, sopra la barra di navigazione quando si vede e
+       sul bordo quando si nasconde (`--visible-navigation-height` la misura
+       `app.js`; finché non ha misurato vale lo spazio dichiarato dal tema). */
+    .tonight-actions {
+        position: fixed;
+        inset-inline: 0;
+        bottom: env(safe-area-inset-bottom);
+        z-index: 8999;
+        flex-wrap: nowrap;
+        gap: 8px;
+        padding: 10px var(--spacing-gutter, 16px);
+        border-top: 2px solid var(--line);
+        background: var(--canvas);
+        transform: translateY(min(0px, calc(env(safe-area-inset-bottom) - var(--visible-navigation-height, var(--navigation-space)))));
+        transition: transform 200ms ease-out;
+    }
+
+    .tonight-actions__next {
+        flex: 1 1 auto;
+        min-width: 0;
+        justify-content: space-between;
+    }
+
+    .tonight-actions__back,
+    .tonight-actions__skip { flex: none; }
+
+    /* Il corpo della pagina lascia libero anche lo spazio della barra dei
+       comandi, così il piè di pagina non le finisce sotto. */
+    body:has(> [data-mobile-navigation]):has(.tonight-actions) {
+        padding-bottom: calc(max(var(--navigation-space), var(--visible-navigation-height, 0px)) + 4.5rem + 2px);
+    }
+
+    /* Finché c'è la fascia del consenso i comandi tornano nel flusso della
+       pagina: tre strati fissi uno sopra l'altro in fondo allo schermo
+       coprirebbero la domanda. */
+    body:has([data-consent-banner]) .tonight-actions {
+        position: static;
+        padding-inline: 0;
+        border-top: 0;
+        background: transparent;
+        transform: none;
+    }
+}
+
+@media (max-width: 1023px) and (prefers-reduced-motion: reduce) {
+    .tonight-actions { transition: none; }
+}
+
+/* ---------------------------------------------------------------------------
+   Tema chiaro: filo da 1px, superfici rialzate, il raggio del tema
+--------------------------------------------------------------------------- */
+
+:root[data-theme="light"] :is(.tonight-option, .tonight-chip, .tonight-search) {
+    border-width: 1px;
+    background: var(--surface-raised);
+}
+
+:root[data-theme="light"] .tonight-places {
+    border-width: 1px;
+    background: var(--surface-raised);
+}
+
+:root[data-theme="light"] .tonight-option:has(:checked),
+:root[data-theme="light"] .tonight-place:has(:checked) {
+    background: var(--accent-soft);
+}
+
+:root[data-theme="light"] .tonight-chip:has(:checked) {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: var(--on-accent);
+}
+
+:root[data-theme="light"] .tonight-count { background: var(--surface); }
+:root[data-theme="light"] .tonight-chip .tonight-count { background: transparent; }
+:root[data-theme="light"] .tonight-place:hover { background: var(--surface); }
+
+@media (max-width: 1023px) {
+    :root[data-theme="light"] .tonight-actions {
+        border-top-width: 1px;
+        background: var(--surface-raised);
+    }
+
+    :root[data-theme="light"] body:has([data-consent-banner]) .tonight-actions { background: transparent; }
+}

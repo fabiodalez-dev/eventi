@@ -13,6 +13,7 @@ use App\Models\Venue;
 use App\Services\Account\ContentPreferences;
 use App\Services\Account\PersonalFeed;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 
 /**
@@ -42,6 +43,12 @@ final class FeedController extends Controller
         $occurrences = $follows
             ? $this->feed->paginate($city, $user, min(12, config()->integer('account.feed_per_page')))->withQueryString()
             : null;
+
+        /* Le righe del feed disegnano locandina e sede: tutto in una volta,
+           non una query per riga. */
+        if ($occurrences !== null) {
+            (new Collection($occurrences->items()))->loadMissing(['venue', 'event.venue', 'event.media']);
+        }
 
         return view('account.feed', [
             'occurrences' => $occurrences,

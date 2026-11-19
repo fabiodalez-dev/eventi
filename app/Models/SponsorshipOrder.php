@@ -29,6 +29,7 @@ use InvalidArgumentException;
  * @property-read Organizer|null $organizer
  * @property-read User|null $user
  * @property-read SponsorshipGrant|null $grant
+ * @property-read Event|null $event
  */
 class SponsorshipOrder extends Model
 {
@@ -73,6 +74,17 @@ class SponsorshipOrder extends Model
     public function price(): BelongsTo
     {
         return $this->belongsTo(SponsorshipPrice::class, 'sponsorship_price_id');
+    }
+
+    /**
+     * L'evento scelto insieme all'ordine: la redazione lo mette in evidenza
+     * appena approva. Vuoto per «tutti gli eventi» e per gli ordini di prima.
+     *
+     * @return BelongsTo<Event, $this>
+     */
+    public function event(): BelongsTo
+    {
+        return $this->belongsTo(Event::class)->withTrashed();
     }
 
     /** @return BelongsTo<SponsorshipGrant, $this> */

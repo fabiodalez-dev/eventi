@@ -93,8 +93,9 @@ it('non mostra né fa scaricare QR, PDF e link del biglietto durante l’imperso
     $shared = 'biglietto/'.$ticket->id.'?';
 
     // Fuori dall'impersonificazione la persona vede e scarica tutto.
-    $this->actingAs($user)->get(route('tickets.index'))->assertOk()->assertSee('role="img" aria-label="'.__('ticketing.ticket'), false)->assertSee($shared, false);
-    $this->get(route('tickets.show', $booking))->assertOk()->assertSee('role="img" aria-label="'.__('ticketing.ticket'), false)->assertSee($shared, false);
+    // L'elenco porta alla prenotazione («Mostra QR»); i QR e il link stanno nella scheda.
+    $this->actingAs($user)->get(route('tickets.index'))->assertOk()->assertSee(__('ticketing.show_qr'));
+    $this->get(route('tickets.show', $booking))->assertOk()->assertSee('role="img" aria-label="'.__('ticketing.tickets_page.qr_label'), false)->assertSee($shared, false);
     $this->get(route('tickets.pdf', $ticket))->assertOk();
     $this->post(route('account.logout'));
 
@@ -102,11 +103,13 @@ it('non mostra né fa scaricare QR, PDF e link del biglietto durante l’imperso
     expect(session()->has(ImpersonationController::SESSION_KEY))->toBeTrue();
 
     $this->get(route('tickets.pdf', $ticket))->assertForbidden();
-    foreach ([route('tickets.index'), route('tickets.show', $booking)] as $url) {
+    // L'elenco non offre «Mostra QR»; la scheda dice perché i QR non ci sono.
+    $this->get(route('tickets.index'))->assertOk()->assertDontSee(__('ticketing.show_qr'));
+    foreach ([route('tickets.show', $booking)] as $url) {
         $this->get($url)->assertOk()
             ->assertSee('Giulia Rossi')
             ->assertSee(__('ticketing.qr_impersonating'))
-            ->assertDontSee('role="img" aria-label="'.__('ticketing.ticket'), false)
+            ->assertDontSee('role="img" aria-label="'.__('ticketing.tickets_page.qr_label'), false)
             ->assertDontSee($shared, false)
             ->assertDontSee(route('tickets.pdf', $ticket), false);
     }

@@ -25,6 +25,12 @@
     riempiono da sinistra e il resto della riga resta fondo. Un elenco che
     cambia forma a seconda di quanto è lungo costringe chi guarda a rileggerlo
     ogni volta.
+
+    **Le tre viste del telefono.** Sotto i 640 px chi guarda sceglie fra card a
+    tutta riga, griglia a due colonne e riga compatta (`<x-card-layout-toggle>`,
+    stampato qui una volta per pagina; `toggle` lo spegne). Il CSS delle viste
+    sta in `resources/css/pages/home.css` e si aggancia a `.event-grid` e a
+    `[data-card-list]`, per gli elenchi che non passano da qui.
 --}}
 @props([
     'occurrences',
@@ -41,7 +47,15 @@
     'offset' => 0,
     /* Related-event groups use 1 / 2 / 4 columns, never an orphaned 3 + 1. */
     'balanced' => false,
+    /* Il selettore della vista sul telefono, una volta per pagina. Le griglie
+       `balanced` (eventi correlati) non lo stampano: sono un complemento della
+       scheda, non un elenco da sfogliare. */
+    'toggle' => true,
 ])
+
+@if ($toggle && ! $balanced)
+    <x-card-layout-toggle class="mb-3" />
+@endif
 
 <div {{ $attributes->class([
     'event-grid grid gap-4 md:gap-6',

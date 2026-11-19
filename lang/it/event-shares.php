@@ -12,7 +12,7 @@ return [
     'clicks' => 'Aperture del link',
     'occurrence' => 'Data :date',
     'empty' => 'Nessun link breve generato per questi eventi.',
-    'notes' => 'Conteggi aggregati con consenso statistiche, senza IP o identificatori dei visitatori. I pulsanti WhatsApp, Telegram ed email misurano l’avvio, non la consegna del messaggio; Condividi misura il completamento o la copia. Le aperture includono visite ripetute, escludono anteprime e bot riconosciuti e non sono utenti unici. Un link può essere inoltrato su altri canali: l’attribuzione resta al canale che lo ha generato.',
+    'notes' => 'Le aperture dei link brevi sono un totale anonimo per giorno, contato anche senza consenso; le condivisioni si contano con il consenso statistiche. Nessun IP né identificativo dei visitatori. I pulsanti WhatsApp, Telegram ed email misurano l’avvio, non la consegna del messaggio; Condividi misura il completamento o la copia. Le aperture includono visite ripetute, escludono anteprime e bot riconosciuti e non sono utenti unici. Un link può essere inoltrato su altri canali: l’attribuzione resta al canale che lo ha generato.',
     'custom' => [
         'title' => 'Canali e codici QR',
         'lead' => 'Un canale con il nome che gli dai — volantino, radio, un partner — e il codice QR da stampare. Il QR porta allo stesso link breve, quindi le aperture finiscono nello stesso conteggio.',

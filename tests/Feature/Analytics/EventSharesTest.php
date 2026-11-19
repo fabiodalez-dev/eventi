@@ -57,13 +57,15 @@ it('creates four stable short links per target without altering canonical or soc
     expect(EventShareLink::count())->toBe(4);
 });
 
-it('redirects without counting or setting cookies before consent and ignores supplied destinations', function (): void {
+it('counts the open without consent as an anonymous total, sets no cookies and ignores supplied destinations', function (): void {
     $response = $this->get($this->links['native']['url'].'?url=https://evil.example');
     $response->assertRedirect(route('events.occurrence', ['slug' => $this->scenario->publishedEventA->slug, 'occurrence' => 1]));
     expect($response->headers->get('Cache-Control'))->toContain('no-store');
     expect($response->headers->getCookies())->toBeEmpty();
+    // Il pulsante «Condividi» resta legato al consenso: senza, non conta.
     $this->postJson($this->links['native']['metric'])->assertNoContent();
-    expect(DB::table('event_share_daily')->count())->toBe(0);
+    $row = DB::table('event_share_daily')->sole();
+    expect((int) $row->clicks)->toBe(1)->and((int) $row->shares)->toBe(0);
 });
 
 it('counts consented share actions and opens separately on the city day without duplicating totals', function (): void {
@@ -80,7 +82,8 @@ it('counts consented share actions and opens separately on the city day without 
 
 it('does not count previews, bots, HEAD or speculative navigation', function (string $method, array $headers): void {
     allowShareStatistics($this);
-    $this->withHeaders($headers)->call($method, $this->links['native']['url'])->assertRedirect();
+    // `call()` non usa le intestazioni di `withHeaders()`: vanno passate come variabili del server.
+    $this->call($method, $this->links['native']['url'], server: $this->transformHeadersToServerVars($headers))->assertRedirect();
     expect(DB::table('event_share_daily')->count())->toBe(0);
 })->with([
     ['HEAD', []], ['GET', ['User-Agent' => 'WhatsApp/2.0']],
@@ -131,7 +134,7 @@ it('isolates venue reports and allows admins to see both venues', function (): v
     Filament::setTenant($this->scenario->venueA);
     $rows = app(EventShareReport::class)->rows(StatsPeriod::Week);
     expect($rows->total())->toBe(4)->and((int) $rows->first()->shares)->toBe(1)->and((int) $rows->first()->clicks)->toBe(1);
-    Livewire::test(Statistics::class)->assertSee('Analytics condivisioni')->assertSee($this->scenario->publishedEventA->title)->assertDontSee($this->scenario->publishedEventB->title);
+    Livewire::test(Statistics::class)->assertSee(__('panel.analytics.shares_title'))->assertSee($this->scenario->publishedEventA->title)->assertDontSee($this->scenario->publishedEventB->title);
     Filament::setTenant($this->scenario->venueB);
     expect(fn () => app(EventShareReport::class)->rows(StatsPeriod::Month))->toThrow(HttpException::class);
     Filament::setTenant(null);

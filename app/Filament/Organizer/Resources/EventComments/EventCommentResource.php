@@ -50,6 +50,9 @@ class EventCommentResource extends Resource
 
     protected static ?string $model = EventComment::class;
 
+    /** «Commenti agli eventi», non «Commenti Agli Eventi». */
+    protected static bool $hasTitleCaseModelLabel = false;
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedChatBubbleLeftRight;
 
     public static function getNavigationGroup(): ?string
@@ -93,7 +96,7 @@ class EventCommentResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('event.title')->label(__('comments.singular'))->searchable()->wrap()->limit(60),
+                TextColumn::make('event.title')->label(__('comments.moderation.event'))->searchable()->wrap()->limit(60),
                 TextColumn::make('user.name')->label(__('reviews.user'))->searchable(),
                 TextColumn::make('body')->label(__('comments.body'))->wrap()->limit(140)->searchable(),
                 TextColumn::make('reactions_count')->counts('reactions')->label(__('comments.reactions.like'))->sortable(),

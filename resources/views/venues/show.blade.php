@@ -121,9 +121,7 @@
         </div>
     @endauth
 
-    @if ($venue->status === \App\Enums\VenueStatus::Approved && ! $venue->hasOwnerOrInvitedOwner())
-        <p class="mt-4 text-sm text-ink-muted"><a href="{{ route('venues.claim.create', $venue) }}" class="underline">{{ __('forms.claim.cta') }}</a></p>
-    @endif
+    <x-claim-card :venue="$venue" class="mt-6" />
 
     @if ($avviso !== null)
         <aside role="note" aria-label="{{ $avviso->kind->label() }}" class="mt-5 border-2 border-accent bg-canvas p-4">

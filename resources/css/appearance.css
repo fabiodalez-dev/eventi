@@ -43,6 +43,8 @@
     --text-section--font-weight: 650;
     --text-eyebrow--font-weight: 500;
     --header-surface: #faf9f6;
+    --danger: #b3261e;
+    --on-danger: #faf9f6;
 }
 
 :root[data-theme="light"] :is(h1, h2, h3, .text-hero, .text-section) {
@@ -64,7 +66,6 @@
 :root[data-theme="light"] .border-l-2 { border-left-width: 1px; }
 :root[data-theme="light"] .border-r-2 { border-right-width: 1px; }
 :root[data-theme="light"] .divider { height: 1px; }
-:root[data-theme="light"] [data-mobile-navigation] a[aria-current="page"] { background: var(--accent-soft); color: var(--accent); }
 :root[data-theme="light"] .maplibregl-ctrl-icon { filter: none !important; }
 :root[data-theme="light"] .maplibregl-ctrl-group button:hover .maplibregl-ctrl-icon { filter: invert(1) !important; }
 /* Text over photographs keeps its own contrast, independently of the page. */

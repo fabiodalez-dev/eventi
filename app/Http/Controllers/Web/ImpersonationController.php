@@ -7,7 +7,6 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Support\SecurityLog;
-use Filament\Facades\Filament;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 
@@ -26,10 +25,8 @@ use Illuminate\Support\Facades\Auth;
  * 3. **La sessione cambia identificatore** a ogni cambio di identità, perché
  *    due utenti diversi non devono mai condividere la stessa sessione.
  *
- * Chi non è autenticato viene mandato all'accesso del pannello di redazione e
- * non a una rotta `login` del sito pubblico: quella nascerà con gli account
- * degli utenti (§15.2), e inventarla qui vorrebbe dire scriverne il nome
- * prima che esista.
+ * Chi non è autenticato viene mandato al login unico del sito (`/accedi`),
+ * da cui entra anche la redazione: i pannelli non hanno più un accesso loro.
  */
 class ImpersonationController extends Controller
 {
@@ -92,6 +89,6 @@ class ImpersonationController extends Controller
 
     private static function loginUrl(): string
     {
-        return Filament::getPanel('admin')->getLoginUrl() ?? url('/');
+        return route('login');
     }
 }

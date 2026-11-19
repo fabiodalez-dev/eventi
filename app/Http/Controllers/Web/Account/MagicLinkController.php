@@ -11,6 +11,7 @@ use App\Http\Requests\Web\Account\AuthEntryRequest;
 use App\Http\Requests\Web\Account\MagicLinkRequest;
 use App\Models\User;
 use App\Notifications\MagicLoginLink;
+use App\Support\Auth\PostLoginDestination;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -179,6 +180,8 @@ final class MagicLinkController extends Controller
             return redirect()->route('community.whatsapp')->with('status', __('account.verify.done'));
         }
 
-        return redirect()->intended(route('account.feed'))->with('status', __($registrante ? 'account.verify.done' : 'account.login.done'));
+        return redirect()
+            ->to(PostLoginDestination::resolve($user, $request->session()->pull('url.intended')))
+            ->with('status', __($registrante ? 'account.verify.done' : 'account.login.done'));
     }
 }

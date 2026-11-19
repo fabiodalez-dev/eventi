@@ -29,6 +29,16 @@ it('espone un contratto OpenAPI utilizzabile da un generatore Android', function
             'MobileBooking',
         ]);
 
+    // Le rotte e i campi aggiunti per l'app il 19/11/2026 (pacchetto api-app).
+    expect($document['paths'])->toHaveKeys(['/management/dates/{occurrence}/bookings', '/reports/content/{type}/{id}', '/me/venue-applications'])
+        ->and(collect($document['paths']['/calendar']['get']['parameters'])->pluck('name')->all())->toContain('month', 'personal')
+        ->and($document['paths']['/reports/content/{type}/{id}']['post']['responses'])->toHaveKey('204')
+        // Senza `security` propria vale quella del documento: il token.
+        ->and($document['paths']['/me/venue-applications']['get']['security'] ?? $document['security'])->toBe([['http' => []]])
+        ->and($document['components']['schemas']['MobileEvent']['properties'])->toHaveKey('share_links')
+        ->and($document['components']['schemas']['MobileVenue']['properties'])->toHaveKeys(['claimable', 'claim_url'])
+        ->and($document['components']['schemas']['MobileBooking']['properties'])->toHaveKey('poster');
+
     expect($document['paths']['/occurrences/{occurrence}/bookings']['post']['responses'])->toHaveKey('201')
         ->and($document['paths']['/me/bookings']['get']['security'])->toBe([['http' => []]])
         ->and($document['paths']['/me/bookings']['get']['responses']['200']['content']['application/json']['schema']['properties']['data']['items']['$ref'])->toBe('#/components/schemas/MobileBooking')

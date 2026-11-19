@@ -1,78 +1,97 @@
 <x-filament-panels::page>
-    <style>
-        .sponsor-report { display:grid; gap:1.5rem; min-width:0; }
-        .sponsor-report > * { min-width:0; }
-        .sponsor-report .sponsor-chart { display:block; width:100%; }
-        .sponsor-report .sponsor-stats { display:grid; gap:1rem; }
-        @media(min-width:640px) { .sponsor-report .sponsor-stats { grid-template-columns:repeat(3,minmax(0,1fr)); } }
-        .sponsor-report strong { font-size:1.75rem; }
-        .sponsor-report .sponsor-labels { display:flex; justify-content:space-between; gap:1rem; font-size:.875rem; }
-        .sponsor-report .sponsor-scroll { overflow-x:auto; max-width:100%; }
-        .sponsor-report table { width:100%; font-size:.875rem; border-collapse:collapse; }
-        .sponsor-report .sponsor-clicks { min-width:48rem; }
-        .sponsor-report .sponsor-clicks td:nth-child(2) { min-width:14rem; }
-        .sponsor-report .sponsor-scroll-hint { font-size:.8125rem; margin-bottom:.5rem; }
-        @media(min-width:1024px) { .sponsor-report .sponsor-scroll-hint { display:none; } }
-        .sponsor-report th, .sponsor-report td { padding:.75rem; text-align:left; vertical-align:top; }
-        .sponsor-report tbody tr { border-top:1px solid color-mix(in srgb,currentColor 18%,transparent); }
-        .sponsor-report .sponsor-note { font-size:.875rem; margin-bottom:1rem; }
-        .sponsor-report summary { cursor:pointer; font-weight:600; }
-    </style>
-    <div class="sponsor-report">
-    <p>Visualizzazioni e clic delle campagne, anche concluse. Filtra per periodo o cerca un evento.</p>
-    {{ $this->form }}
-    @php $report = $this->report(); @endphp
-    @if ($report['economics'] !== null)
-        <x-filament::section :heading="__('decision.spend')">
-            <p class="sponsor-note">{{ __('decision.cost_definition') }}</p>
-            <dl>
-                @foreach (['spend_cents' => 'spend', 'per_booking_cents' => 'cost_per_booking', 'per_attendance_cents' => 'cost_per_attendance'] as $key => $label)
-                    <div><dt>{{ __('decision.'.$label) }}</dt><dd>{{ $report['economics'][$key] === null ? __('decision.not_available') : number_format($report['economics'][$key] / 100, 2, ',', '.').' '.$report['economics']['currency'] }}</dd></div>
-                @endforeach
+    @php
+        $report = $this->report();
+        $tz = $this->timezone();
+        $muted = 'text-sm text-gray-600 dark:text-gray-400';
+        $number = fn (int $n): string => number_format($n, 0, ',', '.');
+        $rate = $report['impressions'] > 0 ? number_format(100 * $report['clicks'] / $report['impressions'], 2, ',', '.').'%' : '—';
+    @endphp
+
+    <div class="flex min-w-0 flex-col gap-6" data-sponsorship-analytics>
+        <x-filament::section>
+            {{ $this->form }}
+            <p class="mt-3 {{ $muted }}">{{ __('sponsorships.analytics.window', ['from' => $report['from']->format('d/m/Y'), 'to' => $report['to']->format('d/m/Y')]) }}</p>
+        </x-filament::section>
+
+        @if ($report['economics'] !== null)
+            <x-filament::section :heading="__('decision.spend')" :description="__('decision.cost_definition')">
+                <dl class="flex flex-wrap gap-x-8 gap-y-3">
+                    @foreach (['spend_cents' => 'spend', 'per_booking_cents' => 'cost_per_booking', 'per_attendance_cents' => 'cost_per_attendance'] as $key => $label)
+                        <div>
+                            <dt class="{{ $muted }}">{{ __('decision.'.$label) }}</dt>
+                            <dd class="text-lg font-semibold tabular-nums text-gray-950 dark:text-white">{{ $report['economics'][$key] === null ? __('decision.not_available') : number_format($report['economics'][$key] / 100, 2, ',', '.').' '.$report['economics']['currency'] }}</dd>
+                        </div>
+                    @endforeach
+                </dl>
+            </x-filament::section>
+        @endif
+
+        <x-filament::section :heading="__('sponsorships.analytics.totals')">
+            <dl class="flex flex-wrap gap-x-10 gap-y-4" data-sponsorship-totals>
+                <div><dt class="{{ $muted }}">{{ __('sponsorships.analytics.impressions') }}</dt><dd class="text-3xl font-semibold tabular-nums text-gray-950 dark:text-white">{{ $number($report['impressions']) }}</dd></div>
+                <div><dt class="{{ $muted }}">{{ __('sponsorships.analytics.clicks') }}</dt><dd class="text-3xl font-semibold tabular-nums text-gray-950 dark:text-white">{{ $number($report['clicks']) }}</dd></div>
+                <div><dt class="{{ $muted }}">{{ __('sponsorships.analytics.rate') }}</dt><dd class="text-3xl font-semibold tabular-nums text-gray-950 dark:text-white">{{ $rate }}</dd></div>
             </dl>
         </x-filament::section>
-    @endif
-    <div class="sponsor-stats">
-        <x-filament::section heading="Visualizzazioni"><strong class="text-2xl">{{ number_format($report['impressions'], 0, ',', '.') }}</strong></x-filament::section>
-        <x-filament::section heading="Clic registrati"><strong class="text-2xl">{{ number_format($report['clicks'], 0, ',', '.') }}</strong></x-filament::section>
-        <x-filament::section heading="Clic / visualizzazioni"><strong class="text-2xl">{{ $report['impressions'] ? number_format(100 * $report['clicks'] / $report['impressions'], 2, ',', '.').'%' : 'Non disponibile' }}</strong></x-filament::section>
-    </div>
-    @foreach (['impressions' => 'Visualizzazioni giornaliere', 'clicks' => 'Clic giornalieri'] as $metric => $label)
-        @php
-            $max = max(1, $report['series']->max($metric));
-            $points = $report['series']->map(fn ($row, $i) => (10 + $i * 580 / max(1, $report['series']->count() - 1)).','.(150 - $row[$metric] * 130 / $max))->implode(' ');
-        @endphp
-        <x-filament::section :heading="$label">
-            <svg viewBox="0 0 600 170" class="sponsor-chart" style="max-height:220px" role="img" aria-label="{{ $label }}. Massimo {{ $max }}. I valori esatti sono nella tabella giornaliera.">
-                <line x1="10" y1="150" x2="590" y2="150" stroke="currentColor" opacity=".3"/>
-                <polyline points="{{ $points }}" fill="none" stroke="currentColor" stroke-width="3"/>
-            </svg>
-            <div class="sponsor-labels"><span>{{ $report['series']->first()['day'] }}</span><span>Massimo: {{ $max }}</span><span>{{ $report['series']->last()['day'] }}</span></div>
+
+        @foreach (['impressions' => 'chart_impressions', 'clicks' => 'chart_clicks'] as $metric => $label)
+            @php
+                $peak = (int) $report['series']->max($metric);
+                $max = max(1, $peak);
+                $count = $report['series']->count();
+                $points = $report['series']->values()->map(fn ($row, $i) => round(10 + $i * 580 / max(1, $count - 1), 1).','.round(150 - $row[$metric] * 130 / $max, 1))->implode(' ');
+            @endphp
+            <x-filament::section :heading="__('sponsorships.analytics.'.$label)">
+                @if ($peak === 0)
+                    <p class="{{ $muted }}">{{ __('sponsorships.analytics.chart_empty') }}</p>
+                @else
+                    <svg viewBox="0 0 600 160" class="block h-auto max-h-56 w-full text-primary-600 dark:text-primary-400" role="img" aria-label="{{ __('sponsorships.analytics.chart_label', ['label' => __('sponsorships.analytics.'.$label), 'max' => $peak]) }}">
+                        <line x1="10" y1="150" x2="590" y2="150" stroke="currentColor" opacity=".25" />
+                        <polyline points="{{ $points }}" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" />
+                    </svg>
+                    <div class="mt-2 flex justify-between gap-4 text-xs text-gray-500 dark:text-gray-400">
+                        <span>{{ $report['series']->first()['day'] }}</span>
+                        <span>{{ __('sponsorships.analytics.peak', ['max' => $number($peak)]) }}</span>
+                        <span>{{ $report['series']->last()['day'] }}</span>
+                    </div>
+                @endif
+            </x-filament::section>
+        @endforeach
+
+        <x-filament::section :heading="__('sponsorships.analytics.daily')" collapsible collapsed>
+            <ul class="flex flex-col divide-y divide-gray-200 dark:divide-white/10">
+                @foreach ($report['series']->reverse() as $row)
+                    <li class="flex items-center justify-between gap-4 py-2 text-sm">
+                        <span class="text-gray-950 dark:text-white">{{ $row['date'] }}</span>
+                        <span class="tabular-nums text-gray-600 dark:text-gray-400">{{ __('sponsorships.analytics.daily_row', ['views' => $number($row['impressions']), 'clicks' => $number($row['clicks'])]) }}</span>
+                    </li>
+                @endforeach
+            </ul>
         </x-filament::section>
-    @endforeach
-    <details>
-        <summary class="cursor-pointer font-semibold">Valori giorno per giorno</summary>
-        <div class="sponsor-scroll"><table><thead><tr><th>Giorno</th><th>Visualizzazioni</th><th>Clic</th></tr></thead>
-            <tbody>@foreach ($report['series'] as $row)<tr><td class="p-2">{{ $row['day'] }}</td><td class="text-center">{{ $row['impressions'] }}</td><td class="text-center">{{ $row['clicks'] }}</td></tr>@endforeach</tbody>
-        </table></div>
-    </details>
-    <x-filament::section heading="Registro dei clic">
-        <p class="sponsor-note">Una riga per ogni clic ricevuto e accettato dai controlli antiabuso. Il dettaglio inizia dall’attivazione del registro: i totali precedenti restano nei grafici. Nessun IP o dato personale viene conservato qui. I clic bloccati dal browser o senza connessione non possono essere misurati.</p>
-        <p class="sponsor-scroll-hint">Scorri la tabella orizzontalmente per vedere tutte le colonne.</p>
-        <div class="sponsor-scroll" tabindex="0" role="region" aria-label="Registro clic, tabella scorrevole"><table class="sponsor-clicks"><thead><tr>
-            @foreach (['Data e ora (UTC)', 'Evento / locale', 'Campagna', 'Canale', 'Collocazione', 'Pagina'] as $label)<th class="p-3 text-left">{{ $label }}</th>@endforeach
-        </tr></thead><tbody>
-            @forelse ($report['records'] as $click)
-                <tr class="border-t border-gray-200 dark:border-gray-700">
-                    <td class="p-3 whitespace-nowrap">{{ $click->clicked_at->utc()->format('d/m/Y H:i:s') }}</td>
-                    <td class="p-3">{{ $click->sponsorship?->event?->title ?? 'Evento non più disponibile' }}<br><span class="text-gray-500">{{ $click->sponsorship?->event?->venue?->name }}</span></td>
-                    <td class="p-3">#{{ $click->sponsorship_id }}</td><td class="p-3">{{ $click->channel === 'android' ? 'Android' : 'Sito' }}</td>
-                    <td class="p-3">{{ ['banner' => 'Banner orizzontale', 'home_hero' => 'Apertura home', 'card' => 'Scheda sponsorizzata'][$click->placement] ?? $click->placement }}</td>
-                    <td class="p-3">{{ ['home' => 'Home', 'feed' => 'Il mio feed', 'event' => 'Evento', 'venues' => 'Locali', 'profile' => 'Profilo', 'search' => 'Ricerca', 'other' => 'Non specificata'][$click->page] ?? 'Non specificata' }}</td>
-                </tr>
-            @empty<tr><td colspan="6" class="p-4">Nessun clic nel registro per questo periodo.</td></tr>@endforelse
-        </tbody></table></div>
-        <x-filament::pagination :paginator="$report['records']" />
-    </x-filament::section>
+
+        <x-filament::section :heading="__('sponsorships.analytics.register')" :description="__('sponsorships.analytics.register_lead')">
+            @if ($report['records']->isEmpty())
+                <p class="{{ $muted }}">{{ __('sponsorships.analytics.register_empty') }}</p>
+            @else
+                <ul class="flex flex-col divide-y divide-gray-200 dark:divide-white/10" data-sponsorship-clicks>
+                    @foreach ($report['records'] as $click)
+                        <li class="flex flex-col gap-0.5 py-3">
+                            <p class="font-medium text-gray-950 dark:text-white">{{ $click->sponsorship?->event?->title ?? __('sponsorships.analytics.event_gone') }}</p>
+                            <p class="{{ $muted }}">
+                                {{ $click->clicked_at->timezone($tz)->format('d/m/Y H:i:s') }}
+                                @if ($click->sponsorship?->event?->venue?->name) · {{ $click->sponsorship->event->venue->name }} @endif
+                                · {{ __('sponsorships.analytics.campaign_ref', ['id' => $click->sponsorship_id]) }}
+                            </p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">
+                                {{ __('sponsorships.analytics.channels.'.($click->channel === 'android' ? 'android' : 'web')) }}
+                                · {{ \App\Enums\SponsorshipPlacement::tryFrom((string) $click->placement)?->label() ?? (\Illuminate\Support\Facades\Lang::has('sponsorships.analytics.placements.'.$click->placement) ? __('sponsorships.analytics.placements.'.$click->placement) : $click->placement) }}
+                                · {{ __('sponsorships.analytics.pages.'.(in_array($click->page, ['home', 'feed', 'event', 'venues', 'profile', 'search'], true) ? $click->page : 'other')) }}
+                            </p>
+                        </li>
+                    @endforeach
+                </ul>
+                <x-filament::pagination :paginator="$report['records']" class="mt-4" />
+            @endif
+        </x-filament::section>
     </div>
 </x-filament-panels::page>

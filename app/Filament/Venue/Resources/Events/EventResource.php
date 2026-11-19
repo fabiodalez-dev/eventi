@@ -4,13 +4,19 @@ declare(strict_types=1);
 
 namespace App\Filament\Venue\Resources\Events;
 
-use App\Enums\EventSource;
 use App\Enums\EventStatus;
 use App\Enums\PriceType;
+use App\Filament\Organizer\Pages\EventAnalyticsDetail as OrganizerEventAnalyticsDetail;
+use App\Filament\Organizer\Pages\Sponsorships as OrganizerSponsorships;
+use App\Filament\Organizer\Resources\Events\EventResource as OrganizerEventResource;
 use App\Filament\Support\BeforeGoingFields;
 use App\Filament\Support\EditorialFields;
 use App\Filament\Support\EventStatusPresentation;
 use App\Filament\Support\EventTicketingActions;
+use App\Filament\Support\PosterColumn;
+use App\Filament\Venue\Pages\EventAnalyticsDetail;
+use App\Filament\Venue\Pages\Social;
+use App\Filament\Venue\Pages\Sponsorships;
 use App\Filament\Venue\Resources\Events\Pages\CreateEvent;
 use App\Filament\Venue\Resources\Events\Pages\EditEvent;
 use App\Filament\Venue\Resources\Events\Pages\ListEvents;
@@ -19,28 +25,39 @@ use App\Filament\Venue\Resources\Events\RelationManagers\OccurrencesRelationMana
 use App\Filament\Venue\Support\CurrentVenue;
 use App\Filament\Venue\Support\EventActions;
 use App\Filament\Venue\Support\EventFields;
+use App\Models\Booking;
+use App\Models\City;
 use App\Models\Event;
+use App\Models\EventOccurrence;
 use App\Queries\EventOccurrenceQuery;
 use App\Queries\VenueDashboardQuery;
 use BackedEnum;
+use Carbon\CarbonImmutable;
+use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
+use Filament\Facades\Filament;
+use Filament\Forms\Components\ToggleButtons;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Actions;
+use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
+use Filament\Support\Enums\FontWeight;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\Layout\Split;
 use Filament\Tables\Columns\Layout\Stack;
-use Filament\Tables\Columns\SpatieMediaLibraryImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Auth\Access\Response;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Route;
 
 /**
  * Gli eventi del locale (§10).
@@ -79,6 +96,8 @@ class EventResource extends Resource
     protected static ?int $navigationSort = 1;
 
     protected static ?string $recordTitleAttribute = 'title';
+
+    protected static bool $hasTitleCaseModelLabel = false;
 
     public static function getModelLabel(): string
     {
@@ -123,36 +142,30 @@ class EventResource extends Resource
             : Response::deny();
     }
 
+    /**
+     * La scheda di modifica, nello stesso ordine del modulo rapido di
+     * creazione: in cima lo stato di pubblicazione e l'essenziale (locandina,
+     * titolo, categoria, prezzo, descrizione), sotto le sezioni facoltative,
+     * chiuse finché non servono. Le date stanno nella sezione «Date» sotto il
+     * modulo (vedi `EditEvent`).
+     */
     public static function form(Schema $schema): Schema
     {
         return $schema->columns(1)
             ->components([
-                Section::make('Pubblicazione')->schema([View::make('filament.events.publication-status')]),
-                BeforeGoingFields::make(),
-                EditorialFields::content(true, false),
-                EditorialFields::seo(),
-                Section::make(__('manage.sections.what'))
+                Section::make(__('manage.quick.publishing'))->schema([View::make('filament.events.publication-status')]),
+
+                Section::make(__('manage.quick.essentials'))
+                    ->description(__('manage.quick.edit_essentials_hint'))
+                    ->icon(Heroicon::OutlinedSparkles)
                     ->schema([
                         EventFields::poster(),
                         EventFields::title(),
-                        EventFields::description(),
-                    ]),
-
-                EventFields::location(),
-
-                Section::make(__('manage.sections.taxonomy'))
-                    ->columns(2)
-                    ->schema([
                         EventFields::category(),
-                        EventFields::tags(),
-                    ]),
-
-                Section::make(__('manage.sections.price'))
-                    ->columns(2)
-                    ->schema([
-                        EventFields::priceType()->columnSpanFull(),
+                        self::priceTypeInline(),
                         EventFields::priceMin(),
                         EventFields::priceMax(),
+                        EventFields::description(),
                     ]),
 
                 /*
@@ -163,7 +176,25 @@ class EventResource extends Resource
                  */
                 Section::make('Ticketing inCittà')
                     ->description(fn (Get $get): string => in_array($get('price_type'), ['free', PriceType::Free], true) ? 'Biglietti gratuiti: prenotazione e QR per l’ingresso.' : 'Prenotazione gratuita con pagamento al locale, all’ingresso.')
+                    ->icon(Heroicon::OutlinedTicket)
+                    ->collapsed()
                     ->visible(fn (Get $get): bool => in_array($get('price_type') instanceof PriceType ? $get('price_type')->value : $get('price_type'), ['free', 'ticket', 'membership'], true))->schema([View::make('filament.events.ticketing-links'), Actions::make(fn (?Event $record): array => EventTicketingActions::forEvent($record))]),
+
+                Section::make(__('manage.quick.more'))
+                    ->description(__('manage.quick.more_hint'))
+                    ->icon(Heroicon::OutlinedAdjustmentsHorizontal)
+                    ->collapsed()
+                    ->schema([
+                        EventFields::tags(),
+                        EventFields::ticketUrl(),
+                        EventFields::bookingUrl(),
+                        EventFields::externalLinks(),
+                    ]),
+
+                self::locationCollapsed(),
+
+                BeforeGoingFields::make()->icon(Heroicon::OutlinedInformationCircle)->columns(1)->collapsed(),
+
                 Section::make(__('manage.sections.ticket_tiers'))
                     ->collapsed()
                     ->schema([
@@ -176,85 +207,274 @@ class EventResource extends Resource
                         EventFields::facts(),
                     ]),
 
-                // Gli stessi campi dell'ultimo passo del wizard (§10.2), nello
-                // stesso ordine: chi ha appena creato l'evento ritrova qui
-                // quello che ha visto un minuto fa.
-                Section::make(__('manage.sections.links'))
-                    ->schema([
-                        EventFields::ticketUrl(),
-                        EventFields::bookingUrl(),
-                        EventFields::externalLinks(),
-                    ]),
+                EditorialFields::content(true, false),
+                EditorialFields::seo(),
             ]);
+    }
+
+    /**
+     * Il tipo di prezzo come una riga di scelte che va a capo, non una
+     * colonna di cinque pulsanti: lo stesso nel modulo rapido e in modifica.
+     */
+    public static function priceTypeInline(): Component
+    {
+        $field = EventFields::priceType();
+
+        if ($field instanceof ToggleButtons) {
+            $field->inline();
+        }
+
+        return $field;
+    }
+
+    /** «Luogo dell'evento», chiuso: quasi sempre vale la sede del locale. */
+    public static function locationCollapsed(): Component
+    {
+        $section = EventFields::location();
+
+        if ($section instanceof Section) {
+            $section->icon(Heroicon::OutlinedMapPin)->collapsed();
+        }
+
+        return $section;
+    }
+
+    /**
+     * Dove si può andare partendo da un evento: modifica, statistiche,
+     * grafiche social, sponsorizzazione, biglietteria della prossima data e
+     * scheda pubblica. Serve alla scheda in lettura, alla riga dell'elenco e
+     * al riepilogo, nei due pannelli (`/gestione` e `/organizza`).
+     *
+     * Ogni voce compare solo se chi guarda può aprire la destinazione: la
+     * pagina stessa ricontrolla, qui si evita di mostrare un pulsante che
+     * finirebbe in un 403.
+     *
+     * @return list<array{key: string, label: string, icon: string, url: string, external: bool}>
+     */
+    public static function eventLinks(Event $event, bool $withEdit = true, bool $withView = false): array
+    {
+        $organizer = Filament::getCurrentPanel()?->getId() === 'organizer';
+        $resource = $organizer ? OrganizerEventResource::class : static::class;
+        $detail = $organizer ? OrganizerEventAnalyticsDetail::class : EventAnalyticsDetail::class;
+        $sponsorships = $organizer ? OrganizerSponsorships::class : Sponsorships::class;
+        $published = $event->status === EventStatus::Published;
+        $links = [];
+
+        if ($withView) {
+            $links[] = self::link('view', 'heroicon-o-eye', $resource::getUrl('view', ['record' => $event]));
+        }
+        if ($withEdit && $resource::canEdit($event)) {
+            $links[] = self::link('edit', 'heroicon-o-pencil-square', $resource::getUrl('edit', ['record' => $event]));
+        }
+        if ($detail::canAccess()) {
+            $links[] = self::link('statistics', 'heroicon-o-chart-bar', $detail::getUrl(['subjectType' => 'event', 'subjectId' => $event->getKey()]));
+        }
+        if (! $organizer && Social::canAccess()) {
+            $links[] = self::link('social', 'heroicon-o-photo', Social::getUrl(['event' => $event->getKey()]));
+        }
+        if ($published && $sponsorships::canAccess()) {
+            $links[] = self::link('sponsor', 'heroicon-o-megaphone', $sponsorships::getUrl(['event' => $event->getKey()]));
+        }
+        $next = self::ticketDate($event);
+        if ($next !== null) {
+            $links[] = self::link('tickets', 'heroicon-o-ticket', route('ticketing.manage.show', $next));
+        }
+        if ($published && Route::has('events.show')) {
+            $links[] = self::link('site', 'heroicon-o-arrow-top-right-on-square', route('events.show', $event), true);
+        }
+
+        return $links;
+    }
+
+    /**
+     * La prossima data dell'evento, se chi guarda ne gestisce le prenotazioni
+     * (`BookingPolicy::manage`). Il permesso si ricorda per locale e
+     * organizzatore (`managesBookings()`): la riga dell'elenco lo chiede più
+     * volte, e tutte le righe sono dello stesso locale.
+     */
+    public static function ticketDate(Event $event): ?EventOccurrence
+    {
+        $city = $event->relationLoaded('city') ? $event->city : City::query()->find($event->city_id);
+        $next = $event->relationLoaded('occurrences')
+            ? $event->occurrences->first()
+            : ($city === null ? null : VenueDashboardQuery::nextOccurrence($event, $city));
+
+        if (! $next instanceof EventOccurrence) {
+            return null;
+        }
+
+        // Nei pannelli lo scope del tenant può nascondere l'evento alla relazione: lo si dà già pronto.
+        $next->setRelation('event', $event);
+
+        return self::managesBookings($next) ? $next : null;
+    }
+
+    /**
+     * `BookingPolicy::manage` dipende solo da chi guarda, dall'organizzatore e
+     * dal locale effettivo della data: la risposta si ricorda per la durata
+     * della richiesta con questa chiave, così le righe dell'elenco (tutte
+     * dello stesso locale) costano una sola verifica e non una per evento.
+     */
+    private static function managesBookings(EventOccurrence $date): bool
+    {
+        $memo = request()->attributes;
+        $key = 'booking-manage:'.(auth()->id() ?? '-').':'.($date->event->organizer_id ?? '-').':'.($date->effectiveVenue()?->getKey() ?? '-');
+
+        if (! $memo->has($key)) {
+            $memo->set($key, Gate::allows('manage', [Booking::class, $date]));
+        }
+
+        return (bool) $memo->get($key);
+    }
+
+    /** @return array{key: string, label: string, icon: string, url: string, external: bool} */
+    private static function link(string $key, string $icon, string $url, bool $external = false): array
+    {
+        return ['key' => $key, 'label' => __('manage.event_links.'.$key), 'icon' => $icon, 'url' => $url, 'external' => $external];
     }
 
     public static function table(Table $table): Table
     {
+        // La prossima data la aggiunge già `getEloquentQuery()`, che serve
+        // anche all'azione «tutto esaurito».
+        return static::listTable($table, CurrentVenue::city(), withNextDate: false)
+            ->recordActions([
+                EditAction::make()->label(__('manage.actions.edit'))->button(),
+                ActionGroup::make([
+                    ViewAction::make()->label(__('analytics-dashboard.view_event')),
+                    // Le pagine collegate all'evento, già filtrate su di lui.
+                    Action::make('statistics')
+                        ->label(__('manage.event_links.statistics'))
+                        ->icon(Heroicon::OutlinedChartBar)
+                        ->url(fn (Event $record): string => EventAnalyticsDetail::getUrl(['subjectType' => 'event', 'subjectId' => $record->getKey()]))
+                        ->visible(fn (): bool => EventAnalyticsDetail::canAccess()),
+                    Action::make('social')
+                        ->label(__('manage.event_links.social'))
+                        ->icon(Heroicon::OutlinedPhoto)
+                        ->url(fn (Event $record): string => Social::getUrl(['event' => $record->getKey()]))
+                        ->visible(fn (): bool => Social::canAccess()),
+                    Action::make('sponsor')
+                        ->label(__('manage.event_links.sponsor'))
+                        ->icon(Heroicon::OutlinedMegaphone)
+                        ->url(fn (Event $record): string => Sponsorships::getUrl(['event' => $record->getKey()]))
+                        ->visible(fn (Event $record): bool => $record->status === EventStatus::Published && Sponsorships::canAccess()),
+                    Action::make('tickets')
+                        ->label(__('manage.event_links.tickets'))
+                        ->icon(Heroicon::OutlinedTicket)
+                        ->url(fn (Event $record): ?string => ($date = self::ticketDate($record)) === null ? null : route('ticketing.manage.show', $date))
+                        ->visible(fn (Event $record): bool => self::ticketDate($record) !== null),
+                    // Il gesto della sera stessa, a portata di pollice: segnare
+                    // esaurita la prossima data senza aprire il modulo.
+                    EventActions::soldOutNextDate(),
+                    EventActions::viewOnSite(),
+                    EventActions::duplicate(),
+                ])->label(__('manage.event_list.more_actions'))->tooltip(__('manage.event_list.more_actions')),
+            ]);
+    }
+
+    /**
+     * L'elenco eventi come lo vedono i due pannelli, `/gestione` e
+     * `/organizza`: una card per evento con la locandina (o il segnaposto),
+     * il titolo, la prossima data — o l'ultima, con il distintivo «Passato»,
+     * se l'evento è già andato — e lo stato scritto in italiano con il suo
+     * colore. Gli eventi in arrivo vengono prima, in ordine di data; quelli
+     * passati dopo, dal più recente. Le azioni le aggiunge ogni pannello.
+     *
+     * Sul telefono la card resta una riga sola, locandina a sinistra e testo a
+     * destra: niente colonne che fanno scorrere la pagina di lato.
+     */
+    public static function listTable(Table $table, City $city, bool $showVenue = false, bool $withNextDate = true): Table
+    {
+        $timezone = $city->timezone;
+
         return $table
+            ->modifyQueryUsing(function (Builder $query) use ($city, $withNextDate): void {
+                if ($withNextDate) {
+                    VenueDashboardQuery::applyNextOccurrence($query, $city);
+                }
+                VenueDashboardQuery::applyLastOccurrence($query);
+                $query->with(['media', 'venue']);
+            })
             ->columns([
                 Split::make([
-                    SpatieMediaLibraryImageColumn::make('poster_media')
-                        ->label(__('manage.fields.poster'))
-                        ->collection('poster')
-                        ->imageSize(56)
-                        ->grow(false),
+                    PosterColumn::make('poster_media'),
 
                     Stack::make([
                         TextColumn::make('title')
                             ->label(__('manage.fields.title'))
                             ->searchable()
-                            ->weight('bold'),
+                            ->weight(FontWeight::Bold)
+                            ->wrap(),
 
-                        TextColumn::make('next_starts_at')
+                        TextColumn::make('when')
                             ->label(__('manage.fields.next_date'))
-                            ->dateTime('d/m/Y H:i', CurrentVenue::timezone())
+                            ->state(fn (Event $record): string => self::whenLabel($record, $timezone))
                             ->icon(Heroicon::OutlinedClock)
-                            ->placeholder(__('manage.placeholders.no_date')),
+                            ->color('gray'),
+
+                        TextColumn::make('venue.name')
+                            ->label(__('manage.event_list.venue'))
+                            ->icon(Heroicon::OutlinedMapPin)
+                            ->color('gray')
+                            ->wrap()
+                            ->visible($showVenue),
 
                         /*
-                         * Le date arrivate dal calendario collegato.
-                         *
-                         * Chi gestisce il locale deve sapere quali eventi ha
-                         * scritto e quali sono entrati da soli: sono quelli che
-                         * spariranno o cambieranno alla prossima lettura, e
-                         * modificarli qui a mano serve a poco.
-                         *
-                         * Nel sito pubblico la riga non esiste: li fuori un
-                         * evento vale l'altro.
+                         * I distintivi della riga: lo stato, «Passato» per
+                         * gli eventi già andati e la provenienza per le date
+                         * arrivate dal calendario collegato — quelle che
+                         * cambieranno da sole alla prossima lettura, e che
+                         * modificare qui a mano serve a poco.
                          */
-                        TextColumn::make('source')
-                            ->label(__('manage.fields.source'))
+                        TextColumn::make('badges')
+                            ->label(__('manage.fields.status'))
+                            ->state(fn (Event $record): array => array_values(array_filter([
+                                'status',
+                                self::isPast($record) ? 'past' : null,
+                                $record->source->isImported() ? 'source' : null,
+                            ])))
                             ->badge()
-                            ->color('gray')
-                            ->icon(Heroicon::OutlinedArrowDownTray)
-                            ->formatStateUsing(fn (EventSource $state): string => $state->label())
-                            ->visible(fn (?Event $record): bool => $record?->source->isImported() ?? false),
-                    ]),
-
-                    TextColumn::make('status')
-                        ->label(__('manage.fields.status'))
-                        ->badge()
-                        ->formatStateUsing(fn (EventStatus $state): string => $state->label())
-                        ->color(fn (EventStatus $state): string => EventStatusPresentation::color($state))
-                        ->grow(false),
-                ])->from('md'),
+                            ->formatStateUsing(fn (string $state, Event $record): string => match ($state) {
+                                'past' => __('manage.event_list.past'),
+                                'source' => $record->source->label(),
+                                default => $record->status->label(),
+                            })
+                            ->color(fn (string $state, Event $record): string => match ($state) {
+                                'past', 'source' => 'gray',
+                                default => EventStatusPresentation::color($record->status),
+                            }),
+                    ])->space(1),
+                ])->extraAttributes(['class' => 'items-start! gap-4!']),
             ])
+            ->contentGrid(['md' => 2])
             ->recordUrl(fn (Event $record): string => static::getUrl('view', ['record' => $record]))
-            ->defaultSort('next_starts_at', 'asc')
+            ->defaultSort(fn (Builder $query): Builder => $query
+                ->orderByRaw('next_starts_at is null')
+                ->orderBy('next_starts_at')
+                ->orderByDesc('last_starts_at'))
             ->filters([
                 SelectFilter::make('status')
                     ->label(__('manage.fields.status'))
                     ->options(EventStatus::options()),
             ])
-            ->recordActions([
-                ViewAction::make()->label(__('analytics-dashboard.view_event')),
-                EditAction::make()->label(__('manage.actions.edit')),
-                // Il gesto della sera stessa, a portata di pollice: segnare
-                // esaurita la prossima data senza aprire il modulo.
-                EventActions::soldOutNextDate(),
-                EventActions::viewOnSite(),
-                EventActions::duplicate(),
-            ]);
+            ->emptyStateHeading(__('manage.event_list.empty'))
+            ->emptyStateIcon(Heroicon::OutlinedCalendarDays);
+    }
+
+    private static function isPast(Event $record): bool
+    {
+        return $record->getAttribute('next_starts_at') === null && $record->getAttribute('last_starts_at') !== null;
+    }
+
+    private static function whenLabel(Event $record, string $timezone): string
+    {
+        $format = fn (mixed $value): string => CarbonImmutable::parse((string) $value, 'UTC')->setTimezone($timezone)->format('d/m/Y H:i');
+
+        return match (true) {
+            $record->getAttribute('next_starts_at') !== null => __('manage.event_list.next', ['date' => $format($record->getAttribute('next_starts_at'))]),
+            $record->getAttribute('last_starts_at') !== null => __('manage.event_list.last', ['date' => $format($record->getAttribute('last_starts_at'))]),
+            default => __('manage.placeholders.no_date'),
+        };
     }
 
     public static function getEloquentQuery(): Builder

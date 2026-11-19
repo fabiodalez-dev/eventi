@@ -15,7 +15,9 @@
 ])
 
 <div {{ $attributes->class([
-    'flex flex-col items-center border border-dashed border-line bg-surface-sunken px-6 py-12 text-center',
+    /* Una card come le altre delle pagine di servizio (`svc-card`: bordo,
+       raggio e fondo dal tema), non un riquadro grigio squadrato a parte. */
+    'svc-card flex flex-col items-center px-6 py-10 text-center',
 ]) }}>
     <h2 class="text-card text-ink">{{ $title ?? __('ui.empty_state.default_title') }}</h2>
 

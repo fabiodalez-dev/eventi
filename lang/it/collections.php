@@ -42,4 +42,12 @@ return [
     'shared_lead' => 'Date scelte a mano, su :app.',
     'manage' => 'Gestisci questa raccolta',
     'fields' => ['name' => 'Nome', 'description' => 'Descrizione'],
+    'none_title' => 'Ancora nessuna raccolta',
+    'count' => '{1} Una raccolta|[2,*] :count raccolte',
+    'new_help' => 'Dagli un nome; le date le aggiungi dalla scheda di un evento.',
+    'open_public' => 'Apri la pagina condivisa',
+    'empty_title' => 'Nessuna data in questa raccolta',
+    'shared_empty' => 'Chi l’ha creata non ha ancora aggiunto date, oppure quelle che c’erano non sono più in programma.',
+    'browse' => 'Scopri gli eventi',
+    'settings' => 'Nome e condivisione',
 ];

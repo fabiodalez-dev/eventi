@@ -12,6 +12,7 @@ use App\Filament\Admin\Resources\Sponsorships\Pages\EditSponsorship;
 use App\Filament\Admin\Resources\Sponsorships\Pages\ListSponsorships;
 use App\Filament\Concerns\HasSentenceCaseNavigationLabel;
 use App\Filament\Support\BulkActions;
+use App\Filament\Support\PosterColumn;
 use App\Models\City;
 use App\Models\Event;
 use App\Models\Sponsorship;
@@ -90,6 +91,9 @@ class SponsorshipResource extends Resource
                                 ->schema([
                                     Select::make('event_id')
                                         ->label(__('sponsorships.admin.fields.event'))
+                                        /* «Sponsorizza questo evento» dalla scheda in redazione
+                                           arriva con `?event=ID`: l'evento è già scelto. */
+                                        ->default(fn (): ?int => request()->integer('event') ?: null)
                                         ->required()
                                         ->searchable()
                                         ->preload()
@@ -113,7 +117,10 @@ class SponsorshipResource extends Resource
                                         ->options(fn (): array => Event::query()
                                             ->where('status', EventStatus::Published)
                                             ->whereHas('occurrences', fn (Builder $futura): Builder => $futura->where('starts_at', '>=', now()))
-                                            ->orderBy('id')
+                                            /* In ordine di prossima data: e' quella che conta per
+                                               decidere cosa mettere in evidenza adesso. */
+                                            ->orderBy(fn ($next) => $next->from('event_occurrences')->selectRaw('MIN(starts_at)')
+                                                ->whereColumn('event_occurrences.event_id', 'events.id')->where('starts_at', '>=', now()))
                                             ->limit(50)
                                             ->pluck('title', 'id')
                                             ->all())
@@ -302,7 +309,10 @@ class SponsorshipResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(['event.media', 'event.city', 'city']))
             ->columns([
+                PosterColumn::make('event.poster_media'),
+
                 TextColumn::make('event.title')
                     ->label(__('sponsorships.admin.fields.event'))
                     ->searchable()
@@ -342,14 +352,18 @@ class SponsorshipResource extends Resource
                     ->state(fn (Sponsorship $record): string => $record->phase()->label())
                     ->color(fn (Sponsorship $record): string => $record->phase()->color()),
 
+                /* Nel fuso della citta' della campagna, come nel modulo: in UTC
+                   una fine alle 23:59 si leggeva alle 21:59. */
                 TextColumn::make('starts_at')
                     ->label(__('sponsorships.admin.fields.starts_at'))
                     ->dateTime('d/m/Y H:i')
+                    ->timezone(fn (Sponsorship $record): string => $record->city?->timezone ?: config()->string('app.timezone'))
                     ->sortable(),
 
                 TextColumn::make('ends_at')
                     ->label(__('sponsorships.admin.fields.ends_at'))
                     ->dateTime('d/m/Y H:i')
+                    ->timezone(fn (Sponsorship $record): string => $record->city?->timezone ?: config()->string('app.timezone'))
                     ->sortable(),
 
                 TextColumn::make('advertiser_name')

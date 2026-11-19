@@ -312,3 +312,12 @@ it('non lascia salvare né seguire a chi non è collegato, ma la pagina resta pu
     $this->post('/salvataggi', ['occurrence_id' => $occurrence->getKey()])->assertRedirect(route('login'));
     $this->post('/segui', ['type' => 'venue', 'id' => 1])->assertRedirect(route('login'));
 });
+
+it('nel pannello dei salvati tiene il pulsante in vista e parla del segnalibro, l’icona che si vede davvero', function (): void {
+    $html = $this->get(route('account.saved.panel'))->assertOk()->getContent();
+
+    expect($html)->toContain(e(__('account.saved.empty_body')))
+        ->and(__('account.saved.empty_body'))->toContain('segnalibro')->not->toContain('cuore')
+        ->and($html)->toMatch('~class="sticky -bottom-4[^"]*"\s+data-saved-panel-footer~')
+        ->and($html)->toContain(e(__('account.saved.panel_guest_action')));
+});

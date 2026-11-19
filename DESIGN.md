@@ -228,13 +228,13 @@ Queste regole sostituiscono nel solo tema chiaro le prescrizioni precedenti
 su lime, raggio zero e divisori da 2 px. Android offre lo stesso selettore nel profilo, con persistenza locale da ospite e
 sincronizzazione della preferenza attraverso GET/PATCH /api/v1/me.
 
-## Backend, sempre chiaro
+## Backend, nel tema scelto sul sito
 
-Amministrazione, gestione locali e organizzatori condividono il tema chiaro:
-Manrope nei controlli e nelle tabelle, Bricolage Grotesque 700–800 nei titoli,
-fondi neutri quasi bianchi, accento #B54D23 e bordi sottili con raggi 6–8 px.
-La modalità scura è disabilitata nei pannelli, indipendentemente dal sistema
-e dalla preferenza salvata sul sito pubblico. I font sono serviti localmente.
+Amministrazione, gestione locali e organizzatori seguono il tema scelto sul sito (`/aspetto`): la scelta del profilo; se il profilo non ne ha, quella fatta nel browser; altrimenti il sistema. Il commutatore di Filament è spento: il tema si cambia in un posto solo, e uno script in testa alla pagina lo applica prima che si disegni (`resources/views/filament/partials/theme-bootstrap.blade.php`). Decisione del 19 novembre 2026 («mantieni i temi in tutte le modifiche»), che sostituisce la regola precedente del backend sempre chiaro.
+
+In entrambi i temi i pannelli conservano la loro forma: Manrope nei controlli e nelle tabelle, Bricolage Grotesque 700–800 nei titoli, bordi da 1 px e raggi 6–8 px. Nel chiaro: fondi neutri quasi bianchi e accento #B54D23. Nello scuro: le superfici, l'inchiostro e i fili del tema scuro del sito (#0b0b0b, #141413, #f5f5f0); l'accento resta terracotta, schiarito dove è testo, icona o filo, pieno #B54D23 con testo bianco nei pulsanti. Il lime resta il segno del sito pubblico e non entra nei pannelli.
+
+Ogni colore del pannello passa da un token `--fi-*` di `resources/css/filament/admin/theme.css`, con il valore scuro nel blocco `:root.dark`. Le viste dei pannelli usano componenti Filament o classi con la variante `dark:`; nessun colore scritto a mano. I font sono serviti localmente.
 
 ## Coerenza dei controlli e movimento
 
@@ -257,4 +257,4 @@ La testata evento usa la copertina come sfondo a tutta larghezza, con overlay sc
 
 ### Barra operativa dei pannelli
 
-La barra superiore di amministrazione e locali usa una superficie terracotta chiara e un pulsante pieno per «Nuovo evento». Il colore distingue il contesto di lavoro senza cambiare il tema chiaro dei contenuti. Nome del locale e ruolo del pannello sono sempre riconoscibili. Le azioni rapide seguono le autorizzazioni esistenti; ricerca e menu utente rimangono disponibili. Su tablet e telefono le scorciatoie occupano una riga dedicata, con aree di tocco di almeno 48 px e menu «Altre azioni» per le operazioni secondarie.
+La barra superiore di amministrazione e locali usa una superficie terracotta (chiara nel tema chiaro, bruna nello scuro) e un pulsante pieno per «Nuovo evento». Il colore distingue il contesto di lavoro senza cambiare il tema dei contenuti. Nome del locale e ruolo del pannello sono sempre riconoscibili. Le azioni rapide seguono le autorizzazioni esistenti; ricerca e menu utente rimangono disponibili. Su tablet e telefono le scorciatoie occupano una riga dedicata, con aree di tocco di almeno 48 px e menu «Altre azioni» per le operazioni secondarie.

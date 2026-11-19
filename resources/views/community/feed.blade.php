@@ -1,14 +1,51 @@
-<x-layouts.app :meta="$meta">
-    @include('community.nav')
-    <header class="max-w-3xl"><h1 class="text-hero">{{ $scope === 'following' ? __('community.feed') : __('community.discover') }}</h1><p class="mt-3 text-ink-muted">{{ __('community.lead') }}</p></header>
-    <form class="my-8 flex flex-wrap items-end gap-4" method="get">
-        <label class="flex flex-col gap-2 text-sm font-semibold">{{ __('community.nav') }}<select name="scope" class="border-2 border-line bg-canvas p-3"><option value="following" @selected($scope === 'following')>{{ __('community.feed') }}</option><option value="discover" @selected($scope === 'discover')>{{ __('community.discover') }}</option></select></label>
-        <label class="flex flex-col gap-2 text-sm font-semibold">{{ __('community.sort') }}<select name="sort" class="border-2 border-line bg-canvas p-3">@foreach(['recent', 'event'] as $sort)<option value="{{ $sort }}" @selected(request('sort', 'recent') === $sort)>{{ __('community.sorts.'.$sort) }}</option>@endforeach</select></label>
-        <label class="flex min-h-12 items-center gap-2 text-sm"><input type="checkbox" name="past" value="1" @checked(request()->boolean('past'))>{{ __('community.past') }}</label>
-        <x-button type="submit" variant="secondary">{{ __('community.apply') }}</x-button>
-    </form>
-    <div class="grid items-start gap-x-10 gap-y-6 md:grid-cols-2 xl:grid-cols-3">
-        @forelse($posts as $post)@include('community.post-card')@empty<div class="col-span-full border-y border-line py-12"><p class="mb-5 max-w-xl text-ink-muted">{{ __('community.empty') }}</p><x-button :href="route('community.people')">{{ __('community.people') }}</x-button></div>@endforelse
-    </div>
-    <x-pagination :paginator="$posts" />
+{{--
+    La bacheca: i consigli delle persone che seguo, oppure quelli da scoprire.
+    Una sola pila di consigli, ognuno con l'evento e la sua locandina; sopra,
+    la scelta fra le due bacheche e l'ordine.
+--}}
+@php
+    $query = fn (array $change) => route('community.feed', array_filter([...request()->only(['sort', 'past']), ...$change], fn ($value) => $value !== null && $value !== ''));
+@endphp
+<x-layouts.app service :meta="$meta">
+    <x-service-page
+        :title="$scope === 'following' ? __('community.feed') : __('community.discover')"
+        :subtitle="__('community.lead')"
+        :back="route('account.profile')"
+        :tabs="\App\Services\Community\CommunityNavigation::tabs('feed')"
+        :tabs-label="__('community.nav')"
+    >
+        <x-segmented :label="__('community.feed_scope')" :items="[
+            ['label' => __('community.scopes.following'), 'href' => $query(['scope' => null]), 'active' => $scope === 'following'],
+            ['label' => __('community.scopes.discover'), 'href' => $query(['scope' => 'discover']), 'active' => $scope === 'discover'],
+        ]" />
+
+        <x-card as="form" method="get" padding="sm" tone="muted" :aria-label="__('community.sort')">
+            @if ($scope !== 'following')<input type="hidden" name="scope" value="{{ $scope }}">@endif
+            <div class="flex min-w-0 flex-wrap items-end gap-3">
+                <label class="flex min-w-0 flex-1 basis-48 flex-col gap-1.5 text-sm font-semibold text-ink">
+                    {{ __('community.sort') }}
+                    <select name="sort" class="min-h-12 w-full border border-line bg-surface px-3.5 py-2.5 text-base font-normal text-ink focus:border-brand focus:outline-none">
+                        @foreach (['recent', 'event'] as $sort)
+                            <option value="{{ $sort }}" @selected(request('sort', 'recent') === $sort)>{{ __('community.sorts.'.$sort) }}</option>
+                        @endforeach
+                    </select>
+                </label>
+                <label class="flex min-h-12 cursor-pointer items-center gap-3 text-sm text-ink">
+                    <input type="checkbox" name="past" value="1" class="size-4 accent-[var(--brand)]" @checked(request()->boolean('past'))>
+                    {{ __('community.past') }}
+                </label>
+                <x-button type="submit" variant="secondary">{{ __('community.apply') }}</x-button>
+            </div>
+        </x-card>
+
+        @forelse ($posts as $post)
+            @include('community.post-card')
+        @empty
+            <x-empty-state :title="__('community.empty_title')" :description="__('community.empty')">
+                <x-button :href="route('community.people')">{{ __('community.people') }}</x-button>
+            </x-empty-state>
+        @endforelse
+
+        <x-pagination :paginator="$posts" />
+    </x-service-page>
 </x-layouts.app>

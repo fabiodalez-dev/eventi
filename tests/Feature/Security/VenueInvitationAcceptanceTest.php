@@ -249,7 +249,7 @@ it('lascia uscire da solo un collaboratore', function (): void {
 
 it('non lascia uscire l’ultimo referente, ma un referente fra due sì', function (): void {
     $owner = $this->scenario->ownerA;
-    $this->actingAs($owner)->get(VenueAccess::getUrl(panel: 'venue', tenant: $this->venue))->assertOk()->assertSee(__('manage.access.last_owner'));
+    $this->actingAs($owner)->get(VenueAccess::getUrl(panel: 'venue', tenant: $this->venue))->assertOk()->assertSee(__('panel.access.last_owner'));
     Filament::setCurrentPanel('venue');
     Filament::setTenant($this->venue);
 

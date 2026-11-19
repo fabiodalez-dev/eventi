@@ -14,8 +14,10 @@ use App\Filament\Support\EventStatusPresentation;
 use App\Filament\Support\OccurrenceDecisionFields;
 use App\Filament\Support\TicketTiersField;
 use App\Models\Booking;
+use App\Models\Event;
 use App\Models\EventOccurrence;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -28,6 +30,7 @@ use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
+use Filament\Support\Facades\FilamentTimezone;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -65,16 +68,20 @@ class OccurrencesRelationManager extends RelationManager
                 DateTimePicker::make('starts_at')
                     ->label(__('admin.fields.starts_at'))
                     ->seconds(false)
+                    ->timezone(fn (): string => $this->cityTimezone())
+                    ->helperText(fn (): string => __('admin.hints.local_time', ['timezone' => $this->cityTimezone()]))
                     ->required(),
 
                 DateTimePicker::make('ends_at')
                     ->label(__('admin.fields.ends_at'))
                     ->seconds(false)
+                    ->timezone(fn (): string => $this->cityTimezone())
                     ->after('starts_at'),
 
                 DateTimePicker::make('doors_at')
                     ->label(__('admin.fields.doors_at'))
-                    ->seconds(false),
+                    ->seconds(false)
+                    ->timezone(fn (): string => $this->cityTimezone()),
 
                 Toggle::make('is_all_day')
                     ->label(__('admin.fields.is_all_day')),
@@ -189,7 +196,8 @@ class OccurrencesRelationManager extends RelationManager
 
                         DateTimePicker::make('starts_at')
                             ->label(__('admin.fields.starts_at'))
-                            ->seconds(false),
+                            ->seconds(false)
+                            ->timezone(fn (): string => $this->cityTimezone()),
 
                         TextInput::make('url')
                             ->label(__('admin.fields.url'))
@@ -207,6 +215,7 @@ class OccurrencesRelationManager extends RelationManager
                 TextColumn::make('starts_at')
                     ->label(__('admin.fields.starts_at'))
                     ->dateTime('d/m/Y H:i')
+                    ->timezone(fn (): string => $this->cityTimezone())
                     ->sortable(),
 
                 TextColumn::make('business_date')
@@ -215,7 +224,9 @@ class OccurrencesRelationManager extends RelationManager
 
                 TextColumn::make('effective_ends_at')
                     ->label(__('admin.fields.effective_ends_at'))
-                    ->dateTime('d/m/Y H:i'),
+                    ->dateTime('d/m/Y H:i')
+                    ->timezone(fn (): string => $this->cityTimezone())
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('status')
                     ->label(__('admin.fields.occurrence_status'))
@@ -230,7 +241,8 @@ class OccurrencesRelationManager extends RelationManager
 
                 IconColumn::make('is_exception')
                     ->label(__('admin.fields.is_exception'))
-                    ->boolean(),
+                    ->boolean()
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('lineups_count')
                     ->label(__('admin.resources.lineup.plural'))
@@ -252,72 +264,92 @@ class OccurrencesRelationManager extends RelationManager
                         ? __('admin.scopes.no_series')
                         : __('admin.scopes.single_help')),
 
-                Action::make('move')
-                    ->label(__('admin.actions.move_occurrence'))
-                    ->icon(Heroicon::OutlinedArrowsRightLeft)
-                    ->authorize(fn (EventOccurrence $record): bool => auth()->user()?->can('update', $record) ?? false)
-                    ->schema(fn (EventOccurrence $record): array => [
-                        TextInput::make('shift_minutes')
-                            ->label(__('admin.fields.shift_minutes'))
-                            ->numeric()
-                            ->required(),
-                        ...self::scopeField($record),
-                    ])
-                    ->action(function (EventOccurrence $record, array $data): void {
-                        $changed = app(UpdateOccurrencesAction::class)->shift(
-                            $record,
-                            (int) $data['shift_minutes'],
-                            self::scopeFrom($data),
-                        );
+                ActionGroup::make([
+                    Action::make('move')
+                        ->label(__('admin.actions.move_occurrence'))
+                        ->icon(Heroicon::OutlinedArrowsRightLeft)
+                        ->authorize(fn (EventOccurrence $record): bool => auth()->user()?->can('update', $record) ?? false)
+                        ->schema(fn (EventOccurrence $record): array => [
+                            TextInput::make('shift_minutes')
+                                ->label(__('admin.fields.shift_minutes'))
+                                ->numeric()
+                                ->required(),
+                            ...self::scopeField($record),
+                        ])
+                        ->action(function (EventOccurrence $record, array $data): void {
+                            $changed = app(UpdateOccurrencesAction::class)->shift(
+                                $record,
+                                (int) $data['shift_minutes'],
+                                self::scopeFrom($data),
+                            );
 
-                        self::notifyChanged($changed);
-                    }),
+                            self::notifyChanged($changed);
+                        }),
 
-                Action::make('cancel_occurrence')
-                    ->label(__('admin.actions.cancel_occurrence'))
-                    ->icon(Heroicon::OutlinedNoSymbol)
-                    ->color('danger')
-                    ->authorize(fn (EventOccurrence $record): bool => auth()->user()?->can('update', $record) ?? false)
-                    ->visible(fn (EventOccurrence $record): bool => $record->status !== OccurrenceStatus::Cancelled)
-                    ->schema(fn (EventOccurrence $record): array => [
-                        DescriptionEditor::make('status_note')
-                            ->label(__('admin.fields.status_note'))
-                            ->maxLength(2000),
-                        ...self::scopeField($record),
-                    ])
-                    ->action(function (EventOccurrence $record, array $data): void {
-                        $changed = app(UpdateOccurrencesAction::class)->changeStatus(
-                            $record,
-                            OccurrenceStatus::Cancelled,
-                            $data['status_note'] ?? null,
-                            self::scopeFrom($data),
-                        );
+                    Action::make('cancel_occurrence')
+                        ->label(__('admin.actions.cancel_occurrence'))
+                        ->icon(Heroicon::OutlinedNoSymbol)
+                        ->color('danger')
+                        ->authorize(fn (EventOccurrence $record): bool => auth()->user()?->can('update', $record) ?? false)
+                        ->visible(fn (EventOccurrence $record): bool => $record->status !== OccurrenceStatus::Cancelled)
+                        ->schema(fn (EventOccurrence $record): array => [
+                            DescriptionEditor::make('status_note')
+                                ->label(__('admin.fields.status_note'))
+                                ->maxLength(2000),
+                            ...self::scopeField($record),
+                        ])
+                        ->action(function (EventOccurrence $record, array $data): void {
+                            $changed = app(UpdateOccurrencesAction::class)->changeStatus(
+                                $record,
+                                OccurrenceStatus::Cancelled,
+                                $data['status_note'] ?? null,
+                                self::scopeFrom($data),
+                            );
 
-                        self::notifyChanged($changed);
-                    }),
+                            self::notifyChanged($changed);
+                        }),
 
-                Action::make('sold_out')
-                    ->label(fn (EventOccurrence $record): string => $record->status === OccurrenceStatus::SoldOut
-                        ? __('admin.actions.mark_scheduled')
-                        : __('admin.actions.mark_sold_out'))
-                    ->icon(Heroicon::OutlinedTicket)
-                    ->requiresConfirmation()
-                    ->authorize(fn (EventOccurrence $record): bool => auth()->user()?->can('update', $record) ?? false)
-                    ->action(function (EventOccurrence $record): void {
-                        $changed = app(UpdateOccurrencesAction::class)->changeStatus(
-                            $record,
-                            $record->status === OccurrenceStatus::SoldOut
-                                ? OccurrenceStatus::Scheduled
-                                : OccurrenceStatus::SoldOut,
-                            null,
-                            OccurrenceScope::Single,
-                        );
+                    Action::make('sold_out')
+                        ->label(fn (EventOccurrence $record): string => $record->status === OccurrenceStatus::SoldOut
+                            ? __('admin.actions.mark_scheduled')
+                            : __('admin.actions.mark_sold_out'))
+                        ->icon(Heroicon::OutlinedTicket)
+                        ->requiresConfirmation()
+                        ->authorize(fn (EventOccurrence $record): bool => auth()->user()?->can('update', $record) ?? false)
+                        ->action(function (EventOccurrence $record): void {
+                            $changed = app(UpdateOccurrencesAction::class)->changeStatus(
+                                $record,
+                                $record->status === OccurrenceStatus::SoldOut
+                                    ? OccurrenceStatus::Scheduled
+                                    : OccurrenceStatus::SoldOut,
+                                null,
+                                OccurrenceScope::Single,
+                            );
 
-                        self::notifyChanged($changed);
-                    }),
+                            self::notifyChanged($changed);
+                        }),
 
-                DeleteAction::make(),
+                    DeleteAction::make(),
+                ])
+                    ->label(__('admin.actions.more'))
+                    ->icon(Heroicon::OutlinedEllipsisVertical)
+                    ->button()
+                    ->color('gray')
+                    ->dropdown(),
             ]);
+    }
+
+    /**
+     * Il fuso della città dell'evento: le serate si leggono e si scrivono
+     * nell'ora di chi ci va, non in UTC né nel fuso predefinito del pannello.
+     */
+    private function cityTimezone(): string
+    {
+        $owner = $this->getOwnerRecord();
+
+        return $owner instanceof Event
+            ? ($owner->city->timezone ?? FilamentTimezone::get())
+            : FilamentTimezone::get();
     }
 
     /**
