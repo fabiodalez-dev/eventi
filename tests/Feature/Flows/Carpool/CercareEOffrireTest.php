@@ -210,7 +210,7 @@ it('cambiare le condizioni annulla le richieste in attesa, avvisa il passeggero 
 });
 
 it('chi cerca filtra le offerte della data per tratta, zona, posti e ordine', function (): void {
-    $a = cpOffer($this, data: ['zone' => 'Prato della Valle', 'capacity' => 3, 'departure_at' => '2026-10-10T18:00:00Z']);
+    $a = cpOffer($this, data: ['zone' => 'Piazzale Boschetti', 'capacity' => 3, 'departure_at' => '2026-10-10T18:00:00Z']);
     $b = cpOffer($this, carpoolPerson(), ['zone' => 'Stazione', 'capacity' => 1, 'departure_at' => '2026-10-10T17:30:00Z']);
     $c = cpOffer($this, carpoolPerson(), ['leg' => 'return', 'zone' => 'Arcella', 'capacity' => 2, 'departure_at' => '2026-10-10T23:00:00Z']);
     flussoCpWeb($this, $this->passenger);
@@ -222,7 +222,7 @@ it('chi cerca filtra le offerte della data per tratta, zona, posti e ordine', fu
         ->and($ids('?seats=2'))->toBe([$a->id, $c->id])
         ->and($ids('?sort=recent'))->toBe([$c->id, $b->id, $a->id]);
     $this->getJson(route('carpool.dates', $this->date).'?leg=sideways')->assertUnprocessable();
-    $this->get(route('carpool.dates', $this->date).'?zone=Arcella')->assertOk()->assertSee('Arcella')->assertDontSee('Prato della Valle');
+    $this->get(route('carpool.dates', $this->date).'?zone=Arcella')->assertOk()->assertSee('Arcella')->assertDontSee('Piazzale Boschetti');
 });
 
 it('il conducente salva un modello dall\'offerta, lo ritrova nel modulo e lo elimina; altri non possono toccarlo', function (): void {
