@@ -605,7 +605,14 @@ a.fi-wi-stats-overview-stat:hover { border-color: var(--fi-line-strong); transfo
 .itb-action:focus-visible, .itb-context:focus-visible { outline: 2px solid var(--fi-accent); outline-offset: 3px; }
 .itb-primary { background: var(--fi-ctx-fill); color: var(--fi-on-ctx-fill); }
 .itb-primary:hover { background: var(--fi-ctx-fill-strong); }
-.itb-more { width: 48px; border: 1px solid var(--fi-ctx-more-line); }
+.itb-more { min-width: 48px; min-height: 48px; border: 1px solid var(--fi-ctx-more-line); }
+.itb-more .fi-icon { width: 19px; height: 19px; }
+/* «Altro» con la parola da 640 px; sotto, solo i puntini (il nome resta in aria-label). */
+.itb-more-label, .itb-more-chevron { display: none; }
+@media (min-width: 640px) {
+    .itb-more-label, .itb-more-chevron { display: inline; }
+    .itb-more-dots { display: none; }
+}
 .itb-short-label { display: none; }
 .fi-topbar:has(.itb-context) .fi-topbar-end { order: 3; margin-inline-start: 0; gap: 12px; }
 .fi-topbar:has(.itb-context) .fi-global-search { max-width: 200px; }

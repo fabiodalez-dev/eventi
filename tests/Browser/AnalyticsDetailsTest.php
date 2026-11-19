@@ -46,7 +46,7 @@ it('lets a venue read all nights edit deliberately and open event statistics fro
     $view = EventResource::getUrl('view', ['record' => $scenario->publishedEventA], panel: 'venue', tenant: $scenario->venueA);
     $page->assertVisible('a.fi-ta-record-content[href$="'.parse_url($view, PHP_URL_PATH).'"]');
     $page->page()->locator('a.fi-ta-record-content[href$="'.parse_url($view, PHP_URL_PATH).'"]')->first()->click(['timeout' => 5000]);
-    $page->assertPresent('[data-event-read-view]')->assertSee('Seconda serata speciale')->assertSee('11/09/2026')->assertSee('11/10/2026');
+    $page->assertPresent('[data-event-read-view]')->assertSee('Seconda serata speciale')->assertSee('11 set')->assertSee('11 ott');
     expect($page->script('document.querySelectorAll("[data-event-read-view] input, [data-event-read-view] textarea").length'))->toBe(0);
     $page->page()->locator('.fi-page-sub-navigation-tabs a[href*="/event/'.$scenario->publishedEventA->id.'"]')->first()->click(['timeout' => 5000]);
     $page->assertPresent('[data-analytics-subject="event"]')->assertSee('Statistiche · '.$scenario->publishedEventA->title);

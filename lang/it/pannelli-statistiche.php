@@ -29,6 +29,8 @@ return [
     ],
 
     'subject' => [
+        'related_venue' => 'Statistiche del locale :name',
+        'related_organizer' => 'Statistiche dell’organizzatore :name',
         'event_heading' => 'Stai guardando',
         'other_event' => 'Guarda un altro evento',
         'other_event_hint' => 'Scegli un evento: tengo lo stesso periodo e lo stesso canale.',
