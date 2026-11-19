@@ -23,9 +23,11 @@ beforeEach(function (): void {
     $this->category = testCategory();
     $this->owner = User::factory()->create();
     $this->organizer = Organizer::create(['city_id' => $this->city->id, 'owner_id' => $this->owner->id, 'name' => 'Collettivo Itinerante', 'is_active' => true]);
-    $this->upcoming = occurrenceAtLocal($this->city, $this->category, '2026-09-11 21:00')->event;
-    $this->past = occurrenceAtLocal($this->city, $this->category, '2026-08-20 21:00')->event;
-    $this->other = occurrenceAtLocal($this->city, $this->category, '2026-09-12 21:00')->event;
+    /* Titoli fissi: quelli della factory vengono da un elenco piccolo e ogni
+       tanto due eventi si chiamavano uguale, e `assertDontSee` falliva. */
+    $this->upcoming = occurrenceAtLocal($this->city, $this->category, '2026-09-11 21:00', event: ['title' => 'Serata del collettivo'])->event;
+    $this->past = occurrenceAtLocal($this->city, $this->category, '2026-08-20 21:00', event: ['title' => 'Assemblea di agosto'])->event;
+    $this->other = occurrenceAtLocal($this->city, $this->category, '2026-09-12 21:00', event: ['title' => 'Concerto di un altro organizzatore'])->event;
     foreach ([$this->upcoming, $this->past] as $event) {
         $event->update(['organizer_id' => $this->organizer->id, 'organizer_name' => null]);
     }

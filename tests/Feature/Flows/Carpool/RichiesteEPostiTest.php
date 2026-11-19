@@ -220,7 +220,8 @@ it('requisiti mancanti bloccano richiesta, offerta e ricerca finché la persona 
 
     flussoCpWeb($this, $newcomer);
     $this->getJson(route('carpool.dates', $this->date))->assertJsonPath('data.access.reason', 'adult')->assertJsonPath('data.offers', []);
-    $this->get(route('carpool.dates', $this->date))->assertOk()->assertDontSee('Prato della Valle');
+    // Nessun passaggio in elenco: «Prato della Valle» può essere anche il nome della sede, che ora compare nella riga evento.
+    $this->get(route('carpool.dates', $this->date))->assertOk()->assertDontSee('data-offer-row', false);
     cpAction($this, $newcomer, 'request', ['offer_id' => $offer->id, 'revision' => 1, 'seats' => 1])->assertForbidden();
     cpAction($this, $newcomer, 'offer', ['occurrence_id' => $this->date->id, 'leg' => 'return', 'zone' => 'Centro', 'departure_at' => '2026-10-10T23:00:00Z',
         'capacity' => 2, 'accessibility' => 'not_specified', 'driver_declaration' => true])->assertForbidden();
