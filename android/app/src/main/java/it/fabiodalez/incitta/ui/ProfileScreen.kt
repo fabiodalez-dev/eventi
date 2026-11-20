@@ -126,7 +126,7 @@ private fun ProfileDetails(session: Session, onSaved: () -> Unit) {
     var busy by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf("") }
     val zones = remember { ZoneId.getAvailableZoneIds().filterNot { it.startsWith("SystemV/") }.sorted() }
-    OutlinedTextField(name, { name = it.take(120) }, label = { Text("Nome") }, enabled = !busy, modifier = Modifier.fillMaxWidth())
+    OutlinedTextField(name, { name = it.take(255) }, label = { Text("Nome") }, enabled = !busy, modifier = Modifier.fillMaxWidth())
     Text(session.user.email, color = Muted)
     Text("Fuso orario", style = MaterialTheme.typography.titleMedium)
     OutlinedButton(onClick = { choosing = true }, enabled = !busy, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text(timezone) }

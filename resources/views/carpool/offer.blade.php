@@ -11,6 +11,12 @@
     $acceptedRequests = collect($requests)->where('status', 'accepted')->values();
     $closedRequests = collect($requests)->whereNotIn('status', ['pending', 'accepted'])->values();
     $myRequest = $own ? null : collect($requests)->first();
+    // Una richiesta chiusa non toglie il modulo a chi può chiedere di nuovo (dopo un ritiro, o dopo
+    // che il conducente ha cambiato le condizioni): resta la scheda solo se è attiva o se un'altra
+    // richiesta non passerebbe (rifiutata, troppi ritiri).
+    if ($myRequest !== null && ! in_array($myRequest['status'], ['pending', 'accepted'], true) && ($can_request_again ?? false)) {
+        $myRequest = null;
+    }
     $statusTone = ['open' => 'brand', 'draft' => 'soon', 'closed' => 'muted', 'cancelled' => 'alert', 'completed' => 'muted'][$offer['status']] ?? 'muted';
     $subtitle = $offer['departure_label'] ? __('carpool.web.zone_at', ['zone' => $offer['zone'], 'time' => $offer['departure_label']]) : $offer['event_title'];
 @endphp

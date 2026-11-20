@@ -105,6 +105,7 @@ return [
         'external_link_label' => 'Che link è',
         'external_link_url' => 'Indirizzo',
         'status' => 'Stato',
+        'rejection_reason' => 'Motivo del rifiuto',
         'occurrence_status' => 'Stato della data',
         'artist' => 'Nome',
         'artist_role' => 'Come si esibisce',

@@ -19,7 +19,7 @@ it('keeps role-specific topbar shortcuts usable on desktop and small phones', fu
     $url = $panel === 'admin' ? EventShareAnalytics::getUrl()
         : EventResource::getUrl();
     $page = visit($url)->resize($width, 900);
-    $page->assertSee($panel === 'admin' ? 'Amministrazione' : 'Circolo Aurora')
+    $page->assertSee($panel === 'admin' ? 'Redazione' : 'Circolo Aurora')
         ->assertVisible('[data-topbar-action="create"]')
         ->assertVisible('[data-topbar-action="analytics"]');
     expect($page->script('Array.from(document.querySelectorAll(".itb-actions > *, .itb-context, .fi-topbar-end")).every(el => { const r = el.getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth; })'))->toBeTrue();
@@ -38,7 +38,7 @@ it('keeps role-specific topbar shortcuts usable on desktop and small phones', fu
     if ($panel === 'admin') {
         $page->assertSee('Calendario');
     } else {
-        $page->assertSee('Profilo del locale');
+        $page->assertSee('Il tuo locale');
     }
     $page->screenshot(fullPage: false, filename: 'topbar-'.$panel.'-'.$width.'-'.$appearance);
     $page->keys('[data-topbar-more]', 'Escape');

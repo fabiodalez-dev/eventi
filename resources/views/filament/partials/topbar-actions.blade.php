@@ -18,6 +18,9 @@
                     <x-filament::icon :icon="$item['icon']" />
                     @if ($item['key'] === 'create')
                         <span class="itb-wide-label">{{ __('topbar.create') }}</span><span class="itb-short-label">{{ __('topbar.create_short') }}</span>
+                    @elseif ($item['key'] === 'analytics' && $item['label'] !== __('topbar.analytics'))
+                        {{-- «Statistiche in dettaglio» sul telefono non ci sta: lì basta «Statistiche». --}}
+                        <span class="itb-wide-label">{{ $item['label'] }}</span><span class="itb-short-label">{{ __('topbar.analytics') }}</span>
                     @else
                         <span>{{ $item['label'] }}</span>
                     @endif
