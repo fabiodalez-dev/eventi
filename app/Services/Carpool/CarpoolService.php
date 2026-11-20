@@ -190,10 +190,8 @@ final class CarpoolService
         // avvisi. Il rifiuto vale per tutta l'offerta; i ritiri del passeggero hanno un tetto, e lo
         // consumano anche le chiusure per blocco o requisiti del passeggero: bloccare e sbloccare il
         // conducente è lo stesso ciclo. Restano fuori le chiusure decise dall'offerta o dall'orario.
-        $closed = RideRequest::where('ride_offer_id', $offer->id)->where('user_id', $user->id)
-            ->whereIn('close_reason', ['driver_declined', 'passenger_withdrew', 'requirements_or_block_changed'])->pluck('close_reason');
-        abort_if($closed->contains('driver_declined'), 409, __('carpool.errors.declined'));
-        abort_if($closed->reject(fn ($reason) => $reason === 'driver_declined')->count() >= config()->integer('carpool.max_withdrawals_per_offer'), 409, __('carpool.errors.withdrawals'));
+        $repeat = $this->repeatRefusal($user, $offer);
+        abort_if($repeat !== null, 409, $repeat);
         $pending = RideRequest::where('user_id', $user->id)->where('status', RideRequestStatus::Pending)
             ->whereHas('offer', fn ($q) => $q->where('occurrence_id', $offer->occurrence_id)->where('leg', $offer->leg))->count();
         abort_if($pending >= config()->integer('carpool.max_pending'), 422, __('carpool.errors.limit'));
@@ -262,6 +260,23 @@ final class CarpoolService
         $this->notices->ride($passenger, 'accepted', $request);
 
         return $request->id;
+    }
+
+    /**
+     * Perché chi ha già chiuso una richiesta su questa offerta non può più chiederne un'altra,
+     * o null se può: il rifiuto del conducente vale per tutta l'offerta, i ritiri hanno un tetto.
+     * La usa anche la pagina dell'offerta, per rimettere il modulo a chi può chiedere di nuovo.
+     */
+    public function repeatRefusal(User $user, RideOffer $offer): ?string
+    {
+        $closed = RideRequest::where('ride_offer_id', $offer->id)->where('user_id', $user->id)
+            ->whereIn('close_reason', ['driver_declined', 'passenger_withdrew', 'requirements_or_block_changed'])->pluck('close_reason');
+
+        return match (true) {
+            $closed->contains('driver_declined') => __('carpool.errors.declined'),
+            $closed->reject(fn ($reason) => $reason === 'driver_declined')->count() >= config()->integer('carpool.max_withdrawals_per_offer') => __('carpool.errors.withdrawals'),
+            default => null,
+        };
     }
 
     public function occupied(RideOffer $offer): int

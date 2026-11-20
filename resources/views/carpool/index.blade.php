@@ -6,9 +6,10 @@
 <x-layouts.app service :meta="$meta">
     <x-service-page :title="__('carpool.mine')" :subtitle="__('carpool.web.mine_subtitle')" :eyebrow="__('carpool.free')" :back="route('account.profile')" :tabs="$tabs" :tabs-label="__('carpool.web.tabs.label')">
         @if (! $access['eligible'])
-            <x-notice tone="alert" :title="__('carpool.profile_blocked.title')">
-                <p>{{ __('carpool.onboarding') }}</p>
-                <div><x-button size="sm" :href="route('carpool.requirements')">{{ __('carpool.profile_blocked.action') }}</x-button></div>
+            {{-- Il motivo vero, come nel profilo: a chi è sospeso non si chiede di completare verifiche, lo si manda all'assistenza. --}}
+            <x-notice tone="alert" :title="__('carpool.profile_blocked.title')" :data-carpool-blocked="$access['reason']">
+                <p>{{ __('carpool.profile_blocked.'.$access['reason']) }}</p>
+                <div><x-button size="sm" :href="$access['reason'] === 'suspended' ? route('carpool.cases') : route('carpool.requirements')">{{ __($access['reason'] === 'suspended' ? 'carpool.support' : 'carpool.profile_blocked.action') }}</x-button></div>
             </x-notice>
         @endif
 

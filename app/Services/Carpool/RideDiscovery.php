@@ -36,7 +36,10 @@ final class RideDiscovery
             ->whereNotIn('driver_id', $this->blockedIds($user))
             ->whereRaw('capacity - (SELECT COALESCE(SUM(seats), 0) FROM ride_requests WHERE ride_offer_id = ride_offers.id AND status = ?) >= ?', ['accepted', max(1, (int) ($filters['seats'] ?? 1))])
             ->when($filters['leg'] ?? null, fn ($q, $leg) => $q->where('leg', $leg))
-            ->when($filters['zone'] ?? null, fn ($q, $zone) => $q->where(fn ($q) => $q->where('zone', 'like', '%'.addcslashes($zone, '%_\\').'%')->orWhere('stops', 'like', '%'.addcslashes($zone, '%_\\').'%')))
+            // Le tappe stanno in una colonna JSON: collazione binaria e lettere accentate scritte come
+            // `\u00e0`. Si cercano una per una, con la stessa collazione della zona, come fa l'avviso.
+            ->when($filters['zone'] ?? null, fn ($q, $zone) => $q->where(fn ($q) => $q->where('zone', 'like', '%'.addcslashes($zone, '%_\\').'%')
+                ->orWhereRaw("EXISTS (SELECT 1 FROM JSON_TABLE(ride_offers.stops, '\$[*]' COLUMNS (stop VARCHAR(120) PATH '\$')) AS ride_stops WHERE ride_stops.stop COLLATE utf8mb4_unicode_ci LIKE ?)", ['%'.addcslashes($zone, '%_\\').'%'])))
             ->when(($filters['accessibility'] ?? 'not_specified') !== 'not_specified', fn ($q) => $q->where('accessibility', $filters['accessibility']))
             ->with(['driver.communityProfile', 'occurrence.event.city', 'occurrence.event.media'])
             ->withSum(['requests as occupied_seats' => fn ($q) => $q->where('status', 'accepted')], 'seats')
