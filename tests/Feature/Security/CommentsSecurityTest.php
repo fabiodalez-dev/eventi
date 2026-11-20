@@ -46,7 +46,7 @@ afterEach(function (): void {
     Filament::setCurrentPanel(null);
 });
 
-function commentsPerson(string $first = 'Mario', string $last = 'Rossi'): User
+function commentsPerson(string $first = 'Mario', string $last = 'Pennacchiotti'): User
 {
     return User::factory()->create(['first_name' => $first, 'last_name' => $last, 'name' => $first.' '.$last]);
 }
@@ -59,39 +59,39 @@ it('mostra nell\'API dei commenti solo il nome proprio, mai il cognome', functio
 
     $this->getJson($this->apiUrl)->assertOk()
         ->assertJsonPath('data.comments.0.author', 'Mario')
-        ->assertDontSee('Rossi');
-    $this->get(route('events.show', ['slug' => $this->event->slug]))->assertOk()->assertDontSee('Rossi');
+        ->assertDontSee('Pennacchiotti');
+    $this->get(route('events.show', ['slug' => $this->event->slug]))->assertOk()->assertDontSee('Pennacchiotti');
 });
 
 it('non mette il cognome nel titolo degli avvisi di risposta', function (): void {
-    $author = commentsPerson('Anna', 'Bianchi');
-    $replier = commentsPerson('Mario', 'Rossi');
+    $author = commentsPerson('Anna', 'Zanellonzi');
+    $replier = commentsPerson('Mario', 'Pennacchiotti');
     $comment = app(PostComment::class)->handle($this->event, $author, 'Commento di partenza');
     app(PostComment::class)->handle($this->event, $replier, 'Una risposta qualunque', $comment);
 
     $row = ScheduledNotification::query()->where('type', NotificationType::CommentReply->value)->sole();
     $message = app(MessageFactory::class)->build($row, $author);
 
-    expect($message->subject)->toContain('Mario')->not->toContain('Rossi');
+    expect($message->subject)->toContain('Mario')->not->toContain('Pennacchiotti');
 });
 
 it('non pubblica il nome completo di chi recensisce senza un profilo community', function (): void {
     $venue = Venue::factory()->approved()->create(['city_id' => $this->city->id]);
     $reviewer = carpoolPerson(false);
-    $reviewer->forceFill(['first_name' => 'Mario', 'last_name' => 'Rossi', 'name' => 'Mario Rossi'])->save();
+    $reviewer->forceFill(['first_name' => 'Mario', 'last_name' => 'Pennacchiotti', 'name' => 'Mario Pennacchiotti'])->save();
     $reviews = app(CatalogReviews::class);
     $review = $reviews->submit($venue, $reviewer, 4, 'Cena ottima, servizio un po\' lento.');
     $reviews->moderate($review, cpStaff(), 'approved', $review->revision, null);
 
     $this->getJson('/api/v1/venues/'.$venue->slug.'/reviews')->assertOk()
-        ->assertJsonPath('data.reviews.0.author', 'Mario')->assertDontSee('Rossi');
-    $this->get(route('venues.show', ['slug' => $venue->slug]))->assertOk()->assertDontSee('Rossi');
+        ->assertJsonPath('data.reviews.0.author', 'Mario')->assertDontSee('Pennacchiotti');
+    $this->get(route('venues.show', ['slug' => $venue->slug]))->assertOk()->assertDontSee('Pennacchiotti');
 });
 
 it('usa il nome del profilo solo se chi legge può vedere il profilo', function (): void {
     $venue = Venue::factory()->approved()->create(['city_id' => $this->city->id]);
     $reviewer = carpoolPerson(false);
-    $reviewer->forceFill(['first_name' => 'Mario', 'last_name' => 'Rossi', 'name' => 'Mario Rossi'])->save();
+    $reviewer->forceFill(['first_name' => 'Mario', 'last_name' => 'Pennacchiotti', 'name' => 'Mario Pennacchiotti'])->save();
     $reviewer->communityProfile()->create(['handle' => 'pseudo_'.$reviewer->id, 'display_name' => 'Pseudonimo', 'visibility' => ProfileVisibility::Members]);
     $reviews = app(CatalogReviews::class);
     $review = $reviews->submit($venue, $reviewer, 4, 'Cena ottima, servizio un po\' lento.');

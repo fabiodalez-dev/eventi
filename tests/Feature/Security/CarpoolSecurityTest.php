@@ -22,8 +22,8 @@ use Laravel\Sanctum\Sanctum;
  */
 beforeEach(function (): void {
     cpSetup($this);
-    $this->driver->forceFill(['first_name' => 'Mario', 'last_name' => 'Rossi', 'name' => 'Mario Rossi'])->save();
-    $this->passenger->forceFill(['first_name' => 'Giulia', 'last_name' => 'Bianchi', 'name' => 'Giulia Bianchi'])->save();
+    $this->driver->forceFill(['first_name' => 'Mario', 'last_name' => 'Pennacchiotti', 'name' => 'Mario Pennacchiotti'])->save();
+    $this->passenger->forceFill(['first_name' => 'Giulia', 'last_name' => 'Zanellonzi', 'name' => 'Giulia Zanellonzi'])->save();
 });
 
 afterEach(function (): void {
@@ -45,20 +45,20 @@ it('never shows the full registered name of drivers, requesters or review author
     Sanctum::actingAs(carpoolPerson());
     $this->getJson('/api/v1/carpool/drivers/'.$this->driver->id.'/reviews')->assertOk()
         ->assertJsonPath('data.driver_name', 'Mario')->assertJsonPath('data.reviews.0.name', 'Giulia')
-        ->assertDontSee('Rossi')->assertDontSee('Bianchi');
+        ->assertDontSee('Pennacchiotti')->assertDontSee('Zanellonzi');
 
     $offer = RideOffer::firstOrFail();
     Sanctum::actingAs($this->passenger->fresh());
-    $this->getJson('/api/v1/carpool/offers/'.$offer->id)->assertOk()->assertJsonPath('data.offer.driver.name', 'Mario')->assertDontSee('Rossi');
+    $this->getJson('/api/v1/carpool/offers/'.$offer->id)->assertOk()->assertJsonPath('data.offer.driver.name', 'Mario')->assertDontSee('Pennacchiotti');
     Sanctum::actingAs($this->driver->fresh());
-    $this->getJson('/api/v1/carpool/offers/'.$offer->id)->assertOk()->assertJsonPath('data.requests.0.requester.name', 'Giulia')->assertDontSee('Bianchi');
+    $this->getJson('/api/v1/carpool/offers/'.$offer->id)->assertOk()->assertJsonPath('data.requests.0.requester.name', 'Giulia')->assertDontSee('Zanellonzi');
 });
 
 it('hides the full name in the public «looking for a ride» list', function (): void {
     cpDiscovery($this, $this->passenger, 'search', ['occurrence_id' => $this->date->id, 'leg' => 'outbound', 'zone' => 'Arcella', 'seats' => 1,
         'accessibility' => 'not_specified', 'earliest_at' => '2026-10-10T17:00:00Z', 'latest_at' => '2026-10-10T19:00:00Z', 'is_public' => true, 'alerts_enabled' => false])->assertOk();
     Sanctum::actingAs($this->driver->fresh());
-    $this->getJson('/api/v1/carpool/occurrences/'.$this->date->id)->assertOk()->assertJsonPath('data.wanted.0.name', 'Giulia')->assertDontSee('Bianchi');
+    $this->getJson('/api/v1/carpool/occurrences/'.$this->date->id)->assertOk()->assertJsonPath('data.wanted.0.name', 'Giulia')->assertDontSee('Zanellonzi');
 });
 
 it('does not lend the name of a private community profile to the carpool pages', function (): void {
@@ -66,7 +66,7 @@ it('does not lend the name of a private community profile to the carpool pages',
     $this->driver->communityProfile()->create(['handle' => 'segreto_'.$this->driver->id, 'display_name' => 'Pseudonimo segreto', 'visibility' => ProfileVisibility::Private]);
     Sanctum::actingAs(carpoolPerson());
     $this->getJson('/api/v1/carpool/drivers/'.$this->driver->id.'/reviews')->assertOk()
-        ->assertJsonPath('data.driver_name', 'Mario')->assertDontSee('Pseudonimo segreto')->assertDontSee('Rossi');
+        ->assertJsonPath('data.driver_name', 'Mario')->assertDontSee('Pseudonimo segreto')->assertDontSee('Pennacchiotti');
 });
 
 it('does not open reviews of verified users who never offered a ride', function (): void {

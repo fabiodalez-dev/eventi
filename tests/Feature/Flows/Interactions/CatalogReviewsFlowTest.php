@@ -32,7 +32,7 @@ beforeEach(function (): void {
 });
 
 /** Una persona che può partecipare alla community, con nome e cognome. */
-function intFlowReviewer(string $first = 'Mario', string $last = 'Rossi'): User
+function intFlowReviewer(string $first = 'Mario', string $last = 'Pennacchiotti'): User
 {
     $user = carpoolPerson(false);
     $user->forceFill(['first_name' => $first, 'last_name' => $last, 'name' => $first.' '.$last])->save();
@@ -77,7 +77,7 @@ it('una recensione scritta dalla scheda del locale resta in attesa finché la mo
     $this->get($this->venuePage)->assertOk()
         ->assertSee('Cucina ottima e personale gentile.')
         ->assertSee(__('reviews.average', ['rating' => 4.5]))
-        ->assertDontSee('Rossi');
+        ->assertDontSee('Pennacchiotti');
     $this->getJson('/api/v1/venues/'.$this->venue->slug.'/reviews')->assertOk()
         ->assertJsonPath('data.count', 2)
         ->assertJsonPath('data.rated_count', 2)
