@@ -11,6 +11,10 @@ import android.graphics.Paint
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Fullscreen
+import androidx.compose.material.icons.outlined.FullscreenExit
+import androidx.compose.material.icons.outlined.Remove
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -283,11 +287,7 @@ fun CompleteEventDetailScreen(
                         ) { Text("SCOPRI IL LOCALE") }
                         if (venue.lat != null && venue.lng != null) {
                             Spacer(Modifier.height(14.dp))
-                            InteractiveMap(
-                                points = listOf(MapPoint(venue.lat, venue.lng, venue.name)),
-                                modifier = Modifier.fillMaxWidth().height(250.dp),
-                                zoom = 15.5,
-                            ) { onVenue(venue) }
+                            PinnedMap(MapPoint(venue.lat, venue.lng, venue.name), Modifier.fillMaxWidth().height(250.dp)) { onVenue(venue) }
                             MapCaption("${venue.name} · TOCCA IL PUNTO PER APRIRE IL LOCALE")
                             Spacer(Modifier.height(10.dp))
                             ActionButton("INDICAZIONI", Icons.Outlined.Map) { directions(context, venue.lat, venue.lng, venue.name) }
@@ -303,7 +303,7 @@ fun CompleteEventDetailScreen(
                         Text(listOfNotNull(place.address, place.municipality).joinToString(" · "), color = Muted, modifier = Modifier.padding(top = 8.dp))
                         if (place.lat != null && place.lng != null) {
                             Spacer(Modifier.height(14.dp))
-                            InteractiveMap(listOf(MapPoint(place.lat, place.lng, place.name ?: detail.title)), Modifier.fillMaxWidth().height(250.dp), 15.5) {
+                            PinnedMap(MapPoint(place.lat, place.lng, place.name ?: detail.title), Modifier.fillMaxWidth().height(250.dp)) {
                                 directions(context, place.lat, place.lng, place.name ?: detail.title)
                             }
                             MapCaption("${place.name ?: detail.title} · TOCCA IL PUNTO PER LE INDICAZIONI")
@@ -571,7 +571,7 @@ fun VenueDetailScreen(
                 }
                 if (venue.lat != null && venue.lng != null) {
                     DetailSection("MAPPA") {
-                        InteractiveMap(listOf(MapPoint(venue.lat, venue.lng, venue.name)), Modifier.fillMaxWidth().height(280.dp), 15.5) {
+                        PinnedMap(MapPoint(venue.lat, venue.lng, venue.name), Modifier.fillMaxWidth().height(280.dp)) {
                             directions(context, venue.lat, venue.lng, venue.name)
                         }
                         MapCaption("${venue.name} · TOCCA IL PUNTO PER LE INDICAZIONI")
@@ -887,6 +887,50 @@ fun ConsentOverlay(onChoice: (Boolean) -> Unit) {
 
 private data class MapPoint(val lat: Double, val lng: Double, val title: String, val payload: MapMarker? = null)
 
+/**
+ * La mappa di un locale o di un evento, come sul sito: ferma sul punto, con
+ * + e − (e due dita) per lo zoom attorno al centro, e un pulsante per
+ * aprirla a tutto schermo. A schermo intero vale lo stesso: si guarda da
+ * vicino o da lontano, non ci si sposta.
+ */
+@Composable
+private fun PinnedMap(point: MapPoint, modifier: Modifier, zoom: Double = 15.5, onMarker: () -> Unit) {
+    var fullscreen by remember { mutableStateOf(false) }
+    var inline by remember { mutableStateOf<org.maplibre.android.maps.MapLibreMap?>(null) }
+    val points = remember(point) { listOf(point) }
+    Box(modifier) {
+        InteractiveMap(points, Modifier.fillMaxSize(), zoom, pinned = true, onMapReady = { inline = it }) { onMarker() }
+        MapZoomControls(Modifier.align(Alignment.TopEnd).padding(10.dp), { inline }, onFullscreen = { fullscreen = true }, fullscreen = false)
+    }
+    if (fullscreen) {
+        androidx.compose.ui.window.Dialog(
+            onDismissRequest = { fullscreen = false },
+            properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
+        ) {
+            var large by remember { mutableStateOf<org.maplibre.android.maps.MapLibreMap?>(null) }
+            Box(Modifier.fillMaxSize().background(Ink)) {
+                InteractiveMap(points, Modifier.fillMaxSize(), inline?.cameraPosition?.zoom ?: zoom, pinned = true, onMapReady = { large = it }) { onMarker() }
+                MapZoomControls(Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(12.dp), { large }, onFullscreen = { fullscreen = false }, fullscreen = true)
+            }
+        }
+    }
+}
+
+@Composable
+private fun MapZoomControls(modifier: Modifier, map: () -> org.maplibre.android.maps.MapLibreMap?, onFullscreen: () -> Unit, fullscreen: Boolean) {
+    @Composable
+    fun Control(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, onClick: () -> Unit) {
+        IconButton(onClick = onClick, modifier = Modifier.size(48.dp).background(androidx.compose.ui.graphics.Color.White)) {
+            Icon(icon, contentDescription = label, tint = androidx.compose.ui.graphics.Color(0xFF141413))
+        }
+    }
+    Column(modifier.border(2.dp, androidx.compose.ui.graphics.Color(0xFF141413)), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Control(Icons.Outlined.Add, "Ingrandisci") { map()?.animateCamera(CameraUpdateFactory.zoomIn(), 250) }
+        Control(Icons.Outlined.Remove, "Rimpicciolisci") { map()?.animateCamera(CameraUpdateFactory.zoomOut(), 250) }
+        Control(if (fullscreen) Icons.Outlined.FullscreenExit else Icons.Outlined.Fullscreen, if (fullscreen) "Chiudi lo schermo intero" else "Mappa a schermo intero", onFullscreen)
+    }
+}
+
 @Suppress("DEPRECATION")
 @Composable
 private fun InteractiveMap(
@@ -894,13 +938,15 @@ private fun InteractiveMap(
     modifier: Modifier,
     zoom: Double,
     userPosition: LatLng? = null,
+    pinned: Boolean = false,
+    onMapReady: (org.maplibre.android.maps.MapLibreMap) -> Unit = {},
     onMarker: (List<MapPoint>) -> Unit = {},
 ) {
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     val light = isLightTheme
     val positionLabel = androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.map_your_position)
-    val mapView = remember(points, light, userPosition) {
+    val mapView = remember(points, light, userPosition, pinned) {
         MapLibre.getInstance(context)
         MapView(context).apply {
             onCreate(null)
@@ -913,10 +959,16 @@ private fun InteractiveMap(
                     isLogoEnabled = false
                     isAttributionEnabled = true
                     isZoomGesturesEnabled = true
-                    isScrollGesturesEnabled = true
+                    /* La mappa di un locale o di un evento resta sul punto:
+                       niente trascinamento, e lo zoom (due dita, doppio tocco)
+                       sempre attorno al centro, come sul sito. */
+                    isScrollGesturesEnabled = !pinned
                     isRotateGesturesEnabled = false
                     isTiltGesturesEnabled = false
+                    if (pinned) isCompassEnabled = false
                 }
+                if (pinned) this@apply.doOnLayout { view -> map.uiSettings.focalPoint = android.graphics.PointF(view.width / 2f, view.height / 2f) }
+                onMapReady(map)
                 map.setStyle(Style.Builder().fromUri(if (light) "https://tiles.openfreemap.org/styles/positron" else MAP_STYLE)) {
                     val markerGroups = mutableMapOf<Long, List<MapPoint>>()
                     val groupPositions = mutableMapOf<Long, LatLng>()

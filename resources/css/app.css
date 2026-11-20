@@ -1076,6 +1076,44 @@
     border-top: 2px solid var(--ink);
 }
 
+/* La mappa di un locale o di un evento a schermo intero (`pinnedMap` in
+   `resources/js/map.js`): un riquadro fisso sopra tutta la pagina, testata e
+   barra in basso comprese, e la pagina sotto ferma. */
+/* Il foglio di MapLibre arriva dopo questo e rimetterebbe i suoi 29px: i
+   comandi restano da 48, la misura minima di un bersaglio da toccare. */
+.maplibregl-ctrl-top-right .maplibregl-ctrl-group button {
+    width: 48px;
+    height: 48px;
+}
+
+.map-fullscreen-toggle {
+    display: grid;
+    place-items: center;
+    color: var(--ink);
+}
+
+.maplibregl-ctrl-group button.map-fullscreen-toggle:hover,
+.maplibregl-ctrl-group button.map-fullscreen-toggle:focus-visible {
+    color: var(--on-accent);
+}
+
+.map-shell--fullscreen {
+    position: fixed !important;
+    inset: 0;
+    z-index: 9500;
+    background: var(--canvas);
+}
+
+.map-shell--fullscreen [data-map] {
+    height: 100dvh !important;
+    aspect-ratio: auto !important;
+}
+
+.map-fullscreen-open,
+.map-fullscreen-open body {
+    overflow: hidden;
+}
+
 .maplibregl-ctrl-group button:hover,
 .maplibregl-ctrl-group button:focus-visible {
     background-color: var(--accent);

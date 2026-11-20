@@ -210,6 +210,7 @@ Scopre cosa fare, organizza il proprio calendario e riceve aggiornamenti sugli a
 - **Ricerca nel catalogo** — Cerca eventi e riferimenti di interesse attraverso i contenuti disponibili.
 - **Filtri di scoperta** — Restringe i risultati per data, categoria, prezzo e caratteristiche previste dal catalogo.
 - **Mappa interattiva** — Esplora eventi e luoghi geograficamente, aprendo i dettagli direttamente dalla mappa.
+- **Mappa del locale e dell'evento** — Nella scheda del locale e dell'evento la mappa resta sul punto: non si trascina, si ingrandisce e si rimpicciolisce attorno al locale con + e − o con due dita, e si apre a schermo intero (Esc o lo stesso pulsante per chiudere). *Sito, da telefono e da computer, e app.*
 - **Vicino a te** — Scopre appuntamenti entro 5 o 10 chilometri dalla posizione utilizzata.
 - **Posizione attuale con permesso** — Autorizza la geolocalizzazione per ottenere suggerimenti vicini al punto in cui si trova.
 - **Ultima posizione ricordata** — Con scelta esplicita, conserva per sei mesi l’ultima posizione approssimata nel dispositivo e nell’account.
@@ -322,6 +323,7 @@ Il valore della piattaforma deriva dall’incontro fra offerta locale, pubblico 
 ## Registro degli aggiornamenti
 
 - **20 novembre 2026** — 265 test nuovi che seguono dall’inizio alla fine passaggi, iscrizione e gestione degli eventi dei locali, con le correzioni trovate: si può chiedere di nuovo un posto dopo averlo ritirato, la ricerca per tappa ignora maiuscole e accenti, la pubblicazione programmata esce all’ora giusta, una data spostata non ricompare al giorno vecchio, «Duplica» funziona anche sugli eventi valutati dalla redazione, il motivo del rifiuto si legge nel pannello, accesso e profilo accettano indirizzi di ritorno e nomi lunghi.
+- **21 novembre 2026** — Le mappe nella scheda del locale e dell'evento restano sul punto: solo zoom e schermo intero, sul sito e nell'app.
 - **20 novembre 2026 (notte)** — L'app Android ha la home del sito dal telefono: titolo con Oggi, Domani, Weekend e Gratis scritti in grande (senza numeri, anche sul sito), «Esplora», «Apri la mappa», «Trova la tua serata», il calendario del mese con gli eventi di ogni giorno, «Inizia tra poco» con «A seguire», «Organizzi eventi?» e i numeri della città. La barra in basso ha le stesse sette voci del sito, con Calendario; la scheda Calendario mostra il mese in griglia e le date del giorno scelto.
 - **20 novembre 2026 (sera)** — La vista degli elenchi (card grandi, griglia, elenco compatto) si salva nel profilo come il tema: scelta sul sito dal telefono la ritrova l'app, e viceversa. Nell'app le tre viste ci sono ora anche in home, ricerca, salvati, calendario, locali, organizzatori e nella scheda dell'evento, con il selettore sopra gli elenchi e nel profilo.
 - **20 novembre 2026 (pomeriggio)** — Biglietto ridisegnato come un biglietto vero, con la serata, la data in grande, il nome di chi entra e la matrice col QR, sul sito, nel link condiviso, nel PDF e nell'app Android. Nell'app le descrizioni tengono la riga vuota fra i paragrafi e i punti degli elenchi; anche i riassunti dei locali e le note di «ci vado» vanno a capo dove li si è scritti.

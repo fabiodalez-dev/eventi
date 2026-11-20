@@ -95,6 +95,8 @@
             'error' => __('common.error'),
             'locate' => __('map.locate'),
             'yourPosition' => __('map.your_position'),
+            'fullscreen' => __('map.fullscreen'),
+            'exitFullscreen' => __('map.exit_fullscreen'),
         ],
         'payload' => $payload,
     ];

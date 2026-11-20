@@ -67,8 +67,9 @@
 
         {{-- La mappa del locale, più in basso, è lo stesso riquadro MapLibre di
              tutto il sito e senza questo script non si accende: restava un
-             rettangolo con la propria frase, e sembrava rotta. --}}
-        @vite(['resources/js/map.js', 'resources/js/comments.js'])
+             rettangolo con la propria frase, e sembrava rotta. `map.css`
+             mette al loro posto i comandi di zoom e dello schermo intero. --}}
+        @vite(['resources/css/map.css', 'resources/js/map.js', 'resources/js/comments.js'])
     </x-slot:head>
 
     {{-- La riga di ritorno: dove sono e da dove vengo. Nel riferimento è una

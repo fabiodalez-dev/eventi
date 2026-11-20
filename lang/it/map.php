@@ -22,8 +22,10 @@ return [
        mai salvata da nessuna parte. */
     'pins' => 'Mappa · un locale|Mappa · :count locali',
     'cluster_hint' => 'I numeri indicano quanti locali ci sono in quella zona.',
-    'pin_hint' => 'Tocca il punto per vedere il locale e le date in programma.',
+    'pin_hint' => 'Tocca il punto per vedere il locale. Con + e − (o due dita) cambi lo zoom; il riquadro in alto apre la mappa a schermo intero.',
     'your_position' => 'La tua posizione',
+    'fullscreen' => 'Mappa a schermo intero',
+    'exit_fullscreen' => 'Chiudi lo schermo intero',
     'locate' => 'Vai alla mia posizione',
     'search_here' => 'Cerca in quest\'area',
     'searching' => 'Cerco…',

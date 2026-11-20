@@ -120,6 +120,72 @@ async function vectorStyle(url) {
 
 const startedMaps = new WeakSet();
 
+/*
+ * La mappa di un locale o di un evento: resta sul punto. Non si trascina e
+ * non gira; si ingrandisce e si rimpicciolisce sempre attorno al centro, con
+ * + e −, con due dita sul telefono e, a schermo intero, con la rotella. Con
+ * un dito solo la pagina continua a scorrere: la mappa non si prende il
+ * gesto.
+ *
+ * Lo schermo intero è un riquadro fisso sopra la pagina, non la Fullscreen
+ * API: su iPhone quella esiste solo per i video, e il pulsante sarebbe
+ * sparito proprio sul telefono. Esc o lo stesso pulsante lo chiudono.
+ */
+function pinnedMap(map, shell, config) {
+    map.boxZoom.disable();
+    map.dragPan.disable();
+    map.dragRotate.disable();
+    map.keyboard.disable();
+    map.doubleClickZoom.disable();
+    map.scrollZoom.disable();
+    map.touchZoomRotate.enable({ around: 'center' });
+    map.touchZoomRotate.disableRotation();
+    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+
+    const labels = config.labels ?? {};
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'map-fullscreen-toggle';
+    button.dataset.mapFullscreen = '';
+    const icons = {
+        open: '<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/></svg>',
+        close: '<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14h6v6"/><path d="M20 10h-6V4"/><path d="M14 10l7-7"/><path d="M3 21l7-7"/></svg>',
+    };
+    const control = {
+        onAdd() {
+            const group = document.createElement('div');
+            group.className = 'maplibregl-ctrl maplibregl-ctrl-group';
+            group.appendChild(button);
+            return group;
+        },
+        onRemove() { button.parentElement?.remove(); },
+    };
+    map.addControl(control, 'top-right');
+
+    const keepCenter = () => { if (Array.isArray(config.center)) map.setCenter(config.center); };
+    const onKey = (event) => { if (event.key === 'Escape') toggle(false); };
+    const toggle = (open) => {
+        shell.classList.toggle('map-shell--fullscreen', open);
+        document.documentElement.classList.toggle('map-fullscreen-open', open);
+        button.innerHTML = open ? icons.close : icons.open;
+        button.setAttribute('aria-label', open ? (labels.exitFullscreen ?? '') : (labels.fullscreen ?? ''));
+        button.title = button.getAttribute('aria-label');
+        button.setAttribute('aria-pressed', open ? 'true' : 'false');
+        if (open) {
+            map.scrollZoom.enable({ around: 'center' });
+            document.addEventListener('keydown', onKey);
+        } else {
+            map.scrollZoom.disable();
+            document.removeEventListener('keydown', onKey);
+        }
+        /* Il riquadro cambia misura: la mappa si ridisegna e torna sul punto. */
+        requestAnimationFrame(() => { map.resize(); keepCenter(); });
+    };
+    toggle(false);
+    button.addEventListener('click', () => toggle(!shell.classList.contains('map-shell--fullscreen')));
+    map.on('remove', () => { if (shell.classList.contains('map-shell--fullscreen')) toggle(false); });
+}
+
 async function startMap(shell) {
     if (startedMaps.has(shell)) return;
     startedMaps.add(shell);
@@ -230,12 +296,7 @@ async function startMap(shell) {
     });
 
     if (config.static) {
-        map.boxZoom.disable();
-        map.scrollZoom.disable();
-        map.dragPan.disable();
-        map.keyboard.disable();
-        map.doubleClickZoom.disable();
-        map.touchZoomRotate.disable();
+        pinnedMap(map, shell, config);
     } else {
         map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
         map.addControl(new maplibregl.GeolocateControl({
