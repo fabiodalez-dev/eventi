@@ -207,9 +207,42 @@ final class EventOccurrenceObserver
         foreach (self::SERIES_ATTRIBUTES as $attribute) {
             if ($occurrence->isDirty($attribute)) {
                 $occurrence->is_exception = true;
+                $this->excludeOriginalSlot($occurrence);
 
                 return;
             }
+        }
+    }
+
+    /**
+     * Una data della serie spostata lascia libero il suo posto nella regola, e
+     * `GenerateOccurrencesAction` — che inserisce le date mancanti, «Ripeti»
+     * dal pannello o il comando mensile — lo avrebbe riempito di nuovo: la
+     * serata del giovedì spostata al sabato ricompariva anche il giovedì. Il
+     * posto originale entra quindi fra le `exdates` della serie (D20), scritto
+     * nell'ora locale della città come le legge il generatore.
+     */
+    private function excludeOriginalSlot(EventOccurrence $occurrence): void
+    {
+        $original = $occurrence->getOriginal('starts_at');
+
+        if (! $occurrence->isDirty('starts_at') || ! $original instanceof DateTimeInterface) {
+            return;
+        }
+
+        $recurrence = $occurrence->recurrence;
+        $timezone = $this->resolveEvent($occurrence)?->city?->timezone;
+
+        if ($recurrence === null || ! is_string($timezone)) {
+            return;
+        }
+
+        $slot = CarbonImmutable::instance($original)->setTimezone($timezone)->format('Y-m-d H:i:s');
+        $exdates = is_array($recurrence->exdates) ? $recurrence->exdates : [];
+
+        if (! in_array($slot, $exdates, true)) {
+            $recurrence->exdates = [...$exdates, $slot];
+            $recurrence->save();
         }
     }
 
