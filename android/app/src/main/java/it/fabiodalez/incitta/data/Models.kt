@@ -266,6 +266,8 @@ data class User(
     @SerialName("whatsapp_prompted") val whatsappPrompted: Boolean = false,
     @SerialName("role_label") val roleLabel: String? = null,
     val appearance: String = "dark",
+    /* La vista degli elenchi, condivisa col sito: `full`, `grid`, `list`, oppure null se il profilo non ne ha una. */
+    @SerialName("card_layout") val cardLayout: String? = null,
     val timezone: String = "Europe/Rome",
     @SerialName("management_links") val managementLinks: List<ManagementLink> = emptyList(),
 )

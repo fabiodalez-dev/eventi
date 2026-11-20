@@ -50,6 +50,8 @@ final class UserResource
             'appearance' => $user->appearance ?? 'dark',
             // La scelta della persona: `light`, `dark` oppure null (nessuna scelta, si segue il tema del sistema).
             'appearance_choice' => $user->appearance,
+            // La vista degli elenchi sul telefono: `full`, `grid`, `list`, oppure null (nessuna scelta: vale quella del dispositivo).
+            'card_layout' => $user->card_layout,
             'marketing_opt_in' => $user->marketing_opt_in_at !== null,
             'created_at' => ApiDate::attribute($user, 'created_at', $timezone),
             'updated_at' => ApiDate::attribute($user, 'updated_at', $timezone),

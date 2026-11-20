@@ -128,6 +128,14 @@
     $service = (bool) ($service ?? false);
 
     /*
+     * La vista degli elenchi sul telefono. Chi è collegato la trova nel
+     * profilo, scelta qui o nell'app: la sua pagina non va mai in cache, e la
+     * vista si scrive già nell'HTML. Senza una scelta nel profilo (e per
+     * l'ospite) la legge lo script qui sotto dalla memoria del browser.
+     */
+    $profileCardLayout = \App\Support\CardLayout::choice(auth()->user()?->card_layout);
+
+    /*
      * Le pagine informative del piè di pagina (§11.1, §16). L'elenco non è
      * scritto qui: sono le pagine **pubblicate** che esistono davvero, nel loro
      * ordine di redazione. Un collegamento a un'informativa privacy che nessuno
@@ -147,7 +155,7 @@
         : [];
 @endphp
 <!DOCTYPE html>
-<html data-theme="{{ $chosenTheme ?? $browserTheme ?? 'dark' }}" data-theme-user="{{ auth()->id() ?? 'guest' }}" @if ($chosenTheme === null) data-theme-auto @endif data-card-layout="full" lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html data-theme="{{ $chosenTheme ?? $browserTheme ?? 'dark' }}" data-theme-user="{{ auth()->id() ?? 'guest' }}" @if ($chosenTheme === null) data-theme-auto @endif data-card-layout="{{ $profileCardLayout ?? 'full' }}" @if ($profileCardLayout !== null) data-card-layout-saved @endif @if (auth()->check() && \Illuminate\Support\Facades\Route::has('appearance.card-layout')) data-card-layout-url="{{ route('appearance.card-layout') }}" @endif lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -183,9 +191,11 @@
          scelta vera: un tema dedotto dal sistema non diventa una preferenza,
          ed è ciò che al primo accesso viene copiato nel profilo.
 
-         La vista degli elenchi sul telefono (`full`, `grid`, `list`) è una
-         preferenza del browser, letta qui per lo stesso motivo del tema: le
-         card devono nascere nella forma giusta, non saltare dopo. --}}
+         La vista degli elenchi sul telefono (`full`, `grid`, `list`) si legge
+         qui per lo stesso motivo del tema: le card devono nascere nella forma
+         giusta, non saltare dopo. Se il profilo ne ha una
+         (`data-card-layout-saved`) vale quella, altrimenti la memoria del
+         browser. --}}
     <script @cspNonce>
         (() => {
             const root = document.documentElement;
@@ -201,9 +211,11 @@
                     document.cookie = 'incitta_appearance=' + root.dataset.theme + '; Path=/; Max-Age=31536000; SameSite=Lax' + (location.protocol === 'https:' ? '; Secure' : '');
                 }
             }
-            let layout = null;
-            try { layout = localStorage.getItem('incitta:card-layout'); } catch {}
-            root.dataset.cardLayout = layout === 'grid' || layout === 'list' ? layout : 'full';
+            if (!('cardLayoutSaved' in root.dataset)) {
+                let layout = null;
+                try { layout = localStorage.getItem('incitta:card-layout'); } catch {}
+                root.dataset.cardLayout = layout === 'grid' || layout === 'list' ? layout : 'full';
+            }
             document.querySelector('meta[name="color-scheme"]').content = root.dataset.theme;
             document.querySelector('meta[name="theme-color"]').content = root.dataset.theme === 'light' ? '#faf9f6' : '#0b0b0b';
         })();

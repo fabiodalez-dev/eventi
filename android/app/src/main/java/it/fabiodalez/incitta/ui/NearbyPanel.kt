@@ -102,7 +102,7 @@ internal fun NearbyPanel(state: AppUiState, onOpen: (Occurrence) -> Unit, onSave
     Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         if (today.isNotEmpty()) {
             Text(stringResource(R.string.home_today), style = MaterialTheme.typography.headlineSmall)
-            today.forEach { occurrence -> EventRow(occurrence, occurrence.occurrenceId in state.savedIds, onOpen, onSave) }
+            EventCards(today, state.savedIds, onOpen, onSave)
         }
         if (events.isNotEmpty()) {
         Text(stringResource(R.string.location_title), style = MaterialTheme.typography.headlineSmall)
@@ -136,7 +136,7 @@ internal fun NearbyPanel(state: AppUiState, onOpen: (Occurrence) -> Unit, onSave
             }
         }) { Text(stringResource(R.string.location_forget)) }
         status?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
-        events.forEach { occurrence -> EventRow(occurrence, occurrence.occurrenceId in state.savedIds, onOpen, onSave) }
+        EventCards(events, state.savedIds, onOpen, onSave)
         }
     }
 }

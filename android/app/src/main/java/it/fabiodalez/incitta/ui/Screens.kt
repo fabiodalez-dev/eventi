@@ -18,6 +18,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -162,18 +163,15 @@ fun EventsScreen(
                 Spacer(Modifier.height(24.dp))
                 FeatureCard(featured, featured.occurrenceId in state.savedIds, onOpen, onSave)
                 SectionTitle("IN PROGRAMMA", "${state.occurrences.size} APPUNTAMENTI")
+                CardLayoutBar()
             }
-            items(state.occurrences.drop(1).take(5), key = Occurrence::occurrenceId) { occurrence ->
-                EventRow(occurrence, occurrence.occurrenceId in state.savedIds, onOpen, onSave)
-            }
+            eventCards(state.occurrences.drop(1).take(5), state.cardLayout, state.savedIds, onOpen, onSave)
             if (state.occurrences.size > 6 && inlineBanner != null) {
                 item(key = "inline-sponsored-event") {
                     SponsoredEventBanner(inlineBanner, { onBannerImpression(inlineBanner) }, { onBannerOpen(inlineBanner) })
                 }
             }
-            items(state.occurrences.drop(6), key = Occurrence::occurrenceId) { occurrence ->
-                EventRow(occurrence, occurrence.occurrenceId in state.savedIds, onOpen, onSave)
-            }
+            eventCards(state.occurrences.drop(6), state.cardLayout, state.savedIds, onOpen, onSave)
         }
         item { CalendarBanner(onCalendar) }
         item { Spacer(Modifier.height(24.dp)) }
@@ -285,12 +283,9 @@ fun SearchScreen(
                 state.activeTag?.let { "EVENTI · #${it.name.uppercase()}" } ?: "EVENTI",
                 resultCount(state.searchResults.size),
             )
+            CardLayoutBar()
         }
-        items(state.searchResults, key = Occurrence::occurrenceId) { occurrence ->
-            Box(Modifier.fillMaxWidth().graphicsLayer { alpha = resultsAlpha }) {
-                EventRow(occurrence, occurrence.occurrenceId in state.savedIds, onOpen, onSave)
-            }
-        }
+        eventCards(state.searchResults, state.cardLayout, state.savedIds, onOpen, onSave, rowModifier = Modifier.graphicsLayer { alpha = resultsAlpha })
         state.searchError?.let { error -> item {
             Column(Modifier.padding(18.dp)) {
                 Text(error, color = Paper)
@@ -364,9 +359,9 @@ fun SavedScreen(
             item { EmptyBlock("LA LISTA È VUOTA", "Tocca il segnalibro su un evento per ritrovarlo qui.") }
         }
         if (mode != 1) {
-            items(items, key = Occurrence::occurrenceId) { occurrence ->
-                EventRow(occurrence, true, onOpen, onSave)
-                if (state.session != null && onPrivacy != null) TextButton(onClick = { onPrivacy(occurrence.occurrenceId) }, modifier = Modifier.padding(horizontal = 18.dp)) { Text(stringResource(R.string.community_save_privacy)) }
+            if (items.isNotEmpty()) item(key = "saved-card-layout") { CardLayoutBar() }
+            eventCards(items, state.cardLayout, items.map(Occurrence::occurrenceId).toSet(), onOpen, onSave) { occurrence ->
+                if (state.session != null && onPrivacy != null) TextButton(onClick = { onPrivacy(occurrence.occurrenceId) }, modifier = Modifier.padding(horizontal = if (state.cardLayout == "grid") 0.dp else 18.dp)) { Text(stringResource(R.string.community_save_privacy)) }
             }
         } else {
             item(key = "saved-calendar-grid-$calendarMonth") {
@@ -844,7 +839,11 @@ private fun SectionTitle(title: String, detail: String) {
 }
 
 @Composable
-internal fun EventRow(event: Occurrence, saved: Boolean, onOpen: (Occurrence) -> Unit, onSave: (Long) -> Unit) {
+internal fun EventRow(event: Occurrence, saved: Boolean, onOpen: (Occurrence) -> Unit, onSave: (Long) -> Unit, layout: String = LocalCardLayout.current) {
+    when (layout) {
+        "list" -> { EventListRow(event, saved, onOpen, onSave); return }
+        "grid" -> { EventGridCard(event, saved, onOpen, onSave); return }
+    }
     /*
      * Due impianti, lo stesso contenuto.
      *
@@ -889,6 +888,62 @@ internal fun EventRow(event: Occurrence, saved: Boolean, onOpen: (Occurrence) ->
         corpo()
         HorizontalDivider(thickness = 1.dp, color = Rule)
         Spacer(Modifier.height(16.dp))
+    }
+}
+
+/*
+ * La riga compatta (`list`): locandina piccola a sinistra, titolo, luogo e
+ * ora a destra, il segnalibro in fondo. Come sul sito, per scorrere tante
+ * date senza perdere la locandina.
+ */
+@Composable
+private fun EventListRow(event: Occurrence, saved: Boolean, onOpen: (Occurrence) -> Unit, onSave: (Long) -> Unit) {
+    val chiaro = isLightTheme
+    val contenuto: @Composable () -> Unit = {
+        Row(Modifier.fillMaxWidth().clickable { onOpen(event) }.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
+            PosterImage(event.poster?.thumb ?: event.poster?.card ?: event.poster?.full, Modifier.width(76.dp).aspectRatio(3f / 4f).clip(if (chiaro) PosterShape else androidx.compose.ui.graphics.RectangleShape))
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                event.category?.name?.let { Text(it, color = Muted, style = MaterialTheme.typography.labelSmall, maxLines = 1) }
+                Text(eventTitle(event.title), style = MaterialTheme.typography.titleMedium, maxLines = 3, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                Text(event.placeName() ?: "Luogo da verificare", color = Muted, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                Text("${formatDay(event.startsAt)} · ${if (event.isAllDay) "Tutto il giorno" else formatClock(event.startsAt)}", color = Acid, style = MaterialTheme.typography.labelMedium)
+            }
+            SaveButton(saved) { onSave(event.occurrenceId) }
+        }
+    }
+    if (chiaro) {
+        androidx.compose.material3.Surface(Modifier.fillMaxWidth().padding(horizontal = 16.dp), color = CardSurface, contentColor = Paper, shape = CardShape) { contenuto() }
+        Spacer(Modifier.height(10.dp))
+    } else {
+        contenuto()
+        HorizontalDivider(thickness = 1.dp, color = Rule)
+    }
+}
+
+/*
+ * La card della griglia (`grid`): due per riga, locandina sopra, titolo,
+ * giorno e ora sotto; il segnalibro sta sulla locandina, dove c'è posto.
+ */
+@Composable
+private fun EventGridCard(event: Occurrence, saved: Boolean, onOpen: (Occurrence) -> Unit, onSave: (Long) -> Unit) {
+    val chiaro = isLightTheme
+    val contenuto: @Composable () -> Unit = {
+        Column(Modifier.fillMaxWidth().clickable { onOpen(event) }) {
+            Box {
+                PosterImage(event.poster?.card ?: event.poster?.thumb ?: event.poster?.full, Modifier.fillMaxWidth().aspectRatio(3f / 4f))
+                SaveButton(saved, Modifier.align(Alignment.TopEnd).padding(6.dp)) { onSave(event.occurrenceId) }
+            }
+            Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(eventTitle(event.title), style = MaterialTheme.typography.titleSmall, maxLines = 3, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                Text(formatDay(event.startsAt), color = Acid, style = MaterialTheme.typography.labelMedium, maxLines = 1)
+                if (!event.isAllDay) Text(formatClock(event.startsAt), color = Muted, style = MaterialTheme.typography.labelSmall)
+            }
+        }
+    }
+    if (chiaro) {
+        androidx.compose.material3.Surface(Modifier.fillMaxWidth(), color = CardSurface, contentColor = Paper, shape = CardShape) { contenuto() }
+    } else {
+        Column(Modifier.fillMaxWidth().border(1.dp, Rule)) { contenuto() }
     }
 }
 

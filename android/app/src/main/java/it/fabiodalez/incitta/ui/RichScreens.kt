@@ -351,7 +351,7 @@ fun CompleteEventDetailScreen(
 
                 if (related.isNotEmpty()) {
                     DetailSection("EVENTI SIMILI") {
-                        related.forEach { event -> CompactEventRow(event, event.occurrenceId in savedIds, onOpenEvent, onSave) }
+                        EventCards(related, savedIds, onOpenEvent, onSave)
                     }
                 }
 
@@ -596,11 +596,11 @@ fun VenueDetailScreen(
                 VenueReviewsSection(venue.slug.orEmpty(), session?.user?.id, onLogin, loadReviews, submitReview, deleteReview, onVerify = onVerifyReviews, report = reportReview)
                 DetailSection("TUTTI GLI EVENTI") {
                     if (events.isEmpty()) Text("Nessun evento futuro in calendario.", color = Muted)
-                    events.forEach { event -> CompactEventRow(event, event.occurrenceId in savedIds, onOpenEvent, onSave) }
+                    EventCards(events, savedIds, onOpenEvent, onSave)
                 }
                 if (pastEvents.isNotEmpty()) {
                     DetailSection("EVENTI PASSATI") {
-                        pastEvents.forEach { event -> CompactEventRow(event, event.occurrenceId in savedIds, onOpenEvent, onSave) }
+                        EventCards(pastEvents, savedIds, onOpenEvent, onSave)
                     }
                 }
                 Spacer(Modifier.height(28.dp))
@@ -704,12 +704,13 @@ fun CalendarScreen(state: AppUiState, padding: PaddingValues, onOpen: (Occurrenc
     LazyColumn(Modifier.fillMaxSize().padding(bottom = padding.calculateBottomPadding())) {
         item { ScreenHeader("CALENDARIO", "LE PROSSIME DATE IN CITTÀ", onBack) }
         item { CalendarSubscriptionPanel(initiallyExpanded = true) }
+        if (grouped.isNotEmpty()) item { CardLayoutBar() }
         if (grouped.isEmpty()) item { Text("Nessuna data disponibile.", color = Muted, modifier = Modifier.padding(24.dp)) }
         grouped.forEach { (_, events) ->
             item {
                 Text(fullDate(events.first().startsAt), color = Ink, modifier = Modifier.fillMaxWidth().background(Acid).padding(12.dp, 9.dp), style = androidx.compose.material3.MaterialTheme.typography.labelLarge)
             }
-            items(events, key = { it.occurrenceId }) { event -> CompactEventRow(event, event.occurrenceId in state.savedIds, onOpen, onSave) }
+            eventCards(events, state.cardLayout, state.savedIds, onOpen, onSave)
         }
     }
 }
@@ -1079,11 +1080,6 @@ internal fun DetailSection(title: String, content: @Composable () -> Unit) {
         HorizontalDivider(Modifier.padding(top = 8.dp, bottom = 14.dp), thickness = 2.dp, color = Paper)
         content()
     }
-}
-
-@Composable
-private fun CompactEventRow(event: Occurrence, saved: Boolean, onOpen: (Occurrence) -> Unit, onSave: (Long) -> Unit) {
-    EventRow(event, saved, onOpen, onSave)
 }
 
 @Composable

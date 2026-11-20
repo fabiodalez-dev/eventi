@@ -8,6 +8,11 @@
  * i selettori (`<x-card-layout-toggle>`) e si salva la scelta nuova. Un valore
  * sconosciuto vale `full`. La memoria del browser può mancare (navigazione
  * privata, dati bloccati): la vista cambia lo stesso, solo non si ricorda.
+ *
+ * Chi è collegato la salva anche nel profilo, come il tema
+ * (`data-card-layout-url`): la ritrova sugli altri dispositivi e nell'app.
+ * Se il profilo non ne ha ancora una, quella fatta in questo browser da
+ * ospite ci passa da sola alla prima pagina dopo l'accesso.
  */
 const KEY = 'incitta:card-layout';
 const LAYOUTS = ['full', 'grid', 'list'];
@@ -29,8 +34,38 @@ function sync(layout) {
     }
 }
 
-export function applyLayout(value) {
+/**
+ * Salva la scelta nel profilo. Se non riesce (rete, sessione scaduta) la
+ * vista resta cambiata in questa pagina e nel browser: è una comodità, non un
+ * dato da difendere con un messaggio d'errore.
+ */
+export function saveToProfile(layout) {
+    const url = document.documentElement.dataset.cardLayoutUrl;
+    const token = document.querySelector('meta[name="csrf-token"]')?.content;
+
+    if (!url || !token) {
+        return Promise.resolve(false);
+    }
+
+    return fetch(url, {
+        method: 'PATCH',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-TOKEN': token },
+        body: JSON.stringify({ card_layout: layout }),
+    })
+        .then(response => {
+            if (response.ok) {
+                document.documentElement.dataset.cardLayoutSaved = '';
+            }
+
+            return response.ok;
+        })
+        .catch(() => false);
+}
+
+export function applyLayout(value, { save = true } = {}) {
     const layout = normaliseLayout(value);
+    const changed = layout !== current() || !('cardLayoutSaved' in document.documentElement.dataset);
 
     document.documentElement.dataset.cardLayout = layout;
 
@@ -42,6 +77,10 @@ export function applyLayout(value) {
 
     sync(layout);
     document.dispatchEvent(new CustomEvent('card-layout:change', { detail: { layout } }));
+
+    if (save && changed) {
+        void saveToProfile(layout);
+    }
 
     return layout;
 }
@@ -69,6 +108,14 @@ export function cardLayout() {
     }
 
     listening = true;
+
+    /* Appena entrato, senza una scelta nel profilo: quella fatta qui da
+       ospite diventa la sua. La vista predefinita non è una scelta. */
+    const root = document.documentElement;
+
+    if (root.dataset.cardLayoutUrl && !('cardLayoutSaved' in root.dataset) && current() !== 'full') {
+        void saveToProfile(current());
+    }
 
     document.addEventListener('click', event => {
         const option = event.target instanceof Element ? event.target.closest('[data-card-layout-option]') : null;

@@ -38,6 +38,7 @@ use Overtrue\LaravelFollow\Traits\Follower;
 use Spatie\Permission\Traits\HasRoles;
 
 /** @property string|null $appearance `light`, `dark`, oppure null: segui il sistema */
+/** @property string|null $card_layout `full`, `grid`, `list` (vedi `CardLayout`), oppure null: nessuna scelta */
 /** @property array{mode?: string, categories?: list<int>, hidden_categories?: list<int>, inferred_ads?: bool, hidden_venues?: list<int>, access_needs?: list<string>}|null $content_preferences */
 class User extends Authenticatable implements FilamentUser, HasTenants, MustVerifyEmail
 {

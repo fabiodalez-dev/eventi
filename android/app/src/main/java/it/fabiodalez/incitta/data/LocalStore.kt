@@ -32,6 +32,10 @@ class LocalStore(private val context: Context) {
     }
     fun setGuestAppearance(value: String) { prefs.edit { putString("guest_appearance", value) } }
 
+    /* L'ultima vista degli elenchi usata su questo dispositivo, anche da ospite. */
+    fun cardLayout(): String? = prefs.getString("card_layout", null)?.takeIf { it in CARD_LAYOUTS }
+    fun setCardLayout(value: String) { prefs.edit { putString("card_layout", value) } }
+
     fun rememberedPosition(): RememberedPosition? {
         val raw = prefs.getString("remembered_position", null) ?: return null
         val position = runCatching { json.decodeFromString<RememberedPosition>(decrypt(raw)) }.getOrNull()

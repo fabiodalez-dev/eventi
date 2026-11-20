@@ -69,6 +69,7 @@ import it.fabiodalez.incitta.data.offersPresence
 fun InCittaApp(viewModel: MainViewModel) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     InCittaTheme(light = state.appearance == "light") {
+    androidx.compose.runtime.CompositionLocalProvider(LocalCardLayout provides state.cardLayout, LocalCardLayoutChange provides viewModel::setCardLayout) {
         var managementOpen by remember(state.session?.token) { mutableStateOf(false) }
         var collectionsOpen by remember(state.session?.token) { mutableStateOf(false) }
         var organizerSlug by remember { mutableStateOf<String?>(null) }
@@ -507,6 +508,7 @@ fun InCittaApp(viewModel: MainViewModel) {
         }
         if (state.privacyConsent == null) ConsentOverlay(viewModel::setPrivacyConsent)
         }
+    }
     }
 }
 

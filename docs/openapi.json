@@ -7,7 +7,7 @@
     },
     "servers": [
         {
-            "url": "http://127.0.0.1:8094/api/v1"
+            "url": "http://127.0.0.1:8095/api/v1"
         }
     ],
     "security": [
@@ -353,6 +353,10 @@
                                                             ],
                                                             "description": "La scelta della persona: `light`, `dark` oppure null (nessuna scelta, si segue il tema del sistema)."
                                                         },
+                                                        "card_layout": {
+                                                            "type": "string",
+                                                            "description": "La vista degli elenchi sul telefono: `full`, `grid`, `list`, oppure null (nessuna scelta: vale quella del dispositivo)."
+                                                        },
                                                         "marketing_opt_in": {
                                                             "type": "boolean"
                                                         },
@@ -387,6 +391,7 @@
                                                         "locale",
                                                         "appearance",
                                                         "appearance_choice",
+                                                        "card_layout",
                                                         "marketing_opt_in",
                                                         "created_at",
                                                         "updated_at"
@@ -5946,19 +5951,6 @@
                 "operationId": "community.settings",
                 "tags": [
                     "Community"
-                ],
-                "parameters": [
-                    {
-                        "name": "intended",
-                        "in": "query",
-                        "schema": {
-                            "type": [
-                                "string",
-                                "null"
-                            ],
-                            "maxLength": 2048
-                        }
-                    }
                 ],
                 "responses": {
                     "200": {
@@ -11789,6 +11781,13 @@
                                                                     }
                                                                 ]
                                                             },
+                                                            "organizer": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ],
+                                                                "description": "Chi organizza, come lo stampa il biglietto: \u00abOrganizza \u2026\u00bb."
+                                                            },
                                                             "venue": {
                                                                 "type": [
                                                                     "string",
@@ -11922,6 +11921,7 @@
                                                             "title",
                                                             "event_slug",
                                                             "poster",
+                                                            "organizer",
                                                             "venue",
                                                             "address",
                                                             "starts_at",
@@ -11983,6 +11983,9 @@
                                                                 "string",
                                                                 "null"
                                                             ]
+                                                        },
+                                                        "card_layout": {
+                                                            "type": "string"
                                                         },
                                                         "notification_preferences": {
                                                             "type": "object",
@@ -12120,6 +12123,7 @@
                                                         "timezone",
                                                         "locale",
                                                         "appearance",
+                                                        "card_layout",
                                                         "notification_preferences",
                                                         "content_preferences",
                                                         "daily_digest_time",
@@ -15023,7 +15027,7 @@
                                                                 },
                                                                 "impression_token": {
                                                                     "type": "string",
-                                                                    "description": "Il gettone usa e getta di questa visualizzazione: nuovo a ogni\nrisposta, va rimandato in `X-Impression-Token` con la\nvisualizzazione e con il clic. Lo stesso gettone conta una volta\nsola, quindi due client non devono condividerlo."
+                                                                    "description": "Il gettone usa e getta di questa visualizzazione: nuovo a ogni\nrisposta, va rimandato in `X-Impression-Token` con la\nvisualizzazione e con il clic. Lo stesso gettone conta una volta\nsola, quindi due client non devono condividerlo: la risposta che\nlo porta si segna, e `CacheJsonResponse` la dichiara privata e\nsenza ETag invece che pubblica per un minuto."
                                                                 }
                                                             },
                                                             "required": [
@@ -16154,7 +16158,7 @@
                                                                 },
                                                                 "impression_token": {
                                                                     "type": "string",
-                                                                    "description": "Il gettone usa e getta di questa visualizzazione: nuovo a ogni\nrisposta, va rimandato in `X-Impression-Token` con la\nvisualizzazione e con il clic. Lo stesso gettone conta una volta\nsola, quindi due client non devono condividerlo."
+                                                                    "description": "Il gettone usa e getta di questa visualizzazione: nuovo a ogni\nrisposta, va rimandato in `X-Impression-Token` con la\nvisualizzazione e con il clic. Lo stesso gettone conta una volta\nsola, quindi due client non devono condividerlo: la risposta che\nlo porta si segna, e `CacheJsonResponse` la dichiara privata e\nsenza ETag invece che pubblica per un minuto."
                                                                 }
                                                             },
                                                             "required": [
@@ -16600,6 +16604,10 @@
                                                             ],
                                                             "description": "La scelta della persona: `light`, `dark` oppure null (nessuna scelta, si segue il tema del sistema)."
                                                         },
+                                                        "card_layout": {
+                                                            "type": "string",
+                                                            "description": "La vista degli elenchi sul telefono: `full`, `grid`, `list`, oppure null (nessuna scelta: vale quella del dispositivo)."
+                                                        },
                                                         "marketing_opt_in": {
                                                             "type": "boolean"
                                                         },
@@ -16634,6 +16642,7 @@
                                                         "locale",
                                                         "appearance",
                                                         "appearance_choice",
+                                                        "card_layout",
                                                         "marketing_opt_in",
                                                         "created_at",
                                                         "updated_at"
@@ -23277,6 +23286,10 @@
                                                     ],
                                                     "description": "La scelta della persona: `light`, `dark` oppure null (nessuna scelta, si segue il tema del sistema)."
                                                 },
+                                                "card_layout": {
+                                                    "type": "string",
+                                                    "description": "La vista degli elenchi sul telefono: `full`, `grid`, `list`, oppure null (nessuna scelta: vale quella del dispositivo)."
+                                                },
                                                 "marketing_opt_in": {
                                                     "type": "boolean"
                                                 },
@@ -23311,6 +23324,7 @@
                                                 "locale",
                                                 "appearance",
                                                 "appearance_choice",
+                                                "card_layout",
                                                 "marketing_opt_in",
                                                 "created_at",
                                                 "updated_at"
@@ -23585,6 +23599,10 @@
                                                     ],
                                                     "description": "La scelta della persona: `light`, `dark` oppure null (nessuna scelta, si segue il tema del sistema)."
                                                 },
+                                                "card_layout": {
+                                                    "type": "string",
+                                                    "description": "La vista degli elenchi sul telefono: `full`, `grid`, `list`, oppure null (nessuna scelta: vale quella del dispositivo)."
+                                                },
                                                 "marketing_opt_in": {
                                                     "type": "boolean"
                                                 },
@@ -23619,6 +23637,7 @@
                                                 "locale",
                                                 "appearance",
                                                 "appearance_choice",
+                                                "card_layout",
                                                 "marketing_opt_in",
                                                 "created_at",
                                                 "updated_at"
@@ -29152,6 +29171,13 @@
                                                         }
                                                     ]
                                                 },
+                                                "organizer": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ],
+                                                    "description": "Chi organizza, come lo stampa il biglietto: \u00abOrganizza \u2026\u00bb."
+                                                },
                                                 "venue": {
                                                     "type": [
                                                         "string",
@@ -29285,6 +29311,7 @@
                                                 "title",
                                                 "event_slug",
                                                 "poster",
+                                                "organizer",
                                                 "venue",
                                                 "address",
                                                 "starts_at",
@@ -31319,19 +31346,6 @@
                 "tags": [
                     "Whatsapp"
                 ],
-                "parameters": [
-                    {
-                        "name": "intended",
-                        "in": "query",
-                        "schema": {
-                            "type": [
-                                "string",
-                                "null"
-                            ],
-                            "maxLength": 2048
-                        }
-                    }
-                ],
                 "responses": {
                     "200": {
                         "description": "",
@@ -32390,6 +32404,12 @@
                         ],
                         "additionalProperties": {}
                     },
+                    "organizer": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "venue": {
                         "type": [
                             "string",
@@ -33054,8 +33074,8 @@
                             "integer",
                             "null"
                         ],
-                        "minimum": 1779237583,
-                        "maximum": 1795135183
+                        "minimum": 1779309104,
+                        "maximum": 1795206704
                     },
                     "lat": {
                         "type": "number",
@@ -33762,12 +33782,25 @@
                             null
                         ]
                     },
+                    "card_layout": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "La vista degli elenchi sul telefono, condivisa col sito.",
+                        "enum": [
+                            "full",
+                            "grid",
+                            "list",
+                            null
+                        ]
+                    },
                     "name": {
                         "type": [
                             "string",
                             "null"
                         ],
-                        "maxLength": 120
+                        "maxLength": 255
                     },
                     "timezone": {
                         "type": "string"
