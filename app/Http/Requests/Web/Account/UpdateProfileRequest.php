@@ -34,7 +34,7 @@ class UpdateProfileRequest extends FormRequest
     {
         return [
             'profile_only' => ['sometimes', 'boolean'],
-            'name' => ['nullable', 'string', 'max:120'],
+            'name' => ['nullable', 'string', 'max:255'],
             'timezone' => ['required', 'string', 'timezone'],
             'locale' => ['required', 'string', Rule::in(config()->array('account.locales'))],
             'marketing_opt_in' => ['nullable', 'boolean'],

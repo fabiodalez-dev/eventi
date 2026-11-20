@@ -171,7 +171,7 @@ final class EventActions
                 Notification::make()
                     ->title($changed === 0
                         ? __('manage.notifications.nothing_to_do')
-                        : __('manage.notifications.dates_updated', ['count' => $changed]))
+                        : trans_choice('manage.notifications.dates_updated', $changed, ['count' => $changed]))
                     ->success()
                     ->send();
             });
@@ -202,7 +202,7 @@ final class EventActions
                 Notification::make()
                     ->title($created === 0
                         ? __('manage.notifications.no_new_dates')
-                        : __('manage.notifications.dates_created', ['count' => $created]))
+                        : trans_choice('manage.notifications.dates_created', $created, ['count' => $created]))
                     ->success()
                     ->send();
             });
