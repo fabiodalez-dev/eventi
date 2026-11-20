@@ -211,17 +211,28 @@ fun CompleteEventDetailScreen(
                         if (index > 0) HorizontalDivider(Modifier.padding(vertical = 14.dp), color = Rule)
                         OccurrenceDateBlock(detail, occurrence, occurrence.occurrenceId in savedIds, onSave) { collectionFor = it }
                         if (occurrence.bookingEnabled) {
-                            Button(onClick = { onReserve(occurrence) }, modifier = Modifier.fillMaxWidth().padding(top = 10.dp), shape = ControlShape) {
+                            Button(onClick = { onReserve(occurrence) }, modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 6.dp), shape = ControlShape) {
                                 Text(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.ticket_reserve))
                             }
                         }
                         dateActions(occurrence)
-                        community(occurrence.occurrenceId)
-                        // Prima l'azione principale dell'evento, poi i passaggi per arrivarci.
-                        Text(cpText("subtitle"), modifier=Modifier.padding(top=16.dp), style=MaterialTheme.typography.bodySmall)
-                        androidx.compose.foundation.layout.FlowRow(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-                            CpButton("seek") {if(carpoolVerified) onCarpool(occurrence.occurrenceId,false) else carpoolPrompt=occurrence.occurrenceId to false}
-                            CpButton("offer") {if(carpoolVerified) onCarpool(occurrence.occurrenceId,true) else carpoolPrompt=occurrence.occurrenceId to true}
+                        /* «Chi ci va» e i passaggi si aprono subito solo per la
+                           prima data. Caricarli per ogni data di una rassegna
+                           settimanale faceva una richiesta per data tutte
+                           insieme, e il server rispondeva «Troppe richieste». */
+                        var social by remember(occurrence.occurrenceId) { mutableStateOf(index == 0) }
+                        if (!social) {
+                            TextButton(onClick = { social = true }, contentPadding = PaddingValues(0.dp), modifier = Modifier.padding(top = 8.dp)) {
+                                Text(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.community_attendance_title) + " e passaggi")
+                            }
+                        } else {
+                            community(occurrence.occurrenceId)
+                            // Prima l'azione principale dell'evento, poi i passaggi per arrivarci.
+                            Text(cpText("subtitle"), modifier=Modifier.padding(top=22.dp, bottom=10.dp), style=MaterialTheme.typography.bodySmall)
+                            androidx.compose.foundation.layout.FlowRow(horizontalArrangement=Arrangement.spacedBy(8.dp), verticalArrangement=Arrangement.spacedBy(8.dp)) {
+                                CpButton("seek") {if(carpoolVerified) onCarpool(occurrence.occurrenceId,false) else carpoolPrompt=occurrence.occurrenceId to false}
+                                CpButton("offer") {if(carpoolVerified) onCarpool(occurrence.occurrenceId,true) else carpoolPrompt=occurrence.occurrenceId to true}
+                            }
                         }
                     }
                 }
@@ -462,10 +473,10 @@ private fun OccurrenceDateBlock(detail: EventDetail, occurrence: Occurrence, sav
     Text(timeRange(occurrence), color = Acid, style = androidx.compose.material3.MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = 5.dp))
     occurrence.statusNote?.let { Text(it, color = Muted, modifier = Modifier.padding(top = 6.dp)) }
     Text(priceText(occurrence.price), color = Acid, modifier = Modifier.padding(top = 6.dp))
-    occurrence.capacityLeft?.let { remaining -> Text(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.known_remaining, remaining), color = Muted) }
+    occurrence.capacityLeft?.let { remaining -> Text(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.known_remaining, remaining), color = Muted, modifier = Modifier.padding(top = 4.dp)) }
     if (occurrence.contentDetails != null) {
         var showPractical by remember(occurrence.occurrenceId) { mutableStateOf(detail.occurrences.size == 1) }
-        TextButton(onClick = { showPractical = !showPractical }) {
+        TextButton(onClick = { showPractical = !showPractical }, contentPadding = PaddingValues(0.dp), modifier = Modifier.padding(top = 6.dp)) {
             Text(androidx.compose.ui.res.stringResource(if (showPractical) it.fabiodalez.incitta.R.string.decision_hide_details else it.fabiodalez.incitta.R.string.decision_show_details))
         }
         if (showPractical) EditorialInformation(occurrence.contentDetails)
@@ -1267,9 +1278,11 @@ private fun PosterLightbox(url: String?, title: String, onClose: () -> Unit) {
 
 @Composable
 private fun LabeledValue(label: String, value: String) {
-    Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.Top) {
-        Text(label.uppercase(), color = Muted, style = androidx.compose.material3.MaterialTheme.typography.labelMedium, modifier = Modifier.width(112.dp))
-        Text(value, modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold)
+    /* Etichetta e valore sulla stessa linea di base: con l'allineamento in
+       alto l'etichetta, più piccola, stava più su del valore. */
+    Row(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+        Text(label.uppercase(), color = Muted, style = androidx.compose.material3.MaterialTheme.typography.labelMedium, modifier = Modifier.width(112.dp).alignByBaseline())
+        Text(value, modifier = Modifier.weight(1f).alignByBaseline(), fontWeight = FontWeight.SemiBold)
     }
 }
 

@@ -30,10 +30,10 @@ internal fun CommunityAttendance(id: Long, session: Session?, saved: Boolean, na
         catch (e: Exception) { if(e is ApiException && e.status == 404) unavailable = true else error = communityFailureMessage(e) }
     }
     if(unavailable) return
-    Column(Modifier.fillMaxWidth().padding(top = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(Modifier.fillMaxWidth().padding(top = 22.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(stringResource(R.string.community_attendance_title), style = MaterialTheme.typography.titleMedium)
         Text(stringResource(R.string.community_attendance_help), style = MaterialTheme.typography.bodySmall, color = Muted)
-        error?.let { Text(it, color = MaterialTheme.colorScheme.error); TextButton(onClick = { revision++ }) { Text(stringResource(R.string.community_attendance_retry)) } }
+        error?.let { Text(it, color = MaterialTheme.colorScheme.error); TextButton(onClick = { revision++ }, contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)) { Text(stringResource(R.string.community_attendance_retry)) } }
         val state = data
         if(state == null && error == null) Text(stringResource(R.string.community_attendance_loading))
         if(state != null) {
