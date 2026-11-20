@@ -125,16 +125,21 @@
 
             {{-- I ritagli rapidi. Nel riferimento sono la prima cosa che si
                  tocca dopo il titolo: non sono voci di menu, sono l'elenco di
-                 sempre guardato da quattro finestre diverse. --}}
+                 sempre guardato da quattro finestre diverse.
+
+                 La parola in grande, senza il numero: «Oggi 7» faceva leggere
+                 il numero prima della parola, e la scelta è il giorno, non
+                 quante date ci sono. Il conteggio serve ancora a nascondere un
+                 ritaglio vuoto. --}}
             @if ($quickFilters !== [])
                 <div class="home-shortcuts grid w-full grid-cols-2 md:w-fit md:grid-cols-4 gap-0.5 bg-line p-0.5">
                     @foreach ($quickFilters as $filtro)
                         <a
                             href="{{ $filtro['url'] }}"
-                            class="ui-action flex items-baseline gap-2 bg-canvas px-3.5 py-2.5 font-display text-[0.688rem] leading-none font-extrabold tracking-[0.14em] uppercase transition-colors hover:bg-accent hover:text-on-accent"
+                            class="ui-action flex items-center justify-between gap-2 bg-canvas px-4 py-4 font-display text-[1.375rem] leading-none font-extrabold tracking-[-0.02em] uppercase transition-colors hover:bg-accent hover:text-on-accent"
                         >
                             {{ $filtro['label'] }}
-                            <span class="text-[0.625rem] text-ink-subtle">{{ $filtro['count'] }}</span>
+                            <svg class="home-shortcuts__arrow shrink-0 text-accent" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="square"><path d="M5 12h14M13 5l7 7-7 7"></path></svg>
                         </a>
                     @endforeach
                 </div>

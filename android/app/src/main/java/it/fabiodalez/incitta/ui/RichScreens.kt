@@ -714,12 +714,17 @@ fun CalendarScreen(state: AppUiState, padding: PaddingValues, onOpen: (Occurrenc
     var month by remember(state.calendarDay) { mutableStateOf(java.time.YearMonth.from(selected)) }
     val counts = rememberMonthCounts(month, token)?.days
     var dayEvents by remember(selected, token) { mutableStateOf<List<Occurrence>?>(null) }
-    LaunchedEffect(selected, token) {
+    var dayFailed by remember(selected, token) { mutableStateOf(false) }
+    var dayRetry by remember(selected) { mutableStateOf(0) }
+    LaunchedEffect(selected, token, dayRetry) {
+        dayFailed = false
         dayEvents = try {
-            api.get<it.fabiodalez.incitta.data.ApiEnvelope<List<Occurrence>>>("events?date=$selected&limit=60", token).data
+            // 50 è il massimo che l'API accetta per pagina: oltre risponde 422.
+            api.get<it.fabiodalez.incitta.data.ApiEnvelope<List<Occurrence>>>("events?date=$selected&limit=50", token).data
         } catch (error: Exception) {
             if (error is kotlinx.coroutines.CancellationException) throw error
-            emptyList()
+            dayFailed = true
+            null
         }
     }
     val firstMonth = java.time.YearMonth.from(today)
@@ -745,6 +750,12 @@ fun CalendarScreen(state: AppUiState, padding: PaddingValues, onOpen: (Occurrenc
         }
         val events = dayEvents
         when {
+            dayFailed -> item {
+                Column(Modifier.padding(24.dp)) {
+                    Text("Non riesco a caricare le date di questo giorno.", color = Muted)
+                    TextButton(onClick = { dayRetry++ }) { Text("RIPROVA") }
+                }
+            }
             events == null -> item { androidx.compose.material3.LinearProgressIndicator(Modifier.fillMaxWidth().padding(18.dp)) }
             events.isEmpty() -> item { Text("Nessun evento in questo giorno.", color = Muted, modifier = Modifier.padding(24.dp)) }
             else -> {

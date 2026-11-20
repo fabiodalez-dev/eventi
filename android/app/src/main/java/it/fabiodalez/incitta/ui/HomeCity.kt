@@ -72,10 +72,11 @@ internal data class HomeStats(
     val week: Int = 0,
     val venues: Int = 0,
     val categories: Int = 0,
-    val today: Int = 0,
-    val tomorrow: Int = 0,
-    val weekend: Int = 0,
-    val free: Int = 0,
+    /* Null da un server che non li manda ancora: il ritaglio resta. */
+    val today: Int? = null,
+    val tomorrow: Int? = null,
+    val weekend: Int? = null,
+    val free: Int? = null,
 )
 
 @Serializable
@@ -159,16 +160,18 @@ internal fun HomeHero(stats: HomeStats?, city: String, onFilter: (EventFilter) -
             Triple("Domani", stats?.tomorrow, EventFilter.TOMORROW),
             Triple("Weekend", stats?.weekend, EventFilter.WEEKEND),
             Triple("Gratis", stats?.free, EventFilter.FREE),
-        ).filter { (_, count, _) -> count == null || count > 0 }
+        ).filter { (_, count, _) -> count != 0 }
+        /* La parola in grande, senza il numero, come sul sito: si sceglie il
+           giorno, non quante date ci sono. Un ritaglio vuoto non compare. */
         cells.chunked(2).forEach { row ->
             Row(Modifier.fillMaxWidth()) {
-                row.forEach { (label, count, filter) ->
-                    Column(
-                        Modifier.weight(1f).border(1.dp, Rule).clickable { onFilter(filter) }.padding(14.dp)
-                            .semantics { contentDescription = "$label: ${count ?: "…"} eventi" },
+                row.forEach { (label, _, filter) ->
+                    Row(
+                        Modifier.weight(1f).border(1.dp, Rule).clickable { onFilter(filter) }.padding(horizontal = 16.dp, vertical = 18.dp),
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text(label, style = MaterialTheme.typography.labelLarge)
-                        Text(count?.toString() ?: "…", color = Acid, fontSize = 26.sp, fontWeight = FontWeight.ExtraBold)
+                        Text(label, fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.weight(1f), maxLines = 1)
+                        Icon(Icons.AutoMirrored.Outlined.ArrowForward, contentDescription = null, tint = Acid)
                     }
                 }
                 if (row.size == 1) Spacer(Modifier.weight(1f))

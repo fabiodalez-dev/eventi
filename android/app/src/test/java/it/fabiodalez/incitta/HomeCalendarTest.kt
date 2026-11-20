@@ -31,7 +31,7 @@ class HomeCalendarTest {
         val home = json.decodeFromString<HomeOverview>(body)
         assertEquals(listOf(7, 10, 25, 85), listOf(home.stats.today, home.stats.tomorrow, home.stats.weekend, home.stats.free))
         assertEquals("personal", home.nextMode)
-        // Una versione del server senza i ritagli non rompe la home.
-        assertEquals(0, json.decodeFromString<HomeOverview>("""{"stats":{"upcoming":3}}""").stats.today)
+        // Un server senza i ritagli non li nasconde: null non è zero.
+        assertNull(json.decodeFromString<HomeOverview>("""{"stats":{"upcoming":3}}""").stats.today)
     }
 }
