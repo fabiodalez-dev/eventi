@@ -431,6 +431,40 @@ class AppRepository(context: Context) {
     }
 
     fun appearance(): String = _session.value?.user?.appearance ?: store.guestAppearance()
+
+    /**
+     * La vista degli elenchi: quella del profilo, se c'è, altrimenti l'ultima
+     * usata su questo dispositivo, altrimenti le card a tutta riga.
+     */
+    fun cardLayout(): String = _session.value?.user?.cardLayout?.takeIf { it in CARD_LAYOUTS } ?: store.cardLayout() ?: "full"
+
+    /** La ricorda il dispositivo; con un accesso anche il profilo, che la porta sul sito. */
+    suspend fun setCardLayout(value: String) {
+        require(value in CARD_LAYOUTS)
+        store.setCardLayout(value)
+        val current = _session.value ?: return
+        appearanceRevision++
+        val user = api.execute<ApiEnvelope<User>>("me", "PATCH", "{\"card_layout\":\"$value\"}", current.token).data
+        if (_session.value?.token != current.token) return
+        val updated = current.copy(user = user)
+        store.writeSession(updated)
+        _session.value = updated
+    }
+
+    /**
+     * Appena entrati, un profilo senza vista prende quella usata qui da
+     * ospite; un profilo che ne ha una la lascia anche al dispositivo, così
+     * resta dopo l'uscita.
+     */
+    suspend fun reconcileCardLayout() {
+        val user = _session.value?.user ?: return
+        val profile = user.cardLayout?.takeIf { it in CARD_LAYOUTS }
+        val local = store.cardLayout()
+        when {
+            profile != null -> if (profile != local) store.setCardLayout(profile)
+            local != null && local != "full" -> setCardLayout(local)
+        }
+    }
     private var appearanceRevision = 0
     private var appearanceUpdating = false
 

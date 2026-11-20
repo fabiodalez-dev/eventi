@@ -5,7 +5,9 @@
 
     **La scelta resta nel browser** (`localStorage['incitta:card-layout']`) e
     la applica lo script in testa al layout prima del primo disegno, come il
-    tema: l'HTML è uguale per tutti e può stare nella cache di pagina. Per lo
+    tema: l'HTML dell'ospite è uguale per tutti e può stare nella cache di
+    pagina. Chi è collegato la salva anche nel profilo (`users.card_layout`),
+    la stessa che legge l'app. Per lo
     stesso motivo qui il server segna sempre `full`: lo stato vero lo
     allinea `resources/js/card-layout.js` appena parte, e fino ad allora la
     voce scelta si vede già evidenziata dal CSS (`pages/home.css`).

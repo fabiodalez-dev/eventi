@@ -92,6 +92,7 @@ foreach (['admin', 'gestione', 'organizza'] as $pannello) {
 
 Route::get('/aspetto', [AppearanceController::class, 'index'])->name('appearance');
 Route::patch('/aspetto', [AppearanceController::class, 'update'])->middleware(['auth', 'throttle:60,1,appearance'])->name('appearance.update');
+Route::patch('/aspetto/vista-elenchi', [AppearanceController::class, 'updateCardLayout'])->middleware(['auth', 'throttle:60,1,card-layout'])->name('appearance.card-layout');
 
 Route::middleware('guest')->group(function (): void {
     Route::get('/registrati', [RegisterController::class, 'create'])->name('account.register');

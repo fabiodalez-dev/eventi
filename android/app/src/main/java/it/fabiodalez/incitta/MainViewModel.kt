@@ -43,6 +43,8 @@ data class AppUiState(
     val appearance: String = "dark",
     val defaultAppearance: String = "dark",
     val appearanceSaving: Boolean = false,
+    /* La vista degli elenchi: `full`, `grid` o `list` (vedi `CARD_LAYOUTS`). */
+    val cardLayout: String = "full",
     val bookings: List<it.fabiodalez.incitta.data.Booking> = emptyList(),
     /* Prenotazioni recenti a cui la persona non si è presentata (`meta.no_shows`). */
     val noShows: Int = 0,
@@ -154,6 +156,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         AppUiState(
             appearance = repository.appearance(),
             defaultAppearance = repository.appearance(),
+            cardLayout = repository.cardLayout(),
             occurrences = repository.cachedOccurrences(),
             session = repository.session.value,
             privacyConsent = repository.privacyConsent(),
@@ -241,7 +244,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                             bookingsSavedAt = null, hiddenVenueIds = emptySet(), accessNeeds = emptyList(), profileAccessDismissed = false,
                             availabilityAlerts = emptySet(), openingAlerts = emptySet(), editionAlerts = emptySet(), alertBusy = emptySet(), presenceLinks = emptyMap(), presenceBusy = false)
                     }
-                    _state.value = _state.value.copy(session = session, savedIds = saved, defaultAppearance = repository.appearance(), appearance = repository.appearance())
+                    _state.value = _state.value.copy(session = session, savedIds = saved, defaultAppearance = repository.appearance(), appearance = repository.appearance(), cardLayout = repository.cardLayout())
+                    if (sessionChanged && session != null) {
+                        viewModelScope.launch {
+                            runCatching { repository.reconcileCardLayout() }.exceptionOrNull()?.let { if (it is CancellationException) throw it }
+                            _state.value = _state.value.copy(cardLayout = repository.cardLayout())
+                        }
+                    }
                     if (sessionChanged) {
                         interestsChanged()
                         if (session != null) refreshAvailabilityAlerts()
@@ -279,6 +288,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun refreshProfile() { viewModelScope.launch { synchronizeAppearance() } }
+
+    /**
+     * La vista degli elenchi cambia subito; il salvataggio nel profilo segue.
+     * Se non riesce resta su questo dispositivo, e lo si dice.
+     */
+    fun setCardLayout(value: String) {
+        if (value !in it.fabiodalez.incitta.data.CARD_LAYOUTS || value == _state.value.cardLayout) return
+        _state.value = _state.value.copy(cardLayout = value)
+        viewModelScope.launch {
+            try { repository.setCardLayout(value) }
+            catch (cancelled: CancellationException) { throw cancelled }
+            catch (_: Exception) { _state.value = _state.value.copy(message = getApplication<Application>().getString(R.string.card_layout_not_synced)) }
+        }
+    }
 
     suspend fun synchronizeAppearance() {
         if (_state.value.appearanceSaving) return

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Api\V1\Me;
 
+use App\Support\CardLayout;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -30,6 +31,8 @@ class UpdateProfileRequest extends FormRequest
         return [
             /* `null` è una scelta: «segui il tema del sistema». */
             'appearance' => ['sometimes', 'nullable', Rule::in(['dark', 'light'])],
+            /* La vista degli elenchi sul telefono, condivisa col sito. */
+            'card_layout' => ['sometimes', 'nullable', Rule::in(CardLayout::VALUES)],
             'name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'timezone' => ['sometimes', 'string', 'timezone'],
             'locale' => ['sometimes', 'string', Rule::in(config()->array('account.locales'))],

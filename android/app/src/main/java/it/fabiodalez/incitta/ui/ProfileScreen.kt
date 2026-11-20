@@ -50,6 +50,7 @@ internal fun ProfileScreen(state: AppUiState, padding: PaddingValues, onTickets:
                     ProfileRow(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.community_following_list), androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.community_followers), Icons.Outlined.People, onRelationships)
                     ProfileRow(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.community_whatsapp), androidx.compose.ui.res.stringResource(if(session.user.communityAccess.whatsappExempt) it.fabiodalez.incitta.R.string.community_wa_exempt else if(session.user.whatsappVerified) it.fabiodalez.incitta.R.string.community_verified else it.fabiodalez.incitta.R.string.community_wa_lead), Icons.Outlined.VerifiedUser, onVerification)
                     AppearancePicker(state.defaultAppearance, state.appearanceSaving, true, onAppearance)
+                    CardLayoutPicker(state.cardLayout, LocalCardLayoutChange.current, Modifier.fillMaxWidth())
                     ProfileRow(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.community_title), androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.community_feed), Icons.Outlined.People, onCommunity)
                     ProfileRow(cpText("mine"), cpText("subtitle"), Icons.Outlined.People, onCarpool)
                     ProfileRow(cpText("messages"), cpText("chat_context"), Icons.Outlined.People, onCarpoolMessages)

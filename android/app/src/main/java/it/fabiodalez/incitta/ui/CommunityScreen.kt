@@ -321,7 +321,7 @@ private fun CommunityPostCard(post: JsonObject, api: CommunityApi, saved: Set<Lo
     Text(stringResource(if(post.text("intent") == "attend") R.string.community_attend else R.string.community_recommend), color = Acid)
     post.text("body").takeIf { it.isNotBlank() }?.let { Text(it) }
     val occurrence = remember(post) { post.occurrenceOrNull(api.json) }
-    occurrence?.let { EventRow(it, it.occurrenceId in saved, onOpen, onSave) }
+    occurrence?.let { EventRow(it, it.occurrenceId in saved, onOpen, onSave, layout = LocalCardLayout.current.takeUnless { layout -> layout == "grid" } ?: "full") }
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         TextButton(onClick = { onPost(post.number("id")) }) { Text(stringResource(R.string.community_comments)) }
         if(post.flag("is_own") && occurrence != null) TextButton(onClick = { onPrivacy(occurrence.occurrenceId) }) { Text(stringResource(R.string.community_save_privacy)) }

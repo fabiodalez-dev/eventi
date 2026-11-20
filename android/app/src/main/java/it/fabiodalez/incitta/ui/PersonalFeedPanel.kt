@@ -33,7 +33,7 @@ internal fun PersonalFeedPanel(state: AppUiState, onOpen: (Occurrence) -> Unit, 
         Text(stringResource(R.string.feed_for_you), Modifier.padding(horizontal = 18.dp), style = MaterialTheme.typography.titleLarge)
         Text(stringResource(R.string.feed_rules), Modifier.padding(horizontal = 18.dp), color = Muted)
         error?.let { Text(it, Modifier.padding(horizontal = 18.dp)); TextButton(onClick = { retry++ }) { Text(stringResource(R.string.feed_retry)) } }
-        dates.forEach { EventRow(it, it.occurrenceId in state.savedIds, onOpen, onSave) }
+        EventCards(dates, state.savedIds, onOpen, onSave)
         TextButton(onClick = { visible = false; onAll() }) { Text(stringResource(R.string.feed_show_all)) }
     }
 }

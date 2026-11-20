@@ -83,6 +83,7 @@ final class AccountExport
                 'timezone' => $timezone,
                 'locale' => (string) $user->locale,
                 'appearance' => $user->appearance,
+                'card_layout' => $user->card_layout,
                 'notification_preferences' => $user->notificationPreferences()->toArray(),
                 'content_preferences' => app(ContentPreferences::class)->selection($user),
                 'daily_digest_time' => $user->daily_digest_time,

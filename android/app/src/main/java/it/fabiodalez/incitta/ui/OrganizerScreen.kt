@@ -88,6 +88,7 @@ fun OrganizerScreen(slug: String, session: Session?, savedIds: Set<Long>, onBack
             error = requestFailureMessage(e)
         } finally { loading = false }
     }
+    val cardLayout = LocalCardLayout.current
     LazyColumn(Modifier.fillMaxSize().padding(horizontal = 18.dp)) {
         item {
             TextButton(onClick=onBack) { Text("INDIETRO") }
@@ -124,9 +125,7 @@ fun OrganizerScreen(slug: String, session: Session?, savedIds: Set<Long>, onBack
                 }
                 if(organizers.isEmpty()) item { Text("Nessun organizzatore trovato.") }
             } else {
-                items(archive?.events.orEmpty(), key=Occurrence::occurrenceId) { occurrence ->
-                    EventRow(occurrence, occurrence.occurrenceId in savedIds, onOpen, onSave)
-                }
+                eventCards(archive?.events.orEmpty(), cardLayout, savedIds, onOpen, onSave)
                 if(archive?.events.isNullOrEmpty()) item { Text("Nessuna data per le preferenze attuali.") }
             }
         }

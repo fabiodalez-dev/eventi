@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- La vista degli elenchi, con le stesse parole del sito (lang/it/ui.php, card_layout). -->
+    <string name="card_layout_label">Vista</string>
+    <string name="card_layout_full">Card grandi</string>
+    <string name="card_layout_grid">Griglia a due colonne</string>
+    <string name="card_layout_list">Elenco compatto</string>
+    <string name="card_layout_not_synced">Vista cambiata su questo dispositivo, ma non salvata nel profilo. Riprova quando sei online.</string>
+</resources>
