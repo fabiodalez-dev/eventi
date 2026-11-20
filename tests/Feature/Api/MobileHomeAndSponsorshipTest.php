@@ -43,6 +43,8 @@ it('consegna in una richiesta le sezioni e i dati necessari alla home Android', 
         ->and($response->json('data.sponsorships.hero.label'))->toBeString()
         ->and($response->json('data.sponsorships.hero.advertiser.name'))->toBe('Partner trasparente')
         ->and($response->json('data.stats.upcoming'))->toBeGreaterThanOrEqual(1)
+        ->and($response->json('data.stats.weekend'))->toBeGreaterThanOrEqual(1)
+        ->and($response->json('data.stats'))->toHaveKeys(['today', 'tomorrow', 'weekend', 'free'])
         ->and($response->json('data.map.markers'))->not->toBeEmpty();
 });
 

@@ -123,21 +123,18 @@ fun EventsScreen(
     onBannerOpen: (it.fabiodalez.incitta.data.SponsoredBanner) -> Unit = {},
     onOrganizers: () -> Unit = {},
     onTonight: () -> Unit = {},
+    onEvents: () -> Unit = {},
+    onMap: () -> Unit = {},
+    onCalendarDay: (java.time.LocalDate) -> Unit = {},
+    onPreset: (EventFilter) -> Unit = {},
 ) {
+    val overview = rememberHomeOverview(state.session?.token, state.occurrences.size)
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(bottom = padding.calculateBottomPadding()),
     ) {
         if (state.isOffline) item { StatusStrip("MODALITÀ OFFLINE · ULTIMO AGGIORNAMENTO DISPONIBILE") }
         item { Ticker() }
-        item {
-            Column(Modifier.padding(horizontal = 18.dp, vertical = 22.dp)) {
-                Text("STASERA\nIN CITTÀ", style = androidx.compose.material3.MaterialTheme.typography.displayLarge)
-                Spacer(Modifier.height(10.dp))
-                Text("PADOVA · EVENTI VERIFICATI E POSTI DOVE ANDARE", color = Muted, style = androidx.compose.material3.MaterialTheme.typography.labelLarge)
-                Spacer(Modifier.height(16.dp))
-                Button(onClick = onTonight, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) { Text(stringResource(R.string.tonight_find)) }
-            }
-        }
+        item(key = "home-hero") { HomeHero(overview?.stats, "Padova", onFilter = onPreset, onEvents = onEvents, onMap = onMap, onTonight = onTonight) }
         item {
             PeekTabRow(Modifier.padding(start = 18.dp)) {
                 FilterLabel("TUTTI", state.eventFilter == EventFilter.ALL) { onFilter(EventFilter.ALL) }
@@ -152,6 +149,10 @@ fun EventsScreen(
                     Icon(Icons.Outlined.Refresh, contentDescription = "Aggiorna", tint = Ink)
                 }
             }
+        }
+        item(key = "home-calendar") { HomeCalendarSection(state.session?.token, onCalendarDay, onCalendar) }
+        overview?.sections?.get("next")?.takeIf { it.isNotEmpty() }?.let { next ->
+            item(key = "starting-soon") { StartingSoonSection(next, overview.nextMode == "personal", state.savedIds, onOpen, onSave) }
         }
         item(key = "personal-feed") { PersonalFeedPanel(state, onOpen, onSave) { onFilter(EventFilter.ALL) } }
         item(key = "today-and-nearby") { NearbyPanel(state, onOpen, onSave) }
@@ -173,6 +174,8 @@ fun EventsScreen(
             }
             eventCards(state.occurrences.drop(6), state.cardLayout, state.savedIds, onOpen, onSave)
         }
+        item(key = "organize") { OrganizeCta() }
+        overview?.stats?.let { stats -> item(key = "home-stats") { HomeStatsStrip(stats) } }
         item { CalendarBanner(onCalendar) }
         item { Spacer(Modifier.height(24.dp)) }
     }

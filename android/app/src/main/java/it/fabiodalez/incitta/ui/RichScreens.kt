@@ -38,6 +38,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.automirrored.outlined.Accessible
@@ -698,20 +699,60 @@ private fun VenueTypeFilter(label: String, selected: Boolean, onClick: () -> Uni
     ) { Text(label, style = androidx.compose.material3.MaterialTheme.typography.labelMedium) }
 }
 
+/**
+ * Il Calendario come sul sito (`/calendario`): il mese in griglia con il
+ * numero di eventi per giorno, e sotto le date del giorno scelto. Si apre su
+ * oggi, oppure sul giorno toccato nel calendario della home.
+ */
 @Composable
-fun CalendarScreen(state: AppUiState, padding: PaddingValues, onOpen: (Occurrence) -> Unit, onSave: (Long) -> Unit, onBack: () -> Unit) {
-    val grouped = state.occurrences.groupBy { it.startsAt.take(10) }.toSortedMap()
-    LazyColumn(Modifier.fillMaxSize().padding(bottom = padding.calculateBottomPadding())) {
-        item { ScreenHeader("CALENDARIO", "LE PROSSIME DATE IN CITTÀ", onBack) }
-        item { CalendarSubscriptionPanel(initiallyExpanded = true) }
-        if (grouped.isNotEmpty()) item { CardLayoutBar() }
-        if (grouped.isEmpty()) item { Text("Nessuna data disponibile.", color = Muted, modifier = Modifier.padding(24.dp)) }
-        grouped.forEach { (_, events) ->
-            item {
-                Text(fullDate(events.first().startsAt), color = Ink, modifier = Modifier.fillMaxWidth().background(Acid).padding(12.dp, 9.dp), style = androidx.compose.material3.MaterialTheme.typography.labelLarge)
-            }
-            eventCards(events, state.cardLayout, state.savedIds, onOpen, onSave)
+fun CalendarScreen(state: AppUiState, padding: PaddingValues, onOpen: (Occurrence) -> Unit, onSave: (Long) -> Unit, onBack: () -> Unit, onSelectDay: (java.time.LocalDate) -> Unit = {}) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val api = remember { it.fabiodalez.incitta.data.ApiClient(it.fabiodalez.incitta.data.LocalStore(context).installationId) }
+    val token = state.session?.token
+    val today = romeToday()
+    val selected = state.calendarDay?.let { runCatching { java.time.LocalDate.parse(it) }.getOrNull() } ?: today
+    var month by remember(state.calendarDay) { mutableStateOf(java.time.YearMonth.from(selected)) }
+    val counts = rememberMonthCounts(month, token)?.days
+    var dayEvents by remember(selected, token) { mutableStateOf<List<Occurrence>?>(null) }
+    LaunchedEffect(selected, token) {
+        dayEvents = try {
+            api.get<it.fabiodalez.incitta.data.ApiEnvelope<List<Occurrence>>>("events?date=$selected&limit=60", token).data
+        } catch (error: Exception) {
+            if (error is kotlinx.coroutines.CancellationException) throw error
+            emptyList()
         }
+    }
+    val firstMonth = java.time.YearMonth.from(today)
+    LazyColumn(Modifier.fillMaxSize().padding(bottom = padding.calculateBottomPadding())) {
+        item { ScreenHeader("CALENDARIO", "LE DATE IN CITTÀ, GIORNO PER GIORNO", onBack) }
+        item(key = "calendar-month") {
+            Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 12.dp)) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = { month = month.minusMonths(1) }, enabled = month.isAfter(firstMonth)) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Mese precedente") }
+                    Text(monthTitle(month), style = androidx.compose.material3.MaterialTheme.typography.headlineSmall, modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                    IconButton(onClick = { month = month.plusMonths(1) }) { Icon(Icons.AutoMirrored.Outlined.ArrowForward, "Mese successivo") }
+                }
+                counts?.values?.sum()?.let { total -> Text(if (total == 1) "1 evento questo mese" else "$total eventi questo mese", color = Muted, modifier = Modifier.padding(bottom = 8.dp)) }
+                MonthCalendarGrid(month, counts, selected, onSelectDay)
+            }
+        }
+        item(key = "calendar-day-title") {
+            Text(
+                selected.format(java.time.format.DateTimeFormatter.ofPattern("EEEE d MMMM", java.util.Locale.ITALIAN)).uppercase(),
+                color = Ink, modifier = Modifier.fillMaxWidth().padding(top = 8.dp).background(Acid).padding(12.dp, 9.dp),
+                style = androidx.compose.material3.MaterialTheme.typography.labelLarge,
+            )
+        }
+        val events = dayEvents
+        when {
+            events == null -> item { androidx.compose.material3.LinearProgressIndicator(Modifier.fillMaxWidth().padding(18.dp)) }
+            events.isEmpty() -> item { Text("Nessun evento in questo giorno.", color = Muted, modifier = Modifier.padding(24.dp)) }
+            else -> {
+                item(key = "calendar-layout") { CardLayoutBar() }
+                eventCards(events, state.cardLayout, state.savedIds, onOpen, onSave)
+            }
+        }
+        item(key = "calendar-subscribe") { CalendarSubscriptionPanel(initiallyExpanded = false) }
     }
 }
 

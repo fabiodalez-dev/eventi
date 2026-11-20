@@ -19,7 +19,8 @@ import androidx.compose.foundation.layout.ime
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.BookmarkBorder
-import androidx.compose.material.icons.outlined.Event
+import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.ConfirmationNumber
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.LightMode
@@ -279,7 +280,8 @@ fun InCittaApp(viewModel: MainViewModel) {
                         contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 0.dp),
                     ) {
                         NavItem(state.tab, AppTab.HOME, "Home", Icons.Outlined.Home, { managementOpen = false; collectionsOpen = false; tonightOpen = false; organizerSlug = null; carpoolRoute = null; communityRoute = null; viewModel.selectTab(it) })
-                        NavItem(state.tab, AppTab.EVENTS, "Eventi", Icons.Outlined.Event, { managementOpen = false; collectionsOpen = false; tonightOpen = false; organizerSlug = null; carpoolRoute = null; communityRoute = null; viewModel.selectTab(it) })
+                        NavItem(state.tab, AppTab.EVENTS, "Eventi", Icons.Outlined.ConfirmationNumber, { managementOpen = false; collectionsOpen = false; tonightOpen = false; organizerSlug = null; carpoolRoute = null; communityRoute = null; viewModel.selectTab(it) })
+                        NavItem(state.tab, AppTab.CALENDAR, "Calendario", Icons.Outlined.CalendarMonth, { managementOpen = false; collectionsOpen = false; tonightOpen = false; organizerSlug = null; carpoolRoute = null; communityRoute = null; viewModel.selectTab(it) })
                         NavItem(state.tab, AppTab.MAP, "Mappa", Icons.Outlined.Map, { managementOpen = false; collectionsOpen = false; tonightOpen = false; organizerSlug = null; carpoolRoute = null; communityRoute = null; viewModel.selectTab(it) })
                         NavItem(state.tab, AppTab.SEARCH, "Cerca", Icons.Outlined.Search, { managementOpen = false; collectionsOpen = false; tonightOpen = false; organizerSlug = null; carpoolRoute = null; communityRoute = null; viewModel.selectTab(it) })
                         NavItem(state.tab, AppTab.SAVED, "Salvati", Icons.Outlined.BookmarkBorder, { managementOpen = false; collectionsOpen = false; tonightOpen = false; organizerSlug = null; carpoolRoute = null; communityRoute = null; viewModel.selectTab(it) })
@@ -428,6 +430,10 @@ fun InCittaApp(viewModel: MainViewModel) {
                         inlineBanner = state.sponsoredBanner?.takeIf { bannerScreen && it.validAt() },
                         onOrganizers = { organizerSlug = "" },
                         onTonight = { tonightOpen = true },
+                        onEvents = { viewModel.selectTab(AppTab.EVENTS) },
+                        onMap = { viewModel.selectTab(AppTab.MAP) },
+                        onCalendarDay = viewModel::openCalendarDay,
+                        onPreset = viewModel::openEventsPreset,
                         onBannerImpression = { banner ->
                             lastBannerImpression = android.os.SystemClock.elapsedRealtime()
                             viewModel.bannerMetric(banner, false)
@@ -490,7 +496,7 @@ fun InCittaApp(viewModel: MainViewModel) {
                         onCarpool = { carpoolRoute = "me" }, onCarpoolMessages = { carpoolRoute = "chats" }, onCommunityInbox = { carpoolRoute = "inbox" }, communityTotal = communityTotal,
                         onAttended = { viewModel.selectTab(AppTab.ATTENDED) },
                     )
-                    AppTab.CALENDAR -> CalendarScreen(state, padding, viewModel::open, viewModel::toggleSaved) { viewModel.selectTab(AppTab.HOME) }
+                    AppTab.CALENDAR -> CalendarScreen(state, padding, viewModel::open, viewModel::toggleSaved, { viewModel.selectTab(AppTab.HOME) }, viewModel::selectCalendarDay)
                     AppTab.VENUES -> VenuesScreen(state, padding, viewModel::openVenue, viewModel::setVenuesOpenNow, viewModel::loadOpenNowVenues) { viewModel.selectTab(AppTab.HOME) }
                     AppTab.TICKETS -> TicketsScreen(state, padding, viewModel::cancelBooking, viewModel::loadBookings, viewModel::resendBooking, viewModel::addToWallet, viewModel::consumeWalletLink, viewModel::sendTicket, onResendVerification = viewModel::resendEmailVerification, onEmailConfirmed = viewModel::emailConfirmed) { viewModel.selectTab(AppTab.ACCOUNT) }
                     AppTab.ATTENDED -> AttendedScreen(
