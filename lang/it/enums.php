@@ -397,4 +397,23 @@ return [
         'umami' => 'Umami',
     ],
 
+    /* Come una sponsorizzazione a visualizzazioni spende il suo obiettivo nel
+       periodo (D70). */
+    'sponsorship_pacing' => [
+        'even' => 'Distribuita nel periodo',
+        'asap' => 'Il prima possibile',
+    ],
+
+    /* A che punto è una sponsorizzazione a visualizzazioni rispetto a quelle
+       attese a questo punto del periodo (D70). */
+    'sponsorship_pacing_state' => [
+        'on_track' => 'In linea',
+        'slightly_behind' => 'In leggero ritardo',
+        'behind' => 'In ritardo',
+        'ahead' => 'In anticipo',
+        'at_risk' => 'A rischio',
+        'completed' => 'Obiettivo raggiunto',
+        'missed' => 'Chiusa sotto l\'obiettivo',
+    ],
+
 ];

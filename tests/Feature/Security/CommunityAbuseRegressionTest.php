@@ -11,6 +11,7 @@ use App\Models\SponsorshipDailyStat;
 use App\Models\User;
 use App\Models\WhatsappChallenge;
 use App\Services\Community\WhatsappVerification;
+use App\Services\Sponsorship\Delivery\ImpressionToken;
 use App\Support\IpBucket;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
@@ -144,15 +145,20 @@ it('conta il tetto giornaliero degli invii WhatsApp sul /64 e non sull indirizzo
 });
 
 it('non lascia gonfiare le impressioni di una campagna ruotando gli indirizzi di un /64', function (): void {
-    $campaign = Sponsorship::factory()->create(['city_id' => $this->city->id]);
+    /* La rotta web conta solo una campagna che può comparire e solo con un
+       gettone nuovo per visita (D70): così il tetto per indirizzo si prova
+       davvero, e non perché la misura è scartata prima. */
+    $occurrence = occurrenceAt($this->city, $this->category, '2026-09-12 19:00:00');
+    $campaign = Sponsorship::factory()->create(['city_id' => $this->city->id, 'event_id' => $occurrence->event_id]);
     $url = route('sponsorships.metric', ['sponsorship' => $campaign, 'metric' => 'impressions']);
+    $token = fn (): array => ['X-Impression-Token' => ImpressionToken::issue($campaign, 'list_top')];
 
     foreach (range(1, 35) as $i) {
-        $this->withServerVariables(['REMOTE_ADDR' => '2001:db8:1:2::'.dechex($i)])->postJson($url)->assertNoContent();
+        $this->withServerVariables(['REMOTE_ADDR' => '2001:db8:1:2::'.dechex($i)])->postJson($url, [], $token())->assertNoContent();
     }
     expect((int) SponsorshipDailyStat::query()->where('sponsorship_id', $campaign->id)->sum('impressions'))->toBe(30);
 
-    $this->withServerVariables(['REMOTE_ADDR' => '2001:db8:1:3::1'])->postJson($url)->assertNoContent();
+    $this->withServerVariables(['REMOTE_ADDR' => '2001:db8:1:3::1'])->postJson($url, [], $token())->assertNoContent();
     expect((int) SponsorshipDailyStat::query()->where('sponsorship_id', $campaign->id)->sum('impressions'))->toBe(31);
 });
 

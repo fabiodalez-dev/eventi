@@ -8,6 +8,7 @@ use App\Models\Sponsorship;
 use App\Models\SponsorshipClick;
 use App\Models\SponsorshipDailyStat;
 use App\Models\User;
+use App\Services\Sponsorship\Delivery\ImpressionToken;
 use App\Services\Sponsorship\RecordSponsorshipMetric;
 use App\Services\Sponsorship\SponsorshipReport;
 use Database\Seeders\RolesAndPermissionsSeeder;
@@ -35,9 +36,12 @@ afterEach(function (): void {
 it('registra ogni nuovo clic web una volta sola anche con ritrasmissioni', function (): void {
     $url = route('sponsorships.metric', ['sponsorship' => $this->campaign, 'metric' => 'clicks']);
     $payload = ['click_id' => (string) Str::uuid(), 'placement' => 'banner', 'page' => 'feed'];
-    $this->postJson($url, $payload)->assertNoContent();
-    $this->postJson($url, $payload)->assertNoContent();
-    $this->postJson($url, [...$payload, 'click_id' => (string) Str::uuid()])->assertNoContent();
+    /* La ritrasmissione rimanda lo stesso gettone usa e getta; un clic nuovo
+       arriva da una visita nuova, con un gettone nuovo (D70). */
+    $gettone = ['X-Impression-Token' => ImpressionToken::issue($this->campaign, 'banner')];
+    $this->postJson($url, $payload, $gettone)->assertNoContent();
+    $this->postJson($url, $payload, $gettone)->assertNoContent();
+    $this->postJson($url, [...$payload, 'click_id' => (string) Str::uuid()], ['X-Impression-Token' => ImpressionToken::issue($this->campaign, 'banner')])->assertNoContent();
     expect(SponsorshipClick::count())->toBe(2)->and($this->campaign->fresh()->clicks)->toBe(2)
         ->and((int) SponsorshipDailyStat::sum('clicks'))->toBe(2);
     expect(SponsorshipClick::first()->toArray())->not->toHaveKeys(['ip', 'user_id', 'email']);

@@ -13,6 +13,12 @@ class EditSponsorship extends EditRecord
 {
     protected static string $resource = SponsorshipResource::class;
 
+    /** Il titolo com'è scritto nei testi, non con le maiuscole che Filament aggiunge da solo. */
+    public function getTitle(): string
+    {
+        return __('sponsorships.admin.edit_title');
+    }
+
     /**
      * @return array<mixed>
      */

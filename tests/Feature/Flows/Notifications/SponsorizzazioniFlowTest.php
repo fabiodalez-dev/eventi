@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Enums\SponsorshipPlacement;
 use App\Enums\SponsorshipStatus;
 use App\Models\Sponsorship;
+use App\Services\Sponsorship\Delivery\ImpressionToken;
 use App\Settings\SponsorshipBannerSettings;
 use Illuminate\Support\Str;
 
@@ -42,9 +43,11 @@ it('mostra il banner sul sito, porta alla scheda, conta visualizzazione e clic e
 
     expect($banner->headers->get('Cache-Control'))->toContain('no-store', 'private');
 
-    // 2. Il banner entra nello schermo e viene cliccato: due misure, una per tipo.
-    $this->post('/sponsorizzazioni/'.$this->campagna->getKey().'/impressions')->assertNoContent();
-    $this->post('/sponsorizzazioni/'.$this->campagna->getKey().'/clicks')->assertNoContent();
+    // 2. Il banner entra nello schermo e viene cliccato: due misure, una per tipo,
+    //    con il gettone usa e getta che la risposta del banner porta con sé (D70).
+    $gettone = ['X-Impression-Token' => (string) $banner->json('data.impression_token')];
+    $this->post('/sponsorizzazioni/'.$this->campagna->getKey().'/impressions', [], $gettone)->assertNoContent();
+    $this->post('/sponsorizzazioni/'.$this->campagna->getKey().'/clicks', [], $gettone)->assertNoContent();
 
     // 3. Il clic porta alla scheda vera della data.
     $this->get((string) $banner->json('data.url'))->assertOk()->assertSee('Concerto sponsorizzato in piazza');
@@ -60,7 +63,7 @@ it('mostra il banner sul sito, porta alla scheda, conta visualizzazione e clic e
     $this->campagna->forceFill(['status' => SponsorshipStatus::Paused])->save();
 
     $this->getJson('/banner-sponsorizzato?platform=web')->assertOk()->assertJsonPath('data', null);
-    $this->post('/sponsorizzazioni/'.$this->campagna->getKey().'/impressions')->assertNotFound();
+    $this->post('/sponsorizzazioni/'.$this->campagna->getKey().'/impressions', [], ['X-Impression-Token' => ImpressionToken::issue($this->campagna, 'banner')])->assertNoContent();
 
     expect($this->campagna->fresh()->impressions)->toBe(1);
 

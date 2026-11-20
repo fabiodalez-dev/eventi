@@ -38,10 +38,12 @@ final class SafeUrl
      */
     public static function href(mixed $url): ?string
     {
-        if (! is_string($url) || trim($url) === '') {
+        if (! is_string($url)) {
             return null;
         }
 
+        /* Una stringa vuota o di soli spazi non ha uno schema: la scarta il
+           controllo qui sotto, senza un caso a parte. */
         $url = trim($url);
 
         /*
@@ -57,6 +59,8 @@ final class SafeUrl
             return null;
         }
 
-        return in_array(mb_strtolower($schema), ['http', 'https'], strict: true) ? $url : null;
+        /* Lo schema che `parse_url` riconosce è fatto solo di lettere,
+           cifre, `+`, `-` e `.` ASCII: `strtolower` basta. */
+        return in_array(strtolower($schema), ['http', 'https'], strict: true) ? $url : null;
     }
 }

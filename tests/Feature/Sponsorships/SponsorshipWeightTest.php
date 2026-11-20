@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Enums\SponsorshipPlacement;
 use App\Enums\SponsorshipStatus;
 use App\Models\Sponsorship;
+use App\Services\Sponsorship\Delivery\SeededDraw;
 use App\Services\Sponsorship\SponsorshipSelector;
 use Carbon\CarbonImmutable;
 
@@ -66,84 +67,83 @@ function campagnaConPeso(int $peso, string $nome, int $priorita = 5): Sponsorshi
     ]);
 }
 
-it('divide le apparizioni in proporzione al peso', function (): void {
-    /*
-     * Il cuore della faccenda: peso 3 contro peso 1 non vuol dire «sta
-     * davanti», vuol dire «compare tre volte su quattro». E' cio' che permette
-     * di vendere una quota invece di una posizione.
-     */
-    $citta = $this->citta;
-
-    campagnaConPeso(3, 'pesa tre');
-    campagnaConPeso(1, 'pesa uno');
-
-    $selettore = app(SponsorshipSelector::class);
-    $base = CarbonImmutable::parse('2026-09-02 00:00');
+/**
+ * Quante volte ciascuna campagna esce per prima, su `$volte` estrazioni con un
+ * seme. Riscritto: prima si scorrevano i minuti perché la rotazione avanzava
+ * di minuto in minuto; adesso ogni richiesta estrae dal piano, e il seme rende
+ * il conto ripetibile al numero esatto.
+ *
+ * @return array<string, int>
+ */
+function estrazioniConSeme(int $volte, int $seme = 20261119): array
+{
+    $selettore = app(SponsorshipSelector::class)->withDraw(new SeededDraw($seme));
     $conteggio = [];
 
-    /* Quattrocento minuti: abbastanza perche' la proporzione si veda, e un
-       multiplo del periodo (4) perche' non ci sia un resto a falsarla. */
-    for ($minuto = 0; $minuto < 400; $minuto++) {
-        $prima = $selettore->forPlacement($citta, SponsorshipPlacement::HomeHero, $base->addMinutes($minuto))->first();
+    for ($i = 0; $i < $volte; $i++) {
+        $prima = $selettore->first(test()->citta, SponsorshipPlacement::HomeHero);
 
         if ($prima !== null) {
             $conteggio[$prima->advertiser_name] = ($conteggio[$prima->advertiser_name] ?? 0) + 1;
         }
     }
 
-    expect($conteggio['pesa tre'] ?? 0)->toBe(300)
-        ->and($conteggio['pesa uno'] ?? 0)->toBe(100);
+    return $conteggio;
+}
+
+it('divide le apparizioni in proporzione al peso', function (): void {
+    /*
+     * Il cuore della faccenda: peso 3 contro peso 1 non vuol dire «sta
+     * davanti», vuol dire «compare tre volte su quattro». E' cio' che permette
+     * di vendere una quota invece di una posizione.
+     *
+     * Su 400 estrazioni l'atteso e' 300 e 100, con una deviazione standard di
+     * circa 8,7: la tolleranza e' di tre deviazioni. Il numero esatto con il
+     * seme distingue un cambio di generatore da un errore di quota.
+     */
+    campagnaConPeso(3, 'pesa tre');
+    campagnaConPeso(1, 'pesa uno');
+
+    $conteggio = estrazioniConSeme(400);
+
+    expect($conteggio['pesa tre'] ?? 0)->toBeGreaterThanOrEqual(274)->toBeLessThanOrEqual(326)
+        ->and(($conteggio['pesa tre'] ?? 0) + ($conteggio['pesa uno'] ?? 0))->toBe(400)
+        ->and($conteggio)->toBe(SEME_PESI_ATTESO);
 });
+
+/* Il conto esatto del test qui sopra con il seme 20261119. */
+const SEME_PESI_ATTESO = ['pesa tre' => 288, 'pesa uno' => 112];
 
 it('non lascia a zero nessuno, che e il motivo per cui il peso esiste', function (): void {
     /*
      * Con la sola priorita', chi comprava meno non compariva MAI in una
      * collocazione da uno solo. Questo test e' la garanzia che non torni a
-     * succedere.
+     * succedere: con peso 10 contro 1 il piccolo deve uscire, su 200
+     * estrazioni, circa 18 volte.
      */
-    $citta = $this->citta;
-
     campagnaConPeso(10, 'il grosso');
     campagnaConPeso(1, 'il piccolo');
 
-    $selettore = app(SponsorshipSelector::class);
-    $base = CarbonImmutable::parse('2026-09-02 00:00');
-    $visto = [];
+    $conteggio = estrazioniConSeme(200);
 
-    for ($minuto = 0; $minuto < 60; $minuto++) {
-        $prima = $selettore->forPlacement($citta, SponsorshipPlacement::HomeHero, $base->addMinutes($minuto))->first();
-
-        if ($prima !== null) {
-            $visto[$prima->advertiser_name] = true;
-        }
-    }
-
-    expect($visto)->toHaveKeys(['il grosso', 'il piccolo']);
+    expect($conteggio)->toHaveKeys(['il grosso', 'il piccolo'])
+        ->and($conteggio['il piccolo'])->toBeGreaterThanOrEqual(6);
 });
 
 it('la priorita resta piu forte del peso', function (): void {
     /* La priorita' e' un impegno contrattuale: «sei sempre in cima». Il peso
        distribuisce dentro quel gruppo, non lo scavalca. */
-    $citta = $this->citta;
-
     campagnaConPeso(1, 'priorita alta', priorita: 10);
     campagnaConPeso(50, 'priorita bassa ma pesantissima', priorita: 1);
 
-    $selettore = app(SponsorshipSelector::class);
-    $base = CarbonImmutable::parse('2026-09-02 00:00');
-
-    for ($minuto = 0; $minuto < 40; $minuto++) {
-        $prima = $selettore->forPlacement($citta, SponsorshipPlacement::HomeHero, $base->addMinutes($minuto))->first();
-
-        expect($prima?->advertiser_name)->toBe('priorita alta');
-    }
+    expect(estrazioniConSeme(40))->toBe(['priorita alta' => 40]);
 });
 
-it('resta uguale a se stessa dentro lo stesso minuto', function (): void {
+it('resta uguale a se stessa dentro la casella della cache', function (): void {
     /*
-     * Senza questo la rotazione a peso romperebbe la cache di pagina: la
-     * pagina salvata conterrebbe una scelta valida per tutto il minuto, cioe'
-     * in pratica sempre la stessa presa a caso.
+     * Riscritto: prima «dentro lo stesso minuto». L'apertura sta nello
+     * scheletro della pagina in cache, quindi la scelta deve restare la stessa
+     * per tutta la casella (lunga quanto la cache), non per un minuto solo.
      */
     $citta = $this->citta;
 
@@ -151,10 +151,10 @@ it('resta uguale a se stessa dentro lo stesso minuto', function (): void {
     campagnaConPeso(2, 'altra');
 
     $selettore = app(SponsorshipSelector::class);
-    $istante = CarbonImmutable::parse('2026-09-02 14:37:05');
+    $istante = CarbonImmutable::parse('2026-09-02 14:30:05');
 
     $prima = $selettore->forPlacement($citta, SponsorshipPlacement::HomeHero, $istante)->first();
-    $poi = $selettore->forPlacement($citta, SponsorshipPlacement::HomeHero, $istante->addSeconds(50))->first();
+    $poi = $selettore->forPlacement($citta, SponsorshipPlacement::HomeHero, $istante->addMinutes(29))->first();
 
     expect($prima?->getKey())->toBe($poi?->getKey());
 });

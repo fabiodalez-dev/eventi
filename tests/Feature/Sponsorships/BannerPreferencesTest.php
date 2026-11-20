@@ -8,6 +8,8 @@ use App\Models\SavedEvent;
 use App\Models\Sponsorship;
 use App\Models\User;
 use App\Services\Sponsorship\BannerAffinity;
+use App\Services\Sponsorship\Delivery\Draw;
+use App\Services\Sponsorship\Delivery\SeededDraw;
 use Laravel\Sanctum\Sanctum;
 
 beforeEach(function (): void {
@@ -21,19 +23,47 @@ beforeEach(function (): void {
     Follow::create(['user_id' => $this->user->id, 'followable_type' => 'venue', 'followable_id' => $this->first->event->venue_id]);
 });
 
+/*
+ * Il banner estrae a ogni richiesta dal piano (D70): la rotazione ferma nel
+ * minuto non c'è più. Queste due prove verificano la stessa promessa di prima
+ * su 50 richieste con un caso fisso: chi segue il locale di A vede A quattro
+ * volte su cinque (peso 1 × 4 contro 1), chi non segue niente una volta su due.
+ */
+function bannerPreferenceCount(callable $request, int $id, int $times = 50): int
+{
+    $count = 0;
+
+    for ($i = 0; $i < $times; $i++) {
+        $count += $request()->assertOk()->json('data.id') === $id ? 1 : 0;
+    }
+
+    return $count;
+}
+
 it('riconosce la sessione web senza condividere il banner personalizzato fra utenti', function (): void {
-    $this->actingAs($this->user)->getJson('/padova/banner-sponsorizzato?platform=web')->assertOk()->assertJsonPath('data.id', $this->a->id);
+    app()->instance(Draw::class, new SeededDraw(20261119));
     $other = User::factory()->create();
-    $response = $this->actingAs($other)->getJson('/padova/banner-sponsorizzato?platform=web')->assertOk()->assertJsonPath('data.id', $this->b->id);
+
+    /* Atteso 40 su 50 (deviazione 2,8) e 25 su 50 (deviazione 3,5). */
+    expect(bannerPreferenceCount(fn () => $this->actingAs($this->user)->getJson('/padova/banner-sponsorizzato?platform=web'), $this->a->id))
+        ->toBeGreaterThanOrEqual(32)->toBeLessThanOrEqual(48);
+    expect(bannerPreferenceCount(fn () => $this->actingAs($other)->getJson('/padova/banner-sponsorizzato?platform=web'), $this->a->id))
+        ->toBeGreaterThanOrEqual(15)->toBeLessThanOrEqual(35);
+
+    $response = $this->actingAs($other)->getJson('/padova/banner-sponsorizzato?platform=web')->assertOk();
     expect($response->headers->get('Cache-Control'))->toContain('private', 'no-store');
     expect($this->a->fresh()->weight)->toBe(1);
 });
 
 it('riconosce il token Android e non lascia che le preferenze superino la priorità commerciale', function (): void {
+    app()->instance(Draw::class, new SeededDraw(20261119));
     Sanctum::actingAs($this->user);
-    $this->getJson('/api/v1/sponsorships/banner?platform=android')->assertOk()->assertJsonPath('data.id', $this->a->id);
+
+    expect(bannerPreferenceCount(fn () => $this->getJson('/api/v1/sponsorships/banner?platform=android'), $this->a->id))
+        ->toBeGreaterThanOrEqual(32)->toBeLessThanOrEqual(48);
+
     $this->b->update(['priority' => 10]);
-    $this->getJson('/api/v1/sponsorships/banner?platform=android')->assertOk()->assertJsonPath('data.id', $this->b->id);
+    expect(bannerPreferenceCount(fn () => $this->getJson('/api/v1/sponsorships/banner?platform=android'), $this->b->id, 20))->toBe(20);
 });
 
 it('usa categorie salvate e contesto esplicito senza inventare preferenze anonime', function (): void {

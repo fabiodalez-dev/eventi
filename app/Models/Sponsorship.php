@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Enums\EventStatus;
 use App\Enums\OccurrenceStatus;
+use App\Enums\SponsorshipPacing;
 use App\Enums\SponsorshipPhase;
 use App\Enums\SponsorshipPlacement;
 use App\Enums\SponsorshipStatus;
@@ -46,6 +47,16 @@ class Sponsorship extends Model
         static::deleted(fn (self $campaign) => ContentVersion::bump($campaign->city_id));
     }
 
+    /**
+     * In memoria come nel database, anche subito dopo una `create()` che non
+     * la nomina.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'pacing' => 'even',
+    ];
+
     /** @var list<string> */
     protected $fillable = [
         'sponsorship_grant_id',
@@ -60,6 +71,8 @@ class Sponsorship extends Model
         'weight',
         'impressions_cap',
         'clicks_cap',
+        'impressions_goal',
+        'pacing',
         'advertiser_name',
         'advertiser_email',
         'advertiser_url',
@@ -100,9 +113,14 @@ class Sponsorship extends Model
      * una sponsorizzazione deve applicarli tutti e tre: sparpagliarli
      * significa che prima o poi una pagina ne applica due.
      *
+     * `$withinGoal = false` toglie solo la condizione sull'obiettivo: serve a
+     * chi conta un clic arrivato da una card ancora in pagina quando l'unità
+     * ha appena raggiunto l'obiettivo (`RecordSponsorshipMetric`). Chi decide
+     * cosa mostrare la lascia sempre accesa.
+     *
      * @param  Builder<$this>  $query
      */
-    public function scopeVisible(Builder $query, ?CarbonImmutable $now = null): void
+    public function scopeVisible(Builder $query, ?CarbonImmutable $now = null, bool $withinGoal = true): void
     {
         $adesso = $now ?? CarbonImmutable::now('UTC');
 
@@ -156,7 +174,38 @@ class Sponsorship extends Model
             ->where(function (Builder $tetti): void {
                 $tetti->whereNull('clicks_cap')
                     ->orWhereColumn('clicks', '<', 'clicks_cap');
-            });
+            })
+            /*
+             * L'obiettivo di visualizzazioni è un impegno e anche un massimo:
+             * l'unità che l'ha raggiunto smette di comparire.
+             *
+             * Per una campagna singola l'unità è la riga. Per le righe di
+             * un'abilitazione l'unità è l'abilitazione, e le consegnate sono la
+             * somma delle sue righe **comprese quelle nel cestino**: le
+             * visualizzazioni date restano date anche se poi la riga si toglie,
+             * e non contarle farebbe consegnare più di quanto comprato.
+             */
+            ->when($withinGoal, fn (Builder $q) => $q
+                ->where(function (Builder $obiettivo): void {
+                    $obiettivo->whereNull('sponsorships.impressions_goal')
+                        ->orWhereColumn('sponsorships.impressions', '<', 'sponsorships.impressions_goal');
+                })
+                ->where(fn (Builder $q) => $q->whereNull('sponsorship_grant_id')
+                    ->orWhereNotIn('sponsorship_grant_id', SponsorshipGrant::query()->select('sponsorship_grants.id')->goalReached())));
+    }
+
+    /**
+     * La chiave dell'unità di consegna a cui appartiene la riga: `g:12` per le
+     * righe dell'abilitazione 12, `s:45` per la campagna singola 45.
+     *
+     * È la stessa chiave per tutte le righe di un'abilitazione: chi sceglie
+     * prima l'unità e poi l'evento raggruppa per lei.
+     */
+    public function unitKey(): string
+    {
+        return $this->sponsorship_grant_id !== null
+            ? 'g:'.$this->sponsorship_grant_id
+            : 's:'.$this->getKey();
     }
 
     /**
@@ -266,6 +315,8 @@ class Sponsorship extends Model
             'weight' => 'integer',
             'impressions_cap' => 'integer',
             'clicks_cap' => 'integer',
+            'impressions_goal' => 'integer',
+            'pacing' => SponsorshipPacing::class,
             'amount_cents' => 'integer',
             'impressions' => 'integer',
             'clicks' => 'integer',

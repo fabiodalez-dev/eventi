@@ -54,6 +54,36 @@ enum SponsorshipPlacement: string
     }
 
     /**
+     * Se la collocazione si vende anche a visualizzazioni, o solo a periodo.
+     *
+     * L'apertura della home resta uguale per tutti per una casella intera
+     * della cache, quindi non segue un ritmo. Il foglio della mappa compare
+     * solo a chi apre il locale sulla mappa: il suo traffico è quello di un
+     * locale, non della città, e un obiettivo calcolato sulla città non si
+     * può né promettere né mantenere.
+     */
+    public function sellsViews(): bool
+    {
+        return match ($this) {
+            self::HomeHero, self::MapSheet => false,
+            self::HomeCard, self::ListTop => true,
+        };
+    }
+
+    /**
+     * Le collocazioni vendute solo a periodo.
+     *
+     * @return list<string>
+     */
+    public static function periodOnlyValues(): array
+    {
+        return array_values(array_map(
+            static fn (self $placement): string => $placement->value,
+            array_filter(self::cases(), static fn (self $placement): bool => ! $placement->sellsViews()),
+        ));
+    }
+
+    /**
      * @return array<string, string>
      */
     public static function options(): array

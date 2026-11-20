@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\Sponsorship;
 use App\Models\SponsorshipClick;
 use App\Models\SponsorshipDailyStat;
+use App\Services\Sponsorship\Delivery\ImpressionToken;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Str;
@@ -31,6 +32,20 @@ afterEach(function (): void {
     CarbonImmutable::setTestNow();
 });
 
+/** Una campagna che può comparire: la misura con il gettone conta solo su quelle. */
+function campagnaTettoSponsor(): Sponsorship
+{
+    $occurrence = occurrenceAt(test()->city, test()->category, '2026-09-12 19:00:00');
+
+    return Sponsorship::factory()->create(['city_id' => test()->city->id, 'event_id' => $occurrence->event_id]);
+}
+
+/** Ogni pagina caricata porta un gettone nuovo: qui uno per richiesta. */
+function gettoneTettoSponsor(Sponsorship $campagna): array
+{
+    return ['X-Impression-Token' => ImpressionToken::issue($campagna, 'list_top')];
+}
+
 function righeTettoSponsor(Sponsorship $campagna): int
 {
     return Activity::query()->where('log_name', 'sicurezza')->where('event', 'sponsor_misure_oltre_tetto')
@@ -38,12 +53,12 @@ function righeTettoSponsor(Sponsorship $campagna): int
 }
 
 it('scarta in silenzio le visualizzazioni oltre il tetto orario della campagna, da indirizzi diversi', function (): void {
-    $campagna = Sponsorship::factory()->create(['city_id' => $this->city->id]);
+    $campagna = campagnaTettoSponsor();
     $url = route('sponsorships.metric', ['sponsorship' => $campagna, 'metric' => 'impressions']);
 
     foreach (range(1, 12) as $i) {
         // La risposta resta 204 anche oltre il tetto: nessun segnale a chi gonfia.
-        $this->withServerVariables(['REMOTE_ADDR' => '198.51.100.'.$i])->postJson($url)->assertNoContent();
+        $this->withServerVariables(['REMOTE_ADDR' => '198.51.100.'.$i])->postJson($url, [], gettoneTettoSponsor($campagna))->assertNoContent();
     }
 
     expect((int) SponsorshipDailyStat::query()->where('sponsorship_id', $campagna->id)->sum('impressions'))->toBe(5)
@@ -56,17 +71,17 @@ it('scarta in silenzio le visualizzazioni oltre il tetto orario della campagna, 
 });
 
 it('riparte all’ora successiva e segnala di nuovo una volta', function (): void {
-    $campagna = Sponsorship::factory()->create(['city_id' => $this->city->id]);
+    $campagna = campagnaTettoSponsor();
     $url = route('sponsorships.metric', ['sponsorship' => $campagna, 'metric' => 'impressions']);
 
     foreach (range(1, 7) as $i) {
-        $this->withServerVariables(['REMOTE_ADDR' => '198.51.100.'.$i])->postJson($url)->assertNoContent();
+        $this->withServerVariables(['REMOTE_ADDR' => '198.51.100.'.$i])->postJson($url, [], gettoneTettoSponsor($campagna))->assertNoContent();
     }
 
     $this->travel(1)->hours();
 
     foreach (range(20, 27) as $i) {
-        $this->withServerVariables(['REMOTE_ADDR' => '198.51.100.'.$i])->postJson($url)->assertNoContent();
+        $this->withServerVariables(['REMOTE_ADDR' => '198.51.100.'.$i])->postJson($url, [], gettoneTettoSponsor($campagna))->assertNoContent();
     }
 
     expect((int) $campagna->refresh()->impressions)->toBe(10)
@@ -74,16 +89,16 @@ it('riparte all’ora successiva e segnala di nuovo una volta', function (): voi
 });
 
 it('conta il tetto per campagna: una campagna piena non ferma le altre', function (): void {
-    $piena = Sponsorship::factory()->create(['city_id' => $this->city->id]);
-    $altra = Sponsorship::factory()->create(['city_id' => $this->city->id]);
+    $piena = campagnaTettoSponsor();
+    $altra = campagnaTettoSponsor();
 
     foreach (range(1, 8) as $i) {
         $this->withServerVariables(['REMOTE_ADDR' => '198.51.100.'.$i])
-            ->postJson(route('sponsorships.metric', ['sponsorship' => $piena, 'metric' => 'impressions']))->assertNoContent();
+            ->postJson(route('sponsorships.metric', ['sponsorship' => $piena, 'metric' => 'impressions']), [], gettoneTettoSponsor($piena))->assertNoContent();
     }
 
     $this->withServerVariables(['REMOTE_ADDR' => '198.51.100.99'])
-        ->postJson(route('sponsorships.metric', ['sponsorship' => $altra, 'metric' => 'impressions']))->assertNoContent();
+        ->postJson(route('sponsorships.metric', ['sponsorship' => $altra, 'metric' => 'impressions']), [], gettoneTettoSponsor($altra))->assertNoContent();
 
     expect((int) $piena->refresh()->impressions)->toBe(5)
         ->and((int) $altra->refresh()->impressions)->toBe(1)
@@ -133,11 +148,11 @@ it('non lascia consumare il tetto dei clic con lo stesso click_id ripetuto', fun
 
 it('con il tetto a zero non ferma niente', function (): void {
     config(['eventi.sponsorship_metric_hourly_cap.impressions' => 0]);
-    $campagna = Sponsorship::factory()->create(['city_id' => $this->city->id]);
+    $campagna = campagnaTettoSponsor();
     $url = route('sponsorships.metric', ['sponsorship' => $campagna, 'metric' => 'impressions']);
 
     foreach (range(1, 8) as $i) {
-        $this->withServerVariables(['REMOTE_ADDR' => '198.51.100.'.$i])->postJson($url)->assertNoContent();
+        $this->withServerVariables(['REMOTE_ADDR' => '198.51.100.'.$i])->postJson($url, [], gettoneTettoSponsor($campagna))->assertNoContent();
     }
 
     expect((int) $campagna->refresh()->impressions)->toBe(8)->and(righeTettoSponsor($campagna))->toBe(0);

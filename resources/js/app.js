@@ -8,6 +8,9 @@ if (document.querySelector('[data-rich-input]')) {
     import('./rich-input').then(({ richInputs }) => richInputs());
 }
 import { sponsorshipBanners } from './sponsorship-banner';
+/* Le misure delle card sponsorizzate: vista a metà per un secondo, gettone usa
+   e getta, nessun identificativo salvato (vedi il modulo). */
+import { sponsorshipMetrics } from './sponsorship-metrics';
 import './calendar-preview';
 import { placeChoices } from './place-choices';
 import { navigationMovement } from './scroll-navigation';
@@ -19,7 +22,6 @@ import { contentAnalytics } from './content-analytics';
 import { cardLayout } from './card-layout';
 import { passwordToggles } from './password-toggle';
 
-import { sponsorshipContext } from './sponsorship-context';
 import { forgetCheckinData } from './checkin-queue';
 
 // Chi esce non lascia sul dispositivo le liste d'ingresso dello scanner.
@@ -773,84 +775,6 @@ function consentBanner() {
             fallback(scelta);
         }
     });
-}
-
-/**
- * Le misure di una campagna sponsorizzata.
- *
- * **Perché dal browser e non dal server.** Le pagine pubbliche stanno in cache
- * per almeno trenta minuti: il server disegna la card una volta e poi serve la stessa
- * pagina a tutti fino alla scadenza. Un contatore incrementato mentre si
- * disegna conterebbe una visualizzazione al minuto invece che una per
- * visitatore.
- *
- * **Una visualizzazione è quando la card è stata davvero vista**, non quando è
- * stata mandata: `IntersectionObserver` con soglia a metà elemento, e una sola
- * volta per campagna per pagina. Contare una card che sta a tremila pixel di
- * distanza, in fondo a una pagina che nessuno scorre, significa vendere aria.
- *
- * `keepalive` sulle chiamate: l'apertura porta via dalla pagina, e senza
- * quell'opzione il browser annulla la richiesta a metà.
- *
- * Se questo codice non gira, si perdono le misure — mai la navigazione: il
- * collegamento alla scheda è un `href` normale.
- */
-function sponsorshipMetrics() {
-    const cards = document.querySelectorAll("[data-sponsorship]");
-
-    if (cards.length === 0) {
-        return;
-    }
-
-    const token =
-        document.querySelector('meta[name="csrf-token"]')?.content ?? "";
-
-    const conta = (url, placement = 'card', click = false) => {
-        if (!url) {
-            return;
-        }
-
-        void fetch(url, {
-            method: "POST",
-            keepalive: true,
-            headers: { "X-CSRF-TOKEN": token, Accept: "application/json", "Content-Type": "application/json" },
-            body: JSON.stringify(sponsorshipContext(placement, click)),
-        }).catch(() => {
-            /* Una misura persa non è un problema di chi sta navigando: nessun
-               messaggio, nessun tentativo ripetuto. */
-        });
-    };
-
-    for (const card of cards) {
-        const click = (event) => {
-            if (!event.target.closest('a[rel~="sponsored"]')) return;
-            conta(card.dataset.sponsorshipClick, card.dataset.sponsorshipPlacement || 'card', true);
-        };
-        card.addEventListener('click', click);
-        card.addEventListener('auxclick', event => { if (event.button === 1) click(event); });
-    }
-
-    if (typeof IntersectionObserver !== "function") {
-        return;
-    }
-
-    const osservatore = new IntersectionObserver(
-        (voci) => {
-            for (const voce of voci) {
-                if (!voce.isIntersecting) {
-                    continue;
-                }
-
-                conta(voce.target.dataset.sponsorshipImpression);
-                osservatore.unobserve(voce.target);
-            }
-        },
-        { threshold: 0.5 },
-    );
-
-    for (const card of cards) {
-        osservatore.observe(card);
-    }
 }
 
 /**

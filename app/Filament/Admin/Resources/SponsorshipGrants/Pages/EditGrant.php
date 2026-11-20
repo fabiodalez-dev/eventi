@@ -14,6 +14,12 @@ class EditGrant extends EditRecord
 {
     protected static string $resource = SponsorshipGrantResource::class;
 
+    /** Il titolo com'è scritto nei testi, non con le maiuscole che Filament aggiunge da solo. */
+    public function getTitle(): string
+    {
+        return __('sponsorships.grant.edit_title');
+    }
+
     protected function mutateFormDataBeforeSave(array $data): array
     {
         return app(GrantPayment::class)->normalize($data);

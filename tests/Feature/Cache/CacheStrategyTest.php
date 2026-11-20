@@ -146,7 +146,11 @@ describe('full-page cache dello scheletro', function (): void {
         $key = collect(Cache::get('page-cache-index', []))->first();
         $cached = Cache::get($key);
 
-        expect($second)->toBe($first)
+        /* Identica salvo i gettoni usa e getta, che sono nuovi a ogni risposta
+           per costruzione (quello dello spazio vuoto della home compreso). */
+        $senzaGettoni = fn (string $html): string => preg_replace('/\b[vo]1\.\d+\.[a-z_]+\.\d+\.[0-9a-f]{16}\.[A-Za-z0-9_-]{43}\b/', '[gettone]', $html) ?? $html;
+
+        expect($senzaGettoni((string) $second))->toBe($senzaGettoni((string) $first))
             ->and($cached)->toBeString()
             ->and(str_starts_with((string) $cached, "\x1f\x8b"))->toBeTrue()
             ->and(strlen((string) $cached))->toBeLessThan((int) (strlen($first) / 4));

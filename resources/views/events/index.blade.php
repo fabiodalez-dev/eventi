@@ -80,14 +80,14 @@
                 {{-- La campagna in cima, quando c'è: sopra i risultati e fuori
                      dal contenitore che l'infinite scroll estende, altrimenti
                      ricomparirebbe a ogni pagina caricata. --}}
-                @if ($sponsorship !== null && $sponsoredOccurrence !== null && ! $filters->discovery)
-                    <x-sponsored-card
-                        :sponsorship="$sponsorship"
-                        :occurrence="$sponsoredOccurrence"
-                        :show-poster="true"
-                        class="mb-4 border-b-2 border-line md:mb-6"
-                        level="h2"
-                    />
+                {{-- Per gli anonimi è un buco della cache, riempito a ogni
+                     visita dal piano di consegna (`SponsorSlots`). --}}
+                @if (($sponsorSlot ?? null) !== null && ! $filters->discovery)
+                    {!! \App\Services\Sponsorship\SponsorSlots::open($sponsorSlot) !!}{!! \App\Services\Sponsorship\SponsorSlots::close() !!}
+                @elseif ($sponsorship !== null && $sponsoredOccurrence !== null && ! $filters->discovery)
+                    @include('partials.sponsored.list-top')
+                @elseif (! $filters->discovery)
+                    {!! \App\Services\Sponsorship\SponsorSlots::vacant('list_top', $city) !!}
                 @endif
 
                 {{-- Il selettore della vista sta fuori dalla griglia a tutta

@@ -146,6 +146,16 @@ pulizie: `model:prune` sulle richieste WhatsApp oltre i trenta giorni e
 `community:prune-fingerprints` sulle impronte dei sospesi cancellati oltre i
 24 mesi.
 
+Per le sponsorizzazioni (D70), sempre dallo scheduler:
+
+| Comando | Quando | Cosa fa |
+|---|---|---|
+| `sponsorship-grants:sync` | ogni minuto | crea le righe evento delle abilitazioni automatiche |
+| `sponsorships:plan` | ogni minuto, senza sovrapposizioni | ricostruisce i piani di consegna per città e collocazione |
+| `sponsorships:prune` | ogni ora | toglie i numeri casuali dei gettoni scaduti (oltre 6 ore) e gli aggregati orari oltre 70 giorni; `--dry-run` conta senza togliere |
+| `sponsorships:pacing-check` | ogni giorno alle 7 ora di Roma | avvisa nella campanella del pannello admin le unità a visualizzazioni in ritardo o a rischio, una volta al giorno; `--dry-run` non scrive |
+| `sponsorships:report` | lunedì 8:30 | riepilogo settimanale al committente, con obiettivo, consegnate e stato |
+
 ## Quando l'integrazione continua fallisce e in locale è tutto verde
 
 Tre differenze fra le due macchine, e ognuna ha già nascosto un difetto vero.
@@ -634,17 +644,35 @@ dall'evento. Il committente compare al pubblico accanto alla scritta
    quel locale**.
 
 **Se ce ne sono più d'una per la stessa collocazione**, ne compare comunque una
-sola: le altre entrano in rotazione, che avanza a ogni cambio di minuto. Chi ha
-la priorità più alta sta davanti. Il tetto è nel codice
+sola: le altre si dividono lo spazio secondo il piano di consegna (D70). Chi ha
+la priorità più alta sta davanti; a pari priorità le campagne a visualizzazioni
+prendono la quota che serve a finire in tempo, quelle a periodo il resto in
+proporzione al peso. L'apertura della home cambia ogni mezz'ora (la durata della
+cache), card e cima dell'elenco a ogni visita, il banner a ogni richiesta.
+Un'abilitazione con molti eventi è un posto solo. Il tetto è nel codice
 (`SponsorshipPlacement::limit()`), non in configurazione: alzarlo è una
 decisione di prodotto e si prende leggendo quel metodo, dove è spiegata.
 
 **Le misure sono una stima al ribasso.** Si contano dal browser — le pagine
-stanno in cache un minuto, e un contatore lato server direbbe una
-visualizzazione al minuto invece di una per visitatore — quindi chi blocca gli
-script non viene contato. Va detto nel contratto, non lasciato intendere. Una
-visualizzazione si conta quando la card è entrata davvero nello schermo, non
-quando è stata spedita.
+stanno in cache almeno trenta minuti, e un contatore lato server direbbe una
+visualizzazione per copia salvata invece di una per visitatore — quindi chi
+blocca gli script non viene contato. Va detto nel contratto, non lasciato
+intendere. Una visualizzazione si conta quando metà della card resta nello
+schermo per un secondo di fila, con un gettone usa e getta che il server ha
+messo nella card: lo stesso gettone conta una volta sola. Non contano i
+programmi automatici, la redazione e i membri del committente collegati.
+
+**Se una campagna a visualizzazioni non avanza**, si controlla: che il piano sia
+recente (`php artisan sponsorships:plan --city=<id>` lo ricostruisce e dice
+quante unità ha trovato); che `sponsorship_impression_nonces` riceva righe nuove
+quando si guarda una card da anonimi, in una finestra senza estensioni che
+bloccano gli script; che lo stato nella scheda non sia «a rischio», cioè che
+l'obiettivo ci stia nel traffico previsto. Le stime restano «provvisorie» finché
+`sponsorship_slot_hourly` non ha 14 giorni di dati.
+
+**Dopo il deploy di D70** si controlla che il cron esegua `sponsorships:plan`
+(il piano in cache deve avere meno di 120 secondi) e che una visita anonima alla
+home produca una visualizzazione sola.
 
 **Cosa non si può spegnere**, e non per scelta di stile: la fascia
 «Sponsorizzato» col nome del committente, il `rel="sponsored"` sul collegamento

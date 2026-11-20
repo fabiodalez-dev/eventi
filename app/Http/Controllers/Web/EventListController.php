@@ -10,6 +10,7 @@ use App\Enums\PriceFilter;
 use App\Enums\SponsorshipPlacement;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Web\Concerns\InteractsWithCity;
+use App\Http\Middleware\CachePage;
 use App\Http\Requests\Web\EventFilterRequest;
 use App\Models\Category;
 use App\Models\Tag;
@@ -24,6 +25,7 @@ use App\Services\Seo\EditorialContent;
 use App\Services\Seo\EventListingMeta;
 use App\Services\Seo\StructuredData;
 use App\Services\Sponsorship\SponsorshipSelector;
+use App\Services\Sponsorship\SponsorSlots;
 use App\Support\EventUrl;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
@@ -48,6 +50,7 @@ final class EventListController extends Controller
         private readonly StructuredData $structuredData,
         private readonly MapPayload $mapPayload,
         private readonly SponsorshipSelector $sponsorships,
+        private readonly SponsorSlots $slots,
     ) {}
 
     public function index(EventFilterRequest $request): View
@@ -146,7 +149,16 @@ final class EventListController extends Controller
             $meta = $meta->withTitle($meta->title.' — Pagina '.request()->integer('page'));
         }
 
-        $sponsorship = $this->sponsorships->first($city, SponsorshipPlacement::ListTop, filters: $filters);
+        /*
+         * Per una pagina che sta per finire in cache la cima dell'elenco è un
+         * buco: `CachePage` la sceglie a ogni visita dal piano di consegna, e
+         * toglie dalla risposta la data promossa (`SponsorSlots`). Qui allora
+         * la griglia resta intera. Gli eventi che rispettano i filtri si
+         * calcolano adesso e viaggiano nel segnaposto.
+         */
+        $storing = request()->attributes->get(CachePage::STORING) === true;
+        $sponsorSlot = $storing && ! $filters->discovery ? $this->slots->prepare($city, SponsorshipPlacement::ListTop, $filters) : null;
+        $sponsorship = $storing ? null : $this->sponsorships->first($city, SponsorshipPlacement::ListTop, filters: $filters);
         $sponsoredOccurrence = null;
         if ($sponsorship !== null) {
             $sponsoredOccurrence = $this->finder->query($city, $filters)
@@ -197,6 +209,7 @@ final class EventListController extends Controller
                lascia un buco. */
             'sponsorship' => $sponsorship,
             'sponsoredOccurrence' => $sponsoredOccurrence,
+            'sponsorSlot' => $sponsorSlot,
             'meta' => $meta,
             'categories' => $this->facets->categories(),
             'tags' => $this->facets->tags(),

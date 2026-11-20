@@ -6,6 +6,8 @@ namespace App\Http\Middleware;
 
 use App\Services\Cache\FrontendCacheConfiguration;
 use App\Services\RememberedLocation;
+use App\Services\Sponsorship\Delivery\ImpressionToken;
+use App\Services\Sponsorship\SponsorSlots;
 use App\Support\Consent;
 use App\Support\ContentVersion;
 use App\Support\Csp;
@@ -15,6 +17,7 @@ use App\View\Components\HomeNextEvent;
 use App\View\Components\LiveNow;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as IlluminateResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Symfony\Component\HttpFoundation\Response;
@@ -74,6 +77,17 @@ final class CachePage
     /** Il prossimo evento accanto al calendario: stesso motivo, frammento a parte. */
     private const HOME_NEXT_PLACEHOLDER = '@@home-next@@';
 
+    /** Uno dei quattro segnaposto qui sopra, già presente nella pagina prima che li metta io. */
+    private const FORGED_PLACEHOLDER = '/@@(?=(?:csrf-token|csp-nonce|live-now|home-next)@@)/';
+
+    /**
+     * L'attributo della richiesta che dice al controller «questa pagina sta
+     * per finire in cache»: card della home e cima dell'elenco allora non si
+     * scelgono lì ma diventano buchi, riempiti qui a ogni risposta
+     * (`SponsorSlots`).
+     */
+    public const STORING = 'page_cache.storing';
+
     public function handle(Request $request, Closure $next): Response
     {
         app(FrontendCacheConfiguration::class)->apply();
@@ -96,7 +110,9 @@ final class CachePage
                 ->header('X-Page-Cache', 'hit');
         }
 
+        $request->attributes->set(self::STORING, true);
         $response = $next($request);
+        $drawn = $response->getContent();
 
         if ($this->isCacheable($request) && $this->isStorable($response)) {
             $content = (string) $response->getContent();
@@ -115,6 +131,24 @@ final class CachePage
                 });
             } catch (Throwable $exception) {
                 report($exception);
+            }
+        }
+
+        /*
+         * Anche la risposta che ha riempito la cache riceve le sponsorizzazioni
+         * dal buco, come le successive: la griglia disegnata è intera, e la
+         * data promossa la toglie il riempimento. Vale anche quando alla fine
+         * la pagina non si è potuta salvare.
+         */
+        if (is_string($drawn) && SponsorSlots::present($drawn)) {
+            /* `setContent()` di Laravel sostituirebbe anche la vista di
+               partenza: la si rimette, così chi la ispeziona (i test) vede
+               ancora i dati che il controller le ha passato. */
+            $view = $response instanceof IlluminateResponse ? $response->original : null;
+            $response->setContent(ImpressionToken::fillPlaceholders(app(SponsorSlots::class)->fill(SponsorSlots::extract($drawn))));
+
+            if ($response instanceof IlluminateResponse && $view !== null) {
+                $response->original = $view;
             }
         }
 
@@ -548,6 +582,13 @@ final class CachePage
      */
     private function depersonalise(string $content): string
     {
+        /* I segnaposto qui sotto sono testo semplice, e il testo degli utenti
+           (il titolo di un evento) arriva nella pagina escapato per l'HTML ma
+           non per loro: se la pagina li porta già, li spengo prima di mettere
+           i miei, così `restore()` non riempie quelli scritti da altri.
+           `&#64;` il browser lo mostra come `@`. Quelli delle
+           sponsorizzazioni li spegne `SponsorSlots::extract()`. */
+        $content = preg_replace(self::FORGED_PLACEHOLDER, '&#64;@', $content) ?? $content;
         $content = preg_replace(
             '/<!-- page-cache-live-now:start -->.*?<!-- page-cache-live-now:end -->/s',
             self::LIVE_NOW_PLACEHOLDER,
@@ -558,10 +599,24 @@ final class CachePage
             self::HOME_NEXT_PLACEHOLDER,
             $content,
         ) ?? $content;
+        /* Card e cima dell'elenco diventano buchi, e i gettoni delle
+           visualizzazioni (anche quello dell'apertura) segnaposto: un gettone
+           vale per una visita sola. */
+        $content = SponsorSlots::extract($content);
         $content = str_replace(csrf_token(), self::CSRF_PLACEHOLDER, $content);
         $nonce = app(Csp::class)->issued();
 
         return $nonce === null ? $content : str_replace($nonce, self::NONCE_PLACEHOLDER, $content);
+    }
+
+    /**
+     * Un frammento disegnato adesso, con i titoli degli eventi dentro: i
+     * segnaposto che porta già si spengono, come nella copia salvata, prima
+     * che il riempimento qui sotto li cerchi nella pagina.
+     */
+    private static function neutralised(string $fragment): string
+    {
+        return SponsorSlots::neutralise(preg_replace(self::FORGED_PLACEHOLDER, '&#64;@', $fragment) ?? $fragment);
     }
 
     /**
@@ -575,20 +630,24 @@ final class CachePage
     {
         if (str_contains($content, self::LIVE_NOW_PLACEHOLDER)) {
             $component = app(LiveNow::class);
-            $fragment = '<!-- page-cache-live-now:start -->'.view('components.live-now', [
+            $fragment = '<!-- page-cache-live-now:start -->'.self::neutralised(view('components.live-now', [
                 'ongoing' => $component->ongoing,
                 'startingSoon' => $component->startingSoon,
-            ])->render().'<!-- page-cache-live-now:end -->';
+            ])->render()).'<!-- page-cache-live-now:end -->';
             $content = str_replace(self::LIVE_NOW_PLACEHOLDER, $fragment, $content);
         }
 
         if (str_contains($content, self::HOME_NEXT_PLACEHOLDER)) {
             $next = app(HomeNextEvent::class);
             $fragment = '<!-- page-cache-home-next:start -->'
-                .($next->shouldRender() ? $next->render()->with($next->data())->render() : '')
+                .($next->shouldRender() ? self::neutralised($next->render()->with($next->data())->render()) : '')
                 .'<!-- page-cache-home-next:end -->';
             $content = str_replace(self::HOME_NEXT_PLACEHOLDER, $fragment, $content);
         }
+
+        /* Le sponsorizzazioni: un'estrazione dal piano per ogni buco, poi un
+           gettone nuovo per ogni segnaposto. Dalla cache, senza query. */
+        $content = ImpressionToken::fillPlaceholders(app(SponsorSlots::class)->fill($content));
 
         $content = str_replace(self::CSRF_PLACEHOLDER, csrf_token(), $content);
         $nonce = app(Csp::class)->issued();

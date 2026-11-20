@@ -25,6 +25,9 @@
     'index' => null,
     'level' => 'h3',
     'showPoster' => true,
+    /* La collocazione in cui compare: entra nel gettone della visualizzazione.
+       Senza, quella della campagna. */
+    'placement' => null,
 ])
 
 @php
@@ -36,12 +39,19 @@
         ->filter(fn ($o) => $o->starts_at?->isFuture() ?? false)
         ->sortBy('starts_at')
         ->first();
+    $collocazione = $placement instanceof \App\Enums\SponsorshipPlacement
+        ? $placement->value
+        : ($placement ?? ($sponsorship->placement instanceof \App\Enums\SponsorshipPlacement ? $sponsorship->placement->value : (string) $sponsorship->placement));
 @endphp
 
 @if ($data !== null)
     <div
         {{ $attributes->class(['relative flex flex-col']) }}
         data-sponsorship="{{ $sponsorship->getKey() }}"
+        data-sponsorship-placement="{{ $collocazione }}"
+        {{-- Il gettone usa e getta della visualizzazione (P3 lo rimanda). Nelle
+             pagine in cache diventa un segnaposto e torna fresco a ogni visita. --}}
+        data-sponsorship-token="{{ \App\Services\Sponsorship\Delivery\ImpressionToken::issue($sponsorship, $collocazione) }}"
         data-sponsorship-impression="{{ route('sponsorships.metric', ['sponsorship' => $sponsorship, 'metric' => 'impressions']) }}"
         data-sponsorship-click="{{ route('sponsorships.metric', ['sponsorship' => $sponsorship, 'metric' => 'clicks']) }}"
     >

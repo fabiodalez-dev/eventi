@@ -15015,10 +15015,15 @@
                                                                     ]
                                                                 },
                                                                 "metric_token": {
-                                                                    "type": "string"
+                                                                    "type": "string",
+                                                                    "description": "Il gettone giornaliero di sempre: resta, perch\u00e9 le app gi\u00e0\ninstallate lo mandano in `X-Metric-Token` e devono continuare a\ncontare."
                                                                 },
                                                                 "metric_url": {
                                                                     "type": "string"
+                                                                },
+                                                                "impression_token": {
+                                                                    "type": "string",
+                                                                    "description": "Il gettone usa e getta di questa visualizzazione: nuovo a ogni\nrisposta, va rimandato in `X-Impression-Token` con la\nvisualizzazione e con il clic. Lo stesso gettone conta una volta\nsola, quindi due client non devono condividerlo."
                                                                 }
                                                             },
                                                             "required": [
@@ -15028,7 +15033,8 @@
                                                                 "advertiser",
                                                                 "occurrence",
                                                                 "metric_token",
-                                                                "metric_url"
+                                                                "metric_url",
+                                                                "impression_token"
                                                             ]
                                                         },
                                                         "card": {
@@ -16140,10 +16146,15 @@
                                                                     ]
                                                                 },
                                                                 "metric_token": {
-                                                                    "type": "string"
+                                                                    "type": "string",
+                                                                    "description": "Il gettone giornaliero di sempre: resta, perch\u00e9 le app gi\u00e0\ninstallate lo mandano in `X-Metric-Token` e devono continuare a\ncontare."
                                                                 },
                                                                 "metric_url": {
                                                                     "type": "string"
+                                                                },
+                                                                "impression_token": {
+                                                                    "type": "string",
+                                                                    "description": "Il gettone usa e getta di questa visualizzazione: nuovo a ogni\nrisposta, va rimandato in `X-Impression-Token` con la\nvisualizzazione e con il clic. Lo stesso gettone conta una volta\nsola, quindi due client non devono condividerlo."
                                                                 }
                                                             },
                                                             "required": [
@@ -16153,7 +16164,8 @@
                                                                 "advertiser",
                                                                 "occurrence",
                                                                 "metric_token",
-                                                                "metric_url"
+                                                                "metric_url",
+                                                                "impression_token"
                                                             ]
                                                         }
                                                     },
@@ -18240,13 +18252,31 @@
                                                     },
                                                     "ends_at": {
                                                         "type": "string"
+                                                    },
+                                                    "goal": {
+                                                        "type": [
+                                                            "integer",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    "delivered": {
+                                                        "type": "integer"
+                                                    },
+                                                    "pacing_state": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ]
                                                     }
                                                 },
                                                 "required": [
                                                     "id",
                                                     "title",
                                                     "starts_at",
-                                                    "ends_at"
+                                                    "ends_at",
+                                                    "goal",
+                                                    "delivered",
+                                                    "pacing_state"
                                                 ]
                                             }
                                         },
@@ -18426,6 +18456,29 @@
                                                         "per_booking_cents",
                                                         "per_attendance_cents"
                                                     ]
+                                                },
+                                                "goal": {
+                                                    "type": [
+                                                        "integer",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "delivered": {},
+                                                "pacing_state": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ],
+                                                    "enum": [
+                                                        "on_track",
+                                                        "slightly_behind",
+                                                        "behind",
+                                                        "ahead",
+                                                        "at_risk",
+                                                        "completed",
+                                                        "missed",
+                                                        null
+                                                    ]
                                                 }
                                             },
                                             "required": [
@@ -18433,7 +18486,10 @@
                                                 "title",
                                                 "starts_at",
                                                 "ends_at",
-                                                "economics"
+                                                "economics",
+                                                "goal",
+                                                "delivered",
+                                                "pacing_state"
                                             ]
                                         }
                                     },
@@ -27152,6 +27208,10 @@
                                                 },
                                                 "metric_token": {
                                                     "type": "string"
+                                                },
+                                                "impression_token": {
+                                                    "type": "string",
+                                                    "description": "Nuovo a ogni risposta: va rimandato in `X-Impression-Token`, conta una volta sola."
                                                 }
                                             },
                                             "required": [
@@ -27167,7 +27227,8 @@
                                                 "image",
                                                 "url",
                                                 "expires_at",
-                                                "metric_token"
+                                                "metric_token",
+                                                "impression_token"
                                             ]
                                         }
                                     },
@@ -32662,7 +32723,64 @@
             },
             "MobileSponsorship": {
                 "type": "object",
-                "additionalProperties": {},
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "label": {
+                        "type": "string"
+                    },
+                    "placement": {
+                        "type": "string"
+                    },
+                    "advertiser": {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string"
+                            },
+                            "url": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "name",
+                            "url"
+                        ]
+                    },
+                    "occurrence": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/MobileOccurrence"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "metric_token": {
+                        "type": "string"
+                    },
+                    "metric_url": {
+                        "type": "string"
+                    },
+                    "impression_token": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "id",
+                    "label",
+                    "placement",
+                    "advertiser",
+                    "occurrence",
+                    "metric_token",
+                    "metric_url",
+                    "impression_token"
+                ],
                 "title": "MobileSponsorship"
             },
             "MobileVenue": {
@@ -32936,8 +33054,8 @@
                             "integer",
                             "null"
                         ],
-                        "minimum": 1779176452,
-                        "maximum": 1795074052
+                        "minimum": 1779237583,
+                        "maximum": 1795135183
                     },
                     "lat": {
                         "type": "number",

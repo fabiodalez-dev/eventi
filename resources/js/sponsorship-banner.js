@@ -1,6 +1,7 @@
 // Ads never live in the page cache. A short server lease also handles midnight,
 // lost connectivity, campaign pauses and the backend switch on already open pages.
 import { sponsorshipContext } from './sponsorship-context.js';
+import { automated, post, VIEWABLE_MS, watchViewable } from './sponsorship-metrics.js';
 
 /* Share only concurrent requests. Once settled, the entry is removed so the
    lease-expiry refresh still asks the backend for current campaign data. */
@@ -32,23 +33,41 @@ export function sponsorshipBanners() {
         const link = slot.querySelector('a');
         const picture = slot.querySelector('img');
         const hide = () => { slot.hidden = true; banner = null; };
+        /* Il gettone usa e getta, quando il server lo manda, vale per una
+           visualizzazione e un clic e passa davanti a quello giornaliero; il
+           giornaliero resta per i server che non lo mandano ancora. */
         const metric = (kind) => {
-            if (!banner || Date.parse(banner.expires_at) <= Date.now()) return;
+            if (!banner || Date.parse(banner.expires_at) <= Date.now() || automated()) return;
+            /* Con il gettone usa e getta la misura va alla rotta del sito, con
+               la sessione: è lì che il server sa chi è collegato, e non conta
+               la redazione né il committente che guarda il proprio banner.
+               La rotta dell'API resta per il gettone giornaliero. */
+            if (banner.impression_token && slot.dataset.webMetricBase) {
+                post(`${slot.dataset.webMetricBase}/${banner.id}/${kind}`, sponsorshipContext('banner', kind === 'clicks'), banner.impression_token);
+                return;
+            }
             const city = slot.dataset.city ? `?city=${encodeURIComponent(slot.dataset.city)}` : '';
+            const headers = { Accept: 'application/json', 'Content-Type': 'application/json', 'X-Metric-Token': banner.metric_token };
+            if (banner.impression_token) headers['X-Impression-Token'] = banner.impression_token;
             void fetch(`${slot.dataset.metricBase}/${banner.id}/metrics/${kind}${city}`, {
-                method: 'POST', keepalive: true,
-                headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-Metric-Token': banner.metric_token },
+                method: 'POST', keepalive: true, headers,
                 body: JSON.stringify(sponsorshipContext('banner', kind === 'clicks')),
             }).catch(() => {});
         };
-        const observer = new IntersectionObserver((entries) => {
-            if (banner && entries.some(entry => entry.isIntersecting) && !seen.has(banner.id)) {
-                metric('impressions');
+        /* Vista davvero: metà del banner nello schermo per un secondo di fila,
+           con la scheda visibile. Una volta per banner mostrato. */
+        const observer = watchViewable(() => {
+            if (banner && !seen.has(banner.id)) {
                 seen.add(banner.id);
+                metric('impressions');
             }
-        }, { threshold: 0.5 });
+        }, { ms: Number(slot.dataset.viewableMs) > 0 ? Number(slot.dataset.viewableMs) : VIEWABLE_MS });
         const click = (event) => {
             if (!banner || Date.parse(banner.expires_at) <= Date.now()) { event.preventDefault(); hide(); return; }
+            /* Con il gettone usa e getta un clic prima del secondo porta con
+               sé la visualizzazione (il server le conta insieme): dopo non la
+               si manda più. Con quello giornaliero il server conta solo il clic. */
+            if (banner.impression_token) seen.add(banner.id);
             metric('clicks');
         };
         link.addEventListener('click', click);

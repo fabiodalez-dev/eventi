@@ -79,6 +79,16 @@ class AdminPanelProvider extends PanelProvider
             ->renderHook(PanelsRenderHook::HEAD_START, fn () => view('filament.partials.theme-bootstrap'))
             ->renderHook(PanelsRenderHook::TOPBAR_END, fn () => view('filament.partials.topbar-actions'))
             /*
+             * La campanella della redazione: mostra solo le notifiche scritte
+             * nella forma di Filament, oggi l'avviso del mattino sulle
+             * sponsorizzazioni in ritardo (`sponsorships:pacing-check`, D70).
+             * Nessun aggiornamento periodico: l'avviso arriva una volta al
+             * giorno e una richiesta ogni 30 secondi per ogni scheda aperta
+             * costerebbe più di quanto serve sull'hosting condiviso.
+             */
+            ->databaseNotifications()
+            ->databaseNotificationsPolling(null)
+            /*
              * Il foglio che porta qui dentro l'identita' del sito — titoli Bricolage,
              * superfici chiare e bordi sottili — senza portarne l'intensita':
              * il perche' di ogni scelta sta scritto li'.

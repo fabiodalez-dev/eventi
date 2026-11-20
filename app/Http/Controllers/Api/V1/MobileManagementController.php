@@ -12,6 +12,7 @@ use App\Http\Controllers\TicketingController;
 use App\Http\Requests\Ticketing\DecisionDetailsRequest;
 use App\Http\Requests\Ticketing\MobileManagementRequest;
 use App\Http\Requests\Ticketing\StaffRequest;
+use App\Http\Resources\V1\SponsorshipProgressResource;
 use App\Models\AdmissionTicket;
 use App\Models\Booking;
 use App\Models\EventOccurrence;
@@ -135,15 +136,17 @@ final class MobileManagementController extends Controller
 
     public function campaigns(MobileManagementRequest $request, MobileManagement $management): JsonResponse
     {
-        $campaigns = $management->campaigns($request->user())->with('event')->latest('id')->paginate(30);
+        $campaigns = $management->campaigns($request->user())->with(['event', 'grant', 'city'])->latest('id')->paginate(30);
+        /* L'avanzamento dell'unità di consegna (D70): solo campi aggiunti. */
+        $progress = SponsorshipProgressResource::many($campaigns->getCollection());
 
-        return response()->json(['data' => $campaigns->getCollection()->map(fn ($c) => ['id' => $c->id, 'title' => $c->event?->title, 'starts_at' => $c->starts_at->toIso8601String(), 'ends_at' => $c->ends_at->toIso8601String()]), 'meta' => ['next_page' => $campaigns->hasMorePages() ? $campaigns->currentPage() + 1 : null]]);
+        return response()->json(['data' => $campaigns->getCollection()->map(fn ($c) => ['id' => $c->id, 'title' => $c->event?->title, 'starts_at' => $c->starts_at->toIso8601String(), 'ends_at' => $c->ends_at->toIso8601String(), ...$progress[$c->id]]), 'meta' => ['next_page' => $campaigns->hasMorePages() ? $campaigns->currentPage() + 1 : null]]);
     }
 
     public function economics(Request $request, int $campaign, MobileManagement $management, CampaignEconomics $economics): JsonResponse
     {
-        $record = $management->campaigns($request->user())->with('event')->findOrFail($campaign);
+        $record = $management->campaigns($request->user())->with(['event', 'grant', 'city'])->findOrFail($campaign);
 
-        return response()->json(['data' => ['id' => $record->id, 'title' => $record->event?->title, 'starts_at' => $record->starts_at->toIso8601String(), 'ends_at' => $record->ends_at->toIso8601String(), 'economics' => $economics->for($record)]]);
+        return response()->json(['data' => ['id' => $record->id, 'title' => $record->event?->title, 'starts_at' => $record->starts_at->toIso8601String(), 'ends_at' => $record->ends_at->toIso8601String(), 'economics' => $economics->for($record), ...SponsorshipProgressResource::toArray($record)]]);
     }
 }

@@ -338,6 +338,14 @@ class PageSeeder extends Seeder
         teniamo conto di cosa hai salvato. E i salvataggi restano tuoi in ogni caso — non li
         vendiamo, non li mandiamo a nessuno, non li usiamo per altro.
 
+        Per dire a chi paga quante volte un annuncio è stato visto contiamo le visualizzazioni
+        solo in totale: una quando metà dell'annuncio resta sullo schermo per un secondo. Ogni
+        annuncio porta un codice usa e getta che vale per quella pagina e basta: non lo salviamo
+        sul tuo dispositivo (niente cookie, niente memoria del browser) e non lo leghiamo al tuo
+        account. Non contiamo i programmi automatici, la redazione e chi gestisce il locale o
+        l'organizzazione che ha pagato l'annuncio. Per questo il conteggio non dipende dal
+        consenso.
+
         I cookie tecnici non richiedono consenso e non si possono disattivare da qui: senza, il
         sito non fa quello che gli chiedi. Puoi comunque cancellarli dalle impostazioni del tuo
         browser, ricominciando da capo.

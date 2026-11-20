@@ -8,7 +8,7 @@ I banner usano le campagne già attive: nessun nuovo contratto, pagamento o diri
 
 Web: banner prima del footer nelle pagine di scoperta (home, eventi, locali, ricerca, categorie e tag) e nel profilo. Android: banner sopra la navigazione nelle viste eventi, ricerca, locali, dettagli e profilo autenticato; escluso da login, prenotazione, mappa e finestre troppo basse. Nessuna sovrapposizione ai contenuti. L'evento già aperto è escluso.
 
-Per creare o aggiornare tre campagne di prova sugli eventi esistenti: `php artisan db:seed --class=SponsorshipBannerDemoSeeder`. Sono riconoscibili dalla nota **DEMO locale — banner di prova** e non registrano pagamenti. Il seeder è idempotente, non viene eseguito dai deploy e rifiuta l'ambiente production. La rotazione cambia ogni minuto: non compaiono tutte e tre insieme.
+Per creare o aggiornare tre campagne di prova sugli eventi esistenti: `php artisan db:seed --class=SponsorshipBannerDemoSeeder`. Sono riconoscibili dalla nota **DEMO locale — banner di prova** e non registrano pagamenti. Il seeder è idempotente, non viene eseguito dai deploy e rifiuta l'ambiente production. Il banner estrae a ogni richiesta dal piano di consegna (D70): ricaricando compaiono a turno, non tutte e tre insieme.
 
 Su richiesta esplicita del proprietario si possono pubblicare anche sul remoto: `php artisan sponsorships:demo padova --allow-production`. Il comando non è inserito in cron/deploy e senza il flag rifiuta production. La dicitura nelle note resta la stessa per idempotenza; sono campagne dimostrative anche quando pubblicate.
 
@@ -26,7 +26,7 @@ Il sito legge il banner da `/{city}/banner-sponsorizzato?platform=web`, con la s
 
 `GET /api/v1/sponsorships/banner?platform=web|android&city=padova&exclude_event=slug` restituisce `data: null` oppure un banner autocompilato. Non è nella cache JSON; risponde `Cache-Control: no-store, private`. Il contenitore web è compatibile con HTML in cache: il contenuto arriva separatamente. Il banner ha una validità massima di 60 secondi, limitata anche da mezzanotte e fine campagna/grant. Refresh ogni 45 secondi, solo in primo piano. Offline o a scadenza si nasconde. Gli interruttori valgono entro un minuto anche sulle viste già aperte.
 
-Le metriche usano gli endpoint e i limiti di deduplicazione delle campagne esistenti. Web misura l'impression solo quando almeno metà banner è visibile; Android solo quando composto in una schermata ammessa. Non si misurano semplici download API.
+Le metriche usano gli endpoint e i limiti di deduplicazione delle campagne esistenti. Ogni risposta del banner porta un gettone usa e getta (`impression_token`, collocazione `banner`) che va rimandato in `X-Impression-Token`: lo stesso gettone conta una visualizzazione e un clic. Web e Android (dalla 1.23.0) misurano l'impression solo dopo un secondo di fila con almeno metà banner sullo schermo e la pagina o l'app in primo piano (D70). Le app precedenti mandano solo il gettone giornaliero e contano come prima. Non si misurano semplici download API.
 
 ## Calendario Android
 

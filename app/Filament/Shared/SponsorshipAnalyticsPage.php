@@ -9,7 +9,9 @@ use App\Models\Sponsorship;
 use App\Models\SponsorshipClick;
 use App\Models\SponsorshipDailyStat;
 use App\Services\Sponsorship\CampaignEconomics;
+use App\Services\Sponsorship\SponsorshipProgress;
 use App\Services\Sponsorship\SponsorshipReport;
+use App\Services\Sponsorship\UnitProgress;
 use BackedEnum;
 use Carbon\CarbonImmutable;
 use Filament\Forms\Components\DatePicker;
@@ -30,6 +32,13 @@ use Livewire\WithPagination;
  * con i giorni UTC spostava di un giorno tutto quello che succede dopo
  * mezzanotte d'estate. Il periodo va da sette giorni a tutto lo storico, o
  * fra due date.
+ *
+ * **Con una campagna scelta** compare anche l'avanzamento della sua unità di
+ * consegna (l'abilitazione di cui fa parte, o lei stessa): barra, frase e,
+ * per i prodotti a visualizzazioni, le consegnate giorno per giorno contro
+ * le attese. Il tasso di aperture si mostra solo da
+ * `sponsorship.min_impressions_for_ctr` visualizzazioni in su: sotto è un
+ * numero che cambia del doppio con un clic.
  */
 abstract class SponsorshipAnalyticsPage extends Page
 {
@@ -184,13 +193,76 @@ abstract class SponsorshipAnalyticsPage extends Page
             $series->push(['day' => PanelDate::axis($day), 'date' => PanelDate::day($day), 'impressions' => (int) $row?->impressions, 'clicks' => (int) $row?->clicks]);
         }
 
+        $selected = filled($this->filters['campaign'] ?? null) ? (clone $campaigns)->firstOrFail() : null;
+        $progress = $selected === null ? null : app(SponsorshipProgress::class)->forRow($selected);
+        $delivery = $selected !== null && $progress !== null && $progress->hasGoal() ? $this->delivery($progress, $selected) : null;
+
         return [
-            'economics' => filled($this->filters['campaign'] ?? null) ? app(CampaignEconomics::class)->for((clone $campaigns)->firstOrFail()) : null,
+            'economics' => $selected === null ? null : app(CampaignEconomics::class)->for($selected),
+            'progress' => $progress,
+            'grant_unit' => $selected?->sponsorship_grant_id !== null,
+            'delivery' => $delivery,
+            'min_ctr' => self::minImpressionsForRate(),
             'series' => $series, 'impressions' => $series->sum('impressions'), 'clicks' => $series->sum('clicks'),
             'from' => $from, 'to' => $to,
             'records' => SponsorshipClick::whereIn('sponsorship_id', clone $ids)
                 ->where('clicked_at', '>=', $from->utc())->where('clicked_at', '<', $to->addDay()->utc())
                 ->with(['sponsorship.event.venue'])->orderByDesc('clicked_at')->orderByDesc('id')->paginate(25),
         ];
+    }
+
+    /** Sotto queste visualizzazioni il tasso di aperture non si mostra. */
+    public static function minImpressionsForRate(): int
+    {
+        $min = config('sponsorship.min_impressions_for_ctr', 100);
+
+        return is_numeric($min) ? max(1, (int) $min) : 100;
+    }
+
+    /**
+     * Le visualizzazioni consegnate dall'unità giorno per giorno, cumulate,
+     * accanto a quelle attese seguendo il traffico previsto. Dall'inizio del
+     * periodo a oggi (o alla fine vera), nei giorni della città.
+     *
+     * @return array{days: list<array{day: string, date: string, delivered: int, expected: int}>, delivered: int, expected: int}
+     */
+    private function delivery(UnitProgress $progress, Sponsorship $row): array
+    {
+        $tz = $progress->timezone;
+        $first = $progress->start->setTimezone($tz)->startOfDay();
+        $last = ($progress->now->lessThan($progress->trueEnd) ? $progress->now : $progress->trueEnd)->setTimezone($tz)->startOfDay();
+
+        if ($last->lessThan($first)) {
+            return ['days' => [], 'delivered' => 0, 'expected' => 0];
+        }
+        if ($first->diffInDays($last) >= self::MAX_DAYS) {
+            $first = $last->subDays(self::MAX_DAYS - 1);
+        }
+
+        $rows = $row->sponsorship_grant_id !== null
+            ? Sponsorship::withTrashed()->where('sponsorship_grant_id', $row->sponsorship_grant_id)->select('id')
+            : Sponsorship::withTrashed()->whereKey($row->getKey())->select('id');
+        $before = (int) SponsorshipDailyStat::whereIn('sponsorship_id', clone $rows)->where('day', '<', $first->toDateString())->sum('impressions');
+        $daily = SponsorshipDailyStat::whereIn('sponsorship_id', $rows)
+            ->whereBetween('day', [$first->toDateString(), $last->toDateString()])
+            ->selectRaw('day, SUM(impressions) as impressions')->groupBy('day')->get()
+            ->mapWithKeys(fn ($stat) => [$stat->day->toDateString() => (int) $stat->getAttribute('impressions')]);
+
+        $days = [];
+        $delivered = $before;
+        for ($day = $first; $day->lte($last); $day = $day->addDay()) {
+            $delivered += (int) $daily->get($day->toDateString(), 0);
+            $endOfDay = $day->endOfDay();
+            $days[] = [
+                'day' => PanelDate::axis($day),
+                'date' => PanelDate::day($day, $tz),
+                'delivered' => $delivered,
+                'expected' => (int) round($progress->expectedUntil($endOfDay->greaterThan($progress->now) ? $progress->now : $endOfDay)),
+            ];
+        }
+
+        $lastDay = $days === [] ? null : $days[array_key_last($days)];
+
+        return ['days' => $days, 'delivered' => $lastDay['delivered'] ?? 0, 'expected' => $lastDay['expected'] ?? 0];
     }
 }

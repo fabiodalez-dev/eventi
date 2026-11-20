@@ -13,6 +13,7 @@ use App\Http\Resources\V1\PosterResource;
 use App\Http\Resources\V1\PriceResource;
 use App\Models\User;
 use App\Services\Search\EventFinder;
+use App\Services\Sponsorship\Delivery\ImpressionToken;
 use App\Services\Sponsorship\SponsorshipSelector;
 use App\Settings\SponsorshipBannerSettings;
 use App\Support\DateFormatter;
@@ -24,6 +25,13 @@ use Illuminate\Support\Number;
 final class SponsorshipBannerController extends Controller
 {
     use InteractsWithApi;
+
+    /**
+     * La collocazione scritta nel gettone del banner. Il banner pesca fra le
+     * campagne di tutte le collocazioni, ma lo spazio in cui la persona le
+     * vede è sempre lui: chi conta registra il traffico sotto questo nome.
+     */
+    public const TOKEN_PLACEMENT = 'banner';
 
     public function __invoke(Request $request, SponsorshipSelector $selector, SponsorshipBannerSettings $settings): JsonResponse
     {
@@ -70,6 +78,8 @@ final class SponsorshipBannerController extends Controller
                     'url' => EventUrl::occurrence($date),
                     'expires_at' => $expiry->utc()->toIso8601String(),
                     'metric_token' => hash_hmac('sha256', $campaign->id.'|'.$campaign->placement->value.'|'.now('UTC')->format('Y-m-d'), (string) config('app.key')),
+                    // Nuovo a ogni risposta: va rimandato in `X-Impression-Token`, conta una volta sola.
+                    'impression_token' => ImpressionToken::issue($campaign, self::TOKEN_PLACEMENT),
                 ];
             }
         }

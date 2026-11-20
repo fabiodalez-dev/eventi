@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Enums\SponsorshipStatus;
 use App\Models\Sponsorship;
 use App\Models\SponsorshipDailyStat;
+use App\Services\Sponsorship\Delivery\ImpressionToken;
 
 /**
  * Le misure di una campagna finiscono in fattura: chi le scrive va contato.
@@ -18,14 +19,19 @@ use App\Models\SponsorshipDailyStat;
  */
 beforeEach(function (): void {
     $this->city = testCity();
-    $this->campagna = Sponsorship::factory()->create(['city_id' => $this->city->id]);
+    $this->category = testCategory();
+    /* Una data futura: la misura conta solo su una campagna che può comparire. */
+    $occorrenza = occurrenceAt($this->city, $this->category, now('UTC')->addDays(5)->format('Y-m-d 19:00:00'));
+    $this->campagna = Sponsorship::factory()->create(['city_id' => $this->city->id, 'event_id' => $occorrenza->event_id]);
 });
 
 it('non conta due volte la stessa campagna oltre il tetto orario, sul sito', function (): void {
     $url = route('sponsorships.metric', ['sponsorship' => $this->campagna, 'metric' => 'impressions']);
 
+    /* Ogni pagina caricata porta un gettone nuovo: chi ricarica in un ciclo
+       ne ha quanti ne vuole, ed è il tetto per indirizzo a fermarlo. */
     for ($i = 0; $i < 35; $i++) {
-        $this->postJson($url)->assertNoContent();
+        $this->postJson($url, [], ['X-Impression-Token' => ImpressionToken::issue($this->campagna, 'list_top')])->assertNoContent();
     }
 
     /* Trenta passano, le altre cinque vengono assorbite in silenzio: al
@@ -36,12 +42,14 @@ it('non conta due volte la stessa campagna oltre il tetto orario, sul sito', fun
 
 it('non scrive misure su una campagna in bozza o in pausa', function (): void {
     foreach ([SponsorshipStatus::Draft, SponsorshipStatus::Paused] as $stato) {
-        $spenta = Sponsorship::factory()->create(['city_id' => $this->city->id, 'status' => $stato]);
+        $spenta = Sponsorship::factory()->create(['city_id' => $this->city->id, 'event_id' => $this->campagna->event_id, 'status' => $stato]);
 
-        $this->postJson(route('sponsorships.metric', ['sponsorship' => $spenta, 'metric' => 'impressions']))
-            ->assertNotFound();
+        /* Anche con un gettone firmato: 204 come sempre, e niente scritto. */
+        $this->postJson(route('sponsorships.metric', ['sponsorship' => $spenta, 'metric' => 'impressions']), [], ['X-Impression-Token' => ImpressionToken::issue($spenta, 'list_top')])
+            ->assertNoContent();
 
-        expect(SponsorshipDailyStat::query()->where('sponsorship_id', $spenta->getKey())->exists())->toBeFalse();
+        expect(SponsorshipDailyStat::query()->where('sponsorship_id', $spenta->getKey())->exists())->toBeFalse()
+            ->and($spenta->fresh()->impressions)->toBe(0);
     }
 });
 

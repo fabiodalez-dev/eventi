@@ -12,7 +12,7 @@ test di integrazione e consumato dall'app Android in `android/` contro dati real
 | Autenticazione | Bearer token (Sanctum) per `/me`, `auth/logout` e scritture ticketing; policy aggiuntive per il locale |
 | Formato risposte | `{data, meta{next_cursor, has_more}}` · errori `{error{code, message, fields}}` |
 | Paginazione | catalogo a cursore (`limit` 1–50); cursore illeggibile → **400**. Biglietti: `page`, 30 prenotazioni, `meta.next_page` nullable |
-| Cache | catalogo: `ETag` + `Cache-Control: max-age=60, public, stale-while-revalidate=300` (private se autenticato), **304**. Ticketing: `no-store`, senza ETag |
+| Cache | catalogo: `ETag` + `Cache-Control: max-age=60, public, stale-while-revalidate=300` (private se autenticato), **304**. Ticketing, e `home` e `sponsorships` quando portano un gettone usa e getta: `private, no-store`, senza ETag |
 | Rate limit | 60 req/min anonimi, 120 autenticati, con header `X-RateLimit-Limit/-Remaining/-Reset` e `Retry-After` sul 429 |
 
 ## Rotte principali
@@ -33,7 +33,7 @@ test di integrazione e consumato dall'app Android in `android/` contro dati real
 | GET | `/categories` · `/categories/{slug}` · `/tags` · `/tags/{slug}` · `/pages` · `/pages/{slug}` |
 | GET | `/sponsorships` |
 | POST | `/submissions` · `/reports` |
-| POST | `/reports/sponsorships/{id}/metrics/{impression|click}` |
+| POST | `/reports/sponsorships/{id}/metrics/{impressions|clicks}` |
 
 I preset temporali di `/events` (`?preset=ongoing`, `?preset=starting_soon`,
 ecc.) passano da `DatePreset` → `EventOccurrenceQuery`: sito e API condividono
@@ -370,3 +370,43 @@ Ogni elemento: `id`, `kind` (`venue|claim|organizer`) e `kind_label`, `name`, `t
 ### `GET /v1/calendar?month=YYYY-MM&personal=1`
 
 Con un token e `personal=1` il mese segue gli interessi della persona, come il calendario della pagina iniziale del sito: locali, organizzatori, categorie e tag seguiti e categorie scelte, meno categorie e locali nascosti. Chi non ha espresso interessi riceve il mese della città meno ciò che ha nascosto. `meta.personal` dice se il calendario è personale, `meta.interests` se la persona ha interessi espressi (falso → il client può spiegare che sta mostrando il calendario della città). Senza token `personal=1` non cambia nulla. Con un token la risposta è `private, no-store` e il mese personale non entra in nessuna cache del server. `personal` non booleano → 422.
+
+## Sponsorizzazioni: gettone usa e getta e avanzamento (D70, 20 novembre 2026)
+
+Parte del lavoro sulle sponsorizzazioni a visualizzazioni (D70 in `docs/DECISIONS.md`). Solo campi aggiunti: nessun campo tolto, rinominato o di un altro tipo. Lo verifica `MobileHomeAndSponsorshipTest` confrontando le risposte con la fotografia presa il 19/11/2026 prima delle modifiche (`tests/Fixtures/api/sponsorship-responses-2026-11-19.json`).
+
+### Campi nuovi
+
+- `impression_token` (stringa) in ogni elemento di `GET /v1/sponsorships`, in `data.sponsorships.hero` e `data.sponsorships.card` di `GET /v1/home` e in `data` di `GET /v1/sponsorships/banner` (e della sua gemella web `/banner-sponsorizzato`). È un gettone firmato dal server, **nuovo a ogni risposta**: porta la riga della campagna, la collocazione in cui la si mostra (`banner` per il banner, altrimenti quella della campagna), il minuto di emissione e un numero casuale. Vale sei ore (`sponsorship.token_ttl_hours`). Il numero casuale appartiene alla risposta, non alla persona: il client non lo salva e non lo riusa per un'altra visualizzazione.
+- `metric_token` resta com'era (il gettone giornaliero): le app già installate continuano a mandarlo e a contare.
+
+### Come si usa nelle misure
+
+`POST /v1/reports/sponsorships/{id}/metrics/{impressions|clicks}` accetta il gettone nuovo nell'intestazione `X-Impression-Token`, accanto a `X-Metric-Token` di sempre. Con `X-Impression-Token` la risposta è **sempre 204**, anche quando la misura non conta (gettone scaduto, falso o di un'altra campagna, campagna in pausa, programma automatico, redazione o committente collegati): così chi prova a gonfiare non sa quando riprovare. Lo stesso gettone conta una visualizzazione sola e un clic solo; un clic che arriva prima della sua visualizzazione le registra tutte e due. Se arrivano tutti e due i gettoni vale quello nuovo.
+
+Con il solo `X-Metric-Token` la rotta si comporta come prima, errori compresi (`400 INVALID_TOKEN` per un gettone sbagliato, deduplica di 15 minuti per installazione, utente o indirizzo): le app già installate continuano a contare. Anche su questa strada non contano più i programmi automatici, la redazione e i membri del committente collegati. Anche qui l'obiettivo di visualizzazioni è un massimo: la visualizzazione di una campagna che l'ha già raggiunto non conta, con il controllo sotto il lucchetto della riga. **Questa strada è da chiudere**: la deduplica dipende da `X-Installation-ID`, che sceglie chi chiama. Dal giorno dopo la data in `sponsorship.legacy_metric_token_until` (variabile `SPONSORSHIP_LEGACY_METRIC_TOKEN_UNTIL`, formato `AAAA-MM-GG`, ora di Roma) la misura con il solo `X-Metric-Token` risponde 204 e non conta. Vuota, come oggi, la strada resta aperta: la data va fissata quando quasi tutte le installazioni avranno la 1.23.0, che manda il gettone nuovo.
+
+La rotta web `POST /sponsorizzazioni/{id}/{impressions|clicks}` usata dalle card del sito vuole lo stesso gettone (intestazione `X-Impression-Token`, che la pagina prende da `data-sponsorship-token`); senza risponde 204 e non conta. Anche il banner del sito, quando riceve `impression_token`, manda le misure a questa rotta, con la sessione e il token CSRF: è la sola che sa chi è collegato, e quindi non conta la redazione e il committente che guardano il proprio banner. La rotta dell'API resta per le app e per il gettone giornaliero.
+
+Un clic con un gettone emesso da non più di una casella della cache di pagina (`page_cache.ttl_minutes`) conta anche se nel frattempo la campagna ha raggiunto l'obiettivo: la card era ancora a schermo. La visualizzazione che il clic si porterebbe dietro, invece, no. Una campagna in pausa non conta nemmeno i clic.
+
+Il segnale dell'occasione non venduta è `POST /sponsorizzazioni/occasione` con `token`, il gettone dell'occasione che lo spazio vuoto porta in `data-sponsorship-opportunity-token` (forma `o1.{città}.{collocazione}.{minuto}.{numero}.{firma}`, sei ore di vita, firmato come quello delle visualizzazioni ma con un dominio suo). Città e collocazione vengono dal gettone; `city` e `placement` nel corpo restano per compatibilità e non decidono niente. Ogni gettone conta una volta sola, con al massimo 12 segnali all'ora per indirizzo, città e collocazione (`sponsorship.opportunity_per_hour`). Aggiunge una visita allo spazio, niente sulla campagna; ma da quelle visite nasce la previsione che decide lo spazio delle campagne a visualizzazioni, per questo non si accetta più senza gettone. Anche il foglio della mappa senza sponsorizzazione porta il suo segno.
+
+Una visualizzazione si manda quando metà dell'elemento resta sullo schermo per un secondo di fila (`sponsorship.viewable_ms`), con l'app o la scheda in primo piano. Il banner web lo dice anche nella pagina: `data-placement="banner"` e `data-viewable-ms` sull'elemento `[data-live-sponsorship]`.
+
+Le risposte di `GET /v1/home` e `GET /v1/sponsorships` che portano almeno un `impression_token` hanno `Cache-Control: private, no-store` e nessun `ETag` (`CacheJsonResponse::SINGLE_USE`): una cache condivisa che le servisse a più client darebbe a tutti lo stesso gettone, che conterebbe una volta sola, e l'`ETag` cambierebbe comunque a ogni risposta. Senza sponsorizzazioni restano pubbliche per un minuto, con `ETag` e 304 come prima. L'app Android non usa una cache HTTP, quindi per lei non cambia niente.
+
+### Avanzamento nelle risposte di gestione
+
+`GET /v1/management/campaigns` (ogni voce) e `GET /v1/management/campaigns/{id}` portano i numeri dell'**unità di consegna** della campagna (l'abilitazione se la riga ne fa parte, altrimenti la riga stessa):
+
+- `goal`: visualizzazioni comprate, `null` per il prodotto a periodo;
+- `delivered`: visualizzazioni consegnate dall'unità (per un'abilitazione la somma delle sue righe, comprese quelle nel cestino);
+- `pacing_state`: `on_track`, `slightly_behind`, `behind`, `ahead`, `at_risk`, `completed`, `missed`; `null` senza obiettivo.
+
+Il calcolo è lo stesso dei pannelli e dei rapporti (`App\Services\Sponsorship\SponsorshipProgress`, tramite `SponsorshipProgressResource`): app e pannello non possono dire due stati diversi della stessa campagna. Una campagna la cui ultima data è passata mentre il periodo continua è «ferma» e si giudica sul periodo, perché all'evento si possono aggiungere date; finché le visualizzazioni attese sono meno dell'1% dell'obiettivo non risulta in ritardo. Lo verifica `MobileManagementTest`. L'app 1.23.0 li legge e, con un server che non li manda, mostra la scheda di prima.
+
+### App Android 1.23.0 (versionCode 50)
+
+Manda `X-Impression-Token` con visualizzazioni e clic del banner quando il server l'ha dato, conta la visualizzazione solo dopo un secondo con metà banner sullo schermo e l'app in primo piano, ed evita di rimandare la stessa visualizzazione una volta per gettone (con un server senza gettone, una volta per campagna come prima). Nella gestione mostra barra, «1.240 di 3.000 visualizzazioni» e stato del ritmo quando la risposta li porta.
+

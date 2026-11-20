@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
+use App\Enums\SponsorshipPacing;
 use App\Enums\SponsorshipPlacement;
 use App\Enums\SponsorshipStatus;
 use App\Models\Event;
 use App\Models\Sponsorship;
+use App\Models\SponsorshipGrant;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -78,5 +80,28 @@ class SponsorshipFactory extends Factory
     public function placement(SponsorshipPlacement $placement): static
     {
         return $this->state(['placement' => $placement]);
+    }
+
+    /** Campagna singola a visualizzazioni: un obiettivo e una distribuzione. */
+    public function goal(int $impressions, SponsorshipPacing $pacing = SponsorshipPacing::Even): static
+    {
+        return $this->state(['impressions_goal' => $impressions, 'pacing' => $pacing]);
+    }
+
+    /**
+     * Una riga evento di un'abilitazione: stesse date e stessa collocazione
+     * dell'abilitazione, come le crea `GrantCampaigns`. L'evento deve essere
+     * del committente, altrimenti `visible()` la scarta.
+     */
+    public function forGrant(SponsorshipGrant $grant): static
+    {
+        return $this->state([
+            'sponsorship_grant_id' => $grant->getKey(),
+            'placement' => $grant->placement,
+            'starts_at' => $grant->starts_at,
+            'ends_at' => $grant->ends_at,
+            'weight' => 1,
+            'priority' => 0,
+        ]);
     }
 }

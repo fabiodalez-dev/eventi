@@ -9,6 +9,7 @@ use App\Enums\UserRole;
 use App\Filament\Admin\Resources\Events\RelationManagers\ActivityRelationManager;
 use App\Filament\Admin\Resources\SponsorshipGrants\Pages\CreateGrant;
 use App\Filament\Admin\Resources\SponsorshipGrants\Pages\EditGrant;
+use App\Filament\Admin\Resources\Sponsorships\Support\SponsorshipProgress;
 use App\Filament\Venue\Pages\Sponsorships;
 use App\Models\Event;
 use App\Models\EventOccurrence;
@@ -271,4 +272,79 @@ it('keeps historical activity entries in the older storage format readable', fun
         'ownerRecord' => $this->grant,
         'pageClass' => EditGrant::class,
     ])->assertSee('Nota archivio precedente')->assertSee('Motivazione originale conservata');
+});
+
+it('validates weight and priority with the same limits as the migration', function (array $invalid, string $field): void {
+    $this->actingAs($this->admin);
+    $this->get('/admin/sponsorship-grants/create')->assertOk();
+    Filament::setCurrentPanel('admin');
+    Filament::setTenant(null);
+    Livewire::test(CreateGrant::class)->fillForm(array_replace([
+        'venue_id' => $this->venue->id, 'mode' => 'automatic', 'placement' => 'list_top',
+        'complimentary' => true, 'notes' => 'Patrocinio', 'starts_at' => now()->subDay()->format('Y-m-d H:i:s'),
+        'ends_at' => now()->addMonth()->format('Y-m-d H:i:s'), 'weight' => 1, 'priority' => 0, 'pacing' => 'even',
+    ], $invalid))->call('create')->assertHasFormErrors([$field]);
+})->with([
+    [['weight' => 0], 'weight'],
+    [['weight' => 101], 'weight'],
+    [['priority' => -1], 'priority'],
+    [['priority' => 1001], 'priority'],
+    [['impressions_goal' => 0], 'impressions_goal'],
+]);
+
+it('saves goal, pacing, weight and priority on the grant, the unit of delivery', function (): void {
+    EventOccurrence::factory()->create(['event_id' => $this->event->id, 'starts_at' => now()->addDay(), 'ends_at' => now()->addDay()->addHour()]);
+    $this->actingAs($this->admin);
+    $this->get('/admin/sponsorship-grants/create')->assertOk();
+    Filament::setCurrentPanel('admin');
+    Filament::setTenant(null);
+    Livewire::test(CreateGrant::class)->fillForm([
+        'venue_id' => $this->venue->id, 'mode' => 'automatic', 'placement' => 'home_card',
+        'complimentary' => true, 'notes' => 'Patrocinio', 'starts_at' => now()->subDay()->format('Y-m-d H:i:s'),
+        'ends_at' => now()->addMonth()->format('Y-m-d H:i:s'),
+        'impressions_goal' => 2500, 'pacing' => 'asap', 'weight' => 3, 'priority' => 10,
+    ])->call('create')->assertHasNoFormErrors();
+    $grant = SponsorshipGrant::latest('id')->firstOrFail();
+    expect($grant->impressions_goal)->toBe(2500)
+        ->and($grant->pacing->value)->toBe('asap')
+        ->and($grant->weight)->toBe(3)
+        ->and($grant->priority)->toBe(10)
+        ->and($grant->sponsorships()->count())->toBe(1);
+});
+
+it('refuses a views goal on the home hero and map sheet grants', function (string $placement): void {
+    $this->actingAs($this->admin);
+    $this->get('/admin/sponsorship-grants/create')->assertOk();
+    Filament::setCurrentPanel('admin');
+    Filament::setTenant(null);
+    Livewire::test(CreateGrant::class)->fillForm([
+        'venue_id' => $this->venue->id, 'mode' => 'automatic', 'placement' => $placement,
+        'complimentary' => true, 'notes' => 'Patrocinio', 'starts_at' => now()->subDay()->format('Y-m-d H:i:s'),
+        'ends_at' => now()->addMonth()->format('Y-m-d H:i:s'), 'impressions_goal' => 500, 'pacing' => 'even', 'weight' => 1, 'priority' => 0,
+    ])->call('create')->assertHasFormErrors(['impressions_goal' => 'prohibited_if']);
+})->with(['home_hero', 'map_sheet']);
+
+it('shows one progress for the whole grant and its events with their numbers', function (): void {
+    EventOccurrence::factory()->create(['event_id' => $this->event->id, 'starts_at' => now()->addDays(2), 'ends_at' => now()->addDays(2)->addHour()]);
+    $second = Event::factory()->create(['venue_id' => $this->venue->id, 'city_id' => $this->venue->city_id, 'status' => EventStatus::Published, 'title' => 'Seconda serata']);
+    EventOccurrence::factory()->create(['event_id' => $second->id, 'starts_at' => now()->addDays(9), 'ends_at' => now()->addDays(9)->addHour()]);
+    $this->grant->update(['mode' => 'automatic', 'complimentary' => true, 'impressions_goal' => 3000]);
+    app(GrantCampaigns::class)->sync($this->grant);
+    $this->grant->sponsorships()->where('event_id', $this->event->id)->firstOrFail()->forceFill(['impressions' => 700, 'clicks' => 9])->save();
+    $this->grant->sponsorships()->where('event_id', $second->id)->firstOrFail()->forceFill(['impressions' => 500, 'clicks' => 2])->save();
+
+    $this->actingAs($this->admin);
+    $this->get('/admin/sponsorship-grants')->assertOk()->assertSee('1.200 di 3.000');
+    $this->get('/admin/sponsorship-grants/'.$this->grant->id.'/edit')->assertOk()
+        ->assertSee(__('sponsorships.progress.events'))
+        ->assertSee('Seconda serata')
+        ->assertSee(__('sponsorships.progress.event_numbers', ['views' => '700', 'clicks' => '9']))
+        ->assertSee(__('sponsorships.progress.event_numbers', ['views' => '500', 'clicks' => '2']));
+
+    $events = app(SponsorshipProgress::class)->grantEvents($this->grant->fresh());
+    $shares = collect($events)->mapWithKeys(fn (array $row): array => [$row['row']->event_id => $row['share']]);
+
+    /* Più quota all'evento con la data più vicina, e le quote fanno uno. */
+    expect($shares[$this->event->id])->toBeGreaterThan($shares[$second->id])
+        ->and(round($shares->sum(), 6))->toBe(1.0);
 });

@@ -5,8 +5,12 @@ declare(strict_types=1);
 namespace App\Filament\Admin\Resources\SponsorshipGrants;
 
 use App\Enums\PromotionMode;
+use App\Enums\SponsorshipPacing;
 use App\Enums\SponsorshipPlacement;
 use App\Filament\Admin\Resources\Events\RelationManagers\ActivityRelationManager;
+use App\Filament\Admin\Resources\Sponsorships\SponsorshipResource;
+use App\Filament\Admin\Resources\Sponsorships\Support\SponsorshipProgress;
+use App\Filament\Admin\Resources\Sponsorships\Support\SponsorshipWizard;
 use App\Filament\Concerns\HasSentenceCaseNavigationLabel;
 use App\Models\SponsorshipGrant;
 use App\Services\Sponsorship\GrantPayment;
@@ -22,11 +26,14 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
+use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\ViewColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class SponsorshipGrantResource extends Resource
 {
@@ -51,9 +58,25 @@ class SponsorshipGrantResource extends Resource
         return __('promotions.title');
     }
 
+    /** Nelle briciole il nome com'è scritto nei testi, non «Abilitazioni E Pagamenti». */
+    public static function getBreadcrumb(): string
+    {
+        return __('promotions.title');
+    }
+
     public static function form(Schema $schema): Schema
     {
         return $schema->columns(1)->components([
+            /* A che punto è l'abilitazione, con i suoi eventi: la stessa scheda
+               delle campagne singole (`SponsorshipResource::progressData`). */
+            Section::make(__('sponsorships.progress.heading'))
+                ->description(__('sponsorships.progress.lead'))
+                ->visibleOn('edit')
+                ->collapsible()
+                ->schema([
+                    View::make('filament.admin.sponsorships.progress-detail')
+                        ->viewData(fn (?SponsorshipGrant $record): array => SponsorshipResource::progressData($record)),
+                ]),
             Section::make(__('promotions.rules'))->description(__('promotions.help'))->columns(2)->schema([
                 Select::make('venue_id')->label(__('promotions.venue'))->relationship('venue', 'name')->searchable()->preload()->disabledOn('edit')
                     ->helperText(__('promotions.sponsor_hint'))->live()
@@ -65,6 +88,22 @@ class SponsorshipGrantResource extends Resource
                 Select::make('mode')->label(__('promotions.mode_label'))->options(PromotionMode::options())->default('selected')->required()->disabledOn('edit'),
                 Select::make('placement')->label(__('promotions.placement'))->options(SponsorshipPlacement::options())->default('list_top')->required()->disabledOn('edit'),
                 Toggle::make('enabled')->label(__('promotions.enabled'))->default(true),
+            ]),
+            /*
+             * L'abilitazione è l'unità di consegna: peso, priorità, obiettivo e
+             * distribuzione valgono per tutti i suoi eventi insieme, e un locale
+             * con quaranta eventi riceve lo stesso spazio di uno con un evento
+             * solo. Gli stessi limiti del modulo delle campagne (peso 1–100,
+             * priorità 0–1000), che sono anche quelli della migrazione.
+             */
+            Section::make(__('sponsorships.grant.delivery'))->description(__('sponsorships.grant.delivery_lead'))->columns(['default' => 1, 'lg' => 2])->schema([
+                TextInput::make('impressions_goal')->label(__('sponsorships.admin.fields.impressions_goal'))->integer()->minValue(1)->maxValue(10_000_000)
+                    ->helperText(fn (Get $get): string => SponsorshipWizard::periodOnlyMessage($get('placement')) ?? __('sponsorships.admin.help.impressions_goal'))
+                    ->prohibitedIf('placement', SponsorshipPlacement::periodOnlyValues())
+                    ->validationMessages(['prohibited_if' => __('sponsorships.wizard.help.period_only')]),
+                Select::make('pacing')->label(__('sponsorships.wizard.fields.pacing'))->options(SponsorshipWizard::pacingOptions())->default(SponsorshipPacing::Even->value)->required()->native(false),
+                TextInput::make('priority')->label(__('sponsorships.admin.fields.priority'))->helperText(__('sponsorships.admin.help.priority'))->integer()->default(0)->minValue(0)->maxValue(1000)->required(),
+                TextInput::make('weight')->label(__('sponsorships.admin.fields.weight'))->helperText(__('sponsorships.admin.help.weight'))->integer()->default(1)->minValue(1)->maxValue(100)->required(),
             ]),
             Section::make(__('promotions.period'))->columns(2)->schema([
                 DateTimePicker::make('starts_at')->label(__('promotions.starts'))->timezone('Europe/Rome')->default(now())->required()->seconds(false)->live(onBlur: true)
@@ -115,7 +154,9 @@ class SponsorshipGrantResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table->defaultSort('ends_at', 'desc')->columns([
+        $progress = app(SponsorshipProgress::class);
+
+        return $table->defaultSort('ends_at', 'desc')->modifyQueryUsing(fn (Builder $query): Builder => $query->with(['venue', 'organizer']))->columns([
             TextColumn::make('sponsor')->label(__('promotions.sponsor'))->state(fn (SponsorshipGrant $record): string => $record->sponsorName())
                 ->description(fn (SponsorshipGrant $record): string => $record->venue_id !== null ? __('promotions.venue') : __('promotions.organizer')),
             TextColumn::make('effective_status')->label(__('admin.fields.status'))->state(fn (SponsorshipGrant $record): string => $record->statusLabel())->badge(),
@@ -126,6 +167,9 @@ class SponsorshipGrantResource extends Resource
             TextColumn::make('ends_at')->label(__('promotions.ends'))->dateTime('d/m/Y H:i', 'Europe/Rome')->sortable(),
             TextColumn::make('paid_at')->label(__('promotions.paid'))->date('d/m/Y')->placeholder('—'),
             TextColumn::make('amount_cents')->label(__('promotions.amount'))->money('EUR', divideBy: 100),
+            ViewColumn::make('progress')->label(__('sponsorships.progress.column'))->view('filament.admin.sponsorships.progress-column')
+                ->state(fn (SponsorshipGrant $record): string => $progress->forGrant($record)->stateLabel())
+                ->viewData(fn (SponsorshipGrant $record): array => ['progress' => $progress->forGrant($record)]),
             TextColumn::make('sponsorships_sum_impressions')->label(__('promotions.views'))->sum('sponsorships', 'impressions')->numeric(),
             TextColumn::make('sponsorships_sum_clicks')->label(__('promotions.clicks'))->sum('sponsorships', 'clicks')->numeric(),
         ])->filters([

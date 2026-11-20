@@ -155,9 +155,26 @@ final class MobileOpenApiDocument
             ->setRequired(['id', 'slug', 'title', 'poster', 'venue', 'sponsored', 'occurrences', 'url']);
         $eventRef = $components->addSchema('MobileEvent', Schema::fromType($event));
 
-        $simple = [];
+        /* Una sponsorizzazione come la restituisce `SponsorshipResource`: con
+           il gettone giornaliero di prima (`metric_token`) e quello usa e
+           getta per una visualizzazione e un clic (`impression_token`, D70). */
+        $sponsorship = (new ObjectType)
+            ->addProperty('id', new IntegerType)
+            ->addProperty('label', new StringType)
+            ->addProperty('placement', new StringType)
+            ->addProperty('advertiser', (new ObjectType)
+                ->addProperty('name', new StringType)
+                ->addProperty('url', (new StringType)->nullable(true))
+                ->setRequired(['name', 'url']))
+            ->addProperty('occurrence', (clone $occurrenceRef)->nullable(true))
+            ->addProperty('metric_token', new StringType)
+            ->addProperty('metric_url', new StringType)
+            ->addProperty('impression_token', new StringType)
+            ->setRequired(['id', 'label', 'placement', 'advertiser', 'occurrence', 'metric_token', 'metric_url', 'impression_token']);
 
-        foreach (['Notification', 'Follow', 'Device', 'Session', 'Sponsorship'] as $name) {
+        $simple = ['Sponsorship' => $components->addSchema('MobileSponsorship', Schema::fromType($sponsorship))];
+
+        foreach (['Notification', 'Follow', 'Device', 'Session'] as $name) {
             $simple[$name] = $components->addSchema('Mobile'.$name, Schema::fromType($genericObject()));
         }
 

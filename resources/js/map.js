@@ -1,4 +1,5 @@
 import { revealPanel } from './motion';
+import { sponsorshipMetrics } from './sponsorship-metrics';
 /* Mappa pubblica vettoriale. Vie ed etichette restano leggibili a ogni zoom;
  * il foglio di un locale continua a essere disegnato dal server. */
 let maplibregl = null;
@@ -327,6 +328,9 @@ async function startMap(shell) {
             if (requestRevision !== sheetRevision) return;
             sheetBody.innerHTML = html;
             if (!response.ok) sheetBody.textContent = config.labels.error;
+            /* Il foglio arriva dopo la pagina: la sua card sponsorizzata (o il
+               segno dello spazio vuoto) si conta come quelle della pagina. */
+            else sponsorshipMetrics(sheetBody);
         } catch {
             if (requestRevision !== sheetRevision) return;
             sheetBody.textContent = config.labels.error;

@@ -11,6 +11,11 @@
     data-exclude-event="{{ $excludedEvent }}"
     data-endpoint="{{ route('city.sponsorships.banner', ['platform' => 'web', 'city' => $city->slug, 'exclude_event' => $excludedEvent, 'category' => $categoryContext, 'venue' => $venueContext, 'tag' => $tagContext]) }}"
     data-metric-base="{{ url('/api/v1/reports/sponsorships') }}"
+    {{-- Con il gettone usa e getta le misure vanno qui, alla rotta del sito con la sessione: sa chi è collegato e non conta redazione e committente. --}}
+    data-web-metric-base="{{ url('/sponsorizzazioni') }}"
+    {{-- Per chi conta (resources/js/sponsorship-banner.js): il gettone arriva con il banner in `impression_token`, la visualizzazione vale dopo questi millisecondi con metà banner nello schermo. --}}
+    data-placement="{{ \App\Http\Controllers\Api\V1\SponsorshipBannerController::TOKEN_PLACEMENT }}"
+    data-viewable-ms="{{ config()->integer('sponsorship.viewable_ms', 1000) }}"
     aria-label="Evento sponsorizzato"
     @class(["mx-auto my-8 w-full px-gutter", "max-w-service" => $service, "max-w-content" => ! $service])>
     <a rel="sponsored" class="relative flex min-w-0 items-center gap-4 border-2 border-line bg-canvas-deep p-3 text-ink no-underline hover:border-accent focus-visible:outline-2 focus-visible:outline-accent">
