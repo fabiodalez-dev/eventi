@@ -1,6 +1,6 @@
 # inCittà — Funzionalità della piattaforma
 
-*Panoramica per ruoli e opportunità commerciali. Aggiornata al 19 novembre 2026.*
+*Panoramica per ruoli e opportunità commerciali. Aggiornata al 20 novembre 2026.*
 
 <!--
 COME SI AGGIORNA QUESTO FILE
@@ -123,6 +123,7 @@ Promuove la propria attività, mantiene aggiornato il programma e misura l’int
 - **Lista d'attesa con conferma a tempo** — Chi viene promosso conferma entro una scadenza, poi il posto passa al successivo; chi aspetta vede la propria posizione. *Sito e app.*
 - **Acquisto di sponsorizzazioni dal pannello** — Il proprietario compra un periodo dal listino e paga con carta; i collaboratori vedono gli ordini ma non ordinano. *Solo web.*
 - **Moderazione dei commenti sui propri eventi** — Nasconde o ripristina i commenti alle proprie date. *Solo web.*
+- **Motivo del rifiuto nel pannello** — Quando la redazione rifiuta un evento, il locale legge il motivo nella scheda dell’evento, oltre che nell’email, e può correggere e reinviare. *Solo web.*
 - **Risposta alle recensioni** — Risponde in pubblico con il nome della scheda; la prima risposta avvisa l'autore. *Risposta dal pannello web, visibile anche nell'app.*
 - **Rivendicazione di un locale a catalogo** — Il titolare chiede la gestione della scheda direttamente dalla pagina pubblica. *Solo web.*
 - **Registrazione del locale con account** — Chi registra o rivendica un locale senza avere un account lo crea nello stesso modulo, scegliendo la password; la richiesta entra in coda dopo la conferma dell'email. *Solo web.*
@@ -311,6 +312,7 @@ Il valore della piattaforma deriva dall’incontro fra offerta locale, pubblico 
 
 ## Registro degli aggiornamenti
 
+- **20 novembre 2026** — 265 test nuovi che seguono dall’inizio alla fine passaggi, iscrizione e gestione degli eventi dei locali, con le correzioni trovate: si può chiedere di nuovo un posto dopo averlo ritirato, la ricerca per tappa ignora maiuscole e accenti, la pubblicazione programmata esce all’ora giusta, una data spostata non ricompare al giorno vecchio, «Duplica» funziona anche sugli eventi valutati dalla redazione, il motivo del rifiuto si legge nel pannello, accesso e profilo accettano indirizzi di ritorno e nomi lunghi.
 - **19 novembre 2026 (sera)** — Pannelli di redazione, locale e organizzatore più leggibili: date per esteso, selettore degli eventi con locandina, statistiche con una frase per ogni numero, menu comune, cambio del tema nei pannelli, ritorno indietro in tutte le pagine di servizio.
 - **19 novembre 2026** — Pagine di servizio ridisegnate con lo stesso impianto, accesso unico, calendario e prossimo evento in home, tre viste degli elenchi da telefono, registrazione e rivendicazione del locale con account, pannello del locale semplificato, sponsorizzazione richiesta senza pagamento online, iscrizioni in evidenza nell'admin, commenti in stile social, «Stasera» passo per passo, prenotazione senza ripetere i dati.
 - **18 novembre 2026** — Aggiunte le funzioni entrate dal 15 settembre: community verificata, «ci vado», commenti, sondaggi, passaggi in auto, analytics completi, link e QR tracciati, acquisto delle sponsorizzazioni, strumenti per le date (domande, messaggi, assenze, lista stampabile, personale su invito, ingressi senza rete), chiusure e avvisi dei locali, co-organizzatori, e una sezione per il pianificato.
