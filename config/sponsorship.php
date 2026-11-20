@@ -79,10 +79,6 @@ return [
         'ahead' => 1.1,
     ],
 
-    /* Prolungamento massimo di un'unità a visualizzazioni che chiude sotto
-       l'obiettivo (domanda 1 del piano). */
-    'goal_grace_days' => 7,
-
     /* Sotto queste visualizzazioni nessun tasso di clic nei rapporti. */
     'min_impressions_for_ctr' => 100,
 
