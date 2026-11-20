@@ -9,6 +9,7 @@ use App\Models\City;
 use App\Models\Event;
 use App\Models\EventOccurrence;
 use App\Queries\EventOccurrenceQuery;
+use App\Support\RequestMemo;
 use Illuminate\Database\Eloquent\Collection;
 
 final class SocialCatalog
@@ -29,8 +30,16 @@ final class SocialCatalog
      */
     public function events(City $city, string $date, ?int $venueId = null, ?int $eventId = null, bool $includeDemo = false): Collection
     {
+        /* Lo studio chiede le stesse serate più volte nella stessa pagina
+           (anteprima, elenco, azioni): una lettura sola per richiesta. */
+        return RequestMemo::remember('social-events:'.json_encode([$city->id, $date, $venueId, $eventId, $includeDemo]), fn (): Collection => $this->loadEvents($city, $date, $venueId, $eventId, $includeDemo));
+    }
+
+    /** @return Collection<int, EventOccurrence> */
+    private function loadEvents(City $city, string $date, ?int $venueId, ?int $eventId, bool $includeDemo): Collection
+    {
         $query = $eventId !== null
-            ? EventOccurrenceQuery::managementFor(Event::where('city_id', $city->id)->findOrFail($eventId))->onDate($date)
+            ? EventOccurrenceQuery::managementFor($this->event($city, $eventId))->onDate($date)
             : EventOccurrenceQuery::competitionFor($city)->onDate($date);
         if ($eventId === null && ! $includeDemo) {
             $query->excludingDemo();
@@ -56,9 +65,8 @@ final class SocialCatalog
      */
     public function period(City $city, string $from, string $until, ?int $venueId = null, ?int $eventId = null, bool $includeDemo = false, string $search = '', int $limit = 24): Collection
     {
-        $query = $this->periodQuery($city, $from, $until, $venueId, $eventId, $includeDemo)->search($search);
-
-        return $query->take($limit)->load(['event.media', 'event.venue', 'venue']);
+        return RequestMemo::remember('social-period:'.json_encode([$city->id, $from, $until, $venueId, $eventId, $includeDemo, $search, $limit]), fn (): Collection => $this->periodQuery($city, $from, $until, $venueId, $eventId, $includeDemo)
+            ->search($search)->take($limit)->load(['event.media', 'event.venue', 'venue']));
     }
 
     /**
@@ -79,7 +87,7 @@ final class SocialCatalog
     private function periodQuery(City $city, string $from, string $until, ?int $venueId, ?int $eventId, bool $includeDemo): EventOccurrenceQuery
     {
         $query = $eventId !== null
-            ? EventOccurrenceQuery::managementFor(Event::where('city_id', $city->id)->findOrFail($eventId))
+            ? EventOccurrenceQuery::managementFor($this->event($city, $eventId))
             : EventOccurrenceQuery::competitionFor($city);
         $query->between($from, $until);
         if ($eventId === null && ! $includeDemo) {
@@ -90,5 +98,11 @@ final class SocialCatalog
         }
 
         return $query;
+    }
+
+    /** L'evento della scheda, con la sua città, letto una volta per richiesta. */
+    private function event(City $city, int $eventId): Event
+    {
+        return RequestMemo::remember('social-event:'.$city->id.':'.$eventId, fn (): Event => Event::with('city')->where('city_id', $city->id)->findOrFail($eventId));
     }
 }

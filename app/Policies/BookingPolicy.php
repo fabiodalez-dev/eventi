@@ -8,6 +8,7 @@ use App\Enums\UserRole;
 use App\Models\Booking;
 use App\Models\EventOccurrence;
 use App\Models\User;
+use App\Support\RequestMemo;
 
 class BookingPolicy
 {
@@ -29,7 +30,9 @@ class BookingPolicy
         }
         $venueId = $occurrence->effectiveVenue()?->id;
 
+        /* I locali di chi guarda si leggono una volta per richiesta: una
+           scheda con molte date chiede questa policy per ciascuna. */
         return $venueId !== null && ($user->hasAnyRole([UserRole::Admin->value, UserRole::SuperAdmin->value])
-            || $user->activeOwnedVenues()->whereKey($venueId)->exists());
+            || in_array($venueId, RequestMemo::remember('booking-policy:owned-venues:'.$user->id, fn (): array => $user->activeOwnedVenues()->pluck('venues.id')->map(fn (mixed $id): int => (int) $id)->all()), true));
     }
 }

@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Queries\EventOccurrenceQuery;
 use App\Services\Account\ContentPreferences;
 use App\Services\Calendar\MonthCalendar;
+use App\Support\RequestMemo;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Cache;
 
@@ -126,9 +127,11 @@ final class LiveWindows
             ? ':u'.$personal->getKey()
             : ($hidden === [[], []] ? '' : ':p'.substr(sha1((string) json_encode($hidden)), 0, 16));
 
+        $cacheKey = self::key($city, $window).':'.$limit.$suffix;
+
         /** @var list<int> $ids */
         $ids = Cache::remember(
-            self::key($city, $window).':'.$limit.$suffix,
+            $cacheKey,
             now()->addSeconds(config()->integer('page_cache.live_ttl_seconds')),
             function () use ($city, $window, $limit, $personal): array {
                 $query = EventOccurrenceQuery::for($city);
@@ -150,7 +153,10 @@ final class LiveWindows
             },
         );
 
-        return $this->hydrate($ids);
+        /* La stessa finestra la chiedono più pezzi della stessa pagina (il
+           prossimo evento in home e «in corso adesso», che la usa per non
+           ripetere le date): si rilegge una volta sola per richiesta. */
+        return RequestMemo::remember('live-windows:'.$cacheKey.'|'.implode(',', $ids), fn (): Collection => $this->hydrate($ids));
     }
 
     /**

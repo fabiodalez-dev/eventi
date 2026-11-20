@@ -8,6 +8,7 @@ use App\Actions\LeaveVenueAction;
 use App\Enums\VenueRole;
 use App\Filament\Venue\Support\CurrentVenue;
 use App\Models\User;
+use App\Support\RequestMemo;
 use BackedEnum;
 use Carbon\CarbonImmutable;
 use Filament\Actions\Action;
@@ -57,7 +58,10 @@ class VenueAccess extends Page
     {
         $user = auth()->user();
 
-        return $user instanceof User && app(LeaveVenueAction::class)->isLastOwner(CurrentVenue::get(), $user);
+        $venue = CurrentVenue::get();
+
+        /* La pagina lo chiede in più punti: una risposta per richiesta. */
+        return $user instanceof User && RequestMemo::remember('venue-access:last-owner:'.$venue->getKey().':'.$user->id, fn (): bool => app(LeaveVenueAction::class)->isLastOwner($venue, $user));
     }
 
     public function isOwner(): bool

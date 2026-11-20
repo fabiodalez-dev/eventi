@@ -10,7 +10,8 @@
         @endif
         <div class="event-ticketing-links">
             <x-filament::button color="gray" tag="a" :href="route('ticketing.manage.index')">Biglietti e partecipanti</x-filament::button>
-            @forelse ($event->occurrences()->orderBy('starts_at')->get() as $date)
+            {{-- Con l'evento già attaccato: la policy di ogni data non lo rilegge. --}}
+            @forelse ($event->occurrences()->with('venue')->orderBy('starts_at')->get()->each(fn ($date) => $date->setRelation('event', $event)) as $date)
                 @can('manage', [\App\Models\Booking::class, $date])
                     <x-filament::button color="gray" tag="a" :href="route('ticketing.manage.show', $date)">
                         {{ \App\Filament\Support\PanelDate::event($date->starts_at, $event->city?->timezone) }} — Gestisci biglietti

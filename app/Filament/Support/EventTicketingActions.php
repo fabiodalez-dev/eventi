@@ -29,7 +29,13 @@ final class EventTicketingActions
             return [];
         }
 
-        return $record->occurrences()->orderBy('starts_at')->get()->map(function (EventOccurrence $date) use ($record): Action {
+        /* Le date si leggono una volta sola anche se Filament costruisce le
+           azioni più volte, con il locale di ciascuna; l'evento è già questo,
+           così la policy non lo rilegge per ogni data. */
+        $dates = once(fn () => $record->occurrences()->with('venue')->orderBy('starts_at')->get()
+            ->each(fn (EventOccurrence $date): EventOccurrence => $date->setRelation('event', $record)));
+
+        return $dates->map(function (EventOccurrence $date) use ($record): Action {
             $timezone = $record->city->timezone;
 
             return Action::make('configureTickets'.$date->id)

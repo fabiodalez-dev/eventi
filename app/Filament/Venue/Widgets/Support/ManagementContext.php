@@ -29,6 +29,7 @@ use App\Models\City;
 use App\Models\Event;
 use App\Models\EventOccurrence;
 use App\Models\Organizer;
+use App\Models\User;
 use App\Models\Venue;
 use App\Queries\EventOccurrenceQuery;
 use Carbon\CarbonImmutable;
@@ -213,7 +214,8 @@ final class ManagementContext
 
         /* La biglietteria vive fuori dal pannello, e la apre solo chi è
            referente del locale (come la voce della barra laterale). */
-        if (! $organizer && auth()->user()?->ownedVenues()->exists() === true) {
+        $user = auth()->user();
+        if (! $organizer && $user instanceof User && $user->ownedVenueIds() !== []) {
             array_splice($groups['group_events'], 2, 0, [self::item('tickets', __('manage.navigation.tickets'), 'heroicon-o-ticket', route('ticketing.manage.index'))]);
         }
 

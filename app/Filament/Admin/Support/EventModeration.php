@@ -110,8 +110,10 @@ final class EventModeration
             ->color('gray')
             ->url(fn (Event $record): string => SponsorshipResource::getUrl('create', ['event' => $record->getKey()]))
             ->authorize(fn (): bool => auth()->user()?->can('create', Sponsorship::class) ?? false)
+            /* Filament valuta la visibilità più volte per pagina: `once()` fa
+               una domanda sola per evento e richiesta. */
             ->visible(fn (Event $record): bool => $record->status === EventStatus::Published
-                && $record->occurrences()->where('starts_at', '>=', now())->exists());
+                && once(fn (): bool => $record->occurrences()->where('starts_at', '>=', now())->exists()));
     }
 
     /**

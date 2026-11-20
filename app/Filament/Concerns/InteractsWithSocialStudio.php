@@ -19,6 +19,7 @@ use App\Queries\EventOccurrenceQuery;
 use App\Services\Social\SocialCatalog;
 use App\Services\Social\SocialPublisher;
 use App\Services\Social\SocialStudio;
+use App\Support\RequestMemo;
 use Carbon\CarbonImmutable;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Collection;
@@ -93,7 +94,7 @@ trait InteractsWithSocialStudio
         $this->cityId = $city->id;
         $this->date = EventOccurrenceQuery::for($city)->currentBusinessDate();
         if ($this->event !== null) {
-            $event = Event::findOrFail($this->event);
+            $event = $this->studioEvent();
             Gate::authorize('update', $event);
             abort_if($this->socialVenue() !== null && $event->venue_id !== $this->socialVenue()->id, 403);
             $this->cityId = $event->city_id;
@@ -133,7 +134,17 @@ trait InteractsWithSocialStudio
     {
         $venue = $this->socialVenue();
 
-        return $venue !== null ? $venue->city : City::findOrFail($this->cityId);
+        return $venue !== null ? $venue->city : RequestMemo::remember('social-city:'.$this->cityId, fn (): City => City::findOrFail($this->cityId));
+    }
+
+    /**
+     * L'evento della scheda, con il suo organizzatore, letto una volta per
+     * richiesta: lo studio ricontrolla il permesso in più punti della stessa
+     * pagina, e ogni volta lo rileggeva.
+     */
+    private function studioEvent(): Event
+    {
+        return RequestMemo::remember('social-studio-event:'.$this->event, fn (): Event => Event::with(['organizer', 'city'])->findOrFail($this->event));
     }
 
     /**
@@ -151,7 +162,7 @@ trait InteractsWithSocialStudio
     {
         Validator::make(['date' => $this->date], ['date' => ['required', 'date_format:Y-m-d']])->validate();
         if ($this->event !== null) {
-            Gate::authorize('update', Event::findOrFail($this->event));
+            Gate::authorize('update', $this->studioEvent());
         }
 
         return app(SocialCatalog::class)->events($this->socialCity(), $this->date, $this->socialVenue()?->id, $this->event, $this->includesDemo());
@@ -178,7 +189,7 @@ trait InteractsWithSocialStudio
     public function catalog(): Collection
     {
         if ($this->event !== null) {
-            Gate::authorize('update', Event::findOrFail($this->event));
+            Gate::authorize('update', $this->studioEvent());
         }
         [$from, $until] = $this->periodRange();
 
@@ -204,7 +215,7 @@ trait InteractsWithSocialStudio
             $this->month = substr($this->date, 0, 7);
         }
         if ($this->event !== null) {
-            Gate::authorize('update', Event::findOrFail($this->event));
+            Gate::authorize('update', $this->studioEvent());
         }
         $city = $this->socialCity();
         $first = CarbonImmutable::parse($this->month.'-01', $city->timezone);
