@@ -9,6 +9,7 @@ use App\Models\UserBlock;
 use App\Services\Carpool\CarpoolLifecycle;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
 
@@ -121,6 +122,18 @@ it('una tappa si trova cercando con maiuscole o accenti diversi, e la ricerca sa
         ->and($matches->first()->data['search_id'])->toBe($saved->json('data.id'));
     flussoCpWeb($this, $this->passenger);
     $this->get($matches->first()->data['url'])->assertOk()->assertSee('ARCELLA');
+});
+
+it('la ricerca per tappa funziona anche con il server in latin1, come in produzione', function (): void {
+    // In produzione MariaDB 10.11 ha character_set_server = latin1: senza un set di caratteri
+    // dichiarato, la colonna di JSON_TABLE nasceva latin1 e COLLATE utf8mb4 dava errore 1253.
+    DB::statement('SET SESSION character_set_server = latin1');
+    $hospital = cpOffer($this, carpoolPerson(), ['zone' => 'Stazione', 'stops' => ['Città della Speranza']]);
+    flussoCpWeb($this, $this->passenger);
+
+    $this->getJson(route('carpool.dates', $this->date).'?zone='.rawurlencode('città'))->assertOk()
+        ->assertJsonPath('data.offers.0.id', $hospital->id)->assertJsonCount(1, 'data.offers');
+    $this->get(route('carpool.dates', $this->date).'?zone=speranza')->assertOk()->assertSee('Stazione');
 });
 
 it('una ricerca con la finestra sbagliata torna al modulo con il messaggio sotto «Partenza non prima di», poi quella giusta si salva', function (): void {
