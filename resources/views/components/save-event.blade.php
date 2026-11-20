@@ -20,7 +20,7 @@
 
 @php
     $formatter = app(\App\Support\DateFormatter::class);
-    $isSeries = $event->recurrences()->exists();
+    $isSeries = $event->relationLoaded('recurrences') ? $event->recurrences->isNotEmpty() : $event->recurrences()->exists();
     $single = $occurrences->count() === 1 ? $occurrences->first() : null;
 @endphp
 

@@ -29,7 +29,7 @@ afterEach(function (): void {
 });
 
 it('la sera dell\'evento si crea il link dalla pagina della data, chi lo riceve vede il locale, poi lo si sostituisce, revoca e scade', function (): void {
-    $giulia = User::factory()->create(['first_name' => 'Giulia', 'last_name' => 'Rossi', 'name' => 'Giulia Rossi']);
+    $giulia = User::factory()->create(['first_name' => 'Giulia', 'last_name' => 'Pennacchiotti', 'name' => 'Giulia Pennacchiotti']);
     $store = route('presence.store', $this->occurrence->id);
 
     $this->actingAs($giulia)->get($this->datePage)->assertOk()
@@ -58,7 +58,7 @@ it('la sera dell\'evento si crea il link dalla pagina della data, chi lo riceve 
         ->assertSee(__('presence.who', ['name' => 'Giulia']))
         ->assertSee('Al bancone a sinistra')
         ->assertSee('Caffè delle Erbe')
-        ->assertDontSee('Rossi')
+        ->assertDontSee('Pennacchiotti')
         ->assertHeader('X-Robots-Tag', 'noindex, nofollow')
         ->assertHeader('Referrer-Policy', 'no-referrer');
 

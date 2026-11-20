@@ -22,6 +22,7 @@ use App\Models\Event;
 use App\Models\Sponsorship;
 use App\Models\SponsorshipGrant;
 use App\Services\Sponsorship\Delivery\PacingState;
+use App\Support\RequestMemo;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
@@ -126,7 +127,8 @@ class SponsorshipResource extends Resource
                                          * la modifica deve saperlo QUI.
                                          */
                                         ->helperText(function (Get $get): ?string {
-                                            $event = Event::query()->whereKey($get('event_id'))->first();
+                                            $id = $get('event_id');
+                                            $event = RequestMemo::remember('sponsorship-form-event:'.(is_scalar($id) ? $id : ''), fn (): ?Event => Event::query()->whereKey($id)->first());
 
                                             return $event !== null && $event->status !== EventStatus::Published
                                                 ? __('sponsorships.admin.help.event_not_published')

@@ -13,6 +13,7 @@ use App\Enums\VenueRole;
 use App\Enums\VenueStatus;
 use App\Notifications\VerifyEmailLink;
 use App\Support\Eloquent\VenueMemberships;
+use App\Support\RequestMemo;
 use App\Support\SecurityLog;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
@@ -271,6 +272,19 @@ class User extends Authenticatable implements FilamentUser, HasTenants, MustVeri
     }
 
     /**
+     * Gli id dei locali di cui è proprietario, letti una volta per richiesta:
+     * il menu, la barra in alto e i riquadri del pannello lo chiedono tutti
+     * nella stessa pagina.
+     *
+     * @return list<int>
+     */
+    public function ownedVenueIds(): array
+    {
+        return RequestMemo::remember('owned-venue-ids:'.$this->getKey(), fn (): array => $this->ownedVenues()
+            ->pluck('venues.id')->map(fn (mixed $id): int => (int) $id)->values()->all());
+    }
+
+    /**
      * I locali di cui è proprietario e su cui non pende un provvedimento: un
      * locale sospeso o rifiutato toglie ai suoi membri la gestione ovunque,
      * non solo nel pannello (D52).
@@ -415,16 +429,20 @@ class User extends Authenticatable implements FilamentUser, HasTenants, MustVeri
      */
     public function getTenants(Panel $panel): Collection
     {
-        if ($panel->getId() === 'organizer') {
-            return $this->managedOrganizers()->orderBy('name')->get();
-        }
-        /** @var Collection<int, Venue> $venues */
-        $venues = $this->venues()
-            ->whereIn('venues.status', VenueStatus::valoriSenzaProvvedimento())
-            ->orderBy('name')
-            ->get();
+        /* Filament li chiede più volte per pagina (menu dei locali e
+           controlli): una lettura per richiesta, utente e pannello. */
+        return RequestMemo::remember('tenants:'.$this->getKey().':'.$panel->getId(), function () use ($panel): Collection {
+            if ($panel->getId() === 'organizer') {
+                return $this->managedOrganizers()->orderBy('name')->get();
+            }
+            /** @var Collection<int, Venue> $venues */
+            $venues = $this->venues()
+                ->whereIn('venues.status', VenueStatus::valoriSenzaProvvedimento())
+                ->orderBy('name')
+                ->get();
 
-        return $venues;
+            return $venues;
+        });
     }
 
     /**

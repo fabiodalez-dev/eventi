@@ -8,6 +8,7 @@ use App\Enums\UserRole;
 use App\Models\EventComment;
 use App\Models\User;
 use App\Policies\Concerns\ScopesToVenueMembership;
+use App\Support\RequestMemo;
 
 /**
  * Chi può fare cosa con i commenti a un evento.
@@ -117,6 +118,8 @@ class EventCommentPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $this->isGlobalStaff($user) || $user->venues()->exists() || $user->managedOrganizers()->exists();
+        /* Chiesta più volte nella stessa pagina dei pannelli (menu, elenchi):
+           una risposta per richiesta. */
+        return $this->isGlobalStaff($user) || RequestMemo::remember('comment-policy:view-any:'.$user->id, fn (): bool => $user->venues()->exists() || $user->managedOrganizers()->exists());
     }
 }

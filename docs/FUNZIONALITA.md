@@ -59,7 +59,7 @@ Controlla il catalogo, abilita gli operatori e gestisce promozione, comunicazion
 - **Misurazione delle campagne** — Consulta impression, click e percentuale di click sulle impression registrate. Una visualizzazione conta dopo un secondo con metà della card sullo schermo, una volta sola; programmi automatici, redazione e committente non contano. La percentuale di click compare da 100 visualizzazioni.
 - **Rotazione equa fra committenti** — Chi sponsorizza «tutti i propri eventi» occupa un posto solo, come chi ne sponsorizza uno; card e cima dell'elenco cambiano a ogni visita anche con la pagina in cache, e una campagna in pausa o conclusa sparisce entro un minuto.
 - **Analisi dei posizionamenti** — Confronta i risultati per canale, pagina e posizione della sponsorizzazione.
-- **Report periodici agli sponsor** — Invia riepiloghi automatici delle campagne attraverso il sistema email configurato; per le campagne a visualizzazioni il riepilogo del lunedì riporta obiettivo, consegnate e stato, un messaggio solo per abilitazione.
+- **Report periodici agli sponsor** — Invia riepiloghi automatici delle campagne attraverso il sistema email configurato; per le campagne a visualizzazioni il riepilogo del lunedì riporta obiettivo, consegnate e stato, un messaggio solo per abilitazione; quello di un'abilitazione arriva anche a chi gestisce il locale o l'organizzazione.
 - **Newsletter e riepiloghi** — Imposta contenuti e parametri delle comunicazioni periodiche agli iscritti.
 - **Testi delle notifiche** — Personalizza i messaggi utilizzati nei diversi flussi della piattaforma.
 - **Controllo degli invii** — Consulta notifiche pianificate e risultati per verificare le comunicazioni automatiche.
@@ -113,6 +113,7 @@ Promuove la propria attività, mantiene aggiornato il programma e misura l’int
 - **Attivazione delle promozioni abilitate** — Seleziona gli eventi da promuovere nell’ambito delle concessioni attive assegnate.
 - **Analytics delle sponsorizzazioni** — Confronta impression, click e rendimento dei posizionamenti delle proprie campagne.
 - **Avanzamento delle proprie sponsorizzazioni** — Una scheda per abilitazione con barra e frase («1.240 di 3.000 visualizzazioni, in linea: al ritmo attuale arrivi all'obiettivo il 28 novembre»), «tutti i tuoi eventi» o gli eventi scelti con i loro numeri, e la spiegazione che le misure sono una stima al ribasso e che le proprie visite non contano. *Solo web; nell'app Android barra e stato nella gestione delle campagne.*
+- **Riepilogo del lunedì delle sponsorizzazioni** — Chi gestisce un locale o un'organizzazione con un'abilitazione riceve ogni lunedì per email le visualizzazioni e le aperture della settimana, con obiettivo, consegnate e stato. *Email.*
 - **Prenotazioni per appuntamento** — Se abilitato, configura posti, limite per account e apertura delle prenotazioni.
 - **Lista di attesa** — Gestisce la disponibilità con una lista di attesa quando i posti risultano esauriti.
 - **Dati e istruzioni di prenotazione** — Definisce i campi richiesti e le informazioni da comunicare a chi prenota.
@@ -313,7 +314,6 @@ Il valore della piattaforma deriva dall’incontro fra offerta locale, pubblico 
 - **Importazione da Excel** — Oggi si importano solo file CSV.
 - **Sponsorizzazioni dei co-organizzatori** — Oggi la sponsorizzazione copre l’organizzatore principale.
 - **Pacchetti a visualizzazioni comprabili dal gestore** — Oggi le visualizzazioni le vende la redazione; il listino del gestore resta a mesi.
-- **Prolungamento automatico delle campagne sotto l'obiettivo** — Fino a 7 giorni se ci sono ancora eventi in programma: in attesa di una decisione.
 - **Esplorazione e tetto di frequenza delle sponsorizzazioni** — Scelta dell'evento migliore dentro lo stesso committente e al massimo quattro apparizioni al giorno per chi è collegato.
 - **Altri campi della pagina del locale** — Fascia di prezzo, lingue parlate, animali ammessi, prenotazione consigliata.
 - **Personale di ingresso per locale** — Oggi si assegna data per data.
@@ -322,6 +322,7 @@ Il valore della piattaforma deriva dall’incontro fra offerta locale, pubblico 
 ## Registro degli aggiornamenti
 
 - **20 novembre 2026** — 265 test nuovi che seguono dall’inizio alla fine passaggi, iscrizione e gestione degli eventi dei locali, con le correzioni trovate: si può chiedere di nuovo un posto dopo averlo ritirato, la ricerca per tappa ignora maiuscole e accenti, la pubblicazione programmata esce all’ora giusta, una data spostata non ricompare al giorno vecchio, «Duplica» funziona anche sugli eventi valutati dalla redazione, il motivo del rifiuto si legge nel pannello, accesso e profilo accettano indirizzi di ritorno e nomi lunghi.
+- **20 novembre 2026 (mattina)** — Il riepilogo del lunedì delle abilitazioni arriva anche a chi gestisce il locale o l'organizzazione; deciso di non prolungare le campagne rimaste sotto l'obiettivo, perché a evento passato non c'è più niente da promuovere. Il login del sito non dice più «Stai entrando nella redazione» a chi aveva aperto un pannello e poi ha lasciato perdere. Tolte le domande ripetute al database (N+1) trovate visitando 547 pagine di redazione, pannelli e sito.
 - **20 novembre 2026** — Sponsorizzazioni a visualizzazioni con consegna distribuita nel tempo, «tutti gli eventi» come un posto solo, nuova sponsorizzazione in quattro passi con selettore degli eventi, avanzamento con barra e stato per redazione e gestori, avviso del mattino, misure contate dopo un secondo sullo schermo con un gettone usa e getta (anche nell'app Android 1.23.0), card che cambiano a ogni visita anche con la pagina in cache. Nella stessa giornata: il foglio della mappa solo a periodo e contato anche sul sito, il banner del sito che non conta più redazione e committente collegati, gettoni che il testo degli eventi non può più farsi firmare.
 - **19 novembre 2026 (sera)** — Pannelli di redazione, locale e organizzatore più leggibili: date per esteso, selettore degli eventi con locandina, statistiche con una frase per ogni numero, menu comune, cambio del tema nei pannelli, ritorno indietro in tutte le pagine di servizio.
 - **19 novembre 2026** — Pagine di servizio ridisegnate con lo stesso impianto, accesso unico, calendario e prossimo evento in home, tre viste degli elenchi da telefono, registrazione e rivendicazione del locale con account, pannello del locale semplificato, sponsorizzazione richiesta senza pagamento online, iscrizioni in evidenza nell'admin, commenti in stile social, «Stasera» passo per passo, prenotazione senza ripetere i dati.

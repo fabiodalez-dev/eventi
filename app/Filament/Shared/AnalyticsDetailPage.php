@@ -10,6 +10,7 @@ use App\Models\Event;
 use App\Models\Organizer;
 use App\Models\Venue;
 use App\Services\Analytics\EventAnalyticsDashboard;
+use App\Support\RequestMemo;
 use Filament\Facades\Filament;
 use Filament\Navigation\NavigationItem;
 use Filament\Pages\Enums\SubNavigationPosition;
@@ -57,13 +58,22 @@ abstract class AnalyticsDetailPage extends EventAnalyticsPage
     #[Computed]
     public function subject(): Event|Venue|Organizer
     {
-        $service = app(EventAnalyticsDashboard::class);
-        $query = match ($this->subjectType) {
-            'event' => $service->events(), 'venue' => $service->venues(), 'organizer' => $service->organizers(),
-            default => abort(404),
-        };
+        /* Il soggetto si ricontrolla a ogni richiesta (anche dalle chiamate
+           dirette in `mount()` e nei filtri dei rapporti), ma con una domanda
+           sola per richiesta: chi guarda, pannello e locale fanno parte della
+           chiave, perché decidono che cosa si può vedere. */
+        $tenant = Filament::getTenant();
+        $key = implode(':', ['analytics-subject', $this->subjectType, $this->subjectId, auth()->id(), Filament::getCurrentPanel()?->getId(), $tenant?->getMorphClass(), $tenant?->getKey()]);
 
-        return $query->with('city')->findOrFail($this->subjectId);
+        return RequestMemo::remember($key, function (): Event|Venue|Organizer {
+            $service = app(EventAnalyticsDashboard::class);
+            $query = match ($this->subjectType) {
+                'event' => $service->events()->with('organizer'), 'venue' => $service->venues(), 'organizer' => $service->organizers(),
+                default => abort(404),
+            };
+
+            return $query->with('city')->findOrFail($this->subjectId);
+        });
     }
 
     public function getTitle(): string

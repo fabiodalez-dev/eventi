@@ -8,6 +8,7 @@ use App\Models\Venue;
 use App\Services\Calendar\MonthCalendar;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -157,6 +158,9 @@ it('fa lo stesso numero di query con pochi o tanti eventi nel mese', function ()
     occurrenceAtLocal($city, $category, '2026-09-12 21:00:00', venue: $venue);
 
     $count = function () use ($calendar, $city, $mese, $user): int {
+        /* Ogni misura come una richiesta nuova: gli interessi si leggono una
+           volta per richiesta (`RequestMemo`). */
+        app()->instance('request', Request::create('/'));
         DB::flushQueryLog();
         DB::enableQueryLog();
         $calendar->personalGrid($city, $mese, $user);

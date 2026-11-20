@@ -7,6 +7,7 @@ use App\Enums\PromotionMode;
 use App\Enums\SponsorshipPlacement;
 use App\Enums\SponsorshipStatus;
 use App\Enums\UserRole;
+use App\Enums\VenueStatus;
 use App\Filament\Admin\Pages\SponsorshipAnalytics as AdminAnalytics;
 use App\Filament\Organizer\Pages\Sponsorships as OrganizerSponsorships;
 use App\Filament\Venue\Pages\SponsorshipAnalytics as VenueAnalytics;
@@ -587,6 +588,82 @@ it('manda un riepilogo solo per tutta l\'abilitazione, con i numeri sommati', fu
             && str_contains($lines, 'Il tasso di aperture compare da 100 visualizzazioni in su')
             && ! str_contains($lines, 'aperture ogni cento visualizzazioni');
     });
+});
+
+it('manda il riepilogo di un\'abilitazione ai gestori del locale, uno per persona, anche senza indirizzo sulla riga', function (): void {
+    Notification::fake();
+    $this->venue->members()->updateExistingPivot($this->owner->id, ['accepted_at' => now()]);
+    $staff = User::factory()->create(['email' => 'staff@circolo.test']);
+    $this->venue->membersIncludingInvited()->attach($staff, ['role' => 'editor', 'accepted_at' => now()]);
+    $invitato = User::factory()->create();
+    $this->venue->membersIncludingInvited()->attach($invitato, ['role' => 'editor', 'invited_at' => now(), 'accepted_at' => null]);
+    $nonVerificato = User::factory()->unverified()->create();
+    $this->venue->membersIncludingInvited()->attach($nonVerificato, ['role' => 'editor', 'accepted_at' => now()]);
+    $grant = p5Grant($this->venue, ['impressions_goal' => 1000]);
+    $first = p5Row($grant, p5Event($this->venue, 'Prima serata', '2026-11-28 21:00'), 300, 5);
+    p5Row($grant, p5Event($this->venue, 'Seconda serata', '2026-11-27 21:00'), 81, 1);
+    SponsorshipDailyStat::query()->create(['sponsorship_id' => $first->id, 'day' => '2026-11-18', 'impressions' => 30, 'clicks' => 1]);
+
+    $this->artisan('sponsorships:report')->assertExitCode(0);
+
+    Notification::assertSentToTimes($this->owner, SponsorshipWeeklyReport::class, 1);
+    Notification::assertSentToTimes($staff, SponsorshipWeeklyReport::class, 1);
+    Notification::assertNotSentTo($invitato, SponsorshipWeeklyReport::class);
+    Notification::assertNotSentTo($nonVerificato, SponsorshipWeeklyReport::class);
+    Notification::assertSentOnDemandTimes(SponsorshipWeeklyReport::class, 0);
+    Notification::assertSentTo($staff, SponsorshipWeeklyReport::class, function (SponsorshipWeeklyReport $report) use ($staff): bool {
+        $mail = $report->toMail($staff);
+        $lines = implode("\n", p5MailLines($mail));
+
+        return $mail->subject === 'Come sta andando: Circolo Aurora'
+            && str_contains($lines, '**Visualizzazioni:** 30')
+            && str_contains($lines, 'Consegnate finora: 381 (38%).');
+    });
+});
+
+it('non manda due copie al gestore che è anche il committente scritto sulla riga', function (): void {
+    Notification::fake();
+    $this->venue->members()->updateExistingPivot($this->owner->id, ['accepted_at' => now()]);
+    $this->owner->forceFill(['email' => 'circolo@prova.test'])->save();
+    $grant = p5Grant($this->venue);
+    p5Row($grant, p5Event($this->venue, 'Prima serata', '2026-11-28 21:00'), 300, 5, ['advertiser_email' => 'Circolo@Prova.test']);
+
+    $this->artisan('sponsorships:report')->assertExitCode(0);
+
+    Notification::assertSentToTimes($this->owner, SponsorshipWeeklyReport::class, 1);
+    Notification::assertSentOnDemandTimes(SponsorshipWeeklyReport::class, 0);
+});
+
+it('manda il riepilogo di un\'abilitazione di un\'organizzazione al titolare e ai membri', function (): void {
+    Notification::fake();
+    $titolare = User::factory()->create();
+    $membro = User::factory()->create();
+    $organizer = Organizer::query()->create(['name' => 'Collettivo Portici', 'owner_id' => $titolare->id, 'city_id' => $this->city->id, 'is_active' => true]);
+    $organizer->users()->attach([$membro->id, $titolare->id]);
+    $grant = p5Grant($organizer);
+    p5Row($grant, p5Event($this->venue, 'Serata del collettivo', '2026-11-28 21:00', $organizer), 120, 2);
+
+    $this->artisan('sponsorships:report')->assertExitCode(0);
+
+    Notification::assertSentToTimes($titolare, SponsorshipWeeklyReport::class, 1);
+    Notification::assertSentToTimes($membro, SponsorshipWeeklyReport::class, 1);
+});
+
+it('non scrive ai gestori di un locale sospeso né quando l\'abilitazione è appena partita', function (): void {
+    Notification::fake();
+    $this->venue->members()->updateExistingPivot($this->owner->id, ['accepted_at' => now()]);
+    $altro = Venue::factory()->approved()->create(['city_id' => $this->city->id, 'name' => 'Circolo Nuovo']);
+    $gestoreAltro = User::factory()->create();
+    $altro->membersIncludingInvited()->attach($gestoreAltro, ['role' => 'owner', 'accepted_at' => now()]);
+    $recente = p5Grant($altro, ['starts_at' => now()->subDay()]);
+    p5Row($recente, p5Event($altro, 'Appena partita', '2026-11-28 21:00'), 10, 0, ['starts_at' => now()->subDay()]);
+    $grant = p5Grant($this->venue);
+    p5Row($grant, p5Event($this->venue, 'Prima serata', '2026-11-28 21:00'), 300, 5);
+    $this->venue->forceFill(['status' => VenueStatus::Suspended])->save();
+
+    $this->artisan('sponsorships:report')->assertExitCode(0);
+
+    Notification::assertNothingSent();
 });
 
 it('dice nel riepilogo che una sponsorizzazione a periodo non ha un obiettivo', function (): void {

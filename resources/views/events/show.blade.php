@@ -406,7 +406,7 @@
             @endif
 
             <x-event-description :event="$event" />
-            @if (($selectedOccurrence ?? null) && $event->occurrences()->count() > 1)
+            @if (($selectedOccurrence ?? null) && ($occurrenceCount ?? $event->occurrences()->count()) > 1)
                 <p><a class="underline text-accent" href="{{ route('events.show', $event) }}">{{ __('seo.all_dates') }}</a></p>
             @endif
             @if ($weatherDate = ($selectedOccurrence ?? $occurrences->first()))

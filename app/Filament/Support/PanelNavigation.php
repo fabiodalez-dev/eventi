@@ -382,6 +382,6 @@ final class PanelNavigation
     {
         $user = Filament::auth()->user();
 
-        return $user instanceof User && $user->ownedVenues()->exists();
+        return $user instanceof User && $user->ownedVenueIds() !== [];
     }
 }

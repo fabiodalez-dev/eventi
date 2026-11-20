@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Queries\EventOccurrenceQuery;
 use App\Services\Account\ContentPreferences;
 use App\Support\ContentVersion;
+use App\Support\RequestMemo;
 use Carbon\CarbonImmutable;
 use Closure;
 use Illuminate\Database\Eloquent\Builder;
@@ -199,6 +200,14 @@ final class MonthCalendar
      * @return array{venues: list<int>, organizers: list<int>, categories: list<int>, tags: list<int>}|null
      */
     public function interests(User $user): ?array
+    {
+        /* La home la chiede da più pezzi (prossimo evento, finestre): una
+           lettura per richiesta. */
+        return RequestMemo::remember('month-calendar:interests:'.$user->id, fn (): ?array => $this->readInterests($user));
+    }
+
+    /** @return array{venues: list<int>, organizers: list<int>, categories: list<int>, tags: list<int>}|null */
+    private function readInterests(User $user): ?array
     {
         $types = [
             FollowableType::Venue->value => 'venues',

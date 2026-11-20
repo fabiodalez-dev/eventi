@@ -42,8 +42,15 @@ final class AuthenticatePanel extends Authenticate
         }
     }
 
+    /**
+     * Il ritorno va anche nell'indirizzo, non solo in sessione: così
+     * `/accedi` lo tratta come un ingresso dichiarato e, se la persona lascia
+     * perdere e più tardi apre il login dal sito, lo dimentica. Prima restava
+     * in sessione e il login generico diceva ancora «Stai entrando nella
+     * redazione», e dopo l'accesso riportava al pannello abbandonato.
+     */
     protected function redirectTo($request): string
     {
-        return route('login');
+        return route('login', ['intended' => $request->fullUrl()]);
     }
 }

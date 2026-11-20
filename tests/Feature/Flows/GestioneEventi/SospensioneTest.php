@@ -145,7 +145,7 @@ it('un account eliminato non rientra nel pannello con la sessione rimasta aperta
     $editor->delete();
 
     app('auth')->forgetGuards();
-    $this->withSession($sessione)->get('/gestione/'.$this->venue->slug.'/eventi')->assertRedirect(route('login'));
+    $this->withSession($sessione)->get('/gestione/'.$this->venue->slug.'/eventi')->assertRedirect(route('login', ['intended' => url('/gestione/'.$this->venue->slug.'/eventi')]));
     expect($suo->fresh()->venue_id)->toBe($this->venue->id)
         ->and($this->owner->can('update', $suo->fresh()))->toBeTrue();
 });

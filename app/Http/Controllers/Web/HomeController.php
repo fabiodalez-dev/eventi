@@ -91,11 +91,14 @@ final class HomeController extends Controller
         $perSection = config()->integer('eventi.home_section_size');
 
         $sections = [
-            'tonight' => $this->hydrate(EventOccurrenceQuery::for($city)->tonight()->take($perSection), $perSection),
-            'today' => $this->hydrate(EventOccurrenceQuery::for($city)->today()->timeOfDay(TimeOfDay::Day)->take($perSection), $perSection),
-            'featured' => $this->hydrate(EventOccurrenceQuery::for($city)->upcoming()->featured()->orderByRelevance()->take($perSection * self::OVERSAMPLE)->unique('event_id')->values(), $perSection),
-            'weekend' => $this->hydrate(EventOccurrenceQuery::for($city)->weekend()->take($perSection), $perSection),
+            'tonight' => EventOccurrenceQuery::for($city)->tonight()->take($perSection),
+            'today' => EventOccurrenceQuery::for($city)->today()->timeOfDay(TimeOfDay::Day)->take($perSection),
+            'featured' => EventOccurrenceQuery::for($city)->upcoming()->featured()->orderByRelevance()->take($perSection * self::OVERSAMPLE)->unique('event_id')->values()->take($perSection),
+            'weekend' => EventOccurrenceQuery::for($city)->weekend()->take($perSection),
         ];
+        /* Evento, locale, categoria e locandina per tutte le sezioni in una
+           volta: una sezione alla volta erano le stesse domande ripetute. */
+        $this->hydrate(new Collection(array_merge(...array_map(static fn (Collection $section): array => $section->all(), array_values($sections)))), PHP_INT_MAX);
 
         /* L'apertura resta dentro lo scheletro della pagina, perché da lei
            dipendono il preload e le sezioni qui sotto: la sceglie il piano con

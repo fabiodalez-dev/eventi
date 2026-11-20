@@ -135,7 +135,9 @@ class OccurrencesRelationManager extends RelationManager
         $timezone = CurrentVenue::timezone();
 
         return $table
-            ->modifyQueryUsing(fn ($query) => OccurrenceAnalytics::withTotals($query))
+            /* Le azioni di ogni riga chiedono la policy, che guarda l'evento e
+               il suo organizzatore: si caricano una volta per tutte le date. */
+            ->modifyQueryUsing(fn ($query) => OccurrenceAnalytics::withTotals($query)->with('event.organizer'))
             ->description(__('analytics.occurrence_totals'))
             ->recordTitleAttribute('starts_at')
             ->columns([

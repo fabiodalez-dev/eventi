@@ -127,7 +127,7 @@ final class TopbarActions
     {
         $items = [];
 
-        if ($venue instanceof Venue && $user->ownedVenues()->whereKey($venue->getKey())->exists()) {
+        if ($venue instanceof Venue && in_array((int) $venue->getKey(), $user->ownedVenueIds(), true)) {
             $items[] = $this->tickets();
         }
 

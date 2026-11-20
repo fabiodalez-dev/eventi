@@ -117,7 +117,10 @@ final class EventController extends Controller
         $this->hydrate(new Collection([...$upcoming->all(), ...$past->all(), ...$related->all(), ...$atVenue->all()]));
 
         $dates = $upcoming->isNotEmpty() ? $upcoming : $past;
-        $isSeries = $event->occurrences()->count() > 1 || $event->recurrences()->exists();
+        $occurrenceCount = $event->occurrences()->count();
+        /* Le regole di ripetizione si caricano sull'evento: le usa anche il
+           pulsante «salva», che nella pagina compare più volte. */
+        $isSeries = $occurrenceCount > 1 || $event->loadMissing('recurrences')->recurrences->isNotEmpty();
         $canonicalDate = $selected ?? (! $isSeries ? $dates->first() : null);
         $meta = $this->meta($event, $dates)->withIndexable(! $isPreview && in_array($event->status, [EventStatus::Published, EventStatus::Archived], true));
         if ($canonicalDate !== null) {
@@ -180,6 +183,8 @@ final class EventController extends Controller
             'city' => $city,
             'event' => $event,
             'occurrences' => $upcoming,
+            /* Contate una volta qui: la vista ne ha bisogno per «tutte le date». */
+            'occurrenceCount' => $occurrenceCount,
             'activeBookings' => auth()->check()
                 ? Booking::query()->active()->where('user_id', auth()->id())->whereIn('occurrence_id', $upcoming->modelKeys())->get()->keyBy('occurrence_id')
                 : collect(),

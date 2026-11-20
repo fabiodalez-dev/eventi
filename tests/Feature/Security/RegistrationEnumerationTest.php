@@ -408,7 +408,7 @@ describe('seconda rilettura', function (): void {
         $this->post(route('account.login.store'), ['email' => $staff->email, 'password' => 'password'])
             ->assertSessionHasErrors(['email' => __('auth.login.claim_pending')]);
         $this->assertGuest();
-        $this->get('/admin')->assertRedirect(route('login'));
+        $this->get('/admin')->assertRedirect(route('login', ['intended' => url('/admin')]));
 
         $staff->forceFill(['email_claim_pending_at' => null])->save();
         $this->post(route('account.login.store'), ['email' => $staff->email, 'password' => 'password'])
