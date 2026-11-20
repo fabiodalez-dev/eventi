@@ -25,7 +25,7 @@ function venueUrl(string $path = ''): string
 }
 
 it('manda chi non è entrato al login unico', function (): void {
-    $this->get(venueUrl())->assertRedirect(route('login'));
+    $this->get(venueUrl())->assertRedirect(route('login', ['intended' => url(venueUrl())]));
 });
 
 it('chiude il pannello a chi non gestisce alcun locale', function (): void {

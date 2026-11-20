@@ -36,7 +36,7 @@ function iscrizioneEntra(User $user): void
 it('ferma l iscritto qualunque davanti alla redazione, lo fa uscire e lascia entrare l amministratore', function (): void {
     $s = $this->scenario;
 
-    $this->get('/admin')->assertRedirect(route('login'));
+    $this->get('/admin')->assertRedirect(route('login', ['intended' => url('/admin')]));
 
     /* L'iscritto qualunque entra: la redazione non è per lui, va nel feed. */
     $this->post('/accedi', ['email' => $s->plainUser->email, 'password' => 'password'])
@@ -92,7 +92,7 @@ it('non apre il pannello a chi ha un invito non ancora accettato', function (): 
         'accepted_at' => null,
     ]);
 
-    $this->get('/gestione/'.$s->venueA->slug)->assertRedirect(route('login'));
+    $this->get('/gestione/'.$s->venueA->slug)->assertRedirect(route('login', ['intended' => url('/gestione/'.$s->venueA->slug)]));
     $this->post('/accedi', ['email' => 'invitata.in.attesa@example.test', 'password' => 'password'])
         ->assertRedirect(route('account.feed'));
     $this->get('/gestione')->assertForbidden();
@@ -127,7 +127,7 @@ it('porta chi gestisce un organizzatore nel suo pannello e non in quello dei loc
         'is_active' => true,
     ]);
 
-    $this->get('/organizza/'.$organizzatore->slug)->assertRedirect(route('login'));
+    $this->get('/organizza/'.$organizzatore->slug)->assertRedirect(route('login', ['intended' => url('/organizza/'.$organizzatore->slug)]));
     $this->post('/accedi', ['email' => 'gestore.collettivo@example.test', 'password' => 'password'])
         ->assertRedirect(url('/organizza/'.$organizzatore->slug));
     $this->get('/organizza/'.$organizzatore->slug)->assertOk();
@@ -146,7 +146,7 @@ it('rifiuta la password di un amministratore con la casella non dimostrata e gli
     ]);
     $sospeso->assignRole(UserRole::Admin->value);
 
-    $this->get('/admin')->assertRedirect(route('login'));
+    $this->get('/admin')->assertRedirect(route('login', ['intended' => url('/admin')]));
     $this->post('/accedi', ['email' => 'admin.sospeso@example.test', 'password' => 'password-admin-sospeso'])
         ->assertSessionHasErrors(['email' => __('auth.login.claim_pending')]);
     $this->assertGuest();
@@ -166,7 +166,7 @@ it('butta fuori alla richiesta dopo il referente il cui account viene cancellato
     app(DeleteAccount::class)($s->ownerA->fresh());
     app('auth')->forgetGuards();
 
-    $this->get('/gestione/'.$s->venueA->slug)->assertRedirect(route('login'));
+    $this->get('/gestione/'.$s->venueA->slug)->assertRedirect(route('login', ['intended' => url('/gestione/'.$s->venueA->slug)]));
     $this->get('/il-mio-profilo')->assertRedirect(route('login'));
     $this->assertGuest();
 

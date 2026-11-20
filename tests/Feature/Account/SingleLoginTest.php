@@ -39,14 +39,31 @@ it('manda l ospite al login unico e lo riporta alla pagina del pannello da cui e
         'organizer' => ['/organizza/'.$organizer->slug, $s->ownerB],
     };
 
-    $this->get($path)->assertRedirect(route('login'));
-    $this->get(route('login'))->assertOk()->assertSee('data-login-panel="'.$panel.'"', false);
+    $this->get($path)->assertRedirect(route('login', ['intended' => url($path)]));
+    $this->get(route('login', ['intended' => url($path)]))->assertOk()->assertSee('data-login-panel="'.$panel.'"', false);
 
     $this->post(route('account.login.store'), ['email' => $user->email, 'password' => 'password'])
         ->assertRedirect(url($path));
     $this->assertAuthenticatedAs($user);
     $this->get($path)->assertOk();
 })->with(['admin', 'venue', 'organizer']);
+
+it('dimentica il pannello abbandonato quando più tardi si apre il login dal sito', function (): void {
+    $s = $this->scenario;
+
+    $this->get('/admin/venues')->assertRedirect(route('login', ['intended' => url('/admin/venues')]));
+    $this->get(route('login', ['intended' => url('/admin/venues')]))->assertOk()->assertSee('data-login-panel="admin"', false);
+
+    /* Lascia perdere, gira per il sito e poi apre «Accedi» senza ritorno. */
+    $this->get('/')->assertOk();
+    $this->get(route('login'))->assertOk()
+        ->assertDontSee('data-login-panel', false)
+        ->assertDontSee(__('auth.panel.intended.admin'));
+
+    $risposta = $this->post(route('account.login.store'), ['email' => $s->ownerA->email, 'password' => 'password'])->assertRedirect();
+    expect($risposta->headers->get('Location'))->not->toContain('/admin');
+    $this->assertAuthenticatedAs($s->ownerA);
+});
 
 it('rimanda le vecchie pagine di accesso e di recupero dei pannelli al sito', function (string $path): void {
     $this->get('/'.$path.'/login')->assertRedirect(route('login', ['intended' => url('/'.$path)]));

@@ -232,7 +232,7 @@ it('apre il vecchio collegamento di recupero del pannello, cambia la password ed
         'password_confirmation' => 'nuova-password-redazione',
     ])->assertRedirect(route('login'));
 
-    $this->get('/admin')->assertRedirect(route('login'));
+    $this->get('/admin')->assertRedirect(route('login', ['intended' => url('/admin')]));
     $this->post('/accedi', ['email' => 'redattrice@example.test', 'password' => 'nuova-password-redazione'])
         ->assertRedirect(url('/admin'));
     $this->get('/admin')->assertOk();
