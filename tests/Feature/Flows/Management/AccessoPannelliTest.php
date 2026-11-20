@@ -28,9 +28,9 @@ it('apre ciascuno dei tre pannelli solo a chi ha titolo e lo chiude a tutti gli 
     $org = '/organizza/'.$organizer->slug;
 
     // Chi non è entrato viene mandato al login unico, da cui entrano tutti.
-    $this->get($admin)->assertRedirect(route('login'));
-    $this->get($venueA)->assertRedirect(route('login'));
-    $this->get($org)->assertRedirect(route('login'));
+    $this->get($admin)->assertRedirect(route('login', ['intended' => url($admin)]));
+    $this->get($venueA)->assertRedirect(route('login', ['intended' => url($venueA)]));
+    $this->get($org)->assertRedirect(route('login', ['intended' => url($org)]));
 
     // La redazione entra in /admin, non nei pannelli dei locali che non gestisce.
     foreach ([$super, $s->admin, $s->moderator] as $staff) {
