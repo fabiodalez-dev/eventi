@@ -30,7 +30,7 @@ class UpdateProfileRequest extends FormRequest
         return [
             /* `null` è una scelta: «segui il tema del sistema». */
             'appearance' => ['sometimes', 'nullable', Rule::in(['dark', 'light'])],
-            'name' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'timezone' => ['sometimes', 'string', 'timezone'],
             'locale' => ['sometimes', 'string', Rule::in(config()->array('account.locales'))],
             'marketing_opt_in' => ['sometimes', 'boolean'],
