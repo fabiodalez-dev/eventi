@@ -39,6 +39,8 @@
     };
     $facts = array_filter([
         __('manage.fields.status') => $event->status->label(),
+        // Il motivo arriva anche per email, ma chi corregge la scheda lo cerca qui.
+        __('manage.fields.rejection_reason') => $event->status === \App\Enums\EventStatus::Rejected ? $event->rejection_reason : null,
         __('manage.fields.category') => $event->category?->name,
         __('analytics-dashboard.venue') => $event->venue?->name,
         __('analytics-dashboard.organizer') => $event->organizer?->name ?? $event->organizer_name ?? __('analytics-dashboard.no_organizer'),

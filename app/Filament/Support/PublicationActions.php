@@ -24,7 +24,10 @@ final class PublicationActions
             ->action(function (Event $record, array $data): void {
                 $user = auth()->user();
                 abort_unless($user !== null, 403);
-                app(ScheduleEventPublication::class)->schedule($record, $user, CarbonImmutable::parse($data['publish_at'], 'Europe/Rome'));
+                // Il campo mostra l'ora di Padova ma consegna lo stato nel fuso dell'applicazione
+                // (`FilamentDefaultsServiceProvider`): rileggerlo come ora di Padova lo convertiva
+                // due volte, e l'evento usciva due ore prima d'estate e una d'inverno.
+                app(ScheduleEventPublication::class)->schedule($record, $user, CarbonImmutable::parse($data['publish_at'], config()->string('app.timezone')));
                 Notification::make()->success()->title('Programmazione salvata')->body($record->status === EventStatus::Pending ? 'In attesa di approvazione della redazione.' : 'Pubblicazione automatica all’orario scelto.')->send();
             });
     }

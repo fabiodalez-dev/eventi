@@ -25,6 +25,10 @@ use Illuminate\Support\Facades\Schema;
  * - la **provenienza esterna** (`source_ref`), che identifica una riga nella
  *   sorgente di import: copiarla romperebbe l'idempotenza dell'import;
  * - le **statistiche**, la data di pubblicazione e il motivo del rifiuto;
+ * - il **punteggio della redazione** (`editorial_score`), che è un giudizio
+ *   su quella scheda e non sulla copia: portarselo dietro faceva fallire la
+ *   duplicazione dal pannello del locale, perché l'observer rifiuta a chi
+ *   non modera ogni campo riservato alla redazione già valorizzato;
  * - la **lineup**, che appartiene alle singole date e non all'evento: senza
  *   date da copiare non c'è nessun posto dove metterla, e la si aggiunge alla
  *   prima data della copia.
@@ -40,6 +44,7 @@ final class DuplicateEventAction
                 'scheduled_publish_at',
                 'publication_scheduled_by',
                 'rejection_reason',
+                'editorial_score',
                 'source_ref',
                 'views_count',
                 'saves_count',
