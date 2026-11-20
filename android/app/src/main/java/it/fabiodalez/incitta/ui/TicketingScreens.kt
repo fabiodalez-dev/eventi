@@ -176,17 +176,13 @@ fun TicketsScreen(state: AppUiState, padding: PaddingValues, onCancel: (Long, Lo
                 booking.tickets.forEach { ticket ->
                     key(ticket.id, state.session.user.id) {
                         var expanded by remember { mutableStateOf(false) }
-                        Text(ticket.attendeeName, style = MaterialTheme.typography.titleLarge)
-                        Text("#${ticket.id} · ${ticketStatus(ticket.status)}", color = Muted)
-                        if (ticket.qrPayload != null && ticket.status == "valid") {
+                        val hasQr = ticket.qrPayload != null && ticket.status == "valid"
+                        // Il QR è il biglietto: finché è visibile niente screenshot né anteprima tra le app recenti.
+                        if (hasQr && expanded) SecureWindow()
+                        TicketPass(booking, ticket, booking.tickets.indexOf(ticket) + 1, booking.tickets.size, ticketStatus(ticket.status), hasQr && expanded, stringResource(R.string.ticket_qr_description, ticket.id))
+                        if (hasQr) {
                             OutlinedButton(onClick = { expanded = !expanded }, shape = ControlShape) { Text(stringResource(if (expanded) R.string.ticket_hide_qr else R.string.ticket_show_qr)) }
-                            if (expanded) {
-                                // Il QR è il biglietto: finché è visibile niente screenshot né anteprima tra le app recenti.
-                                SecureWindow()
-                                val bitmap = remember(ticket.qrPayload) { ticketQr(ticket.qrPayload) }
-                                Image(bitmap.asImageBitmap(), stringResource(R.string.ticket_qr_description, ticket.id), modifier = Modifier.background(Paper).padding(12.dp).fillMaxWidth().heightIn(max = 280.dp).aspectRatio(1f))
-                                Text(stringResource(R.string.ticket_qr_hint), color = Muted)
-                            }
+                            if (expanded) Text(stringResource(R.string.ticket_qr_hint), color = Muted)
                         }
                         /*
                          * Compare solo quando il server dichiara di saper

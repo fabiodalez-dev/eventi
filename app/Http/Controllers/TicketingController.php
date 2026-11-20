@@ -26,6 +26,7 @@ use App\Notifications\BookingChanged;
 use App\Services\Ticketing\BookingForm;
 use App\Services\Ticketing\MobileManagement;
 use App\Services\Ticketing\TicketingService;
+use App\Services\Ticketing\TicketPdf;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
@@ -41,7 +42,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 final class TicketingController extends Controller
 {
     /** Quello che serve a disegnare una prenotazione: data, evento, locandina, sede. */
-    private const BOOKING_RELATIONS = ['tickets', 'occurrence.venue', 'occurrence.event.venue', 'occurrence.event.city', 'occurrence.event.media'];
+    private const BOOKING_RELATIONS = ['tickets', 'occurrence.venue', 'occurrence.event.venue', 'occurrence.event.city', 'occurrence.event.media', 'occurrence.event.organizer'];
 
     /** I filtri dell'elenco prenotazioni nella gestione della data (`?status=`). */
     public const BOOKING_FILTERS = ['confirmed', 'checked_in', 'waitlisted', 'cancelled'];
@@ -58,7 +59,7 @@ final class TicketingController extends Controller
         $noShows = $service->noShowCount($request->user());
         if ($request->is('api/*')) {
             $bookings = Booking::query()->where('user_id', $request->user()->id)
-                ->with(['tickets', 'occurrence.event.venue', 'occurrence.event.media'])->orderByRaw("CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END")->latest('id')->paginate(30);
+                ->with(['tickets', 'occurrence.venue', 'occurrence.event.venue', 'occurrence.event.media', 'occurrence.event.organizer'])->orderByRaw("CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END")->latest('id')->paginate(30);
 
             return response()->json(['data' => $bookings->getCollection()->map(fn ($b) => BookingResource::toArray($b)), 'meta' => ['next_page' => $bookings->hasMorePages() ? $bookings->currentPage() + 1 : null, 'no_shows' => $noShows]]);
         }
@@ -144,9 +145,12 @@ final class TicketingController extends Controller
     public function pdf(Request $request, AdmissionTicket $ticket): Response
     {
         Gate::authorize('view', $ticket->booking);
+        $pdf = app(TicketPdf::class);
 
-        return Pdf::loadView('ticketing.pdf', ['ticket' => $ticket, 'booking' => BookingResource::toArray($ticket->booking)])
-            ->setOption('isRemoteEnabled', false)->download('inCitta-ticket-'.$ticket->id.'.pdf');
+        return response($pdf->render($ticket), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.$pdf->filename($ticket).'"',
+        ]);
     }
 
     public function resend(Request $request, Booking $booking): JsonResponse|RedirectResponse

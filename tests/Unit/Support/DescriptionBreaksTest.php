@@ -60,6 +60,19 @@ final class DescriptionBreaksTest extends TestCase
 
     public function test_plain_text_view_of_the_new_html_keeps_the_lines(): void
     {
-        self::assertSame("Riga uno\nRiga due\nSecondo", Description::plain(Description::fromPlainText("Riga uno\nRiga due\n\nSecondo")));
+        self::assertSame("Riga uno\nRiga due\n\nSecondo", Description::plain(Description::fromPlainText("Riga uno\nRiga due\n\nSecondo")));
+    }
+
+    public function test_plain_text_view_keeps_paragraphs_lists_and_written_breaks(): void
+    {
+        // Come arriva un incolla dall'editor: a capo scritti dentro un solo paragrafo.
+        self::assertSame(
+            "Venerdì 4 dicembre, concerto\n👉 Serata di sostegno\n✅ Ingresso 12 euro",
+            Description::plain("<p>Venerdì 4 dicembre, concerto\n👉 Serata di sostegno\n✅ Ingresso 12 euro</p>"),
+        );
+        self::assertSame(
+            "Programma\n\n• Apertura porte\n• Concerto\n\nCome arrivare\n\n1. Bus 3\n2. A piedi\n\nFine",
+            Description::plain('<h2>Programma</h2><ul><li><p>Apertura porte</p></li><li>Concerto</li></ul><h3>Come arrivare</h3><ol><li>Bus 3</li><li>A piedi</li></ol><p>Fine</p>'),
+        );
     }
 }

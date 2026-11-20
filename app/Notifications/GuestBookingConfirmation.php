@@ -5,9 +5,8 @@ declare(strict_types=1);
 namespace App\Notifications;
 
 use App\Enums\AdmissionStatus;
-use App\Http\Resources\V1\BookingResource;
 use App\Models\Booking;
-use Barryvdh\DomPDF\Facade\Pdf;
+use App\Services\Ticketing\TicketPdf;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -54,8 +53,8 @@ class GuestBookingConfirmation extends Notification implements ShouldQueue
             if ($ticket->displayStatus() !== AdmissionStatus::Valid) {
                 continue;
             }
-            $bytes = Pdf::loadView('ticketing.pdf', ['ticket' => $ticket, 'booking' => BookingResource::toArray($booking)])
-                ->setOption('isRemoteEnabled', false)->output();
+            $ticket->setRelation('booking', $booking);
+            $bytes = app(TicketPdf::class)->render($ticket);
             $mail->attachData($bytes, 'inCitta-ticket-'.$ticket->id.'.pdf', ['mime' => 'application/pdf']);
         }
 

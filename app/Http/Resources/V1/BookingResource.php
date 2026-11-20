@@ -28,6 +28,8 @@ final class BookingResource
             'event_slug' => $event?->slug,
             // La locandina nella stessa forma di `EventResource.poster`.
             'poster' => $event !== null ? PosterResource::toArray($event) : null,
+            // Chi organizza, come lo stampa il biglietto: «Organizza …».
+            'organizer' => $event->organizer->name ?? $event?->organizer_name,
             'venue' => $date?->effectiveVenue()?->name,
             'address' => $date?->effectiveVenue()?->address,
             'starts_at' => $date?->starts_at?->toIso8601String(),

@@ -62,4 +62,13 @@
     <string name="ticket_wallet_add">AGGIUNGI A GOOGLE WALLET</string>
     <string name="ticket_wallet_hint">Il pass porta lo stesso codice del QR. Se annulli la prenotazione, all’ingresso non vale più.</string>
     <string name="ticket_wallet_unavailable">Per questo biglietto non c’è un pass da aggiungere.</string>
+    <string name="ticket_pass_band">inCittà · Biglietto</string>
+    <string name="ticket_pass_band_of">inCittà · Biglietto %1$d di %2$d</string>
+    <string name="ticket_pass_organizer">Organizza %1$s</string>
+    <string name="ticket_pass_date">Data</string>
+    <string name="ticket_pass_time">Ora</string>
+    <string name="ticket_pass_place">Luogo</string>
+    <string name="ticket_pass_holder">Intestatario</string>
+    <string name="ticket_pass_number">Biglietto n.</string>
+    <string name="ticket_pass_booking">Prenotazione #%1$d</string>
 </resources>

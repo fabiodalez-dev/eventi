@@ -65,7 +65,7 @@ it('keeps long permitted text without silently truncating it', function (): void
 });
 
 it('exports rich descriptions as readable plain text for existing clients', function (): void {
-    expect(Description::plain('<p>Uno &amp; <strong>due</strong></p><p>Tre</p>'))->toBe("Uno & due\nTre")
+    expect(Description::plain('<p>Uno &amp; <strong>due</strong></p><p>Tre</p>'))->toBe("Uno & due\n\nTre")
         ->and(Description::plain(null))->toBeNull();
 });
 

@@ -11,6 +11,10 @@ use App\Services\Media\OpenGraphImage;
 use App\Support\Media\ImageSet;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Intervention\Image\Drivers\Gd\Driver as GdDriver;
+use Intervention\Image\Encoders\JpegEncoder;
+use Intervention\Image\ImageManager;
+use Throwable;
 
 /**
  * L'indirizzo della locandina di un evento.
@@ -149,5 +153,50 @@ final class Poster
             is_numeric($width) ? (int) $width : null,
             is_numeric($height) ? (int) $height : null,
         );
+    }
+
+    /**
+     * Il file della locandina su questo server, o null.
+     *
+     * Solo immagini già passate dal caricamento dell'applicazione: la libreria
+     * media o un percorso del disco pubblico. Un indirizzo esterno resta fuori,
+     * perché scaricarlo vorrebbe dire far uscire il server verso chiunque.
+     */
+    public static function localPath(Event $event): ?string
+    {
+        $path = $event->getFirstMedia('poster')?->getPath();
+        if ($path !== null && is_file($path)) {
+            return $path;
+        }
+
+        $candidate = (string) $event->poster;
+        if ($candidate === '' || str_contains($candidate, '..') || Str::startsWith($candidate, ['/', 'http:', 'https:'])) {
+            return null;
+        }
+
+        return Storage::disk('public')->exists($candidate) ? Storage::disk('public')->path($candidate) : null;
+    }
+
+    /**
+     * La locandina rimpicciolita in JPEG, come `data:` per DomPDF, che non
+     * legge WebP e qui non scarica niente da fuori. Null se manca o non si
+     * apre: il biglietto si stampa lo stesso, senza immagine.
+     */
+    public static function pdfDataUri(Event $event, int $width = 320): ?string
+    {
+        $path = self::localPath($event);
+        if ($path === null) {
+            return null;
+        }
+
+        try {
+            $image = ImageManager::usingDriver(GdDriver::class)->decodePath($path)->scaleDown(width: $width);
+
+            return 'data:image/jpeg;base64,'.base64_encode($image->encode(new JpegEncoder(quality: 80))->toString());
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return null;
+        }
     }
 }

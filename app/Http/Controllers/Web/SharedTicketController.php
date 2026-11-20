@@ -25,7 +25,7 @@ final class SharedTicketController extends Controller
     public function show(Request $request, AdmissionTicket $ticket): Response
     {
         abort_unless($request->hasValidSignature(), 403);
-        $ticket->load('booking.occurrence.event.city', 'booking.occurrence.venue');
+        $ticket->load('booking.occurrence.event.city', 'booking.occurrence.event.media', 'booking.occurrence.event.organizer', 'booking.occurrence.event.venue', 'booking.occurrence.venue');
 
         return response()->view('ticketing.shared', [
             'ticket' => $ticket,

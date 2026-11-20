@@ -7,7 +7,7 @@ namespace App\Services\Social;
 use App\Enums\SocialFormat;
 use App\Http\Resources\V1\PriceResource;
 use App\Models\EventOccurrence;
-use Illuminate\Support\Facades\Storage;
+use App\Support\Poster;
 use Illuminate\Support\Str;
 use Intervention\Image\Drivers\Gd\Driver as GdDriver;
 use Intervention\Image\Encoders\JpegEncoder;
@@ -35,12 +35,7 @@ final class SocialGraphic
         $font = resource_path('fonts/og-title.ttf');
         $body = resource_path('fonts/og-text.ttf');
         $posterHeight = $height;
-        $poster = $event->getFirstMedia('poster')?->getPath();
-        if (! $poster || ! is_file($poster)) {
-            $candidate = (string) $event->poster;
-            $poster = $candidate !== '' && ! str_contains($candidate, '..') && ! Str::startsWith($candidate, ['/', 'http:', 'https:']) && Storage::disk('public')->exists($candidate)
-                ? Storage::disk('public')->path($candidate) : null;
-        }
+        $poster = Poster::localPath($event);
         if ($poster && is_file($poster)) {
             // No remote fetches: only media already accepted by the application's upload pipeline.
             $photo = $manager->decode($poster);

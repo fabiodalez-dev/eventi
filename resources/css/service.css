@@ -186,3 +186,102 @@ a.svc-row:hover { background: var(--surface-raised); }
 /* Il pulsante distruttivo. Il tema chiaro toglie il bordo ai comandi pieni;
    qui il fondo basta a riconoscerlo. */
 .svc-button--danger:hover { filter: brightness(0.92); }
+
+/* Il biglietto (x-ticket-pass): corpo a sinistra, matrice col QR a destra,
+   separati da una perforazione tratteggiata con due tacche. Sotto i 640px la
+   matrice scende sotto il corpo e la perforazione diventa orizzontale. Il QR
+   resta su fondo bianco in entrambi i temi: i lettori lo vogliono così. */
+.ticket-pass {
+    --ticket-notch: 14px;
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    border: 2px solid var(--ink);
+    border-radius: var(--radius-panel, 0px);
+    background: var(--surface);
+    color: var(--ink);
+    overflow: hidden;
+}
+.ticket-pass__main { display: flex; min-width: 0; flex-direction: column; }
+.ticket-pass__band {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.5rem 1rem;
+    background: var(--ink);
+    color: var(--ink-inverted);
+    font-size: 0.6875rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+.ticket-pass__event { display: flex; align-items: flex-start; gap: 1rem; padding: 1rem; }
+.ticket-pass__title {
+    font-family: var(--font-display);
+    font-size: clamp(1.25rem, 3.2vw, 1.75rem);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    overflow-wrap: anywhere;
+}
+.ticket-pass__facts {
+    display: grid;
+    grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
+    border-top: 2px solid var(--ink);
+    margin-top: auto;
+}
+.ticket-pass__fact { display: flex; min-width: 0; flex-direction: column; gap: 0.25rem; padding: 0.75rem 1rem; border-bottom: 1px solid var(--line); }
+.ticket-pass__fact + .ticket-pass__fact:not(.ticket-pass__fact--wide):nth-child(2) { border-left: 1px solid var(--line); }
+.ticket-pass__fact--wide { grid-column: 1 / -1; }
+.ticket-pass__fact:last-child { border-bottom: 0; }
+.ticket-pass__fact dt { font-size: 0.625rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-muted); }
+.ticket-pass__fact dd { margin: 0; font-size: 0.875rem; overflow-wrap: anywhere; }
+.ticket-pass__fact--date dd { display: flex; align-items: center; gap: 0.625rem; overflow-wrap: normal; }
+.ticket-pass__fact--date dd > span:last-child { min-width: 0; }
+.ticket-pass__day, .ticket-pass__big { font-family: var(--font-display); font-weight: 800; line-height: 1; }
+.ticket-pass__day { font-size: 2.5rem; letter-spacing: -0.04em; white-space: nowrap; }
+.ticket-pass__fact .ticket-pass__big { font-size: 1.75rem; letter-spacing: -0.02em; }
+.ticket-pass__fact .ticket-pass__holder { font-family: var(--font-display); font-size: 1.25rem; font-weight: 800; line-height: 1.1; }
+
+.ticket-pass__stub {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1.25rem 1rem;
+    border-top: 2px dashed var(--ink);
+    background: var(--surface-sunken);
+    text-align: center;
+}
+/* Le due tacche della perforazione: cerchi del colore della pagina. */
+.ticket-pass__stub::before,
+.ticket-pass__stub::after {
+    content: "";
+    position: absolute;
+    top: calc(var(--ticket-notch) / -2 - 1px);
+    width: var(--ticket-notch);
+    height: var(--ticket-notch);
+    border: 2px solid var(--ink);
+    border-radius: 999px;
+    background: var(--canvas);
+}
+.ticket-pass__stub::before { left: calc(var(--ticket-notch) / -2 - 2px); }
+.ticket-pass__stub::after { right: calc(var(--ticket-notch) / -2 - 2px); }
+.ticket-pass__qr { width: 13rem; max-width: 100%; padding: 0.625rem; background: #fff; line-height: 0; }
+.ticket-pass__qr svg { width: 100%; height: auto; }
+.ticket-pass__number { font-family: var(--font-display); font-size: 1.125rem; font-weight: 800; letter-spacing: 0.08em; font-variant-numeric: tabular-nums; }
+.ticket-pass__number span { display: block; font-family: inherit; font-size: 0.625rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-muted); }
+.ticket-pass--inactive .ticket-pass__band { background: var(--surface-sunken); color: var(--ink-muted); border-bottom: 2px solid var(--ink); }
+
+@media (min-width: 640px) {
+    .ticket-pass { grid-template-columns: minmax(0, 1fr) 15rem; }
+    .ticket-pass__stub { border-top: 0; border-left: 2px dashed var(--ink); }
+    .ticket-pass__stub::before,
+    .ticket-pass__stub::after { left: calc(var(--ticket-notch) / -2 - 1px); right: auto; }
+    .ticket-pass__stub::before { top: calc(var(--ticket-notch) / -2 - 2px); }
+    .ticket-pass__stub::after { top: auto; bottom: calc(var(--ticket-notch) / -2 - 2px); }
+}

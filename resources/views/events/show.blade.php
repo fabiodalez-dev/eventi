@@ -653,7 +653,7 @@
                          `/gestione` e vale per tutti i suoi eventi — non si
                          ripete a ogni serata. --}}
                     @if (filled($venue->short_description))
-                        <p class="m-0 text-[0.875rem] leading-[1.55] text-ink-muted">{{ $venue->short_description }}</p>
+                        <p class="m-0 text-[0.875rem] leading-[1.55] whitespace-pre-line text-ink-muted">{{ trim($venue->short_description) }}</p>
                     @endif
 
                     <p class="m-0 text-sm leading-[1.5] text-ink-muted">
