@@ -262,7 +262,7 @@ class OccurrencesRelationManager extends RelationManager
         Notification::make()
             ->title($changed === 0
                 ? __('manage.notifications.nothing_to_do')
-                : __('manage.notifications.dates_updated', ['count' => $changed]))
+                : trans_choice('manage.notifications.dates_updated', $changed, ['count' => $changed]))
             ->success()
             ->send();
     }
