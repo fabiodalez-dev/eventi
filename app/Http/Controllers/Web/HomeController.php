@@ -9,6 +9,7 @@ use App\Enums\EventStatus;
 use App\Enums\SponsorshipPlacement;
 use App\Enums\TimeOfDay;
 use App\Http\Controllers\Controller;
+use App\Http\Middleware\CachePage;
 use App\Http\Requests\HomeRequest;
 use App\Models\Category;
 use App\Models\City;
@@ -22,6 +23,7 @@ use App\Services\Map\MapPayload;
 use App\Services\RememberedLocation;
 use App\Services\Seo\StructuredData;
 use App\Services\Sponsorship\SponsorshipSelector;
+use App\Services\Sponsorship\SponsorSlots;
 use App\Support\CurrentCity;
 use App\Support\DateFormatter;
 use Carbon\CarbonImmutable;
@@ -53,6 +55,7 @@ final class HomeController extends Controller
         private readonly MapPayload $mapPayload,
         private readonly SponsorshipSelector $sponsorships,
         private readonly MonthCalendar $calendar,
+        private readonly SponsorSlots $slots,
     ) {}
 
     public function __invoke(CurrentCity $currentCity, HomeRequest $request, RememberedLocation $locations): View
@@ -75,6 +78,7 @@ final class HomeController extends Controller
                 'todayLine' => '',
                 'heroSponsorship' => null,
                 'cardSponsorship' => null,
+                'cardSlot' => null,
                 'mapFilters' => new EventFilters,
                 'mapPayload' => ['markers' => [], 'categories' => [], 'truncated' => false],
                 'structuredData' => [
@@ -93,7 +97,11 @@ final class HomeController extends Controller
             'weekend' => $this->hydrate(EventOccurrenceQuery::for($city)->weekend()->take($perSection), $perSection),
         ];
 
+        /* L'apertura resta dentro lo scheletro della pagina, perché da lei
+           dipendono il preload e le sezioni qui sotto: la sceglie il piano con
+           un caso uguale per tutti dentro la casella della cache. */
         $heroSponsorship = $this->sponsorships->first($city, SponsorshipPlacement::HomeHero);
+        $storing = $request->attributes->get(CachePage::STORING) === true;
         $hero = $heroSponsorship !== null
             ? EventOccurrenceQuery::for($city)->forEvent($heroSponsorship->event_id)->promotable()->take(1)->first()
             : EventOccurrenceQuery::for($city)->today()->promotable()->take($perSection * self::OVERSAMPLE)->unique('event_id')->shuffle()->first();
@@ -151,7 +159,11 @@ final class HomeController extends Controller
                finche' nessuno ha comprato niente, e la pagina non se ne
                accorge. */
             'heroSponsorship' => $heroSponsorship,
-            'cardSponsorship' => $this->sponsorships->first($city, SponsorshipPlacement::HomeCard),
+            /* La card, per una pagina che sta per finire in cache, è un buco:
+               `CachePage` la sceglie a ogni visita dal piano di consegna. Per
+               chi è collegato si sceglie qui, con le sue preferenze. */
+            'cardSlot' => $storing ? $this->slots->prepare($city, SponsorshipPlacement::HomeCard) : null,
+            'cardSponsorship' => $storing ? null : $this->sponsorships->first($city, SponsorshipPlacement::HomeCard),
             'mapFilters' => $mapFilters = new EventFilters(lat: (float) ($position['lat'] ?? $city->center_lat), lng: (float) ($position['lng'] ?? $city->center_lng), radius: $nearbyRadius),
             'mapPayload' => $this->mapPayload->build($city, $mapFilters, null),
             'stats' => $stats = $this->stats($city),

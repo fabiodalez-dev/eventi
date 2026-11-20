@@ -8,8 +8,10 @@ use App\Http\Controllers\Api\V1\Concerns\InteractsWithApi;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\SponsorshipRequest;
 use App\Http\Resources\V1\SponsorshipResource;
+use App\Models\City;
 use App\Models\EventOccurrence;
 use App\Models\Sponsorship;
+use App\Models\User;
 use App\Queries\EventOccurrenceQuery;
 use App\Services\Api\OccurrenceFeed;
 use App\Services\Sponsorship\SponsorshipSelector;
@@ -33,18 +35,37 @@ final class SponsorshipController extends Controller
         $user = $this->currentUser($request);
         $rows = $this->selector->forPlacement($city, $request->placement(), user: $user);
 
-        return ApiResponse::collection($rows->map(function (Sponsorship $sponsorship) use ($city, $user): array {
+        return ApiResponse::collection($this->items($rows, $city, $user));
+    }
+
+    /**
+     * Una voce per campagna, ognuna con il suo gettone nuovo.
+     *
+     * Un metodo a sé con il tipo dichiarato: è da qui che il documento
+     * OpenAPI legge che `data` è un elenco, qualunque cosa diventi il
+     * selettore.
+     *
+     * @param  iterable<Sponsorship>  $rows
+     * @return list<array<string, mixed>>
+     */
+    private function items(iterable $rows, City $city, ?User $user): array
+    {
+        $items = [];
+
+        foreach ($rows as $sponsorship) {
             $occurrence = EventOccurrenceQuery::for($city)
                 ->forEvent((int) $sponsorship->event_id)
                 ->upcoming()
                 ->get()
                 ->first();
 
-            $items = $occurrence instanceof EventOccurrence ? new Collection([$occurrence]) : new Collection;
-            $this->feed->hydrate($items, []);
-            $context = ApiContext::forOccurrences($city, [], $user, $this->feed->ids($items));
+            $dates = $occurrence instanceof EventOccurrence ? new Collection([$occurrence]) : new Collection;
+            $this->feed->hydrate($dates, []);
+            $context = ApiContext::forOccurrences($city, [], $user, $this->feed->ids($dates));
 
-            return SponsorshipResource::toArray($sponsorship, $occurrence, $context);
-        })->all());
+            $items[] = SponsorshipResource::toArray($sponsorship, $occurrence, $context);
+        }
+
+        return $items;
     }
 }

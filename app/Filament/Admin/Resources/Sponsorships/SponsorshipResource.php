@@ -5,17 +5,23 @@ declare(strict_types=1);
 namespace App\Filament\Admin\Resources\Sponsorships;
 
 use App\Enums\EventStatus;
+use App\Enums\SponsorshipPacing;
 use App\Enums\SponsorshipPlacement;
 use App\Enums\SponsorshipStatus;
 use App\Filament\Admin\Resources\Sponsorships\Pages\CreateSponsorship;
 use App\Filament\Admin\Resources\Sponsorships\Pages\EditSponsorship;
 use App\Filament\Admin\Resources\Sponsorships\Pages\ListSponsorships;
+use App\Filament\Admin\Resources\Sponsorships\Support\SponsorshipProgress;
+use App\Filament\Admin\Resources\Sponsorships\Support\SponsorshipWizard;
 use App\Filament\Concerns\HasSentenceCaseNavigationLabel;
+use App\Filament\Forms\Components\EventPicker;
 use App\Filament\Support\BulkActions;
 use App\Filament\Support\PosterColumn;
 use App\Models\City;
 use App\Models\Event;
 use App\Models\Sponsorship;
+use App\Models\SponsorshipGrant;
+use App\Services\Sponsorship\Delivery\PacingState;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
@@ -29,9 +35,11 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\ViewColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -73,6 +81,15 @@ class SponsorshipResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->columns(1)->components([
+            Section::make(__('sponsorships.progress.heading'))
+                ->description(__('sponsorships.progress.lead'))
+                ->visibleOn('edit')
+                ->collapsible()
+                ->schema([
+                    View::make('filament.admin.sponsorships.progress-detail')
+                        ->viewData(fn (?Sponsorship $record): array => self::progressData($record)),
+                ]),
+
             /*
              * **Schede, non due colonne.** Le cinque sezioni stavano
              * affiancate, e la griglia allinea le righe all'elemento piu'
@@ -89,54 +106,25 @@ class SponsorshipResource extends Resource
                             Section::make(__('sponsorships.admin.sections.what'))
                                 ->columns(2)
                                 ->schema([
-                                    Select::make('event_id')
-                                        ->label(__('sponsorships.admin.fields.event'))
-                                        /* «Sponsorizza questo evento» dalla scheda in redazione
-                                           arriva con `?event=ID`: l'evento è già scelto. */
-                                        ->default(fn (): ?int => request()->integer('event') ?: null)
+                                    /*
+                                     * Il selettore dei pannelli con locandina, data e
+                                     * locale, solo fra gli eventi sponsorizzabili
+                                     * (`EventPicker`). La campagna che si modifica tiene
+                                     * il suo evento anche quando non lo è più: senza,
+                                     * una campagna finita non si potrebbe più salvare.
+                                     */
+                                    EventPicker::make(
+                                        'event_id',
+                                        fn (): Builder => Event::query(),
+                                        fn (?Sponsorship $record): ?int => $record?->event_id === null ? null : (int) $record->event_id,
+                                    )
                                         ->required()
-                                        ->searchable()
-                                        ->preload()
+                                        ->validationMessages(['in' => __('sponsorships.wizard.validation.event_not_sponsorable')])
                                         /*
-                                 * **La tendina deve mostrare qualcosa appena si apre.**
-                                 *
-                                 * C'erano solo `getSearchResultsUsing` e
-                                 * `getOptionLabelUsing`: `preload()` non ha niente da
-                                 * precaricare senza `options()`, quindi l'elenco era
-                                 * vuoto finche' non si digitava. Chi lo apriva leggeva
-                                 * «Seleziona un'opzione» sopra il nulla e concludeva
-                                 * che non ci fossero eventi da sponsorizzare — non che
-                                 * dovesse scrivere per farli comparire.
-                                 *
-                                 * Si mostrano i pubblicati con una data futura, in
-                                 * ordine di data: sono gli unici su cui una campagna
-                                 * abbia senso oggi. Gli altri restano raggiungibili
-                                 * scrivendo, con l'avviso qui sotto a dire perche' non
-                                 * comparirebbero.
-                                 */
-                                        ->options(fn (): array => Event::query()
-                                            ->where('status', EventStatus::Published)
-                                            ->whereHas('occurrences', fn (Builder $futura): Builder => $futura->where('starts_at', '>=', now()))
-                                            /* In ordine di prossima data: e' quella che conta per
-                                               decidere cosa mettere in evidenza adesso. */
-                                            ->orderBy(fn ($next) => $next->from('event_occurrences')->selectRaw('MIN(starts_at)')
-                                                ->whereColumn('event_occurrences.event_id', 'events.id')->where('starts_at', '>=', now()))
-                                            ->limit(50)
-                                            ->pluck('title', 'id')
-                                            ->all())
-                                        ->getSearchResultsUsing(fn (string $search): array => Event::query()
-                                            ->where('title', 'like', '%'.$search.'%')
-                                            ->orderByDesc('id')
-                                            ->limit(30)
-                                            ->pluck('title', 'id')
-                                            ->all())
-                                        ->getOptionLabelUsing(fn ($value): ?string => Event::query()->whereKey($value)->value('title'))
-                                        /*
-                                 * Una campagna su un evento non pubblicato non compare
-                                 * mai (lo impedisce `Sponsorship::scopeVisible`), e chi
-                                 * la sta creando deve saperlo QUI — non scoprirlo fra
-                                 * tre giorni guardando le visualizzazioni ferme a zero.
-                                 */
+                                         * Una campagna su un evento non pubblicato non compare
+                                         * mai (lo impedisce `Sponsorship::scopeVisible`), e chi
+                                         * la modifica deve saperlo QUI.
+                                         */
                                         ->helperText(function (Get $get): ?string {
                                             $event = Event::query()->whereKey($get('event_id'))->first();
 
@@ -145,11 +133,7 @@ class SponsorshipResource extends Resource
                                                 : null;
                                         })
                                         ->live()
-                                        /* La città non si sceglie: è quella dell'evento. Un
-                                   menu in più sarebbe un modo in più di sbagliare. */
-                                        ->afterStateUpdated(function ($state, callable $set): void {
-                                            $set('city_id', Event::query()->whereKey($state)->value('city_id'));
-                                        })
+                                        ->disabled(fn (?Sponsorship $record): bool => $record?->sponsorship_grant_id !== null)
                                         ->columnSpanFull(),
 
                                     Select::make('placement')
@@ -200,7 +184,10 @@ class SponsorshipResource extends Resource
                                         ->default(0)
                                         ->minValue(0)
                                         ->maxValue(1000)
-                                        ->helperText(__('sponsorships.admin.help.priority')),
+                                        ->helperText(fn (?Sponsorship $record): string => $record?->sponsorship_grant_id !== null
+                                            ? __('sponsorships.admin.help.delivery_on_grant')
+                                            : __('sponsorships.admin.help.priority'))
+                                        ->disabled(fn (?Sponsorship $record): bool => $record?->sponsorship_grant_id !== null),
 
                                     /*
                              * Priorità e peso vendono due cose diverse, e la
@@ -219,7 +206,8 @@ class SponsorshipResource extends Resource
                                         ->default(1)
                                         ->minValue(1)
                                         ->maxValue(100)
-                                        ->helperText(__('sponsorships.admin.help.weight')),
+                                        ->helperText(__('sponsorships.admin.help.weight'))
+                                        ->disabled(fn (?Sponsorship $record): bool => $record?->sponsorship_grant_id !== null),
                                 ]),
 
                             Section::make(__('sponsorships.admin.sections.caps'))
@@ -247,6 +235,35 @@ class SponsorshipResource extends Resource
                                         ->numeric()
                                         ->minValue(1)
                                         ->helperText(__('sponsorships.admin.help.clicks_cap')),
+                                ]),
+                        ]),
+
+                    Tab::make(__('sponsorships.admin.tabs.delivery'))
+                        ->schema([
+                            Section::make(__('sponsorships.admin.sections.delivery'))
+                                ->description(fn (?Sponsorship $record): string => $record?->sponsorship_grant_id !== null
+                                    ? __('sponsorships.admin.help.delivery_on_grant')
+                                    : __('sponsorships.admin.sections.delivery_lead'))
+                                ->columns(['default' => 1, 'lg' => 2])
+                                ->schema([
+                                    TextInput::make('impressions_goal')
+                                        ->label(__('sponsorships.admin.fields.impressions_goal'))
+                                        ->helperText(fn (Get $get): string => SponsorshipWizard::periodOnlyMessage($get('placement'))
+                                            ?? __('sponsorships.admin.help.impressions_goal'))
+                                        ->integer()
+                                        ->minValue(1)
+                                        ->maxValue(10_000_000)
+                                        ->prohibitedIf('placement', SponsorshipPlacement::periodOnlyValues())
+                                        ->validationMessages(['prohibited_if' => __('sponsorships.wizard.help.period_only')])
+                                        ->disabled(fn (?Sponsorship $record): bool => $record?->sponsorship_grant_id !== null),
+
+                                    Select::make('pacing')
+                                        ->label(__('sponsorships.wizard.fields.pacing'))
+                                        ->options(SponsorshipWizard::pacingOptions())
+                                        ->default(SponsorshipPacing::Even->value)
+                                        ->native(false)
+                                        ->required()
+                                        ->disabled(fn (?Sponsorship $record): bool => $record?->sponsorship_grant_id !== null),
                                 ]),
                         ]),
 
@@ -308,8 +325,12 @@ class SponsorshipResource extends Resource
 
     public static function table(Table $table): Table
     {
+        /* Una sola istanza per l'elenco: previsioni e unità già calcolate
+           restano in memoria fra una riga e l'altra. */
+        $progress = app(SponsorshipProgress::class);
+
         return $table
-            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(['event.media', 'event.city', 'city']))
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(['event.media', 'event.city', 'city', 'grant.venue', 'grant.organizer']))
             ->columns([
                 PosterColumn::make('event.poster_media'),
 
@@ -351,6 +372,14 @@ class SponsorshipResource extends Resource
                     ->badge()
                     ->state(fn (Sponsorship $record): string => $record->phase()->label())
                     ->color(fn (Sponsorship $record): string => $record->phase()->color()),
+
+                /* L'avanzamento dell'unità: barra, consegnate su obiettivo e
+                   stato. Lo stato (testo) è anche ciò che va nell'esportazione. */
+                ViewColumn::make('progress')
+                    ->label(__('sponsorships.progress.column'))
+                    ->view('filament.admin.sponsorships.progress-column')
+                    ->state(fn (Sponsorship $record): string => $progress->forSponsorship($record)?->stateLabel() ?? '—')
+                    ->viewData(fn (Sponsorship $record): array => ['progress' => $progress->forSponsorship($record)]),
 
                 /* Nel fuso della citta' della campagna, come nel modulo: in UTC
                    una fine alle 23:59 si leggeva alle 21:59. */
@@ -401,6 +430,13 @@ class SponsorshipResource extends Resource
                     ->label(__('sponsorships.admin.filters.status'))
                     ->options(SponsorshipStatus::options()),
 
+                SelectFilter::make('pacing_state')
+                    ->label(__('sponsorships.progress.filter'))
+                    ->options(self::pacingStateOptions())
+                    ->query(fn (Builder $query, array $data): Builder => blank($data['value'] ?? null)
+                        ? $query
+                        : $query->whereKey($progress->sponsorshipIdsInState((string) $data['value']))),
+
                 Filter::make('running')
                     ->label(__('sponsorships.admin.filters.running'))
                     /* `Sponsorship::query()->visible()` e non `$query->visible()`:
@@ -449,6 +485,63 @@ class SponsorshipResource extends Resource
                     ->success()
                     ->send();
             });
+    }
+
+    /** @return array<string, string> */
+    public static function pacingStateOptions(): array
+    {
+        $options = [];
+
+        foreach ([...array_map(fn (PacingState $state): string => $state->value, PacingState::cases()), 'period'] as $key) {
+            $options[$key] = __('sponsorships.pacing_state.'.$key);
+        }
+
+        return $options;
+    }
+
+    /**
+     * I dati della scheda «Avanzamento»: l'unità a cui appartiene la riga, la
+     * consegna giorno per giorno e, per le abilitazioni, i loro eventi.
+     *
+     * @return array<string, mixed>
+     */
+    public static function progressData(Sponsorship|SponsorshipGrant|null $record): array
+    {
+        $service = app(SponsorshipProgress::class);
+
+        if ($record === null) {
+            return ['progress' => null];
+        }
+
+        $grant = $record instanceof SponsorshipGrant ? $record : $record->grant;
+
+        if ($grant instanceof SponsorshipGrant) {
+            $unit = $service->forGrant($grant);
+            $city = City::query()->find($grant->sponsorCityId());
+            $placement = $grant->placement;
+            $ids = Sponsorship::withTrashed()->where('sponsorship_grant_id', $grant->getKey())->pluck('id')->map(fn ($id): int => (int) $id)->all();
+        } else {
+            /* Senza abilitazione l'unità è la riga stessa. */
+            $unit = $service->forSponsorship($record);
+            $city = $record->city;
+            $placement = $record->placement;
+            $ids = [(int) $record->getKey()];
+        }
+
+        if ($unit === null) {
+            return ['progress' => null];
+        }
+
+        $forecast = $city instanceof City ? $service->forecast($city, $placement) : null;
+
+        return [
+            'progress' => $unit,
+            'daily' => $forecast === null ? [] : $service->daily($unit, $ids, $forecast),
+            'events' => $grant instanceof SponsorshipGrant ? $service->grantEvents($grant) : [],
+            'quotaMax' => $service->quotaMax(),
+            'minDays' => (int) config('sponsorship.forecast_min_days', 14),
+            'provisional' => $forecast?->isProvisional() ?? true,
+        ];
     }
 
     /**

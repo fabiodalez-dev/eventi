@@ -29,7 +29,10 @@
     </div>
 
     @if (($sponsorship ?? null) !== null)
-        <x-sponsored-card :sponsorship="$sponsorship" class="border-b-2 border-line" />
+        <x-sponsored-card :sponsorship="$sponsorship" placement="map_sheet" class="border-b-2 border-line" />
+    @else
+        {{-- Il foglio senza sponsorizzazione è un'occasione non venduta: il segno vuoto la fa contare (resources/js/map.js). --}}
+        {!! \App\Services\Sponsorship\SponsorSlots::vacant('map_sheet', (int) $venue->city_id) !!}
     @endif
 
     @foreach ($occurrences as $occurrence)

@@ -29,7 +29,26 @@ class SponsoredBannerUiTest {
         java.io.File(compose.activity.externalCacheDir, "sponsored-banner-test.png").outputStream().use {
             compose.onRoot().captureToImage().asAndroidBitmap().compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it)
         }
+        compose.mainClock.advanceTimeBy(1_100)
         compose.onNodeWithText("AD").performClick()
         compose.runOnIdle { assertEquals(1, clicked); assertEquals(1, impressions) }
+    }
+
+    /* La regola del sito: conta solo dopo un secondo con metà banner nello schermo. */
+    @Test fun countsTheViewOnlyAfterOneSecondOnScreen() {
+        var impressions = 0
+        compose.mainClock.autoAdvance = false
+        compose.runOnIdle {
+            compose.activity.setContent { InCittaTheme {
+                SponsoredEventBanner(SponsoredBanner(2, "concerto", "Concerto", "Oggi · 21:00", "Teatro", advertiser = "Teatro", expiresAt = Instant.now().plusSeconds(60).toString(), metricToken = "test", impressionToken = "v1.2.banner.1.aaaaaaaaaaaaaaaa.x"), { impressions++ }, {})
+            } }
+        }
+        compose.mainClock.advanceTimeBy(500)
+        compose.runOnIdle { assertEquals(0, impressions) }
+        compose.mainClock.advanceTimeBy(700)
+        compose.runOnIdle { assertEquals(1, impressions) }
+        compose.mainClock.advanceTimeBy(5_000)
+        compose.runOnIdle { assertEquals(1, impressions) }
+        compose.mainClock.autoAdvance = true
     }
 }

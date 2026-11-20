@@ -390,6 +390,30 @@ Schedule::call(function (): void {
 })->name('sponsorship-grants:sync')->everyMinute()->withoutOverlapping(10);
 
 /*
+ * Il piano di consegna delle sponsorizzazioni, subito dopo la sincronizzazione
+ * delle abilitazioni: chi può comparire adesso e con quale quota, per città e
+ * collocazione. Le pagine lo leggono dalla cache; se il cron salta, un piano
+ * più vecchio di due minuti lo ricostruisce chi serve la pagina.
+ */
+Schedule::command('sponsorships:plan')
+    ->everyMinute()
+    ->withoutOverlapping(5);
+
+/* I numeri casuali dei gettoni oltre sei ore e gli aggregati orari oltre
+   settanta giorni (D70): servono solo alla deduplica e alla previsione. */
+Schedule::command('sponsorships:prune')
+    ->hourly()
+    ->withoutOverlapping(30);
+
+/* Ogni mattina alle 7 ora di Roma la redazione vede nel pannello le unità in
+   ritardo o a rischio (D70), una volta al giorno e non di più: il comando
+   controlla da sé se l'avviso di oggi è già partito. */
+Schedule::command('sponsorships:pacing-check')
+    ->dailyAt('07:00')
+    ->timezone('Europe/Rome')
+    ->withoutOverlapping(30);
+
+/*
  * Il rapporto del mese arriva il primo del mese, di mattina: chi gestisce un
  * locale legge la posta prima di aprire, e un rapporto che arriva la sera di
  * domenica viene letto lunedì comunque, ma con un giorno di ritardo.

@@ -94,6 +94,20 @@
     <string name="management_attendances">Presenze nel periodo</string>
     <string name="management_per_booking">Costo per prenotazione</string>
     <string name="management_per_attendance">Costo per presenza</string>
+    <string name="management_views">Visualizzazioni</string>
+    <string name="management_views_of_goal">%1$s di %2$s visualizzazioni</string>
+    <plurals name="management_views_delivered">
+        <item quantity="one">%1$s visualizzazione</item>
+        <item quantity="other">%1$s visualizzazioni</item>
+    </plurals>
+    <string name="management_views_help">È una stima al ribasso: conta solo chi vede almeno metà dell’evento sponsorizzato per un secondo. Le visite di chi gestisce il locale o l’organizzazione non contano.</string>
+    <string name="management_pacing_on_track">In linea con l’obiettivo</string>
+    <string name="management_pacing_slightly_behind">In leggero ritardo</string>
+    <string name="management_pacing_behind">In ritardo</string>
+    <string name="management_pacing_ahead">In anticipo</string>
+    <string name="management_pacing_at_risk">A rischio: lo spazio rimasto potrebbe non bastare</string>
+    <string name="management_pacing_completed">Obiettivo raggiunto</string>
+    <string name="management_pacing_missed">Chiusa sotto l’obiettivo</string>
     <string name="management_economics_help">Spesa della campagna divisa per prenotazioni confermate o presenze nel periodo, fino a oggi. Non misura ricavi, margine o effetti causati dalla pubblicità. I conteggi sono disponibili solo con almeno cinque account distinti; la spesa non attribuibile a questa campagna resta non disponibile.</string>
     <string name="management_dates">Date</string>
     <string name="management_reports">Campagne</string>

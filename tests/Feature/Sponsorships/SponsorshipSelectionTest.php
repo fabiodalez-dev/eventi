@@ -5,6 +5,8 @@ declare(strict_types=1);
 use App\Enums\EventStatus;
 use App\Enums\SponsorshipPlacement;
 use App\Models\Sponsorship;
+use App\Services\Sponsorship\Delivery\HashDraw;
+use App\Services\Sponsorship\Delivery\SeededDraw;
 use App\Services\Sponsorship\SponsorshipSelector;
 use Carbon\CarbonImmutable;
 
@@ -168,10 +170,14 @@ it('mette davanti chi ha la priorità più alta', function (): void {
 
 /*
  * La rotazione: a parita' di priorita' nessuna campagna deve stare davanti per
- * sempre. E' deterministica dentro il minuto — le pagine stanno in cache — e
- * si verifica confrontando due minuti diversi.
+ * sempre.
+ *
+ * Riscritto con il piano di consegna. Prima la rotazione avanzava di minuto in
+ * minuto e il test confrontava quattro minuti; adesso ogni richiesta estrae
+ * dal piano, e la stessa promessa commerciale si verifica con un seme: su
+ * quaranta richieste compaiono entrambe.
  */
-it('alterna le campagne di pari priorità di minuto in minuto', function (): void {
+it('alterna le campagne di pari priorità', function (): void {
     foreach ([1, 2] as $giorno) {
         $occorrenza = occurrenceAtLocal($this->city, $this->category, seraDaVenire($giorno));
 
@@ -182,41 +188,42 @@ it('alterna le campagne di pari priorità di minuto in minuto', function (): voi
         ]);
     }
 
-    $viste = collect(range(0, 3))
+    $selettore = $this->selettore->withDraw(new SeededDraw(20261119));
+
+    $viste = collect(range(1, 40))
+        ->map(fn (): ?int => $selettore->first($this->city, SponsorshipPlacement::ListTop)?->getKey())
+        ->countBy();
+
+    expect($viste)->toHaveCount(2, 'con due campagne di pari priorità devono comparire entrambe')
+        ->and($viste->min())->toBeGreaterThan(10);
+});
+
+/*
+ * Riscritto: prima «la stessa campagna dentro lo stesso minuto», perché la
+ * scelta finiva nella pagina in cache. Adesso card e cima dell'elenco sono
+ * buchi riempiti a ogni visita, e la sola scelta che resta nello scheletro è
+ * l'apertura della home: lei deve restare la stessa per tutti dentro la
+ * casella lunga quanto la cache.
+ */
+it('mostra la stessa apertura a chi ricarica dentro la stessa casella della cache', function (): void {
+    foreach ([1, 2, 3] as $giorno) {
+        $occorrenza = occurrenceAtLocal($this->city, $this->category, seraDaVenire($giorno));
+
+        Sponsorship::factory()->placement(SponsorshipPlacement::HomeHero)->create([
+            'city_id' => $this->city->getKey(),
+            'event_id' => $occorrenza->event_id,
+            'priority' => 10,
+        ]);
+    }
+
+    $minuti = HashDraw::slotMinutes();
+    $inizio = CarbonImmutable::createFromTimestamp(HashDraw::slotIndex(CarbonImmutable::now('UTC'), $minuti) * $minuti * 60, 'UTC');
+
+    $scelte = collect([0, 1, 7, $minuti - 1])
         ->map(fn (int $minuto): ?int => $this->selettore
-            ->first($this->city, SponsorshipPlacement::ListTop, CarbonImmutable::now('UTC')->addMinutes($minuto))
+            ->first($this->city, SponsorshipPlacement::HomeHero, $inizio->addMinutes($minuto)->addSeconds(30))
             ?->getKey())
         ->unique();
 
-    expect($viste)->toHaveCount(2, 'con due campagne di pari priorità devono comparire entrambe');
-});
-
-it('mostra la stessa campagna a chi ricarica dentro lo stesso minuto', function (): void {
-    foreach ([1, 2] as $giorno) {
-        $occorrenza = occurrenceAtLocal($this->city, $this->category, seraDaVenire($giorno));
-
-        Sponsorship::factory()->create([
-            'city_id' => $this->city->getKey(),
-            'event_id' => $occorrenza->event_id,
-            'priority' => 10,
-        ]);
-    }
-
-    /*
-     * Se la rotazione fosse casuale la pagina in cache mostrerebbe una
-     * campagna e il server ne sceglierebbe un'altra al giro dopo: chi ricarica
-     * vedrebbe cambiare le cose senza motivo.
-     *
-     * `startOfMinute()` non e' pignoleria: la rotazione avanza al CAMBIO di
-     * minuto, non sessanta secondi dopo l'ultima richiesta. Partendo da un
-     * istante qualunque, i trenta secondi qui sotto cadrebbero nel minuto
-     * seguente circa una volta su due, e il test sarebbe rosso a intermittenza
-     * senza che niente sia rotto.
-     */
-    $istante = CarbonImmutable::now('UTC')->startOfMinute();
-
-    $prima = $this->selettore->first($this->city, SponsorshipPlacement::ListTop, $istante);
-    $seconda = $this->selettore->first($this->city, SponsorshipPlacement::ListTop, $istante->addSeconds(30));
-
-    expect($prima?->getKey())->toBe($seconda?->getKey());
+    expect($scelte)->toHaveCount(1);
 });

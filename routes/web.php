@@ -16,6 +16,7 @@ use App\Http\Controllers\Web\ReleaseStatusController;
 use App\Http\Controllers\Web\SeoController;
 use App\Http\Controllers\Web\SocialDownloadController;
 use App\Http\Controllers\Web\SponsorshipMetricController;
+use App\Http\Controllers\Web\SponsorshipOpportunityController;
 use App\Http\Controllers\Web\StripeWebhookController;
 use App\Http\Controllers\Web\WebManifestController;
 use App\Http\Controllers\Web\WidgetController;
@@ -298,6 +299,9 @@ Route::delete('/consenso', [ConsentController::class, 'destroy'])
  * enumerando le rotte registrate. Questa scrive — un contatore — e quindi il
  * suo posto e' qui, dove c'e' gia' la sessione e la protezione contro le
  * richieste da altri siti.
+ *
+ * Ogni misura porta il gettone usa e getta della card (`X-Impression-Token`):
+ * senza, la rotta risponde 204 e non conta (il controller spiega perché).
  */
 Route::post('/sponsorizzazioni/{sponsorship}/{metric}', SponsorshipMetricController::class)
     ->whereIn('metric', ['impressions', 'clicks'])
@@ -310,6 +314,16 @@ Route::post('/sponsorizzazioni/{sponsorship}/{metric}', SponsorshipMetricControl
      */
     ->middleware('throttle:sponsorship-metrics')
     ->name('sponsorships.metric');
+
+/*
+ * Il segnale di occasione: uno spazio sponsorizzabile visto mentre mostrava il
+ * contenuto redazionale. Conta solo il traffico dello spazio, per sapere quante
+ * visualizzazioni si possono vendere; nessuna campagna e nessun dato sulla
+ * persona. Stesso limitatore delle misure, più il tetto suo nel controller.
+ */
+Route::post('/sponsorizzazioni/occasione', SponsorshipOpportunityController::class)
+    ->middleware('throttle:sponsorship-metrics')
+    ->name('sponsorships.opportunity');
 
 Route::middleware(['auth', 'throttle:20,1,social-meta'])->prefix('social/meta')->name('social.meta.')->group(function (): void {
     Route::get('/collega', [MetaOAuthController::class, 'connect'])->name('connect');

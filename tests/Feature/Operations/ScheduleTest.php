@@ -137,3 +137,18 @@ it('applica davvero la conservazione dello storico di salute e dei job falliti',
     $this->artisan('model:prune', ['--model' => HealthCheckResultHistoryItem::class])->assertSuccessful();
     expect(DB::table('health_check_result_history_items')->count())->toBe(1);
 });
+
+/*
+ * La consegna delle sponsorizzazioni (D70): il piano ogni minuto, la potatura
+ * dei gettoni ogni ora, l'avviso del mattino alle 7 ora di Roma.
+ */
+it('mette in calendario piano, potatura e avviso delle sponsorizzazioni', function (): void {
+    $eventi = collect(app(Schedule::class)->events())->keyBy(fn (Event $event): string => comandoDi($event));
+
+    expect($eventi)->toHaveKeys(['sponsorships:plan', 'sponsorships:prune', 'sponsorships:pacing-check'])
+        ->and($eventi['sponsorships:plan']->getExpression())->toBe('* * * * *')
+        ->and($eventi['sponsorships:plan']->withoutOverlapping)->toBeTrue()
+        ->and($eventi['sponsorships:prune']->getExpression())->toBe('0 * * * *')
+        ->and($eventi['sponsorships:pacing-check']->getExpression())->toBe('0 7 * * *')
+        ->and((string) $eventi['sponsorships:pacing-check']->timezone)->toBe('Europe/Rome');
+});

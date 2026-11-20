@@ -2,6 +2,7 @@
 @use('App\Enums\SponsorshipOrderStatus')
 @use('App\Enums\SponsorshipPlacement')
 @use('App\Enums\SponsorshipStatus')
+@use('App\Filament\Support\PanelDate')
 @use('App\Filament\Support\PosterColumn')
 @use('Illuminate\Support\Number')
 @use('Illuminate\Support\Str')
@@ -291,60 +292,119 @@
             @endif
         </x-filament::section>
 
-        {{-- I periodi concessi o pagati, anche scaduti. --}}
-        @if ($grants->isNotEmpty())
-            <x-filament::section :heading="__('promotions.page.grants_title')" collapsible :collapsed="$selectable->isNotEmpty()" data-sponsorship-grants>
-                <ul class="flex flex-col gap-3">
-                    @foreach ($grants as $grant)
-                        <li class="{{ $card }} flex flex-col gap-1 p-3">
-                            <div class="flex items-start justify-between gap-3">
-                                <p class="font-semibold text-gray-950 dark:text-white">{{ $grant->placement->label() }}</p>
-                                <x-filament::badge color="gray" class="shrink-0">{{ $grant->statusLabel() }}</x-filament::badge>
-                            </div>
-                            <p class="{{ $muted }}">{{ $grant->mode === PromotionMode::Automatic ? __('promotions.page.scope_all') : __('promotions.page.scope_event_many') }}</p>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">
-                                {{ $grant->starts_at->timezone($tz)->format('d/m/Y') }} → {{ $grant->ends_at->timezone($tz)->format('d/m/Y') }} ·
-                                {{ $grant->complimentary ? __('promotions.complimentary') : ($grant->paid_at ? __('promotions.paid').' '.$grant->paid_at->timezone($tz)->format('d/m/Y') : __('promotions.awaiting_payment')) }}
-                            </p>
-                        </li>
-                    @endforeach
-                </ul>
-            </x-filament::section>
-        @endif
+        {{-- Le sponsorizzazioni: una scheda per periodo, con barra, frase ed eventi; poi le campagne della redazione. --}}
+        @php
+            $avanzamento = $this->grantProgress($grants);
+            $avanzamentoCampagne = $this->campaignProgress($campagne->getCollection());
+            $date = $this->eventDates($grants->flatMap(fn ($g) => $g->sponsorships)->concat($campagne->getCollection()));
+        @endphp
+        <x-filament::section :heading="__('sponsorship-panel.units.title')" :description="__('sponsorship-panel.units.lead')" icon="heroicon-o-presentation-chart-line" data-sponsorship-results>
+            <p class="mb-4 {{ $muted }}" data-sponsorship-measures>{{ __('sponsorship-panel.units.measures') }}</p>
 
-        {{-- Le campagne sui propri eventi, con i risultati. --}}
-        <x-filament::section :heading="__('promotions.page.campaigns_title')" :description="__('promotions.page.campaigns_lead')" data-sponsorship-campaigns>
-            <dl class="mb-4 flex flex-wrap gap-x-8 gap-y-2">
-                <div><dt class="{{ $muted }}">{{ __('promotions.views') }}</dt><dd class="text-2xl font-semibold tabular-nums text-gray-950 dark:text-white">{{ number_format($totali['impressions'], 0, ',', '.') }}</dd></div>
-                <div><dt class="{{ $muted }}">{{ __('promotions.clicks') }}</dt><dd class="text-2xl font-semibold tabular-nums text-gray-950 dark:text-white">{{ number_format($totali['clicks'], 0, ',', '.') }}</dd></div>
-            </dl>
-            @if ($campagne->isEmpty())
+            @if ($grants->isEmpty() && $campagne->isEmpty())
                 <p class="{{ $muted }}">{{ __('sponsorships.venue.none') }}</p>
             @else
-                <ul class="flex flex-col gap-3">
-                    @foreach ($campagne as $campagna)
-                        @php $fase = $campagna->phase(); @endphp
-                        <li class="{{ $card }} flex items-start gap-3 p-3" wire:key="campaign-{{ $campagna->id }}">
-                            <img src="{{ PosterColumn::url($campagna->event) }}" alt="" loading="lazy" class="{{ $poster }}">
-                            <div class="min-w-0 flex-1">
-                                <div class="flex items-start justify-between gap-2">
-                                    <p class="min-w-0 font-semibold text-gray-950 dark:text-white">{{ $campagna->event?->title }}</p>
-                                    <x-filament::badge :color="$fase->color()" class="shrink-0">{{ $fase->label() }}</x-filament::badge>
+                @include('filament.partials.stat-cards', [
+                    'label' => __('sponsorship-panel.units.totals_label'),
+                    'items' => [
+                        ['key' => 'views', 'label' => __('sponsorship-panel.units.total_views'), 'value' => $totali['impressions'], 'hint' => __('sponsorship-panel.units.total_views_hint')],
+                        ['key' => 'clicks', 'label' => __('sponsorship-panel.units.total_clicks'), 'value' => $totali['clicks'], 'hint' => __('sponsorship-panel.units.total_clicks_hint')],
+                    ],
+                ])
+            @endif
+
+            @if ($grants->isNotEmpty())
+                <ul class="mt-6 flex flex-col gap-4" data-sponsorship-grants>
+                    @foreach ($grants as $grant)
+                        @php
+                            $avanzo = $avanzamento[$grant->id];
+                            $righe = $this->grantRows($grant);
+                            $aperta = in_array($grant->id, $openGrants, true);
+                            $mostrate = $aperta ? $righe : $righe->take($this::GRANT_EVENTS_SHOWN);
+                            $altre = $righe->count() - $this::GRANT_EVENTS_SHOWN;
+                        @endphp
+                        <li class="{{ $card }} flex min-w-0 flex-col gap-4 p-4" data-sponsorship-grant="{{ $grant->id }}" wire:key="grant-{{ $grant->id }}">
+                            <div class="flex min-w-0 flex-col gap-1">
+                                <div class="flex items-start justify-between gap-3">
+                                    <p class="min-w-0 font-semibold text-gray-950 dark:text-white">{{ $grant->placement->label() }}</p>
+                                    <x-filament::badge color="gray" class="shrink-0">{{ $grant->statusLabel() }}</x-filament::badge>
                                 </div>
-                                <p class="{{ $muted }}">{{ $campagna->placement->label() }} · {{ __('promotions.page.ends', ['date' => $campagna->ends_at?->timezone($tz)->format('d/m/Y H:i')]) }}</p>
-                                <p class="text-sm tabular-nums text-gray-700 dark:text-gray-300">{{ __('promotions.page.results', ['views' => number_format((int) $campagna->impressions, 0, ',', '.'), 'clicks' => number_format((int) $campagna->clicks, 0, ',', '.')]) }}</p>
-                                @if ($campagna->grant?->mode === PromotionMode::Selected && $campagna->status === SponsorshipStatus::Active)
-                                    <div class="mt-2">
-                                        <x-filament::button size="sm" color="gray" wire:click="stop({{ $campagna->id }})" wire:confirm="{{ __('promotions.stop_confirm') }}">{{ __('promotions.stop') }}</x-filament::button>
-                                    </div>
+                                <p class="{{ $muted }}">
+                                    {{ PanelDate::period($grant->starts_at, $grant->ends_at, $tz) }} ·
+                                    {{ __($grant->mode === PromotionMode::Automatic ? 'sponsorship-panel.units.scope_all' : 'sponsorship-panel.units.scope_selected') }}
+                                </p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">
+                                    {{ $grant->complimentary ? __('promotions.complimentary') : ($grant->paid_at ? __('promotions.paid').' '.PanelDate::day($grant->paid_at, $tz) : __('promotions.awaiting_payment')) }}
+                                </p>
+                            </div>
+
+                            @include('filament.shared.sponsorship-progress', ['progress' => $avanzo])
+
+                            <div class="flex min-w-0 flex-col gap-2">
+                                <p class="text-sm font-medium text-gray-950 dark:text-white">{{ __('sponsorship-panel.units.events') }}</p>
+                                @if ($righe->isEmpty())
+                                    <p class="{{ $muted }}">{{ __('sponsorship-panel.units.events_none') }}</p>
+                                @else
+                                    <ul class="flex flex-col divide-y divide-gray-200 dark:divide-white/10">
+                                        @foreach ($mostrate as $riga)
+                                            @php $quota = $avanzo->delivered > 0 ? (int) round(100 * $riga->impressions / $avanzo->delivered) : null; @endphp
+                                            <li class="py-2" wire:key="grant-row-{{ $riga->id }}" data-sponsorship-row="{{ $riga->id }}">
+                                                <x-pannelli::event-row :event="$riga->event" :when="$date[$riga->event_id] ?? null" size="sm" :venue="$this->isVenue() ? null : $riga->event->venue?->name">
+                                                    @if ($riga->status !== SponsorshipStatus::Active)
+                                                        <x-slot:badges>
+                                                            <x-filament::badge color="gray" size="sm">{{ __('sponsorship-panel.units.event_stopped') }}</x-filament::badge>
+                                                        </x-slot:badges>
+                                                    @endif
+                                                    <p class="text-sm tabular-nums text-gray-700 dark:text-gray-300">
+                                                        {{ __('sponsorship-panel.units.event_numbers', ['views' => number_format((int) $riga->impressions, 0, ',', '.'), 'clicks' => number_format((int) $riga->clicks, 0, ',', '.')]) }}@if ($quota !== null && $righe->count() > 1) · {{ __('sponsorship-panel.units.event_share', ['share' => $quota]) }}@endif
+                                                    </p>
+                                                    @if ($grant->mode === PromotionMode::Selected && $riga->status === SponsorshipStatus::Active && ! $avanzo->ended())
+                                                        <x-slot:trailing>
+                                                            <x-filament::button size="sm" color="gray" wire:click="stop({{ $riga->id }})" wire:confirm="{{ __('promotions.stop_confirm') }}">{{ __('promotions.stop') }}</x-filament::button>
+                                                        </x-slot:trailing>
+                                                    @endif
+                                                </x-pannelli::event-row>
+                                            </li>
+                                        @endforeach
+                                    </ul>
+                                    @if ($altre > 0)
+                                        <div>
+                                            <x-filament::button size="sm" color="gray" outlined wire:click="toggleGrantEvents({{ $grant->id }})" data-sponsorship-more="{{ $grant->id }}">
+                                                {{ $aperta ? __('sponsorship-panel.units.show_less') : trans_choice('sponsorship-panel.units.show_all', $altre, ['count' => $altre]) }}
+                                            </x-filament::button>
+                                        </div>
+                                    @endif
                                 @endif
                             </div>
                         </li>
                     @endforeach
                 </ul>
-                @if ($campagne->hasPages())
-                    <x-filament::pagination :paginator="$campagne" class="mt-4" />
-                @endif
+            @endif
+
+            @if ($campagne->isNotEmpty())
+                <div class="mt-8 flex flex-col gap-1" data-sponsorship-campaigns>
+                    <h3 class="text-base font-semibold text-gray-950 dark:text-white">{{ __('sponsorship-panel.units.singles_title') }}</h3>
+                    <p class="{{ $muted }}">{{ __('sponsorship-panel.units.singles_lead') }}</p>
+                    <ul class="mt-3 flex flex-col gap-4">
+                        @foreach ($campagne as $campagna)
+                            @php $fase = $campagna->phase(); @endphp
+                            <li class="{{ $card }} flex min-w-0 flex-col gap-4 p-4" wire:key="campaign-{{ $campagna->id }}" data-sponsorship-campaign="{{ $campagna->id }}">
+                                @if ($campagna->event)
+                                    <x-pannelli::event-row :event="$campagna->event" :when="$date[$campagna->event_id] ?? null">
+                                        <x-slot:badges>
+                                            <x-filament::badge :color="$fase->color()" size="sm">{{ $fase->label() }}</x-filament::badge>
+                                        </x-slot:badges>
+                                        <p class="{{ $muted }}">{{ $campagna->placement->label() }} · {{ __('promotions.page.ends', ['date' => $campagna->ends_at?->timezone($tz)->format('d/m/Y H:i')]) }}</p>
+                                    </x-pannelli::event-row>
+                                @endif
+                                @include('filament.shared.sponsorship-progress', ['progress' => $avanzamentoCampagne[$campagna->id]])
+                            </li>
+                        @endforeach
+                    </ul>
+                    @if ($campagne->hasPages())
+                        <x-filament::pagination :paginator="$campagne" class="mt-4" />
+                    @endif
+                </div>
             @endif
         </x-filament::section>
     </div>

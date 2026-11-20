@@ -138,7 +138,13 @@
         "analyse": "@php vendor/bin/phpstan analyse --memory-limit=1G --no-progress",
         "analyse:max": "@php vendor/bin/phpstan analyse --configuration=phpstan-max.neon --memory-limit=2G --no-progress",
         "architecture": "@php vendor/bin/deptrac analyse --no-progress",
-        "mutation": "@php vendor/bin/infection app/Support/SafeUrl.php --with-uncovered --test-framework-options=\"--testsuite=Unit\" --threads=2 --min-msi=80 --min-covered-msi=90"
+        "mutation": "@php vendor/bin/infection app/Support/SafeUrl.php --with-uncovered --test-framework-options=\"--testsuite=Unit\" --threads=2 --min-msi=80 --min-covered-msi=90",
+        "test:sponsorship": "@php vendor/bin/pest tests/Unit/Sponsorship",
+        "test:simulazione": [
+            "@putenv SPONSORSHIP_SIMULATION=1",
+            "@php vendor/bin/pest tests/Unit/Sponsorship/Simulation --group=simulazione"
+        ],
+        "mutation:sponsorship": "@php vendor/bin/infection app/Services/Sponsorship/Delivery/Pacer.php app/Services/Sponsorship/Delivery/TrafficForecast.php app/Services/Sponsorship/Delivery/EventWeights.php app/Services/Sponsorship/Delivery/QuotaAllocator.php app/Services/Sponsorship/Delivery/PacingState.php --with-uncovered --test-framework-options=\"--testsuite=Unit --exclude-group=simulazione-breve,simulazione\" --threads=4 --min-msi=85 --min-covered-msi=90"
     },
     "extra": {
         "laravel": {

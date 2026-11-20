@@ -9,259 +9,263 @@ use App\Enums\SponsorshipPlacement;
 use App\Models\City;
 use App\Models\Sponsorship;
 use App\Models\User;
-use App\Queries\EventOccurrenceQuery;
 use App\Services\Account\ContentPreferences;
 use App\Services\Search\EventFinder;
+use App\Services\Sponsorship\Delivery\DeliveryPlan;
+use App\Services\Sponsorship\Delivery\DeliveryPlanBuilder;
+use App\Services\Sponsorship\Delivery\Draw;
+use App\Services\Sponsorship\Delivery\HashDraw;
+use App\Services\Sponsorship\Delivery\ViewerMultiplier;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 
 /**
- * Sceglie quali campagne mostrare in una collocazione.
+ * Sceglie quale campagna mostrare in una collocazione.
  *
- * Tre cose, in quest'ordine.
+ * È la porta d'ingresso di sempre (`forPlacement`, `first`, `banner`), ma
+ * dentro non ruota più per minuto: chiede al **piano di consegna**
+ * (`DeliveryPlanBuilder`) chi può comparire e con quale quota, poi estrae.
  *
- * **1. Il tetto.** Ogni collocazione ne ammette un numero fisso
- * (`SponsorshipPlacement::limit()`). Vendere non deve poter cambiare l'aspetto
- * del prodotto: se domani si firmano sei contratti per la pagina iniziale, ne
- * compare comunque uno per volta e gli altri entrano in rotazione.
+ * **1. Il tetto.** Ogni collocazione ne mostra una (`SponsorshipPlacement::limit()`):
+ * vendere non cambia l'aspetto del prodotto.
  *
- * **2. La priorità.** Chi ha pagato di più — o è stato promesso prima — sta
- * davanti. È un numero, non un prezzo: il prezzo sta nel contratto, qui c'è
- * solo l'ordine.
+ * **2. La priorità.** È una fascia: la più alta prende ciò che le serve, il
+ * resto scende alla fascia sotto e alla fine al contenuto redazionale.
  *
- * **3. La rotazione.** A parità di priorità le campagne si alternano, e
- * l'alternanza è **deterministica dentro il minuto**. Non è un dettaglio: le
- * pagine pubbliche stanno in cache (`page_cache.ttl_minutes`), e
- * una rotazione casuale a ogni richiesta produrrebbe una pagina diversa da
- * quella salvata — cioè, in pratica, sempre la stessa fino all'invalidazione,
- * scelta a caso. Legandola al minuto la rotazione avviene davvero, e chi
- * ricarica dentro lo stesso minuto vede la stessa pagina che ha visto il
- * visitatore prima di lui.
+ * **3. La quota.** Dentro la fascia le unità a visualizzazioni prendono la
+ * quota che chiede il loro ritmo, quelle a periodo si dividono il resto in
+ * proporzione al peso. L'unità è l'abilitazione, non la singola riga: un
+ * locale con quaranta eventi non vale quaranta posti.
  *
- * Con una campagna sola per collocazione — il caso normale all'inizio — tutto
- * questo non fa niente di visibile, ed è giusto così.
+ * **4. Il caso.** L'estrazione usa `Draw`: in produzione il caso vero, nei
+ * test un seme. L'apertura della home fa eccezione: sta dentro lo scheletro
+ * della pagina in cache, quindi la scelta è la stessa per tutti dentro la
+ * casella lunga quanto la cache (`HashDraw`). Card e cima dell'elenco, per
+ * gli anonimi, non passano da qui alla richiesta: sono buchi nella copia
+ * salvata, riempiti dal piano a ogni visita (`SponsorSlots`).
  *
- * **E, solo per chi è autenticato, l'affinità.** A parità di priorità, le
- * campagne ricevono il peso delle scelte esplicite e dei salvataggi recenti
- * (`BannerAffinity`), senza superare le categorie nascoste. Vale solo per gli autenticati perché le
- * loro pagine non passano dalla full-page cache (`CachePage` le esclude): per
- * gli anonimi la pagina è condivisa, e una scelta personalizzata finita in
- * cache verrebbe servita a tutti. Per loro non cambia niente.
+ * **E, solo per chi è collegato, l'affinità.** Le scelte esplicite e i
+ * salvataggi recenti (`BannerAffinity`) moltiplicano la quota dell'unità senza
+ * toccare la priorità; le categorie nascoste e i locali nascosti spariscono.
+ * Le pagine dei collegati non passano dalla cache, quindi una scelta
+ * personale non finisce a nessun altro.
  */
 final class SponsorshipSelector
 {
+    private ?Draw $draw = null;
+
+    public function __construct(
+        private readonly DeliveryPlanBuilder $plans,
+        private readonly ViewerMultiplier $viewerMultiplier,
+    ) {}
+
     /**
-     * Le campagne da mostrare in una collocazione, già ordinate.
+     * Lo stesso selettore con un caso scelto da chi chiama: serve ai test,
+     * che fissano un seme, e a chi deve ripetere una scelta.
+     */
+    public function withDraw(Draw $draw): self
+    {
+        $clone = clone $this;
+        $clone->draw = $draw;
+
+        return $clone;
+    }
+
+    /**
+     * Le campagne da mostrare in una collocazione: una, oppure nessuna quando
+     * tocca al contenuto redazionale o non c'è niente.
      *
      * @return Collection<int, Sponsorship>
      */
     public function forPlacement(City $city, SponsorshipPlacement $placement, ?CarbonImmutable $now = null, ?User $user = null, ?EventFilters $filters = null): Collection
     {
-        $adesso = $now ?? CarbonImmutable::now('UTC');
+        $chosen = $this->first($city, $placement, $now, $user, $filters);
 
+        return $chosen === null ? new Collection : new Collection([$chosen]);
+    }
+
+    /**
+     * La campagna di una collocazione, o `null`.
+     *
+     * Con un filtro attivo (la cima dell'elenco) vengono prima le unità con un
+     * evento che lo rispetta; solo se non ce n'è nessuna si pesca fra tutte.
+     */
+    public function first(City $city, SponsorshipPlacement $placement, ?CarbonImmutable $now = null, ?User $user = null, ?EventFilters $filters = null): ?Sponsorship
+    {
+        $adesso = $now ?? CarbonImmutable::now('UTC');
+        $plan = $this->plans->current($city, $placement, $adesso);
+
+        if ($plan->isEmpty()) {
+            return null;
+        }
+
+        /* L'utente si legge qui e non arriva dai controller: così ogni punto
+           di chiamata ha la personalizzazione senza doversene ricordare, e
+           fuori da una richiesta web (code, comandi) il guard risponde `null`
+           e non cambia niente. */
+        $utente = $user ?? Auth::user();
+        $utente = $utente instanceof User ? $utente : null;
+
+        $prefer = null;
+
+        if ($filters !== null && $filters->activeCount() > 0) {
+            $prefer = app(EventFinder::class)->query($city, $filters)
+                ->forEvents($plan->eventIds())->promotable()->eventIds();
+        }
+
+        $draw = $this->draw ?? ($placement === SponsorshipPlacement::HomeHero
+            ? HashDraw::forSlot((int) $city->getKey(), $placement, $adesso, HashDraw::slotMinutes())
+            : app(Draw::class));
+
+        return $this->pick($plan, $city, $placement, $utente, [], $prefer, $draw, $adesso, $this->relations($placement));
+    }
+
+    /**
+     * La campagna del foglio della mappa di un locale: solo fra gli eventi di
+     * quel locale. Una pubblicità che si apre toccando un punto e parla
+     * d'altro non è pubblicità, è un errore.
+     *
+     * Fra le unità di quel locale si sceglie a periodo (`asPeriod()`): fasce
+     * e pesi restano, la riserva no. Il foglio si vende solo a periodo, e
+     * un'unità a visualizzazioni rimasta da prima non lascia vuoto il foglio
+     * del proprio locale per una quota calcolata sui fogli di tutta la città.
+     */
+    public function atVenue(City $city, SponsorshipPlacement $placement, int $venueId, ?CarbonImmutable $now = null, ?User $user = null): ?Sponsorship
+    {
+        $adesso = $now ?? CarbonImmutable::now('UTC');
+        $plan = $this->plans->current($city, $placement, $adesso)
+            ->restrict(static fn (array $row): bool => $row['venue'] === $venueId)
+            ->asPeriod();
+
+        if ($plan->isEmpty()) {
+            return null;
+        }
+
+        $utente = $user ?? Auth::user();
+
+        return $this->pick($plan, $city, $placement, $utente instanceof User ? $utente : null, [], null, $this->draw ?? app(Draw::class), $adesso, $this->relations($placement));
+    }
+
+    /**
+     * Il banner: pesca fra le campagne di tutte le collocazioni, un evento una
+     * volta sola, escluso quello che la pagina sta già mostrando.
+     *
+     * @param  array<string, mixed>  $context
+     */
+    public function banner(City $city, ?string $excludeEvent = null, ?User $user = null, array $context = []): ?Sponsorship
+    {
+        $adesso = CarbonImmutable::now('UTC');
+        $plan = $this->plans->current($city, DeliveryPlanBuilder::BANNER, $adesso);
+
+        if ($excludeEvent !== null && $excludeEvent !== '') {
+            $plan = $plan->restrict(static fn (array $row): bool => $row['slug'] !== $excludeEvent);
+        }
+
+        if ($plan->isEmpty()) {
+            return null;
+        }
+
+        $prefer = null;
+        $filters = EventFilters::fromArray($context);
+
+        if ($filters->activeCount() > 0) {
+            $prefer = app(EventFinder::class)->query($city, $filters)
+                ->forEvents($plan->eventIds())->promotable()->eventIds();
+        }
+
+        return $this->pick($plan, $city, null, $user, $context, $prefer, $this->draw ?? app(Draw::class), $adesso, ['event.venue', 'event.category', 'event.media', 'event.tags', 'grant']);
+    }
+
+    /**
+     * L'estrazione, con ciò che riguarda chi guarda.
+     *
+     * Per un anonimo senza contesto non serve nessuna query: il piano basta.
+     * Per chi è collegato (o con un contesto di pagina) si caricano le righe
+     * del piano per l'affinità, che resta quella di `BannerAffinity`.
+     *
+     * @param  array<string, mixed>  $context
+     * @param  list<int>|null  $prefer
+     * @param  array<array-key, mixed>  $relations
+     */
+    private function pick(DeliveryPlan $plan, City $city, ?SponsorshipPlacement $placement, ?User $user, array $context, ?array $prefer, Draw $draw, CarbonImmutable $now, array $relations): ?Sponsorship
+    {
+        $loaded = null;
+        $rowMultipliers = [];
+
+        if ($user !== null) {
+            $preferences = app(ContentPreferences::class);
+            $hiddenVenues = $preferences->hiddenVenues($user);
+
+            if ($hiddenVenues !== []) {
+                $plan = $plan->restrict(static fn (array $row): bool => $row['venue'] === null || ! in_array($row['venue'], $hiddenVenues, true));
+            }
+        }
+
+        if ($plan->isEmpty()) {
+            return null;
+        }
+
+        if ($user !== null || array_filter($context, static fn (mixed $value): bool => filled($value)) !== []) {
+            $loaded = Sponsorship::query()->whereKey($plan->rowIds())->with($relations)->get()->keyBy(fn (Sponsorship $row): int => (int) $row->getKey());
+
+            /* Il peso 2 su tutte è il modo di leggere il moltiplicatore esatto
+               di `BannerAffinity`: le moltiplica per due e poi, se sono tutte
+               pari, le divide per due; con 2 in ingresso escono sempre 2 × m.
+               Le campagne di una categoria nascosta non escono affatto. */
+            $probes = $loaded->values()->map(function (Sponsorship $row): Sponsorship {
+                $probe = clone $row;
+                $probe->weight = 2;
+
+                return $probe;
+            });
+
+            foreach (app(BannerAffinity::class)->apply($probes, $city, $user, $context) as $probe) {
+                $rowMultipliers[(int) $probe->getKey()] = $probe->weight / 2;
+            }
+
+            $plan = $plan->restrict(static fn (array $row): bool => array_key_exists($row['id'], $rowMultipliers));
+        }
+
+        if ($plan->isEmpty()) {
+            return null;
+        }
+
+        $multipliers = $plan->unitMultipliers($rowMultipliers);
+
+        foreach ($this->viewerMultiplier->multipliers($plan, $user, $now) as $key => $factor) {
+            $multipliers[$key] = ($multipliers[$key] ?? 1.0) * $factor;
+        }
+
+        $rowId = $plan->draw($draw, $multipliers, $prefer);
+
+        if ($rowId === null) {
+            return null;
+        }
+
+        $chosen = $loaded?->get($rowId);
+
+        if ($chosen !== null && $placement !== null) {
+            $chosen->loadMissing($this->relations($placement));
+        }
+
+        return $chosen ?? Sponsorship::query()->with($relations)->find($rowId);
+    }
+
+    /**
+     * Ciò che la vista di ogni collocazione legge della campagna.
+     *
+     * @return array<array-key, mixed>
+     */
+    private function relations(SponsorshipPlacement $placement): array
+    {
         $relations = ['event.venue', 'event.category', 'event.tags'];
+
         if (in_array($placement, [SponsorshipPlacement::HomeCard, SponsorshipPlacement::MapSheet], true)) {
             $relations['event.occurrences'] = static fn ($query) => $query
                 ->withCount('interestedUsers as interested_count');
         }
 
-        /** @var Collection<int, Sponsorship> $candidate */
-        $candidate = Sponsorship::query()
-            ->visible($adesso)
-            ->where('city_id', $city->getKey())
-            ->where('placement', $placement)
-            ->with($relations)
-            ->orderByDesc('priority')
-            ->orderBy('id')
-            ->get();
-
-        if ($candidate->isEmpty()) {
-            return $candidate;
-        }
-
-        if ($placement === SponsorshipPlacement::HomeHero || ($placement === SponsorshipPlacement::ListTop && $filters !== null)) {
-            $eligibleIds = EventOccurrenceQuery::for($city)
-                ->forEvents($candidate->pluck('event_id')->unique()->values()->all())
-                ->promotable()->eventIds();
-            $candidate = $candidate->whereIn('event_id', $eligibleIds)->values();
-        }
-
-        /* Anche la card comprata della pagina iniziale segue le preferenze di
-           chi guarda: un evento di una categoria o di un locale che ha nascosto
-           non gli compare, nemmeno a pagamento. Solo quando ne ha, così la
-           pagina degli anonimi resta identica. */
-        if ($placement === SponsorshipPlacement::HomeCard && $candidate->isNotEmpty()) {
-            $preferences = app(ContentPreferences::class);
-            $viewer = $preferences->discoveryUser();
-
-            if ($preferences->hidden($viewer) !== [] || $preferences->hiddenVenues($viewer) !== []) {
-                $visibleIds = EventOccurrenceQuery::for($city)
-                    ->forEvents($candidate->pluck('event_id')->unique()->values()->all())
-                    ->upcoming()->eventIds();
-                $candidate = $candidate->whereIn('event_id', $visibleIds)->values();
-            }
-        }
-
-        $grantEventIds = $candidate->whereNotNull('sponsorship_grant_id')->pluck('event_id')->unique()->values()->all();
-        if ($grantEventIds !== []) {
-            $upcomingIds = EventOccurrenceQuery::for($city)->forEvents($grantEventIds)->upcoming()->eventIds();
-            $candidate = $candidate->filter(fn (Sponsorship $campaign): bool => $campaign->sponsorship_grant_id === null || in_array($campaign->event_id, $upcomingIds, true))->values();
-        }
-
-        /* L'utente si legge qui e non arriva dai controller: così ogni punto
-           di chiamata — compresi quelli futuri — ha la personalizzazione senza
-           doversene ricordare, e fuori da una richiesta web (code, comandi)
-           il guard risponde `null` e non cambia niente. */
-        $utente = $user ?? Auth::user();
-        $weighted = app(BannerAffinity::class)->apply($candidate, $city, $utente instanceof User ? $utente : null, []);
-
-        // Prefer the archive's actual results, across all pages. Commercial
-        // priority and rotation apply within that pool; use the general pool
-        // only when no eligible campaign matches the selected filters.
-        if ($filters !== null && $filters->activeCount() > 0 && $weighted->isNotEmpty()) {
-            $matchingIds = app(EventFinder::class)->query($city, $filters)
-                ->forEvents($weighted->pluck('event_id')->unique()->values()->all())
-                ->promotable()->eventIds();
-            $matching = $weighted->whereIn('event_id', $matchingIds)->values();
-            if ($matching->isNotEmpty()) {
-                $weighted = $matching;
-            }
-        }
-
-        return $this->rotate($weighted, $placement->limit(), $adesso);
-    }
-
-    /**
-     * La prima campagna di una collocazione, o `null`.
-     *
-     * Le collocazioni con tetto uno — oggi tutte — la usano al posto di
-     * `forPlacement()->first()`, che direbbe la stessa cosa in modo più
-     * rumoroso.
-     */
-    public function first(City $city, SponsorshipPlacement $placement, ?CarbonImmutable $now = null, ?User $user = null, ?EventFilters $filters = null): ?Sponsorship
-    {
-        return $this->forPlacement($city, $placement, $now, $user, $filters)->first();
-    }
-
-    /** @param array<string, mixed> $context */
-    public function banner(City $city, ?string $excludeEvent = null, ?User $user = null, array $context = []): ?Sponsorship
-    {
-        $candidates = Sponsorship::query()->visible()->where('city_id', $city->id)
-            ->when($excludeEvent, fn ($q) => $q->whereHas('event', fn ($event) => $event->where('slug', '!=', $excludeEvent)))
-            ->with(['event.venue', 'event.category', 'event.media', 'event.tags', 'grant'])
-            ->orderByDesc('priority')->orderBy('id')->get()->unique('event_id')->values();
-
-        // Eligibility and commercial priority stay unchanged; preferences adjust the rotation weight only.
-        $weighted = app(BannerAffinity::class)->apply($candidates, $city, $user, $context);
-        $filters = EventFilters::fromArray($context);
-        if ($filters->activeCount() > 0 && $weighted->isNotEmpty()) {
-            $ids = app(EventFinder::class)->query($city, $filters)
-                ->forEvents($weighted->pluck('event_id')->unique()->values()->all())->promotable()->eventIds();
-            $matching = $weighted->whereIn('event_id', $ids)->values();
-            if ($matching->isNotEmpty()) {
-                $weighted = $matching;
-            }
-        }
-
-        return $this->rotate($weighted, 1, CarbonImmutable::now('UTC'))->first();
-    }
-
-    /**
-     * Ruota di un passo per minuto, dentro ogni gruppo di pari priorità.
-     *
-     * @param  Collection<int, Sponsorship>  $candidate
-     * @return Collection<int, Sponsorship>
-     */
-    private function rotate(Collection $candidate, int $limit, CarbonImmutable $now): Collection
-    {
-        /* Il passo cambia ogni minuto ed è lo stesso per tutti in quel minuto:
-           è ciò che rende la rotazione compatibile con la pagina in cache. */
-        $passo = (int) $now->format('YmdHi');
-
-        return $candidate
-            ->groupBy(fn (Sponsorship $sponsorship): int => (int) $sponsorship->priority)
-            ->sortKeysDesc()
-            ->flatMap(fn (Collection $gruppo): Collection => $this->ruotaPerPeso($gruppo, $passo))
-            ->take($limit)
-            ->values();
-    }
-
-    /**
-     * La rotazione dentro un gruppo di pari priorità, **proporzionale al
-     * peso**.
-     *
-     * **Perché il peso e non solo la priorità.** La priorità è un ordine: chi
-     * ce l'ha più alta sta davanti. Nella collocazione in apertura, che ammette
-     * una sola campagna, questo significa che la più alta prende il cento per
-     * cento delle apparizioni e le altre non compaiono mai — anche se hanno
-     * pagato. Fra due clienti si può vendere solo «il primo posto», e una
-     * volta venduto non c'è più niente da vendere.
-     *
-     * Il peso vende una **quota**: peso 3 contro peso 1 vuol dire che su
-     * quattro minuti la prima compare tre volte e la seconda una. Nessuna
-     * resta a zero, e lo spazio si può vendere a più di un cliente.
-     *
-     * **Come si ottiene senza il caso.** Si costruisce una ruota in cui ogni
-     * campagna compare tante volte quanto pesa, e il minuto corrente decide da
-     * dove si comincia a leggerla. Il risultato è deterministico dentro il
-     * minuto — che è ciò che permette alla pagina in cache di restare valida
-     * per tutti — e proporzionale sul lungo periodo, che è ciò che si è
-     * venduto.
-     *
-     * Una funzione casuale darebbe la stessa proporzione e romperebbe la
-     * cache: la pagina salvata conterrebbe una scelta a caso valida per tutto
-     * il minuto, cioè in pratica sempre la stessa.
-     *
-     * @param  Collection<int, Sponsorship>  $gruppo
-     * @return Collection<int, Sponsorship>
-     */
-    private function ruotaPerPeso(Collection $gruppo, int $passo): Collection
-    {
-        $quante = $gruppo->count();
-
-        if ($quante < 2) {
-            return $gruppo->values();
-        }
-
-        $ordinate = $gruppo->values();
-
-        /*
-         * La ruota. Un peso a zero o negativo varrebbe «mai», che non è ciò
-         * che si aspetta chi scrive zero in un campo chiamato peso: vale uno,
-         * come il valore predefinito.
-         */
-        $ruota = [];
-
-        foreach ($ordinate as $indice => $campagna) {
-            $peso = max(1, (int) $campagna->weight);
-
-            for ($i = 0; $i < $peso; $i++) {
-                $ruota[] = $indice;
-            }
-        }
-
-        $giri = count($ruota);
-        $inizio = $passo % $giri;
-
-        /*
-         * Si legge la ruota dall'inizio scelto e si tengono le campagne nel
-         * loro ordine di prima apparizione, saltando i doppioni: chi pesa di
-         * più ha più occasioni di uscire per prima, ma quando escono insieme
-         * nessuna compare due volte nella stessa pagina.
-         */
-        $ordine = [];
-
-        for ($i = 0; $i < $giri; $i++) {
-            $indice = $ruota[($inizio + $i) % $giri];
-
-            if (! in_array($indice, $ordine, strict: true)) {
-                $ordine[] = $indice;
-            }
-        }
-
-        return collect($ordine)
-            ->map(fn (int $indice): Sponsorship => $ordinate[$indice])
-            ->values();
+        return $relations;
     }
 }

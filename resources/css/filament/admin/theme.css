@@ -677,8 +677,11 @@ a.fi-wi-stats-overview-stat:hover { border-color: var(--fi-line-strong); transfo
 .incitta-occurrence-option { display: flex; flex-direction: column; gap: .125rem; min-width: 0; }
 .incitta-occurrence-option-when { font-weight: 650; color: var(--fi-ink); }
 .incitta-occurrence-option-venue { font-size: .8125rem; color: var(--fi-ink-soft); }
-/* Nella tendina, la voce occupa tutta la riga e va a capo invece di uscire. */
+/* Nella tendina, la voce occupa tutta la riga e va a capo invece di uscire.
+   L'elemento che la avvolge prenderebbe la larghezza minima del titolo su una
+   riga: sul telefono la voce usciva dalla tendina (EventSelect ed EventPicker). */
 .fi-select-input-option:has(.incitta-event-option), .fi-select-input-option:has(.incitta-occurrence-option) { white-space: normal; }
+.fi-select-input-option:has(.incitta-event-option) > span { min-width: 0; }
 
 /* La riga di un evento: locandina, titolo, «data · locale», righe in più,
    barra e, a destra (sotto sul telefono), un numero o dei pulsanti. */

@@ -5,8 +5,10 @@ declare(strict_types=1);
 use App\Enums\SponsorshipPlacement;
 use App\Enums\SponsorshipStatus;
 use App\Models\Category;
+use App\Models\Follow;
 use App\Models\Sponsorship;
 use App\Models\User;
+use App\Services\Sponsorship\Delivery\SeededDraw;
 use App\Services\Sponsorship\SponsorshipSelector;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Cache;
@@ -78,15 +80,24 @@ function utenteCheSalva(Category $categoria): User
     return $utente;
 }
 
-/** Quante volte ciascuna campagna compare per prima, su N minuti. */
-function conteggioSuMinuti(int $minuti = 400): array
+/**
+ * Quante volte ciascuna campagna compare per prima, su N estrazioni con un
+ * seme.
+ *
+ * Riscritto: prima si scorrevano N minuti, perché la rotazione avanzava di
+ * minuto in minuto e i conti erano esatti (200 e 200). Adesso ogni richiesta
+ * estrae dal piano: lo stesso seme rende i conti ripetibili, e le prove
+ * dicono la stessa promessa con una tolleranza dichiarata.
+ *
+ * @return array<string, int>
+ */
+function conteggioSuMinuti(int $minuti = 400, int $seme = 20261119): array
 {
-    $selettore = app(SponsorshipSelector::class);
-    $base = CarbonImmutable::parse('2026-09-02 00:00');
+    $selettore = app(SponsorshipSelector::class)->withDraw(new SeededDraw($seme));
     $conteggio = [];
 
     for ($m = 0; $m < $minuti; $m++) {
-        $prima = $selettore->forPlacement(test()->citta, SponsorshipPlacement::HomeHero, $base->addMinutes($m))->first();
+        $prima = $selettore->forPlacement(test()->citta, SponsorshipPlacement::HomeHero)->first();
 
         if ($prima !== null) {
             $conteggio[$prima->advertiser_name] = ($conteggio[$prima->advertiser_name] ?? 0) + 1;
@@ -96,6 +107,21 @@ function conteggioSuMinuti(int $minuti = 400): array
     return $conteggio;
 }
 
+/**
+ * Pari peso e nessuna preferenza: metà e metà, entro tre deviazioni standard
+ * (su 400 estrazioni la deviazione è 10).
+ *
+ * @param  array<string, int>  $conteggio
+ */
+function pariMeta(array $conteggio, int $totale = 400): void
+{
+    $attesa = intdiv($totale, 2);
+    $tolleranza = (int) ceil(3 * sqrt($totale * 0.25));
+
+    expect(($conteggio['un concerto'] ?? 0) + ($conteggio['una mostra'] ?? 0))->toBe($totale)
+        ->and(abs(($conteggio['un concerto'] ?? 0) - $attesa))->toBeLessThanOrEqual($tolleranza);
+}
+
 it('mostra piu spesso la categoria che l utente salva', function (): void {
     campagnaSuCategoria($this->concerti, 'un concerto');
     campagnaSuCategoria($this->mostre, 'una mostra');
@@ -103,10 +129,9 @@ it('mostra piu spesso la categoria che l utente salva', function (): void {
     /* Senza nessuno collegato: pari peso, pari apparizioni. */
     $anonimo = conteggioSuMinuti();
 
-    expect($anonimo['un concerto'])->toBe(200)
-        ->and($anonimo['una mostra'])->toBe(200);
+    pariMeta($anonimo);
 
-    /* Con un utente che salva concerti: il concerto sale. */
+    /* Con un utente che salva concerti, e lo stesso seme: il concerto sale. */
     $this->actingAs(utenteCheSalva($this->concerti));
 
     $affine = conteggioSuMinuti();
@@ -142,10 +167,12 @@ it('usa il peso inferito 1.5 senza superare le preferenze esplicite', function (
 
     $this->actingAs(utenteCheSalva($this->concerti));
 
+    /* Concerto 1,5 contro mostra 1: il 60% contro il 40%. Su 300 estrazioni
+       l'atteso è 180, con una deviazione di 8,5: tre deviazioni di tolleranza. */
     $conteggio = conteggioSuMinuti(300);
 
-    expect($conteggio['un concerto'])->toBe(180)
-        ->and($conteggio['una mostra'])->toBe(120);
+    expect($conteggio['un concerto'] + $conteggio['una mostra'])->toBe(300)
+        ->and(abs($conteggio['un concerto'] - 180))->toBeLessThanOrEqual(26);
 });
 
 it('non cambia niente per chi non e collegato', function (): void {
@@ -154,10 +181,7 @@ it('non cambia niente per chi non e collegato', function (): void {
     campagnaSuCategoria($this->concerti, 'un concerto');
     campagnaSuCategoria($this->mostre, 'una mostra');
 
-    $conteggio = conteggioSuMinuti();
-
-    expect($conteggio['un concerto'])->toBe(200)
-        ->and($conteggio['una mostra'])->toBe(200);
+    pariMeta(conteggioSuMinuti());
 });
 
 it('non cambia niente per un utente senza salvataggi', function (): void {
@@ -166,10 +190,13 @@ it('non cambia niente per un utente senza salvataggi', function (): void {
 
     $this->actingAs(User::factory()->create());
 
+    /* Con lo stesso seme, lo stesso conto di un anonimo. */
     $conteggio = conteggioSuMinuti();
+    pariMeta($conteggio);
 
-    expect($conteggio['un concerto'])->toBe(200)
-        ->and($conteggio['una mostra'])->toBe(200);
+    auth()->logout();
+
+    expect(conteggioSuMinuti())->toBe($conteggio);
 });
 
 it('la priorita resta piu forte dell affinita', function (): void {
@@ -210,8 +237,11 @@ it('non guarda oltre la finestra dei salvataggi recenti', function (): void {
 
     $conteggio = conteggioSuMinuti();
 
-    expect($conteggio['un concerto'])->toBe(200)
-        ->and($conteggio['una mostra'])->toBe(200);
+    pariMeta($conteggio);
+
+    auth()->logout();
+
+    expect(conteggioSuMinuti())->toBe($conteggio);
 });
 
 it('usa solo la wishlist, non la navigazione', function (): void {
@@ -226,4 +256,34 @@ it('usa solo la wishlist, non la navigazione', function (): void {
     expect($sorgente)->toContain('saved_events')
         ->and($sorgente)->not->toContain('Cookie')
         ->and($sorgente)->not->toContain('session');
+});
+
+it('nel banner segue chi è collegato e non passa le sue preferenze a un altro', function (): void {
+    /*
+     * La stessa promessa di `BannerPreferencesTest`, che contava su una
+     * rotazione ferma nel minuto: chi segue il locale di una campagna la vede
+     * quattro volte su cinque, chi non segue niente una volta su due.
+     */
+    $concerto = campagnaSuCategoria($this->concerti, 'un concerto');
+    campagnaSuCategoria($this->mostre, 'una mostra');
+
+    $affezionato = User::factory()->create();
+    Follow::create(['user_id' => $affezionato->getKey(), 'followable_type' => 'venue', 'followable_id' => $concerto->event->venue_id]);
+    $altro = User::factory()->create();
+
+    $conta = function (User $utente): int {
+        $selettore = app(SponsorshipSelector::class)->withDraw(new SeededDraw(20261119));
+        $volte = 0;
+
+        for ($i = 0; $i < 200; $i++) {
+            $volte += $selettore->banner($this->citta, user: $utente)?->advertiser_name === 'un concerto' ? 1 : 0;
+        }
+
+        return $volte;
+    };
+
+    /* Atteso 160 (deviazione 5,7) e 100 (deviazione 7,1): quattro deviazioni. */
+    expect($conta($affezionato))->toBeGreaterThanOrEqual(137)->toBeLessThanOrEqual(183)
+        ->and($conta($altro))->toBeGreaterThanOrEqual(72)->toBeLessThanOrEqual(128)
+        ->and($concerto->fresh()->weight)->toBe(1);
 });

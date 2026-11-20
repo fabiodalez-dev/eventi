@@ -9,21 +9,44 @@ use App\Exceptions\ApiException;
 use App\Http\Controllers\Api\V1\Concerns\InteractsWithApi;
 use App\Http\Controllers\Controller;
 use App\Models\Sponsorship;
+use App\Services\Sponsorship\Delivery\ImpressionToken;
 use App\Services\Sponsorship\RecordSponsorshipMetric;
 use App\Support\IpBucket;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\RateLimiter;
 
+/**
+ * Le misure delle sponsorizzazioni viste nell'app e nel banner del sito.
+ *
+ * **Due gettoni, per non lasciare indietro nessuno.** Le app aggiornate e il
+ * banner del sito mandano il gettone usa e getta (`impression_token`) in
+ * `X-Impression-Token`: lo stesso controllo del sito, con la deduplica sul
+ * numero casuale e la risposta sempre 204. Le app già installate mandano
+ * ancora il gettone giornaliero in `X-Metric-Token`, e continuano a contare
+ * come prima, con la deduplica di 15 minuti e gli errori di prima: l'API
+ * cambia solo per aggiunte.
+ */
 final class SponsorshipMetricController extends Controller
 {
     use InteractsWithApi;
 
-    public function __invoke(Request $request, int $sponsorship, string $metric): JsonResponse
+    public function __invoke(Request $request, int $sponsorship, string $metric, ImpressionToken $tokens, RecordSponsorshipMetric $recorder): JsonResponse
     {
         if (! in_array($metric, ['impressions', 'clicks'], true)) {
             throw new ApiException(ApiErrorCode::NotFound);
+        }
+
+        if ($request->hasHeader('X-Impression-Token')) {
+            return $this->withImpressionToken($request, $sponsorship, $metric, $tokens, $recorder);
+        }
+
+        /* La strada del gettone giornaliero ha una data di chiusura in
+           configurazione: dopo, risponde come la strada nuova senza gettone. */
+        if (self::legacyClosed()) {
+            return response()->json(status: 204);
         }
 
         $campaign = Sponsorship::query()
@@ -105,9 +128,67 @@ final class SponsorshipMetricController extends Controller
             return response()->json(status: 204);
         }
 
-        app(RecordSponsorshipMetric::class)->record($campaign, $metric, $request, $request->hasHeader('X-Installation-ID') ? 'android' : 'web');
+        if ($recorder->shouldCount($request, $campaign, $this->currentUser($request))) {
+            $recorder->record($campaign, $metric, $request, $this->channel($request));
+        }
 
         return response()->json(status: 204);
+    }
+
+    /**
+     * La strada del gettone usa e getta: la stessa del sito, con la città
+     * dell'API. Qualunque cosa non torni — gettone falso, scaduto, di
+     * un'altra campagna, campagna che non può più comparire — risponde 204 e
+     * non conta, senza dire quale controllo ha fermato la richiesta.
+     */
+    private function withImpressionToken(Request $request, int $sponsorship, string $metric, ImpressionToken $tokens, RecordSponsorshipMetric $recorder): JsonResponse
+    {
+        $now = CarbonImmutable::now('UTC');
+        $token = $request->header('X-Impression-Token');
+        $claims = is_string($token) ? $tokens->verify($token, $now) : null;
+
+        if ($claims === null || ! $claims->isFor($sponsorship)) {
+            return response()->json(status: 204);
+        }
+
+        $campaign = $recorder->countableCampaign($sponsorship, (int) $this->city()->getKey(), $now, $metric, $claims->issuedAt);
+
+        if ($campaign === null) {
+            return response()->json(status: 204);
+        }
+
+        // Lo stesso tetto per indirizzo della strada di prima, e la stessa chiave.
+        $tetto = 'sponsorship-metric-api:'.IpBucket::key($request->ip()).':'.$campaign->getKey().':'.$metric;
+
+        if (RateLimiter::tooManyAttempts($tetto, maxAttempts: 30)) {
+            return response()->json(status: 204);
+        }
+
+        RateLimiter::hit($tetto, decaySeconds: 3600);
+
+        if ($recorder->shouldCount($request, $campaign, $this->currentUser($request))) {
+            $recorder->recordWithToken($campaign, $claims, $metric, $request, $this->channel($request), $now);
+        }
+
+        return response()->json(status: 204);
+    }
+
+    /** Vero dopo la data fissata in `sponsorship.legacy_metric_token_until`. */
+    private static function legacyClosed(): bool
+    {
+        $until = config('sponsorship.legacy_metric_token_until');
+
+        if (! is_string($until) || preg_match('/\A\d{4}-\d{2}-\d{2}\z/', $until) !== 1) {
+            return false;
+        }
+
+        return CarbonImmutable::now('UTC')->greaterThan(CarbonImmutable::parse($until, 'Europe/Rome')->endOfDay());
+    }
+
+    /** L'app Android si presenta con l'identificativo dell'installazione; il resto è il sito. */
+    private function channel(Request $request): string
+    {
+        return $request->hasHeader('X-Installation-ID') ? 'android' : 'web';
     }
 
     private function validToken(Request $request, Sponsorship $campaign): bool

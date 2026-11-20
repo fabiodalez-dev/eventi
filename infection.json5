@@ -2,7 +2,10 @@
     "$schema": "vendor/infection/infection/resources/schema.json",
     "source": {
         "directories": [
-            "app/Support"
+            "app/Support",
+            // Le formule della consegna delle sponsorizzazioni (piano, P1):
+            // `composer mutation:sponsorship` le prova con i loro test.
+            "app/Services/Sponsorship/Delivery"
         ]
     },
     "phpUnit": {

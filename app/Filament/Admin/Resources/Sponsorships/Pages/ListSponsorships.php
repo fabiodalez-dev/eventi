@@ -9,6 +9,7 @@ use App\Filament\Admin\Resources\SponsorshipGrants\SponsorshipGrantResource;
 use App\Filament\Admin\Resources\Sponsorships\SponsorshipResource;
 use App\Filament\Admin\Widgets\SponsorshipHealthWidget;
 use App\Filament\Admin\Widgets\SponsorshipTrendWidget;
+use App\Filament\Concerns\HasPlainBreadcrumbs;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
@@ -16,6 +17,9 @@ use pxlrbt\FilamentExcel\Actions\Pages\ExportAction;
 
 class ListSponsorships extends ListRecords
 {
+    /* Le briciole dicono solo il titolo, senza «Lista» in fondo (D69). */
+    use HasPlainBreadcrumbs;
+
     protected static string $resource = SponsorshipResource::class;
 
     /**

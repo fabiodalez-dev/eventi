@@ -20,14 +20,24 @@ use Symfony\Component\HttpFoundation\Response;
  * l'occorrenza porta `is_saved` (§15.8) e la risposta parla di lui solo: la
  * direttiva diventa `private`, altrimenti una cache condivisa mostrerebbe i
  * salvataggi di uno a tutti gli altri.
+ *
+ * **Una risposta con un gettone usa e getta non si condivide.** Le
+ * sponsorizzazioni portano `impression_token`, nuovo a ogni risposta e buono
+ * per una visualizzazione sola: una cache condivisa che lo servisse a più
+ * persone ne conterebbe una, e l'ETag cambierebbe comunque a ogni risposta.
+ * Chi lo emette segna la richiesta (`SINGLE_USE`), e qui diventa
+ * `private, no-store`, senza ETag.
  */
 final class CacheJsonResponse
 {
+    /** L'attributo della richiesta che dice: la risposta porta un gettone usa e getta. */
+    public const SINGLE_USE = 'api.single_use_tokens';
+
     public function handle(Request $request, Closure $next): Response
     {
         $response = $next($request);
 
-        if ($request->hasAny(['near', 'lat', 'lng']) || $request->query('preset') === 'last_hours') {
+        if ($request->hasAny(['near', 'lat', 'lng']) || $request->query('preset') === 'last_hours' || $request->attributes->get(self::SINGLE_USE) === true) {
             $response->headers->set('Cache-Control', 'private, no-store');
 
             return $response;

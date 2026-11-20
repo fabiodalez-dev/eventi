@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\PromotionMode;
+use App\Enums\SponsorshipPacing;
 use App\Enums\SponsorshipPlacement;
 use App\Enums\VenueStatus;
 use App\Support\ContentVersion;
 use App\Support\Sponsorship\ActiveGrants;
 use Carbon\CarbonImmutable;
+use Database\Factories\SponsorshipGrantFactory;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -25,14 +28,34 @@ use Spatie\Activitylog\Support\LogOptions;
  * un locale copre gli eventi ospitati li'; quella di un organizzatore copre
  * gli eventi che lo indicano come organizzatore, in qualunque locale.
  *
+ * È anche l'**unità di consegna**: peso, priorità, obiettivo di visualizzazioni
+ * e distribuzione stanno qui, e le righe `sponsorships` dicono solo quali
+ * eventi mostrare. Così un locale con quaranta eventi e uno con un evento solo,
+ * a parità di acquisto, ricevono lo stesso spazio.
+ *
  * @property-read Venue|null $venue
  * @property-read Organizer|null $organizer
  */
 class SponsorshipGrant extends Model
 {
+    /** @use HasFactory<SponsorshipGrantFactory> */
+    use HasFactory;
+
     use LogsActivity;
 
     protected $guarded = ['id'];
+
+    /**
+     * Peso, priorità e distribuzione dell'unità: in memoria come nel database,
+     * anche subito dopo una `create()` che non li nomina.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'weight' => 1,
+        'priority' => 0,
+        'pacing' => 'even',
+    ];
 
     protected static function booted(): void
     {
@@ -69,7 +92,8 @@ class SponsorshipGrant extends Model
     {
         return ['mode' => PromotionMode::class, 'placement' => SponsorshipPlacement::class,
             'enabled' => 'boolean', 'complimentary' => 'boolean', 'starts_at' => 'immutable_datetime',
-            'ends_at' => 'immutable_datetime', 'paid_at' => 'immutable_datetime', 'amount_cents' => 'integer'];
+            'ends_at' => 'immutable_datetime', 'paid_at' => 'immutable_datetime', 'amount_cents' => 'integer',
+            'weight' => 'integer', 'priority' => 'integer', 'impressions_goal' => 'integer', 'pacing' => SponsorshipPacing::class];
     }
 
     /** @return BelongsTo<Venue, $this> */
@@ -137,6 +161,43 @@ class SponsorshipGrant extends Model
         $sponsor instanceof Venue
             ? $query->where('venue_id', $sponsor->getKey())
             : $query->where('organizer_id', $sponsor->getKey());
+    }
+
+    /**
+     * Le abilitazioni a visualizzazioni che hanno già consegnato tutto
+     * l'obiettivo.
+     *
+     * Le consegnate sono la somma delle righe, **comprese quelle nel cestino**:
+     * una visualizzazione data resta data anche se la riga poi si toglie. Non
+     * c'è un contatore sull'abilitazione da tenere allineato.
+     *
+     * @param  Builder<SponsorshipGrant>  $query
+     */
+    public function scopeGoalReached(Builder $query): void
+    {
+        $query->whereNotNull('sponsorship_grants.impressions_goal')
+            ->whereRaw('sponsorship_grants.impressions_goal <= (select coalesce(sum(goal_rows.impressions), 0) from sponsorships as goal_rows where goal_rows.sponsorship_grant_id = sponsorship_grants.id)');
+    }
+
+    /** Se è un prodotto a visualizzazioni, cioè con un obiettivo. */
+    public function hasGoal(): bool
+    {
+        return $this->impressions_goal !== null;
+    }
+
+    /**
+     * Le visualizzazioni consegnate dall'unità: la somma delle sue righe,
+     * comprese quelle nel cestino (vedi `scopeGoalReached`).
+     */
+    public function deliveredImpressions(): int
+    {
+        return (int) Sponsorship::withTrashed()->where('sponsorship_grant_id', $this->getKey())->sum('impressions');
+    }
+
+    /** La chiave dell'unità di consegna, la stessa di `Sponsorship::unitKey()`. */
+    public function unitKey(): string
+    {
+        return 'g:'.$this->getKey();
     }
 
     /** @param Builder<SponsorshipGrant> $query */

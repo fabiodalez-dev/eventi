@@ -12,6 +12,7 @@ use App\Models\SponsorshipDailyStat;
 use App\Models\User;
 use App\Notifications\SponsorshipWeeklyReport;
 use App\Services\Sponsorship\CategoriePreferite;
+use App\Services\Sponsorship\Delivery\ImpressionToken;
 use App\Services\Sponsorship\SponsorshipSelector;
 use Carbon\CarbonImmutable;
 use Database\Seeders\RolesAndPermissionsSeeder;
@@ -175,12 +176,13 @@ it('il totale cumulativo coincide con la somma dei giorni', function (): void {
     $campagna = campagnaDiProva();
 
     foreach (range(1, 7) as $ignored) {
-        $this->postJson(route('sponsorships.metric', ['sponsorship' => $campagna, 'metric' => 'impressions']));
+        $this->postJson(route('sponsorships.metric', ['sponsorship' => $campagna, 'metric' => 'impressions']), [], ['X-Impression-Token' => ImpressionToken::issue($campagna, 'home_hero')]);
     }
 
     $somma = (int) SponsorshipDailyStat::query()->where('sponsorship_id', $campagna->getKey())->sum('impressions');
 
-    expect($campagna->refresh()->impressions)->toBe($somma);
+    expect($somma)->toBe(7)
+        ->and($campagna->refresh()->impressions)->toBe($somma);
 });
 
 /* ─────────────────  Tetti di consegna  ───────────────── */
@@ -280,10 +282,16 @@ it('non conta una campagna cestinata', function (): void {
     /* Il legame di rotta risolve per chiave: senza il filtro sul cestino si
        potrebbero gonfiare i numeri di una campagna che nessuno vede piu'. */
     $campagna = campagnaDiProva();
+    $gettone = ImpressionToken::issue($campagna, 'home_hero');
     $campagna->delete();
 
-    $this->postJson(route('sponsorships.metric', ['sponsorship' => $campagna->getKey(), 'metric' => 'impressions']))
-        ->assertNotFound();
+    /* 204 come per ogni misura che non conta: chi gonfia non deve sapere
+       quale controllo l'ha fermato. */
+    $this->postJson(route('sponsorships.metric', ['sponsorship' => $campagna->getKey(), 'metric' => 'impressions']), [], ['X-Impression-Token' => $gettone])
+        ->assertNoContent();
+
+    expect(Sponsorship::withTrashed()->find($campagna->getKey())->impressions)->toBe(0)
+        ->and(SponsorshipDailyStat::query()->where('sponsorship_id', $campagna->getKey())->exists())->toBeFalse();
 });
 
 it('il tetto orario di una campagna non blocca le altre', function (): void {
@@ -296,13 +304,14 @@ it('il tetto orario di una campagna non blocca le altre', function (): void {
     $altra = campagnaDiProva();
 
     foreach (range(1, 31) as $ignored) {
-        $this->postJson(route('sponsorships.metric', ['sponsorship' => $bersaglio, 'metric' => 'impressions']));
+        $this->postJson(route('sponsorships.metric', ['sponsorship' => $bersaglio, 'metric' => 'impressions']), [], ['X-Impression-Token' => ImpressionToken::issue($bersaglio, 'home_hero')]);
     }
 
-    $this->postJson(route('sponsorships.metric', ['sponsorship' => $altra, 'metric' => 'impressions']))
+    $this->postJson(route('sponsorships.metric', ['sponsorship' => $altra, 'metric' => 'impressions']), [], ['X-Impression-Token' => ImpressionToken::issue($altra, 'home_hero')])
         ->assertNoContent();
 
-    expect($altra->refresh()->impressions)->toBe(1);
+    expect($bersaglio->refresh()->impressions)->toBe(30)
+        ->and($altra->refresh()->impressions)->toBe(1);
 });
 
 /* ─────────────────  Numeri che diventano fatture  ───────────────── */

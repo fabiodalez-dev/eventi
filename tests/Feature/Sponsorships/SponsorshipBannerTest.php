@@ -5,8 +5,10 @@ declare(strict_types=1);
 use App\Enums\OccurrenceStatus;
 use App\Enums\SponsorshipPlacement;
 use App\Filament\Admin\Pages\SponsorshipBanners;
+use App\Http\Controllers\Api\V1\SponsorshipBannerController;
 use App\Models\Sponsorship;
 use App\Models\User;
+use App\Services\Sponsorship\Delivery\ImpressionToken;
 use App\Settings\SponsorshipBannerSettings;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Database\Seeders\SponsorshipBannerDemoSeeder;
@@ -165,4 +167,56 @@ it('esclude la serie aperta da ogni banner anche con prefisso città e replica',
             $this->getJson($endpoint)->assertOk()->assertJsonPath('data', null);
         }
     }
+});
+
+/*
+ * Il gettone usa e getta del banner (piano sponsorizzazioni, pacchetto P6).
+ * Il banner pesca fra le campagne di ogni collocazione, ma lo spazio in cui le
+ * si vede è sempre lui: il gettone porta la collocazione `banner`.
+ */
+it('dà al banner un gettone nuovo a ogni risposta, per la riga e la collocazione banner, su web e Android', function (): void {
+    $date = occurrenceAtLocal($this->city, $this->category, '2026-09-11 21:00');
+    $campaign = Sponsorship::factory()->placement(SponsorshipPlacement::HomeCard)->create(['city_id' => $this->city->id, 'event_id' => $date->event_id]);
+    $tokens = app(ImpressionToken::class);
+    $seen = [];
+
+    foreach ([
+        '/api/v1/sponsorships/banner?platform=android',
+        '/api/v1/sponsorships/banner?platform=web',
+        route('sponsorships.banner', ['platform' => 'web']),
+        route('city.sponsorships.banner', ['city' => $this->city->slug, 'platform' => 'web']),
+    ] as $endpoint) {
+        $response = $this->getJson($endpoint)->assertOk()->assertJsonPath('data.id', $campaign->id);
+        $token = $response->json('data.impression_token');
+        $claims = $tokens->verify($token, now());
+
+        expect($claims)->not->toBeNull()
+            ->and($claims->isFor($campaign->id, SponsorshipBannerController::TOKEN_PLACEMENT))->toBeTrue()
+            ->and($claims->placement)->toBe('banner')
+            // Il gettone giornaliero resta per le app già installate.
+            ->and($response->json('data.metric_token'))->toBeString()
+            ->and($response->headers->get('Cache-Control'))->toContain('no-store');
+        $seen[] = $token;
+    }
+
+    expect(array_unique($seen))->toHaveCount(4);
+});
+
+it('non emette gettoni quando non c è un banner da mostrare', function (): void {
+    $settings = app(SponsorshipBannerSettings::class);
+    $settings->android_enabled = false;
+    $settings->save();
+    $date = occurrenceAtLocal($this->city, $this->category, '2026-09-11 21:00');
+    Sponsorship::factory()->create(['city_id' => $this->city->id, 'event_id' => $date->event_id]);
+
+    $this->getJson('/api/v1/sponsorships/banner?platform=android')->assertOk()->assertExactJson(['data' => null]);
+});
+
+it('dice al banner della pagina in quale spazio conta e dopo quanto', function (): void {
+    occurrenceAtLocal($this->city, $this->category, '2026-09-10 21:00');
+    config()->set('sponsorship.viewable_ms', 1000);
+
+    $this->get('/')->assertOk()
+        ->assertSee('data-placement="banner"', false)
+        ->assertSee('data-viewable-ms="1000"', false);
 });

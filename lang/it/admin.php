@@ -204,6 +204,10 @@ return [
 
     'fields' => [
         'kind' => 'Tipo di richiesta',
+        'weight' => 'Peso',
+        'priority' => 'Priorità',
+        'impressions_goal' => 'Visualizzazioni comprate',
+        'pacing' => 'Distribuzione',
         'video_url' => 'Video (YouTube o Vimeo)',
         'co_organizers' => 'Co-organizzatori',
         'title' => 'Titolo',

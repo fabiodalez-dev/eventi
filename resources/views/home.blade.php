@@ -181,6 +181,7 @@
                 @if ($heroSponsorizzato)
                     data-sponsorship="{{ $heroSponsorship->getKey() }}"
                     data-sponsorship-placement="home_hero"
+                    data-sponsorship-token="{{ \App\Services\Sponsorship\Delivery\ImpressionToken::issue($heroSponsorship, 'home_hero') }}"
                     data-sponsorship-impression="{{ route('sponsorships.metric', ['sponsorship' => $heroSponsorship, 'metric' => 'impressions']) }}"
                     data-sponsorship-click="{{ route('sponsorships.metric', ['sponsorship' => $heroSponsorship, 'metric' => 'clicks']) }}"
                 @endif
@@ -343,15 +344,16 @@
     {{-- La campagna della pagina iniziale, subito dopo la fascia dei numeri:
          sopra la piega non ci va — quello spazio è la data più importante in
          programma, e venderlo cambierebbe cosa il sito dice di sé. --}}
-    @if ($cardSponsorship !== null)
-        <section class="home-recommendation border-b-2 border-line" aria-labelledby="home-recommendation-title">
-            <h2 id="home-recommendation-title" class="font-display text-3xl font-extrabold tracking-tight">{{ __('inCittà consiglia') }}</h2>
-            <x-sponsored-card
-                :sponsorship="$cardSponsorship"
-                class="home-recommendation__event"
-                level="h3"
-            />
-        </section>
+    {{-- Per gli anonimi la pagina si salva in cache: al posto della card resta
+         un buco che `CachePage` riempie a ogni visita con un'estrazione dal
+         piano di consegna (`SponsorSlots`). Per chi è collegato la card si
+         disegna qui, come sempre. --}}
+    @if (($cardSlot ?? null) !== null)
+        {!! \App\Services\Sponsorship\SponsorSlots::open($cardSlot) !!}{!! \App\Services\Sponsorship\SponsorSlots::close() !!}
+    @elseif ($cardSponsorship !== null)
+        @include('partials.sponsored.home-card')
+    @elseif ($city !== null)
+        {!! \App\Services\Sponsorship\SponsorSlots::vacant('home_card', $city) !!}
     @endif
 
     <section class="home-tonight border-y-2 border-line px-gutter py-12">

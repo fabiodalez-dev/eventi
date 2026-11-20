@@ -21,7 +21,16 @@ internal data class ManagedDate(
 }
 @Serializable internal data class ManagedCampaign(val id: Long, val title: String = "",
     @SerialName("starts_at") val startsAt: String = "", @SerialName("ends_at") val endsAt: String = "",
-    val economics: CampaignEconomics? = null)
+    val economics: CampaignEconomics? = null,
+    /* L'avanzamento dell'unità che si è comprata (l'abilitazione, o la campagna
+       singola): `goal` vuoto per il prodotto a periodo. Tutti e tre mancano con
+       un server che non li manda ancora. */
+    val goal: Long? = null, val delivered: Long? = null,
+    @SerialName("pacing_state") val pacingState: String? = null,
+) {
+    /** Da 0 a 1 verso l'obiettivo; `null` senza obiettivo. Oltre l'obiettivo resta 1. */
+    val progress: Float? get() = goal?.takeIf { it > 0 }?.let { ((delivered ?: 0L).toFloat() / it.toFloat()).coerceIn(0f, 1f) }
+}
 @Serializable internal data class CampaignEconomics(
     @SerialName("spend_cents") val spendCents: Long? = null, val currency: String = "EUR",
     val bookings: Int? = null, val attendances: Int? = null,

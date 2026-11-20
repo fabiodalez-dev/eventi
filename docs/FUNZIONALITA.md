@@ -1,6 +1,6 @@
 # inCittà — Funzionalità della piattaforma
 
-*Panoramica per ruoli e opportunità commerciali. Aggiornata al 19 novembre 2026.*
+*Panoramica per ruoli e opportunità commerciali. Aggiornata al 20 novembre 2026.*
 
 <!--
 COME SI AGGIORNA QUESTO FILE
@@ -50,11 +50,16 @@ Controlla il catalogo, abilita gli operatori e gestisce promozione, comunicazion
 - **Selezioni social giornaliere** — Automatizza la preparazione e la pubblicazione quotidiana sui canali abilitati.
 - **Storie da scaricare** — Esporta le grafiche per le storie da pubblicare manualmente sui social.
 - **Gestione delle sponsorizzazioni** — Configura campagne, periodi, posizionamenti e autorizzazioni promozionali.
+- **Nuova sponsorizzazione in quattro passi** — Sceglie il committente (un locale, un organizzatore o un committente esterno), poi un evento da un selettore con locandina, data e locale che si cerca anche per nome del locale, oppure «tutti gli eventi» di quel locale o organizzatore; poi posizione, periodo, prodotto e pagamento, con un riepilogo prima di salvare. *Solo web.*
+- **Sponsorizzazioni a visualizzazioni** — Oltre al periodo si vende un numero di visualizzazioni, distribuito nel periodo o consegnato il prima possibile; il modulo stima quante ne può dare lo spazio fino all'ultima data dell'evento, avvisa sopra il 60% e blocca oltre l'80% (il massimo che una campagna riceve), e dice chi occupa già quella posizione. La campagna smette di comparire quando ha consegnato tutto; un organizzatore con eventi in più città ha un obiettivo solo, distribuito sul traffico di tutte. *Solo web; l'apertura della home e il foglio della mappa si vendono solo a periodo.*
+- **Avanzamento delle campagne** — Elenchi e schede mostrano per ogni campagna o abilitazione barra, «N di M visualizzazioni», stato («in linea», «in ritardo», «a rischio»…), consegnate oggi, quota richiesta, giorni rimasti e la consegna giorno per giorno contro l'attesa, con un filtro per stato. *Solo web.*
+- **Avviso del mattino sulle campagne in ritardo** — Ogni giorno alle 7 la campanella del pannello segnala le campagne a visualizzazioni in ritardo o a rischio, una volta al giorno. *Solo web.*
 - **Promozione degli eventi** — Assegna visibilità sponsorizzata agli eventi nei punti previsti di sito e app.
 - **Banner promozionali** — Gestisce creatività e destinazioni dei banner nelle aree supportate.
-- **Misurazione delle campagne** — Consulta impression, click e percentuale di click sulle impression registrate.
+- **Misurazione delle campagne** — Consulta impression, click e percentuale di click sulle impression registrate. Una visualizzazione conta dopo un secondo con metà della card sullo schermo, una volta sola; programmi automatici, redazione e committente non contano. La percentuale di click compare da 100 visualizzazioni.
+- **Rotazione equa fra committenti** — Chi sponsorizza «tutti i propri eventi» occupa un posto solo, come chi ne sponsorizza uno; card e cima dell'elenco cambiano a ogni visita anche con la pagina in cache, e una campagna in pausa o conclusa sparisce entro un minuto.
 - **Analisi dei posizionamenti** — Confronta i risultati per canale, pagina e posizione della sponsorizzazione.
-- **Report periodici agli sponsor** — Invia riepiloghi automatici delle campagne attraverso il sistema email configurato.
+- **Report periodici agli sponsor** — Invia riepiloghi automatici delle campagne attraverso il sistema email configurato; per le campagne a visualizzazioni il riepilogo del lunedì riporta obiettivo, consegnate e stato, un messaggio solo per abilitazione.
 - **Newsletter e riepiloghi** — Imposta contenuti e parametri delle comunicazioni periodiche agli iscritti.
 - **Testi delle notifiche** — Personalizza i messaggi utilizzati nei diversi flussi della piattaforma.
 - **Controllo degli invii** — Consulta notifiche pianificate e risultati per verificare le comunicazioni automatiche.
@@ -107,6 +112,7 @@ Promuove la propria attività, mantiene aggiornato il programma e misura l’int
 - **Salvataggi e persone interessate** — Osserva l’interesse espresso tramite i salvataggi delle singole date.
 - **Attivazione delle promozioni abilitate** — Seleziona gli eventi da promuovere nell’ambito delle concessioni attive assegnate.
 - **Analytics delle sponsorizzazioni** — Confronta impression, click e rendimento dei posizionamenti delle proprie campagne.
+- **Avanzamento delle proprie sponsorizzazioni** — Una scheda per abilitazione con barra e frase («1.240 di 3.000 visualizzazioni, in linea: al ritmo attuale arrivi all'obiettivo il 28 novembre»), «tutti i tuoi eventi» o gli eventi scelti con i loro numeri, e la spiegazione che le misure sono una stima al ribasso e che le proprie visite non contano. *Solo web; nell'app Android barra e stato nella gestione delle campagne.*
 - **Prenotazioni per appuntamento** — Se abilitato, configura posti, limite per account e apertura delle prenotazioni.
 - **Lista di attesa** — Gestisce la disponibilità con una lista di attesa quando i posti risultano esauriti.
 - **Dati e istruzioni di prenotazione** — Definisce i campi richiesti e le informazioni da comunicare a chi prenota.
@@ -164,7 +170,7 @@ Gestisce la propria identità e gli eventi di competenza, anche quando si svolgo
 - **Statistiche del profilo** — Consulta le visite alla propria pagina pubblica e le interazioni registrate.
 - **Statistiche dei singoli eventi** — Misura visualizzazioni, salvataggi e click sui contenuti di competenza.
 - **Risultati distinti per appuntamento** — Analizza ogni data separatamente per confrontare iniziative e repliche.
-- **Risultati della promozione** — Consulta i dati sponsorizzati disponibili per le campagne associate ai propri contenuti.
+- **Risultati della promozione** — Consulta i dati sponsorizzati disponibili per le campagne associate ai propri contenuti, con la stessa scheda di avanzamento dei locali per ogni abilitazione.
 - **Gestione del ticketing autorizzato** — Accede agli strumenti di prenotazione delle date per cui possiede i permessi previsti.
 - **Ingressi ed elenchi dei partecipanti** — Controlla i biglietti e scarica gli elenchi CSV degli appuntamenti che può gestire.
 - **Visibilità attraverso la piattaforma** — Rende gli eventi disponibili a ricerca, mappa, calendari e persone che seguono l’organizzatore.
@@ -284,7 +290,7 @@ Il valore della piattaforma deriva dall’incontro fra offerta locale, pubblico 
 - **Dalla scoperta all’azione** — Un evento può portare a salvataggio, calendario, contatto, indicazioni, biglietti o prenotazione.
 - **Un contenuto su più superfici** — La scheda alimenta catalogo, mappa, app e materiali social, riducendo il lavoro ripetitivo.
 - **Ritorno del pubblico** — Interessi, calendari e notifiche creano occasioni di ritorno oltre la singola visita.
-- **Visibilità a pagamento misurabile** — Le sponsorizzazioni associano esposizione e click a eventi e posizionamenti precisi.
+- **Visibilità a pagamento misurabile** — Le sponsorizzazioni associano esposizione e click a eventi e posizionamenti precisi, e si possono vendere a periodo o a numero di visualizzazioni con una consegna distribuita nel tempo.
 - **Misure da interpretare correttamente** — Visualizzazioni e click non equivalgono a persone uniche, presenze fisiche o vendite certificate.
 - **Integrazioni da abilitare** — Social, Google Calendar, push, email, WhatsApp e Stripe richiedono credenziali, permessi e servizi configurati.
 - **Accesso ai contenuti Facebook** — L’importazione dipende dalla disponibilità pubblica dei dati e dalle limitazioni della fonte.
@@ -305,6 +311,9 @@ Il valore della piattaforma deriva dall’incontro fra offerta locale, pubblico 
 - **Artisti da seguire** — Oggi la lineup è solo testo.
 - **Importazione da Excel** — Oggi si importano solo file CSV.
 - **Sponsorizzazioni dei co-organizzatori** — Oggi la sponsorizzazione copre l’organizzatore principale.
+- **Pacchetti a visualizzazioni comprabili dal gestore** — Oggi le visualizzazioni le vende la redazione; il listino del gestore resta a mesi.
+- **Prolungamento automatico delle campagne sotto l'obiettivo** — Fino a 7 giorni se ci sono ancora eventi in programma: in attesa di una decisione.
+- **Esplorazione e tetto di frequenza delle sponsorizzazioni** — Scelta dell'evento migliore dentro lo stesso committente e al massimo quattro apparizioni al giorno per chi è collegato.
 - **Altri campi della pagina del locale** — Fascia di prezzo, lingue parlate, animali ammessi, prenotazione consigliata.
 - **Personale di ingresso per locale** — Oggi si assegna data per data.
 - **Chat e gruppi persistenti, pubblicità a click, aggiornamenti in tempo reale** — Rinviati.
@@ -312,6 +321,7 @@ Il valore della piattaforma deriva dall’incontro fra offerta locale, pubblico 
 ## Registro degli aggiornamenti
 
 - **19 novembre 2026 (sera)** — Pannelli di redazione, locale e organizzatore più leggibili: date per esteso, selettore degli eventi con locandina, statistiche con una frase per ogni numero, menu comune, cambio del tema nei pannelli, ritorno indietro in tutte le pagine di servizio.
+- **20 novembre 2026** — Sponsorizzazioni a visualizzazioni con consegna distribuita nel tempo, «tutti gli eventi» come un posto solo, nuova sponsorizzazione in quattro passi con selettore degli eventi, avanzamento con barra e stato per redazione e gestori, avviso del mattino, misure contate dopo un secondo sullo schermo con un gettone usa e getta (anche nell'app Android 1.23.0), card che cambiano a ogni visita anche con la pagina in cache. Nella stessa giornata: il foglio della mappa solo a periodo e contato anche sul sito, il banner del sito che non conta più redazione e committente collegati, gettoni che il testo degli eventi non può più farsi firmare.
 - **19 novembre 2026** — Pagine di servizio ridisegnate con lo stesso impianto, accesso unico, calendario e prossimo evento in home, tre viste degli elenchi da telefono, registrazione e rivendicazione del locale con account, pannello del locale semplificato, sponsorizzazione richiesta senza pagamento online, iscrizioni in evidenza nell'admin, commenti in stile social, «Stasera» passo per passo, prenotazione senza ripetere i dati.
 - **18 novembre 2026** — Aggiunte le funzioni entrate dal 15 settembre: community verificata, «ci vado», commenti, sondaggi, passaggi in auto, analytics completi, link e QR tracciati, acquisto delle sponsorizzazioni, strumenti per le date (domande, messaggi, assenze, lista stampabile, personale su invito, ingressi senza rete), chiusure e avvisi dei locali, co-organizzatori, e una sezione per il pianificato.
 - **15 settembre 2026** — Prima versione.

@@ -11,6 +11,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -234,6 +235,7 @@ internal fun ManagementScreen(session: Session?, padding: PaddingValues, client:
             selectedCampaign != null -> {
                 Text(selectedCampaign.title, style = MaterialTheme.typography.titleLarge)
                 Text("${managementDate(selectedCampaign.startsAt)} — ${managementDate(selectedCampaign.endsAt)}", color = Muted)
+                CampaignProgress(selectedCampaign)
                 selectedCampaign.economics?.let { economics ->
                     MetricLine(R.string.management_spend, managementMoney(economics.spendCents, economics.currency))
                     MetricLine(R.string.management_bookings, economics.bookings?.toString())
@@ -338,6 +340,41 @@ internal fun ManagementScreen(session: Session?, padding: PaddingValues, client:
         Text(stringResource(R.string.management_guest_save))
     }
 }
+
+/**
+ * Le visualizzazioni della campagna: con un obiettivo una barra, «1.240 di
+ * 3.000 visualizzazioni» e lo stato del ritmo; a periodo solo il numero.
+ */
+@Composable private fun CampaignProgress(campaign: ManagedCampaign) {
+    val delivered = campaign.delivered ?: return
+    val goal = campaign.goal
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(stringResource(R.string.management_views), color = Muted)
+        if (goal != null && goal > 0) {
+            Text(stringResource(R.string.management_views_of_goal, managementCount(delivered), managementCount(goal)), style = MaterialTheme.typography.headlineSmall)
+            LinearProgressIndicator(progress = { campaign.progress ?: 0f }, modifier = Modifier.fillMaxWidth().heightIn(min = 8.dp))
+            pacingStateLabel(campaign.pacingState)?.let { Text(stringResource(it), style = MaterialTheme.typography.titleMedium) }
+        } else {
+            Text(pluralStringResource(R.plurals.management_views_delivered, delivered.coerceAtMost(Int.MAX_VALUE.toLong()).toInt(), managementCount(delivered)), style = MaterialTheme.typography.headlineSmall)
+        }
+        Text(stringResource(R.string.management_views_help), color = Muted)
+    }
+}
+
+/** L'etichetta dello stato del ritmo mandato dal server; `null` per uno stato che questa versione non conosce. */
+internal fun pacingStateLabel(state: String?): Int? = when (state) {
+    "on_track" -> R.string.management_pacing_on_track
+    "slightly_behind" -> R.string.management_pacing_slightly_behind
+    "behind" -> R.string.management_pacing_behind
+    "ahead" -> R.string.management_pacing_ahead
+    "at_risk" -> R.string.management_pacing_at_risk
+    "completed" -> R.string.management_pacing_completed
+    "missed" -> R.string.management_pacing_missed
+    else -> null
+}
+
+/** Un numero intero all'italiana: 1.240. */
+internal fun managementCount(value: Long): String = NumberFormat.getIntegerInstance(Locale.ITALIAN).format(value)
 
 /* Lo stesso tetto di `config/ticketing.php` → `messages.daily_limit`. */
 private const val MESSAGE_DAILY_LIMIT = 3

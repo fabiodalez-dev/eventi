@@ -7,6 +7,7 @@ use App\Enums\SponsorshipStatus;
 use App\Models\Sponsorship;
 use App\Models\SponsorshipDailyStat;
 use App\Notifications\SponsorshipWeeklyReport;
+use App\Services\Sponsorship\Delivery\ImpressionToken;
 use Carbon\CarbonImmutable;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Notification;
@@ -62,12 +63,18 @@ it('registra la misura giornaliera quando qualcuno guarda una campagna', functio
     /* Il collegamento fra il controller delle misure e questa tabella: se si
        rompe, i totali continuano a salire e la storia resta vuota — cioe' il
        difetto torna senza che niente lo segnali. */
-    $campagna = Sponsorship::factory()->create();
+    /* Una campagna che può comparire (evento pubblicato con una data in
+       arrivo): la rotta web conta solo quelle, e solo con il gettone della
+       visualizzazione che il browser rimanda in `X-Impression-Token`. */
+    $citta = testCity();
+    $data = occurrenceAtLocal($citta, testCategory(), CarbonImmutable::now($citta->timezone)->addDays(2)->format('Y-m-d 21:00'));
+    $campagna = Sponsorship::factory()->create(['event_id' => $data->event_id, 'city_id' => $citta->id]);
 
-    $this->postJson(route('sponsorships.metric', [
-        'sponsorship' => $campagna,
-        'metric' => 'impressions',
-    ]))->assertNoContent();
+    $this->withHeaders(['User-Agent' => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0 Safari/537.36'])
+        ->postJson(route('sponsorships.metric', [
+            'sponsorship' => $campagna,
+            'metric' => 'impressions',
+        ]), [], ['X-Impression-Token' => ImpressionToken::issue($campagna, $campagna->placement)])->assertNoContent();
 
     /* `sum()` torna una stringa dal driver: il cast dice cosa si sta
        confrontando invece di far fallire il test su un dettaglio del tipo. */

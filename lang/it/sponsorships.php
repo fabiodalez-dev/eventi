@@ -68,6 +68,7 @@ return [
         'singular' => 'Sponsorizzazione',
         'navigation' => 'Sponsorizzazioni',
         'create' => 'Nuova sponsorizzazione',
+        'edit_title' => 'Modifica la sponsorizzazione',
         'analytics' => 'Statistiche e registro clic',
 
         /* Le schede del modulo di una campagna. */
@@ -75,6 +76,7 @@ return [
             'campaign' => 'Campagna',
             'period' => 'Periodo e limiti',
             'client' => 'Cliente e ricavo',
+            'delivery' => 'Visualizzazioni',
         ],
 
         'sections' => [
@@ -84,7 +86,9 @@ return [
             'money' => 'Amministrazione',
             'metrics' => 'Misure',
             'caps' => 'Tetti di consegna',
-            'caps_lead' => 'Per vendere a numero di visualizzazioni invece che a tempo. Vuoti, la campagna dura fino alla data di fine.',
+            'caps_lead' => 'Un massimo che ferma la campagna. Vuoti, la campagna dura fino alla data di fine.',
+            'delivery' => 'Obiettivo e distribuzione',
+            'delivery_lead' => 'Con un obiettivo la campagna è venduta a visualizzazioni: le distribuisco nel periodo seguendo il traffico, e smette di comparire quando le ha date tutte. Vuoto, è venduta a periodo.',
         ],
 
         'fields' => [
@@ -110,6 +114,7 @@ return [
             'weight' => 'Peso in rotazione',
             'impressions_cap' => 'Tetto visualizzazioni',
             'clicks_cap' => 'Tetto aperture',
+            'impressions_goal' => 'Visualizzazioni comprate',
         ],
 
         'help' => [
@@ -122,6 +127,8 @@ return [
             'weight' => 'Quante volte compare rispetto alle altre di pari priorità: peso 3 contro peso 1 significa tre volte su quattro. Serve a vendere lo stesso spazio a più clienti senza che nessuno resti a zero.',
             'impressions_cap' => 'Lasciare vuoto per nessun tetto. Raggiunto il numero, la campagna smette di comparire ma non cambia stato: è finita per esaurimento, non sospesa.',
             'clicks_cap' => 'Come sopra, ma sulle aperture.',
+            'impressions_goal' => 'Lascia vuoto per vendere a periodo. Con un numero, la campagna lo consegna entro la fine e poi smette di comparire.',
+            'delivery_on_grant' => 'Questa riga fa parte di un\'abilitazione: obiettivo, peso, priorità e distribuzione si cambiano nell\'abilitazione, e valgono per tutti i suoi eventi insieme.',
         ],
 
         'filters' => [
@@ -139,12 +146,221 @@ return [
 
         'empty' => [
             'title' => 'Nessuna campagna',
-            'body' => 'Le sponsorizzazioni si creano da qui: un evento, una collocazione, un periodo.',
+            'body' => 'Le sponsorizzazioni si creano da qui: chi paga, un evento o tutti i suoi eventi, una collocazione, un periodo.',
         ],
 
         'validation' => [
             'ends_after_starts' => 'La fine deve venire dopo l\'inizio.',
         ],
+    ],
+
+    /* Il selettore dell'evento da sponsorizzare (`EventPicker`). */
+    'picker' => [
+        'label' => 'Evento',
+        'placeholder' => 'Scegli l\'evento',
+        'search_prompt' => 'Scrivi il titolo dell\'evento o il nome del locale.',
+        'no_results' => 'Non ho trovato eventi sponsorizzabili con queste parole. Si possono sponsorizzare solo eventi pubblicati con una data ancora da fare.',
+        'no_options' => 'Nessun evento sponsorizzabile: servono eventi pubblicati con una data ancora da fare.',
+        'already_sponsored' => 'Già sponsorizzato',
+    ],
+
+    /* Il percorso in quattro passi di «Nuova sponsorizzazione». */
+    'wizard' => [
+        'steps' => [
+            'sponsor' => 'Committente',
+            'sponsor_lead' => 'Chi paga',
+            'what' => 'Cosa',
+            'what_lead' => 'Un evento o tutti',
+            'where' => 'Dove e quanto',
+            'where_lead' => 'Collocazione e periodo',
+            'payment' => 'Pagamento',
+            'payment_lead' => 'E riepilogo',
+        ],
+        'fields' => [
+            'sponsor_type' => 'Chi paga la sponsorizzazione?',
+            'venue' => 'Locale',
+            'organizer' => 'Organizzatore',
+            'scope' => 'Cosa vuoi sponsorizzare?',
+            'venue_filter' => 'Filtra per locale',
+            'months' => 'Durata',
+            'product' => 'Come si vende',
+            'goal' => 'Visualizzazioni comprate',
+            'pacing' => 'Distribuzione',
+            'complimentary' => 'Gratuita',
+            'complimentary_reason' => 'Perché è gratuita',
+            'status' => 'Quando salvo',
+        ],
+        'sponsor_types' => [
+            'venue' => 'Un locale',
+            'venue_lead' => 'Il locale sponsorizza i propri eventi.',
+            'organizer' => 'Un organizzatore',
+            'organizer_lead' => 'L\'organizzatore sponsorizza gli eventi che firma, in qualunque locale.',
+            'external' => 'Un committente esterno',
+            'external_lead' => 'Qualcuno che non è né il locale né l\'organizzatore: per esempio un\'etichetta che promuove un concerto in un circolo.',
+        ],
+        'placeholders' => [
+            'venue' => 'Cerca il locale per nome',
+            'search_venue' => 'Scrivi il nome del locale.',
+            'no_venue' => 'Non ho trovato locali approvati con questo nome.',
+            'organizer' => 'Cerca l\'organizzatore per nome',
+            'search_organizer' => 'Scrivi il nome dell\'organizzatore.',
+            'no_organizer' => 'Non ho trovato organizzatori attivi con questo nome.',
+            'venue_filter' => 'Tutti i locali',
+            'custom_duration' => 'Date a scelta',
+        ],
+        'sections' => [
+            'advertiser' => 'Nome e contatti del committente',
+            'advertiser_lead' => 'Si compilano dal locale o dall\'organizzatore scelto e si possono cambiare. Il nome compare al pubblico accanto alla scritta «Sponsorizzato».',
+            'period' => 'Periodo',
+            'period_lead' => 'Date e ore nel fuso della città (:timezone).',
+            'product' => 'Prodotto',
+            'payment' => 'Pagamento',
+            'advanced' => 'Opzioni avanzate',
+            'advanced_lead' => 'Priorità e peso. Di solito non servono: lasciale come sono se non sai di averne bisogno.',
+        ],
+        'scopes' => [
+            'event' => 'Un evento',
+            'event_lead' => 'Una campagna su un evento scelto da te.',
+            'all' => 'Tutti gli eventi',
+            'all_lead' => 'Un\'abilitazione: tutti gli eventi di oggi e quelli che arriveranno, con un avanzamento solo.',
+        ],
+        'help' => [
+            'venue_filter' => 'Facoltativo: restringe l\'elenco degli eventi a un locale.',
+            'event_sponsor' => 'Solo gli eventi del committente pubblicati e con una data ancora da fare. Puoi cercare per titolo o per locale.',
+            'event_external' => 'Tutti gli eventi pubblicati con una data ancora da fare. Puoi cercare per titolo o per nome del locale.',
+            'hero_period_only' => 'L\'apertura della home si vende solo a periodo: resta uguale per tutti per mezz\'ora alla volta, quindi non posso garantire un numero preciso di visualizzazioni.',
+            'map_period_only' => 'Il foglio della mappa si vende solo a periodo: lo vede solo chi apre il locale sulla mappa, quindi non posso garantire un numero preciso di visualizzazioni.',
+            'period_only' => 'L\'apertura della home e il foglio della mappa si vendono solo a periodo: scegli «a periodo» oppure un\'altra collocazione.',
+            'goal' => 'Quante visualizzazioni prometti. La campagna smette di comparire quando le ha date tutte.',
+            'complimentary' => 'Una sponsorizzazione senza pagamento, per esempio un patrocinio. Il motivo è obbligatorio.',
+            'paid_at' => 'Senza data di pagamento l\'abilitazione resta in attesa e gli eventi non compaiono.',
+            'price_from_list' => 'Dal listino: :price per :months.',
+            'price_none' => 'Nessuna voce di listino per questa collocazione e durata: scrivi tu l\'importo.',
+        ],
+        'products' => [
+            'period' => 'A periodo',
+            'period_lead' => 'Compare per tutto il periodo, a rotazione con le altre di pari priorità.',
+            'views' => 'A visualizzazioni',
+            'views_lead' => 'Un numero di visualizzazioni da consegnare entro la fine del periodo.',
+        ],
+        'months' => '{1} 1 mese|[2,*] :count mesi',
+        'statuses' => [
+            'active' => 'Attiva subito',
+            'draft' => 'Bozza: la salvo ma non compare',
+        ],
+        'estimate' => [
+            'heading' => 'In questo periodo lo spazio può dare circa :views visualizzazioni.',
+            'days' => '{1} Calcolate su un giorno di dati.|[2,*] Calcolate su :count giorni di dati.',
+            'no_data' => 'Non ho ancora dati misurati: è un valore di partenza, non una misura.',
+            'provisional' => 'Stima provvisoria.',
+            'ok' => 'L\'obiettivo ci sta.',
+            'warning' => 'L\'obiettivo chiede il :share% dello spazio: è molto, e nello stesso periodo resterebbe poco agli altri.',
+            'blocked' => 'L\'obiettivo supera l\'80% di quello che lo spazio può dare, il massimo che do a una sola campagna: allunga il periodo o abbassa il numero.',
+        ],
+        'all_events' => [
+            'count' => '{0} :sponsor oggi non ha eventi sponsorizzabili.|{1} :sponsor oggi ha un evento sponsorizzabile.|[2,*] :sponsor oggi ha :count eventi sponsorizzabili.',
+            'lead' => 'Gli eventi nuovi si aggiungono da soli, finché l\'abilitazione è attiva.',
+            'more' => '{1} E un altro evento.|[2,*] E altri :count eventi.',
+            'no_sponsor' => 'Scegli prima il committente.',
+        ],
+        'occupants' => [
+            'heading' => 'Chi occupa già questo spazio',
+            'waiting' => 'Scegli collocazione e periodo per vedere chi c\'è già.',
+            'empty' => 'Nessuno: in questo periodo lo spazio è libero.',
+            'lead' => '{1} Nello stesso periodo c\'è già una campagna: si alterneranno.|[2,*] Nello stesso periodo ci sono già :count campagne: si alterneranno.',
+            'hero_warning' => 'C\'è già un\'altra campagna in apertura della home: con l\'apertura le quote si rispettano meno bene, perché la scelta resta ferma mezz\'ora alla volta.',
+            'single' => 'un evento',
+            'events' => '{0} nessun evento per ora|{1} un evento|[2,*] :count eventi',
+            'period' => 'a periodo',
+            'goal' => ':goal visualizzazioni',
+        ],
+        'summary' => [
+            'heading' => 'Riepilogo',
+            'lead_single' => 'Salvando creo una campagna su questo evento.',
+            'lead_grant' => 'Salvando creo un\'abilitazione per tutti gli eventi e aggiungo subito quelli di oggi.',
+            'advertiser' => 'Committente',
+            'what' => 'Cosa',
+            'all_events' => '{0} Tutti gli eventi di :sponsor (oggi nessuno)|{1} Tutti gli eventi di :sponsor (oggi uno)|[2,*] Tutti gli eventi di :sponsor (oggi :count)',
+            'where' => 'Collocazione',
+            'when' => 'Periodo',
+            'product' => 'Prodotto',
+            'period' => 'A periodo',
+            'views' => ':goal visualizzazioni, :pacing',
+            'payment' => 'Pagamento',
+            'complimentary' => 'Gratuita',
+            'no_amount' => 'Nessun importo',
+            'status' => 'Stato',
+            'advanced' => 'Priorità e peso',
+            'advanced_value' => 'priorità :priority, peso :weight',
+            'missing' => 'Da scegliere',
+            'unpaid_warning' => 'Manca la data di pagamento: l\'abilitazione resta in attesa e gli eventi non compaiono finché non la registri.',
+            'grant_name' => 'Nella fascia «Sponsorizzato» degli eventi comparirà il nome «:name».',
+        ],
+        'validation' => [
+            'sponsor_required' => 'Scegli il locale o l\'organizzatore.',
+            'event_not_sponsorable' => 'Questo evento non si può sponsorizzare: deve essere del committente, pubblicato e con una data ancora da fare.',
+            'goal_blocked' => 'Lo spazio in questo periodo può dare circa :estimate visualizzazioni, e a una sola campagna ne do al massimo :max: allunga il periodo o abbassa l\'obiettivo.',
+        ],
+        'created' => 'Campagna creata',
+        'created_grant' => '{0} Abilitazione creata: per ora nessun evento da mostrare|{1} Abilitazione creata con un evento|[2,*] Abilitazione creata con :count eventi',
+    ],
+
+    /* Come un'unità a visualizzazioni spende il suo obiettivo. */
+    'pacing' => [
+        'even' => 'Distribuita nel periodo',
+        'even_lead' => 'Seguendo il traffico ora per ora, fino alla fine.',
+        'asap' => 'Il prima possibile',
+        'asap_lead' => 'Con la quota più alta finché non arriva all\'obiettivo.',
+    ],
+
+    /* A che punto è un'unità a visualizzazioni (`PacingState`), più «a periodo». */
+    'pacing_state' => [
+        'on_track' => 'In linea',
+        'slightly_behind' => 'In leggero ritardo',
+        'behind' => 'In ritardo',
+        'ahead' => 'In anticipo',
+        'at_risk' => 'A rischio',
+        'completed' => 'Obiettivo raggiunto',
+        'missed' => 'Chiusa sotto l\'obiettivo',
+        'period' => 'A periodo',
+    ],
+
+    /* L'avanzamento negli elenchi e nella scheda. */
+    'progress' => [
+        'column' => 'Avanzamento',
+        'filter' => 'Avanzamento',
+        'heading' => 'Avanzamento',
+        'lead' => 'Quante visualizzazioni ha dato e come sta andando rispetto all\'atteso.',
+        'of_goal' => ':delivered di :goal',
+        'views_only' => '{0} Nessuna visualizzazione|{1} Una visualizzazione|[2,*] :count visualizzazioni',
+        'sentence' => ':delivered di :goal visualizzazioni: :state.',
+        'period_sentence' => '{0} Nessuna visualizzazione finora. È venduta a periodo, senza obiettivo.|{1} Una visualizzazione finora. È venduta a periodo, senza obiettivo.|[2,*] :count visualizzazioni finora. È venduta a periodo, senza obiettivo.',
+        'bar_legend' => '{0} La linea sulla barra è l\'atteso a oggi: ancora nessuna visualizzazione.|{1} La linea sulla barra è l\'atteso a oggi: circa una visualizzazione.|[2,*] La linea sulla barra è l\'atteso a oggi: circa :expected visualizzazioni.',
+        'true_end' => 'Consegna fino a :date',
+        'quota_over' => 'oltre il :max%',
+        'delivered_today' => 'Consegnate oggi',
+        'delivered_today_hint' => 'Dalla mezzanotte, nel fuso della città.',
+        'required_quota' => 'Quota richiesta',
+        'required_quota_hint' => 'La parte dello spazio che le serve da adesso per arrivare all\'obiettivo.',
+        'days_left' => 'Giorni rimasti',
+        'days_left_hint' => 'Fino alla fine vera: la fine del periodo o l\'ultima data degli eventi, se viene prima.',
+        'provisional' => 'La previsione del traffico è provvisoria: ci sono meno di :days giorni di dati misurati.',
+        'daily' => 'Giorno per giorno',
+        'daily_empty' => 'Il periodo non è ancora cominciato.',
+        'daily_row' => ':delivered consegnate · :expected attese',
+        'events' => 'Gli eventi',
+        'events_lead' => 'La quota è la parte delle visualizzazioni che ogni evento riceve oggi dentro l\'abilitazione: di più a chi ha la data più vicina.',
+        'event_numbers' => ':views visualizzazioni · :clicks aperture',
+        'event_share' => 'quota :share%',
+        'event_no_share' => 'nessuna data in arrivo',
+        'no_unit' => 'Non riesco a calcolare l\'avanzamento: manca la città della campagna.',
+    ],
+
+    /* Le abilitazioni («Abilitazioni e pagamenti»). */
+    'grant' => [
+        'delivery' => 'Consegna',
+        'edit_title' => 'Modifica l\'abilitazione',
+        'delivery_lead' => 'Valgono per tutti gli eventi dell\'abilitazione insieme. Con un obiettivo l\'abilitazione è venduta a visualizzazioni; vuoto, a periodo.',
     ],
 
     'venue' => [

@@ -30,18 +30,29 @@ internal class ApiClient(
 
     suspend fun sponsorshipMetric(banner: SponsoredBanner, click: Boolean, page: String) = withContext(Dispatchers.IO) {
         if (!banner.validAt()) return@withContext
+        client.newCall(sponsorshipMetricRequest(banner, click, page)).execute().use { /* A metric returns 204, not a JSON envelope. */ }
+    }
+
+    /**
+     * La richiesta di una misura del banner. Porta sempre il gettone
+     * giornaliero (`X-Metric-Token`), che ogni versione del server accetta, e
+     * in più quello usa e getta (`X-Impression-Token`) quando il server l'ha
+     * mandato: il server conta una volta per gettone, e un clic arrivato prima
+     * della sua visualizzazione registra tutte e due.
+     */
+    internal fun sponsorshipMetricRequest(banner: SponsoredBanner, click: Boolean, page: String, clickId: String = UUID.randomUUID().toString()): Request {
         val metric = if (click) "clicks" else "impressions"
-        val request = Request.Builder()
+        return Request.Builder()
             .url(BuildConfig.API_BASE_URL + "reports/sponsorships/${banner.id}/metrics/$metric")
             .header("Accept", "application/json")
             .header("X-Installation-ID", installationId)
             .header("X-Metric-Token", banner.metricToken)
+            .apply { banner.impressionToken?.takeIf { it.isNotBlank() }?.let { header("X-Impression-Token", it) } }
             .post(json.encodeToString(buildMap {
                 put("placement", "banner")
                 put("page", page)
-                if (click) put("click_id", java.util.UUID.randomUUID().toString())
+                if (click) put("click_id", clickId)
             }).toRequestBody(JSON_MEDIA)).build()
-        client.newCall(request).execute().use { /* A metric returns 204, not a JSON envelope. */ }
     }
 
     suspend inline fun <reified T, reified B> post(

@@ -172,7 +172,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun consumeCommunityDestination(url: String) {
         if(_state.value.communityDestination == url) _state.value = _state.value.copy(communityDestination = null)
     }
-    private val bannerImpressions = mutableSetOf<Long>()
+    /* Le visualizzazioni già mandate: una per gettone (vedi `impressionKey`). */
+    private val bannerImpressions = mutableSetOf<String>()
     private var discoveryGeneration = 0
 
     suspend fun refreshSponsoredBanner(excludeEvent: String?) {
@@ -202,7 +203,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun clearSponsoredBanner() { _state.value = _state.value.copy(sponsoredBanner = null) }
 
     fun bannerMetric(banner: it.fabiodalez.incitta.data.SponsoredBanner, click: Boolean) {
-        if (!banner.validAt() || (!click && !bannerImpressions.add(banner.id))) return
+        if (!banner.validAt() || (!click && !bannerImpressions.add(banner.impressionKey))) return
         val current = _state.value
         val page = when {
             current.selected != null -> "event"

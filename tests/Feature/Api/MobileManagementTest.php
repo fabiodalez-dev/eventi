@@ -69,3 +69,27 @@ it('restricts campaign economics to authorized venues and suppresses small sampl
     $this->getJson('/api/v1/management/campaigns')->assertJsonCount(0, 'data');
     $this->getJson('/api/v1/management/campaigns/'.$campaign->id)->assertNotFound();
 });
+
+it('adds the delivery progress to the managed campaigns without changing the old fields', function (): void {
+    /* D70: le risposte di gestione guadagnano goal, delivered e pacing_state,
+       solo come campi aggiunti. A periodo l'obiettivo e lo stato sono null. */
+    $period = Sponsorship::factory()->create(['event_id' => $this->date->event_id, 'impressions' => 7, 'starts_at' => now()->subDay(), 'ends_at' => now()->addDay()]);
+    $goal = Sponsorship::factory()->create(['event_id' => $this->date->event_id, 'impressions' => 1000, 'impressions_goal' => 1000, 'starts_at' => now()->subDay(), 'ends_at' => now()->addDay()]);
+    Sanctum::actingAs($this->owner);
+
+    $list = $this->getJson('/api/v1/management/campaigns')->assertOk()->json('data');
+    $byId = collect($list)->keyBy('id');
+    expect($byId[$period->id])->toHaveKeys(['id', 'title', 'starts_at', 'ends_at', 'goal', 'delivered', 'pacing_state'])
+        ->and($byId[$period->id]['goal'])->toBeNull()
+        ->and($byId[$period->id]['delivered'])->toBe(7)
+        ->and($byId[$period->id]['pacing_state'])->toBeNull()
+        ->and($byId[$goal->id]['goal'])->toBe(1000)
+        ->and($byId[$goal->id]['delivered'])->toBe(1000)
+        ->and($byId[$goal->id]['pacing_state'])->toBe('completed');
+
+    $this->getJson('/api/v1/management/campaigns/'.$goal->id)->assertOk()
+        ->assertJsonPath('data.economics.spend_cents', $goal->amount_cents)
+        ->assertJsonPath('data.goal', 1000)
+        ->assertJsonPath('data.delivered', 1000)
+        ->assertJsonPath('data.pacing_state', 'completed');
+});

@@ -20,6 +20,8 @@ use App\Services\Sponsorship\GrantCampaigns;
 use App\Services\Sponsorship\OrderNoLongerPayable;
 use App\Services\Sponsorship\Payment\PaymentGatewayException;
 use App\Services\Sponsorship\SponsorshipOrders;
+use App\Services\Sponsorship\SponsorshipProgress;
+use App\Services\Sponsorship\UnitProgress;
 use App\Support\Sponsorship\SponsorableEvents;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -29,6 +31,8 @@ use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection as SupportCollection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Livewire\WithPagination;
@@ -60,6 +64,9 @@ abstract class SponsorshipsPage extends Page
 
     private const EVENTS_PAGE = 6;
 
+    /** Quanti eventi mostra la scheda di un'abilitazione prima di «mostra gli altri». */
+    public const GRANT_EVENTS_SHOWN = 5;
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedMegaphone;
 
     protected static ?int $navigationSort = 7;
@@ -85,6 +92,15 @@ abstract class SponsorshipsPage extends Page
 
     /** L'abilitazione attiva con cui si stanno scegliendo eventi da mettere in evidenza subito. */
     public ?int $grantId = null;
+
+    /**
+     * Le abilitazioni di cui la scheda mostra tutti gli eventi, non solo i
+     * primi. Serve solo a disegnare: le schede sono sempre quelle del
+     * committente (`grants()`), un id altrui qui non apre niente.
+     *
+     * @var list<int>
+     */
+    public array $openGrants = [];
 
     abstract protected function sponsor(): Venue|Organizer;
 
@@ -385,10 +401,92 @@ abstract class SponsorshipsPage extends Page
      * Richieste, ordini, abilitazioni e campagne.
      * --------------------------------------------------------------- */
 
-    /** @return Collection<int, SponsorshipGrant> */
+    /**
+     * Le abilitazioni del committente, anche scadute, con le righe evento
+     * (senza quelle nel cestino) già caricate per la scheda.
+     *
+     * @return Collection<int, SponsorshipGrant>
+     */
     public function grants(): Collection
     {
-        return SponsorshipGrant::query()->forSponsor($this->sponsor())->with(['venue', 'organizer'])->orderByDesc('ends_at')->get();
+        return SponsorshipGrant::query()->forSponsor($this->sponsor())
+            ->with(['venue.city', 'organizer.city', 'sponsorships' => fn ($rows) => $rows->with(['event.media', 'event.venue', 'event.city'])->orderByDesc('impressions')->orderBy('id')])
+            ->orderByDesc('ends_at')->get();
+    }
+
+    /**
+     * L'avanzamento di ogni abilitazione: barra, stato e frase.
+     *
+     * @param  Collection<int, SponsorshipGrant>  $grants
+     * @return array<int, UnitProgress>
+     */
+    public function grantProgress(Collection $grants): array
+    {
+        return app(SponsorshipProgress::class)->grants($grants);
+    }
+
+    /**
+     * L'avanzamento delle campagne della redazione, ognuna un'unità a sé.
+     *
+     * @param  iterable<Sponsorship>  $campaigns
+     * @return array<int, UnitProgress>
+     */
+    public function campaignProgress(iterable $campaigns): array
+    {
+        return app(SponsorshipProgress::class)->campaigns($campaigns);
+    }
+
+    /**
+     * Le righe evento di un'abilitazione nell'ordine della scheda: quelle
+     * con un evento ancora leggibile, le più viste in cima.
+     *
+     * @return SupportCollection<int, Sponsorship>
+     */
+    public function grantRows(SponsorshipGrant $grant): SupportCollection
+    {
+        return $grant->sponsorships->filter(fn (Sponsorship $row): bool => $row->event !== null)->values();
+    }
+
+    public function toggleGrantEvents(int $id): void
+    {
+        $this->openGrants = in_array($id, $this->openGrants, true)
+            ? array_values(array_diff($this->openGrants, [$id]))
+            : [...$this->openGrants, $id];
+    }
+
+    /**
+     * La data da mostrare per ogni evento: la prossima, oppure l'ultima se
+     * sono tutte passate. Una lettura per tutta la pagina, invece di una per
+     * riga dentro `event-row`.
+     *
+     * @param  iterable<Sponsorship>  $rows
+     * @return array<int, string>
+     */
+    public function eventDates(iterable $rows): array
+    {
+        $ids = [];
+        foreach ($rows as $row) {
+            $ids[] = (int) $row->event_id;
+        }
+
+        if ($ids === []) {
+            return [];
+        }
+
+        $dates = [];
+        $rows = DB::table('event_occurrences')->whereIn('event_id', array_values(array_unique($ids)))->whereNull('deleted_at')
+            ->groupBy('event_id')
+            ->selectRaw('event_id, MIN(CASE WHEN effective_ends_at > ? THEN starts_at END) AS next_start, MAX(starts_at) AS last_start', [now('UTC')->format('Y-m-d H:i:s')])
+            ->get();
+
+        foreach ($rows as $row) {
+            $date = $row->next_start ?? $row->last_start;
+            if (is_numeric($row->event_id) && is_string($date)) {
+                $dates[(int) $row->event_id] = $date;
+            }
+        }
+
+        return $dates;
     }
 
     /** @return Collection<int, SponsorshipOrder> */
@@ -462,16 +560,27 @@ abstract class SponsorshipsPage extends Page
         Notification::make()->title(__('promotions.stopped'))->success()->send();
     }
 
-    /** @return LengthAwarePaginator<int, Sponsorship> */
+    /**
+     * Le campagne della redazione sui propri eventi, cioè quelle senza
+     * abilitazione: le righe delle abilitazioni stanno nella scheda della
+     * loro abilitazione.
+     *
+     * @return LengthAwarePaginator<int, Sponsorship>
+     */
     public function sponsorships(): LengthAwarePaginator
     {
-        return $this->campaignsQuery()->with(['event.media', 'grant'])->orderByDesc('ends_at')->paginate(10);
+        return $this->campaignsQuery()->whereNull('sponsorship_grant_id')->with(['event.media', 'event.city'])->orderByDesc('ends_at')->paginate(10);
     }
 
-    /** @return array{impressions: int, clicks: int} */
+    /**
+     * I totali di tutte le sponsorizzazioni sui propri eventi, comprese le
+     * righe tolte: le visualizzazioni date restano date, come nell'avanzamento.
+     *
+     * @return array{impressions: int, clicks: int}
+     */
     public function totals(): array
     {
-        $totals = $this->campaignsQuery()
+        $totals = $this->campaignsQuery()->withTrashed()
             ->selectRaw('COALESCE(SUM(impressions), 0) as impressions, COALESCE(SUM(clicks), 0) as clicks')->first();
 
         return ['impressions' => (int) $totals?->impressions, 'clicks' => (int) $totals?->clicks];

@@ -1,0 +1,275 @@
+{
+    "home": {
+        "hero": {
+            "id": "int",
+            "label": "string",
+            "placement": "string",
+            "advertiser": {
+                "name": "string",
+                "url": "string"
+            },
+            "occurrence": {
+                "occurrence_id": "int",
+                "interested_count": "int",
+                "url_number": "int",
+                "date_url": "string",
+                "previous_starts_at": "null",
+                "event_id": "int",
+                "event_slug": "string",
+                "starts_at": "string",
+                "ends_at": "null",
+                "effective_ends_at": "string",
+                "ends_at_estimated": "bool",
+                "doors_at": "null",
+                "is_all_day": "bool",
+                "business_date": "string",
+                "status": "string",
+                "status_note": "null",
+                "highlight": "null",
+                "capacity": "null",
+                "capacity_left": "null",
+                "availability": "null",
+                "booking_enabled": "bool",
+                "booking_opens_at": "null",
+                "title": "string",
+                "subtitle": "null",
+                "short_description": "string",
+                "poster": "null",
+                "venue": {
+                    "id": "int",
+                    "slug": "string",
+                    "name": "string",
+                    "municipality": "string",
+                    "zone": "string",
+                    "lat": "float",
+                    "lng": "float",
+                    "is_verified": "bool"
+                },
+                "custom_location": "null",
+                "category": {
+                    "id": "int",
+                    "slug": "string",
+                    "name": "string",
+                    "color": "string"
+                },
+                "tags": "null",
+                "price": {
+                    "type": "string",
+                    "min": "null",
+                    "max": "null",
+                    "currency": "string",
+                    "notes": "null",
+                    "ticket_url": "null"
+                },
+                "declared_costs": "null",
+                "is_outdoor": "bool",
+                "sponsored": {
+                    "advertiser": "string"
+                },
+                "url": "string",
+                "deep_link": "string",
+                "actions": {
+                    "web": "string",
+                    "calendar": "string",
+                    "poster_pdf": "string",
+                    "google_maps": "string",
+                    "apple_maps": "string",
+                    "openstreetmap": "string"
+                },
+                "content_updated_at": "string",
+                "updated_at": "string"
+            },
+            "metric_token": "string",
+            "metric_url": "string"
+        },
+        "card": {
+            "id": "int",
+            "label": "string",
+            "placement": "string",
+            "advertiser": {
+                "name": "string",
+                "url": "string"
+            },
+            "occurrence": {
+                "occurrence_id": "int",
+                "interested_count": "int",
+                "url_number": "int",
+                "date_url": "string",
+                "previous_starts_at": "null",
+                "event_id": "int",
+                "event_slug": "string",
+                "starts_at": "string",
+                "ends_at": "null",
+                "effective_ends_at": "string",
+                "ends_at_estimated": "bool",
+                "doors_at": "null",
+                "is_all_day": "bool",
+                "business_date": "string",
+                "status": "string",
+                "status_note": "null",
+                "highlight": "null",
+                "capacity": "null",
+                "capacity_left": "null",
+                "availability": "null",
+                "booking_enabled": "bool",
+                "booking_opens_at": "null",
+                "title": "string",
+                "subtitle": "null",
+                "short_description": "string",
+                "poster": "null",
+                "venue": {
+                    "id": "int",
+                    "slug": "string",
+                    "name": "string",
+                    "municipality": "string",
+                    "zone": "string",
+                    "lat": "float",
+                    "lng": "float",
+                    "is_verified": "bool"
+                },
+                "custom_location": "null",
+                "category": {
+                    "id": "int",
+                    "slug": "string",
+                    "name": "string",
+                    "color": "string"
+                },
+                "tags": "null",
+                "price": {
+                    "type": "string",
+                    "min": "null",
+                    "max": "null",
+                    "currency": "string",
+                    "notes": "null",
+                    "ticket_url": "null"
+                },
+                "declared_costs": "null",
+                "is_outdoor": "bool",
+                "sponsored": {
+                    "advertiser": "string"
+                },
+                "url": "string",
+                "deep_link": "string",
+                "actions": {
+                    "web": "string",
+                    "calendar": "string",
+                    "poster_pdf": "string",
+                    "google_maps": "string",
+                    "apple_maps": "string",
+                    "openstreetmap": "string"
+                },
+                "content_updated_at": "string",
+                "updated_at": "string"
+            },
+            "metric_token": "string",
+            "metric_url": "string"
+        }
+    },
+    "sponsorships": {
+        "data": {
+            "list": {
+                "id": "int",
+                "label": "string",
+                "placement": "string",
+                "advertiser": {
+                    "name": "string",
+                    "url": "string"
+                },
+                "occurrence": {
+                    "occurrence_id": "int",
+                    "interested_count": "int",
+                    "url_number": "int",
+                    "date_url": "string",
+                    "previous_starts_at": "null",
+                    "event_id": "int",
+                    "event_slug": "string",
+                    "starts_at": "string",
+                    "ends_at": "null",
+                    "effective_ends_at": "string",
+                    "ends_at_estimated": "bool",
+                    "doors_at": "null",
+                    "is_all_day": "bool",
+                    "business_date": "string",
+                    "status": "string",
+                    "status_note": "null",
+                    "highlight": "null",
+                    "capacity": "null",
+                    "capacity_left": "null",
+                    "availability": "null",
+                    "booking_enabled": "bool",
+                    "booking_opens_at": "null",
+                    "title": "string",
+                    "subtitle": "null",
+                    "short_description": "string",
+                    "poster": "null",
+                    "venue": {
+                        "id": "int",
+                        "slug": "string",
+                        "name": "string",
+                        "municipality": "string",
+                        "zone": "string",
+                        "lat": "float",
+                        "lng": "float",
+                        "is_verified": "bool"
+                    },
+                    "custom_location": "null",
+                    "category": {
+                        "id": "int",
+                        "slug": "string",
+                        "name": "string",
+                        "color": "string"
+                    },
+                    "tags": "null",
+                    "price": {
+                        "type": "string",
+                        "min": "null",
+                        "max": "null",
+                        "currency": "string",
+                        "notes": "null",
+                        "ticket_url": "null"
+                    },
+                    "declared_costs": "null",
+                    "is_outdoor": "bool",
+                    "sponsored": {
+                        "advertiser": "string"
+                    },
+                    "url": "string",
+                    "deep_link": "string",
+                    "actions": {
+                        "web": "string",
+                        "calendar": "string",
+                        "poster_pdf": "string",
+                        "google_maps": "string",
+                        "apple_maps": "string",
+                        "openstreetmap": "string"
+                    },
+                    "content_updated_at": "string",
+                    "updated_at": "string"
+                },
+                "metric_token": "string",
+                "metric_url": "string"
+            }
+        },
+        "meta": {
+            "next_cursor": "null",
+            "has_more": "bool"
+        }
+    },
+    "banner": {
+        "data": {
+            "id": "int",
+            "event_slug": "string",
+            "occurrence_id": "int",
+            "title": "string",
+            "when": "string",
+            "place": "string",
+            "category": "string",
+            "price": "string",
+            "advertiser": "string",
+            "image": "null",
+            "url": "string",
+            "expires_at": "string",
+            "metric_token": "string"
+        }
+    }
+}
