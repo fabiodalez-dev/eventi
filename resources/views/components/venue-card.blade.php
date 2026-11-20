@@ -92,7 +92,7 @@
 
         <div class="venue-card__description">
             @if ($venue->short_description)
-                <p class="text-sm text-ink-muted">{{ $venue->short_description }}</p>
+                <p class="text-sm whitespace-pre-line text-ink-muted">{{ trim($venue->short_description) }}</p>
             @endif
         </div>
 

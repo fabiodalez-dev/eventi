@@ -71,7 +71,7 @@ final class AccountExport
                 'blocks' => UserBlock::query()->where('user_id', $user->id)->pluck('blocked_user_id')->all(),
             ],
             'exported_at' => ApiDate::instant(now(), $timezone),
-            'bookings' => Booking::query()->where('user_id', $user->id)->with('tickets')->get()
+            'bookings' => Booking::query()->where('user_id', $user->id)->with(['tickets', 'occurrence.venue', 'occurrence.event.venue', 'occurrence.event.media', 'occurrence.event.organizer'])->get()
                 ->map(fn ($booking) => BookingResource::toArray($booking))->all(),
             'profile' => [
                 'id' => (int) $user->getKey(),

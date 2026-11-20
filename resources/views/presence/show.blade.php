@@ -17,7 +17,7 @@
                 @endif
             </x-service-event-row>
             @if ($share->note)
-                <p class="m-0 border-l-4 border-accent pl-3 text-ink">{{ $share->note }}</p>
+                <p class="m-0 border-l-4 border-accent pl-3 whitespace-pre-line break-words text-ink">{{ trim($share->note) }}</p>
             @endif
         </x-card>
         <x-form-actions>

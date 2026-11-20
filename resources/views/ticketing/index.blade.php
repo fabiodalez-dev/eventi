@@ -64,18 +64,13 @@
                 @foreach ($booking->tickets as $ticket)
                     @php $status = $ticket->displayStatus(); @endphp
                     <div @class(['flex flex-col gap-4', 'border-t border-line pt-5' => ! $loop->first]) data-ticket>
-                        <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
-                            <h3 class="font-display text-lg font-extrabold text-ink">{{ $ticket->attendee_name }}</h3>
-                            <x-badge :tone="$ticketTone($status)" size="sm">{{ __('ticketing.statuses.'.$status->value) }}</x-badge>
-                            <span class="text-sm text-ink-muted">#{{ $ticket->id }}</span>
-                        </div>
-                        @if ($status === \App\Enums\AdmissionStatus::Valid && $impersonating)
-                            <p class="text-sm text-ink-muted">{{ __('ticketing.qr_impersonating') }}</p>
-                        @elseif ($status === \App\Enums\AdmissionStatus::Valid)
-                            <figure class="flex flex-col gap-2">
-                                <div class="w-fit bg-white p-4" role="img" aria-label="{{ __('ticketing.tickets_page.qr_label') }} · {{ __('ticketing.ticket') }} #{{ $ticket->id }}">{!! \SimpleSoftwareIO\QrCode\Facades\QrCode::size(224)->margin(2)->generate($ticket->code) !!}</div>
-                                <figcaption class="text-xs text-ink-muted">{{ __('ticketing.qr_hint') }}</figcaption>
-                            </figure>
+                        <x-ticket-pass :ticket="$ticket" :booking="$booking" :position="$loop->iteration" :total="$loop->count" :qr="! $impersonating">
+                            @if ($status === \App\Enums\AdmissionStatus::Valid && $impersonating)
+                                <x-slot:stub><p class="text-sm text-ink-muted">{{ __('ticketing.qr_impersonating') }}</p></x-slot:stub>
+                            @endif
+                        </x-ticket-pass>
+                        @if ($status === \App\Enums\AdmissionStatus::Valid && ! $impersonating)
+                            <p class="text-xs text-ink-muted">{{ __('ticketing.qr_hint') }}</p>
                             <div class="flex flex-wrap gap-3">
                                 <x-button variant="secondary" size="sm" :href="route('tickets.pdf', $ticket)"><x-lucide name="download" class="size-4" />{{ __('ticketing.pdf') }}</x-button>
                             </div>

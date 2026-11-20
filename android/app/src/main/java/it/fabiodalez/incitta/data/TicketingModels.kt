@@ -27,6 +27,8 @@ data class Booking(
     @SerialName("occurrence_id") val occurrenceId: Long,
     val title: String,
     @SerialName("event_slug") val eventSlug: String? = null,
+    val poster: Poster? = null,
+    val organizer: String? = null,
     val venue: String? = null,
     val address: String? = null,
     @SerialName("starts_at") val startsAt: String? = null,

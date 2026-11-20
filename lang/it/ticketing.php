@@ -297,4 +297,11 @@ return [
         'failed' => 'Ricerca non disponibile. Premi Cerca per riprovare.',
     ],
     'camera_denied' => 'Accesso alla fotocamera negato. Consenti la fotocamera nelle impostazioni del browser e riprova.',
+    'pass' => [
+        'of' => ':position di :total',
+        'organizer' => 'Organizza :name',
+        'date' => 'Data', 'time' => 'Ora', 'place' => 'Luogo', 'holder' => 'Intestatario',
+        'number' => 'Biglietto n.', 'show_at_door' => 'Da mostrare all’ingresso',
+        'instructions' => 'Indicazioni per l’ingresso',
+    ],
 ];

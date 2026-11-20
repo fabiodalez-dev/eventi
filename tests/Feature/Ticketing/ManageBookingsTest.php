@@ -65,8 +65,10 @@ it('filtra le prenotazioni per stato e ignora i filtri sconosciuti', function ()
     $this->get(route('ticketing.manage.show', ['occurrence' => $date, 'status' => 'qualunque']))->assertOk()
         ->assertSee('Anna Entrata')->assertSee('Carla Annullata')->assertSee('Dario Coda');
     // Il filtro e la ricerca si sommano, e la ricerca vuota lo dice.
-    $this->get(route('ticketing.manage.show', ['occurrence' => $date, 'status' => 'waitlisted', 'q' => 'Anna']))->assertOk()
+    $this->get(route('ticketing.manage.show', ['occurrence' => $date, 'status' => 'waitlisted', 'q' => 'Entrata']))->assertOk()
         ->assertDontSee('Anna Entrata')->assertSee(__('ticketing.manage_page.empty_search'));
+    // «Entrata» e non «Anna»: il generatore può dare a chi è in coda un nome come Giovanna.
+    $this->get(route('ticketing.manage.show', ['occurrence' => $date, 'q' => 'Entrata']))->assertOk()->assertSee('Anna Entrata');
 });
 
 it('a data conclusa nasconde i moduli e lo dice', function (): void {

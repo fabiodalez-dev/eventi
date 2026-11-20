@@ -38,10 +38,32 @@ final class Description
             return $text;
         }
 
+        /*
+         * La versione testo la leggono l'app e chi non mostra HTML: deve
+         * tenere la forma che si vede sul sito. Fra due paragrafi resta una
+         * riga vuota, ogni voce di elenco va a capo col suo punto o numero.
+         */
         $html = self::sanitize($text);
-        $html = preg_replace('~<br\s*/?>|</(?:p|h2|h3|li|blockquote)>~i', "\n", $html) ?? $html;
+        // L'editor chiude ogni voce di elenco in un paragrafo: lì non è uno stacco.
+        $html = preg_replace('~</p>(\s*</li>)~i', '$1', $html) ?? $html;
+        $html = preg_replace_callback('~(<ol\b[^>]*>)(.*?)(</ol>)~is', function (array $list): string {
+            $number = 0;
 
-        return trim(html_entity_decode(strip_tags($html), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+            return $list[1].(preg_replace_callback('~<li\b[^>]*>~i', function () use (&$number): string {
+                $number++;
+
+                return "\n".$number.'. ';
+            }, $list[2]) ?? $list[2]).$list[3];
+        }, $html) ?? $html;
+        $html = preg_replace('~<li\b[^>]*>~i', "\n• ", $html) ?? $html;
+        $html = preg_replace('~<br\s*/?>~i', "\n", $html) ?? $html;
+        $html = preg_replace('~</(?:p|h2|h3|blockquote|ul|ol)>~i', "\n\n", $html) ?? $html;
+
+        $plain = html_entity_decode(strip_tags($html), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $plain = preg_replace('/[ \t]*\n[ \t]*/u', "\n", $plain) ?? $plain;
+        $plain = preg_replace('/\n{3,}/', "\n\n", $plain) ?? $plain;
+
+        return trim($plain);
     }
 
     public static function render(?string $text): HtmlString

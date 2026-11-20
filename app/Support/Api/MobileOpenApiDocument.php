@@ -57,6 +57,7 @@ final class MobileOpenApiDocument
             ->addProperty('id', new IntegerType)->addProperty('occurrence_id', new IntegerType)
             ->addProperty('title', $text())->addProperty('event_slug', $text()->nullable(true))
             ->addProperty('poster', (new ObjectType)->additionalProperties(new MixedType)->nullable(true))
+            ->addProperty('organizer', $text()->nullable(true))
             ->addProperty('venue', $text()->nullable(true))->addProperty('address', $text()->nullable(true))
             ->addProperty('starts_at', $time())->addProperty('status', $text())
             ->addProperty('instructions', $text()->nullable(true))->addProperty('cancellation_reason', $text()->nullable(true))
