@@ -28,5 +28,9 @@ it('remembers and forgets the location through the real home controls', function
     $page->script('document.querySelector("[data-consent-banner]")?.remove()');
     $page->click('[data-location-forget]')->assertAttribute('[data-remembered-location]', 'data-position', '');
     expect($page->script('document.querySelector("[data-remembered-location]").dataset.position'))->toBe('');
-    expect($page->script('document.documentElement.scrollWidth <= innerWidth'))->toBeTrue();
+    /* «Dimentica» ricarica la pagina: si misura a caricamento finito. Prima
+       che arrivi il foglio di stile il browser non disegna niente, ma il DOM
+       c'è già e le immagini hanno la loro larghezza naturale, più larga dello
+       schermo: misurare in quel momento dava un falso scorrimento. */
+    expect($page->script('new Promise(done => document.readyState === "complete" ? done() : addEventListener("load", () => done())).then(() => document.documentElement.scrollWidth <= innerWidth)'))->toBeTrue();
 })->with(['inLightMode', 'inDarkMode']);
