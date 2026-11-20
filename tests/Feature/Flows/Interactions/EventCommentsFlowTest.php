@@ -50,7 +50,7 @@ function intFlowPerson(string $first, string $last): User
 it('una persona verificata commenta dalla scheda, il locale viene avvisato e un\'altra persona reagisce, cambia e ritira la reazione', function (): void {
     $owner = User::factory()->create();
     $this->venue->members()->attach($owner, ['role' => 'owner']);
-    $anna = intFlowPerson('Anna', 'Bianchi');
+    $anna = intFlowPerson('Anna', 'Zanellonzi');
     $marco = intFlowPerson('Marco', 'Verdi');
 
     // Anna apre la scheda: trova il modulo dei commenti, non ancora commenti.
@@ -76,7 +76,7 @@ it('una persona verificata commenta dalla scheda, il locale viene avvisato e un\
     $this->get($commento->permalink())->assertOk()
         ->assertSee('Si riesce a parcheggiare vicino al locale?')
         ->assertSee('id="commento-'.$commento->id.'"', false)
-        ->assertDontSee('Bianchi');
+        ->assertDontSee('Zanellonzi');
 
     // Marco reagisce col form classico: torna al commento, Anna è avvisata.
     $reactUrl = route('events.comments.react', ['slug' => $this->event->slug, 'comment' => $commento->id]);
@@ -101,7 +101,7 @@ it('una persona verificata commenta dalla scheda, il locale viene avvisato e un\
 });
 
 it('chi risponde avvisa l\'autore; solo l\'autore e l\'amministratore cancellano, il moderatore e gli altri no', function (): void {
-    $anna = intFlowPerson('Anna', 'Bianchi');
+    $anna = intFlowPerson('Anna', 'Zanellonzi');
     $marco = intFlowPerson('Marco', 'Verdi');
     $moderatore = User::factory()->create();
     $moderatore->assignRole(UserRole::Moderator->value);
@@ -163,7 +163,7 @@ it('l\'ospite che vuole commentare viene mandato all\'accesso e, entrato, torna 
 });
 
 it('l\'app legge, scrive, risponde, reagisce e cancella i commenti attraverso l\'API', function (): void {
-    $anna = intFlowPerson('Anna', 'Bianchi');
+    $anna = intFlowPerson('Anna', 'Zanellonzi');
     $marco = intFlowPerson('Marco', 'Verdi');
 
     // Ospite: legge l'elenco vuoto e non può scrivere.
@@ -230,7 +230,7 @@ it('chi non ha confermato l\'email viene mandato a confermarla e commenta solo d
 });
 
 it('rifiuta testi non validi, risposte a commenti di altri eventi ed eventi non pubblicati', function (): void {
-    $anna = intFlowPerson('Anna', 'Bianchi');
+    $anna = intFlowPerson('Anna', 'Zanellonzi');
     $altroEvento = occurrenceAtLocal($this->city, $this->category, '2026-11-21 21:00', event: ['title' => 'Altra serata'])->event;
     $this->actingAs($anna)->post(route('events.comments.store', ['slug' => $altroEvento->slug]), ['body' => 'Commento sull\'altra serata'])->assertRedirect();
     $estraneo = EventComment::query()->sole();
