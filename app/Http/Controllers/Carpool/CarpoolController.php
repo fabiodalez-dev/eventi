@@ -125,7 +125,9 @@ final class CarpoolController extends Controller
         abort_unless(app(CarpoolQuery::class)->visible($occurrence), 404);
         $eligible = $request->user() && $this->access->eligible($request->user());
         $offers = $eligible ? app(RideDiscovery::class)->offers($request->user(), $occurrence, $request->validated())->paginate(20)->withQueryString() : null;
+        // Chi cerca vede gli altri: il proprio annuncio sta in «I miei passaggi», e qui gli proporrebbe le sue offerte.
         $wanted = $eligible ? RideSearch::where('occurrence_id', $occurrence->id)->where('active', true)->where('is_public', true)->where('latest_at', '>', now())
+            ->where('user_id', '!=', $request->user()->id)
             ->whereNotIn('user_id', app(RideDiscovery::class)->blockedIds($request->user()))->whereHas('user', fn ($q) => app(RideDiscovery::class)->eligibleQuery($q))->with('user.communityProfile')->paginate(20, pageName: 'wanted_page') : null;
 
         return $this->page($request, 'dates', 'carpool.title', ['occurrence_id' => $occurrence->id, 'event_title' => $occurrence->event->title,
@@ -198,7 +200,10 @@ final class CarpoolController extends Controller
 
         return $this->page($request, 'offer', 'carpool.title', ['offer' => RideResource::offer($offer, $user),
             'requests' => $requests->map(fn ($r) => RideResource::request($r, $user))->all(), 'has_more' => $requests->hasMorePages(), 'page' => $requests->currentPage()],
-            ['occurrence' => $this->occurrenceMap([$offer->occurrence])->first(), 'windows' => $offer->occurrence !== null ? $this->departureWindows($offer->occurrence) : []]);
+            ['occurrence' => $this->occurrenceMap([$offer->occurrence])->first(), 'windows' => $offer->occurrence !== null ? $this->departureWindows($offer->occurrence) : [],
+                // Chi ha ritirato una richiesta, o se l'è vista annullare da un cambio delle condizioni,
+                // può chiedere di nuovo: la pagina gli rimette il modulo invece della richiesta chiusa.
+                'can_request_again' => $offer->driver_id !== $user->id && app(CarpoolService::class)->repeatRefusal($user, $offer) === null]);
     }
 
     public function rideRequest(Request $request, RideRequest $rideRequest): View|JsonResponse
