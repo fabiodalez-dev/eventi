@@ -1,5 +1,5 @@
 {{--
-    «Aggiungi a una raccolta», sotto il pulsante Salva della scheda evento.
+    «Aggiungi a una raccolta», sotto «Quando» nella scheda evento.
     Chi è dentro sceglie la data (se la serie ne ha più d'una) e la raccolta,
     oppure ne crea una nuova al volo; chi è fuori vede il collegamento
     all'accesso. Un modulo normale: nessun JavaScript richiesto.

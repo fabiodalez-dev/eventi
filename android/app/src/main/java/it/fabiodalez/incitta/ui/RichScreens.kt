@@ -325,33 +325,19 @@ fun CompleteEventDetailScreen(
                 }
 
                 /*
-                 * Condividi come sezione, non come pulsante in coda.
+                 * Lo stesso filo della scheda sul sito: prima la serata (meteo e
+                 * «prima di andare» subito dopo «dove»), poi i tag e la comunità
+                 * (commenti), e in fondo «Condividi», che non dice
+                 * niente della serata. Prima condividere stava prima di meteo e
+                 * informazioni pratiche, come sul sito dal telefono.
                  *
-                 * Nel sito è una sezione fra "dove" e "prima di andare", e l'ordine
-                 * della scheda evento è lo stesso sulle due piattaforme: chi legge
-                 * l'evento sul telefono e poi sul sito ritrova le stesse cose nello
-                 * stesso posto. In coda restava solo la segnalazione di un errore,
-                 * che è un'altra cosa.
-                 */
-                comments()
-
-                editionAction()
-
-                DetailSection("CONDIVIDI") {
-                    ActionButton("CONDIVIDI QUESTO EVENTO", Icons.Outlined.Share) { share(context, detail.title, detail.url ?: "https://eventi.fabiodalez.it/eventi/${detail.slug}") }
-                }
-
-                if (detail.occurrences.none { it.contentDetails != null }) EditorialInformation(detail.contentDetails)
-
-                /*
-                 * Il meteo è una sezione sua, non una riga dentro "tutte le date".
-                 *
-                 * Lì dentro si leggeva prima delle date a cui si riferisce, e su uno
-                 * schermo stretto era la prima cosa sotto il titolo della sezione.
-                 * `EventWeatherSection` non disegna niente quando la previsione non
-                 * c'è, quindi qui non resta un riquadro vuoto.
+                 * Il meteo è una sezione sua, non una riga dentro «Quando», e
+                 * `EventWeatherSection` non disegna niente quando la previsione
+                 * non c'è, quindi qui non resta un riquadro vuoto.
                  */
                 detail.occurrences.firstOrNull()?.let { EventWeatherSection(it.occurrenceId, loadWeather) }
+
+                if (detail.occurrences.none { it.contentDetails != null }) EditorialInformation(detail.contentDetails)
 
                 if (detail.tags.isNotEmpty()) {
                     DetailSection("TAG") {
@@ -359,6 +345,14 @@ fun CompleteEventDetailScreen(
                             detail.tags.forEach { tag -> TagButton(tag) { onTag(tag) } }
                         }
                     }
+                }
+
+                comments()
+
+                editionAction()
+
+                DetailSection("CONDIVIDI") {
+                    ActionButton("CONDIVIDI QUESTO EVENTO", Icons.Outlined.Share) { share(context, detail.title, detail.url ?: "https://eventi.fabiodalez.it/eventi/${detail.slug}") }
                 }
 
                 if (related.isNotEmpty()) {
@@ -474,8 +468,9 @@ private fun OccurrenceDateBlock(detail: EventDetail, occurrence: Occurrence, sav
         style = androidx.compose.material3.MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold, fontSize = 30.sp, lineHeight = 31.sp, letterSpacing = (-0.6).sp),
         modifier = Modifier.padding(top = 4.dp, bottom = 2.dp),
     )
-    occurrence.placeName()?.let { Text(it, color = Muted) }
-    Text(timeRange(occurrence), color = Acid, style = androidx.compose.material3.MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = 5.dp))
+    // Prima quando (data e ora), poi dove.
+    Text(timeRange(occurrence), color = Acid, style = androidx.compose.material3.MaterialTheme.typography.titleMedium)
+    occurrence.placeName()?.let { Text(it, color = Muted, modifier = Modifier.padding(top = 4.dp)) }
     occurrence.statusNote?.let { Text(it, color = Muted, modifier = Modifier.padding(top = 6.dp)) }
     Text(priceText(occurrence.price), color = Acid, modifier = Modifier.padding(top = 6.dp))
     occurrence.capacityLeft?.let { remaining -> Text(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.known_remaining, remaining), color = Muted, modifier = Modifier.padding(top = 4.dp)) }

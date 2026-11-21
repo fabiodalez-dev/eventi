@@ -232,9 +232,6 @@
                         />
                     @endif
                 </div>
-                @if (! ($isPreview ?? false) && $occurrences->isNotEmpty())
-                    <div class="event-detail-loose"><x-collection-add :occurrences="$occurrences" /></div>
-                @endif
                 @if (! ($isPreview ?? false))
                     <x-edition-alert :event="$event" />
                 @endif
@@ -249,28 +246,15 @@
                             <li class="flex min-w-0 flex-col gap-3">
                             <div class="event-date-row grid min-w-0 gap-4 bg-canvas p-4 border-2 border-line sm:grid-cols-[minmax(0,1fr)_auto] sm:p-5">
                                 <div class="flex min-w-0 flex-col gap-2">
-                                {{-- La data è la risposta a «quando»: in grande, prima di tutto il resto. --}}
+                                {{-- La data è la risposta a «quando»: in grande, prima di tutto il resto, con l'ora subito sotto. --}}
                                 <time
                                     datetime="{{ $occurrence->is_all_day ? $formatter->isoDay($occurrence->business_date) : $formatter->iso($occurrence->starts_at) }}"
                                     class="font-display text-[clamp(1.75rem,4vw,2.75rem)] leading-[0.95] font-extrabold tracking-[-0.03em] text-ink"
                                 >
                                     {{ $formatter->weekdayDate($occurrence->business_date) }}
                                 </time>
-                                @if($occurrence->locationVenue())
-                                    <a class="w-fit text-sm text-ink-muted underline underline-offset-4" href="{{ route('venues.show', $occurrence->locationVenue()) }}">{{ $occurrence->locationVenue()->name }}</a>
-                                @endif
-                                @if (! ($isPreview ?? false) && ! $occurrence->is($selectedOccurrence ?? null))
-                                    <a class="underline text-accent" href="{{ \App\Support\EventUrl::occurrence($occurrence) }}">{{ __('seo.date_page') }}</a>
-                                @endif
-                                @if ($occurrence->previous_starts_at !== null)
-                                    <p>{{ __('seo.rescheduled', ['date' => $formatter->iso($occurrence->previous_starts_at)]) }}</p>
-                                @endif
                                 <div class="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
-                                    @if (filled($occurrence->highlight))
-                                        <x-badge tone="soon" size="sm" class="self-start">{{ $occurrence->highlight }}</x-badge>
-                                    @endif
-
-                                    <span class="text-sm text-ink-muted">
+                                    <span class="text-base font-semibold text-ink">
                                         @if ($occurrence->is_all_day)
                                             {{ __('events.badge.all_day') }}
                                         @else
@@ -286,6 +270,10 @@
                                         @endif
                                     </span>
 
+                                    @if (filled($occurrence->highlight))
+                                        <x-badge tone="soon" size="sm" class="self-start">{{ $occurrence->highlight }}</x-badge>
+                                    @endif
+
                                     @if ($occurrence->status !== \App\Enums\OccurrenceStatus::Scheduled)
                                         <div class="text-sm font-semibold text-live">
                                             {{ $occurrence->status->label() }}
@@ -294,12 +282,26 @@
                                             @endif
                                         </div>
                                     @endif
+                                </div>
 
-                                    @php
-                                        $dateTiers = \App\Support\TicketTiers::for($event, $occurrence);
-                                        $dateCapacity = \App\Support\Capacity::for($occurrence);
-                                    @endphp
+                                {{-- Prima quando (data, ora, se è stata spostata), poi dove, poi posti e biglietti. --}}
+                                @if ($occurrence->previous_starts_at !== null)
+                                    <p class="text-sm text-ink-muted">{{ __('seo.rescheduled', ['date' => $formatter->iso($occurrence->previous_starts_at)]) }}</p>
+                                @endif
+                                @if($occurrence->locationVenue())
+                                    <a class="w-fit text-sm text-ink-muted underline underline-offset-4" href="{{ route('venues.show', $occurrence->locationVenue()) }}">{{ $occurrence->locationVenue()->name }}</a>
+                                @endif
+                                @if (! ($isPreview ?? false) && ! $occurrence->is($selectedOccurrence ?? null))
+                                    <a class="w-fit underline text-accent" href="{{ \App\Support\EventUrl::occurrence($occurrence) }}">{{ __('seo.date_page') }}</a>
+                                @endif
 
+                                @php
+                                    $dateTiers = \App\Support\TicketTiers::for($event, $occurrence);
+                                    $dateCapacity = \App\Support\Capacity::for($occurrence);
+                                @endphp
+
+                                @if ($dateCapacity !== null || $occurrence->ticketTiers->isNotEmpty())
+                                <div class="flex min-w-0 flex-col gap-2">
                                     @if ($dateCapacity !== null)
                                         <x-capacity-meter :capacity="$dateCapacity" :compact="true" class="max-w-xs" />
                                     @endif
@@ -317,6 +319,7 @@
                                         />
                                     @endif
                                 </div>
+                                @endif
 
                                 </div>
 
@@ -404,6 +407,12 @@
                         </p>
                     @endif
                 </section>
+            @endif
+
+            {{-- Le raccolte si fanno con le date: stanno subito sotto «Quando»,
+                 non in testa insieme a chi organizza. --}}
+            @if (! ($isPreview ?? false) && $occurrences->isNotEmpty())
+                <div class="event-detail-collections"><x-collection-add :occurrences="$occurrences" /></div>
             @endif
 
             <x-event-description :event="$event" />
@@ -685,10 +694,6 @@
                     <x-venue-map :venue="$venue" />
                 </section>
 
-                {{-- Un locale pubblico che nessuno gestisce: chi lo gestisce
-                     lo scopre spesso da qui, guardando una serata a casa sua. --}}
-                <x-claim-card :venue="$venue" :compact="true" class="max-lg:order-7!" />
-
                 {{-- «Come arrivare» e accessibilità stanno sul locale, non
                      sull'evento: cambiano col luogo e non con la serata. Qui
                      si mostrano perché è dove servono — mentre si decide se
@@ -721,6 +726,14 @@
                     {{ __('common.actions.report') }}
                 </a>
             </section>
+
+            {{-- Un locale pubblico che nessuno gestisce: chi lo gestisce lo
+                 scopre spesso da qui, guardando una serata a casa sua. È un
+                 invito, non un'informazione sulla serata: viene dopo
+                 «Condividi», in fondo alla colonna. --}}
+            @if ($venue !== null)
+                <x-claim-card :venue="$venue" :compact="true" class="event-detail-claim" />
+            @endif
         </aside>
     </div>
 
