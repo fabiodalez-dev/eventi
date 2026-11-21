@@ -80,6 +80,33 @@ final class TicketTiers
     }
 
     /**
+     * Il prezzo più basso e il più alto del listino **proprio** di una data,
+     * o `null` se la data non ha un listino suo (o nessuna fascia ha un
+     * prezzo).
+     *
+     * Legge solo una relazione già caricata: lo chiamano anche gli elenchi di
+     * card, e lì una interrogazione per data sarebbe un N+1. Dove il listino
+     * della data conta — la scheda, l'API del dettaglio — le date arrivano
+     * già con `ticketTiers`.
+     *
+     * @return array{0: float, 1: float}|null
+     */
+    public static function occurrenceRange(EventOccurrence $occurrence): ?array
+    {
+        if (! $occurrence->relationLoaded('ticketTiers')) {
+            return null;
+        }
+
+        $prices = $occurrence->ticketTiers
+            ->reject(static fn (TicketTier $tier): bool => $tier->price === null)
+            ->map(static fn (TicketTier $tier): float => (float) $tier->price)
+            ->values()
+            ->all();
+
+        return $prices === [] ? null : [min($prices), max($prices)];
+    }
+
+    /**
      * @return Collection<int, TicketTier>
      */
     private static function eventListing(Event $event): Collection

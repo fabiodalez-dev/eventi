@@ -8,6 +8,7 @@ use App\Enums\PriceType;
 use App\Models\Event;
 use App\Models\EventOccurrence;
 use App\Support\DeclaredCosts;
+use App\Support\TicketTiers;
 
 /**
  * Il prezzo di una data.
@@ -43,6 +44,20 @@ final class PriceResource
 
         $min = $override['price_min'] ?? $event->price_min;
         $max = $override['price_max'] ?? $event->price_max;
+
+        /* Una data con un listino tutto suo ha quel prezzo, non quello
+           dell'evento: il listino della data **sostituisce** quello
+           dell'evento (`App\Support\TicketTiers`), e senza questo la scheda
+           della data diceva «10–20 €» sopra a «Prezzi di questa data: 25 €».
+           Un prezzo scritto a mano sulla data (`price_override`) vale ancora
+           di più, e resta com'è. */
+        $range = $occurrence !== null && ! isset($override['price_min']) && ! isset($override['price_max'])
+            ? TicketTiers::occurrenceRange($occurrence)
+            : null;
+        if ($range !== null) {
+            [$min, $max] = $range;
+            $type = PriceType::Ticket;
+        }
 
         return [
             'type' => $type->value,

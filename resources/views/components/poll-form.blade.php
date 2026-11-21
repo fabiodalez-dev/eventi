@@ -14,8 +14,10 @@
 @endphp
 
 @if ($selectable->count() >= \App\Services\Community\EventPolls::MIN_OPTIONS)
-    <details class="border-t-2 border-line pt-5">
-        <summary class="inline-flex min-h-12 cursor-pointer items-center font-display text-sm font-extrabold tracking-[0.08em] uppercase">{{ __('polls.create') }}</summary>
+    {{-- La freccia dopo il testo e non il triangolino prima: così la riga
+         comincia dove cominciano gli altri testi della scheda. --}}
+    <details class="event-detail-poll group border-t-2 border-line pt-5">
+        <summary class="inline-flex min-h-12 cursor-pointer list-none items-center gap-2 font-display text-sm font-extrabold tracking-[0.08em] uppercase [&::-webkit-details-marker]:hidden">{{ __('polls.create') }} <x-lucide name="chevron-down" class="size-4 text-ink-muted transition group-open:rotate-180" /></summary>
 
         @auth
             <form method="POST" action="{{ route('polls.store') }}" class="mt-4 flex flex-col gap-4">

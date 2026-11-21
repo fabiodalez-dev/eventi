@@ -44,6 +44,6 @@
             </form>
         </details>
     @else
-        <a href="{{ route('login', ['redirect' => url()->current()]) }}" class="ui-action inline-flex min-h-12 items-center text-sm font-semibold underline">{{ __('collections.add_login') }}</a>
+        <a href="{{ route('login', ['intended' => url()->current()]) }}" class="ui-action inline-flex min-h-12 items-center text-sm font-semibold underline">{{ __('collections.add_login') }}</a>
     @endauth
 @endif

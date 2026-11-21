@@ -30,7 +30,9 @@ final class BookingOpeningAlerts
 
     public function opensLater(EventOccurrence $date): bool
     {
-        return $date->starts_at->isFuture() && $date->status !== OccurrenceStatus::Cancelled
+        /* Rinviata vale come annullata: `TicketingService::isOpen()` non apre mai
+           una data rinviata, quindi l'avviso promesso non partirebbe. */
+        return $date->starts_at->isFuture() && ! $date->status->isCalledOff()
             && $date->booking_enabled && (bool) $date->effectiveVenue()?->ticketing_enabled
             && $date->booking_opens_at !== null && $date->booking_opens_at->isFuture();
     }

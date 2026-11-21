@@ -130,6 +130,8 @@ return [
         'source_venue' => 'Dati confermati dal locale',
         'source_editorial' => 'Verificato dalla redazione',
         'finished' => 'Questo evento è già stato: qui sotto trovi le date passate.',
+        'date_past' => 'Questa data è passata, ma l\'evento continua.',
+        'next_date' => 'La prossima è :date',
         'age' => 'Età',
         'place_kind' => 'Tipo di spazio',
         'external_links' => 'Link utili',

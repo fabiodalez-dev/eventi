@@ -5,7 +5,7 @@
     $destination = $hasCoordinates ? $place['lat'].','.$place['lng'] : ($place['address'] ?? '');
     $payload = ['markers' => $hasCoordinates ? [[0, (float) $place['lng'], (float) $place['lat'], null, 1, $place['name'] ?? $place['address']]] : [], 'categories' => [], 'truncated' => false];
 @endphp
-<section class="flex flex-col gap-3 bg-canvas p-5 border-2 border-line" aria-label="{{ __('facebook_import.location') }}">
+<section data-event-location class="flex flex-col gap-3 bg-canvas p-5 border-2 border-line" aria-label="{{ __('facebook_import.location') }}">
     <h2 class="text-xl font-semibold">{{ ($place['name'] ?? null) ?: __('facebook_import.location') }}</h2>
     <p>{{ $place['address'] }}</p>
     @if ($hasCoordinates)

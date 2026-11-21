@@ -81,6 +81,10 @@ final class EventController extends Controller
 
         $includes = $request->includes();
         $this->feed->hydrate($occurrences, $includes);
+        /* Il listino proprio di ogni data, in una sola interrogazione: senza,
+           `PriceResource` darebbe a una data con fasce sue il prezzo
+           dell'evento, mentre il sito mostra quello della data. */
+        $occurrences->loadMissing('ticketTiers');
 
         $context = ApiContext::forOccurrences(
             $city,

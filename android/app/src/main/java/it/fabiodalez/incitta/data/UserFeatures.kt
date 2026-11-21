@@ -146,7 +146,8 @@ internal fun Occurrence.offersAvailabilityAlert(eventTiers: List<TicketTier>, no
 
 /** L'avviso di apertura ha senso solo se le prenotazioni aprono più avanti e la data non è passata né annullata. */
 internal fun Occurrence.offersOpeningAlert(now: Instant = Instant.now()): Boolean {
-    if (status == "cancelled" || !bookingEnabled) return false
+    // Rinviata vale come annullata: il sito non apre mai le prenotazioni di una data rinviata.
+    if (isCalledOff() || !bookingEnabled) return false
     val opens = bookingOpensAt?.let { runCatching { OffsetDateTime.parse(it).toInstant() }.getOrNull() } ?: return false
     val start = runCatching { OffsetDateTime.parse(startsAt).toInstant() }.getOrNull() ?: return false
     return opens.isAfter(now) && start.isAfter(now)

@@ -90,6 +90,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import it.fabiodalez.incitta.data.isAhead
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -210,7 +211,9 @@ fun CompleteEventDetailScreen(
                     detail.occurrences.forEachIndexed { index, occurrence ->
                         if (index > 0) HorizontalDivider(Modifier.padding(vertical = 14.dp), color = Rule)
                         OccurrenceDateBlock(detail, occurrence, occurrence.occurrenceId in savedIds, onSave) { collectionFor = it }
-                        if (occurrence.bookingEnabled) {
+                        // Prenotazione, passaggi e «chi ci va» solo per una data che si terrà e non è finita, come sul sito.
+                        val ahead = occurrence.isAhead()
+                        if (occurrence.bookingEnabled && ahead) {
                             Button(onClick = { onReserve(occurrence) }, modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 6.dp), shape = ControlShape) {
                                 Text(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.ticket_reserve))
                             }
@@ -221,7 +224,9 @@ fun CompleteEventDetailScreen(
                            settimanale faceva una richiesta per data tutte
                            insieme, e il server rispondeva «Troppe richieste». */
                         var social by remember(occurrence.occurrenceId) { mutableStateOf(index == 0) }
-                        if (!social) {
+                        if (!ahead) {
+                            // niente: la data è annullata, rinviata o già finita
+                        } else if (!social) {
                             TextButton(onClick = { social = true }, contentPadding = PaddingValues(0.dp), modifier = Modifier.padding(top = 8.dp)) {
                                 Text(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.community_attendance_title) + " e passaggi")
                             }
@@ -458,6 +463,15 @@ private fun EventVideoSection(video: it.fabiodalez.incitta.data.EventVideo) {
     }
 }
 
+/** Lo stato di una data quando non è «in programma», con le parole del sito. */
+internal fun occurrenceStatusLabel(status: String): String? = when (status) {
+    "cancelled" -> "ANNULLATO"
+    "postponed" -> "RINVIATO"
+    "sold_out" -> "ESAURITO"
+    "moved" -> "SPOSTATO"
+    else -> null
+}
+
 @Composable
 private fun OccurrenceDateBlock(detail: EventDetail, occurrence: Occurrence, saved: Boolean, onSave: (Long) -> Unit, onCollect: (Long) -> Unit) {
     val context = LocalContext.current
@@ -470,6 +484,7 @@ private fun OccurrenceDateBlock(detail: EventDetail, occurrence: Occurrence, sav
     )
     // Prima quando (data e ora), poi dove.
     Text(timeRange(occurrence), color = Acid, style = androidx.compose.material3.MaterialTheme.typography.titleMedium)
+    occurrenceStatusLabel(occurrence.status)?.let { Text(it, color = Acid, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 4.dp)) }
     occurrence.placeName()?.let { Text(it, color = Muted, modifier = Modifier.padding(top = 4.dp)) }
     occurrence.statusNote?.let { Text(it, color = Muted, modifier = Modifier.padding(top = 6.dp)) }
     Text(priceText(occurrence.price), color = Acid, modifier = Modifier.padding(top = 6.dp))
@@ -482,7 +497,8 @@ private fun OccurrenceDateBlock(detail: EventDetail, occurrence: Occurrence, sav
         if (showPractical) EditorialInformation(occurrence.contentDetails)
     }
 
-    Row(Modifier.fillMaxWidth().padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    // Calendario e salvataggio solo per una data che si terrà e non è finita.
+    if (occurrence.isAhead()) Row(Modifier.fillMaxWidth().padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         OutlinedButton(
             onClick = { addToCalendar(context, detail, occurrence) },
             modifier = Modifier.weight(1f),

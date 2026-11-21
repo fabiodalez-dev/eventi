@@ -9,5 +9,5 @@
         <form method="POST" action="{{ route($store, $id) }}">@csrf<x-button type="submit" variant="secondary" class="min-h-12">{{ __($prefix.'.subscribe') }}</x-button></form>
     @endif
 @else
-    <a href="{{ route('login', ['redirect' => url()->current()]) }}" class="inline-flex min-h-12 items-center text-sm underline">{{ __($prefix.'.login') }}</a>
+    <a href="{{ route('login', ['intended' => url()->current()]) }}" class="inline-flex min-h-12 items-center text-sm underline">{{ __($prefix.'.login') }}</a>
 @endauth
