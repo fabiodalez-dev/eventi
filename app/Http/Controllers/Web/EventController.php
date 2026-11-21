@@ -13,6 +13,7 @@ use App\Models\Booking;
 use App\Models\City;
 use App\Models\Event;
 use App\Models\EventOccurrence;
+use App\Models\Venue;
 use App\Queries\EventCommentQuery;
 use App\Queries\EventOccurrenceQuery;
 use App\Services\Analytics\EventShares;
@@ -90,6 +91,10 @@ final class EventController extends Controller
             : new Collection;
 
         $related = $this->related($city, $event);
+        /* Le prossime date di tutto l'evento, prima di restringere alla data
+           scelta: servono a dire, sulla pagina di una serata passata, che la
+           rassegna continua e qual è la prossima. */
+        $allUpcoming = $upcoming;
         if ($selected !== null) {
             $upcoming = $upcoming->where('id', $selected->id)->values();
             /* L'archivio si legge solo se la data scelta non è fra le
@@ -100,7 +105,19 @@ final class EventController extends Controller
                 : EventOccurrenceQuery::archiveFor($city)->forEvent($event)->past()->get()->where('id', $selected->id)->values();
             abort_if($upcoming->isEmpty() && $past->isEmpty(), 404);
         }
-        $atVenue = $this->atSameVenue($city, $event);
+        $dates = $upcoming->isNotEmpty() ? $upcoming : $past;
+        $occurrenceCount = $event->occurrences()->count();
+        /* Le regole di ripetizione si caricano sull'evento: le usa anche il
+           pulsante «salva», che nella pagina compare più volte. */
+        $isSeries = $occurrenceCount > 1 || $event->loadMissing('recurrences')->recurrences->isNotEmpty();
+        $canonicalDate = $selected ?? (! $isSeries ? $dates->first() : null);
+        /* Lo stesso locale che la scheda mostra in «Dove» e nel titolo della
+           sezione: per una data spostata altrove è quello della data. Prima
+           il titolo portava al locale nuovo e l'elenco era del vecchio. */
+        $atVenue = $this->atSameVenue($city, $event, $canonicalDate?->locationVenue() ?? $event->locationVenue());
+        $nextOccurrence = $selected !== null && $upcoming->isEmpty()
+            ? $allUpcoming->first(static fn (EventOccurrence $date): bool => $date->isAhead())
+            : null;
 
         /*
          * Tutte le date della pagina si idratano insieme, in un colpo solo.
@@ -111,17 +128,11 @@ final class EventController extends Controller
          * il rilevatore N+1 segnalava a ogni apertura della scheda. Le date di
          * questo evento ricevono l'evento già caricato invece di rileggerlo.
          */
-        foreach ([$upcoming, $past] as $own) {
+        foreach ([$upcoming, $past, new Collection(array_filter([$nextOccurrence]))] as $own) {
             $own->each(static fn (EventOccurrence $date) => $date->setRelation('event', $event));
         }
         $this->hydrate(new Collection([...$upcoming->all(), ...$past->all(), ...$related->all(), ...$atVenue->all()]));
 
-        $dates = $upcoming->isNotEmpty() ? $upcoming : $past;
-        $occurrenceCount = $event->occurrences()->count();
-        /* Le regole di ripetizione si caricano sull'evento: le usa anche il
-           pulsante «salva», che nella pagina compare più volte. */
-        $isSeries = $occurrenceCount > 1 || $event->loadMissing('recurrences')->recurrences->isNotEmpty();
-        $canonicalDate = $selected ?? (! $isSeries ? $dates->first() : null);
         $meta = $this->meta($event, $dates)->withIndexable(! $isPreview && in_array($event->status, [EventStatus::Published, EventStatus::Archived], true));
         if ($canonicalDate !== null) {
             $meta = $meta->withCanonical(EventUrl::occurrence($canonicalDate));
@@ -189,6 +200,7 @@ final class EventController extends Controller
                 ? Booking::query()->active()->where('user_id', auth()->id())->whereIn('occurrence_id', $upcoming->modelKeys())->get()->keyBy('occurrence_id')
                 : collect(),
             'pastOccurrences' => $past,
+            'nextOccurrence' => $nextOccurrence,
             'related' => $related,
             'atVenue' => $atVenue,
             'meta' => $meta,
@@ -321,9 +333,8 @@ final class EventController extends Controller
     /**
      * @return Collection<int, EventOccurrence>
      */
-    private function atSameVenue(City $city, Event $event): Collection
+    private function atSameVenue(City $city, Event $event, ?Venue $venue): Collection
     {
-        $venue = $event->venue;
 
         if ($venue === null) {
             return new Collection;

@@ -36,7 +36,7 @@
         :preview="true"
     />
 
-    <dialog id="calendar-day-preview" aria-labelledby="calendar-day-title" class="m-auto max-h-[85dvh] w-[calc(100%-2rem)] max-w-4xl overflow-y-auto border-2 border-accent bg-canvas p-5 text-ink backdrop:bg-black/70" data-loading="{{ __('tonight.count_loading') }}" data-error="{{ __('tonight.count_error') }}">
+    <dialog id="calendar-day-preview" data-light-dismiss aria-labelledby="calendar-day-title" class="m-auto max-h-[85dvh] w-[calc(100%-2rem)] max-w-4xl overflow-y-auto border-2 border-accent bg-canvas p-5 text-ink backdrop:bg-black/70" data-loading="{{ __('tonight.count_loading') }}" data-error="{{ __('tonight.count_error') }}">
         <form method="dialog" class="flex justify-end"><x-button type="submit" variant="secondary" size="sm" autofocus>{{ __('common.actions.close') }}</x-button></form>
         <h2 id="calendar-day-title" class="mb-4 text-lg font-bold"></h2>
         <div data-day-results aria-live="polite"></div>

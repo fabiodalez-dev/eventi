@@ -201,6 +201,27 @@ class EventOccurrence extends Model
         return $this->morphMany(Report::class, 'reportable');
     }
 
+    /** La data si terrà: non è annullata né rinviata. */
+    public function isHappening(): bool
+    {
+        return ! $this->status->isCalledOff();
+    }
+
+    /**
+     * La data si terrà e non è ancora finita: ci si può ancora organizzare
+     * per andarci (passaggi, «ci vado», biglietti, calendario).
+     *
+     * Conta la fine, non il giorno: una serata di oggi già conclusa non è
+     * più davanti a nessuno, anche se `upcoming()` la tiene in elenco fino
+     * a mezzanotte.
+     */
+    public function isAhead(): bool
+    {
+        $end = $this->effective_ends_at ?? $this->ends_at ?? $this->starts_at;
+
+        return $this->isHappening() && $end->isFuture();
+    }
+
     /**
      * @param  Builder<EventOccurrence>  $query
      */

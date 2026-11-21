@@ -90,6 +90,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import it.fabiodalez.incitta.data.isAhead
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -205,12 +206,14 @@ fun CompleteEventDetailScreen(
                     }
                 }
 
-                DetailSection("TUTTE LE DATE") {
+                DetailSection("QUANDO") {
                     if (detail.occurrences.isEmpty()) Text("Nessuna data futura disponibile.", color = Muted)
                     detail.occurrences.forEachIndexed { index, occurrence ->
                         if (index > 0) HorizontalDivider(Modifier.padding(vertical = 14.dp), color = Rule)
                         OccurrenceDateBlock(detail, occurrence, occurrence.occurrenceId in savedIds, onSave) { collectionFor = it }
-                        if (occurrence.bookingEnabled) {
+                        // Prenotazione, passaggi e «chi ci va» solo per una data che si terrà e non è finita, come sul sito.
+                        val ahead = occurrence.isAhead()
+                        if (occurrence.bookingEnabled && ahead) {
                             Button(onClick = { onReserve(occurrence) }, modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 6.dp), shape = ControlShape) {
                                 Text(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.ticket_reserve))
                             }
@@ -221,7 +224,9 @@ fun CompleteEventDetailScreen(
                            settimanale faceva una richiesta per data tutte
                            insieme, e il server rispondeva «Troppe richieste». */
                         var social by remember(occurrence.occurrenceId) { mutableStateOf(index == 0) }
-                        if (!social) {
+                        if (!ahead) {
+                            // niente: la data è annullata, rinviata o già finita
+                        } else if (!social) {
                             TextButton(onClick = { social = true }, contentPadding = PaddingValues(0.dp), modifier = Modifier.padding(top = 8.dp)) {
                                 Text(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.community_attendance_title) + " e passaggi")
                             }
@@ -325,33 +330,19 @@ fun CompleteEventDetailScreen(
                 }
 
                 /*
-                 * Condividi come sezione, non come pulsante in coda.
+                 * Lo stesso filo della scheda sul sito: prima la serata (meteo e
+                 * «prima di andare» subito dopo «dove»), poi i tag e la comunità
+                 * (commenti), e in fondo «Condividi», che non dice
+                 * niente della serata. Prima condividere stava prima di meteo e
+                 * informazioni pratiche, come sul sito dal telefono.
                  *
-                 * Nel sito è una sezione fra "dove" e "prima di andare", e l'ordine
-                 * della scheda evento è lo stesso sulle due piattaforme: chi legge
-                 * l'evento sul telefono e poi sul sito ritrova le stesse cose nello
-                 * stesso posto. In coda restava solo la segnalazione di un errore,
-                 * che è un'altra cosa.
-                 */
-                comments()
-
-                editionAction()
-
-                DetailSection("CONDIVIDI") {
-                    ActionButton("CONDIVIDI QUESTO EVENTO", Icons.Outlined.Share) { share(context, detail.title, detail.url ?: "https://eventi.fabiodalez.it/eventi/${detail.slug}") }
-                }
-
-                if (detail.occurrences.none { it.contentDetails != null }) EditorialInformation(detail.contentDetails)
-
-                /*
-                 * Il meteo è una sezione sua, non una riga dentro "tutte le date".
-                 *
-                 * Lì dentro si leggeva prima delle date a cui si riferisce, e su uno
-                 * schermo stretto era la prima cosa sotto il titolo della sezione.
-                 * `EventWeatherSection` non disegna niente quando la previsione non
-                 * c'è, quindi qui non resta un riquadro vuoto.
+                 * Il meteo è una sezione sua, non una riga dentro «Quando», e
+                 * `EventWeatherSection` non disegna niente quando la previsione
+                 * non c'è, quindi qui non resta un riquadro vuoto.
                  */
                 detail.occurrences.firstOrNull()?.let { EventWeatherSection(it.occurrenceId, loadWeather) }
+
+                if (detail.occurrences.none { it.contentDetails != null }) EditorialInformation(detail.contentDetails)
 
                 if (detail.tags.isNotEmpty()) {
                     DetailSection("TAG") {
@@ -359,6 +350,14 @@ fun CompleteEventDetailScreen(
                             detail.tags.forEach { tag -> TagButton(tag) { onTag(tag) } }
                         }
                     }
+                }
+
+                comments()
+
+                editionAction()
+
+                DetailSection("CONDIVIDI") {
+                    ActionButton("CONDIVIDI QUESTO EVENTO", Icons.Outlined.Share) { share(context, detail.title, detail.url ?: "https://eventi.fabiodalez.it/eventi/${detail.slug}") }
                 }
 
                 if (related.isNotEmpty()) {
@@ -464,13 +463,29 @@ private fun EventVideoSection(video: it.fabiodalez.incitta.data.EventVideo) {
     }
 }
 
+/** Lo stato di una data quando non è «in programma», con le parole del sito. */
+internal fun occurrenceStatusLabel(status: String): String? = when (status) {
+    "cancelled" -> "ANNULLATO"
+    "postponed" -> "RINVIATO"
+    "sold_out" -> "ESAURITO"
+    "moved" -> "SPOSTATO"
+    else -> null
+}
+
 @Composable
 private fun OccurrenceDateBlock(detail: EventDetail, occurrence: Occurrence, saved: Boolean, onSave: (Long) -> Unit, onCollect: (Long) -> Unit) {
     val context = LocalContext.current
     InterestedBadge(occurrence.interestedCount)
-    Text(fullDate(occurrence.startsAt), style = androidx.compose.material3.MaterialTheme.typography.titleLarge)
-    occurrence.placeName()?.let { Text(it, color = Muted) }
-    Text(timeRange(occurrence), color = Acid, style = androidx.compose.material3.MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = 5.dp))
+    // La data risponde a «quando»: in grande, come sul sito.
+    Text(
+        fullDate(occurrence.startsAt),
+        style = androidx.compose.material3.MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold, fontSize = 30.sp, lineHeight = 31.sp, letterSpacing = (-0.6).sp),
+        modifier = Modifier.padding(top = 4.dp, bottom = 2.dp),
+    )
+    // Prima quando (data e ora), poi dove.
+    Text(timeRange(occurrence), color = Acid, style = androidx.compose.material3.MaterialTheme.typography.titleMedium)
+    occurrenceStatusLabel(occurrence.status)?.let { Text(it, color = Acid, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 4.dp)) }
+    occurrence.placeName()?.let { Text(it, color = Muted, modifier = Modifier.padding(top = 4.dp)) }
     occurrence.statusNote?.let { Text(it, color = Muted, modifier = Modifier.padding(top = 6.dp)) }
     Text(priceText(occurrence.price), color = Acid, modifier = Modifier.padding(top = 6.dp))
     occurrence.capacityLeft?.let { remaining -> Text(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.known_remaining, remaining), color = Muted, modifier = Modifier.padding(top = 4.dp)) }
@@ -482,7 +497,8 @@ private fun OccurrenceDateBlock(detail: EventDetail, occurrence: Occurrence, sav
         if (showPractical) EditorialInformation(occurrence.contentDetails)
     }
 
-    Row(Modifier.fillMaxWidth().padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    // Calendario e salvataggio solo per una data che si terrà e non è finita.
+    if (occurrence.isAhead()) Row(Modifier.fillMaxWidth().padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         OutlinedButton(
             onClick = { addToCalendar(context, detail, occurrence) },
             modifier = Modifier.weight(1f),

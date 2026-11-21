@@ -244,6 +244,16 @@
     padding: clamp(16px, 1.6vw, 20px);
 }
 
+/* I testi sciolti fra una card e l'altra — chi organizza e il salvataggio,
+   «Aggiungi a una raccolta», «Tutte le date di questo evento» — cominciano
+   dove comincia il testo dentro le card, non sul loro bordo: lo stesso
+   margine interno delle sezioni qui sopra. Nel tema scuro titoli e
+   descrizione non stanno in una card e questi testi sono già sulla loro
+   stessa linea. */
+:root[data-theme="light"] .event-detail-body :is(.event-detail-loose, .event-detail-collections, .event-detail-all-dates, .event-detail-poll) {
+    padding-inline: clamp(16px, 1.6vw, 20px);
+}
+
 :root[data-theme="light"] .event-detail-body section section,
 :root[data-theme="light"] .event-detail-body .event-detail-loose section {
     border-radius: 0;

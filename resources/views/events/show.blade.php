@@ -29,7 +29,14 @@
     $shareUrl = $meta->canonical ?? route('events.show', $event);
     $dates = $occurrences->isNotEmpty() ? $occurrences : $pastOccurrences;
     $shown = $dates->take(config('eventi.dates_shown'));
-    $headingOccurrence = $selectedOccurrence ?? $dates->first();
+    /* Le date che si terranno davvero e non sono ancora finite. Hero,
+       capienza, meteo, salvataggi, raccolte e sondaggio partono da qui: una
+       data annullata in testa a una rassegna non è «la prossima data». */
+    $activeDates = $occurrences->filter(fn ($occurrence) => $occurrence->isAhead())->values();
+    $headingOccurrence = $selectedOccurrence ?? $activeDates->first() ?? $dates->first();
+    /* Biglietti, prenotazione e telefono hanno senso solo se c'è una data a
+       cui andare: sulla pagina di una data, quella; altrimenti almeno una. */
+    $canAttend = ($selectedOccurrence !== null ? $selectedOccurrence->isAhead() : $activeDates->isNotEmpty());
     $lineups = $dates->flatMap(fn ($occurrence) => $occurrence->lineups)->unique('id');
     $galleria = $event->getMedia('gallery')->map(fn ($media) => \App\Support\Media\ImageSet::fromMedia($media))->all();
     $video = $event->video();
@@ -44,8 +51,8 @@
 
     /* La capienza della PROSSIMA data, non di tutte: la barra sopra la piega
        risponde a «faccio in tempo a prendere il biglietto per la prima?». */
-    $nextCapacity = $occurrences->first() !== null
-        ? \App\Support\Capacity::for($occurrences->first())
+    $nextCapacity = $activeDates->first() !== null
+        ? \App\Support\Capacity::for($activeDates->first())
         : null;
 
     /* Gli indirizzi che finiscono in un `href` passano da `SafeUrl`: Blade
@@ -153,13 +160,14 @@
                     </div>
                     <div class="flex justify-between gap-3 font-display text-[0.625rem] leading-none font-extrabold tracking-[0.14em] uppercase">
                         <span class="text-ink-muted">{{ __('events.capacity.total', ['count' => $nextCapacity->total]) }}</span>
-                        <span class="text-accent">{{ trans_choice('events.capacity.left', $nextCapacity->left, ['count' => $nextCapacity->left]) }}</span>
+                        {{-- La stessa regola della riga in «Quando»: a zero posti è «esaurito», non «0 posti». --}}
+                        <span class="text-accent">{{ $nextCapacity->isSoldOut() ? __('events.capacity.sold_out') : trans_choice('events.capacity.left', $nextCapacity->left, ['count' => $nextCapacity->left]) }}</span>
                     </div>
                 </div>
             @endif
 
             <div class="flex flex-wrap items-center gap-2">
-                @if ($ticketUrl !== null)
+                @if ($ticketUrl !== null && $canAttend)
                     <a
                         href="{{ $ticketUrl }}" data-content-metric="ticket_clicks"
                         target="_blank"
@@ -171,7 +179,9 @@
                     </a>
                 @endif
 
-                <x-share-links :links="$shareLinks" :url="$shareUrl" :title="$event->title" :icons-only="true" />
+                @unless ($isPreview ?? false)
+                    <x-share-links :links="$shareLinks" :url="$shareUrl" :title="$event->title" :icons-only="true" />
+                @endunless
             </div>
         </div>
     </section>
@@ -183,9 +193,16 @@
          perde la riga giusta — e su un monitor grande peggiora ancora. --}}
     <div class="event-detail-body mx-auto grid w-full max-w-content grid-cols-[minmax(0,1fr)] gap-8 px-gutter py-[clamp(1.5rem,2.8vw,2.75rem)] lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <article class="flex min-w-0 flex-col gap-6">
+            {{-- Una data passata non è un evento finito: se la rassegna continua,
+                 lo si dice e si porta alla prossima, invece di «è già stato». --}}
             @if ($occurrences->isEmpty() && $pastOccurrences->isNotEmpty())
-                <p class="bg-surface px-4 py-3 text-sm font-semibold text-ink-muted">
-                    {{ __('events.detail.finished') }}
+                <p class="event-detail-notice bg-surface px-4 py-3 text-sm font-semibold text-ink-muted">
+                    @if (($nextOccurrence ?? null) !== null)
+                        {{ __('events.detail.date_past') }}
+                        <a class="text-accent underline underline-offset-4" href="{{ \App\Support\EventUrl::occurrence($nextOccurrence) }}">{{ __('events.detail.next_date', ['date' => $formatter->weekdayDate($nextOccurrence->business_date)]) }}</a>
+                    @else
+                        {{ __('events.detail.finished') }}
+                    @endif
                 </p>
             @endif
 
@@ -226,15 +243,12 @@
                     @if (! ($isPreview ?? false))
                         <x-save-event
                             :event="$event"
-                            :occurrences="$occurrences"
+                            :occurrences="$activeDates"
                             :saved="app(\App\Support\CurrentSaves::class)->all()"
                             :following="app(\App\Support\CurrentFollows::class)->has(\App\Enums\FollowableType::Event, (int) $event->getKey())"
                         />
                     @endif
                 </div>
-                @if (! ($isPreview ?? false) && $occurrences->isNotEmpty())
-                    <div class="event-detail-loose"><x-collection-add :occurrences="$occurrences" /></div>
-                @endif
                 @if (! ($isPreview ?? false))
                     <x-edition-alert :event="$event" />
                 @endif
@@ -242,35 +256,22 @@
 
             @if ($shown->isNotEmpty())
                 <section aria-labelledby="date-evento" class="flex flex-col gap-3">
-                    <h2 id="date-evento" class="font-display text-[clamp(1.25rem,1.8vw,1.75rem)] leading-none font-extrabold tracking-[-0.03em] uppercase">{{ __('events.detail.all_dates') }}</h2>
+                    <h2 id="date-evento" class="font-display text-[clamp(1.25rem,1.8vw,1.75rem)] leading-none font-extrabold tracking-[-0.03em] uppercase">{{ __('events.detail.when') }}</h2>
 
                     <ul class="flex flex-col gap-2">
                         @foreach ($shown as $occurrence)
                             <li class="flex min-w-0 flex-col gap-3">
                             <div class="event-date-row grid min-w-0 gap-4 bg-canvas p-4 border-2 border-line sm:grid-cols-[minmax(0,1fr)_auto] sm:p-5">
                                 <div class="flex min-w-0 flex-col gap-2">
-                                @if($occurrence->locationVenue())
-                                    <a class="w-fit text-sm text-ink-muted underline underline-offset-4" href="{{ route('venues.show', $occurrence->locationVenue()) }}">{{ $occurrence->locationVenue()->name }}</a>
-                                @endif
-                                @if (! ($isPreview ?? false) && ! $occurrence->is($selectedOccurrence ?? null))
-                                    <a class="underline text-accent" href="{{ \App\Support\EventUrl::occurrence($occurrence) }}">{{ __('seo.date_page') }}</a>
-                                @endif
-                                @if ($occurrence->previous_starts_at !== null)
-                                    <p>{{ __('seo.rescheduled', ['date' => $formatter->iso($occurrence->previous_starts_at)]) }}</p>
-                                @endif
+                                {{-- La data è la risposta a «quando»: in grande, prima di tutto il resto, con l'ora subito sotto. --}}
+                                <time
+                                    datetime="{{ $occurrence->is_all_day ? $formatter->isoDay($occurrence->business_date) : $formatter->iso($occurrence->starts_at) }}"
+                                    class="font-display text-[clamp(1.75rem,4vw,2.75rem)] leading-[0.95] font-extrabold tracking-[-0.03em] text-ink"
+                                >
+                                    {{ $formatter->weekdayDate($occurrence->business_date) }}
+                                </time>
                                 <div class="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
-                                    <time
-                                        datetime="{{ $occurrence->is_all_day ? $formatter->isoDay($occurrence->business_date) : $formatter->iso($occurrence->starts_at) }}"
-                                        class="shrink-0 font-semibold text-ink"
-                                    >
-                                        {{ $formatter->weekdayDate($occurrence->business_date) }}
-                                    </time>
-
-                                    @if (filled($occurrence->highlight))
-                                        <x-badge tone="soon" size="sm" class="self-start">{{ $occurrence->highlight }}</x-badge>
-                                    @endif
-
-                                    <span class="text-sm text-ink-muted">
+                                    <span class="text-base font-semibold text-ink">
                                         @if ($occurrence->is_all_day)
                                             {{ __('events.badge.all_day') }}
                                         @else
@@ -286,6 +287,10 @@
                                         @endif
                                     </span>
 
+                                    @if (filled($occurrence->highlight))
+                                        <x-badge tone="soon" size="sm" class="self-start">{{ $occurrence->highlight }}</x-badge>
+                                    @endif
+
                                     @if ($occurrence->status !== \App\Enums\OccurrenceStatus::Scheduled)
                                         <div class="text-sm font-semibold text-live">
                                             {{ $occurrence->status->label() }}
@@ -294,12 +299,26 @@
                                             @endif
                                         </div>
                                     @endif
+                                </div>
 
-                                    @php
-                                        $dateTiers = \App\Support\TicketTiers::for($event, $occurrence);
-                                        $dateCapacity = \App\Support\Capacity::for($occurrence);
-                                    @endphp
+                                {{-- Prima quando (data, ora, se è stata spostata), poi dove, poi posti e biglietti. --}}
+                                @if ($occurrence->previous_starts_at !== null)
+                                    <p class="text-sm text-ink-muted">{{ __('seo.rescheduled', ['date' => __('dates.day_at_time', ['date' => $formatter->instantDate($occurrence->previous_starts_at), 'time' => $formatter->time($occurrence->previous_starts_at)])]) }}</p>
+                                @endif
+                                @if($occurrence->locationVenue())
+                                    <a class="w-fit text-sm text-ink-muted underline underline-offset-4" href="{{ route('venues.show', $occurrence->locationVenue()) }}">{{ $occurrence->locationVenue()->name }}</a>
+                                @endif
+                                @if (! ($isPreview ?? false) && ! $occurrence->is($selectedOccurrence ?? null))
+                                    <a class="w-fit underline text-accent" href="{{ \App\Support\EventUrl::occurrence($occurrence) }}">{{ __('seo.date_page') }}</a>
+                                @endif
 
+                                @php
+                                    $dateTiers = \App\Support\TicketTiers::for($event, $occurrence);
+                                    $dateCapacity = \App\Support\Capacity::for($occurrence);
+                                @endphp
+
+                                @if ($dateCapacity !== null || $occurrence->ticketTiers->isNotEmpty())
+                                <div class="flex min-w-0 flex-col gap-2">
                                     @if ($dateCapacity !== null)
                                         <x-capacity-meter :capacity="$dateCapacity" :compact="true" class="max-w-xs" />
                                     @endif
@@ -317,6 +336,7 @@
                                         />
                                     @endif
                                 </div>
+                                @endif
 
                                 </div>
 
@@ -335,8 +355,11 @@
                                            (`business_date >= oggi`), quindi una serata già finita
                                            resta in pagina fino a mezzanotte: lasciare la cella vuota
                                            farebbe sembrare mancante il pulsante invece che chiuso. */
+                                        /* Su una data annullata o rinviata lo stato è già scritto
+                                           accanto all'ora: un «le prenotazioni aprono il…» lì sotto
+                                           annuncerebbe qualcosa che non succederà. */
                                         $chiusura = match (true) {
-                                            $prenotabile, ! $configurata => null,
+                                            $prenotabile, ! $configurata, $occurrence->status->isCalledOff() => null,
                                             $occurrence->status === \App\Enums\OccurrenceStatus::SoldOut => __('ticketing.card.sold_out'),
                                             $occurrence->booking_opens_at !== null && now()->lt($occurrence->booking_opens_at) => __('ticketing.card.opens_on', ['date' => $formatter->instantDate($occurrence->booking_opens_at)]),
                                             default => __('ticketing.card.closed'),
@@ -350,11 +373,15 @@
                                     @elseif ($chiusura !== null)
                                         <p class="text-sm text-ink-muted sm:text-right">{{ $chiusura }}</p>
                                     @endif
-                                    @if (! ($isPreview ?? false))
+                                    @if (! ($isPreview ?? false) && $occurrence->isAhead())
                                         <x-availability-alert :occurrence="$occurrence" :event="$event" />
                                         <x-opening-alert :occurrence="$occurrence" :event="$event" />
                                     @endif
                                     </div>
+                                    {{-- Calendario e locandina solo per una data che si terrà
+                                         e non è finita: annullata o rinviata, metterla in agenda
+                                         o stamparla in vetrina sarebbe un appuntamento falso. --}}
+                                    @if ($occurrence->isAhead())
                                     <div class="flex flex-wrap items-center gap-2 border-t border-line pt-3 sm:col-span-2">
                                         <a
                                             href="{{ route('events.calendar', ['slug' => $event->slug, 'occurrence' => $occurrence->url_number]) }}" data-content-metric="calendar_clicks"
@@ -389,9 +416,12 @@
                                             </a>
                                         @endforeach
                                     </div>
+                                    @endif
                                 @endif
                             </div>
-                            @if ($occurrences->isNotEmpty() && ! ($isPreview ?? false))
+                            {{-- I passaggi solo verso una data che si terrà e non è finita:
+                                 su una annullata il clic portava a un 404. --}}
+                            @if ($occurrence->isAhead() && ! ($isPreview ?? false))
                                 <x-carpool-actions :occurrence="$occurrence" />
                             @endif
                             </li>
@@ -406,18 +436,22 @@
                 </section>
             @endif
 
-            <x-event-description :event="$event" />
+            {{-- Le raccolte si fanno con le date: stanno subito sotto «Quando»,
+                 non in testa insieme a chi organizza. --}}
+            @if (! ($isPreview ?? false) && $activeDates->isNotEmpty())
+                <div class="event-detail-collections"><x-collection-add :occurrences="$activeDates" /></div>
+            @endif
+
             @if (($selectedOccurrence ?? null) && ($occurrenceCount ?? $event->occurrences()->count()) > 1)
-                <p><a class="underline text-accent" href="{{ route('events.show', $event) }}">{{ __('seo.all_dates') }}</a></p>
+                <p class="event-detail-all-dates"><a class="underline text-accent" href="{{ route('events.show', $event) }}">{{ __('seo.all_dates') }}</a></p>
             @endif
-            @if ($weatherDate = ($selectedOccurrence ?? $occurrences->first()))
-                <x-event-weather :occurrence="$weatherDate" />
-            @endif
-            <x-editorial-content :model="$event" :occurrence="$selectedOccurrence ?? null" />
+
+            <x-event-description :event="$event" />
 
             {{-- La scheda tecnica dell'evento: apertura porte, durata, età
                  minima. Coppie etichetta/valore, e nessuna sezione se non ce
-                 ne sono (§8.6). --}}
+                 ne sono (§8.6). Viene prima del meteo e di «Prima di andare»:
+                 descrive la serata, quelli servono per andarci. --}}
             <x-fact-table
                 :facts="$event->facts"
                 :heading="__('events.detail.facts')"
@@ -426,12 +460,30 @@
 
             {{-- Le fasce di prezzo: lo stato è per fascia, non per data. È la
                  risposta a «tutto esaurito o ci sono ancora biglietti?» che
-                 `OccurrenceStatus::SoldOut` da solo non sa dare. --}}
-            <x-ticket-tiers
-                :tiers="$tiers"
-                heading-id="fasce-evento"
-                :note="__('events.detail.tickets_note')"
-            />
+                 `OccurrenceStatus::SoldOut` da solo non sa dare.
+
+                 Sulla pagina di una data che ha un listino suo, quello
+                 dell'evento non vale: lo dice già «Prezzi di questa data» in
+                 «Quando», e ripeterlo qui sotto contraddiceva il prezzo. --}}
+            @unless ($selectedOccurrence?->ticketTiers->isNotEmpty())
+                <x-ticket-tiers
+                    :tiers="$tiers"
+                    heading-id="fasce-evento"
+                    :note="__('events.detail.tickets_note')"
+                />
+            @endunless
+
+            {{-- Il meteo della data a cui si andrà: quella scelta se non è finita né
+                 annullata, altrimenti la prima che si terrà. --}}
+            @if ($weatherDate = ($selectedOccurrence?->isAhead() ? $selectedOccurrence : $activeDates->first()))
+                <x-event-weather :occurrence="$weatherDate" />
+            @endif
+            {{-- Un contenitore solo per l'ordine sul telefono: il componente
+                 scrive più blocchi sciolti, e senza un genitore comune non si
+                 potevano tenere insieme dopo il meteo. --}}
+            <div class="event-detail-editorial flex min-w-0 flex-col gap-6">
+                <x-editorial-content :model="$event" :occurrence="$selectedOccurrence ?? null" />
+            </div>
 
             @if ($lineups->isNotEmpty())
                 <section aria-labelledby="lineup-evento" class="flex flex-col gap-3">
@@ -501,18 +553,20 @@
                 </section>
             @endif
 
-            @if (! ($isPreview ?? false) && config('community.enabled') && $occurrences->isNotEmpty())
-                <x-poll-form :event="$event" :occurrences="$occurrences" />
+            @if (! ($isPreview ?? false) && config('community.enabled') && $activeDates->isNotEmpty())
+                <x-poll-form :event="$event" :occurrences="$activeDates" />
             @endif
 
             {{-- «Chi ci va» riguarda una data precisa, quindi compare solo
                  sulla pagina di quella data: sulla scheda della serie non
-                 saprebbe a quale appuntamento riferirsi. --}}
-            @if (! ($isPreview ?? false) && ($selectedOccurrence ?? null) && config('community.enabled'))
+                 saprebbe a quale appuntamento riferirsi. E solo se a quella
+                 data si può ancora andare: passata o annullata, il server
+                 rifiutava il «ci vado». --}}
+            @if (! ($isPreview ?? false) && $selectedOccurrence?->isAhead() && config('community.enabled'))
                 <x-attendance :occurrence="$selectedOccurrence" />
             @endif
 
-            @if (! ($isPreview ?? false) && ($selectedOccurrence ?? null))
+            @if (! ($isPreview ?? false) && $selectedOccurrence?->isAhead())
                 <x-presence-share :occurrence="$selectedOccurrence" />
             @endif
 
@@ -575,6 +629,7 @@
                      zero — e in una colonna con `gap`, un elemento alto zero
                      costa lo stesso una fessura. Sotto al prezzo se ne
                      sommavano due. --}}
+                @if ($canAttend)
                 <div class="vuoto-invisibile flex flex-col gap-2">
                     @if ($ticketUrl !== null)
                         <a
@@ -608,19 +663,13 @@
                         </a>
                     @endif
                 </div>
+                @endif
 
                 <dl class="vuoto-invisibile flex flex-col gap-1 text-sm text-ink-muted">
                     @if (filled($event->age_restriction))
                         <div class="flex gap-2">
                             <dt class="sr-only">{{ __('events.detail.age') }}</dt>
                             <dd>{{ __('events.detail.age_restriction', ['value' => $event->age_restriction]) }}</dd>
-                        </div>
-                    @endif
-
-                    @if ($event->is_outdoor)
-                        <div class="flex gap-2">
-                            <dt class="sr-only">{{ __('events.detail.place_kind') }}</dt>
-                            <dd>{{ __('events.detail.outdoor') }}</dd>
                         </div>
                     @endif
                 </dl>
@@ -685,10 +734,6 @@
                     <x-venue-map :venue="$venue" />
                 </section>
 
-                {{-- Un locale pubblico che nessuno gestisce: chi lo gestisce
-                     lo scopre spesso da qui, guardando una serata a casa sua. --}}
-                <x-claim-card :venue="$venue" :compact="true" class="max-lg:order-7!" />
-
                 {{-- «Come arrivare» e accessibilità stanno sul locale, non
                      sull'evento: cambiano col luogo e non con la serata. Qui
                      si mostrano perché è dove servono — mentre si decide se
@@ -709,6 +754,7 @@
 
             <x-external-links :links="$event->external_links" />
 
+            @unless ($isPreview ?? false)
             <section class="flex flex-col gap-3" aria-labelledby="condividi-evento">
                 <h2 id="condividi-evento" class="font-display text-[clamp(1.25rem,1.8vw,1.75rem)] leading-none font-extrabold tracking-[-0.03em] uppercase">{{ __('common.actions.share') }}</h2>
 
@@ -721,6 +767,15 @@
                     {{ __('common.actions.report') }}
                 </a>
             </section>
+            @endunless
+
+            {{-- Un locale pubblico che nessuno gestisce: chi lo gestisce lo
+                 scopre spesso da qui, guardando una serata a casa sua. È un
+                 invito, non un'informazione sulla serata: viene dopo
+                 «Condividi», in fondo alla colonna. --}}
+            @if ($venue !== null && ! ($isPreview ?? false))
+                <x-claim-card :venue="$venue" :compact="true" class="event-detail-claim" />
+            @endif
         </aside>
     </div>
 

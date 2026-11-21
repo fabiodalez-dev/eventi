@@ -722,6 +722,12 @@
    proprio. Sopra i 1024px tutto torna com'è.
 --------------------------------------------------------------------------- */
 
+/* Il contenitore dei contenuti editoriali esiste sempre: vuoto, non deve
+   costare una fessura nella colonna. */
+.event-detail-editorial:not(:has(*)) {
+    display: none;
+}
+
 @media (max-width: 1023px) {
     .event-detail-body {
         display: flex;
@@ -741,16 +747,48 @@
     .event-detail-body > article > *,
     .event-detail-body > aside > * { order: 12; }
 
+    /* Lo stesso filo del desktop, che si legge in due colonne:
+        1  locandina
+        2  avvisi di stato (data passata, evento finito, nuova edizione) e
+           chi organizza con il salvataggio — sopra le date, come su desktop
+        4  «Quando», le raccolte e «Tutte le date»
+        5  descrizione e video
+        6  prezzo, scheda tecnica e listino dell'evento
+        7  dove: indirizzo libero, locale, come arrivare, informazioni
+        8  meteo
+        9  «Prima di andare» e il resto dei contenuti editoriali
+       10  formazione, galleria, link
+       11  tag
+       12  la comunità: sondaggio, chi ci va, «sono qui», commenti (i blocchi
+           senza nome restano qui per la regola sopra)
+       13  azioni che non riguardano la serata: condividere, gestire il locale
+       Prima «Condividi» stava a metà, meteo e «Prima di andare» finivano
+       sotto l'invito a gestire il locale, e l'avviso «evento finito», il
+       luogo con indirizzo libero e il video comparivano dopo i commenti. */
     .event-detail-body .event-poster-original { order: 1; }
+    .event-detail-body .event-detail-notice { order: 2; }
     .event-detail-body .event-detail-loose { order: 2; }
+    .event-detail-body [data-edition-alert] { order: 2; }
     .event-detail-body section[aria-labelledby="date-evento"] { order: 4; }
+    .event-detail-body .event-detail-collections { order: 4; }
+    .event-detail-body .event-detail-all-dates { order: 4; }
     .event-detail-body section[aria-labelledby="descrizione-evento"] { order: 5; }
+    .event-detail-body section[aria-labelledby="video-evento"] { order: 5; }
     .event-detail-body section[aria-labelledby="prezzo-evento"] { order: 6; }
+    .event-detail-body section[aria-labelledby="scheda-evento"] { order: 6; }
+    .event-detail-body section[aria-labelledby="fasce-evento"] { order: 6; }
+    .event-detail-body section[data-event-location] { order: 7; }
     .event-detail-body section[aria-labelledby="luogo-evento"] { order: 7; }
-    .event-detail-body section[aria-labelledby="condividi-evento"] { order: 8; }
-    .event-detail-body section[aria-labelledby="prima-di-andare"] { order: 9; }
-    .event-detail-body section[data-event-weather] { order: 10; }
+    .event-detail-body section[aria-labelledby="come-arrivare-evento"] { order: 7; }
+    .event-detail-body section[aria-labelledby="info-locale-evento"] { order: 7; }
+    .event-detail-body section[data-event-weather] { order: 8; }
+    .event-detail-body .event-detail-editorial { order: 9; }
+    .event-detail-body section[aria-labelledby="lineup-evento"] { order: 10; }
+    .event-detail-body section[aria-labelledby="galleria-evento"] { order: 10; }
+    .event-detail-body section[aria-labelledby="link-evento"] { order: 10; }
     .event-detail-body section[aria-labelledby="tag-evento"] { order: 11; }
+    .event-detail-body section[aria-labelledby="condividi-evento"] { order: 13; }
+    .event-detail-body .event-detail-claim { order: 13; }
 
 }
 

@@ -1,5 +1,5 @@
 {{--
-    «Aggiungi a una raccolta», sotto il pulsante Salva della scheda evento.
+    «Aggiungi a una raccolta», sotto «Quando» nella scheda evento.
     Chi è dentro sceglie la data (se la serie ne ha più d'una) e la raccolta,
     oppure ne crea una nuova al volo; chi è fuori vede il collegamento
     all'accesso. Un modulo normale: nessun JavaScript richiesto.
@@ -44,6 +44,6 @@
             </form>
         </details>
     @else
-        <a href="{{ route('login', ['redirect' => url()->current()]) }}" class="ui-action inline-flex min-h-12 items-center text-sm font-semibold underline">{{ __('collections.add_login') }}</a>
+        <a href="{{ route('login', ['intended' => url()->current()]) }}" class="ui-action inline-flex min-h-12 items-center text-sm font-semibold underline">{{ __('collections.add_login') }}</a>
     @endauth
 @endif
