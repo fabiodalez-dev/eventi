@@ -45,6 +45,8 @@ data class AppUiState(
     val appearanceSaving: Boolean = false,
     /* La vista degli elenchi: `full`, `grid` o `list` (vedi `CARD_LAYOUTS`). */
     val cardLayout: String = "full",
+    /* Il giorno scelto nel Calendario (`yyyy-MM-dd`); null vuol dire oggi. */
+    val calendarDay: String? = null,
     val bookings: List<it.fabiodalez.incitta.data.Booking> = emptyList(),
     /* Prenotazioni recenti a cui la persona non si è presentata (`meta.no_shows`). */
     val noShows: Int = 0,
@@ -288,6 +290,27 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun refreshProfile() { viewModelScope.launch { synchronizeAppearance() } }
+
+    /** I ritagli della home (Oggi, Domani, Weekend, Gratis) aprono Eventi già filtrato, come sul sito. */
+    fun openEventsPreset(filter: EventFilter) {
+        val (filters, summary) = when (filter) {
+            EventFilter.TODAY -> mapOf("preset" to "today") to "Oggi"
+            EventFilter.TOMORROW -> mapOf("preset" to "tomorrow") to "Domani"
+            EventFilter.WEEKEND -> mapOf("preset" to "weekend") to "Weekend"
+            EventFilter.FREE -> mapOf("price" to "free") to "Gratis"
+            else -> emptyMap<String, String>() to ""
+        }
+        selectTab(AppTab.EVENTS)
+        if (filters.isNotEmpty()) updateSearchFilters(filters, summary, "")
+    }
+
+    /** Un giorno toccato nel calendario della home apre il Calendario su quel giorno. */
+    fun openCalendarDay(day: java.time.LocalDate) {
+        selectTab(AppTab.CALENDAR)
+        _state.value = _state.value.copy(calendarDay = day.toString())
+    }
+
+    fun selectCalendarDay(day: java.time.LocalDate) { _state.value = _state.value.copy(calendarDay = day.toString()) }
 
     /**
      * La vista degli elenchi cambia subito; il salvataggio nel profilo segue.

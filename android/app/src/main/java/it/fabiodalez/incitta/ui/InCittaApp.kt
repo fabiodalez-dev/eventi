@@ -11,6 +11,10 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.height
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -19,7 +23,8 @@ import androidx.compose.foundation.layout.ime
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.BookmarkBorder
-import androidx.compose.material.icons.outlined.Event
+import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.ConfirmationNumber
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.LightMode
@@ -279,7 +284,8 @@ fun InCittaApp(viewModel: MainViewModel) {
                         contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 0.dp),
                     ) {
                         NavItem(state.tab, AppTab.HOME, "Home", Icons.Outlined.Home, { managementOpen = false; collectionsOpen = false; tonightOpen = false; organizerSlug = null; carpoolRoute = null; communityRoute = null; viewModel.selectTab(it) })
-                        NavItem(state.tab, AppTab.EVENTS, "Eventi", Icons.Outlined.Event, { managementOpen = false; collectionsOpen = false; tonightOpen = false; organizerSlug = null; carpoolRoute = null; communityRoute = null; viewModel.selectTab(it) })
+                        NavItem(state.tab, AppTab.EVENTS, "Eventi", Icons.Outlined.ConfirmationNumber, { managementOpen = false; collectionsOpen = false; tonightOpen = false; organizerSlug = null; carpoolRoute = null; communityRoute = null; viewModel.selectTab(it) })
+                        NavItem(state.tab, AppTab.CALENDAR, "Calendario", Icons.Outlined.CalendarMonth, { managementOpen = false; collectionsOpen = false; tonightOpen = false; organizerSlug = null; carpoolRoute = null; communityRoute = null; viewModel.selectTab(it) })
                         NavItem(state.tab, AppTab.MAP, "Mappa", Icons.Outlined.Map, { managementOpen = false; collectionsOpen = false; tonightOpen = false; organizerSlug = null; carpoolRoute = null; communityRoute = null; viewModel.selectTab(it) })
                         NavItem(state.tab, AppTab.SEARCH, "Cerca", Icons.Outlined.Search, { managementOpen = false; collectionsOpen = false; tonightOpen = false; organizerSlug = null; carpoolRoute = null; communityRoute = null; viewModel.selectTab(it) })
                         NavItem(state.tab, AppTab.SAVED, "Salvati", Icons.Outlined.BookmarkBorder, { managementOpen = false; collectionsOpen = false; tonightOpen = false; organizerSlug = null; carpoolRoute = null; communityRoute = null; viewModel.selectTab(it) })
@@ -428,6 +434,10 @@ fun InCittaApp(viewModel: MainViewModel) {
                         inlineBanner = state.sponsoredBanner?.takeIf { bannerScreen && it.validAt() },
                         onOrganizers = { organizerSlug = "" },
                         onTonight = { tonightOpen = true },
+                        onEvents = { viewModel.selectTab(AppTab.EVENTS) },
+                        onMap = { viewModel.selectTab(AppTab.MAP) },
+                        onCalendarDay = viewModel::openCalendarDay,
+                        onPreset = viewModel::openEventsPreset,
                         onBannerImpression = { banner ->
                             lastBannerImpression = android.os.SystemClock.elapsedRealtime()
                             viewModel.bannerMetric(banner, false)
@@ -490,7 +500,7 @@ fun InCittaApp(viewModel: MainViewModel) {
                         onCarpool = { carpoolRoute = "me" }, onCarpoolMessages = { carpoolRoute = "chats" }, onCommunityInbox = { carpoolRoute = "inbox" }, communityTotal = communityTotal,
                         onAttended = { viewModel.selectTab(AppTab.ATTENDED) },
                     )
-                    AppTab.CALENDAR -> CalendarScreen(state, padding, viewModel::open, viewModel::toggleSaved) { viewModel.selectTab(AppTab.HOME) }
+                    AppTab.CALENDAR -> CalendarScreen(state, padding, viewModel::open, viewModel::toggleSaved, { viewModel.selectTab(AppTab.HOME) }, viewModel::selectCalendarDay)
                     AppTab.VENUES -> VenuesScreen(state, padding, viewModel::openVenue, viewModel::setVenuesOpenNow, viewModel::loadOpenNowVenues) { viewModel.selectTab(AppTab.HOME) }
                     AppTab.TICKETS -> TicketsScreen(state, padding, viewModel::cancelBooking, viewModel::loadBookings, viewModel::resendBooking, viewModel::addToWallet, viewModel::consumeWalletLink, viewModel::sendTicket, onResendVerification = viewModel::resendEmailVerification, onEmailConfirmed = viewModel::emailConfirmed) { viewModel.selectTab(AppTab.ACCOUNT) }
                     AppTab.ATTENDED -> AttendedScreen(
@@ -544,23 +554,29 @@ private fun RowScope.NavItem(
      * possono venire dal tema perche' la barra e' scura mentre il tema e'
      * chiaro. Nello scuro resta il lime su nero.
      */
+    /* Con sette voci ognuna è larga poco più di 50dp, e la pastiglia di
+       `NavigationBarItem` (64dp fissi) usciva dalla voce e dal bordo tondo
+       della barra. Qui la pastiglia sta dentro la voce, con un margine. */
     val chiaro = isLightTheme
-    NavigationBarItem(
-        selected = current == tab,
-        onClick = { select(tab) },
-        icon = { Icon(icon, contentDescription = label, modifier = Modifier.size(24.dp)) },
-        colors = if (chiaro) NavigationBarItemDefaults.colors(
-            selectedIconColor = androidx.compose.ui.graphics.Color(0xFFFAF9F6),
-            selectedTextColor = androidx.compose.ui.graphics.Color(0xFFFAF9F6),
-            indicatorColor = androidx.compose.ui.graphics.Color(0xFFB54D23),
-            unselectedIconColor = androidx.compose.ui.graphics.Color(0xFFC9C7C1),
-            unselectedTextColor = androidx.compose.ui.graphics.Color(0xFFC9C7C1),
-        ) else NavigationBarItemDefaults.colors(
-            selectedIconColor = Ink,
-            selectedTextColor = Acid,
-            indicatorColor = Acid,
-            unselectedIconColor = Muted,
-            unselectedTextColor = Muted,
-        ),
-    )
+    val selected = current == tab
+    val pill = if (chiaro) androidx.compose.ui.graphics.Color(0xFFB54D23) else Acid
+    val tint = when {
+        selected && chiaro -> androidx.compose.ui.graphics.Color(0xFFFAF9F6)
+        selected -> Ink
+        chiaro -> androidx.compose.ui.graphics.Color(0xFFC9C7C1)
+        else -> Muted
+    }
+    androidx.compose.foundation.layout.Box(
+        Modifier.weight(1f).fillMaxHeight()
+            .selectable(selected = selected, role = androidx.compose.ui.semantics.Role.Tab, onClick = { select(tab) })
+            .semantics { contentDescription = label },
+        contentAlignment = androidx.compose.ui.Alignment.Center,
+    ) {
+        androidx.compose.foundation.layout.Box(
+            Modifier.padding(horizontal = 4.dp).fillMaxWidth().height(36.dp)
+                .clip(androidx.compose.foundation.shape.RoundedCornerShape(18.dp))
+                .background(if (selected) pill else androidx.compose.ui.graphics.Color.Transparent),
+            contentAlignment = androidx.compose.ui.Alignment.Center,
+        ) { Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(24.dp)) }
+    }
 }

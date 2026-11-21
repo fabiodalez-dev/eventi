@@ -1,6 +1,8 @@
 package it.fabiodalez.incitta.ui
 
 import androidx.compose.foundation.border
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.material3.*
@@ -79,7 +81,7 @@ internal fun VenueReviewsSection(
             reviews.reviews.forEach { review ->
                 Column(Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outlineVariant).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(review.author, style = MaterialTheme.typography.titleMedium)
-                    review.givenRating?.let { Text("${"★".repeat(it.coerceIn(0, 5))}${"☆".repeat(5 - it.coerceIn(0, 5))}", modifier = Modifier.semanticsRating(it)) }
+                    review.givenRating?.let { StarRow(it, Modifier.semanticsRating(it)) }
                     review.givenBody?.let { Text(it) }
                     review.date?.let { Text(it, style = MaterialTheme.typography.labelSmall) }
                     review.givenReply?.let { reply ->
@@ -103,10 +105,10 @@ internal fun VenueReviewsSection(
                     own.moderationNote?.let { Text(it) }
                 }
                 if (reviews.canReview) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                         (1..5).forEach { star ->
-                            Box(Modifier.weight(1f).heightIn(min=48.dp).selectable(selected = rating == star, enabled = !busy, role = Role.RadioButton, onClick = { rating = star }), contentAlignment = androidx.compose.ui.Alignment.Center) {
-                                Text(if (star <= rating) "★" else "☆", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.semanticsRating(star))
+                            Box(Modifier.size(48.dp).selectable(selected = rating == star, enabled = !busy, role = Role.RadioButton, onClick = { rating = star }).semanticsRating(star), contentAlignment = androidx.compose.ui.Alignment.Center) {
+                                StarIcon(star <= rating, 34.dp)
                             }
                         }
                     }
@@ -130,6 +132,28 @@ internal fun VenueReviewsSection(
         text = { Column { OutlinedTextField(reportBody, { if(it.length <= 3000) reportBody = it }, label = { Text(stringResource(R.string.reviews_report_reason)) }); error?.let { Text(it, color=MaterialTheme.colorScheme.error) } } },
         confirmButton = { TextButton(enabled = !busy && reportBody.trim().length >= 10, onClick = { run { report(id, reportBody.trim()); reporting = null; message = reportedMessage } }) { Text(stringResource(R.string.reviews_send_report)) } },
         dismissButton = { TextButton(enabled = !busy, onClick = { reporting = null }) { Text(stringResource(R.string.reviews_cancel)) } }) }
+}
+
+/*
+ * Le stelle disegnate, non i caratteri ★ e ☆: quelli dipendevano dal
+ * carattere del telefono, uscivano di misure diverse fra piena e vuota e
+ * fuori allineamento col testo.
+ */
+@Composable
+private fun StarIcon(filled: Boolean, size: androidx.compose.ui.unit.Dp) {
+    Icon(
+        if (filled) androidx.compose.material.icons.Icons.Filled.Star else androidx.compose.material.icons.Icons.Outlined.StarOutline,
+        contentDescription = null,
+        tint = if (filled) Acid else Muted,
+        modifier = Modifier.size(size),
+    )
+}
+
+@Composable
+private fun StarRow(rating: Int, modifier: Modifier = Modifier) {
+    Row(modifier, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+        (1..5).forEach { StarIcon(it <= rating.coerceIn(0, 5), 18.dp) }
+    }
 }
 
 @Composable

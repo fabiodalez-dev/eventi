@@ -33,8 +33,11 @@
 
              Lo stesso `@vite` sta in home, nella mappa, nella lista eventi e
              nella scheda evento. Questa pagina era l'unica ad averne bisogno e
-             a non averlo. --}}
-        @vite('resources/js/map.js')
+             a non averlo.
+
+             `map.css` serve ai comandi della mappa (+, −, schermo intero):
+             senza, MapLibre li lascia in fondo al riquadro, fuori posto. --}}
+        @vite(['resources/css/map.css', 'resources/js/map.js'])
     </x-slot:head>
 
     <nav aria-label="{{ __('ui.breadcrumb') }}" class="text-sm text-ink-subtle">

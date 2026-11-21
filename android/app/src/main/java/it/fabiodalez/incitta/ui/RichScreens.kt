@@ -11,6 +11,10 @@ import android.graphics.Paint
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Fullscreen
+import androidx.compose.material.icons.outlined.FullscreenExit
+import androidx.compose.material.icons.outlined.Remove
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -38,6 +42,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.automirrored.outlined.Accessible
@@ -206,17 +211,28 @@ fun CompleteEventDetailScreen(
                         if (index > 0) HorizontalDivider(Modifier.padding(vertical = 14.dp), color = Rule)
                         OccurrenceDateBlock(detail, occurrence, occurrence.occurrenceId in savedIds, onSave) { collectionFor = it }
                         if (occurrence.bookingEnabled) {
-                            Button(onClick = { onReserve(occurrence) }, modifier = Modifier.fillMaxWidth().padding(top = 10.dp), shape = ControlShape) {
+                            Button(onClick = { onReserve(occurrence) }, modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 6.dp), shape = ControlShape) {
                                 Text(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.ticket_reserve))
                             }
                         }
                         dateActions(occurrence)
-                        community(occurrence.occurrenceId)
-                        // Prima l'azione principale dell'evento, poi i passaggi per arrivarci.
-                        Text(cpText("subtitle"), modifier=Modifier.padding(top=16.dp), style=MaterialTheme.typography.bodySmall)
-                        androidx.compose.foundation.layout.FlowRow(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-                            CpButton("seek") {if(carpoolVerified) onCarpool(occurrence.occurrenceId,false) else carpoolPrompt=occurrence.occurrenceId to false}
-                            CpButton("offer") {if(carpoolVerified) onCarpool(occurrence.occurrenceId,true) else carpoolPrompt=occurrence.occurrenceId to true}
+                        /* «Chi ci va» e i passaggi si aprono subito solo per la
+                           prima data. Caricarli per ogni data di una rassegna
+                           settimanale faceva una richiesta per data tutte
+                           insieme, e il server rispondeva «Troppe richieste». */
+                        var social by remember(occurrence.occurrenceId) { mutableStateOf(index == 0) }
+                        if (!social) {
+                            TextButton(onClick = { social = true }, contentPadding = PaddingValues(0.dp), modifier = Modifier.padding(top = 8.dp)) {
+                                Text(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.community_attendance_title) + " e passaggi")
+                            }
+                        } else {
+                            community(occurrence.occurrenceId)
+                            // Prima l'azione principale dell'evento, poi i passaggi per arrivarci.
+                            Text(cpText("subtitle"), modifier=Modifier.padding(top=22.dp, bottom=10.dp), style=MaterialTheme.typography.bodySmall)
+                            androidx.compose.foundation.layout.FlowRow(horizontalArrangement=Arrangement.spacedBy(8.dp), verticalArrangement=Arrangement.spacedBy(8.dp)) {
+                                CpButton("seek") {if(carpoolVerified) onCarpool(occurrence.occurrenceId,false) else carpoolPrompt=occurrence.occurrenceId to false}
+                                CpButton("offer") {if(carpoolVerified) onCarpool(occurrence.occurrenceId,true) else carpoolPrompt=occurrence.occurrenceId to true}
+                            }
                         }
                     }
                 }
@@ -282,11 +298,7 @@ fun CompleteEventDetailScreen(
                         ) { Text("SCOPRI IL LOCALE") }
                         if (venue.lat != null && venue.lng != null) {
                             Spacer(Modifier.height(14.dp))
-                            InteractiveMap(
-                                points = listOf(MapPoint(venue.lat, venue.lng, venue.name)),
-                                modifier = Modifier.fillMaxWidth().height(250.dp),
-                                zoom = 15.5,
-                            ) { onVenue(venue) }
+                            PinnedMap(MapPoint(venue.lat, venue.lng, venue.name), Modifier.fillMaxWidth().height(250.dp)) { onVenue(venue) }
                             MapCaption("${venue.name} · TOCCA IL PUNTO PER APRIRE IL LOCALE")
                             Spacer(Modifier.height(10.dp))
                             ActionButton("INDICAZIONI", Icons.Outlined.Map) { directions(context, venue.lat, venue.lng, venue.name) }
@@ -302,7 +314,7 @@ fun CompleteEventDetailScreen(
                         Text(listOfNotNull(place.address, place.municipality).joinToString(" · "), color = Muted, modifier = Modifier.padding(top = 8.dp))
                         if (place.lat != null && place.lng != null) {
                             Spacer(Modifier.height(14.dp))
-                            InteractiveMap(listOf(MapPoint(place.lat, place.lng, place.name ?: detail.title)), Modifier.fillMaxWidth().height(250.dp), 15.5) {
+                            PinnedMap(MapPoint(place.lat, place.lng, place.name ?: detail.title), Modifier.fillMaxWidth().height(250.dp)) {
                                 directions(context, place.lat, place.lng, place.name ?: detail.title)
                             }
                             MapCaption("${place.name ?: detail.title} · TOCCA IL PUNTO PER LE INDICAZIONI")
@@ -461,10 +473,10 @@ private fun OccurrenceDateBlock(detail: EventDetail, occurrence: Occurrence, sav
     Text(timeRange(occurrence), color = Acid, style = androidx.compose.material3.MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = 5.dp))
     occurrence.statusNote?.let { Text(it, color = Muted, modifier = Modifier.padding(top = 6.dp)) }
     Text(priceText(occurrence.price), color = Acid, modifier = Modifier.padding(top = 6.dp))
-    occurrence.capacityLeft?.let { remaining -> Text(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.known_remaining, remaining), color = Muted) }
+    occurrence.capacityLeft?.let { remaining -> Text(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.known_remaining, remaining), color = Muted, modifier = Modifier.padding(top = 4.dp)) }
     if (occurrence.contentDetails != null) {
         var showPractical by remember(occurrence.occurrenceId) { mutableStateOf(detail.occurrences.size == 1) }
-        TextButton(onClick = { showPractical = !showPractical }) {
+        TextButton(onClick = { showPractical = !showPractical }, contentPadding = PaddingValues(0.dp), modifier = Modifier.padding(top = 6.dp)) {
             Text(androidx.compose.ui.res.stringResource(if (showPractical) it.fabiodalez.incitta.R.string.decision_hide_details else it.fabiodalez.incitta.R.string.decision_show_details))
         }
         if (showPractical) EditorialInformation(occurrence.contentDetails)
@@ -570,7 +582,7 @@ fun VenueDetailScreen(
                 }
                 if (venue.lat != null && venue.lng != null) {
                     DetailSection("MAPPA") {
-                        InteractiveMap(listOf(MapPoint(venue.lat, venue.lng, venue.name)), Modifier.fillMaxWidth().height(280.dp), 15.5) {
+                        PinnedMap(MapPoint(venue.lat, venue.lng, venue.name), Modifier.fillMaxWidth().height(280.dp)) {
                             directions(context, venue.lat, venue.lng, venue.name)
                         }
                         MapCaption("${venue.name} · TOCCA IL PUNTO PER LE INDICAZIONI")
@@ -698,20 +710,71 @@ private fun VenueTypeFilter(label: String, selected: Boolean, onClick: () -> Uni
     ) { Text(label, style = androidx.compose.material3.MaterialTheme.typography.labelMedium) }
 }
 
+/**
+ * Il Calendario come sul sito (`/calendario`): il mese in griglia con il
+ * numero di eventi per giorno, e sotto le date del giorno scelto. Si apre su
+ * oggi, oppure sul giorno toccato nel calendario della home.
+ */
 @Composable
-fun CalendarScreen(state: AppUiState, padding: PaddingValues, onOpen: (Occurrence) -> Unit, onSave: (Long) -> Unit, onBack: () -> Unit) {
-    val grouped = state.occurrences.groupBy { it.startsAt.take(10) }.toSortedMap()
-    LazyColumn(Modifier.fillMaxSize().padding(bottom = padding.calculateBottomPadding())) {
-        item { ScreenHeader("CALENDARIO", "LE PROSSIME DATE IN CITTÀ", onBack) }
-        item { CalendarSubscriptionPanel(initiallyExpanded = true) }
-        if (grouped.isNotEmpty()) item { CardLayoutBar() }
-        if (grouped.isEmpty()) item { Text("Nessuna data disponibile.", color = Muted, modifier = Modifier.padding(24.dp)) }
-        grouped.forEach { (_, events) ->
-            item {
-                Text(fullDate(events.first().startsAt), color = Ink, modifier = Modifier.fillMaxWidth().background(Acid).padding(12.dp, 9.dp), style = androidx.compose.material3.MaterialTheme.typography.labelLarge)
-            }
-            eventCards(events, state.cardLayout, state.savedIds, onOpen, onSave)
+fun CalendarScreen(state: AppUiState, padding: PaddingValues, onOpen: (Occurrence) -> Unit, onSave: (Long) -> Unit, onBack: () -> Unit, onSelectDay: (java.time.LocalDate) -> Unit = {}) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val api = remember { it.fabiodalez.incitta.data.ApiClient(it.fabiodalez.incitta.data.LocalStore(context).installationId) }
+    val token = state.session?.token
+    val today = romeToday()
+    val selected = state.calendarDay?.let { runCatching { java.time.LocalDate.parse(it) }.getOrNull() } ?: today
+    var month by remember(state.calendarDay) { mutableStateOf(java.time.YearMonth.from(selected)) }
+    val counts = rememberMonthCounts(month, token)?.days
+    var dayEvents by remember(selected, token) { mutableStateOf<List<Occurrence>?>(null) }
+    var dayFailed by remember(selected, token) { mutableStateOf(false) }
+    var dayRetry by remember(selected) { mutableStateOf(0) }
+    LaunchedEffect(selected, token, dayRetry) {
+        dayFailed = false
+        dayEvents = try {
+            // 50 è il massimo che l'API accetta per pagina: oltre risponde 422.
+            api.get<it.fabiodalez.incitta.data.ApiEnvelope<List<Occurrence>>>("events?date=$selected&limit=50", token).data
+        } catch (error: Exception) {
+            if (error is kotlinx.coroutines.CancellationException) throw error
+            dayFailed = true
+            null
         }
+    }
+    val firstMonth = java.time.YearMonth.from(today)
+    LazyColumn(Modifier.fillMaxSize().padding(bottom = padding.calculateBottomPadding())) {
+        item { ScreenHeader("CALENDARIO", "LE DATE IN CITTÀ, GIORNO PER GIORNO", onBack) }
+        item(key = "calendar-month") {
+            Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 12.dp)) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = { month = month.minusMonths(1) }, enabled = month.isAfter(firstMonth)) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Mese precedente") }
+                    Text(monthTitle(month), style = androidx.compose.material3.MaterialTheme.typography.headlineSmall, modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                    IconButton(onClick = { month = month.plusMonths(1) }) { Icon(Icons.AutoMirrored.Outlined.ArrowForward, "Mese successivo") }
+                }
+                counts?.values?.sum()?.let { total -> Text(if (total == 1) "1 evento questo mese" else "$total eventi questo mese", color = Muted, modifier = Modifier.padding(bottom = 8.dp)) }
+                MonthCalendarGrid(month, counts, selected, onSelectDay)
+            }
+        }
+        item(key = "calendar-day-title") {
+            Text(
+                selected.format(java.time.format.DateTimeFormatter.ofPattern("EEEE d MMMM", java.util.Locale.ITALIAN)).uppercase(),
+                color = Ink, modifier = Modifier.fillMaxWidth().padding(top = 8.dp).background(Acid).padding(12.dp, 9.dp),
+                style = androidx.compose.material3.MaterialTheme.typography.labelLarge,
+            )
+        }
+        val events = dayEvents
+        when {
+            dayFailed -> item {
+                Column(Modifier.padding(24.dp)) {
+                    Text("Non riesco a caricare le date di questo giorno.", color = Muted)
+                    TextButton(onClick = { dayRetry++ }) { Text("RIPROVA") }
+                }
+            }
+            events == null -> item { androidx.compose.material3.LinearProgressIndicator(Modifier.fillMaxWidth().padding(18.dp)) }
+            events.isEmpty() -> item { Text("Nessun evento in questo giorno.", color = Muted, modifier = Modifier.padding(24.dp)) }
+            else -> {
+                item(key = "calendar-layout") { CardLayoutBar() }
+                eventCards(events, state.cardLayout, state.savedIds, onOpen, onSave)
+            }
+        }
+        item(key = "calendar-subscribe") { CalendarSubscriptionPanel(initiallyExpanded = false) }
     }
 }
 
@@ -835,6 +898,50 @@ fun ConsentOverlay(onChoice: (Boolean) -> Unit) {
 
 private data class MapPoint(val lat: Double, val lng: Double, val title: String, val payload: MapMarker? = null)
 
+/**
+ * La mappa di un locale o di un evento, come sul sito: ferma sul punto, con
+ * + e − (e due dita) per lo zoom attorno al centro, e un pulsante per
+ * aprirla a tutto schermo. A schermo intero vale lo stesso: si guarda da
+ * vicino o da lontano, non ci si sposta.
+ */
+@Composable
+private fun PinnedMap(point: MapPoint, modifier: Modifier, zoom: Double = 15.5, onMarker: () -> Unit) {
+    var fullscreen by remember { mutableStateOf(false) }
+    var inline by remember { mutableStateOf<org.maplibre.android.maps.MapLibreMap?>(null) }
+    val points = remember(point) { listOf(point) }
+    Box(modifier) {
+        InteractiveMap(points, Modifier.fillMaxSize(), zoom, pinned = true, onMapReady = { inline = it }) { onMarker() }
+        MapZoomControls(Modifier.align(Alignment.TopEnd).padding(10.dp), { inline }, onFullscreen = { fullscreen = true }, fullscreen = false)
+    }
+    if (fullscreen) {
+        androidx.compose.ui.window.Dialog(
+            onDismissRequest = { fullscreen = false },
+            properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
+        ) {
+            var large by remember { mutableStateOf<org.maplibre.android.maps.MapLibreMap?>(null) }
+            Box(Modifier.fillMaxSize().background(Ink)) {
+                InteractiveMap(points, Modifier.fillMaxSize(), inline?.cameraPosition?.zoom ?: zoom, pinned = true, onMapReady = { large = it }) { onMarker() }
+                MapZoomControls(Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(12.dp), { large }, onFullscreen = { fullscreen = false }, fullscreen = true)
+            }
+        }
+    }
+}
+
+@Composable
+private fun MapZoomControls(modifier: Modifier, map: () -> org.maplibre.android.maps.MapLibreMap?, onFullscreen: () -> Unit, fullscreen: Boolean) {
+    @Composable
+    fun Control(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, onClick: () -> Unit) {
+        IconButton(onClick = onClick, modifier = Modifier.size(48.dp).background(androidx.compose.ui.graphics.Color.White)) {
+            Icon(icon, contentDescription = label, tint = androidx.compose.ui.graphics.Color(0xFF141413))
+        }
+    }
+    Column(modifier.border(2.dp, androidx.compose.ui.graphics.Color(0xFF141413)), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Control(Icons.Outlined.Add, "Ingrandisci") { map()?.animateCamera(CameraUpdateFactory.zoomIn(), 250) }
+        Control(Icons.Outlined.Remove, "Rimpicciolisci") { map()?.animateCamera(CameraUpdateFactory.zoomOut(), 250) }
+        Control(if (fullscreen) Icons.Outlined.FullscreenExit else Icons.Outlined.Fullscreen, if (fullscreen) "Chiudi lo schermo intero" else "Mappa a schermo intero", onFullscreen)
+    }
+}
+
 @Suppress("DEPRECATION")
 @Composable
 private fun InteractiveMap(
@@ -842,13 +949,15 @@ private fun InteractiveMap(
     modifier: Modifier,
     zoom: Double,
     userPosition: LatLng? = null,
+    pinned: Boolean = false,
+    onMapReady: (org.maplibre.android.maps.MapLibreMap) -> Unit = {},
     onMarker: (List<MapPoint>) -> Unit = {},
 ) {
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     val light = isLightTheme
     val positionLabel = androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.map_your_position)
-    val mapView = remember(points, light, userPosition) {
+    val mapView = remember(points, light, userPosition, pinned) {
         MapLibre.getInstance(context)
         MapView(context).apply {
             onCreate(null)
@@ -861,10 +970,16 @@ private fun InteractiveMap(
                     isLogoEnabled = false
                     isAttributionEnabled = true
                     isZoomGesturesEnabled = true
-                    isScrollGesturesEnabled = true
+                    /* La mappa di un locale o di un evento resta sul punto:
+                       niente trascinamento, e lo zoom (due dita, doppio tocco)
+                       sempre attorno al centro, come sul sito. */
+                    isScrollGesturesEnabled = !pinned
                     isRotateGesturesEnabled = false
                     isTiltGesturesEnabled = false
+                    if (pinned) isCompassEnabled = false
                 }
+                if (pinned) this@apply.doOnLayout { view -> map.uiSettings.focalPoint = android.graphics.PointF(view.width / 2f, view.height / 2f) }
+                onMapReady(map)
                 map.setStyle(Style.Builder().fromUri(if (light) "https://tiles.openfreemap.org/styles/positron" else MAP_STYLE)) {
                     val markerGroups = mutableMapOf<Long, List<MapPoint>>()
                     val groupPositions = mutableMapOf<Long, LatLng>()
@@ -1163,9 +1278,11 @@ private fun PosterLightbox(url: String?, title: String, onClose: () -> Unit) {
 
 @Composable
 private fun LabeledValue(label: String, value: String) {
-    Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.Top) {
-        Text(label.uppercase(), color = Muted, style = androidx.compose.material3.MaterialTheme.typography.labelMedium, modifier = Modifier.width(112.dp))
-        Text(value, modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold)
+    /* Etichetta e valore sulla stessa linea di base: con l'allineamento in
+       alto l'etichetta, più piccola, stava più su del valore. */
+    Row(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+        Text(label.uppercase(), color = Muted, style = androidx.compose.material3.MaterialTheme.typography.labelMedium, modifier = Modifier.width(112.dp).alignByBaseline())
+        Text(value, modifier = Modifier.weight(1f).alignByBaseline(), fontWeight = FontWeight.SemiBold)
     }
 }
 

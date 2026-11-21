@@ -4,6 +4,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.border
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import it.fabiodalez.incitta.R
@@ -44,9 +48,16 @@ internal fun VenueFollowButton(id: Long?, session: Session?, onLogin: () -> Unit
         Text(when { busy -> "Aggiornamento…"; follow?.following == true -> "Non seguire più"; else -> "Segui questo locale" })
     }
     if (follow?.following == true && session != null) {
-        Text(stringResource(R.string.follow_notifications), style = MaterialTheme.typography.labelLarge)
+        Text(stringResource(R.string.follow_notifications), style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = 12.dp))
+        /* Tre scelte a sinistra, una sotto l'altra con un po' d'aria: erano
+           pulsanti con il testo al centro, e sembravano tre comandi diversi
+           invece di una scelta sola. */
+        androidx.compose.foundation.layout.Column(Modifier.fillMaxWidth().selectableGroup(), verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(10.dp)) {
         listOf("all" to R.string.follow_all, "new_only" to R.string.follow_new, "none" to R.string.follow_none).forEach { (mode, label) ->
-            OutlinedButton(enabled = !busy, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp), onClick = {
+            val chosen = (if (follow?.notify == true) follow?.notification_mode else "none") == mode
+            androidx.compose.foundation.layout.Row(
+                Modifier.fillMaxWidth().heightIn(min = 52.dp).clip(ControlShape).border(1.dp, if (chosen) Acid else Rule, ControlShape)
+                    .selectable(selected = chosen, enabled = !busy, role = androidx.compose.ui.semantics.Role.RadioButton, onClick = {
                 scope.launch {
                     busy = true
                     try {
@@ -56,10 +67,14 @@ internal fun VenueFollowButton(id: Long?, session: Session?, onLogin: () -> Unit
                     } catch (e: Exception) { if (e is CancellationException) throw e; error = requestFailureMessage(e) }
                     finally { busy = false }
                 }
-            }) {
-                RadioButton(selected = (if (follow?.notify == true) follow?.notification_mode else "none") == mode, onClick = null)
-                Text(stringResource(label))
+            }).padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp),
+            ) {
+                RadioButton(selected = chosen, onClick = null)
+                Text(stringResource(label), modifier = Modifier.weight(1f))
             }
+        }
         }
     }
     error?.let { Text(it, color = Muted) }

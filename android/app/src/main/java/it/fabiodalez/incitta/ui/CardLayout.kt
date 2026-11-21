@@ -25,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -59,7 +60,9 @@ fun CardLayoutPicker(layout: String, onSelect: (String) -> Unit, modifier: Modif
     )
     Row(modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End)) {
         Text(stringResource(R.string.card_layout_label), color = Muted, style = MaterialTheme.typography.labelMedium)
-        Row(Modifier.selectableGroup().border(1.dp, Rule, ControlShape)) {
+        /* Ritagliato sulla forma del bordo: la voce scelta si colora dentro
+           gli angoli tondi, non oltre. */
+        Row(Modifier.selectableGroup().clip(ControlShape).border(1.dp, Rule, ControlShape)) {
             options.forEach { (value, icon, label) ->
                 val active = layout == value
                 androidx.compose.foundation.layout.Box(

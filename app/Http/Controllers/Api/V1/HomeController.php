@@ -106,6 +106,11 @@ final class HomeController extends Controller
                 'week' => EventOccurrenceQuery::for($city)->nextDays(7)->count(),
                 'venues' => Venue::query()->inCity($city)->approved()->count(),
                 'categories' => count(EventOccurrenceQuery::for($city)->upcoming()->countsByCategory()),
+                /* I quattro ritagli sotto il titolo della home, come sul sito. */
+                'today' => EventOccurrenceQuery::for($city)->today()->count(),
+                'tomorrow' => EventOccurrenceQuery::for($city)->tomorrow()->count(),
+                'weekend' => EventOccurrenceQuery::for($city)->weekend()->count(),
+                'free' => EventOccurrenceQuery::for($city)->upcoming()->priceFree()->count(),
             ],
         ]);
     }
