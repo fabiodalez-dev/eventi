@@ -4,7 +4,7 @@
     righe evento del sistema di servizio, locandina compresa.
 --}}
 @props(['id', 'occurrences'])
-<dialog id="{{ $id }}" aria-labelledby="{{ $id }}-title" class="m-auto max-h-[85dvh] w-[min(34rem,calc(100vw-1.5rem))] overflow-y-auto border-2 border-line bg-canvas p-0 text-ink backdrop:bg-ink/70">
+<dialog id="{{ $id }}" data-light-dismiss aria-labelledby="{{ $id }}-title" class="m-auto max-h-[85dvh] w-[min(34rem,calc(100vw-1.5rem))] overflow-y-auto border-2 border-line bg-canvas p-0 text-ink backdrop:bg-ink/70">
     <div class="flex items-center justify-between gap-3 border-b-2 border-line px-[clamp(1rem,3vw,1.5rem)] py-4">
         <h2 id="{{ $id }}-title" class="m-0 font-display text-[1.125rem] leading-none font-extrabold text-ink">{{ __('account.saved.calendar_view') }}</h2>
         <form method="dialog">

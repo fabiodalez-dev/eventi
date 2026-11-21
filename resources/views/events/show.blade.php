@@ -242,13 +242,20 @@
 
             @if ($shown->isNotEmpty())
                 <section aria-labelledby="date-evento" class="flex flex-col gap-3">
-                    <h2 id="date-evento" class="font-display text-[clamp(1.25rem,1.8vw,1.75rem)] leading-none font-extrabold tracking-[-0.03em] uppercase">{{ __('events.detail.all_dates') }}</h2>
+                    <h2 id="date-evento" class="font-display text-[clamp(1.25rem,1.8vw,1.75rem)] leading-none font-extrabold tracking-[-0.03em] uppercase">{{ __('events.detail.when') }}</h2>
 
                     <ul class="flex flex-col gap-2">
                         @foreach ($shown as $occurrence)
                             <li class="flex min-w-0 flex-col gap-3">
                             <div class="event-date-row grid min-w-0 gap-4 bg-canvas p-4 border-2 border-line sm:grid-cols-[minmax(0,1fr)_auto] sm:p-5">
                                 <div class="flex min-w-0 flex-col gap-2">
+                                {{-- La data è la risposta a «quando»: in grande, prima di tutto il resto. --}}
+                                <time
+                                    datetime="{{ $occurrence->is_all_day ? $formatter->isoDay($occurrence->business_date) : $formatter->iso($occurrence->starts_at) }}"
+                                    class="font-display text-[clamp(1.75rem,4vw,2.75rem)] leading-[0.95] font-extrabold tracking-[-0.03em] text-ink"
+                                >
+                                    {{ $formatter->weekdayDate($occurrence->business_date) }}
+                                </time>
                                 @if($occurrence->locationVenue())
                                     <a class="w-fit text-sm text-ink-muted underline underline-offset-4" href="{{ route('venues.show', $occurrence->locationVenue()) }}">{{ $occurrence->locationVenue()->name }}</a>
                                 @endif
@@ -259,13 +266,6 @@
                                     <p>{{ __('seo.rescheduled', ['date' => $formatter->iso($occurrence->previous_starts_at)]) }}</p>
                                 @endif
                                 <div class="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
-                                    <time
-                                        datetime="{{ $occurrence->is_all_day ? $formatter->isoDay($occurrence->business_date) : $formatter->iso($occurrence->starts_at) }}"
-                                        class="shrink-0 font-semibold text-ink"
-                                    >
-                                        {{ $formatter->weekdayDate($occurrence->business_date) }}
-                                    </time>
-
                                     @if (filled($occurrence->highlight))
                                         <x-badge tone="soon" size="sm" class="self-start">{{ $occurrence->highlight }}</x-badge>
                                     @endif

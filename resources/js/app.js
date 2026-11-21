@@ -888,7 +888,7 @@ function misuraMobilioInFondo() {
  * quando il file è davvero pronto, evitando che la transizione finisca mentre
  * il browser sta ancora scaricando l'immagine. */
 function rivelaLocandine() {
-    for (const immagine of document.querySelectorAll("[data-poster-reveal]")) {
+    for (const immagine of document.querySelectorAll("[data-poster-reveal]:not(.is-color)")) {
         const rivela = () => {
             requestAnimationFrame(() => requestAnimationFrame(() => immagine.classList.add("is-color")));
         };
@@ -1055,6 +1055,9 @@ function start() {
         rivelaLocandine();
         sponsorshipMetrics();
     });
+    /* La finestra del giorno nel calendario porta locandine nuove dopo
+       l'avvio: senza questo, nel tema scuro restavano in bianco e nero. */
+    document.addEventListener('calendar-day:updated', rivelaLocandine);
     peekTabs();
     tonightCounts();
     /* `localSaves` è la sola lettura del `localStorage` di questo sito: il

@@ -205,7 +205,7 @@ fun CompleteEventDetailScreen(
                     }
                 }
 
-                DetailSection("TUTTE LE DATE") {
+                DetailSection("QUANDO") {
                     if (detail.occurrences.isEmpty()) Text("Nessuna data futura disponibile.", color = Muted)
                     detail.occurrences.forEachIndexed { index, occurrence ->
                         if (index > 0) HorizontalDivider(Modifier.padding(vertical = 14.dp), color = Rule)
@@ -468,7 +468,12 @@ private fun EventVideoSection(video: it.fabiodalez.incitta.data.EventVideo) {
 private fun OccurrenceDateBlock(detail: EventDetail, occurrence: Occurrence, saved: Boolean, onSave: (Long) -> Unit, onCollect: (Long) -> Unit) {
     val context = LocalContext.current
     InterestedBadge(occurrence.interestedCount)
-    Text(fullDate(occurrence.startsAt), style = androidx.compose.material3.MaterialTheme.typography.titleLarge)
+    // La data risponde a «quando»: in grande, come sul sito.
+    Text(
+        fullDate(occurrence.startsAt),
+        style = androidx.compose.material3.MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold, fontSize = 30.sp, lineHeight = 31.sp, letterSpacing = (-0.6).sp),
+        modifier = Modifier.padding(top = 4.dp, bottom = 2.dp),
+    )
     occurrence.placeName()?.let { Text(it, color = Muted) }
     Text(timeRange(occurrence), color = Acid, style = androidx.compose.material3.MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = 5.dp))
     occurrence.statusNote?.let { Text(it, color = Muted, modifier = Modifier.padding(top = 6.dp)) }

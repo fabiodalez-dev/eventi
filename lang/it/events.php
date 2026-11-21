@@ -117,7 +117,6 @@ return [
         'when' => 'Quando',
         'where' => 'Dove',
         'price' => 'Prezzo',
-        'all_dates' => 'Tutte le date',
         'doors_at' => 'Apertura porte alle :time',
         'lineup' => 'In programma',
         'tags' => 'Tag',
