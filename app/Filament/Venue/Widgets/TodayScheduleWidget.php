@@ -6,6 +6,7 @@ namespace App\Filament\Venue\Widgets;
 
 use App\Filament\Venue\Widgets\Support\ManagementContext;
 use App\Models\EventOccurrence;
+use App\Services\Management\DashboardSummary;
 use Filament\Widgets\Widget;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -38,10 +39,9 @@ class TodayScheduleWidget extends Widget
      */
     public function schedule(): Collection
     {
-        $schedule = ManagementContext::occurrences()?->today()->get() ?? new Collection;
-        $schedule->load(['event.media', 'event.venue', 'venue']);
+        $tenant = ManagementContext::tenant();
 
-        return $schedule->filter(fn (EventOccurrence $date): bool => $date->event !== null)->values();
+        return $tenant === null ? new Collection : app(DashboardSummary::class)->today($tenant);
     }
 
     /**

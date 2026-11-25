@@ -13,6 +13,7 @@ import it.fabiodalez.incitta.ui.management.sponsorships.SponsorshipsRoute
 import it.fabiodalez.incitta.ui.management.ticketing.TicketingDatesRoute
 import it.fabiodalez.incitta.ui.management.calendarimport.CalendarImportRoute
 import it.fabiodalez.incitta.ui.management.social.SocialStudioRoute
+import it.fabiodalez.incitta.ui.management.home.ManagementHomeRoute
 
 /**
  * Le aree della gestione, una per pacchetto del piano. `entry` è la rotta
@@ -20,8 +21,9 @@ import it.fabiodalez.incitta.ui.management.social.SocialStudioRoute
  * Il pacchetto che la porta tocca solo la sua riga e il suo grafo.
  */
 internal enum class ManagementArea(val title: Int, val help: Int, val entry: Any? = null) {
-    Overview(R.string.management_area_overview, R.string.management_area_overview_help),
-    Events(R.string.management_area_events, R.string.management_area_events_help, EventsListRoute),
+    /* Il riepilogo è la pagina del soggetto (P11): si atterra lì. */
+    Overview(R.string.management_area_overview, R.string.management_area_overview_help, ManagementHomeRoute),
+    Events(R.string.management_area_events, R.string.management_area_events_help, EventsListRoute()),
     Dates(R.string.management_area_dates, R.string.management_area_dates_help),
     Ticketing(R.string.management_area_ticketing, R.string.management_area_ticketing_help, TicketingDatesRoute),
     Profile(R.string.management_area_profile, R.string.management_area_profile_help, ProfileRoute),

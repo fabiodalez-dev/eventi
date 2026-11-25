@@ -6,6 +6,7 @@ namespace App\Filament\Venue\Widgets;
 
 use App\Filament\Venue\Widgets\Support\ManagementContext;
 use App\Models\EventOccurrence;
+use App\Services\Management\DashboardSummary;
 use Filament\Widgets\Widget;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -20,7 +21,7 @@ use Illuminate\Database\Eloquent\Collection;
  */
 class UpcomingEventsWidget extends Widget
 {
-    public const LIMIT = 5;
+    public const LIMIT = DashboardSummary::UPCOMING_LIMIT;
 
     protected static ?int $sort = 3;
 
@@ -41,14 +42,9 @@ class UpcomingEventsWidget extends Widget
      */
     public function upcoming(): Collection
     {
-        $today = ManagementContext::occurrences()?->currentBusinessDate();
-        $dates = ManagementContext::occurrences()?->upcoming()->onePerEvent()->take(self::LIMIT * 2) ?? new Collection;
-        $dates->load(['event.media', 'event.venue', 'venue']);
+        $tenant = ManagementContext::tenant();
 
-        return $dates
-            ->filter(fn (EventOccurrence $date): bool => $date->event !== null && $date->business_date->format('Y-m-d') !== $today)
-            ->take(self::LIMIT)
-            ->values();
+        return $tenant === null ? new Collection : app(DashboardSummary::class)->upcoming($tenant);
     }
 
     /**
