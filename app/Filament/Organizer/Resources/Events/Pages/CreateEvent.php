@@ -6,14 +6,15 @@ use App\Filament\Organizer\Resources\Events\EventResource;
 use App\Models\City;
 use App\Models\Event;
 use App\Models\Organizer;
+use App\Models\User;
+use App\Services\Events\OrganizerEventEditor;
 use App\Services\Import\FacebookEventImport;
-use Carbon\CarbonImmutable;
+use App\Services\Import\FacebookImportThrottle;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
-use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Locked;
 
@@ -37,17 +38,15 @@ class CreateEvent extends CreateRecord
     public function importFacebook(string $url): void
     {
         $tenant = Filament::getTenant();
-        abort_unless($tenant instanceof Organizer && auth()->user()?->can('create', [Event::class, $tenant]), 403);
-        $key = 'facebook-import:'.auth()->id();
-        foreach ([[$key, 3, 60, 'minute_limit'], [$key.':daily', 30, 86400, 'daily_limit']] as [$bucket, $limit, $seconds, $message]) {
-            if (RateLimiter::tooManyAttempts($bucket, $limit)) {
-                Notification::make()->warning()->title(__('facebook_import.'.$message))->send();
+        $user = auth()->user();
+        abort_unless($tenant instanceof Organizer && $user instanceof User && $user->can('create', [Event::class, $tenant]), 403);
+        // Gli stessi secchi del pannello del locale e dell'app.
+        $limit = app(FacebookImportThrottle::class)->attempt($user);
+        if ($limit !== null) {
+            Notification::make()->warning()->title(__('facebook_import.'.$limit))->send();
 
-                return;
-            }
+            return;
         }
-        RateLimiter::hit($key, 60);
-        RateLimiter::hit($key.':daily', 86400);
         $import = app(FacebookEventImport::class);
         $photo = null;
         try {
@@ -76,33 +75,23 @@ class CreateEvent extends CreateRecord
         }
     }
 
+    /** Autore, organizzazione, bozza e provenienza: la regola sta in `OrganizerEventEditor`, la stessa dell'app. */
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        $data['created_by'] = auth()->id();
-        $data['organizer_id'] = Filament::getTenant()->getKey();
-        $data['status'] = 'draft';
-        $data['source'] = 'manual';
-        if ($this->facebookImport !== []) {
-            $data['source_metadata'] = ['facebook' => $this->facebookImport];
-            $data['source_ref'] = 'facebook:'.$this->facebookImport['id'];
-            $data['external_links'] = app(FacebookEventImport::class)->formData($this->facebookImport, 'UTC')['external_links'];
-        }
+        $tenant = Filament::getTenant();
+        $user = auth()->user();
+        abort_unless($tenant instanceof Organizer && $user instanceof User, 403);
 
-        return $data;
+        return app(OrganizerEventEditor::class)->creationAttributes($tenant, $user, $data, $this->facebookImport);
     }
 
     protected function afterCreate(): void
     {
-        if (! empty($this->data['starts_at'])) {
-            $event = $this->getRecord();
-            if (! $event instanceof Event) {
-                throw new \LogicException('Expected event');
-            }
-            $event->occurrences()->create([
-                'starts_at' => CarbonImmutable::parse($this->data['starts_at'], $event->city->timezone)->utc(),
-                'ends_at' => ! empty($this->data['ends_at']) ? CarbonImmutable::parse($this->data['ends_at'], $event->city->timezone)->utc() : null,
-            ]);
+        $event = $this->getRecord();
+        if (! $event instanceof Event) {
+            throw new \LogicException('Expected event');
         }
+        app(OrganizerEventEditor::class)->createFirstDate($event, $this->data['starts_at'] ?? null, $this->data['ends_at'] ?? null);
     }
 
     protected function getRedirectUrl(): string

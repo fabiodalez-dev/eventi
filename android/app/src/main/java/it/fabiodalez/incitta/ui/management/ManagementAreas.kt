@@ -6,6 +6,7 @@ import it.fabiodalez.incitta.data.management.SubjectKind
 import it.fabiodalez.incitta.ui.management.feedback.FeedbackRoute
 import it.fabiodalez.incitta.ui.management.collaborators.CollaboratorsRoute
 import it.fabiodalez.incitta.ui.management.profile.ProfileRoute
+import it.fabiodalez.incitta.ui.management.events.EventsListRoute
 import it.fabiodalez.incitta.ui.management.ticketing.TicketingDatesRoute
 
 /**
@@ -15,7 +16,7 @@ import it.fabiodalez.incitta.ui.management.ticketing.TicketingDatesRoute
  */
 internal enum class ManagementArea(val title: Int, val help: Int, val entry: Any? = null) {
     Overview(R.string.management_area_overview, R.string.management_area_overview_help),
-    Events(R.string.management_area_events, R.string.management_area_events_help),
+    Events(R.string.management_area_events, R.string.management_area_events_help, EventsListRoute),
     Dates(R.string.management_area_dates, R.string.management_area_dates_help),
     Ticketing(R.string.management_area_ticketing, R.string.management_area_ticketing_help, TicketingDatesRoute),
     Profile(R.string.management_area_profile, R.string.management_area_profile_help, ProfileRoute),

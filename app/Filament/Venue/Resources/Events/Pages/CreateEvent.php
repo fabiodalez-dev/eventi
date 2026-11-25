@@ -4,11 +4,6 @@ declare(strict_types=1);
 
 namespace App\Filament\Venue\Resources\Events\Pages;
 
-use App\Enums\AgeGroup;
-use App\Enums\EventSource;
-use App\Enums\EventStatus;
-use App\Enums\MembershipRequirement;
-use App\Enums\OccurrenceStatus;
 use App\Enums\PriceType;
 use App\Enums\RecurrenceFrequency;
 use App\Enums\ScheduleShortcut;
@@ -24,13 +19,11 @@ use App\Filament\Venue\Support\RecurrenceForm;
 use App\Models\Category;
 use App\Models\Event;
 use App\Models\EventOccurrence;
-use App\Rules\ExternalLinks;
+use App\Models\User;
+use App\Services\Events\VenueEventEditor;
 use App\Services\Import\FacebookEventImport;
-use App\Support\BeforeGoingDefaults;
-use App\Support\EditorContent;
-use App\Support\PracticalIcons;
+use App\Services\Import\FacebookImportThrottle;
 use App\Support\VenueEventDefaults;
-use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 use Filament\Actions\Action;
 use Filament\Forms\Components\TextInput;
@@ -47,10 +40,7 @@ use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
 use Livewire\Attributes\Locked;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
@@ -119,21 +109,15 @@ class CreateEvent extends CreateRecord
 
     public function importFacebook(): void
     {
-        abort_unless(auth()->user()?->can('create', [Event::class, CurrentVenue::get()]), 403);
-        $key = 'facebook-import:'.auth()->id();
-        if (RateLimiter::tooManyAttempts($key, 3)) {
-            Notification::make()->warning()->title(__('facebook_import.minute_limit'))->send();
+        $user = auth()->user();
+        abort_unless($user instanceof User && $user->can('create', [Event::class, CurrentVenue::get()]), 403);
+        // Gli stessi secchi del pannello dell'organizzazione e dell'app.
+        $limit = app(FacebookImportThrottle::class)->attempt($user);
+        if ($limit !== null) {
+            Notification::make()->warning()->title(__('facebook_import.'.$limit))->send();
 
             return;
         }
-        $dailyKey = $key.':daily';
-        if (RateLimiter::tooManyAttempts($dailyKey, 30)) {
-            Notification::make()->warning()->title(__('facebook_import.daily_limit'))->send();
-
-            return;
-        }
-        RateLimiter::hit($key, 60);
-        RateLimiter::hit($dailyKey, 86400);
         $import = app(FacebookEventImport::class);
         $photo = null;
         try {
@@ -164,26 +148,6 @@ class CreateEvent extends CreateRecord
                 ->body(__('facebook_import.failed_hint'))->send();
         }
     }
-
-    /**
-     * Le colonne dell'evento che il wizard scrive. Tutto il resto — verifica,
-     * evidenza, punteggio, provenienza — è della redazione.
-     *
-     * @var array<int, string>
-     */
-    private const COLUMNS = [
-        'custom_location',
-        'title',
-        'description',
-        'category_id',
-        'price_type',
-        'price_min',
-        'price_max',
-        'ticket_url',
-        'booking_url',
-        'external_links',
-        'content_details',
-    ];
 
     /**
      * I dati validati dell'ultimo passo, che servono anche dopo il
@@ -492,117 +456,26 @@ class CreateEvent extends CreateRecord
     }
 
     /**
-     * La categoria con cui tenere in piedi una bozza incompleta: quella
-     * abituale del locale, altrimenti la prima del catalogo.
+     * La categoria con cui tenere in piedi una bozza incompleta: la regola
+     * sta in `VenueEventEditor`, la stessa che usa l'API di gestione.
      */
     private function fallbackCategoryId(): ?int
     {
-        $habit = VenueEventDefaults::formDefaults(CurrentVenue::get())['category_id'] ?? null;
-
-        if ($habit !== null) {
-            return (int) $habit;
-        }
-
-        $first = Category::query()
-            ->where('is_active', true)
-            ->orderBy('sort_order')
-            ->orderBy('name')
-            ->value('id');
-
-        return $first === null ? null : (int) $first;
+        return app(VenueEventEditor::class)->fallbackCategoryId(CurrentVenue::get());
     }
 
     /**
+     * Validazione, colonne e provenienza sono di `VenueEventEditor`: il
+     * modulo e l'app salvano l'evento allo stesso modo.
+     *
      * @param  array<string, mixed>  $data
      */
     private function persist(array $data): Event
     {
-        $venue = CurrentVenue::get();
-        $event = $this->draft() ?? new Event;
+        $user = auth()->user();
+        abort_unless($user instanceof User, 403);
 
-        abort_unless($event->exists
-            ? auth()->user()?->can('update', $event)
-            : auth()->user()?->can('create', [Event::class, $venue]), 403);
-
-        if (array_key_exists('description', $data)) {
-            $data['description'] = EditorContent::clean('description', $data['description']);
-        }
-        if (array_key_exists('content_details', $data)) {
-            $data['content_details'] = EditorContent::clean('content_details', $data['content_details']);
-        }
-        $data = Validator::make(['data' => $data], [
-            'data.content_details' => ['nullable', 'array:membership,membership_notes,accessibility,accessibility_notes,feature_ids,practical_custom,age_groups,stroller,changing_table,kids_area,food_notes,start_notes'],
-            'data.content_details.food_notes' => ['nullable', 'string', 'max:2000'],
-            'data.content_details.start_notes' => ['nullable', 'string', 'max:2000'],
-            'data.content_details.age_groups' => ['nullable', 'array', 'max:6'],
-            'data.content_details.age_groups.*' => [Rule::enum(AgeGroup::class)],
-            'data.content_details.stroller' => ['nullable', Rule::in(['yes', 'no'])],
-            'data.content_details.changing_table' => ['nullable', Rule::in(['yes', 'no'])],
-            'data.content_details.kids_area' => ['nullable', Rule::in(['yes', 'no'])],
-            'data.content_details.membership' => ['nullable', Rule::enum(MembershipRequirement::class)],
-            'data.content_details.accessibility' => ['nullable', Rule::in(['yes', 'no'])],
-            'data.content_details.membership_notes' => ['nullable', 'string', 'max:2000'],
-            'data.content_details.accessibility_notes' => ['nullable', 'string', 'max:2000'],
-            'data.content_details.feature_ids' => ['nullable', 'array'],
-            'data.content_details.feature_ids.*' => ['integer', Rule::exists('event_features', 'id')->where('is_active', true)->where('is_system', false)],
-            'data.content_details.practical_custom' => ['nullable', 'array', 'max:24'],
-            'data.content_details.practical_custom.*.label' => ['required', 'string', 'max:120'],
-            'data.content_details.practical_custom.*.icon' => ['required', Rule::in(array_keys(PracticalIcons::options()))],
-            'data.content_details.practical_custom.*.text' => ['nullable', 'string', 'max:1000'],
-            'data.custom_location' => ['nullable', 'array:name,address,lat,lng'],
-            'data.custom_location.name' => ['nullable', 'string', 'max:255'],
-            'data.custom_location.address' => ['nullable', 'string', 'max:255'],
-            'data.custom_location.lat' => ['nullable', 'numeric', 'between:-90,90'],
-            'data.custom_location.lng' => ['nullable', 'numeric', 'between:-180,180'],
-            'data.title' => ['required', 'string', 'max:255'],
-            'data.description' => ['nullable', 'string', 'max:50000'],
-            'data.category_id' => ['required', 'integer', Rule::exists('categories', 'id')->where('is_active', true)],
-            'data.price_type' => ['nullable', Rule::enum(PriceType::class)],
-            'data.price_min' => ['nullable', 'numeric', 'between:0,999999.99'],
-            'data.price_max' => ['nullable', 'numeric', 'between:0,999999.99'],
-            'data.ticket_url' => ['nullable', 'string', 'url:http,https', 'max:255'],
-            'data.booking_url' => ['nullable', 'string', 'url:http,https', 'max:255'],
-            'data.external_links' => ['nullable', 'array', new ExternalLinks],
-        ])->validate()['data'];
-
-        if (isset($data['content_details'])) {
-            $defaults = BeforeGoingDefaults::forVenue($venue);
-            foreach (BeforeGoingDefaults::FIELDS as $field) {
-                if (array_key_exists($field, $data['content_details'])) {
-                    $data['content_details'][$field] = BeforeGoingDefaults::override($field, $data['content_details'][$field], $defaults[$field] ?? null);
-                }
-            }
-        }
-
-        if (array_key_exists('custom_location', $data) && blank($data['custom_location']['address'] ?? null)) {
-            $data['custom_location'] = null;
-        }
-        if (is_array($data['custom_location'] ?? null)) {
-            foreach (['lat', 'lng'] as $coordinate) {
-                $data['custom_location'][$coordinate] = filled($data['custom_location'][$coordinate] ?? null) ? (float) $data['custom_location'][$coordinate] : null;
-            }
-        }
-
-        foreach (self::COLUMNS as $column) {
-            if (array_key_exists($column, $data)) {
-                $event->setAttribute($column, $data[$column] === '' ? null : $data[$column]);
-            }
-        }
-
-        if (! $event->exists) {
-            $event->city_id = $venue->city_id;
-            $event->venue_id = $venue->getKey();
-            $event->created_by = auth()->id();
-            $event->source = EventSource::Venue;
-            $event->status = EventStatus::Draft;
-        }
-
-        if ($this->facebookImport !== []) {
-            $event->source_metadata = ['facebook' => $this->facebookImport];
-            $event->source_ref = 'facebook:'.$this->facebookImport['id'];
-        }
-
-        $event->save();
+        $event = app(VenueEventEditor::class)->persist(CurrentVenue::get(), $user, $this->draft(), $data, $this->facebookImport);
 
         $this->draftId = (int) $event->getKey();
         $this->record = $event;
@@ -626,33 +499,10 @@ class CreateEvent extends CreateRecord
             ->first();
     }
 
-    /**
-     * La prima data. `business_date` ed `effective_ends_at` non si scrivono
-     * qui: le calcola l'observer (§5 delle convenzioni).
-     */
+    /** La prima data, scritta da `VenueEventEditor` come per l'app. */
     private function createOccurrence(Event $event): ?EventOccurrence
     {
-        $startsAt = $this->wizardData['starts_at'] ?? null;
-
-        if (blank($startsAt)) {
-            return null;
-        }
-
-        $endsAt = $this->wizardData['ends_at'] ?? null;
-
-        $occurrence = new EventOccurrence([
-            'event_id' => $event->getKey(),
-            'starts_at' => Carbon::parse((string) $startsAt),
-            'ends_at' => blank($endsAt) ? null : Carbon::parse((string) $endsAt),
-            'is_all_day' => false,
-            'status' => OccurrenceStatus::Scheduled,
-            'is_exception' => false,
-        ]);
-
-        $occurrence->setRelation('event', $event);
-        $occurrence->save();
-
-        return $occurrence;
+        return app(VenueEventEditor::class)->createFirstDate($event, $this->wizardData['starts_at'] ?? null, $this->wizardData['ends_at'] ?? null);
     }
 
     /**
@@ -661,20 +511,7 @@ class CreateEvent extends CreateRecord
      */
     private function rememberDefaults(Event $event, ?EventOccurrence $occurrence): void
     {
-        $local = $occurrence === null
-            ? null
-            : CarbonImmutable::instance($occurrence->starts_at)->setTimezone(CurrentVenue::timezone());
-
-        VenueEventDefaults::remember(
-            CurrentVenue::get(),
-            [
-                'category_id' => $event->category_id,
-                'price_type' => $event->price_type,
-                'price_min' => $event->price_min,
-            ],
-            $local?->hour,
-            $local?->minute,
-        );
+        app(VenueEventEditor::class)->rememberDefaults(CurrentVenue::get(), $event, $occurrence);
     }
 
     /**

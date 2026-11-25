@@ -50,6 +50,7 @@ class ManagementFoundationsTest {
         /* Le aree si accendono con i loro pacchetti: qui si controllano quelle già fatte. */
         assertSame(TicketingDatesRoute, ManagementArea.Ticketing.entry)
         assertTrue(ManagementArea.Profile.implemented)
+        assertTrue(ManagementArea.Events.implemented)
         assertEquals(it.fabiodalez.incitta.ui.management.feedback.FeedbackRoute(), ManagementArea.Feedback.entry)
         assertSame(CollaboratorsRoute, ManagementArea.Collaborators.entry)
     }

@@ -85,6 +85,8 @@ internal class ManagementRepository(
     val people: ManagementPeopleSource? = null,
     /* Profilo del locale e dell'organizzazione (P4). */
     val profile: ManagementProfileSource? = null,
+    /* Gli eventi (P1); `null` nei test che non li usano. */
+    val events: ManagementEventsApi? = null,
 ) {
     private val outbox = CheckinOutbox(userId, device::readCheckins, device::writeCheckins, send ?: ticketing::checkIn)
     private val checkinState = MutableStateFlow(CheckinQueue(safePending()))
@@ -187,6 +189,7 @@ internal class ManagementRepository(
             feedback = ManagementFeedbackApi(client, session.token),
             people = ManagementPeopleApi(client, session.token),
             profile = ManagementProfileApi(client, session.token),
+            events = ManagementEventsApi(client, session.token),
         )
     }
 }

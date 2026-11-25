@@ -6,6 +6,7 @@ namespace App\Filament\Support;
 
 use App\Models\City;
 use App\Models\Venue;
+use App\Services\Events\EventDateChecks;
 use App\Services\Events\SameNightNearby;
 use Carbon\CarbonImmutable;
 use Closure;
@@ -58,35 +59,14 @@ final class SameNightNearbyField
      */
     public static function context(?City $city, array $places, mixed $start, mixed $end, string $timezone, ?int $venueId = null, mixed $categoryId = null, ?int $eventId = null): ?array
     {
-        $begins = self::time($start, $timezone);
-        if ($city === null || $begins === null) {
-            return null;
-        }
-        foreach ($places as $place) {
-            [$lat, $lng] = $place instanceof Venue ? [$place->lat, $place->lng] : [$place['lat'] ?? null, $place['lng'] ?? null];
-            if (is_numeric($lat) && is_numeric($lng)) {
-                return ['city' => $city, 'lat' => (float) $lat, 'lng' => (float) $lng, 'start' => $begins, 'end' => self::time($end, $timezone),
-                    'venue_id' => $venueId, 'category_id' => is_numeric($categoryId) ? (int) $categoryId : null, 'event_id' => $eventId];
-            }
-        }
-
-        return null;
+        // La regola sta in `EventDateChecks`, la stessa che usa l'API di gestione.
+        return EventDateChecks::context($city, $places, $start, $end, $timezone, $venueId, $categoryId, $eventId);
     }
 
-    /**
-     * Legge un orario del modulo: le stringhe vuote o malformate non sono un
-     * errore da mostrare, solo l'assenza di una sera da confrontare.
-     */
+    /** Un orario del modulo, o `null` se vuoto o malformato (`EventDateChecks::time`). */
     public static function time(mixed $value, string $timezone): ?CarbonImmutable
     {
-        if (! is_string($value) || trim($value) === '') {
-            return null;
-        }
-        try {
-            return CarbonImmutable::parse($value, $timezone);
-        } catch (\Throwable) {
-            return null;
-        }
+        return EventDateChecks::time($value, $timezone);
     }
 
     /**
@@ -106,8 +86,7 @@ final class SameNightNearbyField
         $key = implode('|', [$context['city']->getKey(), $context['lat'], $context['lng'], $context['start']->toIso8601String(),
             $context['end']?->toIso8601String(), $context['venue_id'] ?? '', $context['category_id'] ?? '', $context['event_id'] ?? '']);
 
-        return self::$memo[$key] ??= app(SameNightNearby::class)->around($context['city'], $context['lat'], $context['lng'], $context['start'],
-            $context['end'], $context['venue_id'] ?? null, $context['category_id'] ?? null, $context['event_id'] ?? null);
+        return self::$memo[$key] ??= app(EventDateChecks::class)->sameNight($context);
     }
 
     /** @param list<array{title: string, place: string, time: string, category: string, same_category: bool, distance_m: int, url: string}> $items */
