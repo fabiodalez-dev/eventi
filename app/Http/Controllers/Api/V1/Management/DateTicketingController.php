@@ -7,7 +7,7 @@ namespace App\Http\Controllers\Api\V1\Management;
 use App\Actions\Ticketing\ConfigureBookings;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Ticketing\BookingSettingsRequest;
-use App\Http\Requests\Ticketing\CancelRequest;
+use App\Http\Requests\Ticketing\DateBookingCancelRequest;
 use App\Http\Resources\V1\Management\ManagedBookingResource;
 use App\Models\Booking;
 use App\Models\BookingMessage;
@@ -49,12 +49,13 @@ final class DateTicketingController extends Controller
      * Annulla una prenotazione intera o un solo biglietto (`ticket_id`) a nome
      * del locale, con un motivo facoltativo che arriva a chi ha prenotato.
      * Come dal sito valgono anche oltre il termine di annullamento e per le
-     * prenotazioni prese al banco. La prenotazione si cerca solo fra quelle
-     * della data (404 altrimenti).
+     * prenotazioni prese al banco. Il permesso sulla data lo chiede la
+     * richiesta, prima di guardare la prenotazione; la prenotazione si cerca
+     * poi solo fra quelle della data (404 altrimenti).
      */
-    public function cancel(CancelRequest $request, EventOccurrence $occurrence, Booking $booking, TicketingService $service): JsonResponse
+    public function cancel(DateBookingCancelRequest $request, EventOccurrence $occurrence, int $booking, TicketingService $service): JsonResponse
     {
-        Gate::authorize('manage', [Booking::class, $occurrence]);
+        $booking = $occurrence->bookings()->whereKey($booking)->firstOrFail();
         $ticket = $request->filled('ticket_id') ? $request->integer('ticket_id') : null;
         $booking = $service->cancel($booking, $this->user($request), $ticket, true, $request->validated('reason'));
         $booking->load(['user', 'tickets']);

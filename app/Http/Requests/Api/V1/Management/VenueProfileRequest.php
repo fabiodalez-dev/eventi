@@ -13,6 +13,7 @@ use App\Http\Resources\V1\Management\VenueProfileResource;
 use App\Models\Venue;
 use App\Rules\FactRows;
 use App\Rules\TransitRows;
+use App\Services\Events\EventFormRules;
 use App\Support\Management\ManagementSubject;
 use App\Support\PracticalIcons;
 use App\Support\VenueClosures;
@@ -101,8 +102,8 @@ final class VenueProfileRequest extends FormRequest
             'content_details.accessibility' => ['nullable', Rule::in(['yes', 'no'])],
             'content_details.membership_notes' => ['nullable', 'string', 'max:2000'],
             'content_details.accessibility_notes' => ['nullable', 'string', 'max:2000'],
-            'content_details.feature_ids' => ['nullable', 'array', 'list'],
-            'content_details.feature_ids.*' => ['integer', Rule::exists('event_features', 'id')->where('is_active', true)->where('is_system', false)],
+            'content_details.feature_ids' => ['nullable', 'array', 'list', 'max:'.EventFormRules::MAX_FEATURES],
+            'content_details.feature_ids.*' => ['integer', 'distinct', Rule::exists('event_features', 'id')->where('is_active', true)->where('is_system', false)],
             'content_details.practical_custom' => ['nullable', 'array', 'list', 'max:12'],
             'content_details.practical_custom.*' => ['array:label,icon,text'],
             'content_details.practical_custom.*.label' => ['required', 'string', 'max:120'],

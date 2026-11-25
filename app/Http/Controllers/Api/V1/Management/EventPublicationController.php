@@ -59,7 +59,7 @@ final class EventPublicationController extends Controller
     /** «Duplica»: la copia in bozza, con tag e locandina, senza date. */
     public function duplicate(EventDuplicateRequest $request, DuplicateEventAction $duplicate): JsonResponse
     {
-        $copy = $duplicate->execute($request->event(), $request->actor());
+        $copy = $duplicate->execute($request->event(), $request->actor(), $request->subject()->model);
 
         return response()->json(['data' => $this->events->detail($copy->refresh(), $request->subject())], 201);
     }

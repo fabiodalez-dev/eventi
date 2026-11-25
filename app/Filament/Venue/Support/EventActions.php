@@ -80,7 +80,7 @@ final class EventActions
                     return;
                 }
 
-                $copy = app(DuplicateEventAction::class)->execute($record, $user);
+                $copy = app(DuplicateEventAction::class)->execute($record, $user, CurrentVenue::get());
 
                 Notification::make()
                     ->title(__('manage.notifications.duplicated'))

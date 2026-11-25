@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Actions;
 
 use App\Enums\VenueRole;
+use App\Enums\VenueStatus;
 use App\Models\User;
 use App\Models\Venue;
 use App\Support\SecurityLog;
@@ -66,9 +67,16 @@ final class RespondToVenueInvitation
     /**
      * `$via` finisce nel registro di sicurezza: `collegamento` per la pagina
      * del messaggio, `app` per «I tuoi inviti» dell'app.
+     *
+     * Un locale con un provvedimento (sospeso, bloccato…) non accoglie
+     * nessuno: l'invito resta in sospeso, come per `PendingInvitations`.
      */
     public function accept(Venue $venue, User $user, ?int $invitation = null, string $via = 'collegamento'): bool
     {
+        if (! self::admitsMembers($venue)) {
+            return false;
+        }
+
         return DB::transaction(function () use ($venue, $user, $invitation, $via): bool {
             $pivot = $this->pending($venue, $user, $invitation, lock: true);
 
@@ -115,6 +123,7 @@ final class RespondToVenueInvitation
     {
         return DB::transaction(function () use ($user): int {
             $venues = $user->venuesIncludingInvited()
+                ->whereIn('venues.status', VenueStatus::valoriSenzaProvvedimento())
                 ->wherePivotNull('accepted_at')
                 ->wherePivot('accepts_on_password', true)
                 ->wherePivot('invited_at', '>=', now()->subDays(InviteVenueMemberAction::EXPIRES_DAYS))
@@ -131,6 +140,12 @@ final class RespondToVenueInvitation
 
             return $venues->count();
         });
+    }
+
+    /** Vero se il locale non ha provvedimenti: lo stesso elenco di `User::isActiveMemberOfVenue`. */
+    public static function admitsMembers(Venue $venue): bool
+    {
+        return in_array($venue->status->value, VenueStatus::valoriSenzaProvvedimento(), true);
     }
 
     private function markAccepted(Venue $venue, User $user, Pivot $pivot, string $via): void

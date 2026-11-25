@@ -51,14 +51,20 @@ final class VenueEventStoreRequest extends FormRequest
         return $venue;
     }
 
-    /** La bozza da riprendere: solo una bozza di questo locale, mai un altro evento. */
+    /**
+     * La bozza da riprendere: solo una bozza di questo locale scritta dal
+     * locale stesso, mai un altro evento. La bozza di un'organizzazione
+     * (`organizer_id`) passa dalla redazione: ripresa da qui, il «Pubblica»
+     * del locale la metterebbe online senza revisione.
+     */
     public function draft(): ?Event
     {
         if (! $this->draftLoaded) {
             $this->draftLoaded = true;
             $id = $this->input('draft_id');
             if (is_numeric($id)) {
-                $this->draft = ManagedContent::current()->events()->whereKey((int) $id)->where('status', EventStatus::Draft)->firstOrFail();
+                $this->draft = ManagedContent::current()->events()->whereKey((int) $id)->where('status', EventStatus::Draft)
+                    ->whereNull('organizer_id')->firstOrFail();
             }
         }
 

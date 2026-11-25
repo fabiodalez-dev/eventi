@@ -7,6 +7,7 @@ namespace App\Services\Management;
 use App\Actions\Account\RespondToCheckinStaffInvitation;
 use App\Actions\InviteVenueMemberAction;
 use App\Enums\VenueRole;
+use App\Enums\VenueStatus;
 use App\Models\CheckinStaffInvitation;
 use App\Models\EventOccurrence;
 use App\Models\User;
@@ -37,10 +38,18 @@ final class PendingInvitations
 {
     public function __construct(private readonly RespondToCheckinStaffInvitation $checkin) {}
 
-    /** @return BelongsToMany<Venue, User> */
+    /**
+     * Gli inviti nei locali, solo di locali senza provvedimento: lo stesso
+     * elenco di stati di `User::isActiveMemberOfVenue` (e quindi di
+     * `canAccessTenant`). L'invito di un locale sospeso non si vede e non si
+     * accetta; torna visibile, se non è scaduto, quando il provvedimento cade.
+     *
+     * @return BelongsToMany<Venue, User>
+     */
     public function venues(User $user): BelongsToMany
     {
         return $user->venuesIncludingInvited()
+            ->whereIn('venues.status', VenueStatus::valoriSenzaProvvedimento())
             ->wherePivotNull('accepted_at')
             ->wherePivot('invited_at', '>', now()->subDays(InviteVenueMemberAction::EXPIRES_DAYS));
     }

@@ -6,6 +6,7 @@ use App\Filament\Venue\Resources\Events\Pages\CreateEvent;
 use App\Models\Event;
 use App\Services\Import\FacebookEventImport;
 use App\Services\Import\HostResolver;
+use Carbon\CarbonImmutable;
 use Filament\Facades\Filament;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
@@ -17,6 +18,8 @@ use Livewire\Livewire;
 use Tests\Support\VenueIsolationScenario;
 
 beforeEach(function (): void {
+    // L'evento del fixture è il 16 ottobre 2026: la prima data di un evento nuovo non può essere di settimane fa.
+    $this->travelTo(CarbonImmutable::parse('2026-10-01 10:00:00', 'UTC'));
     $this->scenario = VenueIsolationScenario::make();
     $this->actingAs($this->scenario->ownerA);
     Filament::setCurrentPanel('venue');

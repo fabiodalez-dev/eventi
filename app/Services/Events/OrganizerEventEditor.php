@@ -17,6 +17,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Il salvataggio di un evento dell'organizzazione, per il pannello
@@ -31,7 +32,11 @@ use Illuminate\Support\Facades\Gate;
  * - un evento importato da Facebook porta con sé la provenienza e i link
  *   letti là;
  * - **qualunque** salvataggio di un evento pubblicato lo rimanda alla
- *   redazione: l'organizzazione non pubblica mai da sé (`EventReviewRule`).
+ *   redazione: l'organizzazione non pubblica mai da sé (`EventReviewRule`);
+ * - città e locale principale li cambia **solo l'organizzazione principale**
+ *   (`organizer_id`): spostare l'evento in un altro locale dà al referente di
+ *   quel locale la scheda e l'elenco di chi ha prenotato, e un
+ *   co-organizzatore non può decidere per gli altri dove si tiene.
  */
 final class OrganizerEventEditor
 {
@@ -41,7 +46,23 @@ final class OrganizerEventEditor
         'ticket_url', 'custom_location', 'content_details',
     ];
 
+    /**
+     * Le colonne che dicono dove si tiene l'evento. Decidono anche chi lo
+     * vede nel proprio pannello (`ManagedContent`: `events.venue_id`), e per
+     * questo le cambia solo l'organizzazione principale.
+     */
+    public const PLACE_COLUMNS = ['city_id', 'venue_id'];
+
     public function __construct(private readonly EventReviewRule $review) {}
+
+    /**
+     * Vero se questa organizzazione può spostare l'evento (città e locale
+     * principale): solo quella di `organizer_id`, non i co-organizzatori.
+     */
+    public function canMove(Event $event, Organizer $organizer): bool
+    {
+        return $event->organizer_id !== null && (int) $event->organizer_id === (int) $organizer->getKey();
+    }
 
     /**
      * Gli attributi di creazione aggiunti a quelli del modulo: autore,
@@ -126,6 +147,8 @@ final class OrganizerEventEditor
      */
     public function prepareUpdate(Event $event, Organizer $organizer, User $user, array $data): array
     {
+        $this->guardPlace($event, $organizer, $data);
+
         if ($this->review->sendsToReview($event, $organizer, $user)) {
             $data['status'] = 'pending';
 
@@ -164,6 +187,33 @@ final class OrganizerEventEditor
         });
 
         return $sent;
+    }
+
+    /**
+     * Rifiuta lo spostamento chiesto da un co-organizzatore. Il valore già
+     * salvato passa: l'app può rimandare tutto il modulo, e il pannello lascia
+     * il campo spento ma presente.
+     *
+     * @param  array<string, mixed>  $data
+     *
+     * @throws ValidationException
+     */
+    private function guardPlace(Event $event, Organizer $organizer, array $data): void
+    {
+        if ($this->canMove($event, $organizer)) {
+            return;
+        }
+
+        $errors = [];
+        foreach (self::PLACE_COLUMNS as $column) {
+            if (array_key_exists($column, $data) && (string) ($data[$column] ?? '') !== (string) ($event->getAttribute($column) ?? '')) {
+                $errors[$column] = 'Città e locale principale li cambia solo l’organizzazione che ha creato l’evento.';
+            }
+        }
+
+        if ($errors !== []) {
+            throw ValidationException::withMessages($errors);
+        }
     }
 
     /**

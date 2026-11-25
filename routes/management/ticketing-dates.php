@@ -22,7 +22,11 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('management/dates/{occurrence}')->whereNumber('occurrence')->name('api.v1.management.dates.')->group(function (): void {
     Route::patch('/settings', [DateTicketingController::class, 'settings'])->middleware('throttle:30,1,ticketing-settings')->name('settings');
     Route::get('/messages', [DateTicketingController::class, 'messages'])->name('messages');
-    Route::post('/bookings/{booking}/cancel', [DateTicketingController::class, 'cancel'])->whereNumber('booking')->scopeBindings()
+    /* La prenotazione non si risolve con il binding: prima si chiede il
+       permesso sulla data (`DateBookingCancelRequest`), poi la si cerca fra
+       quelle della data. Così chi non gestisce la data riceve sempre 403, e
+       non distingue una prenotazione esistente (403) da una che non c'è (404). */
+    Route::post('/bookings/{booking}/cancel', [DateTicketingController::class, 'cancel'])->whereNumber('booking')
         ->middleware('throttle:60,1,ticketing-cancel')->name('bookings.cancel');
     Route::get('/export.csv', [TicketingController::class, 'export'])->middleware('throttle:10,1,tickets-export')->name('export');
     Route::get('/list.pdf', [TicketingController::class, 'printList'])->middleware('throttle:10,1,tickets-print')->name('print');

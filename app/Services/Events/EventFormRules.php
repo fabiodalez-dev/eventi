@@ -16,6 +16,7 @@ use App\Models\Event;
 use App\Rules\ExternalLinks;
 use App\Rules\FactRows;
 use App\Support\PracticalIcons;
+use Carbon\CarbonImmutable;
 use Illuminate\Validation\Rule;
 
 /**
@@ -42,6 +43,21 @@ final class EventFormRules
         'minors_policy', 'cancellation_policy', 'refund_policy', 'public_contact', 'poster_alt', 'poster_caption',
         'poster_credit', 'agenda', 'faqs',
     ];
+
+    /**
+     * Quanti giorni indietro può cominciare la prima data di un evento nuovo.
+     * Qualche giorno serve a chi registra a posteriori la serata della
+     * settimana scorsa; senza un limite, «ogni giorno» a partire dal 2016
+     * materializzava migliaia di date in una sola richiesta.
+     */
+    public const PAST_START_DAYS = 7;
+
+    /**
+     * Quante caratteristiche («Prima di andare») porta un evento o un locale.
+     * Il catalogo ne ha una cinquantina: il tetto lascia margine, ma non lascia
+     * scrivere elenchi lunghi a piacere.
+     */
+    public const MAX_FEATURES = 60;
 
     /** I testi editoriali brevi (2000 caratteri), nell'ordine del modulo. */
     private const EDITORIAL_TEXTS = [
@@ -72,8 +88,8 @@ final class EventFormRules
             $prefix.'content_details.accessibility' => ['nullable', Rule::in(['yes', 'no'])],
             $prefix.'content_details.membership_notes' => ['nullable', 'string', 'max:2000'],
             $prefix.'content_details.accessibility_notes' => ['nullable', 'string', 'max:2000'],
-            $prefix.'content_details.feature_ids' => ['nullable', 'array'],
-            $prefix.'content_details.feature_ids.*' => ['integer', Rule::exists('event_features', 'id')->where('is_active', true)->where('is_system', false)],
+            $prefix.'content_details.feature_ids' => ['nullable', 'array', 'max:'.self::MAX_FEATURES],
+            $prefix.'content_details.feature_ids.*' => ['integer', 'distinct', Rule::exists('event_features', 'id')->where('is_active', true)->where('is_system', false)],
             $prefix.'content_details.practical_custom' => ['nullable', 'array', 'max:24'],
             $prefix.'content_details.practical_custom.*.label' => ['required', 'string', 'max:120'],
             $prefix.'content_details.practical_custom.*.icon' => ['required', Rule::in(array_keys(PracticalIcons::options()))],
@@ -198,14 +214,25 @@ final class EventFormRules
     }
 
     /**
-     * La prima data e la ripetizione del modulo di creazione.
+     * Il primo inizio ammesso per la prima data di un evento nuovo: oggi meno
+     * `PAST_START_DAYS` giorni, a mezzanotte. Lo usano le regole dell'app e i
+     * campi data dei moduli di creazione dei pannelli.
+     */
+    public static function earliestStart(): CarbonImmutable
+    {
+        return CarbonImmutable::now()->subDays(self::PAST_START_DAYS)->startOfDay();
+    }
+
+    /**
+     * La prima data e la ripetizione del modulo di creazione. L'inizio non può
+     * stare più di `PAST_START_DAYS` giorni nel passato.
      *
      * @return array<string, list<mixed>>
      */
     public static function firstDate(string $prefix = '', bool $startRequired = false): array
     {
         return [
-            $prefix.'starts_at' => [$startRequired ? 'required' : 'nullable', 'date', ...($startRequired ? [] : ['required_with:'.$prefix.'ends_at'])],
+            $prefix.'starts_at' => [$startRequired ? 'required' : 'nullable', 'date', 'after_or_equal:'.self::earliestStart()->toDateTimeString(), ...($startRequired ? [] : ['required_with:'.$prefix.'ends_at'])],
             $prefix.'ends_at' => ['nullable', 'date', 'after:'.$prefix.'starts_at'],
         ];
     }

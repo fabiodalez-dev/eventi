@@ -26,7 +26,11 @@ use RRule\RRule;
  *   non crea nulla di nuovo e non modifica nulla di esistente;
  * - **eccezioni intatte**: le occorrenze con `is_exception = true` non vengono
  *   toccate, perché l'azione non aggiorna né cancella — inserisce soltanto le
- *   date mancanti. Una data spostata o annullata si esclude con `exdates`.
+ *   date mancanti. Una data spostata o annullata si esclude con `exdates`;
+ * - **niente passato**: si materializza da `max(DTSTART, oggi)`. Una serie
+ *   «ogni giorno» che comincia anni fa non riempie il calendario di serate già
+ *   avvenute (con DTSTART nel 2016 erano più di quattromila righe in una
+ *   richiesta); le date passate già salvate restano come sono.
  *
  * Le date si generano nel fuso della città e si salvano in UTC: un
  * appuntamento settimanale alle 21:00 resta alle 21:00 anche dopo il cambio
@@ -44,7 +48,7 @@ final class GenerateOccurrencesAction
      */
     public function __invoke(EventRecurrence $recurrence, ?CarbonImmutable $horizon = null): int
     {
-        $plan = $this->plan($recurrence, $horizon);
+        $plan = $this->plan($recurrence, $horizon, fromToday: true);
 
         if ($plan === null) {
             return 0;
@@ -127,9 +131,14 @@ final class GenerateOccurrencesAction
      * fuso, l'orizzonte effettivo, il modello da cui si eredita e le date
      * locali già ripulite dalle esclusioni.
      *
+     * Con `$fromToday` le date partono da oggi (mezzanotte, nel fuso della
+     * città): è la materializzazione. Senza, l'elenco comprende anche il
+     * passato, come serve all'import per confrontare la regola con le date
+     * esistenti.
+     *
      * @return array{event: Event, timezone: string, end: CarbonImmutable, template: ?EventOccurrence, starts: list<CarbonImmutable>}|null
      */
-    private function plan(EventRecurrence $recurrence, ?CarbonImmutable $horizon): ?array
+    private function plan(EventRecurrence $recurrence, ?CarbonImmutable $horizon, bool $fromToday = false): ?array
     {
         $event = $recurrence->event()->withTrashed()->with(['city', 'category', 'venue'])->first();
 
@@ -148,7 +157,8 @@ final class GenerateOccurrencesAction
         $end = $until !== null && $until->lessThan($horizon) ? $until : $horizon;
 
         $template = $this->template($recurrence, $event);
-        $dates = $this->dates($recurrence, $template, $timezone, $end);
+        $from = $fromToday ? CarbonImmutable::now($timezone)->startOfDay() : null;
+        $dates = $this->dates($recurrence, $template, $timezone, $from, $end);
 
         if ($dates === null) {
             return null;
@@ -202,11 +212,12 @@ final class GenerateOccurrencesAction
     /**
      * Espande la regola RFC 5545 fino all'orizzonte. `DTSTART` può stare nella
      * stringa; se manca si ricava dalla prima occorrenza già presente, letta
-     * nel fuso della città.
+     * nel fuso della città. `$from` taglia le date precedenti (`null`: da
+     * `DTSTART`); `COUNT` resta contato da `DTSTART`.
      *
      * @return list<DateTimeInterface>|null `null` se la ricorrenza non ha una regola utilizzabile
      */
-    private function dates(EventRecurrence $recurrence, ?EventOccurrence $template, string $timezone, CarbonImmutable $end): ?array
+    private function dates(EventRecurrence $recurrence, ?EventOccurrence $template, string $timezone, ?CarbonImmutable $from, CarbonImmutable $end): ?array
     {
         $rrule = trim($recurrence->rrule);
 
@@ -228,7 +239,7 @@ final class GenerateOccurrencesAction
 
         $dates = [];
 
-        foreach ($rule->getOccurrencesBetween(null, $end) as $date) {
+        foreach ($rule->getOccurrencesBetween($from, $end) as $date) {
             if ($date instanceof DateTimeInterface) {
                 $dates[] = $date;
             }

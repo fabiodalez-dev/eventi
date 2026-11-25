@@ -13,6 +13,8 @@ use App\Filament\Support\ImportedPosterUpload;
 use App\Filament\Support\SharedEventTags;
 use App\Filament\Support\TicketTiersField;
 use App\Models\Category;
+use App\Services\Events\EventFormRules;
+use Carbon\CarbonImmutable;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -83,10 +85,12 @@ final class EventFields
 
     public static function startsAt(): Component
     {
+        // Lo stesso limite dell'app (`EventFormRules::firstDate`): qualche giorno indietro, non anni.
         return DateTimePicker::make('starts_at')
             ->label(__('manage.fields.starts_at'))
             ->seconds(false)
             ->required()
+            ->minDate(fn (): CarbonImmutable => EventFormRules::earliestStart())
             ->timezone(CurrentVenue::timezone());
     }
 

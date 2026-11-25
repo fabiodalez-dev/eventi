@@ -493,9 +493,11 @@ class CreateEvent extends CreateRecord
             return null;
         }
 
+        // Come nell'app (`VenueEventStoreRequest::draft`): mai la bozza di un'organizzazione.
         return Event::query()
             ->whereKey($this->draftId)
             ->where('venue_id', CurrentVenue::get()->getKey())
+            ->whereNull('organizer_id')
             ->first();
     }
 
