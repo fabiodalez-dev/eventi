@@ -127,6 +127,25 @@ it('espone un contratto OpenAPI utilizzabile da un generatore Android', function
         ->and($document['paths']['/occurrences/{occurrence}/booking']['get']['responses'])->not->toHaveKey('304')
         ->and($document['components']['schemas']['MobileBooking']['properties']['can_cancel']['type'])->toBe('boolean');
 
+    // P5 (25/11/2026): statistiche, tabelle ed esportazioni, pagina di un soggetto, date di un evento, link brevi, canali propri del locale.
+    expect($document['paths'])->toHaveKeys([
+        '/management/venues/{venue}/analytics/summary',
+        '/management/venues/{venue}/analytics/report',
+        '/management/venues/{venue}/analytics/report/table',
+        '/management/venues/{venue}/analytics/report/export',
+        '/management/venues/{venue}/analytics/events',
+        '/management/venues/{venue}/analytics/subjects/{type}/{id}',
+        '/management/venues/{venue}/analytics/subjects/{type}/{id}/table',
+        '/management/venues/{venue}/analytics/subjects/{type}/{id}/export',
+        '/management/venues/{venue}/analytics/channels',
+        '/management/venues/{venue}/events/{event}/dates/analytics',
+        '/management/venues/{venue}/events/{event}/dates/{occurrence}/analytics',
+        '/management/venues/{venue}/events/{event}/share-links',
+        '/management/organizers/{organizer}/analytics/summary',
+        '/management/organizers/{organizer}/analytics/subjects/{type}/{id}',
+    ])->and($document['paths'])->not->toHaveKey('/management/organizers/{organizer}/analytics/channels')
+        ->and($document['paths']['/management/venues/{venue}/analytics/channels'])->toHaveKeys(['get', 'post']);
+
     $inspect = function (mixed $node) use (&$inspect): void {
         if (! is_array($node)) {
             return;

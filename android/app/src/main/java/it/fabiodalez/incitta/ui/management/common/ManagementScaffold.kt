@@ -25,10 +25,10 @@ import it.fabiodalez.incitta.ui.Muted
  * il selettore del soggetto (W-NV-02). Il contenuto scorre in una colonna sola,
  * come la gestione di prima: gli elenchi sono corti e paginati dal server.
  *
- * Arrivano con i loro pacchetti, e non stanno qui: `RichTextField` (testo con
- * grassetto, corsivo ed elenchi per la descrizione dell'evento, P1) ed
- * `EventPickerSheet` (scelta di un evento con locandina, titolo, data e
- * locale, per statistiche, sponsorizzazioni e grafiche social, P5).
+ * Stanno in file loro: `RichTextField` (testo con grassetto, corsivo ed
+ * elenchi per la descrizione dell'evento, P1) ed `EventPickerSheet` (scelta
+ * di un evento con locandina, titolo, data e locale, per statistiche,
+ * sponsorizzazioni e grafiche social, P5).
  */
 @Composable
 internal fun ManagementScaffold(

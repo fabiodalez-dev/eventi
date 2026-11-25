@@ -47,7 +47,7 @@ final class OccurrenceAnalytics
         $series = [];
         for ($day = $today->subDays(29); $day->lte($today); $day = $day->addDay()) {
             $row = $rows->get($day->toDateString());
-            $series[] = ['date' => $day->format('d/m'), 'views' => (int) ($row->views ?? 0),
+            $series[] = ['date' => $day->format('d/m'), 'day' => $day->toDateString(), 'views' => (int) ($row->views ?? 0),
                 'clicks' => array_sum(array_map(fn ($key) => (int) ($row->$key ?? 0), self::clickColumns()))];
         }
 

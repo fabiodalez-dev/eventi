@@ -28,7 +28,7 @@
     <section class="ad-intro" aria-label="{{ __('analytics-dashboard.scope') }}">
         <p>{{ __('analytics-dashboard.intro') }}</p>
         <div class="ad-periods" role="group" aria-label="{{ __('analytics.period') }}">
-            @foreach ([...\App\Enums\StatsPeriod::options(), 'year' => __('analytics-dashboard.year'), 'all' => __('analytics-dashboard.all_history')] as $value => $label)
+            @foreach (\App\Services\Analytics\AnalyticsWindow::options() as $value => $label)
                 <x-filament::button :color="$this->period === $value ? 'primary' : 'gray'" :outlined="$this->period !== $value"
                     wire:click="setPeriod('{{ $value }}')" wire:loading.attr="disabled" :aria-pressed="$this->period === $value ? 'true' : 'false'">{{ $label }}</x-filament::button>
             @endforeach
