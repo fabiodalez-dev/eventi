@@ -56458,6 +56458,1726 @@
                     }
                 }
             }
+        },
+        "/management/venues/{venue}/import": {
+            "get": {
+                "operationId": "v1.management.venues.import.show",
+                "summary": "Stato del collegamento e valori con cui aprire il modulo",
+                "tags": [
+                    "CalendarImport"
+                ],
+                "parameters": [
+                    {
+                        "name": "venue",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "source": {
+                                                    "type": [
+                                                        "object",
+                                                        "null"
+                                                    ],
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer"
+                                                        },
+                                                        "type": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "ics",
+                                                                "csv",
+                                                                "json",
+                                                                "rss",
+                                                                "api",
+                                                                "manual"
+                                                            ]
+                                                        },
+                                                        "type_label": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "enums.import_source_type.ics",
+                                                                "enums.import_source_type.csv",
+                                                                "enums.import_source_type.json",
+                                                                "enums.import_source_type.rss",
+                                                                "enums.import_source_type.api",
+                                                                "enums.import_source_type.manual"
+                                                            ]
+                                                        },
+                                                        "address": {
+                                                            "type": "string",
+                                                            "description": "Come la pagina: l'indirizzo cos\u00ec com'\u00e8; per un file caricato `url` \u00e8 nullo e `is_upload` vero."
+                                                        },
+                                                        "url": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "is_upload": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "is_active": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "last_run_at": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "last_status": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "last_status_label": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "last_error": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "can_run": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "can_update": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "can_delete": {
+                                                            "type": "boolean"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "id",
+                                                        "type",
+                                                        "type_label",
+                                                        "address",
+                                                        "url",
+                                                        "is_upload",
+                                                        "is_active",
+                                                        "last_run_at",
+                                                        "last_status",
+                                                        "last_status_label",
+                                                        "last_error",
+                                                        "can_run",
+                                                        "can_update",
+                                                        "can_delete"
+                                                    ]
+                                                },
+                                                "form": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "type": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "ics",
+                                                                "csv",
+                                                                "json",
+                                                                "rss",
+                                                                "api",
+                                                                "manual"
+                                                            ]
+                                                        },
+                                                        "url": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "exclude_keywords": {
+                                                            "type": "array",
+                                                            "items": {}
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "type",
+                                                        "url",
+                                                        "exclude_keywords"
+                                                    ]
+                                                },
+                                                "default_exclude_keywords": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "limits": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "max_keywords": {
+                                                            "type": "integer",
+                                                            "const": 100
+                                                        },
+                                                        "max_keyword_length": {
+                                                            "type": "integer",
+                                                            "const": 100
+                                                        },
+                                                        "max_url_length": {
+                                                            "type": "integer",
+                                                            "const": 1000
+                                                        },
+                                                        "max_file_bytes": {
+                                                            "type": "string"
+                                                        },
+                                                        "preview_size": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "max_keywords",
+                                                        "max_keyword_length",
+                                                        "max_url_length",
+                                                        "max_file_bytes",
+                                                        "preview_size"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "source",
+                                                "form",
+                                                "default_exclude_keywords",
+                                                "limits"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        },
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            },
+                            "X-RateLimit-Remaining": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Accesso richiesto.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Operazione non autorizzata.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Elemento non disponibile.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "http": []
+                    }
+                ]
+            },
+            "post": {
+                "operationId": "v1.management.venues.import.store",
+                "summary": "Collega il calendario, o aggiorna il collegamento, e accoda subito la\nprima lettura. Chiede il `preview_token` dell'anteprima degli stessi\ntipo e indirizzo (o file). 201 la prima volta, 200 dopo",
+                "tags": [
+                    "CalendarImport"
+                ],
+                "parameters": [
+                    {
+                        "name": "venue",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Accesso richiesto.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Operazione non autorizzata.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Elemento non disponibile.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "http": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "type": {
+                                        "type": "string",
+                                        "enum": [
+                                            "ics",
+                                            "csv"
+                                        ]
+                                    },
+                                    "url": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ],
+                                        "format": "uri",
+                                        "maxLength": 1000
+                                    },
+                                    "exclude_keywords": {
+                                        "type": [
+                                            "array",
+                                            "null"
+                                        ],
+                                        "items": {
+                                            "type": "string",
+                                            "maxLength": 100
+                                        },
+                                        "maxItems": 100
+                                    },
+                                    "preview_token": {
+                                        "type": "string",
+                                        "maxLength": 4000
+                                    }
+                                },
+                                "required": [
+                                    "type",
+                                    "preview_token"
+                                ]
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "type": {
+                                        "type": "string",
+                                        "enum": [
+                                            "ics",
+                                            "csv"
+                                        ]
+                                    },
+                                    "url": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ],
+                                        "format": "uri",
+                                        "maxLength": 1000
+                                    },
+                                    "exclude_keywords": {
+                                        "type": [
+                                            "array",
+                                            "null"
+                                        ],
+                                        "items": {
+                                            "type": "string",
+                                            "maxLength": 100
+                                        },
+                                        "maxItems": 100
+                                    },
+                                    "preview_token": {
+                                        "type": "string",
+                                        "maxLength": 4000
+                                    },
+                                    "file": {
+                                        "type": "string",
+                                        "format": "binary",
+                                        "description": "Solo CSV: il foglio di date."
+                                    }
+                                },
+                                "required": [
+                                    "type",
+                                    "preview_token"
+                                ]
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "v1.management.venues.import.destroy",
+                "summary": "Scollega: le date gi\u00e0 pubblicate restano; il file caricato, se c'era, si cancella",
+                "tags": [
+                    "CalendarImport"
+                ],
+                "parameters": [
+                    {
+                        "name": "venue",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "source": {
+                                                    "type": [
+                                                        "object",
+                                                        "null"
+                                                    ],
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer"
+                                                        },
+                                                        "type": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "ics",
+                                                                "csv",
+                                                                "json",
+                                                                "rss",
+                                                                "api",
+                                                                "manual"
+                                                            ]
+                                                        },
+                                                        "type_label": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "enums.import_source_type.ics",
+                                                                "enums.import_source_type.csv",
+                                                                "enums.import_source_type.json",
+                                                                "enums.import_source_type.rss",
+                                                                "enums.import_source_type.api",
+                                                                "enums.import_source_type.manual"
+                                                            ]
+                                                        },
+                                                        "address": {
+                                                            "type": "string",
+                                                            "description": "Come la pagina: l'indirizzo cos\u00ec com'\u00e8; per un file caricato `url` \u00e8 nullo e `is_upload` vero."
+                                                        },
+                                                        "url": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "is_upload": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "is_active": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "last_run_at": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "last_status": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "last_status_label": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "last_error": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "can_run": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "can_update": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "can_delete": {
+                                                            "type": "boolean"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "id",
+                                                        "type",
+                                                        "type_label",
+                                                        "address",
+                                                        "url",
+                                                        "is_upload",
+                                                        "is_active",
+                                                        "last_run_at",
+                                                        "last_status",
+                                                        "last_status_label",
+                                                        "last_error",
+                                                        "can_run",
+                                                        "can_update",
+                                                        "can_delete"
+                                                    ]
+                                                },
+                                                "form": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "type": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "ics",
+                                                                "csv",
+                                                                "json",
+                                                                "rss",
+                                                                "api",
+                                                                "manual"
+                                                            ]
+                                                        },
+                                                        "url": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "exclude_keywords": {
+                                                            "type": "array",
+                                                            "items": {}
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "type",
+                                                        "url",
+                                                        "exclude_keywords"
+                                                    ]
+                                                },
+                                                "default_exclude_keywords": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "limits": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "max_keywords": {
+                                                            "type": "integer",
+                                                            "const": 100
+                                                        },
+                                                        "max_keyword_length": {
+                                                            "type": "integer",
+                                                            "const": 100
+                                                        },
+                                                        "max_url_length": {
+                                                            "type": "integer",
+                                                            "const": 1000
+                                                        },
+                                                        "max_file_bytes": {
+                                                            "type": "string"
+                                                        },
+                                                        "preview_size": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "max_keywords",
+                                                        "max_keyword_length",
+                                                        "max_url_length",
+                                                        "max_file_bytes",
+                                                        "preview_size"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "source",
+                                                "form",
+                                                "default_exclude_keywords",
+                                                "limits"
+                                            ]
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Calendario scollegato."
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Accesso richiesto.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Operazione non autorizzata.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Elemento non disponibile.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "http": []
+                    }
+                ]
+            }
+        },
+        "/management/venues/{venue}/import/preview": {
+            "post": {
+                "operationId": "v1.management.venues.import.preview",
+                "description": "Come nella pagina, un calendario che non si legge non \u00e8 un errore della\nrichiesta: torna in `error`, e il segno dell'anteprima arriva lo stesso.",
+                "summary": "Anteprima: le prime date che entrerebbero, con il filtro gi\u00e0 applicato,\nsenza scrivere niente",
+                "tags": [
+                    "CalendarImport"
+                ],
+                "parameters": [
+                    {
+                        "name": "venue",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "rows": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "error": {
+                                                    "type": "string"
+                                                },
+                                                "preview_token": {
+                                                    "type": "string"
+                                                },
+                                                "expires_in_minutes": {
+                                                    "type": "integer",
+                                                    "const": 60
+                                                }
+                                            },
+                                            "required": [
+                                                "rows",
+                                                "error",
+                                                "preview_token",
+                                                "expires_in_minutes"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Accesso richiesto.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Operazione non autorizzata.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Elemento non disponibile.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "http": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "type": {
+                                        "type": "string",
+                                        "enum": [
+                                            "ics",
+                                            "csv"
+                                        ]
+                                    },
+                                    "url": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ],
+                                        "format": "uri",
+                                        "maxLength": 1000
+                                    },
+                                    "exclude_keywords": {
+                                        "type": [
+                                            "array",
+                                            "null"
+                                        ],
+                                        "items": {
+                                            "type": "string",
+                                            "maxLength": 100
+                                        },
+                                        "maxItems": 100
+                                    }
+                                },
+                                "required": [
+                                    "type"
+                                ]
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "type": {
+                                        "type": "string",
+                                        "enum": [
+                                            "ics",
+                                            "csv"
+                                        ]
+                                    },
+                                    "url": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ],
+                                        "format": "uri",
+                                        "maxLength": 1000
+                                    },
+                                    "exclude_keywords": {
+                                        "type": [
+                                            "array",
+                                            "null"
+                                        ],
+                                        "items": {
+                                            "type": "string",
+                                            "maxLength": 100
+                                        },
+                                        "maxItems": 100
+                                    },
+                                    "file": {
+                                        "type": "string",
+                                        "format": "binary",
+                                        "description": "Solo CSV: il foglio di date."
+                                    }
+                                },
+                                "required": [
+                                    "type"
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/management/venues/{venue}/import/run": {
+            "post": {
+                "operationId": "v1.management.venues.import.run",
+                "summary": "\u00abLeggi adesso\u00bb: una lettura subito, con il riepilogo dell'esito. Una\nlettura che non riesce non \u00e8 un errore della richiesta: `outcome` \u00e8\n`failed`, il motivo in `message` e nello stato aggiornato",
+                "tags": [
+                    "CalendarImport"
+                ],
+                "parameters": [
+                    {
+                        "name": "venue",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "outcome": {
+                                                    "type": "string",
+                                                    "const": "failed"
+                                                },
+                                                "outcome_label": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "enums.import_run_status.success",
+                                                        "enums.import_run_status.partial",
+                                                        "enums.import_run_status.failed"
+                                                    ]
+                                                },
+                                                "title": {
+                                                    "type": "string",
+                                                    "const": "Lettura completata."
+                                                },
+                                                "message": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "La lettura non e riuscita."
+                                                            ]
+                                                        }
+                                                    ]
+                                                },
+                                                "counters": {
+                                                    "type": "null"
+                                                },
+                                                "state": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "source": {
+                                                            "type": [
+                                                                "object",
+                                                                "null"
+                                                            ],
+                                                            "properties": {
+                                                                "id": {
+                                                                    "type": "integer"
+                                                                },
+                                                                "type": {
+                                                                    "type": "string",
+                                                                    "enum": [
+                                                                        "ics",
+                                                                        "csv",
+                                                                        "json",
+                                                                        "rss",
+                                                                        "api",
+                                                                        "manual"
+                                                                    ]
+                                                                },
+                                                                "type_label": {
+                                                                    "type": "string",
+                                                                    "enum": [
+                                                                        "enums.import_source_type.ics",
+                                                                        "enums.import_source_type.csv",
+                                                                        "enums.import_source_type.json",
+                                                                        "enums.import_source_type.rss",
+                                                                        "enums.import_source_type.api",
+                                                                        "enums.import_source_type.manual"
+                                                                    ]
+                                                                },
+                                                                "address": {
+                                                                    "type": "string",
+                                                                    "description": "Come la pagina: l'indirizzo cos\u00ec com'\u00e8; per un file caricato `url` \u00e8 nullo e `is_upload` vero."
+                                                                },
+                                                                "url": {
+                                                                    "type": [
+                                                                        "string",
+                                                                        "null"
+                                                                    ]
+                                                                },
+                                                                "is_upload": {
+                                                                    "type": "boolean"
+                                                                },
+                                                                "is_active": {
+                                                                    "type": "boolean"
+                                                                },
+                                                                "last_run_at": {
+                                                                    "type": [
+                                                                        "string",
+                                                                        "null"
+                                                                    ]
+                                                                },
+                                                                "last_status": {
+                                                                    "type": [
+                                                                        "string",
+                                                                        "null"
+                                                                    ]
+                                                                },
+                                                                "last_status_label": {
+                                                                    "type": [
+                                                                        "string",
+                                                                        "null"
+                                                                    ]
+                                                                },
+                                                                "last_error": {
+                                                                    "type": [
+                                                                        "string",
+                                                                        "null"
+                                                                    ]
+                                                                },
+                                                                "can_run": {
+                                                                    "type": "boolean"
+                                                                },
+                                                                "can_update": {
+                                                                    "type": "boolean"
+                                                                },
+                                                                "can_delete": {
+                                                                    "type": "boolean"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "id",
+                                                                "type",
+                                                                "type_label",
+                                                                "address",
+                                                                "url",
+                                                                "is_upload",
+                                                                "is_active",
+                                                                "last_run_at",
+                                                                "last_status",
+                                                                "last_status_label",
+                                                                "last_error",
+                                                                "can_run",
+                                                                "can_update",
+                                                                "can_delete"
+                                                            ]
+                                                        },
+                                                        "form": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "type": {
+                                                                    "type": "string",
+                                                                    "enum": [
+                                                                        "ics",
+                                                                        "csv",
+                                                                        "json",
+                                                                        "rss",
+                                                                        "api",
+                                                                        "manual"
+                                                                    ]
+                                                                },
+                                                                "url": {
+                                                                    "type": [
+                                                                        "string",
+                                                                        "null"
+                                                                    ]
+                                                                },
+                                                                "exclude_keywords": {
+                                                                    "type": "array",
+                                                                    "items": {}
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "type",
+                                                                "url",
+                                                                "exclude_keywords"
+                                                            ]
+                                                        },
+                                                        "default_exclude_keywords": {
+                                                            "type": "array",
+                                                            "items": {}
+                                                        },
+                                                        "limits": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "max_keywords": {
+                                                                    "type": "integer",
+                                                                    "const": 100
+                                                                },
+                                                                "max_keyword_length": {
+                                                                    "type": "integer",
+                                                                    "const": 100
+                                                                },
+                                                                "max_url_length": {
+                                                                    "type": "integer",
+                                                                    "const": 1000
+                                                                },
+                                                                "max_file_bytes": {
+                                                                    "type": "string"
+                                                                },
+                                                                "preview_size": {
+                                                                    "type": "string"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "max_keywords",
+                                                                "max_keyword_length",
+                                                                "max_url_length",
+                                                                "max_file_bytes",
+                                                                "preview_size"
+                                                            ]
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "source",
+                                                        "form",
+                                                        "default_exclude_keywords",
+                                                        "limits"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "outcome",
+                                                "outcome_label",
+                                                "title",
+                                                "message",
+                                                "counters",
+                                                "state"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Accesso richiesto.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Operazione non autorizzata.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Elemento non disponibile.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "http": []
+                    }
+                ]
+            }
+        },
+        "/management/venues/{venue}/import/pause": {
+            "post": {
+                "operationId": "v1.management.venues.import.pause",
+                "summary": "Sospende: la sorgente resta collegata, ma la lettura di ogni ora la salta",
+                "tags": [
+                    "CalendarImport"
+                ],
+                "parameters": [
+                    {
+                        "name": "venue",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "source": {
+                                                    "type": [
+                                                        "object",
+                                                        "null"
+                                                    ],
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer"
+                                                        },
+                                                        "type": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "ics",
+                                                                "csv",
+                                                                "json",
+                                                                "rss",
+                                                                "api",
+                                                                "manual"
+                                                            ]
+                                                        },
+                                                        "type_label": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "enums.import_source_type.ics",
+                                                                "enums.import_source_type.csv",
+                                                                "enums.import_source_type.json",
+                                                                "enums.import_source_type.rss",
+                                                                "enums.import_source_type.api",
+                                                                "enums.import_source_type.manual"
+                                                            ]
+                                                        },
+                                                        "address": {
+                                                            "type": "string",
+                                                            "description": "Come la pagina: l'indirizzo cos\u00ec com'\u00e8; per un file caricato `url` \u00e8 nullo e `is_upload` vero."
+                                                        },
+                                                        "url": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "is_upload": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "is_active": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "last_run_at": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "last_status": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "last_status_label": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "last_error": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "can_run": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "can_update": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "can_delete": {
+                                                            "type": "boolean"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "id",
+                                                        "type",
+                                                        "type_label",
+                                                        "address",
+                                                        "url",
+                                                        "is_upload",
+                                                        "is_active",
+                                                        "last_run_at",
+                                                        "last_status",
+                                                        "last_status_label",
+                                                        "last_error",
+                                                        "can_run",
+                                                        "can_update",
+                                                        "can_delete"
+                                                    ]
+                                                },
+                                                "form": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "type": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "ics",
+                                                                "csv",
+                                                                "json",
+                                                                "rss",
+                                                                "api",
+                                                                "manual"
+                                                            ]
+                                                        },
+                                                        "url": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "exclude_keywords": {
+                                                            "type": "array",
+                                                            "items": {}
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "type",
+                                                        "url",
+                                                        "exclude_keywords"
+                                                    ]
+                                                },
+                                                "default_exclude_keywords": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "limits": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "max_keywords": {
+                                                            "type": "integer",
+                                                            "const": 100
+                                                        },
+                                                        "max_keyword_length": {
+                                                            "type": "integer",
+                                                            "const": 100
+                                                        },
+                                                        "max_url_length": {
+                                                            "type": "integer",
+                                                            "const": 1000
+                                                        },
+                                                        "max_file_bytes": {
+                                                            "type": "string"
+                                                        },
+                                                        "preview_size": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "max_keywords",
+                                                        "max_keyword_length",
+                                                        "max_url_length",
+                                                        "max_file_bytes",
+                                                        "preview_size"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "source",
+                                                "form",
+                                                "default_exclude_keywords",
+                                                "limits"
+                                            ]
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Collegamento sospeso."
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Accesso richiesto.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Operazione non autorizzata.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Elemento non disponibile.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "http": []
+                    }
+                ]
+            }
+        },
+        "/management/venues/{venue}/import/resume": {
+            "post": {
+                "operationId": "v1.management.venues.import.resume",
+                "tags": [
+                    "CalendarImport"
+                ],
+                "parameters": [
+                    {
+                        "name": "venue",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "source": {
+                                                    "type": [
+                                                        "object",
+                                                        "null"
+                                                    ],
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer"
+                                                        },
+                                                        "type": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "ics",
+                                                                "csv",
+                                                                "json",
+                                                                "rss",
+                                                                "api",
+                                                                "manual"
+                                                            ]
+                                                        },
+                                                        "type_label": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "enums.import_source_type.ics",
+                                                                "enums.import_source_type.csv",
+                                                                "enums.import_source_type.json",
+                                                                "enums.import_source_type.rss",
+                                                                "enums.import_source_type.api",
+                                                                "enums.import_source_type.manual"
+                                                            ]
+                                                        },
+                                                        "address": {
+                                                            "type": "string",
+                                                            "description": "Come la pagina: l'indirizzo cos\u00ec com'\u00e8; per un file caricato `url` \u00e8 nullo e `is_upload` vero."
+                                                        },
+                                                        "url": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "is_upload": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "is_active": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "last_run_at": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "last_status": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "last_status_label": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "last_error": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "can_run": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "can_update": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "can_delete": {
+                                                            "type": "boolean"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "id",
+                                                        "type",
+                                                        "type_label",
+                                                        "address",
+                                                        "url",
+                                                        "is_upload",
+                                                        "is_active",
+                                                        "last_run_at",
+                                                        "last_status",
+                                                        "last_status_label",
+                                                        "last_error",
+                                                        "can_run",
+                                                        "can_update",
+                                                        "can_delete"
+                                                    ]
+                                                },
+                                                "form": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "type": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "ics",
+                                                                "csv",
+                                                                "json",
+                                                                "rss",
+                                                                "api",
+                                                                "manual"
+                                                            ]
+                                                        },
+                                                        "url": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "exclude_keywords": {
+                                                            "type": "array",
+                                                            "items": {}
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "type",
+                                                        "url",
+                                                        "exclude_keywords"
+                                                    ]
+                                                },
+                                                "default_exclude_keywords": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "limits": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "max_keywords": {
+                                                            "type": "integer",
+                                                            "const": 100
+                                                        },
+                                                        "max_keyword_length": {
+                                                            "type": "integer",
+                                                            "const": 100
+                                                        },
+                                                        "max_url_length": {
+                                                            "type": "integer",
+                                                            "const": 1000
+                                                        },
+                                                        "max_file_bytes": {
+                                                            "type": "string"
+                                                        },
+                                                        "preview_size": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "max_keywords",
+                                                        "max_keyword_length",
+                                                        "max_url_length",
+                                                        "max_file_bytes",
+                                                        "preview_size"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "source",
+                                                "form",
+                                                "default_exclude_keywords",
+                                                "limits"
+                                            ]
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Collegamento riattivato."
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Accesso richiesto.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Operazione non autorizzata.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Elemento non disponibile.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "http": []
+                    }
+                ]
+            }
         }
     },
     "components": {

@@ -67,6 +67,16 @@ it('espone un contratto OpenAPI utilizzabile da un generatore Android', function
         '/me/invitations/venues/{venue}',
         '/me/invitations/checkin/{invitation}',
     ])->and($document['paths'])->not->toHaveKey('/management/organizers/{organizer}/members');
+    // P9 (25/11/2026): il calendario collegato del locale, solo sotto `venues`.
+    expect($document['paths'])->toHaveKeys([
+        '/management/venues/{venue}/import',
+        '/management/venues/{venue}/import/preview',
+        '/management/venues/{venue}/import/run',
+        '/management/venues/{venue}/import/pause',
+        '/management/venues/{venue}/import/resume',
+    ])
+        ->and($document['paths']['/management/venues/{venue}/import'])->toHaveKeys(['get', 'post', 'delete'])
+        ->and($document['paths'])->not->toHaveKey('/management/organizers/{organizer}/import');
     // Il profilo del locale e dell'organizzazione (P4).
     expect($document['paths'])->toHaveKeys([
         '/management/venues/{venue}/profile',
