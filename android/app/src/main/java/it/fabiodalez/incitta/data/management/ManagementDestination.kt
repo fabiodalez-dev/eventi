@@ -26,6 +26,12 @@ internal sealed interface ManagementDestination {
      * pagine «Commenti agli eventi» e «Recensioni ricevute» (P7).
      */
     data class Feedback(val kind: SubjectKind, val slug: String, val reviews: Boolean, val eventId: Long? = null) : ManagementDestination
+     * `/inviti-locali/…` e `/inviti-ingressi/…` (P8), più la voce «I tuoi
+     * inviti» del profilo: l'elenco degli inviti ricevuti. Il collegamento
+     * firmato non si usa (l'app risponde con l'account confermato): serve
+     * solo a sapere che la persona sta cercando i suoi inviti.
+     */
+    data object Invitations : ManagementDestination
 
     companion object {
         fun parse(url: String, allowedOrigin: String): ManagementDestination? = runCatching {
@@ -43,6 +49,7 @@ internal sealed interface ManagementDestination {
                 val event = if (reviews) null else queryLong(uri.rawQuery, "event")
                 return Feedback(kind, match.groupValues[2], reviews, event)
             }
+            if (Regex("^/inviti-locali/[0-9]{1,18}/[0-9]{1,18}/[0-9]{1,18}$").matches(path) || Regex("^/inviti-ingressi/[0-9]{1,18}/[0-9]{1,18}$").matches(path)) return Invitations
             null
         }.getOrNull()
     }

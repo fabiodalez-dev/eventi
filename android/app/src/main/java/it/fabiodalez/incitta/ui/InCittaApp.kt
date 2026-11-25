@@ -308,7 +308,7 @@ fun InCittaApp(viewModel: MainViewModel) {
             val selected = state.selected
 
             when {
-                managementOpen -> androidx.compose.runtime.key(state.session?.token) { it.fabiodalez.incitta.ui.management.ManagementScreen(state.session, padding, destination = managementDestination) { managementOpen = false; managementDestination = null } }
+                managementOpen -> androidx.compose.runtime.key(state.session?.token) { it.fabiodalez.incitta.ui.management.ManagementScreen(state.session, padding, destination = managementDestination) { managementOpen = false; managementDestination = null; viewModel.refreshProfile() } }
                 carpoolRoute != null -> androidx.compose.runtime.key(state.session?.token) { CarpoolScreen(state.session, padding, carpoolRoute!!,
                     onBack = { carpoolRoute = null },
                     onLogin = { path -> returnCarpool = path; carpoolRoute = null; viewModel.selectTab(AppTab.ACCOUNT) },
@@ -497,6 +497,7 @@ fun InCittaApp(viewModel: MainViewModel) {
                         onDeleteAccount = viewModel::deleteAccount,
                         onTickets = { viewModel.selectTab(AppTab.TICKETS) },
                         onManagement = { managementDestination = null; managementOpen = true },
+                        onInvitations = { managementDestination = it.fabiodalez.incitta.data.management.ManagementDestination.Invitations; managementOpen = true },
                         onCollections = { collectionsOpen = true },
                         onOpenSavedSearch = viewModel::openSavedSearch,
                         onClearAuthError = viewModel::clearAuthError,

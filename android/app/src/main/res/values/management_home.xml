@@ -20,8 +20,8 @@
     <string name="management_area_sponsorships_help">Campagne in evidenza e rapporti</string>
     <string name="management_area_feedback">Commenti e recensioni</string>
     <string name="management_area_feedback_help">Modera i commenti e rispondi alle recensioni</string>
-    <string name="management_area_collaborators">Collaboratori</string>
-    <string name="management_area_collaborators_help">Chi può gestire con te</string>
+    <string name="management_area_collaborators">Collaboratori e accesso</string>
+    <string name="management_area_collaborators_help">Chi gestisce il locale con te, e il tuo accesso</string>
     <string name="management_area_import">Import del calendario</string>
     <string name="management_area_import_help">Porta gli eventi da un altro calendario</string>
     <string name="management_area_social">Grafiche social</string>

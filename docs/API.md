@@ -471,3 +471,36 @@ Nascondere, rimettere in vista e rispondere hanno un secchio di 60 al minuto per
 - `GET /v1/venues/{slug}/reviews` e `/v1/organizers/{slug}/reviews`: `manage_url`, l'indirizzo della pagina «Recensioni ricevute» del pannello, solo a chi gestisce la scheda (`User::canAccessTenant`); `null` per tutti gli altri.
 
 L'app traduce questi indirizzi nelle schermate native (`ManagementDestination`); una versione che non li conosce li apre nel browser.
+
+## Gestione: collaboratori, accesso e inviti (P8, 25 novembre 2026)
+
+Le pagine «Collaboratori» e «Il tuo accesso» del pannello del locale, e la risposta agli inviti, nell'app. Le regole sono una sola per pannello e API: l'elenco, il tetto degli inviti, il reinvio, il ritiro e la rimozione stanno in `App\Services\Management\VenueCollaborators` e `App\Actions\RemoveVenueMember`, la risposta all'invito al personale d'ingresso in `App\Actions\Account\RespondToCheckinStaffInvitation` (usata anche dalla pagina del collegamento). L'organizzazione non ha collaboratori né inviti (la pivot `organizer_user` non ha ruoli e il pannello `/organizza` non ha una pagina per i membri): sotto `organizers/{organizer}` queste rotte non esistono e rispondono 404.
+
+### Collaboratori del locale (permesso `VenuePolicy::manageCollaborators`, il referente)
+
+- `GET /v1/management/venues/{venue}/members?q=&page=`: `data[]` `{id, name, email, role (owner|editor), role_label, pending, accepted_at, invited_at, is_me, can_resend, can_withdraw, can_remove}`, prima chi ha accettato per nome, poi gli inviti per email; 50 per pagina, `meta{next_page, invite_expires_days, invites_per_hour, invites_per_day}`. Un invito in attesa ha `name` nullo ed `email` mascherata (`m****@esempio.it`); `q` cerca il nome solo fra chi ha accettato, l'email fra tutti. Il collaboratore riceve 403.
+- `POST …/members` con `name` ed `email` (obbligatori, max 255): 201 con la riga e `message`. Il ruolo è sempre collaboratore. 422 su `error.fields.email` se la persona è già del locale o ha già un invito in attesa.
+- `POST …/members/{member}/resend`: un collegamento nuovo, valido altri sette giorni; quello vecchio smette di valere.
+- `DELETE …/members/{member}/invitation`: ritira un invito in attesa.
+- `DELETE …/members/{member}`: toglie un collaboratore che ha accettato (riga `accesso_locale_revocato` nel registro di sicurezza); l'account e i suoi eventi restano.
+
+Reinvio e ritiro valgono solo per un invito da collaboratore in attesa, la rimozione solo per un collaboratore che ha accettato: altrimenti 403. `{member}` fuori dal locale: 404. Invito e reinvio contano nello **stesso tetto della pagina del sito**, 10 l'ora e 30 al giorno per persona e locale, con le stesse chiavi del rate limiter (`venue-invite:{utente}:{locale}` e `…:daily`): oltre, 429 `RATE_LIMITED` con il motivo anche in `error.fields.invite`. Le scritture hanno in più un limite di rotta di 30 al minuto (`management-members`).
+
+### Il tuo accesso (ogni persona del locale)
+
+- `GET /v1/management/venues/{venue}/access`: `{venue{id, name}, role, role_label, member_since, is_last_owner, can_leave, can_manage_collaborators}`.
+- `POST …/access/leave`: esce dal locale (`LeaveVenueAction`), `{message, remaining}` con i locali e le organizzazioni che restano. L'ultimo referente riceve 409 `CONFLICT` e lo chiede alla redazione. Limite 10 al minuto (`management-leave`).
+
+### Inviti ricevuti
+
+Sul sito un invito si accetta dal collegamento firmato dell'email, aperto con l'account invitato. Nell'app il collegamento non c'è: le rotte chiedono il token **e** l'indirizzo confermato (`RequireConfirmedAccount`, 403 `EMAIL_VERIFICATION_REQUIRED` altrimenti), così risponde chi ha dimostrato la casella. Un invito di un altro account, scaduto (sette giorni dall'invito o dal reinvio), reinviato nel frattempo o su una data finita risponde 404.
+
+- `GET /v1/me/invitations`: `venues[]` `{venue{id, slug, name, city}, role, role_label, sent, invited_at, expires_at}` e `checkin[]` `{id, occurrence{id, title, starts_at, venue}, sent, invited_at, expires_at}`.
+- `POST /v1/me/invitations/venues/{venue}` con `decision` (`accept`|`decline`) e `sent` (quello dell'elenco): accettando si entra nel locale con il ruolo offerto (`subject{type, id}`); il registro di sicurezza segna `tramite: app`.
+- `POST /v1/me/invitations/checkin/{invitation}` con `decision` e `sent`: accettando si entra nel personale d'ingresso della data (`occurrence_id`).
+
+Le due risposte consumano il secchio `venue-invitations` delle pagine del sito (30 al minuto). L'accettazione scegliendo la password (`AcceptVenueInvitationsOnPasswordReset`) resta quella del sito.
+
+### Campo nuovo
+
+- `GET /v1/me`: `management.invitations`, gli inviti in un locale e al personale d'ingresso ancora senza risposta. Non accende «Gestione eventi»: nell'app ha la sua voce nel profilo.

@@ -29,7 +29,7 @@ import java.time.ZoneId
 @Composable
 internal fun ProfileScreen(state: AppUiState, padding: PaddingValues, onTickets: () -> Unit, onSaved: () -> Unit,
     onLogout: () -> Unit, onDeleteAccount: (String) -> Unit, onInterestsSaved: () -> Unit,
-    onAppearance: (String) -> Unit, onProfileSaved: () -> Unit, onCommunity: () -> Unit, onCarpool: () -> Unit, onCarpoolMessages: () -> Unit, onCommunityInbox: () -> Unit, communityTotal: Int, onManagement: () -> Unit = {}, onPublicProfile: () -> Unit = {}, onRelationships: () -> Unit = {}, onVerification: () -> Unit = {}, onAttended: () -> Unit = {}, onCollections: () -> Unit = {}, onOpenSavedSearch: (SavedSearch) -> Unit = {}) {
+    onAppearance: (String) -> Unit, onProfileSaved: () -> Unit, onCommunity: () -> Unit, onCarpool: () -> Unit, onCarpoolMessages: () -> Unit, onCommunityInbox: () -> Unit, communityTotal: Int, onManagement: () -> Unit = {}, onPublicProfile: () -> Unit = {}, onRelationships: () -> Unit = {}, onVerification: () -> Unit = {}, onAttended: () -> Unit = {}, onCollections: () -> Unit = {}, onOpenSavedSearch: (SavedSearch) -> Unit = {}, onInvitations: () -> Unit = {}) {
     val session = state.session ?: return
     val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
     var section by rememberSaveable(session.user.id) { mutableStateOf<String?>(null) }
@@ -59,6 +59,10 @@ internal fun ProfileScreen(state: AppUiState, padding: PaddingValues, onTickets:
                     /* Solo a chi gestisce qualcosa o controlla gli ingressi; con un server vecchio a tutti, come prima. */
                     if (it.fabiodalez.incitta.data.management.showsManagementEntry(session.user)) {
                         ProfileRow(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.management_title), androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.management_subtitle), Icons.Outlined.ManageAccounts, onManagement)
+                    }
+                    /* Inviti in un locale o al controllo ingressi ancora senza risposta (P8): si rispondono nell'app. */
+                    it.fabiodalez.incitta.data.management.pendingInvitations(session.user).takeIf { count -> count > 0 }?.let { count ->
+                        ProfileRow(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.invitations_title), androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.invitations_profile_help, count), Icons.Outlined.MarkEmailUnread, onInvitations)
                     }
                     ProfileRow("I miei biglietti", "Prossimi, passati e annullati", Icons.Outlined.ConfirmationNumber, onTickets)
                     ProfileRow(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.attended_title), androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.attended_subtitle), Icons.Outlined.History, onAttended)

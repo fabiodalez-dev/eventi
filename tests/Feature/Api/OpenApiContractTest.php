@@ -55,6 +55,19 @@ it('espone un contratto OpenAPI utilizzabile da un generatore Android', function
         ->and($document['paths']['/management/venues/{venue}/events/{event}/poster']['post']['requestBody']['content'])->toHaveKey('multipart/form-data')
         ->and($document['paths']['/management/venues/{venue}/media/gallery']['post']['responses'])->toHaveKey('201');
 
+    // P8 (25/11/2026): collaboratori del locale, «Il tuo accesso», inviti ricevuti.
+    expect($document['paths'])->toHaveKeys([
+        '/management/venues/{venue}/members',
+        '/management/venues/{venue}/members/{member}',
+        '/management/venues/{venue}/members/{member}/resend',
+        '/management/venues/{venue}/members/{member}/invitation',
+        '/management/venues/{venue}/access',
+        '/management/venues/{venue}/access/leave',
+        '/me/invitations',
+        '/me/invitations/venues/{venue}',
+        '/me/invitations/checkin/{invitation}',
+    ])->and($document['paths'])->not->toHaveKey('/management/organizers/{organizer}/members');
+
     expect($document['paths']['/occurrences/{occurrence}/bookings']['post']['responses'])->toHaveKey('201')
         ->and($document['paths']['/me/bookings']['get']['security'])->toBe([['http' => []]])
         ->and($document['paths']['/me/bookings']['get']['responses']['200']['content']['application/json']['schema']['properties']['data']['items']['$ref'])->toBe('#/components/schemas/MobileBooking')

@@ -63,16 +63,20 @@ final class RespondToVenueInvitation
         return $pivot;
     }
 
-    public function accept(Venue $venue, User $user, ?int $invitation = null): bool
+    /**
+     * `$via` finisce nel registro di sicurezza: `collegamento` per la pagina
+     * del messaggio, `app` per «I tuoi inviti» dell'app.
+     */
+    public function accept(Venue $venue, User $user, ?int $invitation = null, string $via = 'collegamento'): bool
     {
-        return DB::transaction(function () use ($venue, $user, $invitation): bool {
+        return DB::transaction(function () use ($venue, $user, $invitation, $via): bool {
             $pivot = $this->pending($venue, $user, $invitation, lock: true);
 
             if ($pivot === null) {
                 return false;
             }
 
-            $this->markAccepted($venue, $user, $pivot, 'collegamento');
+            $this->markAccepted($venue, $user, $pivot, $via);
 
             return true;
         });

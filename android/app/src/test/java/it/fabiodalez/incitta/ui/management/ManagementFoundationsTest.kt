@@ -10,6 +10,7 @@ import it.fabiodalez.incitta.ui.management.common.cityIso
 import it.fabiodalez.incitta.ui.management.common.cityLocalDateTime
 import it.fabiodalez.incitta.ui.management.common.pickerDate
 import it.fabiodalez.incitta.ui.management.common.pickerMillis
+import it.fabiodalez.incitta.ui.management.collaborators.CollaboratorsRoute
 import it.fabiodalez.incitta.ui.management.ticketing.TicketingDatesRoute
 import java.io.IOException
 import java.time.LocalDate
@@ -23,19 +24,20 @@ class ManagementFoundationsTest {
     private fun venue(vararg permissions: String) = ManagedVenue(id = 1, role = "owner", permissions = permissions.associateWith { true }).toSubject()
 
     @Test fun onlyBuiltAndAllowedAreasAppear() {
-        assertEquals(listOf(ManagementArea.Ticketing), availableAreas(venue("ticketing_manage", "events_create", "profile_update"), hasCheckinDates = false))
-        assertTrue(availableAreas(venue("events_create"), hasCheckinDates = false).isEmpty())
+        assertEquals(listOf(ManagementArea.Ticketing, ManagementArea.Collaborators), availableAreas(venue("ticketing_manage", "events_create", "profile_update"), hasCheckinDates = false))
+        /* «Collaboratori e accesso» c'è per ogni persona del locale: dentro c'è almeno «Il tuo accesso». */
+        assertEquals(listOf(ManagementArea.Collaborators), availableAreas(venue("events_create"), hasCheckinDates = false))
         /* Chi controlla gli ingressi di qualche data vede la biglietteria anche senza gestirla. */
-        assertEquals(listOf(ManagementArea.Ticketing), availableAreas(venue(), hasCheckinDates = true))
+        assertEquals(listOf(ManagementArea.Ticketing, ManagementArea.Collaborators), availableAreas(venue(), hasCheckinDates = true))
         assertEquals(listOf(ManagementArea.Ticketing), availableAreas(ManagedOrganizer(id = 3, permissions = mapOf("ticketing_manage" to true)).toSubject(), false))
     }
 
     @Test fun everyAreaOfThePlanExistsAndTheBuiltOnesHaveTheirEntry() {
         assertEquals(13, ManagementArea.entries.size)
         /* Le aree si accendono con i loro pacchetti: qui si controllano solo quelle già fatte. */
-        assertTrue(ManagementArea.Ticketing.implemented)
         assertSame(TicketingDatesRoute, ManagementArea.Ticketing.entry)
         assertEquals(it.fabiodalez.incitta.ui.management.feedback.FeedbackRoute(), ManagementArea.Feedback.entry)
+        assertSame(CollaboratorsRoute, ManagementArea.Collaborators.entry)
     }
 
     @Test fun permissionsDecideTheFutureAreasToo() {
