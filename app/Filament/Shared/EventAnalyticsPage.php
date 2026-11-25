@@ -12,9 +12,8 @@ use App\Services\Analytics\AnalyticsWindow;
 use App\Services\Analytics\EventAnalyticsDashboard;
 use App\Services\Analytics\EventAnalyticsExport;
 use App\Services\Analytics\EventShares;
-use App\Services\Analytics\ManagementAnalytics;
-use App\Support\CurrentCity;
 use BackedEnum;
+use Carbon\CarbonImmutable;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
@@ -72,17 +71,15 @@ abstract class EventAnalyticsPage extends Page
             $this->setPeriod('month');
         } else {
             $this->period = 'custom';
+            $this->clampDates();
         }
         $this->getSchema('form')->fill($this->filters);
     }
 
     public function setPeriod(string $period): void
     {
-        $timezone = Filament::getCurrentPanel()?->getId() === 'admin'
-            ? app(CurrentCity::class)->timezone()
-            : app(ManagementAnalytics::class)->subject()->city->timezone;
         // La stessa regola dell'app di gestione: `AnalyticsWindow`.
-        $window = AnalyticsWindow::resolve($period, $timezone);
+        $window = AnalyticsWindow::resolve($period, app(EventAnalyticsDashboard::class)->timezone());
         $this->period = $window['period'];
         $this->filters['until'] = $window['until'];
         $this->filters['from'] = $window['from'];
@@ -97,9 +94,22 @@ abstract class EventAnalyticsPage extends Page
         }
         if (in_array($key, ['from', 'until'], true)) {
             $this->period = 'custom';
+            $this->clampDates();
         }
         $this->resetPage('analyticsPage');
         unset($this->dashboard);
+    }
+
+    /**
+     * «Dal» e «Al» dentro i limiti di `AnalyticsWindow`: «Al» non oltre oggi,
+     * al massimo `AnalyticsWindow::MAX_DAYS` giorni. Vale anche per le date
+     * arrivate dall'indirizzo della pagina, che i campi non hanno visto.
+     */
+    private function clampDates(): void
+    {
+        $dates = AnalyticsWindow::clamp($this->filters['from'] ?? null, $this->filters['until'] ?? null, app(EventAnalyticsDashboard::class)->timezone());
+        $this->filters['from'] = $dates['from'];
+        $this->filters['until'] = $dates['until'];
     }
 
     public function detailUrl(string $type, int $id): string
@@ -181,8 +191,14 @@ abstract class EventAnalyticsPage extends Page
         }
         $components[] = Select::make('channel')->label(__('event-shares.channel'))->placeholder(__('analytics-dashboard.all_channels'))
             ->options(collect(app(EventShares::class)->channels())->mapWithKeys(fn ($channel) => [$channel => EventShares::channelLabel($channel)])->all())->live();
-        $components[] = DatePicker::make('from')->label(__('analytics-dashboard.from'))->native()->live();
-        $components[] = DatePicker::make('until')->label(__('analytics-dashboard.until'))->native()->required()->live();
+        // I limiti dei campi sono quelli di `AnalyticsWindow`, che il server riapplica comunque.
+        $today = fn (): string => CarbonImmutable::now(app(EventAnalyticsDashboard::class)->timezone())->toDateString();
+        $components[] = DatePicker::make('from')->label(__('analytics-dashboard.from'))->native()->live()
+            ->maxDate(fn (): string => AnalyticsWindow::date($this->filters['until'] ?? null)?->toDateString() ?? $today())
+            ->minDate(fn (): ?string => AnalyticsWindow::date($this->filters['until'] ?? null)?->subDays(AnalyticsWindow::MAX_DAYS - 1)->toDateString());
+        $components[] = DatePicker::make('until')->label(__('analytics-dashboard.until'))->native()->required()->live()
+            ->maxDate($today)
+            ->minDate(fn (): ?string => AnalyticsWindow::date($this->filters['from'] ?? null)?->toDateString());
 
         return $schema->statePath('filters')->columns(1)->components($components);
     }

@@ -17,6 +17,7 @@ use App\Models\Lineup;
 use App\Models\User;
 use App\Queries\EventOccurrenceQuery;
 use App\Queries\VenueDashboardQuery;
+use App\Services\Analytics\ManagementAnalytics;
 use App\Services\Analytics\OccurrenceAnalytics;
 use App\Support\Management\ManagementSubject;
 use App\Support\RecurrenceRule;
@@ -107,7 +108,9 @@ final class EventDates
         $venue = $subject->isVenue();
         $today = EventOccurrenceQuery::for($event->city)->currentBusinessDate();
         $poster = in_array($event->status, [EventStatus::Published, EventStatus::Archived], true);
-        $views = $date->getAttribute('analytics_views');
+        // Visite, clic e salvataggi della data sono del locale o dell'organizzatore
+        // principale: a un co-organizzatore `stats` arriva null, come in «Date e luoghi».
+        $views = ManagementAnalytics::covers($subject->model, $event) ? $date->getAttribute('analytics_views') : null;
 
         return [
             'id' => (int) $date->getKey(),

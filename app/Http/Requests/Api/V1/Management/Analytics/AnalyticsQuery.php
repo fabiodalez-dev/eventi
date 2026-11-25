@@ -6,6 +6,7 @@ namespace App\Http\Requests\Api\V1\Management\Analytics;
 
 use App\Enums\StatsPeriod;
 use App\Services\Analytics\AnalyticsWindow;
+use App\Services\Analytics\EventAnalyticsDashboard;
 use App\Services\Analytics\EventAnalyticsExport;
 use App\Support\Management\ManagementSubject;
 use Illuminate\Foundation\Http\FormRequest;
@@ -39,12 +40,16 @@ final class AnalyticsQuery extends FormRequest
     public function rules(): array
     {
         $summary = str_ends_with((string) $this->route()->getName(), 'analytics.summary');
+        // Le date a mano hanno un tetto: «Al» non oltre oggi, al massimo
+        // `AnalyticsWindow::MAX_DAYS` giorni. Fuori dai limiti è un 422 qui,
+        // prima di costruire il rapporto.
+        $dates = AnalyticsWindow::rules(app(EventAnalyticsDashboard::class)->timezone());
 
         return [
             // «Statistiche» ha tre periodi; «Statistiche in dettaglio» cinque più le date a mano.
             'period' => ['nullable', 'string', Rule::in($summary ? StatsPeriod::values() : [...AnalyticsWindow::PERIODS, 'custom'])],
-            'from' => ['nullable', 'date_format:Y-m-d'],
-            'until' => ['nullable', 'date_format:Y-m-d', 'required_if:period,custom'],
+            'from' => $dates['from'],
+            'until' => [...$dates['until'], 'required_if:period,custom'],
             'event' => ['nullable', 'integer', 'min:1'],
             'channel' => ['nullable', 'string', 'max:60'],
             'dataset' => ['nullable', 'string', Rule::in(EventAnalyticsExport::DATASETS)],

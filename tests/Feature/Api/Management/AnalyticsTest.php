@@ -8,6 +8,8 @@ use App\Enums\StatsPeriod;
 use App\Enums\UserRole;
 use App\Enums\VenueRole;
 use App\Filament\Venue\Pages\EventShareAnalytics;
+use App\Http\Controllers\Api\V1\Management\EventAnalyticsController;
+use App\Http\Controllers\Api\V1\Management\EventDatesController;
 use App\Models\Event;
 use App\Models\EventOccurrence;
 use App\Models\EventShareLink;
@@ -19,7 +21,10 @@ use App\Services\Analytics\EventShares;
 use App\Services\Analytics\ManagementAnalytics;
 use Carbon\CarbonImmutable;
 use Filament\Facades\Filament;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Validation\ValidationException;
 use Laravel\Sanctum\Sanctum;
 use Livewire\Livewire;
 use Tests\Support\VenueIsolationScenario;
@@ -121,6 +126,36 @@ it('lascia fuori dalle statistiche dell’organizzazione gli eventi solo co-orga
     $this->getJson($this->organizerUrl.'/events/'.$this->s->publishedEventA->id)->assertOk()->assertJsonPath('data.links.statistics', true);
 });
 
+it('non dà le statistiche per data di un evento solo co-organizzato', function (): void {
+    $this->s->publishedEventB->organizers()->attach($this->organizer);
+    Sanctum::actingAs($this->member);
+    $eventB = $this->organizerUrl.'/events/'.$this->s->publishedEventB->id;
+
+    // Le date le vede e le gestisce, come in «Date e luoghi»; i numeri no.
+    $this->getJson($eventB.'/dates')->assertOk()->assertJsonPath('data.0.id', $this->s->occurrenceB->id)->assertJsonPath('data.0.stats', null);
+    $this->getJson($eventB.'/dates/'.$this->s->occurrenceB->id)->assertOk()->assertJsonPath('data.stats', null);
+    $this->getJson($eventB.'/dates/analytics')->assertNotFound();
+    $this->getJson($eventB.'/dates/'.$this->s->occurrenceB->id.'/analytics')->assertNotFound();
+
+    // Sull'evento di cui è l'organizzatore principale i numeri ci sono.
+    $eventA = $this->organizerUrl.'/events/'.$this->s->publishedEventA->id;
+    $this->getJson($eventA.'/dates')->assertOk()->assertJsonPath('data.0.stats.views', 4);
+    $this->getJson($eventA.'/dates/analytics')->assertOk()->assertJsonPath('data.0.views', 4);
+});
+
+it('manda le date (P2) e le statistiche per data (P5) ciascuna al proprio controller', function (): void {
+    $base = $this->venueUrl.'/events/'.$this->s->publishedEventA->id.'/dates/';
+    $action = fn (string $url): string => Route::getRoutes()->match(Request::create($url, 'GET'))->getActionName();
+
+    expect($action($base.'analytics'))->toBe(EventAnalyticsController::class.'@dates')
+        ->and($action($base.$this->s->occurrenceA->id))->toBe(EventDatesController::class.'@show')
+        ->and($action($base.$this->s->occurrenceA->id.'/analytics'))->toBe(EventAnalyticsController::class.'@occurrence');
+
+    Sanctum::actingAs($this->s->ownerA);
+    $this->getJson($base.'analytics')->assertOk()->assertJsonPath('data.0.id', $this->s->occurrenceA->id)->assertJsonPath('data.0.views', 4);
+    $this->getJson($base.$this->s->occurrenceA->id)->assertOk()->assertJsonPath('data.id', $this->s->occurrenceA->id)->assertJsonPath('data.stats.views', 4);
+});
+
 // --------------------------------------------------------------- «Statistiche»
 
 it('dà gli stessi numeri della pagina «Statistiche» del pannello', function (): void {
@@ -159,6 +194,43 @@ it('rifiuta i periodi che la pagina non ha', function (): void {
     $this->getJson($this->venueUrl.'/analytics/report?period=custom')->assertUnprocessable()->assertJsonStructure(['error' => ['fields' => ['until']]]);
     $this->getJson($this->venueUrl.'/analytics/report?period=custom&from=2026-09-10&until=2026-09-01')->assertUnprocessable();
     $this->getJson($this->venueUrl.'/analytics/report/table?dataset=utenti')->assertUnprocessable();
+});
+
+it('mette un tetto alle date a mano: «Al» non oltre oggi e al massimo 731 giorni', function (): void {
+    Sanctum::actingAs($this->s->ownerA);
+    // Prima del tetto questa domanda costruiva una serie di circa 120.000 mesi.
+    $this->getJson($this->venueUrl.'/analytics/report?period=custom&from=0001-01-01&until=9999-12-31')
+        ->assertUnprocessable()->assertJsonStructure(['error' => ['fields' => ['until']]]);
+    $this->getJson($this->venueUrl.'/analytics/report?period=custom&until=2026-09-11')->assertUnprocessable()->assertJsonStructure(['error' => ['fields' => ['until']]]);
+    $this->getJson($this->venueUrl.'/analytics/report?period=custom&from=2024-09-09&until=2026-09-10')->assertUnprocessable()->assertJsonStructure(['error' => ['fields' => ['until']]]);
+    $this->getJson($this->venueUrl.'/analytics/report/table?period=custom&from=0001-01-01&until=2026-09-10')->assertUnprocessable();
+    $this->getJson($this->venueUrl.'/analytics/report/export?period=custom&from=0001-01-01&until=2026-09-10')->assertUnprocessable();
+    $this->getJson($this->venueUrl.'/analytics/subjects/venue/'.$this->s->venueA->id.'?until=9999-12-31')->assertUnprocessable();
+
+    // 731 giorni esatti passano, e la serie resta di 25 mesi.
+    $series = $this->getJson($this->venueUrl.'/analytics/report?period=custom&from=2024-09-10&until=2026-09-10')->assertOk()->json('data.series');
+    expect($series['granularity'])->toBe('month')->and($series['points'])->toHaveCount(25);
+    // «Tutto lo storico» resta senza giorno iniziale.
+    $this->getJson($this->venueUrl.'/analytics/report?period=all')->assertOk()->assertJsonPath('data.from', null);
+
+    // Lo stesso tetto vale nel servizio che usano anche i pannelli e le esportazioni.
+    $this->actingAs($this->s->ownerA, 'web');
+    Filament::setCurrentPanel('venue');
+    Filament::setTenant($this->s->venueA);
+    expect(fn () => app(EventAnalyticsDashboard::class)->report(['from' => '0001-01-01', 'until' => '9999-12-31']))->toThrow(ValidationException::class);
+});
+
+it('tiene «Dal» e «Al» del pannello dentro gli stessi limiti, anche quando arrivano dall’indirizzo', function (): void {
+    $this->actingAs($this->s->ownerA, 'web');
+    Filament::setCurrentPanel('venue');
+    Filament::setTenant($this->s->venueA);
+
+    $page = Livewire::withQueryParams(['filters' => ['from' => '0001-01-01', 'until' => '9999-12-31']])->test(EventShareAnalytics::class)
+        ->assertSet('period', 'custom')->assertSet('filters.until', '2026-09-10')->assertSet('filters.from', '2024-09-10');
+    expect($page->instance()->dashboard['series']['points'])->toHaveCount(25);
+
+    $page->set('filters.until', '2030-01-01')->assertSet('filters.until', '2026-09-10')
+        ->set('filters.from', '2020-01-01')->assertSet('filters.from', '2024-09-10');
 });
 
 // --------------------------------------------------- «Statistiche in dettaglio»

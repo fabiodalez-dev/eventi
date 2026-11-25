@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Services\Analytics;
 
 use App\Enums\StatsPeriod;
+use App\Rules\AnalyticsRange;
+use App\Services\Sponsorship\SponsorshipAnalyticsReport;
 use Carbon\CarbonImmutable;
 
 /**
@@ -22,6 +24,12 @@ final class AnalyticsWindow
     public const PERIODS = ['week', 'month', 'quarter', 'year', 'all'];
 
     public const DEFAULT = 'month';
+
+    /**
+     * Quanti giorni al massimo copre un periodo scelto a mano: la stessa
+     * regola delle statistiche delle sponsorizzazioni, due anni più un giorno.
+     */
+    public const MAX_DAYS = SponsorshipAnalyticsReport::MAX_DAYS;
 
     /**
      * @return array{period: string, from: ?string, until: string}
@@ -47,5 +55,55 @@ final class AnalyticsWindow
     public static function options(): array
     {
         return [...StatsPeriod::options(), 'year' => __('analytics-dashboard.year'), 'all' => __('analytics-dashboard.all_history')];
+    }
+
+    /**
+     * Le regole delle due date scelte a mano, le stesse per il pannello e per
+     * l'API: formato `Y-m-d`, «Al» non oltre oggi nel fuso di chi guarda,
+     * al massimo `MAX_DAYS` giorni fra «Dal» e «Al» (`AnalyticsRange`).
+     *
+     * @return array{from: list<mixed>, until: list<mixed>}
+     */
+    public static function rules(string $timezone): array
+    {
+        return [
+            'from' => ['nullable', 'date_format:Y-m-d'],
+            'until' => ['nullable', 'date_format:Y-m-d', new AnalyticsRange(CarbonImmutable::now($timezone)->toDateString())],
+        ];
+    }
+
+    /**
+     * Le due date riportate dentro i limiti, per i campi del pannello: «Al»
+     * oltre oggi torna a oggi, «Dal» troppo indietro avanza fino a
+     * `MAX_DAYS` giorni prima di «Al». Una data illeggibile resta com'è: la
+     * scarta poi la validazione di `EventAnalyticsDashboard::report`.
+     *
+     * @return array{from: ?string, until: ?string}
+     */
+    public static function clamp(?string $from, ?string $until, string $timezone): array
+    {
+        $today = CarbonImmutable::now($timezone)->startOfDay();
+        $end = self::date($until);
+        if ($end !== null && $end->greaterThan($today)) {
+            $end = $today;
+            $until = $today->toDateString();
+        }
+        $start = self::date($from);
+        if ($end !== null && $start !== null && $start->lessThanOrEqualTo($end) && $start->diffInDays($end) >= self::MAX_DAYS) {
+            $from = $end->subDays(self::MAX_DAYS - 1)->toDateString();
+        }
+
+        return ['from' => $from, 'until' => $until];
+    }
+
+    /** Una data `Y-m-d` valida, oppure null. */
+    public static function date(mixed $value): ?CarbonImmutable
+    {
+        if (! is_string($value) || preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) !== 1) {
+            return null;
+        }
+        $date = CarbonImmutable::createFromFormat('!Y-m-d', $value);
+
+        return $date instanceof CarbonImmutable && $date->format('Y-m-d') === $value ? $date : null;
     }
 }
