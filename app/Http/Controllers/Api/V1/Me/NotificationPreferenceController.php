@@ -11,6 +11,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\Me\UpdateNotificationPreferencesRequest;
 use App\Services\Notifications\ChannelSelector;
 use App\Support\Api\ApiResponse;
+use App\Support\Notifications\VenueReportPreference;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -85,6 +86,8 @@ final class NotificationPreferenceController extends Controller
             'quiet_hours' => $user->quiet_hours,
             'quiet_hours_effective' => QuietHours::fromUser($user)?->toArray(),
             'marketing_opt_in' => $user->marketing_opt_in_at !== null,
+            /* L'interruttore `venue_report` si mostra a chi gestisce un locale, come nella pagina del sito. */
+            'venue_report_available' => VenueReportPreference::available($user),
         ];
     }
 }

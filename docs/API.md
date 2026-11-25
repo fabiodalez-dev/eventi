@@ -683,3 +683,20 @@ Una riga d'ordine: `{id, placement{value,label}, months, months_label, mode, eve
 Limiti: le letture hanno il secchio `management-sponsorships` (60 al minuto), le scritture `management-sponsorship-writes` (20–30 al minuto), le statistiche `management-sponsorship-analytics` (30 al minuto); il tetto vero degli invii resta quello del pannello, condiviso.
 
 La vecchia `GET /v1/management/campaigns` resta per le app già installate; con l'area di gestione accesa l'app legge le campagne da qui.
+
+## Gestione: notifiche e chiusura del giro (P12, 25 novembre 2026)
+
+Gli avvisi a chi gestisce (`NotificationType::isForVenueStaff`: `event_published`, `event_rejected`, `event_new_comment`, `venue_inactive`) portano ora, accanto all'`url` pensato per l'email, la schermata della gestione da aprire nell'app. L'email non cambia.
+
+### Campi nuovi
+
+- Archivio (`GET /v1/me/notifications`, `data` della riga): `management{subject_type (venue|organizer), subject_id, area (event|comments|home), id}`. `event` è la scheda dell'evento (`id` dell'evento), `comments` i commenti di quell'evento da moderare, `home` la pagina del locale (`id` nullo). Il soggetto è quello da cui la persona vede il contenuto nei pannelli, con la stessa barriera `User::canAccessTenant` e le regole di `ManagedContent`: prima il locale dell'evento se ne è membro attivo, poi l'organizzazione principale, poi una co-organizzatrice (per i commenti solo la principale). Il campo si scrive all'invio e manca se la persona non gestisce quel soggetto: allora vale l'`url`. Le righe scritte prima non lo hanno. Lo calcola `App\Services\Management\ManagementNoticeTarget`.
+- Push FCM degli stessi tipi: gli stessi dati piatti, perché FCM vuole stringhe: `management_subject_type`, `management_subject_id`, `management_area`, `management_id` (vuoto per `home`).
+- `GET /v1/me/notification-preferences`: `venue_report_available`, vero per chi ha accettato l'accesso ad almeno un locale; è la stessa regola della pagina delle preferenze del sito (`App\Support\Notifications\VenueReportPreference`), e dice all'app quando mostrare l'interruttore `venue_report`. Gli avvisi a chi gestisce non hanno interruttore, il rapporto mensile sì.
+
+### Rotte (sotto `V` e `O`, porta `ResolveManagementSubject`)
+
+| Rotta | Permesso | Cosa fa |
+|---|---|---|
+| `GET S/notifications?cursor=&limit=` | membro del soggetto | gli avvisi a chi gestisce con `management` di questo soggetto, dal più recente, con la forma di `GET /me/notifications` (`id`, `type`, `data`, `read`, `read_at`, `created_at`) e `meta{next_cursor, has_more, unread_count}`. Si segnano come letti con `PATCH /me/notifications/{id}/read` |
+| `GET S/events/by-slug/{slug}` | `EventPolicy::view` | `data{id, slug, title}` di un evento del soggetto (`ManagedContent::events()`): gli indirizzi del pannello portano lo slug, l'app apre la scheda per id. 404 per un evento di altri |
