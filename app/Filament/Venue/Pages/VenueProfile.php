@@ -21,6 +21,7 @@ use App\Filament\Support\VenueClosuresField;
 use App\Filament\Support\VenueGeographyFields;
 use App\Filament\Venue\Support\CurrentVenue;
 use App\Models\Venue;
+use App\Services\Management\ManagementOptions;
 use App\Support\VenueClosures;
 use BackedEnum;
 use Carbon\CarbonImmutable;
@@ -197,7 +198,7 @@ class VenueProfile extends Page implements HasSchemas
                             ->collection('gallery')
                             ->helperText(__('manage.fields.gallery_help'))
                             ->multiple()
-                            ->maxFiles(30)
+                            ->maxFiles(ManagementOptions::GALLERY_MAX)
                             ->reorderable(),
 
                         /* La copertina prende una riga sua: messa in mezzo

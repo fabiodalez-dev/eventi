@@ -157,8 +157,60 @@ internal class ApiClient(
         }
     }
 
+    /**
+     * Un caricamento multipart: un file nel campo `fieldName` più i campi di
+     * testo di `extra`, con le stesse intestazioni e la stessa lettura degli
+     * errori di `execute`. Risponde con il JSON del server, o con un oggetto
+     * vuoto se il server non manda corpo. Lo usano il profilo della community
+     * (`avatar`) e le immagini della gestione (`image`).
+     */
+    suspend fun upload(
+        path: String,
+        token: String,
+        fieldName: String,
+        bytes: ByteArray,
+        mime: String,
+        fileName: String = uploadFileName(fieldName, mime),
+        extra: List<Pair<String, String>> = emptyList(),
+    ): kotlinx.serialization.json.JsonObject = withContext(Dispatchers.IO) {
+        val payload = call(uploadRequest(path, token, fieldName, bytes, mime, fileName, extra))
+        if (payload.isBlank()) return@withContext kotlinx.serialization.json.JsonObject(emptyMap())
+        try {
+            json.decodeFromString<kotlinx.serialization.json.JsonObject>(payload)
+        } catch (error: SerializationException) {
+            throw ApiPayloadException(error)
+        }
+    }
+
+    internal fun uploadRequest(
+        path: String,
+        token: String,
+        fieldName: String,
+        bytes: ByteArray,
+        mime: String,
+        fileName: String,
+        extra: List<Pair<String, String>>,
+    ): Request {
+        val multipart = okhttp3.MultipartBody.Builder().setType(okhttp3.MultipartBody.FORM)
+        extra.forEach { (key, value) -> multipart.addFormDataPart(key, value) }
+        multipart.addFormDataPart(fieldName, fileName, bytes.toRequestBody(mime.toMediaType()))
+        return Request.Builder()
+            .url(BuildConfig.API_BASE_URL + path.removePrefix("/"))
+            .header("Accept", "application/json")
+            .header("Accept-Language", "it")
+            .header("X-Installation-ID", installationId)
+            .header("User-Agent", "inCitta-Android/${BuildConfig.VERSION_NAME}")
+            .header("Authorization", "Bearer $token")
+            .post(multipart.build())
+            .build()
+    }
+
     companion object {
         @PublishedApi internal val JSON_MEDIA = "application/json; charset=utf-8".toMediaType()
+
+        /** Il nome del file nel multipart: conta solo l'estensione, che il server confronta col tipo vero. */
+        internal fun uploadFileName(fieldName: String, mime: String): String =
+            fieldName + "." + when (mime) { "image/png" -> "png"; "image/webp" -> "webp"; else -> "jpg" }
     }
 }
 

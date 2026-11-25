@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- La gestione di locali e organizzazioni nell'app: testi comuni a tutte le aree. -->
+<resources>
+    <string name="management_title">Gestione eventi</string>
+    <string name="management_subtitle">Ingressi, staff, informazioni e campagne</string>
+    <string name="management_back">Indietro</string>
+    <string name="management_retry">Riprova</string>
+    <string name="management_loading">Caricamento in corso</string>
+    <string name="management_empty_default">Qui non c’è ancora niente da mostrare.</string>
+    <string name="management_confirm">Conferma</string>
+    <string name="management_subject_switch">Cambia locale o organizzazione</string>
+    <string name="management_subject_current">%1$s · cambia</string>
+    <string name="management_kind_venue">Locale</string>
+    <string name="management_kind_organizer">Organizzazione</string>
+    <string name="management_role_venue_owner">Referente del locale</string>
+    <string name="management_role_venue_editor">Collaboratore del locale</string>
+    <string name="management_role_organizer_owner">Titolare dell’organizzazione</string>
+    <string name="management_role_organizer_member">Membro dell’organizzazione</string>
+    <string name="management_form_fix">Controlla i campi segnati in rosso.</string>
+    <string name="management_datetime_date">Data</string>
+    <string name="management_datetime_time">Ora</string>
+    <string name="management_datetime_pick_date">Scegli la data</string>
+    <string name="management_datetime_pick_time">Scegli l’ora</string>
+    <string name="management_datetime_none">Non indicata</string>
+    <string name="management_datetime_zone">Ora di %1$s</string>
+    <string name="management_datetime_done">Fatto</string>
+    <string name="management_datetime_clear">Togli la data</string>
+    <string name="management_image_pick">Scegli un’immagine</string>
+    <string name="management_image_unreadable">Non riesco a leggere questa immagine. Scegline un’altra.</string>
+    <string name="management_image_not_image">Il file scelto non è un’immagine che posso caricare: usa una foto JPEG, PNG o WebP.</string>
+    <string name="management_image_too_large">L’immagine è troppo pesante. Scegline una più leggera.</string>
+    <string name="management_image_too_many_pixels">L’immagine è troppo grande (oltre 50 milioni di pixel). Scegline una più piccola.</string>
+</resources>

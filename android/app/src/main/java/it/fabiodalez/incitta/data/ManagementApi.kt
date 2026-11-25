@@ -45,25 +45,42 @@ internal data class ManagedDate(
 /** Prenotazione registrata dal banco: `names` è una stringa con un nome per riga, come nel modulo web. */
 @Serializable internal data class GuestBookingBody(val names: String, val email: String? = null, val phone: String? = null, val note: String? = null)
 
-internal class ManagementApi(private val api: ApiClient, private val token: String) {
-    suspend fun dates(past: Boolean, page: Int): ApiEnvelope<List<ManagedDate>> =
+/**
+ * Le chiamate della biglietteria di una data. È un'interfaccia perché i
+ * ViewModel della gestione si provano con un finto, senza rete.
+ */
+internal interface TicketingApi {
+    suspend fun dates(past: Boolean, page: Int): ApiEnvelope<List<ManagedDate>>
+    suspend fun date(id: Long): ManagedDate
+    suspend fun staff(id: Long, email: String, remove: Boolean)
+    suspend fun details(id: Long, body: JsonObject)
+    suspend fun campaigns(page: Int): ApiEnvelope<List<ManagedCampaign>>
+    suspend fun campaign(id: Long): ManagedCampaign
+    suspend fun message(id: Long, subject: String, body: String, includeWaitlisted: Boolean): AttendeeMessage
+    suspend fun guestBooking(id: Long, names: String, email: String?, phone: String?, note: String?): Booking
+    suspend fun checkIn(read: PendingCheckin): CheckedInTicket
+    suspend fun manifest(id: Long): ManifestPayload
+}
+
+internal class ManagementApi(private val api: ApiClient, private val token: String) : TicketingApi {
+    override suspend fun dates(past: Boolean, page: Int): ApiEnvelope<List<ManagedDate>> =
         api.get("management/dates?period=${if (past) "past" else "upcoming"}&page=$page", token)
-    suspend fun date(id: Long): ManagedDate = api.get<ApiEnvelope<ManagedDate>>("management/dates/$id", token).data
-    suspend fun staff(id: Long, email: String, remove: Boolean) {
+    override suspend fun date(id: Long): ManagedDate = api.get<ApiEnvelope<ManagedDate>>("management/dates/$id", token).data
+    override suspend fun staff(id: Long, email: String, remove: Boolean) {
         api.post<ApiEnvelope<ApiMessage>, JsonObject>("management/dates/$id/staff", buildJsonObject { put("email", email); put("remove", remove) }, token)
     }
-    suspend fun details(id: Long, body: JsonObject) {
+    override suspend fun details(id: Long, body: JsonObject) {
         api.execute<ApiEnvelope<ApiMessage>>("management/dates/$id/details", "PATCH", body.toString(), token)
     }
-    suspend fun campaigns(page: Int): ApiEnvelope<List<ManagedCampaign>> = api.get("management/campaigns?page=$page", token)
-    suspend fun campaign(id: Long): ManagedCampaign = api.get<ApiEnvelope<ManagedCampaign>>("management/campaigns/$id", token).data
-    suspend fun message(id: Long, subject: String, body: String, includeWaitlisted: Boolean): AttendeeMessage =
+    override suspend fun campaigns(page: Int): ApiEnvelope<List<ManagedCampaign>> = api.get("management/campaigns?page=$page", token)
+    override suspend fun campaign(id: Long): ManagedCampaign = api.get<ApiEnvelope<ManagedCampaign>>("management/campaigns/$id", token).data
+    override suspend fun message(id: Long, subject: String, body: String, includeWaitlisted: Boolean): AttendeeMessage =
         api.post<ApiEnvelope<AttendeeMessage>, AttendeeMessageBody>("ticketing/$id/message", AttendeeMessageBody(subject.trim(), body.trim(), includeWaitlisted), token, idempotent = true).data
-    suspend fun guestBooking(id: Long, names: String, email: String?, phone: String?, note: String?): Booking =
+    override suspend fun guestBooking(id: Long, names: String, email: String?, phone: String?, note: String?): Booking =
         api.post<ApiEnvelope<Booking>, GuestBookingBody>("ticketing/$id/guest-booking", guestBookingBody(names, email, phone, note), token, idempotent = true).data
-    suspend fun checkIn(read: PendingCheckin): CheckedInTicket = api.post<ApiEnvelope<CheckedInTicket>, JsonObject>(
+    override suspend fun checkIn(read: PendingCheckin): CheckedInTicket = api.post<ApiEnvelope<CheckedInTicket>, JsonObject>(
         "ticketing/${read.occurrenceId}/check-in", checkInBody(read), token).data
-    suspend fun manifest(id: Long): ManifestPayload = api.get<ApiEnvelope<ManifestPayload>>("ticketing/$id/manifest", token).data
+    override suspend fun manifest(id: Long): ManifestPayload = api.get<ApiEnvelope<ManifestPayload>>("ticketing/$id/manifest", token).data
 }
 
 /** Il corpo della prenotazione dal banco: righe vuote tolte, campi vuoti non inviati. */

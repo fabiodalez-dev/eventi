@@ -9,6 +9,7 @@ use App\Enums\VenueStatus;
 use App\Models\User;
 use App\Services\Carpool\CarpoolAccess;
 use App\Services\Community\CommunityAccess;
+use App\Services\Management\ManagementSubjects;
 use App\Support\Api\ApiDate;
 
 /**
@@ -38,6 +39,9 @@ final class UserResource
             'email' => (string) $user->email,
             'role_label' => $role->label(),
             'management_links' => self::managementLinks($user),
+            // Quanti locali e organizzazioni gestisce, e in quante date non ancora finite fa il controllo ingressi:
+            // l'app mostra «Gestione eventi» solo se uno dei tre è maggiore di zero. Il dettaglio è in `GET /management/subjects`.
+            'management' => self::management($user),
             'email_verified' => $user->email_verified_at !== null,
             'whatsapp_verified' => $user->isWhatsappVerified(),
             'community_access' => app(CommunityAccess::class)->state($user),
@@ -58,6 +62,14 @@ final class UserResource
         ];
     }
 
+    /** @return array{venues: int, organizers: int, checkin: int} */
+    private static function management(User $user): array
+    {
+        $counts = app(ManagementSubjects::class)->counts($user);
+
+        return ['venues' => (int) $counts['venues'], 'organizers' => (int) $counts['organizers'], 'checkin' => (int) $counts['checkin']];
+    }
+
     /** @return list<array{label: string, url: string, icon: string}> */
     private static function managementLinks(User $user): array
     {
@@ -75,7 +87,8 @@ final class UserResource
         if ($organizer) {
             $links[] = ['label' => 'Gestisci gli eventi', 'url' => url('/organizza'), 'icon' => 'events'];
         }
-        if ($organizer || $user->hasAnyRole([UserRole::Admin, UserRole::SuperAdmin]) || $user->ownedVenues()->exists()) {
+        // Solo i locali senza provvedimento: un referente di un locale sospeso non gestisce più la biglietteria (D52).
+        if ($organizer || $user->hasAnyRole([UserRole::Admin, UserRole::SuperAdmin]) || $user->activeOwnedVenues()->exists()) {
             $links[] = ['label' => 'Gestione biglietti', 'url' => route('ticketing.manage.index'), 'icon' => 'tickets'];
         }
 

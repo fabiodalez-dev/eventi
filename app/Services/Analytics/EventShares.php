@@ -13,8 +13,8 @@ use App\Models\EventShareLink;
 use App\Models\Organizer;
 use App\Models\Venue;
 use App\Queries\EventOccurrenceQuery;
+use App\Support\Management\ManagementSubject;
 use Carbon\CarbonImmutable;
-use Filament\Facades\Filament;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -143,7 +143,7 @@ final class EventShares
      */
     public function channels(): array
     {
-        $tenant = Filament::getTenant();
+        $tenant = ManagementSubject::current()?->model;
         $custom = EventShareLink::query()->where('channel', 'like', self::CUSTOM_PREFIX.'%')
             ->when($tenant instanceof Venue, fn ($query) => $query->where(fn ($owned) => $owned->where('venue_id', $tenant->getKey())
                 ->orWhereIn('event_id', Event::query()->where('venue_id', $tenant->getKey())->select('id'))))

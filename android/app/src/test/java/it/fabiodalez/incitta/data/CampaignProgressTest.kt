@@ -1,8 +1,8 @@
 package it.fabiodalez.incitta.data
 
 import it.fabiodalez.incitta.R
-import it.fabiodalez.incitta.ui.managementCount
-import it.fabiodalez.incitta.ui.pacingStateLabel
+import it.fabiodalez.incitta.ui.management.ticketing.managementCount
+import it.fabiodalez.incitta.ui.management.ticketing.pacingStateLabel
 import kotlinx.serialization.json.Json
 import org.junit.Assert.*
 import org.junit.Test

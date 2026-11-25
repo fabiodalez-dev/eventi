@@ -20,6 +20,7 @@ use App\Models\City;
 use App\Models\Event;
 use App\Models\Organizer;
 use App\Models\Venue;
+use App\Services\Management\ManagedContent;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\EditAction;
@@ -126,8 +127,8 @@ class EventResource extends Resource
             return $query->whereRaw('1 = 0');
         }
 
-        return $query->where(fn (Builder $owned) => $owned->where('organizer_id', $tenant->getKey())
-            ->orWhereHas('organizers', fn (Builder $shared) => $shared->whereKey($tenant->getKey())));
+        // La regola sta in `ManagedContent`, la stessa che usa l'API di gestione.
+        return ManagedContent::for($tenant)->restrictEvents($query);
     }
 
     /**

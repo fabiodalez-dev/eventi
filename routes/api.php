@@ -63,6 +63,7 @@ use App\Http\Middleware\Api\IdempotentRequest;
 use App\Http\Middleware\Api\ResolveApiCity;
 use App\Http\Middleware\PersonalizeDiscovery;
 use App\Http\Middleware\RequireConfirmedAccount;
+use App\Http\Middleware\ResolveManagementSubject;
 use App\Http\Middleware\TicketingPrivacy;
 use Illuminate\Support\Facades\Route;
 
@@ -100,6 +101,37 @@ Route::prefix('v1')->middleware(['auth:sanctum', TicketingPrivacy::class])->grou
     Route::post('/ticketing/{occurrence}/guest-booking', [TicketingController::class, 'guestBooking'])->middleware('throttle:60,1,tickets-guest')->name('api.ticketing.manage.guest');
     Route::post('/me/tickets/{ticket}/wallet', [WalletPassController::class, 'store'])->middleware([RequireConfirmedAccount::class, 'throttle:30,1,tickets-wallet']);
     Route::post('/me/tickets/{ticket}/send', [SharedTicketController::class, 'send'])->middleware([RequireConfirmedAccount::class, 'throttle:10,60,tickets-share']);
+});
+
+/*
+ * L'app di gestione: tutto ciò che un locale o un'organizzazione fa nei
+ * pannelli, sotto `/api/v1/management/venues/{venue}/…` e
+ * `/api/v1/management/organizers/{organizer}/…`.
+ *
+ * Le rotte stanno in `routes/management/<pacchetto>.php`, un file per area,
+ * così i pacchetti in parallelo non toccano lo stesso file. Ogni file è
+ * incluso due volte, una per soggetto, con `$subjectType` a `venue` o
+ * `organizer`. `ResolveManagementSubject` controlla l'accesso al soggetto
+ * (404 se manca) e lo lega alla richiesta; un test di architettura verifica
+ * che nessuna rotta sotto i due prefissi ne resti senza.
+ *
+ * Le rotte di prima (`management/dates…`, `management/campaigns…`) restano
+ * identiche per le app già installate.
+ */
+Route::prefix('v1/management')->middleware(['auth:sanctum', TicketingPrivacy::class])->name('api.v1.management.')->group(function (): void {
+    require __DIR__.'/management/identity.php';
+
+    foreach (['venue' => 'venues', 'organizer' => 'organizers'] as $subjectType => $segment) {
+        Route::prefix($segment.'/{'.$subjectType.'}')
+            ->where([$subjectType => '[0-9]+'])
+            ->middleware(ResolveManagementSubject::class)
+            ->name($segment.'.')
+            ->group(function () use ($subjectType): void {
+                foreach (['media', 'events', 'dates', 'ticketing', 'profile', 'analytics', 'sponsorships', 'community', 'collaborators', 'import', 'social', 'dashboard', 'notifications'] as $package) {
+                    require __DIR__.'/management/'.$package.'.php';
+                }
+            });
+    }
 });
 
 /*

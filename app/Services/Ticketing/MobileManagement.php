@@ -30,12 +30,28 @@ final class MobileManagement
             ->orWhereHas('event', fn ($event) => $event->whereIn('organizer_id', $user->managedOrganizers()->select('organizers.id')))));
     }
 
-    /** @return Builder<Sponsorship> */
+    /**
+     * Le campagne dei locali di cui è referente e delle organizzazioni che
+     * gestisce. Per le organizzazioni vale la regola delle statistiche delle
+     * sponsorizzazioni (`SponsorshipReport::ofSponsor`): eventi che firmano,
+     * campagne pagate con una loro abilitazione o messe dalla redazione. Prima
+     * l'elenco guardava solo i locali, mentre gli organizzatori comprano alla
+     * pari (D70).
+     *
+     * @return Builder<Sponsorship>
+     */
     public function campaigns(User $user): Builder
     {
-        return Sponsorship::withTrashed()->when(! $this->admin($user), fn ($query) => $query
-            ->whereHas('event', fn ($event) => $event->whereIn('venue_id', $user->activeOwnedVenues()->select('venues.id')))
-            ->where(fn ($q) => $q->whereNull('sponsorship_grant_id')->orWhereHas('grant', fn ($g) => $g->whereIn('venue_id', $user->activeOwnedVenues()->select('venues.id')))));
+        $venues = fn () => $user->activeOwnedVenues()->select('venues.id');
+        $organizers = fn () => $user->managedOrganizers()->select('organizers.id');
+
+        return Sponsorship::withTrashed()->when(! $this->admin($user), fn ($query) => $query->where(fn ($sponsor) => $sponsor
+            ->where(fn ($venue) => $venue
+                ->whereHas('event', fn ($event) => $event->whereIn('venue_id', $venues()))
+                ->where(fn ($q) => $q->whereNull('sponsorship_grant_id')->orWhereHas('grant', fn ($g) => $g->whereIn('venue_id', $venues()))))
+            ->orWhere(fn ($organizer) => $organizer
+                ->whereHas('event', fn ($event) => $event->whereIn('organizer_id', $organizers()))
+                ->where(fn ($q) => $q->whereNull('sponsorship_grant_id')->orWhereHas('grant', fn ($g) => $g->whereIn('organizer_id', $organizers()))))));
     }
 
     /**

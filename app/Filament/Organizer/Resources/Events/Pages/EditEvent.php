@@ -6,7 +6,11 @@ use App\Enums\EventStatus;
 use App\Filament\Organizer\Resources\Events\EventResource;
 use App\Filament\Shared\EventAnalyticsNavigation;
 use App\Models\Event;
+use App\Models\Organizer;
+use App\Models\User;
+use App\Services\Events\EventReviewRule;
 use Filament\Actions\Action;
+use Filament\Facades\Filament;
 use Filament\Notifications\Notification;
 use Filament\Pages\Enums\SubNavigationPosition;
 use Filament\Resources\Pages\EditRecord;
@@ -28,8 +32,10 @@ class EditEvent extends EditRecord
 
     protected function mutateFormDataBeforeSave(array $data): array
     {
-        // Editing published content requires renewed editorial approval.
-        if ($this->eventRecord()->status === EventStatus::Published) {
+        // Editing published content requires renewed editorial approval (regola in `EventReviewRule`).
+        $tenant = Filament::getTenant();
+        $user = auth()->user();
+        if ($tenant instanceof Organizer && $user instanceof User && app(EventReviewRule::class)->sendsToReview($this->eventRecord(), $tenant, $user)) {
             $data['status'] = 'pending';
         }
 

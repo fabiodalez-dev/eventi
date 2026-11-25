@@ -14,10 +14,9 @@ use App\Models\SavedEvent;
 use App\Models\Sponsorship;
 use App\Models\SponsorshipClick;
 use App\Models\SponsorshipDailyStat;
-use App\Models\User;
 use App\Models\Venue;
+use App\Support\Management\ManagementSubject;
 use Carbon\CarbonImmutable;
-use Filament\Facades\Filament;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
@@ -25,14 +24,12 @@ final class ManagementAnalytics
 {
     public function subject(): Venue|Organizer
     {
-        $subject = Filament::getTenant();
-        $user = auth()->user();
-        $panel = Filament::getCurrentPanel()?->getId();
-        abort_unless(($panel === 'venue' && $subject instanceof Venue)
-            || ($panel === 'organizer' && $subject instanceof Organizer), 403);
-        abort_unless($user instanceof User && $user->canAccessTenant($subject), 403);
+        /* Il soggetto del pannello o quello legato dall'API: lo stesso
+           controllo in entrambi i casi, la barriera dei pannelli. */
+        $subject = ManagementSubject::current();
+        abort_unless($subject !== null && $subject->user->canAccessTenant($subject->model), 403);
 
-        return $subject;
+        return $subject->model;
     }
 
     /** @return Builder<Event> */

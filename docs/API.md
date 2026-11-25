@@ -273,7 +273,7 @@ Tutte le rotte seguenti richiedono Bearer e restituiscono `Cache-Control: privat
 - `GET /management/dates/{id}`: staff limitato a identità della data e permessi; dettagli, elenco staff e statistiche solo ai gestori.
 - `POST /management/dates/{id}/staff`: `email`, `remove` opzionale; autorizzazione di gestione della singola data.
 - `PATCH /management/dates/{id}/details`: `practical_details` e `cost_breakdown`; oggetti vuoti rimuovono le eccezioni, zero è distinto da assenza. Nessun campo estraneo ammesso.
-- `GET /management/campaigns?page=1` e `GET /management/campaigns/{id}`: campagne autorizzate del locale e rapporti aggregati, con soglie di riservatezza.
+- `GET /management/campaigns?page=1` e `GET /management/campaigns/{id}`: campagne autorizzate dei locali di cui si è referente e, dal 25 novembre 2026, delle organizzazioni gestite (vedi «Gestione: fondamenta dell'app»), con rapporti aggregati e soglie di riservatezza.
 - `POST /ticketing/{id}/check-in`: `code` di 64 caratteri e `request_key` UUID persistente per recuperare una risposta persa. Una lettura in attesa non autorizza l’ingresso.
 
 ## Aggiunte del 23 ottobre 2026 (D60)
@@ -409,4 +409,33 @@ Il calcolo è lo stesso dei pannelli e dei rapporti (`App\Services\Sponsorship\S
 ### App Android 1.23.0 (versionCode 50)
 
 Manda `X-Impression-Token` con visualizzazioni e clic del banner quando il server l'ha dato, conta la visualizzazione solo dopo un secondo con metà banner sullo schermo e l'app in primo piano, ed evita di rimandare la stessa visualizzazione una volta per gettone (con un server senza gettone, una volta per campagna come prima). Nella gestione mostra barra, «1.240 di 3.000 visualizzazioni» e stato del ritmo quando la risposta li porta.
+
+## Gestione: fondamenta dell'app (25 novembre 2026)
+
+Le basi dell'area di gestione nativa: chi gestisce che cosa, gli elenchi dei moduli, il caricamento delle immagini. Le forme delle risposte sono anche in `docs/openapi.json`. Tutte le rotte chiedono il token e rispondono `Cache-Control: private, no-store`.
+
+### Soggetto di gestione
+
+Le rotte di un locale stanno sotto `/v1/management/venues/{venue}/…`, quelle di un'organizzazione sotto `/v1/management/organizers/{organizer}/…`, con l'**id numerico**. Le protegge `ResolveManagementSubject`: chiede `User::canAccessTenant`, la stessa barriera dei pannelli (appartenenza accettata, locale senza provvedimento, organizzazione attiva), e risponde **404** se dice di no, senza rivelare se il soggetto esiste. È ciò che impedisce al membro di un locale sospeso di scrivere dall'app: le policy degli eventi guardano l'appartenenza ma non lo stato del locale. Dentro il soggetto ogni azione passa ancora dalla sua policy (403 se dice di no), e ogni modello annidato si cerca solo fra quelli del soggetto (`App\Services\Management\ManagedContent`): gli eventi del locale per `venue_id`, quelli dell'organizzazione per `organizer_id` o co-organizzazione, come gli elenchi dei pannelli. Un test di architettura verifica che ogni rotta sotto i due prefissi abbia la porta e che i controller di `App\Http\Controllers\Api\V1\Management` non usino Filament. Le rotte stanno in `routes/management/<area>.php`, una per pacchetto.
+
+Gli stessi servizi di statistiche e sponsorizzazioni dei pannelli (`ManagementAnalytics`, `EventAnalyticsDashboard`, `SponsorshipReport`, `EventShares::channels`) leggono il soggetto da `App\Support\Management\ManagementSubject`, che nei pannelli è il tenant di Filament e nell'API quello legato dalla porta: nei pannelli non cambia niente.
+
+### Rotte
+
+- `GET /v1/management/subjects`: `data.venues[]` `{id, slug, name, city{name, timezone}, role (owner|editor), status, logo, ticketing_enabled, auto_publish, permissions}`, `data.organizers[]` `{id, slug, name, city|null, role (owner|member), permissions}`, `data.checkin_only`. Gli insiemi sono quelli dello switcher dei pannelli. `permissions` ha sempre quattordici chiavi booleane, ognuna calcolata dalla policy che il pannello usa per la stessa pagina: `events_create`, `events_publish_directly`, `ticketing_manage`, `profile_update`, `collaborators_manage`, `import_manage`, `analytics_view`, `analytics_channels`, `sponsorships_view`, `sponsorships_purchase`, `social_use`, `comments_moderate`, `reviews_reply`, `leave`.
+- `GET /v1/management/options`: tipi di prezzo, stati della data (insieme del locale e insieme dell'organizzazione), frequenze, ruoli del lineup, accessibilità, mezzi, fasce d'età, tessera, icone e caratteristiche di «Prima di andare», tipi di domanda delle prenotazioni, formati social, collocazioni delle sponsorizzazioni, `limits` (link esterni 8, voci 12, chiusure 20, avvisi ogni 7 giorni, messaggi ai prenotati 3 al giorno, galleria 30, …) e `images` (peso, tipi ed estensioni, misure minime, superficie massima) da `config/media.php`.
+- `POST` e `DELETE /v1/management/{venues|organizers}/{id}/events/{event}/poster`: locandina, campo multipart `image`. Permesso `EventPolicy::update`. Risposta `{poster, status, sent_to_review}`. Una locandina nuova su un evento pubblicato lo rimanda in revisione quando il locale non pubblica da sé, e sempre per un'organizzazione: è la regola delle pagine «Modifica evento» dei pannelli, ora in `App\Services\Events\EventReviewRule` e usata da tutti e tre. Togliere la locandina non rimanda in revisione.
+- Solo locale, permesso `VenuePolicy::update` (referente): `GET /media` (`logo`, `cover`, `gallery[]` con `id`), `POST` e `DELETE /media/{logo|cover}`, `POST /media/gallery` (201), `DELETE /media/gallery/{media}`, `PUT /media/gallery/order` con `ids[]` (tutte e sole le foto).
+
+Le immagini vanno nelle raccolte media dei pannelli: `poster`, `logo` e `cover` tengono un file solo, quindi il caricamento sostituisce e il file vecchio sparisce dal disco; riduzione dell'originale, pulizia EXIF e varianti partono da sole. Validazione come nei pannelli: `App\Rules\RealImage` (tipo letto dai byte, estensione coerente, misure minime, superficie massima) e peso massimo `config('media.max_upload_bytes')` (12 MB). La galleria ha al massimo 30 foto, la trentunesima riceve 422. Le scritture di immagini hanno un limite di 20 al minuto per persona (`management-upload`).
+
+### Campi nuovi
+
+- `GET /v1/me`: `management{venues, organizers, checkin}`, tre conteggi (locali senza provvedimento, organizzazioni attive, date non finite come personale d'ingresso). In `management_links` la voce «Gestione biglietti» non compare più a chi è referente solo di locali sospesi o rifiutati.
+- `GET /v1/config`: `features.management` (`true`), l'interruttore con cui l'app accende l'area nuova.
+
+### Comportamenti fissati
+
+- `PATCH /v1/management/dates/{id}/details` resta una **sostituzione**: `practical_details` e `cost_breakdown` sono obbligatori (anche vuoti) e ogni chiave non mandata torna a «eredita». Lo fissa `MobileManagementTest`.
+- `GET /v1/management/campaigns` e `/{id}` includono le campagne delle organizzazioni gestite, proprietario e membri, con la regola di `SponsorshipReport`: eventi firmati dall'organizzazione, campagne della redazione o pagate con una sua abilitazione. Prima l'elenco guardava solo i locali.
 

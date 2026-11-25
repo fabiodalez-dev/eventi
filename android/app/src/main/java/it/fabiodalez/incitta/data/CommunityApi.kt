@@ -4,8 +4,6 @@ import kotlinx.serialization.json.*
 import coil3.network.httpHeaders
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.RequestBody.Companion.toRequestBody
 
 /** Community requests share the ordinary bearer session; no provider keys enter the app. */
 internal class CommunityApi(private val api: ApiClient, private val token: String?) {
@@ -25,31 +23,9 @@ internal class CommunityApi(private val api: ApiClient, private val token: Strin
                 catch (_: java.io.IOException) { null } catch (_: SecurityException) { null }
                 ?: throw CommunityInputException(photoError)
             if (bytes.size > 2 * 1024 * 1024) throw CommunityInputException(photoError)
-            val multipart = okhttp3.MultipartBody.Builder().setType(okhttp3.MultipartBody.FORM)
-            body.forEach { (key, value) ->
-                if (value is JsonArray) {
-                    if (value.isEmpty()) multipart.addFormDataPart("$key[]", "")
-                    else value.forEach { multipart.addFormDataPart("$key[]", (it as JsonPrimitive).content) }
-                } else if (value == JsonNull) {
-                    multipart.addFormDataPart(key, "")
-                } else {
-                    val primitive = value as JsonPrimitive
-                    multipart.addFormDataPart(key, primitive.booleanOrNull?.let { if (it) "1" else "0" } ?: primitive.content)
-                }
-            }
             val mime = context.contentResolver.getType(avatar) ?: "application/octet-stream"
-            multipart.addFormDataPart("avatar", "profile." + when (mime) { "image/png" -> "png"; "image/webp" -> "webp"; else -> "jpg" }, bytes.toRequestBody(mime.toMediaType()))
-            val request = okhttp3.Request.Builder().url(it.fabiodalez.incitta.BuildConfig.API_BASE_URL + "community/profile")
-                .header("Accept", "application/json").header("Authorization", "Bearer ${requireNotNull(token)}")
-                .header("X-Installation-ID", api.installationId).post(multipart.build()).build()
-            val response = try { api.client.newCall(request).execute() }
-                catch (error: java.io.IOException) { throw java.io.IOException("Connessione non disponibile. Riprova tra poco.", error) }
-            response.use {
-                val payload = it.body.string()
-                if (!it.isSuccessful) throw ApiException(it.code, runCatching { json.decodeFromString<ApiErrorEnvelope>(payload).error }.getOrNull())
-                try { json.decodeFromString<JsonObject>(payload) }
-                catch (error: kotlinx.serialization.SerializationException) { throw ApiPayloadException(error) }
-            }
+            api.upload("community/profile", requireNotNull(token), "avatar", bytes, mime,
+                fileName = ApiClient.uploadFileName("profile", mime), extra = multipartFields(body))
         }
     }
     suspend fun get(path: String): JsonObject = api.get("community/$path", token)
@@ -61,9 +37,34 @@ internal class CommunityApi(private val api: ApiClient, private val token: Strin
     suspend fun resendEmail(): JsonObject = api.post("auth/verification/resend", buildJsonObject {}, requireNotNull(token))
 }
 
+/**
+ * I campi di testo di un modulo multipart: le liste diventano `chiave[]`
+ * (una lista vuota manda un solo `chiave[]` vuoto, così il server la svuota),
+ * `null` diventa stringa vuota, i booleani `1`/`0`.
+ */
+internal fun multipartFields(body: JsonObject): List<Pair<String, String>> = buildList {
+    body.forEach { (key, value) ->
+        if (value is JsonArray) {
+            if (value.isEmpty()) add("$key[]" to "")
+            else value.forEach { add("$key[]" to (it as JsonPrimitive).content) }
+        } else if (value == JsonNull) {
+            add(key to "")
+        } else {
+            val primitive = value as JsonPrimitive
+            add(key to (primitive.booleanOrNull?.let { if (it) "1" else "0" } ?: primitive.content))
+        }
+    }
+}
+
 /** Read at most the upload limit plus one sentinel byte, including on Android 8. */
-internal fun java.io.InputStream.readAvatarBytes(): ByteArray {
-    val bytes = ByteArray(2 * 1024 * 1024 + 1)
+internal fun java.io.InputStream.readAvatarBytes(): ByteArray = readAtMost(2 * 1024 * 1024)
+
+/**
+ * Legge al massimo `limit` byte più uno di sentinella: chi chiama capisce che
+ * il file è troppo grande senza che un fornitore infinito riempia la memoria.
+ */
+internal fun java.io.InputStream.readAtMost(limit: Int): ByteArray {
+    val bytes = ByteArray(limit + 1)
     var offset = 0
     while (offset < bytes.size) {
         val count = read(bytes, offset, bytes.size - offset)

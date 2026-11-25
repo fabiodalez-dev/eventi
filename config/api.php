@@ -166,6 +166,13 @@ return [
         'push' => env('API_PUSH_ENABLED', false),
         'offline_sync' => true,
         'sponsorships' => true,
+        /*
+         * L'area di gestione nuova dell'app (`/api/v1/management/subjects`,
+         * `options` e le rotte sotto `venues/{venue}` e `organizers/{organizer}`):
+         * l'app la accende quando legge `true` da `GET /config`, altrimenti
+         * resta la gestione di prima (solo biglietteria).
+         */
+        'management' => true,
     ],
 
     /*

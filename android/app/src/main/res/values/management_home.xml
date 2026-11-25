@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- La pagina del locale o dell'organizzazione e il menu delle aree. -->
+<resources>
+    <string name="management_home_areas">Cosa puoi fare dall’app</string>
+    <string name="management_home_more_web">Le altre funzioni della gestione (eventi, profilo, statistiche e il resto) arrivano nell’app con i prossimi aggiornamenti. Nel frattempo le trovi nel pannello web.</string>
+    <string name="management_home_open_web">Apri il pannello web</string>
+    <string name="management_home_no_areas">Con il tuo ruolo, per ora, qui non ci sono funzioni da usare nell’app.</string>
+    <string name="management_home_error">Non sono riuscito a caricare i tuoi locali e le tue organizzazioni.</string>
+    <string name="management_area_events">Eventi</string>
+    <string name="management_area_events_help">Crea, modifica e pubblica gli eventi</string>
+    <string name="management_area_dates">Date e ricorrenze</string>
+    <string name="management_area_dates_help">Orari, stati e date ripetute</string>
+    <string name="management_area_ticketing">Biglietteria</string>
+    <string name="management_area_ticketing_help">Date con prenotazioni, controllo ingressi, staff e campagne</string>
+    <string name="management_area_profile">Profilo</string>
+    <string name="management_area_profile_help">Scheda pubblica, contatti, orari e foto</string>
+    <string name="management_area_analytics">Statistiche</string>
+    <string name="management_area_analytics_help">Visite, clic e condivisioni</string>
+    <string name="management_area_sponsorships">Sponsorizzazioni</string>
+    <string name="management_area_sponsorships_help">Campagne in evidenza e rapporti</string>
+    <string name="management_area_feedback">Commenti e recensioni</string>
+    <string name="management_area_feedback_help">Modera i commenti e rispondi alle recensioni</string>
+    <string name="management_area_collaborators">Collaboratori</string>
+    <string name="management_area_collaborators_help">Chi può gestire con te</string>
+    <string name="management_area_import">Import del calendario</string>
+    <string name="management_area_import_help">Porta gli eventi da un altro calendario</string>
+    <string name="management_area_social">Grafiche social</string>
+    <string name="management_area_social_help">Immagini pronte per i tuoi canali</string>
+    <string name="management_area_overview">Riepilogo</string>
+    <string name="management_area_overview_help">Oggi, prossimi eventi e ultime visite</string>
+    <string name="management_area_notifications">Notifiche</string>
+    <string name="management_area_notifications_help">Gli avvisi per chi gestisce</string>
+    <string name="management_area_registration">Registra o rivendica</string>
+    <string name="management_area_registration_help">Un locale o un’organizzazione nuova</string>
+</resources>

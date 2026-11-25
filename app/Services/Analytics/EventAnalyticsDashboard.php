@@ -13,6 +13,7 @@ use App\Models\Event;
 use App\Models\Organizer;
 use App\Models\Sponsorship;
 use App\Models\Venue;
+use App\Support\Management\ManagementSubject;
 use Carbon\CarbonImmutable;
 use Filament\Facades\Filament;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
@@ -44,7 +45,7 @@ final class EventAnalyticsDashboard
         if (Filament::getCurrentPanel()?->getId() === 'admin') {
             return Venue::query();
         }
-        $tenant = Filament::getTenant();
+        $tenant = ManagementSubject::current()?->model;
 
         return $tenant instanceof Venue ? Venue::whereKey($tenant->id)
             : Venue::whereIn('id', $events->select('venue_id'));
@@ -57,7 +58,7 @@ final class EventAnalyticsDashboard
         if (Filament::getCurrentPanel()?->getId() === 'admin') {
             return Organizer::query();
         }
-        $tenant = Filament::getTenant();
+        $tenant = ManagementSubject::current()?->model;
 
         return $tenant instanceof Organizer ? Organizer::whereKey($tenant->id)
             : Organizer::whereIn('id', $events->select('organizer_id'));
@@ -93,8 +94,7 @@ final class EventAnalyticsDashboard
         $sum = implode(', ', array_map(fn ($column) => 'SUM(d.'.$column.') as '.$column, $metrics));
         $content = $this->window(DB::table('event_views_daily as d')->join('events as e', 'e.id', '=', 'd.event_id')
             ->whereIn('e.id', clone $ids), 'd.date', $filters);
-        $tenant = Filament::getTenant();
-        $venueId = Filament::getCurrentPanel()?->getId() === 'venue' && $tenant instanceof Venue ? $tenant->getKey() : null;
+        $venueId = ManagementSubject::current()?->venue()?->getKey();
         /* `leftJoin` e non `join`: i link della scheda del locale e i canali
            personalizzati che puntano al locale non hanno un evento sotto, e un
            join interno li scartava sempre. Il risultato si vedeva nella stessa
@@ -282,7 +282,7 @@ final class EventAnalyticsDashboard
             ->selectRaw('e.id, COUNT(*) as reviews, SUM(a.status = ?) as approved_reviews, AVG(CASE WHEN a.status = ? THEN r.value END) as rating', [CatalogReviewStatus::Approved->value, CatalogReviewStatus::Approved->value])
             ->groupBy('e.id')->get()->keyBy('id');
         // A venue manager must not receive an organizer's profile totals across other venues.
-        $ownProfile = Filament::getCurrentPanel()?->getId() === 'admin' || ($type === 'venue' && Filament::getTenant() instanceof Venue) || ($type === 'organizer' && Filament::getTenant() instanceof Organizer);
+        $ownProfile = Filament::getCurrentPanel()?->getId() === 'admin' || ($type === 'venue' && ManagementSubject::current()?->isVenue() === true) || ($type === 'organizer' && ManagementSubject::current()?->isOrganizer() === true);
 
         return $profiles->with('city')->orderBy('name')->get()->map(function ($profile) use ($type, $events, $metrics, $daily, $currentFollowers, $newFollowers, $reviews, $ownProfile): array {
             $matching = $events->where($type.'_id', $profile->id);

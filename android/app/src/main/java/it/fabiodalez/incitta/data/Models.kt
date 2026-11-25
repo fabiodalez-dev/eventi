@@ -270,6 +270,11 @@ data class User(
     @SerialName("card_layout") val cardLayout: String? = null,
     val timezone: String = "Europe/Rome",
     @SerialName("management_links") val managementLinks: List<ManagementLink> = emptyList(),
+    /* `management{venues, organizers, checkin}`: quanti locali, organizzazioni e
+       date da controllare all'ingresso. Resta un elemento JSON grezzo perché
+       un server vecchio non lo manda e uno nuovo potrebbe mandare `[]` o dei
+       booleani: lo legge `managementCounts()`, senza mai far fallire il profilo. */
+    val management: kotlinx.serialization.json.JsonElement? = null,
 )
 
 @Serializable

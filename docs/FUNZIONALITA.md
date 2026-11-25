@@ -1,6 +1,6 @@
 # inCittà — Funzionalità della piattaforma
 
-*Panoramica per ruoli e opportunità commerciali. Aggiornata al 20 novembre 2026.*
+*Panoramica per ruoli e opportunità commerciali. Aggiornata al 25 novembre 2026.*
 
 <!--
 COME SI AGGIORNA QUESTO FILE
@@ -145,7 +145,7 @@ Promuove la propria attività, mantiene aggiornato il programma e misura l’int
 - **Gestione delle assenze** — Segna chi non si presenta; dopo tre assenze le prenotazioni gratuite si bloccano, con un conteggio che non permette a un solo locale di chiuderle ovunque. *Sito e app.*
 - **Controllo ingressi senza rete** — Lo scanner riconosce i QR anche offline e invia le letture appena torna la connessione. *Sito e app.*
 - **Personale di ingresso per singola data** — Assegna lo staff a una data con uno scanner limitato a quella sola data; si entra solo accettando l'invito. *Sito e app.*
-- **Gestione eventi nell'app** — Staff, scanner, informazioni pratiche, costi e rapporti economici senza aprire il pannello web. *Android.*
+- **Gestione eventi nell'app** — Staff, scanner, informazioni pratiche, costi e rapporti economici senza aprire il pannello web; la voce compare solo a chi gestisce un locale, un'organizzazione o gli ingressi di una data, e chi gestisce più locali o organizzazioni sceglie su quale lavorare. *Android.*
 - **Avviso «stessa sera in zona»** — Mentre sceglie l'orario, vede fino a sei eventi di altri entro 2 km alla stessa ora. *Solo web.*
 - **Chiusure straordinarie e ferie** — Giorni di chiusura che prevalgono sugli orari settimanali, con «Chiuso fino al…» sul sito e un avviso a chi crea date in quei giorni. *Sito e app.*
 - **Avvisi a chi segue il locale** — Pausa, chiusura o riapertura sulla scheda e come notifica ai follower, al massimo una volta a settimana. *Sito e app.*
@@ -319,6 +319,7 @@ Il valore della piattaforma deriva dall’incontro fra offerta locale, pubblico 
 - **Altri campi della pagina del locale** — Fascia di prezzo, lingue parlate, animali ammessi, prenotazione consigliata.
 - **Personale di ingresso per locale** — Oggi si assegna data per data.
 - **Chat e gruppi persistenti, pubblicità a click, aggiornamenti in tempo reale** — Rinviati.
+- **Tutto il pannello del locale e dell'organizzatore nell'app Android** — Eventi, date, biglietteria completa, profilo, statistiche, sponsorizzazioni, collaboratori, import del calendario, grafiche social, commenti e recensioni: in costruzione a pacchetti; dal 25 novembre ci sono le fondamenta (accesso per locale e organizzazione, caricamento delle immagini, navigazione della gestione).
 
 ## Registro degli aggiornamenti
 
@@ -337,3 +338,4 @@ Il valore della piattaforma deriva dall’incontro fra offerta locale, pubblico 
 - **19 novembre 2026** — Pagine di servizio ridisegnate con lo stesso impianto, accesso unico, calendario e prossimo evento in home, tre viste degli elenchi da telefono, registrazione e rivendicazione del locale con account, pannello del locale semplificato, sponsorizzazione richiesta senza pagamento online, iscrizioni in evidenza nell'admin, commenti in stile social, «Stasera» passo per passo, prenotazione senza ripetere i dati.
 - **18 novembre 2026** — Aggiunte le funzioni entrate dal 15 settembre: community verificata, «ci vado», commenti, sondaggi, passaggi in auto, analytics completi, link e QR tracciati, acquisto delle sponsorizzazioni, strumenti per le date (domande, messaggi, assenze, lista stampabile, personale su invito, ingressi senza rete), chiusure e avvisi dei locali, co-organizzatori, e una sezione per il pianificato.
 - **15 settembre 2026** — Prima versione.
+- **25 novembre 2026** — Fondamenta della gestione completa nell'app Android: l'app sa quali locali e organizzazioni gestisci e con quali permessi, sceglie il soggetto su cui lavorare e mostra «Gestione eventi» solo a chi gestisce qualcosa; la biglietteria nell'app non perde più la schermata ruotando il telefono e ritenta le letture rimaste anche a schermata chiusa. Nuove API di gestione per locale e organizzazione (soggetti, elenchi e limiti, locandina, logo, copertina e galleria del locale) che rispettano le stesse regole dei pannelli: il membro di un locale sospeso non può scrivere nemmeno dall'app. Le campagne sponsorizzate degli organizzatori compaiono anche nell'app. *Sito e app.*
