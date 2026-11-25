@@ -214,6 +214,9 @@ final class OrganizerEventEditor
         if ($errors !== []) {
             throw ValidationException::withMessages($errors);
         }
+    }
+
+    /**
      * Il ritorno in revisione di «Date e luoghi»: una data nuova, o portata in
      * un altro locale, su un evento già online torna dalla redazione come la
      * scheda; altrimenti la data comparirebbe nel programma di un locale che

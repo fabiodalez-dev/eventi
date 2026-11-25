@@ -41,6 +41,7 @@ internal sealed interface ManagementDestination {
      * un ospite resta sul sito, o accede prima.
      */
     data class Registration(val form: RegistrationForm, val slug: String? = null) : ManagementDestination
+    /**
      * `/app/sponsorizzazioni/ritorno?…` (P6): Stripe riporta qui chi ha
      * pagato (o chiuso il pagamento) dall'app. È l'unico indirizzo di questo
      * elenco dichiarato App Link: si apre la pagina delle sponsorizzazioni

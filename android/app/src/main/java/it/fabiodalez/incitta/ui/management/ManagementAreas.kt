@@ -25,8 +25,6 @@ internal enum class ManagementArea(val title: Int, val help: Int, val entry: Any
     Ticketing(R.string.management_area_ticketing, R.string.management_area_ticketing_help, TicketingDatesRoute),
     Profile(R.string.management_area_profile, R.string.management_area_profile_help, ProfileRoute),
     Analytics(R.string.management_area_analytics, R.string.management_area_analytics_help, AnalyticsRoute()),
-    Sponsorships(R.string.management_area_sponsorships, R.string.management_area_sponsorships_help),
-    Analytics(R.string.management_area_analytics, R.string.management_area_analytics_help),
     Sponsorships(R.string.management_area_sponsorships, R.string.management_area_sponsorships_help, SponsorshipsRoute()),
     Feedback(R.string.management_area_feedback, R.string.management_area_feedback_help, FeedbackRoute()),
     Collaborators(R.string.management_area_collaborators, R.string.management_area_collaborators_help, CollaboratorsRoute),
