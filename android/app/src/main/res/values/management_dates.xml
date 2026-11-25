@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Date e ricorrenze della gestione (P2): elenco delle date, modulo della data, «Ripeti». Gli stessi testi dei pannelli quando ci sono. -->
+<resources>
+    <string name="management_dates_title">Date</string>
+    <string name="management_dates_title_organizer">Date e luoghi</string>
+    <string name="management_dates_open_manage">Gestisci le date</string>
+    <string name="management_dates_add">Aggiungi una data</string>
+    <string name="management_dates_more">Mostra altre date</string>
+    <string name="management_dates_empty">Nessuna data: aggiungine una per poter pubblicare.</string>
+    <string name="management_dates_empty_period">Nessuna data in questo periodo.</string>
+    <string name="management_dates_period_all">Tutte</string>
+    <string name="management_dates_period_upcoming">Prossime</string>
+    <string name="management_dates_period_past">Passate</string>
+    <string name="management_dates_past_badge">Passata</string>
+    <string name="management_dates_series_badge">Si ripete</string>
+    <string name="management_dates_main_venue">Locale principale</string>
+    <string name="management_dates_capacity">%1$d posti liberi su %2$d</string>
+    <string name="management_dates_capacity_left">%1$d posti liberi</string>
+    <string name="management_dates_capacity_none">Posti non dichiarati</string>
+    <string name="management_dates_lineup">Chi suona: %1$s</string>
+    <string name="management_dates_stats">Visite %1$d · Clic %2$d · Salvataggi %3$d</string>
+    <string name="management_dates_edit">Modifica</string>
+    <string name="management_dates_cancel">Annulla la data</string>
+    <string name="management_dates_keep">Non annullare</string>
+    <string name="management_dates_cancel_title">Annulla la data</string>
+    <string name="management_dates_cancel_confirm">La data di %1$s viene annullata.</string>
+    <string name="management_dates_scope_single">Solo questa data</string>
+    <string name="management_dates_scope_single_help">Le altre date della ricorrenza restano com’erano; questa viene marcata come modificata a mano.</string>
+    <string name="management_dates_scope_series">Questa e le successive</string>
+    <string name="management_dates_scope_series_help">La modifica raggiunge ogni data futura generata dalla stessa ricorrenza, escluse quelle già modificate a mano.</string>
+    <string name="management_dates_sold_out">Segna tutto esaurito</string>
+    <string name="management_dates_sold_out_confirm">La data di %1$s diventa esaurita. Puoi rimetterla in vendita quando vuoi.</string>
+    <string name="management_dates_available">Ci sono ancora posti</string>
+    <string name="management_dates_available_confirm">La data di %1$s torna in vendita.</string>
+    <string name="management_dates_delete">Elimina la data</string>
+    <string name="management_dates_delete_confirm">La data di %1$s viene tolta dall’evento.</string>
+    <string name="management_dates_tickets">Biglietteria</string>
+    <string name="management_dates_poster">Locandina PDF</string>
+    <string name="management_dates_created">Data aggiunta.</string>
+    <string name="management_dates_saved">Data salvata.</string>
+    <string name="management_dates_deleted">Data eliminata.</string>
+    <string name="management_dates_sent_to_review">Data salvata. L’evento torna alla redazione per la verifica, come sul sito.</string>
+    <string name="management_dates_nothing_changed">Niente da cambiare.</string>
+    <string name="management_dates_no_new">Nessuna data nuova: il calendario era già completo.</string>
+    <plurals name="management_dates_updated">
+        <item quantity="one">%1$d data aggiornata.</item>
+        <item quantity="other">%1$d date aggiornate.</item>
+    </plurals>
+    <plurals name="management_dates_created_many">
+        <item quantity="one">%1$d data messa in calendario.</item>
+        <item quantity="other">%1$d date messe in calendario.</item>
+    </plurals>
+
+    <!-- «Ripeti» -->
+    <string name="management_dates_repeat">Ripeti</string>
+    <string name="management_dates_repeat_title">Ripeti questo evento</string>
+    <string name="management_dates_repeat_hint">Le date vanno in calendario da sole, fino al giorno che indichi.</string>
+    <string name="management_dates_repeat_current">Adesso si ripete %1$s.</string>
+    <string name="management_dates_repeat_none">Non si ripete.</string>
+    <string name="management_dates_repeat_until_value">Fino al %1$s</string>
+    <string name="management_dates_repeat_needs_dates">Aggiungi prima una data: la ripetizione parte da lì.</string>
+    <string name="management_dates_repeat_submit">Metti in calendario</string>
+    <string name="management_dates_frequency">Ogni quanto</string>
+    <string name="management_dates_frequency_daily">Ogni giorno</string>
+    <string name="management_dates_frequency_weekly">Ogni settimana</string>
+    <string name="management_dates_frequency_biweekly">Ogni due settimane</string>
+    <string name="management_dates_frequency_monthly">Ogni mese</string>
+    <string name="management_dates_weekdays">In quali giorni</string>
+    <string name="management_dates_weekdays_hint">Se non scegli nulla, vale il giorno della prima data.</string>
+    <string name="management_dates_until">Fino al</string>
+    <string name="management_dates_until_pick">Scegli la data</string>
+    <string name="management_dates_until_clear">Togli</string>
+    <string name="management_dates_until_hint">Lascia vuoto per andare avanti a tempo indeterminato.</string>
+
+    <!-- Modulo della data -->
+    <string name="management_dates_new">Nuova data</string>
+    <string name="management_dates_edit_title">Modifica la data</string>
+    <string name="management_dates_save">Salva la data</string>
+    <string name="management_dates_starts">Inizio</string>
+    <string name="management_dates_ends">Fine</string>
+    <string name="management_dates_capacity_total">Capienza di questa data</string>
+    <string name="management_dates_capacity_total_hint">Solo se questa sera i posti sono diversi dal solito.</string>
+    <string name="management_dates_capacity_left_field">Posti ancora liberi</string>
+    <string name="management_dates_capacity_left_hint">Quanti ne restano: il numero compare sulla card.</string>
+    <string name="management_dates_highlight">Etichetta di richiamo</string>
+    <string name="management_dates_highlight_hint">Due parole in evidenza: «Ultimi posti», «Nuova data». Massimo 40 caratteri.</string>
+    <string name="management_dates_lineup_title">Chi suona</string>
+    <string name="management_dates_lineup_add">Aggiungi chi suona</string>
+    <string name="management_dates_artist">Artista</string>
+    <string name="management_dates_artist_role">Ruolo</string>
+    <string name="management_dates_all_day">Tutto il giorno</string>
+    <string name="management_dates_venue">Locale di questa data</string>
+    <string name="management_dates_venue_hint">Vuoto: si usa il locale principale. Una data in un altro locale su un evento online torna alla redazione.</string>
+    <string name="management_dates_status">Stato</string>
+    <string name="management_dates_status_note">Avviso al pubblico</string>
+    <string name="management_dates_status_note_hint">Per esempio il motivo del rinvio o il nuovo luogo. Massimo 2000 caratteri.</string>
+    <string name="management_dates_practical">Informazioni pratiche e costi</string>
+    <string name="management_dates_inherit_hint">Tocca di nuovo la scelta attiva per toglierla e usare quella dell’evento o del locale.</string>
+    <string name="management_dates_error_starts">Scegli data e ora di inizio.</string>
+    <string name="management_dates_error_ends">La fine deve venire dopo l’inizio.</string>
+    <string name="management_dates_error_number">Scrivi un numero intero da 0 a 1.000.000.</string>
+    <string name="management_dates_error_costs">Importi da 0 a 100.000, con al massimo due decimali.</string>
+
+    <!-- Dall’elenco degli eventi: la prossima data -->
+    <string name="management_dates_next_sold_out">Tutto esaurito</string>
+    <string name="management_dates_next_available">Ci sono ancora posti</string>
+    <string name="management_dates_next_sold_out_confirm">La prossima data, %1$s, diventa esaurita. Puoi rimetterla in vendita quando vuoi.</string>
+    <string name="management_dates_next_available_confirm">La prossima data, %1$s, torna in vendita.</string>
+
+    <!-- «Programma» dell'evento: ora e data collegata di una voce -->
+    <string name="management_dates_agenda_starts">Inizio del momento in programma</string>
+    <string name="management_dates_agenda_ends">Fine del momento in programma</string>
+    <string name="management_dates_agenda_date">Programma valido per la data</string>
+    <string name="management_dates_agenda_all_dates">Tutte le date di questo evento</string>
+</resources>

@@ -87,6 +87,21 @@ it('espone un contratto OpenAPI utilizzabile da un generatore Android', function
     ])
         ->and($document['paths']['/management/venues/{venue}/profile'])->toHaveKeys(['get', 'patch'])
         ->and($document['paths']['/management/venues/{venue}/notices']['post']['responses'])->toHaveKey('201');
+    // Le date e le ricorrenze (P2): annulla, elimina, «Ripeti» ed esaurito sulla prossima data solo per il locale.
+    expect($document['paths'])->toHaveKeys([
+        '/management/venues/{venue}/events/{event}/dates',
+        '/management/venues/{venue}/events/{event}/dates/{occurrence}',
+        '/management/venues/{venue}/events/{event}/dates/{occurrence}/status',
+        '/management/venues/{venue}/events/{event}/dates/{occurrence}/poster.pdf',
+        '/management/venues/{venue}/events/{event}/recurrence',
+        '/management/venues/{venue}/events/{event}/next-date/sold-out',
+        '/management/organizers/{organizer}/events/{event}/dates',
+        '/management/organizers/{organizer}/events/{event}/dates/{occurrence}',
+        '/management/organizers/{organizer}/events/{event}/dates/{occurrence}/poster.pdf',
+    ])
+        ->and($document['paths']['/management/venues/{venue}/events/{event}/dates/{occurrence}'])->toHaveKeys(['get', 'patch', 'delete'])
+        ->and($document['paths']['/management/organizers/{organizer}/events/{event}/dates/{occurrence}'])->not->toHaveKey('delete')
+        ->and($document['paths'])->not->toHaveKey('/management/organizers/{organizer}/events/{event}/recurrence');
 
     // P13 (25/11/2026): registrare o rivendicare dall'app, solo con il token e mai in cache.
     expect($document['paths'])->toHaveKeys([

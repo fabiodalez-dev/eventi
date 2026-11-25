@@ -60,8 +60,12 @@ internal fun EventOverviewScreen(
     onTickets: (Long) -> Unit,
     onOpenCopy: (Long) -> Unit,
     onEventTicketing: (venueId: Long, eventId: Long) -> Unit,
+    onDates: (Long) -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    // Tornando dalle date (P2) la scheda rilegge le serate in breve.
+    var shown by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(Unit) { if (shown) viewModel.load() else shown = true }
     val event = state.event.valueOrNull
     val zone = event?.city?.timezone?.let { runCatching { ZoneId.of(it) }.getOrNull() } ?: state.subject?.timezone ?: ZoneId.of("Europe/Rome")
     var pending by remember { mutableStateOf<PendingAction?>(null) }
@@ -96,6 +100,7 @@ internal fun EventOverviewScreen(
                 onPreview = { onPreview(detail.id) },
                 onTickets = onTickets,
                 onEventTicketing = state.subject?.takeIf { showsEventTicketing(it, detail) }?.let { subject -> { onEventTicketing(subject.id, detail.id) } },
+                onDates = { onDates(detail.id) },
                 onSite = { detail.publicUrl?.let(uriHandler::openUri) },
                 onPickPoster = pickPoster,
                 onCancelSchedule = viewModel::cancelSchedule)
@@ -135,6 +140,7 @@ private fun Overview(
     onSite: () -> Unit,
     onPickPoster: () -> Unit,
     onCancelSchedule: () -> Unit,
+    onDates: () -> Unit,
 ) {
     val can = detail.abilities
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -209,6 +215,8 @@ private fun Overview(
         Text(text ?: stringResource(R.string.management_events_no_description), color = if (text == null) Muted else MaterialTheme.colorScheme.onSurface)
 
         SectionTitle(stringResource(R.string.management_events_dates))
+        // Le date dell'evento (P2): elenco, aggiungi, modifica, annulla, «Ripeti».
+        OutlinedButton(onClick = onDates, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text(stringResource(R.string.management_dates_open_manage)) }
         if (detail.dates.upcoming.isEmpty() && detail.dates.past.isEmpty()) Text(stringResource(R.string.management_events_no_dates_long), color = Muted)
         if (detail.dates.upcoming.isNotEmpty()) {
             Text(stringResource(R.string.management_events_upcoming_dates), style = MaterialTheme.typography.titleSmall)

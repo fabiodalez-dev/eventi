@@ -69,6 +69,8 @@ internal data class EventsListUiState(
     val busy: Boolean = false,
     val loaded: Boolean = false,
     val error: String? = null,
+    /* L'esito di «Tutto esaurito» sulla prossima data (P2). */
+    val message: UiText? = null,
 )
 
 internal class EventsListViewModel(private val repository: ManagementRepository, private val saved: SavedStateHandle) : ViewModel() {
@@ -98,6 +100,34 @@ internal class EventsListViewModel(private val repository: ManagementRepository,
     fun typeQuery(query: String) {
         saved[KEY_QUERY] = query
         state.update { it.copy(query = query) }
+    }
+
+    /**
+     * «Tutto esaurito» / «Ci sono ancora posti» sulla prossima data, dalla
+     * card (W-EV-19): il valore è esplicito, e la card prende lo stato nuovo.
+     */
+    fun setNextSoldOut(event: ManagedEventCard, soldOut: Boolean) {
+        val subject = state.value.subject ?: return
+        val api = repository.dates ?: return
+        if (state.value.busy) return
+        state.update { it.copy(busy = true, error = null, message = null) }
+        viewModelScope.launch {
+            try {
+                val response = api.soldOutNext(subject, event.id, soldOut)
+                val date = response.data
+                state.update { current ->
+                    current.copy(
+                        events = current.events.map { card ->
+                            if (card.id == event.id) card.copy(nextDate = card.nextDate?.copy(status = date.status)) else card
+                        },
+                        message = if (response.meta.changed == 0) UiText.Res(R.string.management_dates_nothing_changed)
+                            else UiText.Plural(R.plurals.management_dates_updated, response.meta.changed, listOf(response.meta.changed)),
+                    )
+                }
+            } catch (e: CancellationException) { throw e }
+            catch (e: Exception) { state.update { it.copy(error = problemText(e)) } }
+            finally { state.update { it.copy(busy = false) } }
+        }
     }
 
     fun search() = load(1, clear = true)

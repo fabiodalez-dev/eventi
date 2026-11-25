@@ -393,6 +393,17 @@ private fun EditorialSection(state: EventEditorUiState, options: EventFormOption
             error = state.errors.field("content_details.agenda")) { row, update ->
             PlainField(row.title, { update(row.copy(title = it)) }, stringResource(R.string.management_events_agenda_title))
             PlainField(row.whenText, { update(row.copy(whenText = it)) }, stringResource(R.string.management_events_agenda_when))
+            // Ora d'inizio e di fine e data collegata (P2), come il ripetitore del pannello.
+            CityDateTimeField(stringResource(R.string.management_dates_agenda_starts), AgendaTime.toCity(row.startsAt, state.zone), state.zone, state.subject?.cityName,
+                onChange = { update(row.copy(startsAt = AgendaTime.fromCity(it, state.zone))) }, clearable = true)
+            CityDateTimeField(stringResource(R.string.management_dates_agenda_ends), AgendaTime.toCity(row.endsAt, state.zone), state.zone, state.subject?.cityName,
+                onChange = { update(row.copy(endsAt = AgendaTime.fromCity(it, state.zone))) }, clearable = true)
+            if (state.eventDates.isNotEmpty() || row.occurrenceId != null) {
+                ChoiceField(stringResource(R.string.management_dates_agenda_date),
+                    state.eventDates.map { it.id.toString() to formatEventDate(it.startsAt, state.zone) },
+                    row.occurrenceId?.toString(), { update(row.copy(occurrenceId = it?.toLongOrNull())) },
+                    allowNone = true, noneLabel = stringResource(R.string.management_dates_agenda_all_dates))
+            }
             PlainField(row.speaker, { update(row.copy(speaker = it)) }, stringResource(R.string.management_events_agenda_speaker))
             RichTextField(row.description, { update(row.copy(description = it)) }, stringResource(R.string.management_events_agenda_description), minLines = 2, toolbar = false)
         }

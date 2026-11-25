@@ -3,6 +3,7 @@ package it.fabiodalez.incitta.ui.management.events
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import it.fabiodalez.incitta.ui.management.ManagementGraphContext
+import it.fabiodalez.incitta.ui.management.dates.EventDatesRoute
 import it.fabiodalez.incitta.ui.management.managementViewModel
 import it.fabiodalez.incitta.ui.management.ticketing.EventTicketingRoute
 import it.fabiodalez.incitta.ui.management.ticketing.TicketingDateRoute
@@ -33,6 +34,7 @@ internal fun NavGraphBuilder.eventsGraph(context: ManagementGraphContext) {
             onPreview = { id -> context.navController.navigate(EventPreviewRoute(id)) },
             onTickets = { occurrenceId -> context.navController.navigate(TicketingDateRoute(occurrenceId)) },
             onEventTicketing = { venueId, eventId -> context.navController.navigate(EventTicketingRoute(venueId, eventId)) },
+            onDates = { id -> context.navController.navigate(EventDatesRoute(id)) },
             onOpenCopy = { id ->
                 context.navController.navigate(EventEditorRoute(id)) { popUpTo<EventsListRoute>() }
             })
