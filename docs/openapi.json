@@ -23250,7 +23250,7 @@
                                                 },
                                                 "management": {
                                                     "type": "object",
-                                                    "description": "Quanti locali e organizzazioni gestisce, e in quante date non ancora finite fa il controllo ingressi:\nl'app mostra \u00abGestione eventi\u00bb solo se uno dei tre \u00e8 maggiore di zero. Il dettaglio \u00e8 in `GET /management/subjects`.",
+                                                    "description": "Quanti locali e organizzazioni gestisce, e in quante date non ancora finite fa il controllo ingressi:\nl'app mostra \u00abGestione eventi\u00bb solo se uno dei tre \u00e8 maggiore di zero. Il dettaglio \u00e8 in `GET /management/subjects`.\n`invitations`: inviti ricevuti ancora senza risposta, il dettaglio in `GET /me/invitations`.",
                                                     "properties": {
                                                         "venues": {
                                                             "type": "integer"
@@ -23260,12 +23260,17 @@
                                                         },
                                                         "checkin": {
                                                             "type": "integer"
+                                                        },
+                                                        "invitations": {
+                                                            "type": "integer",
+                                                            "description": "Inviti in un locale e al personale d'ingresso ancora senza risposta: la voce \u00abI tuoi inviti\u00bb del profilo (P8)."
                                                         }
                                                     },
                                                     "required": [
                                                         "venues",
                                                         "organizers",
-                                                        "checkin"
+                                                        "checkin",
+                                                        "invitations"
                                                     ]
                                                 },
                                                 "email_verified": {
@@ -23584,7 +23589,7 @@
                                                 },
                                                 "management": {
                                                     "type": "object",
-                                                    "description": "Quanti locali e organizzazioni gestisce, e in quante date non ancora finite fa il controllo ingressi:\nl'app mostra \u00abGestione eventi\u00bb solo se uno dei tre \u00e8 maggiore di zero. Il dettaglio \u00e8 in `GET /management/subjects`.",
+                                                    "description": "Quanti locali e organizzazioni gestisce, e in quante date non ancora finite fa il controllo ingressi:\nl'app mostra \u00abGestione eventi\u00bb solo se uno dei tre \u00e8 maggiore di zero. Il dettaglio \u00e8 in `GET /management/subjects`.\n`invitations`: inviti ricevuti ancora senza risposta, il dettaglio in `GET /me/invitations`.",
                                                     "properties": {
                                                         "venues": {
                                                             "type": "integer"
@@ -23594,12 +23599,17 @@
                                                         },
                                                         "checkin": {
                                                             "type": "integer"
+                                                        },
+                                                        "invitations": {
+                                                            "type": "integer",
+                                                            "description": "Inviti in un locale e al personale d'ingresso ancora senza risposta: la voce \u00abI tuoi inviti\u00bb del profilo (P8)."
                                                         }
                                                     },
                                                     "required": [
                                                         "venues",
                                                         "organizers",
-                                                        "checkin"
+                                                        "checkin",
+                                                        "invitations"
                                                     ]
                                                 },
                                                 "email_verified": {
@@ -34342,6 +34352,1534 @@
                     }
                 ]
             }
+        },
+        "/management/venues/{venue}/members": {
+            "get": {
+                "operationId": "v1.management.venues.members.index",
+                "description": "Prima chi ha accettato, per nome; poi gli inviti in attesa, per email.\nUn invito in attesa ha `name` nullo ed `email` mascherata: il nome \u00e8\nquello dell'account, e il locale non lo vede finch\u00e9 la persona non dice\ndi s\u00ec. `q` cerca nel nome (solo fra chi ha accettato) e nell'email.",
+                "summary": "Elenco delle persone del locale",
+                "tags": [
+                    "Collaborator"
+                ],
+                "parameters": [
+                    {
+                        "name": "venue",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "q",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "maxLength": 255
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer"
+                                                    },
+                                                    "name": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    "email": {
+                                                        "type": "string"
+                                                    },
+                                                    "role": {
+                                                        "anyOf": [
+                                                            {
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "type": "string",
+                                                                "enum": [
+                                                                    "editor"
+                                                                ]
+                                                            }
+                                                        ]
+                                                    },
+                                                    "role_label": {
+                                                        "anyOf": [
+                                                            {
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "type": "string",
+                                                                "enum": [
+                                                                    "enums.venue_role.owner",
+                                                                    "enums.venue_role.editor"
+                                                                ]
+                                                            }
+                                                        ]
+                                                    },
+                                                    "pending": {
+                                                        "type": "boolean"
+                                                    },
+                                                    "accepted_at": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    "invited_at": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    "is_me": {
+                                                        "type": "boolean"
+                                                    },
+                                                    "can_resend": {
+                                                        "type": "boolean"
+                                                    },
+                                                    "can_withdraw": {
+                                                        "type": "boolean"
+                                                    },
+                                                    "can_remove": {
+                                                        "type": "boolean"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "id",
+                                                    "name",
+                                                    "email",
+                                                    "role",
+                                                    "role_label",
+                                                    "pending",
+                                                    "accepted_at",
+                                                    "invited_at",
+                                                    "is_me",
+                                                    "can_resend",
+                                                    "can_withdraw",
+                                                    "can_remove"
+                                                ]
+                                            }
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "next_page": {
+                                                    "type": [
+                                                        "integer",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "invite_expires_days": {
+                                                    "type": "integer",
+                                                    "const": 7
+                                                },
+                                                "invites_per_hour": {
+                                                    "type": "integer",
+                                                    "const": 10
+                                                },
+                                                "invites_per_day": {
+                                                    "type": "integer",
+                                                    "const": 30
+                                                }
+                                            },
+                                            "required": [
+                                                "next_page",
+                                                "invite_expires_days",
+                                                "invites_per_hour",
+                                                "invites_per_day"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        },
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            },
+                            "X-RateLimit-Remaining": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Accesso richiesto.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Operazione non autorizzata.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Elemento non disponibile.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "http": []
+                    }
+                ]
+            },
+            "post": {
+                "operationId": "v1.management.venues.members.store",
+                "description": "Il ruolo \u00e8 sempre collaboratore. 422 su `email` se la persona \u00e8 gi\u00e0 del\nlocale o ha gi\u00e0 un invito in attesa (si reinvia dalla sua riga); 429\noltre il tetto degli inviti.",
+                "summary": "Invita un collaboratore",
+                "tags": [
+                    "Collaborator"
+                ],
+                "parameters": [
+                    {
+                        "name": "venue",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CollaboratorRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer"
+                                                },
+                                                "name": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "email": {
+                                                    "type": "string"
+                                                },
+                                                "role": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "editor"
+                                                            ]
+                                                        }
+                                                    ]
+                                                },
+                                                "role_label": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "enums.venue_role.owner",
+                                                                "enums.venue_role.editor"
+                                                            ]
+                                                        }
+                                                    ]
+                                                },
+                                                "pending": {
+                                                    "type": "boolean"
+                                                },
+                                                "accepted_at": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "invited_at": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "is_me": {
+                                                    "type": "boolean"
+                                                },
+                                                "can_resend": {
+                                                    "type": "boolean"
+                                                },
+                                                "can_withdraw": {
+                                                    "type": "boolean"
+                                                },
+                                                "can_remove": {
+                                                    "type": "boolean"
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "name",
+                                                "email",
+                                                "role",
+                                                "role_label",
+                                                "pending",
+                                                "accepted_at",
+                                                "invited_at",
+                                                "is_me",
+                                                "can_resend",
+                                                "can_withdraw",
+                                                "can_remove"
+                                            ]
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Accesso richiesto.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Operazione non autorizzata.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Elemento non disponibile.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "http": []
+                    }
+                ]
+            }
+        },
+        "/management/venues/{venue}/members/{member}/resend": {
+            "post": {
+                "operationId": "v1.management.venues.members.resend",
+                "summary": "Reinvia un invito in attesa: il collegamento precedente smette di valere. Conta nel tetto degli inviti",
+                "tags": [
+                    "Collaborator"
+                ],
+                "parameters": [
+                    {
+                        "name": "venue",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "member",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CollaboratorRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer"
+                                                },
+                                                "name": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "email": {
+                                                    "type": "string"
+                                                },
+                                                "role": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "editor"
+                                                            ]
+                                                        }
+                                                    ]
+                                                },
+                                                "role_label": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "enums.venue_role.owner",
+                                                                "enums.venue_role.editor"
+                                                            ]
+                                                        }
+                                                    ]
+                                                },
+                                                "pending": {
+                                                    "type": "boolean"
+                                                },
+                                                "accepted_at": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "invited_at": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "is_me": {
+                                                    "type": "boolean"
+                                                },
+                                                "can_resend": {
+                                                    "type": "boolean"
+                                                },
+                                                "can_withdraw": {
+                                                    "type": "boolean"
+                                                },
+                                                "can_remove": {
+                                                    "type": "boolean"
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "name",
+                                                "email",
+                                                "role",
+                                                "role_label",
+                                                "pending",
+                                                "accepted_at",
+                                                "invited_at",
+                                                "is_me",
+                                                "can_resend",
+                                                "can_withdraw",
+                                                "can_remove"
+                                            ]
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Invito reinviato"
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Accesso richiesto.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Operazione non autorizzata.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Elemento non disponibile.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "http": []
+                    }
+                ]
+            }
+        },
+        "/management/venues/{venue}/members/{member}/invitation": {
+            "delete": {
+                "operationId": "v1.management.venues.members.withdraw",
+                "summary": "Ritira un invito in attesa",
+                "tags": [
+                    "Collaborator"
+                ],
+                "parameters": [
+                    {
+                        "name": "venue",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "member",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "const": "Invito ritirato"
+                                                }
+                                            },
+                                            "required": [
+                                                "message"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Accesso richiesto.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Operazione non autorizzata.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Elemento non disponibile.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "http": []
+                    }
+                ]
+            }
+        },
+        "/management/venues/{venue}/members/{member}": {
+            "delete": {
+                "operationId": "v1.management.venues.members.destroy",
+                "summary": "Toglie un collaboratore che ha accettato; mai un referente. L'account e i suoi eventi restano",
+                "tags": [
+                    "Collaborator"
+                ],
+                "parameters": [
+                    {
+                        "name": "venue",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "member",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "const": "Collaboratore rimosso"
+                                                }
+                                            },
+                                            "required": [
+                                                "message"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Accesso richiesto.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Operazione non autorizzata.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Elemento non disponibile.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "http": []
+                    }
+                ]
+            }
+        },
+        "/me/invitations": {
+            "get": {
+                "operationId": "v1.me.invitations.index",
+                "description": "`venues[]` `{venue{id, slug, name, city}, role, role_label, sent,\ninvited_at, expires_at}`; `checkin[]` `{id, occurrence{id, title,\nstarts_at, venue}, sent, invited_at, expires_at}`. `sent` va rimandato\ncon la risposta.",
+                "summary": "Inviti ricevuti",
+                "tags": [
+                    "Invitation"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "venues": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "venue": {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "id": {
+                                                                        "type": "integer"
+                                                                    },
+                                                                    "slug": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "name": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "city": {
+                                                                        "type": "string"
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "id",
+                                                                    "slug",
+                                                                    "name",
+                                                                    "city"
+                                                                ]
+                                                            },
+                                                            "role": {
+                                                                "anyOf": [
+                                                                    {
+                                                                        "type": "string"
+                                                                    },
+                                                                    {
+                                                                        "type": "string",
+                                                                        "enum": [
+                                                                            "editor"
+                                                                        ]
+                                                                    }
+                                                                ]
+                                                            },
+                                                            "role_label": {
+                                                                "anyOf": [
+                                                                    {
+                                                                        "type": "string"
+                                                                    },
+                                                                    {
+                                                                        "type": "string",
+                                                                        "enum": [
+                                                                            "enums.venue_role.owner",
+                                                                            "enums.venue_role.editor"
+                                                                        ]
+                                                                    }
+                                                                ]
+                                                            },
+                                                            "sent": {
+                                                                "type": "string"
+                                                            },
+                                                            "invited_at": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "expires_at": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "venue",
+                                                            "role",
+                                                            "role_label",
+                                                            "sent",
+                                                            "invited_at",
+                                                            "expires_at"
+                                                        ]
+                                                    }
+                                                },
+                                                "checkin": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "integer"
+                                                            },
+                                                            "occurrence": {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "id": {
+                                                                        "type": "integer"
+                                                                    },
+                                                                    "title": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "starts_at": {
+                                                                        "type": [
+                                                                            "string",
+                                                                            "null"
+                                                                        ]
+                                                                    },
+                                                                    "venue": {
+                                                                        "type": [
+                                                                            "string",
+                                                                            "null"
+                                                                        ]
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "id",
+                                                                    "title",
+                                                                    "starts_at",
+                                                                    "venue"
+                                                                ]
+                                                            },
+                                                            "sent": {
+                                                                "type": "string"
+                                                            },
+                                                            "invited_at": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "expires_at": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "id",
+                                                            "occurrence",
+                                                            "sent",
+                                                            "invited_at",
+                                                            "expires_at"
+                                                        ]
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "venues",
+                                                "checkin"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        },
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            },
+                            "X-RateLimit-Remaining": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/me/invitations/venues/{venue}": {
+            "post": {
+                "operationId": "v1.me.invitations.venues.respond",
+                "description": "Accettando la persona entra nel locale (e nel pannello) con il ruolo\nofferto; `subject` \u00e8 allora `{type: venue, id}`. 404 se l'invito non\nc'\u00e8 pi\u00f9, \u00e8 scaduto, \u00e8 stato reinviato (`sent` diverso) o \u00e8 di un altro\naccount.",
+                "summary": "Accetta o rifiuta l'invito in un locale",
+                "tags": [
+                    "Invitation"
+                ],
+                "parameters": [
+                    {
+                        "name": "venue",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/InvitationResponseRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "data": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "accepted": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "message": {
+                                                            "type": "string"
+                                                        },
+                                                        "subject": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "type": {
+                                                                    "type": "string",
+                                                                    "const": "venue"
+                                                                },
+                                                                "id": {
+                                                                    "type": "integer"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "type",
+                                                                "id"
+                                                            ]
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "accepted",
+                                                        "message",
+                                                        "subject"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "data"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "data": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "accepted": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "message": {
+                                                            "type": "string"
+                                                        },
+                                                        "subject": {
+                                                            "type": "null"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "accepted",
+                                                        "message",
+                                                        "subject"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "data"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/me/invitations/checkin/{invitation}": {
+            "post": {
+                "operationId": "v1.me.invitations.checkin.respond",
+                "description": "Accettando la persona pu\u00f2 controllare i biglietti di quella data;\n`occurrence_id` \u00e8 la data. 404 se l'invito non c'\u00e8 pi\u00f9, \u00e8 scaduto, \u00e8\nstato reinviato, la data \u00e8 finita o l'invito \u00e8 per un altro indirizzo.",
+                "summary": "Accetta o rifiuta l'invito al personale d'ingresso di una data",
+                "tags": [
+                    "Invitation"
+                ],
+                "parameters": [
+                    {
+                        "name": "invitation",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/InvitationResponseRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "data": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "accepted": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "message": {
+                                                            "type": "string",
+                                                            "const": "Fai parte del personale di ingresso di questa data."
+                                                        },
+                                                        "occurrence_id": {
+                                                            "type": "integer"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "accepted",
+                                                        "message",
+                                                        "occurrence_id"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "data"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "data": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "accepted": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "message": {
+                                                            "type": "string",
+                                                            "const": "Hai rifiutato l\u2019invito."
+                                                        },
+                                                        "occurrence_id": {
+                                                            "type": "null"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "accepted",
+                                                        "message",
+                                                        "occurrence_id"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "data"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/management/venues/{venue}/access": {
+            "get": {
+                "operationId": "v1.management.venues.access.show",
+                "description": "`role` \u00e8 `owner` o `editor`; `member_since` la data dell'accettazione\n(nel fuso della citt\u00e0 del locale), nulla per un'appartenenza senza\ndata; `can_leave` \u00e8 falso solo per l'ultimo referente.",
+                "summary": "Il proprio accesso al locale",
+                "tags": [
+                    "VenueAccess"
+                ],
+                "parameters": [
+                    {
+                        "name": "venue",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "venue": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer"
+                                                        },
+                                                        "name": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "id",
+                                                        "name"
+                                                    ]
+                                                },
+                                                "role": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "owner",
+                                                        "editor"
+                                                    ]
+                                                },
+                                                "role_label": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "enums.venue_role.owner",
+                                                        "enums.venue_role.editor"
+                                                    ]
+                                                },
+                                                "member_since": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "is_last_owner": {
+                                                    "type": "boolean"
+                                                },
+                                                "can_leave": {
+                                                    "type": "boolean"
+                                                },
+                                                "can_manage_collaborators": {
+                                                    "type": "boolean"
+                                                }
+                                            },
+                                            "required": [
+                                                "venue",
+                                                "role",
+                                                "role_label",
+                                                "member_since",
+                                                "is_last_owner",
+                                                "can_leave",
+                                                "can_manage_collaborators"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        },
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            },
+                            "X-RateLimit-Remaining": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Accesso richiesto.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "description": "Operazione non autorizzata.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Elemento non disponibile.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "http": []
+                    }
+                ]
+            }
+        },
+        "/management/venues/{venue}/access/leave": {
+            "post": {
+                "operationId": "v1.management.venues.access.leave",
+                "description": "Perdi subito l'accesso; gli eventi inseriti restano al locale. 409\n`CONFLICT` per l'ultimo referente. `remaining` dice quanti locali e\norganizzazioni restano da gestire, per sapere dove tornare.",
+                "summary": "Esci da questo locale",
+                "tags": [
+                    "VenueAccess"
+                ],
+                "parameters": [
+                    {
+                        "name": "venue",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string"
+                                                },
+                                                "remaining": {
+                                                    "type": "integer"
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "remaining"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Accesso richiesto.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "description": "Operazione non autorizzata.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Elemento non disponibile.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "http": []
+                    }
+                ]
+            }
         }
     },
     "components": {
@@ -36573,6 +38111,48 @@
                     "ids"
                 ],
                 "title": "VenueMediaRequest"
+            },
+            "CollaboratorRequest": {
+                "type": "object",
+                "description": "I collaboratori del locale (W-CO-01\u202605). Li vede e li cambia chi pu\u00f2\naprire la pagina \u00abCollaboratori\u00bb del pannello: `manageCollaborators`, cio\u00e8\nil referente, mai il collaboratore.",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "maxLength": 255
+                    }
+                },
+                "required": [
+                    "name",
+                    "email"
+                ],
+                "title": "CollaboratorRequest"
+            },
+            "InvitationResponseRequest": {
+                "type": "object",
+                "description": "La risposta a un invito ricevuto (W-CO-07, W-TK-15): `decision` e `sent`,\nla data dell'invito come la riporta `GET /me/invitations`. `sent` fa ci\u00f2\nche fa la data nel collegamento firmato: un invito reinviato nel frattempo\n\u00e8 un altro invito, e la risposta a quello vecchio non vale.\n\nIl permesso \u00e8 dell'invito stesso (deve essere per questa persona): lo\ncontrolla il controller, che risponde 404 per un invito altrui.",
+                "properties": {
+                    "decision": {
+                        "type": "string",
+                        "enum": [
+                            "accept",
+                            "decline"
+                        ]
+                    },
+                    "sent": {
+                        "type": "integer",
+                        "minimum": 0
+                    }
+                },
+                "required": [
+                    "decision",
+                    "sent"
+                ],
+                "title": "InvitationResponseRequest"
             }
         },
         "responses": {

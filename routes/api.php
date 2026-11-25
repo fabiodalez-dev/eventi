@@ -134,6 +134,10 @@ Route::prefix('v1/management')->middleware(['auth:sanctum', TicketingPrivacy::cl
     }
 });
 
+// Gli inviti ricevuti dalla persona (P8): fuori dal soggetto, perché chi è invitato non gestisce ancora niente.
+Route::prefix('v1/me/invitations')->middleware(['auth:sanctum', TicketingPrivacy::class, RequireConfirmedAccount::class])
+    ->name('api.v1.me.invitations.')->group(__DIR__.'/management/invitations.php');
+
 /*
 |--------------------------------------------------------------------------
 | API pubblica v1 (§13)

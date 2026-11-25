@@ -322,6 +322,7 @@ return [
         'page_lead' => 'Ti hanno invitato a gestire :venue come :role.',
         'page_consequences' => 'Se accetti entri nel pannello del locale, ricevi le sue email (per esempio i nuovi commenti) e chi lo gestisce vede il tuo nome. Potrai lasciarlo quando vuoi.',
         'declined' => 'Hai rifiutato l’invito di :venue.',
+        'accepted' => 'Hai accettato: adesso gestisci :venue.',
         'invalid' => 'Questo collegamento non è valido. Aprilo di nuovo dal messaggio, senza modificarlo.',
         'expired' => 'Questo invito è scaduto. Chiedi a chi te l’ha mandato di reinviarlo.',
         'wrong_account' => 'Questo invito è per un altro account (:email). Esci ed entra con quell’indirizzo, poi apri di nuovo il collegamento.',
