@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Venue\Pages;
 
 use App\Actions\PublishVenueNotice;
+use App\Actions\UpdateVenueProfile;
 use App\Enums\VenueNoticeKind;
 use App\Enums\VenueType;
 use App\Filament\Admin\Support\StructuredFields;
@@ -22,7 +23,6 @@ use App\Filament\Support\VenueGeographyFields;
 use App\Filament\Venue\Support\CurrentVenue;
 use App\Models\Venue;
 use App\Services\Management\ManagementOptions;
-use App\Support\VenueClosures;
 use BackedEnum;
 use Carbon\CarbonImmutable;
 use Filament\Actions\Action;
@@ -375,10 +375,13 @@ class VenueProfile extends Page implements HasSchemas
         /** @var array<string, mixed> $state */
         $state = $this->venueForm()->getState();
 
-        $state['opening_hours'] = StructuredFields::openingHoursToMap($state['opening_hours'] ?? null);
-        $state['closures'] = VenueClosures::normalize($state['closures'] ?? null, $venue->city->timezone ?? config()->string('app.timezone'));
+        /* Orari in righe, chiusure da normalizzare: la traduzione la fa
+           l'azione, la stessa che usa l'app. Qui i campi ci sono sempre
+           tutti, anche vuoti. */
+        $state['opening_hours'] ??= null;
+        $state['closures'] ??= null;
 
-        $venue->fill($state)->save();
+        app(UpdateVenueProfile::class)->handle($venue, $state);
 
         Notification::make()
             ->title(__('manage.venue.saved'))

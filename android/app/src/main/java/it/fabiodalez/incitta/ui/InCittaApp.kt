@@ -308,7 +308,7 @@ fun InCittaApp(viewModel: MainViewModel) {
             val selected = state.selected
 
             when {
-                managementOpen -> androidx.compose.runtime.key(state.session?.token) { it.fabiodalez.incitta.ui.management.ManagementScreen(state.session, padding, destination = managementDestination) { managementOpen = false; managementDestination = null } }
+                managementOpen -> androidx.compose.runtime.key(state.session?.token) { it.fabiodalez.incitta.ui.management.ManagementScreen(state.session, padding, destination = managementDestination) { managementOpen = false; managementDestination = null; viewModel.refreshProfile() } }
                 carpoolRoute != null -> androidx.compose.runtime.key(state.session?.token) { CarpoolScreen(state.session, padding, carpoolRoute!!,
                     onBack = { carpoolRoute = null },
                     onLogin = { path -> returnCarpool = path; carpoolRoute = null; viewModel.selectTab(AppTab.ACCOUNT) },
@@ -325,7 +325,7 @@ fun InCittaApp(viewModel: MainViewModel) {
                     OrganizerScreen(organizerSlug!!, state.session, state.savedIds,
                         onVerifyReviews = { organizerSlug = null; communityRoute = "whatsapp" },
                         onLogin = { organizerSlug = null; viewModel.selectTab(AppTab.ACCOUNT) },
-                        onBack = { organizerSlug = null }, onOrganizer = { organizerSlug = it },
+                        onBack = { organizerSlug = null }, onOrganizer = { organizerSlug = it }, onOpenManagement = ::openDestination,
                         onOpen = { organizerSlug = null; viewModel.open(it) }, onSave = viewModel::toggleSaved)
                 }
                 state.bookingDate != null -> ReservationScreen(state, padding, viewModel::reserve, viewModel::goBack, onResendVerification = viewModel::resendEmailVerification, onEmailConfirmed = viewModel::emailConfirmed) { state.bookingDate?.let(viewModel::startReservation) }
@@ -339,6 +339,7 @@ fun InCittaApp(viewModel: MainViewModel) {
                         venue = selectedVenue,
                         onVerifyReviews = { communityRoute = "whatsapp" },
                         reportReview = { id, body -> viewModel.reportVenueReview(requireNotNull(selectedVenue.slug), id, body) },
+                        onOpenManagement = ::openDestination,
                         loadReviews = { page -> viewModel.venueReviews(requireNotNull(selectedVenue.slug), page) },
                         submitReview = { rating, body, revision -> viewModel.submitVenueReview(requireNotNull(selectedVenue.slug), rating, body, revision) },
                         deleteReview = { viewModel.deleteVenueReview(requireNotNull(selectedVenue.slug)) },
@@ -419,6 +420,7 @@ fun InCittaApp(viewModel: MainViewModel) {
                                 delete = { id -> viewModel.deleteComment(selected.slug, id) },
                                 resend = viewModel::resendCommentConfirmation,
                                 emailVerified = state.session?.user?.emailVerified == true,
+                                onModerate = ::openDestination,
                             )
                         },
                     )
@@ -495,6 +497,7 @@ fun InCittaApp(viewModel: MainViewModel) {
                         onDeleteAccount = viewModel::deleteAccount,
                         onTickets = { viewModel.selectTab(AppTab.TICKETS) },
                         onManagement = { managementDestination = null; managementOpen = true },
+                        onInvitations = { managementDestination = it.fabiodalez.incitta.data.management.ManagementDestination.Invitations; managementOpen = true },
                         onCollections = { collectionsOpen = true },
                         onOpenSavedSearch = viewModel::openSavedSearch,
                         onClearAuthError = viewModel::clearAuthError,

@@ -11,14 +11,22 @@ import it.fabiodalez.incitta.data.ManagedCampaign
 import it.fabiodalez.incitta.data.ManagedDate
 import it.fabiodalez.incitta.data.ManifestVerdict
 import it.fabiodalez.incitta.data.ScanDecision
+import it.fabiodalez.incitta.data.management.BookingSettingsDraft
 import it.fabiodalez.incitta.data.management.CheckinQueue
+import it.fabiodalez.incitta.data.management.DownloadedFile
+import it.fabiodalez.incitta.data.management.ExportKind
+import it.fabiodalez.incitta.data.management.ManagementFiles
+import it.fabiodalez.incitta.data.management.MessageHistory
+import it.fabiodalez.incitta.data.management.bookingSettingsBody
 import it.fabiodalez.incitta.data.management.ManagementRepository
 import it.fabiodalez.incitta.data.refreshedWith
 import it.fabiodalez.incitta.data.requestFailureMessage
 import it.fabiodalez.incitta.data.scanDecision
+import it.fabiodalez.incitta.ui.management.common.FormErrors
 import it.fabiodalez.incitta.ui.management.common.Loadable
 import it.fabiodalez.incitta.ui.management.common.UiText
 import java.time.Instant
+import java.time.ZoneId
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -39,6 +47,8 @@ import kotlinx.serialization.json.JsonObject
 internal data class TicketingDatesUiState(
     val reports: Boolean = false,
     val past: Boolean = false,
+    /** La ricerca nel titolo e nel nome del locale, come il riepilogo del sito. */
+    val query: String = "",
     val dates: List<ManagedDate> = emptyList(),
     val campaigns: List<ManagedCampaign> = emptyList(),
     val nextPage: Int? = null,
@@ -48,7 +58,7 @@ internal data class TicketingDatesUiState(
 )
 
 internal class TicketingDatesViewModel(private val repository: ManagementRepository, private val saved: SavedStateHandle) : ViewModel() {
-    private val state = MutableStateFlow(TicketingDatesUiState(reports = saved[KEY_REPORTS] ?: false, past = saved[KEY_PAST] ?: false))
+    private val state = MutableStateFlow(TicketingDatesUiState(reports = saved[KEY_REPORTS] ?: false, past = saved[KEY_PAST] ?: false, query = saved[KEY_QUERY] ?: ""))
     val uiState: StateFlow<TicketingDatesUiState> = state.asStateFlow()
     val checkins: StateFlow<CheckinQueue> = repository.checkins
     private var loading: Job? = null
@@ -66,6 +76,15 @@ internal class TicketingDatesViewModel(private val repository: ManagementReposit
         if (state.value.busy || state.value.past == past) return
         saved[KEY_PAST] = past
         state.update { it.copy(past = past) }
+        load(page = 1, clear = true)
+    }
+
+    /** Cerca nelle date; vuoto torna all'elenco intero. */
+    fun search(query: String) {
+        val clean = query.trim().take(120)
+        if (clean == state.value.query) return
+        saved[KEY_QUERY] = clean
+        state.update { it.copy(query = clean) }
         load(page = 1, clear = true)
     }
 
@@ -89,13 +108,14 @@ internal class TicketingDatesViewModel(private val repository: ManagementReposit
         state.update { if (clear) it.copy(busy = true, error = null, nextPage = null, dates = emptyList(), campaigns = emptyList(), loaded = false) else it.copy(busy = true, error = null) }
         val reports = state.value.reports
         val past = state.value.past
+        val query = state.value.query
         loading = viewModelScope.launch {
             try {
                 if (reports) {
                     val response = repository.ticketing.campaigns(page)
                     state.update { it.copy(campaigns = if (page == 1) response.data else (it.campaigns + response.data).distinctBy(ManagedCampaign::id), nextPage = response.meta?.nextPage, loaded = true) }
                 } else {
-                    val response = repository.ticketing.dates(past, page)
+                    val response = repository.ticketing.dates(past, page, query)
                     state.update { it.copy(dates = if (page == 1) response.data else (it.dates + response.data).distinctBy(ManagedDate::id), nextPage = response.meta?.nextPage, loaded = true) }
                 }
             } catch (e: CancellationException) { throw e }
@@ -107,6 +127,7 @@ internal class TicketingDatesViewModel(private val repository: ManagementReposit
     companion object {
         const val KEY_REPORTS = "reports"
         const val KEY_PAST = "past"
+        const val KEY_QUERY = "query"
     }
 }
 
@@ -122,19 +143,41 @@ internal data class TicketingDateUiState(
     val manifestBusy: Boolean = false,
     val manifestError: String? = null,
     val messageDailyLimit: Int = DEFAULT_MESSAGE_DAILY_LIMIT,
+    /** La scheda aperta della data (`DateTab`). */
+    val tab: DateTab = DateTab.Checkin,
+    /* Impostazioni delle prenotazioni: il modulo resta com'è finché non si salva o si ricarica. */
+    val settingsDraft: BookingSettingsDraft? = null,
+    val settingsDirty: Boolean = false,
+    val settingsErrors: FormErrors = FormErrors.None,
+    /** Lo storico dei messaggi: si legge quando si apre la scheda «Messaggi». */
+    val messages: Loadable<MessageHistory> = Loadable.Loading,
+    /* I file: uno alla volta, e l'ultimo scaricato resta pronto per «Apri con» e «Condividi». */
+    val exportBusy: ExportKind? = null,
+    val exported: DownloadedFile? = null,
+    val exportError: String? = null,
 ) {
     val current: ManagedDate? get() = (date as? Loadable.Ready)?.value
 }
 
-internal class TicketingDateViewModel(private val repository: ManagementRepository, saved: SavedStateHandle) : ViewModel() {
+/** Le schede della data per chi gestisce; chi controlla solo gli ingressi vede la prima. */
+internal enum class DateTab(val key: String) {
+    Checkin("checkin"), Bookings("bookings"), Settings("settings"), Messages("messages"), Staff("staff"), Details("details"), Export("export");
+
+    companion object {
+        fun of(key: String?): DateTab = entries.firstOrNull { it.key == key } ?: Checkin
+    }
+}
+
+internal class TicketingDateViewModel(private val repository: ManagementRepository, private val saved: SavedStateHandle) : ViewModel() {
     val id: Long = saved.get<Long>(KEY_ID) ?: 0L
-    private val state = MutableStateFlow(TicketingDateUiState())
+    private val state = MutableStateFlow(TicketingDateUiState(tab = DateTab.of(saved.get<String>(KEY_SELECTED_TAB) ?: saved.get<String>(KEY_TAB))))
     val uiState: StateFlow<TicketingDateUiState> = state.asStateFlow()
     val checkins: StateFlow<CheckinQueue> = repository.checkins
     private var manifestFor: Long? = null
 
     init {
         load()
+        if (state.value.tab == DateTab.Messages) loadMessages()
         viewModelScope.launch {
             repository.options()?.limit(MESSAGE_DAILY_LIMIT_KEY)?.toInt()?.takeIf { it > 0 }?.let { limit -> state.update { it.copy(messageDailyLimit = limit) } }
         }
@@ -158,7 +201,10 @@ internal class TicketingDateViewModel(private val repository: ManagementReposito
      * schermata. Se la rete manca resta quello salvato (o nessuno).
      */
     private fun show(date: ManagedDate) {
-        state.update { it.copy(date = Loadable.Ready(date)) }
+        state.update { current ->
+            val keep = current.settingsDirty && current.settingsDraft != null
+            current.copy(date = Loadable.Ready(date), settingsDraft = if (keep) current.settingsDraft else date.settings?.let { BookingSettingsDraft.from(it, zoneOf(date), date.availability?.instructions) })
+        }
         if (!date.canCheckIn) { manifestFor = null; state.update { it.copy(manifest = null, manifestError = null) }; return }
         if (manifestFor == date.id) return
         manifestFor = date.id
@@ -215,6 +261,11 @@ internal class TicketingDateViewModel(private val repository: ManagementReposito
 
     fun retryCheckins() = action { repository.flushCheckins() }
 
+    /** Un ingresso registrato dall'elenco delle prenotazioni: anche l'elenco senza rete in memoria lo sa. */
+    fun markUsedLocally(code: String) {
+        state.update { current -> current.manifest?.takeIf { it.occurrenceId == id }?.let { current.copy(manifest = it.markUsed(code)) } ?: current }
+    }
+
     fun inviteStaff(email: String, onDone: () -> Unit) = action {
         repository.ticketing.staff(id, email.trim(), false)
         show(repository.ticketing.date(id))
@@ -232,6 +283,78 @@ internal class TicketingDateViewModel(private val repository: ManagementReposito
         val result = repository.ticketing.message(id, subject, body, waitlisted)
         state.update { it.copy(message = UiText.Plural(R.plurals.management_message_sent, result.recipientsCount, listOf(result.recipientsCount))) }
         onSent()
+        // Il messaggio appena partito entra nello storico.
+        runCatching { repository.ticketing.messages(id) }.getOrNull()?.let { history -> state.update { it.copy(messages = Loadable.Ready(history)) } }
+    }
+
+    fun selectTab(tab: DateTab) {
+        saved[KEY_SELECTED_TAB] = tab.key
+        state.update { it.copy(tab = tab) }
+        if (tab == DateTab.Messages && state.value.messages !is Loadable.Ready) loadMessages()
+    }
+
+    /** Lo storico dei messaggi già inviati, con il tetto del giorno. */
+    fun loadMessages() {
+        state.update { it.copy(messages = Loadable.Loading) }
+        viewModelScope.launch {
+            try {
+                val history = repository.ticketing.messages(id)
+                state.update { it.copy(messages = Loadable.Ready(history), messageDailyLimit = history.meta.dailyLimit.takeIf { limit -> limit > 0 } ?: it.messageDailyLimit) }
+            } catch (e: CancellationException) { throw e }
+            catch (e: Exception) { state.update { it.copy(messages = Loadable.Failed(requestFailureMessage(e))) } }
+        }
+    }
+
+    /** Una modifica al modulo delle impostazioni; l'errore del campo toccato sparisce. */
+    fun editSettings(change: (BookingSettingsDraft) -> BookingSettingsDraft) {
+        state.update { current -> current.settingsDraft?.let { current.copy(settingsDraft = change(it), settingsDirty = true) } ?: current }
+    }
+
+    /** Rimette il modulo com'è salvato sul server. */
+    fun resetSettings() {
+        val date = state.value.current ?: return
+        state.update { it.copy(settingsDraft = date.settings?.let { settings -> BookingSettingsDraft.from(settings, zoneOf(date), date.availability?.instructions) }, settingsDirty = false, settingsErrors = FormErrors.None) }
+    }
+
+    /**
+     * Salva le impostazioni delle prenotazioni. Gli errori del server vanno
+     * sotto il loro campo; quelli della biglietteria (locale non abilitato,
+     * posti sotto i biglietti già presi) in cima al modulo.
+     */
+    fun saveSettings() {
+        val date = state.value.current ?: return
+        val draft = state.value.settingsDraft ?: return
+        if (state.value.busy) return
+        state.update { it.copy(busy = true, error = null, message = null, settingsErrors = FormErrors.None) }
+        viewModelScope.launch {
+            try {
+                val updated = repository.ticketing.settings(id, bookingSettingsBody(draft, date.settings, zoneOf(date), date.availability?.instructions))
+                state.update { it.copy(settingsDirty = false) }
+                show(updated)
+                state.update { it.copy(message = UiText.Res(R.string.management_settings_saved)) }
+            } catch (e: CancellationException) { throw e }
+            catch (e: Exception) { state.update { it.copy(settingsErrors = FormErrors.from(e, SETTINGS_FIELDS)) } }
+            finally { state.update { it.copy(busy = false) } }
+        }
+    }
+
+    /**
+     * Scarica il CSV dei partecipanti o la lista d'ingresso in PDF nella
+     * cache dell'app (`cacheDir` lo passa la schermata). Prima toglie i file
+     * scaricati più di un'ora fa.
+     */
+    fun export(kind: ExportKind, cacheDir: java.io.File) {
+        if (state.value.exportBusy != null) return
+        state.update { it.copy(exportBusy = kind, exportError = null, exported = null) }
+        viewModelScope.launch {
+            try {
+                runCatching { ManagementFiles.purge(cacheDir) }
+                val file = repository.ticketing.export(id, kind, ManagementFiles.directory(cacheDir))
+                state.update { it.copy(exported = file) }
+            } catch (e: CancellationException) { throw e }
+            catch (e: Exception) { state.update { it.copy(exportError = requestFailureMessage(e)) } }
+            finally { state.update { it.copy(exportBusy = null) } }
+        }
     }
 
     fun addGuestBooking(names: String, email: String, phone: String, note: String, onSaved: () -> Unit) = action {
@@ -264,7 +387,13 @@ internal class TicketingDateViewModel(private val repository: ManagementReposito
 
     companion object {
         const val KEY_ID = "id"
+        /** La scheda chiesta dalla rotta (`TicketingDateRoute.tab`) e quella scelta poi. */
+        const val KEY_TAB = "tab"
+        const val KEY_SELECTED_TAB = "selected_tab"
         const val MAX_PENDING = 200
+        /** I campi del modulo delle impostazioni, con i nomi del server. */
+        val SETTINGS_FIELDS = listOf("booking_enabled", "booking_capacity", "booking_limit", "booking_waitlist", "booking_opens_at", "booking_closes_at",
+            "cancellation_closes_at", "booking_instructions", "booking_fields", "booking_questions")
         private val TICKET_CODE = Regex("[A-Za-z0-9]{64}")
     }
 }
@@ -287,6 +416,9 @@ internal class CampaignViewModel(private val repository: ManagementRepository, s
 
     companion object { const val KEY_ID = "id" }
 }
+
+/** Il fuso della città della data; quello di Padova se il server non lo manda. */
+internal fun zoneOf(date: ManagedDate): ZoneId = date.timezone?.let { runCatching { ZoneId.of(it) }.getOrNull() } ?: ZoneId.of("Europe/Rome")
 
 /* Lo stesso tetto di `config/ticketing.php` → `messages.daily_limit`, finché `GET /management/options` non lo manda. */
 internal const val DEFAULT_MESSAGE_DAILY_LIMIT = 3

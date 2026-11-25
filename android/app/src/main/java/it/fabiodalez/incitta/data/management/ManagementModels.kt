@@ -175,16 +175,19 @@ private fun imageUrl(value: JsonElement?): String? = when (value) {
     else -> null
 }?.takeIf { it.isNotBlank() }
 
-/** I tre conteggi di `user.management` in `GET /me`. */
-internal data class UserManagementCounts(val venues: Int, val organizers: Int, val checkin: Int) {
+/** I conteggi di `user.management` in `GET /me`. `invitations` (P8) non accende «Gestione eventi»: ha la sua voce. */
+internal data class UserManagementCounts(val venues: Int, val organizers: Int, val checkin: Int, val invitations: Int = 0) {
     val any: Boolean get() = venues > 0 || organizers > 0 || checkin > 0
 }
 
 /** `null` quando il server non manda il campo (versione vecchia): allora non si sa. */
 internal fun User.managementCounts(): UserManagementCounts? {
     val value = management as? JsonObject ?: return null
-    return UserManagementCounts(countOf(value["venues"]), countOf(value["organizers"]), countOf(value["checkin"]))
+    return UserManagementCounts(countOf(value["venues"]), countOf(value["organizers"]), countOf(value["checkin"]), countOf(value["invitations"]))
 }
+
+/** La voce «I tuoi inviti» del profilo: solo con almeno un invito in attesa (un server vecchio non lo manda). */
+internal fun pendingInvitations(user: User): Int = user.managementCounts()?.invitations ?: 0
 
 /**
  * La voce «Gestione eventi» del profilo: solo a chi gestisce qualcosa o

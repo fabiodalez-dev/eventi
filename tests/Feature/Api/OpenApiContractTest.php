@@ -55,6 +55,29 @@ it('espone un contratto OpenAPI utilizzabile da un generatore Android', function
         ->and($document['paths']['/management/venues/{venue}/events/{event}/poster']['post']['requestBody']['content'])->toHaveKey('multipart/form-data')
         ->and($document['paths']['/management/venues/{venue}/media/gallery']['post']['responses'])->toHaveKey('201');
 
+    // P8 (25/11/2026): collaboratori del locale, «Il tuo accesso», inviti ricevuti.
+    expect($document['paths'])->toHaveKeys([
+        '/management/venues/{venue}/members',
+        '/management/venues/{venue}/members/{member}',
+        '/management/venues/{venue}/members/{member}/resend',
+        '/management/venues/{venue}/members/{member}/invitation',
+        '/management/venues/{venue}/access',
+        '/management/venues/{venue}/access/leave',
+        '/me/invitations',
+        '/me/invitations/venues/{venue}',
+        '/me/invitations/checkin/{invitation}',
+    ])->and($document['paths'])->not->toHaveKey('/management/organizers/{organizer}/members');
+    // Il profilo del locale e dell'organizzazione (P4).
+    expect($document['paths'])->toHaveKeys([
+        '/management/venues/{venue}/profile',
+        '/management/venues/{venue}/notices',
+        '/management/venues/{venue}/contact/resend',
+        '/management/organizers/{organizer}/profile',
+        '/management/organizers/{organizer}/contact/resend',
+    ])
+        ->and($document['paths']['/management/venues/{venue}/profile'])->toHaveKeys(['get', 'patch'])
+        ->and($document['paths']['/management/venues/{venue}/notices']['post']['responses'])->toHaveKey('201');
+
     expect($document['paths']['/occurrences/{occurrence}/bookings']['post']['responses'])->toHaveKey('201')
         ->and($document['paths']['/me/bookings']['get']['security'])->toBe([['http' => []]])
         ->and($document['paths']['/me/bookings']['get']['responses']['200']['content']['application/json']['schema']['properties']['data']['items']['$ref'])->toBe('#/components/schemas/MobileBooking')

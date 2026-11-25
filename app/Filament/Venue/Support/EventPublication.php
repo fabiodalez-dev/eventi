@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Filament\Venue\Support;
 
-use App\Actions\PublishEventAction;
 use App\Enums\EventStatus;
 use App\Models\Event;
+use App\Models\User;
+use App\Services\Events\EventSubmission;
 use Filament\Notifications\Notification;
-use Illuminate\Support\Facades\Gate;
 
 /**
  * Che cosa succede quando un gestore preme «pubblica».
@@ -26,20 +26,13 @@ use Illuminate\Support\Facades\Gate;
  */
 final class EventPublication
 {
+    /** La regola sta in `EventSubmission`, la stessa che usa l'API di gestione. */
     public static function submit(Event $event): EventStatus
     {
-        Gate::authorize('update', $event);
-        abort_if(in_array($event->status, [EventStatus::Cancelled, EventStatus::Archived], true), 403);
-        if (Gate::allows('publish', $event) && app(PublishEventAction::class)->canPublish($event)) {
-            app(PublishEventAction::class)->publish($event);
+        $user = auth()->user();
+        abort_unless($user instanceof User, 403);
 
-            return $event->status;
-        }
-
-        $event->status = EventStatus::Pending;
-        $event->save();
-
-        return EventStatus::Pending;
+        return app(EventSubmission::class)->publish($event, $user);
     }
 
     public static function notify(EventStatus $status): void

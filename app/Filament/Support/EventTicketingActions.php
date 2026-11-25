@@ -4,12 +4,11 @@ declare(strict_types=1);
 
 namespace App\Filament\Support;
 
+use App\Actions\Ticketing\ConfigureBookings;
 use App\Models\Booking;
 use App\Models\Event;
 use App\Models\EventOccurrence;
 use App\Services\Ticketing\BookingForm;
-use App\Services\Ticketing\TicketingService;
-use Carbon\CarbonImmutable;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
@@ -70,14 +69,11 @@ final class EventTicketingActions
                 ])
                 ->modalSubmitActionLabel('Salva impostazioni ticketing')
                 ->modalSubmitAction(fn (Action $action): Action => $action->disabled(! $date->effectiveVenue()?->ticketing_enabled))
-                ->action(function (array $data) use ($date, $timezone): void {
+                ->action(function (array $data) use ($date): void {
                     Gate::authorize('manage', [Booking::class, $date]);
                     $actor = auth()->user();
                     abort_unless($actor !== null, 403);
-                    foreach (['booking_opens_at', 'booking_closes_at', 'cancellation_closes_at'] as $field) {
-                        $data[$field] = empty($data[$field]) ? null : CarbonImmutable::parse($data[$field], $timezone)->utc();
-                    }
-                    app(TicketingService::class)->configure($date, $data, $actor);
+                    app(ConfigureBookings::class)($date, $data, $actor);
                     Notification::make()->success()->title('Impostazioni ticketing salvate')->send();
                 });
         })->all();

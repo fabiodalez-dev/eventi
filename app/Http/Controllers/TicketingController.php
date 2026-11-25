@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Actions\Account\AssignCheckinStaff;
+use App\Actions\Ticketing\ConfigureBookings;
 use App\DTOs\PageMeta;
 use App\Enums\AdmissionStatus;
 use App\Enums\BookingStatus;
@@ -28,7 +29,6 @@ use App\Services\Ticketing\MobileManagement;
 use App\Services\Ticketing\TicketingService;
 use App\Services\Ticketing\TicketPdf;
 use Barryvdh\DomPDF\Facade\Pdf;
-use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
@@ -224,14 +224,10 @@ final class TicketingController extends Controller
         ]);
     }
 
-    public function configure(ManageRequest $request, EventOccurrence $occurrence, TicketingService $service): RedirectResponse
+    public function configure(ManageRequest $request, EventOccurrence $occurrence, ConfigureBookings $configure): RedirectResponse
     {
         Gate::authorize('manage', [Booking::class, $occurrence]);
-        $settings = $request->validated();
-        foreach (['booking_opens_at', 'booking_closes_at', 'cancellation_closes_at'] as $field) {
-            $settings[$field] = empty($settings[$field]) ? null : Carbon::parse($settings[$field], $occurrence->event->city->timezone)->utc();
-        }
-        $service->configure($occurrence, $settings, $request->user());
+        $configure($occurrence, $request->validated(), $request->user());
 
         return redirect()->route('ticketing.manage.show', $occurrence)->with('status', __('ticketing.updated'));
     }

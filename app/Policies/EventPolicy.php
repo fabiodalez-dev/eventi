@@ -86,6 +86,12 @@ class EventPolicy
      * Un locale con `auto_publish` pubblica da sé; altrimenti serve la
      * redazione (`events.moderate`) — è la semantica dichiarata dal campo
      * `venues.auto_publish` nello schema.
+     *
+     * `auto_publish` vale per gli eventi **del locale**: quello di
+     * un'organizzazione (`organizer_id`) passa sempre dalla redazione, anche
+     * quando a premere «Pubblica» è il locale che lo ospita. Altrimenti il
+     * locale metterebbe online senza revisione ciò che l'organizzazione non
+     * può pubblicare da sé.
      */
     public function publish(User $user, Event $event): bool
     {
@@ -95,7 +101,7 @@ class EventPolicy
             return false;
         }
         if ($this->canActOnEvent($user, $event, Permission::PublishEvents)) {
-            return $this->isGlobalStaff($user) || $event->venue?->auto_publish === true;
+            return $this->isGlobalStaff($user) || ($event->organizer_id === null && $event->venue?->auto_publish === true);
         }
 
         return $user->can(Permission::ModerateEvents->value);

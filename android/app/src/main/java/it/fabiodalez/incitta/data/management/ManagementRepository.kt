@@ -79,6 +79,14 @@ internal class ManagementRepository(
     private val scope: CoroutineScope,
     private val retryDelayMillis: Long = RETRY_DELAY_MILLIS,
     send: (suspend (PendingCheckin) -> CheckedInTicket)? = null,
+    /* Commenti e recensioni (P7). */
+    val feedback: ManagementFeedbackSource? = null,
+    /* P8: collaboratori, «Il tuo accesso», inviti ricevuti. */
+    val people: ManagementPeopleSource? = null,
+    /* Profilo del locale e dell'organizzazione (P4). */
+    val profile: ManagementProfileSource? = null,
+    /* Gli eventi (P1); `null` nei test che non li usano. */
+    val events: ManagementEventsApi? = null,
 ) {
     private val outbox = CheckinOutbox(userId, device::readCheckins, device::writeCheckins, send ?: ticketing::checkIn)
     private val checkinState = MutableStateFlow(CheckinQueue(safePending()))
@@ -178,6 +186,10 @@ internal class ManagementRepository(
             userId = session.user.id, token = session.token,
             ticketing = ManagementApi(client, session.token), identity = ManagementIdentityApi(client, session.token),
             media = ManagementMediaApi(client, session.token), device = device, scope = scope,
+            feedback = ManagementFeedbackApi(client, session.token),
+            people = ManagementPeopleApi(client, session.token),
+            profile = ManagementProfileApi(client, session.token),
+            events = ManagementEventsApi(client, session.token),
         )
     }
 }
@@ -190,11 +202,14 @@ internal class ManagementRepository(
 internal object ManagementGraph {
     private var current: ManagementRepository? = null
     private var currentClient: ApiClient? = null
+    private var cacheDir: java.io.File? = null
 
     @Synchronized
     fun repository(context: android.content.Context, session: Session, client: ApiClient? = null): ManagementRepository {
         current?.takeIf { it.token == session.token && it.userId == session.user.id && (client == null || client === currentClient) }?.let { return it }
         current?.close()
+        // I file scaricati dalla sessione di prima (nomi e recapiti) non restano alla nuova.
+        cacheDir = context.applicationContext.cacheDir.also { runCatching { ManagementFiles.purge(it, maxAgeMillis = 0) } }
         val store = LocalStore(context.applicationContext)
         val api = client ?: ApiClient(store.installationId)
         return ManagementRepository.create(session, api, LocalManagementStore(store), CoroutineScope(SupervisorJob() + Dispatchers.IO)).also {
@@ -207,6 +222,7 @@ internal object ManagementGraph {
     @Synchronized
     fun retain(token: String?) {
         if (current != null && current?.token != token) {
+            cacheDir?.let { runCatching { ManagementFiles.purge(it, maxAgeMillis = 0) } }
             current?.close()
             current = null
             currentClient = null

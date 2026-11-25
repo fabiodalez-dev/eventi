@@ -14,6 +14,7 @@ use App\Models\Organizer;
 use App\Models\User;
 use App\Models\Venue;
 use App\Services\Carpool\CarpoolAccess;
+use App\Services\Management\ManagedFeedback;
 use App\Services\Reviews\CatalogReviews;
 use App\Support\Api\ApiResponse;
 use Illuminate\Http\JsonResponse;
@@ -29,10 +30,13 @@ class CatalogReviewController extends Controller
         $subject = $this->subject($request, $slug);
         $user = $request->user('sanctum');
 
+        $user = $user instanceof User ? $user : null;
         $reviews = app(CatalogReviews::class);
+        $listing = $reviews->apiListing($reviews->listing($subject, $user, $request->integer('page', 1)));
+        // Chi gestisce la scheda ci risponde dalla gestione: l'app la apre nella schermata nativa.
+        $listing['manage_url'] = app(ManagedFeedback::class)->panelUrl($subject, $user, 'reviews');
 
-        return ApiResponse::item($reviews->apiListing($reviews->listing($subject, $user instanceof User ? $user : null, $request->integer('page', 1))))
-            ->header('Cache-Control', 'private, no-store');
+        return ApiResponse::item($listing)->header('Cache-Control', 'private, no-store');
     }
 
     public function store(StoreCatalogReviewRequest $request, string $slug): JsonResponse|RedirectResponse

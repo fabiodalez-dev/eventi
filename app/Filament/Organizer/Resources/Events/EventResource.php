@@ -20,7 +20,10 @@ use App\Models\City;
 use App\Models\Event;
 use App\Models\Organizer;
 use App\Models\Venue;
+use App\Services\Events\EventFormRules;
+use App\Services\Events\OrganizerEventEditor;
 use App\Services\Management\ManagedContent;
+use Carbon\CarbonImmutable;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\EditAction;
@@ -80,8 +83,13 @@ class EventResource extends Resource
             TextInput::make('title')->label('Titolo')->required()->maxLength(255),
             ImageUpload::make('poster')->label('Locandina')->collection('poster'),
             DescriptionEditor::make('description')->label('Descrizione completa')->required()->maxLength(50000),
-            Select::make('city_id')->label('Città dell’evento')->relationship('city', 'name')->required()->searchable(),
-            Select::make('venue_id')->label('Locale principale')->relationship('venue', 'name', fn ($query) => $query->approved())->searchable()->required()->helperText('Le singole date possono svolgersi in altri locali.'),
+            Select::make('city_id')->label('Città dell’evento')->relationship('city', 'name')->required()->searchable()
+                ->disabled(fn (?Event $record): bool => ! self::canMove($record)),
+            Select::make('venue_id')->label('Locale principale')->relationship('venue', 'name', fn ($query) => $query->approved())->searchable()->required()
+                ->disabled(fn (?Event $record): bool => ! self::canMove($record))
+                ->helperText(fn (?Event $record): string => self::canMove($record)
+                    ? 'Le singole date possono svolgersi in altri locali.'
+                    : 'Città e locale principale li cambia solo l’organizzazione che ha creato l’evento.'),
             Select::make('category_id')->label('Categoria')->options(fn () => Category::query()->active()->pluck('name', 'id'))->required()->searchable(),
             Select::make('tags')->label('Tag')->relationship('tags', 'name')->multiple()->searchable(),
             Select::make('price_type')->label('Prezzo')->options(PriceType::options())->required()->default('free'),
@@ -89,7 +97,7 @@ class EventResource extends Resource
             TextInput::make('price_max')->label('Prezzo fino a (€)')->numeric()->minValue(0),
             TextInput::make('ticket_url')->label('Link biglietti')->url()->maxLength(2048),
             Section::make(__('facebook_import.first_date'))->visibleOn('create')->columns(2)->schema([
-                DateTimePicker::make('starts_at')->label(__('facebook_import.starts_at'))->seconds(false)->requiredWith('ends_at')->dehydrated(false)->live(onBlur: true),
+                DateTimePicker::make('starts_at')->label(__('facebook_import.starts_at'))->seconds(false)->requiredWith('ends_at')->minDate(fn (): CarbonImmutable => EventFormRules::earliestStart())->dehydrated(false)->live(onBlur: true),
                 DateTimePicker::make('ends_at')->label(__('facebook_import.ends_at'))->seconds(false)->after('starts_at')->dehydrated(false)->live(onBlur: true),
                 SameNightNearbyField::make(fn (Get $get): ?array => self::sameNightContext($get)),
                 VenueClosureWarning::make(fn (Get $get): array => ['venue' => filled($get('custom_location.address')) ? null : Venue::find($get('venue_id')), 'start' => ($city = City::find($get('city_id'))) === null ? null : SameNightNearbyField::time($get('starts_at'), $city->timezone)]),
@@ -103,6 +111,18 @@ class EventResource extends Resource
             BeforeGoingFields::make(),
             EditorialFields::content(event: true),
         ]);
+    }
+
+    /**
+     * Città e locale principale: in creazione sempre, in modifica solo per
+     * l'organizzazione principale. La regola sta in `OrganizerEventEditor`,
+     * che la applica anche al salvataggio.
+     */
+    private static function canMove(?Event $record): bool
+    {
+        $tenant = Filament::getTenant();
+
+        return $record === null || ($tenant instanceof Organizer && app(OrganizerEventEditor::class)->canMove($record, $tenant));
     }
 
     /**

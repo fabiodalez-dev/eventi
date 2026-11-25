@@ -25,6 +25,8 @@ fun EventCommentsSection(
     delete: suspend (Long) -> Unit,
     resend: suspend () -> Unit,
     emailVerified: Boolean = false,
+    /* Apre la moderazione nella gestione; il server manda l'indirizzo solo a chi gestisce l'evento. */
+    onModerate: ((String) -> Unit)? = null,
 ) = key(slug, userId) {
     var data by remember { mutableStateOf<EventCommentPage?>(null) }
     var body by rememberSaveable { mutableStateOf("") }
@@ -55,6 +57,11 @@ fun EventCommentsSection(
         error?.let { Text(it, color = MaterialTheme.colorScheme.error); TextButton(enabled = !busy, onClick = { run { refresh() } }) { Text(stringResource(R.string.comments_reload)) } }
         message?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
         data?.let { page ->
+            val manage = page.manageUrl?.takeIf { it.isNotBlank() }
+            if (manage != null && onModerate != null) {
+                Text(stringResource(R.string.feedback_public_moderate_help), style = MaterialTheme.typography.bodySmall)
+                OutlinedButton(onClick = { onModerate(manage) }, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.feedback_public_moderate)) }
+            }
             if (page.comments.isEmpty()) Text(stringResource(R.string.comments_empty))
             page.comments.forEach { comment ->
                 CommentRow(comment, page.canComment, busy, onReply = { reply = it },

@@ -534,9 +534,10 @@ fun AccountScreen(
     onOpenSavedSearch: (it.fabiodalez.incitta.data.SavedSearch) -> Unit = {},
     onResendConfirmation: () -> Unit = {},
     onDismissConfirmation: () -> Unit = {},
+    onInvitations: () -> Unit = {},
 ) {
     if (state.session != null) {
-        ProfileScreen(state, padding, onTickets, onSaved, onLogout, onDeleteAccount, onInterestsSaved, onAppearance, onProfileSaved, onCommunity, onCarpool, onCarpoolMessages, onCommunityInbox, communityTotal, onManagement, onPublicProfile, onRelationships, onVerification, onAttended, onCollections, onOpenSavedSearch)
+        ProfileScreen(state, padding, onTickets, onSaved, onLogout, onDeleteAccount, onInterestsSaved, onAppearance, onProfileSaved, onCommunity, onCarpool, onCarpoolMessages, onCommunityInbox, communityTotal, onManagement, onPublicProfile, onRelationships, onVerification, onAttended, onCollections, onOpenSavedSearch, onInvitations)
         return
     }
     state.pendingEmailConfirmation?.let { pending ->

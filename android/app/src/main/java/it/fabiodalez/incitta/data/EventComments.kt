@@ -13,6 +13,8 @@ data class EventCommentPage(
     @SerialName("replies_page") val repliesPage: Int = 1,
     @SerialName("replies_last_page") val repliesLastPage: Int = 1,
     @SerialName("can_comment") val canComment: Boolean = false,
+    /* Solo a chi gestisce il locale o l'organizzazione dell'evento: la pagina di moderazione, che l'app apre nativa. */
+    @SerialName("manage_url") val manageUrl: String? = null,
 )
 
 @Serializable

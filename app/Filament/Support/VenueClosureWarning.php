@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Support;
 
 use App\Models\Venue;
-use App\Support\VenueClosures;
+use App\Services\Events\EventDateChecks;
 use Carbon\CarbonImmutable;
 use Closure;
 use Filament\Infolists\Components\TextEntry;
@@ -45,13 +45,7 @@ final class VenueClosureWarning
      */
     private static function closure(?array $context): ?array
     {
-        $venue = $context['venue'] ?? null;
-        $start = $context['start'] ?? null;
-        if (! $venue instanceof Venue || $start === null || ! is_array($venue->closures)) {
-            return null;
-        }
-        $timezone = $venue->city->timezone ?? config()->string('app.timezone');
-
-        return VenueClosures::covering($venue->closures, $timezone, day: $start->setTimezone($timezone)->format('Y-m-d'));
+        // La regola sta in `EventDateChecks`, la stessa che usa l'API di gestione.
+        return EventDateChecks::closure($context['venue'] ?? null, $context['start'] ?? null);
     }
 }

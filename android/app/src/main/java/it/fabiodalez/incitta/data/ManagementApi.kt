@@ -5,6 +5,13 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import it.fabiodalez.incitta.data.management.BookingSettings
+import it.fabiodalez.incitta.data.management.BookingsPage
+import it.fabiodalez.incitta.data.management.DownloadedFile
+import it.fabiodalez.incitta.data.management.EventTicketing
+import it.fabiodalez.incitta.data.management.ExportKind
+import it.fabiodalez.incitta.data.management.ManagedBooking
+import it.fabiodalez.incitta.data.management.MessageHistory
 
 @Serializable
 internal data class ManagedDate(
@@ -15,6 +22,26 @@ internal data class ManagedDate(
     @SerialName("cost_breakdown") val costs: JsonObject = buildJsonObject {},
     val currency: String = "EUR", val staff: List<CheckinStaff> = emptyList(),
     val statistics: Map<String, Int> = emptyMap(), val availability: BookingAvailability? = null,
+    /* Biglietteria completa (P3): campi aggiunti dal server, tutti facoltativi per i server di prima. */
+    val poster: Poster? = null,
+    val counts: DateCounts? = null,
+    @SerialName("booking_enabled") val bookingEnabled: Boolean = false,
+    @SerialName("ticketing_enabled") val ticketingEnabled: Boolean = true,
+    val ended: Boolean = false,
+    val timezone: String? = null,
+    val address: String? = null,
+    /** Le impostazioni delle prenotazioni salvate: solo nella scheda e solo per chi gestisce. */
+    val settings: BookingSettings? = null,
+)
+
+/** I numeri di una data, quelli del riepilogo del sito. `capacity` vuoto: posti senza limite. */
+@Serializable internal data class DateCounts(
+    val confirmed: Int = 0,
+    @SerialName("checked_in") val checkedIn: Int = 0,
+    val waitlisted: Int = 0,
+    val cancelled: Int = 0,
+    @SerialName("no_show") val noShow: Int = 0,
+    val capacity: Int? = null,
 )
 @Serializable internal data class CheckinStaff(val id: Long, val email: String, val name: String = "", val status: String = "accepted") {
     val pending: Boolean get() = status == "pending"
@@ -50,7 +77,8 @@ internal data class ManagedDate(
  * ViewModel della gestione si provano con un finto, senza rete.
  */
 internal interface TicketingApi {
-    suspend fun dates(past: Boolean, page: Int): ApiEnvelope<List<ManagedDate>>
+    /** Le date gestite o da controllare; `query` cerca nel titolo e nel nome del locale. */
+    suspend fun dates(past: Boolean, page: Int, query: String): ApiEnvelope<List<ManagedDate>>
     suspend fun date(id: Long): ManagedDate
     suspend fun staff(id: Long, email: String, remove: Boolean)
     suspend fun details(id: Long, body: JsonObject)
@@ -60,11 +88,20 @@ internal interface TicketingApi {
     suspend fun guestBooking(id: Long, names: String, email: String?, phone: String?, note: String?): Booking
     suspend fun checkIn(read: PendingCheckin): CheckedInTicket
     suspend fun manifest(id: Long): ManifestPayload
+
+    /* Biglietteria completa (P3). */
+    suspend fun bookings(id: Long, status: String?, query: String, page: Int): BookingsPage
+    suspend fun cancelBooking(id: Long, bookingId: Long, ticketId: Long?, reason: String?): ManagedBooking
+    suspend fun settings(id: Long, body: JsonObject): ManagedDate
+    suspend fun messages(id: Long): MessageHistory
+    suspend fun eventTicketing(venueId: Long, eventId: Long): EventTicketing
+    /** Scarica il CSV dei partecipanti o la lista d'ingresso in PDF dentro `directory`. */
+    suspend fun export(id: Long, kind: ExportKind, directory: java.io.File): DownloadedFile
 }
 
 internal class ManagementApi(private val api: ApiClient, private val token: String) : TicketingApi {
-    override suspend fun dates(past: Boolean, page: Int): ApiEnvelope<List<ManagedDate>> =
-        api.get("management/dates?period=${if (past) "past" else "upcoming"}&page=$page", token)
+    override suspend fun dates(past: Boolean, page: Int, query: String): ApiEnvelope<List<ManagedDate>> =
+        api.get("management/dates?period=${if (past) "past" else "upcoming"}&page=$page" + query.trim().takeIf { it.isNotEmpty() }?.let { "&q=" + queryParam(it) }.orEmpty(), token)
     override suspend fun date(id: Long): ManagedDate = api.get<ApiEnvelope<ManagedDate>>("management/dates/$id", token).data
     override suspend fun staff(id: Long, email: String, remove: Boolean) {
         api.post<ApiEnvelope<ApiMessage>, JsonObject>("management/dates/$id/staff", buildJsonObject { put("email", email); put("remove", remove) }, token)
@@ -81,6 +118,27 @@ internal class ManagementApi(private val api: ApiClient, private val token: Stri
     override suspend fun checkIn(read: PendingCheckin): CheckedInTicket = api.post<ApiEnvelope<CheckedInTicket>, JsonObject>(
         "ticketing/${read.occurrenceId}/check-in", checkInBody(read), token).data
     override suspend fun manifest(id: Long): ManifestPayload = api.get<ApiEnvelope<ManifestPayload>>("ticketing/$id/manifest", token).data
+
+    override suspend fun bookings(id: Long, status: String?, query: String, page: Int): BookingsPage =
+        api.get("management/dates/$id/bookings?page=$page" + status?.let { "&status=" + queryParam(it) }.orEmpty() + query.trim().takeIf { it.isNotEmpty() }?.let { "&q=" + queryParam(it) }.orEmpty(), token)
+    override suspend fun cancelBooking(id: Long, bookingId: Long, ticketId: Long?, reason: String?): ManagedBooking =
+        api.post<ApiEnvelope<ManagedBooking>, JsonObject>("management/dates/$id/bookings/$bookingId/cancel", cancelBookingBody(ticketId, reason), token).data
+    override suspend fun settings(id: Long, body: JsonObject): ManagedDate =
+        api.execute<ApiEnvelope<ManagedDate>>("management/dates/$id/settings", "PATCH", body.toString(), token).data
+    override suspend fun messages(id: Long): MessageHistory = api.get("management/dates/$id/messages", token)
+    override suspend fun eventTicketing(venueId: Long, eventId: Long): EventTicketing =
+        api.get<ApiEnvelope<EventTicketing>>("management/venues/$venueId/events/$eventId/ticketing", token).data
+    override suspend fun export(id: Long, kind: ExportKind, directory: java.io.File): DownloadedFile =
+        api.download("management/dates/$id/${kind.path}", token, java.io.File(directory, kind.fileName(id)))
+}
+
+/** Un valore in una query string. */
+internal fun queryParam(value: String): String = java.net.URLEncoder.encode(value, Charsets.UTF_8.name())
+
+/** Il corpo dell'annullamento da gestore: senza `ticket_id` si annulla tutta la prenotazione; il motivo vuoto non si manda. */
+internal fun cancelBookingBody(ticketId: Long?, reason: String?): JsonObject = buildJsonObject {
+    ticketId?.let { put("ticket_id", it) }
+    reason?.trim()?.takeIf { it.isNotEmpty() }?.let { put("reason", it.take(500)) }
 }
 
 /** Il corpo della prenotazione dal banco: righe vuote tolte, campi vuoti non inviati. */

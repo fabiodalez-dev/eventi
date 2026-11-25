@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Profilo del locale e dell'organizzazione (P4): le pagine «Il tuo locale» e «Profilo» dei pannelli. -->
+<resources>
+    <string name="profile_venue_title">Il tuo locale</string>
+    <string name="profile_venue_lead">I dati della scheda pubblica. Nome e tipo li cambia la redazione: scrivici se sono sbagliati.</string>
+    <string name="profile_organizer_title">Profilo dell’organizzazione</string>
+    <string name="profile_organizer_lead">La presentazione e i contatti che compaiono sulla pagina pubblica dell’organizzazione.</string>
+    <string name="profile_no_subject">Scegli prima un locale o un’organizzazione dalla pagina della gestione.</string>
+    <string name="profile_not_allowed">Il profilo lo cambia solo il referente del locale o chi ha creato l’organizzazione.</string>
+    <string name="profile_identity">%1$s · %2$s</string>
+    <string name="profile_save">Salva</string>
+    <string name="profile_saved">Salvato. La scheda pubblica è aggiornata.</string>
+    <string name="profile_to_fill">Da compilare</string>
+    <string name="profile_open_public">Apri la pagina pubblica</string>
+
+    <!-- Sezioni -->
+    <string name="profile_section_description">Descrizione</string>
+    <string name="profile_section_images">Immagini</string>
+    <string name="profile_section_images_status">Logo, copertina e galleria</string>
+    <string name="profile_section_where">Dove</string>
+    <string name="profile_section_hours">Orari, chiusure e capienza</string>
+    <string name="profile_section_contacts">Contatti e social</string>
+    <string name="profile_section_transit">Come arrivare</string>
+    <string name="profile_section_accessibility">Accessibilità</string>
+    <string name="profile_section_card">Scheda del locale e tessera</string>
+    <string name="profile_section_before_going">Prima di andare</string>
+    <string name="profile_section_editorial">Informazioni utili</string>
+    <string name="profile_section_seo">Motori di ricerca</string>
+    <string name="profile_section_contact_form">Modulo di contatto</string>
+    <string name="profile_section_notice">Avvisa chi ti segue</string>
+    <string name="profile_section_tools">Da mettere sul tuo sito</string>
+    <string name="profile_section_tools_status">Pagina pubblica, calendario e riquadro delle date</string>
+
+    <plurals name="profile_status_hours">
+        <item quantity="one">%1$d fascia oraria</item>
+        <item quantity="other">%1$d fasce orarie</item>
+    </plurals>
+    <plurals name="profile_status_closures">
+        <item quantity="one">%1$d chiusura in arrivo</item>
+        <item quantity="other">%1$d chiusure in arrivo</item>
+    </plurals>
+    <plurals name="profile_status_rows">
+        <item quantity="one">%1$d voce</item>
+        <item quantity="other">%1$d voci</item>
+    </plurals>
+    <plurals name="profile_status_faqs">
+        <item quantity="one">%1$d domanda frequente</item>
+        <item quantity="other">%1$d domande frequenti</item>
+    </plurals>
+    <string name="profile_status_membership">tessera richiesta</string>
+    <string name="profile_status_seo_auto">Titolo e descrizione automatici</string>
+    <string name="profile_status_contact_off">Nessuno può scrivere dal modulo</string>
+    <string name="profile_status_notice_none">Nessun avviso pubblicato</string>
+    <string name="profile_status_notice_latest">Ultimo avviso: %1$s</string>
+
+    <!-- Descrizione -->
+    <string name="profile_short_description">Descrizione breve</string>
+    <string name="profile_short_description_help">Al massimo 500 caratteri: compare negli elenchi e nelle anteprime.</string>
+    <string name="profile_description">Descrizione completa</string>
+    <string name="profile_counter">%1$d su %2$d</string>
+
+    <!-- Immagini -->
+    <string name="profile_logo">Logo</string>
+    <string name="profile_logo_help">Si ritaglia quadrato. Compare sulla scheda e negli elenchi dei locali.</string>
+    <string name="profile_cover">Copertina</string>
+    <string name="profile_cover_help">Si ritaglia in formato 16:9, quello della testata della scheda.</string>
+    <string name="profile_gallery">Galleria</string>
+    <plurals name="profile_gallery_help">
+        <item quantity="one">Fino a %1$d foto. L’ordine qui è quello della scheda pubblica.</item>
+        <item quantity="other">Fino a %1$d foto. L’ordine qui è quello della scheda pubblica.</item>
+    </plurals>
+    <string name="profile_gallery_empty">Nessuna foto nella galleria.</string>
+    <string name="profile_gallery_full">La galleria è piena: togli una foto per aggiungerne un’altra.</string>
+    <string name="profile_image_choose">Scegli una foto</string>
+    <string name="profile_image_replace">Cambia</string>
+    <string name="profile_image_remove">Togli</string>
+    <string name="profile_image_none">Nessuna immagine</string>
+    <string name="profile_image_preparing">Preparo l’immagine…</string>
+    <string name="profile_gallery_add">Aggiungi una foto</string>
+    <string name="profile_gallery_photo">Foto %1$d della galleria</string>
+    <string name="profile_gallery_up">Sposta prima la foto %1$d</string>
+    <string name="profile_gallery_down">Sposta dopo la foto %1$d</string>
+    <string name="profile_gallery_remove">Togli la foto %1$d</string>
+    <string name="profile_image_remove_title">Togliere l’immagine?</string>
+    <string name="profile_image_remove_text">Sparisce dalla scheda pubblica. Per rimetterla dovrai caricarla di nuovo.</string>
+    <string name="profile_crop_title">Ritaglia</string>
+    <string name="profile_crop_help">Sposta la foto con un dito e ingrandiscila con due: carico solo la parte dentro la cornice.</string>
+    <string name="profile_crop_frame">Cornice del ritaglio</string>
+    <string name="profile_crop_use">Usa questo ritaglio</string>
+    <string name="profile_crop_failed">Non sono riuscito a ritagliare la foto. Riprova con un’altra.</string>
+
+    <!-- Dove -->
+    <string name="profile_map">Posizione sulla mappa</string>
+    <string name="profile_map_help">Sposta la mappa finché il segnaposto al centro è sulla porta del locale, poi tocca «Metti qui il segnaposto».</string>
+    <string name="profile_map_set">Metti qui il segnaposto</string>
+    <string name="profile_map_saved">Punto scelto: %1$s</string>
+    <string name="profile_map_saved_no_address">Punto scelto sulla mappa.</string>
+    <string name="profile_map_missing">Il locale non è ancora sulla mappa.</string>
+    <string name="profile_map_marker">Segnaposto al centro della mappa</string>
+    <string name="profile_address">Indirizzo</string>
+    <string name="profile_address_extra">Dettagli dell’indirizzo</string>
+    <string name="profile_address_extra_help">Scala, cortile, piano: quello che serve per trovare la porta.</string>
+    <string name="profile_postal_code">CAP</string>
+    <string name="profile_municipality">Comune</string>
+    <string name="profile_municipality_search">Cerca il comune</string>
+    <string name="profile_district">Quartiere</string>
+    <string name="profile_district_help">Per il comune di Padova il quartiere è obbligatorio: serve a «Stasera vicino a te».</string>
+
+    <!-- Orari -->
+    <string name="profile_hours">Orari di apertura</string>
+    <string name="profile_hours_help">Una riga per ogni fascia: un giorno con pausa pranzo ne ha due. Un orario che passa la mezzanotte (18:00–02:00) va bene così.</string>
+    <string name="profile_hours_add">Aggiungi una fascia oraria</string>
+    <string name="profile_hours_day">Giorno</string>
+    <string name="profile_hours_from">Dalle</string>
+    <string name="profile_hours_to">Alle</string>
+    <string name="profile_hours_row">Fascia %1$d</string>
+    <string name="profile_closures">Chiusure straordinarie</string>
+    <string name="profile_closures_help">Ferie, lavori, un giorno di festa: in quei giorni il locale risulta chiuso anche se l’orario direbbe aperto. Le chiusure finite spariscono da sole.</string>
+    <string name="profile_closures_add">Aggiungi una chiusura</string>
+    <string name="profile_closures_from">Dal</string>
+    <string name="profile_closures_to">Al</string>
+    <string name="profile_closures_note">Nota (facoltativa)</string>
+    <string name="profile_closures_note_hint">Per esempio: ferie estive</string>
+    <string name="profile_closures_row">Chiusura %1$d</string>
+    <string name="profile_capacity">Capienza</string>
+    <string name="profile_capacity_help">Quante persone ci stanno. Facoltativo.</string>
+    <string name="profile_pick_day">Scegli il giorno</string>
+    <string name="profile_pick_time">Scegli l’ora</string>
+
+    <!-- Righe -->
+    <string name="profile_row_up">Sposta su: %1$s</string>
+    <string name="profile_row_down">Sposta giù: %1$s</string>
+    <string name="profile_row_remove">Togli: %1$s</string>
+    <string name="profile_rows_max">Al massimo %1$d righe.</string>
+
+    <!-- Contatti -->
+    <string name="profile_phone">Telefono</string>
+    <string name="profile_email">Email pubblica</string>
+    <string name="profile_website">Sito web</string>
+    <string name="profile_socials">Social</string>
+    <string name="profile_socials_help">Fino a 12: il nome (Instagram, Facebook…) e l’indirizzo completo.</string>
+    <string name="profile_socials_add">Aggiungi un social</string>
+    <string name="profile_social_name">Nome</string>
+    <string name="profile_social_url">Indirizzo</string>
+    <string name="profile_social_row">Social %1$d</string>
+
+    <!-- Come arrivare -->
+    <string name="profile_transit_help">Fino a %1$d indicazioni: il mezzo e, nel testo, la linea e la fermata.</string>
+    <string name="profile_transit_add">Aggiungi un’indicazione</string>
+    <string name="profile_transit_mode">Mezzo</string>
+    <string name="profile_transit_text">Linea e fermata</string>
+    <string name="profile_transit_row">Indicazione %1$d</string>
+
+    <!-- Accessibilità -->
+    <string name="profile_accessibility_help">Per ogni voce: sì, no, oppure non dichiarato. «Non dichiarato» non è un no: chi legge saprà che non l’hai detto.</string>
+    <string name="profile_yes">Sì</string>
+    <string name="profile_no">No</string>
+    <string name="profile_undeclared">Non dichiarato</string>
+    <string name="profile_unspecified">Non specificato</string>
+
+    <!-- Scheda e tessera -->
+    <string name="profile_info">Scheda del locale</string>
+    <string name="profile_info_help">Fino a %1$d righe brevi: un’etichetta e un valore (Guardaroba · Gratuito).</string>
+    <string name="profile_info_add">Aggiungi una riga</string>
+    <string name="profile_info_label">Etichetta</string>
+    <string name="profile_info_value">Valore</string>
+    <string name="profile_info_row">Riga %1$d</string>
+    <string name="profile_requires_membership">Serve la tessera per entrare</string>
+    <string name="profile_membership_notes">Note sulla tessera</string>
+
+    <!-- Prima di andare -->
+    <string name="profile_before_lead">Informazioni predefinite per tutti gli eventi di questo locale: compariranno già compilate nelle schede degli eventi.</string>
+    <string name="profile_before_ages">Per chi è adatto</string>
+    <string name="profile_before_stroller">Accessibile con il passeggino</string>
+    <string name="profile_before_changing_table">Fasciatoio</string>
+    <string name="profile_before_kids_area">Area bambini</string>
+    <string name="profile_before_membership">Tessera</string>
+    <string name="profile_before_wheelchair">Accesso in sedia a rotelle</string>
+    <string name="profile_before_accessible">Accessibile</string>
+    <string name="profile_before_not_accessible">Non accessibile</string>
+    <string name="profile_before_membership_notes">Dettagli tessera</string>
+    <string name="profile_before_accessibility_notes">Dettagli accessibilità</string>
+    <string name="profile_before_features">Caratteristiche e servizi</string>
+    <string name="profile_before_features_help">Tocca per scegliere: compaiono nella scheda di ogni evento del locale.</string>
+    <string name="profile_before_features_search">Cerca una caratteristica</string>
+    <string name="profile_before_custom">Altre informazioni del locale</string>
+    <string name="profile_before_custom_help">Fino a 12 voci libere, aggiunte a ogni evento del locale.</string>
+    <string name="profile_before_custom_add">Aggiungi una voce libera</string>
+    <string name="profile_before_custom_label">Titolo</string>
+    <string name="profile_before_custom_icon">Icona</string>
+    <string name="profile_before_custom_text">Dettagli</string>
+    <string name="profile_before_custom_row">Voce %1$d</string>
+    <string name="profile_before_food">Cibo e bevande</string>
+    <string name="profile_before_start">Inizio e accesso</string>
+
+    <!-- Informazioni editoriali -->
+    <string name="profile_editorial_lead">Testi più lunghi per la scheda pubblica e per chi cerca il locale.</string>
+    <string name="profile_editorial_intro">Introduzione</string>
+    <string name="profile_editorial_parking">Parcheggio</string>
+    <string name="profile_editorial_parking_notes">Note sul parcheggio</string>
+    <string name="profile_editorial_transit_notes">Note sui mezzi pubblici</string>
+    <string name="profile_editorial_entrance_notes">Note sull’ingresso</string>
+    <string name="profile_editorial_faqs">Domande frequenti</string>
+    <string name="profile_editorial_faqs_add">Aggiungi una domanda</string>
+    <string name="profile_editorial_question">Domanda</string>
+    <string name="profile_editorial_answer">Risposta</string>
+    <string name="profile_editorial_faq_row">Domanda %1$d</string>
+
+    <!-- SEO -->
+    <string name="profile_seo_lead">Come appare il locale su Google e quando si condivide il link. Lasciati vuoti, li scrivo io dai dati della scheda.</string>
+    <string name="profile_seo_title">Titolo per i motori di ricerca</string>
+    <string name="profile_seo_description">Descrizione per i motori di ricerca</string>
+    <string name="profile_seo_image">Immagine per le condivisioni (indirizzo)</string>
+
+    <!-- Modulo di contatto -->
+    <string name="profile_contact_lead">Un modulo sulla pagina pubblica per scriverti senza mostrare il tuo indirizzo.</string>
+    <string name="profile_contact_mode">Chi può scriverti dal modulo</string>
+    <string name="profile_contact_email">Indirizzo che riceve i messaggi</string>
+    <string name="profile_contact_email_help">Resta privato: chi scrive non lo vede.</string>
+    <string name="profile_contact_confirmed">Confermato: %1$s riceve i messaggi del modulo pubblico.</string>
+    <string name="profile_contact_pending">In attesa di conferma: chi legge %1$s deve aprire il collegamento ricevuto per email, valido %2$d giorni. Finché il recapito non è confermato, il modulo non compare sulla pagina pubblica.</string>
+    <string name="profile_contact_resend">Reinvia la conferma</string>
+
+    <!-- Avviso -->
+    <string name="profile_notice_lead">Arriva una volta sola a chi segue il locale con le notifiche accese e compare sulla scheda pubblica fino alla data indicata (o per un mese). Uno ogni %1$d giorni.</string>
+    <plurals name="profile_notice_followers">
+        <item quantity="one">Oggi lo riceverebbe %1$d persona.</item>
+        <item quantity="other">Oggi lo riceverebbero %1$d persone.</item>
+    </plurals>
+    <string name="profile_notice_kind">Tipo di avviso</string>
+    <string name="profile_notice_body">Testo</string>
+    <string name="profile_notice_body_help">Breve e concreto: «Chiusi per ferie dal 10 al 24 agosto, si riapre il 25».</string>
+    <string name="profile_notice_until">Valido fino al</string>
+    <string name="profile_notice_until_none">Nessuna scadenza</string>
+    <string name="profile_notice_until_clear">Togli la scadenza</string>
+    <string name="profile_notice_submit">Pubblica l’avviso</string>
+    <string name="profile_notice_confirm_title">Pubblicare l’avviso?</string>
+    <string name="profile_notice_confirm_text">Parte subito verso chi ti segue e non si può ritirare. Il prossimo potrai mandarlo fra %1$d giorni.</string>
+    <string name="profile_notice_latest">Ultimo avviso (%1$s): %2$s</string>
+    <string name="profile_notice_next">Il prossimo avviso si può pubblicare dal %1$s.</string>
+    <plurals name="profile_notice_published">
+        <item quantity="one">Avviso pubblicato: in arrivo a %1$d persona.</item>
+        <item quantity="other">Avviso pubblicato: in arrivo a %1$d persone.</item>
+    </plurals>
+
+    <!-- Strumenti -->
+    <string name="profile_tools_public">Pagina pubblica</string>
+    <string name="profile_tools_public_help">L’indirizzo da condividere o da mettere nei tuoi profili.</string>
+    <string name="profile_tools_calendar">Calendario da sottoscrivere</string>
+    <string name="profile_tools_calendar_help">Chi lo aggiunge al proprio calendario (Google, Apple, Outlook) vede i tuoi eventi aggiornati da soli.</string>
+    <string name="profile_tools_widget">Riquadro con le prossime date</string>
+    <string name="profile_tools_widget_help">Incolla questo codice nel tuo sito: mostra le prossime date del locale, senza cookie né tracciamento.</string>
+    <string name="profile_copy">Copia</string>
+    <string name="profile_share">Condividi</string>
+    <string name="profile_open">Apri</string>
+    <string name="profile_copied">Copiato.</string>
+    <string name="profile_copy_label">%1$s: copia</string>
+    <string name="profile_share_label">%1$s: condividi</string>
+
+    <!-- Organizzazione -->
+    <string name="profile_organizer_presentation">Presentazione</string>
+    <string name="profile_organizer_presentation_help">Chi siete, cosa organizzate, dove vi si trova.</string>
+    <string name="profile_organizer_website">Sito web</string>
+    <string name="profile_organizer_email">Email pubblica</string>
+</resources>

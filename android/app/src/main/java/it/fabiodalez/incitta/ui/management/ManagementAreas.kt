@@ -3,6 +3,10 @@ package it.fabiodalez.incitta.ui.management
 import it.fabiodalez.incitta.R
 import it.fabiodalez.incitta.data.management.ManagementSubject
 import it.fabiodalez.incitta.data.management.SubjectKind
+import it.fabiodalez.incitta.ui.management.feedback.FeedbackRoute
+import it.fabiodalez.incitta.ui.management.collaborators.CollaboratorsRoute
+import it.fabiodalez.incitta.ui.management.profile.ProfileRoute
+import it.fabiodalez.incitta.ui.management.events.EventsListRoute
 import it.fabiodalez.incitta.ui.management.ticketing.TicketingDatesRoute
 
 /**
@@ -12,14 +16,14 @@ import it.fabiodalez.incitta.ui.management.ticketing.TicketingDatesRoute
  */
 internal enum class ManagementArea(val title: Int, val help: Int, val entry: Any? = null) {
     Overview(R.string.management_area_overview, R.string.management_area_overview_help),
-    Events(R.string.management_area_events, R.string.management_area_events_help),
+    Events(R.string.management_area_events, R.string.management_area_events_help, EventsListRoute),
     Dates(R.string.management_area_dates, R.string.management_area_dates_help),
     Ticketing(R.string.management_area_ticketing, R.string.management_area_ticketing_help, TicketingDatesRoute),
-    Profile(R.string.management_area_profile, R.string.management_area_profile_help),
+    Profile(R.string.management_area_profile, R.string.management_area_profile_help, ProfileRoute),
     Analytics(R.string.management_area_analytics, R.string.management_area_analytics_help),
     Sponsorships(R.string.management_area_sponsorships, R.string.management_area_sponsorships_help),
-    Feedback(R.string.management_area_feedback, R.string.management_area_feedback_help),
-    Collaborators(R.string.management_area_collaborators, R.string.management_area_collaborators_help),
+    Feedback(R.string.management_area_feedback, R.string.management_area_feedback_help, FeedbackRoute()),
+    Collaborators(R.string.management_area_collaborators, R.string.management_area_collaborators_help, CollaboratorsRoute),
     Import(R.string.management_area_import, R.string.management_area_import_help),
     Social(R.string.management_area_social, R.string.management_area_social_help),
     Notifications(R.string.management_area_notifications, R.string.management_area_notifications_help),
@@ -38,7 +42,8 @@ internal enum class ManagementArea(val title: Int, val help: Int, val entry: Any
             Analytics -> can.analyticsView
             Sponsorships -> can.sponsorshipsView
             Feedback -> can.commentsModerate || can.reviewsReply
-            Collaborators -> can.collaboratorsManage
+            /* Il locale sì, l'organizzazione no (non ha collaboratori): il referente vi gestisce le persone, tutti «Il tuo accesso». */
+            Collaborators -> subject.kind == SubjectKind.Venue
             Import -> can.importManage && subject.kind == SubjectKind.Venue
             Social -> can.socialUse
             Notifications -> true

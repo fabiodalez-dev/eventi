@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- P8: collaboratori del locale, «Il tuo accesso» e gli inviti ricevuti. Gli stessi testi del pannello web. -->
+<resources>
+    <!-- Area -->
+    <string name="collaborators_title">Collaboratori</string>
+    <string name="collaborators_lead">Chi può pubblicare gli eventi di questo locale.</string>
+    <string name="collaborators_only_owner">I collaboratori li gestisce il referente del locale.</string>
+    <string name="collaborators_your_access">Il tuo accesso a questo locale</string>
+    <string name="collaborators_your_access_help">Il tuo ruolo, da quando, e come lasciare il locale</string>
+    <string name="collaborators_search">Cerca per nome o email</string>
+    <string name="collaborators_search_action">Cerca</string>
+    <string name="collaborators_empty">Nessuna persona corrisponde alla ricerca.</string>
+    <string name="collaborators_more">Mostra altre persone</string>
+    <string name="collaborators_pending_name">Invito in attesa</string>
+    <string name="collaborators_you">(tu)</string>
+    <string name="collaborators_accepted_on">Ha accettato il %1$s</string>
+    <string name="collaborators_pending_since">Invito da accettare · inviato il %1$s</string>
+    <string name="collaborators_pending">Invito da accettare</string>
+    <string name="collaborators_actions_for">Azioni per %1$s</string>
+
+    <!-- Invito -->
+    <string name="collaborators_invite">Invita un collaboratore</string>
+    <string name="collaborators_invite_description">Riceverà un’email con il collegamento per entrare. Potrà gestire gli eventi, non i dati del locale.</string>
+    <string name="collaborators_invite_name">Nome</string>
+    <string name="collaborators_invite_email">Email</string>
+    <string name="collaborators_invite_limits">Al massimo %1$d inviti l’ora e %2$d al giorno, contando anche quelli mandati dal sito e i reinvii.</string>
+    <string name="collaborators_invite_submit">Manda l’invito</string>
+    <string name="collaborators_invite_close">Chiudi</string>
+
+    <!-- Azioni sulla riga -->
+    <string name="collaborators_resend">Reinvia l’invito</string>
+    <string name="collaborators_resend_confirm">Parte un nuovo messaggio con un collegamento valido altri %1$d giorni; quello di prima smette di funzionare.</string>
+    <string name="collaborators_withdraw">Ritira l’invito</string>
+    <string name="collaborators_withdraw_confirm">Il collegamento già spedito smetterà di funzionare. Potrai invitare di nuovo questo indirizzo quando vuoi.</string>
+    <string name="collaborators_remove">Rimuovi</string>
+    <string name="collaborators_remove_title">Rimuovere %1$s?</string>
+    <string name="collaborators_remove_confirm">Non potrà più pubblicare eventi per questo locale. Gli eventi già inseriti restano.</string>
+
+    <!-- Il tuo accesso -->
+    <string name="access_title">Il tuo accesso</string>
+    <string name="access_role_title">Il tuo ruolo</string>
+    <string name="access_role_body">Il tuo ruolo in %1$s: %2$s</string>
+    <string name="access_owner_can">Puoi modificare la scheda del locale, invitare collaboratori e pubblicare gli eventi.</string>
+    <string name="access_editor_can">Puoi pubblicare e modificare gli eventi. Scheda del locale e collaboratori li gestisce il referente.</string>
+    <string name="access_since">Accesso dal %1$s</string>
+    <string name="access_danger_title">Zona pericolosa</string>
+    <string name="access_danger_body">Lasciando il locale perdi subito l’accesso a eventi, statistiche e grafiche. Per tornare serve un nuovo invito.</string>
+    <string name="access_last_owner">Sei l’unico referente: per lasciare il locale scrivi alla redazione, che deciderà a chi passarlo. Intanto puoi invitare altri collaboratori.</string>
+    <string name="access_go_collaborators">Vai ai collaboratori</string>
+    <string name="access_leave">Lascia il locale</string>
+    <string name="access_leave_title">Lasciare %1$s?</string>
+    <string name="access_leave_confirm">Non vedrai più la gestione di %1$s e non riceverai più le sue email. Gli eventi che hai inserito restano. Per tornare servirà un nuovo invito.</string>
+
+    <!-- I tuoi inviti -->
+    <string name="invitations_title">I tuoi inviti</string>
+    <string name="invitations_profile_help">Inviti da accettare: %1$d</string>
+    <string name="invitations_lead">Gli inviti a gestire un locale e a controllare gli ingressi di una data. Finché non rispondi non cambia niente.</string>
+    <string name="invitations_empty">Non hai inviti in attesa.</string>
+    <string name="invitations_venues">Locali</string>
+    <string name="invitations_checkin">Controllo ingressi</string>
+    <string name="invitations_venue_lead">Ti hanno invitato a gestire %1$s come %2$s.</string>
+    <string name="invitations_venue_consequences">Se accetti entri nella gestione del locale, ricevi le sue email (per esempio i nuovi commenti) e chi lo gestisce vede il tuo nome. Potrai lasciarlo quando vuoi.</string>
+    <string name="invitations_checkin_lead">Ti hanno invitato a controllare i biglietti all’ingresso di «%1$s», il %2$s.</string>
+    <string name="invitations_checkin_consequences">Se accetti puoi leggere i codici dei biglietti di questa sola data, e chi la gestisce vede il tuo indirizzo nel personale. Può togliere l’accesso quando vuole.</string>
+    <string name="invitations_expires">Vale fino al %1$s</string>
+    <string name="invitations_accept">Accetta l’invito</string>
+    <string name="invitations_decline">Rifiuta</string>
+    <string name="invitations_decline_title">Rifiutare l’invito?</string>
+    <string name="invitations_decline_venue">L’invito di %1$s sparisce. Per entrare in futuro servirà un nuovo invito.</string>
+    <string name="invitations_decline_checkin">L’invito al controllo ingressi di «%1$s» sparisce. Per entrare in futuro servirà un nuovo invito.</string>
+</resources>

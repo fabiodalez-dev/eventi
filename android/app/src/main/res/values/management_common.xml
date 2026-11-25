@@ -30,4 +30,22 @@
     <string name="management_image_not_image">Il file scelto non è un’immagine che posso caricare: usa una foto JPEG, PNG o WebP.</string>
     <string name="management_image_too_large">L’immagine è troppo pesante. Scegline una più leggera.</string>
     <string name="management_image_too_many_pixels">L’immagine è troppo grande (oltre 50 milioni di pixel). Scegline una più piccola.</string>
+
+    <!-- Editor del testo formattato (RichTextField, comune a eventi, profilo e biglietteria) -->
+    <string name="management_rich_bold">Grassetto</string>
+    <string name="management_rich_italic">Corsivo</string>
+    <string name="management_rich_underline">Sottolineato</string>
+    <string name="management_rich_strike">Barrato</string>
+    <string name="management_rich_link">Collegamento</string>
+    <string name="management_rich_h2">Titolo</string>
+    <string name="management_rich_h3">Titoletto</string>
+    <string name="management_rich_quote">Citazione</string>
+    <string name="management_rich_bullets">Elenco puntato</string>
+    <string name="management_rich_numbers">Elenco numerato</string>
+    <string name="management_rich_hint">Seleziona il testo e tocca un pulsante, oppure scrivi i segni: **grassetto**, *corsivo*, ## titolo, - elenco. Una riga vuota separa i paragrafi.</string>
+    <string name="management_rich_link_title">Aggiungi un collegamento</string>
+    <string name="management_rich_link_text">Testo del collegamento</string>
+    <string name="management_rich_link_url">Indirizzo (https://…)</string>
+    <string name="management_rich_link_add">Aggiungi</string>
+    <string name="management_rich_link_invalid">Scrivi un indirizzo che cominci con https://, http:// o mailto:</string>
 </resources>

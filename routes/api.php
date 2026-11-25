@@ -90,6 +90,7 @@ Route::prefix('v1')->middleware(['auth:sanctum', TicketingPrivacy::class])->grou
         Route::get('/campaigns', 'campaigns');
         Route::get('/campaigns/{campaign}', 'economics')->whereNumber('campaign');
     });
+    require __DIR__.'/management/ticketing-dates.php';
     Route::get('/me/bookings', [TicketingController::class, 'index']);
     // Come sul sito: prenotare e spedire biglietti richiede l'indirizzo confermato (403 EMAIL_VERIFICATION_REQUIRED).
     Route::post('/me/bookings/{booking}/email', [TicketingController::class, 'resend'])->middleware([RequireConfirmedAccount::class, 'throttle:3,60,tickets-resend']);
@@ -133,6 +134,10 @@ Route::prefix('v1/management')->middleware(['auth:sanctum', TicketingPrivacy::cl
             });
     }
 });
+
+// Gli inviti ricevuti dalla persona (P8): fuori dal soggetto, perché chi è invitato non gestisce ancora niente.
+Route::prefix('v1/me/invitations')->middleware(['auth:sanctum', TicketingPrivacy::class, RequireConfirmedAccount::class])
+    ->name('api.v1.me.invitations.')->group(__DIR__.'/management/invitations.php');
 
 /*
 |--------------------------------------------------------------------------

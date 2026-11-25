@@ -8,7 +8,8 @@ use App\Actions\InviteVenueMemberAction;
 use App\Enums\VenueRole;
 use App\Filament\Venue\Support\CurrentVenue;
 use App\Models\User;
-use App\Support\SecurityLog;
+use App\Services\Management\CollaboratorOutcome;
+use App\Services\Management\VenueCollaborators;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\TextInput;
@@ -20,8 +21,6 @@ use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Support\Str;
 
 /**
  * §10.6 — i collaboratori, **visibili solo ai referenti**.
@@ -43,6 +42,10 @@ use Illuminate\Support\Str;
  * suo account, non quello scritto nel modulo, e un referente non deve poterlo
  * leggere scrivendo un indirizzo a caso. Dalla stessa riga l'invito si
  * reinvia o si ritira, con lo stesso tetto degli inviti.
+ *
+ * Le regole (elenco, tetto, reinvio, ritiro, rimozione) stanno in
+ * `VenueCollaborators`, che usa anche l'API dell'app: qui restano le domande
+ * da porre e gli avvisi.
  */
 class Collaborators extends Page implements HasTable
 {
@@ -112,12 +115,8 @@ class Collaborators extends Page implements HasTable
                     ->dateTime('d/m/Y')
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
-            /* Prima chi è dentro, per nome; poi gli inviti, per email: un
-               ordinamento per nome mescolerebbe gli inviti secondo il nome
-               dell'account, che non si vede. */
-            ->defaultSort(fn (Builder $query): Builder => $query
-                ->orderByRaw('venue_user.accepted_at is null')
-                ->orderByRaw('case when venue_user.accepted_at is null then users.email else users.name end'))
+            /* Prima chi è dentro, per nome; poi gli inviti, per email. */
+            ->defaultSort(fn (Builder $query): Builder => $this->collaborators()->sorted($query))
             ->headerActions([
                 $this->inviteAction(),
             ])
@@ -154,31 +153,13 @@ class Collaborators extends Page implements HasTable
             ])
             ->action(function (array $data): void {
                 abort_unless(static::canAccess(), 403);
-                $venue = CurrentVenue::get();
+                $outcome = $this->collaborators()->invite(CurrentVenue::get(), $this->actor(), (string) $data['email'], (string) $data['name']);
 
-                if ($this->inviteLimitReached()) {
-                    return;
-                }
-
-                // Chi è già del locale non si reinvita: il ruolo non cambia da
-                // qui, e un secondo messaggio non serve a nessuno. Chi ha un
-                // invito in attesa si reinvita dalla sua riga.
-                $existing = $venue->membersIncludingInvited()->where('users.email', mb_strtolower(trim((string) $data['email'])))->first();
-                if ($existing instanceof User) {
-                    $pending = $existing->getRelationValue('pivot')?->getAttribute('accepted_at') === null;
-                    Notification::make()->warning()->title(__($pending ? 'manage.collaborators.already_invited' : 'manage.collaborators.already_member'))->send();
+                if ($outcome !== CollaboratorOutcome::Invited) {
+                    $this->warn($outcome);
 
                     return;
                 }
-
-                $this->hitInviteLimit();
-
-                app(InviteVenueMemberAction::class)->execute(
-                    $venue,
-                    (string) $data['email'],
-                    (string) $data['name'],
-                    VenueRole::Editor,
-                );
 
                 Notification::make()
                     ->title(__('manage.collaborators.invited'))
@@ -202,14 +183,15 @@ class Collaborators extends Page implements HasTable
             ->authorize(fn (): bool => static::canAccess())
             ->visible(fn (User $record): bool => $this->isPendingEditorInvite($record))
             ->action(function (User $record): void {
-                abort_unless(static::canAccess() && $this->isPendingEditorInvite($record), 403);
+                abort_unless(static::canAccess(), 403);
+                $outcome = $this->collaborators()->resend(CurrentVenue::get(), $this->actor(), $record);
+                abort_if($outcome === CollaboratorOutcome::NotAllowed, 403);
 
-                if ($this->inviteLimitReached()) {
+                if ($outcome !== CollaboratorOutcome::Resent) {
+                    $this->warn($outcome);
+
                     return;
                 }
-
-                $this->hitInviteLimit();
-                app(InviteVenueMemberAction::class)->resend(CurrentVenue::get(), $record, $this->causer());
 
                 Notification::make()->title(__('manage.collaborators.resent'))->success()->send();
             });
@@ -226,9 +208,8 @@ class Collaborators extends Page implements HasTable
             ->authorize(fn (): bool => static::canAccess())
             ->visible(fn (User $record): bool => $this->isPendingEditorInvite($record))
             ->action(function (User $record): void {
-                abort_unless(static::canAccess() && $this->isPendingEditorInvite($record), 403);
-
-                app(InviteVenueMemberAction::class)->withdraw(CurrentVenue::get(), $record, $this->causer());
+                abort_unless(static::canAccess(), 403);
+                abort_unless($this->collaborators()->withdraw(CurrentVenue::get(), $this->actor(), $record) === CollaboratorOutcome::Withdrawn, 403);
 
                 Notification::make()->title(__('manage.collaborators.withdrawn'))->success()->send();
             });
@@ -250,12 +231,7 @@ class Collaborators extends Page implements HasTable
             ->visible(fn (User $record): bool => $record->getAttribute('venue_role') !== VenueRole::Owner->value && self::accepted($record))
             ->action(function (User $record): void {
                 abort_unless(static::canAccess(), 403);
-                abort_if($record->getAttribute('venue_role') === VenueRole::Owner->value || ! self::accepted($record), 403);
-                $record->venues()->detach(CurrentVenue::get()->getKey());
-                SecurityLog::scrivi('accesso_locale_revocato', $record, [
-                    'venue_id' => CurrentVenue::get()->getKey(),
-                    'ruolo' => $record->getAttribute('venue_role'),
-                ], causa: $this->causer());
+                abort_unless($this->collaborators()->remove(CurrentVenue::get(), $this->actor(), $record) === CollaboratorOutcome::Removed, 403);
 
                 Notification::make()
                     ->title(__('manage.collaborators.removed'))
@@ -264,42 +240,19 @@ class Collaborators extends Page implements HasTable
             });
     }
 
-    /**
-     * Ogni invito crea un account e spedisce un'email dal nostro indirizzo a
-     * chi il referente sceglie: senza un tetto, la pagina diventa un modo di
-     * scrivere a una lista intera. La chiave è per persona e per locale, come
-     * per l'import da Facebook, e la condividono invito e «Reinvia».
-     */
-    private function inviteLimitReached(): bool
+    /** Il tetto raggiunto o una persona già del locale: un avviso, niente di più. */
+    private function warn(CollaboratorOutcome $outcome): void
     {
-        [$key, $dailyKey] = $this->inviteLimitKeys();
+        $title = match ($outcome) {
+            CollaboratorOutcome::AlreadyInvited => 'manage.collaborators.already_invited',
+            CollaboratorOutcome::AlreadyMember => 'manage.collaborators.already_member',
+            default => 'manage.collaborators.invite_limit',
+        };
 
-        if (RateLimiter::tooManyAttempts($key, 10) || RateLimiter::tooManyAttempts($dailyKey, 30)) {
-            Notification::make()->warning()->title(__('manage.collaborators.invite_limit'))->send();
-
-            return true;
-        }
-
-        return false;
+        Notification::make()->warning()->title(__($title))->send();
     }
 
-    private function hitInviteLimit(): void
-    {
-        [$key, $dailyKey] = $this->inviteLimitKeys();
-
-        RateLimiter::hit($key, 3600);
-        RateLimiter::hit($dailyKey, 86400);
-    }
-
-    /** @return array{0: string, 1: string} */
-    private function inviteLimitKeys(): array
-    {
-        $key = 'venue-invite:'.auth()->id().':'.CurrentVenue::get()->getKey();
-
-        return [$key, $key.':daily'];
-    }
-
-    /** Gli inviti dei referenti li gestisce la redazione, come i referenti. */
+    /** La riga è un invito da collaboratore ancora in attesa: «Reinvia» e «Ritira» si vedono solo lì. */
     private function isPendingEditorInvite(User $record): bool
     {
         return ! self::accepted($record) && $record->getAttribute('venue_role') === VenueRole::Editor->value;
@@ -307,40 +260,35 @@ class Collaborators extends Page implements HasTable
 
     private static function accepted(User $record): bool
     {
-        return $record->getAttribute('venue_accepted_at') !== null;
+        return VenueCollaborators::accepted($record);
     }
 
-    /** `m****@esempio.it`: abbastanza per riconoscere l'indirizzo scritto, non per leggerne uno nuovo. */
     private static function masked(string $email): string
     {
-        [$locale, $dominio] = array_pad(explode('@', $email, 2), 2, '');
-
-        return Str::mask($locale, '*', 1).'@'.$dominio;
+        return VenueCollaborators::masked($email);
     }
 
-    private function causer(): ?User
+    private function actor(): User
     {
-        return auth()->user() instanceof User ? auth()->user() : null;
+        $user = auth()->user();
+        abort_unless($user instanceof User, 403);
+
+        return $user;
+    }
+
+    private function collaborators(): VenueCollaborators
+    {
+        return app(VenueCollaborators::class);
     }
 
     /**
-     * Le persone del locale corrente, con il ruolo che hanno **qui**: il
-     * ruolo sta nella pivot, non sull'utente, perché la stessa persona può
-     * essere referente di un locale e collaboratore di un altro. Inviti in
-     * attesa compresi: le colonne li mostrano mascherati.
+     * Le persone del locale corrente, inviti in attesa compresi: le colonne
+     * li mostrano mascherati.
      *
      * @return Builder<User>
      */
     private function members(): Builder
     {
-        return User::query()
-            ->join('venue_user', 'venue_user.user_id', '=', 'users.id')
-            ->where('venue_user.venue_id', CurrentVenue::get()->getKey())
-            ->select([
-                'users.*',
-                'venue_user.role as venue_role',
-                'venue_user.invited_at as venue_invited_at',
-                'venue_user.accepted_at as venue_accepted_at',
-            ]);
+        return $this->collaborators()->members(CurrentVenue::get());
     }
 }

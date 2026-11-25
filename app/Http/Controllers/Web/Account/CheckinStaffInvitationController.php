@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Web\Account;
 
+use App\Actions\Account\RespondToCheckinStaffInvitation;
 use App\DTOs\PageMeta;
 use App\Http\Controllers\Controller;
 use App\Models\CheckinStaffInvitation;
@@ -12,7 +13,6 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 
@@ -42,7 +42,7 @@ final class CheckinStaffInvitationController extends Controller
         ]);
     }
 
-    public function respond(Request $request, int $invitation, int $sent): Response|RedirectResponse
+    public function respond(Request $request, int $invitation, int $sent, RespondToCheckinStaffInvitation $responses): Response|RedirectResponse
     {
         $decision = $request->validate(['decision' => ['required', 'in:accept,decline']])['decision'];
         $check = $this->check($request, $invitation, $sent);
@@ -56,20 +56,7 @@ final class CheckinStaffInvitationController extends Controller
         /** @var EventOccurrence $date */
         $date = $check->occurrence;
 
-        $accepted = DB::transaction(function () use ($check, $user, $date, $decision): bool {
-            $locked = CheckinStaffInvitation::query()->whereKey($check->getKey())->lockForUpdate()->first();
-            if (! $locked instanceof CheckinStaffInvitation) {
-                return false;
-            }
-            $locked->delete();
-            if ($decision === 'decline') {
-                return false;
-            }
-            $date->checkinStaff()->syncWithoutDetaching([$user->id]);
-            activity('ticketing')->causedBy($user)->performedOn($date)->withProperties(['staff_id' => $user->id])->log('staff_assigned');
-
-            return true;
-        });
+        $accepted = $responses->respond($check, $date, $user, $decision === 'accept');
 
         if ($decision === 'decline') {
             return redirect()->route('account.profile')->with('status', __('decision.staff_invitation.declined'));
@@ -105,7 +92,7 @@ final class CheckinStaffInvitationController extends Controller
         }
 
         $date = $invitation->occurrence;
-        if (! $date instanceof EventOccurrence || ($date->effective_ends_at ?? $date->ends_at ?? $date->starts_at)->isPast()) {
+        if (! $date instanceof EventOccurrence || RespondToCheckinStaffInvitation::dateIsOver($date)) {
             return $this->error(__('decision.staff_invitation.gone'));
         }
 

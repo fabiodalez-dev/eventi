@@ -8,6 +8,7 @@ use App\Models\Event;
 use App\Models\Organizer;
 use App\Models\User;
 use App\Services\Import\HostResolver;
+use Carbon\CarbonImmutable;
 use Filament\Facades\Filament;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
@@ -16,6 +17,8 @@ use Livewire\Livewire;
 use Tests\Support\VenueIsolationScenario;
 
 beforeEach(function (): void {
+    // L'evento del fixture è il 16 ottobre 2026: la prima data di un evento nuovo non può essere di settimane fa.
+    $this->travelTo(CarbonImmutable::parse('2026-10-01 10:00:00', 'UTC'));
     $this->scenario = VenueIsolationScenario::make();
     $this->organizer = Organizer::create(['name' => 'Portici', 'city_id' => $this->scenario->city->id, 'owner_id' => $this->scenario->ownerA->id, 'is_active' => true]);
     $this->actingAs($this->scenario->ownerA);

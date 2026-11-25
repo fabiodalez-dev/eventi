@@ -8,7 +8,7 @@ test di integrazione e consumato dall'app Android in `android/` contro dati real
 | Voce | Valore |
 |---|---|
 | Base | `/api/v1` |
-| Documentazione | `/docs/api` (Scramble) · JSON versionato in `docs/openapi.json` (rigenerato il 19/11/2026 con `php artisan scramble:export --path=docs/openapi.json`) — OpenAPI **3.1.2**, **183 operazioni** |
+| Documentazione | `/docs/api` (Scramble) · JSON versionato in `docs/openapi.json` (rigenerato il 25/11/2026 con `php -d memory_limit=2G artisan scramble:export --path=docs/openapi.json`) — OpenAPI **3.1.2**, **259 operazioni** |
 | Autenticazione | Bearer token (Sanctum) per `/me`, `auth/logout` e scritture ticketing; policy aggiuntive per il locale |
 | Formato risposte | `{data, meta{next_cursor, has_more}}` · errori `{error{code, message, fields}}` |
 | Paginazione | catalogo a cursore (`limit` 1–50); cursore illeggibile → **400**. Biglietti: `page`, 30 prenotazioni, `meta.next_page` nullable |
@@ -439,3 +439,128 @@ Le immagini vanno nelle raccolte media dei pannelli: `poster`, `logo` e `cover` 
 - `PATCH /v1/management/dates/{id}/details` resta una **sostituzione**: `practical_details` e `cost_breakdown` sono obbligatori (anche vuoti) e ogni chiave non mandata torna a «eredita». Lo fissa `MobileManagementTest`.
 - `GET /v1/management/campaigns` e `/{id}` includono le campagne delle organizzazioni gestite, proprietario e membri, con la regola di `SponsorshipReport`: eventi firmati dall'organizzazione, campagne della redazione o pagate con una sua abilitazione. Prima l'elenco guardava solo i locali.
 
+
+## Gestione: commenti e recensioni (P7)
+
+Le pagine «Commenti agli eventi» e «Recensioni ricevute» dei pannelli, per l'app. Stesse rotte sotto `/v1/management/venues/{venue}/…` e `/v1/management/organizers/{organizer}/…`, con la porta `ResolveManagementSubject` e le restrizioni di `ManagedContent::comments()` (gli eventi del locale per `venue_id`; dell'organizzazione per il solo `organizer_id`, perché un co-organizzatore non modera i commenti altrui) e `ManagedContent::reviews()` (solo le recensioni pubblicate del soggetto). Il collaboratore può tutto quello che può il referente, come nel pannello. Qui non si cancella un commento e non si approva una recensione: restano della redazione.
+
+### Commenti
+
+- `GET /comments?status=&q=&event=&page=`: i commenti agli eventi del soggetto, i più recenti prima, 20 per pagina. `status` è `published` o `hidden` (vuoto = tutti), `q` cerca nel titolo dell'evento, nel nome dell'autore e nel testo (al massimo 100 caratteri), `event` restringe a un evento. Ogni voce: `id`, `event{id, title, slug}`, `author` (il nome dell'account, come nel pannello), `body`, `is_reply`, `reactions_count`, `status`, `status_label`, `created_at`, `moderated_by`, `moderated_at`, `revision`, `can_hide`, `can_restore`. `meta{next_page, total}`. Permesso: `EventCommentPolicy::viewAny`.
+- `POST /comments/{comment}/hide` con `revision` (obbligatoria) e `note` facoltativa (al massimo 1000 caratteri, resta nella gestione). Permesso `EventCommentPolicy::hide`; solo su un commento pubblicato.
+- `POST /comments/{comment}/restore` con `revision`. Permesso `EventCommentPolicy::restore`: un commento nascosto dalla redazione riceve 403. Solo su un commento nascosto.
+
+Le due azioni passano da `App\Actions\Comments\ModerateComment`, la stessa del pannello. Una revisione vecchia, o un'azione su un commento che ha già cambiato stato, riceve 422 con il messaggio in `error.fields.revision`: l'app rilegge l'elenco. La risposta è la voce aggiornata in `data` e il messaggio in `meta.message`. Un commento di un evento di altri riceve 404.
+
+### Recensioni
+
+- `GET /reviews?page=`: le recensioni pubblicate del soggetto, le più recenti prima, 20 per pagina. Ogni voce: `id`, `author` (il nome pubblico, come nel pannello), `rating` (1–5 o `null`), `body`, `created_at`, `published_at`, `reply{body, author, replied_at}` o `null`, `can_reply`, `can_remove_reply`, `can_report`. `meta{next_page, total, can_report}`.
+- `PUT /reviews/{review}/reply` con `reply` (da 2 a 2000 caratteri): scrive o cambia la risposta pubblica. Permesso `CatalogReviewPolicy::reply`. Passa da `CatalogReviews::reply`: solo la prima risposta avvisa chi ha scritto la recensione.
+- `DELETE /reviews/{review}/reply`: toglie la risposta. Permesso `CatalogReviewPolicy::removeReply`. Senza risposta non fa niente.
+- `POST /reviews/{review}/report` con `body` (da 10 a 3000 caratteri): segnala la recensione alla redazione, come il pulsante «Segnala» della scheda pubblica e con la stessa condizione (poter partecipare alla community, altrimenti 403). Risposta `{case_id, message}`; una seconda segnalazione aperta della stessa persona restituisce la stessa pratica.
+
+Una recensione non pubblicata o di un altro soggetto riceve 404.
+
+### Limiti
+
+Nascondere, rimettere in vista e rispondere hanno un secchio di 60 al minuto per persona (`management-community`); i pannelli non ne hanno, serve a fermare un client che impazzisce. La segnalazione usa il secchio della scheda pubblica (`catalog-review-report`, 10 all'ora): dal sito e dall'app si consuma lo stesso.
+
+### Campi nuovi nelle schede pubbliche
+
+- `GET /v1/events/{slug}/comments`: `manage_url`, l'indirizzo della pagina «Commenti agli eventi» del pannello con `?event={id}`, solo a chi gestisce il locale dell'evento o l'organizzazione che lo firma; `null` per tutti gli altri.
+- `GET /v1/venues/{slug}/reviews` e `/v1/organizers/{slug}/reviews`: `manage_url`, l'indirizzo della pagina «Recensioni ricevute» del pannello, solo a chi gestisce la scheda (`User::canAccessTenant`); `null` per tutti gli altri.
+
+L'app traduce questi indirizzi nelle schermate native (`ManagementDestination`); una versione che non li conosce li apre nel browser.
+
+## Gestione: collaboratori, accesso e inviti (P8, 25 novembre 2026)
+
+Le pagine «Collaboratori» e «Il tuo accesso» del pannello del locale, e la risposta agli inviti, nell'app. Le regole sono una sola per pannello e API: l'elenco, il tetto degli inviti, il reinvio, il ritiro e la rimozione stanno in `App\Services\Management\VenueCollaborators` e `App\Actions\RemoveVenueMember`, la risposta all'invito al personale d'ingresso in `App\Actions\Account\RespondToCheckinStaffInvitation` (usata anche dalla pagina del collegamento). L'organizzazione non ha collaboratori né inviti (la pivot `organizer_user` non ha ruoli e il pannello `/organizza` non ha una pagina per i membri): sotto `organizers/{organizer}` queste rotte non esistono e rispondono 404.
+
+### Collaboratori del locale (permesso `VenuePolicy::manageCollaborators`, il referente)
+
+- `GET /v1/management/venues/{venue}/members?q=&page=`: `data[]` `{id, name, email, role (owner|editor), role_label, pending, accepted_at, invited_at, is_me, can_resend, can_withdraw, can_remove}`, prima chi ha accettato per nome, poi gli inviti per email; 50 per pagina, `meta{next_page, invite_expires_days, invites_per_hour, invites_per_day}`. Un invito in attesa ha `name` nullo ed `email` mascherata (`m****@esempio.it`); `q` cerca il nome solo fra chi ha accettato, l'email fra tutti. Il collaboratore riceve 403.
+- `POST …/members` con `name` ed `email` (obbligatori, max 255): 201 con la riga e `message`. Il ruolo è sempre collaboratore. 422 su `error.fields.email` se la persona è già del locale o ha già un invito in attesa.
+- `POST …/members/{member}/resend`: un collegamento nuovo, valido altri sette giorni; quello vecchio smette di valere.
+- `DELETE …/members/{member}/invitation`: ritira un invito in attesa.
+- `DELETE …/members/{member}`: toglie un collaboratore che ha accettato (riga `accesso_locale_revocato` nel registro di sicurezza); l'account e i suoi eventi restano.
+
+Reinvio e ritiro valgono solo per un invito da collaboratore in attesa, la rimozione solo per un collaboratore che ha accettato: altrimenti 403. `{member}` fuori dal locale: 404. Invito e reinvio contano nello **stesso tetto della pagina del sito**, 10 l'ora e 30 al giorno per persona e locale, con le stesse chiavi del rate limiter (`venue-invite:{utente}:{locale}` e `…:daily`): oltre, 429 `RATE_LIMITED` con il motivo anche in `error.fields.invite`. Le scritture hanno in più un limite di rotta di 30 al minuto (`management-members`).
+
+### Il tuo accesso (ogni persona del locale)
+
+- `GET /v1/management/venues/{venue}/access`: `{venue{id, name}, role, role_label, member_since, is_last_owner, can_leave, can_manage_collaborators}`.
+- `POST …/access/leave`: esce dal locale (`LeaveVenueAction`), `{message, remaining}` con i locali e le organizzazioni che restano. L'ultimo referente riceve 409 `CONFLICT` e lo chiede alla redazione. Limite 10 al minuto (`management-leave`).
+
+### Inviti ricevuti
+
+Sul sito un invito si accetta dal collegamento firmato dell'email, aperto con l'account invitato. Nell'app il collegamento non c'è: le rotte chiedono il token **e** l'indirizzo confermato (`RequireConfirmedAccount`, 403 `EMAIL_VERIFICATION_REQUIRED` altrimenti), così risponde chi ha dimostrato la casella. Un invito di un altro account, scaduto (sette giorni dall'invito o dal reinvio), reinviato nel frattempo o su una data finita risponde 404.
+
+- `GET /v1/me/invitations`: solo inviti di locali senza provvedimento (gli stati di `canAccessTenant`); quello di un locale sospeso non compare, non si conta in `/me` e `POST /v1/me/invitations/venues/{venue}` risponde 404 finché il provvedimento resta (anche il collegamento della mail non lo accetta). `venues[]` `{venue{id, slug, name, city}, role, role_label, sent, invited_at, expires_at}` e `checkin[]` `{id, occurrence{id, title, starts_at, venue}, sent, invited_at, expires_at}`.
+- `POST /v1/me/invitations/venues/{venue}` con `decision` (`accept`|`decline`) e `sent` (quello dell'elenco): accettando si entra nel locale con il ruolo offerto (`subject{type, id}`); il registro di sicurezza segna `tramite: app`.
+- `POST /v1/me/invitations/checkin/{invitation}` con `decision` e `sent`: accettando si entra nel personale d'ingresso della data (`occurrence_id`).
+
+Le due risposte consumano il secchio `venue-invitations` delle pagine del sito (30 al minuto). L'accettazione scegliendo la password (`AcceptVenueInvitationsOnPasswordReset`) resta quella del sito.
+
+### Campo nuovo
+
+- `GET /v1/me`: `management.invitations`, gli inviti in un locale e al personale d'ingresso ancora senza risposta. Non accende «Gestione eventi»: nell'app ha la sua voce nel profilo.
+
+## Gestione: biglietteria completa (P3, 25 novembre 2026)
+
+Tutto quello che la pagina `/gestione-biglietti/{data}` del sito fa e l'app non faceva. Le rotte restano sulla data, accanto a quelle di prima (`routes/management/ticketing-dates.php`): il permesso è `BookingPolicy::manage` (referente di un locale attivo, proprietario o membro dell'organizzazione che firma l'evento, admin). Il collaboratore del locale e il personale d'ingresso ricevono 403, come sul sito (decisione 6). Token obbligatorio, `Cache-Control: private, no-store`.
+
+- `PATCH /v1/management/dates/{id}/settings`: impostazioni delle prenotazioni e domande, con le regole del modulo del sito (`ManageRequest::settingsRules()`): `booking_enabled` e `booking_waitlist` booleani obbligatori, `booking_limit` 1–20 obbligatorio, `booking_capacity` 1–1.000.000 o `null` (nessun limite), `booking_opens_at`, `booking_closes_at` (dopo l'apertura), `cancellation_closes_at` come ora della città (`2026-12-05 21:00`) o istante con scarto (`2026-12-05T21:00:00+01:00`), `null` = subito / inizio evento; `booking_instructions` max 3000; `booking_fields` `{phone, address, city, postal_code, country}` → `hidden|optional|required`; `booking_questions[]` `{id?, label, type (text|choice|yes_no), options (una per riga), required}`, al massimo 5, una scelta con almeno due opzioni. È una sostituzione come il modulo: le tre ore che mancano tornano vuote; `booking_instructions`, `booking_fields` e `booking_questions` che mancano restano come sono. 422 su `error.fields.ticketing` se il locale non è abilitato o se i posti scendono sotto quelli già presi. Risponde con la scheda della data aggiornata. Il salvataggio passa da `App\Actions\Ticketing\ConfigureBookings`, lo stesso del sito e di «Configura ticketing» nel pannello. Limite `ticketing-settings`, 30 al minuto.
+- `POST /v1/management/dates/{id}/bookings/{booking}/cancel`: annulla a nome del locale una prenotazione intera o un biglietto (`ticket_id`), con `reason` facoltativo (max 500) che arriva a chi ha prenotato. Vale anche oltre il termine di annullamento e per le prenotazioni prese al banco, come sul sito. Il permesso sulla data si chiede prima di cercare la prenotazione: chi non gestisce la data riceve sempre 403, qualunque `booking` mandi; per chi la gestisce la prenotazione si cerca solo fra quelle della data (404). Risponde con la riga della prenotazione (`ManagedBookingResource`, la stessa forma di `GET …/bookings`). Limite `ticketing-cancel`, 60 al minuto.
+- `GET /v1/management/dates/{id}/messages`: gli ultimi dieci messaggi scritti a chi ha prenotato, i più recenti prima: `data[]` `{id, subject, body, include_waitlisted, recipients_count, sender (nome), created_at}`, `meta{daily_limit, sent_last_24h}`.
+- `GET /v1/management/dates/{id}/export.csv` e `GET /v1/management/dates/{id}/list.pdf`: il CSV dei partecipanti e la lista d'ingresso da stampare, gli stessi del sito (`TicketingController@export` e `@printList`), con lo stesso registro attività e gli stessi limiti (`tickets-export`, `tickets-print`, 10 al minuto). L'app li scarica nella sua cache e li apre con «Apri con» o «Condividi».
+- `GET /v1/management/venues/{venue}/events/{event}/ticketing` (solo locale): il riquadro «Ticketing inCittà» della modifica evento: `{event_id, title, ticketing_enabled, timezone, dates_count, dates[]{id, starts_at, venue, booking_enabled, ticketing_enabled, ended, counts}}`. Permesso `EventPolicy::update`; `dates` contiene solo le date che la persona gestisce, quindi il collaboratore vede il riquadro senza date, come nel pannello.
+
+Campi aggiunti alle rotte di prima:
+
+- `GET /v1/management/dates?q=` cerca anche nel nome del locale della data (o dell'evento), come il riepilogo del sito; i caratteri jolly si cercano per quello che sono. Ogni riga dell'elenco e della scheda porta `booking_enabled`, `ticketing_enabled` ed `ended`.
+- `GET /v1/management/dates/{id}`, solo a chi gestisce: `timezone`, `address` e `settings` `{booking_enabled, booking_capacity, booking_limit, booking_waitlist, booking_opens_at, booking_closes_at, cancellation_closes_at (salvati, null = predefinito), booking_instructions (testo semplice), booking_instructions_rich, booking_fields (tutti e cinque), booking_questions (con options come elenco), limits{booking_limit_max, questions, question_options, question_label_max, instructions_max}}`. Con `booking_instructions_rich` vero le istruzioni sono state scritte sul sito con la formattazione: l'app le manda solo se le cambia.
+- `GET /v1/management/dates/{id}/bookings`: ogni riga porta anche `cancellation_reason`.
+
+## Gestione: profilo del locale e dell'organizzazione (P4)
+
+La scheda pubblica del locale e il profilo dell'organizzazione, come le pagine «Il tuo locale» e «Profilo» dei pannelli. Rotte in `routes/management/profile.php`, controller `VenueProfileController`, `OrganizerProfileController`, `ContactConfirmationController`. Il salvataggio passa dalle stesse azioni delle pagine (`App\Actions\UpdateVenueProfile`, `App\Actions\UpdateOrganizerProfile`); l'avviso da `App\Actions\PublishVenueNotice`; la conferma del recapito da `App\Services\Contact\ContactEmailConfirmation`, con gli stessi tetti giornalieri del pulsante dei pannelli. Logo, copertina e galleria restano su `V/media` (fondamenta).
+
+### Permessi
+
+- Locale: `VenuePolicy::update`, cioè il solo referente. Il collaboratore riceve 403 e `permissions.profile_update` falso.
+- Organizzazione: `OrganizerPolicy::updateProfile` (nuova), cioè solo chi l'ha creata (`owner_id`) finché è attiva. La usa anche la pagina «Profilo» del pannello, che prima confrontava `owner_id` a mano; `OrganizerPolicy::update` resta della redazione. Il membro riceve 403.
+
+### Rotte
+
+- `GET /v1/management/venues/{venue}/profile`: tutti i campi della scheda nella forma del modulo: `short_description`, `description` (HTML), indirizzo (`address`, `address_extra`, `postal_code`, `municipality`, `zone`, `lat`, `lng`), `opening_hours[]` come righe `{day: mon…sun, open, close}` (`HH:mm`), `closures[]` `{from, to, note}` (solo quelle in corso o in arrivo), `capacity`, `phone`, `email`, `website`, `socials[]` come coppie `{name, url}` nell'ordine salvato, `transit[]` `{mode, text}`, `accessibility` (solo le voci dichiarate: `true`/`false`; una voce assente è «non dichiarato»), `info[]` `{label, value}`, `requires_membership`, `membership_notes`, `content_details` (le chiavi di «Prima di andare» e delle informazioni editoriali, sempre presenti, `null` se vuote), `seo{title, description, image}`. In più: `name`, `type{value, label}`, `status`, `city{name, timezone}` in sola lettura; `contact{mode, email, confirmed, pending, can_resend, link_days, note, modes[]}`; `notices{min_days_between, latest, next_available_at, followers}`; `public_url`, `calendar_url` (ICS da sottoscrivere), `widget{url, code}` (il riquadro incorporabile); `choices{weekdays, municipalities, districts, district_municipality, parking_types, notice_kinds}`; `limits` (righe di orario 28, chiusure 20, social 12, come arrivare 6, scheda 12, voci libere 12, domande 30, testo dell'avviso 500, …). Gli elenchi comuni (mezzi, voci di accessibilità, fasce d'età, tessera, icone e caratteristiche) sono in `GET /management/options`.
+- `PATCH /v1/management/venues/{venue}/profile`: **per sezione**. Si mandano solo le chiavi di una sezione; si convalidano e si salvano solo quelle, le altre restano. `content_details` e `seo` si fondono con quelli salvati (le chiavi mandate sostituiscono, le altre restano), così «Prima di andare» e le informazioni editoriali non si cancellano a vicenda; `seo.indexing` non è accettato. Le regole sono quelle dello schema del pannello: indirizzo obbligatorio se mandato, comune fra quelli della provincia, quartiere obbligatorio per il comune di Padova e tolto per gli altri, orari `HH:mm` con giorno valido, chiusure con fine non prima dell'inizio e nota fino a 120 caratteri, telefono con lo stesso schema, social `http(s)` con nome di lettere e cifre, recapito del modulo obbligatorio se i messaggi sono accesi. Errori 422 sul campo o sulla riga (`opening_hours.2.close`, `socials.0.url`). Risponde con la scheda aggiornata. Limite 30 al minuto (`management-profile`).
+- `POST /v1/management/venues/{venue}/notices`: «Avvisa chi ti segue», `{kind: pause|closure|reopening|info, body (max 500), until (yyyy-MM-dd, da oggi, facoltativo)}`. Uno ogni sette giorni: prima, 422 su `body` con il messaggio del pannello. Risposta 201 `{notice{id, kind, kind_label, body, until, created_at}, notified, message}`.
+- `GET` e `PATCH /v1/management/organizers/{organizer}/profile`: `description` (HTML, fino a 20000), `website`, `email`, `contact{…}` come sopra, `public_url`, `calendar_url`. Il `PATCH` salva solo le chiavi mandate.
+- `POST /v1/management/{venues|organizers}/{id}/contact/resend`: rimanda il collegamento di conferma del recapito del modulo di contatto. 422 su `contact_email` se non c'è un recapito o è già confermato; 429 `RATE_LIMITED` quando i tetti giornalieri della scheda o dell'indirizzo sono esauriti (gli stessi del pannello); 500 se la posta non parte. Risposta `{contact, message}`.
+
+Le rotte del solo locale (`notices`) sotto un'organizzazione rispondono 404. Un test di parità (`tests/Feature/Api/Management/ProfileTest.php`) manda gli stessi valori non validi alla pagina «Il tuo locale» e all'API.
+
+## Gestione: eventi (P1, 25 novembre 2026)
+
+Gli eventi del locale e dell'organizzazione nell'app, 1:1 con le pagine «I tuoi eventi», «Nuovo evento», «Modifica evento» e la scheda in lettura dei pannelli. Le regole non sono riscritte: le pagine Filament e i controller chiamano gli stessi servizi, `App\Services\Events\VenueEventEditor` (bozza, prima data, valori imparati, categoria di ripiego, ritorno in revisione per testo, link, locandina e voci di listino), `OrganizerEventEditor` (sempre bozza, prima data nell'ora della città, ritorno in revisione di ogni modifica a un evento pubblicato), `EventSubmission` (pubblica o manda alla redazione; invia alla redazione), `RecurrenceSetup` («Si ripete»), `EventDateChecks` («Stessa sera in zona» e chiusura straordinaria), `App\Services\Import\FacebookImportThrottle` (3 al minuto e 30 al giorno, stessi secchi `facebook-import:{id}` del sito). Le regole dei campi stanno in `EventFormRules`. `S` è `/v1/management/venues/{venue}` o `/v1/management/organizers/{organizer}`, `V` solo il locale, `O` solo l'organizzazione; una rotta dell'altro soggetto risponde 404.
+
+| Metodo e percorso | Permesso | Note |
+|---|---|---|
+| `GET S/events?tab=all\|upcoming\|past\|drafts&status=&q=&page=` | membro | card `{id, slug, title, status{value,label}, source{value,label,imported}, poster, next_starts_at, last_starts_at, past, venue}`, 20 per pagina, `meta.next_page` e `meta.total`; ordine del pannello (prossime per data, poi passate dalla più recente) |
+| `GET S/events/{event}` | `view` | i campi del modulo (con «Prima di andare» già compilato con i valori del locale, `venue_before_going` a parte), `rejection_reason`, `scheduled_publish_at`, `dates.upcoming[]`/`dates.past[]` in breve, `ticket_tiers[]` dell'evento, `public_url` se pubblicato, `abilities{update, delete, publish, publish_needs_dates, publish_directly, duplicate, schedule, cancel_schedule, submit, preview, ticket_tiers}`, `links{tickets_occurrence_id, statistics, social, sponsor, site}` |
+| `GET S/events/form?venue_id=` | membro | categorie attive, città (O), abitudini del locale e `start_time`, scorciatoie della data già calcolate nell'ora della città (`shortcuts[]{value, label, starts_at, repeats, weekday}`), «Prima di andare» del locale, stati del listino, giorni, modalità, parcheggio, tipo di organizzatore, tetti |
+| `POST V/events` | `create` sul locale, `update` sulla bozza ripresa | `publish` falso = «Salva come bozza» (basta il titolo; categoria mancante = abituale o prima del catalogo); vero = «Pubblica» (servono `starts_at`, categoria e tipo di prezzo; scrive prima data, `repeat{frequency, weekdays[], until}`, valori imparati, poi online o in attesa). `draft_id` riprende la bozza dello stesso modulo: salvare due volte non crea due eventi; vale solo per le bozze del locale (`organizer_id` nullo), quella di un'organizzazione risponde 404. `starts_at` non può stare più di 7 giorni nel passato (`EventFormRules::PAST_START_DAYS`, 422), e la ripetizione materializza solo le date da oggi in avanti. `facebook_import` riprende i dati letti da Facebook. 201 (200 sulla bozza ripresa), `meta.outcome` `draft\|published\|pending\|scheduled`, `meta.facebook_photo` |
+| `POST O/events` | `create` (`managedBy`) | sempre bozza; descrizione, città, locale principale, categoria e prezzo obbligatori; prima data e luogo facoltativi (`starts_at` al massimo 7 giorni nel passato, 422); 201 |
+| `PATCH S/events/{event}` | `update` | modifica parziale (le chiavi assenti restano). Locale: anche `ticket_tiers[]{id?, name, price, status, url, note}` (al massimo 12, le voci di una singola data non si toccano), `facts[]`, link, editoriali, `organizer_name`/`organizer_url`, `seo{title, description, image}`. Organizzazione: città e locale principale, niente luogo; `city_id` e `venue_id` li cambia solo l'organizzazione principale (`organizer_id`): un co-organizzatore che manda un valore diverso da quello salvato riceve 422 su quel campo (lo stesso valore passa). `content_details.feature_ids` al massimo 60, senza doppioni (anche nel profilo del locale). `content_details` si fonde con quello salvato e i valori uguali a quelli del locale si ereditano. `meta.sent_to_review` |
+| `DELETE V/events/{event}` | `delete` | 204 |
+| `POST V/events/{event}/publish` | `update` (+ `publish` per andare online) | 422 senza date o da uno stato che non lo consente. `auto_publish` vale solo per gli eventi del locale: quello di un'organizzazione va in attesa (`outcome: pending`) |
+| `POST O/events/{event}/submit` | `update` | solo bozza o rifiutato, 422 senza date |
+| `POST V/events/{event}/duplicate` | `create` sul locale | copia in bozza con tag e locandina, senza date e senza organizzazione (la copia è del locale); 201 |
+| `PUT` / `DELETE V/events/{event}/schedule` | `update` | `publish_at` futuro con scarto; regole di `ScheduleEventPublication` |
+| `GET S/events/{event}/preview` | `update` | la forma di `GET /events/{slug}` anche per un evento non pubblicato |
+| `POST S/events/checks` | membro | `starts_at`, `ends_at`, `category_id`, `custom_location`, `venue_id`/`city_id` (O), `event_id`: `{same_night[], radius_km, closure}` |
+| `POST S/events/import/facebook` | `create` | `url`, `city_id` (O): `{fields, import, photo_url, source, location_address}`; 429 `RATE_LIMITED` oltre i limiti del sito, 422 su `url` se la lettura non riesce. La foto si scarica e diventa la locandina solo alla creazione |
+| `GET S/events/lookup/tags?q=` · `GET S/events/lookup/venues?q=` | membro | tag per nome; locali approvati (locale principale, «organizzatore registrato») |
+| `POST V/tags` | `CreateSharedEventTag` | tag condiviso nuovo, `name` (80), `event_id` facoltativo |
+
+Le scritture hanno il secchio `management-events` (60 al minuto per persona, 30 per i tag), gli avvisi `management-events-checks` (120), l'import `management-events-import` (10) oltre ai limiti di Facebook. Le immagini restano quelle delle fondamenta (`POST/DELETE S/events/{event}/poster`).

@@ -79,8 +79,8 @@ final class ManagementPermissions
             'events_publish_directly' => false,
             // `BookingPolicy::manage`: chi gestisce l'organizzatore dell'evento.
             'ticketing_manage' => true,
-            // `Organizer\Pages\Profile::canAccess`: solo `owner_id`.
-            'profile_update' => (int) $subject->owner_id === (int) $user->getKey(),
+            // `OrganizerPolicy::updateProfile`, come la pagina «Profilo»: solo `owner_id`.
+            'profile_update' => $gate->allows('updateProfile', $subject),
             'collaborators_manage' => false,
             'import_manage' => false,
             'analytics_view' => true,

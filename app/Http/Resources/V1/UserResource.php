@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\Carpool\CarpoolAccess;
 use App\Services\Community\CommunityAccess;
 use App\Services\Management\ManagementSubjects;
+use App\Services\Management\PendingInvitations;
 use App\Support\Api\ApiDate;
 
 /**
@@ -41,6 +42,7 @@ final class UserResource
             'management_links' => self::managementLinks($user),
             // Quanti locali e organizzazioni gestisce, e in quante date non ancora finite fa il controllo ingressi:
             // l'app mostra «Gestione eventi» solo se uno dei tre è maggiore di zero. Il dettaglio è in `GET /management/subjects`.
+            // `invitations`: inviti ricevuti ancora senza risposta, il dettaglio in `GET /me/invitations`.
             'management' => self::management($user),
             'email_verified' => $user->email_verified_at !== null,
             'whatsapp_verified' => $user->isWhatsappVerified(),
@@ -62,12 +64,18 @@ final class UserResource
         ];
     }
 
-    /** @return array{venues: int, organizers: int, checkin: int} */
+    /** @return array{venues: int, organizers: int, checkin: int, invitations: int} */
     private static function management(User $user): array
     {
         $counts = app(ManagementSubjects::class)->counts($user);
 
-        return ['venues' => (int) $counts['venues'], 'organizers' => (int) $counts['organizers'], 'checkin' => (int) $counts['checkin']];
+        return [
+            'venues' => (int) $counts['venues'],
+            'organizers' => (int) $counts['organizers'],
+            'checkin' => (int) $counts['checkin'],
+            // Inviti in un locale e al personale d'ingresso ancora senza risposta: la voce «I tuoi inviti» del profilo (P8).
+            'invitations' => (int) app(PendingInvitations::class)->count($user),
+        ];
     }
 
     /** @return list<array{label: string, url: string, icon: string}> */

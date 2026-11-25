@@ -11,6 +11,7 @@ use App\Filament\Venue\Support\CurrentVenue;
 use App\Models\Event;
 use App\Models\EventFeature;
 use App\Models\Venue;
+use App\Services\Events\EventFormRules;
 use App\Support\BeforeGoingDefaults;
 use App\Support\PracticalIcons;
 use Filament\Actions\Action;
@@ -41,7 +42,8 @@ final class BeforeGoingFields
             DescriptionEditor::make('content_details.accessibility_notes')->label('Dettagli accessibilità')->placeholder('Percorso di ingresso, accompagnatori, contatto per assistenza')->maxLength(2000)->columnSpanFull(),
             Select::make('content_details.feature_ids')->label('Caratteristiche e servizi')->multiple()->searchable()->preload()->options(fn (): array => EventFeature::choices())->columnSpanFull()
                 ->helperText('Cerca per nome: per esempio coppia, bagno, interprete, guardaroba. Il catalogo e le icone si gestiscono in Contenuti → Prima di andare.')
-                ->nestedRecursiveRules([Rule::exists('event_features', 'id')->where('is_active', true)->where('is_system', false)])
+                ->maxItems(EventFormRules::MAX_FEATURES)
+                ->nestedRecursiveRules(['distinct', Rule::exists('event_features', 'id')->where('is_active', true)->where('is_system', false)])
                 ->createOptionForm(EventFeatureResource::fields())
                 ->createOptionAction(fn (Action $action) => $action->label('Crea caratteristica')->visible(fn (): bool => auth()->user()?->can('create', EventFeature::class) === true))
                 ->createOptionUsing(function (array $data): int {

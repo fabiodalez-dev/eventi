@@ -7,7 +7,9 @@ namespace App\Actions;
 use App\Enums\EventStatus;
 use App\Enums\VerificationStatus;
 use App\Models\Event;
+use App\Models\Organizer;
 use App\Models\User;
+use App\Models\Venue;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
@@ -31,13 +33,20 @@ use Illuminate\Support\Facades\Schema;
  *   non modera ogni campo riservato alla redazione già valorizzato;
  * - la **lineup**, che appartiene alle singole date e non all'evento: senza
  *   date da copiare non c'è nessun posto dove metterla, e la si aggiunge alla
- *   prima data della copia.
+ *   prima data della copia;
+ * - l'**organizzazione** (`organizer_id`), quando la copia la chiede un locale:
+ *   la copia è del locale, e se portasse il nome dell'organizzazione il locale
+ *   avrebbe in mano una bozza dell'organizzazione da pubblicare a modo suo.
  */
 final class DuplicateEventAction
 {
-    public function execute(Event $event, User $author): Event
+    /**
+     * `$requestedBy` è il soggetto che chiede la copia: un locale la riceve
+     * senza organizzazione, la redazione (nessun soggetto) la riceve intera.
+     */
+    public function execute(Event $event, User $author, Venue|Organizer|null $requestedBy = null): Event
     {
-        return DB::transaction(function () use ($event, $author): Event {
+        return DB::transaction(function () use ($event, $author, $requestedBy): Event {
             $copy = $event->replicate([
                 'slug',
                 'published_at',
@@ -67,6 +76,9 @@ final class DuplicateEventAction
             $copy->is_featured = false;
             $copy->featured_until = null;
             $copy->created_by = $author->getKey();
+            if ($requestedBy instanceof Venue) {
+                $copy->organizer_id = null;
+            }
             $copy->save();
 
             $copy->tags()->sync($event->tags()->pluck('tags.id')->all());
