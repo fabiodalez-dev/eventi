@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Filament\Venue\Widgets;
 
 use App\Filament\Venue\Support\CurrentVenue;
-use App\Models\City;
 use App\Models\Venue;
+use App\Services\Management\DashboardSummary;
 use Filament\Widgets\Widget;
 
 /**
@@ -27,7 +27,8 @@ use Filament\Widgets\Widget;
  * **Come si riconosce il «non impostato».** Il punto coincide con il centro
  * della città alla settima cifra decimale — la precisione con cui la colonna
  * salva. Chi ha spostato il segnaposto anche di pochi metri non coincide più,
- * e non viene disturbato.
+ * e non viene disturbato. La domanda la fa `DashboardSummary::missingLocation`,
+ * la stessa del riepilogo dell'app.
  */
 class MissingLocationWidget extends Widget
 {
@@ -42,23 +43,11 @@ class MissingLocationWidget extends Widget
 
     public static function canView(): bool
     {
-        return self::sulCentroCitta(CurrentVenue::get());
+        return app(DashboardSummary::class)->missingLocation(CurrentVenue::get());
     }
 
     public function getVenue(): Venue
     {
         return CurrentVenue::get();
-    }
-
-    private static function sulCentroCitta(Venue $venue): bool
-    {
-        $citta = $venue->city ?? City::query()->find($venue->city_id);
-
-        if ($citta === null) {
-            return false;
-        }
-
-        return (float) $venue->lat === (float) $citta->center_lat
-            && (float) $venue->lng === (float) $citta->center_lng;
     }
 }

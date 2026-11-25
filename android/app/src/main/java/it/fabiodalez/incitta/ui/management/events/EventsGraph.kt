@@ -11,8 +11,12 @@ import it.fabiodalez.incitta.ui.management.ticketing.EventTicketingRoute
 import it.fabiodalez.incitta.ui.management.ticketing.TicketingDateRoute
 import kotlinx.serialization.Serializable
 
-/* Le rotte degli eventi. L'id dell'evento finisce nello stato salvato della voce (`id`); 0 è «nuovo evento». */
-@Serializable internal data object EventsListRoute
+/*
+ * Le rotte degli eventi. L'id dell'evento finisce nello stato salvato della
+ * voce (`id`); 0 è «nuovo evento». `tab` apre l'elenco su una scheda
+ * (`upcoming`, `drafts`…), come i numeri del cartellone del riepilogo (P11).
+ */
+@Serializable internal data class EventsListRoute(val tab: String = "")
 @Serializable internal data class EventOverviewRoute(val id: Long)
 @Serializable internal data class EventEditorRoute(val id: Long = 0L)
 @Serializable internal data class EventPreviewRoute(val id: Long)

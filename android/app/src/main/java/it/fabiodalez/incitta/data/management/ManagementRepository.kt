@@ -51,7 +51,7 @@ internal data class CheckinQueue(
 internal sealed interface ManagementLanding {
     /** L'elenco delle date, come prima: area nuova spenta, server vecchio, solo personale d'ingresso o nessun soggetto. */
     data object TicketingDates : ManagementLanding
-    /** La pagina del soggetto, con il menu delle aree. */
+    /** La pagina del soggetto: il riepilogo (P11), con il selettore in cima. */
     data class Subject(val key: String) : ManagementLanding
 }
 
@@ -97,6 +97,8 @@ internal class ManagementRepository(
     val analytics: ManagementAnalyticsSource? = null,
     /* Le sponsorizzazioni (P6). */
     val sponsorships: ManagementSponsorshipsSource? = null,
+    /* Il riepilogo del soggetto (P11). */
+    val dashboard: ManagementDashboardSource? = null,
 ) {
     private val outbox = CheckinOutbox(userId, device::readCheckins, device::writeCheckins, send ?: ticketing::checkIn)
     private val checkinState = MutableStateFlow(CheckinQueue(safePending()))
@@ -205,6 +207,7 @@ internal class ManagementRepository(
             dates = ManagementDatesApi(client, session.token),
             analytics = ManagementAnalyticsApi(client, session.token),
             sponsorships = ManagementSponsorshipsApi(client, session.token),
+            dashboard = ManagementDashboardApi(client, session.token),
         )
     }
 }

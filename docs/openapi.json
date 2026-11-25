@@ -58178,6 +58178,1995 @@
                     }
                 ]
             }
+        },
+        "/management/venues/{venue}/dashboard": {
+            "get": {
+                "operationId": "v1.management.venues.dashboard",
+                "description": "Nell'ordine del pannello: l'avviso della mappa (solo locale), il\ncartellone in tre numeri, le serate di oggi, i cinque prossimi eventi\n(uno per evento, oggi escluso), le tre schede pi\u00f9 viste negli ultimi\nsette giorni, i due programmi in PDF (solo locale). Ogni card porta i\ncollegamenti che il pannello le mette, detti come permessi. Le ore sono\nin UTC; `timezone` \u00e8 il fuso con cui il pannello le scrive.",
+                "summary": "Riepilogo del soggetto",
+                "tags": [
+                    "Dashboard"
+                ],
+                "parameters": [
+                    {
+                        "name": "venue",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "week",
+                        "in": "query",
+                        "description": "Il programma: un giorno qualsiasi della settimana da stampare; senza, questa settimana.",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "format": "date"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "subject": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "type": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "venue",
+                                                                "organizer"
+                                                            ]
+                                                        },
+                                                        "id": {
+                                                            "type": "integer"
+                                                        },
+                                                        "name": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "type",
+                                                        "id",
+                                                        "name"
+                                                    ]
+                                                },
+                                                "timezone": {
+                                                    "type": "string"
+                                                },
+                                                "missing_location": {
+                                                    "type": "boolean"
+                                                },
+                                                "counts": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "today": {
+                                                            "type": "integer"
+                                                        },
+                                                        "upcoming": {
+                                                            "type": "integer"
+                                                        },
+                                                        "drafts": {
+                                                            "type": "integer",
+                                                            "minimum": 0
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "today",
+                                                        "upcoming",
+                                                        "drafts"
+                                                    ]
+                                                },
+                                                "today": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "event": {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "id": {
+                                                                        "type": "integer"
+                                                                    },
+                                                                    "slug": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "title": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "status": {
+                                                                        "type": "object",
+                                                                        "properties": {
+                                                                            "value": {
+                                                                                "type": "string",
+                                                                                "enum": [
+                                                                                    "draft",
+                                                                                    "pending",
+                                                                                    "published",
+                                                                                    "rejected",
+                                                                                    "cancelled",
+                                                                                    "archived"
+                                                                                ]
+                                                                            },
+                                                                            "label": {
+                                                                                "type": "string",
+                                                                                "enum": [
+                                                                                    "enums.event_status.draft",
+                                                                                    "enums.event_status.pending",
+                                                                                    "enums.event_status.published",
+                                                                                    "enums.event_status.rejected",
+                                                                                    "enums.event_status.cancelled",
+                                                                                    "enums.event_status.archived"
+                                                                                ]
+                                                                            }
+                                                                        },
+                                                                        "required": [
+                                                                            "value",
+                                                                            "label"
+                                                                        ]
+                                                                    },
+                                                                    "poster": {
+                                                                        "anyOf": [
+                                                                            {
+                                                                                "type": "object",
+                                                                                "properties": {
+                                                                                    "thumb": {
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    "card": {
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    "full": {
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    "blurhash": {
+                                                                                        "type": [
+                                                                                            "string",
+                                                                                            "null"
+                                                                                        ]
+                                                                                    },
+                                                                                    "width": {
+                                                                                        "type": [
+                                                                                            "integer",
+                                                                                            "null"
+                                                                                        ]
+                                                                                    },
+                                                                                    "height": {
+                                                                                        "type": [
+                                                                                            "integer",
+                                                                                            "null"
+                                                                                        ]
+                                                                                    }
+                                                                                },
+                                                                                "required": [
+                                                                                    "thumb",
+                                                                                    "card",
+                                                                                    "full",
+                                                                                    "blurhash",
+                                                                                    "width",
+                                                                                    "height"
+                                                                                ]
+                                                                            },
+                                                                            {
+                                                                                "type": "null"
+                                                                            },
+                                                                            {
+                                                                                "type": "object",
+                                                                                "properties": {
+                                                                                    "thumb": {
+                                                                                        "type": [
+                                                                                            "string",
+                                                                                            "null"
+                                                                                        ]
+                                                                                    },
+                                                                                    "card": {
+                                                                                        "type": [
+                                                                                            "string",
+                                                                                            "null"
+                                                                                        ]
+                                                                                    },
+                                                                                    "full": {
+                                                                                        "type": [
+                                                                                            "string",
+                                                                                            "null"
+                                                                                        ]
+                                                                                    },
+                                                                                    "blurhash": {
+                                                                                        "type": "null"
+                                                                                    },
+                                                                                    "width": {
+                                                                                        "type": "null"
+                                                                                    },
+                                                                                    "height": {
+                                                                                        "type": "null"
+                                                                                    }
+                                                                                },
+                                                                                "required": [
+                                                                                    "thumb",
+                                                                                    "card",
+                                                                                    "full",
+                                                                                    "blurhash",
+                                                                                    "width",
+                                                                                    "height"
+                                                                                ]
+                                                                            }
+                                                                        ]
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "id",
+                                                                    "slug",
+                                                                    "title",
+                                                                    "status",
+                                                                    "poster"
+                                                                ]
+                                                            },
+                                                            "date": {
+                                                                "type": [
+                                                                    "object",
+                                                                    "null"
+                                                                ],
+                                                                "properties": {
+                                                                    "id": {
+                                                                        "type": "integer"
+                                                                    },
+                                                                    "starts_at": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "place": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "status": {
+                                                                        "type": "object",
+                                                                        "properties": {
+                                                                            "value": {
+                                                                                "type": "string",
+                                                                                "enum": [
+                                                                                    "scheduled",
+                                                                                    "cancelled",
+                                                                                    "sold_out",
+                                                                                    "postponed",
+                                                                                    "moved"
+                                                                                ]
+                                                                            },
+                                                                            "label": {
+                                                                                "type": "string",
+                                                                                "enum": [
+                                                                                    "enums.occurrence_status.scheduled",
+                                                                                    "enums.occurrence_status.cancelled",
+                                                                                    "enums.occurrence_status.sold_out",
+                                                                                    "enums.occurrence_status.postponed",
+                                                                                    "enums.occurrence_status.moved"
+                                                                                ]
+                                                                            }
+                                                                        },
+                                                                        "required": [
+                                                                            "value",
+                                                                            "label"
+                                                                        ]
+                                                                    },
+                                                                    "scheduled": {
+                                                                        "type": "boolean"
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "id",
+                                                                    "starts_at",
+                                                                    "place",
+                                                                    "status",
+                                                                    "scheduled"
+                                                                ]
+                                                            },
+                                                            "views": {
+                                                                "type": "string"
+                                                            },
+                                                            "links": {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "edit": {
+                                                                        "type": "boolean"
+                                                                    },
+                                                                    "tickets_occurrence_id": {
+                                                                        "type": [
+                                                                            "integer",
+                                                                            "null"
+                                                                        ]
+                                                                    },
+                                                                    "statistics": {
+                                                                        "type": "boolean",
+                                                                        "description": "Le statistiche dell'evento sono del locale o dell'organizzatore principale (P5)."
+                                                                    },
+                                                                    "social": {
+                                                                        "type": "boolean",
+                                                                        "description": "Le grafiche social esistono solo nel pannello del locale."
+                                                                    },
+                                                                    "sponsor": {
+                                                                        "type": "boolean"
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "edit",
+                                                                    "tickets_occurrence_id",
+                                                                    "statistics",
+                                                                    "social",
+                                                                    "sponsor"
+                                                                ]
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "event",
+                                                            "date",
+                                                            "views",
+                                                            "links"
+                                                        ]
+                                                    }
+                                                },
+                                                "upcoming": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "event": {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "id": {
+                                                                        "type": "integer"
+                                                                    },
+                                                                    "slug": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "title": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "status": {
+                                                                        "type": "object",
+                                                                        "properties": {
+                                                                            "value": {
+                                                                                "type": "string",
+                                                                                "enum": [
+                                                                                    "draft",
+                                                                                    "pending",
+                                                                                    "published",
+                                                                                    "rejected",
+                                                                                    "cancelled",
+                                                                                    "archived"
+                                                                                ]
+                                                                            },
+                                                                            "label": {
+                                                                                "type": "string",
+                                                                                "enum": [
+                                                                                    "enums.event_status.draft",
+                                                                                    "enums.event_status.pending",
+                                                                                    "enums.event_status.published",
+                                                                                    "enums.event_status.rejected",
+                                                                                    "enums.event_status.cancelled",
+                                                                                    "enums.event_status.archived"
+                                                                                ]
+                                                                            }
+                                                                        },
+                                                                        "required": [
+                                                                            "value",
+                                                                            "label"
+                                                                        ]
+                                                                    },
+                                                                    "poster": {
+                                                                        "anyOf": [
+                                                                            {
+                                                                                "type": "object",
+                                                                                "properties": {
+                                                                                    "thumb": {
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    "card": {
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    "full": {
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    "blurhash": {
+                                                                                        "type": [
+                                                                                            "string",
+                                                                                            "null"
+                                                                                        ]
+                                                                                    },
+                                                                                    "width": {
+                                                                                        "type": [
+                                                                                            "integer",
+                                                                                            "null"
+                                                                                        ]
+                                                                                    },
+                                                                                    "height": {
+                                                                                        "type": [
+                                                                                            "integer",
+                                                                                            "null"
+                                                                                        ]
+                                                                                    }
+                                                                                },
+                                                                                "required": [
+                                                                                    "thumb",
+                                                                                    "card",
+                                                                                    "full",
+                                                                                    "blurhash",
+                                                                                    "width",
+                                                                                    "height"
+                                                                                ]
+                                                                            },
+                                                                            {
+                                                                                "type": "null"
+                                                                            },
+                                                                            {
+                                                                                "type": "object",
+                                                                                "properties": {
+                                                                                    "thumb": {
+                                                                                        "type": [
+                                                                                            "string",
+                                                                                            "null"
+                                                                                        ]
+                                                                                    },
+                                                                                    "card": {
+                                                                                        "type": [
+                                                                                            "string",
+                                                                                            "null"
+                                                                                        ]
+                                                                                    },
+                                                                                    "full": {
+                                                                                        "type": [
+                                                                                            "string",
+                                                                                            "null"
+                                                                                        ]
+                                                                                    },
+                                                                                    "blurhash": {
+                                                                                        "type": "null"
+                                                                                    },
+                                                                                    "width": {
+                                                                                        "type": "null"
+                                                                                    },
+                                                                                    "height": {
+                                                                                        "type": "null"
+                                                                                    }
+                                                                                },
+                                                                                "required": [
+                                                                                    "thumb",
+                                                                                    "card",
+                                                                                    "full",
+                                                                                    "blurhash",
+                                                                                    "width",
+                                                                                    "height"
+                                                                                ]
+                                                                            }
+                                                                        ]
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "id",
+                                                                    "slug",
+                                                                    "title",
+                                                                    "status",
+                                                                    "poster"
+                                                                ]
+                                                            },
+                                                            "date": {
+                                                                "type": [
+                                                                    "object",
+                                                                    "null"
+                                                                ],
+                                                                "properties": {
+                                                                    "id": {
+                                                                        "type": "integer"
+                                                                    },
+                                                                    "starts_at": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "place": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "status": {
+                                                                        "type": "object",
+                                                                        "properties": {
+                                                                            "value": {
+                                                                                "type": "string",
+                                                                                "enum": [
+                                                                                    "scheduled",
+                                                                                    "cancelled",
+                                                                                    "sold_out",
+                                                                                    "postponed",
+                                                                                    "moved"
+                                                                                ]
+                                                                            },
+                                                                            "label": {
+                                                                                "type": "string",
+                                                                                "enum": [
+                                                                                    "enums.occurrence_status.scheduled",
+                                                                                    "enums.occurrence_status.cancelled",
+                                                                                    "enums.occurrence_status.sold_out",
+                                                                                    "enums.occurrence_status.postponed",
+                                                                                    "enums.occurrence_status.moved"
+                                                                                ]
+                                                                            }
+                                                                        },
+                                                                        "required": [
+                                                                            "value",
+                                                                            "label"
+                                                                        ]
+                                                                    },
+                                                                    "scheduled": {
+                                                                        "type": "boolean"
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "id",
+                                                                    "starts_at",
+                                                                    "place",
+                                                                    "status",
+                                                                    "scheduled"
+                                                                ]
+                                                            },
+                                                            "views": {
+                                                                "type": "string"
+                                                            },
+                                                            "links": {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "edit": {
+                                                                        "type": "boolean"
+                                                                    },
+                                                                    "tickets_occurrence_id": {
+                                                                        "type": [
+                                                                            "integer",
+                                                                            "null"
+                                                                        ]
+                                                                    },
+                                                                    "statistics": {
+                                                                        "type": "boolean",
+                                                                        "description": "Le statistiche dell'evento sono del locale o dell'organizzatore principale (P5)."
+                                                                    },
+                                                                    "social": {
+                                                                        "type": "boolean",
+                                                                        "description": "Le grafiche social esistono solo nel pannello del locale."
+                                                                    },
+                                                                    "sponsor": {
+                                                                        "type": "boolean"
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "edit",
+                                                                    "tickets_occurrence_id",
+                                                                    "statistics",
+                                                                    "social",
+                                                                    "sponsor"
+                                                                ]
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "event",
+                                                            "date",
+                                                            "views",
+                                                            "links"
+                                                        ]
+                                                    }
+                                                },
+                                                "recent_views": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "days": {
+                                                            "type": "integer",
+                                                            "const": 7
+                                                        },
+                                                        "items": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "event": {
+                                                                        "type": "object",
+                                                                        "properties": {
+                                                                            "id": {
+                                                                                "type": "integer"
+                                                                            },
+                                                                            "slug": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "title": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "status": {
+                                                                                "type": "object",
+                                                                                "properties": {
+                                                                                    "value": {
+                                                                                        "type": "string",
+                                                                                        "enum": [
+                                                                                            "draft",
+                                                                                            "pending",
+                                                                                            "published",
+                                                                                            "rejected",
+                                                                                            "cancelled",
+                                                                                            "archived"
+                                                                                        ]
+                                                                                    },
+                                                                                    "label": {
+                                                                                        "type": "string",
+                                                                                        "enum": [
+                                                                                            "enums.event_status.draft",
+                                                                                            "enums.event_status.pending",
+                                                                                            "enums.event_status.published",
+                                                                                            "enums.event_status.rejected",
+                                                                                            "enums.event_status.cancelled",
+                                                                                            "enums.event_status.archived"
+                                                                                        ]
+                                                                                    }
+                                                                                },
+                                                                                "required": [
+                                                                                    "value",
+                                                                                    "label"
+                                                                                ]
+                                                                            },
+                                                                            "poster": {
+                                                                                "anyOf": [
+                                                                                    {
+                                                                                        "type": "object",
+                                                                                        "properties": {
+                                                                                            "thumb": {
+                                                                                                "type": "string"
+                                                                                            },
+                                                                                            "card": {
+                                                                                                "type": "string"
+                                                                                            },
+                                                                                            "full": {
+                                                                                                "type": "string"
+                                                                                            },
+                                                                                            "blurhash": {
+                                                                                                "type": [
+                                                                                                    "string",
+                                                                                                    "null"
+                                                                                                ]
+                                                                                            },
+                                                                                            "width": {
+                                                                                                "type": [
+                                                                                                    "integer",
+                                                                                                    "null"
+                                                                                                ]
+                                                                                            },
+                                                                                            "height": {
+                                                                                                "type": [
+                                                                                                    "integer",
+                                                                                                    "null"
+                                                                                                ]
+                                                                                            }
+                                                                                        },
+                                                                                        "required": [
+                                                                                            "thumb",
+                                                                                            "card",
+                                                                                            "full",
+                                                                                            "blurhash",
+                                                                                            "width",
+                                                                                            "height"
+                                                                                        ]
+                                                                                    },
+                                                                                    {
+                                                                                        "type": "null"
+                                                                                    },
+                                                                                    {
+                                                                                        "type": "object",
+                                                                                        "properties": {
+                                                                                            "thumb": {
+                                                                                                "type": [
+                                                                                                    "string",
+                                                                                                    "null"
+                                                                                                ]
+                                                                                            },
+                                                                                            "card": {
+                                                                                                "type": [
+                                                                                                    "string",
+                                                                                                    "null"
+                                                                                                ]
+                                                                                            },
+                                                                                            "full": {
+                                                                                                "type": [
+                                                                                                    "string",
+                                                                                                    "null"
+                                                                                                ]
+                                                                                            },
+                                                                                            "blurhash": {
+                                                                                                "type": "null"
+                                                                                            },
+                                                                                            "width": {
+                                                                                                "type": "null"
+                                                                                            },
+                                                                                            "height": {
+                                                                                                "type": "null"
+                                                                                            }
+                                                                                        },
+                                                                                        "required": [
+                                                                                            "thumb",
+                                                                                            "card",
+                                                                                            "full",
+                                                                                            "blurhash",
+                                                                                            "width",
+                                                                                            "height"
+                                                                                        ]
+                                                                                    }
+                                                                                ]
+                                                                            }
+                                                                        },
+                                                                        "required": [
+                                                                            "id",
+                                                                            "slug",
+                                                                            "title",
+                                                                            "status",
+                                                                            "poster"
+                                                                        ]
+                                                                    },
+                                                                    "date": {
+                                                                        "type": [
+                                                                            "object",
+                                                                            "null"
+                                                                        ],
+                                                                        "properties": {
+                                                                            "id": {
+                                                                                "type": "integer"
+                                                                            },
+                                                                            "starts_at": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "place": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "status": {
+                                                                                "type": "object",
+                                                                                "properties": {
+                                                                                    "value": {
+                                                                                        "type": "string",
+                                                                                        "enum": [
+                                                                                            "scheduled",
+                                                                                            "cancelled",
+                                                                                            "sold_out",
+                                                                                            "postponed",
+                                                                                            "moved"
+                                                                                        ]
+                                                                                    },
+                                                                                    "label": {
+                                                                                        "type": "string",
+                                                                                        "enum": [
+                                                                                            "enums.occurrence_status.scheduled",
+                                                                                            "enums.occurrence_status.cancelled",
+                                                                                            "enums.occurrence_status.sold_out",
+                                                                                            "enums.occurrence_status.postponed",
+                                                                                            "enums.occurrence_status.moved"
+                                                                                        ]
+                                                                                    }
+                                                                                },
+                                                                                "required": [
+                                                                                    "value",
+                                                                                    "label"
+                                                                                ]
+                                                                            },
+                                                                            "scheduled": {
+                                                                                "type": "boolean"
+                                                                            }
+                                                                        },
+                                                                        "required": [
+                                                                            "id",
+                                                                            "starts_at",
+                                                                            "place",
+                                                                            "status",
+                                                                            "scheduled"
+                                                                        ]
+                                                                    },
+                                                                    "views": {
+                                                                        "type": "integer"
+                                                                    },
+                                                                    "links": {
+                                                                        "type": "object",
+                                                                        "properties": {
+                                                                            "edit": {
+                                                                                "type": "boolean"
+                                                                            },
+                                                                            "tickets_occurrence_id": {
+                                                                                "type": [
+                                                                                    "integer",
+                                                                                    "null"
+                                                                                ]
+                                                                            },
+                                                                            "statistics": {
+                                                                                "type": "boolean",
+                                                                                "description": "Le statistiche dell'evento sono del locale o dell'organizzatore principale (P5)."
+                                                                            },
+                                                                            "social": {
+                                                                                "type": "boolean",
+                                                                                "description": "Le grafiche social esistono solo nel pannello del locale."
+                                                                            },
+                                                                            "sponsor": {
+                                                                                "type": "boolean"
+                                                                            }
+                                                                        },
+                                                                        "required": [
+                                                                            "edit",
+                                                                            "tickets_occurrence_id",
+                                                                            "statistics",
+                                                                            "social",
+                                                                            "sponsor"
+                                                                        ]
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "event",
+                                                                    "date",
+                                                                    "views",
+                                                                    "links"
+                                                                ]
+                                                            }
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "days",
+                                                        "items"
+                                                    ]
+                                                },
+                                                "programme": {
+                                                    "type": [
+                                                        "object",
+                                                        "null"
+                                                    ],
+                                                    "properties": {
+                                                        "available": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "this_week": {
+                                                            "type": "string"
+                                                        },
+                                                        "next_week": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "available",
+                                                        "this_week",
+                                                        "next_week"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "subject",
+                                                "timezone",
+                                                "missing_location",
+                                                "counts",
+                                                "today",
+                                                "upcoming",
+                                                "recent_views",
+                                                "programme"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        },
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            },
+                            "X-RateLimit-Remaining": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Accesso richiesto.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "description": "Operazione non autorizzata.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Elemento non disponibile.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "http": []
+                    }
+                ]
+            }
+        },
+        "/management/venues/{venue}/dashboard/programme": {
+            "get": {
+                "operationId": "v1.management.venues.dashboard.programme",
+                "description": "Lo stesso foglio di `/locali/{slug}/programma.pdf` (W-DB-08, W-PB-02),\ncon lo stesso limite di richieste. `week` \u00e8 un giorno qualsiasi della\nsettimana (`AAAA-MM-GG`); senza, questa settimana. Come la pagina\npubblica esiste solo per un locale approvato: altrimenti 404.",
+                "summary": "Programma della settimana in PDF (solo locale)",
+                "tags": [
+                    "Dashboard"
+                ],
+                "parameters": [
+                    {
+                        "name": "venue",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "week",
+                        "in": "query",
+                        "description": "Il programma: un giorno qualsiasi della settimana da stampare; senza, questa settimana.",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "format": "date"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/pdf": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        },
+                        "headers": {
+                            "Content-Disposition": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            },
+                            "X-RateLimit-Limit": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            },
+                            "X-RateLimit-Remaining": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Elemento non disponibile.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Accesso richiesto.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "description": "Operazione non autorizzata.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "http": []
+                    }
+                ]
+            }
+        },
+        "/management/organizers/{organizer}/dashboard": {
+            "get": {
+                "operationId": "v1.management.organizers.dashboard",
+                "description": "Nell'ordine del pannello: l'avviso della mappa (solo locale), il\ncartellone in tre numeri, le serate di oggi, i cinque prossimi eventi\n(uno per evento, oggi escluso), le tre schede pi\u00f9 viste negli ultimi\nsette giorni, i due programmi in PDF (solo locale). Ogni card porta i\ncollegamenti che il pannello le mette, detti come permessi. Le ore sono\nin UTC; `timezone` \u00e8 il fuso con cui il pannello le scrive.",
+                "summary": "Riepilogo del soggetto",
+                "tags": [
+                    "Dashboard"
+                ],
+                "parameters": [
+                    {
+                        "name": "organizer",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "week",
+                        "in": "query",
+                        "description": "Il programma: un giorno qualsiasi della settimana da stampare; senza, questa settimana.",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "format": "date"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "subject": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "type": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "venue",
+                                                                "organizer"
+                                                            ]
+                                                        },
+                                                        "id": {
+                                                            "type": "integer"
+                                                        },
+                                                        "name": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "type",
+                                                        "id",
+                                                        "name"
+                                                    ]
+                                                },
+                                                "timezone": {
+                                                    "type": "string"
+                                                },
+                                                "missing_location": {
+                                                    "type": "boolean"
+                                                },
+                                                "counts": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "today": {
+                                                            "type": "integer"
+                                                        },
+                                                        "upcoming": {
+                                                            "type": "integer"
+                                                        },
+                                                        "drafts": {
+                                                            "type": "integer",
+                                                            "minimum": 0
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "today",
+                                                        "upcoming",
+                                                        "drafts"
+                                                    ]
+                                                },
+                                                "today": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "event": {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "id": {
+                                                                        "type": "integer"
+                                                                    },
+                                                                    "slug": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "title": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "status": {
+                                                                        "type": "object",
+                                                                        "properties": {
+                                                                            "value": {
+                                                                                "type": "string",
+                                                                                "enum": [
+                                                                                    "draft",
+                                                                                    "pending",
+                                                                                    "published",
+                                                                                    "rejected",
+                                                                                    "cancelled",
+                                                                                    "archived"
+                                                                                ]
+                                                                            },
+                                                                            "label": {
+                                                                                "type": "string",
+                                                                                "enum": [
+                                                                                    "enums.event_status.draft",
+                                                                                    "enums.event_status.pending",
+                                                                                    "enums.event_status.published",
+                                                                                    "enums.event_status.rejected",
+                                                                                    "enums.event_status.cancelled",
+                                                                                    "enums.event_status.archived"
+                                                                                ]
+                                                                            }
+                                                                        },
+                                                                        "required": [
+                                                                            "value",
+                                                                            "label"
+                                                                        ]
+                                                                    },
+                                                                    "poster": {
+                                                                        "anyOf": [
+                                                                            {
+                                                                                "type": "object",
+                                                                                "properties": {
+                                                                                    "thumb": {
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    "card": {
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    "full": {
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    "blurhash": {
+                                                                                        "type": [
+                                                                                            "string",
+                                                                                            "null"
+                                                                                        ]
+                                                                                    },
+                                                                                    "width": {
+                                                                                        "type": [
+                                                                                            "integer",
+                                                                                            "null"
+                                                                                        ]
+                                                                                    },
+                                                                                    "height": {
+                                                                                        "type": [
+                                                                                            "integer",
+                                                                                            "null"
+                                                                                        ]
+                                                                                    }
+                                                                                },
+                                                                                "required": [
+                                                                                    "thumb",
+                                                                                    "card",
+                                                                                    "full",
+                                                                                    "blurhash",
+                                                                                    "width",
+                                                                                    "height"
+                                                                                ]
+                                                                            },
+                                                                            {
+                                                                                "type": "null"
+                                                                            },
+                                                                            {
+                                                                                "type": "object",
+                                                                                "properties": {
+                                                                                    "thumb": {
+                                                                                        "type": [
+                                                                                            "string",
+                                                                                            "null"
+                                                                                        ]
+                                                                                    },
+                                                                                    "card": {
+                                                                                        "type": [
+                                                                                            "string",
+                                                                                            "null"
+                                                                                        ]
+                                                                                    },
+                                                                                    "full": {
+                                                                                        "type": [
+                                                                                            "string",
+                                                                                            "null"
+                                                                                        ]
+                                                                                    },
+                                                                                    "blurhash": {
+                                                                                        "type": "null"
+                                                                                    },
+                                                                                    "width": {
+                                                                                        "type": "null"
+                                                                                    },
+                                                                                    "height": {
+                                                                                        "type": "null"
+                                                                                    }
+                                                                                },
+                                                                                "required": [
+                                                                                    "thumb",
+                                                                                    "card",
+                                                                                    "full",
+                                                                                    "blurhash",
+                                                                                    "width",
+                                                                                    "height"
+                                                                                ]
+                                                                            }
+                                                                        ]
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "id",
+                                                                    "slug",
+                                                                    "title",
+                                                                    "status",
+                                                                    "poster"
+                                                                ]
+                                                            },
+                                                            "date": {
+                                                                "type": [
+                                                                    "object",
+                                                                    "null"
+                                                                ],
+                                                                "properties": {
+                                                                    "id": {
+                                                                        "type": "integer"
+                                                                    },
+                                                                    "starts_at": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "place": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "status": {
+                                                                        "type": "object",
+                                                                        "properties": {
+                                                                            "value": {
+                                                                                "type": "string",
+                                                                                "enum": [
+                                                                                    "scheduled",
+                                                                                    "cancelled",
+                                                                                    "sold_out",
+                                                                                    "postponed",
+                                                                                    "moved"
+                                                                                ]
+                                                                            },
+                                                                            "label": {
+                                                                                "type": "string",
+                                                                                "enum": [
+                                                                                    "enums.occurrence_status.scheduled",
+                                                                                    "enums.occurrence_status.cancelled",
+                                                                                    "enums.occurrence_status.sold_out",
+                                                                                    "enums.occurrence_status.postponed",
+                                                                                    "enums.occurrence_status.moved"
+                                                                                ]
+                                                                            }
+                                                                        },
+                                                                        "required": [
+                                                                            "value",
+                                                                            "label"
+                                                                        ]
+                                                                    },
+                                                                    "scheduled": {
+                                                                        "type": "boolean"
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "id",
+                                                                    "starts_at",
+                                                                    "place",
+                                                                    "status",
+                                                                    "scheduled"
+                                                                ]
+                                                            },
+                                                            "views": {
+                                                                "type": "string"
+                                                            },
+                                                            "links": {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "edit": {
+                                                                        "type": "boolean"
+                                                                    },
+                                                                    "tickets_occurrence_id": {
+                                                                        "type": [
+                                                                            "integer",
+                                                                            "null"
+                                                                        ]
+                                                                    },
+                                                                    "statistics": {
+                                                                        "type": "boolean",
+                                                                        "description": "Le statistiche dell'evento sono del locale o dell'organizzatore principale (P5)."
+                                                                    },
+                                                                    "social": {
+                                                                        "type": "boolean",
+                                                                        "description": "Le grafiche social esistono solo nel pannello del locale."
+                                                                    },
+                                                                    "sponsor": {
+                                                                        "type": "boolean"
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "edit",
+                                                                    "tickets_occurrence_id",
+                                                                    "statistics",
+                                                                    "social",
+                                                                    "sponsor"
+                                                                ]
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "event",
+                                                            "date",
+                                                            "views",
+                                                            "links"
+                                                        ]
+                                                    }
+                                                },
+                                                "upcoming": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "event": {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "id": {
+                                                                        "type": "integer"
+                                                                    },
+                                                                    "slug": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "title": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "status": {
+                                                                        "type": "object",
+                                                                        "properties": {
+                                                                            "value": {
+                                                                                "type": "string",
+                                                                                "enum": [
+                                                                                    "draft",
+                                                                                    "pending",
+                                                                                    "published",
+                                                                                    "rejected",
+                                                                                    "cancelled",
+                                                                                    "archived"
+                                                                                ]
+                                                                            },
+                                                                            "label": {
+                                                                                "type": "string",
+                                                                                "enum": [
+                                                                                    "enums.event_status.draft",
+                                                                                    "enums.event_status.pending",
+                                                                                    "enums.event_status.published",
+                                                                                    "enums.event_status.rejected",
+                                                                                    "enums.event_status.cancelled",
+                                                                                    "enums.event_status.archived"
+                                                                                ]
+                                                                            }
+                                                                        },
+                                                                        "required": [
+                                                                            "value",
+                                                                            "label"
+                                                                        ]
+                                                                    },
+                                                                    "poster": {
+                                                                        "anyOf": [
+                                                                            {
+                                                                                "type": "object",
+                                                                                "properties": {
+                                                                                    "thumb": {
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    "card": {
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    "full": {
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    "blurhash": {
+                                                                                        "type": [
+                                                                                            "string",
+                                                                                            "null"
+                                                                                        ]
+                                                                                    },
+                                                                                    "width": {
+                                                                                        "type": [
+                                                                                            "integer",
+                                                                                            "null"
+                                                                                        ]
+                                                                                    },
+                                                                                    "height": {
+                                                                                        "type": [
+                                                                                            "integer",
+                                                                                            "null"
+                                                                                        ]
+                                                                                    }
+                                                                                },
+                                                                                "required": [
+                                                                                    "thumb",
+                                                                                    "card",
+                                                                                    "full",
+                                                                                    "blurhash",
+                                                                                    "width",
+                                                                                    "height"
+                                                                                ]
+                                                                            },
+                                                                            {
+                                                                                "type": "null"
+                                                                            },
+                                                                            {
+                                                                                "type": "object",
+                                                                                "properties": {
+                                                                                    "thumb": {
+                                                                                        "type": [
+                                                                                            "string",
+                                                                                            "null"
+                                                                                        ]
+                                                                                    },
+                                                                                    "card": {
+                                                                                        "type": [
+                                                                                            "string",
+                                                                                            "null"
+                                                                                        ]
+                                                                                    },
+                                                                                    "full": {
+                                                                                        "type": [
+                                                                                            "string",
+                                                                                            "null"
+                                                                                        ]
+                                                                                    },
+                                                                                    "blurhash": {
+                                                                                        "type": "null"
+                                                                                    },
+                                                                                    "width": {
+                                                                                        "type": "null"
+                                                                                    },
+                                                                                    "height": {
+                                                                                        "type": "null"
+                                                                                    }
+                                                                                },
+                                                                                "required": [
+                                                                                    "thumb",
+                                                                                    "card",
+                                                                                    "full",
+                                                                                    "blurhash",
+                                                                                    "width",
+                                                                                    "height"
+                                                                                ]
+                                                                            }
+                                                                        ]
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "id",
+                                                                    "slug",
+                                                                    "title",
+                                                                    "status",
+                                                                    "poster"
+                                                                ]
+                                                            },
+                                                            "date": {
+                                                                "type": [
+                                                                    "object",
+                                                                    "null"
+                                                                ],
+                                                                "properties": {
+                                                                    "id": {
+                                                                        "type": "integer"
+                                                                    },
+                                                                    "starts_at": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "place": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "status": {
+                                                                        "type": "object",
+                                                                        "properties": {
+                                                                            "value": {
+                                                                                "type": "string",
+                                                                                "enum": [
+                                                                                    "scheduled",
+                                                                                    "cancelled",
+                                                                                    "sold_out",
+                                                                                    "postponed",
+                                                                                    "moved"
+                                                                                ]
+                                                                            },
+                                                                            "label": {
+                                                                                "type": "string",
+                                                                                "enum": [
+                                                                                    "enums.occurrence_status.scheduled",
+                                                                                    "enums.occurrence_status.cancelled",
+                                                                                    "enums.occurrence_status.sold_out",
+                                                                                    "enums.occurrence_status.postponed",
+                                                                                    "enums.occurrence_status.moved"
+                                                                                ]
+                                                                            }
+                                                                        },
+                                                                        "required": [
+                                                                            "value",
+                                                                            "label"
+                                                                        ]
+                                                                    },
+                                                                    "scheduled": {
+                                                                        "type": "boolean"
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "id",
+                                                                    "starts_at",
+                                                                    "place",
+                                                                    "status",
+                                                                    "scheduled"
+                                                                ]
+                                                            },
+                                                            "views": {
+                                                                "type": "string"
+                                                            },
+                                                            "links": {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "edit": {
+                                                                        "type": "boolean"
+                                                                    },
+                                                                    "tickets_occurrence_id": {
+                                                                        "type": [
+                                                                            "integer",
+                                                                            "null"
+                                                                        ]
+                                                                    },
+                                                                    "statistics": {
+                                                                        "type": "boolean",
+                                                                        "description": "Le statistiche dell'evento sono del locale o dell'organizzatore principale (P5)."
+                                                                    },
+                                                                    "social": {
+                                                                        "type": "boolean",
+                                                                        "description": "Le grafiche social esistono solo nel pannello del locale."
+                                                                    },
+                                                                    "sponsor": {
+                                                                        "type": "boolean"
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "edit",
+                                                                    "tickets_occurrence_id",
+                                                                    "statistics",
+                                                                    "social",
+                                                                    "sponsor"
+                                                                ]
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "event",
+                                                            "date",
+                                                            "views",
+                                                            "links"
+                                                        ]
+                                                    }
+                                                },
+                                                "recent_views": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "days": {
+                                                            "type": "integer",
+                                                            "const": 7
+                                                        },
+                                                        "items": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "event": {
+                                                                        "type": "object",
+                                                                        "properties": {
+                                                                            "id": {
+                                                                                "type": "integer"
+                                                                            },
+                                                                            "slug": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "title": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "status": {
+                                                                                "type": "object",
+                                                                                "properties": {
+                                                                                    "value": {
+                                                                                        "type": "string",
+                                                                                        "enum": [
+                                                                                            "draft",
+                                                                                            "pending",
+                                                                                            "published",
+                                                                                            "rejected",
+                                                                                            "cancelled",
+                                                                                            "archived"
+                                                                                        ]
+                                                                                    },
+                                                                                    "label": {
+                                                                                        "type": "string",
+                                                                                        "enum": [
+                                                                                            "enums.event_status.draft",
+                                                                                            "enums.event_status.pending",
+                                                                                            "enums.event_status.published",
+                                                                                            "enums.event_status.rejected",
+                                                                                            "enums.event_status.cancelled",
+                                                                                            "enums.event_status.archived"
+                                                                                        ]
+                                                                                    }
+                                                                                },
+                                                                                "required": [
+                                                                                    "value",
+                                                                                    "label"
+                                                                                ]
+                                                                            },
+                                                                            "poster": {
+                                                                                "anyOf": [
+                                                                                    {
+                                                                                        "type": "object",
+                                                                                        "properties": {
+                                                                                            "thumb": {
+                                                                                                "type": "string"
+                                                                                            },
+                                                                                            "card": {
+                                                                                                "type": "string"
+                                                                                            },
+                                                                                            "full": {
+                                                                                                "type": "string"
+                                                                                            },
+                                                                                            "blurhash": {
+                                                                                                "type": [
+                                                                                                    "string",
+                                                                                                    "null"
+                                                                                                ]
+                                                                                            },
+                                                                                            "width": {
+                                                                                                "type": [
+                                                                                                    "integer",
+                                                                                                    "null"
+                                                                                                ]
+                                                                                            },
+                                                                                            "height": {
+                                                                                                "type": [
+                                                                                                    "integer",
+                                                                                                    "null"
+                                                                                                ]
+                                                                                            }
+                                                                                        },
+                                                                                        "required": [
+                                                                                            "thumb",
+                                                                                            "card",
+                                                                                            "full",
+                                                                                            "blurhash",
+                                                                                            "width",
+                                                                                            "height"
+                                                                                        ]
+                                                                                    },
+                                                                                    {
+                                                                                        "type": "null"
+                                                                                    },
+                                                                                    {
+                                                                                        "type": "object",
+                                                                                        "properties": {
+                                                                                            "thumb": {
+                                                                                                "type": [
+                                                                                                    "string",
+                                                                                                    "null"
+                                                                                                ]
+                                                                                            },
+                                                                                            "card": {
+                                                                                                "type": [
+                                                                                                    "string",
+                                                                                                    "null"
+                                                                                                ]
+                                                                                            },
+                                                                                            "full": {
+                                                                                                "type": [
+                                                                                                    "string",
+                                                                                                    "null"
+                                                                                                ]
+                                                                                            },
+                                                                                            "blurhash": {
+                                                                                                "type": "null"
+                                                                                            },
+                                                                                            "width": {
+                                                                                                "type": "null"
+                                                                                            },
+                                                                                            "height": {
+                                                                                                "type": "null"
+                                                                                            }
+                                                                                        },
+                                                                                        "required": [
+                                                                                            "thumb",
+                                                                                            "card",
+                                                                                            "full",
+                                                                                            "blurhash",
+                                                                                            "width",
+                                                                                            "height"
+                                                                                        ]
+                                                                                    }
+                                                                                ]
+                                                                            }
+                                                                        },
+                                                                        "required": [
+                                                                            "id",
+                                                                            "slug",
+                                                                            "title",
+                                                                            "status",
+                                                                            "poster"
+                                                                        ]
+                                                                    },
+                                                                    "date": {
+                                                                        "type": [
+                                                                            "object",
+                                                                            "null"
+                                                                        ],
+                                                                        "properties": {
+                                                                            "id": {
+                                                                                "type": "integer"
+                                                                            },
+                                                                            "starts_at": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "place": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "status": {
+                                                                                "type": "object",
+                                                                                "properties": {
+                                                                                    "value": {
+                                                                                        "type": "string",
+                                                                                        "enum": [
+                                                                                            "scheduled",
+                                                                                            "cancelled",
+                                                                                            "sold_out",
+                                                                                            "postponed",
+                                                                                            "moved"
+                                                                                        ]
+                                                                                    },
+                                                                                    "label": {
+                                                                                        "type": "string",
+                                                                                        "enum": [
+                                                                                            "enums.occurrence_status.scheduled",
+                                                                                            "enums.occurrence_status.cancelled",
+                                                                                            "enums.occurrence_status.sold_out",
+                                                                                            "enums.occurrence_status.postponed",
+                                                                                            "enums.occurrence_status.moved"
+                                                                                        ]
+                                                                                    }
+                                                                                },
+                                                                                "required": [
+                                                                                    "value",
+                                                                                    "label"
+                                                                                ]
+                                                                            },
+                                                                            "scheduled": {
+                                                                                "type": "boolean"
+                                                                            }
+                                                                        },
+                                                                        "required": [
+                                                                            "id",
+                                                                            "starts_at",
+                                                                            "place",
+                                                                            "status",
+                                                                            "scheduled"
+                                                                        ]
+                                                                    },
+                                                                    "views": {
+                                                                        "type": "integer"
+                                                                    },
+                                                                    "links": {
+                                                                        "type": "object",
+                                                                        "properties": {
+                                                                            "edit": {
+                                                                                "type": "boolean"
+                                                                            },
+                                                                            "tickets_occurrence_id": {
+                                                                                "type": [
+                                                                                    "integer",
+                                                                                    "null"
+                                                                                ]
+                                                                            },
+                                                                            "statistics": {
+                                                                                "type": "boolean",
+                                                                                "description": "Le statistiche dell'evento sono del locale o dell'organizzatore principale (P5)."
+                                                                            },
+                                                                            "social": {
+                                                                                "type": "boolean",
+                                                                                "description": "Le grafiche social esistono solo nel pannello del locale."
+                                                                            },
+                                                                            "sponsor": {
+                                                                                "type": "boolean"
+                                                                            }
+                                                                        },
+                                                                        "required": [
+                                                                            "edit",
+                                                                            "tickets_occurrence_id",
+                                                                            "statistics",
+                                                                            "social",
+                                                                            "sponsor"
+                                                                        ]
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "event",
+                                                                    "date",
+                                                                    "views",
+                                                                    "links"
+                                                                ]
+                                                            }
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "days",
+                                                        "items"
+                                                    ]
+                                                },
+                                                "programme": {
+                                                    "type": [
+                                                        "object",
+                                                        "null"
+                                                    ],
+                                                    "properties": {
+                                                        "available": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "this_week": {
+                                                            "type": "string"
+                                                        },
+                                                        "next_week": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "available",
+                                                        "this_week",
+                                                        "next_week"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "subject",
+                                                "timezone",
+                                                "missing_location",
+                                                "counts",
+                                                "today",
+                                                "upcoming",
+                                                "recent_views",
+                                                "programme"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        },
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            },
+                            "X-RateLimit-Remaining": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Accesso richiesto.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "description": "Operazione non autorizzata.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Elemento non disponibile.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "http": []
+                    }
+                ]
+            }
         }
     },
     "components": {

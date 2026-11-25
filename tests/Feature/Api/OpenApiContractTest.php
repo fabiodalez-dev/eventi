@@ -157,6 +157,14 @@ it('espone un contratto OpenAPI utilizzabile da un generatore Android', function
     ])->and($document['paths'])->not->toHaveKey('/management/organizers/{organizer}/analytics/channels')
         ->and($document['paths']['/management/venues/{venue}/analytics/channels'])->toHaveKeys(['get', 'post']);
 
+    // P11 (25/11/2026): il riepilogo dei due soggetti, il programma in PDF solo del locale.
+    expect($document['paths'])->toHaveKeys([
+        '/management/venues/{venue}/dashboard',
+        '/management/venues/{venue}/dashboard/programme',
+        '/management/organizers/{organizer}/dashboard',
+    ])->and($document['paths'])->not->toHaveKey('/management/organizers/{organizer}/dashboard/programme')
+        ->and(collect($document['paths']['/management/venues/{venue}/dashboard/programme']['get']['parameters'])->pluck('name')->all())->toContain('week');
+
     $inspect = function (mixed $node) use (&$inspect): void {
         if (! is_array($node)) {
             return;
