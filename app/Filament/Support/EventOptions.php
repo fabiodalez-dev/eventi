@@ -4,12 +4,10 @@ declare(strict_types=1);
 
 namespace App\Filament\Support;
 
-use App\Enums\OccurrenceStatus;
 use App\Models\Event;
+use App\Queries\EventChoices;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Query\Builder as QueryBuilder;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Le voci del selettore di eventi dei pannelli (`EventSelect`).
@@ -29,11 +27,11 @@ use Illuminate\Support\Facades\DB;
  */
 final class EventOptions
 {
-    public const UPCOMING_LIMIT = 15;
+    public const UPCOMING_LIMIT = EventChoices::UPCOMING_LIMIT;
 
-    public const PAST_LIMIT = 10;
+    public const PAST_LIMIT = EventChoices::PAST_LIMIT;
 
-    public const SEARCH_LIMIT = 30;
+    public const SEARCH_LIMIT = EventChoices::SEARCH_LIMIT;
 
     /**
      * @param  Builder<Event>  $events
@@ -41,45 +39,12 @@ final class EventOptions
      */
     public static function grouped(Builder $events, ?string $search = null, bool $showVenue = true, bool $upcomingOnly = false): array
     {
-        $search = trim((string) $search);
-        $now = CarbonImmutable::now('UTC');
-        $base = self::withDates($events, $now);
+        // La lettura è quella del foglio «Scegli un evento» dell'app: `EventChoices`.
+        $choices = EventChoices::grouped($events, $search, $upcomingOnly);
+        $groups = [__('pannelli.select.upcoming') => self::labels($choices['upcoming'], $showVenue)];
 
-        if ($search !== '') {
-            self::applySearch($base, $search);
-        }
-
-        $upcomingLimit = $search !== '' ? self::SEARCH_LIMIT : self::UPCOMING_LIMIT;
-
-        /* Fra i prossimi stanno anche gli eventi ancora senza date (una bozza
-           appena creata), dopo quelli che hanno già una data. */
-        $upcoming = (clone $base)
-            ->where(fn (Builder $query) => $query
-                ->whereExists(self::occurrences($now, future: true))
-                ->when(! $upcomingOnly, fn (Builder $query) => $query->orWhereNotExists(self::occurrences(null))))
-            ->orderByRaw('next_starts_at is null')
-            ->orderBy('next_starts_at')
-            ->orderByDesc($base->getModel()->qualifyColumn('id'))
-            ->limit($upcomingLimit)
-            ->get();
-
-        $groups = [__('pannelli.select.upcoming') => self::labels($upcoming, $showVenue)];
-
-        if ($upcomingOnly) {
-            return array_filter($groups);
-        }
-
-        $pastLimit = $search !== '' ? self::SEARCH_LIMIT - $upcoming->count() : self::PAST_LIMIT;
-
-        if ($pastLimit > 0) {
-            $past = (clone $base)
-                ->whereNotExists(self::occurrences($now, future: true))
-                ->whereExists(self::occurrences($now, future: false))
-                ->orderByDesc('last_starts_at')
-                ->limit($pastLimit)
-                ->get();
-
-            $groups[__('pannelli.select.past')] = self::labels($past, $showVenue);
+        if ($choices['past'] !== null) {
+            $groups[__('pannelli.select.past')] = self::labels($choices['past'], $showVenue);
         }
 
         return array_filter($groups);
@@ -137,42 +102,7 @@ final class EventOptions
      */
     private static function withDates(Builder $events, CarbonImmutable $now): Builder
     {
-        $query = clone $events;
-        $table = $query->getModel()->getTable();
-
-        if ($query->getQuery()->columns === null) {
-            $query->select($table.'.*');
-        }
-
-        return $query
-            ->addSelect([
-                'next_starts_at' => self::occurrences($now, future: true)->selectRaw('min(starts_at)'),
-                'last_starts_at' => self::occurrences($now, future: false)->selectRaw('max(starts_at)'),
-                'upcoming_count' => self::occurrences($now, future: true)->selectRaw('count(*)'),
-            ])
-            ->with(['media', 'venue:id,name', 'city:id,timezone']);
-    }
-
-    /** Le date valide di un evento (non annullate, non cancellate), future o passate. */
-    private static function occurrences(?CarbonImmutable $now, bool $future = true): QueryBuilder
-    {
-        return DB::table('event_occurrences')
-            ->whereColumn('event_occurrences.event_id', 'events.id')
-            ->whereNull('event_occurrences.deleted_at')
-            ->where('event_occurrences.status', '!=', OccurrenceStatus::Cancelled->value)
-            ->when($now !== null, fn (QueryBuilder $query) => $query->where('event_occurrences.starts_at', $future ? '>=' : '<', $now));
-    }
-
-    /** @param  Builder<Event>  $query */
-    private static function applySearch(Builder $query, string $search): void
-    {
-        $like = '%'.addcslashes($search, '%_\\').'%';
-
-        $query->where(fn (Builder $query) => $query
-            ->where($query->getModel()->qualifyColumn('title'), 'like', $like)
-            ->orWhereExists(DB::table('venues')
-                ->whereColumn('venues.id', 'events.venue_id')
-                ->where('venues.name', 'like', $like)));
+        return EventChoices::withDates($events, $now);
     }
 
     /**

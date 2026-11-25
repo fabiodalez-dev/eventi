@@ -46,7 +46,14 @@ internal fun TicketingDatesScreen(viewModel: TicketingDatesViewModel, context: M
     ManagementScaffold(title = title, padding = context.padding, onBack = context::back, busy = state.busy) {
         state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         PendingCheckins(queue, state.busy, viewModel::retryCheckins)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        /*
+         * Le campagne qui restano solo per chi atterra sulle date (area di
+         * gestione spenta o server vecchio): con l'area accesa stanno nelle
+         * Sponsorizzazioni (P6), per locali e organizzazioni.
+         */
+        val legacyReports = context.atRoot
+        LaunchedEffect(legacyReports, state.reports, state.busy) { if (!legacyReports && state.reports && !state.busy) viewModel.showReports(false) }
+        if (legacyReports) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(!state.reports, { viewModel.showReports(false) }, label = { Text(stringResource(R.string.management_dates)) }, modifier = Modifier.heightIn(min = 48.dp))
             FilterChip(state.reports, { viewModel.showReports(true) }, label = { Text(stringResource(R.string.management_reports)) }, modifier = Modifier.heightIn(min = 48.dp))
         }

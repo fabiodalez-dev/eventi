@@ -21,6 +21,7 @@ return [
     'filters' => 'Filtra i dati', 'venue' => 'Locale', 'organizer' => 'Organizzatore', 'event' => 'Evento', 'channel' => 'Canale di condivisione',
     'all_venue' => 'Tutti i locali autorizzati', 'all_organizer' => 'Tutti gli organizzatori autorizzati', 'all_event' => 'Tutti gli eventi autorizzati',
     'all_channels' => 'Tutti i canali', 'from' => 'Dal', 'until' => 'Al', 'all' => 'Tutti', 'year' => '365 giorni', 'all_history' => 'Tutto lo storico',
+    'until_future' => 'La data «Al» non può essere dopo oggi.', 'range_too_long' => 'Il periodo scelto a mano può coprire al massimo :days giorni: avvicina le due date.',
     'channel_scope' => 'Il canale filtra condivisioni e aperture dei link. Le altre misure restano riferite agli eventi selezionati.',
     'reset' => 'Azzera filtri', 'loading' => 'Aggiornamento dei dati…',
     'context' => ':events eventi · :venues locali · :organizers organizzatori nel filtro',

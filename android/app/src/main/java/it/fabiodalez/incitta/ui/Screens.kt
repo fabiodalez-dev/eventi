@@ -127,6 +127,9 @@ fun EventsScreen(
     onMap: () -> Unit = {},
     onCalendarDay: (java.time.LocalDate) -> Unit = {},
     onPreset: (EventFilter) -> Unit = {},
+    /* «Registra il tuo locale / la tua organizzazione» (P13): il percorso del sito (`registra-il-tuo-locale`), aperto nativo da collegati. */
+    onRegister: ((String) -> Unit)? = null,
+    onLogin: () -> Unit = {},
 ) {
     val overview = rememberHomeOverview(state.session?.token, state.occurrences.size)
     LazyColumn(
@@ -174,7 +177,7 @@ fun EventsScreen(
             }
             eventCards(state.occurrences.drop(6), state.cardLayout, state.savedIds, onOpen, onSave)
         }
-        item(key = "organize") { OrganizeCta() }
+        item(key = "organize") { OrganizeCta(signedIn = state.session != null, onRegister = onRegister, onLogin = onLogin) }
         overview?.stats?.let { stats -> item(key = "home-stats") { HomeStatsStrip(stats) } }
         item { CalendarBanner(onCalendar) }
         item { Spacer(Modifier.height(24.dp)) }
@@ -535,9 +538,10 @@ fun AccountScreen(
     onResendConfirmation: () -> Unit = {},
     onDismissConfirmation: () -> Unit = {},
     onInvitations: () -> Unit = {},
+    onApplications: () -> Unit = {},
 ) {
     if (state.session != null) {
-        ProfileScreen(state, padding, onTickets, onSaved, onLogout, onDeleteAccount, onInterestsSaved, onAppearance, onProfileSaved, onCommunity, onCarpool, onCarpoolMessages, onCommunityInbox, communityTotal, onManagement, onPublicProfile, onRelationships, onVerification, onAttended, onCollections, onOpenSavedSearch, onInvitations)
+        ProfileScreen(state, padding, onTickets, onSaved, onLogout, onDeleteAccount, onInterestsSaved, onAppearance, onProfileSaved, onCommunity, onCarpool, onCarpoolMessages, onCommunityInbox, communityTotal, onManagement, onPublicProfile, onRelationships, onVerification, onAttended, onCollections, onOpenSavedSearch, onInvitations, onApplications)
         return
     }
     state.pendingEmailConfirmation?.let { pending ->

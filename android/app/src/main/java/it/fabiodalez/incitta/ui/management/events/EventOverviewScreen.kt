@@ -49,7 +49,7 @@ private enum class PendingAction { Publish, Submit, Duplicate, Delete, Schedule,
  * serate; le azioni secondo `abilities` (pubblica o invia alla redazione,
  * modifica, duplica, programma, anteprima, elimina) e i collegamenti
  * (biglietteria della prossima data, riquadro «Ticketing inCittà» del
- * locale, scheda pubblica).
+ * locale, statistiche dell'evento, scheda pubblica).
  */
 @Composable
 internal fun EventOverviewScreen(
@@ -60,8 +60,16 @@ internal fun EventOverviewScreen(
     onTickets: (Long) -> Unit,
     onOpenCopy: (Long) -> Unit,
     onEventTicketing: (venueId: Long, eventId: Long) -> Unit,
+    onDates: (Long) -> Unit = {},
+    /* «Statistiche» (P5): la pagina delle statistiche dell'evento, con il soggetto della scheda. */
+    onStatistics: (subjectKey: String, eventId: Long) -> Unit = { _, _ -> },
+    /* «Sponsorizza» (P6): la pagina delle sponsorizzazioni con l'evento già scelto. */
+    onSponsor: (subjectKey: String, eventId: Long) -> Unit = { _, _ -> },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    // Tornando dalle date (P2) la scheda rilegge le serate in breve.
+    var shown by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(Unit) { if (shown) viewModel.load() else shown = true }
     val event = state.event.valueOrNull
     val zone = event?.city?.timezone?.let { runCatching { ZoneId.of(it) }.getOrNull() } ?: state.subject?.timezone ?: ZoneId.of("Europe/Rome")
     var pending by remember { mutableStateOf<PendingAction?>(null) }
@@ -96,6 +104,9 @@ internal fun EventOverviewScreen(
                 onPreview = { onPreview(detail.id) },
                 onTickets = onTickets,
                 onEventTicketing = state.subject?.takeIf { showsEventTicketing(it, detail) }?.let { subject -> { onEventTicketing(subject.id, detail.id) } },
+                onDates = { onDates(detail.id) },
+                onStatistics = state.subject?.takeIf { detail.links.statistics }?.let { subject -> { onStatistics(subject.key, detail.id) } },
+                onSponsor = state.subject?.takeIf { detail.links.sponsor && it.permissions.sponsorshipsView }?.let { subject -> { onSponsor(subject.key, detail.id) } },
                 onSite = { detail.publicUrl?.let(uriHandler::openUri) },
                 onPickPoster = pickPoster,
                 onCancelSchedule = viewModel::cancelSchedule)
@@ -132,9 +143,12 @@ private fun Overview(
     onPreview: () -> Unit,
     onTickets: (Long) -> Unit,
     onEventTicketing: (() -> Unit)?,
+    onStatistics: (() -> Unit)?,
+    onSponsor: (() -> Unit)?,
     onSite: () -> Unit,
     onPickPoster: () -> Unit,
     onCancelSchedule: () -> Unit,
+    onDates: () -> Unit,
 ) {
     val can = detail.abilities
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -177,6 +191,8 @@ private fun Overview(
             if (can.preview) OutlinedButton(onClick = onPreview, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.management_events_preview)) }
             detail.links.ticketsOccurrenceId?.let { id -> OutlinedButton(onClick = { onTickets(id) }, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.management_events_tickets)) } }
             onEventTicketing?.let { open -> OutlinedButton(onClick = open, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.management_event_ticketing_title)) } }
+            onStatistics?.let { open -> OutlinedButton(onClick = open, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.analytics_hub_title)) } }
+            onSponsor?.let { open -> OutlinedButton(onClick = open, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.sponsorships_event_link)) } }
             if (detail.publicUrl != null) OutlinedButton(onClick = onSite, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.management_events_site)) }
             if (can.schedule) OutlinedButton(enabled = !busy, onClick = { onAction(PendingAction.Schedule) }, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.management_events_schedule)) }
             if (can.cancelSchedule) OutlinedButton(enabled = !busy, onClick = onCancelSchedule, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.management_events_schedule_cancel)) }
@@ -209,6 +225,8 @@ private fun Overview(
         Text(text ?: stringResource(R.string.management_events_no_description), color = if (text == null) Muted else MaterialTheme.colorScheme.onSurface)
 
         SectionTitle(stringResource(R.string.management_events_dates))
+        // Le date dell'evento (P2): elenco, aggiungi, modifica, annulla, «Ripeti».
+        OutlinedButton(onClick = onDates, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text(stringResource(R.string.management_dates_open_manage)) }
         if (detail.dates.upcoming.isEmpty() && detail.dates.past.isEmpty()) Text(stringResource(R.string.management_events_no_dates_long), color = Muted)
         if (detail.dates.upcoming.isNotEmpty()) {
             Text(stringResource(R.string.management_events_upcoming_dates), style = MaterialTheme.typography.titleSmall)

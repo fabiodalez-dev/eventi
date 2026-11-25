@@ -109,24 +109,34 @@ final class EventToolsController extends Controller
      * «Stessa sera in zona» e chiusura straordinaria per l'orario scelto.
      * Il luogo è l'indirizzo a mano se ha le coordinate, altrimenti il locale
      * (il soggetto, o il locale principale scelto dall'organizzazione).
+     *
+     * Con `event_id` di un evento del soggetto (il modulo di una data, P2)
+     * quello che il modulo non manda si prende dall'evento: città,
+     * categoria, indirizzo a mano e locale principale. Per una data
+     * dell'organizzazione il locale scelto per la data viene prima di tutto,
+     * come in «Date e luoghi».
      */
     public function checks(EventChecksRequest $request, EventDateChecks $checks): JsonResponse
     {
         $subject = ManagementSubject::require();
         $own = $subject->venue();
-        $venue = $own ?? $this->approvedVenue($request->integer('venue_id') ?: null);
-        $city = $own->city ?? City::query()->find($request->integer('city_id') ?: null) ?? ManagedEvents::city($subject->model);
-        $location = (array) $request->input('custom_location', []);
         $eventId = $request->integer('event_id') ?: null;
-        if ($eventId !== null && ! ManagedContent::current()->events()->whereKey($eventId)->exists()) {
-            $eventId = null;
-        }
+        $event = $eventId === null ? null : ManagedContent::current()->events()->with(['city', 'venue'])->whereKey($eventId)->first();
+        $eventId = $event === null ? null : (int) $event->getKey();
+        $dateVenue = $own === null ? $this->approvedVenue($request->integer('venue_id') ?: null) : null;
+        $venue = $own ?? $dateVenue ?? $event?->venue;
+        $city = $own->city ?? City::query()->find($request->integer('city_id') ?: null) ?? $event->city ?? ManagedEvents::city($subject->model);
+        $location = $request->has('custom_location') || $event === null
+            ? (array) $request->input('custom_location', [])
+            : (array) ($event->custom_location ?? []);
+        $category = $request->input('category_id') ?? $event?->category_id;
+        $dateFirst = $event !== null && $dateVenue !== null;
 
-        $context = EventDateChecks::context($city, [$location, $venue], $request->input('starts_at'), $request->input('ends_at'),
-            $city->timezone, $own === null ? null : (int) $own->getKey(), $request->input('category_id'), $eventId);
+        $context = EventDateChecks::context($city, $dateFirst ? [$venue, $location] : [$location, $venue], $request->input('starts_at'), $request->input('ends_at'),
+            $city->timezone, $own === null ? null : (int) $own->getKey(), $category, $eventId);
         $start = EventDateChecks::time($request->input('starts_at'), $city->timezone);
         // Un evento con un indirizzo proprio non si tiene nel locale: le sue chiusure non contano.
-        $closure = EventDateChecks::closure(filled($location['address'] ?? null) ? null : $venue, $start);
+        $closure = EventDateChecks::closure(! $dateFirst && filled($location['address'] ?? null) ? null : $venue, $start);
 
         return response()->json(['data' => [
             'same_night' => $checks->sameNight($context),

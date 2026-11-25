@@ -32,12 +32,30 @@ final class ManagementAnalytics
         return $subject->model;
     }
 
-    /** @return Builder<Event> */
+    /**
+     * Gli eventi di cui il soggetto vede le statistiche: quelli del locale,
+     * oppure quelli di cui l'organizzazione è l'organizzatore principale.
+     * Gli eventi soltanto co-organizzati restano fuori, nel pannello come
+     * nell'app: i loro numeri sono di chi li organizza.
+     *
+     * @return Builder<Event>
+     */
     public function eventQuery(): Builder
     {
         $subject = $this->subject();
 
-        return Event::query()->where($subject instanceof Venue ? 'venue_id' : 'organizer_id', $subject->getKey());
+        return Event::query()->where(self::column($subject), $subject->getKey());
+    }
+
+    /** Se le statistiche di un evento sono del soggetto: la stessa regola di `eventQuery`. */
+    public static function covers(Venue|Organizer $subject, Event $event): bool
+    {
+        return (int) $event->getAttribute(self::column($subject)) === (int) $subject->getKey();
+    }
+
+    private static function column(Venue|Organizer $subject): string
+    {
+        return $subject instanceof Venue ? 'venue_id' : 'organizer_id';
     }
 
     /** @return array{CarbonImmutable, CarbonImmutable} */
@@ -110,7 +128,7 @@ final class ManagementAnalytics
         for ($day = $from; $day->lte($until); $day = $day->addDay()) {
             $key = $day->toDateString();
             $row = $byDate->get($key);
-            $series[] = ['date' => $day->format('d/m'), 'views' => (int) ($row->views ?? 0),
+            $series[] = ['date' => $day->format('d/m'), 'day' => $key, 'views' => (int) ($row->views ?? 0),
                 'profile_views' => (int) ($profileDaily->get($key)->views ?? 0),
                 'clicks' => array_sum(array_map(fn ($column) => (int) ($row?->getAttribute($column) ?? 0), array_diff($columns, ['views', 'shares'])))];
         }

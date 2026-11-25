@@ -4,13 +4,10 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1\Me;
 
-use App\Enums\ApplicationKind;
-use App\Enums\VenueStatus;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\VenueApplication;
-use App\Support\Api\ApiDate;
-use App\Support\VenueApplications\ApplicationState;
+use App\Support\VenueApplications\ApplicationPayload;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -23,8 +20,9 @@ use Illuminate\Http\Request;
  * conferma dell'email (via lo scope globale del modello). Le note interne
  * della redazione, i recapiti del referente e l'immagine non escono mai.
  *
- * Le azioni («Conferma e invia», «Elimina», «Registra un locale») restano
- * pagine del sito: l'app apre `manage_url` o `panel_url` nel browser.
+ * Le azioni («Conferma e invia», «Elimina», i moduli) l'app le fa con le
+ * rotte di P13 (`ApplicationController`); `manage_url`, `panel_url` e gli
+ * indirizzi dei moduli restano per le versioni dell'app già installate.
  */
 final class VenueApplicationController extends Controller
 {
@@ -54,7 +52,7 @@ final class VenueApplicationController extends Controller
 
         return response()->json([
             'data' => collect($applications->items())
-                ->map(fn (VenueApplication $application): array => $this->item($application, $user, $venues, $organizers))
+                ->map(fn (VenueApplication $application): array => ApplicationPayload::item($application, $user, $venues, $organizers))
                 ->values(),
             'meta' => [
                 'next_page' => $applications->hasMorePages() ? $applications->currentPage() + 1 : null,
@@ -63,36 +61,5 @@ final class VenueApplicationController extends Controller
                 'new_organizer_url' => route('organizer-applications.create'),
             ],
         ])->header('Cache-Control', 'private, no-store');
-    }
-
-    /**
-     * @param  list<int|string>  $venues
-     * @param  list<int|string>  $organizers
-     * @return array<string, mixed>
-     */
-    private function item(VenueApplication $application, User $user, array $venues, array $organizers): array
-    {
-        $kind = $application->kind();
-        ['state' => $state, 'panel' => $panel, 'public' => $public, 'next' => $next, 'confirm' => $confirm] = ApplicationState::describe($application, $user, $venues, $organizers);
-
-        return [
-            'id' => (int) $application->getKey(),
-            'kind' => $kind->value,
-            'kind_label' => $kind->label(),
-            'name' => (string) $application->venue_name,
-            'type' => $kind === ApplicationKind::Organizer ? null : $application->type->value,
-            'type_label' => $kind === ApplicationKind::Organizer ? null : $application->type->label(),
-            'address' => $kind === ApplicationKind::Organizer ? null : $application->address,
-            'state' => $state,
-            'state_label' => __('venue_applications.account.state.'.$state),
-            'next' => $next,
-            'created_at' => ApiDate::attribute($application, 'created_at', 'UTC'),
-            'reviewed_at' => in_array($state, ['approved', 'rejected'], true) ? ApiDate::instant($application->reviewed_at, 'UTC') : null,
-            'can_confirm' => $confirm,
-            'panel_url' => $panel,
-            'public_url' => $public,
-            'venue_slug' => $application->venue?->status === VenueStatus::Approved ? $application->venue->slug : null,
-            'organizer_slug' => $application->organizer?->is_active ? $application->organizer->slug : null,
-        ];
     }
 }

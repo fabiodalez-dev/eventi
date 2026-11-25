@@ -87,6 +87,16 @@ internal class ManagementRepository(
     val profile: ManagementProfileSource? = null,
     /* Gli eventi (P1); `null` nei test che non li usano. */
     val events: ManagementEventsApi? = null,
+    /* Il calendario collegato del locale (P9). */
+    val calendar: ManagementCalendarImportSource? = null,
+    /* P13: registrare o rivendicare, «Le mie richieste». */
+    val applications: ManagementApplicationsSource? = null,
+    /* Le date degli eventi (P2). */
+    val dates: ManagementDatesApi? = null,
+    /* Le statistiche (P5); `null` nei test che non le usano. */
+    val analytics: ManagementAnalyticsSource? = null,
+    /* Le sponsorizzazioni (P6). */
+    val sponsorships: ManagementSponsorshipsSource? = null,
 ) {
     private val outbox = CheckinOutbox(userId, device::readCheckins, device::writeCheckins, send ?: ticketing::checkIn)
     private val checkinState = MutableStateFlow(CheckinQueue(safePending()))
@@ -190,6 +200,11 @@ internal class ManagementRepository(
             people = ManagementPeopleApi(client, session.token),
             profile = ManagementProfileApi(client, session.token),
             events = ManagementEventsApi(client, session.token),
+            calendar = ManagementCalendarImportApi(client, session.token),
+            applications = ManagementApplicationsApi(client, session.token),
+            dates = ManagementDatesApi(client, session.token),
+            analytics = ManagementAnalyticsApi(client, session.token),
+            sponsorships = ManagementSponsorshipsApi(client, session.token),
         )
     }
 }

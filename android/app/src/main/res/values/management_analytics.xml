@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Statistiche (P5): «Statistiche», «Statistiche in dettaglio», la pagina di un evento, locale o organizzatore, le date di un evento, i canali propri e i loro QR. Le frasi sono quelle dei pannelli. -->
+<resources>
+    <!-- Menu dell'area -->
+    <string name="analytics_hub_title">Statistiche</string>
+    <string name="analytics_summary_title">Statistiche</string>
+    <string name="analytics_summary_help">Visite, pulsanti toccati e salvataggi del periodo, evento per evento</string>
+    <string name="analytics_report_title">Statistiche in dettaglio</string>
+    <string name="analytics_report_help">Condivisioni, canali, prenotazioni e tutte le tabelle, con i filtri e i file da scaricare</string>
+    <string name="analytics_profile_venue">Report del locale</string>
+    <string name="analytics_profile_organizer">Report dell\'organizzazione</string>
+    <string name="analytics_profile_help">I numeri del tuo profilo e dei tuoi eventi, come nella prima pagina del pannello</string>
+    <string name="analytics_channels_title">Canali e codici QR</string>
+    <string name="analytics_channels_help">Un canale con il nome che gli dai e il suo QR da stampare</string>
+    <string name="analytics_subject_missing">Non gestisci più questo locale o questa organizzazione.</string>
+
+    <!-- La card sopra i numeri: lo stesso testo del pannello (panel.analytics.consent_*), controllato da un test del server. -->
+    <string name="analytics_consent_title">Cosa contano questi numeri</string>
+    <string name="analytics_consent_links">Le aperture dei link brevi (quelli che iniziano con /s/) si contano sempre: un totale anonimo per link e per giorno, senza cookie, senza indirizzo IP e senza sapere chi li apre.</string>
+    <string name="analytics_consent_views">Visite alle schede, clic e condivisioni si contano solo per chi ha accettato le statistiche nel banner dei cookie: le persone reali sono di più di quelle che vedi.</string>
+
+    <!-- Comuni -->
+    <string name="analytics_period">Periodo</string>
+    <string name="analytics_period_selected">%1$s, periodo scelto</string>
+    <string name="analytics_period_custom">Date scelte</string>
+    <string name="analytics_period_range">Dal %1$s al %2$s</string>
+    <string name="analytics_period_until">Fino al %1$s</string>
+    <string name="analytics_in_short">In breve</string>
+    <string name="analytics_in_short_label">I numeri principali del periodo</string>
+    <string name="analytics_empty_title">Ancora nessun dato in questo periodo</string>
+    <string name="analytics_empty_body">Prova un periodo più lungo. Le visite compaiono solo da chi ha accettato le statistiche; le aperture dei link brevi si contano sempre.</string>
+    <string name="analytics_empty_chart">Nessuna attività registrata per questo filtro.</string>
+    <string name="analytics_loading">Aggiornamento dei dati…</string>
+    <string name="analytics_more">Mostra altri</string>
+    <string name="analytics_show_numbers">Vedi i numeri giorno per giorno</string>
+    <string name="analytics_hide_numbers">Nascondi i numeri giorno per giorno</string>
+    <string name="analytics_unavailable">n.d.</string>
+    <string name="analytics_secondary">%1$s: %2$s</string>
+    <string name="analytics_row_description">%1$s: %2$s</string>
+    <string name="analytics_chart_description">%1$s. Dal %2$s al %3$s, massimo %4$s in un giorno. I numeri sono anche nella tabella sotto.</string>
+    <string name="analytics_chart_description_empty">%1$s. Nessuna attività nel periodo.</string>
+    <string name="analytics_day">Giorno</string>
+    <string name="analytics_month">Mese</string>
+
+    <!-- «Statistiche» -->
+    <string name="analytics_daily">Andamento giornaliero</string>
+    <string name="analytics_visits_hint">Aperture giornaliere di eventi e profilo. Le visite ripetute sono incluse.</string>
+    <string name="analytics_event_views">Aperture eventi</string>
+    <string name="analytics_profile_views">Aperture profilo</string>
+    <string name="analytics_clicks">Pulsanti toccati</string>
+    <string name="analytics_interactions">Cosa fanno le persone</string>
+    <string name="analytics_interactions_hint">Clic sui collegamenti degli eventi, suddivisi per azione.</string>
+    <string name="analytics_profile">Pagina del profilo</string>
+    <string name="analytics_profile_hint">Le misure della scheda pubblica, separate da quelle dei singoli eventi.</string>
+    <string name="analytics_details">Tutte le metriche degli eventi</string>
+    <string name="analytics_details_hint">Tutte le azioni sulle schede degli eventi nel periodo.</string>
+    <string name="analytics_per_event">Evento per evento</string>
+    <string name="analytics_per_event_hint">I numeri di ogni evento nel periodo. Tocca un evento per aprirne le statistiche.</string>
+    <string name="analytics_per_event_empty">Non ci sono misure registrate nel periodo scelto. Prova ad ampliare il periodo.</string>
+    <string name="analytics_paid">Sponsorizzazioni degli eventi</string>
+    <string name="analytics_paid_hint">Le esposizioni e i clic delle sponsorizzazioni, separati dalle visite spontanee.</string>
+    <string name="analytics_impressions">Volte in cui è stato mostrato</string>
+    <string name="analytics_paid_clicks">Aperture dalla sponsorizzazione</string>
+    <string name="analytics_ctr">Su 100 che lo vedono, lo aprono</string>
+    <string name="analytics_paid_breakdown">%1$s · %2$s · %3$s</string>
+    <string name="analytics_shares_title">Link brevi e condivisioni</string>
+    <string name="analytics_shares_hint">Ogni link breve con le volte in cui è stato condiviso e aperto. Le aperture si contano sempre, le condivisioni solo con il consenso.</string>
+    <string name="analytics_shares_open">Apri le statistiche complete</string>
+    <string name="analytics_shares_empty">Nessun link breve generato per questi eventi.</string>
+    <string name="analytics_share_counts">Condivisioni avviate: %1$s · Aperture del link: %2$s</string>
+    <string name="analytics_share_notes">I pulsanti WhatsApp, Telegram ed email misurano l’avvio della condivisione, non la consegna del messaggio; «Condividi» misura il completamento o la copia del link, solo con il consenso. Le aperture comprendono le visite ripetute, escludono anteprime, bot riconosciuti e caricamenti anticipati del browser e non sono persone uniche. Un link può essere inoltrato altrove: resta attribuito al canale che lo ha creato.</string>
+    <string name="analytics_about">Come leggere questi dati</string>
+    <string name="analytics_coverage">La raccolta interna parte dall’attivazione dei contatori: i giorni precedenti senza misure non indicano assenza di visite. Le visite comprendono quelle ripetute e non sono persone uniche.</string>
+    <string name="analytics_definitions_short">I click misurano l’apertura dei collegamenti, non acquisti o prenotazioni completate. Le condivisioni includono la copia del link. Salvataggi e nuovi follower contano le relazioni create nel periodo e ancora presenti; i salvataggi anonimi nel browser non sono inclusi. Le sponsorizzazioni riportano i canali già tracciati, separatamente dalle aperture.</string>
+
+    <!-- «Statistiche in dettaglio» -->
+    <string name="analytics_report_intro">Visite, condivisioni e partecipazione: esplora gli eventi, confronta i locali e scarica i dati del periodo.</string>
+    <string name="analytics_active_filters">Filtri attivi</string>
+    <string name="analytics_filters">Filtra i dati</string>
+    <string name="analytics_filters_hint">Restringi il report a un evento, a un canale o a date precise.</string>
+    <string name="analytics_filter_event">Evento</string>
+    <string name="analytics_filter_event_all">Tutti gli eventi autorizzati</string>
+    <string name="analytics_filter_event_choose">Scegli un evento</string>
+    <string name="analytics_filter_channel">Canale di condivisione</string>
+    <string name="analytics_filter_channel_all">Tutti i canali</string>
+    <string name="analytics_filter_from">Dal</string>
+    <string name="analytics_filter_until">Al</string>
+    <string name="analytics_filter_from_none">Dall\'inizio</string>
+    <string name="analytics_filter_apply">Mostra i dati</string>
+    <string name="analytics_filter_dates_invalid">La data iniziale deve venire prima di quella finale.</string>
+    <string name="analytics_channel_scope">Il canale filtra condivisioni e aperture dei link. Le altre misure restano riferite agli eventi selezionati.</string>
+    <string name="analytics_reset">Azzera filtri</string>
+    <string name="analytics_reset_detail">Reimposta periodo e canale</string>
+    <string name="analytics_visits_chart">Andamento delle visite</string>
+    <string name="analytics_chart_day">Aperture delle schede web per giorno. Passaggi ripetuti inclusi.</string>
+    <string name="analytics_chart_month">Aperture delle schede web aggregate per mese.</string>
+    <string name="analytics_shares_chart">Condivisioni e ritorni agli eventi</string>
+    <string name="analytics_shares_chart_hint">Avvii dai pulsanti e aperture dei link brevi. Non è un tasso di conversione.</string>
+    <string name="analytics_chart_events">Eventi più visualizzati</string>
+    <string name="analytics_chart_events_hint">Primi 8 nel periodo. Tutti i risultati sono disponibili nelle tabelle.</string>
+    <string name="analytics_chart_channels">Da quali canali arrivano le aperture</string>
+    <string name="analytics_chart_channels_hint">Attribuzione al canale di creazione del link, anche se viene inoltrato altrove.</string>
+    <string name="analytics_chart_actions">Cosa fanno sulle schede</string>
+    <string name="analytics_chart_actions_hint">Clic sui contatti, servizi e informazioni dell’evento.</string>
+    <string name="analytics_chart_venues">Locali e interesse per i loro eventi</string>
+    <string name="analytics_chart_venues_hint">Visite agli eventi del locale, distinte dalle visite al suo profilo.</string>
+    <string name="analytics_chart_organizers">Organizzatori e interesse per i loro eventi</string>
+    <string name="analytics_chart_community">Salvataggi e conversazioni</string>
+    <string name="analytics_chart_community_hint">Attività creata nel periodo e ancora presente. I commenti nascosti sono un sottoinsieme del totale.</string>
+    <string name="analytics_chart_bookings">Prenotazioni, biglietti e ingressi</string>
+    <string name="analytics_chart_bookings_hint">Stato attuale delle prenotazioni create nel periodo; ingressi per data di check-in.</string>
+    <string name="analytics_chart_paid">Visibilità sponsorizzata</string>
+    <string name="analytics_chart_paid_hint">Esposizioni e clic delle campagne, separati dalle visite organiche.</string>
+    <string name="analytics_tables">Tutti i dati</string>
+    <string name="analytics_tables_hint">Scegli una tabella. Tocca il nome di un evento, un locale o un organizzatore per aprirne le statistiche.</string>
+    <string name="analytics_dataset_count">%1$s (%2$d)</string>
+    <string name="analytics_open_table">Apri la tabella</string>
+    <string name="analytics_export_csv">CSV della tabella</string>
+    <string name="analytics_export_excel">Excel completo</string>
+    <string name="analytics_export_busy">Preparo il file…</string>
+    <string name="analytics_export_hint">Gli export includono tutti i risultati filtrati, anche quelli fuori dalla pagina corrente. L’Excel contiene tutti i fogli e il riepilogo dei filtri.</string>
+    <string name="analytics_export_ready">File pronto: %1$s</string>
+    <string name="analytics_export_open">Apri</string>
+    <string name="analytics_export_share">Condividi</string>
+    <string name="analytics_export_chooser">Apri o condividi il file</string>
+    <string name="analytics_export_no_app">Sul telefono non c\'è un\'app che apra questo file.</string>
+    <string name="analytics_table_empty">Nessun dato disponibile per questa selezione. Prova ad ampliare il periodo o rimuovere un filtro.</string>
+    <string name="analytics_table_page">Righe %1$d–%2$d di %3$d</string>
+    <string name="analytics_table_previous">Pagina precedente</string>
+    <string name="analytics_table_next">Pagina successiva</string>
+    <string name="analytics_table_row">Riga %1$d</string>
+    <string name="analytics_about_data_definitions">Visite e azioni sulle schede si contano con il consenso alle statistiche e non sono persone uniche. Le aperture dei link brevi si contano anche senza consenso, come totale anonimo per giorno. I salvataggi e i follower del periodo sono quelli creati nel periodo e ancora presenti; i follower attuali sono il totale di oggi. Commenti e recensioni mostrano lo stato attuale di quelli creati nel periodo; la media voti usa solo le recensioni approvate. I biglietti sono quelli emessi nel periodo, anche se poi annullati. Gli ingressi seguono la data del check-in. Il canale non restringe visite, prenotazioni o altri dati che non passano da un link. I profili hanno misure proprie: un filtro evento seleziona i profili collegati senza trasformare le loro visite in visite dell’evento. Le date seguono il fuso della città. Le repliche mostrano le misure attribuite a una data precisa e non vanno sommate al totale dell’evento.</string>
+    <string name="analytics_not_collected">Il sito non raccoglie IP, identità dei visitatori, provenienza geografica, dispositivo, consegna dei messaggi o acquisti su siti esterni: questi dati non esistono. Lo storico precedente all’attivazione dei contatori non si può ricostruire. «n.d.» indica un dato non disponibile o non autorizzato, non uno zero.</string>
+
+    <!-- La pagina di un soggetto -->
+    <string name="analytics_back_overview">Torna alle statistiche di tutti gli eventi</string>
+    <string name="analytics_watching">Stai guardando</string>
+    <string name="analytics_other_event">Guarda un altro evento</string>
+    <string name="analytics_other_event_hint">Scegli un evento: tengo lo stesso periodo e lo stesso canale.</string>
+    <string name="analytics_information">Informazioni</string>
+    <string name="analytics_description">Descrizione</string>
+    <string name="analytics_profile_report">Report del profilo</string>
+    <string name="analytics_profile_report_hint">Misure del profilo nel periodo selezionato. Le statistiche degli eventi sono riportate separatamente qui sotto.</string>
+    <string name="analytics_no_dates">Nessuna data</string>
+    <string name="analytics_dates_title">Le date</string>
+    <string name="analytics_dates_hint">Visite, pulsanti toccati e salvataggi di ogni data. Tocca una data per vederne l\'andamento.</string>
+    <string name="analytics_dates_empty">Nessuna serata inserita.</string>
+    <string name="analytics_date_counts">Visite: %1$s · Clic: %2$s · Salvataggi: %3$s</string>
+    <string name="analytics_date_open">Statistiche della data</string>
+    <string name="analytics_date_heading">Statistiche di %1$s</string>
+    <string name="analytics_date_chart">Giorno per giorno, ultimi 30 giorni</string>
+    <string name="analytics_date_views">Visualizzazioni</string>
+    <string name="analytics_date_clicks">Clic</string>
+    <string name="analytics_close">Chiudi</string>
+    <string name="analytics_share_links_title">Link brevi da condividere</string>
+    <string name="analytics_share_links_hint">Gli stessi link della scheda pubblica, uno per canale: chi li apre finisce nel conteggio del canale. Il QR porta allo stesso link.</string>
+    <string name="analytics_share_links_unavailable">I link brevi ci sono solo per un evento pubblicato.</string>
+    <string name="analytics_copy_link">Copia il link</string>
+    <string name="analytics_link_copied">Link copiato</string>
+    <string name="analytics_share_link">Condividi il link</string>
+    <string name="analytics_show_qr">Mostra il QR</string>
+
+    <!-- Scelta di un evento (EventPickerSheet, lo usano anche sponsorizzazioni e grafiche social) -->
+    <string name="event_picker_title">Scegli un evento</string>
+    <string name="event_picker_search">Cerca per titolo o locale</string>
+    <string name="event_picker_upcoming">Prossimi</string>
+    <string name="event_picker_past">Passati</string>
+    <string name="event_picker_empty">Nessun evento trovato.</string>
+    <string name="event_picker_poster">Locandina di %1$s</string>
+    <string name="event_picker_close">Chiudi</string>
+    <plurals name="event_picker_more_dates">
+        <item quantity="one">+ un\'altra data</item>
+        <item quantity="other">+ altre %1$d date</item>
+    </plurals>
+
+    <!-- Canali e QR -->
+    <string name="analytics_channels_lead">Un canale con il nome che gli dai — volantino, radio, un partner — e il codice QR da stampare. Il QR porta allo stesso link breve, quindi le aperture finiscono nello stesso conteggio.</string>
+    <string name="analytics_channel_label">Nome del canale</string>
+    <string name="analytics_channel_counter">%1$d su %2$d caratteri</string>
+    <string name="analytics_channel_placeholder">Volantino, radio, locandina…</string>
+    <string name="analytics_channel_target">Collegato a</string>
+    <string name="analytics_channel_venue_target">La scheda del locale</string>
+    <string name="analytics_channel_create">Crea il canale</string>
+    <string name="analytics_channel_count">Canali personalizzati: %1$d su %2$d</string>
+    <string name="analytics_channel_empty">Ancora nessun canale personalizzato.</string>
+    <string name="analytics_channel_goes_to">Porta a: %1$s</string>
+    <string name="analytics_channel_owner_only">I canali li crea il referente del locale, come le altre modifiche alla scheda.</string>
+    <string name="analytics_qr_alt">Codice QR del canale %1$s</string>
+    <string name="analytics_qr_save">Salva il QR nelle immagini</string>
+    <string name="analytics_qr_share">Condividi il QR</string>
+    <string name="analytics_qr_saved">QR salvato nelle immagini</string>
+    <string name="analytics_qr_failed">Non sono riuscito a salvare il QR.</string>
+</resources>

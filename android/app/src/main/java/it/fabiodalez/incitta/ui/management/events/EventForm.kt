@@ -53,8 +53,42 @@ internal data class LinkRow(val label: String = "", val url: String = "")
 internal data class FactRow(val label: String = "", val value: String = "")
 internal data class TierRow(val id: Long? = null, val name: String = "", val price: String = "", val status: String = "available", val url: String = "", val note: String = "")
 internal data class PracticalRow(val label: String = "", val icon: String = "check-circle", val text: String = "")
-/* Le voci del programma conservano i campi che l'app non modifica (orari, data collegata). */
-internal data class AgendaRow(val title: String = "", val whenText: String = "", val speaker: String = "", val description: String = "", val extra: JsonObject = JsonObject(emptyMap()))
+/*
+ * Una voce del programma. Inizio e fine stanno come li salva il pannello
+ * (`AgendaTime`), la data collegata è l'id di una data dell'evento (vuota:
+ * tutte le date); `extra` conserva le chiavi che l'app non conosce.
+ */
+internal data class AgendaRow(
+    val title: String = "",
+    val whenText: String = "",
+    val speaker: String = "",
+    val description: String = "",
+    val startsAt: String? = null,
+    val endsAt: String? = null,
+    val occurrenceId: Long? = null,
+    val extra: JsonObject = JsonObject(emptyMap()),
+)
+
+/**
+ * Inizio e fine di una voce del programma: il pannello li salva in UTC come
+ * `2026-09-03 18:00:00` (il fuso dell'applicazione) e li mostra nell'ora di
+ * casa. L'app li legge e li scrive nell'ora della città, e li rimanda nello
+ * stesso formato; un valore con lo scarto vale da sé.
+ */
+internal object AgendaTime {
+    private val stored = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+
+    fun toCity(raw: String?, zone: ZoneId): LocalDateTime? {
+        if (raw.isNullOrBlank()) return null
+        cityLocalDateTime(raw, zone)?.let { return it }
+        val text = raw.trim().replace('T', ' ')
+        val local = runCatching { LocalDateTime.parse(if (text.length == 16) "$text:00" else text.take(19), stored) }.getOrNull() ?: return null
+        return local.atZone(java.time.ZoneOffset.UTC).withZoneSameInstant(zone).toLocalDateTime()
+    }
+
+    fun fromCity(local: LocalDateTime?, zone: ZoneId): String? =
+        local?.atZone(zone)?.withEarlierOffsetAtOverlap()?.withZoneSameInstant(java.time.ZoneOffset.UTC)?.toLocalDateTime()?.format(stored)
+}
 internal data class FaqRow(val question: String = "", val answer: String = "")
 
 internal data class RepeatState(
@@ -229,6 +263,9 @@ internal data class EventForm(
                     add(JsonObject(row.extra + mapOf(
                         "title" to JsonPrimitive(row.title.trim()),
                         "when" to JsonPrimitive(row.whenText.trim()),
+                        "starts_at" to (row.startsAt?.ifBlank { null }?.let(::JsonPrimitive) ?: JsonNull),
+                        "ends_at" to (row.endsAt?.ifBlank { null }?.let(::JsonPrimitive) ?: JsonNull),
+                        "occurrence_id" to (row.occurrenceId?.let(::JsonPrimitive) ?: JsonNull),
                         "speaker" to (row.speaker.trim().ifBlank { null }?.let(::JsonPrimitive) ?: JsonNull),
                         "description" to (RichText.toHtml(row.description).ifBlank { null }?.let(::JsonPrimitive) ?: JsonNull),
                     )))
@@ -322,7 +359,8 @@ internal data class EventForm(
                 organizerVenue = (details["organizer_venue_id"] as? JsonPrimitive)?.longOrNull?.let { NamedRef(it, "") },
                 agenda = details.objects("agenda").map { item ->
                     AgendaRow(item.text("title").orEmpty(), item.text("when").orEmpty(), item.text("speaker").orEmpty(), RichText.toMarkup(item.text("description")),
-                        JsonObject(item - setOf("title", "when", "speaker", "description")))
+                        startsAt = item.text("starts_at"), endsAt = item.text("ends_at"), occurrenceId = item.text("occurrence_id")?.toLongOrNull(),
+                        extra = JsonObject(item - setOf("title", "when", "speaker", "description", "starts_at", "ends_at", "occurrence_id")))
                 },
                 faqs = details.objects("faqs").map { FaqRow(it.text("question").orEmpty(), RichText.toMarkup(it.text("answer"))) },
             ).withBeforeGoing(details)

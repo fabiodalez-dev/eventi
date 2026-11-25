@@ -105,6 +105,8 @@
                 <data android:scheme="https" android:host="eventi.fabiodalez.it" android:path="/calendario" />
                 <data android:scheme="https" android:host="eventi.fabiodalez.it" android:path="/biglietti" />
                 <data android:scheme="https" android:host="eventi.fabiodalez.it" android:path="/app/auth/magic" />
+                <!-- Il ritorno da Stripe di una sponsorizzazione pagata dall'app (P6). -->
+                <data android:scheme="https" android:host="eventi.fabiodalez.it" android:path="/app/sponsorizzazioni/ritorno" />
             </intent-filter>
             <!--
                 /verify-email arriva dalla pagina di conferma aperta nel browser

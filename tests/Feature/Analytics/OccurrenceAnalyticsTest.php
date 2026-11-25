@@ -53,6 +53,25 @@ it('renders per-date totals and the analytics action in the organizer event', fu
     expect(view('filament.occurrence-analytics', ['report' => app(OccurrenceAnalytics::class)->report($date)])->render())->toContain('data-occurrence-analytics');
 });
 
+it('hides per-date totals and the analytics action from a co-organizer in «Date e luoghi»', function (): void {
+    $scenario = VenueIsolationScenario::make();
+    $organizer = Organizer::create(['name' => 'Portici', 'owner_id' => $scenario->ownerA->id, 'city_id' => $scenario->city->id, 'is_active' => true]);
+    $event = $scenario->publishedEventB;
+    $event->organizers()->attach($organizer);
+    $date = $event->occurrences()->firstOrFail();
+    app(RecordContentMetric::class)->record('event', $event->id, ContentMetric::Views, $date->id);
+    $this->actingAs($scenario->ownerA);
+    Filament::setCurrentPanel('organizer');
+    Filament::setTenant($organizer);
+    // I numeri di un evento solo co-organizzato sono di chi lo organizza (`ManagementAnalytics::covers`).
+    Livewire::test(DatesRelationManager::class, ['ownerRecord' => $event, 'pageClass' => EditEvent::class])
+        ->assertCanSeeTableRecords([$date])
+        ->assertTableColumnDoesNotExist('analytics_views')
+        ->assertTableColumnDoesNotExist('saved_events_count')
+        ->assertTableActionHidden('analytics', $date)
+        ->assertDontSee(__('analytics.occurrence_totals'));
+});
+
 it('signs the selected occurrence and rejects a tampered date at the tracking endpoint', function (): void {
     $scenario = VenueIsolationScenario::make();
     $date = $scenario->publishedEventA->occurrences()->firstOrFail();

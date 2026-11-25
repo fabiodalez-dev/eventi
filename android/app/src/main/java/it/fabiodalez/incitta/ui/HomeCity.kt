@@ -295,11 +295,22 @@ internal fun StartingSoonSection(next: List<Occurrence>, personal: Boolean, save
     }
 }
 
-/** «Organizzi eventi?»: le tre porte d'ingresso per chi organizza, sul sito. */
+/**
+ * «Organizzi eventi?»: le tre porte d'ingresso per chi organizza. La proposta
+ * di un evento resta sul sito; registrare un locale o un'organizzazione si fa
+ * nell'app da collegati (P13, `onRegister` riceve il percorso del sito,
+ * `registra-il-tuo-locale`, che l'app apre nativo), mentre un ospite prima accede (decisione 8 del piano).
+ * Senza `onRegister` (anteprime, test) i due moduli si aprono sul sito come prima.
+ */
 @Composable
-internal fun OrganizeCta() {
+internal fun OrganizeCta(signedIn: Boolean = false, onRegister: ((String) -> Unit)? = null, onLogin: () -> Unit = {}) {
     val context = LocalContext.current
     fun open(path: String) { runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, "$WEB/$path".toUri())) } }
+    fun register(path: String) = when {
+        onRegister == null -> open(path)
+        signedIn -> onRegister(path)
+        else -> onLogin()
+    }
     Column(
         Modifier.fillMaxWidth().padding(18.dp).background(CardSurface, CardShape).border(1.dp, Rule, CardShape).padding(18.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -308,8 +319,9 @@ internal fun OrganizeCta() {
         Text("Organizzi eventi?", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.semantics { heading() })
         Text("Organizzi qualcosa in città? Proponi la data e finisce in questo elenco. Gestisci un locale? Prenditi la tua pagina e pubblica da solo, senza passare da nessuno.", color = Muted)
         Button(onClick = { open("proponi-evento") }, modifier = Modifier.heightIn(min = 48.dp)) { Text("Proponi un evento") }
-        OutlinedButton(onClick = { open("registra-il-tuo-locale") }, modifier = Modifier.heightIn(min = 48.dp)) { Text("Registra il tuo locale") }
-        OutlinedButton(onClick = { open("registra-la-tua-organizzazione") }, modifier = Modifier.heightIn(min = 48.dp)) { Text("Registra la tua organizzazione") }
+        OutlinedButton(onClick = { register("registra-il-tuo-locale") }, modifier = Modifier.heightIn(min = 48.dp)) { Text("Registra il tuo locale") }
+        OutlinedButton(onClick = { register("registra-la-tua-organizzazione") }, modifier = Modifier.heightIn(min = 48.dp)) { Text("Registra la tua organizzazione") }
+        if (onRegister != null && !signedIn) Text(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.organize_login_hint), color = Muted, style = MaterialTheme.typography.bodySmall)
     }
 }
 

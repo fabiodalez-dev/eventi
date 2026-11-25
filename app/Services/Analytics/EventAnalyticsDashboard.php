@@ -13,6 +13,7 @@ use App\Models\Event;
 use App\Models\Organizer;
 use App\Models\Sponsorship;
 use App\Models\Venue;
+use App\Support\CurrentCity;
 use App\Support\Management\ManagementSubject;
 use Carbon\CarbonImmutable;
 use Filament\Facades\Filament;
@@ -64,14 +65,28 @@ final class EventAnalyticsDashboard
             : Organizer::whereIn('id', $events->select('organizer_id'));
     }
 
+    /**
+     * Il fuso in cui si legge «oggi»: quello della città scelta nel pannello
+     * della redazione, altrimenti quello del locale o dell'organizzazione.
+     */
+    public function timezone(): string
+    {
+        return Filament::getCurrentPanel()?->getId() === 'admin'
+            ? app(CurrentCity::class)->timezone()
+            : app(ManagementAnalytics::class)->subject()->city->timezone;
+    }
+
     /** @param array<string, mixed> $filters
      * @return array<string, mixed>
      */
     public function report(array $filters): array
     {
+        // Il tetto del periodo (`AnalyticsWindow::rules`) vale qui per tutti:
+        // pannelli, esportazioni e API passano da questo punto.
+        $dates = AnalyticsWindow::rules($this->timezone());
         $filters = Validator::make($filters, [
-            'from' => ['nullable', 'date_format:Y-m-d', 'before_or_equal:until'],
-            'until' => ['required', 'date_format:Y-m-d'],
+            'from' => [...$dates['from'], 'before_or_equal:until'],
+            'until' => ['required', ...$dates['until']],
             'venue' => ['nullable', 'integer', 'min:1'],
             'organizer' => ['nullable', 'integer', 'min:1'],
             'event' => ['nullable', 'integer', 'min:1'],

@@ -217,6 +217,29 @@ final class OrganizerEventEditor
     }
 
     /**
+     * Il ritorno in revisione di «Date e luoghi»: una data nuova, o portata in
+     * un altro locale, su un evento già online torna dalla redazione come la
+     * scheda; altrimenti la data comparirebbe nel programma di un locale che
+     * non l'ha mai accettata. Orario, annullamento e avviso al pubblico
+     * restano immediati: sono notizie da dare subito, e un evento in attesa
+     * non si vede. Chi modera non rimanda niente a se stesso.
+     *
+     * Stava in `DatesRelationManager::backToReview`; lo chiamano il pannello
+     * e l'app dopo aver salvato la data.
+     *
+     * @return bool vero se l'evento è tornato in revisione
+     */
+    public function afterDateSaved(Event $event, User $user, bool $changed): bool
+    {
+        if (! $changed || $event->status !== EventStatus::Published || Gate::forUser($user)->allows('moderate', $event)) {
+            return false;
+        }
+        $event->update(['status' => EventStatus::Pending]);
+
+        return true;
+    }
+
+    /**
      * «Prima di andare»: i valori del locale principale si ereditano, non si
      * copiano (come `BeforeGoingFields` nel pannello).
      *

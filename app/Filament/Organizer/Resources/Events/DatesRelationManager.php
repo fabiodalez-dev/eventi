@@ -11,11 +11,16 @@ use App\Filament\Support\SameNightNearbyField;
 use App\Filament\Support\VenueClosureWarning;
 use App\Models\Event;
 use App\Models\EventOccurrence;
+use App\Models\Organizer;
+use App\Models\User;
 use App\Models\Venue;
+use App\Services\Analytics\ManagementAnalytics;
 use App\Services\Analytics\OccurrenceAnalytics;
+use App\Services\Events\OrganizerEventEditor;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Actions\EditAction;
+use Filament\Facades\Filament;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Toggle;
@@ -24,7 +29,6 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
-use Illuminate\Support\Facades\Gate;
 
 class DatesRelationManager extends RelationManager
 {
@@ -49,13 +53,19 @@ class DatesRelationManager extends RelationManager
 
     public function table(Table $table): Table
     {
-        return $table->modifyQueryUsing(fn ($query) => OccurrenceAnalytics::withTotals($query))
-            ->description(__('analytics.occurrence_totals'))
-            ->columns([TextColumn::make('starts_at')->label('Data')->dateTime('d/m/Y H:i', $this->eventRecord()->city->timezone), TextColumn::make('venue.name')->label('Locale')->placeholder('Locale principale'), TextColumn::make('status')->label('Stato')->badge()->formatStateUsing(fn (OccurrenceStatus $state): string => $state->label()), ...OccurrenceAnalyticsFields::columns()])
+        /* Visite, clic, salvataggi e l'azione «Statistiche» sono
+           dell'organizzatore principale (`ManagementAnalytics::covers`): su un
+           evento soltanto co-organizzato i numeri sono di chi lo organizza,
+           come in «Statistiche» e nell'app. */
+        $analytics = $this->showsAnalytics();
+
+        return $table->modifyQueryUsing(fn ($query) => $analytics ? OccurrenceAnalytics::withTotals($query) : $query)
+            ->description($analytics ? __('analytics.occurrence_totals') : null)
+            ->columns([TextColumn::make('starts_at')->label('Data')->dateTime('d/m/Y H:i', $this->eventRecord()->city->timezone), TextColumn::make('venue.name')->label('Locale')->placeholder('Locale principale'), TextColumn::make('status')->label('Stato')->badge()->formatStateUsing(fn (OccurrenceStatus $state): string => $state->label()), ...($analytics ? OccurrenceAnalyticsFields::columns() : [])])
             ->headerActions([CreateAction::make()->authorize(fn () => auth()->user()?->can('create', [EventOccurrence::class, $this->getOwnerRecord()]))
                 ->after(fn () => $this->backToReview(true))])
             ->recordActions([EditAction::make()->after(fn (EventOccurrence $record) => $this->backToReview($record->wasChanged('venue_id'))),
-                OccurrenceAnalyticsFields::action(),
+                OccurrenceAnalyticsFields::action()->visible($analytics),
                 Action::make('tickets')->label('Prenotazioni')->url(fn ($record) => route('ticketing.manage.show', $record)),
                 Action::make('social')->label('Grafica social')->url(fn ($record) => route('social.preview', $record))->openUrlInNewTab(),
                 Action::make('poster')->label('Locandina PDF')->visible(fn () => in_array($this->eventRecord()->status, [EventStatus::Published, EventStatus::Archived], true))->url(fn ($record) => route('events.poster', ['slug' => $this->eventRecord()->slug, 'occurrence' => $record->url_number]))->openUrlInNewTab(),
@@ -77,17 +87,22 @@ class DatesRelationManager extends RelationManager
 
     /**
      * Una data nuova, o portata in un altro locale, su un evento già online
-     * torna dalla redazione come la scheda (EditEvent): altrimenti la data
-     * comparirebbe nel programma di un locale che non l'ha mai accettata.
-     * Orario, annullamento e avviso al pubblico restano immediati: sono
-     * notizie da dare subito, e un evento in attesa non si vede.
+     * torna dalla redazione: la regola sta in `OrganizerEventEditor`, la
+     * stessa che usa l'app.
      */
     private function backToReview(bool $changed): void
     {
-        $event = $this->eventRecord();
-        if ($changed && $event->status === EventStatus::Published && Gate::denies('moderate', $event)) {
-            $event->update(['status' => EventStatus::Pending]);
+        $user = auth()->user();
+        if ($user instanceof User) {
+            app(OrganizerEventEditor::class)->afterDateSaved($this->eventRecord(), $user, $changed);
         }
+    }
+
+    private function showsAnalytics(): bool
+    {
+        $tenant = Filament::getTenant();
+
+        return $tenant instanceof Organizer && ManagementAnalytics::covers($tenant, $this->eventRecord());
     }
 
     private function eventRecord(): Event

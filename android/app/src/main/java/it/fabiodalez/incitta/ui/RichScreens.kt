@@ -587,6 +587,10 @@ fun VenueDetailScreen(
                     venue.description?.let { Text(it, style = androidx.compose.material3.MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 16.dp)) }
                     // Solo per chi è dentro: nascondere è una preferenza del profilo.
                     if (session != null) HideVenueAction(venue, hidden, onHiddenChange)
+                    /* «Gestisci questo locale?» (P13): da collegati apre il modulo nativo, da ospite porta ad accedere. */
+                    if (venue.claimable) VenueClaimCard(venue.name, signedIn = session != null, modifier = Modifier.padding(top = 16.dp), onLogin = onLogin) {
+                        venue.claimUrl?.let { url -> onOpenManagement?.invoke(url) }
+                    }
                     if (venue.requiresMembership) {
                         Text("TESSERA RICHIESTA", color = Ink, modifier = Modifier.padding(top = 14.dp).background(Acid).padding(10.dp), style = androidx.compose.material3.MaterialTheme.typography.labelLarge)
                         venue.membershipNotes?.let { Text(it, color = Muted, modifier = Modifier.padding(top = 8.dp)) }

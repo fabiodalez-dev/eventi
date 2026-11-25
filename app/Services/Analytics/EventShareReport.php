@@ -17,8 +17,13 @@ use stdClass;
 
 final class EventShareReport
 {
-    /** @return LengthAwarePaginator<int, stdClass> */
-    public function rows(StatsPeriod $period): LengthAwarePaginator
+    /**
+     * `$page` lo passa l'app di gestione; il pannello lo lascia leggere dalla
+     * richiesta (`sharePage`), come sempre.
+     *
+     * @return LengthAwarePaginator<int, stdClass>
+     */
+    public function rows(StatsPeriod $period, ?int $page = null): LengthAwarePaginator
     {
         if (Filament::getCurrentPanel()?->getId() === 'admin') {
             abort_unless(auth()->user()?->hasAnyRole(['admin', 'super_admin']) === true, 403);
@@ -45,6 +50,6 @@ final class EventShareReport
             ->whereIn('events.id', $events->select('events.id'))
             ->select(['links.code', 'links.channel', 'events.title', 'occurrence.url_number', 'occurrence.starts_at', 'cities.timezone'])
             ->selectRaw('COALESCE(stats.shares, 0) as shares, COALESCE(stats.clicks, 0) as clicks')
-            ->orderByDesc('clicks')->orderByDesc('shares')->orderBy('links.id')->paginate(20, pageName: 'sharePage');
+            ->orderByDesc('clicks')->orderByDesc('shares')->orderBy('links.id')->paginate(20, pageName: 'sharePage', page: $page);
     }
 }

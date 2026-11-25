@@ -13,6 +13,7 @@ internal fun isWebOnlyLink(parts: List<String>): Boolean {
     return when {
         last.endsWith(".ics") || last.endsWith(".pdf") -> true
         parts.size == 3 && parts[0] in setOf("eventi", "locali") && last == "segnala" -> true
+        /* Da `MainActivity` la rivendicazione non arriva più qui: `ManagementDestination` (P13) la apre nativa da collegati, altrimenti si apre la scheda del locale. */
         parts.size == 3 && parts[0] == "locali" && last == "rivendica" -> true
         parts.size == 2 && parts[0] == "eventi" && EVENT_DAY.matches(last) -> true
         else -> false

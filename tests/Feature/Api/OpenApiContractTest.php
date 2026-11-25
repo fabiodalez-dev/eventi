@@ -67,6 +67,16 @@ it('espone un contratto OpenAPI utilizzabile da un generatore Android', function
         '/me/invitations/venues/{venue}',
         '/me/invitations/checkin/{invitation}',
     ])->and($document['paths'])->not->toHaveKey('/management/organizers/{organizer}/members');
+    // P9 (25/11/2026): il calendario collegato del locale, solo sotto `venues`.
+    expect($document['paths'])->toHaveKeys([
+        '/management/venues/{venue}/import',
+        '/management/venues/{venue}/import/preview',
+        '/management/venues/{venue}/import/run',
+        '/management/venues/{venue}/import/pause',
+        '/management/venues/{venue}/import/resume',
+    ])
+        ->and($document['paths']['/management/venues/{venue}/import'])->toHaveKeys(['get', 'post', 'delete'])
+        ->and($document['paths'])->not->toHaveKey('/management/organizers/{organizer}/import');
     // Il profilo del locale e dell'organizzazione (P4).
     expect($document['paths'])->toHaveKeys([
         '/management/venues/{venue}/profile',
@@ -77,12 +87,75 @@ it('espone un contratto OpenAPI utilizzabile da un generatore Android', function
     ])
         ->and($document['paths']['/management/venues/{venue}/profile'])->toHaveKeys(['get', 'patch'])
         ->and($document['paths']['/management/venues/{venue}/notices']['post']['responses'])->toHaveKey('201');
+    // Le date e le ricorrenze (P2): annulla, elimina, «Ripeti» ed esaurito sulla prossima data solo per il locale.
+    expect($document['paths'])->toHaveKeys([
+        '/management/venues/{venue}/events/{event}/dates',
+        '/management/venues/{venue}/events/{event}/dates/{occurrence}',
+        '/management/venues/{venue}/events/{event}/dates/{occurrence}/status',
+        '/management/venues/{venue}/events/{event}/dates/{occurrence}/poster.pdf',
+        '/management/venues/{venue}/events/{event}/recurrence',
+        '/management/venues/{venue}/events/{event}/next-date/sold-out',
+        '/management/organizers/{organizer}/events/{event}/dates',
+        '/management/organizers/{organizer}/events/{event}/dates/{occurrence}',
+        '/management/organizers/{organizer}/events/{event}/dates/{occurrence}/poster.pdf',
+    ])
+        ->and($document['paths']['/management/venues/{venue}/events/{event}/dates/{occurrence}'])->toHaveKeys(['get', 'patch', 'delete'])
+        ->and($document['paths']['/management/organizers/{organizer}/events/{event}/dates/{occurrence}'])->not->toHaveKey('delete')
+        ->and($document['paths'])->not->toHaveKey('/management/organizers/{organizer}/events/{event}/recurrence');
+
+    // P13 (25/11/2026): registrare o rivendicare dall'app, solo con il token e mai in cache.
+    expect($document['paths'])->toHaveKeys([
+        '/venue-applications/lookup',
+        '/me/venue-applications/options',
+        '/me/venue-applications/{application}/confirm',
+        '/me/venue-applications/{application}',
+        '/me/organizer-applications',
+        '/venues/{slug}/claim',
+    ])
+        ->and($document['paths']['/me/venue-applications'])->toHaveKeys(['get', 'post'])
+        ->and($document['paths']['/me/venue-applications']['post']['requestBody']['content'])->toHaveKey('multipart/form-data')
+        ->and($document['paths']['/me/venue-applications']['post']['responses'])->toHaveKey('201')
+        ->and($document['paths']['/venues/{slug}/claim'])->toHaveKeys(['get', 'post'])
+        ->and($document['paths']['/venues/{slug}/claim']['get']['security'])->toBe([['http' => []]])
+        ->and($document['paths']['/venues/{slug}/claim']['get']['responses'])->not->toHaveKey('304')
+        ->and($document['paths']['/venue-applications/lookup']['get']['security'])->toBe([['http' => []]])
+        ->and($document['paths']['/venue-applications/lookup']['get']['responses'])->not->toHaveKey('304');
+
+    // Le sponsorizzazioni (P6): pagina, scelta, ordini, campagne e statistiche, per i due soggetti.
+    foreach (['/management/venues/{venue}', '/management/organizers/{organizer}'] as $subject) {
+        expect($document['paths'])->toHaveKeys(array_map(fn (string $path): string => $subject.'/sponsorships'.$path, [
+            '', '/events', '/catalog', '/campaigns', '/campaigns/{campaign}', '/campaigns/{campaign}/stop',
+            '/orders', '/orders/{order}', '/orders/{order}/retry', '/orders/{order}/cancel', '/orders/{order}/reconcile',
+            '/grants/{grant}/events', '/analytics', '/analytics/clicks', '/analytics/campaigns',
+        ]));
+    }
+    expect($document['paths']['/management/venues/{venue}/sponsorships/orders'])->toHaveKey('post')
+        ->and($document['paths']['/management/venues/{venue}/sponsorships/orders/{order}'])->toHaveKey('delete');
 
     expect($document['paths']['/occurrences/{occurrence}/bookings']['post']['responses'])->toHaveKey('201')
         ->and($document['paths']['/me/bookings']['get']['security'])->toBe([['http' => []]])
         ->and($document['paths']['/me/bookings']['get']['responses']['200']['content']['application/json']['schema']['properties']['data']['items']['$ref'])->toBe('#/components/schemas/MobileBooking')
         ->and($document['paths']['/occurrences/{occurrence}/booking']['get']['responses'])->not->toHaveKey('304')
         ->and($document['components']['schemas']['MobileBooking']['properties']['can_cancel']['type'])->toBe('boolean');
+
+    // P5 (25/11/2026): statistiche, tabelle ed esportazioni, pagina di un soggetto, date di un evento, link brevi, canali propri del locale.
+    expect($document['paths'])->toHaveKeys([
+        '/management/venues/{venue}/analytics/summary',
+        '/management/venues/{venue}/analytics/report',
+        '/management/venues/{venue}/analytics/report/table',
+        '/management/venues/{venue}/analytics/report/export',
+        '/management/venues/{venue}/analytics/events',
+        '/management/venues/{venue}/analytics/subjects/{type}/{id}',
+        '/management/venues/{venue}/analytics/subjects/{type}/{id}/table',
+        '/management/venues/{venue}/analytics/subjects/{type}/{id}/export',
+        '/management/venues/{venue}/analytics/channels',
+        '/management/venues/{venue}/events/{event}/dates/analytics',
+        '/management/venues/{venue}/events/{event}/dates/{occurrence}/analytics',
+        '/management/venues/{venue}/events/{event}/share-links',
+        '/management/organizers/{organizer}/analytics/summary',
+        '/management/organizers/{organizer}/analytics/subjects/{type}/{id}',
+    ])->and($document['paths'])->not->toHaveKey('/management/organizers/{organizer}/analytics/channels')
+        ->and($document['paths']['/management/venues/{venue}/analytics/channels'])->toHaveKeys(['get', 'post']);
 
     $inspect = function (mixed $node) use (&$inspect): void {
         if (! is_array($node)) {
@@ -117,4 +190,22 @@ it('espone un contratto OpenAPI utilizzabile da un generatore Android', function
 
 it('genera tutte le rotte senza errori di analisi OpenAPI', function (): void {
     $this->artisan('scramble:analyze')->assertSuccessful();
+});
+
+it('tiene docs/openapi.json e il conteggio di docs/API.md allineati alle rotte vere', function (): void {
+    $this->seed(RolesAndPermissionsSeeder::class);
+    $staff = User::factory()->create();
+    $staff->assignRole(UserRole::Admin->value);
+    $operations = fn (array $document): array => collect($document['paths'])
+        ->flatMap(fn (array $methods, string $path): array => array_map(fn (string $method): string => strtoupper($method).' '.$path,
+            array_values(array_intersect(array_keys($methods), ['get', 'post', 'put', 'patch', 'delete']))))
+        ->sort()->values()->all();
+
+    $live = $operations($this->actingAs($staff)->getJson('/docs/api.json')->assertOk()->json());
+    $versioned = $operations(json_decode((string) file_get_contents(base_path('docs/openapi.json')), true, flags: JSON_THROW_ON_ERROR));
+
+    // Il JSON versionato è quello che legge chi genera il client dell'app: se manca una rotta, va rigenerato.
+    expect(array_values(array_diff($live, $versioned)))->toBe([])
+        ->and(array_values(array_diff($versioned, $live)))->toBe([]);
+    expect((string) file_get_contents(base_path('docs/API.md')))->toContain('**'.count($versioned).' operazioni**');
 });
