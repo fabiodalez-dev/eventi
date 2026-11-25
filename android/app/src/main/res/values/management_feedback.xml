@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Commenti e recensioni (P7): moderazione dei commenti agli eventi e risposta alle recensioni ricevute, come nei pannelli. -->
+<resources>
+    <!-- Menu dell'area -->
+    <string name="feedback_comments_title">Commenti agli eventi</string>
+    <string name="feedback_comments_help">Leggi i commenti ai tuoi eventi, nascondi quelli fuori luogo e rimettili in vista</string>
+    <string name="feedback_reviews_title">Recensioni ricevute</string>
+    <string name="feedback_reviews_help">Le recensioni pubblicate, con la tua risposta pubblica</string>
+    <string name="feedback_subject_missing">Non gestisci più questo locale o questa organizzazione.</string>
+    <string name="feedback_nothing_allowed">Con il tuo ruolo qui non ci sono commenti da moderare né recensioni a cui rispondere.</string>
+
+    <!-- Commenti -->
+    <string name="feedback_filter_all">Tutti</string>
+    <string name="feedback_filter_published">Pubblicati</string>
+    <string name="feedback_filter_hidden">Nascosti</string>
+    <string name="feedback_filter_label">Stato del commento</string>
+    <string name="feedback_search">Cerca per evento, autore o testo</string>
+    <string name="feedback_search_action">Cerca</string>
+    <string name="feedback_search_clear">Togli la ricerca</string>
+    <string name="feedback_event_filter">Solo i commenti di «%1$s»</string>
+    <string name="feedback_event_filter_unknown">Solo i commenti di un evento</string>
+    <string name="feedback_event_filter_clear">Mostra i commenti di tutti gli eventi</string>
+    <plurals name="feedback_comments_count">
+        <item quantity="one">Un commento</item>
+        <item quantity="other">%1$d commenti</item>
+    </plurals>
+    <string name="feedback_comments_empty">Nessun commento con questi filtri.</string>
+    <string name="feedback_comment_reply">Risposta a un altro commento</string>
+    <string name="feedback_comment_likes">Mi piace: %1$d</string>
+    <string name="feedback_comment_status">Stato: %1$s</string>
+    <string name="feedback_comment_moderated">Moderato da %1$s il %2$s</string>
+    <string name="feedback_comment_moderated_unknown">Moderato il %1$s</string>
+    <string name="feedback_comment_staff_hidden">L’ha nascosto la redazione: solo lei può rimetterlo in vista.</string>
+    <string name="feedback_hide">Nascondi</string>
+    <string name="feedback_restore">Rimetti in vista</string>
+    <string name="feedback_hide_title">Nascondere il commento?</string>
+    <string name="feedback_hide_text">Il commento esce dalla scheda pubblica ma resta qui, con chi l’ha nascosto e quando. Puoi rimetterlo in vista quando vuoi. Chi l’ha scritto riceve un avviso.</string>
+    <string name="feedback_hide_note">Motivo (resta nella gestione, non è pubblico)</string>
+    <string name="feedback_hide_note_counter">%1$d su 1.000 caratteri</string>
+    <string name="feedback_restore_title">Rimettere in vista il commento?</string>
+    <string name="feedback_restore_text">Il commento torna sulla scheda pubblica dell’evento.</string>
+    <string name="feedback_comment_hidden">Commento nascosto.</string>
+    <string name="feedback_comment_restored">Commento di nuovo visibile.</string>
+    <string name="feedback_changed">Qualcun altro ha appena deciso su questo commento. Ho ricaricato l’elenco: rileggilo prima di decidere.</string>
+
+    <!-- Recensioni -->
+    <plurals name="feedback_reviews_count">
+        <item quantity="one">Una recensione pubblicata</item>
+        <item quantity="other">%1$d recensioni pubblicate</item>
+    </plurals>
+    <string name="feedback_reviews_empty">Qui compariranno le recensioni approvate della tua scheda, con la possibilità di rispondere.</string>
+    <string name="feedback_reviews_intro">Approvare o rifiutare le recensioni resta della redazione. Tu puoi rispondere in pubblico, con il nome della scheda.</string>
+    <string name="feedback_rating">%1$d stelle su 5</string>
+    <string name="feedback_no_rating">Senza voto</string>
+    <string name="feedback_published_at">Pubblicata il %1$s</string>
+    <string name="feedback_your_reply">La tua risposta</string>
+    <string name="feedback_reply_from">Risposta di %1$s</string>
+    <string name="feedback_replied_at">Scritta il %1$s</string>
+    <string name="feedback_reply_write">Rispondi</string>
+    <string name="feedback_reply_edit">Modifica la risposta</string>
+    <string name="feedback_reply_remove">Togli la risposta</string>
+    <string name="feedback_reply_field">Risposta pubblica</string>
+    <string name="feedback_reply_hint">Compare sotto la recensione con il nome della scheda. Chi ha scritto la recensione riceve un avviso alla prima risposta. Da 2 a 2.000 caratteri.</string>
+    <string name="feedback_reply_counter">%1$d su 2.000 caratteri</string>
+    <string name="feedback_reply_publish">Pubblica la risposta</string>
+    <string name="feedback_reply_remove_title">Togliere la risposta?</string>
+    <string name="feedback_reply_remove_text">La risposta sparisce dalla scheda pubblica. Puoi scriverne un’altra quando vuoi.</string>
+    <string name="feedback_reply_saved">Risposta pubblicata.</string>
+    <string name="feedback_reply_removed">Risposta tolta.</string>
+    <string name="feedback_report">Segnala alla redazione</string>
+    <string name="feedback_report_title">Segnalare la recensione?</string>
+    <string name="feedback_report_text">La redazione la rilegge e decide se toglierla. Spiega che cosa non va: insulti, dati personali, una recensione falsa. Da 10 a 3.000 caratteri.</string>
+    <string name="feedback_report_field">Che cosa non va</string>
+    <string name="feedback_report_counter">%1$d su 3.000 caratteri</string>
+    <string name="feedback_report_send">Invia la segnalazione</string>
+    <string name="feedback_report_sent">Segnalazione inviata alla redazione. Grazie.</string>
+
+    <!-- Comuni -->
+    <string name="feedback_review_text">Il testo della recensione</string>
+    <string name="feedback_comment_text">Il testo del commento</string>
+    <string name="feedback_load_more">Carica altri</string>
+
+    <!-- Dalle schede pubbliche -->
+    <string name="feedback_public_moderate">Modera i commenti</string>
+    <string name="feedback_public_moderate_help">Gestisci questo evento: da qui nascondi i commenti fuori luogo.</string>
+    <string name="feedback_public_reply">Rispondi alle recensioni</string>
+    <string name="feedback_public_reply_help">Gestisci questa scheda: rispondi in pubblico dalla gestione.</string>
+</resources>

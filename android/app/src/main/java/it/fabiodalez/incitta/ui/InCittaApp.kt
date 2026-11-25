@@ -325,7 +325,7 @@ fun InCittaApp(viewModel: MainViewModel) {
                     OrganizerScreen(organizerSlug!!, state.session, state.savedIds,
                         onVerifyReviews = { organizerSlug = null; communityRoute = "whatsapp" },
                         onLogin = { organizerSlug = null; viewModel.selectTab(AppTab.ACCOUNT) },
-                        onBack = { organizerSlug = null }, onOrganizer = { organizerSlug = it },
+                        onBack = { organizerSlug = null }, onOrganizer = { organizerSlug = it }, onOpenManagement = ::openDestination,
                         onOpen = { organizerSlug = null; viewModel.open(it) }, onSave = viewModel::toggleSaved)
                 }
                 state.bookingDate != null -> ReservationScreen(state, padding, viewModel::reserve, viewModel::goBack, onResendVerification = viewModel::resendEmailVerification, onEmailConfirmed = viewModel::emailConfirmed) { state.bookingDate?.let(viewModel::startReservation) }
@@ -339,6 +339,7 @@ fun InCittaApp(viewModel: MainViewModel) {
                         venue = selectedVenue,
                         onVerifyReviews = { communityRoute = "whatsapp" },
                         reportReview = { id, body -> viewModel.reportVenueReview(requireNotNull(selectedVenue.slug), id, body) },
+                        onOpenManagement = ::openDestination,
                         loadReviews = { page -> viewModel.venueReviews(requireNotNull(selectedVenue.slug), page) },
                         submitReview = { rating, body, revision -> viewModel.submitVenueReview(requireNotNull(selectedVenue.slug), rating, body, revision) },
                         deleteReview = { viewModel.deleteVenueReview(requireNotNull(selectedVenue.slug)) },
@@ -419,6 +420,7 @@ fun InCittaApp(viewModel: MainViewModel) {
                                 delete = { id -> viewModel.deleteComment(selected.slug, id) },
                                 resend = viewModel::resendCommentConfirmation,
                                 emailVerified = state.session?.user?.emailVerified == true,
+                                onModerate = ::openDestination,
                             )
                         },
                     )

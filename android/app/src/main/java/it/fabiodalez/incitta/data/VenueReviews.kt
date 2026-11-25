@@ -10,7 +10,9 @@ data class VenueReview(val id: Long, val author: String, val rating: Int? = null
 @Serializable
 data class OwnVenueReview(val rating: Int? = null, val body: String? = null, val status: String, @SerialName("moderation_note") val moderationNote: String? = null, val revision: Int = 0)
 @Serializable
-data class VenueReviewPage(@SerialName("can_review") val canReview: Boolean = false, val verified: Boolean = false, val count: Int = 0, val average: Double? = null, val reviews: List<VenueReview> = emptyList(), val page: Int = 1, @SerialName("last_page") val lastPage: Int = 1, @SerialName("my_review") val myReview: OwnVenueReview? = null)
+data class VenueReviewPage(@SerialName("can_review") val canReview: Boolean = false, val verified: Boolean = false, val count: Int = 0, val average: Double? = null, val reviews: List<VenueReview> = emptyList(), val page: Int = 1, @SerialName("last_page") val lastPage: Int = 1, @SerialName("my_review") val myReview: OwnVenueReview? = null,
+    /* Solo a chi gestisce la scheda: la pagina «Recensioni ricevute», che l'app apre nativa. */
+    @SerialName("manage_url") val manageUrl: String? = null)
 @Serializable
 data class VenueReviewBody(val rating: Int? = null, val body: String? = null, val revision: Int? = null)
 

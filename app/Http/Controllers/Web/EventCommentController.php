@@ -18,6 +18,7 @@ use App\Models\Event;
 use App\Models\EventComment;
 use App\Models\User;
 use App\Queries\EventCommentQuery;
+use App\Services\Management\ManagedFeedback;
 use App\Support\Api\ApiResponse;
 use App\Support\PublicName;
 use Illuminate\Http\JsonResponse;
@@ -74,6 +75,8 @@ class EventCommentController extends Controller
             'total' => $data['commentsTotal'], 'thread' => $data['commentThread'],
             'replies_page' => $data['repliesPage'], 'replies_last_page' => $data['repliesLastPage'],
             'can_comment' => $user?->can('create', EventComment::class) ?? false,
+            // Chi gestisce il locale o l'organizzazione dell'evento modera dalla gestione, non da qui.
+            'manage_url' => app(ManagedFeedback::class)->commentsPanelUrl($event, $user),
         ])->header('Cache-Control', 'private, no-store');
     }
 

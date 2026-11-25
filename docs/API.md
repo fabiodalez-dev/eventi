@@ -439,3 +439,35 @@ Le immagini vanno nelle raccolte media dei pannelli: `poster`, `logo` e `cover` 
 - `PATCH /v1/management/dates/{id}/details` resta una **sostituzione**: `practical_details` e `cost_breakdown` sono obbligatori (anche vuoti) e ogni chiave non mandata torna a «eredita». Lo fissa `MobileManagementTest`.
 - `GET /v1/management/campaigns` e `/{id}` includono le campagne delle organizzazioni gestite, proprietario e membri, con la regola di `SponsorshipReport`: eventi firmati dall'organizzazione, campagne della redazione o pagate con una sua abilitazione. Prima l'elenco guardava solo i locali.
 
+
+## Gestione: commenti e recensioni (P7)
+
+Le pagine «Commenti agli eventi» e «Recensioni ricevute» dei pannelli, per l'app. Stesse rotte sotto `/v1/management/venues/{venue}/…` e `/v1/management/organizers/{organizer}/…`, con la porta `ResolveManagementSubject` e le restrizioni di `ManagedContent::comments()` (gli eventi del locale per `venue_id`; dell'organizzazione per il solo `organizer_id`, perché un co-organizzatore non modera i commenti altrui) e `ManagedContent::reviews()` (solo le recensioni pubblicate del soggetto). Il collaboratore può tutto quello che può il referente, come nel pannello. Qui non si cancella un commento e non si approva una recensione: restano della redazione.
+
+### Commenti
+
+- `GET /comments?status=&q=&event=&page=`: i commenti agli eventi del soggetto, i più recenti prima, 20 per pagina. `status` è `published` o `hidden` (vuoto = tutti), `q` cerca nel titolo dell'evento, nel nome dell'autore e nel testo (al massimo 100 caratteri), `event` restringe a un evento. Ogni voce: `id`, `event{id, title, slug}`, `author` (il nome dell'account, come nel pannello), `body`, `is_reply`, `reactions_count`, `status`, `status_label`, `created_at`, `moderated_by`, `moderated_at`, `revision`, `can_hide`, `can_restore`. `meta{next_page, total}`. Permesso: `EventCommentPolicy::viewAny`.
+- `POST /comments/{comment}/hide` con `revision` (obbligatoria) e `note` facoltativa (al massimo 1000 caratteri, resta nella gestione). Permesso `EventCommentPolicy::hide`; solo su un commento pubblicato.
+- `POST /comments/{comment}/restore` con `revision`. Permesso `EventCommentPolicy::restore`: un commento nascosto dalla redazione riceve 403. Solo su un commento nascosto.
+
+Le due azioni passano da `App\Actions\Comments\ModerateComment`, la stessa del pannello. Una revisione vecchia, o un'azione su un commento che ha già cambiato stato, riceve 422 con il messaggio in `error.fields.revision`: l'app rilegge l'elenco. La risposta è la voce aggiornata in `data` e il messaggio in `meta.message`. Un commento di un evento di altri riceve 404.
+
+### Recensioni
+
+- `GET /reviews?page=`: le recensioni pubblicate del soggetto, le più recenti prima, 20 per pagina. Ogni voce: `id`, `author` (il nome pubblico, come nel pannello), `rating` (1–5 o `null`), `body`, `created_at`, `published_at`, `reply{body, author, replied_at}` o `null`, `can_reply`, `can_remove_reply`, `can_report`. `meta{next_page, total, can_report}`.
+- `PUT /reviews/{review}/reply` con `reply` (da 2 a 2000 caratteri): scrive o cambia la risposta pubblica. Permesso `CatalogReviewPolicy::reply`. Passa da `CatalogReviews::reply`: solo la prima risposta avvisa chi ha scritto la recensione.
+- `DELETE /reviews/{review}/reply`: toglie la risposta. Permesso `CatalogReviewPolicy::removeReply`. Senza risposta non fa niente.
+- `POST /reviews/{review}/report` con `body` (da 10 a 3000 caratteri): segnala la recensione alla redazione, come il pulsante «Segnala» della scheda pubblica e con la stessa condizione (poter partecipare alla community, altrimenti 403). Risposta `{case_id, message}`; una seconda segnalazione aperta della stessa persona restituisce la stessa pratica.
+
+Una recensione non pubblicata o di un altro soggetto riceve 404.
+
+### Limiti
+
+Nascondere, rimettere in vista e rispondere hanno un secchio di 60 al minuto per persona (`management-community`); i pannelli non ne hanno, serve a fermare un client che impazzisce. La segnalazione usa il secchio della scheda pubblica (`catalog-review-report`, 10 all'ora): dal sito e dall'app si consuma lo stesso.
+
+### Campi nuovi nelle schede pubbliche
+
+- `GET /v1/events/{slug}/comments`: `manage_url`, l'indirizzo della pagina «Commenti agli eventi» del pannello con `?event={id}`, solo a chi gestisce il locale dell'evento o l'organizzazione che lo firma; `null` per tutti gli altri.
+- `GET /v1/venues/{slug}/reviews` e `/v1/organizers/{slug}/reviews`: `manage_url`, l'indirizzo della pagina «Recensioni ricevute» del pannello, solo a chi gestisce la scheda (`User::canAccessTenant`); `null` per tutti gli altri.
+
+L'app traduce questi indirizzi nelle schermate native (`ManagementDestination`); una versione che non li conosce li apre nel browser.

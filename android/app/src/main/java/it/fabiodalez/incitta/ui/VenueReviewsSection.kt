@@ -34,6 +34,8 @@ internal fun VenueReviewsSection(
     onVerify: () -> Unit = {},
     report: suspend (Long, String) -> Unit = { _, _ -> },
     title: String = stringResource(R.string.reviews_venue_title),
+    /* Apre «Recensioni ricevute» nella gestione; il server manda l'indirizzo solo a chi gestisce la scheda. */
+    onManage: ((String) -> Unit)? = null,
 ) {
     var data by remember(venue, userId) { mutableStateOf<VenueReviewPage?>(null) }
     // La bozza sopravvive a rotazione e ricreazione dell'attività.
@@ -78,6 +80,11 @@ internal fun VenueReviewsSection(
         data?.let { reviews ->
             Text(stringResource(if(reviews.count == 0) R.string.reviews_empty else R.string.reviews_count, reviews.count))
             reviews.average?.let { Text(stringResource(R.string.reviews_average, it.toString())) }
+            val manage = reviews.manageUrl?.takeIf { it.isNotBlank() }
+            if (manage != null && onManage != null) {
+                Text(stringResource(R.string.feedback_public_reply_help), style = MaterialTheme.typography.bodySmall)
+                OutlinedButton(onClick = { onManage(manage) }, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.feedback_public_reply)) }
+            }
             reviews.reviews.forEach { review ->
                 Column(Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outlineVariant).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(review.author, style = MaterialTheme.typography.titleMedium)
