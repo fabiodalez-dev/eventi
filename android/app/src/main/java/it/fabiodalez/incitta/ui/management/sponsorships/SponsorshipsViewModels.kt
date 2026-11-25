@@ -4,12 +4,14 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import it.fabiodalez.incitta.R
+import it.fabiodalez.incitta.data.management.EventChoiceGroups
 import it.fabiodalez.incitta.data.management.ManagementRepository
 import it.fabiodalez.incitta.data.management.ManagementSponsorshipsSource
 import it.fabiodalez.incitta.data.management.ManagementSubject
 import it.fabiodalez.incitta.data.management.ManagementSubjects
 import it.fabiodalez.incitta.data.management.SPONSORSHIP_EVENTS_MAX
 import it.fabiodalez.incitta.data.management.SPONSORSHIP_EVENTS_STEP
+import it.fabiodalez.incitta.data.management.SPONSORSHIP_SEARCH_MAX
 import it.fabiodalez.incitta.data.management.SPONSORSHIP_NOTE_MAX
 import it.fabiodalez.incitta.data.management.SponsorshipAnalytics
 import it.fabiodalez.incitta.data.management.SponsorshipCampaign
@@ -26,6 +28,7 @@ import it.fabiodalez.incitta.data.management.SponsorshipFormat
 import it.fabiodalez.incitta.data.management.SponsorshipGrantEvent
 import it.fabiodalez.incitta.data.management.SponsorshipOrder
 import it.fabiodalez.incitta.data.management.SponsorshipOrderEnvelope
+import it.fabiodalez.incitta.data.management.asEventChoices
 import it.fabiodalez.incitta.data.requestFailureMessage
 import it.fabiodalez.incitta.ui.management.common.FormErrors
 import it.fabiodalez.incitta.ui.management.common.Loadable
@@ -76,14 +79,15 @@ internal sealed interface SponsorshipConfirm {
     data class Stop(val row: SponsorshipGrantEvent) : SponsorshipConfirm
 }
 
-/** La scelta di un evento da mettere in evidenza con un periodo attivo (W-SP-09). */
+/**
+ * La scelta di un evento da mettere in evidenza con un periodo attivo
+ * (W-SP-09), nel selettore unico `common/EventPickerSheet`: il foglio cerca
+ * da sé con `pickerChoices`; qui restano gli eventi già in evidenza sul
+ * periodo scelto e un contatore che, cambiando, gli fa rileggere l'elenco.
+ */
 internal data class ActivationPicker(
-    val query: String = "",
-    val events: List<SponsorshipEvent> = emptyList(),
-    val limit: Int = SPONSORSHIP_EVENTS_STEP,
-    val hasMore: Boolean = false,
-    val busy: Boolean = false,
-    val error: String? = null,
+    val active: Set<Long> = emptySet(),
+    val revision: Int = 0,
 )
 
 internal data class SponsorshipsUiState(
@@ -108,7 +112,6 @@ internal class SponsorshipsViewModel(private val repository: ManagementRepositor
     private val key: String? = saved[KEY_SUBJECT]
     private val state = MutableStateFlow(SponsorshipsUiState(grantId = saved.get<Long>(KEY_GRANT)?.takeIf { it > 0 }))
     val uiState: StateFlow<SponsorshipsUiState> = state.asStateFlow()
-    private var pickerJob: Job? = null
 
     init {
         /* Il ritorno da Stripe arriva una volta: il flag nello stato salvato evita di rifarlo dopo una rotazione. */
@@ -234,48 +237,34 @@ internal class SponsorshipsViewModel(private val repository: ManagementRepositor
     /** Il periodo con cui mettere in evidenza, quando ce n'è più d'uno. */
     fun chooseGrant(id: Long) {
         saved[KEY_GRANT] = id
-        state.update { it.copy(grantId = id, picker = it.picker?.let { picker -> picker.copy(events = emptyList()) }) }
-        if (state.value.picker != null) loadPicker()
+        state.update { it.copy(grantId = id, picker = it.picker?.let { picker -> ActivationPicker(revision = picker.revision + 1) }) }
     }
 
-    fun openPicker() {
-        state.update { it.copy(picker = ActivationPicker()) }
-        loadPicker()
-    }
+    fun openPicker() { state.update { it.copy(picker = ActivationPicker()) } }
 
-    fun closePicker() { pickerJob?.cancel(); state.update { it.copy(picker = null) } }
+    fun closePicker() { state.update { it.copy(picker = null) } }
 
-    fun searchPicker(query: String) {
-        state.update { it.copy(picker = it.picker?.copy(query = query.take(80), limit = SPONSORSHIP_EVENTS_STEP)) }
-        loadPicker()
-    }
-
-    fun morePicker() {
-        state.update { it.copy(picker = it.picker?.let { p -> p.copy(limit = (p.limit + SPONSORSHIP_EVENTS_STEP).coerceAtMost(SPONSORSHIP_EVENTS_MAX)) }) }
-        loadPicker()
-    }
-
-    private fun loadPicker() {
-        val subject = state.value.subject.valueOrNull ?: return
-        val picker = state.value.picker ?: return
-        val grant = state.value.grantId
-        pickerJob?.cancel()
-        state.update { it.copy(picker = it.picker?.copy(busy = true, error = null)) }
-        pickerJob = viewModelScope.launch {
-            try {
-                val page = repository.sponsorshipsApi().events(subject, picker.query, picker.limit, grant)
-                state.update { it.copy(picker = it.picker?.copy(events = page.data, hasMore = page.meta.hasMore, busy = false)) }
-            } catch (e: CancellationException) { throw e }
-            catch (e: Exception) { state.update { it.copy(picker = it.picker?.copy(busy = false, error = requestFailureMessage(e))) } }
-        }
+    /**
+     * La ricerca del foglio: gli eventi che il soggetto può mettere in
+     * evidenza con il periodo scelto (al massimo `SPONSORSHIP_EVENTS_MAX`,
+     * come il pannello), già nella forma del selettore unico. Ricorda quali
+     * sono già in evidenza, così il foglio li mostra con il loro stato.
+     */
+    suspend fun pickerChoices(query: String): EventChoiceGroups {
+        val subject = state.value.subject.valueOrNull ?: return EventChoiceGroups()
+        val page = repository.sponsorshipsApi().events(subject, query.take(SPONSORSHIP_SEARCH_MAX), SPONSORSHIP_EVENTS_MAX, state.value.grantId)
+        val active = page.data.filter { it.activeOnGrant }.map { it.id }.toSet()
+        state.update { it.copy(picker = it.picker?.copy(active = it.picker.active + active)) }
+        return page.data.asEventChoices(subject.timezone)
     }
 
     /** «Metti in evidenza» (W-SP-09): l'evento entra subito, senza altre richieste. */
-    fun activate(event: SponsorshipEvent) {
+    fun activate(eventId: Long) {
         val grant = state.value.grantId ?: return
+        if (state.value.picker?.active?.contains(eventId) == true) return
         act { subject, api ->
-            val result = api.activate(subject, grant, event.id)
-            state.update { it.copy(picker = it.picker?.copy(events = it.picker.events.map { row -> if (row.id == event.id) row.copy(activeOnGrant = true) else row })) }
+            val result = api.activate(subject, grant, eventId)
+            state.update { it.copy(picker = it.picker?.let { picker -> picker.copy(active = picker.active + eventId, revision = picker.revision + 1) }) }
             serverText(result.message, R.string.sponsorships_activated)
         }
     }

@@ -27,6 +27,7 @@ import it.fabiodalez.incitta.data.management.SponsorshipOrder
 import it.fabiodalez.incitta.ui.Muted
 import it.fabiodalez.incitta.ui.management.ManagementGraphContext
 import it.fabiodalez.incitta.ui.management.common.ConfirmDialog
+import it.fabiodalez.incitta.ui.management.common.EventPickerSheet
 import it.fabiodalez.incitta.ui.management.common.FormTextField
 import it.fabiodalez.incitta.ui.management.common.LoadState
 import it.fabiodalez.incitta.ui.management.common.Loadable
@@ -105,30 +106,27 @@ internal fun SponsorshipsScreen(
     val picker = state.picker
     val desk = state.desk.valueOrNull
     if (picker != null && subject != null && desk != null) {
-        SponsorshipEventPickerSheet(
-            title = stringResource(R.string.sponsorships_active_title),
-            lead = stringResource(R.string.sponsorships_active_lead),
-            query = picker.query,
-            events = picker.events,
-            zone = subject.timezone,
-            busy = picker.busy || state.busy,
-            error = picker.error,
-            hasMore = picker.hasMore,
-            onSearch = viewModel::searchPicker,
-            onMore = viewModel::morePicker,
+        // Il selettore unico della gestione: lo stesso delle statistiche.
+        val activeLabel = stringResource(R.string.sponsorships_active_on)
+        EventPickerSheet(
+            search = viewModel::pickerChoices,
+            onPick = { choice -> viewModel.activate(choice.id) },
             onDismiss = viewModel::closePicker,
+            title = stringResource(R.string.sponsorships_active_title),
+            hint = stringResource(R.string.sponsorships_active_lead),
+            emptyText = stringResource(R.string.sponsorships_no_events),
+            reloadKey = picker.revision,
+            enabled = !state.busy,
+            pickLabel = stringResource(R.string.sponsorships_activate),
+            pickable = { it.id !in picker.active },
+            badge = { if (it.id in picker.active) activeLabel else null },
             header = {
                 if (desk.selectableGrants.size > 1) GrantChooser(desk, state.grantId, subject.timezone, viewModel::chooseGrant)
                 state.message?.let { Text(it.resolve(), color = MaterialTheme.colorScheme.primary) }
                 state.error?.let { Text(it.resolve(), color = MaterialTheme.colorScheme.error) }
+                if (state.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
             },
-        ) { event ->
-            if (event.activeOnGrant) {
-                SponsorshipBadge(stringResource(R.string.sponsorships_active_on), "success")
-            } else {
-                Button(enabled = !state.busy, onClick = { viewModel.activate(event) }, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.sponsorships_activate)) }
-            }
-        }
+        )
     }
 }
 

@@ -33,6 +33,8 @@ import it.fabiodalez.incitta.data.management.SponsorshipListMeta
 import it.fabiodalez.incitta.data.management.SponsorshipOrder
 import it.fabiodalez.incitta.data.management.SponsorshipOrderEnvelope
 import it.fabiodalez.incitta.data.management.SponsorshipOrderResult
+import it.fabiodalez.incitta.data.management.SPONSORSHIP_EVENTS_MAX
+import it.fabiodalez.incitta.data.management.asEventChoices
 import it.fabiodalez.incitta.ui.management.common.Loadable
 import it.fabiodalez.incitta.ui.management.common.UiText
 import it.fabiodalez.incitta.ui.management.sponsorships.SponsorshipAnalyticsViewModel
@@ -42,6 +44,8 @@ import it.fabiodalez.incitta.ui.management.sponsorships.SponsorshipsViewModel
 import it.fabiodalez.incitta.ui.management.sponsorships.WizardResult
 import it.fabiodalez.incitta.ui.management.sponsorships.WizardStep
 import java.time.LocalDate
+import java.time.OffsetDateTime
+import java.time.ZoneId
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -82,6 +86,51 @@ class SponsorshipsViewModelsTest {
         assertEquals(4L, state.grantId)
         viewModel.chooseGrant(8)
         assertEquals(8L, viewModel.uiState.value.grantId)
+    }
+
+    @Test fun theActivePeriodPicksFromTheOneEventPickerOfTheManagement() = runTest(dispatcher) {
+        val api = FakeSponsorships(desk = SponsorshipDesk(selectableGrants = listOf(SelectableGrant(id = 4))))
+        val viewModel = SponsorshipsViewModel(repository(TestScope(testScheduler), api), SavedStateHandle(mapOf("subject" to "venue:12")))
+
+        viewModel.openPicker()
+        // Il foglio è `common/EventPickerSheet`: cerca da sé, con il periodo scelto e il tetto del pannello.
+        val groups = viewModel.pickerChoices("")
+        assertTrue("events::$SPONSORSHIP_EVENTS_MAX:4" in api.calls)
+        assertEquals(listOf(9L, 10L), groups.upcoming.map { it.id })
+        assertEquals("Europe/Rome", groups.upcoming.first().timezone)
+
+        viewModel.activate(9)
+        assertTrue("activate:4:9" in api.calls)
+        val picker = viewModel.uiState.value.picker!!
+        assertEquals(setOf(9L), picker.active)
+        assertEquals(1, picker.revision)
+        // Un evento già in evidenza non si rimanda.
+        viewModel.activate(9)
+        assertEquals(1, api.calls.count { it == "activate:4:9" })
+
+        // Un altro periodo: si riparte da zero e il foglio rilegge.
+        viewModel.chooseGrant(8)
+        assertEquals(emptySet<Long>(), viewModel.uiState.value.picker!!.active)
+        assertEquals(2, viewModel.uiState.value.picker!!.revision)
+        viewModel.closePicker()
+        assertNull(viewModel.uiState.value.picker)
+    }
+
+    @Test fun sponsorableEventsBecomeChoicesOfTheCommonPicker() {
+        val now = OffsetDateTime.parse("2026-11-25T12:00:00+01:00")
+        val groups = listOf(
+            SponsorshipEvent(id = 1, title = "Domani", venue = "Circolo Aurora", date = "2026-11-26T21:00:00+01:00"),
+            SponsorshipEvent(id = 2, title = "Ieri", date = "2026-11-24T21:00:00+01:00"),
+            SponsorshipEvent(id = 3, title = "Senza data"),
+        ).asEventChoices(ZoneId.of("Europe/Rome"), now)
+
+        assertEquals(listOf(1L, 3L), groups.upcoming.map { it.id })
+        assertEquals(listOf(2L), groups.past.map { it.id })
+        assertEquals("2026-11-26T21:00:00+01:00", groups.upcoming.first().startsAt)
+        assertEquals("Circolo Aurora", groups.upcoming.first().venue)
+        // Il selettore delle sponsorizzazioni non ha più un suo doppione.
+        val components = Class.forName("it.fabiodalez.incitta.ui.management.sponsorships.SponsorshipsComponentsKt").declaredMethods.map { it.name }
+        assertFalse(components.any { it.startsWith("SponsorshipEventPickerSheet") })
     }
 
     @Test fun retryOpensTheBrowserAndChecksThePaymentWhenTheAppComesBack() = runTest(dispatcher) {

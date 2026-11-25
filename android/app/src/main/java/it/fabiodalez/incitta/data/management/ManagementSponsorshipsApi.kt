@@ -4,6 +4,8 @@ import it.fabiodalez.incitta.data.ApiClient
 import it.fabiodalez.incitta.data.Poster
 import java.net.URI
 import java.net.URLEncoder
+import java.time.OffsetDateTime
+import java.time.ZoneId
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonPrimitive
@@ -179,6 +181,20 @@ internal data class SponsorshipListMeta(
     val total: Int = 0,
     @SerialName("has_more") val hasMore: Boolean = false,
 )
+
+/**
+ * Gli eventi sponsorizzabili nella forma del selettore unico della gestione
+ * (`ui/management/common/EventPickerSheet`): la data che manda il server
+ * (la prossima, o l'ultima se sono tutte passate) divide le voci fra
+ * «Prossimi» e «Passati», e si legge nel fuso del soggetto.
+ */
+internal fun List<SponsorshipEvent>.asEventChoices(zone: ZoneId, now: OffsetDateTime = OffsetDateTime.now()): EventChoiceGroups {
+    val choices = map { event ->
+        val start = event.date?.let { runCatching { OffsetDateTime.parse(it) }.getOrNull() }
+        EventChoice(id = event.id, title = event.title, poster = event.poster, startsAt = event.date, timezone = zone.id, past = start?.isBefore(now) == true, venue = event.venue)
+    }
+    return EventChoiceGroups(upcoming = choices.filterNot { it.past }, past = choices.filter { it.past })
+}
 
 @Serializable internal data class SponsorshipCampaignPage(val data: List<SponsorshipCampaign> = emptyList(), val meta: SponsorshipListMeta = SponsorshipListMeta())
 @Serializable internal data class SponsorshipEventPage(val data: List<SponsorshipEvent> = emptyList(), val meta: SponsorshipListMeta = SponsorshipListMeta())

@@ -3,12 +3,9 @@ package it.fabiodalez.incitta.ui.management.sponsorships
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -211,50 +208,3 @@ internal fun SponsorshipSection(title: String, lead: String? = null) {
     }
 }
 
-/**
- * La scelta di un evento in un foglio: ricerca, locandina, titolo, data e
- * un'azione per riga. Usata per mettere in evidenza un evento con un periodo
- * attivo (W-SP-09).
- */
-// da sostituire con common/EventPickerSheet di P5
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-internal fun SponsorshipEventPickerSheet(
-    title: String,
-    lead: String?,
-    query: String,
-    events: List<SponsorshipEvent>,
-    zone: ZoneId,
-    busy: Boolean,
-    error: String?,
-    hasMore: Boolean,
-    onSearch: (String) -> Unit,
-    onMore: () -> Unit,
-    onDismiss: () -> Unit,
-    header: @Composable ColumnScope.() -> Unit = {},
-    action: @Composable (SponsorshipEvent) -> Unit,
-) {
-    val sheet = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    var text by rememberSaveable(query) { mutableStateOf(query) }
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheet) {
-        Column(
-            Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 18.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Text(title, style = MaterialTheme.typography.titleLarge)
-            lead?.let { Text(it, color = Muted) }
-            header()
-            OutlinedTextField(text, { text = it.take(80) }, label = { Text(stringResource(R.string.sponsorships_search)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
-            OutlinedButton(enabled = !busy, onClick = { onSearch(text) }, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.sponsorships_search_action)) }
-            if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
-            error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-            if (!busy && events.isEmpty()) Text(stringResource(if (query.isBlank()) R.string.sponsorships_no_events else R.string.sponsorships_no_results), color = Muted)
-            events.forEach { event ->
-                SponsorshipEventLine(event, zone, trailing = { action(event) })
-                HorizontalDivider()
-            }
-            if (hasMore) OutlinedButton(enabled = !busy, onClick = onMore, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.sponsorships_more_events)) }
-            Spacer(Modifier.height(24.dp))
-        }
-    }
-}

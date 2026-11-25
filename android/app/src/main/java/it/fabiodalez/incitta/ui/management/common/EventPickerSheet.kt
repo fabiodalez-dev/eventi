@@ -46,6 +46,16 @@ import kotlinx.coroutines.delay
  * la chiamata al proprio endpoint (le statistiche `GET S/analytics/events`;
  * sponsorizzazioni e grafiche social il loro, con la stessa forma). Così
  * ogni pagina mostra solo gli eventi che il server le lascia scegliere.
+ *
+ * Il selettore è uno solo per tutta la gestione. Chi ne ha bisogno aggiunge:
+ * - `header`, quello che sta sopra la ricerca (le sponsorizzazioni ci mettono
+ *   il periodo con cui mettere in evidenza e l'esito dell'ultima scelta);
+ * - `reloadKey`, che quando cambia rilegge gli eventi (dopo una scelta che
+ *   cambia lo stato delle voci, o con un altro periodo);
+ * - `pickLabel`, l'azione che un tocco sulla voce compie, detta anche a chi
+ *   usa il lettore di schermo; `badge` e `pickable` per le voci già scelte,
+ *   che si mostrano con il loro stato e non si toccano;
+ * - `enabled`, falso mentre una scelta è in corso.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -56,12 +66,19 @@ internal fun EventPickerSheet(
     title: String = stringResource(R.string.event_picker_title),
     hint: String? = null,
     excludeId: Long? = null,
+    emptyText: String = stringResource(R.string.event_picker_empty),
+    reloadKey: Any? = null,
+    enabled: Boolean = true,
+    pickLabel: String? = null,
+    pickable: (EventChoice) -> Boolean = { true },
+    badge: (EventChoice) -> String? = { null },
+    header: @Composable ColumnScope.() -> Unit = {},
 ) {
     val sheet = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var query by rememberSaveable { mutableStateOf("") }
     var state by remember { mutableStateOf<Loadable<EventChoiceGroups>>(Loadable.Loading) }
     var attempt by remember { mutableIntStateOf(0) }
-    LaunchedEffect(query, attempt) {
+    LaunchedEffect(query, attempt, reloadKey) {
         state = Loadable.Loading
         // Si aspetta che la persona smetta di scrivere: una richiesta per parola, non per lettera.
         if (query.isNotEmpty()) delay(SEARCH_DELAY_MILLIS)
@@ -79,6 +96,7 @@ internal fun EventPickerSheet(
                 }
             }
             hint?.let { Text(it, color = Muted) }
+            header()
             OutlinedTextField(
                 value = query,
                 onValueChange = { query = it.take(100) },
@@ -88,15 +106,18 @@ internal fun EventPickerSheet(
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                 modifier = Modifier.fillMaxWidth(),
             )
-            LoadState(state, onRetry = { attempt++ }, emptyText = stringResource(R.string.event_picker_empty)) { groups ->
+            LoadState(state, onRetry = { attempt++ }, emptyText = emptyText) { groups ->
+                val row: @Composable (EventChoice) -> Unit = { choice ->
+                    EventChoiceRow(choice, onClick = if (enabled && pickable(choice)) ({ onPick(choice) }) else null, onClickLabel = pickLabel, badge = badge(choice))
+                }
                 LazyColumn(Modifier.fillMaxWidth().heightIn(max = 520.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     if (groups.upcoming.isNotEmpty()) {
                         item { GroupTitle(stringResource(R.string.event_picker_upcoming)) }
-                        items(groups.upcoming, key = { "u${it.id}" }) { EventChoiceRow(it, onClick = { onPick(it) }) }
+                        items(groups.upcoming, key = { "u${it.id}" }) { row(it) }
                     }
                     if (groups.past.isNotEmpty()) {
                         item { GroupTitle(stringResource(R.string.event_picker_past)) }
-                        items(groups.past, key = { "p${it.id}" }) { EventChoiceRow(it, onClick = { onPick(it) }) }
+                        items(groups.past, key = { "p${it.id}" }) { row(it) }
                     }
                 }
             }
@@ -112,17 +133,18 @@ private fun GroupTitle(text: String) {
 /**
  * Una voce: la stessa riga del selettore dei pannelli. Si usa anche fuori dal
  * foglio, per dire di quale evento si parla (in testa alla pagina delle
- * statistiche di un evento).
+ * statistiche di un evento). `badge` è lo stato della voce («In evidenza»),
+ * scritto sotto il locale e detto insieme al resto.
  */
 @Composable
-internal fun EventChoiceRow(choice: EventChoice, onClick: (() -> Unit)? = null) {
+internal fun EventChoiceRow(choice: EventChoice, onClick: (() -> Unit)? = null, onClickLabel: String? = null, badge: String? = null) {
     val whenText = eventChoiceWhen(choice) ?: stringResource(R.string.analytics_no_dates)
     val more = choice.more.takeIf { it > 0 }?.let { pluralStringResource(R.plurals.event_picker_more_dates, it, it) }
     val meta = listOfNotNull(whenText, choice.venue?.takeIf { it.isNotBlank() }).joinToString(" · ") + (more?.let { " $it" } ?: "")
-    val spoken = listOf(choice.title, meta).joinToString(". ")
+    val spoken = listOfNotNull(choice.title, meta, badge?.takeIf { it.isNotBlank() }).joinToString(". ")
     Row(
         Modifier.fillMaxWidth()
-            .then(if (onClick != null) Modifier.heightIn(min = 56.dp).clickable(role = Role.Button, onClick = onClick) else Modifier)
+            .then(if (onClick != null) Modifier.heightIn(min = 56.dp).clickable(role = Role.Button, onClickLabel = onClickLabel, onClick = onClick) else Modifier)
             .padding(vertical = 6.dp)
             .clearAndSetSemantics { contentDescription = spoken },
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -132,6 +154,7 @@ internal fun EventChoiceRow(choice: EventChoice, onClick: (() -> Unit)? = null) 
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(choice.title, style = MaterialTheme.typography.titleMedium, maxLines = 3, overflow = TextOverflow.Ellipsis)
             Text(meta, style = MaterialTheme.typography.bodyMedium, color = Muted)
+            badge?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary) }
         }
     }
 }
