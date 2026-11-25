@@ -3,6 +3,7 @@ package it.fabiodalez.incitta.ui.management
 import it.fabiodalez.incitta.R
 import it.fabiodalez.incitta.data.management.ManagementSubject
 import it.fabiodalez.incitta.data.management.SubjectKind
+import it.fabiodalez.incitta.ui.management.feedback.FeedbackRoute
 import it.fabiodalez.incitta.ui.management.ticketing.TicketingDatesRoute
 
 /**
@@ -18,7 +19,7 @@ internal enum class ManagementArea(val title: Int, val help: Int, val entry: Any
     Profile(R.string.management_area_profile, R.string.management_area_profile_help),
     Analytics(R.string.management_area_analytics, R.string.management_area_analytics_help),
     Sponsorships(R.string.management_area_sponsorships, R.string.management_area_sponsorships_help),
-    Feedback(R.string.management_area_feedback, R.string.management_area_feedback_help),
+    Feedback(R.string.management_area_feedback, R.string.management_area_feedback_help, FeedbackRoute()),
     Collaborators(R.string.management_area_collaborators, R.string.management_area_collaborators_help),
     Import(R.string.management_area_import, R.string.management_area_import_help),
     Social(R.string.management_area_social, R.string.management_area_social_help),

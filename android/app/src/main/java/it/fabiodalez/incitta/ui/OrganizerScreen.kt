@@ -24,7 +24,7 @@ internal data class OrganizerFollowState(val following: Boolean = false, val not
 internal data class OrganizerFollowRequest(val id: Long, val notify: Boolean, val type: String, val notification_mode: String? = null)
 
 @Composable
-fun OrganizerScreen(slug: String, session: Session?, savedIds: Set<Long>, onBack: () -> Unit, onOrganizer: (String) -> Unit, onOpen: (Occurrence) -> Unit, onSave: (Long) -> Unit, onLogin: () -> Unit = {}, onVerifyReviews: () -> Unit = {}) {
+fun OrganizerScreen(slug: String, session: Session?, savedIds: Set<Long>, onBack: () -> Unit, onOrganizer: (String) -> Unit, onOpen: (Occurrence) -> Unit, onSave: (Long) -> Unit, onLogin: () -> Unit = {}, onVerifyReviews: () -> Unit = {}, onOpenManagement: ((String) -> Unit)? = null) {
     val context = LocalContext.current
     val api = remember { ApiClient(LocalStore(context).installationId) }
     var organizers by remember(slug) { mutableStateOf<List<Organizer>>(emptyList()) }
@@ -136,7 +136,8 @@ fun OrganizerScreen(slug: String, session: Session?, savedIds: Set<Long>, onBack
                 delete = { api.delete<ApiEnvelope<ApiMessage>>("organizers/$slug/reviews", requireNotNull(session?.token)) },
                 onVerify = onVerifyReviews,
                 report = { id, body -> api.post<ApiEnvelope<kotlinx.serialization.json.JsonObject>, kotlinx.serialization.json.JsonObject>("organizers/$slug/reviews/$id/report", kotlinx.serialization.json.buildJsonObject { put("body", kotlinx.serialization.json.JsonPrimitive(body)) }, requireNotNull(session?.token)) },
-                title = androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.reviews_organizer_title))
+                title = androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.reviews_organizer_title),
+                onManage = onOpenManagement)
         }
         item {
             Row(Modifier.padding(vertical=16.dp)) {

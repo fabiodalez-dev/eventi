@@ -526,6 +526,8 @@ fun VenueDetailScreen(
     deleteReview: suspend () -> Unit,
     onVerifyReviews: () -> Unit = {},
     reportReview: suspend (Long, String) -> Unit = { _, _ -> },
+    /* Per chi gestisce il locale: «Rispondi alle recensioni» apre la gestione. */
+    onOpenManagement: ((String) -> Unit)? = null,
     events: List<Occurrence>,
     pastEvents: List<Occurrence>,
     savedIds: Set<Long>,
@@ -621,7 +623,7 @@ fun VenueDetailScreen(
                     }
                 }
                 PublicContactSection("venues", venue.slug.orEmpty(), session, onLogin)
-                VenueReviewsSection(venue.slug.orEmpty(), session?.user?.id, onLogin, loadReviews, submitReview, deleteReview, onVerify = onVerifyReviews, report = reportReview)
+                VenueReviewsSection(venue.slug.orEmpty(), session?.user?.id, onLogin, loadReviews, submitReview, deleteReview, onVerify = onVerifyReviews, report = reportReview, onManage = onOpenManagement)
                 DetailSection("TUTTI GLI EVENTI") {
                     if (events.isEmpty()) Text("Nessun evento futuro in calendario.", color = Muted)
                     EventCards(events, savedIds, onOpenEvent, onSave)

@@ -30,10 +30,12 @@ class ManagementFoundationsTest {
         assertEquals(listOf(ManagementArea.Ticketing), availableAreas(ManagedOrganizer(id = 3, permissions = mapOf("ticketing_manage" to true)).toSubject(), false))
     }
 
-    @Test fun everyAreaOfThePlanExistsAndOnlyTicketingIsBuilt() {
+    @Test fun everyAreaOfThePlanExistsAndTheBuiltOnesHaveTheirEntry() {
         assertEquals(13, ManagementArea.entries.size)
-        assertEquals(listOf(ManagementArea.Ticketing), ManagementArea.entries.filter { it.implemented })
+        /* Le aree si accendono con i loro pacchetti: qui si controllano solo quelle già fatte. */
+        assertTrue(ManagementArea.Ticketing.implemented)
         assertSame(TicketingDatesRoute, ManagementArea.Ticketing.entry)
+        assertEquals(it.fabiodalez.incitta.ui.management.feedback.FeedbackRoute(), ManagementArea.Feedback.entry)
     }
 
     @Test fun permissionsDecideTheFutureAreasToo() {
