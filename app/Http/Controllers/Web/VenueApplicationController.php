@@ -6,21 +6,20 @@ namespace App\Http\Controllers\Web;
 
 use App\Actions\Account\RequestRegistration;
 use App\Actions\CreateVenueApplication;
+use App\Actions\SubmitVenueApplication;
 use App\DTOs\PageMeta;
-use App\Enums\ApplicationKind;
 use App\Enums\ApplicationStatus;
-use App\Enums\VenueStatus;
 use App\Enums\VenueType;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Web\Concerns\InteractsWithCity;
 use App\Http\Requests\Web\StoreVenueApplicationRequest;
 use App\Models\User;
-use App\Models\Venue;
 use App\Models\VenueApplication;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 
 /**
  * `/registra-il-tuo-locale` (§11.1).
@@ -38,7 +37,7 @@ final class VenueApplicationController extends Controller
 {
     use InteractsWithCity;
 
-    public function create(Request $request): View
+    public function create(Request $request, SubmitVenueApplication $submit): View
     {
         $city = $this->city();
         StoreVenueApplicationRequest::restoreDraft($request, 'venue');
@@ -50,7 +49,7 @@ final class VenueApplicationController extends Controller
             'mode' => 'venue',
             'types' => VenueType::options(),
             'search' => $query,
-            'results' => mb_strlen($query) >= 3 ? $this->catalogue($query) : null,
+            'results' => mb_strlen($query) >= 3 ? $submit->catalogue($query) : null,
             ...self::accountState($request->user()),
             'meta' => new PageMeta(
                 title: __('forms.application.title'),
@@ -61,7 +60,7 @@ final class VenueApplicationController extends Controller
         ]);
     }
 
-    public function store(StoreVenueApplicationRequest $request, CreateVenueApplication $action, RequestRegistration $registration): RedirectResponse
+    public function store(StoreVenueApplicationRequest $request, CreateVenueApplication $action, SubmitVenueApplication $submit, RequestRegistration $registration): RedirectResponse
     {
         $user = $request->user();
         $email = $request->applicantEmail();
@@ -79,21 +78,8 @@ final class VenueApplicationController extends Controller
         $account = $user instanceof User ? $user : $request->guestAccount($registration, $returnTo);
         $confirmed = $user instanceof User && $user->hasVerifiedEmail();
         $image = $request->file('image');
-        $data = $request->validated();
 
-        $action->handle([
-            'venue_name' => (string) $data['venue_name'],
-            'type' => isset($data['type']) ? (string) $data['type'] : null,
-            'address' => isset($data['address']) ? (string) $data['address'] : null,
-            'website' => isset($data['website']) ? (string) $data['website'] : null,
-            'contact_name' => (string) $data['contact_name'],
-            'contact_role' => isset($data['contact_role']) ? (string) $data['contact_role'] : null,
-            'contact_phone' => isset($data['contact_phone']) ? (string) $data['contact_phone'] : null,
-            'contact_email' => $email,
-            'message' => isset($data['message']) ? (string) $data['message'] : null,
-            'venue_data' => $request->venueData(),
-            'image_path' => $image !== null ? ($image->store('venue-applications', 'local') ?: null) : null,
-        ], (int) $account->getKey(), ApplicationKind::Venue, null, $confirmed);
+        $submit->venue($request->validated(), $email, (int) $account->getKey(), $confirmed, $image instanceof UploadedFile ? $image : null);
 
         return self::sent($returnTo, $confirmed ? 'queued' : ($user instanceof User ? 'verify' : 'check_email'));
     }
@@ -110,23 +96,23 @@ final class VenueApplicationController extends Controller
      * Una richiesta scritta da ospite con l'indirizzo di un account che
      * esisteva già: la mette in coda il titolare, dopo essere entrato.
      */
-    public function confirm(Request $request, CreateVenueApplication $action, int $application): RedirectResponse
+    public function confirm(Request $request, SubmitVenueApplication $action, int $application): RedirectResponse
     {
-        $richiesta = self::awaiting($request, $application);
+        $richiesta = $action->awaiting($request->user(), $application);
         $user = $request->user();
 
         if (! $user instanceof User || ! $user->hasVerifiedEmail()) {
             return back()->withErrors(['form' => __('forms.application.verify_first')]);
         }
 
-        $action->queue($richiesta);
+        $action->confirm($richiesta);
 
         return back()->with('status', __('forms.application.confirmed'));
     }
 
-    public function discard(Request $request, CreateVenueApplication $action, int $application): RedirectResponse
+    public function discard(Request $request, SubmitVenueApplication $action, int $application): RedirectResponse
     {
-        $action->discard(self::awaiting($request, $application));
+        $action->discard($action->awaiting($request->user(), $application));
 
         return back()->with('status', __('forms.application.discarded'));
     }
@@ -168,33 +154,5 @@ final class VenueApplicationController extends Controller
         $request->session()->put('url.intended', $returnTo);
 
         return redirect()->route('login', ['intended' => $returnTo]);
-    }
-
-    private static function awaiting(Request $request, int $id): VenueApplication
-    {
-        return VenueApplication::query()->withoutGlobalScope(VenueApplication::AWAITING_EMAIL)
-            ->awaitingEmail()
-            ->whereKey($id)
-            ->where('user_id', $request->user()?->getKey())
-            ->where('status', ApplicationStatus::Pending)
-            ->firstOrFail();
-    }
-
-    /**
-     * «Il tuo locale è già nel catalogo?»: i locali pubblici col nome cercato.
-     *
-     * @return Collection<int, Venue>
-     */
-    private function catalogue(string $query): Collection
-    {
-        $like = '%'.addcslashes(mb_substr($query, 0, 80), '%_\\').'%';
-
-        return Venue::query()
-            ->where('status', VenueStatus::Approved)
-            ->where('name', 'like', $like)
-            ->withClaimState()
-            ->orderBy('name')
-            ->limit(6)
-            ->get(['id', 'slug', 'name', 'address', 'municipality', 'status']);
     }
 }

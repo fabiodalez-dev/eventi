@@ -7,8 +7,8 @@ namespace App\Http\Requests\Web;
 use App\Models\User;
 use App\Support\Honeypot;
 use App\Support\Turnstile;
+use App\Support\VenueApplications\ApplicationRules;
 use Illuminate\Foundation\Http\FormRequest;
-use Propaganistas\LaravelPhone\Rules\Phone as PhoneRule;
 
 /**
  * La richiesta di un organizzatore: come quella di un locale, senza tipo e
@@ -25,15 +25,11 @@ class StoreOrganizerApplicationRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'venue_name' => ['required', 'string', 'max:255'],
-            'website' => ['nullable', 'url:http,https', 'max:255'],
-            'contact_name' => ['required', 'string', 'max:120'],
-            'contact_role' => ['nullable', 'string', 'max:120'],
-            'contact_phone' => ['nullable', 'string', 'max:40', (new PhoneRule)->country('IT')->type(['mobile', 'fixed_line'])->international()],
+            ...ApplicationRules::organizer(),
+            ...ApplicationRules::contact(),
             /* Da collegati la richiesta parte a nome dell'account, con la sua
                email: quella del modulo non conta. */
             'contact_email' => $this->user() instanceof User ? ['nullable'] : ['required', 'email:filter', 'max:255'],
-            'message' => ['nullable', 'string', 'max:5000'],
             StoreVenueApplicationRequest::STARTED_FIELD => StoreVenueApplicationRequest::startedRules(),
             ...Honeypot::rules(),
             ...Turnstile::rules('registrazione-organizzatore'),

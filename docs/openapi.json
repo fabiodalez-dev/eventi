@@ -53339,6 +53339,85 @@
                                                             "string",
                                                             "null"
                                                         ]
+                                                    },
+                                                    "subject": {
+                                                        "type": [
+                                                            "object",
+                                                            "null"
+                                                        ],
+                                                        "description": "Per l'app (P13), che apre il pannello nella sua gestione: il\nsoggetto che `panel_url` apre sul sito, solo quando l'account lo\ngestisce davvero.",
+                                                        "properties": {
+                                                            "type": {
+                                                                "type": "string",
+                                                                "enum": [
+                                                                    "organizer",
+                                                                    "venue"
+                                                                ]
+                                                            },
+                                                            "id": {
+                                                                "type": "integer"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "type",
+                                                            "id"
+                                                        ]
+                                                    },
+                                                    "retry": {
+                                                        "description": "Dove porta \u00abScrivi una nuova richiesta\u00bb dopo un rifiuto, come la\ncard del sito: di nuovo la rivendicazione se il locale si pu\u00f2\nancora rivendicare, altrimenti il modulo del suo tipo. Solo per\nle respinte, le sole che mostrano il pulsante: cos\u00ec la domanda\nsul locale costa una query solo per quelle.",
+                                                        "anyOf": [
+                                                            {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "form": {
+                                                                        "type": "string",
+                                                                        "const": "venue"
+                                                                    },
+                                                                    "venue_slug": {
+                                                                        "type": "null"
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "form",
+                                                                    "venue_slug"
+                                                                ]
+                                                            },
+                                                            {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "form": {
+                                                                        "type": "string",
+                                                                        "const": "claim"
+                                                                    },
+                                                                    "venue_slug": {
+                                                                        "type": "string"
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "form",
+                                                                    "venue_slug"
+                                                                ]
+                                                            },
+                                                            {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "form": {
+                                                                        "type": "string",
+                                                                        "const": "organizer"
+                                                                    },
+                                                                    "venue_slug": {
+                                                                        "type": "null"
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "form",
+                                                                    "venue_slug"
+                                                                ]
+                                                            },
+                                                            {
+                                                                "type": "null"
+                                                            }
+                                                        ]
                                                     }
                                                 },
                                                 "required": [
@@ -53358,7 +53437,9 @@
                                                     "panel_url",
                                                     "public_url",
                                                     "venue_slug",
-                                                    "organizer_slug"
+                                                    "organizer_slug",
+                                                    "subject",
+                                                    "retry"
                                                 ]
                                             }
                                         },
@@ -53414,6 +53495,318 @@
                     },
                     "422": {
                         "$ref": "#/components/responses/ValidationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "operationId": "v1.me.venue-applications.store",
+                "description": "Multipart se c'\u00e8 l'immagine (`image`), altrimenti JSON. 201 con\n`{state, message, application}`; 409 con tre richieste gi\u00e0 aperte.",
+                "summary": "Registra il tuo locale",
+                "tags": [
+                    "Application"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/VenueApplicationRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "state": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "queued",
+                                                        "verify"
+                                                    ]
+                                                },
+                                                "message": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "forms.application.sent.queued",
+                                                        "forms.application.sent.verify"
+                                                    ]
+                                                },
+                                                "application": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer"
+                                                        },
+                                                        "kind": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "venue",
+                                                                "claim",
+                                                                "organizer"
+                                                            ]
+                                                        },
+                                                        "kind_label": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "enums.application_kind.venue",
+                                                                "enums.application_kind.claim",
+                                                                "enums.application_kind.organizer"
+                                                            ]
+                                                        },
+                                                        "name": {
+                                                            "type": "string"
+                                                        },
+                                                        "type": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ],
+                                                            "enum": [
+                                                                "bar",
+                                                                "pub",
+                                                                "circolo",
+                                                                "centro_sociale",
+                                                                "club",
+                                                                "teatro",
+                                                                "cinema",
+                                                                "libreria",
+                                                                "associazione",
+                                                                "galleria",
+                                                                "spazio_pubblico",
+                                                                "ristorante",
+                                                                "altro",
+                                                                null
+                                                            ]
+                                                        },
+                                                        "type_label": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ],
+                                                            "enum": [
+                                                                "enums.venue_type.bar",
+                                                                "enums.venue_type.pub",
+                                                                "enums.venue_type.circolo",
+                                                                "enums.venue_type.centro_sociale",
+                                                                "enums.venue_type.club",
+                                                                "enums.venue_type.teatro",
+                                                                "enums.venue_type.cinema",
+                                                                "enums.venue_type.libreria",
+                                                                "enums.venue_type.associazione",
+                                                                "enums.venue_type.galleria",
+                                                                "enums.venue_type.spazio_pubblico",
+                                                                "enums.venue_type.ristorante",
+                                                                "enums.venue_type.altro",
+                                                                null
+                                                            ]
+                                                        },
+                                                        "address": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "state": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "awaiting",
+                                                                "approved",
+                                                                "rejected",
+                                                                "pending"
+                                                            ]
+                                                        },
+                                                        "state_label": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "venue_applications.account.state.awaiting",
+                                                                "venue_applications.account.state.approved",
+                                                                "venue_applications.account.state.rejected",
+                                                                "venue_applications.account.state.pending"
+                                                            ]
+                                                        },
+                                                        "next": {
+                                                            "type": "string"
+                                                        },
+                                                        "created_at": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "reviewed_at": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "can_confirm": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "panel_url": {
+                                                            "type": "null"
+                                                        },
+                                                        "public_url": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "venue_slug": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "organizer_slug": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "subject": {
+                                                            "type": [
+                                                                "object",
+                                                                "null"
+                                                            ],
+                                                            "description": "Per l'app (P13), che apre il pannello nella sua gestione: il\nsoggetto che `panel_url` apre sul sito, solo quando l'account lo\ngestisce davvero.",
+                                                            "properties": {
+                                                                "type": {
+                                                                    "type": "string",
+                                                                    "enum": [
+                                                                        "organizer",
+                                                                        "venue"
+                                                                    ]
+                                                                },
+                                                                "id": {
+                                                                    "type": "integer"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "type",
+                                                                "id"
+                                                            ]
+                                                        },
+                                                        "retry": {
+                                                            "description": "Dove porta \u00abScrivi una nuova richiesta\u00bb dopo un rifiuto, come la\ncard del sito: di nuovo la rivendicazione se il locale si pu\u00f2\nancora rivendicare, altrimenti il modulo del suo tipo. Solo per\nle respinte, le sole che mostrano il pulsante: cos\u00ec la domanda\nsul locale costa una query solo per quelle.",
+                                                            "anyOf": [
+                                                                {
+                                                                    "type": "object",
+                                                                    "properties": {
+                                                                        "form": {
+                                                                            "type": "string",
+                                                                            "const": "venue"
+                                                                        },
+                                                                        "venue_slug": {
+                                                                            "type": "null"
+                                                                        }
+                                                                    },
+                                                                    "required": [
+                                                                        "form",
+                                                                        "venue_slug"
+                                                                    ]
+                                                                },
+                                                                {
+                                                                    "type": "object",
+                                                                    "properties": {
+                                                                        "form": {
+                                                                            "type": "string",
+                                                                            "const": "claim"
+                                                                        },
+                                                                        "venue_slug": {
+                                                                            "type": "string"
+                                                                        }
+                                                                    },
+                                                                    "required": [
+                                                                        "form",
+                                                                        "venue_slug"
+                                                                    ]
+                                                                },
+                                                                {
+                                                                    "type": "object",
+                                                                    "properties": {
+                                                                        "form": {
+                                                                            "type": "string",
+                                                                            "const": "organizer"
+                                                                        },
+                                                                        "venue_slug": {
+                                                                            "type": "null"
+                                                                        }
+                                                                    },
+                                                                    "required": [
+                                                                        "form",
+                                                                        "venue_slug"
+                                                                    ]
+                                                                },
+                                                                {
+                                                                    "type": "null"
+                                                                }
+                                                            ]
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "id",
+                                                        "kind",
+                                                        "kind_label",
+                                                        "name",
+                                                        "type",
+                                                        "type_label",
+                                                        "address",
+                                                        "state",
+                                                        "state_label",
+                                                        "next",
+                                                        "created_at",
+                                                        "reviewed_at",
+                                                        "can_confirm",
+                                                        "panel_url",
+                                                        "public_url",
+                                                        "venue_slug",
+                                                        "organizer_slug",
+                                                        "subject",
+                                                        "retry"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "state",
+                                                "message",
+                                                "application"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
                     },
                     "429": {
                         "description": "Troppe richieste.",
@@ -56457,6 +56850,1091 @@
                         }
                     }
                 }
+            }
+        },
+        "/venue-applications/lookup": {
+            "get": {
+                "operationId": "v1.venue-applications.lookup",
+                "description": "I locali pubblici con il nome cercato (`q`, da 3 a 80 caratteri, al\nmassimo sei risultati): `{id, slug, name, address, municipality,\nclaimable}`. Un locale `claimable` si rivendica invece di registrarlo\ndi nuovo; gli altri hanno gi\u00e0 un referente.",
+                "summary": "\u00abIl tuo locale \u00e8 gi\u00e0 nel catalogo?\u00bb",
+                "tags": [
+                    "Application"
+                ],
+                "parameters": [
+                    {
+                        "name": "q",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "minLength": 3,
+                            "maxLength": 80
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer"
+                                                    },
+                                                    "slug": {
+                                                        "type": "string"
+                                                    },
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "address": {
+                                                        "type": "string"
+                                                    },
+                                                    "municipality": {
+                                                        "type": "string"
+                                                    },
+                                                    "claimable": {
+                                                        "type": "boolean"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "id",
+                                                    "slug",
+                                                    "name",
+                                                    "address",
+                                                    "municipality",
+                                                    "claimable"
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        },
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            },
+                            "X-RateLimit-Remaining": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "http": []
+                    }
+                ]
+            }
+        },
+        "/me/venue-applications/options": {
+            "get": {
+                "operationId": "v1.me.venue-applications.options",
+                "description": "`types[]` `{value, label}` (il tipo di locale, facoltativo),\n`municipality` (il comune proposto, quello della citt\u00e0), `account_email`\n(a cui risponde la richiesta) e i tetti del modulo.",
+                "summary": "Gli elenchi dei moduli",
+                "tags": [
+                    "Application"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "types": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "municipality": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "account_email": {
+                                                    "type": "string"
+                                                },
+                                                "limits": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "pending": {
+                                                            "type": "integer",
+                                                            "const": 3
+                                                        },
+                                                        "image_max_kb": {
+                                                            "type": "integer",
+                                                            "const": 5120
+                                                        },
+                                                        "image_min_width": {
+                                                            "type": "integer",
+                                                            "const": 400
+                                                        },
+                                                        "image_min_height": {
+                                                            "type": "integer",
+                                                            "const": 300
+                                                        },
+                                                        "claim_message_min": {
+                                                            "type": "integer",
+                                                            "const": 10
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "pending",
+                                                        "image_max_kb",
+                                                        "image_min_width",
+                                                        "image_min_height",
+                                                        "claim_message_min"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "types",
+                                                "municipality",
+                                                "account_email",
+                                                "limits"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        },
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            },
+                            "X-RateLimit-Remaining": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/me/venue-applications/{application}/confirm": {
+            "post": {
+                "operationId": "v1.me.venue-applications.confirm",
+                "description": "Una richiesta scritta da ospite con l'indirizzo di questo account\n(`can_confirm` in \u00abLe mie richieste\u00bb) entra in coda. 404 per una\nrichiesta di un altro, gi\u00e0 in coda o gi\u00e0 decisa.",
+                "summary": "Conferma e invia",
+                "tags": [
+                    "Application"
+                ],
+                "parameters": [
+                    {
+                        "name": "application",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "const": "Richiesta confermata: ora \u00e8 in coda e la valuto al pi\u00f9 presto."
+                                                }
+                                            },
+                                            "required": [
+                                                "message"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/me/venue-applications/{application}": {
+            "delete": {
+                "operationId": "v1.me.venue-applications.discard",
+                "summary": "Elimina una richiesta in attesa di conferma, con l'immagine. 404 come\nper la conferma",
+                "tags": [
+                    "Application"
+                ],
+                "parameters": [
+                    {
+                        "name": "application",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "const": "Richiesta eliminata."
+                                                }
+                                            },
+                                            "required": [
+                                                "message"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/me/organizer-applications": {
+            "post": {
+                "operationId": "v1.me.organizer-applications.store",
+                "description": "Entra subito in coda. 201 con `{state, message, application}`; 409 con\ntre richieste gi\u00e0 aperte.",
+                "summary": "Registra la tua organizzazione",
+                "tags": [
+                    "Application"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/OrganizerApplicationRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "state": {
+                                                    "type": "string",
+                                                    "const": "organizer"
+                                                },
+                                                "message": {
+                                                    "type": "string",
+                                                    "const": "Richiesta ricevuta. Ti ricontatto per verificare i dati e aprire il pannello dell'organizzazione."
+                                                },
+                                                "application": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer"
+                                                        },
+                                                        "kind": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "venue",
+                                                                "claim",
+                                                                "organizer"
+                                                            ]
+                                                        },
+                                                        "kind_label": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "enums.application_kind.venue",
+                                                                "enums.application_kind.claim",
+                                                                "enums.application_kind.organizer"
+                                                            ]
+                                                        },
+                                                        "name": {
+                                                            "type": "string"
+                                                        },
+                                                        "type": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ],
+                                                            "enum": [
+                                                                "bar",
+                                                                "pub",
+                                                                "circolo",
+                                                                "centro_sociale",
+                                                                "club",
+                                                                "teatro",
+                                                                "cinema",
+                                                                "libreria",
+                                                                "associazione",
+                                                                "galleria",
+                                                                "spazio_pubblico",
+                                                                "ristorante",
+                                                                "altro",
+                                                                null
+                                                            ]
+                                                        },
+                                                        "type_label": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ],
+                                                            "enum": [
+                                                                "enums.venue_type.bar",
+                                                                "enums.venue_type.pub",
+                                                                "enums.venue_type.circolo",
+                                                                "enums.venue_type.centro_sociale",
+                                                                "enums.venue_type.club",
+                                                                "enums.venue_type.teatro",
+                                                                "enums.venue_type.cinema",
+                                                                "enums.venue_type.libreria",
+                                                                "enums.venue_type.associazione",
+                                                                "enums.venue_type.galleria",
+                                                                "enums.venue_type.spazio_pubblico",
+                                                                "enums.venue_type.ristorante",
+                                                                "enums.venue_type.altro",
+                                                                null
+                                                            ]
+                                                        },
+                                                        "address": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "state": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "awaiting",
+                                                                "approved",
+                                                                "rejected",
+                                                                "pending"
+                                                            ]
+                                                        },
+                                                        "state_label": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "venue_applications.account.state.awaiting",
+                                                                "venue_applications.account.state.approved",
+                                                                "venue_applications.account.state.rejected",
+                                                                "venue_applications.account.state.pending"
+                                                            ]
+                                                        },
+                                                        "next": {
+                                                            "type": "string"
+                                                        },
+                                                        "created_at": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "reviewed_at": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "can_confirm": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "panel_url": {
+                                                            "type": "null"
+                                                        },
+                                                        "public_url": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "venue_slug": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "organizer_slug": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "subject": {
+                                                            "type": [
+                                                                "object",
+                                                                "null"
+                                                            ],
+                                                            "description": "Per l'app (P13), che apre il pannello nella sua gestione: il\nsoggetto che `panel_url` apre sul sito, solo quando l'account lo\ngestisce davvero.",
+                                                            "properties": {
+                                                                "type": {
+                                                                    "type": "string",
+                                                                    "enum": [
+                                                                        "organizer",
+                                                                        "venue"
+                                                                    ]
+                                                                },
+                                                                "id": {
+                                                                    "type": "integer"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "type",
+                                                                "id"
+                                                            ]
+                                                        },
+                                                        "retry": {
+                                                            "description": "Dove porta \u00abScrivi una nuova richiesta\u00bb dopo un rifiuto, come la\ncard del sito: di nuovo la rivendicazione se il locale si pu\u00f2\nancora rivendicare, altrimenti il modulo del suo tipo. Solo per\nle respinte, le sole che mostrano il pulsante: cos\u00ec la domanda\nsul locale costa una query solo per quelle.",
+                                                            "anyOf": [
+                                                                {
+                                                                    "type": "object",
+                                                                    "properties": {
+                                                                        "form": {
+                                                                            "type": "string",
+                                                                            "const": "venue"
+                                                                        },
+                                                                        "venue_slug": {
+                                                                            "type": "null"
+                                                                        }
+                                                                    },
+                                                                    "required": [
+                                                                        "form",
+                                                                        "venue_slug"
+                                                                    ]
+                                                                },
+                                                                {
+                                                                    "type": "object",
+                                                                    "properties": {
+                                                                        "form": {
+                                                                            "type": "string",
+                                                                            "const": "claim"
+                                                                        },
+                                                                        "venue_slug": {
+                                                                            "type": "string"
+                                                                        }
+                                                                    },
+                                                                    "required": [
+                                                                        "form",
+                                                                        "venue_slug"
+                                                                    ]
+                                                                },
+                                                                {
+                                                                    "type": "object",
+                                                                    "properties": {
+                                                                        "form": {
+                                                                            "type": "string",
+                                                                            "const": "organizer"
+                                                                        },
+                                                                        "venue_slug": {
+                                                                            "type": "null"
+                                                                        }
+                                                                    },
+                                                                    "required": [
+                                                                        "form",
+                                                                        "venue_slug"
+                                                                    ]
+                                                                },
+                                                                {
+                                                                    "type": "null"
+                                                                }
+                                                            ]
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "id",
+                                                        "kind",
+                                                        "kind_label",
+                                                        "name",
+                                                        "type",
+                                                        "type_label",
+                                                        "address",
+                                                        "state",
+                                                        "state_label",
+                                                        "next",
+                                                        "created_at",
+                                                        "reviewed_at",
+                                                        "can_confirm",
+                                                        "panel_url",
+                                                        "public_url",
+                                                        "venue_slug",
+                                                        "organizer_slug",
+                                                        "subject",
+                                                        "retry"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "state",
+                                                "message",
+                                                "application"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/venues/{slug}/claim": {
+            "get": {
+                "operationId": "v1.venues.claim.show",
+                "description": "`{id, slug, name, type_label, address, municipality}`. 404 se il locale\nnon \u00e8 pubblico o ha gi\u00e0 un referente, anche solo invitato.",
+                "summary": "Il locale da rivendicare",
+                "tags": [
+                    "Application"
+                ],
+                "parameters": [
+                    {
+                        "name": "slug",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer"
+                                                },
+                                                "slug": {
+                                                    "type": "string"
+                                                },
+                                                "name": {
+                                                    "type": "string"
+                                                },
+                                                "type_label": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "enums.venue_type.bar",
+                                                        "enums.venue_type.pub",
+                                                        "enums.venue_type.circolo",
+                                                        "enums.venue_type.centro_sociale",
+                                                        "enums.venue_type.club",
+                                                        "enums.venue_type.teatro",
+                                                        "enums.venue_type.cinema",
+                                                        "enums.venue_type.libreria",
+                                                        "enums.venue_type.associazione",
+                                                        "enums.venue_type.galleria",
+                                                        "enums.venue_type.spazio_pubblico",
+                                                        "enums.venue_type.ristorante",
+                                                        "enums.venue_type.altro"
+                                                    ]
+                                                },
+                                                "address": {
+                                                    "type": "string"
+                                                },
+                                                "municipality": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "slug",
+                                                "name",
+                                                "type_label",
+                                                "address",
+                                                "municipality"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        },
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            },
+                            "X-RateLimit-Remaining": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "http": []
+                    }
+                ]
+            },
+            "post": {
+                "operationId": "v1.venues.claim",
+                "description": "201 con `{state, message, application}`; 404 se il locale non si pu\u00f2\nrivendicare; 409 con una rivendicazione gi\u00e0 aperta per lo stesso locale\no tre richieste aperte.",
+                "summary": "Questo locale \u00e8 mio",
+                "tags": [
+                    "Application"
+                ],
+                "parameters": [
+                    {
+                        "name": "slug",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ClaimRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "state": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "queued",
+                                                        "verify"
+                                                    ]
+                                                },
+                                                "message": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "forms.application.sent.queued",
+                                                        "forms.application.sent.verify"
+                                                    ]
+                                                },
+                                                "application": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer"
+                                                        },
+                                                        "kind": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "venue",
+                                                                "claim",
+                                                                "organizer"
+                                                            ]
+                                                        },
+                                                        "kind_label": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "enums.application_kind.venue",
+                                                                "enums.application_kind.claim",
+                                                                "enums.application_kind.organizer"
+                                                            ]
+                                                        },
+                                                        "name": {
+                                                            "type": "string"
+                                                        },
+                                                        "type": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ],
+                                                            "enum": [
+                                                                "bar",
+                                                                "pub",
+                                                                "circolo",
+                                                                "centro_sociale",
+                                                                "club",
+                                                                "teatro",
+                                                                "cinema",
+                                                                "libreria",
+                                                                "associazione",
+                                                                "galleria",
+                                                                "spazio_pubblico",
+                                                                "ristorante",
+                                                                "altro",
+                                                                null
+                                                            ]
+                                                        },
+                                                        "type_label": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ],
+                                                            "enum": [
+                                                                "enums.venue_type.bar",
+                                                                "enums.venue_type.pub",
+                                                                "enums.venue_type.circolo",
+                                                                "enums.venue_type.centro_sociale",
+                                                                "enums.venue_type.club",
+                                                                "enums.venue_type.teatro",
+                                                                "enums.venue_type.cinema",
+                                                                "enums.venue_type.libreria",
+                                                                "enums.venue_type.associazione",
+                                                                "enums.venue_type.galleria",
+                                                                "enums.venue_type.spazio_pubblico",
+                                                                "enums.venue_type.ristorante",
+                                                                "enums.venue_type.altro",
+                                                                null
+                                                            ]
+                                                        },
+                                                        "address": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "state": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "awaiting",
+                                                                "approved",
+                                                                "rejected",
+                                                                "pending"
+                                                            ]
+                                                        },
+                                                        "state_label": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "venue_applications.account.state.awaiting",
+                                                                "venue_applications.account.state.approved",
+                                                                "venue_applications.account.state.rejected",
+                                                                "venue_applications.account.state.pending"
+                                                            ]
+                                                        },
+                                                        "next": {
+                                                            "type": "string"
+                                                        },
+                                                        "created_at": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "reviewed_at": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "can_confirm": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "panel_url": {
+                                                            "type": "null"
+                                                        },
+                                                        "public_url": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "venue_slug": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "organizer_slug": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "subject": {
+                                                            "type": [
+                                                                "object",
+                                                                "null"
+                                                            ],
+                                                            "description": "Per l'app (P13), che apre il pannello nella sua gestione: il\nsoggetto che `panel_url` apre sul sito, solo quando l'account lo\ngestisce davvero.",
+                                                            "properties": {
+                                                                "type": {
+                                                                    "type": "string",
+                                                                    "enum": [
+                                                                        "organizer",
+                                                                        "venue"
+                                                                    ]
+                                                                },
+                                                                "id": {
+                                                                    "type": "integer"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "type",
+                                                                "id"
+                                                            ]
+                                                        },
+                                                        "retry": {
+                                                            "description": "Dove porta \u00abScrivi una nuova richiesta\u00bb dopo un rifiuto, come la\ncard del sito: di nuovo la rivendicazione se il locale si pu\u00f2\nancora rivendicare, altrimenti il modulo del suo tipo. Solo per\nle respinte, le sole che mostrano il pulsante: cos\u00ec la domanda\nsul locale costa una query solo per quelle.",
+                                                            "anyOf": [
+                                                                {
+                                                                    "type": "object",
+                                                                    "properties": {
+                                                                        "form": {
+                                                                            "type": "string",
+                                                                            "const": "venue"
+                                                                        },
+                                                                        "venue_slug": {
+                                                                            "type": "null"
+                                                                        }
+                                                                    },
+                                                                    "required": [
+                                                                        "form",
+                                                                        "venue_slug"
+                                                                    ]
+                                                                },
+                                                                {
+                                                                    "type": "object",
+                                                                    "properties": {
+                                                                        "form": {
+                                                                            "type": "string",
+                                                                            "const": "claim"
+                                                                        },
+                                                                        "venue_slug": {
+                                                                            "type": "string"
+                                                                        }
+                                                                    },
+                                                                    "required": [
+                                                                        "form",
+                                                                        "venue_slug"
+                                                                    ]
+                                                                },
+                                                                {
+                                                                    "type": "object",
+                                                                    "properties": {
+                                                                        "form": {
+                                                                            "type": "string",
+                                                                            "const": "organizer"
+                                                                        },
+                                                                        "venue_slug": {
+                                                                            "type": "null"
+                                                                        }
+                                                                    },
+                                                                    "required": [
+                                                                        "form",
+                                                                        "venue_slug"
+                                                                    ]
+                                                                },
+                                                                {
+                                                                    "type": "null"
+                                                                }
+                                                            ]
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "id",
+                                                        "kind",
+                                                        "kind_label",
+                                                        "name",
+                                                        "type",
+                                                        "type_label",
+                                                        "address",
+                                                        "state",
+                                                        "state_label",
+                                                        "next",
+                                                        "created_at",
+                                                        "reviewed_at",
+                                                        "can_confirm",
+                                                        "panel_url",
+                                                        "public_url",
+                                                        "venue_slug",
+                                                        "organizer_slug",
+                                                        "subject",
+                                                        "retry"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "state",
+                                                "message",
+                                                "application"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "http": []
+                    }
+                ]
             }
         }
     },
@@ -60066,6 +61544,235 @@
                     "phone"
                 ],
                 "title": "WhatsappRequest"
+            },
+            "ClaimRequest": {
+                "type": "object",
+                "description": "\u00abQuesto locale \u00e8 mio\u00bb dall'app (W-AP-04): il referente e come verificarlo.\nIl locale lo sceglie la rotta; se non si pu\u00f2 pi\u00f9 rivendicare il controller\nrisponde 404 prima di guardare i campi.",
+                "properties": {
+                    "message": {
+                        "type": "string",
+                        "minLength": 10,
+                        "maxLength": 5000
+                    },
+                    "contact_name": {
+                        "type": "string",
+                        "maxLength": 120
+                    },
+                    "contact_role": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 120
+                    },
+                    "contact_phone": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "Il telefono si valida davvero, non solo per lunghezza. `max:40` accettava qualunque cosa: \u00abchiamami\u00bb, un indirizzo\nemail, quaranta lettere. E chi modera scopre che il numero non\nserve a niente nel momento in cui prova a usarlo \u2014 cio\u00e8 quando\nha bisogno di chiarire qualcosa su una richiesta.\n\n`IT` come regione implicita perch\u00e9 il modulo \u00e8 italiano e\nnessuno scrive il prefisso internazionale del proprio Paese;\n`INTERNATIONAL` per non respingere un numero estero scritto per\nintero, che su un evento di confine capita.",
+                        "maxLength": 40
+                    }
+                },
+                "required": [
+                    "message",
+                    "contact_name"
+                ],
+                "title": "ClaimRequest"
+            },
+            "OrganizerApplicationRequest": {
+                "type": "object",
+                "description": "\u00abRegistra la tua organizzazione\u00bb dall'app (W-AP-05).",
+                "properties": {
+                    "venue_name": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
+                    "website": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "uri",
+                        "maxLength": 255
+                    },
+                    "message": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 5000
+                    },
+                    "contact_name": {
+                        "type": "string",
+                        "maxLength": 120
+                    },
+                    "contact_role": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 120
+                    },
+                    "contact_phone": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "Il telefono si valida davvero, non solo per lunghezza. `max:40` accettava qualunque cosa: \u00abchiamami\u00bb, un indirizzo\nemail, quaranta lettere. E chi modera scopre che il numero non\nserve a niente nel momento in cui prova a usarlo \u2014 cio\u00e8 quando\nha bisogno di chiarire qualcosa su una richiesta.\n\n`IT` come regione implicita perch\u00e9 il modulo \u00e8 italiano e\nnessuno scrive il prefisso internazionale del proprio Paese;\n`INTERNATIONAL` per non respingere un numero estero scritto per\nintero, che su un evento di confine capita.",
+                        "maxLength": 40
+                    }
+                },
+                "required": [
+                    "venue_name",
+                    "contact_name"
+                ],
+                "title": "OrganizerApplicationRequest"
+            },
+            "VenueApplicationRequest": {
+                "type": "object",
+                "description": "\u00abRegistra il tuo locale\u00bb dall'app (W-AP-01): la scheda pubblica, l'immagine\nfacoltativa (multipart, campo `image`, fino a 5 MB e almeno 400\u00d7300) e il\nreferente.",
+                "properties": {
+                    "venue_name": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
+                    "type": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "enum": [
+                            "bar",
+                            "pub",
+                            "circolo",
+                            "centro_sociale",
+                            "club",
+                            "teatro",
+                            "cinema",
+                            "libreria",
+                            "associazione",
+                            "galleria",
+                            "spazio_pubblico",
+                            "ristorante",
+                            "altro",
+                            null
+                        ]
+                    },
+                    "address": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
+                    "postal_code": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "pattern": "^\\d{5}$"
+                    },
+                    "municipality": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 120
+                    },
+                    "website": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "uri",
+                        "maxLength": 255
+                    },
+                    "public_email": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "email",
+                        "maxLength": 255
+                    },
+                    "public_phone": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 40
+                    },
+                    "instagram": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "uri",
+                        "maxLength": 255
+                    },
+                    "facebook": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "uri",
+                        "maxLength": 255
+                    },
+                    "capacity": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "minimum": 1,
+                        "maximum": 100000
+                    },
+                    "description": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 2000
+                    },
+                    "image": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "binary",
+                        "contentMediaType": "application/octet-stream",
+                        "description": "Maximum file size: 5120 kilobytes."
+                    },
+                    "message": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 5000
+                    },
+                    "contact_name": {
+                        "type": "string",
+                        "maxLength": 120
+                    },
+                    "contact_role": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 120
+                    },
+                    "contact_phone": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "Il telefono si valida davvero, non solo per lunghezza. `max:40` accettava qualunque cosa: \u00abchiamami\u00bb, un indirizzo\nemail, quaranta lettere. E chi modera scopre che il numero non\nserve a niente nel momento in cui prova a usarlo \u2014 cio\u00e8 quando\nha bisogno di chiarire qualcosa su una richiesta.\n\n`IT` come regione implicita perch\u00e9 il modulo \u00e8 italiano e\nnessuno scrive il prefisso internazionale del proprio Paese;\n`INTERNATIONAL` per non respingere un numero estero scritto per\nintero, che su un evento di confine capita.",
+                        "maxLength": 40
+                    }
+                },
+                "required": [
+                    "venue_name",
+                    "address",
+                    "contact_name"
+                ],
+                "title": "VenueApplicationRequest"
             }
         },
         "responses": {

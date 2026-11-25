@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Web;
 
 use App\Actions\CreateVenueApplication;
+use App\Actions\SubmitVenueApplication;
 use App\DTOs\PageMeta;
-use App\Enums\ApplicationKind;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Web\Concerns\InteractsWithCity;
 use App\Http\Requests\Web\StoreOrganizerApplicationRequest;
@@ -42,9 +42,8 @@ final class OrganizerApplicationController extends Controller
         ]);
     }
 
-    public function store(StoreOrganizerApplicationRequest $request, CreateVenueApplication $action): RedirectResponse
+    public function store(StoreOrganizerApplicationRequest $request, CreateVenueApplication $action, SubmitVenueApplication $submit): RedirectResponse
     {
-        $data = $request->validated();
         $user = $request->user();
         $userId = $user?->getKey();
         $email = $request->applicantEmail();
@@ -56,15 +55,7 @@ final class OrganizerApplicationController extends Controller
                 : VenueApplicationController::sent($returnTo, 'organizer');
         }
 
-        $action->handle([
-            'venue_name' => (string) $data['venue_name'],
-            'website' => isset($data['website']) ? (string) $data['website'] : null,
-            'contact_name' => (string) $data['contact_name'],
-            'contact_role' => isset($data['contact_role']) ? (string) $data['contact_role'] : null,
-            'contact_phone' => isset($data['contact_phone']) ? (string) $data['contact_phone'] : null,
-            'contact_email' => $email,
-            'message' => isset($data['message']) ? (string) $data['message'] : null,
-        ], is_int($userId) ? $userId : null, ApplicationKind::Organizer);
+        $submit->organizer($request->validated(), $email, is_int($userId) ? $userId : null);
 
         /* Un organizzatore entra in coda subito, anche da ospite: l'account
            lo crea l'approvazione, che manda il collegamento per la password

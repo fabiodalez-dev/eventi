@@ -564,3 +564,26 @@ Gli eventi del locale e dell'organizzazione nell'app, 1:1 con le pagine «I tuoi
 | `POST V/tags` | `CreateSharedEventTag` | tag condiviso nuovo, `name` (80), `event_id` facoltativo |
 
 Le scritture hanno il secchio `management-events` (60 al minuto per persona, 30 per i tag), gli avvisi `management-events-checks` (120), l'import `management-events-import` (10) oltre ai limiti di Facebook. Le immagini restano quelle delle fondamenta (`POST/DELETE S/events/{event}/poster`).
+
+## Gestione: registrare o rivendicare (P13, 25 novembre 2026)
+
+«Registra il tuo locale» con la ricerca «è già a catalogo?», «Questo locale è mio», «Registra la tua organizzazione» e la conferma o il ritiro di una richiesta scritta da ospite con l'indirizzo dell'account, nell'app. Le regole sono una sola per sito e API: i campi in `App\Support\VenueApplications\ApplicationRules`, l'invio, la conferma, il ritiro e la ricerca nel catalogo in `App\Actions\SubmitVenueApplication`, la coda, le ricevute e i tetti in `App\Actions\CreateVenueApplication`. I moduli del sito (`VenueApplicationController`, `VenueClaimController`, `OrganizerApplicationController`) usano le stesse classi.
+
+Nell'app si scrive solo da collegati con l'email confermata (`auth:sanctum` + `RequireConfirmedAccount`, 403 `EMAIL_VERIFICATION_REQUIRED` altrimenti): niente email nel modulo, niente password, tempo minimo, campo esca né Turnstile. La richiesta risponde all'email dell'account ed entra subito in coda. Le rotte stanno in `routes/management/applications.php`, dentro il gruppo `v1`, fuori dalle letture in cache (`Cache-Control: private, no-store`).
+
+| Metodo e percorso | Limite (stessa chiave del sito) | Note |
+|---|---|---|
+| `GET /v1/me/venue-applications/options` | — | `types[]{value, label}`, `municipality` (quella della città, valore iniziale del campo «Comune»), `account_email`, `limits{pending, image_max_kb, image_min_width, image_min_height, claim_message_min}` |
+| `GET /v1/venue-applications/lookup?q=` | `venue-catalogue-search` 60/min | `q` da 3 a 80 caratteri; al massimo sei locali pubblici `{id, slug, name, address, municipality, claimable}` |
+| `POST /v1/me/venue-applications` | `public-forms` (5 l'ora per IP) | i campi di `/registra-il-tuo-locale` senza la parte da ospite: `venue_name`, `type`, `address`, `postal_code`, `municipality`, `website`, `public_email`, `public_phone`, `instagram`, `facebook`, `capacity`, `description`, `message`, `contact_name`, `contact_role`, `contact_phone`; JSON, oppure multipart con `image` (jpg/png/webp, al massimo 5 MB, almeno 400×300). 201 `{state: queued, message, application}`; 409 `CONFLICT` con tre richieste aperte |
+| `GET /v1/venues/{slug}/claim` | `venue-claim-target` 60/min | `{id, slug, name, type_label, address, municipality}`; 404 se il locale non è pubblico o ha un referente, anche solo invitato (`forms.claim.already_managed`) |
+| `POST /v1/venues/{slug}/claim` | `venue-claim` 10 l'ora | `contact_name`, `contact_role`, `contact_phone`, `message` (10–5000). 201 come sopra con `application.kind = claim`; 404 come sopra; 409 con una rivendicazione già aperta per lo stesso locale o tre richieste aperte |
+| `POST /v1/me/organizer-applications` | `organizer-application` 10 l'ora | `venue_name`, `website`, `message`, `contact_name`, `contact_role`, `contact_phone`. 201 `{state: organizer, …}`; 409 come sopra |
+| `POST /v1/me/venue-applications/{id}/confirm` | `venue-application-confirm` 10 l'ora | solo una richiesta propria in attesa di conferma (`can_confirm`): entra in coda, `{message}`. 404 altrimenti |
+| `DELETE /v1/me/venue-applications/{id}` | `venue-application-confirm` 10 l'ora | come sopra; via anche l'immagine allegata, `{message}` |
+
+`application` ha la forma delle card di `GET /v1/me/venue-applications`.
+
+### Campi nuovi
+
+- `GET /v1/me/venue-applications`: `subject{type, id}` (il locale o l'organizzazione che «Apri il pannello» apre nella gestione nativa, solo se l'account lo gestisce) e `retry{form: venue|claim|organizer, venue_slug}` (dove porta «Nuova richiesta», solo per le respinte). `manage_url`, `panel_url` e gli indirizzi dei moduli restano per le versioni dell'app già installate.

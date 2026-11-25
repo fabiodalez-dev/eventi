@@ -6,8 +6,8 @@ namespace App\Http\Controllers\Web;
 
 use App\Actions\Account\RequestRegistration;
 use App\Actions\CreateVenueApplication;
+use App\Actions\SubmitVenueApplication;
 use App\DTOs\PageMeta;
-use App\Enums\ApplicationKind;
 use App\Enums\VenueStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Web\Concerns\InteractsWithCity;
@@ -56,7 +56,7 @@ final class VenueClaimController extends Controller
         ]);
     }
 
-    public function store(StoreVenueApplicationRequest $request, Venue $venue, CreateVenueApplication $action, RequestRegistration $registration): RedirectResponse
+    public function store(StoreVenueApplicationRequest $request, Venue $venue, CreateVenueApplication $action, SubmitVenueApplication $submit, RequestRegistration $registration): RedirectResponse
     {
         $this->claimable($venue);
         $user = $request->user();
@@ -71,18 +71,8 @@ final class VenueClaimController extends Controller
 
         $account = $user instanceof User ? $user : $request->guestAccount($registration, $returnTo);
         $confirmed = $user instanceof User && $user->hasVerifiedEmail();
-        $data = $request->validated();
 
-        $action->handle([
-            'venue_name' => $venue->name,
-            'type' => $venue->type->value,
-            'address' => $venue->address,
-            'contact_name' => (string) $data['contact_name'],
-            'contact_role' => isset($data['contact_role']) ? (string) $data['contact_role'] : null,
-            'contact_phone' => isset($data['contact_phone']) ? (string) $data['contact_phone'] : null,
-            'contact_email' => $email,
-            'message' => (string) $data['message'],
-        ], (int) $account->getKey(), ApplicationKind::Claim, (int) $venue->getKey(), $confirmed);
+        $submit->claim($venue, $request->validated(), $email, (int) $account->getKey(), $confirmed);
 
         return VenueApplicationController::sent($returnTo, $confirmed ? 'queued' : ($user instanceof User ? 'verify' : 'check_email'));
     }
