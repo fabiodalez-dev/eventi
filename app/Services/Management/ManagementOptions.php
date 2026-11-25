@@ -20,6 +20,7 @@ use App\Enums\SponsorshipPlacement;
 use App\Enums\TransitMode;
 use App\Models\EventFeature;
 use App\Rules\RealImage;
+use App\Services\Ticketing\BookingForm;
 use App\Support\PracticalIcons;
 use App\Support\VenueClosures;
 
@@ -88,13 +89,14 @@ final class ManagementOptions
                 'venue_closures' => VenueClosures::MAX,
                 'venue_notice_min_days_between' => PublishVenueNotice::MIN_DAYS_BETWEEN,
                 'attendee_messages_per_day' => config()->integer('ticketing.messages.daily_limit'),
-                // Questi cinque sono scritti nelle regole dei moduli (`MessageAttendeesRequest`,
-                // `ManageRequest`, `BeforeGoingFields`): qui ne riporto il valore.
+                // Questi quattro sono scritti nelle regole dei moduli (`MessageAttendeesRequest`,
+                // `BeforeGoingFields`): qui ne riporto il valore.
                 'attendee_message_subject_max' => 160,
                 'attendee_message_body_max' => 2000,
-                'booking_questions' => 10,
                 'practical_custom_venue' => 12,
                 'practical_custom_event' => 24,
+                // `ManageRequest` accetta fino a 10 righe, ma `BookingForm` ne tiene 5: vale questo.
+                'booking_questions' => BookingForm::MAX_QUESTIONS,
                 'gallery_images' => self::GALLERY_MAX,
             ],
             'images' => [
