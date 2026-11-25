@@ -25,7 +25,5 @@ deptrac:
     Support: [Core, Services, Delivery, Support]
   # Dipendenze preesistenti, circoscritte: non autorizzano altri servizi a usare Filament.
   skip_violations:
-    App\Services\Sponsorship\SponsorshipReport:
-      - App\Filament\Venue\Support\CurrentVenue
     App\Services\Notifications\MessageFactory:
       - App\Filament\Organizer\Resources\Events\EventResource
