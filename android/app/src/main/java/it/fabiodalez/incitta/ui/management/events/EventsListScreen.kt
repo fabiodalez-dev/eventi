@@ -28,7 +28,10 @@ import it.fabiodalez.incitta.data.management.SubjectKind
 import it.fabiodalez.incitta.ui.Muted
 import it.fabiodalez.incitta.ui.PosterImage
 import it.fabiodalez.incitta.ui.management.ManagementGraphContext
+import it.fabiodalez.incitta.ui.management.common.ConfirmDialog
 import it.fabiodalez.incitta.ui.management.common.ManagementScaffold
+import it.fabiodalez.incitta.ui.management.common.resolve
+import it.fabiodalez.incitta.ui.management.dates.dayLabel
 import java.time.OffsetDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -49,6 +52,9 @@ internal fun EventsListScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val subject = state.subject
+    val zone = subject?.timezone ?: ZoneId.of("Europe/Rome")
+    /* «Tutto esaurito» sulla prossima data (W-EV-19, P2): la card su cui si è toccato, in attesa di conferma. */
+    var soldOut by remember { mutableStateOf<ManagedEventCard?>(null) }
     ManagementScaffold(
         title = stringResource(R.string.management_events_title),
         padding = context.padding,
@@ -110,8 +116,10 @@ internal fun EventsListScreen(
             }
             else -> {
                 state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                state.message?.let { Text(it.resolve(), color = MaterialTheme.colorScheme.primary) }
                 state.events.forEach { event ->
-                    EventCardRow(event, subject?.timezone ?: ZoneId.of("Europe/Rome"), showVenue = subject?.kind == SubjectKind.Organizer, onClick = { onOpen(event.id) })
+                    EventCardRow(event, zone, showVenue = subject?.kind == SubjectKind.Organizer, onClick = { onOpen(event.id) },
+                        onSoldOut = event.nextDate?.takeIf { subject?.kind == SubjectKind.Venue && !state.busy }?.let { { soldOut = event } })
                     HorizontalDivider()
                 }
                 if (state.nextPage != null) {
@@ -121,6 +129,19 @@ internal fun EventsListScreen(
                 }
             }
         }
+    }
+
+    soldOut?.let { event ->
+        val next = event.nextDate ?: return@let
+        val available = next.status.value == "sold_out"
+        val label = stringResource(if (available) R.string.management_dates_next_available else R.string.management_dates_next_sold_out)
+        ConfirmDialog(
+            title = label,
+            text = stringResource(if (available) R.string.management_dates_next_available_confirm else R.string.management_dates_next_sold_out_confirm, dayLabel(next.startsAt, zone)),
+            confirmLabel = label,
+            onConfirm = { soldOut = null; viewModel.setNextSoldOut(event, !available) },
+            onDismiss = { soldOut = null },
+        )
     }
 }
 
@@ -142,7 +163,7 @@ private fun StatusFilter(selected: String?, onSelect: (String?) -> Unit) {
 
 /** Una card: locandina a sinistra, titolo, data, distintivi. */
 @Composable
-private fun EventCardRow(event: ManagedEventCard, zone: ZoneId, showVenue: Boolean, onClick: () -> Unit) {
+private fun EventCardRow(event: ManagedEventCard, zone: ZoneId, showVenue: Boolean, onClick: () -> Unit, onSoldOut: (() -> Unit)? = null) {
     Row(
         Modifier.fillMaxWidth().heightIn(min = 72.dp).clickable(role = Role.Button, onClick = onClick).padding(vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -157,6 +178,13 @@ private fun EventCardRow(event: ManagedEventCard, zone: ZoneId, showVenue: Boole
                 StatusBadge(event.status.label.ifBlank { stringResource(statusLabel(event.status.value)) })
                 if (event.past) StatusBadge(stringResource(R.string.management_events_past_badge))
                 if (event.source.imported) StatusBadge(event.source.label)
+                event.nextDate?.takeIf { it.status.value == "sold_out" }?.let { StatusBadge(it.status.label) }
+            }
+            onSoldOut?.let { toggle ->
+                val available = event.nextDate?.status?.value == "sold_out"
+                OutlinedButton(onClick = toggle, modifier = Modifier.heightIn(min = 48.dp)) {
+                    Text(stringResource(if (available) R.string.management_dates_next_available else R.string.management_dates_next_sold_out))
+                }
             }
         }
     }

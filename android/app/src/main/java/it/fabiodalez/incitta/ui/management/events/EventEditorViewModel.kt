@@ -58,6 +58,8 @@ internal data class EventEditorUiState(
     val facebookUrl: String = "",
     val tagResults: List<NamedRef> = emptyList(),
     val venueResults: List<VenueLookup> = emptyList(),
+    /* Le date dell'evento, per collegare una voce del «Programma» a una data (P2). */
+    val eventDates: List<it.fabiodalez.incitta.data.management.ManagedEventDate> = emptyList(),
     /* Dove andare dopo il salvataggio che chiude il modulo. */
     val finishedId: Long? = null,
 ) {
@@ -93,6 +95,7 @@ internal class EventEditorViewModel(private val repository: ManagementRepository
                     it.copy(
                         subject = subject, mode = mode, options = Loadable.Ready(options), catalog = repository.options(),
                         form = form, status = detail?.status?.value, posterUrl = detail?.poster?.card ?: detail?.poster?.full,
+                        eventDates = detail?.let { (it.dates.upcoming + it.dates.past).sortedBy { date -> date.startsAt } }.orEmpty(),
                     )
                 }
                 refreshChecks(immediate = true)

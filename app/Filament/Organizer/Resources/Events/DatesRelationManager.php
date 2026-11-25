@@ -11,8 +11,10 @@ use App\Filament\Support\SameNightNearbyField;
 use App\Filament\Support\VenueClosureWarning;
 use App\Models\Event;
 use App\Models\EventOccurrence;
+use App\Models\User;
 use App\Models\Venue;
 use App\Services\Analytics\OccurrenceAnalytics;
+use App\Services\Events\OrganizerEventEditor;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Actions\EditAction;
@@ -24,7 +26,6 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
-use Illuminate\Support\Facades\Gate;
 
 class DatesRelationManager extends RelationManager
 {
@@ -77,16 +78,14 @@ class DatesRelationManager extends RelationManager
 
     /**
      * Una data nuova, o portata in un altro locale, su un evento già online
-     * torna dalla redazione come la scheda (EditEvent): altrimenti la data
-     * comparirebbe nel programma di un locale che non l'ha mai accettata.
-     * Orario, annullamento e avviso al pubblico restano immediati: sono
-     * notizie da dare subito, e un evento in attesa non si vede.
+     * torna dalla redazione: la regola sta in `OrganizerEventEditor`, la
+     * stessa che usa l'app.
      */
     private function backToReview(bool $changed): void
     {
-        $event = $this->eventRecord();
-        if ($changed && $event->status === EventStatus::Published && Gate::denies('moderate', $event)) {
-            $event->update(['status' => EventStatus::Pending]);
+        $user = auth()->user();
+        if ($user instanceof User) {
+            app(OrganizerEventEditor::class)->afterDateSaved($this->eventRecord(), $user, $changed);
         }
     }
 

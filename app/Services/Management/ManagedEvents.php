@@ -63,7 +63,13 @@ final class ManagedEvents
             $query->where('events.title', 'like', '%'.addcslashes(trim($search), '%_\\').'%');
         }
 
-        return $query->with(['media', 'venue'])
+        /* La prossima data di ogni riga, in una interrogazione sola, come
+           l'elenco del pannello del locale: è quella su cui agisce «Tutto
+           esaurito» dalla card (P2). */
+        $today = EventOccurrenceQuery::for($city)->currentBusinessDate();
+
+        return $query->with(['media', 'venue', 'occurrences' => fn ($occurrences) => $occurrences
+            ->where('business_date', '>=', $today)->orderBy('starts_at')->limit(1)])
             ->orderByRaw('next_starts_at is null')
             ->orderBy('next_starts_at')
             ->orderByDesc('last_starts_at')
@@ -93,6 +99,22 @@ final class ManagedEvents
             'last_starts_at' => $last === null ? null : self::iso($last),
             'past' => $next === null && $last !== null,
             'venue' => $event->venue === null ? null : ['id' => (int) $event->venue->getKey(), 'name' => $event->venue->name],
+            'next_date' => $event->relationLoaded('occurrences') ? self::nextDate($event->occurrences->first()) : null,
+        ];
+    }
+
+    /**
+     * La prossima data in breve (id, inizio, stato), per «Tutto esaurito» /
+     * «Di nuovo disponibile» dalla card dell'elenco (W-EV-19).
+     *
+     * @return array{id: int, starts_at: string, status: array{value: string, label: string}}|null
+     */
+    private static function nextDate(?EventOccurrence $date): ?array
+    {
+        return $date === null ? null : [
+            'id' => (int) $date->getKey(),
+            'starts_at' => $date->starts_at->copy()->utc()->toIso8601String(),
+            'status' => ['value' => $date->status->value, 'label' => $date->status->label()],
         ];
     }
 
@@ -115,6 +137,7 @@ final class ManagedEvents
 
         return [
             ...$this->card($event),
+            'next_date' => self::nextDate($upcoming->first()),
             'rejection_reason' => $event->status === EventStatus::Rejected ? $event->rejection_reason : null,
             'scheduled_publish_at' => $event->scheduled_publish_at?->utc()->toIso8601String(),
             'published_at' => $event->published_at?->utc()->toIso8601String(),

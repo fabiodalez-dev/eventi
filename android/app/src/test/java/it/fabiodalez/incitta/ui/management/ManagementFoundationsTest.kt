@@ -53,6 +53,8 @@ class ManagementFoundationsTest {
         assertTrue(ManagementArea.Events.implemented)
         assertEquals(it.fabiodalez.incitta.ui.management.feedback.FeedbackRoute(), ManagementArea.Feedback.entry)
         assertSame(CollaboratorsRoute, ManagementArea.Collaborators.entry)
+        /* Le date stanno dentro l'evento, come nei pannelli: si aprono dalla scheda, senza una voce nel menu. */
+        assertNull(ManagementArea.Dates.entry)
     }
 
     @Test fun permissionsDecideTheFutureAreasToo() {

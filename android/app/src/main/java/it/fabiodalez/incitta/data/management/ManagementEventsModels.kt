@@ -39,6 +39,8 @@ internal data class ManagedEventCard(
     @SerialName("last_starts_at") val lastStartsAt: String? = null,
     val past: Boolean = false,
     val venue: NamedRef? = null,
+    /* La prossima data in breve (P2): «Tutto esaurito» dalla card. */
+    @SerialName("next_date") val nextDate: ManagedNextDate? = null,
 )
 
 @Serializable

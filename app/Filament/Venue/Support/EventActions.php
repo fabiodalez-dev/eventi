@@ -5,15 +5,14 @@ declare(strict_types=1);
 namespace App\Filament\Venue\Support;
 
 use App\Actions\DuplicateEventAction;
-use App\Actions\UpdateOccurrencesAction;
 use App\Enums\EventStatus;
-use App\Enums\OccurrenceScope;
 use App\Enums\OccurrenceStatus;
 use App\Filament\Venue\Resources\Events\EventResource;
 use App\Models\Event;
 use App\Models\EventOccurrence;
 use App\Models\User;
 use App\Queries\VenueDashboardQuery;
+use App\Services\Events\EventDates;
 use App\Support\DateFormatter;
 use App\Support\RecurrenceRule;
 use Filament\Actions\Action;
@@ -154,17 +153,9 @@ final class EventActions
                     return;
                 }
 
-                $changed = app(UpdateOccurrencesAction::class)->changeStatus(
-                    $next,
-                    $next->status === OccurrenceStatus::SoldOut
-                        ? OccurrenceStatus::Scheduled
-                        : OccurrenceStatus::SoldOut,
-                    null,
-                    // Mai la serie: «stasera è esaurito» non dice niente sul
-                    // giovedì successivo, e trascinarcelo sarebbe una bugia
-                    // che nessuno ha scritto.
-                    OccurrenceScope::Single,
-                );
+                // Sempre la sola data (mai la serie): la regola sta in
+                // `EventDates::setSoldOut`, la stessa dell'app.
+                $changed = app(EventDates::class)->setSoldOut($next, $next->status !== OccurrenceStatus::SoldOut);
 
                 self::forgetNextDate($record);
 
