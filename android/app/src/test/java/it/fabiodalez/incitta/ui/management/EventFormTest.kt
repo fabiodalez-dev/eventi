@@ -7,6 +7,7 @@ import it.fabiodalez.incitta.ui.management.events.EventForm
 import it.fabiodalez.incitta.ui.management.events.EventFormMode
 import it.fabiodalez.incitta.ui.management.events.RepeatState
 import it.fabiodalez.incitta.ui.management.events.TierRow
+import it.fabiodalez.incitta.ui.management.events.showsEventTicketing
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -107,5 +108,22 @@ class EventFormTest {
         assertEquals("unknown", filled.priceType); assertEquals("", filled.priceMin)
         assertEquals("Via Verdi 2", filled.locationAddress); assertEquals("45.4", filled.locationLat)
         assertEquals("Evento su Facebook", filled.externalLinks.single().label)
+    }
+
+    @Test fun theTicketingBoxIsForTheVenueThatManagesTicketing() {
+        fun subject(kind: it.fabiodalez.incitta.data.management.SubjectKind, ticketing: Boolean) = it.fabiodalez.incitta.data.management.ManagementSubject(
+            kind = kind, id = 12, slug = "circolo", name = "Circolo", cityName = "Torino", timezone = ZoneId.of("Europe/Rome"), role = if (ticketing) "owner" else "editor",
+            status = "active", logo = null, ticketingEnabled = true, autoPublish = false,
+            permissions = it.fabiodalez.incitta.data.management.SubjectPermissions(mapOf("ticketing_manage" to ticketing)))
+        val venue = it.fabiodalez.incitta.data.management.SubjectKind.Venue
+        val event = ManagedEventDetail(id = 9, priceType = it.fabiodalez.incitta.data.management.LabeledValue("ticket", "Biglietto"),
+            abilities = it.fabiodalez.incitta.data.management.EventAbilities(update = true))
+        assertTrue(showsEventTicketing(subject(venue, true), event))
+        // Il collaboratore non gestisce la biglietteria, l'organizzazione non ha il riquadro.
+        assertFalse(showsEventTicketing(subject(venue, false), event))
+        assertFalse(showsEventTicketing(subject(it.fabiodalez.incitta.data.management.SubjectKind.Organizer, true), event))
+        // Come nel pannello: niente riquadro per l'offerta libera o il prezzo da definire, né per chi non modifica l'evento.
+        assertFalse(showsEventTicketing(subject(venue, true), event.copy(priceType = it.fabiodalez.incitta.data.management.LabeledValue("donation", "Offerta libera"))))
+        assertFalse(showsEventTicketing(subject(venue, true), event.copy(abilities = it.fabiodalez.incitta.data.management.EventAbilities(update = false))))
     }
 }

@@ -258,16 +258,4 @@
     <string name="management_events_seo_image">Immagine (indirizzo)</string>
     <string name="management_events_section_open">Apri %1$s</string>
     <string name="management_events_section_close">Chiudi %1$s</string>
-
-    <!-- Editor del testo formattato (comune) -->
-    <string name="management_rich_bold">Grassetto</string>
-    <string name="management_rich_italic">Corsivo</string>
-    <string name="management_rich_heading">Titolo</string>
-    <string name="management_rich_bullets">Elenco</string>
-    <string name="management_rich_numbers">Elenco numerato</string>
-    <string name="management_rich_link">Link</string>
-    <string name="management_rich_hint">**grassetto**, *corsivo*, ## titolo, - elenco, [testo](https://…) per un link. Una riga vuota separa i paragrafi.</string>
-    <string name="management_rich_link_title">Aggiungi un link</string>
-    <string name="management_rich_link_url">Indirizzo (https://…)</string>
-    <string name="management_rich_link_add">Aggiungi</string>
 </resources>

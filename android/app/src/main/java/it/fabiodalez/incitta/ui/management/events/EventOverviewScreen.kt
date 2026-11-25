@@ -15,6 +15,8 @@ import it.fabiodalez.incitta.R
 import it.fabiodalez.incitta.data.management.ImageUploadException
 import it.fabiodalez.incitta.data.management.ManagedEventDate
 import it.fabiodalez.incitta.data.management.ManagedEventDetail
+import it.fabiodalez.incitta.data.management.ManagementSubject
+import it.fabiodalez.incitta.data.management.SubjectKind
 import it.fabiodalez.incitta.data.management.prepareImage
 import it.fabiodalez.incitta.ui.Muted
 import it.fabiodalez.incitta.ui.PosterImage
@@ -46,7 +48,8 @@ private enum class PendingAction { Publish, Submit, Duplicate, Delete, Schedule,
  * motivo del rifiuto, riquadro «Pubblicazione», informazioni, descrizione,
  * serate; le azioni secondo `abilities` (pubblica o invia alla redazione,
  * modifica, duplica, programma, anteprima, elimina) e i collegamenti
- * (biglietteria della prossima data, scheda pubblica).
+ * (biglietteria della prossima data, riquadro «Ticketing inCittà» del
+ * locale, scheda pubblica).
  */
 @Composable
 internal fun EventOverviewScreen(
@@ -56,6 +59,7 @@ internal fun EventOverviewScreen(
     onPreview: (Long) -> Unit,
     onTickets: (Long) -> Unit,
     onOpenCopy: (Long) -> Unit,
+    onEventTicketing: (venueId: Long, eventId: Long) -> Unit,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val event = state.event.valueOrNull
@@ -91,6 +95,7 @@ internal fun EventOverviewScreen(
                 onEdit = { onEdit(detail.id) },
                 onPreview = { onPreview(detail.id) },
                 onTickets = onTickets,
+                onEventTicketing = state.subject?.takeIf { showsEventTicketing(it, detail) }?.let { subject -> { onEventTicketing(subject.id, detail.id) } },
                 onSite = { detail.publicUrl?.let(uriHandler::openUri) },
                 onPickPoster = pickPoster,
                 onCancelSchedule = viewModel::cancelSchedule)
@@ -126,6 +131,7 @@ private fun Overview(
     onEdit: () -> Unit,
     onPreview: () -> Unit,
     onTickets: (Long) -> Unit,
+    onEventTicketing: (() -> Unit)?,
     onSite: () -> Unit,
     onPickPoster: () -> Unit,
     onCancelSchedule: () -> Unit,
@@ -170,6 +176,7 @@ private fun Overview(
             if (can.duplicate) OutlinedButton(enabled = !busy, onClick = { onAction(PendingAction.Duplicate) }, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.management_events_duplicate)) }
             if (can.preview) OutlinedButton(onClick = onPreview, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.management_events_preview)) }
             detail.links.ticketsOccurrenceId?.let { id -> OutlinedButton(onClick = { onTickets(id) }, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.management_events_tickets)) } }
+            onEventTicketing?.let { open -> OutlinedButton(onClick = open, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.management_event_ticketing_title)) } }
             if (detail.publicUrl != null) OutlinedButton(onClick = onSite, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.management_events_site)) }
             if (can.schedule) OutlinedButton(enabled = !busy, onClick = { onAction(PendingAction.Schedule) }, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.management_events_schedule)) }
             if (can.cancelSchedule) OutlinedButton(enabled = !busy, onClick = onCancelSchedule, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.management_events_schedule_cancel)) }
@@ -213,6 +220,20 @@ private fun Overview(
         }
     }
 }
+
+/**
+ * Il riquadro «Ticketing inCittà» dell'evento, come nella modifica evento
+ * del pannello del locale: solo per un locale, solo a chi può modificare
+ * l'evento (`EventTicketingRequest` chiede `EventPolicy::update`) e gestisce
+ * la biglietteria (`permissions.ticketing_manage`: il collaboratore no,
+ * decisione 6), e solo per i prezzi che il pannello accompagna con il
+ * riquadro (ingresso libero, biglietto, tessera).
+ */
+internal fun showsEventTicketing(subject: ManagementSubject, detail: ManagedEventDetail): Boolean =
+    subject.kind == SubjectKind.Venue && subject.permissions.ticketingManage && detail.abilities.update &&
+        detail.priceType.value in TICKETING_PRICE_TYPES
+
+private val TICKETING_PRICE_TYPES = setOf("free", "ticket", "membership")
 
 @Composable
 private fun priceText(detail: ManagedEventDetail): String {

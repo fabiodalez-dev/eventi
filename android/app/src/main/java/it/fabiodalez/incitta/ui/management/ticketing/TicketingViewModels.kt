@@ -203,7 +203,7 @@ internal class TicketingDateViewModel(private val repository: ManagementReposito
     private fun show(date: ManagedDate) {
         state.update { current ->
             val keep = current.settingsDirty && current.settingsDraft != null
-            current.copy(date = Loadable.Ready(date), settingsDraft = if (keep) current.settingsDraft else date.settings?.let { BookingSettingsDraft.from(it, zoneOf(date)) })
+            current.copy(date = Loadable.Ready(date), settingsDraft = if (keep) current.settingsDraft else date.settings?.let { BookingSettingsDraft.from(it, zoneOf(date), date.availability?.instructions) })
         }
         if (!date.canCheckIn) { manifestFor = null; state.update { it.copy(manifest = null, manifestError = null) }; return }
         if (manifestFor == date.id) return
@@ -313,7 +313,7 @@ internal class TicketingDateViewModel(private val repository: ManagementReposito
     /** Rimette il modulo com'è salvato sul server. */
     fun resetSettings() {
         val date = state.value.current ?: return
-        state.update { it.copy(settingsDraft = date.settings?.let { settings -> BookingSettingsDraft.from(settings, zoneOf(date)) }, settingsDirty = false, settingsErrors = FormErrors.None) }
+        state.update { it.copy(settingsDraft = date.settings?.let { settings -> BookingSettingsDraft.from(settings, zoneOf(date), date.availability?.instructions) }, settingsDirty = false, settingsErrors = FormErrors.None) }
     }
 
     /**
@@ -328,7 +328,7 @@ internal class TicketingDateViewModel(private val repository: ManagementReposito
         state.update { it.copy(busy = true, error = null, message = null, settingsErrors = FormErrors.None) }
         viewModelScope.launch {
             try {
-                val updated = repository.ticketing.settings(id, bookingSettingsBody(draft, date.settings, zoneOf(date)))
+                val updated = repository.ticketing.settings(id, bookingSettingsBody(draft, date.settings, zoneOf(date), date.availability?.instructions))
                 state.update { it.copy(settingsDirty = false) }
                 show(updated)
                 state.update { it.copy(message = UiText.Res(R.string.management_settings_saved)) }

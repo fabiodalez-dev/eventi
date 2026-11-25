@@ -59,24 +59,6 @@
     <string name="profile_description">Descrizione completa</string>
     <string name="profile_counter">%1$d su %2$d</string>
 
-    <!-- Editor del testo -->
-    <string name="profile_rich_help">Seleziona il testo e tocca un pulsante. Una riga vuota separa i paragrafi.</string>
-    <string name="profile_rich_bold">Grassetto</string>
-    <string name="profile_rich_italic">Corsivo</string>
-    <string name="profile_rich_underline">Sottolineato</string>
-    <string name="profile_rich_strike">Barrato</string>
-    <string name="profile_rich_link">Collegamento</string>
-    <string name="profile_rich_h2">Titolo</string>
-    <string name="profile_rich_h3">Titoletto</string>
-    <string name="profile_rich_quote">Citazione</string>
-    <string name="profile_rich_bullets">Elenco puntato</string>
-    <string name="profile_rich_numbers">Elenco numerato</string>
-    <string name="profile_rich_link_title">Aggiungi un collegamento</string>
-    <string name="profile_rich_link_url">Indirizzo (https://…)</string>
-    <string name="profile_rich_link_text">Testo del collegamento</string>
-    <string name="profile_rich_link_add">Aggiungi</string>
-    <string name="profile_rich_link_invalid">Scrivi un indirizzo che cominci con https://, http:// o mailto:</string>
-
     <!-- Immagini -->
     <string name="profile_logo">Logo</string>
     <string name="profile_logo_help">Si ritaglia quadrato. Compare sulla scheda e negli elenchi dei locali.</string>

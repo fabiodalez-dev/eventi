@@ -1,5 +1,6 @@
 package it.fabiodalez.incitta.data.management
 
+import it.fabiodalez.incitta.ui.management.common.RichText
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonNull
@@ -25,7 +26,8 @@ import java.time.format.DateTimeFormatter
  * rotazione e alla chiusura dell'app da parte del sistema.
  *
  * I testi formattati (descrizione, note, risposte) sono già nei segni di
- * `RichMarkup`; tornano HTML solo nel corpo della richiesta.
+ * `RichText` (`ui/management/common/`); tornano HTML solo nel corpo della
+ * richiesta.
  */
 
 /** Le sezioni della scheda che si salvano con `PATCH V/profile`, con le chiavi del server di ciascuna. */
@@ -118,7 +120,7 @@ internal data class VenueProfileDraft(
             val details = profile.contentDetails
             return VenueProfileDraft(
                 shortDescription = profile.shortDescription.orEmpty(),
-                description = RichMarkup.fromHtml(profile.description),
+                description = RichText.toMarkup(profile.description),
                 address = profile.address.orEmpty(),
                 addressExtra = profile.addressExtra.orEmpty(),
                 postalCode = profile.postalCode.orEmpty(),
@@ -137,25 +139,25 @@ internal data class VenueProfileDraft(
                 accessibility = profile.accessibility.mapNotNull { (key, value) -> value?.let { key to it } }.toMap(),
                 info = profile.info.map { FactDraft(it.label, it.value) },
                 requiresMembership = profile.requiresMembership,
-                membershipNotes = RichMarkup.fromHtml(profile.membershipNotes),
+                membershipNotes = RichText.toMarkup(profile.membershipNotes),
                 ageGroups = details.strings("age_groups"),
-                stroller = details.text("stroller"),
-                changingTable = details.text("changing_table"),
-                kidsArea = details.text("kids_area"),
-                membership = details.text("membership"),
-                wheelchair = details.text("accessibility"),
-                beforeMembershipNotes = RichMarkup.fromHtml(details.text("membership_notes")),
-                accessibilityNotes = RichMarkup.fromHtml(details.text("accessibility_notes")),
+                stroller = details.detailText("stroller"),
+                changingTable = details.detailText("changing_table"),
+                kidsArea = details.detailText("kids_area"),
+                membership = details.detailText("membership"),
+                wheelchair = details.detailText("accessibility"),
+                beforeMembershipNotes = RichText.toMarkup(details.detailText("membership_notes")),
+                accessibilityNotes = RichText.toMarkup(details.detailText("accessibility_notes")),
                 featureIds = details.ids("feature_ids"),
-                practical = details.rows("practical_custom").map { PracticalDraft(it.text("label"), it.text("icon").ifBlank { "check-circle" }, RichMarkup.fromHtml(it.text("text"))) },
-                foodNotes = details.text("food_notes"),
-                startNotes = details.text("start_notes"),
-                introduction = RichMarkup.fromHtml(details.text("introduction")),
-                parkingType = details.text("parking_type"),
-                parkingNotes = RichMarkup.fromHtml(details.text("parking_notes")),
-                transitNotes = RichMarkup.fromHtml(details.text("transit_notes")),
-                entranceNotes = RichMarkup.fromHtml(details.text("entrance_notes")),
-                faqs = details.rows("faqs").map { FaqDraft(it.text("question"), RichMarkup.fromHtml(it.text("answer"))) },
+                practical = details.rows("practical_custom").map { PracticalDraft(it.detailText("label"), it.detailText("icon").ifBlank { "check-circle" }, RichText.toMarkup(it.detailText("text"))) },
+                foodNotes = details.detailText("food_notes"),
+                startNotes = details.detailText("start_notes"),
+                introduction = RichText.toMarkup(details.detailText("introduction")),
+                parkingType = details.detailText("parking_type"),
+                parkingNotes = RichText.toMarkup(details.detailText("parking_notes")),
+                transitNotes = RichText.toMarkup(details.detailText("transit_notes")),
+                entranceNotes = RichText.toMarkup(details.detailText("entrance_notes")),
+                faqs = details.rows("faqs").map { FaqDraft(it.detailText("question"), RichText.toMarkup(it.detailText("answer"))) },
                 seoTitle = profile.seo.title.orEmpty(),
                 seoDescription = profile.seo.description.orEmpty(),
                 seoImage = profile.seo.image.orEmpty(),
@@ -257,7 +259,7 @@ internal data class OrganizerProfileDraft(
 
     companion object {
         fun from(profile: OrganizerProfile) = OrganizerProfileDraft(
-            description = RichMarkup.fromHtml(profile.description),
+            description = RichText.toMarkup(profile.description),
             website = profile.website.orEmpty(),
             email = profile.email.orEmpty(),
             contactMode = profile.contact.mode,
@@ -273,12 +275,12 @@ private fun JsonObjectBuilder.putText(key: String, value: String) {
 }
 
 private fun JsonObjectBuilder.putRich(key: String, markup: String) {
-    val html = RichMarkup.toHtml(markup)
+    val html = RichText.toHtml(markup)
     put(key, if (html.isEmpty()) JsonNull else JsonPrimitive(html))
 }
 
 /* Letture tolleranti di `content_details`: un tipo inatteso diventa vuoto, non un errore. */
-private fun JsonObject.text(key: String): String = when (val value = this[key]) {
+private fun JsonObject.detailText(key: String): String = when (val value = this[key]) {
     is JsonPrimitive -> if (value is JsonNull) "" else value.contentOrNull.orEmpty()
     else -> ""
 }

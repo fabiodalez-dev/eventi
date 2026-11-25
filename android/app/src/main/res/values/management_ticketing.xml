@@ -213,7 +213,6 @@
     <string name="management_settings_closes">Chiusura prenotazioni</string>
     <string name="management_settings_cancellation">Ultimo momento per annullare</string>
     <string name="management_settings_instructions">Istruzioni per chi prenota</string>
-    <string name="management_settings_instructions_rich">Le istruzioni sono state scritte sul sito con grassetto o elenchi. Se le cambi da qui diventano testo semplice; se non le tocchi restano come sono.</string>
     <string name="management_settings_fields">Dati richiesti al prenotante</string>
     <string name="management_settings_fields_hint">Richiedi solo dati necessari a organizzare l’ingresso. Nome e cognome dei partecipanti sono sempre richiesti; l’email è quella dell’account.</string>
     <string name="management_field_mode_hidden">Non raccogliere</string>

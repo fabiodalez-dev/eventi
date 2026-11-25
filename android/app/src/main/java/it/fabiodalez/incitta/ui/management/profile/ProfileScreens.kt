@@ -10,7 +10,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import it.fabiodalez.incitta.R
-import it.fabiodalez.incitta.data.management.RichMarkup
+import it.fabiodalez.incitta.ui.management.common.RichText
+import it.fabiodalez.incitta.ui.management.common.RichTextField
 import it.fabiodalez.incitta.data.management.SubjectKind
 import it.fabiodalez.incitta.data.management.VenueProfile
 import it.fabiodalez.incitta.data.management.VenueSection
@@ -63,7 +64,7 @@ internal fun sectionStatus(section: VenueSection, profile: VenueProfile): UiText
     val empty = UiText.Res(R.string.profile_to_fill)
     fun joined(parts: List<String?>) = parts.filterNot { it.isNullOrBlank() }.joinToString(" · ").takeIf { it.isNotEmpty() }?.let { UiText.Raw(it) } ?: empty
     return when (section) {
-        VenueSection.Description -> (profile.shortDescription?.takeIf { it.isNotBlank() } ?: RichMarkup.plain(profile.description).takeIf { it.isNotBlank() })
+        VenueSection.Description -> (profile.shortDescription?.takeIf { it.isNotBlank() } ?: RichText.summary(profile.description).takeIf { it.isNotBlank() })
             ?.let { UiText.Raw(it.take(90) + if (it.length > 90) "…" else "") } ?: empty
         VenueSection.Where -> joined(listOf(profile.address, profile.zone, profile.municipality))
         VenueSection.Hours -> if (profile.openingHours.isEmpty() && profile.closures.isEmpty() && profile.capacity == null) empty
@@ -76,7 +77,7 @@ internal fun sectionStatus(section: VenueSection, profile: VenueProfile): UiText
             .let { if (it == 0) empty else UiText.Plural(R.plurals.profile_status_rows, it, listOf(it)) }
         VenueSection.Editorial -> {
             val faqs = (profile.contentDetails["faqs"] as? JsonArray)?.size ?: 0
-            val intro = RichMarkup.plain((profile.contentDetails["introduction"] as? JsonPrimitive)?.contentOrNull)
+            val intro = RichText.summary((profile.contentDetails["introduction"] as? JsonPrimitive)?.contentOrNull)
             when {
                 faqs > 0 -> UiText.Plural(R.plurals.profile_status_faqs, faqs, listOf(faqs))
                 intro.isNotBlank() -> UiText.Raw(intro.take(90))

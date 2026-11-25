@@ -190,7 +190,7 @@ class TicketingCompleteTest {
         assertEquals(kotlinx.serialization.json.JsonNull, body["booking_capacity"])
         assertEquals(JsonPrimitive("abc"), body["booking_limit"])
         assertEquals(JsonPrimitive("2026-12-05T21:00:00+01:00"), body["booking_opens_at"])
-        assertEquals(JsonPrimitive("Nuove"), body["booking_instructions"])
+        assertEquals(JsonPrimitive("<p>Nuove</p>"), body["booking_instructions"])
         assertEquals(JsonPrimitive("hidden"), body["booking_fields"]!!.jsonObject["phone"])
         val questions = body["booking_questions"] as kotlinx.serialization.json.JsonArray
         assertEquals(JsonPrimitive("Turno"), questions[0].jsonObject["label"])
@@ -198,6 +198,26 @@ class TicketingCompleteTest {
         assertFalse(questions[0].jsonObject.containsKey("id"))
         assertEquals(JsonPrimitive("qabcdefgh"), questions[1].jsonObject["id"])
         assertFalse(questions[1].jsonObject.containsKey("options"))
+    }
+
+    @Test fun instructionsKeepTheSiteFormattingAndGoOnlyWhenChanged() {
+        val zone = java.time.ZoneId.of("Europe/Rome")
+        // Il server manda il testo semplice in `settings` e l'HTML salvato in `availability.instructions`.
+        val html = "<p>Porta la <strong>tessera</strong>.</p><ul><li><p>Ingresso dal cortile</p></li></ul>"
+        val settings = BookingSettings(bookingInstructions = "Porta la tessera.\n\n• Ingresso dal cortile", bookingInstructionsRich = true)
+        val draft = it.fabiodalez.incitta.data.management.BookingSettingsDraft.from(settings, zone, html)
+        assertEquals("Porta la **tessera**.\n\n- Ingresso dal cortile", draft.instructions)
+        // Non toccate: non si mandano, e il sito le tiene come sono.
+        assertFalse(it.fabiodalez.incitta.data.management.bookingSettingsBody(draft, settings, zone, html).containsKey("booking_instructions"))
+        // Cambiate: tornano HTML con la formattazione di prima più quella nuova.
+        val changed = draft.copy(instructions = draft.instructions + "\n- Porta un *documento*")
+        assertEquals(JsonPrimitive("<p>Porta la <strong>tessera</strong>.</p><ul><li><p>Ingresso dal cortile</p></li><li><p>Porta un <em>documento</em></p></li></ul>"),
+            it.fabiodalez.incitta.data.management.bookingSettingsBody(changed, settings, zone, html)["booking_instructions"])
+        // Svuotate: null, come il modulo del sito.
+        assertEquals(kotlinx.serialization.json.JsonNull, it.fabiodalez.incitta.data.management.bookingSettingsBody(draft.copy(instructions = " "), settings, zone, html)["booking_instructions"])
+        // Un server di prima senza HTML: il testo semplice resta testo, anche le righe col punto.
+        val old = it.fabiodalez.incitta.data.management.BookingSettingsDraft.from(settings, zone)
+        assertEquals("<p>Porta la tessera.</p><p>• Ingresso dal cortile</p>", it.fabiodalez.incitta.ui.management.common.RichText.toHtml(old.instructions))
     }
 
     @Test fun managedDateReadsTheNewFieldsAndToleratesAnOldServer() {

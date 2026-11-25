@@ -3,6 +3,7 @@ package it.fabiodalez.incitta.data.management
 import it.fabiodalez.incitta.data.BookingAnswer
 import it.fabiodalez.incitta.data.BookingQuestion
 import it.fabiodalez.incitta.data.DateCounts
+import it.fabiodalez.incitta.ui.management.common.RichText
 import java.io.File
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -102,8 +103,11 @@ internal val BOOKING_FILTERS = listOf("confirmed", "checked_in", "waitlisted", "
 /**
  * Le impostazioni delle prenotazioni come sono salvate. Le tre ore vuote
  * vogliono dire «subito» (apertura) e «all'inizio dell'evento» (chiusure).
- * `bookingInstructionsRich`: sul sito sono state scritte con grassetto o
- * elenchi; cambiandole dall'app tornano testo semplice.
+ * `bookingInstructions` è il testo semplice delle istruzioni e
+ * `bookingInstructionsRich` dice se sul sito hanno grassetto o elenchi:
+ * il modulo parte dall'HTML salvato (`ManagedDate.availability.instructions`,
+ * vedi `savedInstructions`) e lo riscrive con l'editor comune, quindi la
+ * formattazione non si perde.
  */
 @Serializable internal data class BookingSettings(
     @SerialName("booking_enabled") val bookingEnabled: Boolean = false,
@@ -152,7 +156,8 @@ internal data class BookingSettingsDraft(
     val questions: List<QuestionDraft> = emptyList(),
 ) {
     companion object {
-        fun from(settings: BookingSettings, zone: java.time.ZoneId): BookingSettingsDraft = BookingSettingsDraft(
+        /** `instructionsHtml`: le istruzioni salvate in HTML (`ManagedDate.availability.instructions`). */
+        fun from(settings: BookingSettings, zone: java.time.ZoneId, instructionsHtml: String? = null): BookingSettingsDraft = BookingSettingsDraft(
             enabled = settings.bookingEnabled,
             capacity = settings.bookingCapacity?.toString().orEmpty(),
             limit = settings.bookingLimit.toString(),
@@ -160,7 +165,7 @@ internal data class BookingSettingsDraft(
             opensAt = localIn(settings.bookingOpensAt, zone),
             closesAt = localIn(settings.bookingClosesAt, zone),
             cancellationClosesAt = localIn(settings.cancellationClosesAt, zone),
-            instructions = settings.bookingInstructions.orEmpty(),
+            instructions = savedInstructions(settings, instructionsHtml),
             fields = BOOKER_FIELDS.associateWith { key -> settings.bookingFields[key]?.takeIf { it in BOOKER_FIELD_MODES } ?: "hidden" },
             questions = settings.bookingQuestions.map { QuestionDraft(it.id, it.label, it.type, it.options.joinString(), it.required) },
         )
@@ -175,13 +180,23 @@ internal data class BookingSettingsDraft(
 }
 
 /**
+ * Le istruzioni salvate come segni dell'editor comune (`RichText`): dall'HTML
+ * della data quando il server lo manda, se no dal testo semplice delle
+ * impostazioni (server di prima).
+ */
+internal fun savedInstructions(settings: BookingSettings?, html: String?): String =
+    RichText.toMarkup(html?.takeIf { it.isNotBlank() } ?: settings?.bookingInstructions)
+
+/**
  * Il corpo di `PATCH management/dates/{id}/settings`. Come il modulo del
  * sito si manda tutto, tranne le istruzioni se non sono cambiate: così un
- * testo scritto sul sito con la formattazione non diventa testo semplice
- * solo perché si è cambiato il numero di posti dall'app. Un numero che non è
- * un numero si manda così com'è, e l'errore del server va sotto il campo.
+ * testo scritto sul sito non viene riscritto solo perché si è cambiato il
+ * numero di posti dall'app. Le istruzioni cambiate vanno come HTML, lo
+ * stesso che salva l'editor del sito (il server lo ripulisce con
+ * `Description::sanitize`). Un numero che non è un numero si manda così
+ * com'è, e l'errore del server va sotto il campo.
  */
-internal fun bookingSettingsBody(draft: BookingSettingsDraft, original: BookingSettings?, zone: java.time.ZoneId): JsonObject = buildJsonObject {
+internal fun bookingSettingsBody(draft: BookingSettingsDraft, original: BookingSettings?, zone: java.time.ZoneId, originalHtml: String? = null): JsonObject = buildJsonObject {
     put("booking_enabled", draft.enabled)
     put("booking_capacity", numberOrRaw(draft.capacity))
     put("booking_limit", numberOrRaw(draft.limit))
@@ -189,8 +204,8 @@ internal fun bookingSettingsBody(draft: BookingSettingsDraft, original: BookingS
     put("booking_opens_at", draft.opensAt?.let { JsonPrimitive(cityIsoOf(it, zone)) } ?: JsonNull)
     put("booking_closes_at", draft.closesAt?.let { JsonPrimitive(cityIsoOf(it, zone)) } ?: JsonNull)
     put("cancellation_closes_at", draft.cancellationClosesAt?.let { JsonPrimitive(cityIsoOf(it, zone)) } ?: JsonNull)
-    if (draft.instructions.trim() != original?.bookingInstructions.orEmpty().trim()) {
-        put("booking_instructions", draft.instructions.trim().takeIf { it.isNotEmpty() }?.let(::JsonPrimitive) ?: JsonNull)
+    if (draft.instructions.trim() != savedInstructions(original, originalHtml).trim()) {
+        put("booking_instructions", RichText.toHtml(draft.instructions).takeIf { it.isNotEmpty() }?.let(::JsonPrimitive) ?: JsonNull)
     }
     put("booking_fields", buildJsonObject { BOOKER_FIELDS.forEach { key -> put(key, draft.fields[key] ?: "hidden") } })
     put("booking_questions", buildJsonArray {

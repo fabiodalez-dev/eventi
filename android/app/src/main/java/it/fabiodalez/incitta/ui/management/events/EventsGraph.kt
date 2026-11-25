@@ -4,6 +4,7 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import it.fabiodalez.incitta.ui.management.ManagementGraphContext
 import it.fabiodalez.incitta.ui.management.managementViewModel
+import it.fabiodalez.incitta.ui.management.ticketing.EventTicketingRoute
 import it.fabiodalez.incitta.ui.management.ticketing.TicketingDateRoute
 import kotlinx.serialization.Serializable
 
@@ -31,6 +32,7 @@ internal fun NavGraphBuilder.eventsGraph(context: ManagementGraphContext) {
             onEdit = { id -> context.navController.navigate(EventEditorRoute(id)) },
             onPreview = { id -> context.navController.navigate(EventPreviewRoute(id)) },
             onTickets = { occurrenceId -> context.navController.navigate(TicketingDateRoute(occurrenceId)) },
+            onEventTicketing = { venueId, eventId -> context.navController.navigate(EventTicketingRoute(venueId, eventId)) },
             onOpenCopy = { id ->
                 context.navController.navigate(EventEditorRoute(id)) { popUpTo<EventsListRoute>() }
             })

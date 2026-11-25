@@ -46,6 +46,7 @@ import it.fabiodalez.incitta.ui.management.common.FormTextField
 import it.fabiodalez.incitta.ui.management.common.LoadState
 import it.fabiodalez.incitta.ui.management.common.Loadable
 import it.fabiodalez.incitta.ui.management.common.ManagementScaffold
+import it.fabiodalez.incitta.ui.management.common.RichTextField
 import it.fabiodalez.incitta.ui.management.common.SharedFiles
 import it.fabiodalez.incitta.ui.management.common.resolve
 import java.time.OffsetDateTime
@@ -328,9 +329,8 @@ internal fun SettingsSection(date: ManagedDate, state: TicketingDateUiState, vie
         CityDateTimeField(stringResource(R.string.management_settings_opens), draft.opensAt, zone, date.venue, { value -> edit { it.copy(opensAt = value) } }, errors.field("booking_opens_at"), enabled = !busy, clearable = true)
         CityDateTimeField(stringResource(R.string.management_settings_closes), draft.closesAt, zone, date.venue, { value -> edit { it.copy(closesAt = value) } }, errors.field("booking_closes_at"), enabled = !busy, clearable = true)
         CityDateTimeField(stringResource(R.string.management_settings_cancellation), draft.cancellationClosesAt, zone, date.venue, { value -> edit { it.copy(cancellationClosesAt = value) } }, errors.field("cancellation_closes_at"), enabled = !busy, clearable = true)
-        if (settings?.bookingInstructionsRich == true) Text(stringResource(R.string.management_settings_instructions_rich), color = Muted)
-        FormTextField(draft.instructions, { value -> edit { it.copy(instructions = value.take(limits.instructionsMax)) } }, stringResource(R.string.management_settings_instructions), errors, "booking_instructions",
-            enabled = !busy, minLines = 3)
+        RichTextField(draft.instructions, { value -> edit { it.copy(instructions = value.take(limits.instructionsMax)) } }, stringResource(R.string.management_settings_instructions),
+            error = errors.field("booking_instructions"), minLines = 3, enabled = !busy)
         HorizontalDivider()
         Text(stringResource(R.string.management_settings_fields), style = MaterialTheme.typography.titleMedium)
         Text(stringResource(R.string.management_settings_fields_hint), color = Muted)

@@ -27,6 +27,7 @@ import it.fabiodalez.incitta.data.management.VenueSection
 import it.fabiodalez.incitta.ui.Muted
 import it.fabiodalez.incitta.ui.management.common.FormErrors
 import it.fabiodalez.incitta.ui.management.common.FormTextField
+import it.fabiodalez.incitta.ui.management.common.RichTextField
 import it.fabiodalez.incitta.ui.management.common.resolve
 
 /*

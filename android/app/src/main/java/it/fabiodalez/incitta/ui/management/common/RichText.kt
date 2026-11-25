@@ -1,176 +1,299 @@
 package it.fabiodalez.incitta.ui.management.common
 
 /**
- * La descrizione dell'evento fra l'HTML del sito e il testo che si scrive sul
- * telefono (decisione 4 del piano: editor minimo scritto a mano, senza
- * librerie nuove).
+ * Il testo formattato della gestione fra l'HTML del sito e il testo che si
+ * scrive sul telefono (decisione 4 del piano: editor minimo scritto a mano,
+ * senza librerie nuove). È l'unica conversione dell'app: la usano la
+ * descrizione e i testi dell'evento, il profilo del locale e
+ * dell'organizzazione, le istruzioni per chi prenota.
  *
- * Il testo usa pochi segni, gli stessi che inserisce la barra dell'editor:
+ * Sul sito i testi lunghi sono HTML scritto con l'editor del pannello, e il
+ * server tiene solo i tag del suo filtro (`Description::sanitize`): grassetto,
+ * corsivo, sottolineato, barrato, link (http, https, mailto), titoli H2 e
+ * H3, citazioni, elenchi puntati e numerati. Nell'app si scrivono in un
+ * campo di testo con pochi segni, che i pulsanti sopra il campo inseriscono
+ * da soli:
  *
- * - `**grassetto**`, `*corsivo*`, `[parola](https://…)` per un link;
- * - `## Titolo` e `### Sottotitolo` a inizio riga;
- * - `- voce` per un elenco puntato, `1. voce` per un elenco numerato;
- * - una riga vuota fra due paragrafi, un a capo semplice dentro il paragrafo.
+ *     ## Titolo            ### Titoletto        > citazione
+ *     - voce di elenco     1. voce numerata
+ *     **grassetto**  *corsivo*  __sottolineato__  ~~barrato~~  [testo](https://…)
  *
- * Sono le stesse cose che permette l'editor del sito (grassetto, corsivo,
- * link, titoli, elenchi): una descrizione scritta sul sito e salvata dal
- * telefono non perde la formattazione. Il server ripulisce comunque l'HTML
- * che riceve (`Description::sanitize`).
+ * Una riga vuota separa i paragrafi; un a capo dentro un paragrafo resta un a
+ * capo. Un segno da scrivere così com'è si scrive preceduto da `\`: il testo
+ * che arriva dal sito si protegge da solo, così «2 * 3» o una riga che
+ * comincia con «- » restano testo e non diventano formattazione. Elenchi
+ * annidati e attributi che il filtro del sito non tiene vengono appiattiti;
+ * `h1` diventa un titolo, `h4`…`h6` un titoletto, come li salverebbe il sito.
  */
 internal object RichText {
-    /** L'HTML del sito come testo da modificare. */
+    /* I segni dentro la riga: nel testo che arriva dal sito si proteggono sempre con `\`. */
+    private const val INLINE_MARKS = "\\*_~[]"
+    /* Tutto quello che un `\` rende testo: anche i segni di inizio riga (titolo, citazione, elenchi). */
+    private const val ESCAPABLE = "$INLINE_MARKS#>-•.)"
+
+    /** Da HTML (o testo semplice, come lo salvano le versioni vecchie) ai segni dell'editor. */
     fun toMarkup(html: String?): String {
         if (html.isNullOrBlank()) return ""
-        if (!html.contains('<')) return decode(html).trim()
+        if (!html.contains('<')) {
+            return decodeEntities(html).replace("\r\n", "\n").lines()
+                .joinToString("\n") { escapeLineStart(escapeText(it.trim())) }.trim()
+        }
         val out = StringBuilder()
-        val lists = ArrayDeque<ListState>()
-        var href: String? = null
+        val lists = ArrayDeque<ListContext>()
+        var quote = false
+        var linkHref: String? = null
+        /* Il segno di inizio riga in attesa (titolo, voce di elenco): si scrive con il primo testo della riga. */
+        var pendingPrefix = ""
+        var atLineStart = true
 
-        fun breakBlock() {
+        fun blockBreak() {
+            out.setLength(out.trimEnd(' ').length)
+            atLineStart = true
             if (out.isEmpty()) return
-            val trimmed = out.trimEnd(' ')
-            out.setLength(trimmed.length)
-            if (!out.endsWith("\n\n")) out.append(if (out.endsWith("\n")) "\n" else "\n\n")
+            while (!out.endsWith("\n\n")) out.append('\n')
+        }
+        fun lineBreak() {
+            out.setLength(out.trimEnd(' ').length)
+            if (out.isNotEmpty() && !out.endsWith("\n")) out.append('\n')
+            atLineStart = true
+        }
+        fun write(text: String) {
+            if (text.isEmpty()) return
+            if (atLineStart) {
+                if (quote) out.append("> ")
+                out.append(pendingPrefix)
+                pendingPrefix = ""
+                atLineStart = false
+            }
+            out.append(text)
         }
 
-        TAG.findAll(html).fold(0) { cursor, match ->
-            appendText(out, html.substring(cursor, match.range.first))
-            val closing = match.groupValues[1] == "/"
-            val name = match.groupValues[2].lowercase()
-            val attributes = match.groupValues[3]
-            when (name) {
-                "p", "div", "blockquote" -> if (lists.isEmpty() && !closing) breakBlock()
-                "br" -> out.append('\n')
-                "h1", "h2", "h3", "h4" -> if (!closing) {
-                    breakBlock(); out.append(if (name == "h3" || name == "h4") "### " else "## ")
-                } else breakBlock()
-                "ul", "ol" -> if (!closing) {
-                    if (lists.isEmpty()) breakBlock() else if (!out.endsWith("\n")) out.append('\n')
-                    lists.addLast(ListState(ordered = name == "ol"))
-                } else {
-                    lists.removeLastOrNull()
-                    if (lists.isEmpty()) breakBlock()
+        for (token in tokenize(html)) {
+            when (token) {
+                is Token.Text -> {
+                    val text = decodeEntities(token.text).replace(Regex("\\s+"), " ")
+                    val clean = if (atLineStart) text.trimStart() else text
+                    if (clean.isNotEmpty()) {
+                        val escaped = escapeText(clean)
+                        /* Una riga di testo che comincia come un segno di riga resta testo. */
+                        write(if (atLineStart && pendingPrefix.isEmpty() && !quote) escapeLineStart(escaped) else escaped)
+                    }
                 }
-                "li" -> if (!closing) {
-                    if (out.isNotEmpty() && !out.endsWith("\n")) out.append('\n')
-                    val list = lists.lastOrNull()
-                    val indent = "  ".repeat((lists.size - 1).coerceAtLeast(0))
-                    if (list?.ordered == true) { list.count++; out.append(indent).append(list.count).append(". ") } else out.append(indent).append("- ")
+                is Token.Open -> when (token.name) {
+                    "p", "div" -> if (lists.isEmpty()) { if (quote) lineBreak() else blockBreak() }
+                    "h1", "h2" -> { blockBreak(); pendingPrefix = "## " }
+                    "h3", "h4", "h5", "h6" -> { blockBreak(); pendingPrefix = "### " }
+                    "blockquote" -> { blockBreak(); quote = true }
+                    "ul", "ol" -> { if (lists.isEmpty()) blockBreak() else lineBreak(); lists.addLast(ListContext(token.name == "ol")) }
+                    "li" -> {
+                        lineBreak()
+                        val list = lists.lastOrNull()
+                        pendingPrefix = if (list?.ordered == true) "${++list.count}. " else "- "
+                    }
+                    "br" -> { if (lists.isEmpty()) lineBreak() else write(" ") }
+                    "strong", "b" -> write("**")
+                    "em", "i" -> write("*")
+                    "u" -> write("__")
+                    "s", "strike", "del" -> write("~~")
+                    "a" -> { linkHref = token.href?.takeIf(::isSafeLink); if (linkHref != null) write("[") }
+                    else -> Unit
                 }
-                "strong", "b" -> out.append("**")
-                "em", "i" -> out.append('*')
-                "a" -> if (!closing) {
-                    href = HREF.find(attributes)?.groupValues?.get(2)?.let(::decode)
-                    if (href != null) out.append('[')
-                } else {
-                    href?.let { out.append("](").append(it).append(')') }
-                    href = null
+                is Token.Close -> when (token.name) {
+                    "p", "div" -> if (lists.isEmpty()) { if (quote) lineBreak() else blockBreak() }
+                    "h1", "h2", "h3", "h4", "h5", "h6" -> { blockBreak(); pendingPrefix = "" }
+                    "blockquote" -> { blockBreak(); quote = false }
+                    "ul", "ol" -> { lists.removeLastOrNull(); if (lists.isEmpty()) blockBreak() }
+                    "li" -> { lineBreak(); pendingPrefix = "" }
+                    "strong", "b" -> write("**")
+                    "em", "i" -> write("*")
+                    "u" -> write("__")
+                    "s", "strike", "del" -> write("~~")
+                    "a" -> { linkHref?.let { write("]($it)") }; linkHref = null }
+                    else -> Unit
                 }
             }
-            match.range.last + 1
-        }.let { cursor -> appendText(out, html.substring(cursor)) }
-
-        return out.toString().replace(Regex("[ \\t]+\n"), "\n").replace(Regex("\n{3,}"), "\n\n").trim()
+        }
+        return out.toString().lines().joinToString("\n") { it.trimEnd() }.replace(Regex("\n{3,}"), "\n\n").trim()
     }
 
-    /** Il testo scritto sul telefono come HTML per il server. */
-    fun toHtml(markup: String): String {
-        val lines = markup.replace("\r\n", "\n").split('\n')
+    /** Dai segni dell'editor all'HTML che il server accetta. Un testo vuoto resta vuoto. */
+    fun toHtml(markup: String?): String {
+        val lines = markup.orEmpty().replace("\r\n", "\n").split('\n')
         val html = StringBuilder()
         val paragraph = mutableListOf<String>()
-        var list: String? = null
+        val quote = mutableListOf<String>()
+        var list: Pair<Boolean, MutableList<String>>? = null
 
         fun flushParagraph() {
-            if (paragraph.isNotEmpty()) {
-                html.append("<p>").append(paragraph.joinToString("<br>") { inline(it) }).append("</p>")
-                paragraph.clear()
-            }
+            if (paragraph.isNotEmpty()) html.append("<p>").append(paragraph.joinToString("<br>") { inline(it) }).append("</p>")
+            paragraph.clear()
         }
-        fun closeList() {
-            list?.let { html.append("</").append(it).append('>') }
+        fun flushQuote() {
+            if (quote.isNotEmpty()) html.append("<blockquote><p>").append(quote.joinToString("<br>") { inline(it) }).append("</p></blockquote>")
+            quote.clear()
+        }
+        fun flushList() {
+            list?.let { (ordered, items) ->
+                val tag = if (ordered) "ol" else "ul"
+                html.append("<$tag>")
+                items.forEach { html.append("<li><p>").append(inline(it)).append("</p></li>") }
+                html.append("</$tag>")
+            }
             list = null
         }
+        fun flushAll() { flushParagraph(); flushQuote(); flushList() }
 
         for (raw in lines) {
-            val line = raw.trimEnd()
-            val trimmed = line.trimStart()
-            val bullet = BULLET.matchEntire(trimmed)
-            val number = NUMBERED.matchEntire(trimmed)
+            val line = raw.trim()
+            val ordered = ORDERED.matchEntire(line)
             when {
-                trimmed.isEmpty() -> { flushParagraph(); closeList() }
-                trimmed.startsWith("### ") -> { flushParagraph(); closeList(); html.append("<h3>").append(inline(trimmed.removePrefix("### ").trim())).append("</h3>") }
-                trimmed.startsWith("## ") || trimmed.startsWith("# ") -> {
-                    flushParagraph(); closeList()
-                    html.append("<h2>").append(inline(trimmed.substringAfter(' ').trim())).append("</h2>")
+                line.isEmpty() -> flushAll()
+                line.startsWith("### ") -> { flushAll(); html.append("<h3>").append(inline(line.removePrefix("### ").trim())).append("</h3>") }
+                line.startsWith("## ") || line.startsWith("# ") -> { flushAll(); html.append("<h2>").append(inline(line.substringAfter(' ').trim())).append("</h2>") }
+                line == ">" || line.startsWith("> ") -> { flushParagraph(); flushList(); quote += line.removePrefix(">").trim() }
+                line.startsWith("- ") || line.startsWith("• ") -> {
+                    flushParagraph(); flushQuote()
+                    if (list?.first != false) { flushList(); list = false to mutableListOf() }
+                    list!!.second += line.drop(2).trim()
                 }
-                bullet != null || number != null -> {
-                    flushParagraph()
-                    val wanted = if (bullet != null) "ul" else "ol"
-                    if (list != wanted) { closeList(); html.append('<').append(wanted).append('>'); list = wanted }
-                    val text = (bullet ?: number)!!.groupValues[1]
-                    html.append("<li><p>").append(inline(text.trim())).append("</p></li>")
+                ordered != null -> {
+                    flushParagraph(); flushQuote()
+                    if (list?.first != true) { flushList(); list = true to mutableListOf() }
+                    list!!.second += ordered.groupValues[1].trim()
                 }
-                else -> { closeList(); paragraph += line.trim() }
+                list != null && raw.startsWith("  ") -> list!!.second[list!!.second.lastIndex] += " $line"
+                else -> { flushQuote(); flushList(); paragraph += line }
             }
         }
-        flushParagraph()
-        closeList()
+        flushAll()
         return html.toString()
     }
 
-    /** Il testo senza segni, per l'anteprima e per la lettura ad alta voce. */
-    fun plain(markup: String): String = markup.lines().joinToString("\n") { line ->
-        val text = line.trimStart().let { trimmed ->
+    /**
+     * Il testo senza segni, riga per riga: per l'anteprima del modulo e per la
+     * lettura ad alta voce. Le voci di elenco puntato cominciano con «• ».
+     */
+    fun plain(markup: String?): String = markup.orEmpty().lines().joinToString("\n") { raw ->
+        val line = raw.trim()
+        val text = when {
+            line.startsWith("### ") -> line.removePrefix("### ")
+            line.startsWith("## ") -> line.removePrefix("## ")
+            line.startsWith("# ") -> line.removePrefix("# ")
+            line.startsWith("> ") -> line.removePrefix("> ")
+            line.startsWith("- ") || line.startsWith("• ") -> "• " + line.drop(2)
+            else -> line
+        }
+        PLAIN_LINK.replace(text, "$1").replace(Regex("\\\\(.)|\\*\\*|__|~~|\\*")) { it.groupValues[1] }
+    }.replace(Regex("\n{3,}"), "\n\n").trim()
+
+    /** Il testo semplice dell'HTML in una riga sola: per le righe di stato («Descrizione: Musica dal vivo…»). */
+    fun summary(html: String?): String =
+        plain(toMarkup(html)).replace(Regex("(?m)^(• |\\d{1,3}\\. )"), "").replace(Regex("\\s+"), " ").trim()
+
+    private val ORDERED = Regex("^\\d{1,3}[.)] (.*)$")
+    private val PLAIN_LINK = Regex("\\[((?:\\\\.|[^\\]\\\\])*)]\\([^)\\s]*\\)")
+
+    /* Grassetto, corsivo, sottolineato, barrato e link dentro una riga. Un segno lasciato aperto si chiude a fine riga. */
+    private fun inline(text: String): String {
+        val out = StringBuilder()
+        val open = ArrayDeque<String>()
+        var i = 0
+        fun toggle(tag: String) {
+            if (open.lastOrNull() == tag) { open.removeLast(); out.append("</$tag>") }
+            else if (tag in open) {
+                /* Chiude in ordine quelli aperti dopo, poi riapre: l'HTML resta ben annidato. */
+                val reopen = mutableListOf<String>()
+                while (open.last() != tag) { val t = open.removeLast(); out.append("</$t>"); reopen += t }
+                open.removeLast(); out.append("</$tag>")
+                reopen.asReversed().forEach { open.addLast(it); out.append("<$it>") }
+            } else { open.addLast(tag); out.append("<$tag>") }
+        }
+        while (i < text.length) {
+            val c = text[i]
             when {
-                trimmed.startsWith("### ") -> trimmed.removePrefix("### ")
-                trimmed.startsWith("## ") -> trimmed.removePrefix("## ")
-                trimmed.startsWith("- ") -> "• " + trimmed.removePrefix("- ")
-                else -> trimmed
+                c == '\\' && i + 1 < text.length && text[i + 1] in ESCAPABLE -> { out.append(escapeHtml(text[i + 1].toString())); i += 2 }
+                /* `***` che chiude corsivo e grassetto insieme: prima il corsivo, aperto per ultimo. */
+                text.startsWith("***", i) && open.lastOrNull() == "em" -> { toggle("em"); i += 1 }
+                text.startsWith("**", i) -> { toggle("strong"); i += 2 }
+                text.startsWith("__", i) -> { toggle("u"); i += 2 }
+                text.startsWith("~~", i) -> { toggle("s"); i += 2 }
+                c == '*' -> { toggle("em"); i += 1 }
+                c == '[' -> {
+                    val link = LINK.matchAt(text, i)
+                    if (link != null && isSafeLink(link.groupValues[2])) {
+                        out.append("<a href=\"").append(escapeHtml(link.groupValues[2])).append("\">").append(inline(link.groupValues[1])).append("</a>")
+                        i += link.value.length
+                    } else { out.append("["); i += 1 }
+                }
+                else -> { out.append(escapeHtml(c.toString())); i += 1 }
             }
         }
-        LINK.replace(text) { it.groupValues[1] }.replace("**", "").replace(Regex("(?<![*\\w])\\*(?!\\s)(.+?)(?<!\\s)\\*")) { it.groupValues[1] }
-    }.trim()
-
-    private fun inline(text: String): String {
-        var html = escape(text)
-        html = LINK_ESCAPED.replace(html) { "<a href=\"${it.groupValues[2]}\">${it.groupValues[1]}</a>" }
-        html = BOLD.replace(html) { "<strong>${it.groupValues[1]}</strong>" }
-        html = ITALIC.replace(html) { "<em>${it.groupValues[1]}</em>" }
-        return html
+        while (open.isNotEmpty()) out.append("</${open.removeLast()}>")
+        return out.toString()
     }
 
-    private fun appendText(out: StringBuilder, text: String) {
-        if (text.isEmpty()) return
-        val decoded = decode(text).replace(Regex("[\\s&&[^\\u00A0]]+"), " ").replace('\u00A0', ' ')
-        if (decoded.isBlank() && (out.isEmpty() || out.endsWith("\n") || out.endsWith(" "))) return
-        out.append(if (out.isEmpty() || out.endsWith("\n")) decoded.trimStart() else decoded)
+    private val LINK = Regex("\\[((?:\\\\.|[^\\]\\\\])*)]\\(([^)\\s]+)\\)")
+
+    internal fun isSafeLink(href: String): Boolean {
+        val lower = href.trim().lowercase()
+        return lower.startsWith("https://") || lower.startsWith("http://") || lower.startsWith("mailto:")
     }
 
-    private fun escape(text: String): String = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;")
+    private fun escapeText(text: String): String = buildString { text.forEach { if (it in INLINE_MARKS) append('\\'); append(it) } }
 
-    private fun decode(text: String): String = ENTITY.replace(text) { match ->
-        val entity = match.groupValues[1]
+    /* «# », «> », «- », «• » e «1. » a inizio riga: con `\` davanti restano testo. */
+    private fun escapeLineStart(text: String): String {
+        if (text.isEmpty()) return text
+        if (text[0] in "#>" || text.startsWith("- ") || text.startsWith("• ")) return "\\" + text
+        return LINE_NUMBER.find(text)?.let { text.substring(0, it.range.last) + "\\" + text.substring(it.range.last) } ?: text
+    }
+
+    private val LINE_NUMBER = Regex("^\\d{1,3}[.)](?= )")
+
+    private fun escapeHtml(text: String): String = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;")
+
+    private fun decodeEntities(text: String): String = ENTITY.replace(text) { match ->
+        val name = match.groupValues[1]
         when {
-            entity.startsWith("#x") || entity.startsWith("#X") -> entity.drop(2).toIntOrNull(16)?.let { String(Character.toChars(it)) } ?: match.value
-            entity.startsWith("#") -> entity.drop(1).toIntOrNull()?.let { String(Character.toChars(it)) } ?: match.value
-            else -> NAMED[entity] ?: match.value
-        }
+            name.startsWith("#x") || name.startsWith("#X") -> name.drop(2).toIntOrNull(16)?.let { String(Character.toChars(it)) }
+            name.startsWith("#") -> name.drop(1).toIntOrNull()?.let { String(Character.toChars(it)) }
+            else -> NAMED[name]
+        } ?: match.value
     }
 
-    private class ListState(val ordered: Boolean, var count: Int = 0)
-
-    private val TAG = Regex("<(/?)([a-zA-Z0-9]+)([^>]*)>")
-    private val HREF = Regex("href\\s*=\\s*([\"'])(.*?)\\1", RegexOption.IGNORE_CASE)
-    private val ENTITY = Regex("&(#?[a-zA-Z0-9]+);")
-    private val BULLET = Regex("^[-•]\\s+(.*)$")
-    private val NUMBERED = Regex("^\\d+[.)]\\s+(.*)$")
-    private val LINK = Regex("\\[([^\\]]+)]\\((https?://[^)\\s]+)\\)")
-    private val LINK_ESCAPED = Regex("\\[([^\\]]+)]\\((https?://[^)\\s]+)\\)")
-    private val BOLD = Regex("\\*\\*(.+?)\\*\\*")
-    private val ITALIC = Regex("(?<![*\\w])\\*(?![\\s*])(.+?)(?<![\\s*])\\*(?![*\\w])")
+    private val ENTITY = Regex("&(#[0-9]{1,7}|#[xX][0-9a-fA-F]{1,6}|[a-zA-Z]{2,8});")
     private val NAMED = mapOf(
-        "amp" to "&", "lt" to "<", "gt" to ">", "quot" to "\"", "apos" to "'", "nbsp" to "\u00A0",
+        "amp" to "&", "lt" to "<", "gt" to ">", "quot" to "\"", "apos" to "'", "nbsp" to " ", "laquo" to "«", "raquo" to "»",
         "rsquo" to "’", "lsquo" to "‘", "rdquo" to "”", "ldquo" to "“", "hellip" to "…", "ndash" to "–", "mdash" to "—",
         "egrave" to "è", "eacute" to "é", "agrave" to "à", "ograve" to "ò", "ugrave" to "ù", "igrave" to "ì", "euro" to "€",
     )
+
+    private class ListContext(val ordered: Boolean) { var count = 0 }
+
+    private sealed interface Token {
+        data class Text(val text: String) : Token
+        data class Open(val name: String, val href: String?) : Token
+        data class Close(val name: String) : Token
+    }
+
+    private val TAG = Regex("<(/?)([a-zA-Z][a-zA-Z0-9]*)([^>]*)>")
+    private val HREF = Regex("href\\s*=\\s*(\"([^\"]*)\"|'([^']*)')", RegexOption.IGNORE_CASE)
+
+    private fun tokenize(html: String): List<Token> {
+        val tokens = mutableListOf<Token>()
+        var last = 0
+        val source = html.replace(Regex("<!--.*?-->", RegexOption.DOT_MATCHES_ALL), "")
+        for (match in TAG.findAll(source)) {
+            if (match.range.first > last) tokens += Token.Text(source.substring(last, match.range.first))
+            val name = match.groupValues[2].lowercase()
+            if (match.groupValues[1] == "/") tokens += Token.Close(name)
+            else {
+                val href = HREF.find(match.groupValues[3])?.let { decodeEntities(it.groupValues[2].ifEmpty { it.groupValues[3] }) }
+                tokens += Token.Open(name, href)
+            }
+            last = match.range.last + 1
+        }
+        if (last < source.length) tokens += Token.Text(source.substring(last))
+        return tokens
+    }
 }
